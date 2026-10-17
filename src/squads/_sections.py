@@ -92,6 +92,37 @@ def has_section(text: str, tag: str) -> bool:
     return markers.open_marker(tag) in text and markers.close_marker(tag) in text
 
 
+def with_discussion_region(text: str) -> str:
+    """*text* with an empty top-level ``## Discussion`` region after its body region.
+
+    The region goes on the line after the body region's end marker, in the file's own line
+    ending, and nothing else changes. A text that already has the region, or has no body
+    region to follow, comes back as it was.
+    """
+    if has_section(text, markers.DISCUSSION):
+        return text
+    close = markers.close_marker(markers.BODY)
+    at = text.find(close)
+    if at == -1:
+        return text
+    end = at + len(close)
+    if text.startswith("\r\n", end):
+        eol = "\r\n"
+    elif text.startswith("\n", end):
+        eol = "\n"
+    else:
+        eol = "\r\n" if "\r\n" in text else "\n"
+    region = (
+        f"{eol}## Discussion{eol}{eol}"
+        f"{markers.open_marker(markers.DISCUSSION)}{eol}"
+        f"{markers.close_marker(markers.DISCUSSION)}{eol}"
+    )
+    if text.startswith(eol, end):
+        end += len(eol)
+        return text[:end] + region + text[end:]
+    return text[:end] + eol + region + text[end:]
+
+
 def find_markers(text: str) -> list[str]:
     """All sq marker tags present (open and close), in file order, for lint/repair.
 

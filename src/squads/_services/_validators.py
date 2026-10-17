@@ -948,7 +948,7 @@ def _item_skill_shadowed(ctx: ValidatorContext) -> list[CheckIssue]:
     if not prose:
         return []
     level = _resolved_level(ctx, "item_skill_shadowed")
-    clear_cmd = views.clear_roster_body_cmd(ROSTER_SKILL, slug, None, ctx.spec)
+    clear_cmd = views.clear_roster_body_cmd(ROSTER_SKILL, slug)
     remedy = (
         f"move the prose first (`sq skill add <new-slug>`); take the type out of the active "
         f"spec (drop it from `[selected]`, or remove a project type's own declaration); clear "
@@ -1436,7 +1436,7 @@ def _slug_breach_remedy(
     if breach.kind == "operator":
         name = breach.item.title
         text = (
-            f'sq operator {breach.item.id} rm --purge, then sq operator add "{name}" '
+            f'sq operator {breach.item.id} remove --purge, then sq operator add "{name}" '
             "--slug <compliant slug>"
         )
         if breach.item.status not in live:
@@ -1445,11 +1445,11 @@ def _slug_breach_remedy(
     if breach.kind == "skill":
         return (
             "add the skill again under another name with sq skill add, "
-            f"then sq skill {breach.item.id} rm --purge"
+            f"then sq skill {breach.item.id} remove --purge"
         )
     return (
         "rename the project role file to a compliant slug, run sq role activate <slug>, "
-        f"then sq role {breach.item.id} rm --purge"
+        f"then sq role {breach.item.id} remove --purge"
     )
 
 

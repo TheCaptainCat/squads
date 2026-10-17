@@ -86,7 +86,36 @@ async def test_role_view_undeclared_names_the_view_not_sync(svc, invoke) -> None
     assert "role_definition" in r.output
     assert "not declared" in r.output
     assert "sq role reviewer view disable role_definition" in _collapsed(r.output)
+    assert "sq role reviewer body" in _collapsed(r.output)
     assert "<slug>" not in _collapsed(r.output)
+
+
+async def test_role_view_undeclared_and_disabled_names_the_body_verb_not_view_add(
+    svc, invoke
+) -> None:
+    role = await svc.activate_role("reviewer")
+    _disable_view_tag(svc, role, "role_definition")
+    _write_override(svc.paths.squad_dir, _DROP_ROLE_DEFINITION)
+
+    r = await invoke(["role", "reviewer", "show", "--raw"])
+
+    assert r.exit_code == 0, r.output
+    assert "not declared" in r.output
+    assert "sq role reviewer body" in _collapsed(r.output)
+    assert "view add" not in r.output
+
+
+async def test_operator_empty_body_names_the_body_verb(svc, invoke) -> None:
+    assert (await invoke(["operator", "add", "Dan Doe"])).exit_code == 0
+    operator = await svc.roster_item("operator", "op-dan")
+    assert operator is not None
+    _empty_body(svc, operator)
+
+    r = await invoke(["operator", "op-dan", "show", "--raw"])
+
+    assert r.exit_code == 0, r.output
+    assert "sq operator op-dan body" in _collapsed(r.output)
+    assert "sq sync" not in r.output
 
 
 async def test_role_view_disabled_names_the_real_role_in_the_re_enable_command(svc, invoke) -> None:

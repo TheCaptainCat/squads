@@ -3,7 +3,7 @@ id: TASK-1079
 sequence_id: 1079
 type: task
 title: 'Address comments by short hash: show, edit and remove'
-status: Draft
+status: Ready
 parent: FEAT-1017
 author: tech-lead
 priority: medium
@@ -75,7 +75,7 @@ subentities:
   assignee: architect
   story: US11
 created_at: '2026-10-16T21:12:16Z'
-updated_at: '2026-10-16T21:15:59Z'
+updated_at: '2026-10-17T00:56:32Z'
 ---
 <!-- sq:body -->
 ## Scope

@@ -3,7 +3,7 @@ id: TASK-1070
 sequence_id: 1070
 type: task
 title: Give skills, roles and operators the item verbs
-status: Ready
+status: Done
 parent: FEAT-977
 author: tech-lead
 priority: high
@@ -16,33 +16,33 @@ description: update, comment, comments and remove (rm alias) on roster entities,
 subentities:
 - local_id: ST1
   title: Register remove on skills, roles and operators, with rm as its alias
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST2
   title: Give every skill a discussion region, in the template and through a 0.16
     contribution
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST3
   title: Add comment and comments to skills, roles and operators
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST4
   title: Make the system-entry gate refuse update by field, with a declared exemption
     set
-  status: Todo
+  status: Done
   story: US4
 - local_id: ST5
   title: Add update for display fields on skills, roles and operators
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST6
   title: Rewrite the docs passages that deny a roster update verb
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US3
 created_at: '2026-10-16T19:52:27Z'
-updated_at: '2026-10-16T22:48:25Z'
+updated_at: '2026-10-17T00:17:38Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -191,6 +191,8 @@ operator post-step: the managed `CLAUDE.md` row for the operator goes red. Resto
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-16T22:56:41Z] Elias Python:
+  - Falsification, new tests red when reverted: operator post-step dropped 2 red; rm left unhidden 3 red; remove not registered 51 red. Table: 12 roster shapes x remove|rm x bare|purge plus byte-identical-tree and help tests (75 cells), in tests/cli/test_roster_remove_and_rm_are_one_command_cli.py on the shared every-shape squad tests/_roster_squad.py. Refusal text still names rm --purge (same messages, pinned by existing tests).
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -240,6 +242,9 @@ invariant go red. Normalise line endings: the CRLF row goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-16T23:02:27Z] Elias Python:
+  - The skill template already had the region; the gap was the seeded system skills (backend seed wrote a body only) and existing squads. Fix: sections.with_discussion_region (pure, keeps line endings, no-op when present), used by the backend seed and by a skill-discussion contribution appended after origin; flatten and origin writers apply it in their own write so no file is written twice. No template or manifest change.
+  - Falsification, new tests red when reverted: append when present 14; normalise eol 3; flatten/origin writers not applying it 1 (write-once guard error); backend seed without region 8; POSTCONDITIONS row mismatch 1. Fixture v0_16 and migrated_corpus goldens regenerated; diff is only the region lines (heading, blank lines, two markers) on each skill.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -283,6 +288,10 @@ go red. Write the header without the slug: the header-pattern column goes red. R
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-10-16T23:10:45Z] Elias Python:
+  - comment and comments are one pair of verbs registered by common.register_comment_verbs on work items and on the skill, role and operator subgroups (the item bodies were moved there, not copied). No gate call.
+  - Falsification, new tests red when reverted: comment routed through the gate 16; header without the slug 24; --as optional 12. Table: 12 shapes x (-m | --file) with header, outside-region bytes, comments --json author_slug, plain comments, inbox; 12 no---as; 12 empty comments.
+  - Not done: roster show has no --comments option, so the task table column show --comments is not covered; say if it should be added. A retired role or operator takes comments but its mention stays out of sq inbox (terminal status, as for items).
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 
@@ -329,6 +338,12 @@ Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-10-16T23:30:42Z] Elias Python:
+  - The gate takes the set of fields an update changes (title, description, and the attributes the bundled spec declares for the type) and passes only when all are in ROSTER_UPDATE_EXEMPT (role: title; skill: none), a frozen mapping. A project-declared attribute is never in the set, so it stays writable; a combined call is refused whole. No second classifier; --force does not reach it.
+  - Falsification, tests red when reverted: every field exempt 11; any-exempt instead of all-exempt 
+    4; all attributes gated (old rule) 5. New rows in the existing shape x verb table: project attribute alone (allowed), project plus pinned (refused), title plus description (refused), plus an exact-set test.
+- [2026-10-16T23:30:48Z] Elias Python:
+  - Correction: any-exempt instead of all-exempt turned 3 tests red, not 4.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 
@@ -375,6 +390,9 @@ each.
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
+- [2026-10-16T23:47:32Z] Elias Python:
+  - update on skill (--title --desc --when-to-use), role (--title, the name) and operator (--title). No --slug, no --set; no option exits 1 "nothing to update (pass at least one of ...)". Slug, file, id and .claude file set unchanged; role pointer, managed CLAUDE.md and skill pointer follow the new value. update re-renders a body still at its unwritten scaffold (roster types), keeps a written one. A retired role or skill no longer gets its pointer regenerated by an update.
+  - Falsification, tests red when reverted: operator managed refresh dropped 1; rescaffold off 1; retired regen back 1; rescaffold over a written body 1. Table: 7 shapes x option (35 cells) plus no-option, no --slug/--set, sync fixed point and repair, bundled-role rename vs override name, system skill refused naming the playbook.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
 
@@ -416,4 +434,17 @@ skills and operators have no `update` verb or send renames through `sq import`.
 <!-- sq:discussion -->
 - [2026-10-16T21:17:00Z] Catherine Manager:
   - ST5 addition (FEAT-1054 decision, 2026-10-16): update re-renders a body that is still unwritten, so a rename never makes the seeded template count as written. No stored flag.
+- [2026-10-16T22:59:32Z] Catherine Manager:
+  - Scope addition (2026-10-17, from the writer's TASK-1069 docs pass): the refusal gate covers only what role or skill config supplies, as ruled on REV-1082 F5. A project-declared attribute on role or skill (one no override file can hold) stays writable through update --set/--unset; only the pinned roster attributes are refused. Add rows for it.
+- [2026-10-16T23:47:34Z] Elias Python:
+  - Adopter-visible facts for ST6: (1) new verbs on skill, role, operator: update, comment, comments, remove (rm is a hidden alias; same flags and exit codes); show --comments on all three. (2) update options: skill --title --desc --when-to-use; role --title (its name, any role including bundled; stays after sync and an override full_name change); operator --title. No slug option, no --set. (3) System skills and generated-body roles: update of description or a bundled attribute is refused naming the authoring surface; a role title passes; a project-declared attribute stays writable through sq import update; status, rm/remove and comment stay allowed. (4) Refusal and check remedies now say remove --purge. (5) Every skill file has a ## Discussion region; the 0.16 migration adds it (new "Every skill has a discussion" MANUAL step, summary clause). (6) Group help and missing-verb errors list the registered verbs. (7) update on an unwritten skill body re-renders the seeded text for the new title/description.
+- [2026-10-17T00:01:07Z] Theo Writer:
+  - ST6 docs written, not committed. Probed on an export of ce271d3c in scratch squads. @manager
+    
+    - docs/roles.md: new section "Updating and commenting on roles, skills and operators" (update options per entry, slug unchanged, scaffold re-render, the no-option error, comments, discussion region); the command blocks now show update, comment and `remove`; the refusal section covers `sq skill update` and only the attributes the bundled spec declares.
+    - overrides.md: the attributes passage, the "Renaming an active role" section (now `update --title`, no sync step), the name-precedence pointer and the custom-role-key FAQ (writable through `sq import`). stability.md: item-first grammar, `rm` as a hidden alias, the slug rule (`'slug' is not a settable field`), display names, the role-name note. migration.md: an "Every skill has a discussion" part with its report line. README verb lists. `rm --purge` is `remove --purge` everywhere in docs.
+    - CHANGELOG: an Added entry for the verbs and the discussion region; the role-rename instruction, the `remove --purge` message and the generated-entry refusal entry corrected.
+    - Driven: every update option and refusal, the no-option error, the identity triple, the pointer and CLAUDE.md rename, the scaffold re-render and written-body keep, comments on all three plus a system skill and role, `--json`, inbox, show --comments, remove/rm, a project attribute through import, a combined refused event, and the migration count.
+    - Documented as the final behaviour per the coordinator, not driven on this build (fixes pending): an update with only `--when-to-use` re-renders the scaffold; `slug` on a role import answers "not a settable field" (driven on a skill); the single-option message `nothing to update (pass --title)`.
+    - The rg sweep (`no .?update.? verb`, rename through `sq import`) finds nothing left in docs, README or CHANGELOG.
 <!-- sq:discussion:end -->

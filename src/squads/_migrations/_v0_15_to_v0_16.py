@@ -47,7 +47,7 @@ from squads._models._item import Item, slug_from_stem
 from squads._models._participants import roster_slug_breaches
 from squads._roles._loader import load_role_catalog
 from squads._roles._resolver import resolve_role_with_base
-from squads._sections import find_markers, replace_frontmatter
+from squads._sections import find_markers, has_section, replace_frontmatter, with_discussion_region
 from squads._workflow._models import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, ROSTER_TYPES
 
 # --------------------------------------------------------------------------- contributions
@@ -641,6 +641,12 @@ def _origin_of(ctx: MigrationContext, flat: dict[str, Any], file_slug: str) -> s
     return role_origin(slug, templated=bool(flat.get(AttributeKey.TECH)))
 
 
+def _skill_text(text: str, item_type: object) -> str:
+    """*text* as a skill file is left by this step: with its discussion region. Every writer
+    that rewrites a skill file ends with this, so the file is written once."""
+    return with_discussion_region(text) if item_type == ROSTER_SKILL else text
+
+
 async def _write_flat(ctx: MigrationContext, tally: _FlatTally, default_kind: str) -> int:
     """Rewrite each planned file's frontmatter, re-read at write time so it composes with the
     comment-header writer on the same file. A role or skill file is stamped with its origin in
@@ -655,7 +661,9 @@ async def _write_flat(ctx: MigrationContext, tally: _FlatTally, default_kind: st
         data = dict(flat.data)
         if (origin := _origin_of(ctx, data, tally.slugs[rel])) is not None:
             data[AttributeKey.ORIGIN] = origin
-        await write_text(path, replace_frontmatter(text, data, source=rel))
+        await write_text(
+            path, _skill_text(replace_frontmatter(text, data, source=rel), data.get("type"))
+        )
     return len(tally.files)
 
 
@@ -738,7 +746,7 @@ make them editable by whoever holds it.
 What to do for each, with the release the squad is stamped for, before running `sq migrate up`
 again:
 
-- **An operator.** Run `sq operator <id> rm --purge`, using the ID in the line, then
+- **An operator.** Run `sq operator <id> remove --purge`, using the ID in the line, then
   `sq operator add "<the same full name>"`, which takes `op-` and the first name unless you pass
   a compliant `--slug`. The purge is required: a plain `rm` drops the entry from the index but
   keeps its file, and the next run reads that file again. The comments that named the operator
@@ -747,7 +755,7 @@ again:
   `sq check` reports it as not registered.
 - **A role.** Give the role's project definition a compliant slug (the file under
   `<squad folder>/.overrides/roles/`, renamed, and its `slug` line with it), run
-  `sq role activate <new slug>`, then `sq role <id> rm --purge` for the old entry.
+  `sq role activate <new slug>`, then `sq role <id> remove --purge` for the old entry.
 - **A slug held by two entries.** Both entries are listed, each naming the other. Replace the one
   that breaks a rule above, or the one you can spare, the same way.
 """
@@ -906,7 +914,9 @@ async def _plan_origin(ctx: MigrationContext, db: SquadsDB) -> Planned:
             text = (await _aio.read_bytes(path)).decode("utf-8")
             front = read_frontmatter(text=text, source=rel)
             front[AttributeKey.ORIGIN] = origin
-            await write_text(path, replace_frontmatter(text, front, source=rel))
+            await write_text(
+                path, _skill_text(replace_frontmatter(text, front, source=rel), front.get("type"))
+            )
         return len(stamps)
 
     report = tuple(
@@ -927,6 +937,46 @@ skill the bundled catalog or the spec's generated skills name is `system`, and s
 developer (a role that stores `tech`); everything else, a declared developer included, is
 `project`. A bundled role the project overrides stays `system`. A file that already stores an
 `origin` is left as it is, so a second run changes nothing.
+"""
+
+
+# --------------------------------------------------------------------------- skill discussion
+
+
+async def _plan_skill_discussion(ctx: MigrationContext, db: SquadsDB) -> Planned:
+    """Give every skill file that lacks one a top-level discussion region. A file the flatten or
+    origin writer rewrites gets the region in that same write; the rest are written here, each
+    re-read at write time, and a file that has the region by then is left alone."""
+    lacking: list[str] = []
+    for it in sorted(db.items.values(), key=lambda i: i.sequence_id):
+        if it.type != ROSTER_SKILL:
+            continue
+        text = (await _aio.read_bytes(ctx.paths.abspath(it.path))).decode("utf-8")
+        if with_discussion_region(text) != text:
+            lacking.append(it.path)
+
+    async def write(wctx: MigrationContext) -> int:
+        written = 0
+        for rel in lacking:
+            path = wctx.paths.abspath(rel)
+            text = (await _aio.read_bytes(path)).decode("utf-8")
+            if has_section(text, markers.DISCUSSION):
+                continue
+            await write_text(path, with_discussion_region(text))
+            written += 1
+        return written
+
+    report = (f"{len(lacking)} skill(s) given a discussion region",) if lacking else ()
+    return Planned(report=report, write=write if lacking else None)
+
+
+_DISCUSSION_MANUAL = """\
+### Every skill has a discussion
+
+Each skill file now carries a `## Discussion` heading and an empty discussion region after its
+body region, as role and operator files do, so a skill takes comments. `sq migrate up` appends
+them to every skill file that has none, byte for byte and in the file's own line endings, and
+leaves a file that already has one as it is, so a second run changes nothing.
 """
 
 
@@ -957,6 +1007,12 @@ CONTRIBUTIONS: tuple[Contribution, ...] = (
         plan=_plan_origin,
         manual=_ORIGIN_MANUAL,
         summary="Every role and skill records whether it is system or project.",
+    ),
+    Contribution(
+        name="skill-discussion",
+        plan=_plan_skill_discussion,
+        manual=_DISCUSSION_MANUAL,
+        summary="Every skill file has a discussion region.",
     ),
 )
 

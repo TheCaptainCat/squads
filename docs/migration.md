@@ -291,7 +291,7 @@ The squad is still at schema v0.15: fix the cause, then re-run `sq migrate up`, 
 What each line means, and what to do before running `sq migrate up` again:
 
 - **`'<name>' matches no roster entry`.** The role or operator that wrote those comments is no
-  longer in the squad, usually because it was removed with `rm --purge`. Add it back under that
+  longer in the squad, usually because it was removed with `remove --purge`. Add it back under that
   name with the earlier release: `sq role activate <slug> --name "<name>"` for a role (`sq role
   catalog` lists the slugs), `sq dev add --tech <tech> --name "<name>"` for a developer role, and
   `sq operator add "<name>" --slug <old-slug>` for an operator (`--slug` keeps the slug its items
@@ -348,7 +348,7 @@ make them editable by whoever holds it.
 What to do for each, with the release the squad is stamped for, before running `sq migrate up`
 again:
 
-- **An operator.** Run `sq operator <id> rm --purge`, using the ID in the line, then
+- **An operator.** Run `sq operator <id> remove --purge`, using the ID in the line, then
   `sq operator add "<the same full name>"`, which takes `op-` and the first name unless you pass a
   compliant `--slug`. The purge is required: with that release a plain `rm` drops the entry from
   the index but keeps its file, and the next run reads that file again. The comments that named the
@@ -357,7 +357,7 @@ again:
   `sq check` reports it as not registered.
 - **A role.** Give the role's project definition a compliant slug (the file under
   `<squad folder>/.overrides/roles/`, renamed, and its `slug` line with it), run
-  `sq role activate <new slug>`, then `sq role <id> rm --purge` for the old entry.
+  `sq role activate <new slug>`, then `sq role <id> remove --purge` for the old entry.
 - **A slug held by two entries.** Both entries are listed, each naming the other. Replace the one
   that breaks a rule above, or the one you can spare, the same way.
 
@@ -507,6 +507,44 @@ ordinary role.
 - **`is_dev` is gone** from role item rows (`sq list -t role --json`, `show --json`) and from the
   `role` type's declared attributes. A script that tested it reads `capabilities` from
   `sq role list --json` or `sq role <slug> show --json` instead.
+
+### Every role and skill records its origin
+
+The `origin` part of the step stores `origin: system` or `origin: project` on each role and skill
+file that stores none, by the rule in
+[roles.md § "Where a role or skill comes from"](roles.md#where-a-role-or-skill-comes-from-origin),
+and changes no other key. A bundled role you override and a developer added with `sq dev add` are
+`system`; a developer declared by its own role file is `project`. A file that already stores an
+`origin`, whatever its value, is left as it is, so a second run changes nothing. The run reports
+how many of each it stamped:
+
+```
+    9 role(s) stamped origin system
+    12 skill(s) stamped origin system
+    1 skill(s) stamped origin project
+```
+
+**After the upgrade:**
+
+- **A script that read the skill `system` flag reads `origin`.** `sq skill <slug> show --json`
+  carries `origin` (`system` or `project`) and no `system` key; the text card shows an `origin:`
+  row. In `sq role catalog --json`, `origin` is `system` where it was `bundled`.
+- **Some writes on a role or a generated skill are refused.** Setting a description or an
+  attribute, a skill's title, a body, `view disable`, and `view add` of another view's tag are
+  refused while the entry's view is declared; edit the role override or the playbook instead. See
+  [roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses).
+
+### Every skill has a discussion
+
+Each skill file carries a `## Discussion` heading and an empty discussion region after its body
+region, as role and operator files do, so a skill takes comments (`sq skill <slug> comment`). The
+`skill-discussion` part of the step appends them to every skill file that has none, in the file's
+own line endings, and changes nothing else in it. A file that already has one is left as it is,
+so a second run changes nothing. The run reports how many skills it changed:
+
+```
+    12 skill(s) given a discussion region
+```
 
 ---
 
@@ -709,13 +747,18 @@ that is what is missing:
 error MILE-000021-ship-1-0.md: missing seeded view tag <!-- sq:view:milestone_rollup --> — restore it with `sq milestone 21 view add milestone_rollup`, or disable it with `sq milestone 21 view disable milestone_rollup`
 ```
 
-**A role or skill that still holds old generated text.** A role or skill body refuses prose, so
-its old text cannot be edited away in place, and `view add` alone would render the old text and the live
-definition together. `sq check` names the remedy in full, filled in for the document:
+**A role or skill that still holds old generated text.** A role or generated-skill body refuses
+writes while its view is declared, so its old text cannot be edited away in place, and `view add`
+alone would render the old text and the live definition together. For a skill, `sq check` names
+the remedy in full, filled in for the document:
 
 ```
-error ROLE-000001-dev-agent.md: missing seeded view tag <!-- sq:view:role_definition --> — the body already carries prose; the remedy that converges to a single live rendering: (1) drop 'role_definition' from [selected] in .overrides/workflow.toml; (2) clear the text with `echo '{"op": "body", "target": "ROLE-1", "body": "", "force": true, "as": "dev-agent"}' | sq import -`; (3) restore 'role_definition' to [selected]; (4) `sq role dev-agent view add role_definition`
+error SKILL-000009-greeting.md: missing seeded view tag <!-- sq:view:greeting_skill --> — the body already carries prose; the remedy that converges to a single live rendering: (1) drop 'greeting_skill' from [selected] in .overrides/workflow.toml; (2) clear the text with `sq skill greeting body -m "" --force`; (3) restore 'greeting_skill' to [selected]; (4) `sq skill greeting view add greeting_skill`
 ```
+
+A role body may hold prose, so `sq check` accepts a role left holding old text, and `show` prints
+that text in place of the live definition. The same four steps replace it, with
+`role_definition` as the view.
 
 1. Drop the view from `[selected]` in `.overrides/workflow.toml`, listing every view you keep:
 
@@ -724,16 +767,15 @@ error ROLE-000001-dev-agent.md: missing seeded view tag <!-- sq:view:role_defini
    views = ["milestone_rollup", "squads_skill", "greeting_skill", "memory_skill", "item_skill"]
    ```
 
-2. Clear the body. A skill takes `sq skill greeting body -m "" --force`. A role has no `body`
-   verb, so pipe a one-event import to `sq import -`, as the error shows. Marker-shaped content
-   is cleared along with the rest.
+2. Clear the body: `sq skill greeting body -m "" --force`, or `sq role dev-agent body -m ""
+   --force` for a role. Marker-shaped content is cleared along with the rest.
 3. Put the view back in `[selected]` (or delete the `[selected]` table if it lists every view).
 4. Run `sq role dev-agent view add role_definition`, or `sq skill <slug> view add <name>` for a
    skill.
 
 The document then renders only its live definition, and `sq check` is clean for it.
-`view disable` is not a substitute: the document would then render the old text alone, and
-only these four steps remove it.
+`view disable` is refused on a role or a generated skill, so only these four steps remove the old
+text.
 
 **An `sq-<type>` skill you wrote yourself.** A custom skill whose slug a type declared later
 now names, such as `sq-widget` once you declare `widget`, keeps its text, and `sq check` names

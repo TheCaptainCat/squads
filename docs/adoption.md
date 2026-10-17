@@ -149,9 +149,15 @@ sq import history.jsonl --dry-run
 missing parent, …), the whole file is rejected with a line-numbered error report. Fix the file
 and re-run — there is nothing to recover because nothing was written.
 
-**Recovering from a mid-apply I/O failure.** A rare I/O crash mid-apply can leave some item
-files written but the index commit uncommitted, leaving the index out of sync. If an import
-command fails partway through:
+**A refusal while the file is applied writes nothing either.** Some refusals come only once an
+event is applied, such as a `body` event without `"force": true` on an item whose body is already
+written. The import then stops with that error and leaves every item file and the index as they
+were: no item is created, written or renamed.
+
+**Recovering from a crash while the files are written.** An import writes its item files at the
+end, then commits the index. If the process is killed, or the disk fails, between those writes,
+some item files can be on disk with the index uncommitted, leaving the index out of sync. If that
+happens:
 
 1. Run `sq repair` immediately:
    ```bash
@@ -206,9 +212,10 @@ defined yourself has its `.overrides/roles/<slug>.toml`. On a corpus that carrie
 `sq repair` can touch every file you just imported.
 
 **No body that carries prose is touched** — a role or skill body with content in it is left as it
-is, and a skill you added yourself is never touched, empty or not. A role or generated-skill body
-left holding prose fails `sq check` with a missing seeded view tag error, whose message gives the
-steps that restore the rendered definition. Neither is any other item's
+is, and a skill you added yourself is never touched, empty or not. A role body left holding prose
+is accepted, and `show` prints the prose in place of the rendered definition; a generated-skill
+body left holding prose fails `sq check` with a missing seeded view tag error, whose message gives
+the steps that restore the rendered definition. Neither is any other item's
 body, any sub-entity's body or discussion, any operator item, or any frontmatter field on anything
 that is not a role.
 

@@ -457,12 +457,14 @@ review_due = { kind = "date", required = true }
   `error INC-<n>: missing required attribute 'review_due'`. It never makes an item unreadable, so
   adding it to a type with existing items only produces reports.
 - `settable` (default `true`): whether `sq <type> <n> update --set` and an `update` event of
-  `sq import` write it. A key a dedicated command owns is declared `settable = false`. Roles,
-  skills and operators have no `update` verb, so their attributes are set through `sq import`.
-  A role's definition still comes from the role catalog and its overrides, not from its stored
-  attributes: a bundled or project role's `model` is set in `.overrides/roles/<slug>.toml` or
-  `roles.toml`, and a `model` stored on the role is not read. A developer's `model` is the
-  exception: the stored value is the one it runs on.
+  `sq import` write it. A key a dedicated command owns is declared `settable = false`. The
+  `update` verb of a role, skill or operator takes no `--set`, so their attributes are set with an
+  `update` event of `sq import`. On a role and on a generated skill, that event is refused for an
+  attribute the bundled spec declares, and accepted for one your override declares (see
+  [roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses)).
+  A role's definition comes from the role catalog and its overrides: its `model`, a developer's
+  included, is set in `.overrides/roles/<slug>.toml` or `roles.toml`, and `sq sync` writes a
+  developer's onto its role item, the value it runs on.
 
 `sq workflow types --json` lists each type's attributes with their `kind`, `required` and
 `settable`. The bundled spec declares `target_date` on `milestone`, `target_ref` on `review`,
@@ -632,41 +634,55 @@ printed. Either name takes a level; what `@error` changes for each, and what it 
 under "Levels" below.
 
 **The work-policy checks.** Eight more checks hold an item to a team's habits about the work it
-tracks. Each reports at `warn` unless you name a level:
+tracks. The bundled spec selects none of them, so a squad that names none sees no finding from
+them, and nothing needs migrating. Each reports at `warn` unless you name a level, and each applies
+to `work` and `records` types only.
 
-| Check | Reports an item when | Parameter |
-|---|---|---|
-| `item_title_max` | its title is longer than the threshold | required: `item_title_max:<n>` |
-| `external_id_not_in_title` | its title matches your pattern, such as a tracker id | required: `external_id_not_in_title:<regex>` |
-| `description_present` | its summary (`--desc`) is empty | none |
-| `assignee_present` | it rests in a live status with nobody assigned | none |
-| `body_written` | its body is still the scaffold its template rendered | none |
-| `settled_requires_discussion` | it rests in a settled status and its own discussion holds no comment | none |
-| `ref_rule_target_typed` | an edge whose kind has a typed `ref_rules` entry on the type points at another type | none |
-| `blocked_has_blocker` | it rests in a status whose role carries the `blocked` flag (`sq workflow roles --json`; in the bundled spec, the `blocked` role) and no dependency edge touches it, in either direction | none |
+Two are about titles:
 
-"Live" and "settled" are the status role's flags (`sq workflow roles`), never a status name. A
-comment on one of the item's stories, subtasks or findings does not count for
-`settled_requires_discussion`. And `ref_rule_target_typed` reads only the rules that declare a
-`target`: the bundled feature's `implements` rule is one, so an `implements` edge from a feature
-to a bug is reported. `blocked_has_blocker` matches a ref kind by its `dependency` role, never by
-its name, and counts an edge whatever the state of the item at its other end:
+- **`item_title_max:<n>`**, for a team that keeps titles to a one-line handle. It reports an item
+  whose title is longer than `n` characters. Characters are counted after Unicode normalisation
+  (NFC): an accented letter typed as two code points counts as one, while an emoji sequence joined
+  by zero-width joiners counts as several. A retitle to `n` characters or fewer clears it.
+- **`external_id_not_in_title:<regex>`**, for a team that keeps tracker ids out of titles. It
+  reports an item whose title matches your regular expression anywhere, and names the first match.
+  A retitle that no longer matches clears it. Read the warning about the pattern below before you
+  write one.
 
-```
-warn TASK-<n>: status is Blocked but no dependency edge is recorded (kinds: blocks, depends-on) — record a dependency edge (`--ref <id>:<kind>` on create, `ref add` after)
-```
+Two are about content:
 
-The two with a required parameter are refused bare, the same way `ref_rule_target_present` is:
+- **`body_written`**, for a team that wants every item described. It reports an item whose body is
+  still the scaffold its template rendered. Writing the body clears it.
+- **`description_present`**, for a team that reads the summary in listings. It reports an item
+  whose summary (`--desc`) is empty or whitespace only. `update --desc` clears it.
 
-```
-item 'feature': validators entry 'item_title_max' is missing its required parameter — name it as
-'item_title_max:<n>', or drop the validator; without a parameter it never fires
-```
+Two are about status:
 
-A pattern cannot contain a literal `@`, because `@` starts the level. Write it as `\x40` inside a
-single-quoted TOML string, which keeps the backslash: `'external_id_not_in_title:me\x40corp'`.
-These checks apply to `work` and `records` types only. Naming one on `role`, `skill` or `operator` is
-refused at load.
+- **`assignee_present`**, for a team where work under way always has an owner. It reports an item
+  resting at a status whose role declares `live = true` with nobody assigned. `update --assignee`
+  clears it.
+- **`settled_requires_discussion`**, for a team that records why work closed. It reports an item
+  resting at a status whose role declares `settled = true` while its own discussion holds no
+  comment. A comment on one of its stories, subtasks or findings does not count; one `comment` on
+  the item clears it.
+
+Two are about refs:
+
+- **`blocked_has_blocker`**, for a team that wants a blocked item to say what it waits on. It
+  reports an item resting at a status whose role declares `blocked = true` while no dependency edge
+  touches it in either direction: neither a ref of its own of a dependency kind, nor one from
+  another item pointing at it. A kind counts by its `dependency` role, never by its name, and an
+  edge counts whatever the status of the item at its other end. `ref add` of a dependency edge, on
+  either item, or a status move clears it.
+- **`ref_rule_target_typed`**, for a team that wants a typed edge to point where its rule says. It
+  reports each edge whose kind has a `ref_rules` entry with a `target` on the item's type, when the
+  edge points at an item of another type. Only rules that declare a `target` are read, and a ref
+  written without a kind is read as the spec's default kind. An edge to an item that does not
+  exist is left to the dangling-ref check. The bundled feature's `implements` rule is one, so an
+  `implements` edge from a feature to a task is reported. `ref rm` of the edge clears it.
+
+"Live", "settled" and "blocked" are flags a status role declares, never a role name or a status
+name: `sq workflow roles` shows them, and "Status roles" below says how to declare them.
 
 ```toml
 [items.feature]
@@ -689,17 +705,180 @@ warn FEAT-<n>: title is 37 chars (threshold: 30) — an item title is a one-line
 detail in the body
 ```
 
-Moving it to `InProgress` with no assignee adds `status is InProgress but nobody is assigned`.
-`body_written` and `settled_requires_discussion` read the item's file, so at `error` they make
-`sq check` fail but never refuse a write. The other five take part in the write gate (see
-"`error` does not always give you a write gate" below): with `description_present@error`, a
-`sq create feature` without `--desc` is refused. `ref add` is not one of the gated writes, so
-under `ref_rule_target_typed@error` a mistyped edge is still added, and the refusal lands on the
-feature's next update instead.
+Moving it to `InProgress` with no assignee adds `status is InProgress but nobody is assigned`. The
+other four checks report:
 
-**Selection is per type.** The line above changes nothing for a task, a decision or any other
-type: a squad that wants one of these checks everywhere names it on each type. (The `[squad]`
-table selects the squad-wide checks only; a per-item check named there is refused.)
+```
+warn TASK-<n>: body is unwritten (still the template scaffold) — write it with `sq task <n> body -m "..."`
+warn TASK-<n>: status is Done but its discussion holds no comment
+warn TASK-<n>: status is Blocked but no dependency edge is recorded (kinds: blocks, depends-on) — record a dependency edge (`--ref <id>:<kind>` on create, `ref add` after)
+warn FEAT-<n>: implements edge to TASK-<m> points at a task, but a feature's implements refs must point at a contract
+```
+
+**A worked example: titles and bodies on two types.** This selects a 120-character title limit and
+written bodies on features and epics. `epic` ships a `validators` list of its own (`no_parent`), so
+its line opens with the splat that keeps it:
+
+```toml
+[items.feature]
+validators = ["item_title_max:120", "body_written"]
+
+[items.epic]
+validators = ["$(*items.epic.validators)", "item_title_max:120", "body_written"]
+```
+
+A feature with a 144-character title and an epic, both just created, are then reported:
+
+```
+warn FEAT-<n>: body is unwritten (still the template scaffold) — write it with `sq feature <n> body -m "..."`
+warn FEAT-<n>: title is 144 chars (threshold: 120) — an item title is a one-line handle; put the detail in the body
+warn EPIC-<m>: body is unwritten (still the template scaffold) — write it with `sq epic <m> body -m "..."`
+```
+
+Tasks and every other type report nothing, and with the two lines taken out `sq check` prints
+`✓ no issues`. Without the splat the epic line still loads, but it drops `no_parent`, and epics
+start accepting a parent with no warning.
+
+`body_written` compares the body with the scaffold the item's template renders when `sq check`
+runs. An item whose scaffold has changed since it was created no longer equals it and reads as
+written: an item created before you edited its template override, or one whose scaffold
+interpolates a field that has changed since, such as a review's target. Items created after the
+edit are compared with the new scaffold.
+
+**Where they apply.** The eight apply to `work` and `records` types and never to a role, skill or
+operator. Naming one on `role`, `skill` or `operator` is refused at load:
+
+```
+item 'role': validators entry 'item_title_max:80' cannot apply to a roster type — item_title_max is
+a policy about tracked work and applies to 'work' and 'records' types only; drop the entry
+```
+
+**A selection that can never fire is refused at load**, by every command and by
+`sq workflow lint`, naming the type and what it lacks. Only the spec is read, never the items:
+
+- `ref_rule_target_typed` on a type with no `ref_rules` entry that declares a `target`. Give the
+  type such a rule, or drop the entry. Under the bundled spec only `feature` has one. A rule whose
+  target type you drop through `[selected]` goes with it, so the same refusal follows:
+
+  ```
+  item 'task': validators entry 'ref_rule_target_typed' needs a ref_rules entry with a target, and
+  'task' declares none (a rule whose target type was dropped through [selected] is removed with
+  it) — declare { kind = ..., target = ... } in its ref_rules, or drop the entry
+  ```
+
+- `assignee_present` on a type whose lifecycle holds no status of a role declaring `live = true`.
+  Under the bundled spec that is `decision` and `guide`:
+
+  ```
+  item 'decision': validators entry 'assignee_present' needs a status of a role declaring live =
+  true, and the lifecycle 'adr' of 'decision' holds none — without one it never fires; drop the
+  entry or give the lifecycle a status of a live role
+  ```
+
+- `blocked_has_blocker` on a type whose lifecycle holds no status of a role declaring
+  `blocked = true`. Under the bundled spec it loads on `epic`, `feature`, `task` and `bug`, and is
+  refused on the other work and records types:
+
+  ```
+  item 'review': validators entry 'blocked_has_blocker' needs a status of a role declaring blocked
+  = true, and the lifecycle 'review' of 'review' holds none — without one it never fires; drop the
+  entry or give the lifecycle a status of a blocked role
+  ```
+
+- `blocked_has_blocker` in a spec that declares no ref kind with `role = "dependency"`, which is
+  what dropping `blocks` and `depends-on` through `[selected]` leaves:
+
+  ```
+  item 'task': validators entry 'blocked_has_blocker' needs a declared ref kind with role =
+  "dependency", and the spec declares none — without one no edge can satisfy it; drop the entry or
+  declare a dependency ref kind
+  ```
+
+**The two parameters are required.** Either name written bare, or with nothing after the colon, is
+refused, the same way `ref_rule_target_present` is:
+
+```
+item 'feature': validators entry 'item_title_max' is missing its required parameter — name it as
+'item_title_max:<n>', or drop the validator; without a parameter it never fires
+```
+
+`item_title_max` takes a positive integer, read the way `subentity_title_max` reads its own:
+
+```
+item 'task': validators entry 'item_title_max:0' names a non-positive-integer item_title_max
+threshold '0'
+```
+
+`external_id_not_in_title` takes a Python regular expression, searched for anywhere in the title
+with no flags: write `(?i)` at its start to ignore letter case, and use one alternation for several
+trackers (`(?:JIRA|OPS)-[0-9]+`), since the check can be named only once per type. Everything after
+the first colon is the pattern. Write the entry as a TOML literal string, in single quotes, which
+keeps every backslash as written: `'external_id_not_in_title:[A-Z]+-\d+'`. In double quotes a single
+backslash stops every command before the spec is read:
+
+```
+Malformed workflow override <path>: Unescaped '\' in a string (at line 3, column 50)
+```
+
+The pattern is compiled at load, and refused when it does not compile, when it matches the empty
+string (it would report every title), or when it compiles with a warning:
+
+```
+item 'task': validators entry 'external_id_not_in_title:[abc' names an invalid regular expression
+'[abc': unterminated character set at position 0
+item 'task': validators entry 'external_id_not_in_title:x*' names a regular expression 'x*' that
+matches the empty string, so it would report every title — make it require a character
+item 'task': validators entry 'external_id_not_in_title:[[a]]' names a regular expression '[[a]]'
+that compiles with a warning: Possible nested set — rewrite it
+```
+
+A pattern cannot contain a literal `@`, because `@` starts the level. Write it as `\x40`:
+`'external_id_not_in_title:me\x40corp'`. An entry such as `external_id_not_in_title:foo@warn` is
+the pattern `foo` at `warn`; any other text after the `@` is refused:
+
+```
+item 'task': validators entry 'external_id_not_in_title:user@host' reads 'host' as its level — '@'
+separates the pattern from the level ('error' or 'warn') and cannot appear in the pattern; write a
+literal '@' as \x40
+```
+
+**A warning about the pattern: nothing bounds a match.** squads sets no time limit on it. The
+pattern runs on every `sq check`, for each item of a type that selects it; on `sq import`, at any
+level, for each item the import wrote, once the import is written; and on a create or update of
+such an item only when its type selects the check at `@error`, where the write holds the squad's
+index lock while the pattern runs. A pattern that backtracks, such as `(a+)+$` against a title of
+thirty `a`s and a `!`, can therefore hang `sq check`, an import, and, at `@error`, the write. Keep
+the pattern to literal text and character classes, with no repetition nested inside another.
+
+**What `@error` does for each.** Six of the eight take part in the create/update gate, so at
+`error` they refuse a write, with the finding as the error and nothing written:
+
+| Check | Refused at `@error` | The way out |
+|---|---|---|
+| `item_title_max` | a create or retitle over the number | a title of `n` characters or fewer |
+| `external_id_not_in_title` | a create or retitle that matches | a title that does not match |
+| `description_present` | a create without `--desc`, and `update --desc ""` | `--desc` on create, `update --desc` after |
+| `assignee_present` | a move to a live status with nobody assigned | `update --assignee` first, or `update --status <S> --assignee <slug>` in one command |
+| `blocked_has_blocker` | a move to a blocked status with no dependency edge | `ref add` of a dependency edge before the move |
+| `ref_rule_target_typed` | a create with a misdirected `--ref` | `ref rm` of the edge |
+
+As with every gating check, an item that already fails one has its next `update` or `status`
+refused, whatever that command changes, until the finding is cleared. `ref add` and `ref rm` are not
+gated: under `ref_rule_target_typed@error` a misdirected edge is still added, and the refusal lands
+on the item's next update; removing an item's last dependency edge at a blocked status is accepted,
+and `sq check` then reports it. An import is checked event by event the same way before anything is
+written, and a refused event writes nothing.
+
+The other two, `body_written` and `settled_requires_discussion`, read the item's file, so at `error`
+they make `sq check` exit `3` and refuse no write: the move to `Done` goes through, and the finding
+is in the next report. An import that leaves such a finding is applied and exits `3`.
+
+A check selected at `warn` is not evaluated on a create or update at all. It runs in `sq check` and
+on the items an import wrote.
+
+**Selection is per type.** A line under `[items.feature]` changes nothing for a task, a decision
+or any other type: a squad that wants one of these checks everywhere names it on each type. (The
+`[squad]` table selects the squad-wide checks only; a per-item check named there is refused.)
 Two bundled types, `epic` and `skill`, ship a `validators` list of their own, and there the entry
 has to be added to the bundled list, not written over it — see "a type's own list is an ordinary
 array" below before you write either.
@@ -749,6 +928,9 @@ types the corpus contains (a full walk on every write). So:
 > **A check that reads only frontmatter and the index takes part in the gate. A check that reads
 > the item's file text, or which types exist, is reported by `sq check` and sits the gate out
 > whatever level you give it.**
+
+The gate also runs only what can refuse: a check a type selects at `warn` is not evaluated on a
+create or update, whatever it reads.
 
 `no_status_banner@error` is the clearest case of the second kind: `sq check` exits `3` on a body
 that opens with a status banner, and the write that put it there — plus every write after —
@@ -1144,6 +1326,15 @@ status with `role = "rolename"`, squads uses that role's attributes to determine
   entry (role, skill, operator) is written into your agent host's generated config. It defaults to
   `false`, and is deliberately narrower than "not settled": a status can be paused or waiting —
   non-settled — without being live.
+- **`blocked`** — whether an item resting at this status is waiting on something else. It defaults
+  to `false`, and the bundled `blocked` role is the only bundled role that declares it. Only the
+  `blocked_has_blocker` check reads it (see "Validators" above); `sq blocked` and the `blocked` key
+  of `sq tree --json` come from dependency edges, not from this flag. It takes `true` or `false`
+  and nothing else:
+
+  ```
+  Invalid role 'blocked': blocked must be true or false, got 'yes'
+  ```
 
 Squads ships with eight bundled roles covering common patterns. You can reference them in your
 statuses, or define custom roles in your override:
@@ -1160,16 +1351,16 @@ role = "my_custom_role"
 
 **Bundled role reference:**
 
-| Role | `settled` | `hidden` | `color` | `live` | Use case |
-|------|-----------|----------|---------|--------|----------|
-| `pending` | `false` | `false` | `neutral` | `false` | Draft, proposed, requested (awaiting work) |
-| `active` | `false` | `false` | `positive` | `true` | In progress, under review, being addressed |
-| `attention` | `false` | `false` | `danger` | `false` | Blocked, failing, or needs urgent attention |
-| `blocked` | `false` | `false` | `danger` | `false` | Explicitly blocked and waiting |
-| `in_force` | `true` | `false` | `info` | `false` | Accepted, published, or in effect (terminal, shown) |
-| `done` | `true` | `true` | `positive` | `false` | Complete or verified (terminal, hidden by default) |
-| `retired` | `true` | `true` | `muted` | `false` | Superseded, deprecated, or cancelled (terminal, hidden) |
-| `superseded` | `true` | `true` | `muted` | `false` | Replaced by a newer decision (terminal, hidden) |
+| Role | `settled` | `hidden` | `color` | `live` | `blocked` | Use case |
+|------|-----------|----------|---------|--------|-----------|----------|
+| `pending` | `false` | `false` | `neutral` | `false` | `false` | Draft, proposed, requested (awaiting work) |
+| `active` | `false` | `false` | `positive` | `true` | `false` | In progress, under review, being addressed |
+| `attention` | `false` | `false` | `danger` | `false` | `false` | Blocked, failing, or needs urgent attention |
+| `blocked` | `false` | `false` | `danger` | `false` | `true` | Explicitly blocked and waiting |
+| `in_force` | `true` | `false` | `info` | `false` | `false` | Accepted, published, or in effect (terminal, shown) |
+| `done` | `true` | `true` | `positive` | `false` | `false` | Complete or verified (terminal, hidden by default) |
+| `retired` | `true` | `true` | `muted` | `false` | `false` | Superseded, deprecated, or cancelled (terminal, hidden) |
+| `superseded` | `true` | `true` | `muted` | `false` | `false` | Replaced by a newer decision (terminal, hidden) |
 
 **Color semantics:**
 
@@ -1192,11 +1383,49 @@ role = "awaiting_merge"
 Then use `role = "awaiting_merge"` in any status to reference it. A status that doesn't specify a
 `role` defaults to the `pending` role, so it's always safe to omit the field for simple cases.
 
+**Declaring your own blocked role.** An override that keeps the bundled `blocked` role keeps its
+flag. One that replaces the bundled roles with its own has no blocked role until one of its roles
+declares the flag, and until then a type that selects `blocked_has_blocker` is refused at load:
+
+```
+item 'task': validators entry 'blocked_has_blocker' needs a status of a role declaring blocked =
+true, and the lifecycle 'work' of 'task' holds none — without one it never fires; drop the entry
+or give the lifecycle a status of a blocked role
+```
+
+Add `blocked = true` to the role your waiting statuses use, and the spec loads:
+
+```toml
+[roles.waiting]
+settled = false
+hidden = false
+color = "danger"
+blocked = true
+
+[statuses.Blocked]
+role = "waiting"
+
+[selected]
+roles = ["pending", "active", "attention", "waiting", "in_force", "done", "retired", "superseded"]
+```
+
 **Viewing the role catalog:**
 
 ```bash
 sq workflow roles           # list all available roles
 sq workflow roles --json    # machine-readable format
+```
+
+```
+Role        Settled  Hidden  Color     Live  Blocked
+active                       positive  yes
+attention                    danger
+blocked                      danger          yes
+done        yes      yes     positive
+in_force    yes              info
+pending                      neutral
+retired     yes      yes     muted
+superseded  yes      yes     muted
 ```
 
 See [workflow.md](workflow.md) § "Project workflow overrides" for a worked example.
@@ -1437,7 +1666,9 @@ level, and `sq <type> <n> view disable <name>` quiets it. A tag is never removed
 
 A role's body, a permanently-system skill's body (`squads`, `greeting`, `sq-memory`) and a
 per-item-type `sq-<type>` skill's body render through their view and refuse prose — replace and
-append alike, `--force` or not. Their content normally comes from `.overrides/roles.toml`
+append alike, `--force` or not. The same entries refuse a description, an attribute the bundled
+spec declares, a skill's title and view edits (see
+[roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses)). Their content normally comes from `.overrides/roles.toml`
 (`.overrides/roles/<slug>.toml` for a project-defined role), the playbook overrides, or the
 view's own template override. To write one of these bodies yourself instead, drop its view from
 `[selected]`. `[selected].views` lists the survivors, so name every other view you keep:
@@ -1449,18 +1680,19 @@ views = ["milestone_rollup", "role_definition", "greeting_skill", "memory_skill"
 
 With `squads_skill` dropped, `sq skill squads body -m "…"` is admitted, and `sq sync` and
 `sq repair` leave the prose alone. The tag already in the body now names an undeclared view, so
-`sq check` reports it until you run `sq skill squads view disable squads_skill`. A role has no
-`body` verb; with `role_definition` dropped, a role's body is written through a `sq import` body
-event:
+`sq check` reports it until you run `sq skill squads view disable squads_skill`. With
+`role_definition` dropped, a role takes `body` the same way, and its tag is cleared the same way:
 
-```json
-{"op": "body", "target": "ROLE-1", "body": "Our own QA charter.", "as": "manager"}
+```bash
+sq role qa body -m "Our own QA charter."
+sq role qa view disable role_definition
 ```
 
 Dropping `role_definition` affects every role at once — each one's tag becomes an undeclared-view
 error in `sq check` until disabled. A role activated while the view is dropped gets no tag at all.
-Putting the view back in `[selected]` makes the bodies refuse prose again, and `sq check` names
-the remedy for each document that lacks the tag. The text you wrote stays, and renders beside the
+Putting the view back in `[selected]` makes the bodies refuse writes again. A role body that
+holds your prose is accepted by `sq check`, with or without its tag; a skill body that holds prose
+and lacks its tag is reported, with the remedy. The text you wrote stays, and renders beside the
 view once its tag is re-enabled with `view add`; changing it means dropping the view again.
 
 A runbook you want to keep does not belong in an `sq-<type>` skill's body: give it a skill of its
@@ -2349,7 +2581,8 @@ these that applies wins:
 **After that, the stored name is the role's name.** No configuration change renames an active
 role: a `full_name` added to or changed in either override file, or a squads release that changes
 a bundled name, names the roles created after it and leaves the ones you have alone. `sq sync`
-never changes a name, and the upgrade to a new squads version keeps every stored name.
+never changes a name, and the upgrade to a new squads version keeps every stored name. To rename a
+role, use `sq role <slug> update --title` (see "Renaming an active role" below).
 
 **What `sq sync` keeps, and what it refreshes.** The name is kept. So is a developer's `--model`,
 the other field `sq dev add` lets you choose. Everything else in a role's definition — its job
@@ -2358,18 +2591,15 @@ responsibilities, spawn authority, a bundled role's model, its preloaded skills 
 refreshed from the bundled definition (or from your override) on every sync, so an improvement
 squads ships reaches a role you activated long ago.
 
-**Renaming an active role** sets its stored `title` with an `update` event of `sq import`. Take the
-role's ID from `sq list -t role`:
+**Renaming an active role** sets its stored `title` with `update --title`, on any role, a bundled
+one included:
 
 ```bash
-echo '{"op": "update", "target": "ROLE-<n>", "title": "Chief Designer"}' | sq import - --as manager
-sq sync
+sq role architect update --title "Chief Designer"
 ```
 
 The rename moves the role's `updated_at` and shows up in `sq reflog` as an update carrying the old
-and new names. Until `sq sync` runs, `sq check` reports the role's `.claude/` pointer as drifted;
-the sync regenerates the pointer and the `CLAUDE.md` roster from the new name, saying so
-(`had drifted — regenerated by this sync`).
+and new names. The role's `.claude/` pointer and the `CLAUDE.md` roster show the new name at once.
 The slug does not change (see below), and comments the role wrote earlier keep the name they were
 written under.
 
@@ -2604,6 +2834,6 @@ in v<version>: ['agreements', 'can_spawn', 'color', 'description', 'full_name', 
 role is on the roster. Nothing passes an unknown field through to a template. For a field squads
 *does* recognise (like `model`), set it in the override and run `sq sync`. To store a key of your
 own on each role item instead, declare it as an attribute of the `role` type in
-`.overrides/workflow.toml` (see [Attributes](#attributes-the-keys-a-type-stores)). `sq role` has
-no `update` verb, so set it with an `update` event of `sq import`:
+`.overrides/workflow.toml` (see [Attributes](#attributes-the-keys-a-type-stores)). `sq role <slug>
+update` takes no `--set`, so set it with an `update` event of `sq import`:
 `echo '{"op": "update", "target": "ROLE-<n>", "fields": {"<key>": "<value>"}}' | sq import - --as <slug>`.

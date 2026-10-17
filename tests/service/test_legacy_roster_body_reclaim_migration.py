@@ -304,8 +304,8 @@ async def test_a_region_less_role_body_is_skipped_and_reported_not_raised(projec
     )
 
 
-async def test_a_marker_shaped_skips_own_remedy_names_the_four_step_sequence(project, svc) -> None:
-    """A marker-shaped skip's remedy names the four-step sequence, never `view disable` alone."""
+async def test_a_marker_shaped_skip_leaves_a_prose_role_unreported(project, svc) -> None:
+    """A skipped role whose body holds prose is a supported state: `check` reports nothing."""
     role = await svc.roster_item("role", "manager")
     assert role is not None
     await _write_body(
@@ -318,13 +318,7 @@ async def test_a_marker_shaped_skips_own_remedy_names_the_four_step_sequence(pro
 
     await _write_body(down.paths, role, _LEGACY_PROSE)
     issues = await down.check()
-    matches = [i for i in issues if "missing seeded view tag" in i.message]
-    assert matches, [i.message for i in issues]
-    message = matches[0].message
-    assert "drop 'role_definition' from [selected]" in message
-    assert "restore 'role_definition' to [selected]" in message
-    assert "view add role_definition" in message
-    assert "view disable" not in message
+    assert [i.message for i in issues if "missing seeded view tag" in i.message] == []
 
 
 async def test_a_rerun_after_reclaiming_reports_zero_and_writes_nothing(project, svc) -> None:

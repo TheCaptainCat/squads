@@ -235,10 +235,12 @@ class ClaudeCodeBackend(AgentBackend):
             item_type=ROSTER_SKILL,
             addr=name,
         )
-        seed_body = sections.replace_section(
-            f"{markers.open_marker(markers.BODY)}{markers.close_marker(markers.BODY)}\n",
-            markers.BODY,
-            placed,
+        seed_body = sections.with_discussion_region(
+            sections.replace_section(
+                f"{markers.open_marker(markers.BODY)}{markers.close_marker(markers.BODY)}\n",
+                markers.BODY,
+                placed,
+            )
         )
 
         if await _aio.path_exists(body_path):
