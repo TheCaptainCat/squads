@@ -5,7 +5,8 @@ from squads import _clock as clock
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
-from squads._models._extras import ExtraKey as X
+from squads._models import _attributes as attrs
+from squads._models._attributes import AttributeKey
 from squads._models._item import Item
 from squads._roles._resolver import (
     holds_default_designation,
@@ -54,7 +55,7 @@ class RosterMixin(ServiceCore):
             description=role.mission,
             slug=role.slug,
             author=role.slug,  # an activated role authors itself
-            extra=role.to_extra(),
+            attributes=role.to_attributes(),
         )
         # Materialise iff live: a project whose roster lifecycle's own
         # `initial` is non-live gets a parked-then-activated entry with no files yet —
@@ -69,7 +70,7 @@ class RosterMixin(ServiceCore):
         self, tech: str, *, name: str | None = None, model: str | None = None
     ) -> Item:
         roles = await self.list_items(item_type=ROSTER_ROLE)
-        seq = sum(1 for it in roles if it.extra.get(X.IS_DEV))
+        seq = sum(1 for it in roles if attrs.is_dev(it))
         role = resolve_dev_role(
             tech, name=name, seq=seq, model=model, squad_dir=self.paths.squad_dir
         )
@@ -82,10 +83,10 @@ class RosterMixin(ServiceCore):
             description=role.mission,
             slug=role.slug,
             author=role.slug,  # a dev role authors itself
-            extra={
-                **role.to_extra(is_dev=True),
-                X.IS_DEV: True,
-                X.TECH: tech,
+            attributes={
+                **role.to_attributes(is_dev=True),
+                AttributeKey.IS_DEV: True,
+                AttributeKey.TECH: tech,
             },
         )
         # Materialise iff live — see the matching comment in activate_role.
@@ -114,11 +115,9 @@ class RosterMixin(ServiceCore):
             parent=parent,
             slug=slug,
             author=slug,  # a skill authors itself
-            extra={
-                X.SLUG: slug,
-                X.DESCRIPTION: description or name,
-                X.WHEN_TO_USE: when_to_use,
-                X.ALLOWED_TOOLS: allowed_tools,
+            attributes={
+                AttributeKey.WHEN_TO_USE: when_to_use,
+                AttributeKey.ALLOWED_TOOLS: allowed_tools,
             },
         )
         # Materialise iff live — see the matching comment in activate_role.
@@ -149,7 +148,6 @@ class RosterMixin(ServiceCore):
             name,
             slug=slug,
             author=slug,  # an operator authors itself
-            extra={X.SLUG: slug, X.FULL_NAME: name},
         )
         await self.refresh_managed()  # so the CLAUDE.md operator roster picks it up
         return res.item
@@ -186,12 +184,12 @@ class RosterMixin(ServiceCore):
         a squad that already carries two (the state the bulk importer's ``update`` event can
         reach, since it is the only path that writes this key today outside this method).
 
-        **A holder is found by resolving, never by reading ``extra.is_default`` raw.** The
+        **A holder is found by resolving, never by reading the stored ``is_default`` raw.** The
         stored key is an *override* on a designation the role catalog also answers
         (:func:`~squads._roles._resolver.role_base_from_item` falls back to the catalog's own
         ``is_default``), and a role item stores the key only when something wrote it —
-        so the catalog's designated role holds the designation with nothing in its ``extra`` at
-        all. A raw read finds no holder there, clears nothing, and leaves the squad with two
+        so the catalog's designated role holds the designation with nothing stored on its item
+        at all. A raw read finds no holder there, clears nothing, and leaves the squad with two
         live defaults: the one this call just wrote and the one the catalog still names. That
         is the same failure as the sync revert, reached from the other end, and resolving is
         what closes both. Clearing writes an explicit ``False``, which is the only thing that
@@ -216,7 +214,7 @@ class RosterMixin(ServiceCore):
                 )
             live = self.spec.live_statuses(ROSTER_ROLE)
             if item.status not in live:
-                slug = item.extra.get(X.SLUG, item.slug)
+                slug = item.slug
                 raise SquadsError(
                     f"{item.id} ({slug}) is not live — only a live role can be designated default"
                 )
@@ -233,7 +231,7 @@ class RosterMixin(ServiceCore):
                     and holds_default_designation(other, self.paths.squad_dir)
                 ):
                     other_base = other.model_copy(deep=True)
-                    other.extra[X.IS_DEFAULT] = False
+                    other.attributes[AttributeKey.IS_DEFAULT] = False
                     other.updated_at = clock.now()
                     other.modified_session, _ = actor.current_session()
                     await update_frontmatter(
@@ -245,7 +243,7 @@ class RosterMixin(ServiceCore):
             changed = bool(cleared) or not was_default
             if not was_default:
                 base = item.model_copy(deep=True)
-                item.extra[X.IS_DEFAULT] = True
+                item.attributes[AttributeKey.IS_DEFAULT] = True
                 item.updated_at = clock.now()
                 item.modified_session, _ = actor.current_session()
                 await update_frontmatter(

@@ -15,7 +15,7 @@ third caller's shape: refusing a *transition*, not reporting a pre-existing one.
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, plant_attribute
 from squads._errors import ConfigIntegrityError, SquadsError
 from squads._index._resolver import item_file
 from squads._itemfile import update_frontmatter
@@ -111,8 +111,8 @@ async def test_no_warning_when_another_live_role_already_carries_the_default(svc
     await svc.activate_role("qa")
     qa_role = await svc.roster_item("role", "qa")
     manager = await svc.roster_item("role", "manager")
-    await svc.update(qa_role.id, set_extra={"is_default": "true"})
-    await svc.update(manager.id, unset_extra=["is_default"])
+    await plant_attribute(svc, qa_role.id, "is_default", True)
+    await plant_attribute(svc, manager.id, "is_default", None)
 
     outcome = await svc.set_roster_status(manager.id, "Archived")
 

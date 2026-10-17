@@ -12,7 +12,6 @@ import pytest
 
 from _helpers import resolved_skill_definition
 from squads import _sections as sections
-from squads._models._extras import ExtraKey as X
 from squads._services import _service as service
 from squads._workflow._models import ROSTER_SKILL
 
@@ -113,9 +112,7 @@ async def test_squad_dir_agrees_with_claude_md_for_a_nested_squad_dir(tmp_path, 
 
     db = await svc.store.load()
     skill_item = next(
-        it
-        for it in db.items.values()
-        if it.type == ROSTER_SKILL and it.extra.get(X.SLUG, it.slug) == "sq-memory"
+        it for it in db.items.values() if it.type == ROSTER_SKILL and it.slug == "sq-memory"
     )
     skill_body = await svc.read_body(skill_item.id)
     claude_md = (paths.root / "CLAUDE.md").read_text(encoding="utf-8")

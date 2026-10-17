@@ -7,7 +7,7 @@ caller, is what lets the gate reuse them unchanged.
 from datetime import UTC, datetime
 
 from _helpers import BUILTIN_FOLDER, BUILTIN_PREFIX
-from squads._models._extras import ExtraKey as X
+from squads._models._attributes import AttributeKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, make_ref
 from squads._services._config_integrity import (
@@ -32,9 +32,9 @@ def _role(
     seq: int, *, status: str = "Active", is_default: bool = False, slug: str | None = None
 ) -> Item:
     slug = slug or f"role-{seq}"
-    extra: dict[str, object] = {X.SLUG: slug}
+    attributes: dict[str, object] = {}
     if is_default:
-        extra[X.IS_DEFAULT] = True
+        attributes[X.IS_DEFAULT] = True
     return Item(
         sequence_id=seq,
         type="role",
@@ -45,7 +45,8 @@ def _role(
         path=f"{BUILTIN_FOLDER['role']}/{BUILTIN_PREFIX['role']}-{seq:06d}-{slug}.md",
         created_at=_NOW,
         updated_at=_NOW,
-        extra=extra,
+        slug_in_file=True,
+        attributes=attributes,
     )
 
 
@@ -64,7 +65,7 @@ def _skill(
         created_at=_NOW,
         updated_at=_NOW,
         refs=list(refs),
-        extra={X.SLUG: slug},
+        slug_in_file=True,
     )
 
 

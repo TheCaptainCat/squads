@@ -62,6 +62,16 @@ def entry(data: dict[str, Any], seq: int) -> dict[str, Any]:
     return items.get(str(seq)) or items[next(k for k in items if k.endswith(f"-{seq:06d}"))]
 
 
+def stored_fields(data: dict[str, Any], seq: int) -> dict[str, Any]:
+    """The entry's fields without the attribute mapping and slug marker an entry of an older
+    schema does not carry (they default to empty)."""
+    return {
+        k: v
+        for k, v in entry(data, seq).items()
+        if k not in ("attributes", "slug_in_file", "extra")
+    }
+
+
 def set_entry(seq: int, **fields: Any) -> Callable[[dict[str, Any]], None]:
     def _edit(data: dict[str, Any]) -> None:
         entry(data, seq).update(fields)
@@ -260,7 +270,7 @@ async def test_a_file_that_cannot_be_indexed_is_reported_and_its_entry_carried(
     assert result.indexed == ()
     assert result.missing == ()
     if with_prev:
-        assert entry(data, 3) == entry(before, 3), "the previous entry is carried unchanged"
+        assert stored_fields(data, 3) == stored_fields(before, 3), "the previous entry is carried"
     else:
         assert 3 not in seqs(data)
     assert seqs(data) - {3} == (set(range(1, 9)) - {3}) | ({9} if not with_prev else set())
@@ -464,7 +474,7 @@ async def test_two_files_carrying_one_id_are_both_named_and_neither_taken(
     assert all("also claimed by" in u.cause for u in result.unindexable)
     assert not any(u.shared_number for u in result.unindexable)
     if with_prev:
-        assert entry(data, 3) == entry(before, 3)
+        assert stored_fields(data, 3) == stored_fields(before, 3)
     else:
         assert 3 not in seqs(data)
 
@@ -498,7 +508,7 @@ async def test_two_ids_sharing_a_number_are_refused_with_the_number_both_ids_and
         assert "one item per number" in u.cause
         assert "also claimed" not in u.cause
         assert u.shared_number
-    assert entry(data, 3) == entry(before, 3)
+    assert stored_fields(data, 3) == stored_fields(before, 3)
     assert result.counter == 8
 
 
@@ -513,7 +523,7 @@ async def test_a_legacy_ref_kinds_map_is_stored_exactly_as_the_file_spells_it(
     task = entry(data, 3)
     assert result.unindexable == ()
     assert task["refs"] == ["BUG-000004", "ADR-000005"]
-    assert task["extra"]["ref_kinds"] == {"BUG-000004": "fixes"}
+    assert task["attributes"]["extra"]["ref_kinds"] == {"BUG-000004": "fixes"}
 
 
 # --------------------------------------------------------------------------- not items

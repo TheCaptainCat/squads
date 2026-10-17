@@ -275,10 +275,9 @@ class RepairResult:
     entry is stale until the file is fixed.
 
     ``canonicalized`` holds the ID of every item whose file was rewritten because its on-disk
-    ref encoding (a legacy ``extra.ref_kinds`` map, or a spelled ref that folds to a different
-    literal) differed from the folded frontmatter stored — the file, not only the index,
-    made canonical. Empty when the corpus needed no correction; a corpus already canonical
-    triggers no write at all.
+    ref encoding (a spelled ref that folds to a different literal) differed from the folded
+    frontmatter stored — the file, not only the index, made canonical. Empty when the corpus
+    needed no correction; a corpus already canonical triggers no write at all.
 
     ``stripped`` holds the ID of every item whose file was rewritten because it still stored a
     retired region — a derived rendering whose writer has retired and whose replacement is

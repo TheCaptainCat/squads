@@ -5,7 +5,7 @@ from rich.table import Table
 
 import squads._cli._common as common
 from squads._cli._common import console, e, get_service
-from squads._models._extras import ExtraKey as X
+from squads._models import _attributes as attrs
 from squads._workflow import ROSTER_ROLE
 
 dev_app = typer.Typer(no_args_is_help=True, help="Manage stack-specific developer roles.")
@@ -23,7 +23,7 @@ async def dev_add(
     """Bootstrap a developer for a technology (e.g. `sq dev add --tech dotnet`)."""
     svc = get_service()
     item = await svc.add_dev(tech, name=name, model=model)
-    console.print(f"added [bold]{e(item.title)}[/bold] (`{item.extra.get(X.SLUG)}`) {item.id}")
+    console.print(f"added [bold]{e(item.title)}[/bold] (`{item.slug}`) {item.id}")
 
 
 @dev_app.command("list")
@@ -31,7 +31,7 @@ async def dev_add(
 async def dev_list():
     """List the activated developer roles."""
     svc = get_service()
-    devs = [it for it in await svc.list_items(item_type=ROSTER_ROLE) if it.extra.get(X.IS_DEV)]
+    devs = [it for it in await svc.list_items(item_type=ROSTER_ROLE) if attrs.is_dev(it)]
     if not devs:
         console.print("[dim]no developers (try `sq dev add --tech <t>`)[/dim]", soft_wrap=True)
         return
@@ -41,8 +41,8 @@ async def dev_list():
     for it in devs:
         table.add_row(
             it.id,
-            it.extra.get(X.SLUG, it.slug),
+            it.slug,
             e(it.title),
-            it.extra.get(X.TECH, ""),
+            attrs.tech(it) or "",
         )
     console.print(table)

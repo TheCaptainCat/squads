@@ -163,14 +163,18 @@ templates when read, so a release can change it with no migration.
 
 ### What counts as a breaking change
 
-`Item.from_frontmatter` reads a **fixed set of known keys** plus the nested `extra:` map, which
+An item's frontmatter is one flat mapping: the **core keys** the model defines (`id`, `type`,
+`title`, `status`, `created_at`, …, each written when the item has a value for it) and the
+**attributes** its type declares in the workflow spec. A key that is neither is kept as it is, on
+every read and every write (a role's retired definition keys aside), which
 defines compatibility:
 
-- **Non-breaking (no migration):** adding metadata under `extra:` (round-trips through `repair`);
-  dropping a key (falls back to a default); adding a key to `.squads.toml` (`extra="ignore"`).
-- **Breaking (needs a runner + `schema_version` bump):** a new top-level required key (one
-  `from_frontmatter` doesn't read is **silently dropped on `sq repair`**); renaming/retyping a known
-  key; renaming a marker tag; changing a sub-entity block shape; changing the folder layout / ID format.
+- **Non-breaking (no migration):** declaring a new attribute, or adding a top-level key no
+  declaration names (both round-trip through every write and through `sq repair`); dropping a key
+  (falls back to a default); adding a key to `.squads.toml` (`extra="ignore"`).
+- **Breaking (needs a runner + `schema_version` bump):** a new required core key;
+  renaming/retyping a core key; moving keys between top-level and a nested mapping; renaming a
+  marker tag; changing a sub-entity block shape; changing the folder layout / ID format.
 
 
 ---
@@ -240,12 +244,16 @@ Each comment header gains its author's slug, between backticks, in front of the 
 The step rewrites the header line of every comment, in each item's discussion and in each story's,
 subtask's and finding's. Nothing else changes: a comment's own lines stay byte for byte, no
 frontmatter changes (so no item's `updated_at` moves), and a header-shaped line in an item's body,
-outside any discussion, is left alone. The run reports what it did under the step:
+outside any discussion, is left alone. The frontmatter is changed by the next part of the step,
+[the flattening](#the-frontmatter-is-flat). The run reports what both did under the step:
 
 ```
-  0.16.0 (schema v0.15→v0.16): Comment headers name the author's permanent slug. Every operator carries a stored slug and full name. — 1 changed
-    4 comment header(s) rewritten in 1 file(s); 0 already carried a slug
-    0 operator(s) given a stored slug or full name
+  0.16.0 (schema v0.15→v0.16): Comment headers name the author's permanent slug. Item frontmatter is flat: the extra block is lifted to top-level keys. — 11 changed
+    2 comment header(s) rewritten in 1 file(s); 0 already carried a slug
+    10 file(s) flattened; 5 key(s) lifted (allowed_tools 1, tags 1, target_date 1, tech 1, when_to_use 1); 1 skill description(s) dropped; 0 `path:` key(s) removed
+    1 operator title(s) set from the stored full name
+      operators/OP-000006-op-bob.md
+    0 dropped skill description(s) differed from the one kept
 ```
 
 A header that already carries a slug is left as it is, so the step can be run again safely.
@@ -255,9 +263,10 @@ Review the diff before you commit it. The new grammar is in
 **How a slug is found.** An old header holds only a name, so the step looks each name up among the
 squad's roles and operators, retired ones included, plus the two names sq writes itself: `Operator`
 (a comment written with `--as operator`) and `squads` (an entry sq wrote, such as a retype). A
-role is matched by its name (the `Name` column of `sq role list`). An operator is matched by its
-full name, or by its slug when it has none, which is what the earlier release wrote in its
-comments. Every name is resolved before any file is written. There is no option that maps a name
+role is matched by its name (the `Name` column of `sq role list`). An operator is matched by the
+full name its file stores under `extra:`, or by its slug when it stores none, which is what the
+earlier release wrote in its comments; the flattening then makes that full name the operator's
+`title`. Every name is resolved before any file is written. There is no option that maps a name
 to a slug by hand.
 
 **When it refuses**, the report gives one line per header (the file, relative to the squad
@@ -287,10 +296,14 @@ What each line means, and what to do before running `sq migrate up` again:
   resolve to it: replace the old name in those header lines by hand.
 - **`'<name>' matches 2 entries: <slug>, <slug>`.** Two entries share that name. Every header with
   the name then belongs to one of them only, so decide which, and give the other a distinct name
-  for the run by editing its file: `title:` for a role, `full_name:` under `extra:` for an
-  operator. The earlier release's `sq check` reports the edit as drift until `sq repair`, which
-  `sq migrate up` makes unnecessary, since it rebuilds the index from the files first. After the
-  migration, put the name back the same way and run `sq repair`.
+  for the run by editing its file, which still has the earlier shape: `title:` for a role,
+  `full_name:` under `extra:` for an operator. The earlier release's `sq check` reports the edit as
+  drift until `sq repair`, which `sq migrate up` makes unnecessary, since it rebuilds the index from
+  the files first. The run keeps a role's `title:` and makes the operator's `full_name` its
+  `title:`, so in both cases the name typed for the run is the `title:` afterwards. Edit that
+  `title:` line back to the real name, run `sq repair` (`sq check` reports the edit as drift
+  until you do), then `sq sync`, which brings a role's `.claude/` pointer and the `CLAUDE.md`
+  roster back to the real name.
 - **`'<text>' is not a timestamp sq writes`.** A line at the left margin inside a discussion looks
   like a header, but its bracket does not hold a timestamp sq writes. If it is text pasted into a
   comment, indent it so it sits under that comment. If it is a header, correct its timestamp to
@@ -347,16 +360,108 @@ An operator that the earlier release's importer created took a slug derived from
 without `op-` (`Ann Lee` became `ann-lee`), so it is refused here unless it was given an `op-`
 slug when imported.
 
-### Every operator carries a stored slug and full name
+### The frontmatter is flat
 
-An operator that an earlier release's importer created has neither a `slug` nor a `full_name`
-under `extra:` in its file. `sq migrate up` writes both: the slug is the one the operator already
-answers to, and the full name is its title. Only the frontmatter of those operators changes, and
-an operator that already had both is not touched. The run reports how many it filled in:
+An item file keeps all its fields as top-level keys; the nested `extra:` block is gone. The step
+lifts each key under `extra:` to the top level with its value unchanged, in every item file, and
+removes `extra:`. It rewrites nothing in a file but its frontmatter:
+
+```diff
+ title: Notes
+ status: Draft
+-extra:
+-  tags:
+-  - a
+-  - b
+-  tech: python
++tags:
++- a
++- b
++tech: python
+```
+
+The exceptions:
+
+- **`slug`** becomes the top-level `slug`, which every role, skill and operator file now carries. A
+  roster file that stores none (an operator an earlier importer created) gets the slug its file
+  name spells.
+- **A skill's `description` under `extra:`** is dropped when the skill's top-level `description` is
+  not empty, and otherwise becomes the `description` unless it equals the skill's title. The
+  top-level `description` is the text the skill's `.claude/` pointer carries from then on.
+- **An operator's `full_name`** is dropped, and the operator's `title` takes its value when the two
+  differ, because that is the name every operator surface showed. The run lists those files.
+- **A role's mirrored definition keys** (`title`, `mission`, `responsibilities`, `agreements`,
+  `color`, `can_spawn`, `description`, `full_name`, `skills`) are dropped: the role catalog answers
+  them.
+- **`ref_kinds`** is folded into the item's `refs`, and **`severity`** becomes the top-level
+  `severity` when that is absent.
+- **The top-level `path:` key** an old release wrote on skill files is removed.
+
+Every other key, one your spec declares or one you added yourself, is kept as written. A file
+that needs nothing is not touched, so a second run changes nothing. For an operator, one run
+gives:
+
+| The operator's file before the run | After the run |
+|---|---|
+| `extra.slug`, and `extra.full_name` equal to `title` | top-level `slug`, the same `title`, no `extra` |
+| `extra.full_name` different from `title` | `title` takes the `full_name` value; the file is listed in the report |
+| no `extra.slug` and no `extra.full_name` (an importer-created operator) | top-level `slug` from the file name, `title` unchanged |
+
+The report gives the files flattened, the keys lifted per key, the skill descriptions and `path:`
+keys removed, and the operators retitled (see the sample run
+[above](#comment-headers-name-the-authors-slug)). When a dropped skill description differed from the
+one kept, the run lists those files too:
 
 ```
-    1 operator(s) given a stored slug or full name
+    1 dropped skill description(s) differed from the one kept
+      agents/skills/SKILL-000002-s1.md
 ```
+
+**A role keeps the name it stores.** The step changes no role's name, and no later `sq sync` does
+either. See [overrides.md § "Which name wins"](overrides.md#which-name-wins).
+
+**When it refuses.** The flattening is checked before anything is written, like the comment
+headers, and its problems join theirs in the same report and count. Each makes the step write
+nothing, leave the schema stamp as it is and exit `1`, one line per file:
+
+```
+error: agents/roles/ROLE-000001-manager.md: extra.slug 'boss' differs from the file name's slug 'manager'
+guides/GUIDE-000002-g1.md: extra.tech and the top-level tech hold different values
+guides/GUIDE-000002-g1.md: extra.path would become the item's own 'path'; move it out of `extra` by hand
+tasks/TASK-NNNNNN-add-login.md: extra is not a mapping
+4 problem(s) found.
+```
+
+- **`extra is not a mapping`.** The file holds a stray `extra:` line whose value is not a block of
+  keys. Remove it, or turn it into the keys it meant.
+- **`extra.<key> and the top-level <key> hold different values`.** The key is in both places. Keep
+  the value you want and delete the other.
+- **`extra.slug '<x>' differs from the file name's slug '<y>'`.** A role, skill or operator file
+  whose stored slug is not the one its file name spells. Set `slug:` under `extra:` to the file
+  name's slug.
+- **`extra.<key> would become the item's own '<key>'`.** A key under `extra:` is named like one sq
+  reserves for the item itself (a core key, `extra`, `path` or `prefix`). Rename it, or delete it.
+
+Correct each file by hand, then run `sq migrate up` again.
+
+**After the upgrade.** Three things outside the item files change with the flat shape:
+
+- **An override that uses `extra_fields` is refused at load.** A type's keys are declared in an
+  `attributes` table, with a kind for each. `extra_fields = ["tags", "tech"]` on a type becomes:
+
+  ```toml
+  [items.guide.attributes]
+  tags = { kind = "list" }
+  tech = { kind = "str" }
+  ```
+
+  See [overrides.md § "Attributes"](overrides.md#attributes-the-keys-a-type-stores).
+- **`--json` item rows carry attributes at the top level.** A row from `list`, `show`, `create` or
+  `mine` has no `extra` key: each attribute the file stores sits beside the core keys and `path`. A script
+  that read `row["extra"]["tags"]` reads `row["tags"]`.
+- **A template reads attributes from `item`.** The `extra` template variable is gone: a template
+  override that read `extra.tags` reads `item.tags` (guard it with `item.tags is defined`, since
+  an item stores only the attributes that are set).
 
 ---
 
@@ -610,7 +715,7 @@ migrations, in detail:
 - **0.1 → 0.2**: folds `extra.ref_kinds` into inline `ID:kind` refs;
   upgrades subtask/story headings (`[ ]`/`[x]` checkboxes, `(→ USn)` suffixes) into the sq-owned
   `:meta` regions and builds the summary tables; gives legacy reviews an empty findings container.
-  *Tolerant* (`from_frontmatter` folds the old `ref_kinds`), so rewrite-then-`repair` reconstructs the
+  *Tolerant* (the migration's own reader folds the old `ref_kinds`), so rewrite-then-`repair` reconstructs the
   index even from a pre-0.2 squad. **One manual step** (`sq migrate chlog v0.1.1..v0.2.0`): a pre-0.2
   review's free-form prose findings can't be parsed automatically — an agent recreates each as
   `sq review <n> add-finding … --severity …`, then deletes the stale prose.

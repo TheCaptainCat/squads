@@ -15,6 +15,7 @@ from squads._services._results import CheckIssue
 from squads._services._validators import (
     CATALOG,
     SQUAD_GLOBAL_CATALOG,
+    IncomingEdges,
     ValidatorContext,
     ValidatorEngine,
 )
@@ -64,6 +65,7 @@ def test_common_core_and_category_bundles_are_populated() -> None:
         "ref_kind_valid",
         "agent_registered",
         "parent_acyclic",
+        "attribute_valid",
     }
     assert set(CATEGORY_BUNDLES) == {"roster", "work", "records"}
     assert CATEGORY_BUNDLES["roster"] == ()
@@ -305,7 +307,7 @@ def test_engine_calls_a_members_catalog_function_once_across_two_param_selection
         item,
         db,
         registered=frozenset(),
-        supersedes=frozenset(),
+        incoming=IncomingEdges(frozenset(), frozenset()),
         type_present=frozenset({"contract"}),
         raw_text=None,
     )

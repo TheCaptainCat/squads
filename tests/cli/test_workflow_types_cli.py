@@ -192,7 +192,7 @@ def test_json_labels_reflect_a_pinned_override() -> None:
 # ─── field-set / model contract ─────────────────────────────────────────────────
 
 
-def test_frozen_field_set_is_exactly_the_nine_declared_keys() -> None:
+def test_frozen_field_set_is_exactly_the_ten_declared_keys() -> None:
     assert TYPE_CATALOG_FIELDS == (
         "type",
         "order",
@@ -202,6 +202,7 @@ def test_frozen_field_set_is_exactly_the_nine_declared_keys() -> None:
         "subentity_kind",
         "lifecycle",
         "fields",
+        "attributes",
         "labels",
     )
 
@@ -298,3 +299,26 @@ def test_null_order_round_trips_through_json_dumps() -> None:
     dumped = json.loads(json.dumps(rows))
     incident = next(r for r in dumped if r["type"] == "incident")
     assert incident["order"] is None
+
+
+def test_every_row_names_its_declared_attributes_with_kind_required_and_settable() -> None:
+    """The attribute table a client joins a ``--json`` item row's extra keys against: one entry
+    per declared attribute, each carrying exactly the three declared properties."""
+    spec = load_workflow_spec()
+    for row in _type_catalog(spec):
+        declared = spec.item_attributes(str(row["type"]))
+        attributes = row["attributes"]
+        assert isinstance(attributes, dict)
+        assert set(attributes) == set(declared)
+        for name, entry in attributes.items():
+            assert set(entry) == {"kind", "required", "settable"}
+            assert entry == {
+                "kind": declared[name].kind,
+                "required": declared[name].required,
+                "settable": declared[name].settable,
+            }
+    guide = next(r for r in _type_catalog(spec) if r["type"] == "guide")
+    assert guide["attributes"] == {
+        "tags": {"kind": "list", "required": False, "settable": True},
+        "tech": {"kind": "str", "required": False, "settable": True},
+    }

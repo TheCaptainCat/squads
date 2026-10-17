@@ -21,6 +21,7 @@ import {
   getTree,
   getTypeCatalog,
   getWorkflowRaw,
+  isSqRoleCatalogEntry,
   isSqSearchHit,
 } from '../src/sqAdapter';
 
@@ -529,11 +530,12 @@ describe('getTypeCatalog', () => {
       reserved: false,
       category: 'work',
       // Present and `null`: an epic hosts no sub-entity kind. `lifecycle` is published too and
-      // deliberately unmodelled — see `SqTypeCatalogEntry`.
+      // deliberately unmodelled, as are the declared `attributes` — see `SqTypeCatalogEntry`.
       subentity_kind: null,
       lifecycle: 'work',
       fields: [{ code: 'priority', label: 'Priority', collection: 'priority' }],
       labels: { singular: 'Epic', plural: 'Epics', singular_lower: 'epic', plural_lower: 'epics' },
+      attributes: {},
     });
     expect(outcome.data.some((entry) => entry.reserved)).toBe(true);
   });
@@ -811,6 +813,7 @@ describe('getRolesCatalog', () => {
       hidden: false,
       color: 'positive',
       live: true,
+      blocked: false,
     });
     expect(outcome.data.find((entry) => entry.role === 'done')).toEqual({
       role: 'done',
@@ -818,7 +821,15 @@ describe('getRolesCatalog', () => {
       hidden: true,
       color: 'positive',
       live: false,
+      blocked: false,
     });
+  });
+
+  it('accepts an older sq that omits blocked and refuses a non-boolean one', () => {
+    const base = { role: 'active', settled: false, hidden: false, color: 'positive', live: true };
+    expect(isSqRoleCatalogEntry(base)).toBe(true);
+    expect(isSqRoleCatalogEntry({ ...base, blocked: true })).toBe(true);
+    expect(isSqRoleCatalogEntry({ ...base, blocked: 'yes' })).toBe(false);
   });
 
   it('builds argv as "workflow roles --json"', async () => {

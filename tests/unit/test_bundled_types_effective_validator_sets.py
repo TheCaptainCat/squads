@@ -14,6 +14,7 @@ _WORK = (
     "ref_kind_valid",
     "agent_registered",
     "parent_acyclic",
+    "attribute_valid",
     "parent_in",
     "subentity_status_valid",
     "subentity_container_marker",
@@ -26,6 +27,7 @@ _RECORDS = (
     "ref_kind_valid",
     "agent_registered",
     "parent_acyclic",
+    "attribute_valid",
     "no_parent",
     "supersedes_incoming",
 )
@@ -35,6 +37,7 @@ _ROSTER = (
     "ref_kind_valid",
     "agent_registered",
     "parent_acyclic",
+    "attribute_valid",
 )
 
 EXPECTED: dict[str, tuple[str, ...]] = {

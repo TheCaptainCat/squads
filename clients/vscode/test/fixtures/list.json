@@ -5,7 +5,7 @@
     "title": "Catherine Manager",
     "slug": "manager",
     "status": "Active",
-    "description": "Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done — keeping everything tracked in squads.",
+    "description": "Default agent: triages the operator's request and routes it to the right specialist.",
     "parent": null,
     "author": "manager",
     "assignee": null,
@@ -19,30 +19,24 @@
     "updated_at": "2026-06-10T12:29:40Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {
-      "full_name": "Catherine Manager",
-      "slug": "manager",
-      "title": "manager",
-      "mission": "Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done — keeping everything tracked in squads.",
-      "responsibilities": [
-        "Triage incoming requests and clarify intent",
-        "Delegate work to the right specialist agents and integrate their results",
-        "Drive features through the loop (implement → review → fix) until done",
-        "Keep the backlog and statuses honest",
-        "Summarise progress for the operator"
-      ],
-      "model": "opus",
-      "color": "cyan",
-      "is_default": true,
-      "description": "Default agent: triages the operator's request and routes it to the right specialist.",
-      "skills": [
-        "squads",
-        "greeting"
-      ],
-      "agreements": [],
-      "can_spawn": true
-    },
-    "id": "ROLE-1"
+    "id": "ROLE-1",
+    "mission": "Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done — keeping everything tracked in squads.",
+    "responsibilities": [
+      "Triage incoming requests and clarify intent",
+      "Delegate work to the right specialist agents and integrate their results",
+      "Drive features through the loop (implement → review → fix) until done",
+      "Keep the backlog and statuses honest",
+      "Summarise progress for the operator"
+    ],
+    "model": "opus",
+    "color": "cyan",
+    "is_default": true,
+    "skills": [
+      "squads",
+      "greeting"
+    ],
+    "agreements": [],
+    "can_spawn": true
   },
   {
     "sequence_id": 2,
@@ -50,7 +44,7 @@
     "title": "Robert Architect",
     "slug": "architect",
     "status": "Active",
-    "description": "Own the system's shape: design coherent solutions, record decisions as ADRs, and guide implementation.",
+    "description": "System design and architecture decisions (ADRs).",
     "parent": null,
     "author": "architect",
     "assignee": null,
@@ -64,32 +58,26 @@
     "updated_at": "2026-06-10T12:29:40Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {
-      "full_name": "Robert Architect",
-      "slug": "architect",
-      "title": "architect",
-      "mission": "Own the system's shape: design coherent solutions, record decisions as ADRs, and guide implementation.",
-      "responsibilities": [
-        "Design components and their interactions",
-        "Record significant design decisions (ADRs in the bundled workflow)",
-        "Author cross-cutting guides",
-        "Review designs before implementation"
-      ],
-      "model": "opus",
-      "color": "blue",
-      "is_default": false,
-      "description": "System design and architecture decisions (ADRs).",
-      "skills": [
-        "squads",
-        "greeting",
-        "sq-epic",
-        "sq-decision",
-        "sq-guide"
-      ],
-      "agreements": [],
-      "can_spawn": false
-    },
-    "id": "ROLE-2"
+    "id": "ROLE-2",
+    "mission": "Own the system's shape: design coherent solutions, record decisions as ADRs, and guide implementation.",
+    "responsibilities": [
+      "Design components and their interactions",
+      "Record significant design decisions (ADRs in the bundled workflow)",
+      "Author cross-cutting guides",
+      "Review designs before implementation"
+    ],
+    "model": "opus",
+    "color": "blue",
+    "is_default": false,
+    "skills": [
+      "squads",
+      "greeting",
+      "sq-epic",
+      "sq-decision",
+      "sq-guide"
+    ],
+    "agreements": [],
+    "can_spawn": false
   },
   {
     "sequence_id": 10,
@@ -111,10 +99,6 @@
     "updated_at": "2026-06-10T12:29:53Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {
-      "slug": "op-pierre",
-      "full_name": "Pierre Chat"
-    },
     "id": "OP-10"
   },
   {
@@ -137,7 +121,6 @@
     "updated_at": "2026-06-10T12:32:14Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "BUG-11"
   },
   {
@@ -163,7 +146,6 @@
     "updated_at": "2026-07-06T11:33:35Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "EPIC-12"
   },
   {
@@ -214,7 +196,6 @@
     "updated_at": "2026-07-06T10:06:26Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "FEAT-13"
   },
   {
@@ -274,7 +255,6 @@
     "updated_at": "2026-06-23T09:58:43Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "FEAT-14"
   },
   {
@@ -325,7 +305,6 @@
     "updated_at": "2026-06-23T09:58:49Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "FEAT-15"
   },
   {
@@ -367,7 +346,6 @@
     "updated_at": "2026-06-23T09:58:59Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "FEAT-16"
   },
   {
@@ -392,7 +370,6 @@
     "updated_at": "2026-06-11T13:19:21Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "BUG-21"
   },
   {
@@ -418,7 +395,6 @@
     "updated_at": "2026-06-11T20:40:07Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "BUG-22"
   },
   {
@@ -443,7 +419,6 @@
     "updated_at": "2026-06-11T20:40:08Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "BUG-25"
   },
   {
@@ -469,7 +444,6 @@
     "updated_at": "2026-06-11T07:40:17Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "EPIC-28"
   },
   {
@@ -495,7 +469,6 @@
     "updated_at": "2026-06-11T07:40:18Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "EPIC-29"
   },
   {
@@ -518,7 +491,6 @@
     "updated_at": "2026-06-10T15:21:51Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "EPIC-31"
   },
   {
@@ -573,7 +545,6 @@
     "updated_at": "2026-06-23T10:01:14Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "FEAT-32"
   },
   {
@@ -627,7 +598,6 @@
     "updated_at": "2026-07-10T09:35:54Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "FEAT-33"
   },
   {
@@ -650,7 +620,6 @@
     "updated_at": "2026-06-11T07:57:11Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "EPIC-38"
   },
   {
@@ -712,7 +681,6 @@
     "updated_at": "2026-07-06T15:17:28Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "TASK-42"
   },
   {
@@ -774,7 +742,6 @@
     "updated_at": "2026-07-06T15:17:38Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "TASK-43"
   },
   {
@@ -800,7 +767,6 @@
     "updated_at": "2026-06-11T12:50:23Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "TASK-44"
   },
   {
@@ -823,7 +789,6 @@
     "updated_at": "2026-06-11T12:50:45Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "TASK-45"
   },
   {
@@ -885,7 +850,6 @@
     "updated_at": "2026-06-23T09:59:52Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "REV-48"
   },
   {
@@ -913,7 +877,6 @@
     "updated_at": "2026-06-12T14:26:22Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "ADR-49"
   },
   {
@@ -948,7 +911,6 @@
     "updated_at": "2026-06-23T09:59:39Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "REV-52"
   },
   {
@@ -1001,7 +963,6 @@
     "updated_at": "2026-06-12T09:43:19Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "REV-61"
   },
   {
@@ -1117,7 +1078,6 @@
     "updated_at": "2026-06-12T13:18:41Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "REV-67"
   },
   {
@@ -1142,7 +1102,6 @@
     "updated_at": "2026-06-12T14:29:31Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "ADR-71"
   },
   {
@@ -1168,7 +1127,6 @@
     "updated_at": "2026-06-12T14:29:31Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "ADR-72"
   },
   {
@@ -1193,7 +1151,6 @@
     "updated_at": "2026-06-12T14:29:31Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "ADR-73"
   },
   {
@@ -1226,13 +1183,11 @@
     "updated_at": "2026-06-12T14:28:33Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {
-      "tech": "python",
-      "tags": [
-        "architecture"
-      ]
-    },
-    "id": "GUIDE-79"
+    "id": "GUIDE-79",
+    "tech": "python",
+    "tags": [
+      "architecture"
+    ]
   },
   {
     "sequence_id": 100,
@@ -1282,7 +1237,6 @@
     "updated_at": "2026-07-16T16:01:28Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "FEAT-100"
   },
   {
@@ -1326,7 +1280,6 @@
     "updated_at": "2026-06-16T09:52:28Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "FEAT-123"
   },
   {
@@ -1352,7 +1305,6 @@
     "updated_at": "2026-06-23T12:59:42Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "ADR-179"
   },
   {
@@ -1378,7 +1330,6 @@
     "updated_at": "2026-06-23T12:59:42Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "ADR-180"
   },
   {
@@ -1403,7 +1354,6 @@
     "updated_at": "2026-06-24T10:12:12Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "BUG-183"
   },
   {
@@ -1426,9 +1376,6 @@
     "updated_at": "2026-06-24T20:14:34Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {
-      "slug": "greeting"
-    },
     "id": "SKILL-192"
   },
   {
@@ -1451,9 +1398,6 @@
     "updated_at": "2026-06-24T20:14:34Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {
-      "slug": "sq-bug"
-    },
     "id": "SKILL-193"
   },
   {
@@ -1478,7 +1422,6 @@
     "updated_at": "2026-07-02T13:07:22Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "EPIC-206"
   },
   {
@@ -1501,7 +1444,6 @@
     "updated_at": "2026-07-07T13:11:23Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "BUG-213"
   },
   {
@@ -1524,7 +1466,6 @@
     "updated_at": "2026-06-30T08:51:11Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "TASK-247"
   },
   {
@@ -1549,7 +1490,6 @@
     "updated_at": "2026-07-10T01:56:48Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "EPIC-280"
   },
   {
@@ -1572,7 +1512,6 @@
     "updated_at": "2026-07-15T13:14:48Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "EPIC-316"
   },
   {
@@ -1595,7 +1534,6 @@
     "updated_at": "2026-07-07T08:32:44Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "ADR-320"
   },
   {
@@ -1618,7 +1556,6 @@
     "updated_at": "2026-07-07T13:11:17Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "BUG-324"
   },
   {
@@ -1641,7 +1578,6 @@
     "updated_at": "2026-07-15T21:35:16Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "BUG-378"
   },
   {
@@ -1666,7 +1602,6 @@
     "updated_at": "2026-07-16T16:04:16Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "TASK-435"
   },
   {
@@ -1693,7 +1628,6 @@
     "updated_at": "2026-07-17T08:03:24Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "TASK-440"
   },
   {
@@ -1720,7 +1654,6 @@
     "updated_at": "2026-07-17T07:45:39Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "TASK-441"
   }
 ]

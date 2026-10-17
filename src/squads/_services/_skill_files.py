@@ -143,7 +143,7 @@ class SkillFolder:
         for other in self.slugs.get(slug, []):
             if other != name:
                 return Verdict("blocked", f"{other} already holds skill slug {slug!r}")
-        holder = next((n for n, it in self.known.items() if it.extra.get("slug") == slug), None)
+        holder = next((n for n, it in self.known.items() if it.slug == slug), None)
         if holder is not None:
             if holder != number:
                 return Verdict("blocked", f"the index holds skill slug {slug!r} at number {holder}")

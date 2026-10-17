@@ -1,5 +1,5 @@
 """Migrating any frozen corpus squad to the current schema leaves every roster entry that was
-already there with the same stored slug, core slug and file name."""
+already there with the same slug and file name, and the slug is a top-level key afterwards."""
 
 import re
 import shutil
@@ -24,16 +24,17 @@ def _paths(root: Path) -> SquadPaths:
     return SquadPaths(root=root, squad_dir=root / cfg.squad_dir, config=cfg)
 
 
-def _roster(root: Path) -> dict[str, tuple[str | None, str | None]]:
-    """Roster file name -> (core slug, stored slug), read from each file's frontmatter."""
-    out: dict[str, tuple[str | None, str | None]] = {}
+def _roster(root: Path) -> dict[str, tuple[str | None, bool]]:
+    """Roster file name -> (the slug its frontmatter stores, whether it is a top-level key)."""
+    out: dict[str, tuple[str | None, bool]] = {}
     for path in sorted(root.rglob("*.md")):
         if not _ROSTER_FILE.match(path.name):
             continue
         front = path.read_text(encoding="utf-8").split("---\n")[1]
         core = re.search(r"^slug: (.+)$", front, re.M)
         stored = re.search(r"^  slug: (.+)$", front, re.M)
-        out[path.name] = (core.group(1) if core else None, stored.group(1) if stored else None)
+        found = core or stored
+        out[path.name] = (found.group(1) if found else None, core is not None)
     return out
 
 
@@ -49,4 +50,5 @@ async def test_every_existing_roster_entry_keeps_its_slugs_and_file_name(
 
     after = _roster(root)
     assert before, f"corpus {corpus!r} holds no roster entry to protect"
-    assert {name: after.get(name) for name in before} == before
+    assert {name: (after[name][0]) for name in before} == {n: b[0] for n, b in before.items()}
+    assert all(after[name][1] for name in before), "a roster slug is not a top-level key"

@@ -595,7 +595,7 @@ def _add_an_incident(root: Path) -> None:
             subentities=[],
             refs=[],
             parent=None,
-            extra={},
+            attributes={},
             id="INC-9",
         )
         data["items"]["9"] = entry

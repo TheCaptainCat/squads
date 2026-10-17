@@ -17,17 +17,15 @@ command to the other.
 
 import pytest
 
-from squads._models._extras import ExtraKey as X
 from squads._workflow import ROSTER_ROLE
 
 pytestmark = pytest.mark.anyio
 
 
 async def _no_role_for_slug(svc, slug: str) -> bool:
-    from squads._models._extras import ExtraKey as X
 
     roles = await svc.list_items(item_type=ROSTER_ROLE)
-    return not any(it.extra.get(X.SLUG) == slug for it in roles)
+    return not any(it.slug == slug for it in roles)
 
 
 # --------------------------------------------------------------------------------------- dev add
@@ -75,7 +73,7 @@ async def test_dev_add_with_internal_whitespace_still_works(project, svc, invoke
     assert r.exit_code == 0
 
     roles = await svc.list_items(item_type=ROSTER_ROLE)
-    dev = next(it for it in roles if it.extra.get(X.SLUG) == "go-dev")
+    dev = next(it for it in roles if it.slug == "go-dev")
     assert dev.title == "Ada Lovelace"
 
 

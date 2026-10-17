@@ -424,8 +424,8 @@ export function isSqStatusCatalogEntry(value: unknown): value is SqStatusCatalog
   );
 }
 
-/** Shape guard for one `sq workflow roles --json` entry . Exported for the same reason
- * as `isSqTreeNode` — the skew canary reuses the real adapter predicate. */
+/** Shape guard for one `sq workflow roles --json` entry; `blocked` is optional because an older
+ * `sq` omits it. Exported so the skew canary reuses the real adapter predicate. */
 export function isSqRoleCatalogEntry(value: unknown): value is SqRoleCatalogEntry {
   if (typeof value !== 'object' || value === null) {
     return false;
@@ -436,7 +436,8 @@ export function isSqRoleCatalogEntry(value: unknown): value is SqRoleCatalogEntr
     typeof entry.settled === 'boolean' &&
     typeof entry.hidden === 'boolean' &&
     typeof entry.color === 'string' &&
-    typeof entry.live === 'boolean'
+    typeof entry.live === 'boolean' &&
+    (entry.blocked === undefined || typeof entry.blocked === 'boolean')
   );
 }
 

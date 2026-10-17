@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-from squads._models._extras import ExtraKey as X
+from squads._models._attributes import AttributeKey as X
 from squads._roles._catalog import PREDEFINED
 from squads._roles._resolver import resolve_dev_role, resolve_role_for_item
 
@@ -62,7 +62,7 @@ async def test_activate_role_admits_a_brand_new_slug_defined_only_in_a_project_t
     assert item.type == "role"
     assert item.title == "Sam Security"
     assert _resolved(svc, item).full_name == "Sam Security"
-    assert item.extra.get(X.SLUG) == "security-expert"
+    assert item.slug == "security-expert"
 
 
 async def test_activate_role_with_no_override_produces_the_standard_bundled_extra(project, svc):
@@ -77,7 +77,7 @@ async def test_add_dev_applies_a_dev_toml_model_override(project, svc):
     _place_role_toml(project.squad_dir, "python-dev", 'model = "opus"\n')
     item = await svc.add_dev("python")
     assert _resolved(svc, item).model == "opus"
-    assert item.extra.get(X.MODEL) == "opus"  # a dev's model is stored: it has no catalog answer
+    assert item.attribute(X.MODEL) == "opus"  # a dev's model is stored: it has no catalog answer
     assert item.title  # auto-generated from the pool, non-empty
 
 

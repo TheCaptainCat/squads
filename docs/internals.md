@@ -137,7 +137,7 @@ The frontmatter is durable; the index is derived. Two commands make that concret
 
   **The rescan also writes.** On the same walk it strips from each file what is now computed on
   every read rather than stored — the sub-entity roll-up table and badge lines, and the retired
-  `extra` keys a role item mirrored from its definition — and canonicalises any legacy ref
+  keys a role item mirrored from its definition — and canonicalises any legacy ref
   encoding. A role or skill body that holds prose is left alone; an empty role body, or an empty
   body on a generated skill, gets its view tag written back. Markdown is written before the index commit, as everywhere else. So `repair` is not an index-only job: on
   a corpus carrying that content it produces a content diff, and it should be run on a clean
@@ -301,8 +301,8 @@ reference: **[workflow.md](workflow.md)**.
 (Refs are stored unpadded by default; old refs may retain padded width from before a migration, and both resolve correctly.)
 
 > A file written before `schema_version` 0.2 holds the kinds in a separate `extra["ref_kinds"]`
-> `{ID: kind}` map. It is read transparently and folded inline (`Item.from_frontmatter`) — see
-> [migration.md](migration.md).
+> `{ID: kind}` map. `sq migrate up` folds it inline, through the compat reader under
+> `_migrations/`; the model itself reads no `extra` — see [migration.md](migration.md).
 
 ### Discussion, @mentions, inbox
 
@@ -384,8 +384,12 @@ through `_interactions/`). Both are project-overridable — `.overrides/roles/<s
   - **`skills_for_role(slug)`** — which skills a role's pointer preloads. *A role that doesn't manage
     a type gets no skill for it* (manager/devops get only the general `squads` skill).
 
-Role/dev/skill metadata is stored in the item's `extra` dict; its keys are centralized in
-`_models/_extras.py::ExtraKey` (never hand-write the literals).
+Role/dev/skill metadata is stored as **attributes**: top-level frontmatter keys that the type
+declares in the workflow spec (`[items.<type>.attributes]`), held on the model as one
+`Item.attributes` mapping together with any undeclared key, which is carried and never read. The
+loader pins the `role` and `skill` attributes the engine writes into agent files. Internal readers
+go through `_models/_attributes.py::AttributeKey` and the `item.attribute(...)` accessor or a typed
+roster accessor, never a string literal.
 
 ---
 

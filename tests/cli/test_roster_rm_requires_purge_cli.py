@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-from squads._models._extras import ExtraKey as X
 from squads._models._item import DISPLAY_ID_PADDING, format_item_id
 from squads._models._vocab import prefix_for
 
@@ -34,7 +33,7 @@ async def _make(invoke, kind: str) -> None:
 
 async def _by_slug(svc, slug: str):
     db = await svc.store.load()
-    return next(i for i in db.items.values() if slug in (i.slug, i.extra.get(X.SLUG)))
+    return next(i for i in db.items.values() if slug in (i.slug, i.slug))
 
 
 def _snapshot(root: Path) -> dict[str, str]:

@@ -664,6 +664,10 @@ _ROLES_CATALOG_SCAFFOLD_BODY = """\
 # document. Precedence: bundled roles.toml -> this document -> a per-slug
 # .overrides/roles/<slug>.toml file, which still wins over this document for the same field.
 #
+# A role's name: a new role takes its `full_name` from these layers when it is created, the most
+# specific one winning, unless `--name` is given (`sq role activate --name`, `sq dev add --name`,
+# `sq init --name`). The name is then stored on the role and no change here renames it.
+#
 # Rules:
 #   - Top-level keys are limited to: roles, bundles, dev (plus [selected] below).
 #   - [bundles.<name>] fields merge field-by-field over the bundled default; a new bundle
@@ -1189,14 +1193,14 @@ def _role_override_shadows_bundled(
 ) -> bool:
     """Whether *slug* shadows a bundled or dev-pool role identity — resolved the exact way
     :func:`_check_role_override_resolves` resolves a base to validate against: the roster's
-    own stored fact (``item.extra.is_dev`` / a live item's bundled slug, via
+    own stored fact (the item's ``is_dev`` marker / a live item's bundled slug, via
     :func:`~squads._roles._resolver.role_base_from_item`) wins over the slug's naming
     convention whenever a roster item exists, and only a slug with **no** roster item falls
     back to the naming convention (:func:`_shadowed_bundled_role_toml`, the same baseline
     :func:`_diff_role`'s Δ-mine uses).
 
     Without this, a wholly custom, never-``sq dev add``-created role whose slug merely happens
-    to end in ``-dev`` (activated, so a roster item exists and carries no ``extra.is_dev``)
+    to end in ``-dev`` (activated, so a roster item exists and carries no ``is_dev`` marker)
     would be misread as shadowing the generated dev-pool base by slug shape alone — exactly
     the "skipped for the whole ``-dev`` suffix space" false positive the stored-fact-first fix
     (see ``tests/unit/test_dev_base_gating_reads_the_stored_fact_first.py``) closed for every
@@ -1337,7 +1341,7 @@ def check_override_issues(
     Levels are ``"warn"`` or ``"error"`` (matching CheckIssue).
     *item_path* is the relative path string for display in the sq check output.
 
-    *role_items_by_slug* — the live roster's ``ROLE`` items, keyed by ``extra.slug`` — lets a
+    *role_items_by_slug* — the live roster's ``ROLE`` items, keyed by slug — lets a
     role override resolve against its own live identity, bundled or developer alike (see
     :func:`~squads._roles._resolver.role_base_from_item`), instead of the developer case alone
     regenerating a pool name. Omitted (or a slug with no entry) falls back to
@@ -1507,6 +1511,7 @@ def _check_role_override_resolves(
     from squads._interactions import is_dev_slug
     from squads._roles._resolver import (
         dev_base_for_slug,
+        pinned_name_of,
         resolve_role_with_base,
         role_base_from_item,
     )
@@ -1518,7 +1523,7 @@ def _check_role_override_resolves(
         base_role = dev_base_for_slug(slug, squad_dir) if is_dev_slug(slug) else None
 
     try:
-        resolve_role_with_base(slug, squad_dir, base=base_role)
+        resolve_role_with_base(slug, squad_dir, base=base_role, pinned_name=pinned_name_of(item))
     except SquadsError as exc:
         return [
             (

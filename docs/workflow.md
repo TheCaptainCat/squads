@@ -802,8 +802,8 @@ once retired (`Superseded`, `Deprecated`, `Rejected`, `Cancelled`) — `--all` b
 #### Collections
 
 A collection is a reusable set of badge options (like priority or severity) that can be applied to
-items or sub-entities. Collections are ordered or unordered; ordered collections support filtering
-and sorting by rank.
+items or sub-entities. A collection is ordered, which is what lets `sq list` filter and sort by
+rank.
 
 ```toml
 [collections.impact]
@@ -817,8 +817,9 @@ badges = [
 ]
 ```
 
-`label` is required; `ordered` defaults to `false`, and an ordered collection ranks by declaration
-order, **strongest first**. `default` is the code used when no value is set.
+`label` is required, and so in practice is `ordered = true`: the key defaults to `false`, and a
+collection that is not ordered is refused at load (`collection 'impact': unordered collections
+are not supported yet`). A collection ranks by declaration order, **strongest first**. `default` is the code used when no value is set.
 
 The bundled default collections are `priority` (urgent, high, medium, low) and `severity`
 (critical, high, medium, low, info). A collection is a library — a type carries it by declaring a

@@ -144,9 +144,9 @@ from squads._errors import SquadsError
 from squads._index._store import IndexStore
 from squads._itemfile import read_frontmatter, read_item_text, write_text
 from squads._migrations._context import MigrationContext
+from squads._migrations._legacy_extra import legacy_extra
 from squads._migrations._outcome import MigrationOutcome
 from squads._models import _markers as markers
-from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._paths import SquadPaths, number_for_id
 from squads._sections import find_markers, get_section, replace_frontmatter, replace_section
@@ -387,7 +387,7 @@ async def _reclaim_legacy_roster_bodies(
         key=lambda it: it.sequence_id,
     )
     for it in roster_items:
-        slug = it.extra.get(X.SLUG, it.slug) if it.type == ROSTER_SKILL else it.slug
+        slug = legacy_extra(it).get("slug", it.slug) if it.type == ROSTER_SKILL else it.slug
         view_name = roster_body_view_name(it.type, slug, spec)
         if view_name is None:
             continue

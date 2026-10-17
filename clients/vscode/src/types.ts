@@ -167,6 +167,8 @@ export interface SqRoleCatalogEntry {
   readonly hidden: boolean;
   readonly color: string;
   readonly live: boolean;
+  /** Whether the role's statuses wait on something else; optional because an older `sq` omits it. */
+  readonly blocked?: boolean;
 }
 
 /** One entry of `sq show <id> --json`'s `discussion` array — a single comment: author display

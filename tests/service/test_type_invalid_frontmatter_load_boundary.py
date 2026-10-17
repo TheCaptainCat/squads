@@ -6,7 +6,7 @@ The guarantee, in its own words: whatever is wrong with a file's data, every cal
 as good as the widest input class it has actually been driven against, and the failure mode that
 motivates this module is a boundary that looks correct because the single shape it was tested with
 happened to route through the one validator that was wired up (`title` as a list reaches pydantic;
-`labels: 5`, `refs: 5`, `extra: oops`, `subentities: [5]` and `created_at: not-a-date` did not, and
+`labels: 5`, `refs: 5`, `subentities: [5]` and `created_at: not-a-date` did not, and
 threw `TypeError`/`ValueError` straight past it).
 
 So this is table-driven over **frontmatter field x wrong type**, and the table's field coverage is
@@ -96,17 +96,15 @@ _INVALID_SHAPES: list[tuple[str, str, object]] = [
     ("updated_at_unparseable", "updated_at", "not-a-date"),
     ("created_session_int", "created_session", 5),
     ("modified_session_int", "modified_session", 5),
-    ("extra_str", "extra", "oops"),
-    ("extra_list", "extra", [1, 2]),
-    ("extra_non_str_key", "extra", {5: "a"}),
 ]
 _SHAPE_IDS = [name for name, _, _ in _INVALID_SHAPES]
 _SHAPE_ARGS = [(key, value) for _, key, value in _INVALID_SHAPES]
 
-#: The two `Item` fields no frontmatter key ever supplies, so no shape is owed for them: `path` is
-#: passed by the caller (never read from the file), and `prefix` is derived from `id` and
-#: deliberately not read even when a legacy file carries the key.
-_NOT_FROM_FRONTMATTER = frozenset({"path", "prefix"})
+#: The `Item` fields no single frontmatter key supplies, so no shape is owed for them: `path` is
+#: passed by the caller (never read from the file), `prefix` is derived from `id` and deliberately
+#: not read even when a legacy file carries the key, `attributes` holds every key that is not a
+#: core key (any value is valid there), and `slug_in_file` records whether `slug` was present.
+_NOT_FROM_FRONTMATTER = frozenset({"path", "prefix", "attributes", "slug_in_file"})
 
 #: Frontmatter keys that carry no `Item` field of their own. `id` is the durable human id -- a
 #: computed field on the way out, plain input data on the way in.
@@ -262,22 +260,19 @@ async def test_a_numeric_timestamp_is_read_as_an_epoch_rather_than_invented(svc)
     assert _reload(svc, item).created_at == datetime(1970, 1, 1, 0, 0, 5, tzinfo=UTC)
 
 
-#: Every container-valued frontmatter key the replaced coercions covered, with the empty value each
-#: one means when unset. All four, not two: the old expressions were `list(... or [])` for `labels`
-#: and `refs`, `[s for s in (... or [])]` for `subentities` and `dict(... or {})` for `extra`, and
-#: every one of those `or`s swallowed `""`. Parametrizing the compatibility rule over a subset is
-#: what let two of the four regress while the rule's own docstring claimed the whole scope.
+#: Every container-valued frontmatter key, with the empty value each one means when unset. The
+#: old expressions swallowed `""` as well as `None`, so the compatibility rule is parametrized over
+#: the whole scope rather than a subset.
 _CONTAINER_FIELDS: list[tuple[str, object]] = [
     ("labels", []),
     ("refs", []),
     ("subentities", []),
-    ("extra", {}),
 ]
 _CONTAINER_IDS = [key for key, _ in _CONTAINER_FIELDS]
 
 
 def test_the_container_table_covers_every_container_field_the_boundary_folds():
-    """The table's own coverage guard, for the same reason the shape table above has one: a fifth
+    """The table's own coverage guard, for the same reason the shape table above has one: a fourth
     container field would otherwise be added with no compatibility shape and nothing would say so.
     Derived from `Item`'s own annotations rather than hand-listed."""
     covered = {key for key, _ in _CONTAINER_FIELDS}
@@ -296,14 +291,14 @@ async def test_an_unset_container_field_still_loads_as_empty(svc, key, value, em
     """Compatibility, and the reason it is pinned across the whole scope rather than left to chance.
 
     The coercions this replaced defaulted through an `or`, which swallowed `""` as well as `None` --
-    so a file carrying `labels: ''`, `subentities: ''` or `extra: ''` loaded. Tightening any of them
+    so a file carrying `labels: ''` or `subentities: ''` loaded. Tightening any of them
     would mean a file that loaded yesterday failing today, which is the wrong direction for a
     boundary whose job is keeping legacy files readable. A *non-empty* string is a different matter
     and is rejected below, rather than silently exploded into one entry per character the way
     `list("abc")` did.
 
     The asymmetry is the defect, not the strictness: whichever way the rule goes it has to go the
-    same way for all four keys, since they are equally reachable (only by a hand-edit or a merge
+    same way for every key, since they are equally reachable (only by a hand-edit or a merge
     artifact -- `to_frontmatter_dict` omits every one of them when empty).
     """
     item = (await create_item(svc, "task", "a task with an unset container field")).item
@@ -315,7 +310,7 @@ async def test_an_unset_container_field_still_loads_as_empty(svc, key, value, em
 @pytest.mark.parametrize("key", _CONTAINER_IDS)
 async def test_a_bare_string_container_field_is_rejected_rather_than_coerced(svc, key):
     """The old `list("abc")` turned one hand-written value into three, and nothing ever said so.
-    Rejecting is both correct and louder; it is asserted for all four keys so the compatibility
+    Rejecting is both correct and louder; it is asserted for every key so the compatibility
     carve-out above cannot quietly widen into accepting any string at all in any of them."""
     item = (await create_item(svc, "task", "a task with a bare string container field")).item
     _set_frontmatter_value(svc.paths.abspath(item.path), key, "abc")
@@ -521,7 +516,7 @@ async def test_an_internal_key_error_is_not_relabelled_as_invalid_file_data(monk
     def _boom(_data: dict[str, Any], **_kwargs: Any) -> Any:
         raise KeyError("story")
 
-    monkeypatch.setattr(item_module, "_read_extra", _boom)
+    monkeypatch.setattr(item_module, "_read_refs", _boom)
 
     with pytest.raises(KeyError):
         Item.from_frontmatter(data, path=item.path, default_kind=svc.spec.default_ref_kind())

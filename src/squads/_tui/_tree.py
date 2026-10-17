@@ -17,7 +17,6 @@ from textual.widgets.tree import TreeNode as UiTreeNode
 
 from squads import _clock as clock
 from squads._memory._model import MemoryEntry
-from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._models._omission import Omission
 from squads._services._results import TREE_ANCHOR_MARKER, TreeNode
@@ -68,7 +67,7 @@ class MemoryNodeData:
 type NodeData = str | MemoryNodeData
 
 #: One role/operator identity's eagerly-fetched memory pool: its entries plus any per-file
-#: read failures, keyed by the identity's own roster slug (`Item.extra[X.SLUG]`, not
+#: read failures, keyed by the identity's own roster slug (`Item.slug`, not
 #: `Item.id`) — `role_slug` here matches what `Service.memory_list`/`memory_show` expect.
 type MemoryBySlug = Mapping[str, tuple[list[MemoryEntry], list[Omission]]]
 
@@ -79,7 +78,7 @@ def _memory_eligible(item_type: str) -> bool:
     The one reserved-type check the whole memory-attachment engine keys eligibility off of.
     `roster_identity_slugs` (sizing the eager fetch) and `_attach` (deciding what the render
     side actually shows) both call this rather than each keeping — and risking drifting from —
-    its own notion of "eligible": a Skill carries the identical `extra[X.SLUG]` key a Role or
+    its own notion of "eligible": a Skill carries a `slug` just as a Role or
     Operator does (`_services._roster.add_skill`), so a render-side lookup keyed on the slug
     alone, with no type gate, picks up another identity's notebook the moment a skill happens
     to share its slug.
@@ -102,9 +101,8 @@ def roster_identity_slugs(nodes: list[TreeNode]) -> list[str]:
         stack.extend(node.children)
         if not _memory_eligible(node.item.type):
             continue
-        slug = node.item.extra.get(X.SLUG)
-        if isinstance(slug, str) and slug:
-            out.append(slug)
+        if node.item.slug:
+            out.append(node.item.slug)
     return out
 
 
@@ -229,13 +227,12 @@ def _attach(
     entries: list[MemoryEntry] = []
     unreadable: list[Omission] = []
     if _memory_eligible(node.item.type):
-        candidate = node.item.extra.get(X.SLUG)
-        if isinstance(candidate, str):
-            pool = memory.get(candidate)
-            if pool is not None:
-                role_slug = candidate
-                entries, unreadable = pool
-                label.append_text(_memory_glance_suffix(entries))
+        candidate = node.item.slug
+        pool = memory.get(candidate)
+        if pool is not None:
+            role_slug = candidate
+            entries, unreadable = pool
+            label.append_text(_memory_glance_suffix(entries))
 
     if node.children or entries or unreadable:
         branch = parent.add(label, node.item.id, expand=bool(node.children))

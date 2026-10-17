@@ -4,7 +4,9 @@ A squad is a roster of named agents. Each role has a **real name** (used in file
 and a **slug** (used on the CLI and as the Claude agent name). Roles are activated at `init`/`adopt`
 or later with `sq role activate <slug>`, which is also where you get to name them — see
 [overrides.md § "Agent naming"](overrides.md#agent-naming) for every way a name can be set and
-[§ "Which name wins"](overrides.md#which-name-wins) for which one applies when two disagree.
+[§ "Which name wins"](overrides.md#which-name-wins) for which one applies when two disagree. A
+role's name is decided when the role is created and then stored; no configuration change renames
+it.
 
 ## The bundled roster
 
@@ -53,12 +55,14 @@ If you omit `--name`, a first name is taken from a pool and the surname is the t
 dotnet` → *Elias Dotnet*); the slug is always `<tech>-dev`, with the tech slugified (`--tech
 Node.js` → `node-js-dev`). Every developer manages `sq-task`, `sq-bug`, `sq-contract` and
 `sq-review`. The name, the slug and the `--model` you choose here are kept as they are by every
-later `sq sync`; the rest of the developer's definition is refreshed from the bundled one — see
+later `sq sync`, and no later override renames the developer; the rest of the developer's
+definition is refreshed from the bundled one — see
 [overrides.md § "Which name wins"](overrides.md#which-name-wins).
 
 A developer's fields are overridable like any other role's, and the override merges onto the
 developer you already have: a `.overrides/roles/<tech>-dev.toml` that sets only `title` changes only
-the title and leaves the name alone, while declaring `full_name` renames them. Worked example:
+the title. Its `full_name` names a developer added after the file was written (when `sq dev add`
+gets no `--name`), and never renames one you already have. Worked example:
 [overrides.md § "Retitle a developer without renaming them"](overrides.md#retitle-a-developer-without-renaming-them).
 
 ## Managing roles

@@ -14,7 +14,6 @@ proving the dedicated verb, not the edge itself, is what keeps things current.
 import pytest
 
 from _helpers import create_item
-from squads._models._extras import ExtraKey as X
 
 pytestmark = pytest.mark.anyio
 
@@ -72,7 +71,7 @@ async def test_only_the_linked_roles_pointer_is_touched(svc):
 
     assert "release-runbook" in _pointer_path(svc, "tech-writer").read_text(encoding="utf-8")
     assert other_pointer.read_bytes() == other_bytes_before
-    assert other_role.extra.get(X.SLUG) == "architect"  # sanity
+    assert other_role.slug == "architect"  # sanity
 
 
 async def test_end_state_after_link_matches_a_full_sync(svc):
@@ -148,7 +147,7 @@ async def test_one_skill_scoped_to_several_roles_at_once_preloads_all_and_only_t
 
     assert "release-runbook" not in await svc.resolved_skills_for_role("python-dev")
     assert "release-runbook" not in _pointer_path(svc, "python-dev").read_text(encoding="utf-8")
-    assert outsider.extra.get(X.SLUG) == "python-dev"  # sanity
+    assert outsider.slug == "python-dev"  # sanity
 
 
 async def test_unlink_leaves_a_different_kind_edge_to_the_same_role_intact(svc):

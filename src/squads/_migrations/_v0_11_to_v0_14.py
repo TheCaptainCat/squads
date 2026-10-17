@@ -56,7 +56,7 @@ from squads._index._store import IndexStore
 from squads._interactions import item_skill_name, skill_description
 from squads._interactions._models import PlaybookSpec
 from squads._migrations._context import MigrationContext
-from squads._models._extras import ExtraKey as X
+from squads._migrations._legacy_extra import legacy_extra, with_legacy_extra
 from squads._models._item import Item
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
@@ -191,27 +191,28 @@ async def _live_roster(
     items = sorted(db.items.values(), key=lambda it: it.sequence_id)
     roster = [
         RoleView(
-            slug=it.extra.get(X.SLUG, it.slug),
-            full_name=it.extra.get(X.FULL_NAME, it.title),
-            title=it.extra.get(X.TITLE, it.title),
-            is_default=it.extra.get(X.IS_DEFAULT, False),
-            mission=it.extra.get(X.MISSION, it.description),
-            responsibilities=tuple(it.extra.get(X.RESPONSIBILITIES, ())),
+            slug=legacy_extra(it).get("slug", it.slug),
+            full_name=legacy_extra(it).get("full_name", it.title),
+            title=legacy_extra(it).get("title", it.title),
+            is_default=legacy_extra(it).get("is_default", False),
+            mission=legacy_extra(it).get("mission", it.description),
+            responsibilities=tuple(legacy_extra(it).get("responsibilities", ())),
         )
         for it in items
         if it.type == ROSTER_ROLE and it.status in role_live
     ]
     operators = [
         OperatorView(
-            slug=it.extra.get(X.SLUG, it.slug), full_name=it.extra.get(X.FULL_NAME, it.title)
+            slug=legacy_extra(it).get("slug", it.slug),
+            full_name=legacy_extra(it).get("full_name", it.title),
         )
         for it in items
         if it.type == ROSTER_OPERATOR and it.status in op_live
     ]
     skill_paths = {
-        it.extra[X.SLUG]: paths.abspath(it.path)
+        legacy_extra(it)["slug"]: paths.abspath(it.path)
         for it in items
-        if it.type == ROSTER_SKILL and X.SLUG in it.extra and it.status in skill_live
+        if it.type == ROSTER_SKILL and "slug" in legacy_extra(it) and it.status in skill_live
     }
     return roster, operators, skill_paths
 
@@ -281,7 +282,7 @@ async def _seed_new_type_skills(paths: SquadPaths, spec: WorkflowSpec) -> int:
                 path=squad_rel,
                 created_at=now,
                 updated_at=now,
-                extra={X.SLUG: slug},
+                attributes=with_legacy_extra({"slug": slug}),
             )
             stamped_text = join_frontmatter(item.to_frontmatter_dict(), existing_text)
             new_path = skills_folder / new_name

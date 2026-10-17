@@ -31,12 +31,13 @@ def normalized_id(fid: object) -> str | None:
 
 
 def file_slug(md: Path, fm: dict[str, Any], prefix: str) -> str:
-    """A file's slug: the roster slug in ``extra``, else the frontmatter ``slug``, else the
-    slug segment of its name. The only definition; every caller asks here."""
+    """A file's slug: the frontmatter ``slug`` (or, in a file not yet migrated, the one under
+    its ``extra`` block), else the slug segment of its name. The only definition; every caller
+    asks here."""
     extra = fm.get("extra")
     for candidate in (
-        cast("dict[str, Any]", extra).get("slug") if isinstance(extra, dict) else None,
         fm.get("slug"),
+        cast("dict[str, Any]", extra).get("slug") if isinstance(extra, dict) else None,
     ):
         if isinstance(candidate, str) and candidate:
             return candidate

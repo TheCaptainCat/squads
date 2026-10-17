@@ -25,7 +25,7 @@ async def test_adopt_imports_a_legacy_tree_and_is_idempotent_on_a_second_run(
     assert (tmp_path / ".squads.toml").exists()
     assert result.imported == 2  # the manager role + the legacy task
 
-    activated = {r.extra["slug"] for r in result.roles}
+    activated = {r.slug for r in result.roles}
     assert "manager" not in activated  # already existed on disk -> imported, not re-activated
     assert {"architect", "tech-lead", "reviewer"} <= activated
 

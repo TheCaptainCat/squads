@@ -13,6 +13,7 @@ import pytest
 
 from squads._migrations import _v0_15_to_v0_16 as step
 from squads._models._schema import SCHEMA_VERSION
+from squads._sections import split_frontmatter
 
 pytestmark = pytest.mark.anyio
 
@@ -141,7 +142,9 @@ async def test_every_comment_reads_back_with_the_slug_of_its_author(squad, invok
     )
 
 
-async def test_the_diff_of_every_item_file_is_header_lines_only(squad, invoke) -> None:
+async def test_the_diff_of_every_item_file_is_header_lines_and_the_flattened_frontmatter(
+    squad, invoke
+) -> None:
     before = {p: p.read_text(encoding="utf-8") for p in sorted(squad.rglob("*.md"))}
 
     r = await invoke(["migrate", "up"])
@@ -150,8 +153,10 @@ async def test_the_diff_of_every_item_file_is_header_lines_only(squad, invoke) -
     changed = 0
     for path, was in before.items():
         now = path.read_text(encoding="utf-8")
-        was_lines, now_lines = was.splitlines(), now.splitlines()
-        # the index rebuild may rewrite nothing else: the line count and every other line match
+        old_front, old_body = split_frontmatter(was)
+        new_front, new_body = split_frontmatter(now)
+        was_lines, now_lines = old_body.splitlines(), new_body.splitlines()
+        # the body keeps its line count and every other line: only headers change
         assert len(was_lines) == len(now_lines), path
         for old, new in zip(was_lines, now_lines, strict=True):
             if old != new:
@@ -161,6 +166,13 @@ async def test_the_diff_of_every_item_file_is_header_lines_only(squad, invoke) -
                 assert (
                     new == f"- [{legacy.group(1)}] `{SLUG_OF[legacy.group(2)]}` {legacy.group(2)}:"
                 )
+        # the frontmatter loses `extra`, gains what it held, and no other key changes
+        lifted = set(old_front.get("extra") or {})
+        assert "extra" not in new_front, path
+        for key, value in old_front.items():
+            if key != "extra":
+                assert new_front.get(key, value) == value or key == "title", (path, key)
+        assert set(new_front) - set(old_front) <= lifted | {"slug"}, path
     assert changed == _legacy_headers_by_counting(squad)
 
 
@@ -253,11 +265,25 @@ POSTCONDITIONS = {
     "comment-headers": lambda root: (
         not re.search(r"^- \[[^\]]+\] [^`]", _discussion_text(root), re.M)
     ),
-    "operator-identity": lambda root: all(
-        re.search(r"^  slug: .+$", text, re.M) and re.search(r"^  full_name: .+$", text, re.M)
-        for text in (p.read_text(encoding="utf-8") for p in (root / "operators").glob("*.md"))
-    ),
+    "flat-frontmatter": lambda root: _frontmatter_is_flat(root),
 }
+
+
+def _frontmatter_is_flat(root: Path) -> bool:
+    """No item file carries `extra`, every roster file a top-level `slug`, no operator file a
+    `full_name`."""
+    for path in root.rglob("*.md"):
+        front, _ = split_frontmatter(path.read_text(encoding="utf-8"))
+        if not front:
+            continue
+        kind = front.get("type")
+        if "extra" in front:
+            return False
+        if kind in ("role", "skill", "operator") and not front.get("slug"):
+            return False
+        if kind == "operator" and "full_name" in front:
+            return False
+    return True
 
 
 @pytest.mark.parametrize("name", [c.name for c in step.CONTRIBUTIONS])

@@ -15,6 +15,7 @@ from pathlib import Path
 
 from squads._index._reconcile import entry_name
 from squads._index._store import badge_code_problems
+from squads._migrations._legacy_extra import read_flat
 from squads._models._index import SquadsDB
 from squads._workflow._loader import validate_against_index
 from squads._workflow._models import WorkflowSpec
@@ -132,7 +133,7 @@ def corpus_fit_refusal(
         )
     problems = [
         _OVERRIDE_HINT.sub("", p) if override_path is None else p
-        for p in validate_against_index(spec, db, alignment=override_path is not None)
+        for p in validate_against_index(spec, flat_view(db), alignment=override_path is not None)
     ]
     if problems:
         remedy = "correct the named frontmatter by hand"
@@ -141,7 +142,7 @@ def corpus_fit_refusal(
         return _refusal(
             "the corpus does not fit the vocabulary this squad declares", problems, remedy, rebuilt
         )
-    stranded = badge_code_problems(db, spec)
+    stranded = badge_code_problems(flat_view(db), spec)
     if stranded:
         return _refusal(
             "these stored badge codes are not declared by their collection",
@@ -150,6 +151,11 @@ def corpus_fit_refusal(
             rebuilt,
         )
     return None
+
+
+def flat_view(db: SquadsDB) -> SquadsDB:
+    """*db* with each item read as a flat one (see :func:`read_flat`)."""
+    return db.model_copy(update={"items": {n: read_flat(it) for n, it in db.items.items()}})
 
 
 def _refusal(cause: str, lines: list[str], remedy: str, rebuilt: str) -> str:

@@ -7,7 +7,6 @@ import pytest
 
 from squads._cli import app
 from squads._models._config import CONFIG_FILENAME, SquadsConfig
-from squads._models._extras import ExtraKey as X
 from squads._roles._catalog import PREDEFINED
 from squads._services import _service as service
 
@@ -19,7 +18,7 @@ def _role_item_sync(svc, slug: str):
 
     async def _get():
         for item in await svc.list_items(item_type="role"):
-            if item.extra.get(X.SLUG) == slug:
+            if item.slug == slug:
                 return item
         raise AssertionError(f"no ROLE item found for slug {slug!r}")
 
@@ -280,9 +279,7 @@ class TestRoleActivateNameFlag:
         assert r.exit_code == 0, r.output
         assert "Ada Lovelace" in r.output
         svc = service.Service(project)
-        item = next(
-            i for i in await svc.list_items(item_type="role") if i.extra.get(X.SLUG) == "architect"
-        )
+        item = next(i for i in await svc.list_items(item_type="role") if i.slug == "architect")
         assert item.title == "Ada Lovelace"
 
     async def test_activate_name_reaches_claude_md(self, project, invoke) -> None:
@@ -293,9 +290,7 @@ class TestRoleActivateNameFlag:
         r = await invoke(["role", "activate", "qa"])
         assert r.exit_code == 0, r.output
         svc = service.Service(project)
-        item = next(
-            i for i in await svc.list_items(item_type="role") if i.extra.get(X.SLUG) == "qa"
-        )
+        item = next(i for i in await svc.list_items(item_type="role") if i.slug == "qa")
         bundled = next(role for role in PREDEFINED if role.slug == "qa")
         assert item.title == bundled.full_name
 
