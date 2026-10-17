@@ -87,8 +87,8 @@ and rewrites item files while it is there ([what it writes](#does-sq-repair-chan
   as the fix for that file.
 
 ### Does `sq repair` change my files?
-Yes. Alongside the index rebuild, `sq repair` removes from your item files what squads now computes
-on every read rather than stores: the sub-entity roll-up table and each block's badge line, and the
+Yes. Alongside the index rebuild, `sq repair` removes from your item files what squads computes on
+every read rather than stores: the sub-entity roll-up table and each block's badge line, and the
 keys a role item mirrored from its definition (`full_name`, `mission`, `responsibilities`,
 `agreements`, `color`, `can_spawn`, `skills`, `is_dev`). It also canonicalises any legacy ref
 encoding. A role keeps its name, its `slug`, its default-role designation, a developer role's

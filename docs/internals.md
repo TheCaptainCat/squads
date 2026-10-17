@@ -135,8 +135,8 @@ The frontmatter is durable; the index is derived. Two commands make that concret
   renumbered without touching references, which are listed for a hand check instead, because
   none can be attributed to one copy (see [the FAQ](faq.md#handling-id-collisions)).
 
-  **The rescan also writes.** On the same walk it strips from each file what is now computed on
-  every read rather than stored — the sub-entity roll-up table and badge lines, and the retired
+  **The rescan also writes.** On the same walk it strips from each file what is computed on every
+  read rather than stored — the sub-entity roll-up table and badge lines, and the retired
   keys a role item mirrored from its definition — and canonicalises any legacy ref
   encoding. A role or skill body that holds prose is left alone; an empty role body, or an empty
   body on a generated skill, gets its view tag written back. Markdown is written before the index commit, as everywhere else. So `repair` is not an index-only job: on
