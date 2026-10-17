@@ -48655,7 +48655,7 @@
         {
           "local_id": "ST6",
           "title": "Rewrite the docs passages that deny a roster update verb",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "severity": null,
           "story": "US3",
@@ -48664,7 +48664,7 @@
       ],
       "path": "tasks/TASK-001070-give-skills-roles-and-operators-the-item-verbs.md",
       "created_at": "2026-10-16T19:52:27Z",
-      "updated_at": "2026-10-16T23:47:34Z",
+      "updated_at": "2026-10-17T00:01:07Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -49786,7 +49786,7 @@
       "type": "review",
       "title": "Roster remove, comment and skill discussion region",
       "slug": "roster-remove-comment-and-skill-discussion-region",
-      "status": "ChangesRequested",
+      "status": "InReview",
       "description": "Review of TASK-1070 ST1-ST3: remove/rm, the skill discussion region and its 0.16 contribution, roster comment verbs",
       "parent": null,
       "author": "reviewer",
@@ -49828,7 +49828,7 @@
         {
           "local_id": "F4",
           "title": "Update with only --when-to-use leaves the scaffold stale, so the skill body counts as written",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -49837,7 +49837,7 @@
         {
           "local_id": "F5",
           "title": "A slug key on a generated role import names the role override; elsewhere it is not settable",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -49846,16 +49846,25 @@
         {
           "local_id": "F6",
           "title": "Rescaffold address branch is unreachable for work items and misroutes operators",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Renaming a dropped-view or dropped-type skill inserts template prose next to its tag",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
           "story": null,
           "extra": {}
         }
       ],
       "path": "reviews/REV-001086-roster-remove-comment-and-skill-discussion-region.md",
       "created_at": "2026-10-16T23:20:09Z",
-      "updated_at": "2026-10-16T23:54:38Z",
+      "updated_at": "2026-10-17T00:11:38Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},

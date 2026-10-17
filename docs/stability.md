@@ -174,7 +174,7 @@ name      = one or more characters, on the same line
   that shares its slug with another, once per entry, with the remedy:
 
   ```
-  error OP-11: operator slug 'qa' does not start with 'op-'; it is also held by ROLE-5 — remedy: sq operator OP-11 rm --purge, then sq operator add "Anna Lee" --slug <compliant slug>
+  error OP-11: operator slug 'qa' does not start with 'op-'; it is also held by ROLE-5 — remedy: sq operator OP-11 remove --purge, then sq operator add "Anna Lee" --slug <compliant slug>
   ```
 
   The rule is one of the always-on squad-wide checks: it runs on every `sq check` at `error`, and
@@ -196,12 +196,15 @@ its project role file's name, whatever `--name` it is given, a developer role's 
 given to `sq dev add` or else comes from `--tech` (`sq dev add --tech python` gives `python-dev`), a skill's from its catalog entry or the name
 given to `sq skill add`, and an operator's from its first name (`op-` plus the first name) or
 `sq operator add --slug`. After that no command, override or
-migration changes it, and the entry's file keeps its name. Comment headers, item `author` and
+migration changes it, and the entry's file keeps its name: no `update` takes a slug option, and
+an `update` event of `sq import` that names `slug` is refused as `'slug' is not a settable field`
+on every roster type. Comment headers, item `author` and
 `assignee` fields and `@mentions` all name an author by slug, so a slug that changed would orphan
 them.
 
-- **Display names are not identity.** Changing a role's or an operator's display name leaves its
-  slug, its file name and every header already written as they were.
+- **Display names are not identity.** Changing a role's, a skill's or an operator's display name
+  with `update --title` leaves its slug, its file name and every header already written as they
+  were.
 - **An override cannot rename.** A role override is bound to its slug by its file name, and one
   that declares a different `slug` is refused:
 
@@ -209,7 +212,7 @@ them.
   error: role override …/.overrides/roles/architect.toml: declares slug 'arch' but the filename says 'architect' — the filename is canonical; rename the file or drop the 'slug' key
   ```
 
-- **A purged slug can be taken again.** A slug freed by `rm --purge` may be given to a new entry,
+- **A purged slug can be taken again.** A slug freed by `remove --purge` may be given to a new entry,
   and creation does not look at comment history. Comments written before the purge then carry the
   new entry's slug, and read as its comments wherever an author is matched by slug; their name
   snapshot still shows who wrote them.
@@ -234,7 +237,8 @@ folder in the squad directory. The frozen surfaces are:
   a `--name` flag, `[init.names]` or the prompt), otherwise by the `full_name` its per-slug file,
   then `roles.toml`, then the bundled catalog gives it, and for a developer by the name pool. From
   then on the stored name is the role's name: no change to an override or to the bundled catalog
-  renames an active role, and neither `sq sync` nor a migration does. See
+  renames an active role, and neither `sq sync` nor a migration does; `sq role <slug> update
+  --title` does. See
   [overrides.md § "Which name wins"](overrides.md#which-name-wins).
 - **Attribute grammar (frozen):** a type declares its attributes in `[items.<type>.attributes]`,
   one `<name> = { kind = …, required = …, settable = … }` entry each. `kind` is one of `str`,
@@ -391,14 +395,18 @@ sq role 2 show           # item-first: type, number, verb
 sq role 2 regen          # regenerate
 sq role 2 status <S>     # transition status
 sq role 2 set-default    # move the default-role designation here
-sq role 2 rm --purge     # delete the entry and its file
+sq role 2 update --title "Chief Lead"   # rename; the slug never changes
+sq role 2 comment -m "…" --as manager  # and `comments`, `show --comments`
+sq role 2 remove --purge     # delete the entry and its file
 sq skill 5 show
 sq skill 5 link-role architect     # scope a custom skill to a role (and unlink-role to undo)
 sq operator 3 show
 ```
 
-`rm` on a role, skill or operator requires `--purge`. Without it, it exits `1`, writes nothing and
-names the two commands to choose from: `rm --purge` to delete the entry, and `status Archived` to
+Roles, skills and operators take `update`, `comment`, `comments` and `remove` under the names work
+items use. `rm` is `remove` under its short name, with the same flags, messages and exit codes, and
+is not listed in `--help`. `remove` on a role, skill or operator requires `--purge`. Without it, it exits `1`, writes nothing and
+names the two commands to choose from: `remove --purge` to delete the entry, and `status Archived` to
 retire it (offered only while the entry is live). See
 [roles.md § "Removing a roster entry"](roles.md#removing-a-roster-entry).
 
@@ -414,7 +422,7 @@ sq operator add "<name>"
 **Role catalog:** `sq role catalog` lists the roles the catalog declares, activated or not, plus
 every role item it does not declare (shows slug, name, title, default, origin).
 
-**Slug resolution:** for `role show`/`regen`/`rm`/`status`/`set-default`, slug is a valid address
+**Slug resolution:** for every addressed verb (`role show`, `update`, `remove`, `status`, …), slug is a valid address
 form in addition to full ID and bare number. A slug that equals a verb of its group cannot be used
 as an address, so creation refuses one: role activation refuses `activate`, `catalog` and `list` as a slug, and `sq skill add`
 refuses `add`, with exit `1` and nothing written:

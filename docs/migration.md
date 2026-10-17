@@ -291,7 +291,7 @@ The squad is still at schema v0.15: fix the cause, then re-run `sq migrate up`, 
 What each line means, and what to do before running `sq migrate up` again:
 
 - **`'<name>' matches no roster entry`.** The role or operator that wrote those comments is no
-  longer in the squad, usually because it was removed with `rm --purge`. Add it back under that
+  longer in the squad, usually because it was removed with `remove --purge`. Add it back under that
   name with the earlier release: `sq role activate <slug> --name "<name>"` for a role (`sq role
   catalog` lists the slugs), `sq dev add --tech <tech> --name "<name>"` for a developer role, and
   `sq operator add "<name>" --slug <old-slug>` for an operator (`--slug` keeps the slug its items
@@ -348,7 +348,7 @@ make them editable by whoever holds it.
 What to do for each, with the release the squad is stamped for, before running `sq migrate up`
 again:
 
-- **An operator.** Run `sq operator <id> rm --purge`, using the ID in the line, then
+- **An operator.** Run `sq operator <id> remove --purge`, using the ID in the line, then
   `sq operator add "<the same full name>"`, which takes `op-` and the first name unless you pass a
   compliant `--slug`. The purge is required: with that release a plain `rm` drops the entry from
   the index but keeps its file, and the next run reads that file again. The comments that named the
@@ -357,7 +357,7 @@ again:
   `sq check` reports it as not registered.
 - **A role.** Give the role's project definition a compliant slug (the file under
   `<squad folder>/.overrides/roles/`, renamed, and its `slug` line with it), run
-  `sq role activate <new slug>`, then `sq role <id> rm --purge` for the old entry.
+  `sq role activate <new slug>`, then `sq role <id> remove --purge` for the old entry.
 - **A slug held by two entries.** Both entries are listed, each naming the other. Replace the one
   that breaks a rule above, or the one you can spare, the same way.
 
@@ -533,6 +533,18 @@ how many of each it stamped:
   attribute, a skill's title, a body, `view disable`, and `view add` of another view's tag are
   refused while the entry's view is declared; edit the role override or the playbook instead. See
   [roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses).
+
+### Every skill has a discussion
+
+Each skill file carries a `## Discussion` heading and an empty discussion region after its body
+region, as role and operator files do, so a skill takes comments (`sq skill <slug> comment`). The
+`skill-discussion` part of the step appends them to every skill file that has none, in the file's
+own line endings, and changes nothing else in it. A file that already has one is left as it is,
+so a second run changes nothing. The run reports how many skills it changed:
+
+```
+    12 skill(s) given a discussion region
+```
 
 ---
 

@@ -3,7 +3,7 @@ id: REV-1086
 sequence_id: 1086
 type: review
 title: Roster remove, comment and skill discussion region
-status: ChangesRequested
+status: InReview
 author: reviewer
 refs:
 - TASK-1070
@@ -25,19 +25,24 @@ subentities:
 - local_id: F4
   title: Update with only --when-to-use leaves the scaffold stale, so the skill body
     counts as written
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F5
   title: A slug key on a generated role import names the role override; elsewhere
     it is not settable
-  status: Open
+  status: Verified
   severity: low
 - local_id: F6
   title: Rescaffold address branch is unreachable for work items and misroutes operators
-  status: Open
+  status: Verified
   severity: info
+- local_id: F7
+  title: Renaming a dropped-view or dropped-type skill inserts template prose next
+    to its tag
+  status: Open
+  severity: low
 created_at: '2026-10-16T23:20:09Z'
-updated_at: '2026-10-16T23:54:38Z'
+updated_at: '2026-10-17T00:11:38Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -152,6 +157,28 @@ Fix: re-render on every roster update. `_rescaffolded_body` already leaves a wri
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-16T23:58:32Z] Elias Python:
+  - Every roster update now re-renders an unwritten scaffold body, so --when-to-use alone keeps it unwritten (new --title/--desc/--when-to-use row; the old delta condition: 1 red).
+- [2026-10-17T00:02:33Z] Paul Reviewer:
+  - Reopened. `--when-to-use` alone now re-renders a project skill's scaffold, and `body -m` then succeeds, so the reported case is fixed. But re-rendering on every roster update created a regression on generated skills.
+    
+    A system or generated skill's seeded body is only its view tag, while `pristine_body` renders the generic `skill.md.j2` scaffold for it. `body_is_unwritten` treats the tag-only body as unwritten, so `_rescaffolded_body` inserts the scaffold prose (title heading, description, "## Instructions") in front of the view tag.
+    
+    The gate allows the updates that trigger this on these skills: labels, assignee, parent and project attributes, through `sq import`.
+    
+    Probe (fresh squad, dev build):
+    - `{"op":"update","target":"SKILL-20","as":"manager","add_labels":["z"]}` on `squads` adds "# squads / <description> / ## Instructions" above the sq:view:squads_skill tag.
+    - `assignee: qa` on `sq-task` does the same.
+    - `sq skill squads show` renders the injected prose, and `sq check` stays clean.
+    - Roles and operators were unaffected in the probe.
+    
+    The targeted tests (683) pass, so no test pins the body bytes after a metadata-only update on a generated skill.
+    
+    Suggested fix: skip re-rendering for an entry whose body is classified (`views.roster_body_view_name`, already read by the gate), or re-render only when the pristine body actually changes between *base* and *item*. Add a body-bytes column for the label, assignee and project-attribute rows of the generated-host table.
+- [2026-10-17T00:07:47Z] Elias Python:
+  - The re-render skips a body that renders through a view (the gate classifier, via one shared helper, so there is still one caller) and skips any update that leaves the scaffold unchanged. New rows: generated, dropped-view and dropped-type skills x label, assignee and project-attribute import leave the body byte-identical (6 red without the unchanged-scaffold check). The classifier check alone turns nothing red: a classified skill refuses title and description before the re-render, and a role scaffold reads neither.
+- [2026-10-17T00:11:29Z] Paul Reviewer:
+  - Verified: label, assignee and project-attribute imports leave the squads, sq-task, greeting (dropped view) and sq-guide (dropped type) bodies byte-identical; a project skill --when-to-use update re-renders and body -m then succeeds. The rename residual on dropped-view/type skills is filed as F7.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -171,6 +198,10 @@ Separately, `require_update_fields` prints "pass at least one of --title" on a r
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-16T23:58:34Z] Elias Python:
+  - slug is left out of the role-supplied gated set, so importing it answers not a settable field on every roster type (4 red when restored); a single-option update now says pass --title (6 red when restored).
+- [2026-10-17T00:02:34Z] Paul Reviewer:
+  - Verified: slug set/unset gives not a settable field on role, skill and operator; single-option update says pass --title.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -186,8 +217,33 @@ Use `item.slug` for every roster type and drop the branch. The function is roste
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-10-16T23:58:36Z] Elias Python:
+  - _rescaffolded_body addresses by slug with no branch; no observable difference exists for roster types, so reverting it turns 0 tests red.
+- [2026-10-17T00:02:36Z] Paul Reviewer:
+  - Verified: _rescaffolded_body addresses by item.slug for every roster type; the branch is gone.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
+
+<!-- sq:finding:F7 -->
+### F7 — Renaming a dropped-view or dropped-type skill inserts template prose next to its tag
+
+<!-- sq:finding:F7:body -->
+`_rescaffolded_body` now skips classified bodies and updates that leave the scaffold unchanged. A title change on a skill whose view or type is dropped from `[selected]` still re-renders, and its seeded body is only a tag.
+
+The tag-only body counts as unwritten, so the generic `skill.md.j2` prose (the title heading, the description, "## Instructions") is inserted in front of the tag. The user never wrote that prose.
+
+Probe (fresh squad, override dropping the guide type and the greeting view, greeting tag disabled):
+1. Import `{"op":"update","target":"<id>","title":"Renamed"}` on `greeting` and on `sq-guide`. Both bodies gain the scaffold prose. Label, assignee and project-attribute imports leave both bodies byte-identical.
+2. Restore `guide` in `[selected]` and run `sync`. `sq check` now warns that SKILL-15 "carries prose beside its item_skill tag", with a four-step remedy (move the prose, drop the type, clear the body with `--force`, restore the type). That leaves the adopter cleaning up prose the tool wrote.
+
+Suggested fix: do not re-render a body that holds a view tag, enabled or disabled, and no prose. Its seeded shape is the tag alone, not the generic template. Equivalently, re-render only when the region is byte-equal to the old pristine body. Add rows for these two shapes to the re-render test.
+<!-- sq:finding:F7:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F7:discussion -->
+<!-- sq:finding:F7:discussion:end -->
+<!-- sq:finding:F7:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -199,4 +255,8 @@ Use `item.slug` for every roster type and drop the branch. The function is roste
 - [2026-10-16T23:54:38Z] Paul Reviewer:
   - ST4/ST5 re-review. F1-F3 verified Fixed. Verified clean: the gate (a project attribute stays writable through import; labels, parent and unknown keys are untouched by it; a combined call is refused; a system skill title, description or when-to-use is refused naming the playbook; every live role title passes), update options with no slug change, no-option exit 1 with nothing written, written bodies kept, retired role and skill updates leave pointers absent, live rename refreshes the pointer and CLAUDE.md, and sync is a fixed point. Targeted tests: 1077 passed; ruff and pyright clean.
   - New: F4 (medium) update --when-to-use alone leaves the scaffold stale; F5 (low) slug-on-role message and the single-option "at least one of" wording; F6 (info) unreachable rescaffold address branch. Review stays ChangesRequested on F4. @python-dev F4 to fix, F5/F6 your call.
+- [2026-10-17T00:02:36Z] Paul Reviewer:
+  - F5, F6 Verified. F4 reopened: re-rendering on every roster update injects skill.md.j2 scaffold prose into a generated skill body on a label, assignee or project-attribute import (repro on the finding). Review stays ChangesRequested. @python-dev F4.
+- [2026-10-17T00:11:38Z] Paul Reviewer:
+  - F1-F6 Verified. New F7 (low): renaming a dropped-view or dropped-type skill inserts skill.md.j2 prose next to its tag, and restoring the type then trips a sq check warning. Recommendation: Approved once F7 is fixed or given a disposition; the fix is one condition in _rescaffolded_body plus two table rows. @python-dev F7.
 <!-- sq:discussion:end -->

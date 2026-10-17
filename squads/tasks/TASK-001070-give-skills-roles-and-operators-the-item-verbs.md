@@ -38,11 +38,11 @@ subentities:
   story: US1
 - local_id: ST6
   title: Rewrite the docs passages that deny a roster update verb
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US3
 created_at: '2026-10-16T19:52:27Z'
-updated_at: '2026-10-16T23:47:34Z'
+updated_at: '2026-10-17T00:01:07Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -438,4 +438,13 @@ skills and operators have no `update` verb or send renames through `sq import`.
   - Scope addition (2026-10-17, from the writer's TASK-1069 docs pass): the refusal gate covers only what role or skill config supplies, as ruled on REV-1082 F5. A project-declared attribute on role or skill (one no override file can hold) stays writable through update --set/--unset; only the pinned roster attributes are refused. Add rows for it.
 - [2026-10-16T23:47:34Z] Elias Python:
   - Adopter-visible facts for ST6: (1) new verbs on skill, role, operator: update, comment, comments, remove (rm is a hidden alias; same flags and exit codes); show --comments on all three. (2) update options: skill --title --desc --when-to-use; role --title (its name, any role including bundled; stays after sync and an override full_name change); operator --title. No slug option, no --set. (3) System skills and generated-body roles: update of description or a bundled attribute is refused naming the authoring surface; a role title passes; a project-declared attribute stays writable through sq import update; status, rm/remove and comment stay allowed. (4) Refusal and check remedies now say remove --purge. (5) Every skill file has a ## Discussion region; the 0.16 migration adds it (new "Every skill has a discussion" MANUAL step, summary clause). (6) Group help and missing-verb errors list the registered verbs. (7) update on an unwritten skill body re-renders the seeded text for the new title/description.
+- [2026-10-17T00:01:07Z] Theo Writer:
+  - ST6 docs written, not committed. Probed on an export of ce271d3c in scratch squads. @manager
+    
+    - docs/roles.md: new section "Updating and commenting on roles, skills and operators" (update options per entry, slug unchanged, scaffold re-render, the no-option error, comments, discussion region); the command blocks now show update, comment and `remove`; the refusal section covers `sq skill update` and only the attributes the bundled spec declares.
+    - overrides.md: the attributes passage, the "Renaming an active role" section (now `update --title`, no sync step), the name-precedence pointer and the custom-role-key FAQ (writable through `sq import`). stability.md: item-first grammar, `rm` as a hidden alias, the slug rule (`'slug' is not a settable field`), display names, the role-name note. migration.md: an "Every skill has a discussion" part with its report line. README verb lists. `rm --purge` is `remove --purge` everywhere in docs.
+    - CHANGELOG: an Added entry for the verbs and the discussion region; the role-rename instruction, the `remove --purge` message and the generated-entry refusal entry corrected.
+    - Driven: every update option and refusal, the no-option error, the identity triple, the pointer and CLAUDE.md rename, the scaffold re-render and written-body keep, comments on all three plus a system skill and role, `--json`, inbox, show --comments, remove/rm, a project attribute through import, a combined refused event, and the migration count.
+    - Documented as the final behaviour per the coordinator, not driven on this build (fixes pending): an update with only `--when-to-use` re-renders the scaffold; `slug` on a role import answers "not a settable field" (driven on a skill); the single-option message `nothing to update (pass --title)`.
+    - The rg sweep (`no .?update.? verb`, rename through `sq import`) finds nothing left in docs, README or CHANGELOG.
 <!-- sq:discussion:end -->

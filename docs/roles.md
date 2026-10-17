@@ -6,7 +6,7 @@ or later with `sq role activate <slug>`, which is also where you get to name the
 [overrides.md § "Agent naming"](overrides.md#agent-naming) for every way a name can be set and
 [§ "Which name wins"](overrides.md#which-name-wins) for which one applies when two disagree. A
 role's name is decided when the role is created and then stored; no configuration change renames
-it.
+it, and `sq role <slug> update --title` does.
 
 ## The bundled roster
 
@@ -146,7 +146,9 @@ sq role activate qa          # add a role later (creates its item + Claude point
 sq role ROLE-000002 regen    # re-render its pointer from the item
 sq role ROLE-000002 status Archived [--force] [--unlink]   # transition its Active/Archived status
 sq role ROLE-000002 set-default                 # move the default-role designation here
-sq role ROLE-000002 rm --purge                  # delete the role and its file
+sq role architect update --title "Ada Archer"   # rename the role; the slug stays
+sq role architect comment -m "…" --as manager   # comment on it (comments, show --comments to read)
+sq role ROLE-000002 remove --purge              # delete the role and its file
 ```
 
 `sq role list` shows every activated role with a **Live** marker — a retired role stays on the
@@ -200,10 +202,11 @@ sq skill deploy-runbook body --file runbook.md        # write its content (refus
                                                       #   --append to add, --force to replace)
 sq skill deploy-runbook link-role devops              # scope it to a role (resyncs that role now)
 sq skill deploy-runbook unlink-role devops            # remove the scoping
+sq skill deploy-runbook update --desc "How we ship to production." --when-to-use "When releasing"
 sq skill deploy-runbook show
 sq skill deploy-runbook regen                         # re-render its pointer from the item
 sq skill deploy-runbook status Archived [--force] [--unlink]   # transition its Active/Archived status
-sq skill deploy-runbook rm --purge                    # delete the skill and its file
+sq skill deploy-runbook remove --purge                    # delete the skill and its file
 ```
 
 A generated skill's body is not yours to write — `body` refuses one, replace and append alike,
@@ -213,6 +216,31 @@ hyphens, unique among skills, and never `add`, the one verb of `sq skill`. A ski
 anything, so a skill slug is not accepted by `--as`, `--author` or `--assignee`. To write a
 generated skill's body yourself, see
 [overrides.md § "Authoring a role or skill body by hand"](overrides.md#authoring-a-role-or-skill-body-by-hand).
+
+## Updating and commenting on roles, skills and operators
+
+Roles, skills and operators take the item verbs `update`, `comment`, `comments` and `remove`, plus
+`show --comments`. `update` changes display fields only:
+
+| Entry | `update` options | Refused on |
+|---|---|---|
+| skill | `--title`, `--desc`, `--when-to-use` | a generated skill (`squads`, `greeting`, `sq-memory`, `sq-<type>`) |
+| role | `--title`, the role's name | none: any role, a bundled one included |
+| operator | `--title`, the display name | none |
+
+The slug, the file name and the id never change. A role renamed with `update --title` keeps the
+name through every `sq sync` and every override change, and its pointer and the `CLAUDE.md`
+roster line show the new name at once. When a skill's body is still the scaffold it was created
+with, `update` re-renders it from the new values; a body you have written is kept as it is.
+`update` with no option exits `1`, writes nothing, and names the options:
+
+```
+error: nothing to update (pass --title)
+```
+
+`comment` and `comments` work as on any item, on a generated role or skill too. Every skill file
+has a `## Discussion` region for them, as role and operator files do. A comment's `@mention`
+reaches `sq inbox`, except on a retired entry.
 
 ## Where a role or skill comes from: `origin`
 
@@ -253,8 +281,9 @@ definition lives, not on the entry, and these writes are refused with exit `1`, 
 `--force` or not:
 
 - a body replace or append: `sq skill <slug> body`, or a `body` event of `sq import`;
-- an `update` event of `sq import` that sets the description, sets or unsets an attribute
-  (`fields`, `unset_fields`), or changes a skill's title;
+- `sq skill <slug> update`, and an `update` event of `sq import` that sets the description, sets
+  or unsets an attribute the bundled spec declares for the type (`fields`, `unset_fields`), or
+  changes a skill's title; an event that also changes something allowed is refused whole;
 - `view disable`, and `view add` of any view other than the entry's own.
 
 The error names the place to edit instead:
@@ -269,8 +298,9 @@ developer's `model` is set the same way. For a skill, it is the playbook overrid
 
 Every role is covered, a `project` one too, because every role's body is generated; a skill you
 added with `sq skill add` takes every write. The rest stays open on every role and skill: a role's
-title (its name), labels and assignee through an `update` event, `status`, `rm --purge`, a
-`comment` event, `regen`, and `view add` of the entry's own view, which is how `sq check`'s
+title (`sq role <slug> update --title`), labels, assignee and an attribute your workflow override
+declares (through an `update` event of `sq import`), `status`, `remove --purge`, `comment`, `regen`,
+and `view add` of the entry's own view, which is how `sq check`'s
 remedies put a missing tag back. To write such an entry yourself, drop its view from `[selected]`
 (see [overrides.md § "Authoring a role or skill body by hand"](overrides.md#authoring-a-role-or-skill-body-by-hand)):
 the entry then takes every write, and keeps its `origin`.
@@ -284,8 +314,9 @@ handed to someone else on the repo:
 ```bash
 sq operator add "Alice Tester"  # slug derived as op-alice (override with --slug)
 sq operator list
+sq operator op-alice update --title "Alice T."              # change the display name; the slug stays
 sq operator OP-000002 status Archived [--force] [--unlink]   # transition its Active/Archived status
-sq operator OP-000002 rm --purge                            # delete the operator and its file
+sq operator OP-000002 remove --purge                            # delete the operator and its file
 ```
 
 A slug is derived once, when the entry is created: lowercased, accented Latin letters spelled out
@@ -404,16 +435,16 @@ both against state already on disk, naming the entry, the condition, and a remed
 
 ## Removing a roster entry
 
-Retiring keeps an entry on record; removing deletes it. `rm --purge` deletes the item file, a role's
+Retiring keeps an entry on record; removing deletes it. `remove --purge` deletes the item file, a role's
 or skill's generated pointer, and the entry's line in the compiled rosters, for a role, a skill and an
-operator alike. `--purge` is required: a plain `rm` exits `1`, writes nothing and names the commands
-to choose from:
+operator alike. `rm` is the same command under its short name. `--purge` is required: a plain
+`remove` exits `1`, writes nothing and names the commands to choose from:
 
 ```
-error: cannot remove ROLE-5 without --purge: the markdown file would stay on disk and `sq check` would flag it. To delete it for good, run `sq role ROLE-5 rm --purge`; to retire it and keep it on record, run `sq role ROLE-5 status Archived`.
+error: cannot remove ROLE-5 without --purge: the markdown file would stay on disk and `sq check` would flag it. To delete it for good, run `sq role ROLE-5 remove --purge`; to retire it and keep it on record, run `sq role ROLE-5 status Archived`.
 ```
 
-A removal is held to the same structural checks as retiring the entry, so `rm --purge` is refused
+A removal is held to the same structural checks as retiring the entry, so `remove --purge` is refused
 wherever `status Archived` is (the last live role, or a skill the roles or item types still rely on),
 and it prints the same warnings (open assigned work, a lost default-role designation). Removing an
 entry that is already archived is not checked again. Each removal is recorded in the reflog.
