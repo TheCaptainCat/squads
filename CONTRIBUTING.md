@@ -140,9 +140,12 @@ The rules, one per part of the screen:
    asterisks, `::` line endings or cross-reference roles. Angle brackets for a placeholder, a bar
    between alternatives. Help renders through Rich console markup, so a square-bracketed span
    starting with a lowercase letter, `#`, `/` or `@` is read as a tag and silently vanishes.
-9. **Layout.** Wrap body paragraphs at 78 columns after dedent. Text that depends on its line
-   structure, such as a block of examples, goes in a no-rewrap block (a `\b` line before it) and
-   stays under 78 columns. No unbreakable enumeration longer than the description column.
+9. **Layout.** Typer joins the lines of the summary paragraph but keeps the authored line breaks
+   of every later paragraph, so wrap each later paragraph at 78 columns after dedent. Text that
+   depends on its line structure, such as a block of examples, is a later paragraph written line
+   by line, each line under 78 columns, with no marker before it: a `\b` line prints a stray blank
+   line. An epilog joins the lines of each paragraph, so a line that must stand alone there is a
+   paragraph of its own. No unbreakable enumeration longer than the description column.
 
 **Reviewing a help change.** Render the command at 80 columns (`COLUMNS=80 sq <command> --help`)
 and read the screen, not the diff. Does the first screen answer the three questions? Is any name

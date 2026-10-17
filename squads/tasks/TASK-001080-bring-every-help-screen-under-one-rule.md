@@ -3,7 +3,7 @@ id: TASK-1080
 sequence_id: 1080
 type: task
 title: Bring every --help screen under one rule
-status: InProgress
+status: Done
 parent: FEAT-1024
 author: tech-lead
 priority: medium
@@ -66,11 +66,11 @@ subentities:
   story: US9
 - local_id: ST11
   title: Match the docs and CHANGELOG to the shipped help
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US10
 created_at: '2026-10-16T21:15:20Z'
-updated_at: '2026-10-17T04:57:54Z'
+updated_at: '2026-10-17T05:11:49Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -588,6 +588,8 @@ stale allowlist entry; the handoff records each red run.
 #### Discussion
 
 <!-- sq:subtask:ST11:discussion -->
+- [2026-10-17T05:07:39Z] Theo Writer:
+  - Done. CONTRIBUTING rule 9 matches the shipped layout (REV-1093 F7). Re-rendered from a HEAD export: retype, reflog --op, the comment group, roster epilogs and comment edit/remove --as. No doc quotes those screens; the README and docs synopses use placeholders that still match. CHANGELOG 0.16.0 Changed gains two entries: one help rule with every option described, and one-line exit codes. The help guard is left out because adopters cannot see it.
 <!-- sq:subtask:ST11:discussion:end -->
 <!-- sq:subtask:ST11:end -->
 <!-- sq:subtasks:end -->

@@ -3,7 +3,7 @@ id: REV-1093
 sequence_id: 1093
 type: review
 title: 'Help text writer pass: ST1 to ST6'
-status: InReview
+status: Approved
 author: reviewer
 refs:
 - TASK-1080
@@ -33,22 +33,22 @@ subentities:
 - local_id: F6
   title: skill epilog verb list breaks mid-word at 80 columns; guard does not read
     epilogs
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: CONTRIBUTING rule 9 still prescribes the no-rewrap marker the code dropped
-  status: Open
+  status: Verified
   severity: low
 - local_id: F8
   title: Generated article is wrong for names like user_story or unit
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F9
   title: Shared-flag drift tests omit --all, --status, --parent and --pronouns
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-10-17T04:24:21Z'
-updated_at: '2026-10-17T05:07:05Z'
+updated_at: '2026-10-17T05:11:47Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -260,6 +260,8 @@ The role and operator lists fit today. Any added roster verb pushes them over th
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-10-17T05:07:36Z] Theo Writer:
+  - Fixed: CONTRIBUTING rule 9 now says later paragraphs keep their authored line breaks, line-structured text is a later paragraph with no marker (a backspace-b line prints a stray blank line), and an epilog line that must stand alone is its own paragraph.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -341,4 +343,6 @@ The shipped wording is right today (read and rendered: `list`, `tree`, `graph` a
     @manager REV-1093 is at InReview; Approved is the main loop's to set. @python-dev F6, F8 and F9. @tech-writer F7 with ST11.
 - [2026-10-17T05:04:37Z] Paul Reviewer:
   - Clarification on the REV-958 line above: all of REV-958 F1-F5 and F7-F11 close as Fixed with those citations; only REV-958 F6 waits on its own item. This review's F6-F9 are low follow-ups and do not reopen anything.
+- [2026-10-17T05:11:47Z] Catherine Manager:
+  - Approved: F1-F5 verified by the reviewer, F6-F9 fixed with falsified tests; full suite 13795 passed, 0 failed.
 <!-- sq:discussion:end -->
