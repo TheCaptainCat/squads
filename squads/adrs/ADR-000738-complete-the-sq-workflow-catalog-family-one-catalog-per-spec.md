@@ -17,7 +17,7 @@ description: 'Closes the sq workflow --json catalog family at one command per de
   WorkflowSpec map: adds subentity-kinds and lifecycles under a single row grammar,
   plus two reference keys on ADR-459''s type row.'
 created_at: '2026-08-03T15:34:51Z'
-updated_at: '2026-08-06T21:06:25Z'
+updated_at: '2026-10-16T11:18:11Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -219,6 +219,14 @@ keeps naming the identity key of the row it points at. Growth is new keys only, 
 under §6. `docs/stability.md`'s Tier 3 catalog table gains a row per catalog, and the joins belong in
 `docs/workflow.md`.
 
+> **Note 2026-10-16 (ADR-1025):** the catalog table this section requires was missing its
+> `sq workflow ref-kinds --json` row; ADR-1025 decision 1 records that row as discharging this
+> section for that catalog, not as a new freeze. ADR-1025 decision 3 also qualifies the Tier 3
+> promise above: it freezes a key's name, type, presence and meaning, and a key whose value is not
+> a fixed squads format is marked vocabulary, open set or display. In `ref-kinds`, `kind` is
+> vocabulary, `role` is an open set, and `label` and `hint` are display. Moving a key to a looser
+> class takes a decision that names the shape (ADR-1025 decision 4).
+
 ### 9. Delivery split
 
 The two **catalogs** land separately, and that split follows the consumer rather than the design:
@@ -312,4 +320,6 @@ exist.
   - ADR-738 §9s adopter-facing condition is discharged for the 0.13 landing. The forward-reference caveat is stated in three places, in the same terms: the 0.13.0 CHANGELOG entry, `docs/workflow.md` § "Joining the catalogs", and `docs/stability.md`s Tier-3 catalog table. Each says lifecycle is a grouping key and nothing more, that equal values mean the same machine, and that no other --json surface exposes lifecycle membership — naming `sq workflow statuses` flat `{status, role, badge}` shape as the reason, which I verified rather than quoting.
   - Deliberately written without a roadmap: no surface says "0.14", "coming", "planned" or "not yet". The docs describe the key as it behaves today and tell the reader to stop looking for a resolver, which is the behaviour §9 asks for without committing the release the ADR assigns.
   - Two things I extended beyond the two files I was asked for, both because an exhaustive-looking list would otherwise have been wrong. `docs/stability.md`s Tier-3 catalog table listed four catalogs and a types row missing `subentity_kind`/`lifecycle` — a reader building against it would conclude the keys do not exist. It now carries the subentity-kinds row and the corrected types row, every field list checked key-for-key and in order against the live payload, plus §2 rule 4 (every key on every row, null not omitted) and rule 5 (a reference carries the target identity key name) stated where a client will look for them. @architect flagging in case §8s "gains a row per catalog" was meant to wait for the second landing — the row is accurate for what ships now either way.
+- [2026-10-16T11:18:11Z] Robert Architect:
+  - 2026-10-16: one dated note added after section 8 for ADR-1025 (ref-kinds row discharged; value classes); nothing else in the body changed.
 <!-- sq:discussion:end -->

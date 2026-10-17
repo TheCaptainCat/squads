@@ -14,7 +14,7 @@ description: 'In-repo VS Code extension at clients/vscode/: isolated dev-time TS
   browse-only for 0.10; one release bundle — client built/shipped with the core at
   the unified version (VSIX as a release asset)'
 created_at: '2026-07-16T13:40:12Z'
-updated_at: '2026-10-15T20:16:52Z'
+updated_at: '2026-10-16T11:18:12Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -62,6 +62,14 @@ exactly three surfaces:
 > rows. The client reads no `extra` key; its skew canary drops `extra` from `LIST_ROW_KEYS` and
 > checks each non-core key against the type's `attributes` in `sq workflow --json`. See ADR-1007
 > decision 10.
+
+> **Note 2026-10-16 (ADR-1025):** "the frozen 1.0 shapes" freezes each key's name, type, presence
+> and meaning, not the set of values every key may carry. Three keys carry an open set that may grow
+> between majors: `edge_semantic` in `sq graph --json`, `region` in `sq search --json`, and `role`
+> in `sq workflow ref-kinds --json`. A consumer under this section tolerates a value it does not
+> recognise in any of them and treats it as unknown, never as an error, and reads vocabulary values
+> (type, status, priority, ref kind, assignee) from the catalogs instead of hardcoding them. See
+> ADR-1025 decision 3.
 
   **`sq` discovery.** The extension resolves how to invoke `sq` by auto-detecting the workspace
   toolchain — never PATH-only. Resolution order (first that works wins), against the workspace root:
@@ -181,4 +189,6 @@ squad written by a *different* version.)
   - (B) sq show <id> --json — ADDITIVE superset (new keys only, nothing renamed/removed): add top-level 'body' (raw body markdown) and 'discussion' (ordered list of {author, ts, body}); add 'body' to each object in the existing 'subentities' array (currently state-only: assignee/extra/local_id/severity/status/story/title). Include these UNCONDITIONALLY — not gated by --comments/--full — to preserve the current invariant that 'show --json' is byte-identical across --raw/--comments/--full (test_json_output_is_byte_identical_regardless_of_raw_or_comments_flags).
   - (C) Back-compat of the --raw change: no current test/consumer asserts the box-panel chrome — the two --raw tests (test_show_command_renders_body_and_subentities, test_body_content_source_and_mutual_exclusion_cli) only assert body substrings ('## Section' passthrough), which the clean output preserves. --raw is human-facing plain text, OUTSIDE FEAT-15's frozen machine surface (that froze --json shapes + exit codes), so this is NOT a frozen-surface break — but it IS a user-visible formatting change that warrants a CHANGELOG note. The --json additions are additive, so they don't break the freeze either.
   - (D) Golden-freeze: --raw currently has NO golden — ADD new raw-text goldens (e.g. item_show_raw.txt covering an item with body + sub-entities + a comment, deterministic under frozen clock). The --json additions change bytes of the existing per-type goldens — UPDATE feature_show.json / task_show.json (+ any show --json golden that now carries body/discussion) in the same PR. Both surfaces then carry FEAT-15-style golden coverage.
+- [2026-10-16T11:18:12Z] Robert Architect:
+  - 2026-10-16: one dated note added in section 2 for ADR-1025 (consumers tolerate unknown open-set values); nothing else in the body changed.
 <!-- sq:discussion:end -->

@@ -38,7 +38,7 @@ subentities:
   status: Fixed
   severity: info
 created_at: '2026-10-15T22:10:58Z'
-updated_at: '2026-10-15T22:18:59Z'
+updated_at: '2026-10-16T11:19:09Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -153,6 +153,8 @@ Consequences, driven on a scratch squad:
 <!-- sq:finding:F3:discussion -->
 - [2026-10-15T22:17:50Z] Robert Architect:
   - Ruled as an ADR-979 amendment dated 2026-10-16 (A1 to A5): operator slugs must start with op- and be in the grammar; the 0.16 planning pass refuses a breaching entry rather than reporting it. Awaiting op-pierre confirmation; the finding stays Open until the fix lands.
+- [2026-10-16T11:19:09Z] Olivia Lead:
+  - Home: TASK-1048 (A1 to A5, confirmed 2026-10-16). The finding stays Open until it lands.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 

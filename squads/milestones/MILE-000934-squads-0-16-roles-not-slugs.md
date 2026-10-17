@@ -8,7 +8,7 @@ author: product-owner
 refs:
 - MILE-867
 created_at: '2026-09-09T14:39:43Z'
-updated_at: '2026-10-16T08:34:44Z'
+updated_at: '2026-10-16T11:16:28Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.15.
@@ -149,4 +149,6 @@ The next squads release after 0.15.
   - 2026-10-15: withdrawn: my earlier note asking for millisecond timestamps and a collision migration in FEAT-980. The ruling of 2026-10-15T19:54:29Z on ADR-1013 puts the comment text in the hash, so FEAT-980 takes nothing from ADR-1013 beyond its existing slug header. The comment-editing verbs stay after FEAT-977 and before FEAT-961. @manager
 - [2026-10-16T08:34:44Z] Pierre Chat:
   - 2026-10-16: asked for a global review pass on the adopter docs (suspects parts are outdated or wrong). Five reviewer audits launched (Paul on Fable), findings only; fixes by the writer, with overrides/workflow/stability fixes held until after FEAT-1016 where flattening touches them.
+- [2026-10-16T11:16:28Z] Pierre Chat:
+  - 2026-10-16: set pytest tmp_path_retention_count = 1 (the /tmp tmpfs filled during a run on 2026-10-15).
 <!-- sq:discussion:end -->

@@ -25,6 +25,17 @@ not name the squad folder; it names the folder `sq` starts in, and `sq` walks up
 squad kept outside its project tree (`squad_dir = "../shared"` or an absolute path), use
 `-C path/to/project`. See [migration.md](migration.md#upgrading-to-016--c-replaces---dir).
 
+### "Missing option '--author'"
+Every item is authored by a registered role, so `sq create <type>` requires `--author <slug>` and
+exits 2 without it. `sq role list` shows the role slugs this squad has activated; a human authors
+with `--author op-<slug>`.
+
+### "unknown slug '…'; valid slugs: …"
+`--author`, `--as` and `--assignee` take a registered slug: a role slug (`architect`, `qa`, …), a
+developer's `<tech>-dev` once you have added it with `sq dev add --tech <tech>`, or `op-<slug>` for a
+human registered with `sq operator add`. Anything else is refused (exit 1) and nothing is written;
+the error lists the slugs that would have worked.
+
 ### "corrupt index … run `sq repair`"
 `.squads.json` failed to parse or validate (often a bad git merge). The frontmatter is the source of
 truth, so just rebuild: `sq repair` — on a clean working tree, since it
@@ -77,21 +88,26 @@ and rewrites item files while it is there ([what it writes](#does-sq-repair-chan
 
 ### Does `sq repair` change my files?
 Yes. Alongside the index rebuild, `sq repair` removes from your item files what squads now computes
-on every read rather than stores: the sub-entity roll-up table and each block's badge line; a
-**role's** stored body (emptied, not deleted — the marker pair stays); and the `extra` keys a role
-item mirrored from its definition. It also canonicalises any legacy ref encoding. A role keeps its
-`slug`, its default-role designation, and a developer role's `model`, `is_dev` and `tech`, and
-`sq role <slug> show` renders its definition fresh from the catalog and your own role overrides.
+on every read rather than stores: the sub-entity roll-up table and each block's badge line, and the
+`extra` keys a role item mirrored from its definition. It also canonicalises any legacy ref
+encoding. A role keeps its `slug`, its default-role designation, and a developer role's `model`,
+`is_dev` and `tech`.
+
+A **role** or **generated skill** whose body is empty gets its view tag written back — the one
+line that makes `sq role <slug> show` / `sq skill <name> show` render the definition fresh from the
+catalog and your own overrides. A role or skill body that holds prose is left alone: `show`
+prints that prose in place of the definition, and `sq check` reports the body as an error (a
+missing seeded view tag), with the steps that restore the rendered definition.
 
 **Run it on a clean working tree** — it cannot separate its changes from yours. Every command that
 reaches the same rewrite — `sq repair`, `sq adopt`, `sq renumber`, and the index rebuild at the end
 of `sq migrate up` — prints one line counting the item files it rewrote, and names those items in
 the reflog. That is a count and a list of ids, not the change itself, so read `git diff` for what
-actually moved. A squad carrying none of that content is left byte-for-byte alone, and a second run
-is always a no-op.
+actually moved. A squad carrying none of that content and no empty role or skill body is left
+byte-for-byte alone, and a second run is always a no-op.
 
-**No skill body is touched** — not one you wrote, and not a template-owned one either. Neither is
-any other item's body, any sub-entity's body or discussion, any operator item, or any frontmatter
+**No body with content is touched** — not a role or skill body you wrote, not any other item's
+body, and not any sub-entity's body or discussion. Neither is any operator item, or any frontmatter
 field on anything that is not a role.
 
 ### Where are the timestamps? Can I keep history when migrating?

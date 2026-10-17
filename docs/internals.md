@@ -1,10 +1,11 @@
 # squads internals
 
 How squads works under the hood — for contributors, the curious, and agents that want to reason
-about the tool rather than just call it. Pairs with [adoption.md](adoption.md) (migration).
+about the tool rather than just call it. Pairs with [migration.md](migration.md) (upgrading a squad)
+and [adoption.md](adoption.md) (importing history).
 
 > Module names below use the project's **private layout**: every implementation module and
-> subpackage is underscore-prefixed (`squads._service`, `squads._models._item`,
+> subpackage is underscore-prefixed (`squads._services._service`, `squads._models._item`,
 > `squads._backends._claude_code._backend`, …) and package `__init__`s don't re-export. Read the
 > names as "the `service` module", etc.
 
@@ -27,12 +28,13 @@ carry everything:
 The layering is one-directional:
 
 ```
-_cli  →  _service  →  ( _index store · _backends · _rendering )
+_cli  →  _services  →  ( _index store · _backends · _rendering )
 _models / _paths / _workflow / _sections / _clock   — shared leaves, no internal deps upward
 ```
 
-`_service.Service` is the façade every command calls; it's the only place that orchestrates the
-index, the filesystem, the backend, and rendering together.
+`Service` (`_services/_service.py`) is the façade every command calls, composed from one mixin per
+concern (items, sub-entities, refs, roster, maintenance, …); it's the only place that orchestrates
+the index, the filesystem, the backends, and rendering together.
 
 ---
 
@@ -40,21 +42,27 @@ index, the filesystem, the backend, and rendering together.
 
 ```
 <project root>/
-├── .squads.toml          # config: squad_dir, default_backend, squads_version
-├── CLAUDE.md             # managed section (between <!-- squads:start/end -->) + your own content
-├── .claude/              # tool-owned pointers + config
+├── .squads.toml          # config: schema_version, squad_dir, active_backends, squads_version
+├── CLAUDE.md             # claude_code backend: managed section (between <!-- squads:start/end -->) + your own content
+├── AGENTS.md             # agents_md backend, when active: the same kind of managed section
+├── .claude/              # claude_code backend: tool-owned pointers + config
 │   ├── settings.json     # merged, never clobbered
 │   ├── agents/<slug>.md  # POINTER → `sq role <slug> show`  (with skills: frontmatter)
 │   └── skills/<name>/SKILL.md   # POINTER → `sq skill <name> show`
 └── squads/               # the squad folder — self-contained & relocatable (squad_dir in .squads.toml)
-    ├── .squads.json      # the index (counter + all items + refs)
+    ├── .squads.json      # the index (counter + padding + all items + refs)
+    ├── .reflog.jsonl     # append-only log of every mutating command
     ├── .gitignore        # ignores .squads.json.lock and *.tmp
-    ├── epics/ features/ tasks/ bugs/ adrs/ reviews/ guides/   # bundled default folders; custom types use declared folders
+    ├── epics/ features/ tasks/ bugs/ adrs/ reviews/ guides/ contracts/ milestones/
+    │                     # bundled default folders; custom types use declared folders
     ├── .overrides/
     │   ├── workflow.toml # custom item types, statuses, lifecycles, badge collections
-    │   └── templates/ roles/    # template and role overrides
+    │   ├── roles.toml    # role catalog delta (roles, bundles, developer pool)
+    │   ├── playbook.toml # playbook delta (per-type role guidance)
+    │   └── templates/ roles/    # template and per-role overrides
+    ├── operators/        # OP-*.md (the humans on the project)
     └── agents/
-        ├── roles/        # ROLE-*.md (real role definitions)
+        ├── roles/        # ROLE-*.md — a role's identity; its body holds only its view tag
         └── skills/       # SKILL-*.md — an authored skill's body; a managed skill's body holds only its view tag
 ```
 
@@ -72,7 +80,8 @@ index, the filesystem, the backend, and rendering together.
 
 ## 3. The index and the global counter (`_index/_store.py`, `_models/_index.py`)
 
-`SquadsDB` is the JSON root: `{schema_version, squads_version, counter, items: {sequence# → Item}}`.
+`SquadsDB` is the JSON root: `{schema_version, squads_version, counter, padding, items: {sequence# → Item}}`
+(`padding` is the filename width, default 6).
 Items are **keyed by their integer `sequence_id`** (the global counter number — the item's real
 identity); the formatted `id` (`TASK-<n>`) is *derived* from `type` + `sequence_id`, and displayed unpadded.
 Both `id` and `sequence_id` are persisted in `.md` frontmatter. A legacy full-id-keyed index still loads (keys normalized on read).
@@ -118,19 +127,19 @@ The frontmatter is durable; the index is derived. Two commands make that concret
 
 
 - **`sq repair`** rescans every `PREFIX-*.md` under the type folders, rebuilds the index from their
-  frontmatter, and sets `counter = max ID number`. `--renumber` additionally resolves duplicate
+  frontmatter, and raises `counter` to the highest number seen on disk, never lowering it, so a
+  removed top number stays retired across a repair (`padding` is carried the same way, as a floor).
+  `--renumber` additionally resolves duplicate
   numbers from a git merge. Distinct IDs sharing a number get fresh numbers and every reference
   (parent/refs/inline) is rewritten across all files. One ID carried by several files is
   renumbered without touching references, which are listed for a hand check instead, because
   none can be attributed to one copy (see [the FAQ](faq.md#handling-id-collisions)).
 
   **The rescan also writes.** On the same walk it strips from each file what is now computed on
-  every read rather than stored — the sub-entity roll-up table and badge lines, a **role's** body
-  (emptied, marker pair kept), and the retired `extra` keys a role item mirrored from its
-  definition — and canonicalises any legacy ref encoding. No skill body is touched, authored or
-  template-owned: whether a slug is template-owned is a function of today's vocabulary and a
-  stored body was written under an earlier one, so on disk the two are indistinguishable. Markdown
-  is written before the index commit, as everywhere else. So `repair` is not an index-only job: on
+  every read rather than stored — the sub-entity roll-up table and badge lines, and the retired
+  `extra` keys a role item mirrored from its definition — and canonicalises any legacy ref
+  encoding. A role or skill body that holds prose is left alone; an empty role body, or an empty
+  body on a generated skill, gets its view tag written back. Markdown is written before the index commit, as everywhere else. So `repair` is not an index-only job: on
   a corpus carrying that content it produces a content diff, and it should be run on a clean
   working tree. `sq adopt` and `sq renumber` reach the same rescan and perform the same rewrite,
   and `sq migrate up` ends with it; all four print the same one-line notice counting what they
@@ -138,8 +147,11 @@ The frontmatter is durable; the index is derived. Two commands make that concret
   every result type a sweep-reaching command returns, so no route can drift out of it.
 - **`sq check`** lints the two against each other: unbalanced/duplicated markers, dangling
   parent/ref IDs, one ID carried by several files, invalid status-for-type, on-disk-vs-index reconciliation, and frontmatter↔index
-  drift. (Implemented as small per-rule helpers: `_scan_for_check`, `_check_reconciliation`,
-  `_check_items`, `_check_subtask_stories`.)
+  drift. It runs in two tiers: a raw-text scan of every file (`_scan_for_check`, for findings that
+  must survive a file too broken to parse), then the named validator catalog in
+  `_services/_validators.py` — per-item rules such as `parent_in`, `item_status_valid`,
+  `dangling_ref` and `subentity_body_written`, selected per type by the spec, plus squad-wide ones
+  such as `index_reconciled` and `backend_reconciled`.
 
 Practical upshot: a `.squads.json` merge conflict is a non-event — take either side and
 `sq repair`; for duplicate numbers, `sq repair --renumber`. Commit the resolution first: the
@@ -159,6 +171,7 @@ type: task
 title: Fix login
 status: Draft
 parent: FEAT-<n>
+author: tech-lead
 refs: [GUIDE-<n>]
 created_at: '2026-06-07T10:00:00Z'
 updated_at: '2026-06-07T10:00:00Z'
@@ -171,6 +184,8 @@ updated_at: '2026-06-07T10:00:00Z'
 ## Subtasks
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
+
+## Discussion
 
 <!-- sq:discussion -->
 <!-- sq:discussion:end -->
@@ -199,29 +214,34 @@ bundled default rather than a fixed law; `_discussion.py` takes the `kind` as an
 throughout. Their **machine state** (status, assignee, severity,
 mapped story, title) is a typed `subentities:` list in the parent's **frontmatter** (`SubEntity`,
 `_models/_subentity.py`) — single-sourced, pydantic-validated, and carried in the index. Each
-sub-entity also gets a marker-scoped **block in the body** holding only its prose + presentation:
+sub-entity also gets a marker-scoped **block in the body**, inside the parent's container region,
+holding only its heading and prose:
 
 ```markdown
 <!-- sq:subtask:STn -->
 ### STn — Validate token expiry       ← heading rendered from the frontmatter title
-<!-- sq:subtask:STn:head -->          ← sq renders human-readable badges from the frontmatter state
-**Status:** 🟡 In Progress
-**Implements:** USn — …
-<!-- sq:subtask:STn:head:end -->
+
 <!-- sq:subtask:STn:body -->          ← agent writes free-form prose here
 <!-- sq:subtask:STn:body:end -->
+
+#### Discussion
+
 <!-- sq:subtask:STn:discussion -->    ← sq appends comments here
 <!-- sq:subtask:STn:discussion:end -->
 <!-- sq:subtask:STn:end -->
 ```
+
+The presentation is not stored: the badge line (status, assignee, severity, story) is computed from
+the frontmatter state each time `show` prints a block, and the parent's roll-up table is a derived
+view of the same state. `sq repair` strips any stored copy of either that an older squad still
+carries.
 
 Local ids (`USn`, `STn`, `Fn`) auto-increment via `next_local_id` (over the stored list). Each has a
 **status state machine** (`SUBENTITY_WORKFLOWS`: subtask/story `Todo → InProgress → Done`; finding
 `Open → Fixed → Verified`), transitioned with `sq <type> <n> <kind> <k> update --status …` (validated;
 `--force` overrides) — `update` is the one metadata entry point (`--title`/`--status`/`--assignee`, a
 subtask's `--story`, a finding's `--severity`); the service edits the model atomically (index
-transaction), then re-renders the heading, the `:head`, and the parent's **sq-managed `sq:summary`
-table** from it. The legacy
+transaction), and a title change re-renders the block's heading. The legacy
 body-stored `:meta` region (pre-0.3) is lifted into frontmatter by the `0.2 → 0.3` migration; its
 read/build helpers now live only in `_migrations/_meta_compat.py`.
 
@@ -298,18 +318,22 @@ the one pattern, anchored at the left margin; the grammar is in
 
 ---
 
-## 7. The Claude Code backend (`_backends/`)
+## 7. Backends (`_backends/`)
 
-Backends are pluggable behind the `AgentBackend` ABC (`ensure_scaffold`, `write_managed`,
-`generate_role_pointer`, `generate_skill_pointer`, `remove_artifacts`). `ClaudeCodeBackend` is the
-first implementation; a `_registry` maps names → backends and the `_claude_code` package registers
-itself on import. Nothing outside a backend reaches into `.claude/`.
+Backends are pluggable behind the `AgentBackend` ABC, whose seven abstract methods are
+`ensure_scaffold`, `write_managed`, `generate_role_entry`, `generate_skill_entry`,
+`remove_artifacts`, `candidate_orphans` and `managed_paths`. Two ship: `claude_code` (the
+`.claude/` pointers, `settings.json` and the `CLAUDE.md` managed section, described below) and
+`agents_md` (one `AGENTS.md` managed section, compiled from the roster; it writes no per-entry
+files). `.squads.toml`'s `active_backends` picks which run. A `_registry` maps names → backends and
+each backend package registers itself on import. Nothing outside a backend reaches into `.claude/`.
+[backends.md](backends.md) covers writing a third.
 
 Everything in `.claude/` is a thin pointer: it carries the identity the host selects the entry by,
 and names the `sq` command that produces the rest.
 
 ```
-   .claude/agents/architect.md ─────▶ `sq role architect show`   (definition stored under squads/)
+   .claude/agents/architect.md ─────▶ `sq role architect show`   (definition rendered on read)
    .claude/skills/sq-task/SKILL.md ─▶ `sq skill sq-task show`    (definition rendered on read)
    CLAUDE.md  <!-- squads:start … end -->  ◀── regenerated managed section (roster, workflow)
    .claude/settings.json                   ◀── merged (union of permissions.allow), never clobbered
@@ -318,9 +342,11 @@ and names the `sq` command that produces the rest.
 What it generates:
 
 - **Role pointers** — `.claude/agents/<slug>.md`: frontmatter (`name`=slug, `description`, `model`,
-  `color`, and a `skills:` list) + a body that says *"You are <Full Name>… load your full definition
-  with `sq role <slug> show`"*. The real role definition lives under the squad folder.
-- **Managed skills** — the general `squads` skill plus one `sq-<type>` skill per item type. Each
+  `color`, `disallowedTools: Agent` on a role that may not spawn subagents, and a `skills:` list) + a body that says *"You are <Full Name>… load your full definition
+  with `sq role <slug> show`"*. The role's file under the squad folder holds its identity and a view
+  tag; that command renders the definition.
+- **Managed skills** — the general `squads` skill, `greeting`, `sq-memory`, and one `sq-<type>`
+  skill per non-roster item type. Each
   gets a **thin pointer** at `.claude/skills/<name>/SKILL.md` naming `sq skill <name> show`. The
   definition that command prints is rendered from templates when it is read, so the skill's own
   file under `squads/agents/skills/` holds frontmatter and an empty body region — an authored
@@ -368,10 +394,21 @@ Role/dev/skill metadata is stored in the item's `extra` dict; its keys are centr
 
 A single Jinja2 `Environment` (`PackageLoader("squads._rendering", "templates")`,
 `StrictUndefined` so a missing variable is a loud error, a `slugify` filter, `autoescape=False`
-because output is Markdown/JSON not HTML). Templates ship as **package data** in the wheel:
-`items/<type>.md.j2`, `agents/{role,skill,squads_skill,item_skill}.md.j2`,
-`claude/{pointer_agent,pointer_skill,claude_section,settings.json}.md.j2`, and `workflow.md.j2`
-(the cheatsheet shared by the `squads` skill and `sq workflow`).
+because output is Markdown/JSON not HTML). Templates ship as **package data** in the wheel, and a
+project override under `.overrides/templates/` must use the same relative path:
+
+- `items/<type>.md.j2` — one per bundled type (`bug`, `contract`, `decision`, `epic`, `feature`,
+  `guide`, `milestone`, `review`, `task`), plus `items/_default.md.j2` for a type with none
+- `agents/{operator,role,skill}.md.j2` — roster item files
+- `views/{squads_skill,item_skill,greeting_skill,memory_skill,role_definition,milestone_rollup}.md.j2`
+  — the derived views rendered on read (managed skill definitions, a role's definition, a
+  milestone's roll-up)
+- `claude/{pointer_agent,pointer_skill,claude_section}.md.j2` and `claude/settings.json.j2` — the
+  `claude_code` backend; `agents_md/agents_section.md.j2` — the `agents_md` backend
+- `subentities/{block,head,summary}.md.j2` — a sub-entity's body block; `head` and `summary` are
+  kept for migrations, which still read and write the retired presentation regions
+- `workflow.md.j2` and `workflow_static.md.j2` — the workflow cheatsheet shared by the `squads`
+  skill, `sq workflow` and the `AGENTS.md` section
 
 ## 10. Time & determinism (`_clock.py`)
 
@@ -382,7 +419,7 @@ invocation (parsed by `parse_iso`), which is how a migration preserves historica
 
 ## 11. The CLI (`_cli/`)
 
-Typer app, exposed twice as `squads`/`sq` (entry point `squads._cli:app`). The root callback takes
+Typer app, exposed twice as `squads`/`sq` (entry point `squads._cli:main`, which runs the `app`). The root callback takes
 the effective directory computed from the global `-C` options as `RequestContext.client_cwd` (it
 never calls `os.chdir`), reads `--at`, runs the version notice, and dispatches. Conventions:
 
@@ -461,9 +498,9 @@ items to invert forward edges. One call per command is fine; the trap is calling
 
 **File fan-out commands.** Most commands touch the index only (`list`) or one `.md` (`show`,
 `comment`, `status`). Three fan out over *every* markdown file and are the first you'd feel at
-scale: `sq inbox` (`_service.inbox`) opens + mention-scans each open item's file; `sq check`
-(`_service.check`, esp. `_check_subtask_stories`) reads every file and re-reads each task's file and
-its parent feature inside the loop; `sq repair` parses every file (twice, when renumbering).
+scale: `sq inbox` (`_services/_collab.py`) opens + mention-scans each open item's file; `sq check`
+reads every item file, both for its raw-text scan and for the validators that inspect body text;
+`sq repair` parses every file (twice, when renumbering).
 `check`/`repair` are occasional maintenance; `inbox` is user-facing, so it's the one to watch.
 
 **Rough guide (single SSD, warm imports):**
