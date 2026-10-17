@@ -254,7 +254,7 @@ class ItemsMixin(ServiceCore):
             touched = {*(set_attributes or {}), *(unset_attributes or [])}
             supplied = set(bundled_spec().item_attributes(item.type))
             if item.type == ROSTER_ROLE:
-                supplied |= {f.name for f in dataclasses.fields(RoleDef)}
+                supplied |= {f.name for f in dataclasses.fields(RoleDef)} - {"slug"}
             changed = {
                 name
                 for name, given in (("title", title), ("description", description))
@@ -425,8 +425,7 @@ class ItemsMixin(ServiceCore):
         await self._update_item_frontmatter(
             item,
             base,
-            rescaffold=self.spec.item_is_roster(item.type)
-            and ("title" in delta or "description" in delta),
+            rescaffold=self.spec.item_is_roster(item.type),
         )
         self.store.log("update", item.id, delta)
         return item

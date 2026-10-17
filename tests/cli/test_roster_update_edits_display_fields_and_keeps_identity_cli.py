@@ -120,6 +120,8 @@ async def test_update_without_an_option_exits_1_and_writes_nothing(squad, invoke
 
     assert result.exit_code == 1, result.output
     assert "nothing to update" in result.output
+    expected = "pass --title)" if kind != "skill" else "pass at least one of --title, --desc"
+    assert expected in " ".join(result.output.split())
     assert squad_tree(squad) == before
 
 
@@ -213,3 +215,15 @@ async def test_an_unwritten_skill_body_follows_the_new_title_and_a_written_one_i
     assert re.search(
         r"title: Third Name", _file(squad, "skill", "release-runbook").read_text(encoding="utf-8")
     )
+
+
+@pytest.mark.parametrize(
+    ("flag", "value"),
+    [("--title", "Ship Runbook"), ("--desc", "New words."), ("--when-to-use", "When shipping.")],
+)
+async def test_every_skill_option_keeps_an_unwritten_body_unwritten(squad, invoke, flag, value):
+    assert (await invoke(["skill", "release-runbook", "update", flag, value])).exit_code == 0
+
+    written = await invoke(["skill", "release-runbook", "body", "-m", "Authored now."])
+
+    assert written.exit_code == 0, written.output

@@ -211,8 +211,7 @@ async def test_an_import_cannot_set_or_clear_a_stored_slug_through_the_extra_fie
     r = await invoke(["import", str(events)])
 
     assert r.exit_code == 1, r.output
-    named = how in ("set", "unset")  # a key the role document supplies is gated by name
-    refusal = "authoring surface" if kind.endswith("role") and named else "is not a settable field"
+    refusal = "is not a settable field"
     assert refusal in r.output
     assert _identities(project) == before, r.output
 

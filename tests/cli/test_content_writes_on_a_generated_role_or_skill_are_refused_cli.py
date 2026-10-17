@@ -154,6 +154,12 @@ async def _args(squad, verb: str, kind: str, slug: str, view: str) -> list[str]:
     return table[verb]()
 
 
+def _body(raw: bytes) -> bytes:
+    """The bytes of the file's body region."""
+    text = raw.decode("utf-8")
+    return text[text.index("<!-- sq:body -->") : text.index("<!-- sq:body:end -->")].encode()
+
+
 def _refused(verb: str, kind: str, generated: bool) -> bool:
     """Whether the table expects the verb refused on a host of this kind."""
     if not generated:
@@ -191,6 +197,9 @@ async def test_a_generated_host_refuses_content_verbs_and_keeps_the_open_ones(
         assert path.read_bytes() == before
     else:
         assert "authoring surface" not in result.output, result.output
+        if verb in ("update-labels", "update-assignee", "update-project-attribute"):
+            assert result.exit_code == 0, result.output
+            assert _body(path.read_bytes()) == _body(before)
         if verb in (
             "update-title",
             "update-description",

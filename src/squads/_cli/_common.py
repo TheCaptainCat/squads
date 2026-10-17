@@ -2087,8 +2087,9 @@ def register_comment_verbs(app: typer.Typer, id_from_ctx: Callable[[typer.Contex
 def require_update_fields(**given: object) -> None:
     """Refuse an ``update`` that names no field, listing the options it takes."""
     if all(v is None for v in given.values()):
-        options = ", ".join(f"--{k.replace('_', '-')}" for k in given)
-        raise SquadsError(f"nothing to update (pass at least one of {options})")
+        options = [f"--{k.replace('_', '-')}" for k in given]
+        wanted = options[0] if len(options) == 1 else f"at least one of {', '.join(options)}"
+        raise SquadsError(f"nothing to update (pass {wanted})")
 
 
 def print_warnings(warnings: list[str]) -> None:
