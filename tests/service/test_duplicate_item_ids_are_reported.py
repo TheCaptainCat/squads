@@ -23,13 +23,13 @@ async def svc(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
 def _copy(md: Path, *, name: str | None = None, folder: Path | None = None, **fm_changes: object):
     """Write a copy of *md* (optionally renamed, moved, with frontmatter changes)."""
-    text = md.read_text()
+    text = md.read_text(encoding="utf-8")
     if fm_changes:
         fm = split_frontmatter(text)[0]
         fm.update(fm_changes)
         text = replace_frontmatter(text, fm)
     target = (folder or md.parent) / (name or md.name)
-    target.write_text(text)
+    target.write_text(text, encoding="utf-8", newline="")
     return target
 
 
@@ -53,7 +53,7 @@ def _different_slug_by_filename(svc, md):
 
 def _whitespace_copy(svc, md):
     target = _copy(md, name=md.name.replace(".md", "-copy.md"))
-    target.write_text(target.read_text() + "  \n")
+    target.write_text(target.read_text(encoding="utf-8") + "  \n", encoding="utf-8", newline="")
     return [target]
 
 
@@ -68,7 +68,7 @@ def _other_folder(svc, md):
 
 
 def _padded_spelling(svc, md):
-    fm = split_frontmatter(md.read_text())[0]
+    fm = split_frontmatter(md.read_text(encoding="utf-8"))[0]
     number = int(fm["sequence_id"])
     padded = f"TASK-{number:06d}"
     return [_copy(md, name=f"TASK-{number}-alpha.md", id=padded)]
@@ -152,7 +152,10 @@ async def test_renumber_refuses_same_slug_and_renumbers_different_slugs(svc, row
         assert original.read_bytes() == before[original], "the indexed file keeps the id"
         for md in files[1:]:
             assert not md.exists(), "the renumbered files are renamed"
-        ids = [split_frontmatter(p.read_text())[0]["id"] for p in original.parent.glob("TASK-*.md")]
+        ids = [
+            split_frontmatter(p.read_text(encoding="utf-8"))[0]["id"]
+            for p in original.parent.glob("TASK-*.md")
+        ]
         assert len(ids) == len(set(ids)) == len(files)
         assert not [i for i in await svc.check() if i.level == "error"]
         assert item.sequence_id in (await svc.repair()).db.items
@@ -196,10 +199,12 @@ async def test_a_clean_squad_reports_no_duplicate(svc):
 async def test_distinct_ids_sharing_a_number_are_renumbered_by_repair(svc):
     _task_item, task_md = await _task(svc)
     bug = await svc.create("bug", "Beta", author="manager")
-    fm = split_frontmatter(bug.path.read_text())[0]
-    fm["sequence_id"] = split_frontmatter(task_md.read_text())[0]["sequence_id"]
+    fm = split_frontmatter(bug.path.read_text(encoding="utf-8"))[0]
+    fm["sequence_id"] = split_frontmatter(task_md.read_text(encoding="utf-8"))[0]["sequence_id"]
     fm["id"] = f"BUG-{fm['sequence_id']}"
-    bug.path.write_text(replace_frontmatter(bug.path.read_text(), fm))
+    bug.path.write_text(
+        replace_frontmatter(bug.path.read_text(encoding="utf-8"), fm), encoding="utf-8", newline=""
+    )
 
     assert not [i for i in await svc.check() if "carry this id" in i.message]
     result = await svc.repair(renumber=True)
@@ -231,12 +236,12 @@ async def _referenced_group(svc):
     await svc.add_subtask(beta_item.id, "a subtask")
     await svc.set_body(beta_item.id, f"see {item.id} for the details")
     await svc.comment(beta_item.id, [f"@manager {item.id} is in play"], as_slug="manager")
-    text = beta.read_text()
+    text = beta.read_text(encoding="utf-8")
     fm = split_frontmatter(text)[0]
     fm["refs"] = [item.id]
     fm["parent"] = item.id
     fm["subentities"][0]["title"] = f"check {item.id}"
-    beta.write_text(replace_frontmatter(text, fm))
+    beta.write_text(replace_frontmatter(text, fm), encoding="utf-8", newline="")
     return item, alpha, other, beta
 
 

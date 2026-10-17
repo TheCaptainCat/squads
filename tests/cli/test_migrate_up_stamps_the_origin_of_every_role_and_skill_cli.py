@@ -171,7 +171,9 @@ async def test_migrating_a_stripped_squad_writes_the_bytes_a_fresh_init_wrote(
 
     for path in root.rglob("*.md"):
         text = path.read_text(encoding="utf-8")
-        path.write_text(re.sub(r"^origin: .*\n", "", text, flags=re.M), encoding="utf-8")
+        path.write_text(
+            re.sub(r"^origin: .*\n", "", text, flags=re.M), encoding="utf-8", newline=""
+        )
     config.write_text(
         config.read_text(encoding="utf-8").replace(
             'schema_version = "0.16"', 'schema_version = "0.15"'
