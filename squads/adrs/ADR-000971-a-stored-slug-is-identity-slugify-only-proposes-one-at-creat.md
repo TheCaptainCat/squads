@@ -11,10 +11,11 @@ refs:
 - MILE-934
 - TASK-969
 - ADR-984
+- ADR-1007
 description: No path re-derives a stored slug; dev roles resolve to their stored slug;
   existing slugs stay; duplicates match both rules
 created_at: '2026-09-29T13:41:21Z'
-updated_at: '2026-10-09T18:47:52Z'
+updated_at: '2026-10-15T20:16:58Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -76,6 +77,11 @@ created.**
   proposed for a new entry.
 - No read, resolve, sync, check or repair path recomputes a slug from a title, a name or a
   tech label.
+
+> **Note 2026-10-15 (ADR-1007):** the identity expression is `item.slug`. `slug` is a core
+> frontmatter key, so `extra.get(X.SLUG, item.slug)` collapses into it, and decision 2's
+> `extra.tech` is the top-level role attribute `tech`. The rule is unchanged: a stored slug is
+> identity. See ADR-1007 decisions 2 and 3.
 
 **2. A developer role resolves to its stored slug.**
 

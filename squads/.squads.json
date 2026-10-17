@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1009,
+  "counter": 1024,
   "padding": 6,
   "items": {
     "12": {
@@ -7415,7 +7415,7 @@
       "type": "feature",
       "title": "Comment headers carry the author's permanent slug",
       "slug": "comment-headers-carry-the-author-s-permanent-slug",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -7433,7 +7433,7 @@
         {
           "local_id": "US1",
           "title": "As a reader, I want comment headers that name the author's slug",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -7442,7 +7442,7 @@
         {
           "local_id": "US2",
           "title": "As an operator, I want slugs permanent on every write path",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -7451,7 +7451,7 @@
         {
           "local_id": "US3",
           "title": "As an adopter, I want legacy headers migrated once, fail-loud",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -7460,7 +7460,7 @@
         {
           "local_id": "US4",
           "title": "As a tool author, I want author_slug in the discussion JSON",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -7478,7 +7478,7 @@
       ],
       "path": "features/FEAT-000980-comment-headers-carry-the-author-s-permanent-slug.md",
       "created_at": "2026-09-29T14:58:15Z",
-      "updated_at": "2026-10-12T06:31:58Z",
+      "updated_at": "2026-10-15T21:43:29Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -29757,12 +29757,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "FEAT-14"
+        "FEAT-14",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000085-project-level-overrides-live-under-overrides-with-per-file-p.md",
       "created_at": "2026-06-12T15:29:52Z",
-      "updated_at": "2026-08-03T08:41:58Z",
+      "updated_at": "2026-10-15T20:16:48Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30251,12 +30252,13 @@
         "FEAT-219:addresses",
         "ADR-214",
         "ADR-85",
-        "ADR-696"
+        "ADR-696",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000221-role-catalog-spec-bundled-roles-toml-loader-golden-locked-en.md",
       "created_at": "2026-06-26T07:33:23Z",
-      "updated_at": "2026-08-03T08:44:26Z",
+      "updated_at": "2026-10-15T20:16:49Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30362,12 +30364,13 @@
       "labels": [],
       "refs": [
         "FEAT-210:addresses",
-        "ADR-249"
+        "ADR-249",
+        "ADR-1009"
       ],
       "subentities": [],
       "path": "adrs/ADR-000263-registering-a-custom-type-s-top-level-cli-command-ahead-of-c.md",
       "created_at": "2026-06-30T12:06:45Z",
-      "updated_at": "2026-06-30T12:14:54Z",
+      "updated_at": "2026-10-15T20:17:04Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30585,12 +30588,13 @@
       "refs": [
         "ADR-322:depends-on",
         "ADR-214",
-        "ADR-232"
+        "ADR-232",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000323-spec-badges-for-priority-severity-reusable-collections-relab.md",
       "created_at": "2026-07-07T10:00:07Z",
-      "updated_at": "2026-07-07T14:35:18Z",
+      "updated_at": "2026-10-15T20:16:50Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30614,12 +30618,13 @@
         "ADR-323:depends-on",
         "ADR-274",
         "REV-337:addresses",
-        "ADR-738"
+        "ADR-738",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000348-custom-sub-entity-kind-spec-what-a-kind-declares-beyond-fiel.md",
       "created_at": "2026-07-09T21:18:55Z",
-      "updated_at": "2026-08-03T15:36:48Z",
+      "updated_at": "2026-10-15T20:16:51Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30665,12 +30670,13 @@
       "labels": [],
       "refs": [
         "EPIC-99",
-        "FEAT-100"
+        "FEAT-100",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000427-vs-code-extension-in-repo-typescript-client-architecture.md",
       "created_at": "2026-07-16T13:40:12Z",
-      "updated_at": "2026-07-16T15:38:49Z",
+      "updated_at": "2026-10-15T20:16:52Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30728,12 +30734,13 @@
         "ADR-214",
         "EPIC-99",
         "ADR-604",
-        "ADR-738"
+        "ADR-738",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000474-spec-vocabulary-machine-surface-generic-collections-status-r.md",
       "created_at": "2026-07-18T19:56:06Z",
-      "updated_at": "2026-08-03T15:36:39Z",
+      "updated_at": "2026-10-15T20:16:53Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30836,12 +30843,13 @@
         "ADR-214",
         "ADR-153",
         "ADR-249",
-        "ADR-117"
+        "ADR-117",
+        "ADR-1009"
       ],
       "subentities": [],
       "path": "adrs/ADR-000534-no-module-level-mutable-state-per-request-context-caches-are.md",
       "created_at": "2026-07-21T12:44:46Z",
-      "updated_at": "2026-08-03T12:30:52Z",
+      "updated_at": "2026-10-15T20:17:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30921,12 +30929,13 @@
       "labels": [],
       "refs": [
         "REV-565",
-        "ADR-955"
+        "ADR-955",
+        "ADR-1009"
       ],
       "subentities": [],
       "path": "adrs/ADR-000622-bulk-event-import-sq-import.md",
       "created_at": "2026-07-23T07:56:31Z",
-      "updated_at": "2026-10-11T20:19:04Z",
+      "updated_at": "2026-10-15T20:17:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30980,12 +30989,13 @@
         "ADR-534",
         "ADR-249",
         "ADR-153",
-        "ADR-955"
+        "ADR-955",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000663-durability-model-of-the-integrity-core-markdown-ahead-index.md",
       "created_at": "2026-07-27T14:02:48Z",
-      "updated_at": "2026-10-09T20:20:32Z",
+      "updated_at": "2026-10-15T20:16:54Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31130,12 +31140,13 @@
         "TASK-751",
         "REV-770",
         "ADR-971",
-        "ADR-984"
+        "ADR-984",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000754-dev-role-resolution-takes-an-explicit-base-never-a-regenerat.md",
       "created_at": "2026-08-21T12:47:51Z",
-      "updated_at": "2026-10-09T18:47:49Z",
+      "updated_at": "2026-10-15T20:16:55Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31156,12 +31167,13 @@
       "labels": [],
       "refs": [
         "BUG-756:addresses",
-        "ADR-955"
+        "ADR-955",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000766-a-role-s-resolved-name-is-written-to-the-item-s-title-not-de.md",
       "created_at": "2026-08-21T19:44:27Z",
-      "updated_at": "2026-10-11T20:19:26Z",
+      "updated_at": "2026-10-15T20:16:56Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31191,12 +31203,13 @@
         "ADR-777",
         "ADR-781",
         "BUG-827",
-        "ADR-320"
+        "ADR-320",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000775-ref-kinds-are-declared-spec-vocabulary-bound-by-semantic-rol.md",
       "created_at": "2026-08-22T09:28:22Z",
-      "updated_at": "2026-08-26T13:50:58Z",
+      "updated_at": "2026-10-15T20:16:57Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31225,12 +31238,13 @@
         "ADR-663",
         "ADR-775",
         "ADR-777",
-        "ADR-781"
+        "ADR-781",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000776-derived-views-one-computed-projection-and-no-body-sink.md",
       "created_at": "2026-08-22T09:28:29Z",
-      "updated_at": "2026-09-02T13:13:25Z",
+      "updated_at": "2026-10-15T20:16:58Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31486,12 +31500,13 @@
         "ADR-754",
         "MILE-934",
         "TASK-969",
-        "ADR-984"
+        "ADR-984",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000971-a-stored-slug-is-identity-slugify-only-proposes-one-at-creat.md",
       "created_at": "2026-09-29T13:41:21Z",
-      "updated_at": "2026-10-09T18:47:52Z",
+      "updated_at": "2026-10-15T20:16:58Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31513,12 +31528,13 @@
       "refs": [
         "ADR-971",
         "FEAT-977",
-        "MILE-934:targets"
+        "MILE-934:targets",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000979-comment-headers-carry-the-author-s-permanent-slug.md",
       "created_at": "2026-09-29T14:33:58Z",
-      "updated_at": "2026-09-29T14:57:05Z",
+      "updated_at": "2026-10-15T20:16:59Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31541,12 +31557,13 @@
         "FEAT-961",
         "ADR-766",
         "ADR-979",
-        "FEAT-977"
+        "FEAT-977",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000981-pronouns-are-roster-item-data-display-preferences-get-a-type.md",
       "created_at": "2026-10-09T15:35:21Z",
-      "updated_at": "2026-10-09T16:53:44Z",
+      "updated_at": "2026-10-15T20:17:01Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31602,12 +31619,13 @@
         "ADR-133",
         "ADR-181",
         "FEAT-966",
-        "FEAT-976"
+        "FEAT-976",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000983-skill-invocability-a-declared-default-and-a-squad-s-stored-c.md",
       "created_at": "2026-10-09T18:27:22Z",
-      "updated_at": "2026-10-09T19:14:10Z",
+      "updated_at": "2026-10-15T20:17:02Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31633,12 +31651,13 @@
         "ADR-754",
         "ADR-979",
         "ADR-981",
-        "FEAT-976"
+        "FEAT-976",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000984-a-developer-is-a-role-that-declares-a-capability-not-a-slug.md",
       "created_at": "2026-10-09T18:30:02Z",
-      "updated_at": "2026-10-09T18:40:01Z",
+      "updated_at": "2026-10-15T20:17:03Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31894,7 +31913,7 @@
       "subentities": [],
       "path": "milestones/MILE-000934-squads-0-16-roles-not-slugs.md",
       "created_at": "2026-09-09T14:39:43Z",
-      "updated_at": "2026-10-15T19:16:53Z",
+      "updated_at": "2026-10-15T19:56:33Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -43238,7 +43257,7 @@
       "subentities": [],
       "path": "guides/GUIDE-000079-squads-architecture-layering-data-model-and-the-marker-mecha.md",
       "created_at": "2026-06-12T14:25:59Z",
-      "updated_at": "2026-06-12T14:28:33Z",
+      "updated_at": "2026-10-15T20:49:19Z",
       "created_session": null,
       "modified_session": null,
       "extra": {
@@ -44149,7 +44168,7 @@
       ],
       "path": "tasks/TASK-001001-add-the-eight-opt-in-per-item-policy-checks-to-the-validator.md",
       "created_at": "2026-10-12T05:46:24Z",
-      "updated_at": "2026-10-15T19:12:45Z",
+      "updated_at": "2026-10-15T19:49:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44239,7 +44258,7 @@
       "type": "task",
       "title": "Put the author's slug in comment headers and migrate the corpus",
       "slug": "put-the-author-s-slug-in-comment-headers-and-migrate-the-cor",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "One header grammar and parser, author_slug in JSON, reserved role slugs, and the 0.16 migration step with the comment-header rewrite as its first contribution",
       "parent": "FEAT-980",
       "author": "tech-lead",
@@ -44318,7 +44337,7 @@
       ],
       "path": "tasks/TASK-001004-put-the-author-s-slug-in-comment-headers-and-migrate-the-cor.md",
       "created_at": "2026-10-12T06:46:55Z",
-      "updated_at": "2026-10-12T06:54:13Z",
+      "updated_at": "2026-10-15T21:43:32Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44354,7 +44373,7 @@
       ],
       "path": "tasks/TASK-001005-accept-and-show-author-slug-on-comments-in-the-vs-code-clien.md",
       "created_at": "2026-10-12T06:48:44Z",
-      "updated_at": "2026-10-12T06:55:29Z",
+      "updated_at": "2026-10-15T21:43:33Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44410,7 +44429,7 @@
       "type": "decision",
       "title": "Frontmatter is flat: core keys plus spec-declared attributes",
       "slug": "frontmatter-is-flat-core-keys-plus-spec-declared-attributes",
-      "status": "Proposed",
+      "status": "Accepted",
       "description": "No extra block; slug is core; roster keys are pinned spec attributes; unknown keys kept; writes remove only targeted keys; flattened by the 0.16 runner",
       "parent": null,
       "author": "architect",
@@ -44434,7 +44453,7 @@
       "subentities": [],
       "path": "adrs/ADR-001007-frontmatter-is-flat-core-keys-plus-spec-declared-attributes.md",
       "created_at": "2026-10-15T18:49:27Z",
-      "updated_at": "2026-10-15T19:09:11Z",
+      "updated_at": "2026-10-15T20:17:27Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44445,7 +44464,7 @@
       "type": "bug",
       "title": "sq init ignores --dir and initialises the cwd",
       "slug": "sq-init-ignores-dir-and-initialises-the-cwd",
-      "status": "Open",
+      "status": "Fixed",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -44459,7 +44478,7 @@
       "subentities": [],
       "path": "bugs/BUG-001008-sq-init-ignores-dir-and-initialises-the-cwd.md",
       "created_at": "2026-10-15T19:08:38Z",
-      "updated_at": "2026-10-15T19:08:38Z",
+      "updated_at": "2026-10-15T20:44:30Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44470,7 +44489,7 @@
       "type": "decision",
       "title": "Select the squad with git-style -C, not --dir",
       "slug": "select-the-squad-with-git-style-c-not-dir",
-      "status": "Proposed",
+      "status": "Accepted",
       "description": "-C runs sq as if started in PATH and walks up as ordinary use does; --dir is refused naming -C; the backwards inference goes away",
       "parent": null,
       "author": "architect",
@@ -44489,11 +44508,1007 @@
       "subentities": [],
       "path": "adrs/ADR-001009-select-the-squad-with-git-style-c-not-dir.md",
       "created_at": "2026-10-15T19:17:11Z",
-      "updated_at": "2026-10-15T19:19:36Z",
+      "updated_at": "2026-10-15T20:17:28Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "ADR-1009"
+    },
+    "1010": {
+      "sequence_id": 1010,
+      "type": "review",
+      "title": "Opt-in per-item checks and the level-aware gate, part one",
+      "slug": "opt-in-per-item-checks-and-the-level-aware-gate-part-one",
+      "status": "Approved",
+      "description": "Review of TASK-1001 part one: the gate change and seven opt-in per-item catalog checks, with the BUG-1003 fix.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1001:addresses",
+        "FEAT-901:addresses",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "A pattern matching the empty string loads and fires on every item",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "sq import runs warn members over the whole squad; a bad pattern hangs it",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "item_title_max refusal at @error is worded as an advisory",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Create refusal hint names an item id that was never allocated",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "item_title_max counts code points, not visible characters",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "body_written misses a scaffold whose interpolated field changed",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "A pattern compiling with a FutureWarning prints it on every command",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Missing body region crashes body -m; new test comment says otherwise",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Import sub-status with an unnormalised target skips board debt",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001010-opt-in-per-item-checks-and-the-level-aware-gate-part-one.md",
+      "created_at": "2026-10-15T19:25:04Z",
+      "updated_at": "2026-10-15T19:44:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1010"
+    },
+    "1011": {
+      "sequence_id": 1011,
+      "type": "bug",
+      "title": "sq console text drops a backslash before a bracket",
+      "slug": "sq-console-text-drops-a-backslash-before-a-bracket",
+      "status": "Fixed",
+      "description": "e() is plain rich escape, so a \\[ in user text prints without its backslash",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1001"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001011-sq-console-text-drops-a-backslash-before-a-bracket.md",
+      "created_at": "2026-10-15T19:27:50Z",
+      "updated_at": "2026-10-15T20:33:19Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1011"
+    },
+    "1012": {
+      "sequence_id": 1012,
+      "type": "bug",
+      "title": "body -m on a file with no body region raises a KeyError",
+      "slug": "body-m-on-a-file-with-no-body-region-raises-a-keyerror",
+      "status": "Fixed",
+      "description": "Raw traceback instead of a SquadsError when the body region is missing",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1010"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001012-body-m-on-a-file-with-no-body-region-raises-a-keyerror.md",
+      "created_at": "2026-10-15T19:27:55Z",
+      "updated_at": "2026-10-15T20:33:21Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1012"
+    },
+    "1013": {
+      "sequence_id": 1013,
+      "type": "decision",
+      "title": "Comments are edited and removed by short hash, by their author",
+      "slug": "comments-are-edited-and-removed-by-short-hash-by-their-autho",
+      "status": "Accepted",
+      "description": "How comments are addressed by a derived short hash, edited and removed by their author only",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-934:targets",
+        "ADR-979",
+        "FEAT-980",
+        "ADR-981",
+        "ADR-114",
+        "FEAT-977",
+        "ADR-1009"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001013-comments-are-edited-and-removed-by-short-hash-by-their-autho.md",
+      "created_at": "2026-10-15T19:31:21Z",
+      "updated_at": "2026-10-15T20:17:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-1013"
+    },
+    "1014": {
+      "sequence_id": 1014,
+      "type": "bug",
+      "title": "Untouched scaffold reads as written once target_ref is set",
+      "slug": "untouched-scaffold-reads-as-written-once-target-ref-is-set",
+      "status": "Open",
+      "description": "Body guard and body_written compare against a re-render, so a changed scaffold input hides the stub",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1010",
+        "TASK-1001"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001014-untouched-scaffold-reads-as-written-once-target-ref-is-set.md",
+      "created_at": "2026-10-15T19:36:06Z",
+      "updated_at": "2026-10-15T19:36:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1014"
+    },
+    "1015": {
+      "sequence_id": 1015,
+      "type": "feature",
+      "title": "Select the squad with git-style -C, not --dir",
+      "slug": "select-the-squad-with-git-style-c-not-dir",
+      "status": "Done",
+      "description": "-C runs sq as if started in PATH; --dir is refused naming -C; BUG-1008 closed",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1009:implements",
+        "MILE-934:targets",
+        "BUG-1008:fixes",
+        "TASK-954:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an adopter, I want git-style -C to pick where sq runs",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "As an adopter, I want -C threaded, never a chdir",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "As an adopter, I want init and adopt to honour -C",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "As an adopter, I want --dir refused and one resolver left",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "As a maintainer, I want -C proven equal to cd",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "As an adopter, I want the docs and changelog to say -C",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001015-select-the-squad-with-git-style-c-not-dir.md",
+      "created_at": "2026-10-15T20:12:57Z",
+      "updated_at": "2026-10-15T21:35:46Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-1015"
+    },
+    "1016": {
+      "sequence_id": 1016,
+      "type": "feature",
+      "title": "Flat frontmatter: core keys plus declared attributes",
+      "slug": "flat-frontmatter-core-keys-plus-declared-attributes",
+      "status": "Draft",
+      "description": "No extra block; spec-declared attributes; unknown keys kept; writes remove only targeted keys; flattened by the 0.16 runner",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1007:implements",
+        "MILE-934:targets",
+        "FEAT-980:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a reader, I want one flat mapping with slug as a core key",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "As an adopter, I want to declare attributes in my spec",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "As an adopter, I want attributes validated, never destroyed",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "As an adopter, I want no write to remove an untargeted key",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "As an operator, I want one meaning per name",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "As an adopter, I want old corpora flattened once, fail-loud",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US7",
+          "title": "As a tool author, I want flat --json and a matching canary",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US8",
+          "title": "As an adopter, I want the docs and changelog to say flat",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001016-flat-frontmatter-core-keys-plus-declared-attributes.md",
+      "created_at": "2026-10-15T20:12:57Z",
+      "updated_at": "2026-10-15T20:17:51Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-1016"
+    },
+    "1017": {
+      "sequence_id": 1017,
+      "type": "feature",
+      "title": "Comments are shown, edited and removed by short hash",
+      "slug": "comments-are-shown-edited-and-removed-by-short-hash",
+      "status": "Draft",
+      "description": "Address a comment by derived short hash: comment <hash> show|edit|remove, by its author, on every type",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1013:implements",
+        "MILE-934:targets",
+        "FEAT-980:depends-on",
+        "FEAT-977:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an agent, I want a comment address grammar beside comment -m",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "As an agent, I want a short hash that addresses one comment",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "As a reader, I want to show one comment, with --json",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "As an author, I want to edit my own comment",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "As an author, I want to remove my own comment",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "As an agent, I want duplicate comments handled predictably",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US7",
+          "title": "As an operator, I want edits and removals in the reflog",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US8",
+          "title": "As an adopter, I want edits that keep markers and other lines intact",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US9",
+          "title": "As a tool author, I want the hash in every render, JSON and hit",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US10",
+          "title": "As an operator, I want the same verbs on skills, roles, operators",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US11",
+          "title": "As an adopter, I want the docs, guidance and notes updated",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001017-comments-are-shown-edited-and-removed-by-short-hash.md",
+      "created_at": "2026-10-15T20:17:43Z",
+      "updated_at": "2026-10-15T20:19:16Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-1017"
+    },
+    "1018": {
+      "sequence_id": 1018,
+      "type": "task",
+      "title": "Replace --dir with git-style -C and one resolver",
+      "slug": "replace-dir-with-git-style-c-and-one-resolver",
+      "status": "Done",
+      "description": "Root -C threaded as client_cwd; --dir refused naming -C; resolve() is the walk-up only; init/adopt honour -C",
+      "parent": "FEAT-1015",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-1008:fixes",
+        "REV-995:addresses",
+        "ADR-1009:implements",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Root -C option and the effective-directory helper",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Thread -C into client_cwd, pre-callback lookups and --file",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "init and adopt create at the -C directory",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Refuse --dir and delete the backwards inference",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Differential -C vs cd test and the process-cwd guard",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Docs, changelog and contributor prose say -C",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001018-replace-dir-with-git-style-c-and-one-resolver.md",
+      "created_at": "2026-10-15T20:19:04Z",
+      "updated_at": "2026-10-15T21:35:47Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-1018"
+    },
+    "1019": {
+      "sequence_id": 1019,
+      "type": "task",
+      "title": "Fix console backslash loss and the missing-body-region KeyError",
+      "slug": "fix-console-backslash-loss-and-the-missing-body-region-keyer",
+      "status": "Done",
+      "description": "e() round-trips backslashes before brackets; body -m on a file with no body region fails cleanly and sq check reports it",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-1011:fixes",
+        "BUG-1012:fixes",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Make e() round-trip backslashes before brackets",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Fail body writes cleanly on a missing body region",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001019-fix-console-backslash-loss-and-the-missing-body-region-keyer.md",
+      "created_at": "2026-10-15T20:23:28Z",
+      "updated_at": "2026-10-15T21:42:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-1019"
+    },
+    "1020": {
+      "sequence_id": 1020,
+      "type": "review",
+      "title": "TASK-1019: console escaping and missing body region",
+      "slug": "task-1019-console-escaping-and-missing-body-region",
+      "status": "Approved",
+      "description": "Review of the e() round-trip fix and the missing-body-region guard and check",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1019:addresses",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "e() is still context-dependent: a later ] drops text or crashes",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Sub-entity body write still raises a raw KeyError",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "CHANGELOG entries overclaim and were not written by the writer",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "check is silent on a custom skill or reversed pair that body refuses",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001020-task-1019-console-escaping-and-missing-body-region.md",
+      "created_at": "2026-10-15T20:47:00Z",
+      "updated_at": "2026-10-15T20:57:22Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1020"
+    },
+    "1021": {
+      "sequence_id": 1021,
+      "type": "bug",
+      "title": "Custom-type command cache leaks between in-process runs",
+      "slug": "custom-type-command-cache-leaks-between-in-process-runs",
+      "status": "Open",
+      "description": "Class-level cache keeps one squad's custom type and aliases for later -C runs",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1018"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001021-custom-type-command-cache-leaks-between-in-process-runs.md",
+      "created_at": "2026-10-15T20:51:06Z",
+      "updated_at": "2026-10-15T20:51:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1021"
+    },
+    "1022": {
+      "sequence_id": 1022,
+      "type": "bug",
+      "title": "Sub-entity body write raises KeyError; check silent",
+      "slug": "sub-entity-body-write-raises-keyerror-check-silent",
+      "status": "Open",
+      "description": "Missing subtask body/block or discussion region: raw traceback on write, no check finding",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1020"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001022-sub-entity-body-write-raises-keyerror-check-silent.md",
+      "created_at": "2026-10-15T20:51:12Z",
+      "updated_at": "2026-10-15T20:51:12Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1022"
+    },
+    "1023": {
+      "sequence_id": 1023,
+      "type": "review",
+      "title": "Review TASK-1018: -C and one resolver",
+      "slug": "review-task-1018-c-and-one-resolver",
+      "status": "Approved",
+      "description": "Shape attack on the -C option, the --dir refusal, the gate through -C, init/adopt and the cwd guard",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1018:addresses",
+        "FEAT-1015:addresses",
+        "MILE-934:targets",
+        "BUG-1021"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Custom-type command cache leaks between in-process runs (driven)",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Bare --dir hoist captures an option value or a token after -- (driven)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "workflow lint omits the -C directory from not-initialised (driven)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "cwd guard misses imported, implicit and environment reads (driven)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Shell completion prints the -C and --dir refusals to stderr (driven)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "-C resolves paths that cd refuses: missing hop, no search bit (driven)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "-C after --help or --version is ignored (driven)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "cwd guard still misses relative literals, aliases and implicit reads (driven)",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "value_options rebuilds the command tree twice per run (driven)",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001023-review-task-1018-c-and-one-resolver.md",
+      "created_at": "2026-10-15T21:03:20Z",
+      "updated_at": "2026-10-15T21:33:04Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1023"
+    },
+    "1024": {
+      "sequence_id": 1024,
+      "type": "feature",
+      "title": "The --help surface follows one rule",
+      "slug": "the-help-surface-follows-one-rule",
+      "status": "Draft",
+      "description": "Every command's help answers what it does, what to type and what comes back, in one dialect with every flag described.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-958:addresses",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a contributor, I want the help rule written where I read it",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "As an adopter, I want help free of maintainer reasoning and private names",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "As a script author, I want the JSON field reference in the docs, not in help",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "As a user, I want every option and argument described",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "As a user, I want the same flag to read the same everywhere",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "As a user, I want one exit-code form in help",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US7",
+          "title": "As a user, I want one markup dialect that survives an 80-column terminal",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US8",
+          "title": "As a reader, I want summaries that state the outcome and flags described once",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US9",
+          "title": "As a maintainer, I want a guard that holds help to the rule",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US10",
+          "title": "As an adopter, I want the docs and changelog to match the new help",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001024-the-help-surface-follows-one-rule.md",
+      "created_at": "2026-10-15T21:43:01Z",
+      "updated_at": "2026-10-15T21:43:30Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-1024"
     }
   }
 }

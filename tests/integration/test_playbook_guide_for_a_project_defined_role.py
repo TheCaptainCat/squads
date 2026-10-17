@@ -63,14 +63,14 @@ async def test_check_accepts_a_playbook_guide_for_a_live_project_role(project) -
     role_toml = scaffold_new_role(project.squad_dir, slug="sre")
     _fill_in_role_stub(role_toml)
 
-    svc = service.open_service(dir_override=str(project.squad_dir))
+    svc = service.open_service(client_cwd=project.squad_dir)
     await svc.activate_role("sre")
 
     _write_playbook_override(project.squad_dir, _GIVE_SRE_TASK_GUIDANCE)
 
     # Reopening must not raise PlaybookConfigError (or anything else) — the project role's
     # slug is now a valid playbook-guide slug because it has a live override file on disk.
-    reopened = service.open_service(dir_override=str(project.squad_dir))
+    reopened = service.open_service(client_cwd=project.squad_dir)
     findings = await reopened.check()
     assert not any("playbook" in f.item or "catalog" in f.message for f in findings)
 
@@ -81,12 +81,12 @@ async def test_generated_task_skill_carries_the_project_roles_guidance(project) 
     role_toml = scaffold_new_role(project.squad_dir, slug="sre")
     _fill_in_role_stub(role_toml)
 
-    svc = service.open_service(dir_override=str(project.squad_dir))
+    svc = service.open_service(client_cwd=project.squad_dir)
     await svc.activate_role("sre")
 
     _write_playbook_override(project.squad_dir, _GIVE_SRE_TASK_GUIDANCE)
 
-    reopened = service.open_service(dir_override=str(project.squad_dir))
+    reopened = service.open_service(client_cwd=project.squad_dir)
     await reopened.refresh_managed()
 
     body = await resolved_skill_definition(reopened, interactions.item_skill_name("task"))
@@ -117,7 +117,7 @@ roles = [
 """,
     )
 
-    reopened = service.open_service(dir_override=str(project.squad_dir))
+    reopened = service.open_service(client_cwd=project.squad_dir)
     findings = await reopened.check()
     assert not any("playbook" in f.item or "catalog" in f.message for f in findings)
 
@@ -140,5 +140,5 @@ roles = [
     )
 
     with pytest.raises(PlaybookConfigError) as exc_info:
-        service.open_service(dir_override=str(project.squad_dir))
+        service.open_service(client_cwd=project.squad_dir)
     assert "role slug 'python-dev' not in role catalog" in str(exc_info.value)

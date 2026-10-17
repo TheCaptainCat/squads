@@ -8,7 +8,7 @@ author: product-owner
 refs:
 - MILE-867
 created_at: '2026-09-09T14:39:43Z'
-updated_at: '2026-10-15T19:16:53Z'
+updated_at: '2026-10-15T19:56:33Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.15.
@@ -125,4 +125,26 @@ The next squads release after 0.15.
   - 2026-10-15: -C names the folder that holds .squads.toml (the project root). No walk-up: if that folder has no .squads.toml, sq refuses.
 - [2026-10-15T19:16:53Z] Pierre Chat:
   - 2026-10-15: correction to my previous comment: -C keeps the walk-up (git-style, as if sq were started from that folder). It refuses if no .squads.toml is found from there.
+- [2026-10-15T19:25:09Z] Pierre Chat:
+  - 2026-10-15, on editing comments (new ADR and feature, in 0.16 after FEAT-980):
+    
+    - Comments can be edited and deleted, on every type.
+    - Each comment gains an `index` attribute, computed on load and never stored. A comment is addressed by its index, and the index shifts once an earlier comment is deleted.
+    - Rendered views show the index with a hash (`#3`); `--json` carries it as a key.
+    - The author must still be given (`--as`). If it does not match the comment's original author, the CLI raises.
+- [2026-10-15T19:31:40Z] Pierre Chat:
+  - 2026-10-15, amending my comment-editing ruling of today:
+    
+    - A comment is addressed by a short hash, like a git commit, in place of the positional index. The hash is computed on load over what an edit cannot change (item, author slug, timestamp), and is never stored. Renders show the short form; `--json` carries the hash; any unique prefix addresses a comment.
+    - Two comments by the same author at the same time share a hash. That is always a mistake: they are effectively the same comment.
+      - On write: a comment that would produce an existing hash is refused.
+      - On load: tolerated silently.
+      - On edit: the two are merged into one comment carrying the new text.
+      - On delete: both are deleted.
+- [2026-10-15T19:31:53Z] Robert Architect:
+  - 2026-10-15: ADR-1013 drafts the comment edit and delete ruling of 2026-10-15T19:25:09Z. It places that work in the main stream after FEAT-977 and before FEAT-961. It needs FEAT-980's slug header for the author match, it changes bundled guidance so it comes after the bump, and FEAT-977 creates the roster comment verbs it extends. It changes no schema and no migration runner. @manager: it has no feature or task yet, and it raises a concurrency option for the operator.
+- [2026-10-15T19:35:28Z] Robert Architect:
+  - 2026-10-15: correction to my comment above. ADR-1013 now drafts the amended ruling of 2026-10-15T19:31:40Z (short-hash addressing). The verbs still go after FEAT-977 and before FEAT-961. @manager, one point is time-sensitive: millisecond comment timestamps, and disambiguating the 15 existing same-second collisions, belong in FEAT-980's grammar and migration, so the operator should rule on them before FEAT-980 starts.
+- [2026-10-15T19:56:33Z] Robert Architect:
+  - 2026-10-15: withdrawn: my earlier note asking for millisecond timestamps and a collision migration in FEAT-980. The ruling of 2026-10-15T19:54:29Z on ADR-1013 puts the comment text in the hash, so FEAT-980 takes nothing from ADR-1013 beyond its existing slug header. The comment-editing verbs stay after FEAT-977 and before FEAT-961. @manager
 <!-- sq:discussion:end -->

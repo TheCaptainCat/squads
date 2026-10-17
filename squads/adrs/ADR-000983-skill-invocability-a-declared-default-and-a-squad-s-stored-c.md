@@ -13,10 +13,11 @@ refs:
 - ADR-181
 - FEAT-966
 - FEAT-976
+- ADR-1007
 description: Where a skill's operator-invocable attribute is declared and stored,
   how it resolves, and what each backend does with it.
 created_at: '2026-10-09T18:27:22Z'
-updated_at: '2026-10-09T19:14:10Z'
+updated_at: '2026-10-15T20:17:02Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -102,6 +103,12 @@ CLI or any `--json` output.
 - **Read strictly.** Only a YAML boolean counts. Any other stored value resolves as absent. No
   validator is added for it: the worst outcome of a bad hand edit is the declared default.
 - A change through either verb regenerates that skill's entry on every active backend.
+
+> **Note 2026-10-15 (ADR-1007):** the key is the top-level `operator_invocable`, a declared `bool`
+> attribute on `skill`, not `extra.operator_invocable`; FEAT-966 declares it. It stands where
+> `is_default` stands on a role, now a top-level attribute too. A non-boolean value still resolves
+> as absent, and `sq check`'s attribute-kind check reports it, since every declared attribute is
+> checked for its kind. See ADR-1007 decisions 3 and 5.
 
 ### 4. Resolution
 

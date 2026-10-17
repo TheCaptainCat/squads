@@ -151,7 +151,7 @@ async def test_an_undecodable_index_reports_the_corrupt_index_message_with_its_r
 
 async def test_a_missing_index_reports_a_clean_message_naming_its_repair_remedy(project, invoke):
     """A `.squads.json` that isn't there at all (a fresh clone of a gitignored index, a wrong
-    `--dir`) must fail the same clean way as a corrupt one -- naming `sq repair` -- not let a
+    directory) must fail the same clean way as a corrupt one -- naming `sq repair` -- not let a
     raw FileNotFoundError traceback reach the terminal."""
     project.index_path.unlink()
 

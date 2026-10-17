@@ -39,10 +39,6 @@ async def test_check_exit_code_follows_the_level_and_the_json_names_the_match(
     assert f"`{_BRACKETED}`" in found[0]["message"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="the console print drops a backslash that precedes a square bracket in a message",
-)
 async def test_check_text_shows_a_pattern_with_an_escaped_bracket_intact(project, invoke) -> None:
     unselected = service_with(project.squad_dir, override_toml(_TASK, ()))
     await create_item(unselected, "task", "[ABC-1] a bracketed key")

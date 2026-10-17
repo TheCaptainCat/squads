@@ -113,7 +113,7 @@ async def test_a_guide_for_a_scaffolded_but_unactivated_role_is_warned_about(pro
     _fill_in_role_stub(scaffold_new_role(project.squad_dir, slug="sre"))
     _write_playbook_override(project.squad_dir, _guidance_for("sre"))
 
-    svc = service.open_service(dir_override=str(project.squad_dir))
+    svc = service.open_service(client_cwd=project.squad_dir)
     issues = await svc.check()
 
     warnings = _dropped_guide_warnings(issues, "sre")
@@ -130,12 +130,12 @@ async def test_the_guidance_really_is_absent_from_the_generated_skill(project):
     _fill_in_role_stub(scaffold_new_role(project.squad_dir, slug="sre"))
     _write_playbook_override(project.squad_dir, _guidance_for("sre"))
 
-    svc = service.open_service(dir_override=str(project.squad_dir))
+    svc = service.open_service(client_cwd=project.squad_dir)
     await svc.refresh_managed()
     assert "Do the ops thing" not in await _task_skill_body(svc)
 
     await svc.activate_role("sre")
-    reopened = service.open_service(dir_override=str(project.squad_dir))
+    reopened = service.open_service(client_cwd=project.squad_dir)
     await reopened.refresh_managed()
     assert "Do the ops thing" in await _task_skill_body(reopened)
 
@@ -144,11 +144,11 @@ async def test_no_warning_once_the_project_role_is_live(project):
     """The negative direction, and the one that makes the rule usable rather than noise: a live
     project role's guide reaches the skill, so there is nothing to report."""
     _fill_in_role_stub(scaffold_new_role(project.squad_dir, slug="sre"))
-    svc = service.open_service(dir_override=str(project.squad_dir))
+    svc = service.open_service(client_cwd=project.squad_dir)
     await svc.activate_role("sre")
     _write_playbook_override(project.squad_dir, _guidance_for("sre"))
 
-    reopened = service.open_service(dir_override=str(project.squad_dir))
+    reopened = service.open_service(client_cwd=project.squad_dir)
     issues = await reopened.check()
 
     assert _dropped_guide_warnings(issues, "sre") == []
@@ -161,15 +161,15 @@ async def test_a_guide_for_a_retired_project_role_is_warned_about(project):
     """The trigger that bites in practice: nothing about the override changes, the role is simply
     retired, and the section quietly vanishes from the generated skill on the next sync."""
     _fill_in_role_stub(scaffold_new_role(project.squad_dir, slug="sre"))
-    svc = service.open_service(dir_override=str(project.squad_dir))
+    svc = service.open_service(client_cwd=project.squad_dir)
     role = await svc.activate_role("sre")
     _write_playbook_override(project.squad_dir, _guidance_for("sre"))
 
-    reopened = service.open_service(dir_override=str(project.squad_dir))
+    reopened = service.open_service(client_cwd=project.squad_dir)
     assert _dropped_guide_warnings(await reopened.check(), "sre") == []
 
     await reopened.set_roster_status(role.id, "Archived")
-    after = service.open_service(dir_override=str(project.squad_dir))
+    after = service.open_service(client_cwd=project.squad_dir)
     issues = await after.check()
 
     assert _dropped_guide_warnings(issues, "sre"), [i.message for i in issues]
@@ -186,13 +186,13 @@ async def test_retiring_a_bundled_role_reports_nothing_while_its_guide_is_squads
     retirement. Bundled guidance dropping for a role the squad does not have is squads' own
     graceful degradation, and stays silent exactly as it does for a role never installed.
     """
-    svc = service.open_service(dir_override=str(project.squad_dir))
+    svc = service.open_service(client_cwd=project.squad_dir)
     role = await svc.activate_role("qa")
-    reopened = service.open_service(dir_override=str(project.squad_dir))
+    reopened = service.open_service(client_cwd=project.squad_dir)
     assert _dropped_guide_warnings(await reopened.check(), "qa") == [], "live: nothing dropped"
 
     await reopened.set_roster_status(role.id, "Archived")
-    after = service.open_service(dir_override=str(project.squad_dir))
+    after = service.open_service(client_cwd=project.squad_dir)
 
     assert _dropped_guide_warnings(await after.check(), "qa") == [], "no remedy exists to name"
     assert not (project.squad_dir / ".overrides" / "playbook.toml").exists(), (
@@ -208,15 +208,15 @@ async def test_the_same_retirement_is_reported_once_the_adopter_restates_the_gui
     clears it. Same role, same retirement, same squad as the test above; the only difference is who
     wrote the guide.
     """
-    svc = service.open_service(dir_override=str(project.squad_dir))
+    svc = service.open_service(client_cwd=project.squad_dir)
     role = await svc.activate_role("qa")
     _write_playbook_override(project.squad_dir, _restated_guidance_for("qa", "feature"))
 
-    reopened = service.open_service(dir_override=str(project.squad_dir))
+    reopened = service.open_service(client_cwd=project.squad_dir)
     assert _dropped_guide_warnings(await reopened.check(), "qa") == [], "live: nothing dropped"
 
     await reopened.set_roster_status(role.id, "Archived")
-    after = service.open_service(dir_override=str(project.squad_dir))
+    after = service.open_service(client_cwd=project.squad_dir)
     warnings = _dropped_guide_warnings(await after.check(), "qa")
 
     assert warnings, "a guide the adopter wrote is theirs to be told about"
@@ -232,16 +232,16 @@ async def test_a_splat_ref_does_not_make_the_bundled_guides_the_adopters(project
     who touched a type's table for some other reason (an overview of their own) must not thereby
     acquire warnings for every bundled guide on it.
     """
-    svc = service.open_service(dir_override=str(project.squad_dir))
+    svc = service.open_service(client_cwd=project.squad_dir)
     role = await svc.activate_role("qa")
     _write_playbook_override(
         project.squad_dir,
         '[types.feature]\noverview = "Our house features."\nroles = ["$(*self)"]\n',
     )
 
-    reopened = service.open_service(dir_override=str(project.squad_dir))
+    reopened = service.open_service(client_cwd=project.squad_dir)
     await reopened.set_roster_status(role.id, "Archived")
-    after = service.open_service(dir_override=str(project.squad_dir))
+    after = service.open_service(client_cwd=project.squad_dir)
 
     assert "Our house features." in after.playbook.types["feature"].overview, (
         "fixture assumption: the override must really be in force"
@@ -264,15 +264,15 @@ async def test_the_named_revival_command_is_the_one_that_works_for_each_shape(pr
     _fill_in_role_stub(scaffold_new_role(project.squad_dir, slug="sre"))
     _write_playbook_override(project.squad_dir, _guidance_for("sre"))
 
-    svc = service.open_service(dir_override=str(project.squad_dir))
+    svc = service.open_service(client_cwd=project.squad_dir)
     unactivated = _dropped_guide_warnings(await svc.check(), "sre")
     assert unactivated, "fixture assumption: the unactivated shape must report"
     assert "sq role activate sre" in unactivated[0], unactivated
 
     role = await svc.activate_role("sre")
-    reopened = service.open_service(dir_override=str(project.squad_dir))
+    reopened = service.open_service(client_cwd=project.squad_dir)
     await reopened.set_roster_status(role.id, "Archived")
-    after = service.open_service(dir_override=str(project.squad_dir))
+    after = service.open_service(client_cwd=project.squad_dir)
     retired = _dropped_guide_warnings(await after.check(), "sre")
 
     assert retired, "fixture assumption: the retired shape must report"
@@ -289,7 +289,7 @@ async def test_the_named_revival_command_is_the_one_that_works_for_each_shape(pr
 
     # And the command the message does name clears the report.
     await after.set_roster_status(role.id, live)
-    revived = service.open_service(dir_override=str(project.squad_dir))
+    revived = service.open_service(client_cwd=project.squad_dir)
     assert _dropped_guide_warnings(await revived.check(), "sre") == []
 
 
@@ -317,7 +317,7 @@ async def test_a_stem_the_loader_accepts_but_that_is_no_role_is_warned_about(
     slug = Path(filename).stem
     _write_playbook_override(project.squad_dir, _guidance_for(slug))
 
-    svc = service.open_service(dir_override=str(project.squad_dir))
+    svc = service.open_service(client_cwd=project.squad_dir)
 
     assert _dropped_guide_warnings(await svc.check(), slug), "a stem is not a role"
 
@@ -330,7 +330,7 @@ async def test_the_bundled_playbook_alone_produces_no_warnings_in_a_minimal_squa
     bundled roles, so a `--roles minimal` squad has guides for seven it never installed -- the
     pre-existing, intended degradation, not a loss of anything the adopter wrote. If this ever
     fails, every adopter sees seven warnings on a clean squad and learns to ignore the rule."""
-    svc = service.open_service(dir_override=str(project.squad_dir))
+    svc = service.open_service(client_cwd=project.squad_dir)
 
     issues = await svc.check()
 
@@ -344,7 +344,7 @@ async def test_the_dev_sentinel_is_never_reported(project):
     having one, so it is not a slug that can resolve to a role at all. The bundled playbook carries
     `*dev` guides on several types and this squad has no dev role, so the shape is already present
     -- adding one would only duplicate a slug the bundled array already holds."""
-    svc = service.open_service(dir_override=str(project.squad_dir))
+    svc = service.open_service(client_cwd=project.squad_dir)
 
     assert any(
         guide.slug == "*dev" for entry in svc.playbook.types.values() for guide in entry.roles
@@ -365,7 +365,7 @@ async def test_a_guide_on_a_type_the_spec_has_dropped_is_not_reported_per_role(p
     reach the reporter either. Between them there is no path by which a dropped type contributes a
     single per-role line.
     """
-    svc = service.open_service(dir_override=str(project.squad_dir))
+    svc = service.open_service(client_cwd=project.squad_dir)
     role = await svc.activate_role("qa")
     await svc.set_roster_status(role.id, "Archived")
 
@@ -387,7 +387,7 @@ async def test_a_guide_on_a_type_the_spec_has_dropped_is_not_reported_per_role(p
         f"# squads:override-base:{__version__}\n[selected]\nitems = {kept!r}\n", encoding="utf-8"
     )
 
-    after = service.open_service(dir_override=str(project.squad_dir))
+    after = service.open_service(client_cwd=project.squad_dir)
     assert "bug" not in after.playbook.types, "the merged playbook is spec-filtered"
     assert _dropped_guide_warnings(await after.check(), "qa") == []
 
@@ -395,7 +395,7 @@ async def test_a_guide_on_a_type_the_spec_has_dropped_is_not_reported_per_role(p
     # at all, so there is nothing for the reporter to pile up.
     _write_playbook_override(project.squad_dir, _restated_guidance_for("qa", "bug"))
     with pytest.raises(SquadsError):
-        service.open_service(dir_override=str(project.squad_dir))
+        service.open_service(client_cwd=project.squad_dir)
 
 
 # ------------------------------------------------------------------------------- sq sync's channel
@@ -408,7 +408,7 @@ async def test_sync_reports_the_guide_it_just_dropped(project):
     _fill_in_role_stub(scaffold_new_role(project.squad_dir, slug="sre"))
     _write_playbook_override(project.squad_dir, _guidance_for("sre"))
 
-    svc = service.open_service(dir_override=str(project.squad_dir))
+    svc = service.open_service(client_cwd=project.squad_dir)
     skipped = await svc.sync()
 
     assert any("'sre'" in msg and "names no live role" in msg for msg in skipped), skipped
@@ -420,11 +420,11 @@ async def test_sync_reports_the_guide_it_just_dropped(project):
 
 async def test_sync_reports_nothing_once_the_role_is_live(project):
     _fill_in_role_stub(scaffold_new_role(project.squad_dir, slug="sre"))
-    svc = service.open_service(dir_override=str(project.squad_dir))
+    svc = service.open_service(client_cwd=project.squad_dir)
     await svc.activate_role("sre")
     _write_playbook_override(project.squad_dir, _guidance_for("sre"))
 
-    reopened = service.open_service(dir_override=str(project.squad_dir))
+    reopened = service.open_service(client_cwd=project.squad_dir)
 
     assert [msg for msg in await reopened.sync() if "names no live role" in msg] == []
 

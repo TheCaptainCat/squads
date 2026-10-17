@@ -45,8 +45,9 @@ class RequestContext:
     session_id: str | None = None
     parent_session_id: str | None = None
     active_spec: WorkflowSpec | None = None
-    active_dir: str | None = None
     client_cwd: Path | None = None
+    #: Whether the caller chose the working directory with ``-C`` (names it in errors).
+    client_cwd_chosen: bool = False
 
     #: Why the squad's workflow override could not be resolved this invocation, already
     #: phrased as the refusal the user reads. Set only when an override file **exists** and

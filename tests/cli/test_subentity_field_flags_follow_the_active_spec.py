@@ -140,7 +140,7 @@ async def test_the_service_refuses_a_field_the_kind_does_not_declare(project, in
     _write_override(project.squad_dir, _IMPACT_ON_FINDING)
     num = await _new_review(invoke)
     review_id = f"REV-{num}"
-    live = open_service(str(project.squad_dir))
+    live = open_service(client_cwd=project.squad_dir)
 
     with pytest.raises(SquadsError, match="not a settable field"):
         await live.add_block(review_id, "finding", "X", fields={"severity": "high"})
@@ -155,7 +155,7 @@ async def test_the_service_refuses_a_value_outside_the_declared_collection(proje
 
     _write_override(project.squad_dir, _IMPACT_ON_FINDING)
     num = await _new_review(invoke)
-    live = open_service(str(project.squad_dir))
+    live = open_service(client_cwd=project.squad_dir)
     with pytest.raises(SquadsError, match="invalid impact"):
         await live.add_block(f"REV-{num}", "finding", "X", fields={"impact": "enormous"})
 

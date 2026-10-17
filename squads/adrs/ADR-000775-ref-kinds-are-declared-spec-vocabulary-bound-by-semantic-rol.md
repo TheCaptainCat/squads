@@ -17,8 +17,9 @@ refs:
 - ADR-781
 - BUG-827
 - ADR-320
+- ADR-1007
 created_at: '2026-08-22T09:28:22Z'
-updated_at: '2026-08-26T13:50:58Z'
+updated_at: '2026-10-15T20:16:57Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -316,6 +317,13 @@ skew guard folds the map to `ID:related` while the index still holds the bare fo
 advertised remedy then completes the damage: `sq repair` re-derives the index from disk and stores
 `refs: [ID:related]`, after which the next mutation commits the spelled form to the file, strips the
 map that recorded where it came from, and `sq check` reports clean.
+
+> **Note 2026-10-15 (ADR-1007):** from 0.16 `Item.from_frontmatter` no longer folds an
+> `extra.ref_kinds` map. The fold moves into the migration compat reader, and the 0.16 runner
+> applies it, with this section's rule that a default kind is written bare, when it flattens a file.
+> A 0.16 file that still carries an `extra:` key holds an unknown key named `extra`, kept and not
+> interpreted. A3 to A5 describe that fold, which now runs only inside the runner. See ADR-1007
+> decision 9.
 
 A1's safety claim is **restored, not narrowed**. It is a claim about the design, and the design
 holds: a bare ref carries no spelling, so a rename relabels it rather than re-pointing it. What

@@ -11,8 +11,9 @@ refs:
 - ADR-214
 - ADR-85
 - ADR-696
+- ADR-1007
 created_at: '2026-06-26T07:33:23Z'
-updated_at: '2026-08-03T08:44:26Z'
+updated_at: '2026-10-15T20:16:49Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -69,6 +70,12 @@ DevPoolSpec                            # the dev_role() inputs, externalized
 The `RoleDef.to_extra()` / `from_extra()` bridge to `ExtraKey` (the ROLE-item frontmatter mapping)
 is **behavior that stays in Python** — it maps a loaded `RoleSpec` onto the `X.*` extra keys exactly
 as today. The TOML defines role *content*; the extra-key serialization is unchanged.
+
+> **Note 2026-10-15 (ADR-1007):** the role item's frontmatter is flat. What a loaded definition
+> stores on a role item is a set of top-level keys: `slug` (core) and the declared role attributes
+> `is_default`, `model` and `tech`, pinned by the loader, read through `AttributeKey` (the successor
+> of `ExtraKey`) and the item's attribute accessor. There is no `extra` mapping for a `to_extra()`
+> bridge to target. The TOML still defines role content only. See ADR-1007 decisions 1 to 3.
 
 ### 2. Bundled TOML location & schema
 

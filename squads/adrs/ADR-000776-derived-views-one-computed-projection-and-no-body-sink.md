@@ -16,8 +16,9 @@ refs:
 - ADR-775
 - ADR-777
 - ADR-781
+- ADR-1007
 created_at: '2026-08-22T09:28:29Z'
-updated_at: '2026-09-02T13:13:25Z'
+updated_at: '2026-10-15T20:16:58Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -590,6 +591,12 @@ Removed, because each is a copy of a catalog answer: `title`, `mission`, `respon
 bundled role, `model` joins them; the key stays in the schema because a dev role's `model` is
 operator-settable, so the reconciler stops *writing* it for a non-dev role rather than the key
 being dropped from the vocabulary.
+
+> **Note 2026-10-15 (ADR-1007):** the retained keys are top-level, not entries of an `extra`
+> mapping. `slug` is a core key; `is_default`, `tech` and `model` are declared role attributes
+> pinned by the loader; `full_name` is stored on no item, the role's name being its `title` (section
+> 3); `is_dev` is removed (ADR-984 decision 4). Section 6's "the retained `extra` of §2d" reads as
+> those keys. See ADR-1007 decisions 2, 3 and 8.
 
 ### 3. `title` and `description` stay: they are the uniform record, not the mirror
 

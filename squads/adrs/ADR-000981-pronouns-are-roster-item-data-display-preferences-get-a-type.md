@@ -10,10 +10,11 @@ refs:
 - ADR-766
 - ADR-979
 - FEAT-977
+- ADR-1007
 description: extra.pronouns on role and operator items; one declared roster default;
   a typed display table in .squads.toml; free text, checked shape
 created_at: '2026-10-09T15:35:21Z'
-updated_at: '2026-10-09T16:53:44Z'
+updated_at: '2026-10-15T20:17:01Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -112,6 +113,12 @@ extra:
   comment headers. A client joins a slug (`assignee`, `author`, and the `author_slug` ADR-979
   adds) to the roster viewers. Discussion text is append-only history; a pronoun written into it
   would go stale the way names did.
+
+> **Note 2026-10-15 (ADR-1007):** the key is the top-level `pronouns`, a declared attribute on role
+> and operator, not `extra.pronouns`; FEAT-961 declares it. The generic item JSON carries it flat,
+> present only when stored, and still is not the contract surface. Unknown keys on any item are kept
+> in the same flat mapping, so the preservation stated in the context no longer depends on the
+> reconciler's closed sweep alone. See ADR-1007 decisions 3, 6 and 10.
 
 ### 2. A typed `[display]` table in `.squads.toml`, and nothing more general than that
 

@@ -230,7 +230,7 @@ async def test_orphaned_skill_type_pointer_is_not_reported(tmp_squad: Path) -> N
 
     from squads._services._service import open_service
 
-    dropped_svc = open_service(dir_override=str(result.paths.squad_dir))
+    dropped_svc = open_service(client_cwd=result.paths.squad_dir)
     await dropped_svc.sync()  # withdraws the now-orphaned skill's pointer
     assert not pointer.exists()
 

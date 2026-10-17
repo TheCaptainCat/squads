@@ -43,13 +43,14 @@ from squads._cli._common import (
     resolve_slug_or_raise,
     status_text,
 )
+from squads._context import get_context
 from squads._errors import PlaybookConfigError, SquadsError
 from squads._index._reflog import REFLOG_OPS
 from squads._models._config import CONFIG_FILENAME
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
-from squads._paths import load_config
+from squads._paths import load_config, process_dir
 from squads._roles._catalog import resolve_roles
 from squads._services._base import ItemFilter
 from squads._services._refs import graph_to_dot, graph_to_mermaid
@@ -319,8 +320,6 @@ async def init(
     ),
 ):
     """Initialize squads in the current directory."""
-    from pathlib import Path
-
     # Parse --backend flags (repeatable; "none" sentinel → sq-only squad).
     active_backends = _parse_backend_option(backend)
 
@@ -330,7 +329,8 @@ async def init(
     # Load [init.names] from a pre-existing .squads.toml (e.g. when using --force or when the
     # user has created the file manually before running sq init).  Flags win on conflict.
     names_from_config: dict[str, str] = {}
-    config_path = Path.cwd() / CONFIG_FILENAME
+    root = get_context().client_cwd
+    config_path = (root or process_dir()) / CONFIG_FILENAME
     if config_path.is_file():
         try:
             existing_cfg = load_config(config_path)
@@ -376,6 +376,7 @@ async def init(
                 combined_names[slug] = typed
 
     result = await svc_init(
+        root=root,
         squad_dir=squad_dir,
         backend=active_backends,
         roles_spec=roles,
@@ -427,7 +428,11 @@ async def adopt(
     """Adopt an existing squad-structured folder (non-destructive; imports existing items)."""
     active_backends = _parse_backend_option(backend)
     result = await svc_adopt(
-        squad_dir=squad_dir, backend=active_backends, roles_spec=roles, no_claude=no_claude
+        root=get_context().client_cwd,
+        squad_dir=squad_dir,
+        backend=active_backends,
+        roles_spec=roles,
+        no_claude=no_claude,
     )
     sp = result.paths
     new_roles = ", ".join(r.extra.get(X.SLUG, r.slug) for r in result.roles) or "—"
@@ -1563,13 +1568,12 @@ async def check(json_out: bool = typer.Option(False, "--json")):
     real problem sits unreported. There is today no dedicated playbook lint surface to name
     instead, so the message states the loader's own violation and the file, not a command.
     """
-    from squads._context import get_context
     from squads._paths import resolve
     from squads._services._results import CheckIssue
     from squads._workflow import bundled_spec
 
     ctx = get_context()
-    sp = resolve(ctx.active_dir, client_cwd=ctx.client_cwd)
+    sp = resolve(client_cwd=ctx.client_cwd)
     workflow_issues: list[CheckIssue] = []
 
     # Open the service the normal way (``open_service``, which merges any override and runs

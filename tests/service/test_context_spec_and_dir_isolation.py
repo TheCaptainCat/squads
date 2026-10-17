@@ -1,4 +1,4 @@
-"""``RequestContext.active_spec``/``active_dir``: two logically-concurrent requests resolving
+"""``RequestContext.active_spec``/``client_cwd``: two logically-concurrent requests resolving
 two differently-customized squads each see their own spec and dir through the CLI's ambient
 accessors (``get_active_spec``/``get_service``) — neither observes the other's.
 """
@@ -58,12 +58,12 @@ async def test_two_bound_contexts_see_their_own_spec_and_dir_not_each_others(tmp
     squad_dir_b = await _init_squad(tmp_path / "squad-b")
     spec_b = _customized_squad(squad_dir_b)
 
-    bind_context(RequestContext(active_dir=str(squad_dir_a), active_spec=bundled_spec()))
+    bind_context(RequestContext(client_cwd=squad_dir_a, active_spec=bundled_spec()))
     assert get_active_spec() is bundled_spec()
     assert "incident" not in get_active_spec().items
     assert get_service().paths.squad_dir == squad_dir_a
 
-    bind_context(RequestContext(active_dir=str(squad_dir_b), active_spec=spec_b))
+    bind_context(RequestContext(client_cwd=squad_dir_b, active_spec=spec_b))
     assert "incident" in get_active_spec().items
     assert get_service().paths.squad_dir == squad_dir_b
 
@@ -86,7 +86,7 @@ async def test_concurrent_contexts_do_not_observe_each_others_active_spec_or_dir
     seen: dict[str, tuple[bool, Path]] = {}
 
     async def _run(label: str, squad_dir: Path, spec: WorkflowSpec) -> None:
-        bind_context(RequestContext(active_dir=str(squad_dir), active_spec=spec))
+        bind_context(RequestContext(client_cwd=squad_dir, active_spec=spec))
         await anyio.lowlevel.checkpoint()  # yield so the sibling task interleaves on this thread
         seen[label] = ("incident" in get_active_spec().items, get_service().paths.squad_dir)
 

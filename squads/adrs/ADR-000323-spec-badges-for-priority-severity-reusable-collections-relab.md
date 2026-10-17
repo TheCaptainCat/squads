@@ -9,8 +9,9 @@ refs:
 - ADR-322:depends-on
 - ADR-214
 - ADR-232
+- ADR-1007
 created_at: '2026-07-07T10:00:07Z'
-updated_at: '2026-07-07T14:35:18Z'
+updated_at: '2026-10-15T20:16:50Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -182,6 +183,13 @@ collection at the `IndexStore.load()` boundary — the same seam type/status use
 spec-decoupled), while preserving the flat `priority:`/`severity:` frontmatter keys. `DEFAULT_SEVERITY`
 moves to the field/collection `default`. `_metadata.py`'s `"severity"` field kind becomes a generic
 badge-code kind.
+
+> **Note 2026-10-15 (ADR-1007):** the field-code-to-badge-code storage is the one section 4 states:
+> a custom badge field is stored top-level under its field code, like `priority`, never in an
+> `extra[code]` slot. A badge code may not collide with a core key, an attribute on the same type, a
+> key `--json` adds to an item row (`badges`, `body`, `discussion`, `matched_subentities`), `path`,
+> `prefix` or `extra`; the loader refuses it. Its value is validated by collection membership. The
+> legacy `extra.severity` fold moves to the migration compat reader. See ADR-1007 decisions 4 and 9.
 
 ## Blast radius / consequences
 

@@ -13,10 +13,11 @@ refs:
 - ADR-979
 - ADR-981
 - FEAT-976
+- ADR-1007
 description: Roles declare capabilities; *dev addresses the dev capability; extra.is_dev
   is dropped and extra.tech kept; slugs stay; no second 0.16 schema bump
 created_at: '2026-10-09T18:30:02Z'
-updated_at: '2026-10-09T18:40:01Z'
+updated_at: '2026-10-15T20:17:03Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -158,6 +159,11 @@ There are two ways to have a developer and one treatment afterwards.
   answers what the role may do. The name-pool position counts the items that carry it.
 - `extra.model` is unchanged.
 - Nothing new is stored on an item, and nothing enters the index that the files cannot rebuild.
+
+> **Note 2026-10-15 (ADR-1007):** these keys are top-level: `tech` and `model` are declared role
+> attributes, pinned by the loader, and `is_dev` is lifted by the 0.16 runner and then removed by
+> this decision's contribution. `tech` is declared with `settable = false`, since `sq dev add` is
+> its only writer. See ADR-1007 decisions 3, 4 and 9.
 
 ### 5. Slugs
 

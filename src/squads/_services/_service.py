@@ -15,7 +15,7 @@ from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME, load_playbo
 from squads._interactions._models import PlaybookSpec
 from squads._models._config import CONFIG_FILENAME, SquadsConfig
 from squads._models._extras import ExtraKey as X
-from squads._paths import SquadPaths, load_config, resolve
+from squads._paths import SquadPaths, load_config, process_dir, resolve
 from squads._roles._catalog import RoleDef, get_catalog, resolve_roles
 from squads._services._board import BoardMixin
 from squads._services._collab import CollabMixin
@@ -134,7 +134,7 @@ async def init(
     set it.  When ``True``, the bundled-skill id-stamping step is omitted so existing tests
     that pre-date skill seeding are not disrupted by the shifted global counter.
     """
-    root = (root or Path.cwd()).resolve()
+    root = (root or process_dir()).resolve()
     config_path = root / CONFIG_FILENAME
     if await _aio.path_exists(config_path) and not force:
         raise AlreadyInitializedError(f"{config_path} already exists (use --force to overwrite)")
@@ -209,7 +209,7 @@ async def adopt(
     the first time is behind no schema stamp sq can migrate, so this is the only route that
     population takes and its only chance to be told.
     """
-    root = (root or Path.cwd()).resolve()
+    root = (root or process_dir()).resolve()
     config_path = root / CONFIG_FILENAME
     if await _aio.path_exists(config_path):
         config = load_config(config_path)
@@ -267,7 +267,6 @@ async def adopt(
 
 
 def open_service(
-    dir_override: str | None = None,
     *,
     client_cwd: Path | None = None,
     resolved_spec: WorkflowSpec | None = None,
@@ -301,7 +300,7 @@ def open_service(
 
     ``resolved_spec``, when given, is a spec the caller has *already* resolved — merged and,
     if an override is present, already run through ``validate_against_index_fail_closed`` —
-    for this exact ``(dir_override, client_cwd)``. ``_build_plain_service()``
+    for this exact ``client_cwd``. ``_build_plain_service()``
     (``_cli/_common.py``) is what supplies it, built from the per-invocation spec the CLI's
     root callback already bound via ``bind_active_spec`` — to avoid re-running the same
     load/merge/cross-check a second time on the same corpus within one invocation. Every CLI
@@ -322,7 +321,7 @@ def open_service(
         validate_against_index_fail_closed,
     )
 
-    sp = resolve(dir_override, client_cwd=client_cwd)
+    sp = resolve(client_cwd=client_cwd)
 
     if resolved_spec is not None:
         return Service(
