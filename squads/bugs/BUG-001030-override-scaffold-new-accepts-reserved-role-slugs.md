@@ -8,8 +8,9 @@ author: qa
 priority: low
 refs:
 - FEAT-980
+- MILE-1051:targets
 created_at: '2026-10-16T08:24:07Z'
-updated_at: '2026-10-16T08:24:07Z'
+updated_at: '2026-10-16T12:24:16Z'
 ---
 <!-- sq:body -->
 ## Observed

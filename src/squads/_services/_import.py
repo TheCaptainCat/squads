@@ -14,8 +14,8 @@ against the real ``db``, inside ONE open transaction, rebinding the ambient cloc
 event via the ``RequestContext`` seam so every event's own ``at``/``as`` drives its
 ``created_at``/``updated_at``/authorship exactly as an interactive ``--at``/``--as`` call would.
 
-**The pre-pass is no longer file-I/O-free.** It still simulates every event against an
-in-memory shadow copy and touches no files for its own sake — but it now also reads, once per
+**The pre-pass is not file-I/O-free.** It simulates every event against an
+in-memory shadow copy and touches no files for its own sake — but it also reads, once per
 *targeted pre-existing item* (never per event, and never for a handle created within the same
 import), that item's ``.md`` to pre-flight the same skew guard the single-mutation write seams
 enforce (see :func:`squads._itemfile.ensure_no_skew`). This keeps a mid-apply refusal — which
@@ -39,7 +39,7 @@ from squads._index._resolver import item_file, require_item
 from squads._itemfile import frontmatter_skew, skew_message
 from squads._models._index import SquadsDB
 from squads._models._item import make_ref, split_ref
-from squads._models._participants import SYSTEM_SLUG, require_valid_slug
+from squads._models._participants import refuse_system_actor, require_valid_slug
 from squads._services._base import reject_markers
 from squads._services._collab import CollabMixin
 from squads._services._import_model import (
@@ -239,7 +239,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         opens its own transaction.
 
         Also pre-flights the frontmatter-skew guard against disk, once per targeted
-        pre-existing item — see the module docstring's "no longer file-I/O-free" note.
+        pre-existing item — see the module docstring's "not file-I/O-free" note.
         """
         shadow = (await self.store.load()).model_copy(deep=True)
         pre_existing_seqs = set(shadow.items)
@@ -386,10 +386,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         self, shadow: SquadsDB, handles: HandleMap, event: CommentEvent, actor_slug: str
     ) -> None:
         require_valid_slug(actor_slug, action="write a comment")
-        if actor_slug == SYSTEM_SLUG:
-            raise SquadsError(
-                f"cannot comment as {actor_slug!r}: that slug is reserved for system entries"
-            )
+        refuse_system_actor(actor_slug)
         target = handles.resolve_item(event.target)
         item = require_item(shadow, target)
         messages = event.all_messages()
@@ -524,7 +521,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         are irrelevant to one import run, so they're excluded from this engine entirely.
 
         The ``CheckIssue`` objects are returned whole, level and all. Flattening them to
-        strings here is what used to make an error-level finding indistinguishable from an
+        strings here would make an error-level finding indistinguishable from an
         advisory one at every surface above: the caller cannot restore a level this function
         did not return. Nothing here is filtered by level either — which members of the catalog
         can reach this point is a property of the effective spec (any type naming an

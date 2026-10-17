@@ -99,19 +99,60 @@ name      = one or more characters, on the same line
 - **Two author slugs are written for authors that are not roster entries:** `operator`, named
   `Operator`, for a comment written with `--as operator`, and `squads`, named `squads`, for an
   entry sq writes itself (when an item is retyped, for example).
-- **Creating a role with `operator`, `squads` or a slug that starts with `op-` is refused**, with
-  exit `1` and nothing written:
+- **One author namespace.** Every role (developer roles included) and every operator, live or
+  retired, plus `operator` and `squads`, share one namespace, in which a slug names exactly one
+  author. Skills are outside it: a skill never authors anything, and `--as`, `--author` and
+  `--assignee` accept a role or an operator only. The slugs in the namespace follow two rules:
+
+  ```
+  operator slug = "op-" [a-z0-9] [a-z0-9-]*
+  role slug     = [a-z0-9] [a-z0-9-]*, not "operator", not "squads", not starting with "op-"
+  ```
+
+  Together they keep every role slug, every operator slug and the two system slugs apart, so a
+  header's slug alone tells you whether its author is sq, the anonymous author, an operator or a
+  role.
+- **Creating an operator with any other slug is refused**, through `sq operator add --slug` or an
+  `sq import` operator `create`, with exit `1` and nothing written. The message gives the
+  compliant form when one exists:
+
+  ```
+  error: operator slug 'Anna' must start with 'op-' and be lowercase letters, digits and hyphens (e.g. 'op-anna')
+  ```
+
+  A typed slug is stored as typed: it is never lowercased or prefixed. The derived slug (`op-` and
+  the first name) always complies.
+- **Creating a role with `operator`, `squads` or a slug that starts with `op-` is refused**, through
+  `sq role activate`, `sq dev add` or `sq import`, with exit `1` and nothing written:
 
   ```
   error: slug 'op-dev' is reserved for operators (the 'op-' prefix); a role needs another slug
   ```
 
-  The check runs when a role is created, and nowhere else. A role an earlier release created
-  under one of these slugs keeps it, and the 0.16 migration neither reports nor refuses it.
-  Operator slugs are not checked against these rules: `sq operator add --slug` accepts `squads` or
-  a slug without the `op-` prefix. So a header's slug alone does not tell you whether its author
-  is sq, an operator or a role; look the slug up in the roster (`sq role list`,
-  `sq operator list`).
+- **No comment can be written as `squads`.** `--as squads` is refused by item and sub-entity
+  `comment`, by `sq board post`, and for an `sq import` comment (its `as`, or the `--as` default),
+  whatever the roster holds, so the entries sq writes itself cannot be imitated:
+
+  ```
+  error: cannot act as 'squads': that slug is reserved for system entries
+  ```
+
+  `--as operator` always writes the anonymous author, whatever the roster holds.
+- **`sq check` reports an entry that breaks these rules.** A role or operator that breaks them can
+  still arrive, from a hand-edited file or from two branches that each added an operator under the
+  same slug. The `roster_slug_valid` rule reports each such entry, live or retired, and each entry
+  that shares its slug with another, once per entry, with the remedy:
+
+  ```
+  error OP-11: operator slug 'qa' does not start with 'op-'; it is also held by ROLE-5 — remedy: sq operator OP-11 rm --purge, then sq operator add "Anna Lee" --slug <compliant slug>
+  ```
+
+  The rule is squad-global: it runs on every `sq check` at a fixed `error` level, and cannot be
+  deselected or given another level. It never refuses a write, so the remedy it names can run.
+  Headers the entry already wrote keep its old slug.
+- **A squad holding such an entry does not migrate to 0.16.** `sq migrate up` refuses it until the
+  entry is replaced; see
+  [migration.md](migration.md#a-role-or-operator-whose-slug-breaks-the-rules).
 
 A squad written by a release before 0.16 holds headers without the slug (`- [<timestamp>]
 <name>:`). `sq migrate up` rewrites them once; see
@@ -266,8 +307,8 @@ impossible.
 ### Backend selection via `.squads.toml`
 
 The `active_backends: list[str]` field in `.squads.toml` selects which agent backends a squad runs.
-Pre-0.3, the singular `default_backend: str` field was used; it is read transparently as a
-single-element list, so both forms are valid 0.3 input.
+A singular `default_backend: str` field is read as a single-element list, so both forms are valid
+input.
 
 - An empty `active_backends = []` is valid — a "sq-only" squad with no agent files.
 - Deactivation (dropping a backend from the list) leaves its files on disk untouched; `sq sync`
@@ -305,11 +346,16 @@ sq role 2 show           # item-first: type, number, verb
 sq role 2 regen          # regenerate
 sq role 2 status <S>     # transition status
 sq role 2 set-default    # move the default-role designation here
-sq role 2 rm             # remove
+sq role 2 rm --purge     # delete the entry and its file
 sq skill 5 show
 sq skill 5 link-role architect     # scope a custom skill to a role (and unlink-role to undo)
 sq operator 3 show
 ```
+
+`rm` on a role, skill or operator requires `--purge`. Without it, it exits `1`, writes nothing and
+names the two commands to choose from: `rm --purge` to delete the entry, and `status Archived` to
+retire it (offered only while the entry is live). See
+[roles.md § "Removing a roster entry"](roles.md#removing-a-roster-entry).
 
 **Creation commands stay verb-first** at the group level, receiving a catalog slug or a new name:
 
@@ -321,10 +367,19 @@ sq operator add "<name>"
 ```
 
 **Bundled catalog:** `sq role catalog` is the dedicated subcommand for the bundled-but-not-activated
-role catalog (shows slug, name, title, default). The deprecated `sq role list --available` is gone.
+role catalog (shows slug, name, title, default).
 
 **Slug resolution:** for `role show`/`regen`/`rm`/`status`/`set-default`, slug is a valid address
-form in addition to full ID and bare number.
+form in addition to full ID and bare number. A slug that equals a verb of its group cannot be used
+as an address, so creation refuses one: role activation refuses `activate`, `catalog` and `list` as a slug, and `sq skill add`
+refuses `add`, with exit `1` and nothing written:
+
+```
+error: role slug 'list' is a verb of `sq role` and cannot be addressed by slug; pick another slug
+```
+
+`sq check`'s `roster_slug_valid` reports a role or skill that already holds such a slug, with its
+remedy. Every operator slug starts with `op-`, which no `sq operator` verb does.
 
 **Status flags on a roster entry:** `status` takes `--force` on all three types — overriding a
 transition the lifecycle disallows, exactly as on a work item — and `--unlink`, which on a
@@ -436,15 +491,8 @@ and that payload can come back short.
 parses nothing. A consumer that branches on `0`/`1`/`2`/`3` and treats anything else as an error is
 safe under it: it stops, loudly, rather than reporting a short answer as the whole one.
 
-**This changed in 0.15.0, for five already-released commands.** `sq board list`, `sq inbox` and
-`sq search` returned `1` on a degraded read and now return `4` — non-zero either way, so no script's
-pass/fail verdict moves, only the number does. **The two memory listings are the ones to check
-before you upgrade.** `sq memory <role> list` and `sq memory <role> search` returned `0`, and now
-return `4`: a script that runs either and treats a zero exit as success passed over a short notebook
-before this release and fails on one now. That is the point of the change — the old `0` told a caller
-a partly-read notebook was the whole notebook — but it is a failure appearing where none appeared
-before. Where a short answer is genuinely acceptable to a given caller, test for `4` explicitly
-rather than widening what counts as success.
+Where a short answer is acceptable to a given caller, test for `4` explicitly rather than widening
+what counts as success.
 
 ### Ref-kind vocabulary (declared, bound by semantic)
 

@@ -302,7 +302,7 @@ works exactly like the canonical spelling.
 - `sq <type> <n> show [--full] [--comments] [--raw] [--json]` — `--full` adds a pane per sub-entity, `--comments` the discussion: the whole dossier in one call · `sq show <ID>` shows any item by ID or bare number, whatever its type
 - `sq <type> <n> body [-m "…"|--file PATH] [--append]` · `sq <type> <n> comments` — read the discussion back on its own
 - `sq <type> <n> update [--title|--desc|--author|--status|--force|--parent|--no-parent|--assignee|--priority|--no-priority|--add-label|--rm-label|--set k=v|--unset k]`
-- `sq <type> <n> status STATUS [--force]` · `sq <type> <n> comment -m "…" --as <slug>` — `--as` is required: a role slug, or `op-<slug>` for a human operator
+- `sq <type> <n> status STATUS [--force]` · `sq <type> <n> comment -m "…" --as <slug>` — `--as` is required: a role slug, or `op-<slug>` for a human operator (`squads`, the slug of sq's own entries, is refused)
 - `sq <type> <n> retype NEW-TYPE` — reclassify an item, keeping its number · `sq <type> <n> remove [--force] [--yes]` — hard-delete it (asks first; `--force` severs incoming refs)
 
 **Find & focus**
@@ -329,11 +329,11 @@ discussion — all written through commands.
 
 **Agents** — like items, roster entries are addressed first, then verbed: `sq role <slug> show`
 - `sq role catalog [--json]` — the bundled roles available to activate · `sq role list [--json]` — the roles this squad has actually activated
-- `sq role activate <slug>` · `sq role <slug|id|n> show|regen|rm [--purge]|status <S> [--force] [--unlink]`
+- `sq role activate <slug>` · `sq role <slug|id|n> show|regen|rm --purge|status <S> [--force] [--unlink]` — `rm` requires `--purge` and deletes the entry's file; without it, it exits `1` and names `rm --purge` and `status Archived`. A role slug is never `operator`, `squads`, `op-…` or a verb of `sq role` (`activate`, `catalog`, `list`)
 - `sq role <slug|id|n> set-default` — move the default-role designation here, clearing the previous holder; refuses a role that isn't live
 - `sq dev add --tech <t> [--name] [--model]` · `sq dev list` — stack-specific developers
-- `sq operator add "NAME" [--slug]` · `sq operator list` · `sq operator <slug|id|n> show|rm [--purge]|status <S> [--force] [--unlink]` — register **humans** (`op-<first>` slug); assignable and can author items/comments
-- `sq skill add NAME [--desc|--when-to-use|--allowed-tools]` · `sq skill <slug|id|n> show|body|regen|rm [--purge]|link-role <role>|unlink-role <role>|status <S> [--force] [--unlink]`
+- `sq operator add "NAME" [--slug]` · `sq operator list` · `sq operator <slug|id|n> show|rm --purge|status <S> [--force] [--unlink]` — register **humans**; an operator slug is `op-` followed by lowercase letters, digits and hyphens (`op-<first>` by default, and `--slug` outside that form is refused); assignable and can author items/comments
+- `sq skill add NAME [--desc|--when-to-use|--allowed-tools]` · `sq skill <slug|id|n> show|body|regen|rm --purge|link-role <role>|unlink-role <role>|status <S> [--force] [--unlink]` — a skill slug is never `add`, and a skill cannot author or be assigned work
 - Archiving a roster entry **retires** it: its generated files are withdrawn, the transition is refused where the generated config couldn't survive it, and `--unlink` severs a severable dependency so the ordinary check can pass — see [docs/roles.md](docs/roles.md#retiring-a-roster-entry)
 - `sq create guide TITLE [--tech] [--tag]` — tech/tag-labelled guides; list them with `sq list --type guide`
 - `sq memory <role> list|search|show|add|forget` — a role's committed notebook: facts it learned and should carry into the next session

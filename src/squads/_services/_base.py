@@ -46,8 +46,13 @@ from squads._models._item import Item, effective_prefix, make_ref, ref_id_matche
 from squads._models._participants import (
     ANONYMOUS_NAME,
     ANONYMOUS_SLUG,
+    OPERATOR_SLUG_PREFIX,
+    group_verb_problem,
+    operator_slug_problem,
+    operator_slug_suggestion,
     require_valid_slug,
     reserved_role_slug_reason,
+    stored_slug,
 )
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
@@ -66,7 +71,7 @@ from squads._services._duplicate_ids import (
 )
 from squads._services._results import CreateResult, TreeNode
 from squads._services._validators import ValidatorEngine
-from squads._util import slugify
+from squads._util import operator_slug, slugify
 from squads._workflow import (
     ROSTER_OPERATOR,
     ROSTER_ROLE,
@@ -401,13 +406,11 @@ def reject_markers(text: str, what: str = "body") -> None:
     before any file write. The ``what`` label appears in the message (e.g. ``"body"``,
     ``"comment message"``, ``"title"``).
 
-    **Every label gets the remediation guidance**, including the default ``"body"`` one. It
-    used to get a terse variant, kept that way so existing callers and tests stayed unchanged —
-    a test-compatibility argument, and the worse message was sitting on the busiest path:
-    ``body`` is the default, so the item body, both sub-entity body writers and the shared
-    section-edit core all took it.
+    **Every label gets the remediation guidance**, including the default ``"body"`` one, which is
+    the busiest path: ``body`` is the default, so the item body, both sub-entity body writers
+    and the shared section-edit core all take it.
 
-    The guidance is what makes the refusal defensible rather than merely strict. Now that the
+    The guidance is what makes the refusal defensible rather than merely strict. The
     tag class recognises mixed-case sub-entity region tags, the likeliest way to trip this
     guard is quoting one while *writing about* the marker system — and an author who does that
     reaches for backticks first, which do not help. Telling them what to write instead is the
@@ -441,7 +444,7 @@ def reject_body_overwrite(target: str, current: str) -> None:
     against an unwritten template scaffold never trips it) and, when it does fire, hands back
     the line count and the opening lines of what was at stake **before** anything is written.
     That also makes the default invocation its own dry run: "would this be permitted here?"
-    is now answerable without performing the destruction.
+    is answerable without performing the destruction.
 
     *target* is how the message names the thing being written — an item id on its own for an
     item body, the item id plus the block's local id for a sub-entity's; *current* is the body
@@ -462,14 +465,31 @@ def reject_body_overwrite(target: str, current: str) -> None:
 def _check_roster_slug(
     item_type: str, is_roster: bool, slug: str, extra: dict[str, Any] | None
 ) -> None:
-    """Raise when a roster entry would be created with a slug outside the grammar, or a role
-    with one reserved for the anonymous author, system entries or operators."""
+    """Raise when a roster entry would be created with a slug outside its grammar: an operator's
+    is ``op-`` plus the slug grammar, a role's is the slug grammar minus the reserved names."""
     if not is_roster:
         return
     for candidate in {slug, (extra or {}).get(X.SLUG, slug)}:
+        if item_type == ROSTER_OPERATOR:
+            if operator_slug_problem(candidate) is not None:
+                example = operator_slug_suggestion(candidate)
+                hint = f" (e.g. {example!r})" if example else ""
+                rule = (
+                    f"must be {OPERATOR_SLUG_PREFIX!r} followed by lowercase letters, digits "
+                    "and hyphens"
+                    if candidate.startswith(OPERATOR_SLUG_PREFIX)
+                    else f"must start with {OPERATOR_SLUG_PREFIX!r} and be lowercase letters, "
+                    "digits and hyphens"
+                )
+                raise SquadsError(f"operator slug {candidate!r} {rule}{hint}")
+            continue
         require_valid_slug(candidate, action=f"create this {item_type}")
         if item_type == ROSTER_ROLE and (reason := reserved_role_slug_reason(candidate)):
             raise SquadsError(f"{reason}; a role needs another slug")
+        if item_type in (ROSTER_ROLE, ROSTER_SKILL) and (
+            verb := group_verb_problem(item_type, candidate)
+        ):
+            raise SquadsError(f"{item_type} slug {candidate!r} {verb}; pick another slug")
 
 
 class ServiceCore:
@@ -619,6 +639,18 @@ class ServiceCore:
                 return it.extra.get(X.SLUG, it.slug)
         return None
 
+    @staticmethod
+    def _operator_extra(
+        db: SquadsDB, item_type: str, title: str, slug: str, extra: dict[str, Any] | None
+    ) -> dict[str, Any] | None:
+        """For an operator, the stored ``slug`` and ``full_name`` every path gives it; raises
+        when another operator already answers to *slug*. Any other type's *extra* is returned."""
+        if item_type != ROSTER_OPERATOR:
+            return extra
+        if any(it.type == ROSTER_OPERATOR and stored_slug(it) == slug for it in db.items.values()):
+            raise SquadsError(f"an operator with slug {slug!r} already exists")
+        return {X.FULL_NAME: title, **(extra or {}), X.SLUG: slug}
+
     def _create_model(  # noqa: PLR0913 — mirrors `create`'s own keyword surface
         self,
         db: SquadsDB,
@@ -688,8 +720,9 @@ class ServiceCore:
                 f"unknown item type {item_type!r}: no spec supplied, or the spec does not "
                 "declare this type. Declare it in .overrides/workflow.toml or check for a typo."
             )
-        slug = slug or slugify(title)
+        slug = slug or (operator_slug(title) if item_type == ROSTER_OPERATOR else slugify(title))
         _check_roster_slug(item_type, self.spec.item_is_roster(item_type), slug, extra)
+        extra = self._operator_extra(db, item_type, title, slug, extra)
         if refs:
             # Validate every declared kind, then rewrite the set to the canonical wire form —
             # the same normalisation `add_ref`/the bulk importer's `_resolve_refs` already
@@ -909,9 +942,8 @@ class ServiceCore:
     async def get(self, item_id: str) -> Item:
         """Return *item_id*, always as a deep copy.
 
-        Preserves a contract that already held before the read scope existed: every ``get()``
-        used to come out of a freshly parsed db, so no two callers ever shared an object. With
-        one snapshot now potentially served to many callers in the same invocation (see
+        Guarantees that no two callers ever share an object. With one snapshot
+        potentially served to many callers in the same invocation (see
         ``squads._index._store.read_scope``), the copy at this seam is what keeps that true —
         an in-place mutation of a returned item can never contaminate a later read of the same
         snapshot.
@@ -1148,7 +1180,7 @@ class ServiceCore:
         return any(
             self.spec.item_is_roster(it.type)
             and it.type != ROSTER_SKILL
-            and it.extra.get(X.SLUG) == slug
+            and stored_slug(it) == slug
             for it in db.items.values()
         )
 
@@ -1252,15 +1284,14 @@ class ServiceCore:
         """Return the roster item of *item_type* (``ROSTER_ROLE``/``ROSTER_SKILL``/
         ``ROSTER_OPERATOR``) whose slug matches, or ``None``.
 
-        A skill's slug falls back to its own :attr:`Item.slug` when ``extra.get(X.SLUG)`` is
-        unset (``extra.get(X.SLUG, it.slug)``); role and operator lookups use no fallback
-        (``extra.get(X.SLUG)``, so an item with no stored slug never matches). That per-type
-        difference is real and preserved here rather than flattened by the shared loop.
+        A skill's or operator's slug falls back to its own :attr:`Item.slug` when
+        ``extra.get(X.SLUG)`` is unset, as an entry an older release wrote has none; a role
+        lookup uses no fallback (so a role with no stored slug never matches).
         """
         for it in (await self.store.load()).items.values():
             if it.type != item_type:
                 continue
-            default = it.slug if item_type == ROSTER_SKILL else None
+            default = it.slug if item_type in (ROSTER_SKILL, ROSTER_OPERATOR) else None
             if it.extra.get(X.SLUG, default) == slug:
                 return it
         return None
@@ -1288,14 +1319,14 @@ class ServiceCore:
             (
                 it
                 for it in db.items.values()
-                if it.type in (ROSTER_ROLE, ROSTER_OPERATOR) and it.extra.get(X.SLUG) == slug
+                if it.type in (ROSTER_ROLE, ROSTER_OPERATOR) and stored_slug(it) == slug
             ),
             None,
         )
         if participant is not None:
             if participant.type == ROSTER_ROLE:
                 return participant.title
-            return participant.extra.get(X.FULL_NAME, slug)
+            return participant.extra.get(X.FULL_NAME, participant.title)
         try:
             return resolve_role(slug, self.paths.squad_dir).full_name
         except SquadsError:
@@ -1504,7 +1535,7 @@ class ServiceCore:
         vocabulary), not the allocation-order union
         (``bundled_skill_slugs() | custom_skill_slugs(spec)``) those two seeding helpers use —
         that union always covers every historically-bundled ``sq-<type>`` slug, so it would
-        keep exempting a dropped/renamed type's stale skill from ever being flagged now that a
+        keep exempting a dropped/renamed type's stale skill from ever being flagged since a
         workflow override can shadow a built-in type instead of only adding to it.
         """
         all_skills = await self.list_items(item_type=ROSTER_SKILL)
@@ -1561,7 +1592,7 @@ class ServiceCore:
         withdrawn. The single place the materialise-or-withdraw predicate and the backend
         calls it drives are expressed — shared by the single-item transition path
         (:meth:`_project_roster_transition`) and ``sync``'s roster sweep
-        (:meth:`MaintenanceMixin.sync`), so the two can no longer disagree on either the
+        (:meth:`MaintenanceMixin.sync`), so the two cannot disagree on either the
         predicate or the context they hand the backend.
 
         The materialise-or-withdraw predicate itself is

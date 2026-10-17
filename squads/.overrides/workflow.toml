@@ -1,4 +1,4 @@
-# squads:override-base:0.15.0
+# squads:override-base:0.16.0
 # This project's own validator selections, on top of what each type's category turns on.
 #
 # One table per item type, one entry per line. A `validators` array replaces the bundled

@@ -12,7 +12,7 @@ from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._omission import Omission
-from squads._models._participants import ANONYMOUS_SLUG
+from squads._models._participants import ANONYMOUS_SLUG, refuse_system_actor
 from squads._paths import SquadPaths
 from squads._services._base import ServiceCore, reject_markers
 from squads._services._results import (
@@ -288,6 +288,7 @@ class CollabMixin(ServiceCore):
         """The comment mutation core: takes an already-open transaction's ``db`` (so the author
         display name resolves against in-memory state, not a fresh disk load — see
         :meth:`~squads._services._base.ServiceCore._author_of`)."""
+        refuse_system_actor(as_slug)
         if not messages:
             raise SquadsError("a comment needs at least one -m message")
         for msg in messages:
@@ -321,9 +322,9 @@ class CollabMixin(ServiceCore):
     ) -> str:
         """Resolve the discussion region to append to.
 
-        ``story``/``subtask``/``finding`` are the built-in kinds' historical named params
-        (kept for existing call sites); ``sub`` is the generic ``(kind, local_id)`` pair the
-        CLI's spec-driven sub-entity comment verb uses for any kind, built-in or custom.
+        ``story``/``subtask``/``finding`` are the built-in kinds' named params;
+        ``sub`` is the generic ``(kind, local_id)`` pair the CLI's
+        spec-driven sub-entity comment verb uses for any kind, built-in or custom.
         """
         if sum(bool(t) for t in (story, subtask, finding, sub)) > 1:
             raise SquadsError("target only one of --story / --subtask / --finding")

@@ -271,7 +271,7 @@ async def test_force_does_not_carry_the_status_shortcut_past_the_gate(svc):
 async def test_the_roster_status_entry_point_refuses_an_item_inside_a_cycle(svc):
     """The roster status axis is unreachable through ``update`` by design, so its own entry
     point is the only door onto it — and it shares the same transition core."""
-    entry = await svc.add_operator("Reviewer Of Record", slug="rec")
+    entry = await svc.add_operator("Reviewer Of Record", slug="op-rec")
     await _seed_cycle_on_disk(svc, [(entry, entry.id)])
     with pytest.raises(SquadsError, match="forms a cycle"):
         await svc.set_roster_status(entry.id, "Archived")

@@ -39,7 +39,7 @@ from squads._models._item import (
     split_ref,
 )
 from squads._models._omission import Omission
-from squads._models._participants import ANONYMOUS_SLUG
+from squads._models._participants import ANONYMOUS_SLUG, refuse_system_actor
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._subentity import SubEntity
 from squads._paths import resolve
@@ -1335,10 +1335,10 @@ def get_service() -> Service:
 
     ``sq <type> <n> <verb>`` crosses the sync/async bridge twice for one user-facing
     invocation — the Typer group's id-resolving callback and the leaf verb, as two sequential
-    ``anyio.run`` calls (see :func:`command`) — and each used to mint its own ``Service`` and
-    its own ``IndexStore``, so the read scope's per-store cache never actually shared a store
-    across them: two reads for one invocation, short of the request-scoped read design's
-    "one invocation observes one index state" promise for that form.
+    ``anyio.run`` calls (see :func:`command`) — and both must share one ``Service`` and
+    one ``IndexStore``, so the read scope's per-store cache is shared across them and the
+    request-scoped read design's "one invocation observes one index state" promise holds for
+    that form.
 
     Memoized on the same anchor the read scope already uses — the Click root context's
     ``meta`` — and gated on the *same* condition that opens the scope
@@ -1993,6 +1993,13 @@ def require_as(as_: str | None) -> str:
     if not as_:
         raise SquadsError("--as is required: the actor's slug")
     return as_
+
+
+async def resolve_actor_or_raise(slug: str, svc: Service) -> str:
+    """:func:`resolve_slug_or_raise` for a slug that writes a comment or notice: the system slug
+    is refused before the roster is read, so no roster entry can make it resolve."""
+    refuse_system_actor(slug)
+    return await resolve_slug_or_raise(slug, svc)
 
 
 async def resolve_slug_or_raise(slug: str, svc: Service, *, live_only: bool = True) -> str:

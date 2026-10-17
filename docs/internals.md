@@ -241,9 +241,9 @@ Local ids (`USn`, `STn`, `Fn`) auto-increment via `next_local_id` (over the stor
 `Open → Fixed → Verified`), transitioned with `sq <type> <n> <kind> <k> update --status …` (validated;
 `--force` overrides) — `update` is the one metadata entry point (`--title`/`--status`/`--assignee`, a
 subtask's `--story`, a finding's `--severity`); the service edits the model atomically (index
-transaction), and a title change re-renders the block's heading. The legacy
-body-stored `:meta` region (pre-0.3) is lifted into frontmatter by the `0.2 → 0.3` migration; its
-read/build helpers now live only in `_migrations/_meta_compat.py`.
+transaction), and a title change re-renders the block's heading. A
+body-stored `:meta` region, from a squad written before schema 0.3, is lifted into frontmatter by
+the `0.2 → 0.3` migration; its read/build helpers live only in `_migrations/_meta_compat.py`.
 
 ---
 
@@ -251,8 +251,7 @@ read/build helpers now live only in `_migrations/_meta_compat.py`.
 
 The vocabulary is data, not code: bundled TOML under `_specs/` (`workflow.toml`), parsed and
 validated by `_workflow/_loader.py` into the models in `_workflow/_models.py`. There is no enum of
-types or statuses and no built-in prefix→folder table — both were removed when the spec became the
-authority. `_models/_vocab.py` is the resolver callers go through for a type's prefix and display
+types or statuses and no built-in prefix→folder table: the spec is the sole authority. `_models/_vocab.py` is the resolver callers go through for a type's prefix and display
 labels; folder resolution routes through `SquadPaths.folder_for` / `squad_relative` instead, which
 consults the spec.
 
@@ -301,8 +300,8 @@ reference: **[workflow.md](workflow.md)**.
 
 (Refs are stored unpadded by default; old refs may retain padded width from before a migration, and both resolve correctly.)
 
-> Before `schema_version` 0.2 the kind lived in a separate `extra["ref_kinds"]` `{ID: kind}` map;
-> it's now folded inline. Old files are read transparently (`Item.from_frontmatter`) — see
+> A file written before `schema_version` 0.2 holds the kinds in a separate `extra["ref_kinds"]`
+> `{ID: kind}` map. It is read transparently and folded inline (`Item.from_frontmatter`) — see
 > [migration.md](migration.md).
 
 ### Discussion, @mentions, inbox
@@ -481,7 +480,7 @@ command; the index work is single-digit-to-low-tens of milliseconds. The notes b
 `Item` on each invocation — even `sq show ONE-ID`. Cost is linear in item count, and it's paid at
 most **once per invocation**: a request-scoped read cache (opened by `_cli/_common.py::command`,
 consulted by `load()`) serves every later `Service.get`/`get_block` call in the same command from
-the one snapshot it filed, so an item with many sub-entities no longer re-pays this read once per
+the one snapshot it filed, so an item with many sub-entities pays this read once, not once per
 sub-entity. `transaction()` never consults that cache — its own load always hits disk, under the
 lock, so a write is always based on the true current state.
 

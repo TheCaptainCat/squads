@@ -24,7 +24,7 @@ subentities:
     role
   status: Todo
 - local_id: US4
-  title: As an operator, I want extra.is_dev gone and existing squads migrated
+  title: As an operator, I want is_dev gone and existing squads migrated
   status: Todo
 - local_id: US5
   title: As an operator, I want existing slugs untouched and sq dev add --slug
@@ -46,7 +46,7 @@ subentities:
   title: As an adopter, I want the docs to cover capabilities and the upgrade changes
   status: Todo
 created_at: '2026-10-09T19:16:16Z'
-updated_at: '2026-10-12T06:32:04Z'
+updated_at: '2026-10-16T13:10:45Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -70,7 +70,7 @@ The release is named "roles, not slugs". This feature makes a developer an ordin
 - A slug that names no role resolves to nothing, whatever its spelling.
 - Generated text names roles from the roster and states no slug pattern.
 - A project `[dev]` override reaches existing developers on sync for what the template supplies on every read, such as the colour (BUG-985). The model a developer was created with stays as stored.
-- The stored `extra.is_dev` marker is removed and existing squads are migrated.
+- The stored `is_dev` marker is removed and existing squads are migrated.
 - `--json` gains `capabilities` on the role surfaces, additively.
 - Adopter documentation covers the new vocabulary and the two upgrade changes that have no automatic fix.
 
@@ -87,7 +87,7 @@ The first steps are behaviour-neutral and not adopter-visible: an import-graph g
 ## Does not belong here
 
 - The developer template's prose (title, mission, responsibilities) as catalog data; it stays composed by the engine.
-- Stamping `extra.model` at `sq dev add` (a later change to `[dev].model` still does not reach a developer created without `--model`).
+- Stamping the `model` attribute at `sq dev add` (a later change to `[dev].model` still does not reach a developer created without `--model`).
 - The `op-` slug prefix.
 - A capability filter on `sq role list`, and `--json` on `sq dev list`.
 - Example slugs in `--help` text.
@@ -146,7 +146,7 @@ Acceptance:
 - A project role whose slug ends in `-dev`, created without `sq dev add` and declaring no capability, gets no `*dev` guidance: no developer skills in its pointer, not listed by `sq dev list`, not in the developer section, no developer create lane. It remains an ordinary role in the roster and can be assigned work.
 - Adding `capabilities = ["dev"]` to its role file and running `sq sync` gives it the full developer treatment from story 2.
 - The reverse holds: a role not ending in `-dev` that declares the capability is treated as a developer.
-- `sq migrate up` reports each such role (ends in `-dev`, no `extra.tech`, no capability) by slug, rewrites no override file, and the step's manual text names the remedy (declare the capability).
+- `sq migrate up` reports each such role (ends in `-dev`, no `tech`, no capability) by slug, rewrites no override file, and the step's manual text names the remedy (declare the capability).
 - This is one of the two upgrade changes with no automatic fix and is documented as such (story 10).
 <!-- sq:story:US3:body:end -->
 
@@ -157,12 +157,12 @@ Acceptance:
 <!-- sq:story:US3:end -->
 
 <!-- sq:story:US4 -->
-### US4 — As an operator, I want extra.is_dev gone and existing squads migrated
+### US4 — As an operator, I want is_dev gone and existing squads migrated
 
 <!-- sq:story:US4:body -->
 Acceptance:
-- After `sq migrate up`, no role item carries `extra.is_dev`; `extra.tech` and `extra.model` are untouched; a second run changes nothing.
-- `extra.tech` is no longer a settable field on a role item through `sq role ... update`/`set`-style verbs; `sq dev add` remains its only writer.
+- After `sq migrate up`, no role item carries `is_dev`; `tech` and `model` are untouched; a second run changes nothing.
+- `tech` is no longer a settable field on a role item through `sq role ... update`/`set`-style verbs; `sq dev add` remains its only writer.
 - A build with this change reads an un-migrated squad correctly (a developer item still carrying `is_dev` and `tech` resolves, and `sq check` stays clean for it); no new key enters `.squads.json` and `sq repair` after deleting the index reproduces the same values.
 - The migration contributes to the release's one 0.15 to 0.16 step, which already exists, and adds no schema bump of its own. Test: a squad needing the comment-header contribution and this one migrates in a single `sq migrate up`; the origin contribution, added later, joins the same run.
 - This repository's own squad (two developer items) loses the key and passes `sq check`.
@@ -182,7 +182,7 @@ Acceptance:
 - Every existing developer keeps its slug, pointer file, name and history across `sq migrate up` and `sq sync` (byte-identical pointer except for any intended content change).
 - `sq dev add --tech Node.js` proposes the slug `node-js-dev`; `--slug <s>` uses `<s>` instead, compared exactly and following the reserved-slug rules (a reserved or `op-` slug is refused with exit 1 naming the rule).
 - A second developer for the same tech succeeds with `--slug`; a duplicate slug is refused with exit 1.
-- `--tech`, `--name`, `--model` and the name pool behave as before, and the name-pool position counts the items that carry `extra.tech`.
+- `--tech`, `--name`, `--model` and the name pool behave as before, and the name-pool position counts the items that carry `tech`.
 - `sq dev add --help` documents `--slug`.
 - No read path consults the `-dev` suffix.
 <!-- sq:story:US5:body:end -->
@@ -255,7 +255,7 @@ Acceptance (the colour half of the BUG-985 reproduction, run as written):
 Acceptance:
 - `capabilities` appears, always present as an array (possibly empty), in `--json` for `sq role catalog`, `sq role list`, `sq role <addr> show` and on each `roster[]` row of the `playbook` view payload.
 - `lane.roles[].slug` keeps its type and still carries `*dev` for the bundled guides.
-- `extra.is_dev` is absent from the `extra` object of the generic `show` and `list` payloads; no other existing key changes name, type or position.
+- `is_dev` is absent from the generic `show` and `list` rows; no other existing key changes name, type or position.
 - The VS Code client's skew canary still passes unchanged against the new output.
 - Text output: `sq role list` and `sq role show` display the capabilities.
 <!-- sq:story:US9:body:end -->

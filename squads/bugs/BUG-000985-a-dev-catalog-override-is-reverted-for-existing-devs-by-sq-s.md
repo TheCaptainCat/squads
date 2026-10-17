@@ -8,9 +8,9 @@ author: qa
 priority: medium
 refs:
 - ADR-984
-- MILE-934:targets
+- MILE-1051:targets
 created_at: '2026-10-09T18:42:59Z'
-updated_at: '2026-10-11T20:18:25Z'
+updated_at: '2026-10-16T12:24:05Z'
 ---
 <!-- sq:body -->
 A project override of the `[dev]` table in the role catalog (`.overrides/roles.toml`) is applied to a developer when it is added, then silently reverted for that same developer by the next `sq sync`. An existing developer's template is not read from the catalog the squad resolves.

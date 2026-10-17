@@ -298,7 +298,7 @@ class ClaudeCodeBackend(AgentBackend):
                 body_tag=item_skill_body_tag,
             )
 
-        # Types with no active-playbook entry. This is the sole "custom vs built-in" line now:
+        # Types with no active-playbook entry. This is the sole "custom vs built-in" line:
         # any type absent from the active playbook falls back here, bundled or not.
         if ctx.spec is not None:
             for ctype, ctype_spec in ctx.spec.items.items():

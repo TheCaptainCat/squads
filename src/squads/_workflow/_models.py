@@ -181,6 +181,7 @@ SQUAD_GLOBAL_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "backend_reconciled",
         "roster_config_integrity",
         "default_designation_duplicated",
+        "roster_slug_valid",
         "playbook_guide_role_live",
     }
 )
@@ -1230,8 +1231,7 @@ def _check_roster_lifecycle_floor(
     be reachable, not merely from ``initial`` — the universal reachable-settled floor
     (``_check_reachable_settled``) only guarantees the latter, which a machine could satisfy
     while never letting a live entry retire. Reachability is computed from the whole
-    live *set* (R1 no longer guarantees a single status), the same way the previous shape
-    excluded its sole live status from its own "reachable" set.
+    live *set* (R1 does not guarantee a single status).
 
     All three are derived from the role assignment and the ``initial`` the spec already
     carries; a lifecycle whose ``initial``/transitions reference an undeclared status is
@@ -2020,13 +2020,13 @@ def _check_category_consistency(
     its own category turns on.
 
     An override may move a built-in between ``work`` and ``records`` — that is settled, and the
-    guardrail is validation, not prohibition. What was never checked is whether the result is
-    internally consistent, and the failure was silent on every gate: ``sq list`` exit 0,
-    ``sq workflow lint`` "no errors or warnings", ``sq check`` exit 0. Moving ``task`` to
-    ``records`` while it still declared ``parents = ["feature"]`` and
-    ``parent_required = "feature"`` made that constraint unreachable *in both directions* —
-    creating with no parent succeeded where a parent had been required, and creating with the
-    declared parent was refused by the records rule — while the loaded spec went on reporting
+    guardrail is validation, not prohibition. What this checks is whether the result is
+    internally consistent, since an inconsistency is silent on every other gate: ``sq list``
+    exit 0, ``sq workflow lint`` "no errors or warnings", ``sq check`` exit 0. Moving ``task``
+    to ``records`` while it still declares ``parents = ["feature"]`` and
+    ``parent_required = "feature"`` makes that constraint unreachable *in both directions* —
+    creating with no parent succeeds where a parent was required, and creating with the
+    declared parent is refused by the records rule — while the loaded spec goes on reporting
     both fields.
 
     The check is written against the **validator set**, not against the category name, because
@@ -2461,10 +2461,8 @@ def lifecycle_edges_in_order(machine: Lifecycle) -> list[tuple[str, str]]:
     ``list`` values preserve — never ``Lifecycle.states``, a ``frozenset`` with a
     hash-seed-dependent iteration order). A source with no outgoing edges contributes nothing.
 
-    This re-derives what the now-deleted ``lifecycle_edges()`` helper used to return (dropped
-    as dead code once the cheatsheet's state-diagram render was removed); the ordering it fixed
-    is preserved here for the ``sq workflow lifecycles --json`` catalog, which publishes each
-    pair as a ``{from, to}`` object.
+    The order is deterministic for the ``sq workflow lifecycles --json`` catalog, which
+    publishes each pair as a ``{from, to}`` object.
     """
     return [
         (src, dst)
@@ -2494,7 +2492,7 @@ class WorkflowSpec(BaseModel):
     alias_to_type: dict[str, str]
     #: Reusable badge libraries, keyed by collection code — the vocabulary
     #: ``ItemSpec.fields``/``SubentityKindSpec.fields`` bind to (priority/severity are two
-    #: bundled defaults, no longer special-cased enums).
+    #: bundled defaults).
     collections: dict[str, Collection] = {}
     #: Per-sub-entity-kind declarations (machine binding, CLI/storage vocabulary, and
     #: field bindings), keyed by kind name.
@@ -2988,7 +2986,7 @@ class WorkflowSpec(BaseModel):
     def subentity_container_heading(self, kind: str) -> str:
         """The ``## <heading>`` line above *kind*'s container block.
 
-        The three bundled kinds keep their exact historical wording (``_BUNDLED_CONTAINER_
+        The three bundled kinds keep their exact bundled wording (``_BUNDLED_CONTAINER_
         HEADINGS`` — "User Stories" isn't derivable from ``plural``: ``"stories".title()`` is
         ``"Stories"``, not ``"User Stories"``) **only while they still carry their bundled
         plural**; every other case — a renamed bundled kind, or a wholly custom one — falls

@@ -116,12 +116,12 @@ def _check_field_codes(
     Reads through ``badge_value`` — the generic accessor ``Item`` and ``SubEntity`` both carry
     — so **every** declared field code is checked, not only the two (``priority``/``severity``)
     that happen to have a same-named model attribute. A dynamic attribute read keyed on the
-    field's own code silently skipped every adopter-declared field, whose value lives in the
-    generic ``extra`` store (``tests/meta`` now forbids that shape outright): the
-    same operation (shrinking a collection out from under a live corpus) failed closed on
-    ``priority`` and passed clean on a declared ``impact``, indefinitely. The accessor is the
-    same one ``_workflow._loader._badge_field_mismatches`` already reads through, so the load
-    boundary and the live-index cross-check now see the same set of stored values.
+    field's own code would silently skip every adopter-declared field, whose value lives in the
+    generic ``extra`` store (``tests/meta`` forbids that shape outright): the
+    same operation (shrinking a collection out from under a live corpus) would fail closed on
+    ``priority`` and pass clean on a declared ``impact``, indefinitely. The accessor is the
+    same one ``_workflow._loader._badge_field_mismatches`` reads through, so the load
+    boundary and the live-index cross-check see the same set of stored values.
 
     This is the load-boundary backstop, not the primary enforcement: a workflow override that
     shrinks or replaces a badge collection out from under a live corpus is caught earlier, at

@@ -109,7 +109,7 @@ async def test_the_roster_status_verb_reaches_the_same_gate(svc, invoke):
     the one category whose status axis is unreachable through ``update`` at all — so if the gate
     lived on the update seam instead of the shared transition core, this door would stay open.
     """
-    entry = await svc.add_operator("Reviewer Of Record", slug="rec")
+    entry = await svc.add_operator("Reviewer Of Record", slug="op-rec")
     path = item_file(svc.paths, entry)
     text = path.read_text(encoding="utf-8")
     fm = read_frontmatter(text=text)
@@ -118,7 +118,7 @@ async def test_the_roster_status_verb_reaches_the_same_gate(svc, invoke):
     await svc.repair()
     before = (await svc.get(entry.id)).status
 
-    result = await invoke(["operator", "rec", "status", "Archived"])
+    result = await invoke(["operator", "op-rec", "status", "Archived"])
 
     assert result.exit_code != 0, result.output
     assert "forms a cycle" in result.output

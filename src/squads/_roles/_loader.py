@@ -140,11 +140,20 @@ def _unkeyed_from_merge(raw: RawMapping) -> RawMapping:
 
 def _read_raw_override(path: Path) -> RawMapping:
     try:
-        return tomllib.loads(path.read_text(encoding="utf-8"))
+        raw = tomllib.loads(path.read_text(encoding="utf-8"))
     except tomllib.TOMLDecodeError as exc:
         raise SquadsError(f"malformed role catalog override {path}: {exc}") from exc
+    except UnicodeDecodeError as exc:
+        raise SquadsError(f"role catalog override {path} is not valid UTF-8: {exc}") from exc
     except OSError as exc:
         raise SquadsError(f"cannot read role catalog override {path}: {exc}") from exc
+    for key, kind, expected in (
+        ("roles", (list, dict), "an array or a table"),
+        ("bundles", dict, "a table"),
+    ):
+        if key in raw and not isinstance(raw[key], kind):
+            raise SquadsError(f"{path}: '{key}' must be {expected}, got {type(raw[key]).__name__}")
+    return raw
 
 
 def load_role_catalog(squad_dir: Path | None = None) -> RoleCatalogSpec:

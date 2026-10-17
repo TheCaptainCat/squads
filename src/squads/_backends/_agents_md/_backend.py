@@ -39,7 +39,7 @@ def _also_creatable_types(spec: WorkflowSpec, anchor_type: str | None) -> str:
 
     ``anchor_type`` is the same generically-derived (:func:`interactions.cheatsheet_anchor_type`)
     type the ``sq create`` example line itself is built from — excluded here so it isn't listed
-    against itself, whatever it happens to be (no longer hardcoded to ``"task"``)."""
+    against itself, whatever it happens to be."""
     others = sorted(
         (t for t, ts in spec.items.items() if t != anchor_type and ts.category != "roster"),
         key=lambda t: (spec.items[t].order, t),

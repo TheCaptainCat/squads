@@ -213,7 +213,7 @@ def _attach(
     the moment an identity has any).
 
     Eligibility is `_memory_eligible(node.item.type)` alone, reusing the exact reserved-type
-    check `roster_identity_slugs` used to size the fetch — never a slug-only lookup, which
+    check `roster_identity_slugs` sizes the fetch with — never a slug-only lookup, which
     would let a same-slugged Skill pick up a Role's notebook.
 
     A branch (rather than a leaf) is created whenever there is something to disclose: real item

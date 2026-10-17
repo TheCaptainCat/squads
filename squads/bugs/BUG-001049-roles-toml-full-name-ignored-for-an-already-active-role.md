@@ -8,10 +8,11 @@ author: qa
 priority: medium
 refs:
 - REV-1047
+- MILE-934:targets
 description: Catalog-document full_name renames only the catalog and new activations,
   not a live role; per-slug file does.
 created_at: '2026-10-16T11:19:07Z'
-updated_at: '2026-10-16T11:25:53Z'
+updated_at: '2026-10-16T13:08:49Z'
 ---
 <!-- sq:body -->
 ## Repro (dev build, scratch squad)
@@ -57,4 +58,8 @@ Either roles.toml `full_name` renames an active role whose stored name was never
 <!-- sq:discussion -->
 - [2026-10-16T11:25:53Z] Catherine Manager:
   - When fixed, re-check docs/overrides.md (roles.toml precedence paragraph ~257-259, 'Which name wins' ~2092-2110) and docs/stability.md:158 (REV-1047 F5).
+- [2026-10-16T13:06:29Z] Olivia Lead:
+  - 2026-10-16: not folded into TASK-1059 (flat frontmatter). That task re-points role_base_from_item to flat keys without changing which layer wins a role name, so this repro stays valid; the fix needs the ruling between the two outcomes under Expected first.
+- [2026-10-16T13:08:49Z] Pierre Chat:
+  - 2026-10-16: an explicitly chosen role name (--name at activation) stays; a name never chosen follows the configuration layers (catalog, then roles.toml, then the per-slug file). Whether the name was chosen is a declared role attribute, added with the flat frontmatter (TASK-1059 ST2).
 <!-- sq:discussion:end -->

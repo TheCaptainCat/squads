@@ -4,7 +4,7 @@ sequence_id: 49
 type: decision
 title: Ref-kind vocabulary is closed in 1.0, with the extension point reserved for
   post-1.0
-status: Accepted
+status: Superseded
 author: architect
 refs:
 - FEAT-35
@@ -13,7 +13,7 @@ refs:
 - GUIDE-79
 - ADR-492
 created_at: '2026-06-11T20:19:55Z'
-updated_at: '2026-10-16T09:10:12Z'
+updated_at: '2026-10-16T13:04:33Z'
 ---
 <!-- sq:body -->
 ## Context

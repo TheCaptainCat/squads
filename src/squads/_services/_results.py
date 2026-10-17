@@ -276,7 +276,7 @@ class RepairResult:
 
     ``canonicalized`` holds the ID of every item whose file was rewritten because its on-disk
     ref encoding (a legacy ``extra.ref_kinds`` map, or a spelled ref that folds to a different
-    literal) differed from the folded frontmatter now stored — the file, not only the index,
+    literal) differed from the folded frontmatter stored — the file, not only the index,
     made canonical. Empty when the corpus needed no correction; a corpus already canonical
     triggers no write at all.
 
@@ -329,9 +329,9 @@ class MigrationRun:
     never has to zip it back against ``applied`` by index. Every runner already returns this
     count (``Migration.run``'s ``Callable[[SquadPaths], Awaitable[int]]`` contract), and this
     is what stops it from being computed and then thrown away: ``run_pending_migrations``
-    used to ``await m.run(self.paths)`` for its side effect alone, so a migration whose own
-    write is otherwise easy to miss in a large corpus diff (seeding one line onto every
-    existing milestone, say) had nowhere to report how many files it actually touched.
+    keeps it, so a migration whose own write is otherwise easy to miss in a large corpus diff
+    (seeding one line onto every existing milestone, say) can report how many files it
+    actually touched.
 
     ``repair`` is the :class:`RepairResult` of the rebuild that follows the runners, and is
     ``None`` exactly when ``applied`` is empty (no runner applies, so nothing rebuilds). It is
@@ -344,8 +344,8 @@ class MigrationRun:
     item ids its :class:`~squads._migrations._outcome.MigrationOutcome` named), keyed the same
     way as ``changed`` and from the same single construction site — extending that one
     per-runner reporting channel rather than adding a second one. Empty for every migration
-    that has nothing to skip (every one but the 0.14→0.15 milestone tag seed, as of this
-    writing): a runner that never raises has nothing that needed skipping instead of aborting.
+    that has nothing to skip (every one but the milestone tag seed): a runner that never raises
+    has nothing that needed skipping instead of aborting.
 
     ``reports`` is each applied migration's printable report lines, keyed like ``changed``.
 

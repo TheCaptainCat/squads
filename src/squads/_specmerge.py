@@ -926,12 +926,10 @@ def merge_override(
     ``top_level_keys`` has no default — a caller must pass its accepted set, so "forgot to
     pass it" stays a type error rather than a silent fail-open. There is no ``None`` escape
     to opt out of the check: every overridable bundled document — workflow, playbook, the
-    role catalog, and a per-slug role — now has a closed top level, so a caller that once
-    wanted an open one has nothing left to ask this engine for. What changes is that
-    "deliberately open" stops being expressible without amending the decision that closed it
-    (a role override's own top-level closure predates this — the resolver has passed a set
-    derived from ``RoleSpec.model_fields`` since before this parameter's default was
-    removed; only this signature's *escape hatch* is what's gone). ``selected`` is accepted
+    role catalog, and a per-slug role — has a closed top level, so no caller has anything
+    left to ask this engine for an open one, and "deliberately open" is not expressible without
+    amending the decision that closed it (a role override's top-level set is derived from
+    ``RoleSpec.model_fields``). ``selected`` is accepted
     unconditionally whenever a set is given — see :func:`_top_level_key_violations`.
 
     Two calling modes over one code path:
