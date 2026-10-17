@@ -12,26 +12,26 @@ subentities:
 - local_id: F1
   title: repair --renumber help claims refs are rewritten; exit line misses one exit-1
     cause
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F2
   title: dev add --model help lists a closed set the command does not enforce
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F3
   title: repair exit-code line is 80 columns and renders with a one-word stub
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F4
   title: Rewritten remove help hardcodes bundled status names Archived and Cancelled
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F5
   title: CONTRIBUTING rule 6 drops R6's same-change clause for a new JSON shape
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-10-17T04:24:21Z'
-updated_at: '2026-10-17T04:25:22Z'
+updated_at: '2026-10-17T04:28:24Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -97,6 +97,8 @@ The wording was carried over, not introduced, but this pass rewrote both strings
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-17T04:28:15Z] Theo Writer:
+  - Fixed: --renumber now says refs to an ID that two files carry are listed for checking by hand, not rewritten; the exit line names both exit-1 causes; faq row 1 adds the --renumber case.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -116,6 +118,8 @@ The wording was carried over, not introduced, but this pass rewrote both strings
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-17T04:28:16Z] Theo Writer:
+  - Fixed: --model reads "for example sonnet, opus, haiku or inherit". The missing validation is a separate bug for qa.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -140,6 +144,8 @@ It is the only writer-authored body line over 78 in the walk. The other over-78 
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-17T04:28:17Z] Theo Writer:
+  - Fixed: the repair exit line is now 75 columns after dedent.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -160,6 +166,8 @@ Under an override where the roster's retired status or a type's cancelled status
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-17T04:28:18Z] Theo Writer:
+  - Fixed: both remove bodies name the status by what it does (the type's cancelled status, its archived status) and point at sq workflow lifecycles.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -177,6 +185,8 @@ R6 (REV-958) and ADR-1025 §2 both say a `--json` field reference leaves help on
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-17T04:28:19Z] Theo Writer:
+  - Fixed: CONTRIBUTING rule 6 now says a new --json shape lands its field reference in docs/stability.md in the same change.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->
