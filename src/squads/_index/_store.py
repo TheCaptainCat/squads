@@ -23,18 +23,19 @@ write to squad data; nothing that mutates an item ``.md`` may run after it commi
 killed mid-transaction can therefore only ever leave the markdown newer than the index, in
 every direction of change:
 
-| interrupted op | surviving state | ``sq repair`` outcome |
+| interrupted op | surviving state | healing rebuild outcome |
 |---|---|---|
 | create | file exists, not indexed | indexes it; the high-water mark keeps the number unique |
 | update | file has the new value, index has the old one | adopts the file's value |
 | remove | file gone, index still has the entry | drops the orphan entry, reporting it as missing |
 | retype/rename | file at the new path/id, index at the old | re-indexes from the new path |
 
-Each of those heals losslessly, because repair derives the index *from* the markdown — a
-markdown-ahead skew is simply its input, not a special case it has to detect. The inverse skew
-is forbidden rather than merely discouraged: an index ahead of the markdown would let repair
-**silently revert** a committed mutation or resurrect a removed item, and a loud, repairable
-inconsistency beats a quiet rollback every time.
+Each of those heals losslessly under ``sq repair`` at the current schema, and under ``sq migrate
+up``'s own rebuild while the schema is behind, because the rebuild derives the index *from* the
+markdown — a markdown-ahead skew is simply its input, not a special case it has to detect. The
+inverse skew is forbidden rather than merely discouraged: an index ahead of the markdown would let
+repair **silently revert** a committed mutation or resurrect a removed item, and a loud,
+repairable inconsistency beats a quiet rollback every time.
 
 Exempt from this ordering, because neither has a mirrored value in the index for the two sides
 to disagree about: regenerable artifacts (backend pointer files, managed regions in
@@ -65,8 +66,8 @@ all treated as one event class. Writes already accepted by the kernel survive it
 order alone is enough to order durability events. Out of model: a host crash or power loss,
 where ordering would additionally need an ``fsync`` of every file *and* its parent directory at
 each step, and even then the skew could only be bounded, not removed, without a journal.
-``sq repair`` remains the recovery path there too; it makes no promise about which side is
-ahead.
+The rebuild (``sq repair``, or ``sq migrate up``'s while the schema is behind) remains the
+recovery path there too; it makes no promise about which side is ahead.
 """
 
 import asyncio
@@ -142,12 +143,38 @@ def _check_field_codes(
         if code is None:
             continue
         coll = spec.collections.get(f.collection)
-        if coll is None or code not in coll.badge_codes:
+        if coll is None or not coll.declares(code):
             raise SquadsError(
                 f"{label} field {f.code!r} has code {code!r}, which the active workflow spec's "
                 f"{f.collection!r} collection does not declare; fix the frontmatter value to a "
                 "currently valid code, or run `sq repair` if the index itself is merely stale"
             )
+
+
+def badge_code_problems(db: SquadsDB, spec: WorkflowSpec) -> list[str]:
+    """One line per stored badge code, on an item or a sub-entity, that its bound collection
+    does not declare: the values the load check refuses, without its recovery clause."""
+    problems: list[str] = []
+    for item in db.items.values():
+        scopes: list[tuple[str, Item | SubEntity, list[Field]]] = [
+            (item.id, item, spec.fields_for(item.type))
+        ]
+        kind = spec.item_subentity_kind(item.type)
+        if kind is not None:
+            sub_fields = spec.fields_for(kind)
+            scopes.extend(
+                (f"{item.id} sub-entity {s.local_id}", s, sub_fields) for s in item.subentities
+            )
+        for label, obj, fields in scopes:
+            for f in fields:
+                code = obj.badge_value(f.code)
+                coll = spec.collections.get(f.collection)
+                if code is not None and (coll is None or not coll.declares(code)):
+                    problems.append(
+                        f"{label} field {f.code!r} has code {code!r}, which the "
+                        f"{f.collection!r} collection does not declare (in {item.path})"
+                    )
+    return problems
 
 
 def _validate_badge_codes(db: SquadsDB, spec: WorkflowSpec) -> None:
@@ -497,7 +524,8 @@ class IndexStore:
         ``_atomic_write`` is ever reached. Markdown writes the body already made stand; that is
         not a partial rollback failing to finish its job, it is the module docstring's
         skew-direction rule doing exactly what it is for: the crash leaves markdown ahead of
-        the index, the one direction ``sq repair`` heals losslessly.
+        the index, the one direction the rebuild heals losslessly (``sq repair`` at the current
+        schema, ``sq migrate up`` while it is behind).
         """
         from squads._index._reflog import append_line, reflog_path
 

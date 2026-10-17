@@ -19,7 +19,7 @@ pytestmark = pytest.mark.anyio
 def test_operator_slug_is_op_prefixed_from_the_first_name() -> None:
     assert operator_slug("Alice Tester") == "op-alice"
     assert operator_slug("Casey") == "op-casey"
-    assert operator_slug("José García") == "op-jos"  # slugify strips non-ascii
+    assert operator_slug("José García") == "op-jose"
 
 
 async def test_add_operator_writes_a_real_operator_item_under_operators_not_agents(svc):

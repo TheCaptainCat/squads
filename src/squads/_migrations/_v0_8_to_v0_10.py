@@ -44,6 +44,7 @@ from squads import _clock as clock
 from squads import _sections as sections
 from squads._backends._claude_code._frontmatter import oneline
 from squads._index._store import IndexStore
+from squads._migrations._context import MigrationContext
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._paths import SquadPaths, number_for_id
@@ -121,13 +122,14 @@ async def _rewrite_pointer(paths: SquadPaths, new_body_rel: str) -> None:
     )
 
 
-async def migrate(paths: SquadPaths) -> int:
+async def migrate(ctx: MigrationContext) -> int:
     """Stamp a SKILL id onto the legacy ``sq-memory.md`` body file and rename it to the
     ``SKILL-<NNNNNN>-sq-memory.md`` convention, if needed.
 
     Returns 1 if a stamping or rename happened, 0 otherwise (already tracked, or the skill
     body file doesn't exist yet).
     """
+    paths = ctx.paths
     skills_folder = paths.squad_dir / _SKILL_FOLDER
     if not skills_folder.is_dir():
         return 0
@@ -165,7 +167,7 @@ async def migrate(paths: SquadPaths) -> int:
     # Branch 2: unstamped legacy file — allocate id → stamp → rename → rewrite pointer.
     if not paths.index_path.is_file():
         return 0
-    store = IndexStore(paths.index_path, paths.lock_path)
+    store = IndexStore(paths.index_path, paths.lock_path, spec=ctx.spec)
     now = clock.now()
     async with store.transaction() as db:
         # item_id is the padded filename stem (allocate_id formats at db.padding);

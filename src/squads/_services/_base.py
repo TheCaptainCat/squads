@@ -45,11 +45,18 @@ from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, make_ref, ref_id_matches, split_ref
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
-from squads._rendering._engine import render, set_active_squad_dir
+from squads._rendering._engine import render, scaffold_body, set_active_squad_dir
 from squads._roles._resolver import (
     holds_default_designation,
     resolve_role,
     resolve_role_for_item,
+)
+from squads._services._duplicate_ids import (
+    DUPLICATE_ID_REMEDY,
+    groups_among,
+    name_number,
+    normalized_id,
+    read_id,
 )
 from squads._services._results import CreateResult, TreeNode
 from squads._services._validators import ValidatorEngine
@@ -499,35 +506,11 @@ class ServiceCore:
         return creation_template_name(item_type, self.spec)
 
     def pristine_body(self, item: Item) -> str | None:
-        """The ``:body`` region a freshly-created *item* of this type would carry — i.e. the
-        template's unwritten placeholder scaffold (``## Description`` / ``_TODO: …_``), not the
-        empty string.
-
-        This is what tells "nobody has written this body yet" apart from "this body holds 66
-        lines of someone's work", and it has to be *derived* rather than pattern-matched: the
-        scaffold differs per type, interpolates (``items/_default.md.j2`` names the type,
-        ``items/review.md.j2`` reads ``extra.target_ref``), and an adopter can replace it
-        wholesale via ``.overrides/templates/items/<type>.md.j2``.  Re-rendering through the
-        same squad-aware loader that produced the file is the only answer that stays true for
-        all three.
-
-        ``None`` when the scaffold cannot be reproduced (a template that no longer renders for
-        this item).  Callers must read that as "assume authored" — refusing a first write is
-        recoverable, discarding a real body is not. ``render`` (:mod:`squads._rendering._engine`)
-        translates the underlying ``jinja2.TemplateError`` into :class:`SquadsError`, which is
-        caught here and swallowed into that ``None``.
-        """
-        try:
-            rendered = render(
-                self._template_for(item.type),
-                item=item,
-                description=item.description,
-                extra=item.extra,
-                spec=self.spec,
-            )
-        except SquadsError:
-            return None
-        return (sections.get_section(rendered, markers.BODY) or "").strip("\n")
+        """The ``:body`` region a freshly-created *item* of this type would carry, or ``None``
+        when the scaffold cannot be reproduced (see :func:`~squads._rendering._engine.
+        scaffold_body`). It is derived rather than pattern-matched because the scaffold differs
+        per type, interpolates item fields and can be replaced by a project template."""
+        return scaffold_body(item, self.spec)
 
     # ------------------------------------------------------------------ backend
     @property
@@ -916,6 +899,63 @@ class ServiceCore:
         item = require_item(await self.store.load(), item_id)
         return item.model_copy(deep=True)
 
+    def _all_item_files(self) -> list[Path]:
+        """Every markdown file in every type folder, whatever it is named."""
+        found: list[Path] = []
+        for ts in self.spec.items.values():
+            folder = self.paths.squad_dir / ts.folder
+            if folder.is_dir():
+                found += sorted(folder.glob("*.md"))
+        return found
+
+    async def duplicate_files(self, item: Item) -> list[Path]:
+        """The other files carrying *item*'s id, by the detector's rule (frontmatter id).
+
+        Only files whose name could carry the item's number, or carries no number at all, are
+        read; a file named for a different number that still carries this id is `check`'s and
+        `repair`'s to find. Empty when *item*'s own file is missing, so the caller's
+        missing-file error is the one reported."""
+        own = item_file(self.paths, item)
+        key = normalized_id(item.id)
+        if key is None or not own.is_file():
+            return []
+        candidates = [
+            md
+            for md in self._all_item_files()
+            if md != own and name_number(md.name) in (item.sequence_id, None)
+        ]
+        return [md for md in candidates if await read_id(md) == key]
+
+    async def duplicate_id_error(self, item: Item) -> str | None:
+        """The refusal text when another file carries *item*'s id, else ``None``."""
+        others = await self.duplicate_files(item)
+        if not others:
+            return None
+        named = ", ".join(
+            p.relative_to(self.paths.squad_dir).as_posix()
+            for p in sorted([item_file(self.paths, item), *others])
+        )
+        return f"{item.id}: {len(others) + 1} files carry this id ({named})"
+
+    async def _refuse_duplicated_ids(self, *items: Item) -> None:
+        """Refuse, before any file is touched, a write whose subject or referrer is an id more
+        than one file carries: it would land on whichever copy the scan reached."""
+        for item in items:
+            message = await self.duplicate_id_error(item)
+            if message is not None:
+                raise SquadsError(f"{message}; refusing to write -- {DUPLICATE_ID_REMEDY}")
+
+    async def _refuse_any_duplicated_id(self) -> None:
+        """Refuse a write that may rewrite any file (an id rename touches every mention) while
+        some id is carried by more than one file."""
+        groups = await groups_among(self._all_item_files())
+        for key, files in groups.items():
+            named = ", ".join(p.relative_to(self.paths.squad_dir).as_posix() for p in files)
+            raise SquadsError(
+                f"{key}: {len(files)} files carry this id ({named}); refusing a write that "
+                f"could touch them -- {DUPLICATE_ID_REMEDY}"
+            )
+
     async def _read_item_file(self, item: Item, path: Path) -> str:
         """Read *item*'s file at *path*, converting a missing file into a clean, actionable
         error — the item-read seam every show/body/discussion/comment path, and every
@@ -1174,6 +1214,7 @@ class ServiceCore:
         below is reused for the skew guard at no extra I/O cost.
         """
         it = require_item(db, item_id)
+        await self._refuse_duplicated_ids(it)
         base = it.model_copy(deep=True)
         path = item_file(self.paths, it)
         text = await self._read_item_file(it, path)

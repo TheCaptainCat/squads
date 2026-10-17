@@ -10,8 +10,9 @@ refs:
 - EPIC-540
 - ADR-696
 - ADR-320
+- ADR-982
 created_at: '2026-07-21T16:26:15Z'
-updated_at: '2026-08-03T08:52:23Z'
+updated_at: '2026-10-09T18:47:44Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -160,6 +161,11 @@ entry. They form a second, small class:
   `backend_reconciled` (`_check_backends` — backend pointer files match the roster). No `category`
   turns these on or off; they always run. An override cannot deselect them (they are not on any
   type's `validators` list to remove).
+
+**Narrowed 2026-10-09 (ADR-982).** "They always run" and "an override cannot deselect them" now
+hold for the always-on tier only: the squad-global members that are a defect in every squad, held
+in code. ADR-982 adds a selectable tier, effective only when a squad names a member under
+`[squad].validators` in the workflow document. Neither tier runs at the create/update gate.
 
 This resolves the "no home for a whole-squad check" gap: the category → bundle mechanism owns the
 per-item plane; the squad-global class owns the once-per-run plane. Both share the one engine and

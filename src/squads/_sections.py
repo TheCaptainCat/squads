@@ -55,6 +55,18 @@ def split_frontmatter(text: str, *, source: str | None = None) -> tuple[dict[str
     return data, text[m.end() :]
 
 
+def frontmatter_block_end(text: str) -> int | None:
+    """Where the leading frontmatter block ends, or ``None`` when *text* does not open with one."""
+    m = _FRONTMATTER_RE.match(text)
+    return m.end() if m else None
+
+
+def strip_frontmatter(text: str) -> str:
+    """*text* without its leading frontmatter block, whether or not that block is valid YAML."""
+    m = _FRONTMATTER_RE.match(text)
+    return text[m.end() :] if m else text
+
+
 def join_frontmatter(data: dict[str, Any], body: str) -> str:
     front = yaml.safe_dump(data, sort_keys=False, allow_unicode=True, default_flow_style=False)
     if not body.startswith("\n"):

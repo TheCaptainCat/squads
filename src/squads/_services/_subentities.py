@@ -241,13 +241,13 @@ class SubentitiesMixin(ServiceCore):
         block = discussion.build_block(kind, local_id, title, body=body, spec=self.spec)
         text = sections.append_to_section(text, container, block)
         await self._write_block_file(item, path, text=text, sub=sub, base=base)
-        # Advisory title-length check. Threshold is the same resolved, type-aware value
-        # `sq check`'s `subentity_title_max` reads (`WorkflowSpec.item_subentity_title_max`) —
-        # a type overriding it gets one number at both create time and check time, never two.
-        # Fires when title length exceeds that threshold.  Service must NOT print; the warning
-        # rides back on the result to be rendered at the CLI edge.
+        # Advisory title-length check. The threshold is the same resolved, type-aware value
+        # `sq check`'s `subentity_title_max` reads, and is `None` for a type that does not select
+        # that check, so create time and check time never disagree on whether or at what number.
+        # The warning rides back on the result for the CLI edge to render; the service never prints.
         title_advisory: str | None = None
-        if len(title) > self.spec.item_subentity_title_max(item.type):
+        threshold = self.spec.item_subentity_title_max(item.type)
+        if threshold is not None and len(title) > threshold:
             body_cmd = f'sq {item.type} {item.sequence_id} {kind} {local_id} body -m "…"'
             title_advisory = (
                 f"Title is {len(title)} chars — a sub-entity title is a one-line handle,"
@@ -715,6 +715,7 @@ class SubentitiesMixin(ServiceCore):
                     )
             item.subentities = [s for s in item.subentities if s.local_id != local_id]
             item.updated_at = clock.now()
+            await self._refuse_duplicated_ids(item)
             path = item_file(self.paths, item)
             text = await self._read_item_file(item, path)
             ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
@@ -777,6 +778,7 @@ class SubentitiesMixin(ServiceCore):
         before it is substituted for the index-derived one.
         """
         kind = self.subentity_kind[item.type]
+        await self._refuse_duplicated_ids(item)
         text = await self._read_item_file(item, path) if text is None else text
         ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
         text = sections.replace_frontmatter(text, item.to_frontmatter_dict())

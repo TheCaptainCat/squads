@@ -32,7 +32,7 @@ from typing import Any, cast
 from squads import _aio
 from squads._errors import SquadsError
 from squads._models._extras import ExtraKey as X
-from squads._models._item import Item
+from squads._models._item import INVENTED_WHEN_ABSENT, Item
 from squads._roles._catalog import RoleDef
 from squads._sections import join_frontmatter, replace_frontmatter, split_frontmatter
 from squads._workflow._models import ROSTER_ROLE
@@ -67,29 +67,6 @@ from squads._workflow._models import ROSTER_ROLE
 #: so it is an ordinary, transaction-guarded field for a dev role exactly like for any other.
 #: See :func:`_exempt_extra_keys` for what that means for the per-item exemption below.
 PERMITTED_EXTRA_SKEW: frozenset[str] = frozenset(RoleDef.extra_keys())
-
-
-#: The frontmatter keys whose absent-value default is *invented* at load time rather than
-#: derived from the file (:func:`squads._models._item._parse_dt` falls back to ``clock.now()``
-#: so a legacy or hand-authored ``.md`` loads at all).
-#:
-#: They are the one part of the ``from_frontmatter`` round trip that is not a function of the
-#: file's own bytes: load the same absent-timestamp file twice and you get two different
-#: values. A skew comparison that includes them therefore reports a divergence on a key the
-#: file says *nothing* about — and does so on every read, so the item is refused for good, with
-#: a "run `sq repair`" pointer that repair structurally cannot honour (repair rebuilds the
-#: index from markdown; it never rewrites markdown, so the key stays absent and the next read
-#: invents a new value again).
-#:
-#: The absence itself is not lost, only left out of the comparison: every write seam persists
-#: the whole ``to_frontmatter_dict()`` (see :func:`update_frontmatter` and the service's
-#: section-edit core), so the first successful mutation writes the index's value into the file
-#: and heals it permanently. Excluding them is what makes that first mutation possible.
-#:
-#: This is narrow on purpose. It applies only when the raw on-disk frontmatter has no value for
-#: the key at all; a timestamp the file *does* carry is compared like any other field, and one
-#: it carries unparseably still fails the load boundary as a ``SquadsError``.
-INVENTED_WHEN_ABSENT: frozenset[str] = frozenset({"created_at", "updated_at"})
 
 
 def _exempt_extra_keys(item: Item) -> frozenset[str]:

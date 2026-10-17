@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from squads._index._reconcile import ReconcileResult
 from squads._migrations._registry import Migration
 from squads._models._index import SquadsDB
 from squads._models._item import Item
@@ -132,6 +133,11 @@ class CreateResult:
     item: Item
     path: Path
     lane_warning: str | None = None
+
+
+class SelfRemedied(str):
+    """A report line that already carries the one remedy that works, so a caller appends no
+    generic tail to it."""
 
 
 @dataclass
@@ -292,6 +298,8 @@ class RepairResult:
     unreadable: list[str] = field(default_factory=list[str])
     canonicalized: list[str] = field(default_factory=list[str])
     stripped: list[str] = field(default_factory=list[str])
+    renumber_report: list[str] = field(default_factory=list[str])
+    references_left: bool = False
 
     def strip_notice(self) -> str | None:
         """This sweep's announcement — see :func:`strip_notice`, the shared constructor."""
@@ -338,12 +346,16 @@ class MigrationRun:
     per-runner reporting channel rather than adding a second one. Empty for every migration
     that has nothing to skip (every one but the 0.14→0.15 milestone tag seed, as of this
     writing): a runner that never raises has nothing that needed skipping instead of aborting.
+
+    ``reconcile`` is what the index rebuild before the first runner did (ids newly indexed, ids
+    dropped because no file backs them); ``None`` exactly when ``applied`` is empty.
     """
 
     applied: list[Migration]
     changed: dict[str, int] = field(default_factory=lambda: dict[str, int]())
     skipped: dict[str, list[str]] = field(default_factory=lambda: dict[str, list[str]]())
     repair: RepairResult | None = None
+    reconcile: ReconcileResult | None = None
 
 
 @dataclass

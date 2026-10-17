@@ -7,8 +7,9 @@ status: Accepted
 author: architect
 refs:
 - BUG-490:addresses
+- FEAT-976
 created_at: '2026-07-20T08:47:15Z'
-updated_at: '2026-07-20T08:56:25Z'
+updated_at: '2026-10-09T18:47:45Z'
 ---
 <!-- sq:body -->
 # Custom skills: authored bodies and role scoping
@@ -94,6 +95,15 @@ This single predicate governs the one behavior that actually needs it: the autho
 (reject `sq skill body` on a template-owned skill; allow it on a custom one). It also drives
 display legibility — `sq skill <n> show` labels the skill system (template-owned) or custom
 (authored) computed on the fly.
+
+**Reversed for the label, 2026-10-09 (FEAT-976).** Where a role or skill came from is now stored:
+an `origin` key in its frontmatter, `system` or `project`, stamped at creation and by a migration,
+and shown under that one name on every surface. It replaces the label this pillar computed on the
+fly, so "derived, not persisted" and, under *Schema and migration*, "there is no stored flag to
+set" no longer hold for roles and skills. Origin is provenance only: the authoring gate does not
+read it and still follows whether the body is generated. Origin has no decision record of its
+own. FEAT-976, op-pierre's rulings in its discussion (2026-09-29, 2026-10-09) and his ruling in
+this decision's discussion (2026-10-09) are the record.
 
 The other two behaviors the session assigned to a stored flag need no flag:
 
@@ -244,4 +254,6 @@ frontmatter-derivable state, and the authored prose lives solely in the `.md` bo
   - @manager ADR-492 authored (Proposed) for BUG-490 — three pillars resolved. Pillar 1 (authored body): add `sq skill <n> body`; relax set_body's meta-guard for custom (non-template-owned) skills only. Pillar 2 (system vs custom): DERIVE it (slug ∈ bundled_skill_slugs ∪ custom_skill_slugs) — no stored flag. Pillar 3 (scoping): forward edge SKILL→ROLE:scopes (new ref kind), service-layer resolver unions system membership + inverted scopes edges, feeds pointer + role body; `link-role`/`unlink-role` verbs run a partial-sync hook.
   - Diverged from the design-session framing in 4 places, all verified against code: (1) sync/regen do NOT clobber custom skill bodies — regen is pointer-only, sync never iterates author-defined skills; the real gap is the missing write path. (2) No persisted system/custom flag — it's derivable, so a stored flag is redundant (don't-store-derivable) and the 'flag all bundled skills' migration is unnecessary. (3) There is no header stamp on skill *bodies* to omit — the stamp lives on the pointer (stays generated) + CLAUDE.md/AGENTS.md regions; a custom body is authored like a task body, so invariant #7 doesn't apply. (4) The migration becomes a no-op schema stamp 0.10→0.11 whose only job is to hard-stop pre-0.11 clients before they meet a scopes edge.
   - Left Proposed for op-pierre to review + accept — not self-accepted.
+- [2026-10-09T18:35:04Z] Pierre Chat:
+  - 2026-10-09: the stored origin key that FEAT-976 introduces gets no decision record of its own. This decision is amended in place with a dated note pointing at FEAT-976 and the rulings on its discussion.
 <!-- sq:discussion:end -->

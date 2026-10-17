@@ -22,10 +22,12 @@
  * hermetic `npm test`; CI provisions a real `sq` for this lane (see
  * ../../../.github/workflows/vscode-client.yml).
  *
- * It shells out to whatever `sq` PATH resolves first, and cannot tell a stale one from the
- * one you are developing against. An older `sq` earlier on PATH than the project's own
- * environment reports drift that does not exist — missing sub-commands, absent keys — so
- * check `sq --version` against the core before believing a red run here.
+ * `sq` is resolved the way the extension resolves it (`src/discovery.ts`, repo root as the
+ * workspace): the repo `.venv` first, then `uv run`, `poetry run`, and bare PATH last. Set
+ * `SQ_CANARY_CMD` (a path, a command such as `uv run sq`, or a JSON argv array) to pin a binary
+ * on purpose; a pin that does not resolve or answer `--version` fails the suite, never falls
+ * through. The suite prints the command it resolved and its `--version`, so a red run names the
+ * binary that produced it.
  */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
@@ -34,6 +36,7 @@ import * as path from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createNodeDiscoveryEnvironment } from '../../src/nodeEnvironment';
 import {
   isSqCollectionCatalogEntry,
   isSqGraphNode,
@@ -54,21 +57,63 @@ import type {
   SqTreeNode,
   SqTypeCatalogEntry,
 } from '../../src/types';
+import { type CanaryInvocation, resolveCanarySq } from './resolveSq';
 
 interface CreatedItem {
   readonly id: string;
 }
 
-function isSqOnPath(): boolean {
+const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
+
+const PINNED = (process.env.SQ_CANARY_CMD ?? '').trim() !== '';
+const RESOLUTION = resolveCanarySq(
+  REPO_ROOT,
+  createNodeDiscoveryEnvironment(),
+  process.env.SQ_CANARY_CMD,
+);
+const SQ = RESOLUTION.ok ? RESOLUTION.invocation : undefined;
+
+/** Runs the resolved `sq` from `cwd`. The version probe and the live tests share this, from a
+ * directory outside the repo, so the version printed is the binary under test. */
+function execSq(sq: CanaryInvocation, args: readonly string[], cwd: string): string {
+  return execFileSync(sq.command, [...sq.args, ...args], { cwd, encoding: 'utf8' });
+}
+
+function sqVersion(sq: CanaryInvocation): string | undefined {
   try {
-    execFileSync('sq', ['--version'], { stdio: 'ignore' });
+    return execSq(sq, ['--version'], os.tmpdir()).trim();
+  } catch {
+    return undefined;
+  }
+}
+
+/** True when `sq list --json` succeeds from `cwd`, i.e. `sq` found a squad there. */
+function sqSeesASquadFrom(sq: CanaryInvocation, cwd: string): boolean {
+  try {
+    execSq(sq, ['list', '--json'], cwd);
     return true;
   } catch {
     return false;
   }
 }
 
-const SQ_AVAILABLE = isSqOnPath();
+const SQ_VERSION = SQ === undefined ? undefined : sqVersion(SQ);
+const SQ_AVAILABLE = SQ !== undefined && SQ_VERSION !== undefined;
+
+/** A pin is set on purpose, so one that cannot answer fails the suite instead of skipping it. */
+const PIN_FAILURE = !PINNED
+  ? undefined
+  : !RESOLUTION.ok
+    ? RESOLUTION.reason
+    : SQ_VERSION === undefined
+      ? `SQ_CANARY_CMD does not answer --version: ${process.env.SQ_CANARY_CMD ?? ''}`
+      : undefined;
+
+if (SQ !== undefined) {
+  process.stderr.write(
+    `skew canary sq: ${[SQ.command, ...SQ.args].join(' ')} [${SQ.source}] -> ${SQ_VERSION ?? 'not runnable'}\n`,
+  );
+}
 
 function fixture(name: string): string {
   return readFileSync(path.join(__dirname, '..', 'fixtures', name), 'utf8');
@@ -130,6 +175,23 @@ function assertExactKeys(node: object, expectedKeys: readonly string[]): void {
 function assertExactTreeNodeKeys(node: object): void {
   assertExactKeys(node, TREE_NODE_KEYS);
 }
+
+/**
+ * Every key one `sq workflow types --json` entry carries, as an exact set. `lifecycle` is
+ * required here though the client does not model it, so the decision written in `types.ts`
+ * cannot go stale unnoticed.
+ */
+const TYPE_ENTRY_KEYS = [
+  'type',
+  'order',
+  'prefix',
+  'reserved',
+  'category',
+  'subentity_kind',
+  'lifecycle',
+  'fields',
+  'labels',
+] as const;
 
 /** Same idea as `flattenTree`, for the single-root `sq graph --json` shape. */
 function flattenGraph(root: SqGraphNode): SqGraphNode[] {
@@ -388,363 +450,402 @@ describe('the list-row key assertion', () => {
   });
 });
 
-describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fixtures', () => {
-  let scratchDir: string;
-  let epicId: string;
-  let taskId: string;
+describe('the type-entry key assertion', () => {
+  const full: Record<string, unknown> = Object.fromEntries(
+    TYPE_ENTRY_KEYS.map((key) => [key, null]),
+  );
+  const { labels: _labels, ...withoutLabels } = full;
+  const { lifecycle: _lifecycle, ...withoutLifecycle } = full;
+  const { labels: _renamed, ...rest } = full;
 
-  function runSq(args: readonly string[]): string {
-    return execFileSync('sq', args, { cwd: scratchDir, encoding: 'utf8' });
-  }
+  const shapes: readonly { name: string; payload: object; passes: boolean }[] = [
+    { name: 'the full set', payload: full, passes: true },
+    {
+      name: 'the full set in reverse key order',
+      payload: Object.fromEntries(Object.entries(full).reverse()),
+      passes: true,
+    },
+    { name: 'labels missing', payload: withoutLabels, passes: false },
+    { name: 'lifecycle missing', payload: withoutLifecycle, passes: false },
+    { name: 'an extra key', payload: { ...full, extra_key: null }, passes: false },
+    { name: 'a renamed key', payload: { ...rest, label: null }, passes: false },
+  ];
 
-  function createItem(args: readonly string[]): string {
-    return (JSON.parse(runSq([...args, '--json'])) as CreatedItem).id;
-  }
-
-  beforeAll(() => {
-    // A throwaway squad, independent of this repo's own — real `sq`, real markdown files,
-    // real index, nothing mocked.
-    scratchDir = mkdtempSync(path.join(os.tmpdir(), 'squads-vscode-skew-canary-'));
-    runSq(['init', '--backend', 'none', '--roles', 'minimal', '--default-names']);
-
-    epicId = createItem(['create', 'epic', 'Canary root epic', '--author', 'manager']);
-    const featureId = createItem([
-      'create',
-      'feature',
-      'Canary child feature',
-      '--author',
-      'manager',
-      '--parent',
-      epicId,
-    ]);
-    taskId = createItem([
-      'create',
-      'task',
-      'Canary grandchild task',
-      '--author',
-      'manager',
-      '--parent',
-      featureId,
-    ]);
-    runSq(['task', taskId.replace(/^TASK-/, ''), 'body', '-m', 'Canary body paragraph.']);
-    // A ref (distinct from the parent/child hierarchy above) so `sq graph` has an edge to
-    // traverse, not just a childless root.
-    runSq(['task', taskId.replace(/^TASK-/, ''), 'ref', 'add', epicId, '--kind', 'related']);
-  });
-
-  afterAll(() => {
-    rmSync(scratchDir, { recursive: true, force: true });
-  });
-
-  describe('sq tree --json', () => {
-    it('every live node has the shape the adapter (and the committed fixture) expect', () => {
-      const parsed = JSON.parse(runSq(['tree', epicId, '--json'])) as unknown;
-      expect(Array.isArray(parsed)).toBe(true);
-
-      const nodes = flattenTree(parsed as SqTreeNode[]);
-      expect(nodes.length).toBeGreaterThanOrEqual(3); // the epic, feature, and task above
-
-      for (const node of nodes) {
-        expect(isSqTreeNode(node)).toBe(true);
-        assertExactTreeNodeKeys(node);
-        // `is_open` no longer exists on any surface — a client re-derives it from the
-        // referenced role's `settled`, joined through the statuses/roles catalogs.
-        expect(node).not.toHaveProperty('is_open');
-      }
-    });
-
-    it('the committed fixture still conforms to the shape the adapter accepts', () => {
-      const parsed = JSON.parse(fixture('tree.json')) as unknown;
-      const nodes = flattenTree(parsed as SqTreeNode[]);
-      expect(nodes.length).toBeGreaterThan(0);
-      for (const node of nodes) {
-        expect(isSqTreeNode(node)).toBe(true);
-      }
-    });
-  });
-
-  describe('sq graph --json', () => {
-    it('every live node has the shape the adapter (and the committed fixture) expect', () => {
-      const parsed = JSON.parse(runSq(['graph', taskId, '--json', '--all'])) as unknown;
-      expect(isSqGraphNode(parsed)).toBe(true);
-
-      const nodes = flattenGraph(parsed as SqGraphNode);
-      expect(nodes.length).toBeGreaterThanOrEqual(2); // the task root, plus the epic it refs
-
-      for (const node of nodes) {
-        expect(isSqGraphNode(node)).toBe(true);
-        assertExactGraphNodeKeys(node);
-      }
-    });
-
-    it('the committed fixture still conforms to the shape the adapter accepts', () => {
-      const root = JSON.parse(fixture('graph.json')) as unknown;
-      expect(isSqGraphNode(root)).toBe(true);
-      for (const node of flattenGraph(root as SqGraphNode)) {
-        expect(isSqGraphNode(node)).toBe(true);
-      }
-    });
-  });
-
-  describe('sq list --json', () => {
-    it('every live row has the shape the adapter (and the committed fixture) expect', () => {
-      const parsed = JSON.parse(runSq(['list', '--json'])) as unknown;
-      expect(Array.isArray(parsed)).toBe(true);
-
-      const rows = parsed as SqListItem[];
-      expect(rows.length).toBeGreaterThan(0);
-      for (const row of rows) {
-        expect(isSqListItem(row)).toBe(true);
-        assertExactListRowKeys(row);
-        // See the `sq tree --json` case above — same removal, same reason.
-        expect(row).not.toHaveProperty('is_open');
-      }
-    });
-
-    it('the committed fixture still conforms to the shape the adapter accepts', () => {
-      const rows = JSON.parse(fixture('list.json')) as unknown[];
-      expect(rows.length).toBeGreaterThan(0);
-      for (const row of rows) {
-        expect(isSqListItem(row)).toBe(true);
-      }
-    });
-  });
-
-  describe('sq workflow types --json', () => {
-    it('every live entry has the shape the adapter (and the committed fixture) expect', () => {
-      const parsed = JSON.parse(runSq(['workflow', 'types', '--json'])) as unknown;
-      expect(Array.isArray(parsed)).toBe(true);
-
-      const entries = parsed as SqTypeCatalogEntry[];
-      // Every declared type, work and reserved alike — at least the bundled defaults
-      // (epic/feature/task/bug/decision/review/guide) plus the 3 reserved meta types.
-      expect(entries.length).toBeGreaterThanOrEqual(10);
-      for (const entry of entries) {
-        expect(isSqTypeCatalogEntry(entry)).toBe(true);
-        expect(Object.keys(entry)).toEqual(
-          expect.arrayContaining([
-            'type',
-            'order',
-            'prefix',
-            'reserved',
-            'category',
-            'fields',
-            'subentity_kind',
-          ]),
-        );
-      }
-      // Present on every row, `null` where the type hosts no kind — the client joins on it and
-      // an omitted key would silently degrade every sub-entity badge to its raw field code.
-      expect(entries.every((entry) => entry.subentity_kind !== undefined)).toBe(true);
-      expect(entries.some((entry) => entry.subentity_kind === null)).toBe(true);
-      // Emitted in ascending resolved order, so the client's group-by-type sort can trust it
-      // directly rather than re-deriving anything.
-      const orders = entries.map((entry) => entry.order).filter((order) => order !== null);
-      expect(orders).toEqual([...orders].sort((a, b) => a - b));
-      expect(entries.some((entry) => entry.reserved)).toBe(true);
-      // Every reserved type is `roster`-category; a work type not otherwise
-      // records-category (e.g. `task`) is `work` — the join `domain/typeCategory.ts` relies on.
-      expect(entries.find((entry) => entry.type === 'task')?.category).toBe('work');
-      expect(
-        entries.filter((entry) => entry.reserved).every((entry) => entry.category === 'roster'),
-      ).toBe(true);
-      // The bug type's `fields` binds both its priority and severity codes to a collection
-      // (F19/F20's field->collection join) — a real, non-empty example, not just an empty array.
-      //
-      // `arrayContaining` here is a deliberate floor, not the same hole the key-set assertions
-      // above close: `fields` is a project's own declared field->collection bindings, an
-      // array whose LENGTH is genuinely open (a custom axis adds another entry) — unlike an
-      // object's key set, which is fixed by the schema the payload was built from. Each named
-      // entry is still checked for its exact three-key shape (`{code, label, collection}`,
-      // `FIELD_ENTRY_FIELDS` on the core side) via `toEqual`'s own equality, so this is a floor
-      // on which entries exist, never on what one entry itself carries.
-      const bug = entries.find((entry) => entry.type === 'bug');
-      expect(bug?.fields).toEqual(
-        expect.arrayContaining([
-          { code: 'priority', label: 'Priority', collection: 'priority' },
-          { code: 'severity', label: 'Severity', collection: 'severity' },
-        ]),
-      );
-    });
-
-    it('the committed fixture still conforms to the shape the adapter accepts', () => {
-      const entries = JSON.parse(fixture('type-catalog.json')) as unknown[];
-      expect(entries.length).toBeGreaterThan(0);
-      for (const entry of entries) {
-        expect(isSqTypeCatalogEntry(entry)).toBe(true);
-      }
-    });
-  });
-
-  describe('sq workflow collections --json', () => {
-    it('every live entry has the shape the adapter (and the committed fixture) expect', () => {
-      const parsed = JSON.parse(runSq(['workflow', 'collections', '--json'])) as unknown;
-      expect(Array.isArray(parsed)).toBe(true);
-
-      const entries = parsed as SqCollectionCatalogEntry[];
-      // At least the two bundled collections (priority, severity).
-      expect(entries.length).toBeGreaterThanOrEqual(2);
-      for (const entry of entries) {
-        expect(isSqCollectionCatalogEntry(entry)).toBe(true);
-        expect(Object.keys(entry)).toEqual(
-          expect.arrayContaining(['collection', 'label', 'ordered', 'default', 'badges']),
-        );
-        expect(entry.badges.length).toBeGreaterThan(0);
-      }
-      expect(entries.some((entry) => entry.collection === 'priority')).toBe(true);
-      expect(entries.some((entry) => entry.collection === 'severity')).toBe(true);
-    });
-
-    it('the committed fixture still conforms to the shape the adapter accepts', () => {
-      const entries = JSON.parse(fixture('collections-catalog.json')) as unknown[];
-      expect(entries.length).toBeGreaterThan(0);
-      for (const entry of entries) {
-        expect(isSqCollectionCatalogEntry(entry)).toBe(true);
-      }
-    });
-  });
-
-  describe('sq workflow statuses --json', () => {
-    it('every live entry has the shape the adapter (and the committed fixture) expect', () => {
-      const parsed = JSON.parse(runSq(['workflow', 'statuses', '--json'])) as unknown;
-      expect(Array.isArray(parsed)).toBe(true);
-
-      const entries = parsed as SqStatusCatalogEntry[];
-      expect(entries.length).toBeGreaterThan(0);
-      for (const entry of entries) {
-        expect(isSqStatusCatalogEntry(entry)).toBe(true);
-        expect(Object.keys(entry)).toEqual(expect.arrayContaining(['status', 'role', 'badge']));
-        // `terminal` no longer exists — a client re-derives it from the referenced
-        // role's `settled` via `sq workflow roles --json`.
-        expect(entry).not.toHaveProperty('terminal');
-      }
-      // InProgress carries the "active" semantic role — the join the client uses to color "work
-      // in flight" items, never by the literal status name.
-      const inProgress = entries.find((entry) => entry.status === 'InProgress');
-      expect(inProgress?.role).toBe('active');
-    });
-
-    it('the committed fixture still conforms to the shape the adapter accepts', () => {
-      const entries = JSON.parse(fixture('statuses-catalog.json')) as unknown[];
-      expect(entries.length).toBeGreaterThan(0);
-      for (const entry of entries) {
-        expect(isSqStatusCatalogEntry(entry)).toBe(true);
-      }
-    });
-  });
-
-  describe('sq workflow subentity-kinds --json', () => {
-    it('every live entry has the shape the adapter (and the committed fixture) expect', () => {
-      const parsed = JSON.parse(runSq(['workflow', 'subentity-kinds', '--json'])) as unknown;
-      expect(Array.isArray(parsed)).toBe(true);
-
-      const entries = parsed as SqSubEntityKindCatalogEntry[];
-      // At least the 3 bundled kinds (story, subtask, finding).
-      expect(entries.length).toBeGreaterThanOrEqual(3);
-      for (const entry of entries) {
-        expect(isSqSubEntityKindCatalogEntry(entry)).toBe(true);
-        expect(Object.keys(entry)).toEqual(
-          expect.arrayContaining([
-            'subentity_kind',
-            'lifecycle',
-            'plural',
-            'local_prefix',
-            'container_heading',
-            'completion',
-            'maps_parent_story',
-            'fields',
-          ]),
-        );
-      }
-      // The finding kind's declared axis, a real non-empty example of the entry shape the
-      // client reads — and the same `{code, label, collection}` shape a type row's own
-      // `fields` carries, which is what lets one resolver serve both levels.
-      //
-      // Same deliberate floor as the type catalog's `bug.fields` check above, for the same
-      // reason: a sub-entity kind's `fields` array length is open by declaration, not a fixed
-      // object key set.
-      const finding = entries.find((entry) => entry.subentity_kind === 'finding');
-      expect(finding?.fields).toEqual(
-        expect.arrayContaining([{ code: 'severity', label: 'Severity', collection: 'severity' }]),
-      );
-    });
-
-    it('the type catalog’s subentity_kind resolves to a row in this catalog', () => {
-      // The join itself, live: every non-null `subentity_kind` on a type row names a kind the
-      // kind catalog publishes. A rename on either side that broke this would leave the
-      // preview labelling sub-entity badges by their raw field code with nothing failing.
-      const types = JSON.parse(runSq(['workflow', 'types', '--json'])) as SqTypeCatalogEntry[];
-      const kinds = JSON.parse(
-        runSq(['workflow', 'subentity-kinds', '--json']),
-      ) as SqSubEntityKindCatalogEntry[];
-      const declared = new Set(kinds.map((entry) => entry.subentity_kind));
-      const hosted = types
-        .map((entry) => entry.subentity_kind)
-        .filter((kind): kind is string => typeof kind === 'string');
-
-      expect(hosted.length).toBeGreaterThan(0);
-      expect(hosted.every((kind) => declared.has(kind))).toBe(true);
-    });
-
-    it('the committed fixture still conforms to the shape the adapter accepts', () => {
-      const entries = JSON.parse(fixture('subentity-kinds-catalog.json')) as unknown[];
-      expect(entries.length).toBeGreaterThan(0);
-      for (const entry of entries) {
-        expect(isSqSubEntityKindCatalogEntry(entry)).toBe(true);
-      }
-    });
-  });
-
-  describe('sq workflow roles --json', () => {
-    it('every live entry has the shape the adapter (and the committed fixture) expect', () => {
-      const parsed = JSON.parse(runSq(['workflow', 'roles', '--json'])) as unknown;
-      expect(Array.isArray(parsed)).toBe(true);
-
-      const entries = parsed as SqRoleCatalogEntry[];
-      // At least the 8 bundled roles.
-      expect(entries.length).toBeGreaterThanOrEqual(8);
-      for (const entry of entries) {
-        expect(isSqRoleCatalogEntry(entry)).toBe(true);
-        expect(Object.keys(entry)).toEqual(
-          expect.arrayContaining(['role', 'settled', 'hidden', 'color', 'live']),
-        );
-      }
-      // "active" (work in flight): not settled, not hidden, a positive colour intent, and the
-      // one bundled role on offer — the join the client uses to colour "work in flight" items,
-      // never by the literal status name.
-      const active = entries.find((entry) => entry.role === 'active');
-      expect(active).toEqual({
-        role: 'active',
-        settled: false,
-        hidden: false,
-        color: 'positive',
-        live: true,
-      });
-      // "in_force" (a settled record that stays visible, e.g. Accepted/Published) is the
-      // case distinguishing it from "done" (settled AND hidden).
-      const inForce = entries.find((entry) => entry.role === 'in_force');
-      expect(inForce?.settled).toBe(true);
-      expect(inForce?.hidden).toBe(false);
-    });
-
-    it('the committed fixture still conforms to the shape the adapter accepts', () => {
-      const entries = JSON.parse(fixture('roles-catalog.json')) as unknown[];
-      expect(entries.length).toBeGreaterThan(0);
-      for (const entry of entries) {
-        expect(isSqRoleCatalogEntry(entry)).toBe(true);
-      }
-    });
-  });
-
-  describe('sq show <id> --raw', () => {
-    it('the live dossier is clean markdown with no Rich box chrome', () => {
-      const stdout = runSq(['show', taskId, '--raw']);
-      assertCleanMarkdownDossier(stdout);
-      expect(stdout).toContain(`# ${taskId} —`);
-    });
-
-    it('the committed fixture still conforms to the clean-markdown contract', () => {
-      assertCleanMarkdownDossier(fixture('show-raw.txt'));
-    });
+  it.each(shapes)('$name', ({ payload, passes }) => {
+    const run = (): void => {
+      assertExactKeys(payload, TYPE_ENTRY_KEYS);
+    };
+    if (passes) {
+      expect(run).not.toThrow();
+    } else {
+      expect(run).toThrow();
+    }
   });
 });
+
+describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
+  'integration skew canary: live sq vs committed fixtures',
+  () => {
+    let scratchDir: string | undefined;
+    let epicId: string;
+    let taskId: string;
+
+    function runSq(args: readonly string[]): string {
+      if (SQ === undefined || scratchDir === undefined) {
+        throw new Error('sq or the scratch dir is not ready');
+      }
+      return execSq(SQ, args, scratchDir);
+    }
+
+    function createItem(args: readonly string[]): string {
+      return (JSON.parse(runSq([...args, '--json'])) as CreatedItem).id;
+    }
+
+    beforeAll(() => {
+      if (PIN_FAILURE !== undefined) {
+        throw new Error(PIN_FAILURE);
+      }
+      // A throwaway squad, independent of this repo's own — real `sq`, real markdown files,
+      // real index, nothing mocked.
+      scratchDir = mkdtempSync(path.join(os.tmpdir(), 'squads-vscode-skew-canary-'));
+      // Nothing is written before the invocation is proven to run in the scratch dir: it has no
+      // squad yet, so a squad found from it means `sq` is running somewhere else.
+      if (SQ !== undefined && sqSeesASquadFrom(SQ, scratchDir)) {
+        throw new Error('the resolved sq finds a squad from the scratch dir; refusing to write');
+      }
+      runSq(['init', '--backend', 'none', '--roles', 'minimal', '--default-names']);
+
+      epicId = createItem(['create', 'epic', 'Canary root epic', '--author', 'manager']);
+      const featureId = createItem([
+        'create',
+        'feature',
+        'Canary child feature',
+        '--author',
+        'manager',
+        '--parent',
+        epicId,
+      ]);
+      taskId = createItem([
+        'create',
+        'task',
+        'Canary grandchild task',
+        '--author',
+        'manager',
+        '--parent',
+        featureId,
+      ]);
+      runSq(['task', taskId.replace(/^TASK-/, ''), 'body', '-m', 'Canary body paragraph.']);
+      // A ref (distinct from the parent/child hierarchy above) so `sq graph` has an edge to
+      // traverse, not just a childless root.
+      runSq(['task', taskId.replace(/^TASK-/, ''), 'ref', 'add', epicId, '--kind', 'related']);
+    });
+
+    afterAll(() => {
+      if (scratchDir !== undefined) {
+        rmSync(scratchDir, { recursive: true, force: true });
+      }
+    });
+
+    describe('sq tree --json', () => {
+      it('every live node has the shape the adapter (and the committed fixture) expect', () => {
+        const parsed = JSON.parse(runSq(['tree', epicId, '--json'])) as unknown;
+        expect(Array.isArray(parsed)).toBe(true);
+
+        const nodes = flattenTree(parsed as SqTreeNode[]);
+        expect(nodes.length).toBeGreaterThanOrEqual(3); // the epic, feature, and task above
+
+        for (const node of nodes) {
+          expect(isSqTreeNode(node)).toBe(true);
+          assertExactTreeNodeKeys(node);
+          // `is_open` no longer exists on any surface — a client re-derives it from the
+          // referenced role's `settled`, joined through the statuses/roles catalogs.
+          expect(node).not.toHaveProperty('is_open');
+        }
+      });
+
+      it('the committed fixture still conforms to the shape the adapter accepts', () => {
+        const parsed = JSON.parse(fixture('tree.json')) as unknown;
+        const nodes = flattenTree(parsed as SqTreeNode[]);
+        expect(nodes.length).toBeGreaterThan(0);
+        for (const node of nodes) {
+          expect(isSqTreeNode(node)).toBe(true);
+        }
+      });
+    });
+
+    describe('sq graph --json', () => {
+      it('every live node has the shape the adapter (and the committed fixture) expect', () => {
+        const parsed = JSON.parse(runSq(['graph', taskId, '--json', '--all'])) as unknown;
+        expect(isSqGraphNode(parsed)).toBe(true);
+
+        const nodes = flattenGraph(parsed as SqGraphNode);
+        expect(nodes.length).toBeGreaterThanOrEqual(2); // the task root, plus the epic it refs
+
+        for (const node of nodes) {
+          expect(isSqGraphNode(node)).toBe(true);
+          assertExactGraphNodeKeys(node);
+        }
+      });
+
+      it('the committed fixture still conforms to the shape the adapter accepts', () => {
+        const root = JSON.parse(fixture('graph.json')) as unknown;
+        expect(isSqGraphNode(root)).toBe(true);
+        for (const node of flattenGraph(root as SqGraphNode)) {
+          expect(isSqGraphNode(node)).toBe(true);
+        }
+      });
+    });
+
+    describe('sq list --json', () => {
+      it('every live row has the shape the adapter (and the committed fixture) expect', () => {
+        const parsed = JSON.parse(runSq(['list', '--json'])) as unknown;
+        expect(Array.isArray(parsed)).toBe(true);
+
+        const rows = parsed as SqListItem[];
+        expect(rows.length).toBeGreaterThan(0);
+        for (const row of rows) {
+          expect(isSqListItem(row)).toBe(true);
+          assertExactListRowKeys(row);
+          // See the `sq tree --json` case above — same removal, same reason.
+          expect(row).not.toHaveProperty('is_open');
+        }
+      });
+
+      it('the committed fixture still conforms to the shape the adapter accepts', () => {
+        const rows = JSON.parse(fixture('list.json')) as unknown[];
+        expect(rows.length).toBeGreaterThan(0);
+        for (const row of rows) {
+          expect(isSqListItem(row)).toBe(true);
+        }
+      });
+    });
+
+    describe('sq workflow types --json', () => {
+      it('every live entry has the shape the adapter (and the committed fixture) expect', () => {
+        const parsed = JSON.parse(runSq(['workflow', 'types', '--json'])) as unknown;
+        expect(Array.isArray(parsed)).toBe(true);
+
+        const entries = parsed as SqTypeCatalogEntry[];
+        // Every declared type, work and reserved alike — at least the bundled defaults
+        // (epic/feature/task/bug/decision/review/guide) plus the 3 reserved meta types.
+        expect(entries.length).toBeGreaterThanOrEqual(10);
+        for (const entry of entries) {
+          expect(isSqTypeCatalogEntry(entry)).toBe(true);
+          assertExactKeys(entry, TYPE_ENTRY_KEYS);
+        }
+        // Present on every row, `null` where the type hosts no kind — the client joins on it and
+        // an omitted key would silently degrade every sub-entity badge to its raw field code.
+        expect(entries.every((entry) => entry.subentity_kind !== undefined)).toBe(true);
+        expect(entries.some((entry) => entry.subentity_kind === null)).toBe(true);
+        // Emitted in ascending resolved order, so the client's group-by-type sort can trust it
+        // directly rather than re-deriving anything.
+        const orders = entries.map((entry) => entry.order).filter((order) => order !== null);
+        expect(orders).toEqual([...orders].sort((a, b) => a - b));
+        expect(entries.some((entry) => entry.reserved)).toBe(true);
+        // Every reserved type is `roster`-category; a work type not otherwise
+        // records-category (e.g. `task`) is `work` — the join `domain/typeCategory.ts` relies on.
+        expect(entries.find((entry) => entry.type === 'task')?.category).toBe('work');
+        expect(
+          entries.filter((entry) => entry.reserved).every((entry) => entry.category === 'roster'),
+        ).toBe(true);
+        // The bug type's `fields` binds both its priority and severity codes to a collection
+        // (F19/F20's field->collection join) — a real, non-empty example, not just an empty array.
+        //
+        // `arrayContaining` here is a deliberate floor, not the same hole the key-set assertions
+        // above close: `fields` is a project's own declared field->collection bindings, an
+        // array whose LENGTH is genuinely open (a custom axis adds another entry) — unlike an
+        // object's key set, which is fixed by the schema the payload was built from. Each named
+        // entry is still checked for its exact three-key shape (`{code, label, collection}`,
+        // `FIELD_ENTRY_FIELDS` on the core side) via `toEqual`'s own equality, so this is a floor
+        // on which entries exist, never on what one entry itself carries.
+        const bug = entries.find((entry) => entry.type === 'bug');
+        expect(bug?.fields).toEqual(
+          expect.arrayContaining([
+            { code: 'priority', label: 'Priority', collection: 'priority' },
+            { code: 'severity', label: 'Severity', collection: 'severity' },
+          ]),
+        );
+      });
+
+      it('the committed fixture still conforms to the shape the adapter accepts', () => {
+        const entries = JSON.parse(fixture('type-catalog.json')) as unknown[];
+        expect(entries.length).toBeGreaterThan(0);
+        for (const entry of entries) {
+          expect(isSqTypeCatalogEntry(entry)).toBe(true);
+        }
+      });
+    });
+
+    describe('sq workflow collections --json', () => {
+      it('every live entry has the shape the adapter (and the committed fixture) expect', () => {
+        const parsed = JSON.parse(runSq(['workflow', 'collections', '--json'])) as unknown;
+        expect(Array.isArray(parsed)).toBe(true);
+
+        const entries = parsed as SqCollectionCatalogEntry[];
+        // At least the two bundled collections (priority, severity).
+        expect(entries.length).toBeGreaterThanOrEqual(2);
+        for (const entry of entries) {
+          expect(isSqCollectionCatalogEntry(entry)).toBe(true);
+          expect(Object.keys(entry)).toEqual(
+            expect.arrayContaining(['collection', 'label', 'ordered', 'default', 'badges']),
+          );
+          expect(entry.badges.length).toBeGreaterThan(0);
+        }
+        expect(entries.some((entry) => entry.collection === 'priority')).toBe(true);
+        expect(entries.some((entry) => entry.collection === 'severity')).toBe(true);
+      });
+
+      it('the committed fixture still conforms to the shape the adapter accepts', () => {
+        const entries = JSON.parse(fixture('collections-catalog.json')) as unknown[];
+        expect(entries.length).toBeGreaterThan(0);
+        for (const entry of entries) {
+          expect(isSqCollectionCatalogEntry(entry)).toBe(true);
+        }
+      });
+    });
+
+    describe('sq workflow statuses --json', () => {
+      it('every live entry has the shape the adapter (and the committed fixture) expect', () => {
+        const parsed = JSON.parse(runSq(['workflow', 'statuses', '--json'])) as unknown;
+        expect(Array.isArray(parsed)).toBe(true);
+
+        const entries = parsed as SqStatusCatalogEntry[];
+        expect(entries.length).toBeGreaterThan(0);
+        for (const entry of entries) {
+          expect(isSqStatusCatalogEntry(entry)).toBe(true);
+          expect(Object.keys(entry)).toEqual(expect.arrayContaining(['status', 'role', 'badge']));
+          // `terminal` no longer exists — a client re-derives it from the referenced
+          // role's `settled` via `sq workflow roles --json`.
+          expect(entry).not.toHaveProperty('terminal');
+        }
+        // InProgress carries the "active" semantic role — the join the client uses to color "work
+        // in flight" items, never by the literal status name.
+        const inProgress = entries.find((entry) => entry.status === 'InProgress');
+        expect(inProgress?.role).toBe('active');
+      });
+
+      it('the committed fixture still conforms to the shape the adapter accepts', () => {
+        const entries = JSON.parse(fixture('statuses-catalog.json')) as unknown[];
+        expect(entries.length).toBeGreaterThan(0);
+        for (const entry of entries) {
+          expect(isSqStatusCatalogEntry(entry)).toBe(true);
+        }
+      });
+    });
+
+    describe('sq workflow subentity-kinds --json', () => {
+      it('every live entry has the shape the adapter (and the committed fixture) expect', () => {
+        const parsed = JSON.parse(runSq(['workflow', 'subentity-kinds', '--json'])) as unknown;
+        expect(Array.isArray(parsed)).toBe(true);
+
+        const entries = parsed as SqSubEntityKindCatalogEntry[];
+        // At least the 3 bundled kinds (story, subtask, finding).
+        expect(entries.length).toBeGreaterThanOrEqual(3);
+        for (const entry of entries) {
+          expect(isSqSubEntityKindCatalogEntry(entry)).toBe(true);
+          expect(Object.keys(entry)).toEqual(
+            expect.arrayContaining([
+              'subentity_kind',
+              'lifecycle',
+              'plural',
+              'local_prefix',
+              'container_heading',
+              'completion',
+              'maps_parent_story',
+              'fields',
+            ]),
+          );
+        }
+        // The finding kind's declared axis, a real non-empty example of the entry shape the
+        // client reads — and the same `{code, label, collection}` shape a type row's own
+        // `fields` carries, which is what lets one resolver serve both levels.
+        //
+        // Same deliberate floor as the type catalog's `bug.fields` check above, for the same
+        // reason: a sub-entity kind's `fields` array length is open by declaration, not a fixed
+        // object key set.
+        const finding = entries.find((entry) => entry.subentity_kind === 'finding');
+        expect(finding?.fields).toEqual(
+          expect.arrayContaining([{ code: 'severity', label: 'Severity', collection: 'severity' }]),
+        );
+      });
+
+      it('the type catalog’s subentity_kind resolves to a row in this catalog', () => {
+        // The join itself, live: every non-null `subentity_kind` on a type row names a kind the
+        // kind catalog publishes. A rename on either side that broke this would leave the
+        // preview labelling sub-entity badges by their raw field code with nothing failing.
+        const types = JSON.parse(runSq(['workflow', 'types', '--json'])) as SqTypeCatalogEntry[];
+        const kinds = JSON.parse(
+          runSq(['workflow', 'subentity-kinds', '--json']),
+        ) as SqSubEntityKindCatalogEntry[];
+        const declared = new Set(kinds.map((entry) => entry.subentity_kind));
+        const hosted = types
+          .map((entry) => entry.subentity_kind)
+          .filter((kind): kind is string => typeof kind === 'string');
+
+        expect(hosted.length).toBeGreaterThan(0);
+        expect(hosted.every((kind) => declared.has(kind))).toBe(true);
+      });
+
+      it('the committed fixture still conforms to the shape the adapter accepts', () => {
+        const entries = JSON.parse(fixture('subentity-kinds-catalog.json')) as unknown[];
+        expect(entries.length).toBeGreaterThan(0);
+        for (const entry of entries) {
+          expect(isSqSubEntityKindCatalogEntry(entry)).toBe(true);
+        }
+      });
+    });
+
+    describe('sq workflow roles --json', () => {
+      it('every live entry has the shape the adapter (and the committed fixture) expect', () => {
+        const parsed = JSON.parse(runSq(['workflow', 'roles', '--json'])) as unknown;
+        expect(Array.isArray(parsed)).toBe(true);
+
+        const entries = parsed as SqRoleCatalogEntry[];
+        // At least the 8 bundled roles.
+        expect(entries.length).toBeGreaterThanOrEqual(8);
+        for (const entry of entries) {
+          expect(isSqRoleCatalogEntry(entry)).toBe(true);
+          expect(Object.keys(entry)).toEqual(
+            expect.arrayContaining(['role', 'settled', 'hidden', 'color', 'live']),
+          );
+        }
+        // "active" (work in flight): not settled, not hidden, a positive colour intent, and the
+        // one bundled role on offer — the join the client uses to colour "work in flight" items,
+        // never by the literal status name.
+        const active = entries.find((entry) => entry.role === 'active');
+        expect(active).toEqual({
+          role: 'active',
+          settled: false,
+          hidden: false,
+          color: 'positive',
+          live: true,
+        });
+        // "in_force" (a settled record that stays visible, e.g. Accepted/Published) is the
+        // case distinguishing it from "done" (settled AND hidden).
+        const inForce = entries.find((entry) => entry.role === 'in_force');
+        expect(inForce?.settled).toBe(true);
+        expect(inForce?.hidden).toBe(false);
+      });
+
+      it('the committed fixture still conforms to the shape the adapter accepts', () => {
+        const entries = JSON.parse(fixture('roles-catalog.json')) as unknown[];
+        expect(entries.length).toBeGreaterThan(0);
+        for (const entry of entries) {
+          expect(isSqRoleCatalogEntry(entry)).toBe(true);
+        }
+      });
+    });
+
+    describe('sq show <id> --raw', () => {
+      it('the live dossier is clean markdown with no Rich box chrome', () => {
+        const stdout = runSq(['show', taskId, '--raw']);
+        assertCleanMarkdownDossier(stdout);
+        expect(stdout).toContain(`# ${taskId} —`);
+      });
+
+      it('the committed fixture still conforms to the clean-markdown contract', () => {
+        assertCleanMarkdownDossier(fixture('show-raw.txt'));
+      });
+    });
+  },
+);

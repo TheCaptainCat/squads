@@ -1,15 +1,24 @@
-"""The `sq check` advisory that flags a leading status/lifecycle banner in a body or
-description: STATUS: lines, a leading '## Status' heading, and a bold banner all fire;
-a topical lifecycle mention, a cross-reference to another item's status, fenced-code
-text, and discussion content never do. Warn-level only — never affects other issue
-levels. CLI surfacing lives in tests/cli/test_status_banner_advisory_check_cli.py.
+"""The `sq check` advisory (selected by the type's own `validators` list) that flags a leading
+status/lifecycle banner in a body or description: STATUS: lines, a leading '## Status'
+heading, and a bold banner all fire; a topical lifecycle mention, a cross-reference to
+another item's status, fenced-code text, and discussion content never do. Warn-level only,
+never affecting other issue levels. CLI surfacing lives in
+tests/cli/test_status_banner_advisory_check_cli.py.
 """
 
 import pytest
 
 from _helpers import create_item
+from _selection_table import service_with
 
 pytestmark = pytest.mark.anyio
+
+
+@pytest.fixture
+def svc(project):
+    """A service whose feature type selects the check -- every case below runs on it, so a
+    silence is asserted on a type that runs the check."""
+    return service_with(project.squad_dir, '[items.feature]\nvalidators = ["no_status_banner"]\n')
 
 
 def _banner_issues(issues):

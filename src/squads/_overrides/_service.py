@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from squads import __version__
+from squads import _views as views
 from squads._errors import SquadsError
 from squads._interactions import is_dev_slug
 from squads._interactions._loader import (
@@ -1348,6 +1349,12 @@ def _check_template_override_issues(squad_dir: Path) -> list[tuple[str, str, str
         rel = path.relative_to(tmpl_dir).as_posix()
         display = f".overrides/templates/{rel}"
         text = path.read_text(encoding="utf-8")
+
+        if _is_item_or_role_template(rel):
+            issues += [
+                ("warn", display, views.out_of_region_view_warning(tag))
+                for tag in views.out_of_region_view_tags(text)
+            ]
 
         # Error: missing required markers (structural breakage).
         if _is_item_or_role_template(rel):

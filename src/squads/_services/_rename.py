@@ -272,6 +272,7 @@ class RenameMixin(ServiceCore):
         new_status = str(new_status)
         async with self.store.transaction() as db:
             _validate_rename_status(self.spec, item_type, new_status)
+            await self._refuse_any_duplicated_id()
 
             matching = sorted(
                 (

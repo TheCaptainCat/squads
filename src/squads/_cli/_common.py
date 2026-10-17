@@ -1,6 +1,7 @@
 """Shared CLI helpers: console, error handling, service resolution, value parsing."""
 
 import contextlib
+import enum
 import functools
 import json
 import sys
@@ -43,8 +44,9 @@ from squads._paths import resolve
 from squads._rendering._engine import set_active_squad_dir
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import dev_base_for_slug, resolve_role_with_base, role_base_from_item
-from squads._services._results import BlockResult, SubentityDetail
-from squads._services._service import Service, open_service
+from squads._services._results import BlockResult, SelfRemedied, SubentityDetail
+from squads._services._service import Service, open_service, resolve_playbook
+from squads._util import version_tuple
 from squads._workflow import CATEGORIES, ROSTER_OPERATOR, ROSTER_ROLE, bundled_spec
 from squads._workflow._models import RESERVED_CLI_ALIASES, WorkflowSpec, reserved_alias_owner
 
@@ -424,6 +426,28 @@ def spec_error_command(cmd_name: str, ctx: Any = None) -> _click.Command | None:
     leaf: _click.Command = typer.main.get_command(refusal_app)  # type: ignore[assignment]
     leaf.name = cmd_name
     return leaf
+
+
+async def warn_duplicate_id(svc: Service, item: Item) -> None:
+    """Warn on stderr when more than one file carries *item*'s id: the file shown is the
+    indexed one, and only `sq check` says which files the others are."""
+    message = await svc.duplicate_id_error(item)
+    if message is not None:
+        err_console.print(
+            f"[yellow]warning:[/yellow] {e(message)} -- showing the indexed file; run `sq check`",
+            soft_wrap=True,
+        )
+
+
+def unreadable_report(msg: str) -> str:
+    """One ``repair``/``adopt``/``migrate`` line for an unreadable file. A line that carries its
+    own remedy is printed as is; every other file gets the generic carried-forward note."""
+    if isinstance(msg, SelfRemedied):
+        return f"[red]error[/red]: {e(msg)}"
+    return (
+        f"[red]error[/red]: {e(msg)} — its previous index entry, if any, was carried "
+        "forward as-is; fix the file and repair again"
+    )
 
 
 def e(value: object) -> str:
@@ -1282,7 +1306,7 @@ def _build_plain_service() -> Service:
     return open_service(ctx.active_dir, client_cwd=ctx.client_cwd, resolved_spec=ctx.active_spec)
 
 
-def get_service_bypassing_index_cross_check() -> Service:
+def get_service_bypassing_index_cross_check(*, bundled_fallback: bool = True) -> Service:
     """Like :func:`get_service`, but for the one class of caller that must never be blocked by
     ``open_service``'s live-index cross-check: a maintenance command whose entire job is fixing
     exactly what that cross-check can refuse over — a corpus/spec conflict, or (just as often) a
@@ -1307,6 +1331,11 @@ def get_service_bypassing_index_cross_check() -> Service:
     cross-check-skipping instance, and this function reusing its own memo never masks a
     genuine, still-current refusal behind a stale success.
 
+    With ``bundled_fallback=False`` step 3 does not exist: an override that will not load stops
+    the caller with the file and the loader's cause, and the service carries the playbook
+    resolved beside the spec. That is the one caller (``sq migrate up``) that must run under the
+    vocabulary the squad declared or not at all.
+
     Re-establishes the active-squad-dir ContextVar on a memo hit for the same reason
     :func:`get_service` does — see its docstring.
     """
@@ -1319,25 +1348,39 @@ def get_service_bypassing_index_cross_check() -> Service:
         try:
             return get_service()
         except SquadsError:
-            svc = _build_bypass_fallback_service()
+            svc = _build_bypass_fallback_service(bundled_fallback=bundled_fallback)
             root.meta[_BYPASS_SERVICE_META_KEY] = svc
             return svc
     try:
         return get_service()
     except SquadsError:
-        return _build_bypass_fallback_service()
+        return _build_bypass_fallback_service(bundled_fallback=bundled_fallback)
 
 
-def _build_bypass_fallback_service() -> Service:
+def _build_bypass_fallback_service(*, bundled_fallback: bool = True) -> Service:
     ctx = get_context()
     sp = resolve(ctx.active_dir, client_cwd=ctx.client_cwd)
-    try:
-        from squads._workflow._loader import load_workflow_spec
+    from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, load_workflow_spec
 
+    try:
         merged_spec = load_workflow_spec(squad_dir=sp.squad_dir)
-    except SquadsError:
-        merged_spec = bundled_spec()
-    return Service(sp, spec=merged_spec)
+    except SquadsError as exc:
+        if bundled_fallback:
+            return Service(sp, spec=bundled_spec())
+        raise SquadsError(
+            "this squad's workflow override could not be loaded, so `sq migrate up` cannot run "
+            "under the vocabulary it declares.\n"
+            f"  file:  {sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME}\n"
+            f"  cause: {exc}\n"
+            "Correct the file, then re-run `sq migrate up`."
+        ) from exc
+    if bundled_fallback:
+        return Service(sp, spec=merged_spec)
+    try:
+        playbook = resolve_playbook(merged_spec, sp.squad_dir)
+    except SquadsError as exc:
+        raise SquadsError(f"{exc}\nCorrect the file, then re-run `sq migrate up`.") from exc
+    return Service(sp, spec=merged_spec, playbook=playbook)
 
 
 def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:
@@ -1412,20 +1455,14 @@ def _close_read_scope(root: _click.core.Context) -> None:
     root.meta.pop(_BYPASS_SERVICE_META_KEY, None)
 
 
-def version_tuple(version: str) -> tuple[int, ...]:
-    parts: list[int] = []
-    for p in version.split("."):
-        num = "".join(c for c in p if c.isdigit())
-        parts.append(int(num) if num else 0)
-    return tuple(parts)
-
-
 def version_notice() -> None:
     """Print a non-fatal notice if the installed squads is newer than the managed files."""
     try:
         sp = resolve(get_context().active_dir, client_cwd=get_context().client_cwd)
     except SquadsError:
         return  # not initialized yet (e.g. before `sq init`)
+    if sp.config.schema_version != SCHEMA_VERSION:
+        return  # `sq sync` is refused until the schema matches
     recorded = sp.config.squads_version
     if recorded and version_tuple(__version__) > version_tuple(recorded):
         err_console.print(
@@ -1435,12 +1472,91 @@ def version_notice() -> None:
         )
 
 
-def require_current_schema(subcommand: str | None) -> None:
-    """Hard-stop when the squad's on-disk schema mismatches this build — except for migrate/help.
+class Ground(enum.StrEnum):
+    """Why a command may run on a squad whose schema differs from the package's."""
 
-    Behind → tell the user to run ``sq migrate``; ahead → tell them to upgrade the package.
-    """
-    if subcommand in (None, "migrate") or "--help" in sys.argv or "-h" in sys.argv:
+    #: It is the migration: it advances the corpus, so it runs only on a squad that is behind.
+    MIGRATION = "is the migration"
+    #: It reads the package's own registry and touches no squad state.
+    NO_SQUAD_STATE = "touches no squad state"
+    #: It holds the reconcile licence. The reconcile is a routine, not a command.
+    LICENCE = "holds the reconcile licence"
+
+
+@dataclass(frozen=True)
+class GateGrant:
+    """A command's declaration: the ground it gets past the gate on, and the directions."""
+
+    ground: Ground
+    behind: bool
+    ahead: bool
+
+    def covers(self, *, behind: bool) -> bool:
+        return self.behind if behind else self.ahead
+
+
+_GRANT_ATTR = "__sq_gate_grant__"
+
+
+def past_the_gate[F: Callable[..., Any]](
+    ground: Ground, *, behind: bool = False, ahead: bool = False
+) -> Callable[[F], F]:
+    """Declare that a command runs on a squad whose schema differs from the package's, on
+    *ground*, for the directions given. A command without the declaration is refused there."""
+
+    def _mark(fn: F) -> F:
+        setattr(fn, _GRANT_ATTR, GateGrant(ground, behind, ahead))
+        return fn
+
+    return _mark
+
+
+def gate_grant(fn: Callable[..., Any]) -> GateGrant | None:
+    """The declaration on *fn*, or ``None``."""
+    grant = getattr(fn, _GRANT_ATTR, None)
+    return grant if isinstance(grant, GateGrant) else None
+
+
+def _value_options() -> frozenset[str]:
+    """Every option spelling, across the whole command tree, that consumes the next token."""
+    import typer.main
+    from typer.core import TyperGroup, TyperOption
+
+    from squads._cli import app
+
+    names: set[str] = set()
+    pending: list[_click.Command] = [typer.main.get_command(app)]
+    while pending:
+        command = pending.pop()
+        for param in command.params:
+            if isinstance(param, TyperOption) and not param.is_flag and not param.count:
+                names.update(param.opts, param.secondary_opts)
+        if isinstance(command, TyperGroup):
+            pending.extend(command.commands.values())
+    return frozenset(names)
+
+
+def help_requested(argv: list[str]) -> bool:
+    """Whether *argv* carries ``--help`` as an option of its own: before any ``--`` and not the
+    value of an option that takes one. ``-h`` is not a help option of this CLI."""
+    values = _value_options()
+    consumed = False
+    for token in argv:
+        if consumed:
+            consumed = False
+        elif token == "--":
+            return False
+        elif token == "--help":
+            return True
+        else:
+            consumed = token in values
+    return False
+
+
+def apply_gate(grant: GateGrant | None) -> None:
+    """Hard-stop when the squad's on-disk schema mismatches this build, unless *grant* covers the
+    direction. Behind: tell the user to run ``sq migrate up``; ahead: tell them to upgrade."""
+    if help_requested(sys.argv[1:]):
         return
     try:
         sp = resolve(get_context().active_dir, client_cwd=get_context().client_cwd)
@@ -1449,7 +1565,10 @@ def require_current_schema(subcommand: str | None) -> None:
     disk = sp.config.schema_version
     if disk == SCHEMA_VERSION:
         return
-    if schema_tuple(disk) < schema_tuple(SCHEMA_VERSION):
+    behind = schema_tuple(disk) < schema_tuple(SCHEMA_VERSION)
+    if grant is not None and grant.covers(behind=behind):
+        return
+    if behind:
         err_console.print(
             f"[red]error:[/red] this squad is at schema v{disk}; squads {__version__} "
             f"expects v{SCHEMA_VERSION}. Run [bold]sq migrate up[/bold] to upgrade it "
@@ -1463,6 +1582,15 @@ def require_current_schema(subcommand: str | None) -> None:
             soft_wrap=True,
         )
     raise typer.Exit(1)
+
+
+def require_current_schema(subcommand: str | None) -> None:
+    """The root gate: every command outside the ``migrate`` group is refused on a squad whose
+    schema differs from this build. ``migrate`` decides for its own commands, by the grants they
+    declare (see its group callback)."""
+    if subcommand in (None, "migrate"):
+        return
+    apply_gate(None)
 
 
 def _article(word: str) -> str:

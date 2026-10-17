@@ -377,6 +377,8 @@ async def show_role(
         print_json_clean(json.dumps(data))
         return
 
+    if it is not None:
+        await common.warn_duplicate_id(svc, it)
     # Build the catalog card from the resolved role definition (project override → bundled).
     # `r` is kept past the try/except (`None` when resolution fails) — the rendered
     # definition below reuses this exact resolution rather than resolving a second time.

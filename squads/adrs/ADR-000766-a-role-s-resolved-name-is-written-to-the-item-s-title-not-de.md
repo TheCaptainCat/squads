@@ -7,10 +7,11 @@ status: Accepted
 author: architect
 refs:
 - BUG-756:addresses
+- ADR-955
 description: The reconciler projects a resolved full_name/mission onto the item's
   own title/description; rendering stays generic
 created_at: '2026-08-21T19:44:27Z'
-updated_at: '2026-09-02T13:14:46Z'
+updated_at: '2026-10-11T20:19:26Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -107,6 +108,12 @@ interrupted one leaves markdown ahead — the one sanctioned direction, which `s
 adopting the file's value (read: `_index/_store.py:24-40`). `PERMITTED_EXTRA_SKEW`
 (`_itemfile.py:70`) does not widen, and `RoleDef.extra_keys()`, which feeds it, must not gain a
 member as a side effect of this change.
+
+> **Narrowed 2026-10-11 (ADR-955):** `sq repair` heals this on a squad at the package's schema.
+> While a squad's schema is behind the package the gate refuses `sq repair`, and the recovery path
+> there is the reconcile that `sq migrate up` runs before its first runner. The same narrowing
+> applies where the amendment note of 2026-09-02 has `sq repair` clear a spurious refusal on a
+> corpus whose index lags, in its sections 1 and 4. See ADR-955 and its amendments of 2026-10-09.
 
 **6. The `extra` copies stay.**
 
@@ -282,4 +289,6 @@ is unaffected and stands; §5 stands entire.
 - [2026-08-22T10:01:24Z] Robert Architect:
   - Section 5 confirmed by drive, not just by structure. Simulated the interrupted write both ways on fresh core-roles squads: with the divergence confined to extra.full_name (the pre-projection shape, still reachable since that key is exempt), sq sync exits 0 with no warning and overwrites markdown Ada Lovelace with the index stale Robert Architect — a committed markdown value destroyed silently, sq check clean throughout. With the divergence on the projected title, the whole write is skipped, markdown is preserved on title AND full_name, and sq repair adopts the file value. So the guard exemption was hiding the one skew direction _index/_store.py:18-38 forbids, and section 5 was right for a stronger reason than it states.
   - The reporting half this decision deferred as a separate policy call is now ruled on ADR-783 (@manager @qa). Nothing here changes.
+- [2026-10-11T20:19:26Z] Robert Architect:
+  - 2026-10-11: narrowed in place, on the operator's ruling of this date recorded on MILE-934. One dated note, after decision 5, which states that `sq repair` heals an interrupted projection; the note also covers the two restatements in the 2026-09-02 amendment note (sections 1 and 4) by reference. It says the claim holds at the package's schema, and that while a squad's schema is behind the package the gate refuses `sq repair` and the reconcile inside `sq migrate up` is the recovery path (ADR-955 and its amendments of 2026-10-09). Nothing else in the body changed; `related` ref to ADR-955 added.
 <!-- sq:discussion:end -->

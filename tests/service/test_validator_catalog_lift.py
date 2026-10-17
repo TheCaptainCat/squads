@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from _helpers import create_item
+from _selection_table import service_with
 from squads._interactions import TITLE_ADVISORY_MAX
 from squads._services._validators import (
     CATALOG,
@@ -208,7 +209,17 @@ async def test_subentity_body_written_is_silent_once_written(svc):
 # --------------------------------------------------------------------------- subentity_title_max
 
 
-async def test_subentity_title_max_flags_an_over_long_title(svc):
+@pytest.fixture
+def title_svc(project):
+    """A service whose feature type selects the title check -- the member resolves no
+    threshold, and so reports nothing, on a type that does not."""
+    return service_with(
+        project.squad_dir, '[items.feature]\nvalidators = ["subentity_title_max"]\n'
+    )
+
+
+async def test_subentity_title_max_flags_an_over_long_title(title_svc):
+    svc = title_svc
     feat = (await create_item(svc, "feature", "f")).item
     await svc.add_story(feat.id, "x" * (TITLE_ADVISORY_MAX + 1))
     db = await svc.store.load()
@@ -218,9 +229,18 @@ async def test_subentity_title_max_flags_an_over_long_title(svc):
     assert str(TITLE_ADVISORY_MAX) in issues[0].message
 
 
-async def test_subentity_title_max_is_silent_at_the_threshold(svc):
+async def test_subentity_title_max_is_silent_at_the_threshold(title_svc):
+    svc = title_svc
     feat = (await create_item(svc, "feature", "f")).item
     await svc.add_story(feat.id, "x" * TITLE_ADVISORY_MAX)
+    db = await svc.store.load()
+    ctx = ValidatorContext(item=db.get(feat.id), spec=svc.spec)
+    assert CATALOG["subentity_title_max"](ctx) == []
+
+
+async def test_subentity_title_max_is_silent_on_a_type_that_does_not_select_it(svc):
+    feat = (await create_item(svc, "feature", "f")).item
+    await svc.add_story(feat.id, "x" * (TITLE_ADVISORY_MAX + 1))
     db = await svc.store.load()
     ctx = ValidatorContext(item=db.get(feat.id), spec=svc.spec)
     assert CATALOG["subentity_title_max"](ctx) == []

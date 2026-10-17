@@ -50,6 +50,8 @@ class ViewsMixin(ServiceCore):
             reason = views.resolve_view_target(name, item.type, self.spec, self.playbook)
             if reason is not None:
                 raise SquadsError(reason)
+            if (stray := views.out_of_region_view_error(item_id, name, text)) is not None:
+                raise SquadsError(stray)
             reinstating = False
             if sections.get_section(text, markers.BODY) is None:
                 reinstated = (
@@ -95,6 +97,8 @@ class ViewsMixin(ServiceCore):
         reinstatement as :meth:`add_view` for a roster host with no ``sq:body`` region."""
 
         def mutate(text: str, item: Item) -> tuple[str, bool]:
+            if (stray := views.out_of_region_view_error(item_id, name, text)) is not None:
+                raise SquadsError(stray)
             reinstating = False
             if sections.get_section(text, markers.BODY) is None:
                 reinstated = (

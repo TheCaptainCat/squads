@@ -112,43 +112,57 @@ class SquadPaths:
         )
 
 
+def _holds_squad_data(folder: Path) -> bool:
+    """Whether *folder* is a squad's own: it has an index, or item files in a subfolder."""
+    return (folder / ".squads.json").is_file() or any(folder.glob("*/[A-Za-z]*-[0-9]*-*.md"))
+
+
 def resolve(
     dir_override: str | None = None,
     *,
-    require_init: bool = True,
     client_cwd: Path | None = None,
 ) -> SquadPaths:
-    """Resolve the active squad. ``require_init=False`` is used by ``init`` itself.
+    """Resolve the active squad: ``--dir`` > ``.squads.toml`` walk-up from the client cwd.
 
-    ``client_cwd`` is the resolution base for the ``.squads.toml`` walk-up and the
-    not-initialized default-root branch below — the requesting *client's* working
-    directory, not necessarily this process's. Defaults to ``Path.cwd()`` when omitted,
-    so one-shot CLI use is unchanged (the client cwd IS the process cwd there); a caller
-    resolving on behalf of a specific request (the CLI edge, today; a future server
-    handler) passes its own client cwd explicitly instead. Irrelevant when
-    ``dir_override`` is given — ``--dir`` never touches any cwd.
+    ``--dir`` names the squad folder: the first ``.squads.toml`` above it must name that
+    folder as its ``squad_dir``, else resolution refuses; a folder with no config above it
+    that still holds squad data is refused too, and one that holds none gets a default config.
+
+    ``client_cwd`` is the resolution base for the ``.squads.toml`` walk-up — the requesting
+    *client's* working directory, not necessarily this process's. Defaults to ``Path.cwd()``
+    when omitted, so one-shot CLI use is unchanged (the client cwd IS the process cwd there); a
+    caller resolving on behalf of a specific request passes its own client cwd explicitly.
+    Irrelevant when ``dir_override`` is given — ``--dir`` never touches any cwd.
     """
     if dir_override:
         squad_dir = Path(dir_override).resolve()
+        found = find_config(squad_dir)
+        if found is not None:
+            config = load_config(found)
+            root = found.parent
+            if (root / config.squad_dir).resolve() == squad_dir:
+                return SquadPaths(root=root, squad_dir=squad_dir, config=config)
+            raise SquadsError(
+                f"{squad_dir} is not the squad folder of the squad configured at {found} "
+                f"(its squad_dir is {config.squad_dir!r}); name that folder with --dir"
+            )
+        if _holds_squad_data(squad_dir):
+            raise SquadsError(
+                f"{squad_dir} holds squad data but no .squads.toml above it names it as its "
+                "squad folder (a squad_dir outside its project tree is not found from here); "
+                "run from the project directory instead"
+            )
         root = squad_dir.parent
-        config_path = root / CONFIG_FILENAME
-        config = (
-            load_config(config_path)
-            if config_path.is_file()
-            else SquadsConfig(squad_dir=squad_dir.name)
+        return SquadPaths(
+            root=root, squad_dir=squad_dir, config=SquadsConfig(squad_dir=squad_dir.name)
         )
-        return SquadPaths(root=root, squad_dir=squad_dir, config=config)
 
     base = client_cwd or Path.cwd()
     config_path = find_config(base)
     if config_path is None:
-        if require_init:
-            raise NotInitializedError(
-                "no .squads.toml found in this or any parent directory — run `sq init`"
-            )
-        root = base.resolve()
-        config = SquadsConfig()
-        return SquadPaths(root=root, squad_dir=root / config.squad_dir, config=config)
+        raise NotInitializedError(
+            "no .squads.toml found in this or any parent directory — run `sq init`"
+        )
 
     root = config_path.parent
     config = load_config(config_path)
