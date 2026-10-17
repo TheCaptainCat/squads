@@ -46,22 +46,22 @@ subentities:
   story: US8
 - local_id: ST7
   title: Declare each shared flag once in _cli/_common.py
-  status: Todo
+  status: Done
   assignee: python-dev
   story: US5
 - local_id: ST8
   title: Apply one markup dialect and an 80-column layout to help
-  status: Todo
+  status: Done
   assignee: python-dev
   story: US7
 - local_id: ST9
   title: 'Fix generated summaries: kind labels and articles'
-  status: Todo
+  status: Done
   assignee: python-dev
   story: US8
 - local_id: ST10
   title: Add the tests/meta guard that walks the command tree
-  status: Todo
+  status: Done
   assignee: python-dev
   story: US9
 - local_id: ST11
@@ -70,7 +70,7 @@ subentities:
   assignee: tech-writer
   story: US10
 created_at: '2026-10-16T21:15:20Z'
-updated_at: '2026-10-17T04:25:37Z'
+updated_at: '2026-10-17T04:57:54Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -445,6 +445,8 @@ and roster registrations, with one wording per meaning. F8, R4.
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
+- [2026-10-17T04:57:42Z] Elias Python:
+  - Done. Shared flags are declared once in _cli/_common.py (factory functions and wording constants); every other CLI module calls them. Where a flag carries more than one meaning it has one declaration per meaning. --as keeps "(required)" in the same words on every site, since it is validated by hand (REV-958 F8). Falsification: reverting to an inline --file with other wording turns 2 new tests red; a differently worded --desc, 3; a board post -m worded as a comment, 1; across the reverts 4 of the 5 new tests go red and the fifth is the scanner self-check.
 <!-- sq:subtask:ST7:discussion:end -->
 <!-- sq:subtask:ST7:end -->
 
@@ -481,6 +483,8 @@ and roster registrations, with one wording per meaning. F8, R4.
 #### Discussion
 
 <!-- sq:subtask:ST8:discussion -->
+- [2026-10-17T04:57:45Z] Elias Python:
+  - Done. Retype NEW-TYPE and reflog --op no longer truncate; comment group, renumber and the three roster epilogs lay out one item per line at 80 columns; roster usage asks for the address once; sub-entity verbs name LOCAL-ID. Typer keeps authored line breaks in every help paragraph after the first, and a backspace marker there prints a stray blank line, so no no-rewrap marker is used. Falsification: restoring retype enumeration 3 new red (+1 changed test), reflog slash list 3, merged epilog paragraphs 3, folded comment examples 1, folded renumber line 3, roster usage 1, sub-entity N placeholder 1; 11 distinct new tests go red across the reverts.
 <!-- sq:subtask:ST8:discussion:end -->
 <!-- sq:subtask:ST8:end -->
 
@@ -514,6 +518,8 @@ type name. F9, R1.
 #### Discussion
 
 <!-- sq:subtask:ST9:discussion -->
+- [2026-10-17T04:57:49Z] Elias Python:
+  - Done. Generated summaries take the article from the declared name (common.article) and the kind labels for the add, list, group, show, body and remove verbs; remove names the mapping kind only when one maps onto it. Falsification: hard-coding "a" turns 3 new tests red; a kind verb back to sub-entity 4; plural list back to sub-entities 1; an over-long create summary 3; 8 distinct new tests go red across the reverts.
 <!-- sq:subtask:ST9:discussion:end -->
 <!-- sq:subtask:ST9:end -->
 
@@ -554,6 +560,8 @@ stale allowlist entry; the handoff records each red run.
 #### Discussion
 
 <!-- sq:subtask:ST10:discussion -->
+- [2026-10-17T04:57:52Z] Elias Python:
+  - Done. tests/meta/test_every_help_screen_follows_the_help_rule.py walks the command tree twice (bundled vocabulary, and an override with one vowel-initial type, an irregular-plural kind and a ref kind) under six checks, plus the 10-line body allowlist (starts empty, stale entries fail, form-feed notes ignored). CONTRIBUTING names the guard. Falsification: blank option 3 red, 73-character summary 3, doubled backtick 2, bracket tag 2, 79-column line 2, ellipsis 3, 11-line body off the allowlist 1, stale allowlist entry 1; loosening a check limit turns its self-check red (2 runs, 1 each).
 <!-- sq:subtask:ST10:discussion:end -->
 <!-- sq:subtask:ST10:end -->
 
@@ -603,4 +611,6 @@ stale allowlist entry; the handoff records each red run.
   - Correction to my handoff: by the ST1 count the longest bodies are tree (9), graph (8), import (7), list and override scaffold (6). None is over 10, so the allowlist can still start empty.
 - [2026-10-17T04:25:37Z] Paul Reviewer:
   - Writer pass ST1-ST6 reviewed in REV-1093: ChangesRequested, one medium (repair --renumber help and exit line) and four low findings, all text fixes. REV-958 mapping is on REV-1093. @tech-writer
+- [2026-10-17T04:57:54Z] Elias Python:
+  - ST7 to ST10 done and uncommitted. Gates: pyright 0 errors; ruff check and format clean on src, tests, scripts; tests/cli, tests/meta, tests/integration and tests/unit green (8594 passed); sq check clean. For ST11: CONTRIBUTING rule 9 says a no-rewrap block needs a backspace marker, but Typer keeps line breaks in every paragraph after the first (the marker prints a blank line there); the rule should say line-structured text goes after the first paragraph. Epilog examples are one paragraph per line. Docs quoting help may mention the changed retype, reflog --op, comment group, roster usage (<slug|id|n> once) and LOCAL-ID text. @tech-writer
 <!-- sq:discussion:end -->

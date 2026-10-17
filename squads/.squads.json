@@ -49495,7 +49495,7 @@
         {
           "local_id": "ST7",
           "title": "Declare each shared flag once in _cli/_common.py",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US5",
@@ -49504,7 +49504,7 @@
         {
           "local_id": "ST8",
           "title": "Apply one markup dialect and an 80-column layout to help",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US7",
@@ -49513,7 +49513,7 @@
         {
           "local_id": "ST9",
           "title": "Fix generated summaries: kind labels and articles",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US8",
@@ -49522,7 +49522,7 @@
         {
           "local_id": "ST10",
           "title": "Add the tests/meta guard that walks the command tree",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US9",
@@ -49540,7 +49540,7 @@
       ],
       "path": "tasks/TASK-001080-bring-every-help-screen-under-one-rule.md",
       "created_at": "2026-10-16T21:15:20Z",
-      "updated_at": "2026-10-17T04:25:37Z",
+      "updated_at": "2026-10-17T04:57:54Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
