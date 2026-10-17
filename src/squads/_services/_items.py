@@ -263,6 +263,8 @@ class ItemsMixin(ServiceCore):
                 supplied |= {f.name for f in dataclasses.fields(RoleDef)} - {"slug"}
             # Pronouns are identity the operator sets, not content a role document supplies.
             supplied.discard(AttributeKey.PRONOUNS)
+            # The squad's own choice, written by its dedicated option.
+            supplied.discard(AttributeKey.OPERATOR_INVOCABLE)
             changed = {
                 name
                 for name, given in (("title", title), ("description", description))

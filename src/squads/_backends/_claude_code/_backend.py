@@ -186,7 +186,8 @@ class ClaudeCodeBackend(AgentBackend):
         alike (``_write_item_skills`` resolves :data:`~squads._interactions.ITEM_SKILL_VIEW_NAME`
         the same way), passing ``None`` when the view is not declared so this writer never mints
         a tag naming an undeclared view. Either way, the pointer never needed either shape:
-        ``claude/pointer_skill.md.j2`` renders from *name* and *description* alone.
+        ``claude/pointer_skill.md.j2`` renders from *name*, *description* and the resolved
+        *invocable* value alone.
 
         What is still owed is the file's *shape*. The seeding step
         (``Service.seed_bundled_skills``/``seed_custom_skills``) stamps a ``SKILL`` id onto the
