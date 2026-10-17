@@ -137,46 +137,30 @@ def _exit_on_error_findings(applied: ImportApplyResult | None) -> None:
 @app.command(name="import")
 @common.command
 async def import_events(
-    file: str = typer.Argument(..., help="JSONL event file to import ('-' reads stdin)."),
+    file: str = typer.Argument(..., help="JSONL event file to import; `-` reads stdin."),
     dry_run: bool = typer.Option(
         False,
         "--dry-run",
-        help="Validate only; write nothing; print the projected handle -> id plan.",
+        help="Check the file and print the plan of IDs it would create; write nothing.",
     ),
-    as_: str | None = typer.Option(
-        None,
-        "--as",
-        help="Default acting slug events inherit when they omit their own. No fallback: an "
-        "event with no 'as' of its own, no prior event's, and no --as fails validation.",
+    as_: str | None = common.as_option(
+        "Slug to attribute events with no `as` of their own and none to inherit; "
+        "without it such an event is refused."
     ),
-    json_out: bool = typer.Option(False, "--json"),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: the plan and, once applied, the outcome."
+    ),
 ) -> None:
-    """Bulk-import a JSONL event stream in one process.
+    """Apply a JSONL file of events to the squad in one transaction.
 
-    Every event is validated first — type/status vocabulary, transition legality, actor
-    registration, marker-safety — collecting ALL problems before writing anything; only a
-    fully clean file is applied, in one transaction. On any validation error, nothing is
-    written and every problem is listed with its line number.
+    Every event is checked first, and every problem is listed with its line
+    number; only a fully clean file is applied, so a refused file writes nothing.
+    The global `--at` sets the time for events with no `at` of their own, as in
+    `sq --at 2024-01-15T09:00:00Z import history.jsonl`; without it they get now.
 
-    Prefix with the global ``--at`` to set the file-level default timestamp events without
-    their own ``at`` inherit, e.g. ``sq --at 2024-01-15T09:00:00Z import history.jsonl``;
-    omit it and an event without its own ``at`` (and no prior event's ``at`` to inherit)
-    uses "now". ``--dry-run`` stops after validation and prints the projected plan instead
-    of applying.
-
-    Attribution has no equivalent silent fallback: an event without its own ``as``, with no
-    prior event's to inherit, and no ``--as`` given fails validation naming the missing actor,
-    rather than attributing to whatever role this squad happens to be configured to default to.
-
-    Exit codes: 0 when the events applied cleanly, 1 when the pre-pass refused the file and
-    nothing was written, 3 when the events were applied and the integrity catalog reported an
-    error-level issue on an item this import touched — the same 3 ``sq check`` uses for the same
-    findings. Warn-level findings alone still exit 0, and ``--dry-run`` writes nothing, so it
-    never exits 3.
-
-    Exit 3 from this command means applied-and-flagged. The events are on disk. A retry loop
-    keyed on "non-zero means nothing happened" will replay them; branch on ``--json``'s
-    ``applied`` instead, which is true at exit 3 and false at exit 1.
+    Exit codes: 3 applied, with error-level issues found. See sq docs faq.
+    Exit 3 means the events are on disk: do not retry on a non-zero exit; read
+    `applied` from `--json` instead.
     """
     text = _read_import_text(file)
     svc = common.get_service()

@@ -692,7 +692,7 @@ async def test_an_override_that_does_not_load_stops_the_run_before_the_index_is_
     assert (await invoke(["migrate", "up"])).exit_code == 0
 
 
-async def test_the_service_carries_the_playbook_override_the_bypass_builder_used_to_drop(
+async def test_the_service_carries_the_playbook_override(
     squad: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from squads._cli import _common

@@ -69,13 +69,17 @@ class _SkillDispatchGroup(AddressDispatchGroup):
 skill_app = typer.Typer(
     no_args_is_help=True,
     help="Manage agent skills.",
-    epilog=(
-        "Address a skill:  sq skill <slug|id|n> {verbs}\n"
-        "Examples:  sq skill squads show   sq skill 2 regen   sq skill SKILL-2 remove --purge\n"
-        "           sq skill squads status Archived\n"
-        "           sq skill squads view disable squads_skill   — disable a dropped view's tag\n"
-        "Note: a slug matching a group verb (add) is unaddressable by slug; "
-        "use the full ID or bare number instead."
+    epilog=common.address_epilog(
+        "skill",
+        "skill",
+        (
+            "sq skill squads show",
+            "sq skill 2 regen",
+            "sq skill SKILL-2 remove --purge",
+            "sq skill squads status Archived",
+            "sq skill squads view disable squads_skill",
+        ),
+        "add",
     ),
     cls=_SkillDispatchGroup,
 )
@@ -86,11 +90,15 @@ skill_app = typer.Typer(
 @skill_app.command("add")
 @common.command
 async def skill_add(
-    name: str = typer.Argument(...),
-    desc: str = typer.Option("", "--desc"),
-    when_to_use: str = typer.Option("", "--when-to-use"),
-    allowed_tools: str = typer.Option("", "--allowed-tools"),
-    parent: str | None = typer.Option(None, "--parent"),
+    name: str = typer.Argument(..., help="The skill's title; its slug is made from it."),
+    desc: str = common.desc_option(),
+    when_to_use: str = typer.Option(
+        "", "--when-to-use", help="When an agent should reach for the skill."
+    ),
+    allowed_tools: str = typer.Option(
+        "", "--allowed-tools", help="Tools the skill may use, recorded on the skill."
+    ),
+    parent: str | None = common.parent_option(),
     operator_invocable: str | None = typer.Option(
         None, "--operator-invocable", help=_INVOCABLE_HELP
     ),
@@ -111,13 +119,20 @@ async def skill_add(
 
 # ---------------------------------------------------------------- addressed subgroup (_addr)
 
-_addr = typer.Typer(no_args_is_help=True, help="Operate on a skill by slug, ID, or number.")
+_addr = typer.Typer(
+    no_args_is_help=True,
+    cls=common.AddressedGroup,
+    help="Operate on a skill by slug, ID, or number.",
+)
 
 
 @_addr.callback()
 @common.command
 async def _resolve_addr(
-    ctx: typer.Context, addr: str = typer.Argument(..., metavar="ADDR")
+    ctx: typer.Context,
+    addr: str = typer.Argument(
+        ..., metavar=common.ADDRESS_METAVAR, help="Skill slug, ID or number."
+    ),
 ) -> None:
     svc = get_service()
     ctx.ensure_object(dict)
@@ -128,8 +143,8 @@ async def _resolve_addr(
 @common.command
 async def skill_show(
     ctx: typer.Context,
-    raw: bool = typer.Option(False, "--raw", help="Print plain body text (no markdown rendering)."),
-    json_out: bool = typer.Option(False, "--json"),
+    raw: bool = common.raw_option(),
+    json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the skill."),
     comments: bool = typer.Option(
         False, "--comments", help="Append the discussion as comments (text output)."
     ),
@@ -239,11 +254,15 @@ async def skill_show(
 @common.command
 async def skill_refs(
     ctx: typer.Context,
-    out: bool = typer.Option(False, "--out", help="Forward refs (default)."),
-    incoming: bool = typer.Option(False, "--in", help="Backrefs (computed)."),
-    json_out: bool = typer.Option(False, "--json"),
+    out: bool = typer.Option(False, "--out", help="Show the refs this skill carries; the default."),
+    incoming: bool = typer.Option(
+        False, "--in", help="Show the refs other items carry to this one."
+    ),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object, with an array per direction shown."
+    ),
 ) -> None:
-    """Show the skill's references (forward stored; backrefs computed)."""
+    """List the skill's refs, or the refs other items carry to it."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
     show_out = out or not incoming
@@ -265,24 +284,23 @@ async def skill_refs(
 
 # ---------------------------------------------------------------- ref add / rm
 
-_ref_app = typer.Typer(no_args_is_help=True, help="Manage forward reference edges.")
+_ref_app = typer.Typer(no_args_is_help=True, help="Add or remove the skill's refs.")
 
 
 @_ref_app.command("add")
 @common.command
 async def skill_ref_add(
     ctx: typer.Context,
-    target: str = typer.Argument(..., help="Target item ID."),
+    target: str = typer.Argument(
+        ..., help="Item ID or number to ref; `ID:kind` also sets the kind."
+    ),
     kind: str = typer.Option(
         "",
         "--kind",
-        help=(
-            "Edge kind (run `sq workflow ref-kinds` for the project's declared kinds). "
-            "Defaults to the project's declared default kind."
-        ),
+        help="Ref kind (see `sq workflow ref-kinds`); without it, the default kind.",
     ),
 ) -> None:
-    """Add a forward reference from this skill to TARGET."""
+    """Add a ref from this skill to TARGET."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
     raw_id, embedded_kind = split_ref(target)
@@ -295,9 +313,9 @@ async def skill_ref_add(
 @_ref_app.command("rm")
 @common.command
 async def skill_ref_rm(
-    ctx: typer.Context, target: str = typer.Argument(..., help="Target item ID.")
+    ctx: typer.Context, target: str = typer.Argument(..., help="Item ID or number.")
 ) -> None:
-    """Remove a forward reference from this skill to TARGET."""
+    """Remove this skill's ref to TARGET."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
     raw_id, _ = split_ref(target)
@@ -314,11 +332,10 @@ _addr.add_typer(_ref_app, name="ref")
 async def skill_link_role(
     ctx: typer.Context, role: str = typer.Argument(..., help="Role slug, ID, or number.")
 ) -> None:
-    """Scope this skill to ROLE and resync that role's pointer + body immediately.
+    """Scope this skill to ROLE and update that role's pointer at once.
 
-    The sanctioned way to preload a skill on a role — unlike a raw `ref add … --kind
-    scopes`, which writes the same edge but leaves the role's pointer stale until the
-    next `sq sync`.
+    Prefer this to `ref add --kind scopes`, which writes the same ref but leaves
+    the role's pointer stale until the next `sq sync`.
     """
     item_id: str = ctx.obj["id"]
     svc = get_service()
@@ -332,7 +349,7 @@ async def skill_link_role(
 async def skill_unlink_role(
     ctx: typer.Context, role: str = typer.Argument(..., help="Role slug, ID, or number.")
 ) -> None:
-    """Remove this skill's scope to ROLE and resync that role's pointer + body immediately."""
+    """Unscope this skill from ROLE and update that role's pointer at once."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
     role_id = await resolve_agent_addr(role, "role", svc)
@@ -355,13 +372,15 @@ async def skill_regen(ctx: typer.Context) -> None:
 async def skill_update(
     ctx: typer.Context,
     title: str | None = typer.Option(None, "--title", help="The skill's display title."),
-    desc: str | None = typer.Option(None, "--desc", help="One-line description."),
-    when_to_use: str | None = typer.Option(None, "--when-to-use", help="When to reach for it."),
+    desc: str | None = common.desc_option(None),
+    when_to_use: str | None = typer.Option(
+        None, "--when-to-use", help="When an agent should reach for the skill."
+    ),
     operator_invocable: str | None = typer.Option(
         None, "--operator-invocable", help=_INVOCABLE_HELP
     ),
 ) -> None:
-    """Edit a skill's display fields; its slug, file and pointer directory never change."""
+    """Edit a skill's display fields; its slug never changes."""
     common.require_update_fields(
         title=title, desc=desc, when_to_use=when_to_use, operator_invocable=operator_invocable
     )
@@ -389,16 +408,17 @@ register_status_verb(_addr, lambda ctx: ctx.obj["id"])
 # Place, re-enable or disable an unpaired sq:view:<name> tag in the skill's sq:body region, via
 # ServiceCore.add_view/disable_view. `view rm` is retired: a tag is disabled, never deleted.
 _view_app = typer.Typer(
-    no_args_is_help=True, help="Place, re-enable or disable a view tag in sq:body."
+    no_args_is_help=True, help="Show or hide declared views in the skill's body."
 )
 
 
 @_view_app.command("add")
 @common.command
 async def skill_view_add(
-    ctx: typer.Context, name: str = typer.Argument(..., help="Declared view name.")
+    ctx: typer.Context,
+    name: str = typer.Argument(..., help="Declared view name (see `sq workflow views`)."),
 ) -> None:
-    """Place the sq:view:NAME tag enabled, or re-enable it if disabled (idempotent)."""
+    """Show a declared view in the skill's body, or re-enable it."""
     item_id: str = ctx.obj["id"]
     placed = await get_service().add_view(item_id, name)
     if placed:
@@ -410,9 +430,12 @@ async def skill_view_add(
 @_view_app.command("disable")
 @common.command
 async def skill_view_disable(
-    ctx: typer.Context, name: str = typer.Argument(..., help="View name.")
+    ctx: typer.Context,
+    name: str = typer.Argument(
+        ..., help="View name; it need not be declared, so a dropped view can be turned off."
+    ),
 ) -> None:
-    """Disable the sq:view:NAME tag (placed disabled if absent) — never removed."""
+    """Stop showing a view in the skill's body; its tag stays, disabled."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
     was_present = await svc.view_tag_present(item_id, name)
@@ -426,4 +449,6 @@ _addr.add_typer(_view_app, name="view")
 
 skill_app.add_typer(_addr, name="_addr", hidden=True)
 
-skill_app.info.epilog = (skill_app.info.epilog or "").replace("{verbs}", common.addr_verbs(_addr))
+skill_app.info.epilog = (skill_app.info.epilog or "").replace(
+    "{verbs}", common.addr_verbs(_addr, ", ")
+)

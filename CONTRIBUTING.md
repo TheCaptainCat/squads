@@ -90,12 +90,78 @@ sanctioned way to satisfy it.
   (role/skill/operator), never "meta-type(s)". The legacy body-stored sub-entity `:meta` marker
   region is an unrelated, still-current concept — that one keeps its name.
 
+## Writing `--help` text
+
+A command function's docstring is its `--help` screen, and every `help=` string is a line in its
+options panel. That text is documentation for someone who has the tool and not this repository,
+about to type the command. It answers three questions, in this order: what does this do, what do I
+type, and what do I get back or lose. A sentence that answers none of them belongs somewhere else.
+
+| Content | Home |
+|---|---|
+| What it does, what to type, what comes back or is lost | help |
+| Why the code is built this way | a comment at that code, or the helper's or module's docstring |
+| Field lists, exit-code mechanics, anything a script depends on | `docs/`, pointed at from help |
+
+The rules, one per part of the screen:
+
+1. **Summary.** The first paragraph is one sentence on one source line, 72 characters or fewer,
+   verb first, saying what the reader gets. A parent's Commands table prints it alone, so it names
+   no mechanism, holds no parenthesis and makes no comparison with a sibling.
+2. **Body.** Optional; most commands need none. A sentence earns its place if a reader would type
+   something different, or read the output differently, for having read it: a default that
+   surprises, what is written or destroyed and whether it can be undone, when the command refuses
+   and the way out, the one sibling it gets confused with, one example where the shape of the
+   invocation is not obvious. The first three lines after the summary answer the commonest
+   question. Count a body's source lines after the summary paragraph and before any form feed,
+   leaving blank lines out: past 10, the body needs a reason a reviewer accepts, and "it has
+   nowhere else to live" is not one.
+3. **Never in help.** Why the implementation is built as it is, a defence of the design, the name
+   of a function, class, module, package path or internal type, history ("legacy", "the old",
+   "today there is no"), or an invariant the reader cannot observe. Put it in a comment or the
+   helper's docstring. A note that must stay in the command function's own docstring goes after a
+   form feed (`\f`), which Typer does not render.
+4. **Options and arguments.** Every one has a description: one line saying what the value is and
+   what it does here, with where the legal values come from (`see sq workflow statuses`) or their
+   format (`CODE=VALUE`). It never restates the default or the required marker the panel prints.
+   A flag is described once, in its `help=`; the body adds only how flags combine. A flag with the
+   same meaning on several commands has the same words everywhere, from one shared definition.
+5. **`--json`.** Described on every command that takes it, in one line naming the top-level shape
+   (an array with one object per row, or one object).
+6. **JSON fields.** The field reference lives in `docs/stability.md`. Help keeps the `--json`
+   line, any sentence a caller needs in order not to misuse the payload, and the pointer
+   `Fields: sq docs stability`. A new `--json` shape lands its field reference in
+   `docs/stability.md` in the same change.
+7. **Exit codes.** A command with no code of its own says nothing about exit codes. A command with
+   one says one line, `Exit codes: 3 error-level issues found. See sq docs faq.`, and the
+   mechanics stay in the docs. The one exception, kept to two lines: a code that is non-zero
+   although the work was applied.
+8. **Markup.** Plain text, single backticks around anything typed literally. No doubled backticks,
+   asterisks, `::` line endings or cross-reference roles. Angle brackets for a placeholder, a bar
+   between alternatives. Help renders through Rich console markup, so a square-bracketed span
+   starting with a lowercase letter, `#`, `/` or `@` is read as a tag and silently vanishes.
+9. **Layout.** Typer joins the lines of the summary paragraph but keeps the authored line breaks
+   of every later paragraph, so wrap each later paragraph at 78 columns after dedent. Text that
+   depends on its line structure, such as a block of examples, is a later paragraph written line
+   by line, each line under 78 columns, with no marker before it: a `\b` line prints a stray blank
+   line. An epilog joins the lines of each paragraph, so a line that must stand alone there is a
+   paragraph of its own. No unbreakable enumeration longer than the description column.
+
+**Reviewing a help change.** Render the command at 80 columns (`COLUMNS=80 sq <command> --help`)
+and read the screen, not the diff. Does the first screen answer the three questions? Is any name
+on it something an adopter cannot type or open? Is every cell of the options panel filled?
+
+`tests/meta/test_every_help_screen_follows_the_help_rule.py` walks every help screen and holds the
+mechanical half of these rules; a body past 10 lines is accepted only as an entry, with its reason,
+in that test's `LONG_BODIES` list.
+
 ## How to add things
 
 - **A template** → drop a `.j2` under `squads/_rendering/templates/`; it ships in the wheel as
   package data automatically. Render with `squads._rendering._engine.render` (StrictUndefined).
 - **A command** → add it to the right `squads/_cli/_*` module (or a new one), wire it onto `app`
-  in `_cli/__init__`, and route logic through `Service`.
+  in `_cli/__init__`, and route logic through `Service`. Write its help to
+  [Writing `--help` text](#writing---help-text).
 - **An item type** → declare it in the bundled workflow spec (`squads/_specs/workflow.toml`):
   prefix, folder, category, lifecycle, and any parent/ref rules. Add its item template, and — if
   agents author it — a `[types.<name>]` entry in `squads/_specs/playbook.toml` so the type gets its

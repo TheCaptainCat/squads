@@ -25,7 +25,7 @@ from squads._workflow._models import (
     linearize_lifecycle,
 )
 
-# Aliases under the earlier names of Lifecycle and ItemSpec.
+# Alternative names for Lifecycle and ItemSpec.
 StateMachine = Lifecycle
 TypeSpec = ItemSpec
 

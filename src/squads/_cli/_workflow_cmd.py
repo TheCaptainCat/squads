@@ -61,28 +61,18 @@ if TYPE_CHECKING:
 workflow_app = typer.Typer(
     no_args_is_help=False,
     invoke_without_command=True,
-    help=(
-        "Workflow cheatsheet and spec validation.\n\n"
-        "Run `sq workflow` (or `sq workflow show`) for the team cheatsheet. "
-        "Run `sq workflow lint` to validate your workflow override spec. "
-        "Run `sq workflow types` / `subentity-kinds` / `collections` / `statuses` / `roles` "
-        "/ `lifecycles` / `ref-kinds` for the machine-readable type / sub-entity-kind / "
-        "badge-collection / status / role / lifecycle / ref-kind catalogs."
-    ),
+    help="Show the team workflow and the active spec's vocabulary.",
 )
 
 
 # ─── show (default — bare `sq workflow`) ───────────────────────────────────────
 
 
-_RAW_HELP = "Plain markdown output (opt out of Rich markdown render)."
-
-
 @workflow_app.callback()
 @common.command
 async def workflow_default(
     ctx: typer.Context,
-    raw: bool = typer.Option(False, "--raw", help=_RAW_HELP),
+    raw: bool = common.raw_option(),
 ) -> None:
     """Print the team workflow cheatsheet when no sub-command is given."""
     if ctx.invoked_subcommand is None:
@@ -91,8 +81,8 @@ async def workflow_default(
 
 @workflow_app.command("show")
 @common.command
-async def workflow_show(raw: bool = typer.Option(False, "--raw", help=_RAW_HELP)) -> None:
-    """Print the team workflow cheatsheet (who writes what, how items link)."""
+async def workflow_show(raw: bool = common.raw_option()) -> None:
+    """Print the team workflow cheatsheet: who writes what, how items link."""
     await _print_cheatsheet(raw=raw)
 
 
@@ -224,25 +214,13 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
 @workflow_app.command("types")
 @handle_errors
 def workflow_types(
-    json_out: bool = typer.Option(False, "--json", help="Emit the machine type catalog."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per declared type."
+    ),
 ) -> None:
     """List every declared type in the active workflow spec.
 
-    Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
-    declared type (work AND reserved), in ascending resolved ``order`` (type-name
-    string breaks ties): ``{type, order, prefix, reserved, category, subentity_kind,
-    lifecycle, fields, labels}``.
-    ``order`` is ``null`` when the type has no explicit order (``+inf``); ``category`` is
-    one of ``roster``/``work``/``records`` (``reserved`` is exactly
-    ``category == "roster"``); ``subentity_kind`` is the declared sub-entity kind this type
-    hosts, or ``null`` — join it to ``sq workflow subentity-kinds --json``; ``lifecycle`` is
-    the machine this type binds; ``fields`` is the type's declared field->collection
-    bindings (``[{code, label, collection}]``, ``[]`` if none); ``attributes`` is the type's
-    declared non-badge keys (``{name: {kind, required, settable}}``, ``{}`` if none); ``labels``
-    is the type's
-    four resolved display-label forms (``{singular, plural, singular_lower,
-    plural_lower}``, pin-else-derive) — all present, never omitted, so the key set is
-    stable across every object.
+    Fields: sq docs stability
     """
     from squads._cli._common import get_active_spec, print_json_clean
 
@@ -332,19 +310,12 @@ def _subentity_kind_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
 @handle_errors
 def workflow_subentity_kinds(
     json_out: bool = typer.Option(
-        False, "--json", help="Emit the machine sub-entity-kind catalog."
+        False, "--json", help="Print a JSON array, one object per sub-entity kind."
     ),
 ) -> None:
     """List every declared sub-entity kind in the active workflow spec.
 
-    Default: a human Rich table. ``--json`` emits a bare JSON array — one object per declared
-    kind, ascending kind name: ``{subentity_kind, lifecycle, plural, local_prefix,
-    container_heading, completion, maps_parent_story, fields}``. ``subentity_kind`` is the
-    identity key the type catalog's own ``subentity_kind`` field points at — join the two to
-    go from an item's ``type`` to the kind its sub-entities belong to, then to that kind's
-    declared field labels. ``fields`` is ``[{code, label, collection}]`` (``[]`` if none), the
-    same entry shape ``sq workflow types --json`` uses; resolve a code to its glyph/label
-    through ``sq workflow collections --json``. All keys present on every row, never omitted.
+    Fields: sq docs stability
     """
     from squads._cli._common import get_active_spec, print_json_clean
 
@@ -428,18 +399,13 @@ def _lifecycle_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
 @workflow_app.command("lifecycles")
 @handle_errors
 def workflow_lifecycles(
-    json_out: bool = typer.Option(False, "--json", help="Emit the machine lifecycle catalog."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per lifecycle."
+    ),
 ) -> None:
     """List every declared lifecycle in the active workflow spec.
 
-    Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
-    declared lifecycle, ascending lifecycle name: ``{lifecycle, initial, states,
-    transitions}``. ``states`` is the deterministic BFS-from-``initial`` order (never the raw
-    ``frozenset`` order); ``transitions`` is ``[{from, to}]`` in that same source order, targets
-    in each source's declared order. Join a type's or a sub-entity kind's own ``lifecycle``
-    field (``sq workflow types --json`` / ``sq workflow subentity-kinds --json``) to this
-    catalog's identity key to resolve the machine it binds. All keys present on every row,
-    never omitted.
+    Fields: sq docs stability
     """
     from squads._cli._common import get_active_spec, print_json_clean
 
@@ -499,16 +465,13 @@ def _collection_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
 @workflow_app.command("collections")
 @handle_errors
 def workflow_collections(
-    json_out: bool = typer.Option(False, "--json", help="Emit the machine collection catalog."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per badge collection."
+    ),
 ) -> None:
     """List every declared badge collection in the active workflow spec.
 
-    Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
-    declared collection, ascending collection code: ``{collection, label, ordered,
-    default, badges}`` where ``badges`` is ``[{code, label, emoji}]`` in declaration
-    order. Items emit badge *codes* only (``sq tree``/``list``/``show``'s generic
-    ``badges`` map); this catalog is where a client resolves a code to its glyph/label,
-    once per spec instead of duplicated onto every item.
+    Fields: sq docs stability
     """
     from squads._cli._common import get_active_spec, print_json_clean
 
@@ -570,16 +533,13 @@ def _status_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
 @workflow_app.command("statuses")
 @handle_errors
 def workflow_statuses(
-    json_out: bool = typer.Option(False, "--json", help="Emit the machine status catalog."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per status."
+    ),
 ) -> None:
     """List every declared status in the active workflow spec.
 
-    Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
-    declared status, ascending status name: ``{status, role, badge}``. ``role`` is the
-    reference into the role catalog (``sq workflow roles --json``) — join it to resolve
-    ``settled``/``hidden``/``color``; ``badge`` is the declared status emoji or ``null``.
-    Catalog-only: no per-item ``role``/``is_active`` field is added to any item surface — a
-    client joins an item's own ``status`` to this catalog instead.
+    Fields: sq docs stability
     """
     from squads._cli._common import get_active_spec, print_json_clean
 
@@ -637,20 +597,14 @@ def _role_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
 @workflow_app.command("roles")
 @handle_errors
 def workflow_roles(
-    json_out: bool = typer.Option(False, "--json", help="Emit the machine role catalog."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per status role."
+    ),
 ) -> None:
-    """List every declared role in the active workflow spec.
+    """List every status role in the active workflow spec.
 
-    Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
-    declared role, ascending role name: ``{role, settled, hidden, color, live, blocked}``.
-    ``settled`` is the old ``terminal`` (a resting/end state); ``hidden`` is default-visibility;
-    ``color`` is a semantic colour intent from the closed palette (``positive``/``danger``/
-    ``warning``/``muted``/``neutral``/``info``) — each client maps it to a concrete colour,
-    with a neutral fallback for an intent it doesn't recognise. ``live`` (defaults false) is
-    the materialisation axis: an item whose status resolves to a live role is on offer to
-    be spawned/loaded/cited/assigned. ``blocked`` (defaults false) marks a role whose statuses
-    mean the item is waiting on something else. A status references one role by name (``sq workflow
-    statuses --json``'s ``role`` field); join the two to resolve behaviour.
+    A status role says whether its statuses are settled, hidden or live.
+    Fields: sq docs stability
     """
     from squads._cli._common import get_active_spec, print_json_clean
 
@@ -716,16 +670,13 @@ def _ref_kind_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
 @workflow_app.command("ref-kinds")
 @handle_errors
 def workflow_ref_kinds(
-    json_out: bool = typer.Option(False, "--json", help="Emit the machine ref-kind catalog."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per ref kind."
+    ),
 ) -> None:
     """List every declared ref kind in the active workflow spec.
 
-    Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
-    declared kind, ascending kind name: ``{kind, label, hint, role, direction}``. ``role``
-    is the semantic the engine binds to (``dependency``/``preload``/``supersession``/
-    ``default``, or ``null`` for a navigational kind); ``direction`` (``blocker``/
-    ``dependent``) only accompanies ``role = "dependency"``, else ``null``. Exactly one row
-    carries ``role = "default"`` — the kind a bare ``ref add <id>`` (no ``--kind``) writes.
+    Fields: sq docs stability
     """
     from squads._cli._common import get_active_spec, print_json_clean
 
@@ -777,13 +728,12 @@ def _view_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
 @workflow_app.command("views")
 @handle_errors
 def workflow_views(
-    json_out: bool = typer.Option(False, "--json", help="Emit the machine view catalog."),
+    json_out: bool = typer.Option(False, "--json", help="Print a JSON array, one object per view."),
 ) -> None:
     """List every declared derived view in the active workflow spec.
 
-    Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
-    declared view, ascending view name: ``{view, source_kind, source_name}``. Resolve one view
-    against an item with ``sq workflow view <name> <item-id>``.
+    Resolve one against an item with `sq workflow view <name> <id>`.
+    Fields: sq docs stability
     """
     from squads._cli._common import get_active_spec, print_json_clean
 
@@ -1003,20 +953,15 @@ async def workflow_view(
     name: str = typer.Argument(..., help="Declared view name (see `sq workflow views`)."),
     item_id: str = typer.Argument(..., metavar="ID", help="Item to resolve the view against."),
     json_out: bool = typer.Option(
-        False, "--json", help="Emit the resolved source in its own shape, no presentation."
+        False, "--json", help="Print the resolved source as JSON, in its source's own shape."
     ),
 ) -> None:
     """Resolve one declared view against one item.
 
-    Default: rendered through the view's declared presentation template
-    (``templates/views/<name>.md.j2``, adopter-overridable). ``--json`` skips presentation
-    and serializes the resolved source directly, per source kind: ``ref``/``subtree`` match
-    ``sq tree --json``'s per-node shape, ``subentity`` matches ``sq <type> <n> <kind>s
-    --json``, ``role`` matches ``sq role <slug> show --json``, ``self`` matches the host
-    item's own ``show --json`` plus enough of the active spec's identity to say which spec
-    resolved it, and ``playbook`` has no existing counterpart — see
-    :func:`_playbook_json_payload`. No source kind's ``--json`` carries a
-    ``fields``/``group_by``/``groups`` key.
+    Without `--json` the result renders through the view's template. `--json`
+    prints the resolved source in the shape of the command it comes from, such as
+    `sq tree --json` for a ref view.
+    Fields: sq docs stability
     """
     from squads._cli._common import get_active_spec, get_service, print_json_clean
 
@@ -1034,14 +979,12 @@ async def workflow_view(
 @workflow_app.command("lint")
 @handle_errors
 def workflow_lint() -> None:
-    """Validate the workflow override spec — collect ALL errors and exit 0/1.
+    """Check the workflow override and list every error with a fix hint.
 
-    Prints every error with the offending config key and a fix hint.
-    Exits 0 with "workflow spec OK" on a clean spec; exits 1 when any error is
-    present.  Warnings alone (if any) still exit 0.
+    It reads the override file directly, so it still runs when a broken spec stops
+    other commands.
 
-    This command intentionally does NOT go through ``open_service``, so it can
-    diagnose a spec that would cause normal commands to hard-stop.
+    Exit codes: 1 the spec has at least one error. See sq docs faq.
     """
     from squads._context import get_context
     from squads._paths import resolve

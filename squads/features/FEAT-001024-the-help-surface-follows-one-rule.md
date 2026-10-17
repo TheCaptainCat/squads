@@ -3,7 +3,7 @@ id: FEAT-1024
 sequence_id: 1024
 type: feature
 title: The --help surface follows one rule
-status: InProgress
+status: Done
 author: product-owner
 priority: medium
 refs:
@@ -44,7 +44,7 @@ subentities:
   title: As an adopter, I want the docs and changelog to match the new help
   status: Todo
 created_at: '2026-10-15T21:43:01Z'
-updated_at: '2026-10-17T03:43:35Z'
+updated_at: '2026-10-17T05:11:50Z'
 ---
 <!-- sq:body -->
 ## Problem

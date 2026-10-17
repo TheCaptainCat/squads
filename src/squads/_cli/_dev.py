@@ -18,19 +18,21 @@ dev_app = typer.Typer(no_args_is_help=True, help="Manage stack-specific develope
 @dev_app.command("add")
 @common.command
 async def dev_add(
-    tech: str = typer.Option(..., "--tech", help="Technology, e.g. dotnet, python, react."),
+    tech: str = common.tech_option(...),
     name: str | None = typer.Option(
-        None, "--name", help="Full name (auto from a pool if omitted)."
+        None, "--name", help="Full name; without it, one is picked from a pool."
     ),
-    model: str | None = typer.Option(None, "--model", help="sonnet | opus | haiku."),
+    model: str | None = typer.Option(
+        None,
+        "--model",
+        help="Model the agent runs on, for example `sonnet`, `opus`, `haiku` or `inherit`.",
+    ),
     slug: str | None = typer.Option(
-        None, "--slug", help="Slug to store the developer under (default: <tech>-dev)."
+        None, "--slug", help="Slug to file the developer under instead of `<tech>-dev`."
     ),
-    pronouns: str | None = typer.Option(
-        None, "--pronouns", help="Pronouns for this developer, e.g. they/them (one line, up to 40)."
-    ),
+    pronouns: str | None = common.pronouns_option(),
 ):
-    """Bootstrap a developer for a technology (e.g. `sq dev add --tech dotnet`)."""
+    """Add a developer role for one technology, such as `--tech dotnet`."""
     svc = get_service()
     item = await svc.add_dev(tech, name=name, model=model, slug=slug, pronouns=pronouns)
     name = common.named_markup(
@@ -42,7 +44,7 @@ async def dev_add(
 @dev_app.command("list")
 @common.command
 async def dev_list():
-    """List the live developer roles: those holding a capability the ``[dev]`` table declares."""
+    """List the live developer roles."""
     svc = get_service()
     live = svc.spec.live_statuses(ROSTER_ROLE)
     items = [it for it in await svc.list_items(item_type=ROSTER_ROLE) if it.status in live]

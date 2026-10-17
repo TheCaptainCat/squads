@@ -193,7 +193,7 @@ async def test_a_clean_squad_reports_no_duplicate(svc):
     assert not result.unreadable and not result.renumber_report and not result.references_left
 
 
-async def test_distinct_ids_sharing_a_number_keep_the_old_renumber_behaviour(svc):
+async def test_distinct_ids_sharing_a_number_are_renumbered_by_repair(svc):
     _task_item, task_md = await _task(svc)
     bug = await svc.create("bug", "Beta", author="manager")
     fm = split_frontmatter(bug.path.read_text())[0]

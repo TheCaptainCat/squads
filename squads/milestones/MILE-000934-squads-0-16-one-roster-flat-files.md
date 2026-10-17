@@ -8,7 +8,7 @@ author: product-owner
 refs:
 - MILE-867
 created_at: '2026-09-09T14:39:43Z'
-updated_at: '2026-10-16T17:49:36Z'
+updated_at: '2026-10-17T05:33:55Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.15.
@@ -163,4 +163,6 @@ The next squads release after 0.15.
   - 2026-10-16: authorised a one-line hand edit restamping squads/.overrides/workflow.toml from override-base 0.15.0 to 0.16.0 (no verb can restamp it while this squad is behind the schema; content unchanged).
 - [2026-10-16T17:49:36Z] Pierre Chat:
   - 2026-10-16: drive 0.16 to the end without interrupting me; pushing, migrating this repo's squad and publishing stay mine.
+- [2026-10-17T05:33:55Z] Catherine Manager:
+  - 2026-10-17: every 0.16 feature, task and bug is closed; reviews REV-956/958 closed (remaining structure findings on FEAT-1092, 0.17). Release-readiness check passed: manifest gate, versions, build, VS Code gates, clean install, 0.15 to 0.16 migrate up + sync + check. Full suite 13795 passed. Next: history rewrite (needs operator OK for force-push), PR, then operator migrates this squad and publishes.
 <!-- sq:discussion:end -->

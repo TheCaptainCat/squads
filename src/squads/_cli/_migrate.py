@@ -54,17 +54,15 @@ def migrate_grants() -> dict[str, common.GateGrant]:
 @common.past_the_gate(common.Ground.MIGRATION, behind=True)
 @common.command
 async def migrate_up():
-    """Run the automatic migration(s) to bring this squad to the current schema version.
+    """Migrate this squad to the schema of the installed squads.
 
-    Exit codes: 0 = nothing to migrate, or migrated with the trailing repair fully clean;
-    1 = an item file cannot be given an index entry, so nothing was migrated and the schema is
-    unchanged, or the squad migrated but that repair had to carry an unreadable file's previous
-    entry forward rather than refresh it, or had to leave a marker-shaped ``sq:body`` region
-    untouched rather than guess at what it is — the identical partial-completion condition ``sq
-    repair`` itself exits 1 for (``_cli/_main.py``'s own ``repair`` command), since this command
-    runs that same rebuild as its trailing step. A caller gating on ``$?`` must see the same
-    answer from either route to the same corpus state.
+    It ends with the same index rebuild as `sq repair`, which can rewrite item
+    content.
+
+    Exit codes: 1 not migrated, or the rebuild was incomplete. See sq docs faq.
     """
+    # Exit 1 on an incomplete trailing rebuild matches `sq repair`, so a caller gating on `$?`
+    # sees the same answer from either route to the same corpus state.
     svc = get_service_bypassing_index_cross_check(bundled_fallback=False)
     disk = svc.paths.config.schema_version
     if schema_tuple(disk) > schema_tuple(SCHEMA_VERSION):
@@ -143,7 +141,7 @@ async def migrate_up():
 @common.past_the_gate(common.Ground.NO_SQUAD_STATE, behind=True, ahead=True)
 @handle_errors
 def migrate_help():
-    """Show the migration changelog index (every shipped migration, newest schema last)."""
+    """List every migration squads ships, oldest first."""
     table = Table(title="migration changelog — read steps with `sq migrate chlog vA..vB`")
     for col in ("Release", "Schema", "Summary", "Manual"):
         table.add_column(col)
@@ -162,10 +160,12 @@ def migrate_help():
 @handle_errors
 def migrate_chlog(
     span: str = typer.Argument(
-        ..., metavar="vFROM..vTO", help="Release range, e.g. v0.1.1..v0.2.0."
+        ...,
+        metavar="vFROM..vTO",
+        help="Releases after vFROM up to and including vTO, such as `v0.1.1..v0.2.0`.",
     ),
 ):
-    """Print the complete manual steps for migrations shipped in (vFROM, vTO]."""
+    """Print the manual steps of the migrations in a release range."""
     lo, hi = _parse_span(span)
     selected = [
         m for m in MIGRATIONS if version_tuple(lo) < version_tuple(m.version) <= version_tuple(hi)
@@ -183,13 +183,13 @@ def migrate_chlog(
 @common.command
 async def migrate_repad(
     new_width: int = typer.Argument(
-        ..., metavar="WIDTH", help="New zero-pad digit width (must exceed current padding)."
+        ..., metavar="WIDTH", help="Digits to pad item numbers to; more than the current width."
     ),
 ):
-    """Raise the ID padding to WIDTH: rename every item file to the new width and rebuild the index.
+    """Widen the zero padding of item numbers and rename every file to match.
 
-    One-way: WIDTH must be greater than the current stored padding. File *contents* are left
-    byte-untouched — only filenames change. Run `sq check` after to verify integrity.
+    One-way: the padding cannot be narrowed again. Only filenames change, never
+    file contents. Run `sq check` afterwards.
     """
     svc = get_service()
     db = await svc.store.load()
@@ -208,10 +208,10 @@ async def migrate_rename_type(
     old_type: str = typer.Argument(..., metavar="OLD_TYPE", help="Declared type to rename from."),
     new_type: str = typer.Argument(..., metavar="NEW_TYPE", help="Declared type to rename to."),
 ):
-    """Bulk-rename every OLD_TYPE item to NEW_TYPE (same semantics, new prefix/folder).
+    """Move every item of one type to another, with the new prefix and folder.
 
-    Both types must already be declared, non-roster types in the active spec — this
-    call never declares NEW_TYPE. Run `sq check` after to verify integrity.
+    Both types must already be declared, non-roster types; this does not declare
+    NEW_TYPE. Run `sq check` afterwards.
     """
     svc = get_service()
     result = await svc.rename_type(old_type, new_type)
@@ -226,17 +226,16 @@ async def migrate_rename_type(
 @common.command
 async def migrate_rename_status(
     item_type: str = typer.Argument(
-        ..., metavar="TYPE", help="Declared work type whose lifecycle status to rename."
+        ..., metavar="TYPE", help="Declared type whose items carry the status."
     ),
     old_status: str = typer.Argument(
         ..., metavar="OLD_STATUS", help="Status value to rename from."
     ),
     new_status: str = typer.Argument(..., metavar="NEW_STATUS", help="Status value to rename to."),
 ):
-    """Bulk-move every TYPE item at OLD_STATUS to NEW_STATUS (a relabel, not a workflow move).
+    """Relabel a status on every item of one type, without a transition.
 
-    NEW_STATUS must already be a member of TYPE's own lifecycle states. Run `sq check`
-    after to verify integrity.
+    NEW_STATUS must already be in TYPE's lifecycle. Run `sq check` afterwards.
     """
     svc = get_service()
     result = await svc.rename_status(item_type, old_status, new_status)
