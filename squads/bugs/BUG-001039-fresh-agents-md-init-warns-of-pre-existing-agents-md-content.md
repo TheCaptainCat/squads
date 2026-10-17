@@ -8,8 +8,9 @@ author: qa
 priority: low
 refs:
 - REV-1032
+- MILE-1051:targets
 created_at: '2026-10-16T09:01:11Z'
-updated_at: '2026-10-16T09:01:11Z'
+updated_at: '2026-10-16T12:24:18Z'
 ---
 <!-- sq:body -->
 ## Repro

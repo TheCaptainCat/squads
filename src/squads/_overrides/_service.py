@@ -62,7 +62,11 @@ from squads._overrides._stamp import (
 )
 from squads._rendering._engine import invalidate_squad_dir
 from squads._roles._catalog import PREDEFINED, RoleDef, role_by_slug
-from squads._roles._loader import ROLES_OVERRIDE_FILENAME, bundled_roles_toml_text
+from squads._roles._loader import (
+    ROLES_OVERRIDE_FILENAME,
+    bundled_roles_toml_text,
+    load_role_catalog,
+)
 from squads._roles._resolver import dev_base_for_slug, role_base_from_item
 from squads._sections import find_markers
 from squads._util import version_tuple
@@ -137,10 +141,9 @@ def _required_markers_from_bundled(template_name: str) -> set[str]:
     Empty set for templates we cannot read or that carry no markers.
 
     Goes through :func:`~squads._sections.find_markers` — the one marker-recognition
-    primitive — rather than a second regex of its own: the copy that used to live here was a
-    verbatim duplicate, so it inherited the lowercase-only tag class that made every
-    mixed-case sub-entity marker invisible, and would have had to be found and fixed a second
-    time. One definition, one place to widen.
+    primitive — rather than a second regex of its own, which would have to be widened separately
+    whenever the tag class changes (it covers mixed-case sub-entity markers). One definition,
+    one place to widen.
     """
     content = bundled_template_content(template_name)
     if content is None:
@@ -216,8 +219,8 @@ def _role_state(slug: str, path: Path, text: str) -> str:
     Drift is measured against ``roles.toml`` — the document a role override actually
     overrides — not against the role *body template*
     (``agents/role.md.j2``), which is a separate override with its own stamp and its own
-    drift. A change to a bundled role's mission, or a new ``RoleSpec`` field, now drifts a
-    shadowing role override; a cosmetic body-template edit no longer does.
+    drift. A change to a bundled role's mission, or a new ``RoleSpec`` field, drifts a
+    shadowing role override; a cosmetic body-template edit does not.
 
     Role TOML overrides are never 'broken' in the marker sense (TOML has no sq markers).
     """
@@ -257,7 +260,7 @@ def _workflow_state(text: str) -> str:
 
 def _playbook_state(text: str) -> str:
     """Classify the playbook TOML override as current / drifted — mirrors
-    :func:`_workflow_state` exactly (same three-state, now content-gated contract). TOML
+    :func:`_workflow_state` exactly (same three-state, content-gated contract). TOML
     has no sq markers, so a playbook override is never 'broken' in the marker
     sense."""
     stamp = read_toml_stamp(text)
@@ -972,7 +975,7 @@ def _diff_workflow(squad_dir: Path) -> DiffResult:
     override_text = path.read_text(encoding="utf-8")
     base_version = read_toml_stamp(override_text)
 
-    # Δ-mine: override vs the bundled workflow.toml — now that the override can shadow, an
+    # Δ-mine: override vs the bundled workflow.toml — since the override can shadow, an
     # empty reference would describe only "what the team added" and say nothing about a
     # shadowed field, which is exactly the kind of change this diff exists to show.
     delta_mine = _unified_diff(
@@ -982,7 +985,7 @@ def _diff_workflow(squad_dir: Path) -> DiffResult:
         tofile=WORKFLOW_OVERRIDE_FILENAME,
     )
 
-    # Δ-upgrade: now expressible for a spec document — a real diff between the
+    # Δ-upgrade: for a spec document, a real diff between the
     # stamped base revision and the current bundled workflow.toml, resolved from the content
     # store, exactly like every other kind.
     delta_upgrade, base_available = _upgrade_delta(
@@ -1265,7 +1268,7 @@ def _roles_catalog_stamp_finding_gated(
 ) -> tuple[str, str] | None:
     """The stamp obligation for the role catalog document override, content-gated exactly like
     ``squads._workflow._loader.workflow_stamp_finding``/``playbook_stamp_finding`` — the same
-    three-outcome contract every shadowing override kind now shares.
+    three-outcome contract every shadowing override kind shares.
 
     The remediation commands named here name their own object, ``sq override update roles`` /
     ``sq override diff roles``, matching every sibling kind's form (``sq override update
@@ -1289,21 +1292,38 @@ def _roles_catalog_stamp_finding_gated(
     return None
 
 
-def _check_roles_catalog_override_issues(squad_dir: Path) -> list[tuple[str, str, str]]:
-    """Return check issues for the role catalog document override (if present) — mirrors
-    :func:`_check_workflow_override_issues`/:func:`_check_playbook_override_issues` exactly."""
+def _roles_catalog_invalid_issue(squad_dir: Path) -> tuple[str, str, str] | None:
+    """The error finding when the merged role catalog refuses to load, else ``None``. The
+    catalog loads lazily, so ``open_service`` never surfaces an invalid merge."""
+    if not _roles_catalog_override_path(squad_dir).is_file():
+        return None
+    try:
+        load_role_catalog(squad_dir)
+    except SquadsError as exc:
+        return ("error", ROLES_OVERRIDE_FILENAME, f"role catalog override is invalid: {exc}")
+    return None
+
+
+def _check_roles_catalog_override_issues(
+    squad_dir: Path, invalid: tuple[str, str, str] | None
+) -> list[tuple[str, str, str]]:
+    """Return check issues for the role catalog document override (if present): the stamp
+    findings its workflow and playbook siblings report, plus *invalid* — the refusal from
+    :func:`_roles_catalog_invalid_issue`, which those siblings leave to ``open_service``."""
     rc_path = _roles_catalog_override_path(squad_dir)
     if not rc_path.is_file():
         return []
 
     display = ROLES_OVERRIDE_FILENAME
-    text = rc_path.read_text(encoding="utf-8")
+    text = rc_path.read_text(encoding="utf-8", errors="replace")
     stamp = read_toml_stamp(text)
+    issues: list[tuple[str, str, str]] = []
+    if invalid is not None:
+        issues.append(invalid)
     finding = _roles_catalog_stamp_finding_gated(squad_dir, stamp)
-    if finding is None:
-        return []
-    level, message = finding
-    return [(level, display, message)]
+    if finding is not None:
+        issues.append((finding[0], display, finding[1]))
+    return issues
 
 
 # ─── check helpers (used by _services/_maintenance.py) ────────────────────────
@@ -1326,12 +1346,17 @@ def check_override_issues(
     to load, so the caller (``Service.check``, which already has the index in hand) supplies it.
     """
     role_items_by_slug = role_items_by_slug or {}
+    # Per-slug role overrides resolve against the merged catalog, so with it invalid their
+    # resolve step can only repeat its refusal; their stamp checks still run.
+    catalog_invalid = _roles_catalog_invalid_issue(squad_dir)
     return [
         *_check_template_override_issues(squad_dir),
-        *_check_role_toml_override_issues(squad_dir, role_items_by_slug),
+        *_check_role_toml_override_issues(
+            squad_dir, role_items_by_slug, resolve=catalog_invalid is None
+        ),
         *_check_workflow_override_issues(squad_dir),
         *_check_playbook_override_issues(squad_dir),
-        *_check_roles_catalog_override_issues(squad_dir),
+        *_check_roles_catalog_override_issues(squad_dir, catalog_invalid),
     ]
 
 
@@ -1402,12 +1427,12 @@ def _check_template_override_issues(squad_dir: Path) -> list[tuple[str, str, str
 
 
 def _check_role_toml_override_issues(
-    squad_dir: Path, role_items_by_slug: Mapping[str, Item]
+    squad_dir: Path, role_items_by_slug: Mapping[str, Item], *, resolve: bool = True
 ) -> list[tuple[str, str, str]]:
     """Return check issues for every ``.overrides/roles/<slug>.toml`` override: an error for a
     shadowing override with no stamp (the uniform severity contract), a content-gated
-    drift warning, and whatever :func:`_check_role_override_resolves` finds for
-    load-ability."""
+    drift warning, and — when *resolve* — whatever :func:`_check_role_override_resolves` finds
+    for load-ability."""
     issues: list[tuple[str, str, str]] = []
     role_dir = _role_overrides_dir(squad_dir)
     if not role_dir.is_dir():
@@ -1438,7 +1463,10 @@ def _check_role_toml_override_issues(
                     f"`sq override update --role {slug}`",
                 )
             )
-        issues.extend(_check_role_override_resolves(squad_dir, slug, display, role_items_by_slug))
+        if resolve:
+            issues.extend(
+                _check_role_override_resolves(squad_dir, slug, display, role_items_by_slug)
+            )
     return issues
 
 

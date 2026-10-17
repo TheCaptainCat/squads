@@ -362,7 +362,7 @@ def item_type_for_skill_slug(slug: str, spec: WorkflowSpec) -> str | None:
 def cheatsheet_anchor_type(spec: WorkflowSpec) -> str | None:
     """The single non-roster type used to build a "Common commands" example block (the
     squads skill, AGENTS.md) — chosen generically from *spec* so a squad that drops or
-    renames the type this block used to hardcode (``"task"``) still gets a fully runnable,
+    renames ``"task"`` still gets a fully runnable,
     representative example instead of one built from a type that no longer exists.
 
     Scored by how much of the example surface a type can actually demonstrate: a
@@ -653,7 +653,7 @@ def custom_skill_slugs(spec: WorkflowSpec) -> list[str]:
 
 def active_skill_slugs(spec: WorkflowSpec) -> frozenset[str]:
     """Every ``sq-<type>`` skill slug *spec* should currently have, plus the three always-on
-    cross-role skills — the orphan-detection vocabulary now that a type can be dropped, renamed,
+    cross-role skills — the orphan-detection vocabulary, since a type can be dropped, renamed,
     or re-prefixed: unlike
     ``bundled_skill_slugs() | custom_skill_slugs(spec)`` (each an *allocation-order* primitive
     for ``sq init``/``sq sync`` seeding, deliberately covering every historically-bundled slug

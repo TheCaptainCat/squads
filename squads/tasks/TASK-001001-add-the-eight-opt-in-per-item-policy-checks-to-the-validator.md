@@ -37,7 +37,7 @@ subentities:
   story: US5
 - local_id: ST6
   title: 'blocked_has_blocker: flag a blocked item with no dependency edge'
-  status: Todo
+  status: Done
   story: US6
 - local_id: ST7
   title: 'settled_requires_discussion: flag a settled item with no comment'
@@ -53,14 +53,14 @@ subentities:
   story: US9
 - local_id: ST10
   title: Let a status role declare that it means blocked
-  status: Todo
+  status: Done
   story: US11
 - local_id: ST11
   title: Run only the checks that can refuse at the create/update gate
   status: Done
   story: US8
 created_at: '2026-10-12T05:46:24Z'
-updated_at: '2026-10-15T19:49:26Z'
+updated_at: '2026-10-16T13:41:42Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -1065,6 +1065,10 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
+- [2026-10-16T13:27:45Z] Elias Python:
+  - Landed in 6b263cff on the worktree branch (release/0.16 merged afterwards, fork point equals release/0.16 at 03745229). blocked_has_blocker reads the blocked flag via role_for and the dependency kinds via dependency_ref_kinds; no role, status or kind name compared. IncomingEdges/incoming_edges replaces the supersession pass and builds both sets in one walk; supersedes_incoming_seqs stays as a thin reading; gate() walks the index the same number of times (asserted). _run_per_item takes the IncomingEdges; its one test caller was updated.
+  - Falsification: dropping the incoming half turned 10 tests red; empty aggregate in gate() turned 4 red, all in gate and CLI files, no check() row; comparing the role name turned 4 red; literal kind names turned 2 red; dropping the supersession pass turned 6 red (2 are existing supersedes_incoming tests). All restored and green.
+  - Scale tests --run-slow: 6 passed in 20.18s. Scratch copy of the board at release/0.16 (migrated in scratch): sq check --json is byte-identical before and after (empty list) once the override stamp is refreshed; unrefreshed, the only difference is the override drift warning caused by the bundled workflow.toml edit in ST10.
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
 
@@ -1457,6 +1461,11 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST10:discussion -->
+- [2026-10-16T13:11:23Z] Elias Python:
+  - Landed in 4958500d on the worktree branch. Flag is a strict boolean (RoleSpec.blocked, StrictBool), bundled blocked role declares it, WorkflowSpec.blocked_statuses accessor, sixth catalog key and Blocked column, manifest and store regenerated, workflow_roles golden updated.
+  - Falsification: plain bool turned 7 tests red (string and integer rows, model, lint); emitting the key only where true turned 9 red (six-key row, text column, override rows, roles golden); a stale manifest turned scripts/gen_template_manifest.py --check red plus 6 freshness tests; reading the flag in sq blocked turned 1 red. All restored and green.
+  - Driven, not changed: live = "yes" and live = 1 are accepted today by the lenient bool; live = [1] is refused.
+  - Reported: tests/cli/test_this_repositorys_workflow_override_loads_clean_cli.py now fails 2 tests (override stamped 0.15.0 reads drifted); squads/.overrides/workflow.toml is not edited here, manager to decide. clients/vscode canary not run (no node_modules installed); it asserts the active row with arrayContaining of the five keys then an exact object, so the client fixture needs the sixth key.
 <!-- sq:subtask:ST10:discussion:end -->
 <!-- sq:subtask:ST10:end -->
 
@@ -1749,4 +1758,6 @@ Gates and working rules: the task body.
   - REV-1010 is Approved after pass 3: F7 (warning check that bypasses the re cache) and F9 (sub-status target spellings) are verified. Part one is clear on review. @manager
 - [2026-10-15T19:49:26Z] Catherine Manager:
   - Part one merged into release/0.16 (a5666b03): REV-1010 approved after three passes; merged tree full suite 9205 passed, 0 failed; pyright, ruff and sq check clean. ST6 and ST10 stay held until the 0.16.0 bump, which follows FEAT-980.
+- [2026-10-16T13:41:42Z] Paul Reviewer:
+  - Part two (ST10, ST6) reviewed in REV-1062: changes requested on F1 (a malformed dependency ref aborts every check and gated write) and F2 (the VS Code roles canary goes red on the sixth key). Four low findings and one info. @manager
 <!-- sq:discussion:end -->

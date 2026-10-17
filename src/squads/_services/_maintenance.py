@@ -173,7 +173,7 @@ def _missing_timestamp_issues(name: str, data: dict[str, Any]) -> list[CheckIssu
     The message names the index as the source the heal will use, and says so in those words.
     It must not promise "the real value": what a mutation writes back is whatever the index
     currently holds for the key, which is the item's true original only for as long as the
-    index still has it (:meth:`MaintenanceMixin._rebuild_index_from_disk` now carries it
+    index still has it (:meth:`MaintenanceMixin._rebuild_index_from_disk` carries it
     across a rebuild for exactly that reason). Over-promising here would make the warning read
     as reassurance in the one case where the operator most needs to act.
     """
@@ -193,7 +193,7 @@ def _missing_timestamp_issues(name: str, data: dict[str, Any]) -> list[CheckIssu
 def _ref_encoding_is_stale(data: dict[str, Any], item: Item) -> bool:
     """Whether *data* — the raw, unfolded frontmatter :meth:`_rebuild_index_from_disk` just
     parsed for *item* — holds a ref encoding other than the canonical one *item* (already
-    folded through :meth:`Item.from_frontmatter`) now carries.
+    folded through :meth:`Item.from_frontmatter`) carries.
 
     Two shapes, both :func:`~squads._models._item.fold_legacy_kinds`'s doing: a leftover
     ``extra.ref_kinds`` legacy map (folded into ``refs`` and then dropped from ``extra``), and
@@ -234,7 +234,7 @@ def _retired_region_tags(text: str) -> list[str]:
     :data:`~squads._models._markers.SUMMARY` region, and every tag ending in
     :data:`_RETIRED_HEAD_SUFFIX`. Both are derived renderings whose writers have retired and
     whose replacements are computed on every read, so what is on disk can only disagree with
-    the frontmatter that is now the sole source.
+    the frontmatter that is the sole source.
 
     Close markers are skipped (their tag carries a trailing ``:end``) so each region is named
     once, and a tag whose region is not balanced in *text* is skipped outright — an unclosed
@@ -424,7 +424,7 @@ def _record_pending_rewrite(
     and that is the coupling this vehicle introduces which a migration step did not have: the
     caller's very next statement is ``db.add(item)``, so an ``Item`` still carrying a key the
     file no longer does would put the index and the markdown into disagreement on exactly the
-    key just removed. Those keys are no longer in ``PERMITTED_EXTRA_SKEW`` either, so the
+    key just removed. Those keys are not in ``PERMITTED_EXTRA_SKEW`` either, so the
     disagreement would not be forgiven — it would refuse every later read of that item.
 
     Nothing is queued when the composed text equals the original — the identity that makes a
@@ -857,7 +857,7 @@ def _missing_dirent_message(md: Path, *, is_symlink: bool) -> str:
 
     The distinction is the whole point of the ``is_symlink`` test each caller performs: a broken
     symlink is a **present** dirent whose *target* is missing, so "No such file or directory" —
-    what the raw ``OSError`` says, and what the ``repad``/``renumber`` preflight used to report —
+    what the raw ``OSError`` says —
     sends an operator looking for a file that is sitting right there. Only a dirent that genuinely
     vanished between the scan and the read is absent.
 
@@ -1128,8 +1128,8 @@ class MaintenanceMixin(ServiceCore):
         # — so this stays cheap on every ordinary, no-drift sync.
         #
         # Compared with :func:`~squads._models._schema.version_drifted`, not the tolerant
-        # :func:`~squads._util.version_tuple` this trigger used to share with the CLI's purely
-        # cosmetic drift notice: ``squads_version``/``__version__`` is the installed *package*
+        # :func:`~squads._util.version_tuple` that the CLI's purely
+        # cosmetic drift notice uses: ``squads_version``/``__version__`` is the installed *package*
         # version, which can carry a pre-release/dev/local segment (``"0.15.0rc1"``) the strict
         # per-segment parse has no model for. The tolerant comparator strips non-digits per
         # segment and concatenates the survivors instead of raising — which orders a prerelease
@@ -1563,7 +1563,7 @@ class MaintenanceMixin(ServiceCore):
         :meth:`RoleDef.to_extra`'s keys into the item's ``extra``, and project the resolved
         name/mission onto the item's own top-level ``title``/``description``.
 
-        **What this merges is deliberately small.** ``to_extra()`` no longer carries a copy of
+        **What this merges is deliberately small.** ``to_extra()`` does not carry a copy of
         the definition — a role's title, mission, responsibilities, agreements, colour and
         spawn authority resolve from the catalog on every read, so there is nothing about them
         left to reconcile here. What the merge still converges is the stored residue
@@ -1626,9 +1626,9 @@ class MaintenanceMixin(ServiceCore):
         slug of its title, and this call must never move the file.
 
         The ``extra`` keys this call writes stay exempt from the skew guard everywhere — see
-        ``_itemfile.PERMITTED_EXTRA_SKEW``, now narrowed to the same short residue this merges.
-        That exemption no longer describes *this* writer's steady state (the index mirror
-        above is what removed the permanent lag) but is still what lets a squad synced by an
+        ``_itemfile.PERMITTED_EXTRA_SKEW``, narrowed to the same short residue this merges.
+        That exemption does not describe *this* writer's steady state (the index mirror
+        above prevents a permanent lag) but is what lets a squad synced by an
         older release, whose index already lags on those keys, converge on its next sync
         instead of being refused by the guard first. The projected
         top-level ``title``/``description`` fields are ordinary frontmatter keys the skew guard
@@ -1706,8 +1706,8 @@ class MaintenanceMixin(ServiceCore):
         Returns the applied :class:`Migration` records **and the rebuild's own**
         :class:`~squads._services._results.RepairResult`, because that rebuild is also the
         corpus sweep and this is the only route a squad behind the current schema takes: an
-        operator migrating a 0.11 squad gets files rewritten, and discarding the result here
-        left ``sq migrate up`` with nothing to say about them beyond "index rebuilt". The
+        operator migrating an older squad gets files rewritten, and ``sq migrate up`` reports
+        them rather than saying only "index rebuilt". The
         caller announces it with
         :meth:`~squads._services._results.RepairResult.strip_notice`, the same sentence ``sq
         repair`` prints.
@@ -1954,8 +1954,8 @@ class MaintenanceMixin(ServiceCore):
         Called from :meth:`sync` (so a custom type declared or renamed after the squad
         already exists gets seeded on the next sync) AND from ``init``/``adopt`` (which both
         resolve the merged, possibly-overridden spec via ``_init_time_spec`` and so see custom
-        types from the very start — a fresh squad with a custom type no longer sits with
-        unindexed skill body files until someone happens to run `sq sync`).
+        types from the very start — a fresh squad with a custom type has no
+        unindexed skill body files waiting for someone to run `sq sync`).
         """
         now = clock.now()
         seeded: list[Item] = []
@@ -2008,7 +2008,7 @@ class MaintenanceMixin(ServiceCore):
                 convention_path = skills_folder / new_name
                 await write_text(convention_path, stamped)
                 # See seed_bundled_skills for why the legacy unlink moves inside the
-                # transaction, alongside the write it now always follows.
+                # transaction, alongside the write it always follows.
                 await _aio.path_unlink(legacy_path)
                 db.add(item)
                 self.store.log(
@@ -2035,7 +2035,7 @@ class MaintenanceMixin(ServiceCore):
         (one generic path, no static/dynamic split), ordered by each type's
         ``ItemSpec.order`` (the same deterministic-not-alphabetical axis the CLI/playbook
         registration already uses), tie-broken by type name. This reproduces the exact
-        historical built-in scan order (epic, feature, task, bug, decision, review, guide,
+        built-in scan order (epic, feature, task, bug, decision, review, guide,
         role, skill, operator) byte-for-byte, which matters for collision resolution when
         two items share a sequence number pre-renumber (`sq repair --renumber`).
 
@@ -2375,7 +2375,7 @@ class MaintenanceMixin(ServiceCore):
 
         A role's region converging is not deletion — see :func:`_strip_retired_regions`, which
         records what was driven: no read path branches on the region's own bytes, so rewriting
-        it changes nothing any read surface observes beyond what the tag itself now resolves
+        it changes nothing any read surface observes beyond what the tag itself resolves
         to. It is the marker pair every item file carries, and keeping it is the cheaper of two
         harmless choices."""
         slug = views.roster_slug(item.type, item.slug, item.extra)
@@ -2466,7 +2466,7 @@ class MaintenanceMixin(ServiceCore):
 
         **Retired regions are stripped, in the same walk and the same deferred write.** A
         marker region whose writer has retired and whose replacement is computed on every read
-        can only disagree with the frontmatter that is now its sole source, so it is removed
+        can only disagree with the frontmatter that is its sole source, so it is removed
         wherever it is still stored (:func:`_strip_retired_regions`), and so are the retired
         ``extra`` keys a role item still mirrors (:func:`_retired_role_extra_keys`) — from the
         parsed ``Item`` as well as from the file, since the index entry committed below is
@@ -2591,7 +2591,7 @@ class MaintenanceMixin(ServiceCore):
             )
 
         # Markdown before the index, as everywhere else: every rewritten file is written
-        # here, now that the rebuild is known to proceed, strictly before the index commit
+        # here, once the rebuild is known to proceed, strictly before the index commit
         # below.
         for md, new_text in pending.files:
             await write_text(md, new_text)
@@ -3180,8 +3180,8 @@ class MaintenanceMixin(ServiceCore):
         backend_entry_candidates`) — each a claim comparing the on-disk scan against the index
         snapshot loaded above — are candidates, not findings: they are confirmed by exactly
         one cheap re-read (:meth:`_confirm_cross_source`) before being reported, so a mutation
-        racing the scan can no longer produce a false drift warning, a false reconciliation
-        error, or a false per-entry-pointer warning (and can no longer make ``sq check`` exit 3
+        racing the scan cannot produce a false drift warning, a false reconciliation
+        error, or a false per-entry-pointer warning (and cannot make ``sq check`` exit 3
         for a board that was never actually wrong).
 
         A reported drift or reconciliation issue therefore means a **real, durable**

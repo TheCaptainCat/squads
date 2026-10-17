@@ -2,13 +2,13 @@
 id: MILE-934
 sequence_id: 934
 type: milestone
-title: squads 0.16 - roles, not slugs
+title: squads 0.16 - one roster, flat files
 status: InProgress
 author: product-owner
 refs:
 - MILE-867
 created_at: '2026-09-09T14:39:43Z'
-updated_at: '2026-10-16T11:16:28Z'
+updated_at: '2026-10-16T13:31:17Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.15.
@@ -151,4 +151,14 @@ The next squads release after 0.15.
   - 2026-10-16: asked for a global review pass on the adopter docs (suspects parts are outdated or wrong). Five reviewer audits launched (Paul on Fable), findings only; fixes by the writer, with overrides/workflow/stability fixes held until after FEAT-1016 where flattening touches them.
 - [2026-10-16T11:16:28Z] Pierre Chat:
   - 2026-10-16: set pytest tmp_path_retention_count = 1 (the /tmp tmpfs filled during a run on 2026-10-15).
+- [2026-10-16T11:52:30Z] Pierre Chat:
+  - 2026-10-16: renamed to 'squads 0.16 - one roster, flat files'; the old title no longer covered the release's content.
+- [2026-10-16T12:24:23Z] Pierre Chat:
+  - 2026-10-16: bugs for 0.16 are BUG-994, BUG-1000 (with its duplicate BUG-1037 folded in), BUG-1049, BUG-1057 and BUG-1058. Every other open bug moves to 0.17 (MILE-1051).
+- [2026-10-16T12:54:20Z] Pierre Chat:
+  - 2026-10-16: authorised the manager to do the 0.16.0 version bump. Migrating this repo's squad, pushing and publishing stay mine.
+- [2026-10-16T13:01:10Z] Pierre Chat:
+  - 2026-10-16: 0.16 keeps its full scope as planned; no features move to 0.17.
+- [2026-10-16T13:31:17Z] Pierre Chat:
+  - 2026-10-16: authorised a one-line hand edit restamping squads/.overrides/workflow.toml from override-base 0.15.0 to 0.16.0 (no verb can restamp it while this squad is behind the schema; content unchanged).
 <!-- sq:discussion:end -->

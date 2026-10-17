@@ -19,7 +19,7 @@ link. `-C` never creates a folder, not even for `sq init`. Fix the path, create 
 its permissions. The command does not run, and exits `2`.
 
 ### "--dir is no longer supported; use -C <path> …"
-`--dir` has been replaced by `-C`, and is refused wherever it is written as an option. `-C` does
+`sq` takes `-C`, and refuses `--dir` wherever it is written as an option. `-C` does
 not name the squad folder; it names the folder `sq` starts in, and `sq` walks up from there to
 `.squads.toml` as usual. For a squad inside its project, `-C path/to/squads` or `-C path/to/project` both work. For a
 squad kept outside its project tree (`squad_dir = "../shared"` or an absolute path), use
@@ -216,13 +216,6 @@ learns that stdout is worth parsing. `sq repair` reports a mutation rather than 
 and exits `3` like any other error-level finding. `--json` output is unaffected in shape:
 `sq board list --json` still writes a bare, valid array to stdout, and names what it left out in one
 JSON line on stderr.
-
-**Upgrading from before 0.15.0?** Those five listings all moved onto `4`. `sq board list`, `sq inbox`
-and `sq search` returned `1` here, so no script's pass/fail verdict moves — only the number does.
-`sq memory <role> list` and `sq memory <role> search` returned `0`, so a script that treats a zero
-exit as success will start failing on a notebook it cannot fully read. That is the fix rather than a
-regression — the old `0` told the caller a partly-read notebook was the whole notebook — but check
-any pipeline that reads memory before you upgrade.
 
 The formal stability contract (tiers, versioning, post-1.0 semantics) lives in
 `docs/stability.md`.

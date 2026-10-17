@@ -23,7 +23,7 @@ subentities:
   severity: medium
 - local_id: F3
   title: operator add --slug takes squads, operator and live role slugs
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F4
   title: Anonymous slug still spelled as a literal at three sites
@@ -38,7 +38,7 @@ subentities:
   status: Fixed
   severity: info
 created_at: '2026-10-15T22:10:58Z'
-updated_at: '2026-10-16T11:19:09Z'
+updated_at: '2026-10-16T12:19:58Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -155,6 +155,8 @@ Consequences, driven on a scratch squad:
   - Ruled as an ADR-979 amendment dated 2026-10-16 (A1 to A5): operator slugs must start with op- and be in the grammar; the 0.16 planning pass refuses a breaching entry rather than reporting it. Awaiting op-pierre confirmation; the finding stays Open until the fix lands.
 - [2026-10-16T11:19:09Z] Olivia Lead:
   - Home: TASK-1048 (A1 to A5, confirmed 2026-10-16). The finding stays Open until it lands.
+- [2026-10-16T12:19:57Z] Catherine Manager:
+  - Closed by TASK-1048 (ADR-979 A1–A7), commits e9aa76cd and bc25f720.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 

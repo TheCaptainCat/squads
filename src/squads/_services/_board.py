@@ -11,11 +11,13 @@ functions.
 from squads._board import _store as board_store
 from squads._board._model import BoardNotice
 from squads._board._store import UnreadableNotices
+from squads._models._participants import refuse_system_actor
 from squads._services._base import ServiceCore
 
 
 class BoardMixin(ServiceCore):
     async def board_post(self, author: str, text: str, *, until: str | None = None) -> BoardNotice:
+        refuse_system_actor(author)
         return await board_store.post(self.paths, author, text, until=until)
 
     async def board_list(self) -> tuple[list[BoardNotice], UnreadableNotices]:

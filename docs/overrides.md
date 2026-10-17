@@ -421,7 +421,10 @@ as `Published`.
 Every item type runs a set of checks. `sq check` reports what they find, and the create/update
 gate refuses a write on the `error`-level ones. You do not compose that set from scratch: each
 type gets a cross-cutting core plus a bundle its `category` implies, and a type's own
-`validators` list is where you **add** to it and say how much you mean each addition.
+`validators` list is where you **add** to it and say how much you mean each addition. A check that
+looks at the squad as a whole sits outside every type's list: `roster_slug_valid`, which checks
+role and operator slugs (see [stability.md § "Comment headers"](stability.md#comment-headers)), runs
+on every `sq check` at a fixed `error` level, and cannot be selected, dropped or given another level.
 
 ```toml
 [items.task]
@@ -1101,10 +1104,10 @@ its own merged role definition, a type's playbook lane, or the item itself — r
 template. Views are declared in `[views]`, and nothing about them is a special case: they merge,
 shadow and drop exactly like item types and statuses do.
 
-Upgrading a squad whose `.overrides/workflow.toml` still declares a view with `fields`, `group_by`,
-`order_by`, or a type attachment (`items.<type>.views`)? Those keys are gone in 0.15 — see
-[workflow.md § "Upgrading a 0.14 view declaration"](workflow.md#upgrading-a-014-view-declaration)
-for the load error and a worked conversion.
+A view declares only its `source`: `fields`, `group_by`, `order_by` and a type attachment
+(`items.<type>.views`) are refused by name, and
+[migration.md § "Upgrading to 0.15: view declarations"](migration.md#upgrading-to-015-view-declarations)
+shows the load error and a worked conversion.
 
 Every view is **computed on every request**. No view is ever written into an item's file, so
 declaring, changing or dropping one rewrites nothing on disk and leaves nothing behind.
@@ -1233,7 +1236,7 @@ view once its tag is re-enabled with `view add`; changing it means dropping the 
 A runbook you want to keep does not belong in an `sq-<type>` skill's body: give it a skill of its
 own with `sq skill add`. If one already sits in an `sq-<type>` skill, `sq check` names the five
 steps that move it out — see
-[workflow.md § "After `sq migrate up`: seeded views"](workflow.md#after-sq-migrate-up-seeded-views).
+[migration.md § "After `sq migrate up`: seeded views"](migration.md#after-sq-migrate-up-seeded-views).
 
 ---
 
@@ -1473,7 +1476,7 @@ unknown item type 'guide': 'guide' was dropped from a [selected] list
 to selected.items to restore it
 ```
 
-**Reading the file is no longer the same as knowing your vocabulary.** Once an override can shadow,
+**Reading the file is not the same as knowing your vocabulary.** Because an override can shadow,
 splat and drop, what types and statuses you actually have is a function of the bundled set *and*
 your file. Ask squads rather than reading the TOML:
 

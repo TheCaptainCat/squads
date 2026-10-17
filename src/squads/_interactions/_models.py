@@ -25,12 +25,10 @@ class RoleGuideSpec(BaseModel):
     """This role is an in-lane **author** of the type this guide hangs under — the declared
     create-lane, and the only source of it.
 
-    Declared rather than inferred from the guide's prose. The lane used to live in a separate
-    hand-maintained slug→type map beside the playbook, which meant an adopter who added an
-    authoring guide through ``.overrides/playbook.toml`` got a generated skill telling them to
-    run the create command and an advisory saying they were not the in-lane author for it. It
-    also drifted from the prose it was supposed to mirror: nothing checked the two agreed,
-    because the map was pinned to a literal table instead of to this document.
+    Declared rather than inferred from the guide's prose, and kept in the playbook itself rather
+    than in a separate slug→type map: an adopter who adds an authoring guide through
+    ``.overrides/playbook.toml`` gets a generated skill and advisory that agree with it, because
+    both read this document.
 
     Defaults ``False``, so a guide that only reads/triages/verifies a type declares nothing —
     including the ``*dev`` sentinel, whose lane is empty by declaration rather than by a

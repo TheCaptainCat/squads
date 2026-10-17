@@ -25,8 +25,8 @@ cross-check. Every one of those stays here:
    that category.  Written on the key set plus ``category`` immobility only — **never** on
    ``prefix``, which is ordinary field-mergeable customisation like any other type's.
 2. **Structural + referential validation** (``_build_spec`` → ``WorkflowSpec._validate``) — the
-   universal lifecycle floor and the roster R1/R1'/R2 clauses are unchanged; they simply now run
-   against the *merged* mapping instead of only the bundled one, so a shadowed lifecycle that
+   universal lifecycle floor and the roster R1/R1'/R2 clauses apply to
+   the *merged* mapping, not only the bundled one, so a shadowed lifecycle that
    violates them fails exactly the same way a bundled one always has.  A violation that traces
    back to a ``[selected]`` drop is annotated with that provenance (``_annotate_deselections``) —
    an adopter who cannot see their own line caused a violation cannot fix it.
@@ -125,10 +125,10 @@ _ROSTER_LOCK_FIX_HINT = (
     "the change in .overrides/workflow.toml."
 )
 
-#: The retired view-declaration keys, each with its own reason — what it did is now the
+#: The retired view-declaration keys, each with its own reason — what it did is the
 #: presentation template's own job, but *which* job differs per key, so one shared "grouping
 #: and ordering" sentence would misdescribe ``fields`` (a column list) as a sort/group concern.
-#: A ``[views.<name>]`` table declares only ``source`` now. Scanned at any nesting depth under
+#: A ``[views.<name>]`` table declares only ``source``. Scanned at any nesting depth under
 #: a view's own table, not just its top level — a retired key can also be written nested under
 #: ``source`` (a hand-typed mistake, not a supported shape), which a top-level-only scan would
 #: miss and let fall through to ``ViewSource``'s own generic ``extra="forbid"`` instead.
@@ -317,9 +317,8 @@ def _bundled_raw() -> RawMapping:
 
 def bundled_workflow_toml_text() -> str:
     """The bundled ``workflow.toml``'s raw text — the ``sq override diff workflow`` Δ-mine
-    baseline now that the override can shadow: an empty reference described "what
-    the team added" back when shadowing was impossible; against a shadowing override the
-    meaningful diff is what changed relative to the real bundled document."""
+    baseline: an override can shadow, so an empty reference would describe only "what
+    the team added"; the meaningful diff is what changed relative to the real bundled document."""
     return _read_bundled_bytes().decode()
 
 
@@ -552,7 +551,7 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
         name: _parse_lifecycle(name, data) for name, data in _section(raw, "lifecycles").items()
     }
 
-    # --- statuses --- (keys stay plain str; the status-vocab enum was removed)
+    # --- statuses --- (keys are plain str)
     statuses: dict[str, StatusSpec] = {}
     for name, data in _section(raw, "statuses").items():
         # Pass the full status data dict through model_validate so extra="forbid" fires
@@ -571,7 +570,7 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
     }
     declared_ref_kinds = frozenset(ref_kinds)
 
-    # --- items --- (type keys/values stay plain str; the type-vocab enum was removed)
+    # --- items --- (type keys/values are plain str)
     items: dict[str, ItemSpec] = {}
     prefix_to_type: dict[str, str] = {}
     alias_to_type: dict[str, str] = {}

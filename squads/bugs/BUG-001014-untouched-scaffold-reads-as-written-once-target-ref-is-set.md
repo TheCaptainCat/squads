@@ -8,10 +8,11 @@ author: qa
 refs:
 - REV-1010
 - TASK-1001
+- MILE-1051:targets
 description: Body guard and body_written compare against a re-render, so a changed
   scaffold input hides the stub
 created_at: '2026-10-15T19:36:06Z'
-updated_at: '2026-10-15T19:36:06Z'
+updated_at: '2026-10-16T12:24:13Z'
 ---
 <!-- sq:body -->
 ## Reproduction

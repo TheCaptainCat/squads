@@ -13,7 +13,7 @@ Grammar:
   sq skill <slug|id|n> status <S>       — transition the skill's status
   sq skill <slug|id|n> view add <name>       — place or re-enable a view tag in sq:body
   sq skill <slug|id|n> view disable <name>   — disable a view tag in sq:body (kept, not removed)
-  sq skill <slug|id|n> rm [--purge]     — remove the skill item
+  sq skill <slug|id|n> rm --purge     — delete the skill item (or set status Archived)
 
 Address resolution order (exact match, no fuzzy):
   full-ID shape (SKILL-1) → bare number → exact slug
@@ -63,7 +63,7 @@ skill_app = typer.Typer(
     help="Manage agent skills.",
     epilog=(
         "Address a skill:  sq skill <slug|id|n> show|regen|rm|status|view\n"
-        "Examples:  sq skill squads show   sq skill 2 regen   sq skill SKILL-2 rm\n"
+        "Examples:  sq skill squads show   sq skill 2 regen   sq skill SKILL-2 rm --purge\n"
         "           sq skill squads status Archived\n"
         "           sq skill squads view disable squads_skill   — disable a dropped view's tag\n"
         "Note: a slug matching a group verb (add) is unaddressable by slug; "
@@ -358,13 +358,15 @@ async def skill_regen(ctx: typer.Context) -> None:
 @common.command
 async def skill_rm(
     ctx: typer.Context,
-    purge: bool = typer.Option(False, "--purge", help="Also delete the markdown file."),
+    purge: bool = typer.Option(
+        False, "--purge", help="Delete the file too; rm refuses without it."
+    ),
 ) -> None:
-    """Remove a skill (and its pointer; --purge also deletes the markdown)."""
+    """Delete a skill for good; needs --purge (or set its status to Archived)."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
     await svc.remove_item(item_id, purge=purge)
-    console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
+    console.print(f"removed {item_id}")
 
 
 register_status_verb(_addr, lambda ctx: ctx.obj["id"])

@@ -243,12 +243,12 @@ frontmatter changes (so no item's `updated_at` moves), and a header-shaped line 
 outside any discussion, is left alone. The run reports what it did under the step:
 
 ```
-  0.16.0 (schema v0.15→v0.16): Comment headers name the author's permanent slug. — 1 changed
+  0.16.0 (schema v0.15→v0.16): Comment headers name the author's permanent slug. Every operator carries a stored slug and full name. — 1 changed
     4 comment header(s) rewritten in 1 file(s); 0 already carried a slug
+    0 operator(s) given a stored slug or full name
 ```
 
-The report also names any operator whose slug does not start with `op-`; nothing is refused for
-it. A header that already carries a slug is left as it is, so the step can be run again safely.
+A header that already carries a slug is left as it is, so the step can be run again safely.
 Review the diff before you commit it. The new grammar is in
 [stability.md](stability.md#comment-headers).
 
@@ -281,8 +281,9 @@ What each line means, and what to do before running `sq migrate up` again:
   name with the earlier release: `sq role activate <slug> --name "<name>"` for a role (`sq role
   catalog` lists the slugs), `sq dev add --tech <tech> --name "<name>"` for a developer role, and
   `sq operator add "<name>" --slug <old-slug>` for an operator (`--slug` keeps the slug its items
-  still name as author or assignee). A retired entry counts, so it can be retired again
-  afterwards. If the entry is still there under a newer name, the old and the new name cannot both
+  still name as author or assignee, and must follow the operator rule in
+  [the next section](#a-role-or-operator-whose-slug-breaks-the-rules), or the run refuses it). A
+  retired entry counts, so it can be retired again afterwards. If the entry is still there under a newer name, the old and the new name cannot both
   resolve to it: replace the old name in those header lines by hand.
 - **`'<name>' matches 2 entries: <slug>, <slug>`.** Two entries share that name. Every header with
   the name then belongs to one of them only, so decide which, and give the other a distinct name
@@ -299,6 +300,63 @@ What each line means, and what to do before running `sq migrate up` again:
 - **A region marker that "shares its line with text" or "is not a well-formed sq marker".** Put
   each `sq:` marker on a line of its own, spelled as sq writes it (`<!-- sq:discussion -->`, one
   space on each side of the tag).
+
+### A role or operator whose slug breaks the rules
+
+Before it resolves any header, the step checks every role and operator, retired ones included,
+against the slug rules (see [stability.md § "Comment headers"](stability.md#comment-headers)):
+
+- an operator's slug is `op-` followed by lowercase letters, digits and hyphens;
+- a role's slug is lowercase letters, digits and hyphens, and is neither `operator` nor `squads`
+  nor anything that starts with `op-`;
+- no slug is held by two entries.
+
+An entry that breaks a rule refuses the run like an unresolvable header: nothing is written, the
+schema stamp is unchanged and the command exits `1`. Each entry gets one line, naming its file, its
+slug, the rule and the other holders, in the same report and count as the header failures; the
+headers that name it are not listed again:
+
+```
+error: agents/roles/ROLE-000005-qa.md: role slug 'qa' is not unique; also held by OP-9
+operators/OP-000009-qa.md: operator slug 'qa' does not start with 'op-'; also held by ROLE-5
+2 problem(s) found.
+```
+
+The run refuses rather than only reporting because this is the last point where the slug can
+change. Once the headers carry it, nothing rewrites them: a reserved slug would turn comments into
+entries sq wrote itself, `operator` would make them anonymous, and a slug shared with a role would
+make them editable by whoever holds it.
+
+What to do for each, with the release the squad is stamped for, before running `sq migrate up`
+again:
+
+- **An operator.** Run `sq operator <id> rm --purge`, using the ID in the line, then
+  `sq operator add "<the same full name>"`, which takes `op-` and the first name unless you pass a
+  compliant `--slug`. The purge is required: with that release a plain `rm` drops the entry from
+  the index but keeps its file, and the next run reads that file again. The comments that named the
+  operator then resolve to the new slug. Reassign the open items assigned to the old slug with
+  `sq <type> <n> update --assignee <new slug>`. An item's `author` keeps the old slug, and
+  `sq check` reports it as not registered.
+- **A role.** Give the role's project definition a compliant slug (the file under
+  `<squad folder>/.overrides/roles/`, renamed, and its `slug` line with it), run
+  `sq role activate <new slug>`, then `sq role <id> rm --purge` for the old entry.
+- **A slug held by two entries.** Both entries are listed, each naming the other. Replace the one
+  that breaks a rule above, or the one you can spare, the same way.
+
+An operator that the earlier release's importer created took a slug derived from its whole name,
+without `op-` (`Ann Lee` became `ann-lee`), so it is refused here unless it was given an `op-`
+slug when imported.
+
+### Every operator carries a stored slug and full name
+
+An operator that an earlier release's importer created has neither a `slug` nor a `full_name`
+under `extra:` in its file. `sq migrate up` writes both: the slug is the one the operator already
+answers to, and the full name is its title. Only the frontmatter of those operators changes, and
+an operator that already had both is not touched. The run reports how many it filled in:
+
+```
+    1 operator(s) given a stored slug or full name
+```
 
 ---
 
@@ -336,6 +394,211 @@ folder, `-C` reports `no .squads.toml found in <path> or any parent directory` a
 
 `sq -C <path> init` and `sq -C <path> adopt` create the project at `<path>` (its `.squads.toml`,
 and the squad folder `--squad-dir` names inside it).
+
+---
+
+## Upgrading to 0.15: view declarations
+
+0.14 shipped derived views with a `fields`/`group_by`/`order_by` projection grammar, and a view
+could be attached to a type with `items.<type>.views = […]`. 0.15 removes all four keys: a view
+now declares only where its data comes from, and everything else — which columns, how they're
+grouped, and where the view appears — moved elsewhere. If your own `.overrides/workflow.toml`
+still carries the 0.14 grammar, upgrading breaks the load, on purpose, naming the retired key:
+
+```
+error: this squad's workflow override could not be loaded, so no command can answer with the vocabulary it declares.
+  cause: …/.overrides/workflow.toml: views.milestone_rollup.group_by: 'group_by' was retired — grouping is the presentation template's own job now (Jinja `groupby`), not a declared key — remove it; a `[views.<name>]` table declares only `source` now.; …/.overrides/workflow.toml: views.milestone_rollup.order_by: 'order_by' was retired — ordering is the presentation template's own job now (Jinja `sort`), not a declared key — remove it; a `[views.<name>]` table declares only `source` now.; …/.overrides/workflow.toml: views.milestone_rollup.fields: 'fields' was retired — choosing and labelling which columns render is the presentation template's own job now — write the fields a resolved record actually has directly in Jinja, not a declared key — remove it; a `[views.<name>]` table declares only `source` now.
+  Fix the file, then re-run. `sq workflow lint` reports every problem at once with a fix hint.
+```
+
+An `items.<type>.views` type attachment gets its own version of the same message:
+
+```
+error: this squad's workflow override could not be loaded, so no command can answer with the vocabulary it declares.
+  cause: …/.overrides/workflow.toml: items.milestone.views: 'views' was retired — a view is placed with a `sq:view:<name>` tag in a document body now, not attached to a type — remove the key; place the view's tag with `sq <type> <n> view add <name>` instead.
+  Fix the file, then re-run. `sq workflow lint` reports every problem at once with a fix hint.
+```
+
+Converting covers three moving pieces, worked below against a `milestone_rollup` override in the
+shape a 0.14 squad might have carried.
+
+### 1. Declaration: collapse to `source`
+
+0.14:
+
+```toml
+[views.milestone_rollup]
+source = { kind = "ref", name = "targets" }
+group_by = "status_role"
+order_by = ["type", "id"]
+
+[[views.milestone_rollup.fields]]
+code = "id"
+label = "Id"
+
+[[views.milestone_rollup.fields]]
+code = "title"
+label = "Title"
+
+[[views.milestone_rollup.fields]]
+code = "status"
+label = "Status"
+```
+
+0.15 — delete every key but `source`:
+
+```toml
+[views.milestone_rollup]
+source = { kind = "ref", name = "targets" }
+```
+
+If you never customised `fields`/`group_by`/`order_by` on the bundled `milestone_rollup`, there is
+nothing to convert here: drop your whole `[views.milestone_rollup]` section and the bundled
+one-line declaration takes over. If your override also attached a view to a type
+(`items.<type>.views = […]`), delete that key too — see placement, below.
+
+### 2. Template: move grouping and ordering into Jinja
+
+The projection's `fields`/`group_by`/`order_by` become ordinary Jinja over `source` — the resolved
+records themselves, unflattened — plus `item` (the host the view resolved against) and `spec` (the
+active workflow spec). `sq override scaffold views/milestone_rollup.md.j2` starts you from the
+bundled rendering; a minimal replacement for the projection above looks like:
+
+```jinja
+{% for kind, members in source | groupby('type') %}
+### {{ kind }}
+{% for r in members | sort(attribute='sequence_id') %}
+- **{{ r.id }}** {{ r.status | badge(spec) }} — {{ r.title }}
+{% endfor %}
+{% endfor %}
+Outstanding: {{ (source | selectattr('status', 'ne', 'Done') | list) | length }}
+```
+
+This is a deliberately small example. The bundled `milestone_rollup` template groups on
+`spec.is_delivered(...)`/`spec.role_for(...).settled` rather than a literal status — read
+["Derived views: field reference"](workflow.md#derived-views-field-reference) before converting
+a real `group_by = "status_role"`, which needs that same distinction.
+
+### 3. Placement: the dedicated verb, never the body
+
+0.14 put `milestone_rollup` on every milestone automatically, through the type attachment. 0.15
+places it with a verb instead:
+
+```
+sq milestone <n> view add milestone_rollup
+```
+
+which inserts the `sq:view:milestone_rollup` tag into the milestone's body at the view's declared
+`position` — the end of the body unless you set one (see
+["Derived views: field reference"](workflow.md#derived-views-field-reference)).
+`templates/items/milestone.md.j2` already seeds this tag on every *new* milestone, and upgrading
+(`sq migrate up`) places it on the milestones that predate the upgrade (the exceptions are in
+[the next subsection](#after-sq-migrate-up-seeded-views)), so `view add` is mainly needed for a
+view you declared yourself, on a type whose creation template doesn't seed its tag. Typing the tag
+into a body by hand is refused, deliberately:
+
+```
+error: body must not contain sq marker comments (<!-- sq:… -->). Write the tag without its HTML-comment wrapper (e.g. sq:body rather than the comment form) — backtick-wrapping does not neutralize a well-formed tag.
+```
+
+A tag is never taken back out. `sq <type> <n> view disable <name>` turns it off instead: the tag
+stays in the body as `sq:view:<name>:disabled` and renders nothing, and `view add` turns it back
+on.
+
+### The result
+
+With the minimal template from step 2 in place, `sq milestone <n> show` renders the roll-up in
+place, computed fresh on every read — for a milestone with one linked feature:
+
+```
+### feature
+- **FEAT-<n>** ⚪ Draft — Ship the widget
+Outstanding: 1
+```
+
+The bundled template renders the same milestone in three buckets instead — see
+[§ "Milestones"](workflow.md#milestones).
+
+### After `sq migrate up`: seeded views
+
+Every document is **seeded** with the views its type calls for: a milestone with
+`milestone_rollup`, a role with `role_definition`, the three permanently-system skills
+(`squads`, `greeting`, `sq-memory`) each with its own view, and each per-item-type `sq-<type>`
+skill with `item_skill`. A seeded view's tag stays in the document for good — enabled or
+disabled — and `sq check` reports a document that is missing one (see
+["Derived views: field reference"](workflow.md#derived-views-field-reference)).
+
+`sq migrate up` places those tags for you. It adds the roll-up tag to each existing milestone,
+and it replaces the text in every role, permanently-system skill and `sq-<type>` skill body with
+that document's tag. That includes an `sq-<type>` skill whose text you wrote yourself: copy such
+a runbook into a skill of its own before upgrading. The run reports how many files it changed. An
+empty body, a body that already carries its tag, and a custom skill are left as they are.
+
+Before it rewrites anything, `sq migrate up` rebuilds the index from the item files. An indexed
+milestone whose file is gone is dropped from the index there, and named on the run's
+`index reconciled with the files` line. An item file the run cannot read or parse stops it before
+any document is rewritten, with the schema unchanged (see
+[migration.md § "Before the first runner"](#before-the-first-runner)).
+
+A document the migration reads but cannot safely rewrite is skipped rather than aborting the
+run, and named by id in its output:
+
+- a milestone whose body has no `sq:body` region;
+- a milestone whose tag you had already moved outside `sq:body` by hand. `sq check` warns that
+  the tag never renders there, and `view add` refuses while it is out of region, but the next
+  body write places a second copy inside the body and `sq check` then reports a duplicate. Move
+  the out-of-region line inside `sq:body` by hand, or delete it and run
+  `sq milestone <n> view add milestone_rollup`;
+- a role or skill body holding marker-shaped content the migration does not recognise.
+
+`sq check` then reports each skipped document that still lacks its tag, at error level. For a
+milestone, the error names two single-command remedies — restore its `sq:body` region first if
+that is what is missing:
+
+```
+error MILE-000021-ship-1-0.md: missing seeded view tag <!-- sq:view:milestone_rollup --> — restore it with `sq milestone 21 view add milestone_rollup`, or disable it with `sq milestone 21 view disable milestone_rollup`
+```
+
+**A role or skill that still holds old generated text.** A role or skill body refuses prose, so
+its old text cannot be edited away in place, and `view add` alone would render the old text and the live
+definition together. `sq check` names the remedy in full, filled in for the document:
+
+```
+error ROLE-000001-dev-agent.md: missing seeded view tag <!-- sq:view:role_definition --> — the body already carries prose; the remedy that converges to a single live rendering: (1) drop 'role_definition' from [selected] in .overrides/workflow.toml; (2) clear the text with `echo '{"op": "body", "target": "ROLE-1", "body": "", "force": true, "as": "dev-agent"}' | sq import -`; (3) restore 'role_definition' to [selected]; (4) `sq role dev-agent view add role_definition`
+```
+
+1. Drop the view from `[selected]` in `.overrides/workflow.toml`, listing every view you keep:
+
+   ```toml
+   [selected]
+   views = ["milestone_rollup", "squads_skill", "greeting_skill", "memory_skill", "item_skill"]
+   ```
+
+2. Clear the body. A skill takes `sq skill greeting body -m "" --force`. A role has no `body`
+   verb, so pipe a one-event import to `sq import -`, as the error shows. Marker-shaped content
+   is cleared along with the rest.
+3. Put the view back in `[selected]` (or delete the `[selected]` table if it lists every view).
+4. Run `sq role dev-agent view add role_definition`, or `sq skill <slug> view add <name>` for a
+   skill.
+
+The document then renders only its live definition, and `sq check` is clean for it.
+`view disable` is not a substitute: the document would then render the old text alone, and
+only these four steps remove it.
+
+**An `sq-<type>` skill you wrote yourself.** A custom skill whose slug a type declared later
+now names, such as `sq-widget` once you declare `widget`, keeps its text, and `sq check` names
+five steps:
+
+```
+error SKILL-000021-sq-widget.md: missing seeded view tag <!-- sq:view:item_skill --> — the body already carries prose, and 'sq-widget' still documents the declared type 'widget', so this may be an author's own runbook rather than stale legacy text; the remedy that preserves it: (1) `sq skill add <new-slug>` and move the prose there; (2) drop 'item_skill' from [selected] in .overrides/workflow.toml; (3) clear sq-widget's own text with `sq skill sq-widget body -m "" --force`; (4) restore 'item_skill' to [selected]; (5) `sq skill sq-widget view add item_skill`
+```
+
+For example, `sq skill add widget-runbook --desc "…"` and `sq skill widget-runbook body -m "…"`
+with the runbook's text, then steps 2–5. `sq check` is then clean for both skills. A squad
+brought in with `sq adopt` from a folder older than 0.14 skips the migration, so `sq check`
+reports the same states on its roles and skills, with the same remedies.
+
+`sq migrate chlog v0.14.0..v0.15.0` prints the migration's own manual steps.
 
 ---
 

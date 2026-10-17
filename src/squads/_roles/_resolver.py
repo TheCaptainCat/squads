@@ -84,8 +84,7 @@ def _predefined_for_slug(slug: str, squad_dir: Path | None) -> RoleDef | None:
     With *squad_dir* ``None`` this is exactly ``_PREDEFINED_BY_SLUG.get(slug)`` — the bundled
     catalog alone, unchanged. With a *squad_dir*, the catalog is reloaded (and, if present, the
     override re-merged) on every call — consistent with this module's own stated stance that
-    the resolver is stateless and reads from disk on every call, now extended one document
-    further.
+    the resolver is stateless and reads from disk on every call.
     """
     if squad_dir is None:
         return _PREDEFINED_BY_SLUG.get(slug)
@@ -300,12 +299,10 @@ def resolve_role_with_base(slug: str, squad_dir: Path | None, *, base: RoleDef |
     ``PREDEFINED`` entry (with any project catalog-document override — ``.overrides/roles.toml``,
     already merged in via :func:`_predefined_for_slug`), an unknown one has none.
 
-    **A supplied base always wins, whether or not ``slug`` is in ``PREDEFINED``.** Earlier, a
-    bundled slug's ``PREDEFINED`` entry won unconditionally here, so no caller could ever make a
-    live item's stored identity the merge base for a bundled role — only a slug ``PREDEFINED``
-    happens not to cover (a developer role) got that treatment, which was an artifact of where
-    the catalog has rows, not a property of the two kinds of role. That discard is gone: the
-    caller now decides, by what it passes as *base*.
+    **A supplied base always wins, whether or not ``slug`` is in ``PREDEFINED``.** The caller
+    decides, by what it passes as *base*, so a live item's stored identity can be the merge
+    base for a bundled role as well as for a slug ``PREDEFINED`` does not cover (a developer
+    role).
 
     This does not reopen catalog refresh to the item, because the base a caller passes is never
     the item verbatim — it is built by :func:`role_base_from_item`, which takes only the fields

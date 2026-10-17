@@ -4,7 +4,7 @@ Grammar:
   sq operator add <name> [--slug SLUG]  — register a human operator
   sq operator <slug|id|n> show           — show an operator's metadata panel
   sq operator <slug|id|n> status <S>     — transition the operator's status
-  sq operator <slug|id|n> rm [--purge]   — remove an operator
+  sq operator <slug|id|n> rm --purge     — delete an operator (or set status Archived)
 
 Address resolution order (exact match, no fuzzy):
   full-ID shape (OPER-000001) → bare number → exact slug (op-<first>)
@@ -42,7 +42,7 @@ operator_app = typer.Typer(
     help="Manage human operators.",
     epilog=(
         "Address an operator:  sq operator <slug|id|n> show|rm|status\n"
-        "Examples:  sq operator op-alice show   sq operator 2 rm\n"
+        "Examples:  sq operator op-alice show   sq operator 2 rm --purge\n"
         "           sq operator op-alice status Archived\n"
         "Note: a slug matching a group verb (add, list) is unaddressable by slug; "
         "use the full ID or bare number instead."
@@ -165,14 +165,16 @@ async def operator_show(
 @common.command
 async def operator_rm(
     ctx: typer.Context,
-    purge: bool = typer.Option(False, "--purge", help="Also delete the markdown file."),
+    purge: bool = typer.Option(
+        False, "--purge", help="Delete the file too; rm refuses without it."
+    ),
 ) -> None:
-    """Remove an operator (--purge also deletes the markdown)."""
+    """Delete an operator for good; needs --purge (or set its status to Archived)."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
     await svc.remove_item(item_id, purge=purge)
     await svc.refresh_managed()
-    console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
+    console.print(f"removed {item_id}")
 
 
 register_status_verb(_addr, lambda ctx: ctx.obj["id"])

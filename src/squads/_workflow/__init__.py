@@ -25,7 +25,7 @@ from squads._workflow._models import (
     linearize_lifecycle,
 )
 
-# Backward-compat aliases — existing callers that imported the old names continue to work.
+# Aliases under the earlier names of Lifecycle and ItemSpec.
 StateMachine = Lifecycle
 TypeSpec = ItemSpec
 

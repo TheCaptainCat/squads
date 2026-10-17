@@ -41,9 +41,8 @@ async def _resolve_parent_option(parent: str | None, svc: Service) -> str | None
     """Resolve a create command's ``--parent`` option to a full item ID, or ``None``.
 
     The single parent door for every ``sq create`` command: the built-in types, the
-    lazily-built custom types, and ``guide``.  Three copies of the resolution used to sit
-    inline, so a fix had to be made three times and the next create-shaped command would
-    have copied whichever copy it sat nearest.
+    lazily-built custom types, and ``guide``.  Resolving once here means a fix lands in
+    one place and the next create-shaped command reuses it instead of copying one.
 
     ``is not None``, not truthiness: ``--parent ""`` is a value the caller supplied, and
     testing it for truth sent it down the no-parent branch — the command created an item

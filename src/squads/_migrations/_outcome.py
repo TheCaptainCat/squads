@@ -9,8 +9,8 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class MigrationOutcome:
-    """``count`` is the changed-body count every runner has always returned — unchanged
-    semantics, now carried in a field rather than as the awaitable's own bare value.
+    """``count`` is the changed-body count every runner returns, carried in a
+    field rather than as the awaitable's own bare value.
 
     ``skipped`` is the item ids a runner chose to leave untouched rather than raise on —
     empty for every runner that never skips (every existing runner: :func:`_wrap_sync`/

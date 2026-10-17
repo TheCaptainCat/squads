@@ -189,7 +189,7 @@ class RosterMixin(ServiceCore):
         **A holder is found by resolving, never by reading ``extra.is_default`` raw.** The
         stored key is an *override* on a designation the role catalog also answers
         (:func:`~squads._roles._resolver.role_base_from_item` falls back to the catalog's own
-        ``is_default``), and a role item no longer stores the key unless something wrote it —
+        ``is_default``), and a role item stores the key only when something wrote it —
         so the catalog's designated role holds the designation with nothing in its ``extra`` at
         all. A raw read finds no holder there, clears nothing, and leaves the squad with two
         live defaults: the one this call just wrote and the one the catalog still names. That

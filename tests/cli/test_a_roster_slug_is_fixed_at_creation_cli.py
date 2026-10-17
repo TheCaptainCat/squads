@@ -123,7 +123,7 @@ async def test_operator_creation_refuses_a_slug_outside_the_grammar(project, inv
     r = await invoke(["operator", "add", "Bad Slug", "--slug", "Bad Slug"])
 
     assert r.exit_code == 1, r.output
-    assert "cannot create this operator as 'Bad Slug'" in r.output
+    assert "operator slug 'Bad Slug' must start with 'op-'" in r.output
     assert _tree(project.root) == before
 
 

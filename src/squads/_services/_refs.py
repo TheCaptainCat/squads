@@ -320,10 +320,10 @@ def _mermaid_node_id(nid: str) -> str:
     escaped to ``_`` plus exactly four lowercase hex digits, alphanumeric runs left alone.
 
     Mermaid's node-id alphabet is effectively ``[A-Za-z0-9_]``, and an item id may contain
-    anything a declared type prefix contains — a hyphen, an underscore, a symbol. This used to
-    fold (``-`` → ``_``), and a fold is many-to-one: an adopter declaring two prefixes that
-    differ only by hyphen versus underscore got one node standing for two distinct items, so the
-    diagram was wrong before anyone read it. Escaping is injective, which is the whole point;
+    anything a declared type prefix contains — a hyphen, an underscore, a symbol. A
+    fold (``-`` → ``_``) would be many-to-one: an adopter declaring two prefixes that differ
+    only by hyphen versus underscore would get one node standing for two distinct items, so the
+    diagram would be wrong before anyone read it. Escaping is injective, which is the whole point;
     the fixed four-digit width is what keeps it decodable, since a variable-width escape could
     not tell its own digits from the alphanumerics that follow.
 

@@ -172,7 +172,9 @@ class TestCheckDrift:
         shadow too."""
         override_path = project.squad_dir / ROLES_OVERRIDE_FILENAME
         override_path.parent.mkdir(parents=True, exist_ok=True)
-        override_path.write_text('[bundles]\nall = ["architect"]\n', encoding="utf-8")
+        override_path.write_text(
+            '[bundles]\nminimal = ["manager", "architect"]\n', encoding="utf-8"
+        )
 
         issues = check_override_issues(project.squad_dir)
         assert len(issues) == 1
@@ -192,14 +194,12 @@ class TestCheckDrift:
     async def test_check_reports_nothing_for_an_add_only_override_with_no_stamp(
         self, project
     ) -> None:
-        """A brand-new, non-bundled role slug — no shadowed slug, bundle, or `[dev]` — has
+        """A brand-new, non-bundled bundle name — no shadowed slug, bundle, or `[dev]` — has
         nothing to have drifted from yet."""
         override_path = project.squad_dir / ROLES_OVERRIDE_FILENAME
         override_path.parent.mkdir(parents=True, exist_ok=True)
         override_path.write_text(
-            '[[roles]]\nslug = "security-analyst"\nfull_name = "Sam Analyst"\n'
-            'title = "Security Analyst"\ndescription = "Reviews for security issues."\n'
-            'mission = "Keep the codebase secure."\n',
+            '[bundles]\nsecurity = ["manager", "reviewer"]\n',
             encoding="utf-8",
         )
 

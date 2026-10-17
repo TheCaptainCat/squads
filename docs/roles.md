@@ -71,7 +71,7 @@ sq role activate qa          # add a role later (creates its item + Claude point
 sq role ROLE-000002 regen    # re-render its pointer from the item
 sq role ROLE-000002 status Archived [--force] [--unlink]   # transition its Active/Archived status
 sq role ROLE-000002 set-default                 # move the default-role designation here
-sq role ROLE-000002 rm [--purge]
+sq role ROLE-000002 rm --purge                  # delete the role and its file
 ```
 
 `sq role list` shows every activated role with a **Live** marker — a retired role stays on the
@@ -105,6 +105,11 @@ $EDITOR squads/.overrides/roles/security-analyst.toml
 sq role activate security-analyst
 ```
 
+A custom role's slug is its file name, and it follows the role rules: lowercase letters, digits and
+hyphens, neither `operator`, `squads` nor anything that starts with `op-`, and not a verb of
+`sq role` (`activate`, `catalog`, `list`), so `sq role <slug> show` always reaches it. Activation
+refuses any other slug with exit `1` and nothing written.
+
 ## Managing skills
 
 Skills are the instruction files a role preloads. Every role carries the general `squads`,
@@ -122,12 +127,15 @@ sq skill deploy-runbook unlink-role devops            # remove the scoping
 sq skill deploy-runbook show
 sq skill deploy-runbook regen                         # re-render its pointer from the item
 sq skill deploy-runbook status Archived [--force] [--unlink]   # transition its Active/Archived status
-sq skill deploy-runbook rm [--purge]
+sq skill deploy-runbook rm --purge                    # delete the skill and its file
 ```
 
 A generated skill's body is not yours to write — `body` refuses one, replace and append alike,
 because its content already comes from the playbook overrides or its view's template override. Author
-the skills you add; leave the generated ones to `sq`. To write a generated skill's body yourself, see
+the skills you add; leave the generated ones to `sq`. A skill slug is lowercase letters, digits and
+hyphens, unique among skills, and never `add`, the one verb of `sq skill`. A skill never authors
+anything, so a skill slug is not accepted by `--as`, `--author` or `--assignee`. To write a
+generated skill's body yourself, see
 [overrides.md § "Authoring a role or skill body by hand"](overrides.md#authoring-a-role-or-skill-body-by-hand).
 
 ## Operators (humans)
@@ -140,20 +148,28 @@ handed to someone else on the repo:
 sq operator add "Alice Tester"  # slug derived as op-alice (override with --slug)
 sq operator list
 sq operator OP-000002 status Archived [--force] [--unlink]   # transition its Active/Archived status
-sq operator OP-000002 rm [--purge]
+sq operator OP-000002 rm --purge                            # delete the operator and its file
 ```
-
-`rm` works the same way for a role, a skill and an operator: it drops the entry from the index
-(and a role's or skill's generated pointer) but leaves the item file on disk, which `sq check`
-then reports as an error (on disk but not in the index). Pass `--purge` to delete the item file
-too.
 
 A slug is derived once, when the entry is created: lowercased, accented Latin letters spelled out
 (`Élodie Martin` → `op-elodie`, `ß` → `ss`), and each run of any other characters turned into
-one hyphen. The stored slug is the entry's identity from then on, and nothing re-derives or renames it,
-even when squads changes how it derives new ones. `sq operator add`, `sq skill add` and `sq dev
+one hyphen. The stored slug is the entry's identity from then on, and nothing re-derives or renames
+it, even when squads changes how it derives new ones. `sq operator add`, `sq skill add` and `sq dev
 add` refuse a name whose slug is already taken, including a slug stored under an earlier
 derivation of the same name; pass `--slug` to register a genuinely different operator.
+
+An operator's slug is `op-` followed by lowercase letters, digits and hyphens. A `--slug` outside
+that form is refused with exit `1` and nothing written, and the message gives the compliant form
+when one exists:
+
+```
+error: operator slug 'Anna' must start with 'op-' and be lowercase letters, digits and hyphens (e.g. 'op-anna')
+```
+
+A typed `--slug` is stored as typed, never lowercased or prefixed. A role's slug can be neither
+`operator`, `squads` nor anything that starts with `op-`, so roles, operators and the two slugs sq
+writes for itself never share one; see
+[stability.md § "Comment headers"](stability.md#comment-headers).
 
 Operators are first-class participants, but **not** agents: they're never spawned as subagents,
 never get a `.claude/agents` pointer or skills, and don't appear in the agent roster (they have
@@ -248,6 +264,22 @@ can't be un-implied.
 A transition check only sees transitions. A squad can reach either state another way — an entry removed
 rather than retired, or a skill scoped to a role after the skill was archived — so `sq check` reports
 both against state already on disk, naming the entry, the condition, and a remedy where one exists.
+
+## Removing a roster entry
+
+Retiring keeps an entry on record; removing deletes it. `rm --purge` deletes the item file, a role's
+or skill's generated pointer, and the entry's line in the compiled rosters, for a role, a skill and an
+operator alike. `--purge` is required: a plain `rm` exits `1`, writes nothing and names the commands
+to choose from:
+
+```
+error: cannot remove ROLE-5 without --purge: the markdown file would stay on disk and `sq check` would flag it. To delete it for good, run `sq role ROLE-5 rm --purge`; to retire it and keep it on record, run `sq role ROLE-5 status Archived`.
+```
+
+The retire route is named only while the entry is live. Items the entry authored or is assigned keep
+its slug, and `sq check` then reports them as naming an unregistered author or assignee. A slug freed
+this way can be given to a new entry; see
+[stability.md § "A roster slug never changes"](stability.md#a-roster-slug-never-changes).
 
 ## How roles, skills, and items connect
 

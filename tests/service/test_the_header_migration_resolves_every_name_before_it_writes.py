@@ -246,6 +246,10 @@ async def test_an_operator_imported_without_a_full_name_is_known_by_its_slug(pro
         )
     )
     assert created.applied is not None, created.plan.issues
+    entry = item_file(svc.paths, await svc.roster_item("operator", "op-ann"))
+    entry.write_bytes(
+        re.sub(r"^  (slug|full_name): .*\n", "", await read(entry), flags=re.M).encode()
+    )
     item_id = await task(svc)
     target = await inject(svc, item_id, f"{_legacy('op-ann')}\n  - hi\n")
     stamp_behind(project.root)
@@ -267,24 +271,7 @@ async def test_a_role_titled_operator_matches_two_entries_with_the_reserved_one(
         await reopen(project.root).run_pending_migrations()
 
 
-async def test_an_operator_slug_without_the_operator_prefix_is_reported_not_refused(
-    project, svc
-) -> None:
-    await svc.add_operator("Plain Name", slug="op-plain")
-    item = item_file(svc.paths, await svc.roster_item("operator", "op-plain"))
-    item.write_bytes((await read(item)).replace("slug: op-plain", "slug: plain").encode())
-    stamp_behind(project.root)
-
-    run = await reopen(project.root).run_pending_migrations()
-
-    assert any(
-        "'plain', which does not start with 'op-'" in line
-        for r in run.reports.values()
-        for line in r
-    )
-
-
-async def test_the_step_is_the_only_thing_that_runs_on_a_0_15_squad_with_one_contribution(
+async def test_the_step_is_the_only_thing_that_runs_on_a_0_15_squad_and_lists_its_contributions(
     project, svc
 ) -> None:
     stamp_behind(project.root)
@@ -292,4 +279,4 @@ async def test_the_step_is_the_only_thing_that_runs_on_a_0_15_squad_with_one_con
     run = await reopen(project.root).run_pending_migrations()
 
     assert [m.to_schema for m in run.applied] == ["0.16"]
-    assert [c.name for c in step.CONTRIBUTIONS] == ["comment-headers"]
+    assert [c.name for c in step.CONTRIBUTIONS] == ["comment-headers", "operator-identity"]

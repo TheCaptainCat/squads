@@ -44,7 +44,7 @@ from squads._workflow._models import ROSTER_ROLE
 #: later added to the catalog is exempt automatically, the same day it starts being written
 #: this way -- never a second list to remember to update.
 #:
-#: **This set is small, and it shrank on purpose.** A role's definition is no longer mirrored
+#: **This set is small.** A role's definition is not mirrored
 #: into its ``extra`` at all -- title, mission, responsibilities, agreements, colour and spawn
 #: authority resolve from the catalog on every read -- so what is left to forgive is the
 #: residue that merge still writes. Narrowing is the safe direction for an exemption: a key
@@ -97,11 +97,11 @@ def _exempt_extra_keys(item: Item) -> frozenset[str]:
       genuine skew on it instead. The corresponding gap: a role item whose slug resolves in
       *neither* the bundled catalog nor an override (its backing definition vanished after the
       role was activated) is, by this same widening, still exempted even though
-      ``_refresh_catalog_extra`` no longer touches it -- a real skew on such an orphaned
+      ``_refresh_catalog_extra`` does not touch it -- a real skew on such an orphaned
       role's catalog fields would go undetected. That's narrower than the false refusal this
       widening fixes (which hit *every* override-defined role), and the same under/over
       tradeoff resolves it the same way. Keying off the type rather than an ``extra`` key
-      (``extra.mission``, previously) is what lets this discriminator outlive the mirror: the
+      such as ``extra.mission`` is what lets this discriminator outlive the mirror: the
       type is never a mirrored field and is never at risk of going stale or absent.
     - Anything else (not a role item) gets none of it -- a coincidental key-name collision
       with another item's own ``extra`` (e.g. a skill item's own ``model``) is never this
@@ -252,8 +252,8 @@ def frontmatter_skew(text: str, base: Item, *, default_kind: str) -> list[SkewKe
     even in the fully healthy case — disk is *permanently* ahead of the index on those keys,
     by design, not because of an interrupted write. Comparing them like an ordinary field
     would false-refuse the very next mutation, through *any* seam, on such a squad — which is
-    exactly what happened before this exclusion moved here: it used to be an opt-in a writer
-    passed (``ignore_extra_keys``), so every other seam compared the field anyway. This is not
+    exactly what a per-call opt-in a writer passed would leave: every other seam would compare
+    the field anyway. This is not
     a load/parse-time correction the round trip can be taught — the two sides are reading
     genuinely different sources of truth for these keys — so they are named here explicitly
     rather than folded into the general round trip.
@@ -351,7 +351,7 @@ async def read_item_text(path: Path, item_id: str) -> str:
     its own to try, so the exception becomes a message naming the item and pointing at
     ``sq repair``. This is the read side of the write seams that already refuse cleanly on a
     real skew (see :func:`ensure_no_skew`): both directions of "can't safely proceed on this
-    item until it's repaired" now report the same way.
+    item until it's repaired" report the same way.
     """
     try:
         return await _aio.read_text(path)

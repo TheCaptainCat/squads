@@ -76,6 +76,7 @@ from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, split_ref
+from squads._models._participants import SlugBreach, roster_slug_breaches, stored_slug
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import scaffold_body
 from squads._roles._resolver import holds_default_designation, resolve_role_for_item
@@ -83,6 +84,7 @@ from squads._services import _config_integrity as config_integrity
 from squads._services._results import CheckIssue
 from squads._workflow._models import (
     DEFAULT_VALIDATOR_LEVEL,
+    ROSTER_OPERATOR,
     ROSTER_ROLE,
     ROSTER_SKILL,
     SQUAD_GLOBAL_VALIDATOR_NAMES,
@@ -130,8 +132,8 @@ class ContextRequirement(StrEnum):
     scan per mutation.
 
     Naming them is what makes a validator's non-participation on a given path a **declared**
-    property. It used to be an accident: the gate passed the fields' empty values through and
-    each reader guarded itself into returning nothing, which reads identically whether the
+    property. Without that it would be an accident: a reader that guards itself into
+    returning nothing reads identically whether the
     member was designed to sit that path out or had simply never been considered on it. The
     difference matters because a member that stays silent for want of context is not gating
     anything, whatever level its findings carry.
@@ -448,10 +450,17 @@ def _ref_kind_valid(ctx: ValidatorContext) -> list[CheckIssue]:
 
 def _agent_registered(ctx: ValidatorContext) -> list[CheckIssue]:
     """← ``_check_items``'s author/assignee branch: both must resolve to a registered
-    roster slug (``ctx.registered_slugs``, precomputed by the engine)."""
+    role or operator slug (``ctx.registered_slugs``, precomputed by the engine). A skill authored
+    by its own slug has no actor to check."""
     level = _resolved_level(ctx, "agent_registered")
     issues: list[CheckIssue] = []
     for attr in ("author", "assignee"):
+        if (
+            attr == "author"
+            and ctx.item.type == ROSTER_SKILL
+            and ctx.item.author == ctx.item.extra.get(X.SLUG, ctx.item.slug)
+        ):
+            continue
         slug = getattr(ctx.item, attr)
         if slug and slug not in ctx.registered_slugs:
             issues.append(
@@ -1299,6 +1308,64 @@ def _default_designation_duplicated(ctx: SquadGlobalContext) -> list[CheckIssue]
     ]
 
 
+def _slug_breach_remedy(
+    breach: SlugBreach, breaching_ids: frozenset[str], live: frozenset[str]
+) -> str:
+    """The commands that replace a breaching roster entry, addressed by id because a slug that
+    matches a group verb cannot be addressed by slug. An entry that breaks no rule of its own
+    points at the other holders that do; a retired operator is retired again after the re-add."""
+    if breach.problem is None:
+        culprits = [i for i in breach.held_by if i in breaching_ids]
+        if culprits:
+            if len(culprits) == 1:
+                return f"replace {culprits[0]}, which breaks a rule of its own"
+            return f"replace {', '.join(culprits)}, which break a rule of their own"
+    if breach.kind == "operator":
+        name = breach.item.extra.get(X.FULL_NAME) or breach.item.title
+        text = (
+            f'sq operator {breach.item.id} rm --purge, then sq operator add "{name}" '
+            "--slug <compliant slug>"
+        )
+        if breach.item.status not in live:
+            text += f", then sq operator <compliant slug> status {breach.item.status}"
+        return text
+    if breach.kind == "skill":
+        return (
+            "add the skill again under another name with sq skill add, "
+            f"then sq skill {breach.item.id} rm --purge"
+        )
+    return (
+        "rename the project role file to a compliant slug, run sq role activate <slug>, "
+        f"then sq role {breach.item.id} rm --purge"
+    )
+
+
+def _roster_slug_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """Each role or operator, live or retired, whose slug is outside its grammar or shared inside
+    the author namespace, one error per entry with the replacing commands as the remedy.
+
+    Report-only, like ``default_designation_duplicated``: the remedy removes and recreates the
+    entry, so a write gate on this would lock the squad out of it.
+    """
+    items = ctx.index.items.values()
+    breaches = roster_slug_breaches(
+        [it for it in items if it.type == ROSTER_ROLE],
+        [it for it in items if it.type == ROSTER_OPERATOR],
+        [it for it in items if it.type == ROSTER_SKILL],
+        group_verbs=True,
+    )
+    breaching = frozenset(b.item.id for b in breaches if b.problem is not None)
+    live = ctx.spec.live_statuses(ROSTER_OPERATOR)
+    return [
+        CheckIssue(
+            "error",
+            b.item.id,
+            f"{b.text('it is also held by')} — remedy: {_slug_breach_remedy(b, breaching, live)}",
+        )
+        for b in breaches
+    ]
+
+
 def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
     """A playbook guide whose role slug names no live role — a warning per dropped guide.
 
@@ -1354,6 +1421,7 @@ SQUAD_GLOBAL_CATALOG: dict[str, SquadGlobalValidator] = {
     "backend_reconciled": _backend_reconciled,
     "roster_config_integrity": _roster_config_integrity,
     "default_designation_duplicated": _default_designation_duplicated,
+    "roster_slug_valid": _roster_slug_valid,
     "playbook_guide_role_live": _playbook_guide_role_live,
 }
 assert set(SQUAD_GLOBAL_CATALOG) == SQUAD_GLOBAL_VALIDATOR_NAMES, (
@@ -1365,13 +1433,13 @@ assert set(SQUAD_GLOBAL_CATALOG) == SQUAD_GLOBAL_VALIDATOR_NAMES, (
 
 
 def registered_slugs(index: SquadsDB, spec: WorkflowSpec) -> frozenset[str]:
-    """The set of slugs a roster item (role/skill/operator) declares — what
-    ``agent_registered`` checks an item's author/assignee against."""
+    """The set of slugs a role or operator declares — what ``agent_registered`` checks an item's
+    author/assignee against. A skill never authors, so it is outside the set."""
     return frozenset(
         slug
         for r in index.items.values()
-        if spec.item_is_roster(r.type)
-        for slug in (r.extra.get(X.SLUG),)
+        if r.type in (ROSTER_ROLE, ROSTER_OPERATOR)
+        for slug in (stored_slug(r),)
         if slug
     )
 

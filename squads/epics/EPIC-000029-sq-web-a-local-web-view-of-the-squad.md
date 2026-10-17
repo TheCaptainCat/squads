@@ -12,7 +12,7 @@ refs:
 description: An sq web command starting a local webserver to browse the squad in a
   browser; read-only first, with full CRUD as a possible long-term destination
 created_at: '2026-06-10T15:16:05Z'
-updated_at: '2026-09-03T13:07:04Z'
+updated_at: '2026-10-16T11:27:13Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -51,4 +51,6 @@ ADR.
 - [2026-09-03T13:07:04Z] Catherine Manager:
   - Driven measurements (op-pierre, 2026-09-03, release/0.15, this machine, this repo's corpus) — the number for the daemon-value argument above: uv run overhead alone 0.049s; import squads 0.072s; .venv/bin/sq --version (no uv) 0.740s; .venv/bin/sq task 909 show 0.668s; uv run sq check (whole corpus) 3.203s.
   - Reading: ~0.7s of fixed pre-dispatch cost (Typer app construction + spec loading) sits between import and the simplest command answering, independent of uv and of import — --version pays nearly all of it doing nothing. Lazy-loading that cost is a fraction of daemon-scale work and benefits every caller, including non-daemon users; the daemon would then buy back the remaining per-call cost on top, not the whole 0.7s. See FEAT-916.
+- [2026-10-16T11:27:13Z] Pierre Chat:
+  - 2026-10-16: all daemon work (API, CLI remote/local modes, daemon logic, dogfood) lives in this epic alongside the web frontend; no separate daemon epic. Milestones split the delivery: MILE-1051 (0.17, daemon) and MILE-868 (frontend).
 <!-- sq:discussion:end -->

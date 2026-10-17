@@ -8,8 +8,9 @@ author: qa
 priority: low
 refs:
 - REV-1036
+- MILE-1051:targets
 created_at: '2026-10-16T09:09:24Z'
-updated_at: '2026-10-16T09:09:24Z'
+updated_at: '2026-10-16T12:35:08Z'
 ---
 <!-- sq:body -->
 Reproduced on the dev build in a scratch squad.
@@ -33,4 +34,6 @@ Found while auditing the docs (REV-1036).
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-16T12:35:08Z] Catherine Manager:
+  - Also: sq operator add --help does not state the op- slug grammar (found while documenting TASK-1048).
 <!-- sq:discussion:end -->
