@@ -3,7 +3,7 @@ id: FEAT-1017
 sequence_id: 1017
 type: feature
 title: Comments are shown, edited and removed by short hash
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - ADR-1013:implements
@@ -47,7 +47,7 @@ subentities:
   title: As an adopter, I want the docs, guidance and notes updated
   status: Todo
 created_at: '2026-10-15T20:17:43Z'
-updated_at: '2026-10-17T00:56:33Z'
+updated_at: '2026-10-17T02:12:56Z'
 ---
 <!-- sq:body -->
 ## Problem

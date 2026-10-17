@@ -3,7 +3,7 @@ id: TASK-1071
 sequence_id: 1071
 type: task
 title: Add pronouns to roles and operators
-status: Draft
+status: Ready
 parent: FEAT-961
 author: tech-lead
 refs:
@@ -49,7 +49,7 @@ subentities:
   assignee: typescript-dev
   story: US4
 created_at: '2026-10-16T19:53:59Z'
-updated_at: '2026-10-16T21:14:07Z'
+updated_at: '2026-10-17T02:12:57Z'
 ---
 <!-- sq:body -->
 ## Scope

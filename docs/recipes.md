@@ -152,7 +152,8 @@ slug's work even when the item carrying it is assigned to someone else, so `sq m
 item and names what matched in a `Matched` column (`US1 (InProgress)`); `--json` carries the same
 thing in a `matched_subentities` key. `sq inbox <role>` likewise names the region a mention was
 found in (`story:US1:discussion#1`, also a `regions` key under `--json`), so you can go straight to
-the right discussion instead of re-reading the item.
+the right discussion instead of re-reading the item. Under `--json` each line also carries the hash
+of the comment it came from (a `hashes` key), ready for `comment <hash> show`.
 
 Open or closed is judged **per match**, not per item. A closed item still shows up in `sq mine`
 while your own sub-entity on it is open — the item closing did not finish your part — and one of
