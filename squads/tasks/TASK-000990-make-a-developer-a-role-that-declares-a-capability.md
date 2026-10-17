@@ -63,7 +63,7 @@ subentities:
   status: Done
   story: US6
 created_at: '2026-10-09T20:28:02Z'
-updated_at: '2026-10-16T21:01:48Z'
+updated_at: '2026-10-16T21:16:05Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -1307,4 +1307,6 @@ Gates and working rules: the task body.
     Hand-written CLAUDE.md sentences these make false (not edited): line 88 "`dev_role()`" (gone; developers are built from the `[dev]` table of the resolved catalog); lines 89-90 "`*dev` sentinel = any `<tech>-dev` role" (proposed: "a guide subject is a role slug, or `*<capability>` for every role holding it"). The `<tech>-dev` sentences at lines 309 and 341 are inside the managed region and regenerate on the next `sq sync`.
 - [2026-10-16T21:01:48Z] Catherine Manager:
   - Done: REV-1068 approved; committed fce1019d; merged suite 11742 passed, 0 failed (8cc6d3b5).
+- [2026-10-16T21:16:05Z] Theo Writer:
+  - Documented: docs/roles.md (developers, Capabilities), overrides.md (roles.toml [dev], developer override, playbook *<capability>), migration.md 0.16 developer-capability step, CHANGELOG 0.16 (Added capabilities, dev add --slug; BREAKING developer entry; Fixed [dev] colour), plus is_dev/<tech>-dev/*dev fixes in stability, adoption, faq, internals, agents, README. Uncommitted. @manager
 <!-- sq:discussion:end -->

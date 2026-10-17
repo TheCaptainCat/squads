@@ -6,13 +6,15 @@ concerns (create/get/list, the backend, the role/skill lookups + roster projecti
 only ever call core methods + their own.
 """
 
-from collections.abc import Callable
+from collections.abc import AsyncGenerator, Callable
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from squads import _actor as actor
+from squads import _aio
 from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
@@ -22,7 +24,12 @@ from squads._backends._registry import get_backend
 from squads._errors import ItemNotFoundError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._index._store import IndexStore
-from squads._interactions import active_skill_slugs, get_playbook_spec, is_live_roster_entry
+from squads._interactions import (
+    active_skill_slugs,
+    get_playbook_spec,
+    is_live_roster_entry,
+    item_origin,
+)
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._role_guidance import (
     RoleLike,
@@ -36,11 +43,13 @@ from squads._interactions._role_guidance import (
 )
 from squads._itemfile import (
     ensure_no_skew,
+    new_item_text,
     read_item_text,
     write_new,
     write_text,
 )
 from squads._models import _markers as markers
+from squads._models._attributes import AttributeKey
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, make_ref, ref_id_matches, split_ref
 from squads._models._participants import (
@@ -57,7 +66,7 @@ from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import render, scaffold_body, set_active_squad_dir
 from squads._roles._catalog import RoleDef
-from squads._roles._loader import load_role_catalog
+from squads._roles._loader import ROLES_OVERRIDE_FILENAME, load_role_catalog
 from squads._roles._projection import OperatorView, RoleView
 from squads._roles._resolver import (
     holds_default_designation,
@@ -493,6 +502,12 @@ def _check_roster_slug(item_type: str, is_roster: bool, slug: str) -> None:
             raise SquadsError(f"{item_type} slug {candidate!r} {verb}; pick another slug")
 
 
+def _stamp_origin(item: Item, spec: WorkflowSpec) -> None:
+    """Give a new role or skill its origin unless the caller supplied one."""
+    if item.type in (ROSTER_ROLE, ROSTER_SKILL):
+        item.attributes.setdefault(AttributeKey.ORIGIN, item_origin(item, spec))
+
+
 class ServiceCore:
     def __init__(
         self,
@@ -673,6 +688,38 @@ class ServiceCore:
         ):
             raise SquadsError(f"an operator with slug {slug!r} already exists")
 
+    def _refuse_classified_roster_write(
+        self, item_id: str, item: Item, verb: str, *, allow_view: str | None = None
+    ) -> None:
+        """Raise when *item* is a role or skill whose body renders through a declared view: its
+        content already has one validated authoring surface, and *verb* would be a second.
+
+        The one place a write verb asks the question, so the body write, the metadata update, the
+        view edit and the bulk importer's simulation never disagree. ``--force`` does not lift it;
+        dropping the view from ``[selected]`` takes the document out of the classification.
+        *allow_view* names the one view the verb may place: the host's own.
+        """
+        roster_view = (
+            views.roster_body_view_name(item.type, item.slug, self.spec)
+            if item.type in (ROSTER_ROLE, ROSTER_SKILL)
+            else None
+        )
+        if roster_view is None or roster_view == allow_view:
+            return
+        authoring_surface = (
+            f"`{ROLES_OVERRIDE_FILENAME}` (or `.overrides/roles/<slug>.toml` for a "
+            "project-defined role)"
+            if item.type == ROSTER_ROLE
+            else views.skill_authoring_surface(roster_view, item.slug, self.spec, self.playbook)
+        )
+        tag = f"{markers.PREFIX}{markers.view_tag(roster_view)}"
+        raise SquadsError(
+            f"{item_id}'s body renders through its declared {tag} tag, and "
+            f"its content already has one validated authoring surface: {authoring_surface}. "
+            f"{verb} is refused — `--force` does not lift this. Drop the view from "
+            "`[selected]` to author this directly instead."
+        )
+
     def _create_model(  # noqa: PLR0913 — mirrors `create`'s own keyword surface
         self,
         db: SquadsDB,
@@ -811,6 +858,7 @@ class ServiceCore:
             slug_in_file=is_roster,
             attributes=attributes or {},
         )
+        _stamp_origin(item, self.spec)
         for code, value in (fields or {}).items():
             field = self._badge_field(item_type, code)
             if field is None:
@@ -945,7 +993,7 @@ class ServiceCore:
         )
         rendered = sections.replace_section(rendered, markers.BODY, new_inner)
         squad_rel = item.path
-        await write_new(self.paths.abspath(squad_rel), item, rendered)
+        await self._write_new_item_file(self.paths.abspath(squad_rel), item, rendered)
         log_delta: dict[str, object] = {
             "title": item.title,
             "type": item_type,
@@ -1052,9 +1100,92 @@ class ServiceCore:
         for callers that already want the content and have no fallback of their own to try —
         as opposed to the two callers that read it as a signal instead (the ``check`` confirm
         round's stale-path fallback, the bulk importer's pre-pass), which keep calling
-        ``_aio.read_text`` directly and must never be routed through here.
+        ``_aio.read_text`` directly and must never be routed through here. Inside a hold, a
+        file the hold already has is read from it.
         """
-        return await read_item_text(path, item.id)
+        held = self.store.held_item_files()
+        if held is None:
+            return await read_item_text(path, item.id)
+        if path in held.texts:
+            return held.texts[path]
+        return await read_item_text(held.disk_path(path), item.id)
+
+    async def _write_item_file(self, path: Path, text: str) -> None:
+        """Write *text* to the existing item file at *path*, or hold it for the flush of
+        :meth:`_deferred_item_writes` when a hold is open."""
+        held = self.store.held_item_files()
+        if held is None:
+            await write_text(path, text)
+        else:
+            held.texts[path] = text
+
+    async def _write_new_item_file(self, path: Path, item: Item, rendered_body: str) -> None:
+        """Create the item file at *path*, or hold its text for the flush of
+        :meth:`_deferred_item_writes` when a hold is open."""
+        held = self.store.held_item_files()
+        if held is None:
+            await write_new(path, item, rendered_body)
+        else:
+            held.texts[path] = new_item_text(item, rendered_body)
+
+    async def _update_item_frontmatter(self, item: Item, base: Item) -> None:
+        """Rewrite *item*'s frontmatter in its file, refusing a file that has skewed from
+        *base*: the read-check-write of :func:`~squads._itemfile.update_frontmatter`, over the
+        text :meth:`_read_item_file` sees."""
+        path = item_file(self.paths, item)
+        text = await self._read_item_file(item, path)
+        ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
+        await self._write_item_file(
+            path, sections.replace_frontmatter(text, item.to_frontmatter_dict(), source=str(path))
+        )
+
+    async def _item_file_exists(self, path: Path) -> bool:
+        """Whether an item file exists at *path*, on disk or held."""
+        held = self.store.held_item_files()
+        if held is None:
+            return await _aio.path_exists(path)
+        if path in held.texts or path in held.moves.values():
+            return True
+        return path not in held.moves and await _aio.path_exists(path)
+
+    async def _move_item_file(self, old: Path, new: Path) -> None:
+        """Move an item file from *old* to *new*, or hold the move for the flush of
+        :meth:`_deferred_item_writes` when a hold is open; a text held for *old* moves with it."""
+        held = self.store.held_item_files()
+        if held is None:
+            if await _aio.path_exists(old):
+                await _aio.path_rename(old, new)
+            return
+        origin = held.disk_path(old)
+        if origin != old or await _aio.path_exists(old):
+            held.moves[origin] = new
+        text = held.texts.pop(old, None)
+        if text is not None:
+            held.texts[new] = text
+
+    @asynccontextmanager
+    async def _deferred_item_writes(self) -> AsyncGenerator[None]:
+        """Hold every item-file write made inside the block in memory, then write each touched
+        file once, in first-touch order, when the block ends normally; a raise discards them.
+
+        A file moved inside the block is renamed at the flush, just before its write. Must be
+        opened inside a transaction, so the flush precedes the index commit; opening one
+        inside another is refused.
+        """
+        held = self.store.open_held_item_files()
+        try:
+            yield
+            moves = {final: origin for origin, final in held.moves.items()}
+            for path, text in held.texts.items():
+                await _aio.mkdir(path.parent, parents=True, exist_ok=True)
+                if path in moves:
+                    await _aio.path_rename(moves.pop(path), path)
+                await write_text(path, text)
+            for final, origin in moves.items():
+                await _aio.mkdir(final.parent, parents=True, exist_ok=True)
+                await _aio.path_rename(origin, final)
+        finally:
+            self.store.close_held_item_files()
 
     async def list_items(
         self,
@@ -1304,7 +1435,9 @@ class ServiceCore:
             return it, False
         it.updated_at = clock.now()
         it.modified_session, _ = actor.current_session()
-        await write_text(path, sections.replace_frontmatter(new_text, it.to_frontmatter_dict()))
+        await self._write_item_file(
+            path, sections.replace_frontmatter(new_text, it.to_frontmatter_dict())
+        )
         return it, True
 
     # ------------------------------------------------------------------ role / skill lookups

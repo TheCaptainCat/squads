@@ -143,7 +143,9 @@
       "updated_at": "2026-06-07T10:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "attributes": {},
+      "attributes": {
+        "origin": "project"
+      },
       "slug_in_file": true,
       "id": "ROLE-1"
     },
@@ -167,7 +169,9 @@
       "updated_at": "2026-06-07T10:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "attributes": {},
+      "attributes": {
+        "origin": "system"
+      },
       "slug_in_file": true,
       "id": "SKILL-6"
     },
@@ -191,7 +195,9 @@
       "updated_at": "2026-06-07T10:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "attributes": {},
+      "attributes": {
+        "origin": "system"
+      },
       "slug_in_file": true,
       "id": "SKILL-7"
     }

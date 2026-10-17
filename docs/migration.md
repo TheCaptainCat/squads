@@ -253,7 +253,7 @@ outside any discussion, is left alone. The frontmatter is changed by the next pa
 [the flattening](#the-frontmatter-is-flat). The run reports what both did under the step:
 
 ```
-  0.16.0 (schema v0.15→v0.16): Comment headers name the author's permanent slug. Item frontmatter is flat: the extra block is lifted to top-level keys. — 11 changed
+  0.16.0 (schema v0.15→v0.16): Comment headers name the author's permanent slug. Item frontmatter is flat: the extra block is lifted to top-level keys. The developer marker is dropped from role items, and roles named -dev that declare no capability are reported. — 11 changed
     2 comment header(s) rewritten in 1 file(s); 0 already carried a slug
     10 file(s) flattened; 5 key(s) lifted (allowed_tools 1, tags 1, target_date 1, tech 1, when_to_use 1); 1 skill description(s) dropped; 0 `path:` key(s) removed
     1 operator title(s) set from the stored full name
@@ -467,6 +467,46 @@ Correct each file by hand, then run `sq migrate up` again.
 - **A template reads attributes from `item`.** The `extra` template variable is gone: a template
   override that read `extra.tags` reads `item.tags` (guard it with `item.tags is defined`, since
   an item stores only the attributes that are set).
+
+### A developer is a role that declares a capability
+
+A developer is a role holding a capability the `[dev]` table of the role catalog declares; the
+bundled table declares `dev` (see [roles.md § "What makes a role a developer"](roles.md#what-makes-a-role-a-developer)).
+Earlier releases stored an `is_dev: true` marker on each developer's role item instead. The
+`developer-capability` part of the step removes that key from role items and changes nothing else
+in them: a developer keeps its name, `tech` and `model`. A role that carries `tech` is built from
+the `[dev]` table, so every developer added with `sq dev add` holds `dev` and keeps working as
+before.
+
+What it reports is a role whose slug ends in `-dev` but which holds no developer capability: one
+that never had `tech`, such as a project role you named `legacy-dev`. Such a role is an ordinary
+role from now on. It keeps working, but loses the developer guidance (the `*dev` sections of the
+generated skills, and its place in `sq dev list`). The run lists each one, noting a retired role
+and one whose role file is gone, and writes nothing to them:
+
+```
+    1 role(s) named -dev hold no developer capability and are now ordinary roles; declare the capability in the role file and run `sq sync` to restore the developer guidance:
+      legacy-dev
+```
+
+Nothing is fixed automatically. To keep such a role a developer, add `capabilities = ["dev"]` to
+its role file (`.overrides/roles/legacy-dev.toml`) and run `sq sync`. Leave it alone to keep it an
+ordinary role.
+
+**After the upgrade:**
+
+- **A role file for a developer you have not added yet is reported by `sq check`.** It is read as
+  a new role and reported for the fields a new role requires. Run `sq dev add` for it, or remove
+  the file.
+- **An existing developer picks up the project `[dev]` colour on the next `sq sync`**, and keeps
+  the model and name it was created with.
+- **Stamped overrides report "may be stale".** The bundled role catalog, playbook and workflow
+  documents changed, so a stamped `.overrides/roles.toml`, per-slug role file, playbook or workflow
+  override is reported by `sq check` and shown as `drifted` by `sq override list`. Run
+  `sq override diff`, merge what you want, then `sq override update`.
+- **`is_dev` is gone** from role item rows (`sq list -t role --json`, `show --json`) and from the
+  `role` type's declared attributes. A script that tested it reads `capabilities` from
+  `sq role list --json` or `sq role <slug> show --json` instead.
 
 ---
 

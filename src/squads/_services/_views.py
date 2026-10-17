@@ -47,6 +47,7 @@ class ViewsMixin(ServiceCore):
         other host with no region."""
 
         def mutate(text: str, item: Item) -> tuple[str, bool]:
+            self._refuse_classified_roster_write(item_id, item, "A view edit", allow_view=name)
             reason = views.resolve_view_target(name, item.type, self.spec, self.playbook)
             if reason is not None:
                 raise SquadsError(reason)
@@ -97,6 +98,7 @@ class ViewsMixin(ServiceCore):
         reinstatement as :meth:`add_view` for a roster host with no ``sq:body`` region."""
 
         def mutate(text: str, item: Item) -> tuple[str, bool]:
+            self._refuse_classified_roster_write(item_id, item, "A view edit")
             if (stray := views.out_of_region_view_error(item_id, name, text)) is not None:
                 raise SquadsError(stray)
             reinstating = False

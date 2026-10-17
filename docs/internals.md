@@ -57,7 +57,7 @@ the index, the filesystem, the backends, and rendering together.
     │                     # bundled default folders; custom types use declared folders
     ├── .overrides/
     │   ├── workflow.toml # custom item types, statuses, lifecycles, badge collections
-    │   ├── roles.toml    # role catalog delta (roles, bundles, developer pool)
+    │   ├── roles.toml    # role catalog delta (roles, bundles, [dev] table)
     │   ├── playbook.toml # playbook delta (per-type role guidance)
     │   └── templates/ roles/    # template and per-role overrides
     ├── operators/        # OP-*.md (the humans on the project)
@@ -150,8 +150,9 @@ The frontmatter is durable; the index is derived. Two commands make that concret
   drift. It runs in two tiers: a raw-text scan of every file (`_scan_for_check`, for findings that
   must survive a file too broken to parse), then the named validator catalog in
   `_services/_validators.py` — per-item rules such as `parent_in`, `item_status_valid`,
-  `dangling_ref` and `subentity_body_written`, selected per type by the spec, plus squad-wide ones
-  such as `index_reconciled` and `backend_reconciled`.
+  `dangling_ref` and `subentity_body_written`, selected per type by the spec, plus squad-wide ones:
+  always-on checks such as `index_reconciled` and `backend_reconciled`, and the opt-in checks the
+  spec's `[squad]` table selects, such as `dependency_acyclic`.
 
 Practical upshot: a `.squads.json` merge conflict is a non-event — take either side and
 `sq repair`; for duplicate numbers, `sq repair --renumber`. Commit the resolution first: the
@@ -375,10 +376,13 @@ through `_interactions/`). Both are project-overridable — `.overrides/roles/<s
   [default/triage], Robert Architect `architect`, Olivia Lead `tech-lead`, Paul Reviewer
   `reviewer`, Mara Tester `qa`, Hugo Ops `devops`, Nina Product `product-owner`, Theo Writer
   `tech-writer`). `BUNDLES` (`all`/`core`/`minimal`) select sets at `init`/`adopt`. **Developers**
-  are made on demand: `dev_role(tech)` names them from a pool (`Elias Dotnet`, slug `dotnet-dev`).
+  are made on demand from the `[dev]` table of the squad's resolved catalog, named from its pool
+  (`Elias Dotnet`, slug `dotnet-dev` by default). A developer is any live role holding a capability
+  that table declares (`dev`).
 - **The playbook** (`PLAYBOOK`, a thin shim over the loaded `PlaybookSpec`) is a matrix: for each
-  item type, the interacting roles + a one-line guidance each (the `DEV` sentinel, `"*dev"`, matches
-  any `<tech>-dev`). It drives two things:
+  item type, the interacting roles + a one-line guidance each. A guide addresses a role slug, or
+  every live role holding a capability with `*<capability>` (the bundled `*dev` guides reach every
+  developer). It drives two things:
   - **item skills** — `sq-feature` gets a "For Nina Product (`product-owner`)" section, etc.
     (filtered to roles active in this squad);
   - **`skills_for_role(slug)`** — which skills a role's pointer preloads. *A role that doesn't manage

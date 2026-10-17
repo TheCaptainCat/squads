@@ -3,7 +3,7 @@ id: FEAT-977
 sequence_id: 977
 type: feature
 title: Verb parity for skills, roles and operators
-status: Ready
+status: InProgress
 author: product-owner
 refs:
 - FEAT-976:depends-on
@@ -23,7 +23,7 @@ subentities:
   title: As an operator, I want a clear error on spec-generated items
   status: Todo
 created_at: '2026-09-29T14:19:16Z'
-updated_at: '2026-10-16T19:54:47Z'
+updated_at: '2026-10-16T22:48:26Z'
 ---
 <!-- sq:body -->
 Roster entities lack most of the verbs an item has, and use different names for some. Compared with a task, read from `--help`:

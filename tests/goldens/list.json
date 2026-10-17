@@ -20,6 +20,7 @@
     "created_session": null,
     "modified_session": null,
     "id": "ROLE-1",
+    "origin": "system",
     "badges": {}
   },
   {
@@ -215,6 +216,7 @@
     "id": "SKILL-8",
     "when_to_use": "",
     "allowed_tools": "",
+    "origin": "project",
     "badges": {}
   },
   {

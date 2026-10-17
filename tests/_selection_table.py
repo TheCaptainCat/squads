@@ -170,10 +170,14 @@ async def plant_banner_items(svc: service.Service, row: TypeRow) -> dict[str, st
         kwargs: dict[str, Any] = {}
         if row.slug is not None:
             kwargs["slug"] = f"{row.slug}-{name}"
+        # A role's description is set at creation: a later update of it is refused.
+        at_creation = row.type == "role" and description is not None
+        if at_creation:
+            kwargs["description"] = description
         item = (await create_item(svc, row.type, f"{row.type} {name}", **kwargs)).item
         if body is not None:
             await svc.set_body(item.id, body)
-        if description is not None:
+        if description is not None and not at_creation:
             await svc.update(item.id, description=description)
         planted[name] = item.id
 

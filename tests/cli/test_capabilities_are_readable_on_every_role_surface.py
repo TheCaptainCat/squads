@@ -13,6 +13,7 @@ from typing import Any
 import pytest
 
 from squads import __version__
+from squads._cli._common import console
 from squads._rendering._engine import invalidate_squad_dir
 
 pytestmark = pytest.mark.anyio
@@ -159,8 +160,12 @@ async def test_a_role_with_no_definition_left_answers_an_empty_list_in_the_show_
 
 
 @pytest.mark.parametrize("shape", list(_SHAPES))
-async def test_the_text_outputs_show_capabilities(shape: str, project, svc, invoke) -> None:
+async def test_the_text_outputs_show_capabilities(
+    shape: str, project, svc, invoke, monkeypatch
+) -> None:
     slug, expected = _SHAPES[shape]
+    # Wide enough that no cell of the listing wraps.
+    monkeypatch.setattr(console, "width", 140)
     await _build_roster(project, svc)
     listing = await invoke(["role", "list"])
     assert listing.exit_code == 0, listing.output

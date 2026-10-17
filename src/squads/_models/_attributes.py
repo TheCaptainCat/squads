@@ -33,6 +33,8 @@ class AttributeKey:
     IS_DEFAULT = "is_default"
     # developers
     TECH = "tech"
+    # roles and skills
+    ORIGIN = "origin"
     # skills
     WHEN_TO_USE = "when_to_use"
     ALLOWED_TOOLS = "allowed_tools"
@@ -43,6 +45,12 @@ class AttributeKey:
     # milestones
     TARGET_DATE = "target_date"
 
+
+#: The two values of a role's or skill's ``origin``: shipped with the tool or generated from the
+#: spec, versus authored by the project.
+ORIGIN_SYSTEM = "system"
+ORIGIN_PROJECT = "project"
+ORIGIN_VALUES: tuple[str, ...] = (ORIGIN_SYSTEM, ORIGIN_PROJECT)
 
 #: Frontmatter keys of the model itself. Every other key in a frontmatter mapping is an attribute.
 CORE_KEYS: tuple[str, ...] = (
@@ -99,6 +107,12 @@ def list_attribute(item: Item, key: str) -> list[str] | None:
 def is_templated(item: Item) -> bool:
     """Whether *item* is a templated role: one created from a technology (``sq dev add``)."""
     return tech(item) is not None
+
+
+def origin(item: Item) -> str | None:
+    """The stored origin when it is one of the two known values, else ``None``."""
+    value = string_attribute(item, AttributeKey.ORIGIN)
+    return value if value in ORIGIN_VALUES else None
 
 
 def is_default(item: Item) -> bool | None:

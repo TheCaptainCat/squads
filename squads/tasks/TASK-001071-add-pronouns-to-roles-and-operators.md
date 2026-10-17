@@ -11,6 +11,7 @@ refs:
 - TASK-1069:depends-on
 - ADR-981:implements
 - TASK-1070:depends-on
+- TASK-1079:depends-on
 description: Declared pronouns attribute, a resolved roster default, roster --json,
   generated files, a typed display table and the VS Code setting
 subentities:
@@ -48,7 +49,7 @@ subentities:
   assignee: typescript-dev
   story: US4
 created_at: '2026-10-16T19:53:59Z'
-updated_at: '2026-10-16T19:59:44Z'
+updated_at: '2026-10-16T21:14:07Z'
 ---
 <!-- sq:body -->
 ## Scope

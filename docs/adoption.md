@@ -194,8 +194,8 @@ squads now computes on every read rather than stores:
 - the sub-entity roll-up table and each sub-entity block's badge line, from any item file that
   carries them;
 - the keys a role item mirrored from its definition (`full_name`, `mission`, `responsibilities`,
-  `agreements`, `color`, `can_spawn`, `skills`). A role keeps its `title` (its name), `slug` and
-  `description`, its default-role designation, a developer role's `model`, `is_dev` and `tech`,
+  `agreements`, `color`, `can_spawn`, `skills`, `is_dev`). A role keeps its `title` (its name),
+  `slug` and `description`, its default-role designation, a developer role's `model` and `tech`,
   and any other key.
 
 It also canonicalises any legacy ref encoding it finds, and fills an **empty** body region on a

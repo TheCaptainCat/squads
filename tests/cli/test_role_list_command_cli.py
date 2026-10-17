@@ -37,6 +37,7 @@ async def test_json_output_shape(project, invoke) -> None:
         "is_default",
         "capabilities",
         "status",
+        "origin",
     }
     assert row["slug"] == "manager"
     assert row["status"] == "Active"

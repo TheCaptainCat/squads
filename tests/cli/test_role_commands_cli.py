@@ -45,7 +45,7 @@ async def test_catalog_json_output_is_unaffected_bundled_roles_only(project, inv
         }
         for row in data
     )
-    assert all(row["origin"] == "bundled" for row in data)
+    assert all(row["origin"] == "system" for row in data)
     assert "scaffold" not in r.output
 
 

@@ -86,7 +86,8 @@ An item's frontmatter is one flat mapping, with no nested container:
   repair` and every migration, with its value. A write removes or changes only the keys its
   command targets, so a key whose declaration is removed from an override stays in the files.
   The one exception is a closed set of role-definition keys, which the role catalog answers
-  (`full_name`, `mission`, `responsibilities`, `agreements`, `color`, `can_spawn`, `skills`): on a role whose type does not declare them as attributes, `sq repair`
+  (`full_name`, `mission`, `responsibilities`, `agreements`, `color`, `can_spawn`, `skills`,
+  `is_dev`): on a role whose type does not declare them as attributes, `sq repair`
   removes them, as do `sq adopt`, `sq renumber` and `sq migrate up`, which end with the same
   rescan (see
   [adoption.md § "What `sq repair` writes"](adoption.md#what-sq-repair-writes)).
@@ -176,8 +177,9 @@ name      = one or more characters, on the same line
   error OP-11: operator slug 'qa' does not start with 'op-'; it is also held by ROLE-5 — remedy: sq operator OP-11 rm --purge, then sq operator add "Anna Lee" --slug <compliant slug>
   ```
 
-  The rule is squad-global: it runs on every `sq check` at a fixed `error` level, and cannot be
-  deselected or given another level. It never refuses a write, so the remedy it names can run.
+  The rule is one of the always-on squad-wide checks: it runs on every `sq check` at `error`, and
+  cannot be selected, dropped or given another level (see
+  [overrides.md § "Squad-wide checks"](overrides.md#squad-wide-checks-the-squad-table)). It never refuses a write, so the remedy it names can run.
   Headers the entry already wrote keep its old slug.
 - **A squad holding such an entry does not migrate to 0.16.** `sq migrate up` refuses it until the
   entry is replaced; see
@@ -190,8 +192,8 @@ A squad written by a release before 0.16 holds headers without the slug (`- [<ti
 ### A roster slug never changes
 
 The slug of a roster entry is fixed when the entry is created: a role's is its catalog key or
-its project role file's name, whatever `--name` it is given, a developer role's comes from `--tech`
-(`sq dev add --tech python` gives `python-dev`), a skill's from its catalog entry or the name
+its project role file's name, whatever `--name` it is given, a developer role's is the `--slug`
+given to `sq dev add` or else comes from `--tech` (`sq dev add --tech python` gives `python-dev`), a skill's from its catalog entry or the name
 given to `sq skill add`, and an operator's from its first name (`op-` plus the first name) or
 `sq operator add --slug`. After that no command, override or
 migration changes it, and the entry's file keeps its name. Comment headers, item `author` and
@@ -221,8 +223,8 @@ folder in the squad directory. The frozen surfaces are:
   `.overrides/workflow.toml`, `.overrides/roles.toml` and `.overrides/playbook.toml`. Templates
   mirror bundled template names 1:1; per-role files are TOML keyed by slug (e.g., `architect.toml`);
   `workflow.toml` is the squad's vocabulary delta — item types, statuses, lifecycles, badge
-  collections, status roles, ref kinds, derived views; `roles.toml` is a delta over the whole role
-  catalog (its roles, bundles and developer pool); `playbook.toml` is a delta over the playbook, the
+  collections, status roles, ref kinds, derived views, and the squad-wide checks it selects; `roles.toml` is a delta over the whole role
+  catalog (its roles, bundles and the `[dev]` table developers are built from); `playbook.toml` is a delta over the playbook, the
   per-type guidance each role gets.
 - **Precedence:** per-file, project → bundled. Presence of a file is the override. Templates
   override whole-file; a role resolves bundled, then `roles.toml`, then its per-slug file, merging

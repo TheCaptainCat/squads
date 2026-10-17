@@ -254,6 +254,11 @@
         "required": false,
         "settable": true
       },
+      "origin": {
+        "kind": "str",
+        "required": true,
+        "settable": false
+      },
       "tech": {
         "kind": "str",
         "required": false,
@@ -286,6 +291,11 @@
         "kind": "str",
         "required": false,
         "settable": true
+      },
+      "origin": {
+        "kind": "str",
+        "required": true,
+        "settable": false
       },
       "when_to_use": {
         "kind": "str",

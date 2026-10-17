@@ -138,23 +138,18 @@ async def skill_show(
                     "when_to_use": attrs.string_attribute(it, AttributeKey.WHEN_TO_USE) or "",
                     "allowed_tools": attrs.string_attribute(it, AttributeKey.ALLOWED_TOOLS) or "",
                     "path": it.path,
-                    "system": system,
+                    **common.origin_json(attrs.origin(it)),
                     # Tag-expanded, same as an ordinary item's `show --json` body field.
                     "body": await svc.read_body(it.id),
                 }
             )
         )
         return
-    # This row means "currently refused as template-rendered", not `system`'s bundled-blind
-    # allocation question — a stale dropped-type skill reads "custom" once its body is
-    # writable again, even though `system` still counts it template-owned for seeding.
     await common.warn_duplicate_id(svc, it)
-    currently_roster = views.roster_body_view_name(it.type, slug, svc.spec) is not None
-    kind_label = "system (template-owned)" if currently_roster else "custom (authored)"
     rows = [
         f"[bold]{it.id}[/bold] {e(it.title)}",
         f"[bold]slug:[/bold] {slug}",
-        f"[bold]kind:[/bold] {kind_label}",
+        f"[bold]origin:[/bold] {attrs.origin(it) or '—'}",
         f"[bold]status:[/bold] {it.status}",
         f"[bold]file:[/bold] {it.path}",
     ]

@@ -975,12 +975,12 @@ def _resolve_final_states(
         if force is not None and force[0] == name:
             continue
         if len(seen) > 1:
-            add_cmd = view_placement_invocation(item_type, addr, "add", name)
-            disable_cmd = view_placement_invocation(item_type, addr, "disable", name)
+            settle = f"`{view_placement_invocation(item_type, addr, 'add', name)}`"
+            if item_type not in (ROSTER_ROLE, ROSTER_SKILL):
+                settle += f" or `{view_placement_invocation(item_type, addr, 'disable', name)}`"
             raise ConflictingViewStateError(
                 f"{item_type} {addr}: {markers.PREFIX}{markers.view_tag(name)} carries both an "
-                f"enabled and a disabled tag; settle its state with `{add_cmd}` or "
-                f"`{disable_cmd}`"
+                f"enabled and a disabled tag; settle its state with {settle}"
             )
         final[name] = next(iter(seen))
     for name in seeded:
