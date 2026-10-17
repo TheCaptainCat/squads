@@ -3,7 +3,7 @@ id: TASK-1072
 sequence_id: 1072
 type: task
 title: Resolve and render skill operator invocability
-status: Draft
+status: Ready
 parent: FEAT-966
 author: tech-lead
 refs:
@@ -44,7 +44,7 @@ subentities:
   assignee: qa
   story: US2
 created_at: '2026-10-16T19:55:32Z'
-updated_at: '2026-10-16T19:59:52Z'
+updated_at: '2026-10-17T03:11:06Z'
 ---
 <!-- sq:body -->
 ## Scope
