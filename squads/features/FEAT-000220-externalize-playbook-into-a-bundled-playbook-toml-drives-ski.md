@@ -122,6 +122,6 @@ As a squads maintainer, I want a golden test that asserts `sq sync` produces byt
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-26T07:31:06Z] Catherine Manager:
+- [2026-06-26T07:31:06Z] `manager` Catherine Manager:
   - Scope note (from op-pierre): playbook entries are required ONLY for non-meta (work) item types — epic/feature/task/bug/decision/review/guide. The meta-types role/skill/operator are deliberately ABSENT from the playbook (they get no sq-<type> skill or role-interaction guide); playbook.toml validation must NOT require entries for them.
 <!-- sq:discussion:end -->

@@ -111,7 +111,7 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-16T09:02:46Z] Theo Writer:
+- [2026-10-16T09:02:46Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Status lifecycles: review diagram line and table row now carry ChangesRequested→Approved (driven).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -134,7 +134,7 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-16T09:02:49Z] Theo Writer:
+- [2026-10-16T09:02:49Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Status lifecycles: work diagram redrawn as Ready/InProgress/InReview → Blocked → Ready/InProgress, plus Cancelled → Draft (driven).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -157,7 +157,7 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-16T09:02:52Z] Theo Writer:
+- [2026-10-16T09:02:52Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Records-category item types: a records type must not declare parents; the spec is refused at load (driven).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -180,7 +180,7 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-16T09:02:56Z] Theo Writer:
+- [2026-10-16T09:02:56Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Records-category item types: inbox claim and "tracked as effort" dropped from the category text; list hiding rule stated (settled-but-shown vs retired, --all) (driven).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -203,7 +203,7 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-16T09:02:59Z] Theo Writer:
+- [2026-10-16T09:02:59Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Authoring and validation: lint error table replaced with current output, including the count line (driven).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -226,7 +226,7 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-10-16T09:03:02Z] Theo Writer:
+- [2026-10-16T09:03:02Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Statuses and § Status roles: role stated once as optional, defaulting to pending (driven).
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -249,7 +249,7 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-10-16T09:03:05Z] Theo Writer:
+- [2026-10-16T09:03:05Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md: PM-<n> in § Records-category item types and INC-<n> in § Worked example, both naming the squad-wide counter (driven: INC-21, PM-21).
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -272,7 +272,7 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-10-16T09:03:08Z] Theo Writer:
+- [2026-10-16T09:03:08Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § What the override may and may not change (implements/targets exception) and § Ref kinds (pointer to it) (driven).
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -295,7 +295,7 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-10-16T09:03:11Z] Theo Writer:
+- [2026-10-16T09:03:11Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md: § The result now says it shows the step-2 minimal template; § Milestones shows the bundled three-bucket rendering (driven).
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -318,7 +318,7 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-10-16T09:03:14Z] Theo Writer:
+- [2026-10-16T09:03:14Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Derived views: self matches sq show <id> --json plus the spec key, with a pointer to stability.md (driven; note the host is sq show <id>, not sq skill <slug> show).
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
@@ -339,7 +339,7 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-10-16T09:03:17Z] Theo Writer:
+- [2026-10-16T09:03:17Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Commands at a glance: depends-on example, sq mine / sq blocked / sq workload lines, and a sentence on inbox vs mine.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
@@ -362,7 +362,7 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
-- [2026-10-16T09:03:20Z] Theo Writer:
+- [2026-10-16T09:03:20Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Commands at a glance: --author accepts a role or operator, plus an op-alice create example (driven). The create --help understatement is code and is not touched.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
@@ -371,10 +371,10 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T08:51:56Z] Paul Reviewer:
+- [2026-10-16T08:51:56Z] `reviewer` Paul Reviewer:
   - Audit of docs/workflow.md against the release/0.16 dev build (scratch squads under the session scratchpad, every quoted message and transition driven or read in source). 12 findings: 1 high, 7 medium, 4 low. Recommended verdict: ChangesRequested once a tech-writer pass lands the corrections; @tech-writer for the doc edits, @manager to route.
-- [2026-10-16T08:53:05Z] Paul Reviewer:
+- [2026-10-16T08:53:05Z] `reviewer` Paul Reviewer:
   - Correction to the count above: 12 findings = 1 high (F3), 6 medium (F1, F2, F4, F5, F8, F12), 5 low (F6, F7, F9, F10, F11).
-- [2026-10-16T11:26:18Z] Catherine Manager:
+- [2026-10-16T11:26:18Z] `manager` Catherine Manager:
   - Approved: every finding Fixed (re-run by the writer on the dev build) or closed with a home; cross-doc seams checked in REV-1047.
 <!-- sq:discussion:end -->

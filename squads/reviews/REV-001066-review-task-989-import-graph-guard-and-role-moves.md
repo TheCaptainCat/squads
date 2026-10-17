@@ -130,10 +130,10 @@ The move copied docstrings verbatim. As a result, the new module `_interactions/
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T18:11:53Z] Paul Reviewer:
+- [2026-10-16T18:11:53Z] `reviewer` Paul Reviewer:
   - Verdict recommended: approve once the four low findings each have a disposition. The move is behaviour-neutral: the playbook fallback is the same object, read through its accessor, and the threaded override path was falsified red in a scratch copy. The guard fails on a planted edge, a deleted row, a phantom row, a new non-empty init and a component change. The managed region of CLAUDE.md is byte-identical. F1 to F3 are small fixes for python-dev; F4 can go to TASK-990, which rewrites the module. Left InReview, not self-approved. @python-dev @manager
-- [2026-10-16T18:13:45Z] Elias Python:
+- [2026-10-16T18:13:45Z] `python-dev` Elias Python:
   - F1 to F4 fixed: CLAUDE.md _clock wording, guard docstring and relative import_module refusal, two stale references, role-guidance docstrings.
-- [2026-10-16T18:14:01Z] Catherine Manager:
+- [2026-10-16T18:14:01Z] `manager` Catherine Manager:
   - Approved: F1–F4 Fixed in 90822b25; behaviour neutrality and guard falsification verified by the reviewer.
 <!-- sq:discussion:end -->

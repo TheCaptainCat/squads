@@ -109,10 +109,10 @@ Wire depends-on/supersedes/duplicates as accepted kinds at ref add and create --
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-11T20:30:51Z] Elias Python:
+- [2026-06-11T20:30:51Z] `python-dev` Elias Python:
   - Implementation complete. VALID_REF_KINDS (frozenset, eight kinds) colocated with split_ref/make_ref/DEFAULT_KIND in src/squads/_models/_item.py. Validation at both authoring entry points: add_ref in _services/_refs.py (covers sq <type> ref add --kind) and svc.create in _services/_base.py (covers sq create --ref id:kind). Unknown kind → SquadsError listing all valid kinds. Bare ref add stays frictionless (DEFAULT_KIND, no nudge). Three new kinds (supersedes, depends-on, duplicates) accepted and round-trip through frontmatter. Help text updated to list all eight. Schema version unchanged (additive).
   - Scattered 'related' literals in CLI (_items.py, _common.py) and service (_refs.py add_ref default) routed through DEFAULT_KIND. Blocks comparison in blocked() left as-is (consumer, not authoring — scope of TASK-51).
   - Gates green: 265 passed (1 skipped), pyright 0 errors, ruff clean, sq check no issues. @tech-lead ready for review.
-- [2026-06-11T20:43:22Z] Paul Reviewer:
+- [2026-06-11T20:43:22Z] `reviewer` Paul Reviewer:
   - Done via REV-52 (Approved). Constant + validation at add_ref and create verified live and by tests.
 <!-- sq:discussion:end -->

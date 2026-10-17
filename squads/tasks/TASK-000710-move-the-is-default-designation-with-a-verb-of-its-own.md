@@ -133,9 +133,9 @@ A verb on the role surface, not a flag on status — moving a designation and re
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-31T09:54:25Z] Catherine Manager:
+- [2026-07-31T09:54:25Z] `manager` Catherine Manager:
   - Confirmed in scope for FEAT-691 rather than reparented. It maps to no story because US1-US6 predate it; acceptance for the feature therefore includes this task explicitly. Sequenced after the projection fix and before the adopter docs, so the docs can cover the new verb in one pass.
-- [2026-07-31T11:00:39Z] Elias Python:
+- [2026-07-31T11:00:39Z] `python-dev` Elias Python:
   - Verb: sq role <addr> set-default (Service.set_default_role). Moves the designation: clears every other holder (not just one — repairs a pre-existing two-holder state too) in the same transaction as designating the target.
   - Already-holds-it -> reported no-op (changed=False), unless a stray second holder exists, in which case that holder is still cleared and the result reports changed=True.
   - Non-live target -> refused (SquadsError, 'is not live'): a designation the projection can't present isn't a designation.

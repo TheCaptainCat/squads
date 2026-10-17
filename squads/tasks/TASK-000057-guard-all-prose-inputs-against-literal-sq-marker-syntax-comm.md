@@ -146,7 +146,7 @@ Tests: each newly-guarded path rejects marker tags (incl. backtick-wrapped); ite
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T08:26:59Z] Elias Python:
+- [2026-06-12T08:26:59Z] `python-dev` Elias Python:
   - Implementation complete. Shared guard reject_markers(text, what) promoted to _services/_base.py; comment, title, and body paths all call it. Tests and linters green.
   - Handing off to @reviewer and @qa for verification.
 <!-- sq:discussion:end -->

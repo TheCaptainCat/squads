@@ -117,9 +117,9 @@ _Add with `sq task 763 add-subtask "<title>"`; track with `sq task 763 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T19:37:37Z] Olivia Lead:
+- [2026-08-21T19:37:37Z] `tech-lead` Olivia Lead:
   - Authored against ADR-753 amendment A4 (linked, implements). The Click-root anchor A4 requires already exists — the invocation-scoped Service memo landed with _SERVICE_META_KEY and a separate _BYPASS_SERVICE_META_KEY on the root context — so this hangs off it rather than inventing one. Acceptance adds what a parse count alone cannot see: the gate must still refuse on all four command forms, keying must survive a differing spec and two IndexStores on one directory, and the repair/check bypass path must not regain the refusal.
-- [2026-08-21T20:27:31Z] Elias Python:
+- [2026-08-21T20:27:31Z] `python-dev` Elias Python:
   - Fix: root callback's bind_active_spec is now the sole cross-check call per invocation; open_service gained a resolved_spec kwarg (default None, every other caller unaffected) and _build_plain_service (_cli/_common.py) threads ctx.active_spec through it, or raises the cached ctx.spec_error directly instead of re-deriving it. No new anchor — reuses the RequestContext the root callback already binds.
   - Parse counts (driven, SquadsDB.model_validate_json counter, fresh squad + 1 task item, synced): no-override unchanged at 1 for all four forms. With override: sq list 3→2, sq <type> <n> show --json 3→2, sq check 3→2, sq sync 3→2.
   - Not 3→1: A4 forbids folding the cross-check into the read scope, so it can never share the scope's one real read. 1 dedicated cross-check parse (once per invocation, was 2) + 1 real read is the floor consistent with that ruling — flagging since the acceptance text says 'drop to their no-override count' (1); 2 is what's architecturally reachable without violating A4, and I believe that's the intended bar given the constraint section's emphasis.
@@ -128,7 +128,7 @@ _Add with `sq task 763 add-subtask "<title>"`; track with `sq task 763 subtask <
   - Gates: pyright clean, ruff check/format clean, tests/meta + tests/cli + tests/service + tests/integration + read-scope/transaction-scoping: 2856 passed, 1 skipped. sq check clean. sq repair a stable no-op (identical .squads.json across two runs).
   - CHANGELOG text for this fix: '**A workflow override'\''s live-index compatibility check no longer runs twice per command.** Customising your workflow (.overrides/workflow.toml) triggers a check that your vocabulary still matches every live item — necessary, but it ran once to bind the active spec and again to build the command'\''s service, doubling that cost on every invocation. It now runs once. sq list, sq check, sq sync and the addressed show form each go from three whole-index parses to two on an override-carrying squad; a squad with no override is unaffected.'
   - This makes the existing 0.14.0 entry ('Viewing an item with a lot of sub-entities is dramatically faster') stale again: its closing sentence says 'three whole-index parses on sq list, three on sq review 12 show --json (down from five...)' — both should now read 'two', not 'three'.
-- [2026-08-21T20:27:51Z] Elias Python:
+- [2026-08-21T20:27:51Z] `python-dev` Elias Python:
   - Correction: the previous CHANGELOG-text bullet got mangled by shell quoting (literal backslash-quotes leaked in). Clean version below.
   - CHANGELOG text: A workflow override live-index compatibility check no longer runs twice per command. Customising your workflow (.overrides/workflow.toml) triggers a check that your vocabulary still matches every live item -- necessary, but it ran once to bind the active spec and again to build the command service, doubling that cost on every invocation. It now runs once. sq list, sq check, sq sync and the addressed show form each go from three whole-index parses to two on an override-carrying squad; a squad with no override is unaffected.
   - Bold lead-in to match house style: A workflow overrides live-index compatibility check no longer runs twice per command.

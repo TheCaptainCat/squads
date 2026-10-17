@@ -214,17 +214,17 @@ Acceptance (Consequences section):
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-15T20:13:59Z] Nina Product:
+- [2026-10-15T20:13:59Z] `product-owner` Nina Product:
   - 2026-10-15: drafted from the accepted flat-frontmatter decision. Eight stories; no tasks yet. depends-on FEAT-980 because the flattening is the first frontmatter step of the runner that feature creates; it also follows the 0.16.0 bump (no item to ref) and precedes the corpus-guidance task and the bundled-file task. @manager: the story on the migration is sized as one tech-lead task with subtasks; the invariant table is its own story so it can be reviewed independently.
-- [2026-10-15T20:17:51Z] Catherine Manager:
+- [2026-10-15T20:17:51Z] `manager` Catherine Manager:
   - For the developer: the dated note on ADR-979 says an operator looked up by title after flattening returns the name full_name held. That holds only if the 0.16 runner flattens before it rewrites comment headers; verify the step order and keep that note true.
-- [2026-10-16T08:39:01Z] Catherine Manager:
+- [2026-10-16T08:39:01Z] `manager` Catherine Manager:
   - Re-check owed when flattening lands in the 0.16 step (REV-1031 F8): the 0.16 MANUAL duplicate-name remedy (extra.full_name goes away; a temporary name would become the permanent title), the operator name-matching rule in docs/migration.md, and the 'nothing is refused' note for operators without op- (also moves with ADR-979 A4/A6).
-- [2026-10-16T13:06:27Z] Olivia Lead:
+- [2026-10-16T13:06:27Z] `tech-lead` Olivia Lead:
   - 2026-10-16: the prose is complete for dispatch: eight stories with acceptance, scope and sequencing. TASK-1059 implements it (ten subtasks, one per story surface, plus a canary subtask for typescript-dev and a docs subtask for tech-writer).
   - @product-owner please move FEAT-1016 Draft to Ready. Two notes for you: the task merges the operator-identity contribution into the flattening (that contribution only fills extra.slug and extra.full_name, which the flat shape removes), and US8 asks for the dated ADR notes, which the architect already added on 2026-10-15; the five features describing extra.<key> are yours to reword.
-- [2026-10-16T13:11:38Z] Olivia Lead:
+- [2026-10-16T13:11:38Z] `tech-lead` Olivia Lead:
   - 2026-10-16: @product-owner please move FEAT-1016 to Ready: TASK-1059 is Ready and its dispatch waits on it.
-- [2026-10-16T17:12:39Z] Catherine Manager:
+- [2026-10-16T17:12:39Z] `manager` Catherine Manager:
   - Moved to Done under the manager's delegation: TASK-1059 Done; role names follow the stored-name rule (op-pierre, 2026-10-16).
 <!-- sq:discussion:end -->

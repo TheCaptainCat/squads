@@ -258,6 +258,6 @@ Done when both claims are covered by tests, an affected squad is reported and re
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-30T08:31:15Z] Elias Python:
+- [2026-07-30T08:31:15Z] `python-dev` Elias Python:
   - Implemented ST1-ST6: role_statuses/sole_role_status accessors added; nine literal call sites converted; STATUS_DRAFT/STATUS_ACTIVE/STATUS_ARCHIVED/_RESERVED_FLOOR retired; roster lifecycle floor (R1/R2) enforced in _validate; bundled agent lifecycle collapsed to Active/Archived; meta scan added; both ST6 load-path claims asserted as tests and confirmed true (no migration needed).
 <!-- sq:discussion:end -->

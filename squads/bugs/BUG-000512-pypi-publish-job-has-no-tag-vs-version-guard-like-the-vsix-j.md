@@ -23,8 +23,8 @@ updated_at: '2026-07-21T08:45:49Z'
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T08:45:03Z] Hugo Ops:
+- [2026-07-21T08:45:03Z] `devops` Hugo Ops:
   - Mirrored the VSIX job's tag-vs-core-version guard onto the PyPI publish job (after uv sync --frozen, before uv build/uv publish), same shell/comparison, trailing clause reworded to 'publish to PyPI'. Commit 91f6ebf.
-- [2026-07-21T08:45:48Z] Catherine Manager:
+- [2026-07-21T08:45:48Z] `manager` Catherine Manager:
   - Verified: reviewed the diff (guard placed after `uv sync`, before `uv build`/`uv publish`; identical logic/wording to the VSIX guard bar the corrected 'publish to PyPI' clause), YAML parses clean, VSIX job untouched. Pushed to main as 91f6ebf.
 <!-- sq:discussion:end -->

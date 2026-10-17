@@ -81,8 +81,8 @@ _Add with `sq task 581 add-subtask "<title>"`; track with `sq task 581 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T10:58:49Z] Operator:
+- [2026-07-22T10:58:49Z] `operator` Operator:
   - Lifted all 12 seed + 2 squad-global validators verbatim into CATALOG/SQUAD_GLOBAL_CATALOG; VALIDATOR_NAMES/SQUAD_GLOBAL_VALIDATOR_NAMES + module-load guard added in _workflow/_models.py. Bundles/COMMON_CORE stay empty and squad_global's engine default is decoupled from SQUAD_GLOBAL_CATALOG, so sq check is unchanged (verified: identical output, full suite green, pyright/ruff clean). 38 new parity unit/service tests.
-- [2026-07-22T10:58:59Z] Elias Python:
+- [2026-07-22T10:58:59Z] `python-dev` Elias Python:
   - Lifted all 12 seed + 2 squad-global validators verbatim into CATALOG/SQUAD_GLOBAL_CATALOG; VALIDATOR_NAMES/SQUAD_GLOBAL_VALIDATOR_NAMES + module-load guard added in _workflow/_models.py. Bundles/COMMON_CORE stay empty and squad_global's engine default is decoupled from SQUAD_GLOBAL_CATALOG, so sq check is unchanged (verified: identical output, full suite green, pyright/ruff clean). 38 new parity unit/service tests.
 <!-- sq:discussion:end -->

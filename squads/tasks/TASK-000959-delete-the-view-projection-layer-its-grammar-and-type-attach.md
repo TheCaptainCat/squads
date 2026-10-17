@@ -329,7 +329,7 @@ writer rather than spliced from this brief.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-21T16:50:22Z] Olivia Lead:
+- [2026-09-21T16:50:22Z] `tech-lead` Olivia Lead:
   - Breakdown of FEAT-904 into TASK-959, six subtasks: ST1/ST2 → US1, ST3/ST6 → US2, ST4 → US3, ST5 → US4. One task, not several — every subtask edits `_views.py`, `_workflow/_models.py` or both, and a half-deleted middle layer does not typecheck.
     
     Three things the dev must know before starting:
@@ -339,7 +339,7 @@ writer rather than spliced from this brief.
     2. **ADR-880's bundled `views = ["milestone_rollup"]` type-attachment line is already gone** — dropped by an earlier ruling. ST4 deletes the `ItemSpec.views` *mechanism* and its pruner; there is no bundled declaration left to remove, only explanatory comments to rewrite. Do not go looking for it.
     
     3. **The current milestone_rollup declaration and its template disagree**, and the template wins. `group_by = "status_role"` produces no visible heading — the template ignores `group.key` and re-partitions on `delivered`/`settled`. ST5 carries the detail. Capture the pre-change output before touching anything; the acceptance is a diff against that capture, not a hand-written expectation.
-- [2026-09-21T16:50:23Z] Olivia Lead:
+- [2026-09-21T16:50:23Z] `tech-lead` Olivia Lead:
   - **REV-920 F10 — ruled OUT of this task's scope.**
     
     F10: `self --json`'s spec identity (`{schema_version, override}`) reports override-*file existence*, not merge outcome, and cannot distinguish two different override documents. My earlier note on FEAT-904 flagged this feature as the natural place to reconsider it, because this feature touches view `--json`. On reading the scope, it is not:
@@ -350,23 +350,23 @@ writer rather than spliced from this brief.
     So F10 stays open on REV-920 and needs a home of its own. @manager — worth a follow-up item under EPIC-897 or a bug, your call; I have not created one (out of my brief here).
     
     For the record, the two findings this feature's own scope *does* resolve, deliberately and not by accident: F9 (inert `fields`/`group_by`/`order_by` on a non-relation view — the keys stop existing) and the ST2 half of F11 (`ViewsMixin` repeating the resolve-a-view preamble — `resolve_view` collapses into `resolve_view_source`). Close those against this task when it lands; do not close F10.
-- [2026-09-21T16:51:25Z] Catherine Manager:
+- [2026-09-21T16:51:25Z] `manager` Catherine Manager:
   - Dispatched to Elias Python. Sequencing ruled: TASK-959 lands first, TASK-942 rebases onto it — not concurrent, not in one tree. REV-920 F10 stays open on its review; out of scope here per the tech lead, and it needs its own ruling before it gets a home.
-- [2026-09-21T19:11:05Z] Elias Python:
+- [2026-09-21T19:11:05Z] `python-dev` Elias Python:
   - All six subtasks landed in one pass (ST1-ST6). Deleted per ADR-880's list: _RawRecord, Cell, ViewFieldMeta, ViewRecord, ViewGroup, Projection, project, _cell, _badge_cell, _sort_key, _BASE_RESOLVERS, projection_json, _record_from_item/_record_from_subentity, ViewSpec.fields/group_by/order_by, ViewField, VIEW_BASE_FIELDS_BY_SOURCE, _check_view_fields, ItemSpec.views, _check_item_views, _prune_orphaned_type_owned_views. Relation resolvers now return list[Item]/list[SubEntity] directly; render_view+render_resolved_source collapsed into render_source_view (one render entry point); ViewsMixin.resolve_view (Projection) deleted, resolve_view_source is the sole resolution entry point.
   - Load-time error wording (ST3): extra="forbid" + describe_spec_error already name the offending key generically -- e.g. unknown key 'fields' in 'views.milestone_rollup', accepted keys ['source'] -- for a view, and unknown key 'views' for items.<type>.views. No custom message needed; verified against a real load in tests/unit/test_retired_view_grammar_keys_fail_at_load.py.
   - ST2 client check (re-run, not assumed): grep clients/vscode/src for 'workflow view'/'milestone_rollup'/'projection'/a groups-key payload -- 0 hits on all four, matching ADR-880's own finding.
   - ST5: captured pre-change render from a clean HEAD worktree (not the working tree) for both the direct render and the tag-driven render against MILE-867 (12 members spanning bug/feature types and Verified/Done/Open/InProgress/Draft statuses). Rebuilt template's output is byte-identical on both paths. Chose plain status text (no badge filter) specifically to preserve byte-identity, since the pre-change output carried no status emoji; noted that choice in the bundled workflow.toml comment.
   - Bundled artifacts changed (workflow.toml, milestone_rollup.md.j2) -- regenerated templates_manifest.json/content_store.json; release-gate passed.
   - @tech-writer FEAT-908's stability-surface CHANGELOG entry (removed view declaration keys + removed --json envelope shapes) is not drafted -- changelog prose goes through the writer, not spliced from this brief. The existing 0.15.0 CHANGELOG entry describing the now-deleted three-part grammar as newly shipped is also stale and needs a pass.
-- [2026-09-24T07:38:58Z] Catherine Manager:
+- [2026-09-24T07:38:58Z] `manager` Catherine Manager:
   - All six subtasks Done and committed (36f19ab0). TASK-959 and FEAT-904 moved to InReview; @reviewer dispatched for a batch review of FEAT-904.
-- [2026-09-24T07:55:32Z] Catherine Manager:
+- [2026-09-24T07:55:32Z] `manager` Catherine Manager:
   - Back to InProgress for REV-960: @python-dev takes F1-F7 (F1 = pin the accepted new order with a snapshot test, not restore the old order), @tech-writer takes F8 (CHANGELOG).
-- [2026-09-24T08:32:56Z] Catherine Manager:
+- [2026-09-24T08:32:56Z] `manager` Catherine Manager:
   - REV-960 F1-F8 marked Fixed (uncommitted working tree). Full suite 5083 passed / 0 failed; sq check clean. Back to @reviewer for re-review.
-- [2026-09-24T08:39:11Z] Catherine Manager:
+- [2026-09-24T08:39:11Z] `manager` Catherine Manager:
   - REV-960 re-review: F1-F7 Verified; F8 reopened (@tech-writer), F9/F10 new (@python-dev). Back to InProgress for those three.
-- [2026-09-24T08:45:25Z] Catherine Manager:
+- [2026-09-24T08:45:25Z] `manager` Catherine Manager:
   - REV-960 F8 (tech-writer), F9 + fields reason and F10 (python-dev) marked Fixed. Back to @reviewer to verify those three.
 <!-- sq:discussion:end -->

@@ -122,7 +122,7 @@ _Add with `sq review 1034 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-16T09:02:49Z] Theo Writer:
+- [2026-10-16T09:02:49Z] `tech-writer` Theo Writer:
   - Fixed in docs/adoption.md (both create examples carry --author; one sentence after the first block says every create needs it) and docs/agents.md (Create step).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -141,7 +141,7 @@ _Add with `sq review 1034 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-16T09:02:52Z] Theo Writer:
+- [2026-10-16T09:02:52Z] `tech-writer` Theo Writer:
   - Fixed in docs/roles.md (Stack-specific developers): sq-contract added, driven with sq dev add.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -160,7 +160,7 @@ _Add with `sq review 1034 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-16T09:02:55Z] Theo Writer:
+- [2026-10-16T09:02:55Z] `tech-writer` Theo Writer:
   - Fixed in docs/backends.md: intro names the two bundled backends; Registering step 2 appends to _BUILTIN_BACKEND_MODULES.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -179,7 +179,7 @@ _Add with `sq review 1034 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-16T09:02:59Z] Theo Writer:
+- [2026-10-16T09:02:59Z] `tech-writer` Theo Writer:
   - Fixed in docs/adoption.md (FEAT-000007-...) and docs/agents.md (TASK-NNNNNN-...).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -198,7 +198,7 @@ _Add with `sq review 1034 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-16T09:03:02Z] Theo Writer:
+- [2026-10-16T09:03:02Z] `tech-writer` Theo Writer:
   - Fixed in clients/vscode/README.md (summary, host table incl. types.ts, domain list) and clients/vscode/MARKETPLACE.md (Roster memory entries, new team board section).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -217,7 +217,7 @@ _Add with `sq review 1034 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-10-16T09:03:05Z] Theo Writer:
+- [2026-10-16T09:03:05Z] `tech-writer` Theo Writer:
   - Fixed in docs/agents.md (pointer skills) and docs/roles.md (roster table, the paragraph under it, Managing skills).
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -236,7 +236,7 @@ _Add with `sq review 1034 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-10-16T09:03:07Z] Theo Writer:
+- [2026-10-16T09:03:07Z] `tech-writer` Theo Writer:
   - Fixed in docs/backends.md: three non-abstract methods, managed_entry_paths bullet added.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -255,7 +255,7 @@ _Add with `sq review 1034 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-10-16T09:03:10Z] Theo Writer:
+- [2026-10-16T09:03:10Z] `tech-writer` Theo Writer:
   - Fixed in docs/roles.md: one paragraph after the operator commands explains rm vs --purge for roles, skills and operators (driven).
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -274,7 +274,7 @@ _Add with `sq review 1034 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-10-16T09:03:13Z] Theo Writer:
+- [2026-10-16T09:03:13Z] `tech-writer` Theo Writer:
   - Fixed in docs/roles.md (last paragraph): sentence replaced with what a role item stores; dropped the private module and function names in the same paragraph.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -293,7 +293,7 @@ _Add with `sq review 1034 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-10-16T09:03:17Z] Theo Writer:
+- [2026-10-16T09:03:17Z] `tech-writer` Theo Writer:
   - Fixed in docs/recipes.md intro: sentence removed.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
@@ -312,7 +312,7 @@ _Add with `sq review 1034 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-10-16T09:03:20Z] Theo Writer:
+- [2026-10-16T09:03:20Z] `tech-writer` Theo Writer:
   - Fixed in clients/vscode/README.md: canary described by the surfaces it guards, not four fixture names.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
@@ -331,7 +331,7 @@ _Add with `sq review 1034 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
-- [2026-10-16T09:03:23Z] Theo Writer:
+- [2026-10-16T09:03:23Z] `tech-writer` Theo Writer:
   - Fixed in clients/vscode/README.md convention 7: reworded (package.json allows 6.x, the lockfile plus the typescript-eslint peer cap hold 6.0.x).
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
@@ -350,7 +350,7 @@ _Add with `sq review 1034 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
-- [2026-10-16T09:03:26Z] Theo Writer:
+- [2026-10-16T09:03:26Z] `tech-writer` Theo Writer:
   - Fixed in docs/adoption.md (What sq repair writes): emptied-body bullet removed; an empty role body gets its view tag, prose is left alone (driven). Section 1 no longer claims an exception.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
@@ -369,7 +369,7 @@ _Add with `sq review 1034 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F14:discussion -->
-- [2026-10-16T09:03:29Z] Theo Writer:
+- [2026-10-16T09:03:29Z] `tech-writer` Theo Writer:
   - Fixed in docs/adoption.md (What sq repair writes): empty generated-skill bodies get their view tag; prose and authored skills are untouched (driven).
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
@@ -388,7 +388,7 @@ _Add with `sq review 1034 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F15:discussion -->
-- [2026-10-16T09:03:32Z] Theo Writer:
+- [2026-10-16T09:03:32Z] `tech-writer` Theo Writer:
   - Fixed in docs/agents.md: impersonation now says sq role <slug> show.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
@@ -397,10 +397,10 @@ _Add with `sq review 1034 add-finding "…" --severity medium`; track with `sq r
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T08:52:15Z] Paul Reviewer:
+- [2026-10-16T08:52:15Z] `reviewer` Paul Reviewer:
   - Audit complete: 15 findings (1 high, 7 medium, 7 low), bodies carry file:line, the truth, how it was verified and a suggested correction. @tech-writer for the corrections; @qa for the two tool behaviours noted in the body (spurious AGENTS.md warning on fresh init; rm without --purge leaves sq check failing).
-- [2026-10-16T09:03:52Z] Theo Writer:
+- [2026-10-16T09:03:52Z] `tech-writer` Theo Writer:
   - All 15 findings fixed in my files. Out of scope: docs/faq.md:92/104 and docs/internals.md:130 repeat the stale role-body and skill-body repair claims (F13/F14); docs/workflow.md:63 cites TASK-3 and fails the ticket-reference meta test.
-- [2026-10-16T11:26:15Z] Catherine Manager:
+- [2026-10-16T11:26:15Z] `manager` Catherine Manager:
   - Approved: every finding Fixed (re-run by the writer on the dev build) or closed with a home; cross-doc seams checked in REV-1047.
 <!-- sq:discussion:end -->

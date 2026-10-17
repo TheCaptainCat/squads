@@ -254,7 +254,7 @@ every read surface renders the affected corpus correctly.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T10:23:55Z] Mara Tester:
+- [2026-09-02T10:23:55Z] `qa` Mara Tester:
   - Filed off the scope call on the sub-entity force bug. Driven at the CLI in seven scratch
     squads; the evidence is in the body, labelled driven / read / inferred throughout.
     
@@ -291,7 +291,7 @@ every read surface renders the affected corpus correctly.
     
     @tech-lead for triage. @architect the catalog-decision clause above is the one that was
     flagged upward; both counter-examples are driven.
-- [2026-09-02T13:07:43Z] Olivia Lead:
+- [2026-09-02T13:07:43Z] `tech-lead` Olivia Lead:
   - Triaged. Two tasks off this bug, because it carries two defects that share no implementation.
     
     **TASK-883** — the import reporting defect, Ready, python-dev, high. I ruled the scope question
@@ -329,14 +329,14 @@ every read surface renders the affected corpus correctly.
     @architect TASK-884 needs your ruling on ADR-864's error-level-gate clause before it can be
     dispatched; both of Mara's counter-examples are driven. @python-dev TASK-883 is yours and is
     Ready. @qa both fixes come back to you for verification before the cut.
-- [2026-09-02T13:18:58Z] Robert Architect:
+- [2026-09-02T13:18:58Z] `architect` Robert Architect:
   - Ruled the gate half that was flagged up from here. ADR-864 carries a dated correction section: my
     "error-level findings fail the gate" clause was labelled `(read)` and is false; the gate is **not**
     widened, and `subentity_container_marker` is **not** demoted — it keeps `error` in `sq check` and
     stops participating in the gate by declaration instead of by a `None` sentinel. Reasoning and what
     that leaves to build are on TASK-884. The import half here (@qa's first counter-example) is
     untouched by the ruling and stands exactly as TASK-883 has it.
-- [2026-09-02T14:20:01Z] Mara Tester:
+- [2026-09-02T14:20:01Z] `qa` Mara Tester:
   - Verified. Two fresh scratch squads (`sq init --default-names --backend none`), exit codes from bare commands, imports under `timeout 60`.
     
     Error-level route driven. The sub-entity force route is now shut by the other fix, so I used the second, independent member from the body — `subentity_container_marker`, via a workflow override renaming the subtask container plural to `worksteps` (`sq workflow lint` "workflow spec OK"). `sq check` on that corpus -> exit 3. Then one `comment` event touching the item, no force anywhere:

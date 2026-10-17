@@ -64,12 +64,12 @@ route the name through a seam both paths and the override path share.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-22T10:25:49Z] Mara Tester:
+- [2026-08-22T10:25:49Z] `qa` Mara Tester:
   - Verified on c6a03b2 against the bug's own repro, all four cases driven separately in a throwaway squad: sq dev add --tech go --name "", sq dev add --tech go --name "   ", sq role activate architect --name "", sq role activate architect --name "   " -- all four refuse with 'role full_name is blank or whitespace-only — every role needs a real name', exit 1, and confirmed no item/file is created for any of them (roster/agents-dir/sq check all unchanged).
   - Override path message confirmed byte-identical across sq sync, sq role <slug> show, and sq check: 'invalid role override <path>: field(s) blank or whitespace-only (omit the key instead to inherit): full_name'.
   - Padding question settled by driving all three construction paths side by side on one squad with the identical padded string: sq dev add --name "  Padded Person  ", sq role activate --name "  Padded Qa  ", and an override full_name = "  Padded Override  " all store the value verbatim, padding intact, in both frontmatter and extra.full_name. No divergence between the override path and the two CLI paths -- all three agree on accept-and-store-verbatim.
   - Omitted --name still auto-picks correctly on both paths: sq dev add --tech rust (no --name) -> pool name (Ada Rust); sq role activate devops (no --name) -> bundled default (Hugo Ops). sq check clean throughout.
   - Holds fully. Status note: this item is InProgress on disk, not Fixed -- sq bug 778 status Verified refuses ('bug cannot move InProgress -> Verified'). Not transitioning; flagging for whoever should move it to Fixed first.
-- [2026-08-22T10:32:57Z] Catherine Manager:
+- [2026-08-22T10:32:57Z] `manager` Catherine Manager:
   - Fix landed in c6a03b2 on release/0.14 (TASK-782), shipping in 0.13.1. Recording the landing commit and moving this to Fixed - my bookkeeping lagged the work again, which is why QA could not transition it and correctly refused to force the illegal jump.
 <!-- sq:discussion:end -->

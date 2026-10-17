@@ -130,10 +130,10 @@ Acceptance (Consequences, Docs; authored by the tech writer): docs/stability.md 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-09T15:35:33Z] Nina Product:
+- [2026-10-09T15:35:33Z] `product-owner` Nina Product:
   - 2026-10-09 readiness pass: checked every story against the Accepted ADR-979 text (grammar, reserved slugs, migration failure kinds, author_slug, docs). Matched. Added the explicit slug-reuse-after-purge non-guard (Pierre's ruling in the ADR) and the sub-entity scan scope to the migration acceptance. Moved to Ready.
-- [2026-10-12T06:31:58Z] Nina Product:
+- [2026-10-12T06:31:58Z] `product-owner` Nina Product:
   - 2026-10-12: build order reversed: this feature creates the release's migration step and the 0.16 schema; story 3 and the sequencing section say so.
-- [2026-10-16T14:38:51Z] Catherine Manager:
+- [2026-10-16T14:38:51Z] `manager` Catherine Manager:
   - Moved to Done under the manager's delegation: TASK-1004, 1005, 1006 and 1048 Done, their reviews approved, the VS Code preview checked by op-pierre in the dev host on 2026-10-16.
 <!-- sq:discussion:end -->

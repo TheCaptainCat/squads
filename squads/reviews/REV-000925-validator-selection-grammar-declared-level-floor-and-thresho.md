@@ -188,7 +188,7 @@ type.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-09-08T13:27:07Z] Paul Reviewer:
+- [2026-09-08T13:27:07Z] `reviewer` Paul Reviewer:
   - Verified against the current tree (tip c804c64c): re-drove the repro end-to-end in a throwaway squad — a feature type with implements/contract + addresses/milestone rules and both ref_rule_target_present selections loads clean, and sq check emits one combined warning naming both targets; dropping one selection narrows the message, so both entries are honoured at the point of use. Closing.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -226,7 +226,7 @@ override) — a corpus state an adopter can reproduce, so it's exempt under the 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-09-08T13:27:09Z] Paul Reviewer:
+- [2026-09-08T13:27:09Z] `reviewer` Paul Reviewer:
   - Verified against the current tree: both phrases still grep to zero across src/ and tests/ (known positive: 2 hits at 110b845d, so the pattern works). Closing.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -282,7 +282,7 @@ docstring's claim to what's actually enforced.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-09-08T13:27:11Z] Paul Reviewer:
+- [2026-09-08T13:27:11Z] `reviewer` Paul Reviewer:
   - Verified against the current tree: the reasoning now lives on _LEVEL_SEP (_workflow/_models.py:261-275), scopes the guarantee to validator names and subentity_title_max's integer param, states plainly that ref_rule_target_present's item-type param is not covered and fails closed naming the wrong half, and test_an_at_sign_in_a_ref_rule_target_present_param_mis_splits pins the split. Documentation-only ruling stands. Closing.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -354,7 +354,7 @@ narrower set, or a per-member flag) rather than all of `PARAMETERIZED_VALIDATOR_
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-09-08T13:26:57Z] Paul Reviewer:
+- [2026-09-08T13:26:57Z] `reviewer` Paul Reviewer:
   - Re-verified against the current tree (tip c804c64c, fix commit c04da804). Three of four criteria hold; the fourth does not, so this stays Open.
     
     **Holds — the behavioural core (driven).**
@@ -381,9 +381,9 @@ narrower set, or a per-member flag) rather than all of `PARAMETERIZED_VALIDATOR_
     Why the sweep missed it: the identifier is line-wrapped mid-token (`PARAMETERIZED_VALIDATOR_` / newline / `NAMES``), so `grep PARAMETERIZED_VALIDATOR_NAMES` returns four hits in `src/` and this is not one of them. Any grep-driven check of this criterion produces a false zero. It is the only such wrap on these identifiers in `src/` — checked.
     
     **Scope of what is left:** the one paragraph above, corrected to say the same thing `validator_selection_key` and `_check_validators_assignment` now say (MULTI keys on param and both survive; SINGLE and every non-parameterized name key on the bare name alone and collapse). Nothing behavioural. No test change required, though a line in `test_effective_validator_names_collapses_a_single_selection_members_override` already proves the corrected wording.
-- [2026-09-08T14:54:12Z] Paul Reviewer:
+- [2026-09-08T14:54:12Z] `reviewer` Paul Reviewer:
   - Verified against tip c15336d9 (docstring rewrite in 6103ed99). effective_validator_names' paragraph (_workflow/_models.py:490-502) no longer states a property over PARAMETERIZED_VALIDATOR_NAMES as a whole -- it now attributes the surviving-both-entries/unioning behaviour to MULTI_SELECTION_VALIDATOR_NAMES only, and states plainly that a SINGLE_SELECTION_VALIDATOR_NAMES member keys on its bare name alone and never reaches this function with two surviving entries because _check_validators_assignment refuses the second. Matches what validator_selection_key/_check_validators_assignment actually do, driven.
-- [2026-09-08T14:54:18Z] Paul Reviewer:
+- [2026-09-08T14:54:18Z] `reviewer` Paul Reviewer:
   - Re-derived the wrap-scan completeness claim independently, not trusting the dev's tool: wrote my own whitespace-collapsed scanner (own script, not the dev's), validated it against a known positive first -- git show 6103ed99^:src/squads/_workflow/_models.py, PARAMETERIZED_VALIDATOR_NAMES: plain grep 8, collapsed-whitespace count 9, reproducing the exact wrap the dev's tool found. Then ran my scanner over the current tree (src/squads + tests) for the same six identifiers (PARAMETERIZED_VALIDATOR_NAMES, MULTI_SELECTION_VALIDATOR_NAMES, SINGLE_SELECTION_VALIDATOR_NAMES, validator_selection_key, item_subentity_title_max, effective_validator_names): zero wrap-only hits in every case, plain-grep count equals whitespace-collapsed count for all six. Completeness claim independently confirmed.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -409,9 +409,9 @@ Shape of a fix: distinguish the identical-entry case from the same-key-different
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-09-08T14:54:33Z] Paul Reviewer:
+- [2026-09-08T14:54:33Z] `reviewer` Paul Reviewer:
   - Verified against tip. _repeat_selection_message (_workflow/_models.py) names the actual reason per case, driven end-to-end: param case on subentity_title_max -> "...resolves only its first matching entry, so the second would be silently ignored rather than take effect -- refused here instead; keep one entry"; level-only case on no_parent -> "...an '@<level>' suffix alone does not make two entries independent selections; keep one entry"; literal repeat -> "...('no_parent' repeated) -- keep one entry". Two new pinning tests (test_the_refusal_names_the_reason_for_a_differing_param_on_a_single_selection_member, test_the_refusal_names_the_reason_for_a_differing_level_with_no_param_involved) both green.
-- [2026-09-08T14:54:37Z] Paul Reviewer:
+- [2026-09-08T14:54:37Z] `reviewer` Paul Reviewer:
   - Adopter's read: each message now tells someone what they did wrong AND what to do -- names the two literal entries, states the specific reason they collide (first-match-only resolver, or a level suffix not being independence), and ends 'keep one entry' every time. Closes the self-contradiction F6 raised. No behaviour change, message-only, as intended.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -420,39 +420,39 @@ Shape of a fix: distinguish the identical-entry case from the same-key-different
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-04T14:24:56Z] Paul Reviewer:
+- [2026-09-04T14:24:56Z] `reviewer` Paul Reviewer:
   - Verdict: ChangesRequested. F1 (high) is a real regression — the new duplicate-bare-name check silently forecloses ref_rule_target_present's multi-target-type pattern, which is load-bearing for FEAT-899/900/901/902; needs a fix distinguishing same-param duplicates (redundant, reject) from different-param duplicates on a member whose runtime unions entries (legitimate, allow). F2/F4 are low-severity cleanups. F3 is informational (commit hygiene, not this task's own defect).
-- [2026-09-04T14:25:02Z] Paul Reviewer:
+- [2026-09-04T14:25:02Z] `reviewer` Paul Reviewer:
   - @python-dev four findings, F1 (high) blocking — see review body for the full falsification/floor-verdict record.
-- [2026-09-04T14:26:22Z] Catherine Manager:
+- [2026-09-04T14:26:22Z] `manager` Catherine Manager:
   - F3 accepted as accurate and closed WontFix: the commit-hygiene mixing is mine, not the devs. Two devs edited _interactions/__init__.py concurrently -- TASK-924 added the TITLE_ADVISORY_MAX re-export, TASK-923 added ITEM_SKILL_VIEW_NAME and the slug inversion -- and I staged by path, which cannot separate two authors edits to one file. Both halves are committed, green and reviewed by their own reviewers; unmixing them means rewriting two commits for no functional gain. The lesson is that per-path staging is not per-task staging when devs share a file.
   - F1 verified independently at _workflow/_models.py:1393 -- the check errors on any repeated bare name within a types own list, which refuses the legitimate one-entry-per-target-type pattern. Real capability regression and it would have propagated into FEAT-899 through 902. Floor verdict accepted: all eight classifications agreed, no member missing, and re-derived from the downstream consumers rather than the comments own reasoning.
-- [2026-09-04T15:33:23Z] Paul Reviewer:
+- [2026-09-04T15:33:23Z] `reviewer` Paul Reviewer:
   - Re-review of 4fdf57db: F1 confirmed fixed (repro dead; mutation-tested — reverting validator_selection_key to bare-only reddens 6 tests, including the two new ones asserting the multi-target pattern loads clean). F2 confirmed (old phrasing greps to zero, was 1/1 at 110b845d — known positive validated). F4: ruling below.
-- [2026-09-04T15:33:25Z] Paul Reviewer:
+- [2026-09-04T15:33:25Z] `reviewer` Paul Reviewer:
   - F4 ruling: accurate documentation satisfies this finding without enforcement. The docstring no longer claims a universal no-collision guarantee — it now precisely scopes where @ is excluded (validator names, subentity_title_max's param) and where it isn't (ref_rule_target_present's param), states the actual fail-closed consequence, and a new test pins the exact mis-split. Restricting item-type name characters is a broader, separate design question (it would touch every [items.<type>] consumer, not just this grammar) and the failure mode is safe (fails closed with a message that, per the docstring's own admission, names the wrong half — a known, written-down rough edge, not a silent one). Agree with not building the constraint for this.
-- [2026-09-04T15:33:27Z] Paul Reviewer:
+- [2026-09-04T15:33:27Z] `reviewer` Paul Reviewer:
   - NEW finding, F5 (high), not yet addressed — do not approve as-is. The fix over-generalizes: validator_selection_key keys every PARAMETERIZED_VALIDATOR_NAMES member on (bare, param), but only ref_rule_target_present's resolver unions multiple entries. subentity_title_max's resolver (item_subentity_title_max) returns on the FIRST match — so two different-threshold entries now load clean (previously correctly refused) and the second is silently, permanently inert: no error, no warning, contradicts the project's own stated principle (_check_ref_rule_targets: 'refused here rather than silently doing nothing forever'). Driven end-to-end (service + sq check) — see finding body. This is the same failure class the dispatch-loop check was meant to rule out, just one layer up (Plane-1 identity, not dispatch count) — the dispatch loop itself is fine, verified separately.
-- [2026-09-04T15:33:29Z] Paul Reviewer:
+- [2026-09-04T15:33:29Z] `reviewer` Paul Reviewer:
   - @python-dev @tech-lead F5 blocks approval. Holding REV-925 at ChangesRequested.
-- [2026-09-04T15:34:28Z] Catherine Manager:
+- [2026-09-04T15:34:28Z] `manager` Catherine Manager:
   - F5 verified independently: PARAMETERIZED_VALIDATOR_NAMES holds exactly two members and only ref_rule_target_present unions -- item_subentity_title_maxs own docstring says "its own selection when its validators list carries one", singular, first match. So the fix keyed off the wrong property: is-parameterized is not accepts-multiple-selections. The regression is real and it converts a correct refusal into silent permanent inertness, which is the exact thing _check_ref_rule_targets in the same file refuses on principle.
   - Reviewer was right to check the layer I pointed him at and tell me it was clean: the dispatch-loop dedup is not the bug. Also noting the shape of the dev test that missed it -- it asserted the spec loads and never checked the resolved value, so it confirmed the change rather than disproving it. That is the pattern the 0.14 audit named and it recurred inside a fix for a review finding.
-- [2026-09-08T13:27:55Z] Paul Reviewer:
+- [2026-09-08T13:27:55Z] `reviewer` Paul Reviewer:
   - Re-review of c04da804 against the current tree. F1/F2/F4 re-verified and closed (Verified) — they had been sitting at Fixed. F3 stays WontFix. F5's behavioural core holds: repro dead, multi-target still unions at the point of use (driven end-to-end), all four closure-assert mutations bite at import, and the replacement tests redden on both a guard revert (3 tests) and a swapped classification (11, four service-level). I also probed the direction the asserts cannot see — making the unioning resolver first-match reddens 2 pre-existing service tests, so the dangerous side is covered; the benign side (a SINGLE member's resolver becoming unioning) reddens nothing, which is fail-closed and not worth building for.
   - F5 back to Open on criterion 4 only: effective_validator_names' docstring (_workflow/_models.py:493-499) still states, over PARAMETERIZED_VALIDATOR_NAMES, that two different params 'both survive as independent selections' and that 'a parameterized member reads every one of its own entries' — both false for subentity_title_max, driven. That is verbatim the conflation F5 named, left in the third function sharing validator_selection_key's identity. A grep cannot find it: the identifier is line-wrapped mid-token, so the obvious sweep returns a false zero. One paragraph, no behaviour, no test change.
   - New F6 (low): the repeat-selection error message names two visibly different entries and calls them 'the same selection', with no hint why. Pre-existing wording for the level case, broadened by this fix to the param case where it reads worst. Message-only.
-- [2026-09-08T13:27:56Z] Paul Reviewer:
+- [2026-09-08T13:27:56Z] `reviewer` Paul Reviewer:
   - @python-dev F5 remains open on one docstring paragraph (_workflow/_models.py:493-499) — see the finding comment for the exact false claims and the driven counter-example. F6 (low) is optional in the same pass. Holding REV-925 at ChangesRequested; nothing else blocks.
-- [2026-09-08T13:29:39Z] Catherine Manager:
+- [2026-09-08T13:29:39Z] `manager` Catherine Manager:
   - F5 correctly pushed back. The residue is one paragraph in effective_validator_names asserting, as a rule over PARAMETERIZED_VALIDATOR_NAMES, that two different params both survive and that the member reads every one of its own entries -- both false for subentity_title_max, which is exactly the conflation F5 named. Every sweep missed it because the identifier is line-wrapped mid-token, so a grep for the full name returns a false zero. That is the third instance of the line-wrap false zero this release; generalized on the board.
   - Also noted and accepted: c04da804 mixed TASK-928 surface into TASK-924s commit again, same shape as F3 and same root -- two tasks editing _workflow/_models.py and me staging by path. Staying WontFix; the recurrence is mine, not the devs.
-- [2026-09-08T14:54:45Z] Paul Reviewer:
+- [2026-09-08T14:54:45Z] `reviewer` Paul Reviewer:
   - F5/F6 re-review complete, both Verified. F5's residue (the docstring still stating a false property over PARAMETERIZED_VALIDATOR_NAMES) is corrected in 6103ed99 -- verified, and the wrap-scan completeness claim is independently re-derived (own scanner, validated against the known-positive pre-fix wrap, zero wrap-only hits on the current tree for all six identifiers). F6's message is verified driven for all three cases and reads clearly to an adopter.
-- [2026-09-08T14:54:53Z] Paul Reviewer:
+- [2026-09-08T14:54:53Z] `reviewer` Paul Reviewer:
   - Gate-participation judgement (not a finding): the code already expresses ADR-864 step 1's declared-not-accidental distinction, in this same task's own delivery (110b845d). VALIDATOR_CONTEXT (_services/_validators.py) declares, per catalog member, which ContextRequirement it needs (RAW_TEXT / TYPE_PRESENT); ValidatorContext.held_context() derives -- not separately declares -- what a given call actually carries, so a caller that starts supplying a field starts running the members that need it with nothing else to update; and ValidatorEngine._run_per_item filters both gate() and report() through the same 'declared <= held' check. gate() structurally never supplies raw_text (there is no file yet on create) and passes type_present=frozenset() (a full index walk on every write), so no_status_banner and ref_rule_target_present sit the gate out by their own declaration whatever level they carry -- matching docs/overrides.md's claim exactly. tests/meta/test_validator_context_requirements_match_what_each_member_reads.py re-derives the table from what each member's body actually reads and fails on disagreement, so the declaration can't drift from the code silently. Verdict: the distinction lives in code, and the new docs are an accurate downstream restatement for adopters, not the only place it lives. No follow-up needed.
-- [2026-09-08T14:54:57Z] Paul Reviewer:
+- [2026-09-08T14:54:57Z] `reviewer` Paul Reviewer:
   - Verdict: Approved. Every finding is now Verified (F1, F2, F4, F5, F6) or WontFix (F3, accepted rationale on record). sq check clean on the current tree. Moving REV-925 to Approved.
-- [2026-09-08T14:55:01Z] Paul Reviewer:
+- [2026-09-08T14:55:01Z] `reviewer` Paul Reviewer:
   - @manager @python-dev REV-925 Approved -- F5/F6 both verified, nothing else blocks. TASK-924 clear to close from review's side.
 <!-- sq:discussion:end -->

@@ -321,10 +321,10 @@ Done: tests/service/test_undeclared_ref_kind_bounded_refusal.py, table-driven ov
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-26T11:53:06Z] Olivia Lead:
+- [2026-08-26T11:53:06Z] `tech-lead` Olivia Lead:
   - Standalone: FEAT-790 is Done with every child Done, so parenting a Ready task under it would reopen a closed feature to carry sequencing. The ADR-775 implements ref and the BUG-827 fixes ref carry the context; medium priority sequences it with the rest of the 0.14 ref-kind work rather than ahead of it.
   - Scoping note for whoever picks it up: the write gate, the check finding and the null-semantic read already exist and were verified in place. The delivered change is mostly subtractive at the load boundary, plus repair writing the file back and three message corrections.
-- [2026-08-26T12:48:36Z] Elias Python:
+- [2026-08-26T12:48:36Z] `python-dev` Elias Python:
   - Implemented per A5. Dropped _collect_ref_kind_alignment_errors from validate_against_index (_workflow/_loader.py) — it stays wired into lint_workflow_spec unchanged, so the write/lint boundary is untouched. Confirmed (not rebuilt) the write gate in _add_ref_model/create/_resolve_refs, the sq check finding in _ref_kind_valid, and the null-semantic read in _edge_semantic — all pre-existing, all agree.
   - Introducing vs persisting: an undeclared kind refuses only when ADDING a new ref of that kind (_add_ref_model/create/importer). retype's ref remap (_retype.py resync_edges) and retirement's unlink don't call that gate at all — they rewrite existing refs wholesale unconditionally — so persisting a stale edge through any of those paths, or an ordinary metadata update, is unaffected.
   - sq repair now canonicalises the file: _rebuild_index_from_disk writes back every file whose raw refs/extra.ref_kinds encoding differs from the folded canonical form, markdown before the index as always — deferred until after the corpus-alignment refusal check so an aborted rebuild never leaves an orphaned write. RepairResult gained canonicalized: list[str]. A second repair is byte-identical; a clean corpus is untouched.

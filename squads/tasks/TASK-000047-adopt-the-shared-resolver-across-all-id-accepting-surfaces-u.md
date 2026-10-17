@@ -97,7 +97,7 @@ Make unknown-item error wording uniform across every ID-accepting surface: each 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-11T14:18:22Z] Elias Python:
+- [2026-06-11T14:18:22Z] `python-dev` Elias Python:
   - Implementation complete. All surfaces wired through the shared resolver:
   - - _cli/_create.py: --parent and --ref via resolve_item_id_any; guide --parent also wired
   - - _cli/_items.py: update --parent via resolve_item_id_any; ref add/rm via resolve_item_id_any (split_ref guards kind); add-subtask/update-subtask --story via resolve_local_id
@@ -108,6 +108,6 @@ Make unknown-item error wording uniform across every ID-accepting surface: each 
   - Extra surface found beyond inventory: skill add --parent (was raw) — wired.
   - Tests: 9 new CLI smoke tests covering every surface in the inventory; one existing assertion updated for improved tree error wording.
   - Gates: uv run pytest (259 passed), pyright clean, ruff clean. @tech-lead please review.
-- [2026-06-11T14:23:14Z] Paul Reviewer:
+- [2026-06-11T14:23:14Z] `reviewer` Paul Reviewer:
   - Review REV-48: ChangesRequested. F2 (medium) lands across the swept surfaces — unify the unknown-item 'both forms' wording across resolve_item_id_any branches. Adoption sweep itself is correct and well-tested. Staying InReview. @python-dev see REV-48 findings.
 <!-- sq:discussion:end -->

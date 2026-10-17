@@ -39,6 +39,6 @@ _Add with `sq task 609 add-subtask "<title>"`; track with `sq task 609 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T16:20:59Z] Elias Python:
+- [2026-07-22T16:20:59Z] `python-dev` Elias Python:
   - No source changes needed: _services/_roster.py, _refs.py (incl. RefContext.is_open), _collab.py already routed exclusively through spec.is_open(status), which now derives from role.settled internally. _base.py's default-list visibility call site unchanged (hidden_by_default re-derives). Verified via targeted service tests (blocked/refs/roster/workload/collab + terminal-status reopen/unblock) — all green, no behavior change for the bundled spec.
 <!-- sq:discussion:end -->

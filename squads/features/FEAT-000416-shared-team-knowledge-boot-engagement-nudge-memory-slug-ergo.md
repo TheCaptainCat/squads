@@ -122,6 +122,6 @@ of its content.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T12:41:02Z] Nina Product:
+- [2026-07-15T12:41:02Z] `product-owner` Nina Product:
   - US1 realigned per REV-419: boot directive now tells the agent to run `sq memory <slug> list` + `sq board list`, not to review surfaced managed-file sections — valid on empty pools/fresh installs.
 <!-- sq:discussion:end -->

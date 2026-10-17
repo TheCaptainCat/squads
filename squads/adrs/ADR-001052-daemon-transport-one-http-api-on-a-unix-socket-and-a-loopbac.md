@@ -171,10 +171,10 @@ None.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T11:27:49Z] Robert Architect:
+- [2026-10-16T11:27:49Z] `architect` Robert Architect:
   - Drafted from the 2026-10-16 operator rulings on MILE-868 and MILE-1051 (one API, two clients), EPIC-29/FEAT-916 timings, and the store lock/commit order. Measured on this machine 2026-10-16: request round trip 81-111 us over a Unix socket vs 132-150 us over TCP loopback; Unix socket bind on /mnt/c (drvfs) fails with EOPNOTSUPP; released sq --version takes 0.717s.
   - @op-pierre seven questions are at the end of the body. Question 2 (whether no authentication on the browser port is acceptable, given that it leaves other local processes able to write) is the one that could change the option. @product-owner the API, CLI-mode and lifecycle features depend on this ADR.
-- [2026-10-16T11:31:40Z] Pierre Chat:
+- [2026-10-16T11:31:40Z] `op-pierre` Pierre Chat:
   - - 2026-10-16, answers to the ADR's operator questions:
     - Q1: native Windows must be supported in 0.17, remote mode included.
     - Q2: no protection beyond the browser defences while the daemon is local-only; no per-launch token.
@@ -182,16 +182,16 @@ None.
     - Q4: the browser port ships in 0.17, disabled by default. An authentication mode is designed when the JS web app is built (MILE-868).
     - Q5/Q6: the daemon starts implicitly on first use. Daemon mode can be switched off in the TOML configuration; this repo uses that while working on the code.
     - Q7: no refusal. The daemon can do everything the CLI does in local mode, including migrate up, repair, repad and renumber.
-- [2026-10-16T11:34:08Z] Robert Architect:
+- [2026-10-16T11:34:08Z] `architect` Robert Architect:
   - Body revised to carry the operator answers of 2026-10-16. Windows: measured native CPython 3.14.7 here has no AF_UNIX; the CLI on Windows uses a loopback port (named pipe rejected for 0.17, kept as the change condition). That port refuses any request with an Origin header. Per-user isolation is stated as a POSIX-with-browser-port-off property, not a daemon guarantee. Daemons are keyed per squad and per squads version, so version skew needs no restart and migrate up runs in the new daemon. Three questions remain open: idle exit, where the off switch lives, and what happens when implicit start fails.
   - @op-pierre the three remaining questions are at the end of the body.
-- [2026-10-16T11:54:34Z] Pierre Chat:
+- [2026-10-16T11:54:34Z] `op-pierre` Pierre Chat:
   - - 2026-10-16, answers to the three remaining questions:
     - Idle exit: the daemon exits after 30 minutes without a request. The duration is a setting in the configuration file.
     - Off switch: in that same configuration file.
     - Failed implicit start: the CLI falls back to local mode only when local mode exists. A later case will have the CLI talk to a squad hosted elsewhere and not committed locally; there, there is no local mode to fall back to, and the command fails.
-- [2026-10-16T11:55:49Z] Robert Architect:
+- [2026-10-16T11:55:49Z] `architect` Robert Architect:
   - Body revised for the operator answers of 2026-10-16 11:54Z: a [daemon] table in .squads.toml (enabled, idle_timeout_minutes = 30, browser), modelled on SquadsConfig so that to_toml() rewrites keep it; implicit start falls back to local mode only when the squad is local, and never after a request has been sent; a squad hosted elsewhere is recorded as a consequence the endpoint resolution must leave room for. No open questions remain.
-- [2026-10-16T12:01:28Z] Pierre Chat:
+- [2026-10-16T12:01:28Z] `op-pierre` Pierre Chat:
   - 2026-10-16: stays Proposed. Accepted when the 0.17 release opens, after another review pass.
 <!-- sq:discussion:end -->

@@ -142,9 +142,9 @@ When grouping by type, order the type groups by the workflow spec's per-type `or
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-18T19:48:09Z] Paul Reviewer:
+- [2026-07-18T19:48:09Z] `reviewer` Paul Reviewer:
   - Delivered by TASK-450 (core sq workflow types --json + per-type order) and TASK-457 (client sorts type groups via compareTypesByOrder). Verified on disk.
-- [2026-07-18T19:48:31Z] Paul Reviewer:
+- [2026-07-18T19:48:31Z] `reviewer` Paul Reviewer:
   - test
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -159,7 +159,7 @@ listView.ts:92 sorts items by `a.id.localeCompare(b.id)` — plain lexicographic
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-07-18T19:48:11Z] Paul Reviewer:
+- [2026-07-18T19:48:11Z] `reviewer` Paul Reviewer:
   - Delivered by TASK-454 — shared Intl.Collator({numeric:true}) in idOrder.ts, used by listView + metaView. Verified on disk.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -174,7 +174,7 @@ Move the group-by-type control from the quick-pick/menu (squads.groupBy) to a vi
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-07-18T19:48:12Z] Paul Reviewer:
+- [2026-07-18T19:48:12Z] `reviewer` Paul Reviewer:
   - Delivered by TASK-454 — group-by-type is a view/title navigation icon (package.json), toggled:squads.groupByType. Verified on disk.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -189,7 +189,7 @@ Add a 'show closed' toggle as a view-title icon (navigation group) that includes
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-07-18T19:48:13Z] Paul Reviewer:
+- [2026-07-18T19:48:13Z] `reviewer` Paul Reviewer:
   - Delivered by TASK-454 — show-closed is a view/title toggle icon driving the --all fetch. Verified on disk.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -204,7 +204,7 @@ Drop the group-by-open/closed grouping mode entirely (the state option on squads
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-07-18T19:48:15Z] Paul Reviewer:
+- [2026-07-18T19:48:15Z] `reviewer` Paul Reviewer:
   - Delivered by TASK-454 — open/closed grouping axis removed; ViewState carries only filter/groupByType/showClosed. Verified on disk.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -219,7 +219,7 @@ Add a collapse-all control to the tree. Native path: set showCollapseAll: true o
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-07-18T19:48:16Z] Paul Reviewer:
+- [2026-07-18T19:48:16Z] `reviewer` Paul Reviewer:
   - Delivered by TASK-454 — showCollapseAll:true on createTreeView. Verified on disk.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -234,7 +234,7 @@ When closed/terminal items are shown (via F4's toggle), render them visually de-
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-07-18T19:48:17Z] Paul Reviewer:
+- [2026-07-18T19:48:17Z] `reviewer` Paul Reviewer:
   - Delivered by TASK-454 — closed nodes rendered with disabledForeground ThemeColor. Verified on disk.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -249,7 +249,7 @@ Add a view-title button that opens the workflow cheatsheet as rendered markdown 
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-07-18T19:48:18Z] Paul Reviewer:
+- [2026-07-18T19:48:18Z] `reviewer` Paul Reviewer:
   - Delivered by TASK-456 — core sq workflow --raw (clean markdown) + client title button opening it in an owned webview with live mermaid (exceeds the md-preview caveat). Verified on disk.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -264,7 +264,7 @@ commands.ts:94 opens the item via markdown.showPreview — VS Code's single DYNA
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-07-18T19:48:20Z] Paul Reviewer:
+- [2026-07-18T19:48:20Z] `reviewer` Paul Reviewer:
   - Delivered by TASK-453 — item preview is an owned createWebviewPanel; no markdown.showPreview remains. Verified on disk.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -279,7 +279,7 @@ In the item preview, render item-ID references (parent, refs) as navigable links
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-07-18T19:48:21Z] Paul Reviewer:
+- [2026-07-18T19:48:21Z] `reviewer` Paul Reviewer:
   - Delivered by TASK-453 — sq-item-link anchors + click/auxclick routing (middle-click opens a new panel). Verified on disk.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
@@ -294,7 +294,7 @@ In the item preview, show two collapsible (unfoldable) mermaid graphs as separat
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-07-18T19:48:22Z] Paul Reviewer:
+- [2026-07-18T19:48:22Z] `reviewer` Paul Reviewer:
   - Delivered by TASK-453 — two collapsible sq-graph details (children subtree + ref graph). Verified on disk.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
@@ -309,7 +309,7 @@ Add a second view within the Squads activity-bar container (like Explorer stacks
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
-- [2026-07-18T19:48:23Z] Paul Reviewer:
+- [2026-07-18T19:48:23Z] `reviewer` Paul Reviewer:
   - Delivered by TASK-455 — squadsMeta 'Roster' view, META_BUCKETS (Roles/Skills/Operators) fixed buckets. Verified on disk.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
@@ -324,7 +324,7 @@ Use resources/squads-icon-vscode.svg (viewBox 0 0 64 64, currentColor fill+strok
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
-- [2026-07-18T19:48:25Z] Paul Reviewer:
+- [2026-07-18T19:48:25Z] `reviewer` Paul Reviewer:
   - Delivered by TASK-458 — activity-bar icon points at squads-icon-vscode.svg; variant SVGs removed. Verified on disk.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
@@ -339,7 +339,7 @@ The preview shows the item body but not its discussion. Render the comments as a
 #### Discussion
 
 <!-- sq:finding:F14:discussion -->
-- [2026-07-18T19:48:26Z] Paul Reviewer:
+- [2026-07-18T19:48:26Z] `reviewer` Paul Reviewer:
   - Delivered by TASK-464 — discussion rendered as a collapsible section in the preview webview (buildDiscussionHtml). Verified on disk.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
@@ -358,9 +358,9 @@ Desired: a preview section listing the item's sub-entities — at minimum the he
 #### Discussion
 
 <!-- sq:finding:F15:discussion -->
-- [2026-07-17T20:12:45Z] Pierre Chat:
+- [2026-07-17T20:12:45Z] `op-pierre` Pierre Chat:
   - A grave gap — where are the subitems? The whole point of an item is its breakdown.
-- [2026-07-18T21:38:47Z] Catherine Manager:
+- [2026-07-18T21:38:47Z] `manager` Catherine Manager:
   - Delivered by TASK-475 (US1) — sub-entities section in the item preview. Reviewed in REV-485, verified on disk.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
@@ -377,9 +377,9 @@ Desired: set `panel.iconPath` to the squads icon so the tab is recognizable as a
 #### Discussion
 
 <!-- sq:finding:F16:discussion -->
-- [2026-07-17T20:14:00Z] Pierre Chat:
+- [2026-07-17T20:14:00Z] `op-pierre` Pierre Chat:
   - The sq webview should display the squads icon.
-- [2026-07-18T21:38:49Z] Catherine Manager:
+- [2026-07-18T21:38:49Z] `manager` Catherine Manager:
   - Delivered by TASK-476 (US2) — squads icon on webview panel tabs. Reviewed in REV-485.
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
@@ -400,9 +400,9 @@ Prereq: the extension must know the squad-dir path. Discovery today only locates
 #### Discussion
 
 <!-- sq:finding:F17:discussion -->
-- [2026-07-17T20:16:03Z] Pierre Chat:
+- [2026-07-17T20:16:03Z] `op-pierre` Pierre Chat:
   - If the squad is detected to be local, the json index should be watched to auto-refresh the activity view and the item preview.
-- [2026-07-18T21:38:51Z] Catherine Manager:
+- [2026-07-18T21:38:51Z] `manager` Catherine Manager:
   - Delivered by TASK-477 (US3) — .squads.json filesystem watcher auto-refreshes views + previews (client-side squad-dir resolution; watch-as-trigger only). REV-485.
 <!-- sq:finding:F17:discussion:end -->
 <!-- sq:finding:F17:end -->
@@ -419,9 +419,9 @@ Desired: drop the assignee segment from roster item descriptions. Keep status if
 #### Discussion
 
 <!-- sq:finding:F18:discussion -->
-- [2026-07-17T20:18:41Z] Pierre Chat:
+- [2026-07-17T20:18:41Z] `op-pierre` Pierre Chat:
   - Roster items should not display assignee.
-- [2026-07-18T21:38:53Z] Catherine Manager:
+- [2026-07-18T21:38:53Z] `manager` Catherine Manager:
   - Delivered by TASK-478 (US4) — roster items drop the assignee segment. REV-485.
 <!-- sq:finding:F18:discussion:end -->
 <!-- sq:finding:F18:end -->
@@ -446,9 +446,9 @@ Recommendation: ship (a) now (add severity to the tooltip alongside priority as 
 #### Discussion
 
 <!-- sq:finding:F19:discussion -->
-- [2026-07-17T20:23:10Z] Pierre Chat:
+- [2026-07-17T20:23:10Z] `op-pierre` Pierre Chat:
   - Can we display the collection badges in the hover? Like priority and/or severity.
-- [2026-07-18T21:38:55Z] Catherine Manager:
+- [2026-07-18T21:38:55Z] `manager` Catherine Manager:
   - Delivered by TASK-482 (US8) — priority/severity collection badges in the tree hover, rendered spec-driven via the collections catalog. REV-485.
 <!-- sq:finding:F19:discussion:end -->
 <!-- sq:finding:F19:end -->
@@ -471,9 +471,9 @@ This is the **root cause behind F19** (severity absent from the tree surface; no
 #### Discussion
 
 <!-- sq:finding:F20:discussion -->
-- [2026-07-17T20:26:25Z] Pierre Chat:
+- [2026-07-17T20:26:25Z] `op-pierre` Pierre Chat:
   - A good rule: all collections should be surfaced. If only priority is, that means priority is hardcoded. Remember squads is a generic workflow engine.
-- [2026-07-18T21:38:57Z] Catherine Manager:
+- [2026-07-18T21:38:57Z] `manager` Catherine Manager:
   - Delivered by TASK-481 (US7) + ADR-474 — generic per-item badges map + sq workflow collections --json; no hardcoded collection names. REV-485.
 <!-- sq:finding:F20:discussion:end -->
 <!-- sq:finding:F20:end -->
@@ -492,9 +492,9 @@ Resolution (op-pierre): add a VS Code setting for custom type icons — e.g. `sq
 #### Discussion
 
 <!-- sq:finding:F21:discussion -->
-- [2026-07-17T20:48:33Z] Pierre Chat:
+- [2026-07-17T20:48:33Z] `op-pierre` Pierre Chat:
   - We can add a setting for the custom type icons.
-- [2026-07-18T21:38:59Z] Catherine Manager:
+- [2026-07-18T21:38:59Z] `manager` Catherine Manager:
   - Delivered by TASK-479 (US5) — squads.typeIcons setting layered over bundled defaults. REV-485.
 <!-- sq:finding:F21:discussion:end -->
 <!-- sq:finding:F21:end -->
@@ -518,9 +518,9 @@ Pierre's ask was a silhouette for the role; `account` gives the classic head-and
 #### Discussion
 
 <!-- sq:finding:F22:discussion -->
-- [2026-07-17T20:56:31Z] Pierre Chat:
+- [2026-07-17T20:56:31Z] `op-pierre` Pierre Chat:
   - Do we have some pretty icons for the roster? They're just circles. A silhouette for the role would be nice.
-- [2026-07-18T21:39:01Z] Catherine Manager:
+- [2026-07-18T21:39:01Z] `manager` Catherine Manager:
   - Delivered by TASK-478 (US4) — real codicons for role/operator/skill meta types. REV-485.
 <!-- sq:finding:F22:discussion:end -->
 <!-- sq:finding:F22:end -->
@@ -540,9 +540,9 @@ Impl note: `bodyHtml` is currently one rendered blob (`sq show --raw`) covering 
 #### Discussion
 
 <!-- sq:finding:F23:discussion -->
-- [2026-07-17T21:04:12Z] Pierre Chat:
+- [2026-07-17T21:04:12Z] `op-pierre` Pierre Chat:
   - The mermaid graphs should be folded by default and appear just under the frontmatter.
-- [2026-07-18T21:39:03Z] Catherine Manager:
+- [2026-07-18T21:39:03Z] `manager` Catherine Manager:
   - Delivered by TASK-480 (US6) — graphs collapsed by default + repositioned under the frontmatter. REV-485.
 <!-- sq:finding:F23:discussion:end -->
 <!-- sq:finding:F23:end -->
@@ -561,9 +561,9 @@ Desired: labels fully contained. Options — set `mermaid.initialize({ flowchart
 #### Discussion
 
 <!-- sq:finding:F24:discussion -->
-- [2026-07-17T21:04:13Z] Pierre Chat:
+- [2026-07-17T21:04:13Z] `op-pierre` Pierre Chat:
   - Many refs labels are cropped inside the node.
-- [2026-07-18T21:39:06Z] Catherine Manager:
+- [2026-07-18T21:39:06Z] `manager` Catherine Manager:
   - Delivered by TASK-480 (US6) — ref-graph node labels wrap (markdown-string labels + wrappingWidth). REV-485.
 <!-- sq:finding:F24:discussion:end -->
 <!-- sq:finding:F24:end -->
@@ -582,9 +582,9 @@ Impl: mermaid runs with `securityLevel: 'strict'`, which disables click-callback
 #### Discussion
 
 <!-- sq:finding:F25:discussion -->
-- [2026-07-17T21:04:14Z] Pierre Chat:
+- [2026-07-17T21:04:14Z] `op-pierre` Pierre Chat:
   - Each item in the graph should be clickable to navigate.
-- [2026-07-18T21:39:08Z] Catherine Manager:
+- [2026-07-18T21:39:08Z] `manager` Catherine Manager:
   - Delivered by TASK-480 (US6) — graph nodes clickable to navigate. REV-485.
 <!-- sq:finding:F25:discussion:end -->
 <!-- sq:finding:F25:end -->
@@ -608,9 +608,9 @@ DEFERRED (note, do not do now): consider widening `StatusSpec.role` from `str | 
 #### Discussion
 
 <!-- sq:finding:F26:discussion -->
-- [2026-07-17T21:17:54Z] Pierre Chat:
+- [2026-07-17T21:17:54Z] `op-pierre` Pierre Chat:
   - The active role is good — InProgress for work items, Active for the roster. Confirmed no clash with terminal. Defer widening role to list[str].
-- [2026-07-18T21:39:10Z] Catherine Manager:
+- [2026-07-18T21:39:10Z] `manager` Catherine Manager:
   - Delivered by TASK-483 (US9 core, status_role + role=active) + TASK-484 (US10 client, active items green via the statuses catalog). ADR-474. REV-485.
 <!-- sq:finding:F26:discussion:end -->
 <!-- sq:finding:F26:end -->
@@ -619,13 +619,13 @@ DEFERRED (note, do not do now): consider widening `StatusSpec.role` from `str | 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T12:19:59Z] Pierre Chat:
+- [2026-07-17T12:19:59Z] `op-pierre` Pierre Chat:
   - This review captures what I don't like and want changed in the extension after using it; it will be the base of a feature to align it with my intent.
-- [2026-07-17T20:10:42Z] Pierre Chat:
+- [2026-07-17T20:10:42Z] `op-pierre` Pierre Chat:
   - @manager — leaving F1-F12 Open on purpose: I'll close those out with you directly, so don't auto-close them off FEAT-449. New findings (F13+) go on this same review — those are the live ones to action.
-- [2026-07-17T21:20:04Z] Pierre Chat:
+- [2026-07-17T21:20:04Z] `op-pierre` Pierre Chat:
   - @manager — sequencing: please get the first findings (F1-F12) reviewed and approved/closed first — those are the change requests FEAT-449 already delivered. Only once that batch is settled should we start work on the new findings (F15-F26) from this session. Don't kick off the new batch before the originals are approved.
-- [2026-07-18T19:50:05Z] Catherine Manager:
+- [2026-07-18T19:50:05Z] `manager` Catherine Manager:
   - F1-F14 verified against on-disk code (reviewer pass) and closed to Verified, each citing its delivering FEAT-449 task (F1→TASK-450/457, F2-F7→TASK-454, F8→TASK-456, F9-F11→TASK-453, F12→TASK-455, F13→TASK-458, F14→TASK-464).
   - Kicking off the F15-F26 alignment batch now: product-owner to author the follow-up feature under EPIC-99 (stories from F15-F26); architect to draft the machine-surface ADRs the findings call for (F20 generic spec-declared collections surface; F26 status_role + role=active). Client work sequences after those decisions.
 <!-- sq:discussion:end -->

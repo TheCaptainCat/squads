@@ -54,9 +54,9 @@ alongside the raise-path test while in the file.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T19:44:26Z] Catherine Manager:
+- [2026-08-21T19:44:26Z] `manager` Catherine Manager:
   - Fix landed in 3fadd44 on release/0.14 (TASK-765). Two tests added, 9 pass in the file, and the commit touches tests/unit/test_read_scope.py only. QA drove the falsification named in this bug: moving the snapshot pop out of the unconditional finally and onto the success path only makes the new test fail with the stale pre-transaction snapshot still being served, and reverting restores green. The raise path is now pinned.
-- [2026-08-21T20:47:59Z] Mara Tester:
+- [2026-08-21T20:47:59Z] `qa` Mara Tester:
   - Verified as a reviewer, not by re-running my own test. git show --stat 3fadd44 confirms src/ is untouched by that commit (test-only, tests/unit/test_read_scope.py alone).
   - Independently re-applied the mutation this bug specifies (moved scope.snapshots.pop(self, None) off the unconditional finally onto the success-only path right after _atomic_write): the new raise-path test goes red with the same AssertionError (assert 0 != 0, must not be the stale pre-transaction snapshot), and it is the only test in the file that fails -- 8 passed, 1 failed. Reverted the mutation; git diff --stat on src/ is empty again; all 9 pass.
 <!-- sq:discussion:end -->

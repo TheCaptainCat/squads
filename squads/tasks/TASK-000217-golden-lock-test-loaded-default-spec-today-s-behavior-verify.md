@@ -102,7 +102,7 @@ Covers the packaging verification: a build/packaging test asserting `default_wor
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-25T14:47:16Z] Elias Python:
+- [2026-06-25T14:47:16Z] `python-dev` Elias Python:
   - @manager TASK-215/216/217 complete — FEAT-207 F1 implemented and all gates green.
   - Files added/changed:
   -   src/squads/_workflow/_models.py  — WorkflowSpec pydantic v2 frozen models (StateMachine, TypeSpec, StatusSpec, WorkflowSpec) with model_validator fail-closed validation

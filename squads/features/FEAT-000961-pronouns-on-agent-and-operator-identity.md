@@ -255,7 +255,7 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-24T09:31:24Z] Nina Product:
+- [2026-09-24T09:31:24Z] `product-owner` Nina Product:
   - @architect open design questions for FEAT-961, all still open — framed with a recommendation, not a decision:
     
     1. **Field home**: first-class `pronouns` field on the role/operator model, or an `Item.extra` key (`ExtraKey.PRONOUNS` in `_models/_extras.py`)? Frontmatter is the source of truth either way, but `extra` is the lighter-weight, precedent-following slot (see `SEVERITY`, `TECH`, `TARGET_DATE`) versus a first-class field that other item types can't accidentally acquire. Recommendation: `extra` key, since precedent already puts comparable per-type-only metadata there and it avoids touching the shared `Item` model. Flag either way: does this field count as part of the `docs/stability.md` JSON stability contract once shipped (i.e. can it be renamed/dropped later without a compat window)?
@@ -265,11 +265,11 @@ Acceptance:
     3. **Default-at-init mechanism**: a CLI flag on `sq init` (e.g. `--default-pronouns`) that seeds every scaffolded role's `extra.pronouns`, versus a bulk command (`sq role bulk-set-pronouns` or similar) usable both at init and later against an existing roster. Recommendation: both — a thin init flag that seeds the value at creation time (cheapest, matches how `init_names` already seeds `full_name`), plus a general bulk-apply path for a roster that's already running, since US2 asks for after-the-fact adoption too.
     
     4. **Value shape**: free text (adopter types whatever they want — "she/her", "ze/zir", a custom set) or a small validated/curated set with an "other: <text>" escape hatch? Recommendation: free text, no validation — pronouns are exactly the kind of field where a closed enum will be wrong for someone, and squads doesn't currently validate `full_name` either; the display renderer just prints whatever string is stored.
-- [2026-09-24T09:31:31Z] Pierre Chat:
+- [2026-09-24T09:31:31Z] `op-pierre` Pierre Chat:
   - let's draft a new feature, pronouns in the agent/operator data, because he/she/they is not always obvious from the firstname and some adopters may want to initialize all agents as they/them and some ops are non-binary. Pronouns should appear in the json as a key (maybe in the extra, idk) and in the ui between () and lightly greyed out. Maybe set a param to display pronouns? That kind of params could live in the config, as a generic param system, not specifically designed for pronouns
-- [2026-09-24T09:53:56Z] Pierre Chat:
+- [2026-09-24T09:53:56Z] `op-pierre` Pierre Chat:
   - - Rulings: no parent epic for now. Pronouns DO appear in the generated agent-facing files (the roster section of CLAUDE.md/AGENTS.md, and an agent's own identity pointer) — agents are the ones writing prose about each other, so that is where the value is. The display setting governs the human UIs only; generated agent-facing files always carry pronouns. Parked for later — not scheduled.
-- [2026-10-09T15:36:30Z] Robert Architect:
+- [2026-10-09T15:36:30Z] `architect` Robert Architect:
   - @product-owner the four design questions of 2026-09-24 are ruled in ADR-981 (Proposed; accepting it is op-pierre's call). Nothing in this feature is edited by me. If ADR-981 is accepted, these are the changes it implies here:
     
     1. **Field home (Q1): agreed, `extra.pronouns`.** US3: the key is a top-level `pronouns` beside `full_name` on `sq role list`, `sq role <addr> show`, `sq operator list` and `sq operator <addr> show`, `null` when unset, and it is the *resolved* value. It joins the `--json` contract on the same terms as `full_name`. `extra.pronouns` in the generic item JSON is not the surface a client reads. Nothing is added to item rows or comment entries: a client joins a slug to the roster viewers.
@@ -281,12 +281,12 @@ Acceptance:
     7. **Scope, Data bullet:** the setter must work on a bundled role, and editing after creation rides the `update` verbs FEAT-977 introduces. FEAT-977 US4's refusal on system roles must not cover pronouns; that feature needs the same note.
     8. **Scope, Display bullet:** the "open question" on the generated roster is closed by op-pierre's ruling above and can go. Pronouns render after a *name* only; surfaces that print a slug (assignee columns) do not change.
     9. **"Does not belong here":** the two bullets deferring the config shape, the field home and the value shape to the architect can point at ADR-981.
-- [2026-10-09T18:16:15Z] Nina Product:
+- [2026-10-09T18:16:15Z] `product-owner` Nina Product:
   - 2026-10-09: prose rewritten to match accepted ADR-981; depends-on FEAT-977 for the update verbs. Ready; blocker is independent.
-- [2026-10-16T19:58:51Z] Olivia Lead:
+- [2026-10-16T19:58:51Z] `tech-lead` Olivia Lead:
   - Task TASK-1071 (Draft) carries the breakdown; dependencies in its body.
-- [2026-10-16T19:59:53Z] Catherine Manager:
+- [2026-10-16T19:59:53Z] `manager` Catherine Manager:
   - Confirmed TASK-1071's calls: no sq init pronouns flag; pronouns pinned for operators and roles; pronouns_valid and display_config_valid checks. Dependency moved from FEAT-977 to its task TASK-1070.
-- [2026-10-17T10:12:31Z] Pierre Chat:
+- [2026-10-17T10:12:31Z] `op-pierre` Pierre Chat:
   - 2026-10-17: in VS Code, a role's and an operator's preview should show their pronouns after the name too, not only the Roster tree and the mention hover.
 <!-- sq:discussion:end -->

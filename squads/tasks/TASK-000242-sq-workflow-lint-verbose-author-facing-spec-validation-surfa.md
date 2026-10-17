@@ -79,11 +79,11 @@ Covers `sq workflow lint` — the verbose, author-facing validation surface (add
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-30T08:45:38Z] Elias Python:
+- [2026-06-30T08:45:38Z] `python-dev` Elias Python:
   - Implemented sq workflow lint (TASK-242). Converted the sq workflow command into a Typer sub-app (workflow_app in _cli/_workflow_cmd.py) with show (backward-compat cheatsheet) and lint sub-commands. lint calls lint_workflow_spec() directly — NOT through open_service — so it can report on specs that would cause open_service to hard-stop.
   - lint_workflow_spec() in _workflow/_loader.py runs all checks in collect-all-errors mode: (1) pure-spec validation via load_workflow_spec() — on SquadsError captures the message as an error finding; (2) live-index cross-check via validate_against_index() on the successfully-loaded spec. Returns list of (level, location, message, fix_hint) tuples; never raises.
   - Exit codes: 0 on clean spec or no override; 1 when any error finding present; warnings-only exits 0. CLI prints a Rich table per error/warning group with location and fix hint columns. Bare sq workflow and sq workflow show both still print the cheatsheet (backward-compat preserved).
-- [2026-06-30T09:29:45Z] Elias Python:
+- [2026-06-30T09:29:45Z] `python-dev` Elias Python:
   - Fix 1 (AC#3) applied — TASK-242/243 follow-up.
   - Factored `_collect_additive_conflicts(bundled, raw, override_path) -> list[str]` out of `_merge_override`. The new function iterates all keys in the override's lifecycles/statuses/items sections against the bundled built-ins using list comprehensions and returns one message per conflicting key.
   - `_merge_override` raises on `conflicts[0]` (fail-fast, open_service stays fail-closed). `lint_workflow_spec` is rewritten as a three-phase function: (1) read raw TOML via new `_read_raw_override` helper, (2) run `_collect_additive_conflicts` and extend findings with ALL conflicts, (3) if clean, run `load_workflow_spec` for structural errors, then validate_against_index. All three gates (pyright, ruff check, ruff format) clean.

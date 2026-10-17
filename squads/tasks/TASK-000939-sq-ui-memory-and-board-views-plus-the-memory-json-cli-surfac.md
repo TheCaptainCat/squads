@@ -202,7 +202,7 @@ A modal `Screen` peer to `FilterScreen` and `SearchScreen`, in its own module un
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-14T12:44:01Z] Elias Python:
+- [2026-09-14T12:44:01Z] `python-dev` Elias Python:
   - All five subtasks landed and marked Done; `sq check` clean.
     
     **ST1/ST2** — `src/squads/_cli/_memory.py`: `list_memories --json` now carries `created_at` alongside the unchanged `slug`/`filename`/`description`; `show_memory` gained `--json` (slug/summary/created_at/tags/body). Non-JSON paths and the unknown-slug error shape are unchanged.
@@ -224,8 +224,8 @@ A modal `Screen` peer to `FilterScreen` and `SearchScreen`, in its own module un
     Files touched: `src/squads/_cli/_memory.py`, `src/squads/_tui/_tree.py`, `src/squads/_tui/_browse.py`, `src/squads/_tui/_board.py` (new), `src/squads/_tui/_memory_reader.py` (new), `tests/cli/test_memory_cli.py`, `tests/tui/test_memory_view.py` (new), `tests/tui/test_board_screen.py` (new), `tests/tui/test_bracket_content_renders_safely.py`, `tests/tui/test_search_screen.py`.
     
     Nothing left unfinished on this task. Left the task itself and FEAT-690 untouched, per scope. @manager over to you for verification and status.
-- [2026-09-14T12:46:26Z] Catherine Manager:
+- [2026-09-14T12:46:26Z] `manager` Catherine Manager:
   - Verified as authoritative gate: full suite 5036 passed / 12 skipped / 0 failed; pyright 0 errors; ruff check + format clean. Traced the TUI seam myself — sort_siblings runs on the service-level forest before populate_tree attaches memory as UI-only children, so the by-construction claim holds; highlight dispatch is a real typed discriminator. Hygiene greps clean (no ticket ids, no direct datetime.now, no stray wrapper tags). Held at InReview rather than Done: this is a visual surface, so op-pierre eyeballs sq ui before it closes.
-- [2026-09-15T07:44:20Z] Pierre Chat:
+- [2026-09-15T07:44:20Z] `op-pierre` Pierre Chat:
   - Looked at the dev host: the memory and board surfaces look good. Visual sign-off given.
 <!-- sq:discussion:end -->

@@ -49,7 +49,7 @@ tests/test_agent_naming.py:186 and :198 pass schema_version="0.4" to SquadsConfi
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-16T12:59:17Z] Paul Reviewer:
+- [2026-06-16T12:59:17Z] `reviewer` Paul Reviewer:
   - VERDICT: APPROVED. FEAT-138 multi-active backends is correct and complete per ADR-141 as amended by the op-pierre override.
   - Confirmed (a) NO 0.4/migration residue in code: SCHEMA_VERSION="0.3"; no _v0_3_to_v0_4.py; registry stops at the 0.3 migration; no v0_4 corpus fixture; _CORPUS_CASES = [(0.1),(0.2),(0.3)] only; no test asserts a 0.4 schema except two stale config-parsing fixtures in test_agent_naming.py (F1, low, harmless). All other "0.4" strings are in tracked sq item docs/reflog — immutable history, not code.
   - Confirmed (b) managed_paths lists ONLY guaranteed-written files for both backends: claude_code → [CLAUDE.md (write_managed, unconditional), .claude/settings.json (ensure_scaffold)]; agents_md → [AGENTS.md (ensure_scaffold + write_managed)]. No per-role pointers listed (would false-fail when no roles). Both managed_paths are read-only (no mkdir/write); conformance asserts read-only + present-after-sync for both.

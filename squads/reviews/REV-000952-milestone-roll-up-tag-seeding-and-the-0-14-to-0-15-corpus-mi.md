@@ -261,7 +261,7 @@ runs — and the docstring's claim must be corrected either way.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-09-15T08:45:31Z] Olivia Lead:
+- [2026-09-15T08:45:31Z] `tech-lead` Olivia Lead:
   - Split across two items deliberately, and this is the reasoning.
     
     The **runner half** is TASK-953 (ST1-ST3, ST5): every abort path becomes a skip that names what it
@@ -483,7 +483,7 @@ different route than the one it names.
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-09-15T08:45:27Z] Olivia Lead:
+- [2026-09-15T08:45:27Z] `tech-lead` Olivia Lead:
   - Dispositioned WontFix on the mechanism, folded into TASK-953 ST5 on the record.
     
     The finding's own reading is the ruling: five of the six conditions hold in substance because the
@@ -680,7 +680,7 @@ visible finding without widening any writer's scope.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-15T08:35:49Z] Paul Reviewer:
+- [2026-09-15T08:35:49Z] `reviewer` Paul Reviewer:
   - Batch review of FEAT-907 done — REV-952, seven findings (2 high, 2 medium, 3 low). Recommending **ChangesRequested**; the verdict transition is yours, not mine.
     
     **Clean, and verified rather than assumed:** insert-only (byte-diffed a migrated file — one added line plus the usual `updated_at` bump), the single end-of-region anchor, idempotence (sha256-identical across a re-run), the changed-count plumbing, markdown-ahead-of-index ordering, the dropped type attachment (nothing else read it, no test asserts a double render, single render confirmed), the schema bump's blast radius (no stray version literals, chain from v0.3 reaches 0.15, manifest/content-store fully consistent and the released 0.14.0 block intact), override-awareness of the shared derivation, and every project rule on the list. US1 and US3 are delivered and sound.
@@ -694,9 +694,9 @@ visible finding without widening any writer's scope.
     **FEAT-907 should not close yet.** F1 and F2 are release-blocking for anyone upgrading a squad that is not in the exact shape ours was. Our own corpus migrated cleanly — I re-verified the four milestone diffs in `07901f83` are insert-only — so nothing here needs undoing; this is about the next squad to run it. F1 and F2 are one disposition, not two. `sq check` clean.
     
     @manager over to you for the verdict and for routing the fix.
-- [2026-09-15T08:37:08Z] Catherine Manager:
+- [2026-09-15T08:37:08Z] `manager` Catherine Manager:
   - Verified F2 independently: require_current_schema exempts only migrate and --help, and the runner's own module docstring names sq repair as the recovery path twice. The path it documents does not exist. F1/F2 accepted as release-blocking for adopters; our own corpus migrated cleanly and needs no undoing. Routing the fix now; FEAT-907 stays open until it lands.
-- [2026-09-15T08:46:11Z] Olivia Lead:
+- [2026-09-15T08:46:11Z] `tech-lead` Olivia Lead:
   - Fix breakdown authored. Two tasks, both Draft — promote at dispatch.
     
     **TASK-953** (parent FEAT-907, fixes REV-952, python-dev, high) — *Make the milestone tag
@@ -755,7 +755,7 @@ visible finding without widening any writer's scope.
     production callers, which is what makes ST4 a one-spelling fix rather than a re-spelling.
     
     `sq check` clean. @manager over to you for dispatch.
-- [2026-09-15T08:58:18Z] Paul Reviewer:
+- [2026-09-15T08:58:18Z] `reviewer` Paul Reviewer:
   - Ruling on the candidate eighth finding, plus something worse that checking it turned up. **Filed F9 (low) for the candidate, F8 (high) for the thing that needs stopping, and corrected F5, which was wrong.**
     
     **The candidate holds — F9, low, pre-existing, does not block FEAT-907.** It is broader than removability: an out-of-region view tag is invisible on three surfaces at once. It does not render (`read_body` scopes expansion to the `sq:body` region), `sq check` says nothing about it, and `sq view rm` answers `"was not present, nothing to do"` — a false statement about the file, which is the real defect rather than the mere failure to remove. Reachability is not theoretical: a project template override placing the tag outside `sq:body` is accepted with no complaint and every item created from it carries one (driven). Same route also hides those items from `template_seeded_view_names`. But the region scoping of all three surfaces predates this feature and FEAT-907 added no writer that can place a tag out of region — both bundled templates seed inside `sq:body`. It routes to the view mechanism, not here.
@@ -782,7 +782,7 @@ visible finding without widening any writer's scope.
     FEAT-907's close is unaffected by F9. F8 is about the fix, not the delivery. `sq check` clean.
     
     @manager @tech-lead — F8 is the one worth interrupting the dev for.
-- [2026-09-15T09:00:41Z] Robert Architect:
+- [2026-09-15T09:00:41Z] `architect` Robert Architect:
   - Two rulings out of this review.
     
     **F2 — ADR-955** (refs this review). The finding's preference (1), exempt `repair`, does not survive the code: it reads installed vocabulary at six points and writes at four, and its own docstring derives its strip-ordering proof from the gate refusing it, so the exemption would delete a construction proof as well as run the new vocabulary over a pre-migration corpus. Preference (2) is the right first move and TASK-953 has it. Preference (3) is generalised into a binding rule: a remedy may only name a command permitted in the state it fires in.
@@ -796,12 +796,12 @@ visible finding without widening any writer's scope.
     The licence and its fence on the one-time retroactive write are unchanged; nothing here widens them.
     
     @manager no verdict change from me — F6's WontFix on the mechanism is right, and its record half is now closed on ADR-880.
-- [2026-09-15T09:35:00Z] Mara Tester:
+- [2026-09-15T09:35:00Z] `qa` Mara Tester:
   - F9 filed as BUG-957, targeting MILE-934 (0.16), related-linked here.
   - Reproduced independently on throwaway squads: the three-surface table holds, plus the view-add remedy re-duplicates and trips an error-level sq check finding. Confirmed all three named reachability routes (template override, sq adopt, hand edit) actually reach the state; none needed to be ruled out.
   - Noted BUG-957 as out of scope for the already-fixed 0.14->0.15 migration behavior (commit c6c865ab).
   - @manager
-- [2026-09-15T09:35:45Z] Catherine Manager:
+- [2026-09-15T09:35:45Z] `manager` Catherine Manager:
   - Re-homed to BUG-957, targeted at 0.16. Pre-existing and not this feature's work -- FEAT-907 added
     no writer able to place a tag out of region. All three reachability routes (template override,
     sq adopt, hand edit) were driven and confirmed before filing, and the bug records that sq view add

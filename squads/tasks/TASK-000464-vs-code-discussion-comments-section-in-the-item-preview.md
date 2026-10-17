@@ -26,9 +26,9 @@ _Add with `sq task 464 add-subtask "<title>"`; track with `sq task 464 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T15:34:06Z] Pierre Chat:
+- [2026-07-17T15:34:06Z] `op-pierre` Pierre Chat:
   - Add comment-section display to the preview — pull the parsed discussion from sq show --json.
-- [2026-07-17T16:29:30Z] Ada Typescript:
+- [2026-07-17T16:29:30Z] `typescript-dev` Ada Typescript:
   - Added a collapsible 'Discussion' section to the item webview preview, appended after body + graph sections.
   - Fetch: new getShowJson(sq show <id> --json) adapter call (sqAdapter.ts), fetched in Promise.all alongside getRaw/getTree/getGraph in itemPreviewManager.render(); shape-guarded via isSqShowJson (checks only the discussion array, per the hand-trimmed SqShowJson type in types.ts).
   - Render: previewDocument.ts's buildDiscussionHtml renders each {author, ts, body} entry as an author+ISO-ts header + body through the existing renderMarkdownToHtml (item-id linkification incl. currentId self-link suppression, same as the dossier body); wrapped in a details.sq-graph shell matching the children/refs graph sections. Empty discussion -> no section at all (graceful); a failed fetch degrades to an inline failure message in the same shell (never silently dropped), mirroring GraphOutcome.

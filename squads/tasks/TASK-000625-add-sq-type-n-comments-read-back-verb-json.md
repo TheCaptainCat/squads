@@ -72,6 +72,6 @@ _Add with `sq task 625 add-subtask "<title>"`; track with `sq task 625 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-23T08:27:33Z] Elias Python:
+- [2026-07-23T08:27:33Z] `python-dev` Elias Python:
   - Added `sq <type> <n> comments` (+ --json), generic over every item type. New Service.comments() composes read_discussion + split_discussion; CLI reuses show --comments' rendering (new common.print_comments) and prints a clean 'no comments' line when empty. --json field names (author/ts/body) match show --json's discussion[] entries exactly (asserted equal in tests). Golden: tests/goldens/comments.json. Gates green, sq check clean.
 <!-- sq:discussion:end -->

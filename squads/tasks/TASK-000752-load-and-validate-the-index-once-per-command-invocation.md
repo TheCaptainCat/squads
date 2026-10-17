@@ -151,10 +151,10 @@ _Add with `sq task 752 add-subtask "<title>"`; track with `sq task 752 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T12:56:55Z] Olivia Lead:
+- [2026-08-21T12:56:55Z] `tech-lead` Olivia Lead:
   - Rewrote the body against ADR-753 (linked, implements): the ContextVar read scope keyed on store identity, entered at the one sync-to-async bridge and NOT as an IndexStore attribute, transaction() calling the extracted disk read with invalidation in the same finally as _active_transaction, both bypasses (validate_vocab=False and a new fresh=True for the sq check confirm reload) required, the deep copy at get(), and no validator trigger — considered and rejected on measurements.
   - Corrected a figure the bug carries: its "216 Service.get calls" is cProfile counting async resumptions. The real instrumented counts are 54 gets and 55 loads; ADR-753 table is the baseline. Also flagged that any new module-level binding gets run past tests/meta mutable-state guard — snapshot map inside the scope object, not a bare module dict.
-- [2026-08-21T16:43:41Z] Elias Python:
+- [2026-08-21T16:43:41Z] `python-dev` Elias Python:
   - Implemented per ADR-753: _read_from_disk extracted; load() is the scope-aware wrapper (validate_vocab=False and fresh=True both bypass); transaction()/overwrite() call _read_from_disk directly and invalidate unconditionally in their existing finally. Scope entered at command() in _cli/_common.py, anchored on the Click root context (not the instance/service/RequestContext) so it survives Typer's own id-resolving group callback crossing the same bridge separately.
   - Real-corpus measurement, sq show REV-000736 --json (this repo's own squads/, 727 items): before 55 loads / 1672 ms in-process, after 1 load / 127 ms -- a 13x wall-time drop, exact load count matches the recorded baseline both sides. Payload byte-identical before/after (diff clean).
   - Invariant 8: proven, not asserted -- two IndexStore instances at one path, one holding a stale scoped snapshot, the other committing; transaction() on the first reads 8 fresh off disk (never the stale 0), and the commit lands on top of it rather than reverting it. transaction()'s in-lock load never goes through load()/the scope at all.

@@ -253,7 +253,7 @@ branch of `_sort_key` that handles badges has no coverage of its result.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-08-26T18:20:23Z] Elias Python:
+- [2026-08-26T18:20:23Z] `python-dev` Elias Python:
   - Fixed via TASK-843 ST1: badge order_by now indexes the collection's declared badge order, falling back to code for an unordered/unrecognised value; table-driven coverage added.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -300,7 +300,7 @@ sort on `number_for_id`, not on the string.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-08-26T18:20:25Z] Elias Python:
+- [2026-08-26T18:20:25Z] `python-dev` Elias Python:
   - Fixed via TASK-843 ST2: id order_by now sorts on number_for_id (prefix tie-break for a shared number); a mixed-type group with no order_by fully deterministic.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -429,7 +429,7 @@ blank line). Cosmetic under CommonMark, but inconsistent within one template.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-08-26T18:20:33Z] Elias Python:
+- [2026-08-26T18:20:33Z] `python-dev` Elias Python:
   - Fixed via TASK-843 ST4: status_role now carries settled and delivered boolean base fields (delivered = the record's own kind reached its declared lifecycle's happy-path settled terminal, generalizing WorkflowSpec.first_settled_status to also resolve sub-entity kinds). The roll-up template splits on those flags into Delivered / Outstanding / Settled without delivering, off declared role properties, never a literal status name.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -509,7 +509,7 @@ typo, the incompatible source and the missing template are all untested.
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-08-26T17:44:47Z] Elias Python:
+- [2026-08-26T17:44:47Z] `python-dev` Elias Python:
   - Fixed via TASK-842 ST1: WorkflowSpec._validate now checks ItemSpec.views reciprocally (name resolves in [views]; subentity-source kind matches the attaching type's subentity_kind). All four axes refused at load, driven end-to-end.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -574,7 +574,7 @@ with the architect rather than in a patch.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-08-26T17:19:27Z] Robert Architect:
+- [2026-08-26T17:19:27Z] `architect` Robert Architect:
   - - Ruled, and ADR-776 is amended in place at its own end ("Amendment note — 2026-08-26: what field codes a `ref` source may project"). A `ref` source may name a field code **at least one declared item type carries**; a code no declared item type carries stays refused. Not marking this Fixed — TASK-842 ST7 carries the work.
     - The finding's conclusion holds; its stated reason does not, and the difference changes the check. Driven: a `ref`-source projection of `wibble`, a code no type declares anywhere, also returns a clean uniform payload with `null` on every record. So "the resolver handles it" licenses everything, the typo included — `resolve_collection`'s same-name fallback is documented rendering-only robustness. What decides it is the anti-inert-declaration clause `_check_views` already states for the source axis, applied to the field axis: a code no type declares can never resolve on any corpus (inert, refuse); a code some type declares resolves for every record of that type (not inert, permit). The current check is a proxy for that clause which mistakes "no single type the records all share" for "no type at all".
     - Payload contract unchanged. A structural `null` and an unset `null` mean the same thing, by construction and before views existed: `Item.badge_value` reads the stored value with no spec in hand, and the write gate refuses a value for an undeclared field (driven: `sq feature N update --set severity=high` → "not a settable field on a feature"). Driven in one projection over a milestone's members, a feature that cannot carry `severity` and a bug that declares it unset are byte-identical `null`. The question that does differ is about the spec, not the record, and `type` is already a base attribute of every `ref` source, so a view needing the distinction declares one more column. A per-record marker is refused — it would break §2's "identically shaped records".
@@ -582,7 +582,7 @@ with the architect rather than in a patch.
     - Your message point is right and understates it. For a `ref` source, "nor a field 'targets' declares" asks the author to make a **ref kind** declare a field, which no spec grammar expresses; and the fix hint is actively false — driven against an override declaring `impact` on `feature` alone, the adopter is told to add back a key they had just written. The `subtree`/`subentity` branches keep the clause (there it names a type/kind that can declare one); the `ref` branch must not.
     - `subtree` is **not** affected, and the premise that it shares the heterogeneity is false. Driven: `_resolve_subtree_source` filters descendants to `source.name`'s own type, so its records are homogeneous and its declared-field set is already exactly right — `subtree`-over-`task` naming `severity` stays correctly refused. A fix that generalises across all three source kinds has misidentified the defect.
     - @reviewer @python-dev the ruling is in the ADR; ST7 needs a small reword (see my TASK-842 comment) before it can be taken as written.
-- [2026-08-26T17:44:49Z] Elias Python:
+- [2026-08-26T17:44:49Z] `python-dev` Elias Python:
   - Fixed via TASK-842 ST7 per the architect's ruling: a ref source may project a field code at least one declared item type carries (item types only, roster included); a code no declared type carries anywhere stays refused with a rewritten, performable message. docs/workflow.md updated.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -622,7 +622,7 @@ template context should not disagree about the shape of the same object.
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-08-26T18:20:35Z] Elias Python:
+- [2026-08-26T18:20:35Z] `python-dev` Elias Python:
   - Fixed via TASK-843 ST3: ViewGroup.count is now a property both group.count in a template and --json's count read, so they can never drift.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -690,7 +690,7 @@ under-describes the edit.
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-08-26T17:44:50Z] Elias Python:
+- [2026-08-26T17:44:50Z] `python-dev` Elias Python:
   - Fixed via TASK-842 ST3: all six [selected] enumerations now carry milestone, stale comments corrected, plus the two smaller comment corrections noted in the finding.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -732,7 +732,7 @@ rather than in the wheel, unless the intent is to declare the two views for real
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-08-26T18:20:41Z] Elias Python:
+- [2026-08-26T18:20:41Z] `python-dev` Elias Python:
   - Fixed via TASK-843 ST5: moved finding_summary/finding_summary_line out of the wheel entirely rather than declaring them for real (avoids coupling every project to finding's optional severity field). Their consumers now write a test-authored stand-in template as a project override; corrected the false bundled-views claim in test_view_expresses_the_subentity_summary_shape.py. Manifest regenerated, only the 0.14.0 entry moved.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
@@ -762,7 +762,7 @@ does **not** have. The one it does have (renders to a traceback) is outside what
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-08-26T17:44:51Z] Elias Python:
+- [2026-08-26T17:44:51Z] `python-dev` Elias Python:
   - Fixed via TASK-842 ST6: the scaffold's [views.related_incidents] example now carries a comment naming the template path it needs; the meta test now also drives the render failure end to end.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
@@ -817,7 +817,7 @@ explicit check in `_check_ref_rule_targets`'s second loop.
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
-- [2026-08-26T17:44:52Z] Elias Python:
+- [2026-08-26T17:44:52Z] `python-dev` Elias Python:
   - Fixed via TASK-842 ST4: a paramless ref_rule_target_present is now refused at load.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
@@ -871,7 +871,7 @@ recording.
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
-- [2026-08-26T17:44:53Z] Elias Python:
+- [2026-08-26T17:44:53Z] `python-dev` Elias Python:
   - Fixed via TASK-842 ST5: dropping a type through [selected].items now strips any surviving type's ref_rules/ref_rule_target_present entries that targeted it, in both the fail-fast loader and sq workflow lint.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
@@ -911,7 +911,7 @@ it back.
 #### Discussion
 
 <!-- sq:finding:F14:discussion -->
-- [2026-08-26T18:20:46Z] Elias Python:
+- [2026-08-26T18:20:46Z] `python-dev` Elias Python:
   - Fixed via TASK-843 ST6: sq milestone <n> show and --raw now display target date when set, as a milestone-specific one-off (not the generic extra_fields-on-panel render). The generic version would need display vocabulary (label/ordering) the spec doesn't carry yet - flagged as an architect question on TASK-843, not invented inline.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
@@ -920,7 +920,7 @@ it back.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-26T16:55:38Z] Paul Reviewer:
+- [2026-08-26T16:55:38Z] `reviewer` Paul Reviewer:
   - What came back clean, driven rather than read.
     
     **The currency check (ADR-320 §C + amendment B1/B2/B3) — clean on every path driven.** Inert side:
@@ -964,7 +964,7 @@ it back.
     Its parity, driven with the full bundled roster rather than the test's `minimal`: apart from the
     two role-pointer gaps in F4, a migrated squad and a fresh `sq init` produce byte-identical trees —
     skill bodies, pointers, folders, `CLAUDE.md`/`AGENTS.md` regions — modulo id renumbering.
-- [2026-08-26T16:56:10Z] Paul Reviewer:
+- [2026-08-26T16:56:10Z] `reviewer` Paul Reviewer:
   - Two things in the brief's attack lines I could not fully test, stated rather than implied.
     
     **A migration override that renames one of the two new types — partially driven, one result I am
@@ -988,7 +988,7 @@ it back.
     
     **Not attempted, deliberately.** No full pytest run — the brief reserves that gate. Targeted runs
     were used only to read fixture sources, not to re-verify green.
-- [2026-08-26T16:56:11Z] Paul Reviewer:
+- [2026-08-26T16:56:11Z] `reviewer` Paul Reviewer:
   - Verdict recommendation: **ChangesRequested**. Two high findings, four medium, eight low. Leaving
     the status transition to the approver.
     
@@ -1020,7 +1020,7 @@ it back.
     a badge code some declared type carries) and F13 (the `[selected]` drop asymmetry between the two
     new types).
     @tech-writer for the `group.count` line in `docs/workflow.md` (F8) and the F10 docstring.
-- [2026-08-26T17:08:15Z] Olivia Lead:
+- [2026-08-26T17:08:15Z] `tech-lead` Olivia Lead:
   - Triaged into four tasks, grouped by surface rather than severity. All fourteen findings have a home;
     BUG-837/838 are not re-filed, they are carried as `fixes` refs on TASK-842.
     
@@ -1049,6 +1049,6 @@ it back.
     @architect for the F7 ruling (TASK-842 ST7 has the shape and the evidence). @python-dev for the
     rest, sequenced as: TASK-841, TASK-842 and TASK-844 in parallel; TASK-843 after both TASK-841 and
     TASK-842, which it shares `src/squads/_cli/_common.py` and `src/squads/_views.py` with.
-- [2026-09-01T07:19:06Z] Catherine Manager:
+- [2026-09-01T07:19:06Z] `manager` Catherine Manager:
   - All fourteen findings fixed and committed. F1 landed in TASK-841 — `get_service` now re-asserts the active squad dir on its memo-hit branch, verified at `_cli/_common.py:1051` and `:1116`, so every `render()` consumer honours adopter overrides rather than only `sq workflow view`. F4 landed in TASK-844 as a runbook correction rather than a runner change: regenerating pointers from an unpopulated role-skills map would have silently dropped an adopter's custom-scoped skills, so the MANUAL now names `sq sync` as the next step and the drift was confirmed to extend to every `<tech>-dev` role.
 <!-- sq:discussion:end -->

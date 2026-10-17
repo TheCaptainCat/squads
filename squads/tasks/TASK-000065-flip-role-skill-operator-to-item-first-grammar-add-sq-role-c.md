@@ -125,7 +125,7 @@ Flip sq role/skill/operator existing-item verbs (show/regen/rm, plus a new opera
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-06-12T12:14:14Z] Elias Python:
+- [2026-06-12T12:14:14Z] `python-dev` Elias Python:
   - Probe confirms: the wiring shape that works is cls=AddressDispatchGroup on the Typer() call, where AddressDispatchGroup subclasses TyperGroup and overrides _click_resolve_command. Named commands (catalog/activate) dispatch normally; unknown tokens are routed to a hidden _addr subgroup with the original args list (address token + verb) passed intact. The _addr subgroup's callback consumes the address as ADDR and puts it in ctx.obj, then the named sub-verb (show/regen/rm) reads ctx.obj.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -166,7 +166,7 @@ Update the templates that emit the old grammar into generated artifacts — clau
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-06-12T12:25:57Z] Elias Python:
+- [2026-06-12T12:25:57Z] `python-dev` Elias Python:
   - Templates updated: claude_section.md.j2 (sq operator list -> sq list -t operator; sq role show <slug> -> sq role <slug> show), greeting_skill.md.j2 (sq operator list -> sq list -t operator), squads_skill.md.j2 (sq operator list -> sq list -t operator). sq sync run — CLAUDE.md, greeting.md, squads.md all regenerated with new grammar.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
@@ -181,7 +181,7 @@ Rewrite the existing CLI tests that used the old verb-first grammar (test_cli.py
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
-- [2026-06-12T12:26:06Z] Elias Python:
+- [2026-06-12T12:26:06Z] `python-dev` Elias Python:
   - Tests rewritten to item-first grammar. test_role_regen_rm_bare_number -> test_role_item_first_grammar (covers slug/id/number for show/regen/rm). test_role_show_includes_body_and_degrades_for_bundled updated to use item-first grammar. Added test_role_catalog, test_role_list_removed. test_skill_show_regen_rm_bare_number -> test_skill_item_first_grammar (slug/id/number). Added test_skill_list_removed. test_operator_rm_bare_number -> test_operator_item_first_grammar (show/rm with slug/id). Added test_operator_list_removed. test_operators.py: sq operator list -> sq list -t operator + operator show verification. test_backend_claude.py: sq role show -> sq role <slug> show assertion. test_skills.py: sq operator list -> sq list -t operator assertion.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
@@ -196,7 +196,7 @@ Reconcile the FEAT-000013 deferral comment: if the shipped Typer construction / 
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
-- [2026-06-12T12:26:22Z] Elias Python:
+- [2026-06-12T12:26:22Z] `python-dev` Elias Python:
   - Shipped grammar matches Nina's deferral note on FEAT-13 (2026-06-12) verbatim. All five decisions (item-first, verb-first creation, sq role catalog, list removal without shim, slug resolution) are satisfied by this implementation. No top-up needed.
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->

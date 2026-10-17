@@ -48,7 +48,7 @@ _Add with `sq task 455 add-subtask "<title>"`; track with `sq task 455 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T15:37:21Z] Ada Typescript:
+- [2026-07-17T15:37:21Z] `typescript-dev` Ada Typescript:
   - Second view 'Roster' (id squadsMeta) added to the squads activity-bar container, alongside Work Items.
   - domain/metaView.ts::buildMetaView bucketing role/skill/operator into fixed Roles/Skills/Operators groups (reservedTypes.ts::META_BUCKETS is the single source both directions read from); always 3 buckets, even empty; sorted by numeric id via idOrder.
   - metaTreeDataProvider.ts fetches sq list --json --all (unfiltered by status); toTreeItem extracted to shared treeItemRendering.ts so both providers render identically. Clicking a meta item opens the same owned preview webview as a work item (getRaw/getTree/getGraph all already accept role/skill/operator ids — verified manually against ROLE-1, no core change needed).

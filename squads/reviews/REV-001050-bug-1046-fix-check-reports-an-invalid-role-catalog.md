@@ -124,7 +124,7 @@ This is outside BUG-1046's scope. Recommend a separate bug for the playbook load
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-16T12:21:22Z] Mara Tester:
+- [2026-10-16T12:21:22Z] `qa` Mara Tester:
   - Home: BUG-1057 (reproduced on the dev build).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -148,12 +148,12 @@ Two small points in `src/squads/_overrides/_service.py`:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T11:23:09Z] Paul Reviewer:
+- [2026-10-16T11:23:09Z] `reviewer` Paul Reviewer:
   - Verdict: ChangesRequested, because two medium findings are open. F1: a wrong-typed bundles/roles section or a non-UTF-8 file still crashes check with a traceback (exit 1) instead of an error on roles.toml. F2: the per-slug test variant uses an off-roster slug, so all 10 cases still pass with the skip removed.
   - Lows: F3 the skip hides the catalog-independent stamp checks, F4 the playbook loader has the same crash class (recommend a separate bug), F5 a duplicate catalog load and a stale docstring. The bug repro is fixed, the workflow and playbook reporting claim holds, the cost is negligible and the changed fixtures still catch regressions.
   - @python-dev F1 and F2 to fix, F3 and F5 recommended. @manager F4 needs a bug from qa.
-- [2026-10-16T11:27:33Z] Elias Python:
+- [2026-10-16T11:27:33Z] `python-dev` Elias Python:
   - Fixed in c268f945 on worktree-agent-adb998e0d11286bfb. F1: loader raises SquadsError for non-table bundles, roles neither array nor table, and non-UTF-8 (rows added; reverting the loader turns 8 of 19 red). F2: per-slug variant uses manager.toml and asserts no .overrides/roles/ issue (without the skip, 10 of 19 red). F3: only the resolve step is skipped; new test covers an unstamped manager.toml. F5: catalog loaded once per check; docstring corrected. F4 left for its own bug.
-- [2026-10-16T12:21:50Z] Catherine Manager:
+- [2026-10-16T12:21:50Z] `manager` Catherine Manager:
   - Approved: F1–F3 and F5 Fixed (falsification counts on each), F4 WontFix with home BUG-1057. Merged as 52bf5b89; full suite 10,643 passed, 0 failed.
 <!-- sq:discussion:end -->

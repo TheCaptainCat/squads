@@ -100,7 +100,7 @@ Change only `e()`. Callers that deliberately print raw values with `markup=False
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-10-15T20:32:54Z] Elias Python:
+- [2026-10-15T20:32:54Z] `python-dev` Elias Python:
   - Reverted-fix run (e() back to plain escape): 28 failed. 26 unit rows (all fix strings; every guard row stayed green), the CLI error-path test, and the former xfail test with the marker removed.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -157,7 +157,7 @@ Add a service-level test and a CLI smoke test, for example `tests/cli/test_body_
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-10-15T20:32:58Z] Elias Python:
+- [2026-10-15T20:32:58Z] `python-dev` Elias Python:
   - Reverted-fix run (guard and check extension reverted): 10 failed of 14. All 6 write rows (3 states x replace/append) at service level, both CLI rows, and the task and bug check rows; the two control rows and the open-only check row stayed green.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
@@ -166,24 +166,24 @@ Add a service-level test and a CLI smoke test, for example `tests/cli/test_body_
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-15T20:24:49Z] Olivia Lead:
+- [2026-10-15T20:24:49Z] `tech-lead` Olivia Lead:
   - @manager TASK-1019 is drafted and left at Draft: ST1 fixes BUG-1011 (e() round-trip), ST2 fixes BUG-1012 (a clean error on a missing body region, plus a sq check finding). Refs: fixes BUG-1011 and BUG-1012, targets MILE-934. No feature parent, because both are bug fixes.
   - Existing check: _absent_body_region_issues in _services/_maintenance.py covers only role and skill files, and _marker_issues covers only an unbalanced pair. A work item with both body markers gone gets no finding today, so ST2 extends _absent_body_region_issues to work items.
   - BUG-1011 has two causes, both seen on rich 15.0.0: render() removes one backslash before any non-tag [, and escape() doubles a trailing backslash when no tag follows it. The ST1 table checks the rendered output in three contexts and keeps the fix rows (which fail on the old code) apart from the regression guards. The strict xfail to remove is in tests/cli/test_external_id_not_in_title_cli.py.
   - Overlap with TASK-1018: ST1 edits _cli/_common.py, so the brief puts the logic in a new private module and changes only the body of e(). Work in a worktree.
-- [2026-10-15T20:33:28Z] Elias Python:
+- [2026-10-15T20:33:28Z] `python-dev` Elias Python:
   - @manager ST1 and ST2 are Done and BUG-1011 and BUG-1012 are Fixed, ready for QA. Worktree /home/pchat/projects/squads/.claude/worktrees/agent-ae095a8b1a379eaf7, branch worktree-agent-ae095a8b1a379eaf7 (rebased onto release/0.16), two commits.
   - ST1: new _cli/_markup.py, e() calls it; the only _common.py change is the import line and the body of e(). Also removed the strict xfail.
   - ST2: guard in _body_mutate (SquadsError naming item, file, sq:body, remedy; replace_section untouched) and _absent_body_region_issues now covers every type. It also suppresses the seeded-view finding for a non-roster item with both body markers gone, so one file does not carry two findings; one assertion in the milestone roll-up migration test was updated to match.
   - Gates: pyright, ruff check and ruff format are clean. pytest on tests/service, tests/cli, tests/unit and tests/meta gives 8154 passed, 3 skipped. sq check on the live squad: no issues. CHANGELOG has two Fixed entries. The full suite is yours to run.
-- [2026-10-15T20:53:40Z] Elias Python:
+- [2026-10-15T20:53:40Z] `python-dev` Elias Python:
   - @manager REV-1020 F1, F3 and F4 are Fixed in a6680468 on the same branch. The review numbers the changelog finding F3 and the check finding F4; I followed the content, not the labels.
   - F1: e() now writes every opening bracket escaped, with a backslash run before a bracket or at the end doubled and closed by an empty tag pair, so no later closing bracket changes its meaning. 10 new adjacent-value rows went red on the old code.
   - F4: sq check now reports a custom skill with its body pair removed and a reversed pair (close before open), each once; both new tests went red on the old code.
   - F3: removed both changelog entries for the writer. Gates clean; pytest on service, cli, unit and meta gives 8324 passed; live sq check clean.
-- [2026-10-15T21:42:40Z] Catherine Manager:
+- [2026-10-15T21:42:40Z] `manager` Catherine Manager:
   - Done and merged into release/0.16 (ad266142): REV-1020 approved; merged tree full suite 10094 passed, 0 failed. BUG-1011 and BUG-1012 are Fixed, for @qa to verify.
-- [2026-10-15T21:44:10Z] Theo Writer:
+- [2026-10-15T21:44:10Z] `tech-writer` Theo Writer:
   - @manager I've added two 0.16.0 Fixed entries to CHANGELOG.md, at the top of Fixed. Nothing is committed.
     
     - **Backslashes next to `[`.** In a scratch squad, the dev tree prints `\[A-Z]+-\d+\]` and a title ending in `\` as stored. Released 0.15 printed `[A-Z]+-\d+\]` and `\\`, which I ran to get the before state. The entry says that emoji codes are still replaced (`:smile:` printed as the emoji, which I checked), and it makes no "exactly as given" claim. Per REV-1020 F3, it has no upper-cased `\D` example.

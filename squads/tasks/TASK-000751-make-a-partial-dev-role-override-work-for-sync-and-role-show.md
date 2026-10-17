@@ -151,10 +151,10 @@ _Add with `sq task 751 add-subtask "<title>"`; track with `sq task 751 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T12:56:53Z] Olivia Lead:
+- [2026-08-21T12:56:53Z] `tech-lead` Olivia Lead:
   - Rewrote the body against ADR-754 (linked, implements): resolve_role untouched plus a resolve_role_with_base sibling, the two base builders, sync branching on X.IS_DEV instead of catching RoleNotFoundError, and _itemfile._exempt_extra_keys explicitly NOT widening (comment corrected, set unchanged). Its falsification list is now acceptance.
   - Dispatch note, as of today: ADR-754 is Proposed, not Accepted — whether a file that declares full_name renames a live dev role is open with op-pierre, and it decides test content rather than one line of code. Not dispatchable until that lands. Kept out of the body deliberately: a self-status banner there goes stale the moment the ADR moves.
-- [2026-08-21T15:58:06Z] Elias Python:
+- [2026-08-21T15:58:06Z] `python-dev` Elias Python:
   - Implemented per ADR-754. resolve_role untouched; added sibling resolve_role_with_base(slug, squad_dir, *, base) in _roles/_resolver.py — base=None reproduces resolve_role exactly, a bundled slug's PREDEFINED entry always wins over a supplied base. Two base builders alongside it: dev_base_from_item(item) reads item.extra[tech/full_name/model] (seq never consulted), dev_base_for_slug(slug) falls back to the generated pool name.
   - sq sync (_refresh_catalog_extra): branches on item.extra.get(X.IS_DEV) to build dev_base_from_item, calls resolve_role_with_base; RoleNotFoundError catch narrowed to its honest case (orphaned custom-role item, no catalog entry, no override) — verified red by temporarily removing the catch and watching the orphaned-role test fail, then restored.
   - sq role <slug> show (_cli/_role.py): same dev-base construction (dev_base_from_item when the item exists, dev_base_for_slug otherwise), both --json and text paths; extracted _role_json_payload to keep branch-count under the complexity gate.
@@ -167,7 +167,7 @@ _Add with `sq task 751 add-subtask "<title>"`; track with `sq task 751 subtask <
   - Gates: pyright 0 errors; ruff check/format clean; targeted pytest (role/override/sync/check modules + 4 new test files, 445 tests) all green; tests/meta (165 tests, incl. the no-ticket-ID scan) green; sq check clean on this repo.
   - Scope note: docs/overrides.md's owed paragraph (acceptance criterion) was NOT added — the dispatch boundary said touch only src/squads/, tests/, CHANGELOG.md, so I left docs untouched rather than widen scope. Flagging so tech-writer or a follow-up can add it.
   - Commit fb92ef5 on release/0.14, unpushed. BUG-744 left InProgress for QA to verify.
-- [2026-08-21T17:29:36Z] Elias Python:
+- [2026-08-21T17:29:36Z] `python-dev` Elias Python:
   - Batch review REV-757 came back ChangesRequested with 3 findings on the dev-role fix, all one root cause: fb92ef5 gated the dev merge base on the -dev slug suffix at two of the three consumers instead of ADR-754's stored-fact-first order, and read item.extra[X.TECH] with a bare subscript.
   - F1 (high, crash) fixed: an activated non-dev -dev-suffixed role (e.g. data-dev) no longer KeyErrors at sq role show / sq check — both now check item.extra.is_dev before building a dev base, falling to the -dev naming convention only when there is no item. F2 (medium) fixed: an unactivated -dev slug's preview no longer prints a fabricated pool name that sq dev add later contradicts — --json returns full_name: null, the text card marks it '(unassigned — run sq dev add --tech <tech>)'; a declared full_name still shows through. F3 (medium) addressed: the half that was a real gap (an activated non-dev -dev role's incomplete override silently/crashily bypassing validation) is closed by the same fix; the remaining no-roster-entry preview leniency is the ADR-754/docs-sanctioned pre-activation-preview feature, tested and pinned as intentional rather than further restricted — flagged for the architect if that should change.
   - All three driven red-then-green (reverted each fix, confirmed the exact reported crash/contradiction, restored, confirmed green) — details on each finding's own comment.

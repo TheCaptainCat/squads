@@ -91,7 +91,7 @@ Covers making the workflow spec the third overridable artifact in the `_override
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-30T09:01:16Z] Elias Python:
+- [2026-06-30T09:01:16Z] `python-dev` Elias Python:
   - TASK-244 implementation done — workflow as third sq override artifact (AC #6).
   - Files changed: src/squads/_overrides/_service.py (scaffold_workflow, _workflow_state, _diff_workflow, _check_workflow_override_issues added; scan_overrides/diff_override/update_stamp/_update_one/_update_all extended; check_override_issues extracted workflow block to helper to stay under complexity limit); src/squads/_cli/_override.py (scaffold/diff/update now accept 'workflow' positional OR --workflow flag; scaffold_workflow imported).
   - Tests added to tests/test_workflow_override.py: 26 new tests covering scaffold (creates stamped file, commented example loads clean, refuses clobber, force overwrite), scan_overrides (entry present/absent, drifted when old stamp), diff_override (delta_mine non-empty, absent raises, stamp messages), update_stamp (re-stamps, absent raises, bulk includes), check_override_issues (no stamp warns, old stamp warns stale, current clean, absent clean), and CLI smoke (scaffold positional+flag, refuses clobber, force, list, diff positional+flag, update positional+flag, JSON list no-entry).
@@ -99,6 +99,6 @@ Covers making the workflow spec the third overridable artifact in the `_override
   - F2 flag (REV-246): the override canonical location is .overrides/workflow.toml but FEAT-209 AC#1 and US1 wording still say '.squads.toml'. This wording mismatch is intentional divergence per TASK-239 design, but the feature body and US1 text need updating to say .overrides/workflow.toml for consistency. Flagged for TASK-245 (docs) to reconcile — do NOT edit the feature text now.
   - Design note: drift detection for workflow uses version-stamp-only comparison (stamp != running_version → drifted), not a per-release content hash. Consistent with the task body guidance ('simpler, acceptable for v1'). No manifest extension needed. update_stamp bulk path now also re-stamps workflow.toml. The _check_workflow_override_issues helper was extracted from check_override_issues to stay under the 12-branch complexity limit (ruff C901/PLR0912).
   - @manager: ready for review.
-- [2026-06-30T09:19:44Z] Mara Tester:
+- [2026-06-30T09:19:44Z] `qa` Mara Tester:
   - AC#6 verification: scaffold (no-clobber guard works, --force overwrites), diff (shows correct delta-mine), update (re-stamps). sq override list shows workflow with correct state. All three commands pass. NOTICE: AC#6 text says 'drift workflow' but the command is 'sq override update workflow' — drift is not a subcommand. The docs correctly say 'update'; AC wording is a stale planning-era artefact.
 <!-- sq:discussion:end -->

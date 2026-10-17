@@ -87,7 +87,7 @@ Internal artifact commands (sq dev add, role activate) routed through ServiceCor
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-22T13:40:45Z] Elias Python:
+- [2026-06-22T13:40:45Z] `python-dev` Elias Python:
   - F1 fixed: consolidated the two inline json imports in src/squads/_cli/_create.py into a single top-level `import json`. Both the `_make` factory and `create_guide` now use it.
   - F2 fixed: added `LANED_TYPES: frozenset[ItemType]` to src/squads/_interactions.py — derived from the union of all CREATE_LANES values (single source, no hardcoded duplicate). In ServiceCore.create (src/squads/_services/_base.py) the advisory lane check is now gated on `item_type in LANED_TYPES` before the exempt/allowed checks, so role/skill/operator creates skip the check entirely — no lane_warning computed, no lane_warning key in the reflog delta.
   - New tests in tests/test_lane_derivation.py: TestLanedTypes (3 unit tests pinning LANED_TYPES content); two service tests verifying that activate_role (ROLE) and add_operator (OPERATOR) produce no lane_warning and no lane_warning key in the reflog delta.

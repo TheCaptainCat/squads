@@ -127,7 +127,7 @@ Header/summary line above the tabs, always visible: status (item.status), assign
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T10:01:51Z] Elias Python:
+- [2026-07-21T10:01:51Z] `python-dev` Elias Python:
   - Built: ReaderPanel (squads/_tui/_reader.py) wired to tree selection via App.on_tree_node_highlighted; loads svc.get + svc.read_body per selection. Glance header resolves status via badges.status_badge and priority via item.badge_value('priority') + badges.resolve_collection/badge_render (spec-driven, no hard-coded emoji/label); unassigned/no-priority render gracefully. Body tab uses Textual's Markdown widget with a dim placeholder for an empty body.
   - Verified: tests/cli/test_ui_app_behavior.py -- selecting/reselecting a node reloads the body; header shows resolved priority label + assignee, and gracefully shows 'unassigned' when unset; body tab mounts real MarkdownH1/MarkdownParagraph blocks (not raw source) and shows the placeholder for an explicitly empty body.
 <!-- sq:discussion:end -->

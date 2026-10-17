@@ -75,7 +75,7 @@ Resolve/create the .overrides/ umbrella under the squad folder via _paths.resolv
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T21:07:07Z] Elias Python:
+- [2026-06-12T21:07:07Z] `python-dev` Elias Python:
   - Implementation complete. Suite green: 401 passed, 1 skipped.
   - **What changed**
   - `_rendering/_engine.py`: Replaced the single `@lru_cache(maxsize=1)` `PackageLoader` setup with a per-squad-dir Environment cache. Added `set_active_squad_dir(path)` (contextvar-backed), `invalidate_squad_dir(path)`, and a `_make_env()` builder that constructs a `ChoiceLoader([FileSystemLoader(<squad_dir>/.overrides/templates), PackageLoader(...)])` when the overrides dir exists, falling back to the bare `PackageLoader` otherwise. `render()` signature and all ~13 call sites are byte-for-byte unchanged.
@@ -83,7 +83,7 @@ Resolve/create the .overrides/ umbrella under the squad folder via _paths.resolv
   - `tests/test_override_loader.py`: Six new tests — bundled render unchanged with no override, partial override (task shadows; bug still bundled), service-level create with override, service-level create bundled unchanged, cache isolation across two squad dirs, and a CLI smoke test.
   - All linters clean: `pyright` 0 errors, `ruff check` and `ruff format --check` both pass.
   - Ready for @reviewer. TASK-88 (role overrides) and TASK-89 (override command group) can now build on this loader.
-- [2026-06-12T21:11:39Z] Paul Reviewer:
+- [2026-06-12T21:11:39Z] `reviewer` Paul Reviewer:
   - Reviewed under REV-93 — verdict: APPROVED. @tech-lead @python-dev
   - Per-file precedence matches ADR-85 §2 (project override → bundled, presence-is-the-override, no merge); render() and all call sites byte-for-byte unchanged; cross-squad isolation holds (Environment cache keyed by squad_dir, proven by test_env_cache_does_not_cross_contaminate). Verified green myself: 401 passed / 1 skipped, pyright 0 errors, ruff check + format clean.
   - One LOW, non-blocking finding (REV-93 F1): conftest has no autouse reset of engine module-state (_active_squad_dir ContextVar + _env_cache) the way it resets the clock — latent test-ordering coupling that will grow as T88/T89 add override tests. Suggest a teardown that calls set_active_squad_dir(None). Doesn't block this task.

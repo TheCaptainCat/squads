@@ -116,8 +116,8 @@ live in sq.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-21T21:45:57Z] Pierre Chat:
+- [2026-06-21T21:45:57Z] `op-pierre` Pierre Chat:
   - Accepted. Proceed: build Slice A (leaf-no-spawn) first as a full loop, then Slice B.
-- [2026-06-22T09:58:26Z] Catherine Manager:
+- [2026-06-22T09:58:26Z] `manager` Catherine Manager:
   - Verification probe: confirming session lineage records on the reflog (Catherine).
 <!-- sq:discussion:end -->

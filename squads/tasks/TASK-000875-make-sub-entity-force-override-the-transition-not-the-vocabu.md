@@ -174,7 +174,7 @@ members still fails with the message it gives today.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-09-02T12:33:07Z] Elias Python:
+- [2026-09-02T12:33:07Z] `python-dev` Elias Python:
   - Done. The membership check now lives in one helper, `_require_declared_status(kind, status)`, resolved from the active spec's `subentity_workflow(kind).states` — no literal list. Both doors call it: the seed path (`_resolve_add_status`, which previously carried the check inline) and the transition path (`_apply_subentity_status`, which is the single point `set_block_status`, `update_block` and the importer's `sub-status` all funnel through). The refusal is now byte-identical between the two doors, because it is literally the same raise; a test asserts the two messages are equal string-for-string.
     
     Placement matters and is deliberate: the membership check runs *before* `current = sub.status` is read, and the transition guard below it is untouched, so `--force` still waives the edge and nothing else.
@@ -224,7 +224,7 @@ succeeds — and a test pins it so a later change cannot quietly take it away.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-09-02T12:33:32Z] Elias Python:
+- [2026-09-02T12:33:32Z] `python-dev` Elias Python:
   - Recovery survives. Driven, not assumed, on a squad already in the bad state.
     
     What the transition layer does with an unknown origin, read first and then confirmed at the CLI: `Lifecycle.can_transition` is `dst in self.transitions.get(src, [])`, so an origin that is not a node returns False rather than raising — it would refuse, not crash. But it is never consulted on the recovery path at all: the guard is `not force and current != status and not can_transition(...)`, and Python short-circuits on the first term, so `--force` skips the lookup before the unknown origin is ever read. That is why ordering the new membership check on the *target* ahead of `current = sub.status` keeps the door open.
@@ -271,7 +271,7 @@ code and report formatting are unchanged by this task.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-09-02T12:33:34Z] Elias Python:
+- [2026-09-02T12:33:34Z] `python-dev` Elias Python:
   - Closed at the import door, proven by running an events file rather than by arguing from the shared core.
     
     Driven, fresh scratch squad, the three-event file from the bug report (`create` / `add-sub` / `sub-status` with `"force": true` and `"status": "Verified"`):
@@ -298,7 +298,7 @@ code and report formatting are unchanged by this task.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T10:02:46Z] Olivia Lead:
+- [2026-09-02T10:02:46Z] `tech-lead` Olivia Lead:
   - Scoped from BUG-873 and dispatchable. The rule is settled in the body — `--force`
     overrides the transition, never the vocabulary — so there is no design call left open for
     the implementer.
@@ -316,7 +316,7 @@ code and report formatting are unchanged by this task.
     have to fit). Do not widen into either.
     
     @python-dev ready for dispatch.
-- [2026-09-02T12:34:22Z] Elias Python:
+- [2026-09-02T12:34:22Z] `python-dev` Elias Python:
   - Implemented, all three subtasks Done, task to InReview. Not committed.
     
     **The fix**, one place: `src/squads/_services/_subentities.py`. The membership check that lived inline in `_resolve_add_status` is extracted as `_require_declared_status(kind, status)` and called from `_apply_subentity_status` as well — the single point every sub-entity status write funnels through (`set_block_status`, `update_block`, `set_subtask_done`, and the importer's `sub-status` via both `_set_block_status_model` and `_set_block_status_core`). The allowed set is resolved from the active spec's `subentity_workflow(kind).states`, never a literal. Both doors now raise the identical string, asserted as an equality in a test.

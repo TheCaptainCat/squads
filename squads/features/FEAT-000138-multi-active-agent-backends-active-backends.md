@@ -149,10 +149,10 @@ As an operator with an existing squad, I want a legacy `default_backend` config 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-16T09:40:32Z] Olivia Lead:
+- [2026-06-16T09:40:32Z] `tech-lead` Olivia Lead:
   - @manager FEAT-13 deferral flag (flagged, not filed): when this lands, the stability contract must FREEZE the `active_backends: list[str]` config shape — including the empty-list (sq-only) and deactivation-ignore semantics — as part of the durable .squads.toml surface. This is the grammar-settling decision FEAT-13 owes a deferral entry per the EPIC-12 capstone rule.
   - Architect ADR needed FIRST (consistent with how we ADR'd removal/reflog/python-floor/the ABC): this changes an about-to-freeze schema, bumps SCHEMA_VERSION 0.3→0.4, and defines multi-active resolution semantics. The ADR must settle: (1) exact migration mapping default_backend→active_backends (and how a missing/empty source maps); (2) whether active_backends ORDER is significant (e.g. on overlapping file writes) and dedup policy; (3) how `sq init/adopt --backend X` maps onto the list (single element? repeatable flag? comma-list? how to express empty/sq-only); (4) what 'files present/current' means for the sq check rule and what ABC probe the backends expose for it; (5) confirm deactivation = ignore-not-delete (no artifact cleanup here; that's FEAT-137). This resolves FEAT-137 OQ-2 (single-vs-multi) toward multiple-active.
-- [2026-06-16T09:45:59Z] Robert Architect:
+- [2026-06-16T09:45:59Z] `architect` Robert Architect:
   - ADR-141 (Accepted) settles the multi-active design — @python-dev implement to its rulings; make no further design calls. Summary of the five points:
   - (1) Migration 0.3→0.4: default_backend="X" → active_backends=["X"]. CRITICAL: a missing/empty default_backend in an old squad migrates to ["claude_code"], NOT [] — pre-0.4 every squad had a backend; empty (sq-only) must be reachable ONLY by deliberate intent, never silently by migration (don't orphan a CLAUDE.md). Bump SCHEMA_VERSION to "0.4", add _v0_3_to_v0_4.py (rewrites .squads.toml only, MANUAL=""), register it. Corpus: keep v0_3 with the SINGULAR default_backend so the runner is non-vacuous (REV-130 lesson); add v0_4 (active_backends list, schema 0.4) and wire ("0.4","v0_4") into _CORPUS_CASES.
   - (2) Order NOT significant — the two backends write DISJOINT paths (claude_code: CLAUDE.md/.claude/+skills; agents_md: AGENTS.md/.agents_md), so order can't change bytes; don't rely on it. Dedup: collapse repeats on read, first-occurrence order, no error — every consumer iterates the deduped list.
@@ -160,9 +160,9 @@ As an operator with an existing squad, I want a legacy `default_backend` config 
   - (4) sq check = PRESENT-ONLY (narrowing US1's 'and current' — drift can be added later without a schema change, so it need not freeze at 1.0). Add ONE minimal read-only ABC method: managed_paths(ctx)->list[str] returning the root-relative files the backend owns, WITHOUT writing (ensure_scaffold/write_managed write, so check can't reuse them). check loops active (deduped) backends, errors on any missing path. Empty list = nothing checked; deactivated backends = not probed. Add managed_paths to BOTH backends + the conformance suite.
   - (5) Deactivation = ignore-not-delete, CONFIRMED. No artifact cleanup in this feature — that's FEAT-137 post-1.0.
   - FEAT-13 freeze obligation NOTED (not filed by me): at 1.0 the stability contract must freeze the active_backends: list[str] shape incl. empty-[] (sq-only) + deactivation-ignore semantics + the present-only check rule + the 'none' init sentinel — @manager owes it a deferral entry per the EPIC-12 capstone rule.
-- [2026-06-16T12:42:45Z] Elias Python:
+- [2026-06-16T12:42:45Z] `python-dev` Elias Python:
   - The 0.4 schema bump and migration introduced by TASK-139 was reverted per op-pierre: active_backends is part of the in-development 0.3 schema — no version bump, no migration. The feature's config model, back-compat default_backend read, multi-active fan-out, managed_paths probe, sq check rule, and all related tests (TASK-140 scope) are fully retained. TASK-139 (the migration task) is now void and should be cancelled. @manager
-- [2026-06-16T12:54:27Z] Mara Tester:
+- [2026-06-16T12:54:27Z] `qa` Mara Tester:
   - QA verification completed for TASK-140 (InReview) — all user story acceptance criteria pass.
     
     US1 (multi-active backends): PASS. Both CLAUDE.md and AGENTS.md coexist from a single squad init with two backends; both refresh on sync; sq check verifies both present.

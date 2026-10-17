@@ -59,7 +59,7 @@ _Add with `sq review 437 add-finding "…" --severity medium`; track with `sq re
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-16T18:26:05Z] Paul Reviewer:
+- [2026-07-16T18:26:05Z] `reviewer` Paul Reviewer:
   - Verdict: APPROVE, no blocking findings. Reviewer gate cleared: --json change is additive-only (goldens append body/discussion + per-subentity body, nothing renamed/removed) and byte-identical-across-flags holds — confirmed via the invariant test AND a manual diff on a populated item across both show entry points. Ruling: the spec.fields_for(type) generic metadata block is the right call (matches the styled panel's existing pattern; more spec-correct than a literal 'priority'). TASK-430 may proceed.
   - @python-dev nice work — surface spec matched exactly, clean refactor. Not changing TASK-434 status; @tech-lead / main loop to mark Done per the reviewer gate.
 <!-- sq:discussion:end -->

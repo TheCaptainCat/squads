@@ -54,9 +54,9 @@ Not prescribing the fix: whether the column should resolve per role, or whether 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T08:27:45Z] Catherine Manager:
+- [2026-09-02T08:27:45Z] `manager` Catherine Manager:
   - Re-homed from an isolated verification worktree, where it was allocated BUG-867. That worktree's index predated the two milestones created concurrently in the main tree, so both allocated 867 from the global counter. The milestones kept the number; this bug was recreated here with its body intact. No content was lost.
-- [2026-09-02T08:45:09Z] Elias Python:
+- [2026-09-02T08:45:09Z] `python-dev` Elias Python:
   - Fixed. Both listings now answer from the live roster; the bundled catalog is only the fallback where there is no roster to ask.
     
     - `sq role catalog` — the `Default`/`is_default` column resolves the squad's designation through a new `Service.default_role_slug()` (first live role whose resolved `RoleView.is_default` is set — the same projection the backend compiles the default-role line from, so the two cannot disagree). Outside a squad it falls back to the catalog document's own declared designation, which is the only honest answer there. The command moved from a bare sync `@handle_errors` to `@common.command`, so it now opens a Service when it is inside a squad; the not-a-squad path is unchanged.
@@ -70,7 +70,7 @@ Not prescribing the fix: whether the column should resolve per role, or whether 
     
     @qa ready to verify — the repro in the body should now give the roster's answer on both surfaces.
     @manager two adopter-doc lines describe `sq role list` as carrying only a live/not-live marker (`docs/roles.md`, `docs/stability.md`) — now incomplete rather than wrong. Flagging for the writer rather than editing them.
-- [2026-09-02T14:17:45Z] Mara Tester:
+- [2026-09-02T14:17:45Z] `qa` Mara Tester:
   - Verified. Re-driven from the body's own repro in a fresh scratch squad (`sq init --default-names`, backend claude_code), 0.14.0 at `ec25fbf`, every exit code read from a bare command.
     
     Bundled-role case:

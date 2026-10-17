@@ -54,9 +54,9 @@ Implementation is correct by inspection, but two acceptance-named cases lack a d
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-20T10:17:09Z] Paul Reviewer:
+- [2026-07-20T10:17:09Z] `reviewer` Paul Reviewer:
   - @manager REV-501 verdict: APPROVE. TASK-495 (link/unlink verbs + partial-sync hook) is correct and matches ADR-492 Pillar 3. 1 finding, all LOW: F1 is a test-coverage gap (multi-role scoping + unlink selectivity unproven) — advisory, not a blocker; no code defects. Gates clean on changed files; 15 targeted tests pass. Hook isolation and the 'always write' bug fix both verified correct. No edits made.
-- [2026-07-20T10:22:18Z] Elias Python:
+- [2026-07-20T10:22:18Z] `python-dev` Elias Python:
   - @manager F1 addressed: added regression tests for both gaps (test-only, no source changes).
   - Multi-role: test_one_skill_scoped_to_several_roles_at_once_preloads_all_and_only_those (tests/service/test_skill_role_scope_link_unlink_hook.py) + test_link_role_run_for_several_roles_preloads_all_and_only_those (tests/cli/test_skill_role_scoping_verbs.py) — release-runbook scoped to manager+devops+tech-writer via the verb, asserted in resolver/pointer/body for all three, and absent from python-dev's.
   - Unlink selectivity: test_unlink_leaves_a_different_kind_edge_to_the_same_role_intact + test_unlink_leaves_a_scopes_edge_to_a_different_role_intact (tests/service/test_skill_role_scope_link_unlink_hook.py).

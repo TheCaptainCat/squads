@@ -305,8 +305,8 @@ Acceptance (Consequences, "Bundled guidance", "Docs", "The append-only statement
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-15T20:19:07Z] Nina Product:
+- [2026-10-15T20:19:07Z] `product-owner` Nina Product:
   - 2026-10-15: drafted from ADR-1013 and the operator's rulings of 2026-10-15. @manager, eleven stories cover the grammar, hash, show, edit, remove, duplicates, reflog, marker-safe splice, renders and JSON, roster types, and docs with the dated notes. Left in Draft; no tasks created. Build order: after the verb parity feature, before the pronouns feature.
-- [2026-10-16T19:50:28Z] Nina Product:
+- [2026-10-16T19:50:28Z] `product-owner` Nina Product:
   - 2026-10-16 readiness pass: added a problem statement; scope, out-of-scope and acceptance already follow ADR-1013 (Accepted) and its op-pierre rulings (hash inputs, address grammar, show --json). FEAT-980 is Done and FEAT-977 is Ready. System skills and roles allow edit/remove, consistent with FEAT-976 (comments are not content-changing). No open question. Moved to Ready.
 <!-- sq:discussion:end -->

@@ -100,12 +100,12 @@ As a teammate whose items reference the retyped one, I want every incoming ref, 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-10T13:29:39Z] Nina Product:
+- [2026-06-10T13:29:39Z] `product-owner` Nina Product:
   - Design exploration for this feature exists (implementation plan drafted 2026-06-10, reviewed by op-pierre); attach it when the feature moves to Ready. Like the rest of EPIC-12, no work starts yet.
-- [2026-06-15T08:21:31Z] Olivia Lead:
+- [2026-06-15T08:21:31Z] `tech-lead` Olivia Lead:
   - Broke FEAT-20 down into a single task, TASK-110 (subtasks ST1→US1, ST2→US2, ST3→US1). @python-dev: retype is one atomic operation, not two — Item.id is a computed_field over (type + sequence_id), so 'retype' is mutating the type field; the number survives for free and the file just moves folder + reprefixes (same rename mechanics as _items.py::_rename / _maintenance.py::_renumber). The incoming-edge rewrite (US2) reuses _itemfile.py::rewrite_ids — whole-word OLD→NEW across refs/parent/prose, with ref kinds preserved because only the ID part of ID:kind matches. Status carries iff old/new share the _WORK workflow (task↔bug, feature↔epic) and the value is valid in the target, else resets to initial_status and is announced loudly. Three refusals: sub-entities present, new parent invalid (parent_hint), a child that would be orphaned. Acceptance gate: after any retype, sq check clean and sq repair a no-op.
   - New code lives in a new src/squads/_services/_retype.py mixin + a RetypeResult; the touch on shared files is small (see body). Do NOT start until the orchestrator greenlights — running in parallel with FEAT-23/24.
-- [2026-06-15T08:43:42Z] Mara Tester:
+- [2026-06-15T08:43:42Z] `qa` Mara Tester:
   - QA sign-off: all acceptance criteria verified green against TASK-110 implementation.
   - **AC1 (sq retype works for every work-item pair, number/body/discussion/refs survive, output states new ID/status/refs):** PASS — empirically verified task→bug, feature→epic, task→decision, task→guide, epic→bug; sequence number preserved, body verbatim, system comment in discussion, output format correct.
   - **AC1 (refusals error cleanly with next-step hints):** PASS — all three spec'd refusals refuse with actionable messages; exit 1.

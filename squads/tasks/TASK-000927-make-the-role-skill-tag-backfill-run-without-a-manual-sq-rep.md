@@ -199,7 +199,7 @@ Wire the existing role/system-skill/per-item-type-skill body-tag convergence ste
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-09-04T15:22:33Z] Elias Python:
+- [2026-09-04T15:22:33Z] `python-dev` Elias Python:
   - Wired into sync(): squads_version vs __version__ (schema_tuple comparator), calls new _backfill_roster_body_tags(). Driven: pre-tag corpus (empty role/skill bodies + squads_version=0.14.0), one sync() call converges every body and no repair() call anywhere in the test. Falsified (disabled the trigger -> reddened, restored -> green).
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -214,7 +214,7 @@ Convert _converge_body_tag's bare AssertionError (raised on marker-shaped body c
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-09-04T15:22:36Z] Elias Python:
+- [2026-09-04T15:22:36Z] `python-dev` Elias Python:
   - _converge_body_tag raises SquadsError (same message). _strip_retired_regions now catches it per file, returns (text, skip_message); _record_pending_rewrite/_PendingRewrites/_rebuild_index_from_disk/RepairResult all thread a skipped list through. sq repair CLI prints skipped entries and exits 1 on any. Falsified: one marker-shaped role body no longer blocks a second, healthy role's convergence in the same repair() call (reverting the fix aborts the whole sweep with a raw AssertionError, confirmed red then green).
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
@@ -229,7 +229,7 @@ _repair_body_tag's role and system-skill branches must check self.spec.views the
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-09-04T15:22:39Z] Elias Python:
+- [2026-09-04T15:22:39Z] `python-dev` Elias Python:
   - _repair_body_tag's role and both skill branches now gate on the tag name being in self.spec.views, same shape as the existing per-type gate. Verified both directions: an already-tagged body under a dropped view is untouched either way (ADR doctrine: visible, never undone); an empty body under a dropped view stays empty only with the gate -- reverting it lets the sweep seed a fresh dangling tag into the empty body (driven, red then green).
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
@@ -244,7 +244,7 @@ Add ROLE_DEFINITION_VIEW_NAME to _interactions/__init__.py beside SYSTEM_SKILL_V
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-09-04T15:22:43Z] Elias Python:
+- [2026-09-04T15:22:43Z] `python-dev` Elias Python:
   - Added ROLE_DEFINITION_VIEW_NAME beside SYSTEM_SKILL_VIEW_NAMES/ITEM_SKILL_VIEW_NAME; used in _create_core's reseed and _repair_body_tag's classification (role.md.j2 stays a static scaffold -- pinned by a template-read test instead). Fixed example_assignee_slug's docstring to name its two live callers in present tense. Pinning test falsifies each writer independently (renamed the constant: 3 of 4 assertions reddened as expected; the 4th -- create_core's reseed -- stays green under a rename because it imports the same symbol, and reddens instead when that writer is reverted to a bare literal, confirmed separately).
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
@@ -259,7 +259,7 @@ show_role (_cli/_role.py) must print '(the definition for <slug> could not be re
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
-- [2026-09-04T15:22:47Z] Elias Python:
+- [2026-09-04T15:22:47Z] `python-dev` Elias Python:
   - Restored the '(the definition for <slug> could not be resolved -- run sq check to see why)' advisory in show_role's r is None branch, printed alongside (not instead of) the degraded body render. Driven via a custom role whose .overrides/roles/<slug>.toml was deleted after activation; falsified (reverted -> 2 of 3 tests red, restored -> green).
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
@@ -268,7 +268,7 @@ show_role (_cli/_role.py) must print '(the definition for <slug> could not be re
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-04T15:23:32Z] Elias Python:
+- [2026-09-04T15:23:32Z] `python-dev` Elias Python:
   - Implemented, all five subtasks Done (per-subtask detail also on each ST's own comment).
     
     **F1 — driven upgrade path.** Wired the existing body-tag convergence into `sync()`, keyed on

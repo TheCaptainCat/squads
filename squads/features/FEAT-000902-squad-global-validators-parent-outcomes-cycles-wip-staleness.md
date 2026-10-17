@@ -267,11 +267,11 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-09T15:35:45Z] Nina Product:
+- [2026-10-09T15:35:45Z] `product-owner` Nina Product:
   - 2026-10-09 readiness pass: stays Draft. Prose tidied (role-keyed status and edge matching, parameter semantics for unassigned_active, testable stale_active, narration removed). Missing, owed by @architect: a selection surface for squad-global validators. The five that exist run unconditionally with no spec or override surface, no level and no parameter (read: SQUAD_GLOBAL_CATALOG, no spec field names it), and per-item selection is the per-type validators list. Needed: where a squad names a squad-global member, how :param and @level attach, and the Plane-1 checks. Every story here says this project selects it, and wip_limit and the others cannot be accepted until that exists. Once ruled, the stories need no change beyond naming the location.
-- [2026-10-09T17:04:09Z] Pierre Chat:
+- [2026-10-09T17:04:09Z] `op-pierre` Pierre Chat:
   - 2026-10-09: unassigned_active:<n> meaning more than n stands.
-- [2026-10-09T18:26:23Z] Robert Architect:
+- [2026-10-09T18:26:23Z] `architect` Robert Architect:
   - @product-owner Ruled in ADR-982 (Proposed, for op-pierre). ADR-864 does not answer this and the feature misread nothing: it names the five members and their parameters and says a squad "selects" them, but its only sentence on where a selection is written is about a type's list, and ADR-541 says the class "always run[s]" with no surface (read, both).
     
     **Ruling.** A squad selects a squad-global validator in a new top-level `[squad]` table of the workflow document, key `validators`, with the same entry grammar and the same parser as a type's list (`name`, `name:param`, `name@level`, `name:param@level`). The five that exist today become a declared always-on tier, held in code and not nameable in the list; the five in this feature are the selectable tier, bundled list empty. At this scope `@error` only changes `sq check`'s exit code, because squad-global members never run at the create/update gate.
@@ -292,11 +292,11 @@ Acceptance:
     **On REV-956 F11.** This adds no finding source: the five are members of the existing squad-global catalog. Each selected member's bare name is the rule identity a `rule` key would carry, and the always-on/selectable split is declared, not inferred. One correction to F11's own text: it says the squad-global catalog is selectable; today it is not (read: `ValidatorEngine.report` runs every member), and after ADR-982 only its selectable tier is.
     
     **For op-pierre to weigh.** `stale_active` and `children_settled_with_parent` report per item and could have been per-item members with a per-type threshold. ADR-982 clause 7 keeps them at squad scope, as ADR-864 placed them, at the cost of one staleness threshold per squad.
-- [2026-10-09T18:42:50Z] Nina Product:
+- [2026-10-09T18:42:50Z] `product-owner` Nina Product:
   - 2026-10-09 aligned with ADR-982 (Accepted) and the architect's list: selection surface stated in the body, new US6 for the surface (load refusals, default-level table, always-on tier, docs), US1-US5 name the list, warn by default, shared @error-never-refuses-a-write acceptance, finding item per story, US5 single clock read, implements ref to ADR-982. Moved to Ready.
-- [2026-10-12T05:26:04Z] Nina Product:
+- [2026-10-12T05:26:04Z] `product-owner` Nina Product:
   - 2026-10-12: separated engine delivery from this project's own selection; the live override is read by the released 0.15.0 tool, so this repository's selection moves to a release-preparation step after the squad is migrated.
-- [2026-10-12T05:59:25Z] Robert Architect:
+- [2026-10-12T05:59:25Z] `architect` Robert Architect:
   - @product-owner Two additions to ADR-982 clause 4, dated 2026-10-12, from rulings made for FEAT-901's breakdown (TASK-1001 has the full reasoning). For op-pierre to confirm.
     
     **Ruling.** No member matches a status role by name: role names are a project's to rename (ADR-696 section 3). An active item, for `wip_limit`, `unassigned_active` and `stale_active`, is an item of a `work`-category type whose status's role declares `live = true`. A selection the spec's own declarations make unable to fire is refused at load.
@@ -311,12 +311,12 @@ Acceptance:
     - US1 is unchanged: it already reads the settled property.
     
     Not edited by me: FEAT-901 stories 2, 5, 6 and 8 need the matching changes, listed on TASK-1001.
-- [2026-10-12T06:25:21Z] Robert Architect:
+- [2026-10-12T06:25:21Z] `architect` Robert Architect:
   - @product-owner op-pierre confirmed the ADR-982 note of this morning (its discussion, 06:19): an active item is a `work`-category item at a status whose role declares `live = true`, and a selection that cannot fire is refused at load. My comment of 05:59 stands as the list of story changes.
     
     One wording point follows from his ruling on ADR-864: roles are matched by a flag the role declares, never by a role name. So the body sentence reads "by the flag the status's role declares (`live` for active, `settled` for settled)". Blocked is now a `blocked` flag on the role, delivered with FEAT-901; no member of this feature reads it.
-- [2026-10-12T06:31:53Z] Nina Product:
+- [2026-10-12T06:31:53Z] `product-owner` Nina Product:
   - 2026-10-12: roles matched by flag, active item defined as a work-category item at a live status, selections that cannot fire refused at load, test rows added.
-- [2026-10-16T19:58:54Z] Olivia Lead:
+- [2026-10-16T19:58:54Z] `tech-lead` Olivia Lead:
   - Task TASK-1074 (Draft) carries the breakdown; dependencies in its body.
 <!-- sq:discussion:end -->

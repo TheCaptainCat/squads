@@ -163,11 +163,11 @@ Convention check: every OTHER doc in docs/ uses IDs only as illustrative example
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-17T08:04:39Z] Paul Reviewer:
+- [2026-06-17T08:04:39Z] `reviewer` Paul Reviewer:
   - VERDICT: Changes requested — NOT ready to ship with 0.3.0. The doc is structurally complete and well-organized (all five tiers present, the schema_version ADR-149 decided and reflected, README + docs/README both link it, sq docs stability renders, all cited items resolve), but it carries factual errors in a document whose entire purpose is to be the authoritative frozen contract.
   - BLOCKERS (high): F1 — the ref-kind vocabulary table publishes the WRONG eight kinds (invents blocked-by/related-to, omits the real depends-on/supersedes); a frozen-vocabulary tier must match VALID_REF_KINDS exactly. F2 — Tier 1 line 95 presents reflog-v decoupling (REV-119 F5) as SETTLED ('currently decoupled'), directly contradicting the Open-questions section and the bill, which say it is currently COUPLED at 0.3 and the decoupling is OPEN. F4 — almost every in-body cross-reference anchor (#adr-..., #feat-..., #guide-...) is a dead link; the slugs do not exist as headings.
   - SHOULD-FIX (medium/low): F3 — References section uses ~30 fabricated github.com URLs against house style (cite by ID, as internals.md does); paths also point at squads/ not src/squads/. F5 — migration promise inserts 'and beyond', deviating from the AC's verbatim phrasing. F6 — ADR-114's remove-vs-cancel and ref-severance points are not in the doc.
   - Once F1/F2/F4 are corrected and F3/F5/F6 addressed, this is approvable. @tech-writer to revise; re-gate after.
-- [2026-06-17T08:29:31Z] Paul Reviewer:
+- [2026-06-17T08:29:31Z] `reviewer` Paul Reviewer:
   - Re-gate clean — all seven findings (F1–F7) verified resolved, no coverage regression; ready to ship with 0.3.0.
 <!-- sq:discussion:end -->

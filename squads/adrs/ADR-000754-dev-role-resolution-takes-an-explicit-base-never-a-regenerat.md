@@ -289,13 +289,13 @@ Decision 2's precedence was "a stored fact first, a naming convention only where
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T15:17:06Z] Pierre Chat:
+- [2026-08-21T15:17:06Z] `op-pierre` Pierre Chat:
   - Rule 3 stands as written: a dev-role override that explicitly declares full_name renames the live role, because a declaration means what it says and it matches bundled-role override behaviour. Only a regenerated pool name is forbidden. No extra warning line required.
-- [2026-08-21T21:02:31Z] Robert Architect:
+- [2026-08-21T21:02:31Z] `architect` Robert Architect:
   - Amended in place (A1-A3) after the operator-set-name loss driven on release/0.14. Ruling: no new decision is warranted — section 2 precedence was already written generally and the implementation applied it only where PREDEFINED has no row, so extending it to bundled roles is conformance to this decision, not a new one.
   - A1: one line is the whole cause — _roles/_resolver.py:255-256 discards the caller base whenever the slug is in PREDEFINED, so no caller can make the live item the base for a bundled role. Narrow rule to implement: the item is authoritative for exactly the fields an operator can set on it ({full_name} for a bundled role, {full_name, model, tech} for a dev role) and no others; the rest of the catalog merge is untouched.
   - A2: [init.names] stays outside the resolution order and must not be read at resolve time — it is the input that produced extra.full_name, and it is empty for the sq role activate --name path (driven), so a resolver reading it would miss the very case it looks like it covers. Order: override full_name > item extra.full_name > bundled default (or pool name for a dev slug with no item).
   - A3: recoverable — the name survives in .squads.toml [init.names] and in the reflog create entry (both driven; the projection logs nothing, so the create entry is never clobbered). So the fix is to stop the loss; an automatic heal is refused because it would make an init-input table retroactively authoritative. A sq check report on the mismatch is the right follow-up, as its own small item.
-- [2026-09-29T13:44:31Z] Robert Architect:
+- [2026-09-29T13:44:31Z] `architect` Robert Architect:
   - ADR-971 (Proposed) extends this decision: dev_base_from_item would take slug from the item too, beside name/model/tech. If ADR-971 is accepted, a dated narrowing note goes into this body.
 <!-- sq:discussion:end -->

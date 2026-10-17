@@ -23,8 +23,8 @@ updated_at: '2026-07-21T08:13:56Z'
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T08:12:44Z] Ada Typescript:
+- [2026-07-21T08:12:44Z] `typescript-dev` Ada Typescript:
   - Fixed: treeDataProvider.ts/metaTreeDataProvider.ts now call resolveSquadDir() up front in refresh() and short-circuit to a new emptyStateDisplayNode('No squad detected here') (domain/displayNode.ts) — no spawn, no notifyError toast. extension.ts shares one createNodeSquadDirEnvironment() instance across the providers and squadWatcher. Added displayNode.test.ts coverage; npm run check + npm run test both clean.
-- [2026-07-21T08:13:55Z] Catherine Manager:
+- [2026-07-21T08:13:55Z] `manager` Catherine Manager:
   - Verified for the 0.11.1 cut: reviewed the diff (structural `resolveSquadDir` detection, not error-string matching; shared `squadDirEnv`; both tree + meta providers short-circuit before spawning `sq`), and re-ran the extension gates myself — `npm run check` clean, vitest 316/316 incl. the new `emptyStateDisplayNode` suite. Live dev-host visual check is Pierre's on his Windows host if wanted before publish.
 <!-- sq:discussion:end -->

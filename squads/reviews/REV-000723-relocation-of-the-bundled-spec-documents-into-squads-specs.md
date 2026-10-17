@@ -176,7 +176,7 @@ is genuinely wrong rather than merely unavailable.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-31T16:16:04Z] Elias Python:
+- [2026-07-31T16:16:04Z] `python-dev` Elias Python:
   - Fixed: test_asset_ships_in_the_built_wheel now asserts the full package-relative path (package.replace('.', '/') + '/' + filename), builds the wheel once per session (shared built_wheel_names fixture) instead of 3x, and a build failure now pytest.fail()s instead of skipping — only a genuinely absent uv skips.
   - Falsified: wrong package (squads._totally_made_up) -> red; wrong filename -> red; simulated broken build (fake uv exiting 1) -> hard fail not skip; missing uv entirely -> clean skip; restored -> green.
 <!-- sq:finding:F1:discussion:end -->
@@ -254,12 +254,12 @@ stale; a standing rule does.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-07-31T16:15:16Z] Robert Architect:
+- [2026-07-31T16:15:16Z] `architect` Robert Architect:
   - Corrected in ADR-696 §2's Guard clause, which now names the bundled spec package (, holding workflow.toml and its two siblings) instead of the retired path. Dated amendment note added. Verified before editing: the Carve-out paragraph is accurate as you found it — both runners still hold their frozen _STATUS_ACTIVE — so the rule, the carve-out, and everything else §2 decides are untouched. One path string.
   - Your note about the directory-level exemption is right, and it is now a clause in the same section rather than a note. The scan exempts the package by DIRECTORY, which is the correct shape — its sibling guards do the same, and a filename list would go stale the moment a fourth document lands — but it means any .py placed there is silently outside the guard, and the exemption's safety therefore rests on the directory containing no engine code. Under the old name that read as self-evidently harmless; a package named for specs reads more like a code layer, so the premise was being carried by convention alone. The ADR now states it as a standing property: the package holds the bundled documents and a docstring-only marker, and no logic moves there — anything that reads or interprets those documents belongs to the loader that owns it, where the scan can still see it.
   - Agreed it warrants neither a finding nor a second guard, and the reason it warrants the sentence is worth naming: an exemption whose justification is only implied is one an unrelated change can quietly invalidate. Noting the package's own __init__ already says 'Purely a data package — no code beyond this docstring', so the ADR line and the code now assert the same property in both places rather than the decision leaving it to the layout to imply.
   - @reviewer F3 can move to Fixed; nothing further owed from me on this review.
-- [2026-07-31T16:15:41Z] Robert Architect:
+- [2026-07-31T16:15:41Z] `architect` Robert Architect:
   - Correction to the first bullet above: a shell substitution dropped the path when that comment was written. It should read "now names the bundled spec package (_specs/, holding workflow.toml and its two siblings) instead of the retired path".
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -268,12 +268,12 @@ stale; a standing rule does.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-31T16:10:13Z] Paul Reviewer:
+- [2026-07-31T16:10:13Z] `reviewer` Paul Reviewer:
   - Recommended verdict: Approve. Leaving the transition to a second party — I authored this review and will not approve it.
   - The relocation itself is correct and complete. Four files moved as R100 renames, byte-identical by sha256 against their pre-move blobs, history follows through 23 commits. Three loaders and six test files repointed; the three tests/unit specmerge helpers held the same literal and were caught by grep rather than by the inherited scope list, which had them missing. No squads._bundled literal survives anywhere; every remaining match under src/ and tests/ is a function or test name. Migration carve-out untouched.
   - Independently falsified all three repointed guards against real inputs, not synthetic ones: the roster-literal scan reds on a planted Active constant in a copy of the real tree and correctly exempts a file planted in _specs; the packaging check fails rather than skips on an absent filename; the splat-ref scans catch a quoted key appended to the real roles.toml and a leading dollar-paren value appended to the real workflow.toml, and raise ModuleNotFoundError if pointed at the old package rather than passing over an empty set. None of the three can pass vacuously on a wrong path.
   - Went past the archive listing on packaging: installed the wheel into a clean virtualenv with no source tree on the path and drove all three loaders plus sq workflow show, sq init, sq role catalog and sq check from it. All clean. That is the check the repo does not have, and it is the reason F1 is only medium rather than higher.
   - None of the three findings sit in the moved code. F1 is a pre-existing weakness in the wheel-membership assertion, surfaced because the acceptance leaned on it. F2 and F3 are stale path mentions on the board, owned by the tech lead and the architect respectively — F2 is the one worth doing before TASK-718 is dispatched. @manager for the verdict; none of the three blocks the relocation landing.
-- [2026-07-31T16:22:27Z] Catherine Manager:
+- [2026-07-31T16:22:27Z] `manager` Catherine Manager:
   - Approved as the second party on the reviewer recommendation. Relocation verified byte-clean: renames detected, sha256 equal across pre-move blob, post-move blob and working tree, wheel and sdist carry the package with no remnants, and the reviewer additionally installed the wheel into a clean virtualenv and drove the loaders and CLI from it. All three findings closed.
 <!-- sq:discussion:end -->

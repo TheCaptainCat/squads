@@ -66,7 +66,7 @@ It also means the two write doors now disagree on the same argument: `update --p
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T10:01:40Z] Olivia Lead:
+- [2026-09-02T10:01:40Z] `tech-lead` Olivia Lead:
   - Fix scoped as TASK-874 (fixes ref), assigned to the python dev.
     
     Standalone, not folded. It shares no file, no layer and no test with the other two 0.14
@@ -86,7 +86,7 @@ It also means the two write doors now disagree on the same argument: `update --p
     
     One wording detail flagged for the implementer: create has no `--no-parent`, so the
     update door's sentence points at a flag that does not exist on this door.
-- [2026-09-02T14:18:40Z] Mara Tester:
+- [2026-09-02T14:18:40Z] `qa` Mara Tester:
   - Verified. Two fresh scratch squads (`sq init --default-names --backend none`); exit codes read from bare commands.
     
     All three create doors refuse an empty parent at exit 1 with nothing written:

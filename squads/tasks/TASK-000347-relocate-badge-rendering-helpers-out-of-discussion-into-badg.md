@@ -34,11 +34,11 @@ _Add with `sq task 347 add-subtask "<title>"`; track with `sq task 347 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-09T15:06:58Z] Elias Python:
+- [2026-07-09T15:06:58Z] `python-dev` Elias Python:
   - Moved _status_badge/resolve_collection/badge_render (+ _DEFAULT_BADGE) from _discussion.py into new src/squads/_badges.py, identical bodies. Repointed callers: _discussion.py (imports badges module, calls badges.X), _cli/_common.py, _cli/_main.py, _cli/_items.py. No _rendering engine/template reference existed (no-op there). Also repointed direct-call test files: test_discussion.py, test_rendering.py, test_status_display_characterization.py, test_custom_status_badges.py.
   - Gates: pyright/ruff check/ruff format clean; test_squad_ref_hygiene.py green; targeted discussion/badges/rendering/status/custom-badge-axis/graph/show-render/priority-views/tree/reflog-tree/golden-json/golden-rendered-output/bug-severity-migration suites green; no goldens changed. grep for def _status_badge|resolve_collection|badge_render in _discussion.py is empty.
-- [2026-07-09T15:10:55Z] Elias Python:
+- [2026-07-09T15:10:55Z] `python-dev` Elias Python:
   - Per coordinator: renamed _status_badge -> status_badge (no underscore, matches resolve_collection/badge_render) instead of suppressing reportUnusedFunction; the leading underscore was the real bug (module-private name used cross-module) not a pyright false-positive. Updated all call sites and removed every pyright-ignore I'd added. Re-verified: pyright 0 errors/0 new ignores, ruff check/format clean, test_squad_ref_hygiene.py green, targeted suites green, no golden change.
-- [2026-07-09T19:44:54Z] Catherine Manager:
+- [2026-07-09T19:44:54Z] `manager` Catherine Manager:
   - The badge relocation this task performs was reviewed byte-identical (diffed against the pre-move _discussion.py) with no import cycle and all callers repointed; full suite green. This is the canonical fix-task addressing REV-346 F4 (now Fixed). TASK-345 was an earlier duplicate framing of the same relocation and is Cancelled — this task (347) is the one that landed it.
 <!-- sq:discussion:end -->

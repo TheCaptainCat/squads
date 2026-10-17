@@ -195,12 +195,12 @@ Removed generic 'Coordinating a larger piece of work?' closing paragraph from sq
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-20T07:37:49Z] Theo Writer:
+- [2026-07-20T07:37:49Z] `tech-writer` Theo Writer:
   - Review complete: 10 findings across the generated content. Total verbiage savings: ~450–500 words across all templates (approximately 15–20% reduction in overall bulk). Top issues:
   - 1. **memory_skill.md.j2** (F1, F2, F7, F8, F9): Memory skill is the wordiest offender — has two redundant explanations of personal-vs-shared, repeated phrasing throughout, padding and jargon. Consolidating these five sections alone saves ~250 words without losing substance.
   - 2. **squads_skill.md.j2** (F3, F4): Preamble to 'Working directly with operator' overexplains the discipline rule; 'Finding things' restates use cases twice.
   - 3. **claude_section.md.j2** (F5, F6): Greeting instructions and orchestration loop both expand on content that's already in the skills, creating redundancy across agent contexts.
   - All findings have before/after rewrites. Pierre wanted agents to see less rambling — these are the main culprits.
-- [2026-07-20T07:47:44Z] Theo Writer:
+- [2026-07-20T07:47:44Z] `tech-writer` Theo Writer:
   - Aggressive concision pass complete. All 10 findings addressed in source templates (memory_skill, squads_skill, claude_section). Regenerated with sq sync — no broken Jinja, markers intact, golden files updated, manifest refreshed. Tests passing: rendering/generation suite clean, sq check clean. Summary: ~450–500 words cut across templates (15–20% reduction) while preserving all load-bearing specifics (command syntax, marker rules, invariants). Ready for review or integration.
 <!-- sq:discussion:end -->

@@ -31,8 +31,8 @@ Expected: a purge is checked at least as strictly as an archive (refuse the same
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T18:23:26Z] Elias Python:
+- [2026-10-16T18:23:26Z] `python-dev` Elias Python:
   - Fixed in a3f3090b: rm (with or without --purge) on a live roster entry is now held to the same retirement clauses as status Archived, so it is refused for the last live role and for skills the roles or types rely on; it prints the same warnings and writes a remove reflog entry. An already-archived entry is removed unchecked. The refusal text reads 'cannot remove', but its finding lines still say 'not live (status Archived)' and one remedy says 'make the skill live again'; wording left as is. 17 tests; falsification 16 of 17 fail with the gate, warnings and reflog removed (1 control). CHANGELOG entry left to the writer.
-- [2026-10-16T19:08:37Z] Catherine Manager:
+- [2026-10-16T19:08:37Z] `manager` Catherine Manager:
   - Verified: fix approved on REV-1067 and merged into release/0.16 at 977730ec; full suite 11471 passed, 0 failed.
 <!-- sq:discussion:end -->

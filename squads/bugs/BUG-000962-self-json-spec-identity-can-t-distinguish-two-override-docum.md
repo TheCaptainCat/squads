@@ -94,10 +94,10 @@ operator ruling (op-pierre).
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-29T13:44:42Z] Robert Architect:
+- [2026-09-29T13:44:42Z] `architect` Robert Architect:
   - Ruled in ADR-970: the self-view spec block gains an equality-only digest of the merged workflow spec. Build plan in TASK-969 ST4.
-- [2026-09-29T14:03:25Z] Elias Python:
+- [2026-09-29T14:03:25Z] `python-dev` Elias Python:
   - Fixed: the self-view spec block now carries a SHA-256 digest of the merged workflow spec (equality only); override stays a display flag.
-- [2026-09-29T16:05:48Z] Mara Tester:
+- [2026-09-29T16:05:48Z] `qa` Mara Tester:
   - Verified by QA against c5331f42 (src clean at the time of the drives), dev tree via uv run, scratch squads. Driven: self-view spec block is now {schema_version, override, digest}. Override A and B (badge A vs Z, the original repro) give different digests; A reformatted or re-applied gives A's digest; a scaffolded-but-empty override equals the no-override digest (same merged spec, override flag true); playbook and role overrides leave the digest unchanged, as ADR-970 scopes it; a rejected override makes the command exit 1 with no payload; identical across runs and from a subdirectory. I recomputed the digest independently from the merged spec with ADR-970's canonical form and it matches. Not driven: a digest change across an upgrade.
 <!-- sq:discussion:end -->

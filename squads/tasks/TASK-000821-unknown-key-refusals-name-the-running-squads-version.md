@@ -174,7 +174,7 @@ path.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-26T08:29:17Z] Elias Python:
+- [2026-08-26T08:29:17Z] `python-dev` Elias Python:
   - Fixed at the shared engine — _unknown_key_violations (src/squads/_specmerge.py) now builds the fix hint as: use one of the accepted {what}s in v{squads.__version__}: {sorted(accepted)}, e.g. "use one of the accepted top-level keys in v0.14.0: [...]". Both callers (top-level key space, [selected] section space) inherit it unchanged.
   - empty_accepted_hint path (structurally-empty vocabulary, e.g. the playbook [selected] hint) deliberately omits the version — that hint states a fact true at every version, not a version-bound menu; recorded in the docstring.
   - Import: added `from squads import __version__` to _specmerge.py. squads/__init__.py imports only importlib.metadata, so no cycle; confirmed via a clean `uv run --all-extras pyright` (whole project) plus a direct `import squads._specmerge` — both clean.

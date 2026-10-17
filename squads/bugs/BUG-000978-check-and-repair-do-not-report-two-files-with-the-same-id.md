@@ -46,13 +46,13 @@ Status transitions or writes against a duplicated item, and which file wins when
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-29T15:17:37Z] Elias Python:
+- [2026-09-29T15:17:37Z] `python-dev` Elias Python:
   - Fixed: one shared detector; check errors, repair refuses, --renumber renumbers different slugs and lists references, show warns, writes refuse.
-- [2026-09-29T16:23:17Z] Elias Python:
+- [2026-09-29T16:23:17Z] `python-dev` Elias Python:
   - Review round 3: one identity rule for detector and guard, renumber keeps the indexed file, every write checks before touching a file.
-- [2026-09-29T16:52:00Z] Elias Python:
+- [2026-09-29T16:52:00Z] `python-dev` Elias Python:
   - Review round 4: the write guard is proportional to one item; scan state is passed, not kept.
-- [2026-10-09T15:38:03Z] Mara Tester:
+- [2026-10-09T15:38:03Z] `qa` Mara Tester:
   - Verified at HEAD 7cd45323. Driven (real CLI, dev build, one scratch squad per row, referrers present: a `refs` edge, a `parent` edge, a body mention, a comment mention and a subtask body all pointing at TASK-21). Every duplicate row: `check` exit 3 naming every file; plain `repair` exit 1 naming every file and leaving all markdown byte-identical; `list -a` shows one row; `show` exit 0 with a stderr warning naming the files; `comment` and `update` on the id exit 1 ("refusing to write") with no file changed.
     
     Rows:

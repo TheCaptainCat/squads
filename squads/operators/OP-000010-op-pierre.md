@@ -3,13 +3,11 @@ id: OP-10
 sequence_id: 10
 type: operator
 title: Pierre Chat
+slug: op-pierre
 status: Active
 author: op-pierre
 created_at: '2026-06-10T12:29:53Z'
 updated_at: '2026-06-10T12:29:53Z'
-extra:
-  slug: op-pierre
-  full_name: Pierre Chat
 ---
 <!-- sq:body -->
 # Pierre Chat

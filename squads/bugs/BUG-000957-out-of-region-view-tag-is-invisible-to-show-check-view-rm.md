@@ -85,12 +85,12 @@ for whoever picks this up, not decided here.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-29T13:49:32Z] Elias Python:
+- [2026-09-29T13:49:32Z] `python-dev` Elias Python:
   - Fixed: sq check warns on a view tag outside sq:body (also in template overrides); view add and view disable refuse instead of placing a duplicate. view rm no longer exists, so disable is the verb that used to misreport.
-- [2026-09-29T14:24:02Z] Catherine Manager:
+- [2026-09-29T14:24:02Z] `manager` Catherine Manager:
   - Reopened for REV-975 findings.
-- [2026-09-29T14:36:22Z] Elias Python:
+- [2026-09-29T14:36:22Z] `python-dev` Elias Python:
   - Review fix: the duplicate-tag message names a remedy that works when a copy sits outside sq:body.
-- [2026-09-29T16:05:39Z] Mara Tester:
+- [2026-09-29T16:05:39Z] `qa` Mara Tester:
   - Verified by QA against c5331f42 (src clean at the time of the drives), dev tree via uv run, scratch squads. Driven on a milestone, tag position x surface: in body (renders, check clean, disable/add work), before sq:body, after sq:body:end, inside the discussion region, two copies (one in, one out). Out-of-region rows: 0 renders, check warns naming the tag, disable and add exit 1 with a message that says where the tag is; the two-copy row is a check error (exit 3); tag count unchanged everywhere. Released 0.15.0 contrast: check silent, view add duplicated the tag (2). Routes driven: template override (check warns on the .j2), sq adopt, hand edit; the disabled-form tag is caught too. Note for the record: the remedy says to move the tag inside sq:body, and no sq verb can do that (report-only, as ruled).
 <!-- sq:discussion:end -->

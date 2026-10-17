@@ -41,6 +41,6 @@ Correct the `bug` lifecycle string in `playbook.toml` to match the machine's can
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-01T14:37:52Z] Elias Python:
+- [2026-07-01T14:37:52Z] `python-dev` Elias Python:
   - Fixed in TASK-269 F3 reconciliation. Corrected playbook.toml bug lifecycle string from the copy-pasted generic work-item string to the machine-canonical form (Open → InProgress → Fixed → Verified (+ WontFix, Blocked, Cancelled)). Also updated the sq-bug skill golden and test_playbook.py snapshot. F3's linearize_lifecycle wiring into the workflow cheatsheet now makes the state machine the authoritative source, preventing future drift. No state-machine change.
 <!-- sq:discussion:end -->

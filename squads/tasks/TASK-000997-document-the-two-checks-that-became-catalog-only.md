@@ -205,7 +205,7 @@ for each, and no migration needed. No item id and no build-process wording in th
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-12T05:21:40Z] Catherine Manager:
+- [2026-10-12T05:21:40Z] `manager` Catherine Manager:
   - Promoted and dispatched. The code is merged on release/0.16 at 4b23b04c (REV-998 Approved).
     
     From the review, to cover beside what the subtasks already list:
@@ -213,7 +213,7 @@ for each, and no migration needed. No item id and no build-process wording in th
     - `docs/overrides.md`, validators section: "two checks are not selected for you anywhere in the bundled spec" is now four; "declare no parameter and the type gets the bundled default" must say a type that does not select the check runs nothing and a bare name gives 120; the sentence that neither the core nor a bundle can be subtracted from should note these two are in neither.
     - The hand-written part of `CLAUDE.md`: the `sq check` gate section and the rule on status prose in bodies should say both rules are this project's own selections in its workflow override, not defaults of the tool. Do not touch the generated region.
     - A list that replaces a type's bundled one without the splat form silently drops the bundled entries; `epic` and `skill` are the two bundled types that ship a list.
-- [2026-10-12T05:35:54Z] Theo Writer:
+- [2026-10-12T05:35:54Z] `tech-writer` Theo Writer:
   - Docs and release note written for the two catalog-only checks; ST1 and ST2 Done. Nothing committed. @manager
     
     **Changed:** `docs/overrides.md` (validators section, six passages), `docs/workflow.md` (the `validators` field entry), `CHANGELOG.md` (one bullet under 0.16.0 `### Changed`). `tests/meta`: 345 passed. No file under `src/` or `tests/` touched.
@@ -247,6 +247,6 @@ for each, and no migration needed. No item id and no build-process wording in th
     **Read, not driven:** the membership of the core and the bundles (`COMMON_CORE`, `CATEGORY_BUNDLES`); that only `epic` and `skill` ship a list (bundled `workflow.toml`); the banner pattern's case-insensitivity beyond the spellings driven; "no file in the squad is touched".
     
     **Found on the way, not part of this change:** at `@error` the title check does not refuse the sub-entity write that makes a title too long, only the host item's next edit. The docs now say so; whether it is intended is a question for the tech lead.
-- [2026-10-12T06:19:24Z] Catherine Manager:
+- [2026-10-12T06:19:24Z] `manager` Catherine Manager:
   - The two CLAUDE.md sentences were added by the manager on the operator's explicit approval of 2026-10-12, since the writer's session rules do not let an agent's brief authorise an edit to that file. Committed with the docs; closing.
 <!-- sq:discussion:end -->

@@ -353,15 +353,15 @@ location survives a body write.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-15T07:20:20Z] Nina Product:
+- [2026-09-15T07:20:20Z] `product-owner` Nina Product:
   - New feature authored under EPIC-897 per Olivia's parenting recommendation and op-pierre's fourth-amendment ruling on ADR-880: the required-view flag, its derived host set, the write refusal, view rm narrowing, the tier-1 check finding, and the set_body retirement. Refs: MILE-867 (targets), ADR-880 (implements).
   - Five stories: US1 the required flag + derived host set, US2 the replace refusal, US3 the append/view-rm scoping, US4 the sq check finding, US5 all six bundled views + set_body retirement. FEAT-907's US4 folds into this breakdown (broadened past the milestone-only frame).
   - Left Draft — promotion at dispatch is mine. @manager for scheduling once Olivia reparents TASK-942 here and remaps its subtask story mappings.
-- [2026-09-15T08:25:54Z] Nina Product:
+- [2026-09-15T08:25:54Z] `product-owner` Nina Product:
   - US5's acceptance was incomplete: it named the six required declarations and the set_body retirement but not the convergence-licence narrowing and migration reclaim the tech lead has since mapped to it (per ADR-880's fifth amendment).
   - Split: US5 stays the write-path half (declarations + retirement, reworded as a narrowing not a substitution). New US6 covers the repair-sweep half: strict_empty convergence for role/system-skill bodies, and the pre-0.14 reclaim moving to a migration -- with explicit acceptance that an author's prose survives a drop then author then re-add then convergence round trip.
   - @manager TASK-942's subtask mapping needs one change: ST11 and ST12 (currently mapped to US5) should map to US6 instead; ST1/ST2/ST3/ST4/ST5/ST6/ST7 mappings are unaffected. No existing stories renumbered.
-- [2026-09-25T13:05:17Z] Nina Product:
+- [2026-09-25T13:05:17Z] `product-owner` Nina Product:
   - Rewrote FEAT-948 for ADR-880's seventh amendment (`required` retired; views gain `position`;
     disable-not-delete; every body write re-places tags). Old-to-new story mapping for TASK-942's
     subtask remap:
@@ -383,6 +383,6 @@ location survives a body write.
     on the same story number (subject continuity); anything against old US5 needs re-pointing to US7
     or dropping if it only covered the flag declarations; new subtask coverage is needed for US7 and
     US8. @manager for visibility.
-- [2026-09-29T09:29:10Z] Catherine Manager:
+- [2026-09-29T09:29:10Z] `manager` Catherine Manager:
   - Done. TASK-942 delivered every story; REV-964 and REV-967 are Approved with all findings fixed and verified; the full suite passes (6265), pyright, ruff and sq check are clean. Accepted under the delegation for reviewed, non-visual work.
 <!-- sq:discussion:end -->

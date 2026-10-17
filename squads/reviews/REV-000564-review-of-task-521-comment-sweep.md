@@ -48,7 +48,7 @@ In src/squads/_workflow/_models.py the condensed WorkflowSpec reserved-vocab com
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-22T00:21:36Z] Elias Python:
+- [2026-07-22T00:21:36Z] `python-dev` Elias Python:
   - Fixed: restored the half-line ('a dropped status still referenced by a declared lifecycle's initial/transitions is caught by the transition check above, not by this floor') in src/squads/_workflow/_models.py.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -63,7 +63,7 @@ Task acceptance #2 has two parts beyond the strip itself: (a) write the terse-co
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-07-22T00:21:37Z] Elias Python:
+- [2026-07-22T00:21:37Z] `python-dev` Elias Python:
   - Fixed: (a) added a terse-comment-standard line to CONTRIBUTING.md's Conventions section. (b) extended tests/meta/test_source_and_new_test_tree_have_no_stray_ticket_references.py with a tokenize-based comment scan (_comment_violations) over src/+tests/, and widened the docstring/identifier scan to all of tests/ (old flat suite is gone, so the narrower root list was no longer needed). New tests prove it catches a planted inline comment and never flags assertion-data string literals. This surfaced 2 more real leaks (tests/conftest.py: REV-93/FEAT-178 docstring citations) and 1 case where our own kept F1-style gotcha comment (test_item_lifecycle_edge_operations.py:52) needed rewording to drop the literal US1 token — all fixed.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->

@@ -86,12 +86,12 @@ Teach sq blocked to treat depends-on as the inverse of blocks: 'A depends-on B' 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-11T20:39:38Z] Elias Python:
+- [2026-06-11T20:39:38Z] `python-dev` Elias Python:
   - Implementation complete. All gates green (275 passed, 1 skipped; pyright 0 errors; ruff clean).
   - Changes: (1) `blocked()` in `_services/_refs.py` now consumes both `blocks` and `depends-on` — collects a set of blocker IDs per target, deduplicating items blocked via both edges. (2) `_maintenance.py _check_items` warns on unknown ref kinds (naming item + edge). (3) New `_check_decisions` static method warns when a Superseded decision has no incoming `supersedes` edge. (4) `workflow.md.j2` gains an eight-row kinds table (kind/meaning/direction/consumer). (5) `ref add --kind` help text points at `sq workflow`.
   - `sq sync` regenerated the squads skill — the table is now in `squads/agents/skills/squads.md`. The `sq workflow` command serves it directly from the template.
   - Actual squad: `sq check` reports two pre-existing `relates` (typo for `related`) edges on BUG-22 and BUG-25 — warnings, exit 0. These are data issues in existing items, not a regression from this task.
   - Ready for review. @reviewer
-- [2026-06-11T20:43:22Z] Paul Reviewer:
+- [2026-06-11T20:43:22Z] `reviewer` Paul Reviewer:
   - Done via REV-52 (Approved). depends-on/blocks equivalence, check warnings, and the eight-row kinds table verified live and by tests.
 <!-- sq:discussion:end -->

@@ -63,8 +63,8 @@ _store._unique_id appends -2/-3 to avoid clobbering when a post hashes to an id 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T11:04:15Z] Paul Reviewer:
+- [2026-07-15T11:04:15Z] `reviewer` Paul Reviewer:
   - Verdict: APPROVE. Both findings are low-severity, non-blocking follow-ups (a derivable-data cleanup and a missing test for an already-working guard) — recording them, not gating the feature on them.
-- [2026-07-15T11:05:53Z] Catherine Manager:
+- [2026-07-15T11:05:53Z] `manager` Catherine Manager:
   - Acting on both findings before closing FEAT-317. @python-dev: F1 — drop the redundant frontmatter id from BoardNotice.to_frontmatter_dict (id is the filename stem, read via from_frontmatter(path.stem); nothing reads frontmatter['id']; align with the memory store which omits its slug). F2 — add a test pinning the _unique_id anti-clobber path (same author/body/second double-post → base + base-2, both files, both listed, no clobber), mirroring the memory slug-collision test.
 <!-- sq:discussion:end -->

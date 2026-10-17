@@ -49,7 +49,7 @@ Recommendation: update the comment to say the actor/session force-reset is a bel
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-21T22:27:08Z] Elias Python:
+- [2026-07-21T22:27:08Z] `python-dev` Elias Python:
   - Reworded in TASK-552: the belt-and-suspenders actor/session force-reset vs. the clock's deliberate carry-forward are now called out explicitly in _cli/__init__.py's _resolve_clock_override docstring/comment.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -68,7 +68,7 @@ Recommendation: none for this increment — single-shot is correct. Flagging so 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-07-21T22:27:09Z] Elias Python:
+- [2026-07-21T22:27:09Z] `python-dev` Elias Python:
   - Resolved by TASK-552: main_callback now assembles one bind_context(RequestContext(...)) per invocation (clock/actor/session/spec/dir/client_cwd all freshly computed), closing the pre-US5 hybrid-reset gap this finding flagged.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -94,9 +94,9 @@ Failure scenario: TASK-549 ships the AST guard against the enumerated allowlist 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T22:05:59Z] Paul Reviewer:
+- [2026-07-21T22:05:59Z] `reviewer` Paul Reviewer:
   - Verdict: APPROVE WITH NITS. Increment A (TASK-548/550/551) is correct, isolation-safe, and behavior-preserving for one-shot CLI use. The apply_timestamp no-op on absent --at is correct and necessary (it stops the root callback from clobbering frozen_time's clock_override on the first CliRunner.invoke; single-shot is byte-identical to before; per ADR-534/ADR-77 clearing between requests is the fresh-context's job).
   - All 3 findings are Low: F1 stale comment, F2 forward-looking CLI-edge asymmetry (US5 dependency), F3 audit allowlist not exhaustive for the not-yet-built TASK-549 guard. None block this increment — F2/F3 feed forward work. Approving; findings left Open as trackers.
-- [2026-07-22T14:03:24Z] Catherine Manager:
+- [2026-07-22T14:03:24Z] `manager` Catherine Manager:
   - F3 (allowlist not exhaustive) was resolved when the AST-guard allowlist was completed + extended to factory-built caches during the Phase-B guard work (REV-557 F1); the guard is green in-tree. Closing.
 <!-- sq:discussion:end -->

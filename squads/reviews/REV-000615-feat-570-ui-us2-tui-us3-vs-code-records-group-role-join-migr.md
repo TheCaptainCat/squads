@@ -37,7 +37,7 @@ recordsTreeDataProvider.refresh() calls buildRecordsView with a hardcoded {} for
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-22T17:59:32Z] Ada Typescript:
+- [2026-07-22T17:59:32Z] `typescript-dev` Ada Typescript:
   - Fixed: exported getTypeIconOverrides() from treeDataProvider.ts and threaded it into recordsTreeDataProvider.refresh()'s buildRecordsView call (was a hardcoded {}), matching the work-tree provider's call site exactly. Gate re-run green: tsc --noEmit, eslint --max-warnings 0, vitest run (386/386).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -46,7 +46,7 @@ recordsTreeDataProvider.refresh() calls buildRecordsView with a hardcoded {} for
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T17:56:58Z] Paul Reviewer:
+- [2026-07-22T17:56:58Z] `reviewer` Paul Reviewer:
   - RECOMMENDED VERDICT: Approve (approve-with-nit). F1 is low/non-blocking icon polish; no correctness, contract, or migration defect found. Manager to set final status per distinct-party rule.
   - Gates ALL GREEN. TS: tsc 0 errors; eslint 0 warnings; vitest 386/386; skew canary 16/16 against live sq. Python: pyright 0/0; ruff check + format clean; pytest tests/tui green (incl. new test_status_role_colour.py, 4 tests).
   - Focus #1 (is_open/terminal fully gone + role-join complete): CONFIRMED. No src reads is_open/terminal/is_meta off any --json payload — remaining hits are comment prose, the CLI-'terminal' word, and canary NEGATIVE assertions (not.toHaveProperty). resolveRole two-step join (status->role name->role spec) is wired through EVERY consumer: treeMapping, metaView, listView, recordsView, and both new-catalog fetches in treeDataProvider + metaTreeDataProvider + recordsTreeDataProvider. Shape guards (isSqRoleCatalogEntry, isSqTypeCatalogEntry requires category) present; canary strengthened + roles-catalog.json fixture matches live.
@@ -54,6 +54,6 @@ recordsTreeDataProvider.refresh() calls buildRecordsView with a hardcoded {} for
   - Focus #3 (category plumbing/records view): single-sourced via typeCategory.ts/buildCategoryMap; isReservedType is category-driven and degrades to roster-only on empty catalog (records stay in work tree, never dropped); recordsView buckets are spec-derived (recordsTypes), each declared type present, numeric-id order; search --category single-valued + omitted when null. Records provider fetches --all (records always visible).
   - Focus #4 (skew canary): real assertion of the new shape, not weakened — asserts is_open/terminal ABSENT + new category/roles shape; passes against live sq.
   - US2 (TUI): 3-root split reads spec.items[type].category (a closed 3-literal, so groups[category] cannot KeyError); roots fixed order + always present; Text.assemble bracket-safety preserved; role colour via spec.role_for, hidden dimming via spec.hidden_by_default (no re-derived sets). _filter.py threads category + spec into ItemFilter; is_empty() correctly excludes spec. _ROLE_STYLES/_GROUP_LABELS allowlisted in the mutable-state guard (_GROUP_ORDER is a tuple, needs none).
-- [2026-07-22T18:00:27Z] Catherine Manager:
+- [2026-07-22T18:00:27Z] `manager` Catherine Manager:
   - Manager verification: re-ran the VS Code gate myself (tsc --noEmit clean, eslint 0 warnings, vitest 386/386, skew-canary 16/16 vs live sq) + confirmed is_open/terminal fully gone with resolveRole joins wired through every consumer; F1 fix present in recordsTreeDataProvider.ts (getTypeIconOverrides threaded into buildRecordsView). Python side: full suite green, tui tests + colour test pass. Approving.
 <!-- sq:discussion:end -->

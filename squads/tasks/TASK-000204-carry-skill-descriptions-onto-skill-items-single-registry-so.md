@@ -124,7 +124,7 @@ Covers fresh sq init (seeding) stamping each SKILL item's description from the s
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-25T09:41:31Z] Elias Python:
+- [2026-06-25T09:41:31Z] `python-dev` Elias Python:
   - TASK-204 complete. Full suite: 1141 passed, 1 skipped. pyright 0 errors, ruff clean.
   - **Registry** (ST1): Added SKILL_DESCRIPTIONS: dict[str, str] and skill_description(slug) to _interactions.py beside bundled_skill_slugs(). Bespoke text for 'squads' and 'greeting' moved from the backend; templated text for each sq-<type> generated from ItemType (excluding ROLE/SKILL/OPERATOR). The two hardcoded description strings in _backend.py write_managed and _write_item_skills are replaced with interactions.skill_description(name) — single source.
   - **Seeding** (ST3): seed_bundled_skills() now sets description=skill_description(slug) on the Item, so fresh sq init stamps the real description onto each SKILL item's frontmatter. The legacy inner import of number_for_id cleaned up.
@@ -132,7 +132,7 @@ Covers fresh sq init (seeding) stamping each SKILL item's description from the s
   - **Corpus fixture** updated: v0_5 greeting+squads files now carry the real YAML-serialized description strings instead of ''.
   - **Tests added**: test_init_seeds_skill_descriptions, test_init_skill_pointer_description_matches_registry, test_cli_list_t_skill_shows_non_empty_descriptions (seeding.py); test_migration_stamps_description_on_unstamped_file, test_migration_backfills_description_on_already_stamped_convention_file, test_migration_backfill_idempotent, test_migration_pointer_description_matches_registry (migration.py). 7 new tests.
   - TASK-204 stays InProgress. @manager
-- [2026-06-25T09:57:39Z] Elias Python:
+- [2026-06-25T09:57:39Z] `python-dev` Elias Python:
   - REV-205 nits F2+F3 applied. Targeted tests: 46 passed. pyright 0 errors, ruff clean.
   - **F2**: The sq-<type> comprehension in SKILL_DESCRIPTIONS now iterates PLAYBOOK directly (same source as managed_item_types() / bundled_skill_slugs()) — no hand-written exclusion list. Both the registry and bundled_skill_slugs() are locked to the same derivation; confirmed registry == bundled_skill_slugs() in sorted order.
   - **F3**: _rename_stamped_legacy now fills description only when it's empty/missing (guards with 'if not fm.get("description")'). Consistent with _backfill_description; a future operator edit to a skill description is never clobbered by a re-run.

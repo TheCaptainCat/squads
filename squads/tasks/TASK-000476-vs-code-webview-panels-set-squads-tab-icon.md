@@ -38,7 +38,7 @@ _Add with `sq task 476 add-subtask "<title>"`; track with `sq task 476 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-18T20:39:38Z] Ada Typescript:
+- [2026-07-18T20:39:38Z] `typescript-dev` Ada Typescript:
   - Set panel.iconPath on both webview panels (item preview: openNewPanel; workflow cheatsheet: openWorkflow), via a shared panelIconPath(extensionUri) helper.
   - Went with {light, dark} rather than reusing the single activity-bar SVG as-is: that SVG uses stroke="currentColor", which VS Code's activity-bar icon path re-tints via its own icon-masking, but a webview panel iconPath is drawn as a plain image with no such re-tinting -- currentColor would resolve to CSS's black default and disappear against a dark-theme tab bar. Added resources/squads-icon-vscode-{light,dark}.svg (explicit #424242/#C5C5C5 stroke, same geometry as the activity-bar source) instead of adding back any of the F13-deleted variants.
   - vsce ls confirms all three resources/ SVGs ship in the VSIX (no .vscodeignore change needed -- resources/ was never excluded; updated its explanatory comment).

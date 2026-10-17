@@ -80,7 +80,7 @@ This cluster owns _cli: remove real-citation squad-item refs from help text, err
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-06T13:51:15Z] Elias Python:
+- [2026-07-06T13:51:15Z] `python-dev` Elias Python:
   - Swept _services/_index/_migrations/_cli/_backends/_rendering + top-level src/squads/*.py: removed all real FEAT-/TASK-/ADR-/REV-/BUG-/EPIC-/US/ST/§N citations from comments/docstrings/CLI strings; restyled touched commentary terse + history-free.
   - Illustrative examples were reworded to non-matching placeholders (PREFIX-000007, TASK-<n>, STn/USn/Fn) where they were plain comments/docstrings, since the literal digit sequences would still trip the ref-pattern grep.
   - Deliberately kept tolerated illustrative payloads/CLI-syntax examples untouched per the feature's own carve-out: sq graph --json sample payload in _cli/_main.py (BUG-22 / FEAT-35 / TASK-100).

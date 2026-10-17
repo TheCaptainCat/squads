@@ -124,7 +124,7 @@ _Add with `sq task 768 add-subtask "<title>"`; track with `sq task 768 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T19:53:21Z] Olivia Lead:
+- [2026-08-21T19:53:21Z] `tech-lead` Olivia Lead:
   - Carved out of the projection work and authored on its own so the manifest hazard survives the closing of that task. Verified the mechanism from source rather than from memory: scripts/gen_template_manifest.py write mode does manifest[version] = current_hashes, a wholesale replacement of one version entry, keyed on [project].version from pyproject.toml, which still reads 0.13.0. The manifest already carries a 0.13.0 entry, so a regen today would overwrite a shipped release record and it would exit 0 while doing it.
   - The acceptance is the prior entry, not the script run: the 0.13.0 agents/role.md.j2 hash 1b88019b... must still be present unchanged and the manifest diff must be additions-only (one new version key). Named tests/meta/test_override_manifest_and_stamp_freshness.py as the gate that stops an out-of-order attempt, and --check as the safe way to look without writing.
 <!-- sq:discussion:end -->

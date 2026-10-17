@@ -55,7 +55,7 @@ _Add with `sq task 452 add-subtask "<title>"`; track with `sq task 452 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T14:20:35Z] Ada Typescript:
+- [2026-07-17T14:20:35Z] `typescript-dev` Ada Typescript:
   - Replaced the squads: virtual-doc + markdown.showPreview path with an owned WebviewPanel (src/itemPreviewManager.ts), never hijacked by other markdown files.
   - Rendering: new vscode-free src/domain/markdown.ts (lightweight hand-rolled markdown->HTML — headings/lists/code fences incl. mermaid-as-plain-code/tables/blockquotes/bold/italic/inline-code/links), no new runtime dependency, no bundler needed.
   - Navigable links (F10): item-id tokens are linkified generically (regex, spec-agnostic, no hardcoded type list) via data-item-id anchors; webview script posts {command:'openItem', id, newTab} on click/middle-click/ctrl-click (src/domain/previewMessages.ts + previewDocument.ts's inline script), routed same-panel vs new-panel through routeForMessage/routeForTreeSelection.

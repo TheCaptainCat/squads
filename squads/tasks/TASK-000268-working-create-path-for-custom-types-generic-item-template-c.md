@@ -51,7 +51,7 @@ _Add with `sq task 268 add-subtask "<title>"`; track with `sq task 268 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-01T10:20:02Z] Elias Python:
+- [2026-07-01T10:20:02Z] `python-dev` Elias Python:
   - @manager TASK-268 is done. All gates green: pyright 0 errors, ruff clean, 1493 passed / 1 skipped / 0 failed.
   - Files changed: (1) src/squads/_rendering/templates/items/_default.md.j2 — new generic item template with body+discussion markers; (2) src/squads/_rendering/_engine.py — added has_template() that checks the Jinja2 loader without raising TemplateNotFound; (3) src/squads/_services/_base.py — _template_for() now falls back to items/_default.md.j2 for custom types, with has_template() checking whether a per-type template exists; (4) src/squads/_cli/_create.py — create_app is now a _CustomCreateGroup (same lazy-dispatch pattern as _CustomTypeGroup in __init__.py), adding sq create <custom-type> as a registered command; (5) src/squads/_rendering/templates_manifest.json — regenerated via gen_template_manifest.py to include _default.md.j2; (6) tests/test_custom_type_create.py — 8 new tests.
   - How the generic template + custom-aware create hook together: _build_create_cmd(item_type_str) builds a TyperCommand for any custom type string by registering _make_fn in a single-command Typer (which yields a leaf TyperCommand, not a group). _CustomCreateGroup.get_command() lazily calls _build_create_cmd when Click dispatches a name that is not a built-in but is in the active spec's work_types(). _template_for() in ServiceCore now calls has_template(per_type_path) and falls back to items/_default.md.j2 when the per-type template is absent — built-ins all have dedicated templates so they are byte-identical.

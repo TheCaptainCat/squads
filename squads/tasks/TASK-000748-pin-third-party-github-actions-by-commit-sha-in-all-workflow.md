@@ -82,7 +82,7 @@ _Add with `sq task 748 add-subtask "<title>"`; track with `sq task 748 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T12:49:32Z] Hugo Ops:
+- [2026-08-21T12:49:32Z] `devops` Hugo Ops:
   - Pinned every uses: line in publish.yml, test.yml and vscode-client.yml to a 40-hex SHA + trailing # vX.Y.Z comment (commit 84cfa04).
   - Resolution: gh api repos/<owner>/<repo>/git/ref/tags/<tag> for each, cross-checked with git ls-remote --tags (annotated tags peeled via ^{}).
   - actions/checkout@v6.0.3 -> df4cb1c069e1874edd31b4311f1884172cec0e10 (annotated tag, peeled).

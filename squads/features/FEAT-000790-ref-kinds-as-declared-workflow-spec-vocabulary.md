@@ -238,15 +238,15 @@ set of template-touching changes in this release — it is not merged ahead of t
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-25T14:50:17Z] Olivia Lead:
+- [2026-08-25T14:50:17Z] `tech-lead` Olivia Lead:
   - Broken into three tasks. TASK-796 (US1+US4) declares the ref_kinds section, retires VALID_REF_KINDS as the authority, and ships targets plus the catalog command. TASK-797 (US2+US3) converts the ~12 literal engine bindings to declared semantics and adds the floor, the live-corpus refusal and the tests/meta literal scan. TASK-798 (US5) is the tech-writer reissue of the contract prose.
   - Why 796 and 797 are split rather than one pass: they are one owner and strictly sequential (both touch _workflow/_loader.py, _models.py and _specs/workflow.toml, so they must not run in parallel), but they are different shipping increments. FEAT-693 consumes only what 796 delivers - a declared kind a view source can name - so putting the literal rip-out in front of it would park FEAT-693 behind work it does not need. TASK-796 is the earliest unblock on this feature.
   - TASK-798 is a separate task because the owner differs: ADR-775 section 6 and the operator ruling on that decision put the contract reissue with the tech-writer, not the developer landing the engine change. It carries the only bundled-template edit in this feature (workflow_static.md.j2), so it is the only one that forces a manifest regeneration.
   - Two things the ADR leaves under-specified for task-level work are recorded as open questions on the tasks that hit them, both flagged to @architect: the bare-ref default kind (related) on TASK-796, and what sq graph --json emits for edge_kind under a renamed dependency kind on TASK-797.
-- [2026-08-25T15:49:57Z] Olivia Lead:
+- [2026-08-25T15:49:57Z] `tech-lead` Olivia Lead:
   - ST2 of TASK-796 landed partial by design: the clause making the cheatsheet kinds table render from the merged spec needs a bundled-template edit, which forces a manifest regeneration and was TASK-799 exclusive territory this pass. Folded into TASK-798 as a new ST4, alongside moving the row-count test pin off its literal 9 - that test module is already TASK-798 to update, since it also asserts the docs/stability.md wording ST1 removes.
   - Net effect on US4: targets is declared and shipped in the catalog command, but does not yet appear in the cheatsheet table, and will not until TASK-798 ST4 lands. Worth knowing before US4 is called done off the catalog command alone.
-- [2026-08-25T16:01:14Z] Olivia Lead:
+- [2026-08-25T16:01:14Z] `tech-lead` Olivia Lead:
   - Two more tasks off ADR-775 A3, both Ready under this feature. TASK-806 (urgent, US1) - stop emitting the spelled default ref kind on disk, plus refreezing the 0.1-to-0.2 runner that borrowed fold_legacy_kinds; it is a regression in US1 own delivery, live on the current tree under the bundled spec with no rename involved. TASK-807 (high, US2) - sq graph traverses an undeclared-kind edge instead of dropping it silently.
   - Both carry depends-on TASK-797 and so read BLOCKED. For TASK-807 that is real (edge_semantic comes from A2/TASK-797, and both touch _services/_refs.py). For TASK-806 it is one clause only - the exactly-one-default floor - and A3 is explicit that it must not queue behind the rip-out. Do not read the blocked flag as an instruction to park it.
 <!-- sq:discussion:end -->

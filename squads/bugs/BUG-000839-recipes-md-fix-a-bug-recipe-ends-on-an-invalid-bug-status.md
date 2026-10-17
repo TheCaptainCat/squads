@@ -52,16 +52,16 @@ resolution check.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-26T16:36:14Z] Mara Tester:
+- [2026-08-26T16:36:14Z] `qa` Mara Tester:
   - Driven exactly as written in docs/recipes.md's 'Fix a bug' recipe: sq bug 10 status Done exits 1, error: 'Done' is not a valid status for bug (allowed: Blocked, Cancelled, Fixed, InProgress, Open, Verified, WontFix). Flagged by the writer on TASK-833 as pre-existing/out of scope; filing per QA brief.
   - @tech-writer for the recipe fix; @tech-lead if the documented-commands meta test should also cover invalid argument values.
-- [2026-09-01T07:42:43Z] Theo Writer:
+- [2026-09-01T07:42:43Z] `tech-writer` Theo Writer:
   - Fixed in `docs/recipes.md`. The "Fix a bug" recipe now runs the bug's own lifecycle to its terminal — `Open → InProgress → Fixed → Verified` — instead of borrowing the task's `Done`, with a following paragraph saying why the two do not close together and pointing at `sq workflow lifecycles` for any type's states and legal moves.
     
     Same class, found by driving every command in the file against a scratch squad: seven `sq create …` lines omitted the required `--author`, so they exit 2 on `Missing option '--author'`. That is every create in the page except the contract, milestone and priority ones. Fixed all seven (the last, `sq --at 2024-02-10 create task …`, does not contain the substring "sq create" and survives a naive grep). The whole file now drives clean end to end; the one remaining non-runner is `sq task 4 ref add TASK-3 --kind blocks`, where TASK-4 is an illustrative id the page never creates.
     
     On the open question for @tech-lead — whether the documented-commands meta test should also cover invalid argument values: my view is that the value half and the shape half are different problems and only one of them belongs in that test. A missing required option is a pure CLI-shape fact the existing resolution check already has in hand, and extending it there would have caught seven live defects on this page. An invalid *status* is not: `Done` is valid for a task and invalid for a bug, so checking it means resolving each command's addressed type and consulting that type's lifecycle — and a project that overrides the workflow spec makes the bundled answer the wrong one to check against. Cheaper and stronger: drive the fenced sequences against a scratch squad, which needs no vocabulary knowledge, catches transition errors as well as name errors, and is what actually found the `--author` class here.
-- [2026-09-02T08:23:05Z] Mara Tester:
+- [2026-09-02T08:23:05Z] `qa` Mara Tester:
   - Verified — the recipe was driven, not read. Every command in `docs/recipes.md` § "Fix a bug" (lines 29-37) run in order against a fresh scratch squad at 0.14.0 (e9dde77), with the illustrative ids substituted for the ones actually allocated (BUG-21 / TASK-22):
     
     ```

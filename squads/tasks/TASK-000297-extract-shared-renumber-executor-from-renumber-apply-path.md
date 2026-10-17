@@ -75,6 +75,6 @@ Done when the rewrite_ids -> file-rename -> sequence_id-resync apply-path lives 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-06T09:55:26Z] Elias Python:
+- [2026-07-06T09:55:26Z] `python-dev` Elias Python:
   - REV-302 F1 addressed: dropped the ADR-000295/ADR-000282 citations from the new src/ docstrings/comments (kept in squads/** item bodies where they belong per the repo-wide-sweep convention). Proof: git diff HEAD -- src/ | grep -nE '^+' | grep -E '(ADR|FEAT|TASK|REV|BUG|EPIC)-?0*[0-9]+' is empty.
 <!-- sq:discussion:end -->

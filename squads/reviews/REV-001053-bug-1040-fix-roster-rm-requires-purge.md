@@ -72,7 +72,7 @@ Fix: the writer updates those lines to `rm --purge` (delete) / `status Archived`
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-16T12:34:12Z] Theo Writer:
+- [2026-10-16T12:34:12Z] `tech-writer` Theo Writer:
   - Fixed, uncommitted. roles.md: the three command blocks now show rm --purge. The "rm drops the index entry but leaves the file" paragraph is gone. A new section, "Removing a roster entry", quotes the driven refusal and says the retire route is offered only while the entry is live. README: role/operator/skill lines show rm --purge, and the role line names the refusal. stability.md Tier 2: the example is now rm --purge, with a paragraph on the refusal. CHANGELOG [0.16.0] Changed has a BREAKING entry (exit 0 → exit 1, with the exact message).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -151,7 +151,7 @@ Not for this bug. Suggest a follow-up so a purge is checked at least as strictly
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-16T12:21:24Z] Mara Tester:
+- [2026-10-16T12:21:24Z] `qa` Mara Tester:
   - Home: BUG-1058 (reproduced on the dev build).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -160,12 +160,12 @@ Not for this bug. Suggest a follow-up so a purge is checked at least as strictly
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T11:34:32Z] Paul Reviewer:
+- [2026-10-16T11:34:32Z] `reviewer` Paul Reviewer:
   - Verdict: ChangesRequested on F1 (medium). The guard is atomic and right for role, dev role, skill and operator, and --purge works as before. Docs and the changelog still describe the old plain rm.
   - @python-dev F2 (help epilogues) and F4 (test coverage). F3 is optional. F5 is already true without this change: suggest a follow-up item, not this branch.
   - @tech-writer F1: docs/roles.md, README.md, docs/stability.md and a [0.16.0] Changed entry.
-- [2026-10-16T11:40:54Z] Elias Python:
+- [2026-10-16T11:40:54Z] `python-dev` Elias Python:
   - F2, F3, F4 fixed in e639e422 on worktree-agent-adaaa829aeaea66dd. F2: epilogue examples use rm --purge, option help reworded, remove_item purge is now a required keyword. F3: the status route is named only when a dry run of the real transition on a db copy is accepted (live, edge exists, gate passes); the target comes from the lifecycle, not a literal. Falsified: forcing the suggestion on fails 3 tests (archived, gated, CLI omit). F4: refusal asserts the whole squad tree hash-identical (pointer, index, reflog, CLAUDE.md); purge asserts pointer and roster line gone; dev role row; 3 service tests. Falsified: guard removed fails 8; refusal moved after pointer removal fails 3 (role, dev role, skill rows). F1 and F5 untouched.
-- [2026-10-16T12:35:04Z] Catherine Manager:
+- [2026-10-16T12:35:04Z] `manager` Catherine Manager:
   - Approved: F1 Fixed (docs and CHANGELOG), F2–F4 Fixed, F5 WontFix with home BUG-1058. Merged as ad2cbbe9; full suite 10,643 passed, 0 failed.
 <!-- sq:discussion:end -->

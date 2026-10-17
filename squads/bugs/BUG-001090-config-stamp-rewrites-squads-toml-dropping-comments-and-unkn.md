@@ -69,6 +69,6 @@ Update the single value in place (line-level or tomlkit round-trip) instead of r
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-17T03:10:55Z] Catherine Manager:
+- [2026-10-17T03:10:55Z] `manager` Catherine Manager:
   - Also covers REV-1089 F5: the [display] preservation matches header lines instead of parsing TOML (multi-line string with a '[' line, quoted ["display"] header). A real round-trip fixes both.
 <!-- sq:discussion:end -->

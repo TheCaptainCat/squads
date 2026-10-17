@@ -40,6 +40,6 @@ _Add with `sq task 561 add-subtask "<title>"`; track with `sq task 561 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T23:39:42Z] Ada Typescript:
+- [2026-07-21T23:39:42Z] `typescript-dev` Ada Typescript:
   - Accept wired to ItemPreviewManager.openFromTree via a pure decideAccept (open vs submit) decision; dismissal only disposes (no navigation). Extension-host smoke suite gets a squads.search line. Gates green.
 <!-- sq:discussion:end -->

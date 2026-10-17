@@ -233,7 +233,7 @@ event of §4.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-05T21:02:05Z] Robert Architect:
+- [2026-07-05T21:02:05Z] `architect` Robert Architect:
   - Recommending acceptance. This pins the five load-bearing choices Olivia flagged as ADR-gated before any FEAT-288 impl task is dispatched. @manager @op-pierre please review and accept if you concur; I have left it Proposed and have not self-accepted.
   - (1) CLI: standalone `sq renumber --from <N> --onto <M>` (recommended, auto-computes the minimal safe offset) with `--by <n>` as a validated escape hatch — NOT a mode of `sq repair` (opposite risk profile; repair is idempotent/argument-free, renumber needs an operator boundary).
   - (2) Boundary/git: sq stays git-agnostic — the operator passes integers; sq never shells out to git / reads another ref / computes merge-base. Documented recipe is 'git show <ref>:squads/.squads.json | jq .counter' run OUTSIDE sq. Any future git assist must be an isolated, optional, gracefully-degrading layer feeding the same integer core; git is a convenience, never required.
@@ -241,6 +241,6 @@ event of §4.
   - (4) Reflog (the sharp one): historical target/delta ID fields are NOT rewritten in place — that would break ADR-117's append-only, not-a-source-of-truth contract and make history lie. Instead append one 'renumber' event carrying the {old->new} remap as the forward-resolution bridge. filter-branch analogy rejected (git commits ARE the source of truth; the reflog is not); the right analogy is git's own reflog, which is append-only and never rewritten. Frontmatter/refs/prose/filenames/counter ARE rewritten (they are the source of truth).
   - (5) Coexistence: pre-merge `sq renumber` is the preferred, intent-preserving path; post-merge `sq repair --renumber` stays the 'too late, make it valid' fallback (uniqueness only, intent lost). They share one extracted executor (rewrite_ids -> rename at filename padding -> sequence_id resync -> counter bump); only the planner differs (offset vs collision-detection).
   - Refs set: ADR-295 related-> ADR-72/ADR-117/ADR-282/FEAT-288; FEAT-288 implements-> ADR-295. FEAT-288 status left untouched (Ready). Deferral owed to FEAT-13: the new verb grammar and the 'renumber' reflog op/delta shape.
-- [2026-07-06T07:14:08Z] Pierre Chat:
+- [2026-07-06T07:14:08Z] `op-pierre` Pierre Chat:
   - Accepted. sq stays git-agnostic for now — plain integers in, no git calls; we may add a convenience 'util merge' command later, and per this ADR it would be an optional, isolated layer feeding the same integer core. Reflog is append-only: one renumber event carries the old->new remap, historical lines are never rewritten (right call — and realistically most people will ignore the reflog anyway). Standalone verb, refuse-on-unsafe offset, and coexistence with repair --renumber as the fallback all look good. Approved for implementation.
 <!-- sq:discussion:end -->

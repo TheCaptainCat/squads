@@ -55,12 +55,12 @@ _Add with `sq task 579 add-subtask "<title>"`; track with `sq task 579 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T09:47:28Z] Elias Python:
+- [2026-07-22T09:47:28Z] `python-dev` Elias Python:
   - dispatch engine scaffold lands: _services/_validators.py (Validator/SquadGlobalValidator protocols, ValidatorContext, empty CATALOG/SQUAD_GLOBAL_CATALOG/CATEGORY_BUNDLES CODE constants, ValidatorEngine.report/gate), wired at sq check + create/update as a no-op; AST guard allowlisted + green; 9 new unit tests; sq check byte-identical.
-- [2026-07-22T09:55:54Z] Elias Python:
+- [2026-07-22T09:55:54Z] `python-dev` Elias Python:
   - Fix 1 done: stripped ADR-541/FEAT-567/FEAT-568 refs from src/ comments+docstrings (validators.py, _base.py, _maintenance.py, _items.py, _loader.py, _models.py) and the new test's docstring; hygiene meta-test green (10/10). Fix 2 BLOCKED: templates_manifest.json keys by squads.__version__ (0.11.1), and v0.11.1 is an already-shipped, pushed tag — regenerating would overwrite the released entry's hashes. Flagged to the coordinator/operator rather than run the regen script; test_override_manifest_and_stamp_freshness stays red pending a version-bump call.
-- [2026-07-22T10:13:37Z] Elias Python:
+- [2026-07-22T10:13:37Z] `python-dev` Elias Python:
   - Fix 2 unblocked per operator approval: pyproject.toml 0.11.1->0.12.0 (unreleased on release/0.12), manifest regen appended a 0.12.0 entry only (0.11.1 and all older entries byte-identical, diffed), CHANGELOG restructured to a proper 0.12.0 section (category-axis/validator-engine Added line + the is_meta deprecation note). Also caught+fixed 2 golden JSON fixtures (override_list/override_diff) whose pinned base_version was 0.11.1 -- regenerated just those two, diff confirms only the version string changed. All gates green; sq check stdout byte-identical (a new stderr-only version-drift notice now prints repo-wide, expected from the version bump itself, clears via sq sync -- not run, out of scope).
-- [2026-07-22T10:24:30Z] Elias Python:
+- [2026-07-22T10:24:30Z] `python-dev` Elias Python:
   - REV-580 F1 fixed: effective_validator_names' category_bundles param no longer binds the mutable CATEGORY_BUNDLES dict as a default -- now category_bundles: dict[...] | None = None, resolved to CATEGORY_BUNDLES inside when omitted. Behavior identical (still an empty-catalog no-op); all call sites (production + stub-bundle tests) unaffected. pyright/ruff/format clean, both targeted meta+scaffold tests green, sq check byte-identical.
 <!-- sq:discussion:end -->

@@ -42,7 +42,7 @@ docs/stability.md, frozen-surface bullet (touched by this diff): 'The catalog an
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-23T08:38:35Z] Elias Python:
+- [2026-07-23T08:38:35Z] `python-dev` Elias Python:
   - Fixed: docs/stability.md's frozen-surface bullet no longer claims a standalone 'skill list -t skill' command — reworded to point at the generic 'list -t skill' (already covered by the Commands bullet above), consistent with the adjacent prose.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -57,7 +57,7 @@ sq role list --json (src/squads/_cli/_role.py) emits both 'status' and 'active',
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-07-23T08:38:36Z] Elias Python:
+- [2026-07-23T08:38:36Z] `python-dev` Elias Python:
   - Fixed: dropped the derived 'active' field from 'sq role list --json' (src/squads/_cli/_role.py) — status is now the sole source, un-restated. Regenerated tests/goldens/role_list.json and updated tests/cli/test_role_list_command_cli.py's shape assertion. Table's active/inactive marker column (display-only) is unchanged.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -66,13 +66,13 @@ sq role list --json (src/squads/_cli/_role.py) emits both 'status' and 'active',
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-23T08:35:27Z] Paul Reviewer:
+- [2026-07-23T08:35:27Z] `reviewer` Paul Reviewer:
   - RECOMMENDED VERDICT: Approve (two LOW nits, non-blocking; distinct-party status set by the manager).
   - GATE: green — pyright 0 errors, ruff check clean, ruff format clean (363 files). Targeted pytest over the touched service/CLI/sections/golden tests + tests/meta: 130 passed.
   - LEAD #1 (remove correctness): CORRECT. remove_section(text, 'kind:local_id') excises exactly the block's open→matching-:end span; the nested :head/:body/:discussion regions carry distinct :head:end/:body:end/:discussion:end tokens, so text.find(close) can't mis-match them (verified against block.md.j2, which wraps them all between the block's own open/close and owns the leading blank line remove_section absorbs). Sibling blocks + their markers and the roll-up :summary stay intact (re-rendered via ensure_summary). Refusal is atomic — the dangling-story guard and _find raise before any mutation/write, so file+index+reflog are untouched (test asserts both sides intact). The story→subtask guard is correctly scoped to kind=='story' via _dependent_subtasks over db.children. Freed-local-id policy reasoned soundly in the docstring and can't collide: the guard blocks removing a story that still has mapped subtasks, so a reissued highest id never inherits a stale mapping; reflog is history-only (not replayed to rebuild state). Test coverage is thorough (siblings, summary, frontmatter, refusal, reflog, both gap and reissue cases).
   - LEAD #3 (store._log): ESTABLISHED pattern, not new debt. remove_block uses the identical self.store._log(...) # pyright: ignore[reportPrivateUsage] that every other mutation uses (6 existing sites in this same file plus _items/_refs/_collab/_base/_rename/_retype/_maintenance). No new suppression introduced — consistent, fine.
   - LEAD #4 (--json fidelity): FAITHFUL. comments --json {author, ts, body} is byte-identical to show --json's discussion[] (both _cli/_common.py:563-565 and _items.py:286 use cmt.author/cmt.timestamp/cmt.body via split_discussion). operator list matches operator show fields. Goldens contain only the intended additions. The renamed test_roster_type_address_verbs.py keeps the skill-list fallthrough assertion intact and correctly flips role/operator list to real-verb tests.
   - Conventions: clean — no ticket IDs in source (the FEAT-000002/TASK-3 in the remove CLI test are synthetic IDs generated in the test's own tmp squad, asserted on CLI output — legitimate), no new 'meta' usages (the two hits are pre-existing: a historical :meta marker in a docstring and an untouched local var), no bare type aliases, no </content> leakage, SquadsError-family raised, e() escaping present on console output, no SCHEMA_VERSION bump. Two LOW findings: F1 (stability.md 'skill list -t skill' non-command) and F2 (role list --json derived 'active' redundancy). @manager for verdict.
-- [2026-07-23T08:40:42Z] Catherine Manager:
+- [2026-07-23T08:40:42Z] `manager` Catherine Manager:
   - Manager verification: F1 stability.md now internally consistent (phantom 'skill list -t skill' gone, skills listed via 'list -t skill'); F2 derived 'active' dropped from role list --json (golden fields: full_name/id/slug/status/title), display marker kept. Full suite green. Leads all confirmed (remove path marker-safe + atomic, store._log established, --json faithful). Approving.
 <!-- sq:discussion:end -->

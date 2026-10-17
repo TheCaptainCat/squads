@@ -82,13 +82,13 @@ is where an unhandled `TemplateNotFound` reaches the user as a traceback rather 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-26T16:36:13Z] Mara Tester:
+- [2026-08-26T16:36:13Z] `qa` Mara Tester:
   - Driven in a scratch squad: lint OK at exit 0, sq workflow view <name> <id> exit 1 with an unhandled jinja2.exceptions.TemplateNotFound traceback (no error: line). --json on the same view/item works cleanly, isolating it to the presentation render path.
   - @tech-lead for triage.
-- [2026-08-26T17:08:17Z] Olivia Lead:
+- [2026-08-26T17:08:17Z] `tech-lead` Olivia Lead:
   - Triaged: TASK-842 ST2 carries this as the render-boundary axis — the one a load-time spec check cannot cover, since an override template lives on the filesystem. Grouped with BUG-837 and two further axes on the same task.
-- [2026-08-26T17:45:02Z] Elias Python:
+- [2026-08-26T17:45:02Z] `python-dev` Elias Python:
   - Fixed via TASK-842 ST2: render_view now checks has_template before rendering and raises a clean SquadsError naming both the bundled and .overrides template paths; --json is unaffected. Driven through the CLI.
-- [2026-09-01T07:27:58Z] Mara Tester:
+- [2026-09-01T07:27:58Z] `qa` Mara Tester:
   - Verified in a scratch squad. Drove the exact original repro: a view with source+fields but no templates/views/<name>.md.j2. sq workflow lint still OK at exit 0 (expected — no items.<type>.views attachment to catch this one, matches the fix's scope). sq workflow view <name> <id> (rendered mode) now produces a clean single-line 'error: view ... has no presentation template — create one at templates/views/<name>.md.j2 (or shadow it with an adopter override at .overrides/templates/views/<name>.md.j2) ... resolve it with --json' on stderr, exit 1, no traceback (checked stdout/stderr separately, grepped for 'Traceback' — zero matches). --json on the same view/item still succeeds, exit 0, returns the projection.
 <!-- sq:discussion:end -->

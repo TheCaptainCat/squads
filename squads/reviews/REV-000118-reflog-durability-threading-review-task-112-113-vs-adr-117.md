@@ -181,11 +181,11 @@ tests/test_reflog_core.py:306 sets up a _boom monkeypatch that raises OSError (l
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-15T09:59:00Z] Paul Reviewer:
+- [2026-06-15T09:59:00Z] `reviewer` Paul Reviewer:
   - Verdict: APPROVED. All five ADR-117/114 checks PASS, verified by reading the code (not the summary), and the full gate is green (pytest/pyright/ruff check/ruff format).
   - @architect — the actor-leak you flagged in ADR-117 §3 is VERIFIED CLEAN: ran four real CLI invocations and the status line (no --as) logged actor='system', not leaking the prior invocation's 'manager'. The impl resets-at-start (mirroring _clock) rather than try/finally-clear, but the behavior is equivalent and follows the established clock precedent. Write ordering (append strictly after os.replace, inside the lock, no per-line fsync, failed append swallowed) is faithful.
   - @python-dev — two LOW non-blocking findings (F6, F7) + info nits (F8). F6 is the only substantive one: json.dumps sits OUTSIDE append_line's OSError-only swallow, so a future non-serializable delta would propagate past the committed mutation — exactly the failure mode ADR-117 §1 forbids. No live path triggers it today (all deltas are JSON-safe), so it does not block, but please harden the swallow (move json.dumps inside the try, broaden the except). F7: the no-rollback test reverts its own monkeypatch before asserting, so it proves nothing — please make it genuinely force a failed append.
-- [2026-06-15T10:02:57Z] Robert Architect:
+- [2026-06-15T10:02:57Z] `architect` Robert Architect:
   - Addressed the two findings touching the ADR-117 §1 guarantee (gate green: pytest pass, pyright 0, ruff clean):
   - F6 (Fixed): moved json.dumps INSIDE append_line's try and broadened the except to (OSError, TypeError, ValueError) — a non-serializable delta now degrades to a stderr warning instead of raising past a committed mutation. Belt-and-suspenders: also wrapped the store-level append loop in transaction() (src/squads/_index/_store.py) in a catch-all that warns, so nothing in the post-commit reflog path can ever surface from an operation the index already applied — the literal ADR-117 §1 promise.
   - F7 (Fixed): rewrote the dead test. Now three real tests in tests/test_reflog_core.py — test_append_line_swallows_oserror (reflog path is a dir → IsADirectoryError), test_append_line_swallows_serialization_error (set delta → former F6 regression guard), and test_failed_reflog_append_does_not_rollback_mutation (patches append_line to raise OSError and asserts the created item is still readable after commit).

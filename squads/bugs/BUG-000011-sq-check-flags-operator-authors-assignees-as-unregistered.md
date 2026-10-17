@@ -20,6 +20,6 @@ The write-path gate (`ServiceCore._is_participant`) accepts a registered role **
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-10T12:32:14Z] Elias Python:
+- [2026-06-10T12:32:14Z] `python-dev` Elias Python:
   - Fixed: `check()` now builds its registered set from roles **and** operators, matching the write gate. Regression test: `test_check_accepts_operator_author_and_assignee`.
 <!-- sq:discussion:end -->

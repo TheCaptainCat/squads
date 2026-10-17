@@ -341,7 +341,7 @@ Apply the stranger test to every docstring/comment/error string this task adds, 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-04T06:49:13Z] Elias Python:
+- [2026-09-04T06:49:13Z] `python-dev` Elias Python:
   - Reconstructed and finished this task; the previous session's implementation (resolve_source rename, three new resolvers, six-entry _SOURCE_APPLICABILITY) was sound and is preserved unchanged in its logic.
     
     **Two gate fixes**
@@ -387,7 +387,7 @@ Apply the stranger test to every docstring/comment/error string this task adds, 
     **Unresolved / worth a look**
     - `--json` for role/playbook/self sources is deliberately out of scope (per-source --json is named as separate later work in the ADR and the task body); `resolve_view` refuses cleanly for those three kinds today, proven by test.
     - Nothing else outstanding that I'm aware of; TASK-919 (per-source --json) is next and was left untouched.
-- [2026-09-04T06:51:13Z] Catherine Manager:
+- [2026-09-04T06:51:13Z] `manager` Catherine Manager:
   - Full suite green as the authoritative gate: 4818 passed, 12 skipped, exit 0. Two gate failures I found before dispatching the finishing pass are fixed and verified: the US2 story references in test_role_source_resolver.py (grep validated against a known positive) and the ruff format failure. Verified independently that the scanner stayed out of the repo and that all four test files the docstrings cited now actually exist.
   - Worth recording as the reusable lesson: the interrupted session left two docstrings citing test files that were never written. Same class as a false (read) label -- prose asserting verification that was never performed. The finishing pass found them by checking the citations rather than the prose. Also note the previous session passed pyright, ruff check and 4794 tests while carrying a real tests/meta violation, because its targeted selection did not include tests/meta. The main loop owning the full suite is what caught it.
 <!-- sq:discussion:end -->

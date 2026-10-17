@@ -244,15 +244,15 @@ grep -rn reportPrivateUsage src/ returns nothing; uv run --all-extras pyright is
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-27T15:03:14Z] Catherine Manager:
+- [2026-07-27T15:03:14Z] `manager` Catherine Manager:
   - Embarked with the ADR-663 fix round (Pierre). Sequenced after TASK-666: the dominant Group B site (store._log from the mixins) reads _current_ctx, which TASK-666 replaces with a task-local ContextVar — the public logging API must be designed against that shape, not the attribute being deleted. Tech-lead designs the surface now; implementation follows 666.
-- [2026-07-27T15:09:00Z] Olivia Lead:
+- [2026-07-27T15:09:00Z] `tech-lead` Olivia Lead:
   - Public surface designed in the body. Store API: `IndexStore.log(op, target, delta)` — same signature as `_log`, and the no-open-transaction case stays a **silent no-op**, deliberately. ADR-663 §4 requires the logging entry point to ignore a foreign store's context, and raising there would also abort a transaction after a durable markdown write (the §1 skew) to report a bookkeeping mistake. Docstring records it as provisional: it becomes `txn.log()` at §4's promotion trigger.
   - Other three concerns: one public `Service.roster_item(item_type, slug)` replaces the three private roster lookups and kills the CLI's dict-of-bound-privates (keep the skill-only `extra.get(X.SLUG, it.slug)` fallback); promote `apply_type_change`/`resync_edges` in place in `_retype.py` rather than extracting a shared module; promote `is_full_id_shape` in `_cli/_common.py`.
   - Two corrections to the filed scope: the site list was stale both ways (`_status_badge`/`_SUMMARY_COLS`/`_active_dir` already cleaned by the request-context work; two new reach-ins in `_services/_rename.py`), so it is 29 suppressions not ~20 — derive the list from a fresh grep. And added `depends-on TASK-664`: Elias is rewriting write call sites in six of the eight modules this touches.
   - One part needs your sign-off, flagged in the body as non-blocking: scoping the ~90 `tests/` suppressions out via `reportPrivateUsage = "none"` on the existing tests execution environment. Rationale is whitebox coverage + `tests/tui/` reaching into Textual's own privates, which we cannot promote. Fallback if unratified: scope to `src/`, leave the test comments alone — pyright is clean either way. @manager
-- [2026-07-27T15:12:11Z] Pierre Chat:
+- [2026-07-27T15:12:11Z] `op-pierre` Pierre Chat:
   - Signed off: set reportPrivateUsage = "none" on the tests execution environment and delete the ~90 suppression comments. Not a walk-back of the 2026-06-30 decision — that rule targets cross-module private reach-ins in src/; a test pinning internals is deliberate whitebox coverage, and the tests/tui/ block reaches into Textual's privates, which no API design here can promote.
-- [2026-07-27T22:43:37Z] Elias Python:
+- [2026-07-27T22:43:37Z] `python-dev` Elias Python:
   - Implemented all four concerns + 2 extra reach-ins (_validators.py's on_disk_not_indexed/not_on_disk) a fresh grep surfaced beyond the filed 29 — 31 sites total in src/. pyright 0/0 tree-wide with src suppressions removed (not relocated); demonstrated the gate still catches a new reach-in (added one, saw it fail, reverted). Tests policy landed per your sign-off: reportPrivateUsage = "none" on the tests executionEnvironment, ~121 per-line ignores deleted under tests/. ruff check/format clean. Targeted suites (unit/service/cli/integration/tui/meta) green; full suite and sq check left for you per the brief.
 <!-- sq:discussion:end -->

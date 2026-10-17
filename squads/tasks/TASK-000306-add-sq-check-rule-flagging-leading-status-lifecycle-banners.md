@@ -57,7 +57,7 @@ Add a `_check_*` helper in src/squads/_services/_maintenance.py mirroring _check
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-07-06T12:31:52Z] Elias Python:
+- [2026-07-06T12:31:52Z] `python-dev` Elias Python:
   - Done: added _check_status_banners + _opens_with_status_banner to src/squads/_services/_maintenance.py, wired into check() beside the sibling calls. Reads the item's :body region via sections.get_section (never touches sq:discussion) and item.description; anchored to the leading line only. Warn-level.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -72,7 +72,7 @@ Add service-level + CLI-smoke tests, named by behavior (no sq IDs in filenames o
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-07-06T12:31:53Z] Elias Python:
+- [2026-07-06T12:31:53Z] `python-dev` Elias Python:
   - Done: added tests/test_status_banner_check.py — 6 positive-shaped assertions (STATUS: banner, ## Status heading, bold **STATUS…** banner, description banner, message wording, warn-level) and 6 negative (topical Draft→Ready mention, cross-reference to another task, STATUS: inside fenced code, banner in a discussion comment, no-body item, warn isolation) at service level, plus 4 CLI smoke tests. All pass.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
@@ -87,7 +87,7 @@ Like FEAT-289, adding the rule may trip existing tests/goldens whose fixtures ca
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-07-06T12:31:54Z] Elias Python:
+- [2026-07-06T12:31:54Z] `python-dev` Elias Python:
   - Done: no existing fixtures/goldens carried a leading-banner shape (the golden seeded squad's descriptions/bodies are plain), so nothing needed reconciling — full suite is green with the detector unweakened.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
@@ -96,8 +96,8 @@ Like FEAT-289, adding the rule may trip existing tests/goldens whose fixtures ca
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-06T12:24:03Z] Elias Python:
+- [2026-07-06T12:24:03Z] `python-dev` Elias Python:
   - Severity rationale: warn, matching the sibling advisory checks (_check_unwritten_subentity_bodies, _check_subentity_title_lengths). A self-declared status banner is a maintenance smell — it can drift from the real frontmatter status — not a structural error that should block sq check's exit code. The warn-then-error promotion (once the corpus is clean) is an explicit fast-follow, out of scope for this task per the description.
-- [2026-07-06T12:31:55Z] Elias Python:
+- [2026-07-06T12:31:55Z] `python-dev` Elias Python:
   - Helper + wiring + tests landed. Full suite green (1641 passed, 1 skipped, 0 failed). Gates clean: pyright 0 errors, ruff check all passed, ruff format all formatted. No sq IDs in shipped src/tests (verified by grep).
 <!-- sq:discussion:end -->

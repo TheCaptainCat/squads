@@ -154,6 +154,6 @@ this model, not a change to it.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T12:18:36Z] Catherine Manager:
+- [2026-07-21T12:18:36Z] `manager` Catherine Manager:
   - Accepted after a full read. Build rules stand: App is a thin shell pushing BrowseScreen; FilterScreen (ModalScreen) + SearchScreen (full Screen) + ReaderScreen (wraps existing ReaderPanel) on the stack; frozen BrowseState (ItemFilter + include_closed + SortKey) owned by BrowseScreen, popup seeded from it and returns a new state via dismiss; sort is presentation-only sibling reorder; search hits open in a pushed ReaderScreen (not tree nav). Import direction acyclic per the ADR; async awaited on Textual's loop, optional @work(exclusive) for search. Note for the tech-lead: this refactors the current single-screen _app.py into BrowseScreen and updates the tests/tui suite accordingly.
 <!-- sq:discussion:end -->

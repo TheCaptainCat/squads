@@ -94,7 +94,7 @@ Covers the packaging verification: a build/packaging test asserting `roles.toml`
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-26T07:49:50Z] Elias Python:
+- [2026-06-26T07:49:50Z] `python-dev` Elias Python:
   - @manager TASK-222/223/224 complete — FEAT-219 implemented and all gates green.
   - Files added/changed:
   -   src/squads/_roles/_models.py (NEW) — RoleSpec/DevPoolSpec/RoleCatalogSpec pydantic v2 frozen models capturing full RoleDef field set

@@ -375,7 +375,7 @@ Apply the stranger test to every docstring/comment/error string this task adds o
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-04T08:47:07Z] Elias Python:
+- [2026-09-04T08:47:07Z] `python-dev` Elias Python:
   - Implementation complete, all seven subtasks Done. Gates clean:
     `uv run --all-extras pyright && uv run --all-extras ruff check . && uv run --all-extras ruff format --check .`
     (whole repo, not just touched files) all exit 0; `uv run --all-extras pytest tests/meta` — 279 passed;
@@ -537,6 +537,6 @@ Apply the stranger test to every docstring/comment/error string this task adds o
     privacy fix and the F4 ripple).
     
     @tech-lead for review; full-suite run is yours per the standing instruction.
-- [2026-09-04T08:50:06Z] Catherine Manager:
+- [2026-09-04T08:50:06Z] `manager` Catherine Manager:
   - Full suite green as the authoritative gate: 4834 passed, 12 skipped, exit 0. Verified the two ruled fixes from source rather than the handback: _playbook_source_applies returns None with the emptiness clause documented (lane=None is the well-formed empty result, not a failure), and _resolve_role_source returns resolve_role_for_item(item, squad_dir). Scanner stayed out of the repo. F1-F8 marked Fixed on REV-920; F9-F11 stay Open and deferred to FEAT-904, which deletes the field grammar and resolve_view outright.
 <!-- sq:discussion:end -->

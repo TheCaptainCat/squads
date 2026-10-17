@@ -66,6 +66,6 @@ _Add with `sq task 553 add-subtask "<title>"`; track with `sq task 553 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T22:26:59Z] Elias Python:
+- [2026-07-21T22:26:59Z] `python-dev` Elias Python:
   - Added RequestContext.client_cwd + resolve()'s client_cwd param (falls back to Path.cwd() when unset); open_service/get_service thread it through; main_callback seeds client_cwd=Path.cwd() into the same single bind_context() call from TASK-552. Added service-level tests for independent per-request cwd resolution + concurrent-task isolation; pyright/ruff/targeted pytest all green.
 <!-- sq:discussion:end -->

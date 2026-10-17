@@ -90,7 +90,7 @@ Not a defect in this task (bundled spec validates and works; verified). Forward 
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-07-08T15:24:13Z] Catherine Manager:
+- [2026-07-08T15:24:13Z] `manager` Catherine Manager:
   - Deferred, not fixed in TASK-330: this is a forward-note about completion inheriting terminal's per-status-NAME (not per-machine) coupling. Harmless on the bundled default; the per-machine designation decision belongs to the custom-sub-entity-kinds work. Recorded by the architect on ADR-322 and carried forward there.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -99,11 +99,11 @@ Not a defect in this task (bundled spec validates and works; verified). Forward 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-08T15:16:23Z] Robert Architect:
+- [2026-07-08T15:16:23Z] `architect` Robert Architect:
   - F2 resolved (Fixed) — deviation BLESSED as-is, no code change. Decoupling StatusSpec.completion from terminal is the correct model: completion ⊆ terminal is false for any two-phase machine (finding Open→Fixed→Verified makes Fixed a non-terminal done-target), and ADR-322's own backward-compat invariant already names Fixed as the finding completion target — so the terminal-preserving alternative (Verified) would break do-nothing==today and is not available. §5's 'one of its terminal statuses' was imprecise wording; corrected via a dated clarification comment on ADR-322 (refinement, NOT a supersession — the bind-by-machine-role decision stands).
   - Does NOT block TASK-330's merge on F2 grounds. F1 (missing regression test for the completion-count validation) is a separate, valid blocker and must land before the review flips to Approved / the task closes — that's the reviewer's call, not overridden here. F3 acknowledged as a forward note for FEAT-212/FEAT-327 (per-name vs per-machine completion coupling); no action in TASK-330.
-- [2026-07-08T15:16:54Z] Elias Python:
+- [2026-07-08T15:16:54Z] `python-dev` Elias Python:
   - F1 fixed: added regression coverage in tests/test_workflow_spec.py — test_subtask_and_story_machine_with_no_completion_status_fails_to_load, test_finding_machine_with_no_completion_status_fails_to_load, test_subtask_and_story_machine_with_two_completion_statuses_fails_to_load, test_finding_machine_with_two_completion_statuses_fails_to_load (all via WorkflowSpec.model_validate on a status-swapped copy of the bundled spec), plus test_bundled_spec_resolves_one_completion_status_per_subentity_kind asserting subtask/story->Done and finding->Fixed explicitly. tests/test_workflow_spec.py (34 tests) + tests/test_squad_ref_hygiene.py green; pyright/ruff check/ruff format clean.
-- [2026-07-08T15:24:14Z] Catherine Manager:
+- [2026-07-08T15:24:14Z] `manager` Catherine Manager:
   - Reconciling to Approved: F1 Fixed (5 regression tests added exercising the completion-count validator for 0 and 2+ on both subtask/story and finding kinds + a positive assertion — verified adequate), F2 Fixed (architect blessed the completion/terminal decoupling as the only ADR-consistent model and recorded a dated clarification on ADR-322), F3 WontFix (deferred forward-note for the custom-sub-entity-kinds work). Full suite green on the final diff.
 <!-- sq:discussion:end -->

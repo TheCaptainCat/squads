@@ -49,12 +49,12 @@ Side observation: the dev tree (working tree and HEAD) fails to import with `Mod
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T13:35:11Z] Pierre Chat:
+- [2026-10-16T13:35:11Z] `op-pierre` Pierre Chat:
   - 2026-10-16: targets 0.16.
-- [2026-10-16T18:14:31Z] Elias Python:
+- [2026-10-16T18:14:31Z] `python-dev` Elias Python:
   - Fixed in the commit "Let override list, diff and update past the schema gate on a behind squad": the override group now gates each command by its declared grant (list, diff, update behind-only; scaffold and ahead stay refused) and the three read the squad paths without opening the corpus. Table over 6 verbs x 4 override states (none, valid, conflicting, does-not-load) plus ahead and scaffold controls; falsification 24 of 32 fail on the old gate (8 are the refusal controls). docs/migration.md updated.
-- [2026-10-16T18:23:30Z] Elias Python:
+- [2026-10-16T18:23:30Z] `python-dev` Elias Python:
   - Commit fa227fdf on branch worktree-agent-a2f892de06784925e.
-- [2026-10-16T19:08:39Z] Catherine Manager:
+- [2026-10-16T19:08:39Z] `manager` Catherine Manager:
   - Verified: fix approved on REV-1067 and merged into release/0.16 at 977730ec; full suite 11471 passed, 0 failed.
 <!-- sq:discussion:end -->

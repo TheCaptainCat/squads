@@ -117,11 +117,11 @@ catalog says so in its own body, and names the catalog it is extending.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T14:04:44Z] Robert Architect:
+- [2026-07-17T14:04:44Z] `architect` Robert Architect:
   - Proposed. Authored to settle TASK-450's surface (REV-448 F1 core half) before the build. Chose a dedicated `sq workflow types` subcommand over a --json flag on the cheatsheet to keep each surface single-purpose and leave `sq workflow --raw` (F8) unconflicted. Needs Pierre/tech-lead sign-off before Accepted.
-- [2026-07-17T15:34:38Z] Pierre Chat:
+- [2026-07-17T15:34:38Z] `op-pierre` Pierre Chat:
   - Signed off — accept.
-- [2026-08-03T08:45:41Z] Robert Architect:
+- [2026-08-03T08:45:41Z] `architect` Robert Architect:
   - Corrected the `reserved` derivation in place: it is `ItemSpec.category == "roster"` (ADR-541), not `is_meta`. Same verdict, different route — the category is exactly the axis the boolean stood in for — so this is a citation fix, not a contract change. The catalog itself is verified in force.
   - The finding worth keeping is not the citation but the rows growth. This decision froze four keys; the live row carries seven — `+fields` (ADR-474 A3), `+category` (ADR-541), `+labels` (ADR-646) — and only the first is declared at its own end as an extension of this catalog. All three are legitimate under the additive-superset rule, so nothing is a breach; but a frozen shape whose growth is undocumented cannot be audited against its own freeze, which is the point of freezing it. Recorded the forward rule: a decision adding a key to a frozen catalog says so in its own body and names the catalog.
   - Added `related` edges to ADR-541, ADR-474 and ADR-646.

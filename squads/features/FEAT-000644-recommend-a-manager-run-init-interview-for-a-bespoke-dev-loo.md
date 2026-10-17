@@ -161,14 +161,14 @@ fragments — they're one interview, one sitting.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-29T09:37:09Z] Pierre Chat:
+- [2026-07-29T09:37:09Z] `op-pierre` Pierre Chat:
   - Scheduled for 0.13.
-- [2026-07-30T07:57:45Z] Pierre Chat:
+- [2026-07-30T07:57:45Z] `op-pierre` Pierre Chat:
   - Third in 0.13, after FEAT-691 and FEAT-642, ahead of FEAT-321.
-- [2026-08-03T11:17:44Z] Pierre Chat:
+- [2026-08-03T11:17:44Z] `op-pierre` Pierre Chat:
   - Out of 0.13 as well. The release is already carrying the whole spec-driven customization epic, a thirty-finding consumer sweep, the ADR audit and the sub-entity read surfaces. This is additive guidance with nothing forcing it into this cut.
-- [2026-08-03T11:22:16Z] Catherine Manager:
+- [2026-08-03T11:22:16Z] `manager` Catherine Manager:
   - For whoever builds this: the checklist area covering grouping style carries a caveat about per-subtask assignment routing not being surfaced. That limitation has since been closed — mine, workload and inbox are now sub-entity aware and the JSON surfaces carry sub-entity discussion. Re-verify that caveat against the shipped behaviour before writing it; the ref to that feature is what makes the dependency findable, and it is now Done rather than pending.
-- [2026-08-24T20:33:08Z] Olivia Lead:
+- [2026-08-24T20:33:08Z] `tech-lead` Olivia Lead:
   - Moved Draft → Ready so the parent does not trail its child: TASK-794 now carries the implementation of both stories and is Ready for dispatch. US1/US2 stay Todo — work has not started.
 <!-- sq:discussion:end -->

@@ -68,7 +68,7 @@ core six.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-03T08:41:22Z] Robert Architect:
+- [2026-08-03T08:41:22Z] `architect` Robert Architect:
   - Dropped the "Left **Proposed** for the manager to accept with the set" closer and retitled the section from "Status note" to "Provenance". Status prose in a body is forbidden here and this one had been false since the day the set was accepted. The provenance itself is kept and is worth keeping — this decision predates squads tracking itself and lived only in CLAUDE.md and docs/internals.md, which is why the body reads retroactively. Part of one sweep across the ten retroactive decisions (49, 71-78, 85), not ten tickets.
   - Rewrote the non-empty-init enumeration as a property instead of a list, because a list of three was always going to go stale and had: `_interactions/` and `_workflow/` were promoted from single modules and their inits hold what those modules held, `_overrides/` and `_specs/` carry content, and there is a second backend init. Two of them re-export, which the original sentence forbade.
   - The principle survives and is what was load-bearing all along — no public surface, every package underscore-private — so the rule is now stated as "no init re-exports across the package boundary" plus the structural reasons an init may carry content. `_workflow/__init__` calling its own re-export block a public API is readable as internal precisely because the package is private.

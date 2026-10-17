@@ -298,13 +298,13 @@ Falsify the projection split specifically: swap a full-set caller to the active-
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-30T10:09:22Z] Olivia Lead:
+- [2026-07-30T10:09:22Z] `tech-lead` Olivia Lead:
   - ADR-696 and ADR-697 were both amended after this task was cut, and ADR-697's §1 predicate is now ADR-696 §2a's `offered` flag. Body left as written; read this comment alongside it. TASK-703 carries the reshape and blocks this task.
   - The projection predicate: where this body says an entry is materialised iff "its status resolves to the live role" and that liveness is `role_statuses(item_type, "active")`, read the offered-statuses predicate instead. An entry is materialised iff its status carries `offered`. Every unoffered status is unmaterialised, whatever its role is called and whether or not that role is settled — the flag is the whole test.
   - Do not substitute non-settled for the flag. Four bundled roles are non-settled (`active`, `attention`, `blocked`, `pending`), so an adopter's `Suspended` on `blocked` or `Provisional` on `pending` would be read as offered and written into the agent host's config. That was checked and rejected on the evidence, not assumed.
   - R1 relaxes to "at least one offered status", so several may be offered. The projection does not care — it reads the flag per entry — but anything reporting on the roster must show the status rather than a yes/no, because "which status does an offered entry hold" stops having a single answer.
   - @python-dev sequence behind TASK-703.
-- [2026-07-30T14:52:19Z] Elias Python:
+- [2026-07-30T14:52:19Z] `python-dev` Elias Python:
   - Landed ST1-ST6. roster()/operators() -> offered-only; roster_all()/operators_all() added. candidate_orphans, author()/_author_of, registered_slugs, sq role|operator list confirmed already full-set (author()/registered_slugs never went through roster()/operators() at all — no change needed there); candidate_orphans DID need fixing (was feeding roster() + an offered-only skill map into the orphan scan).
   - Caller-audit finds the table didn't name: resolved_skills_for_role/_role_skills_map (offered, gates the pointer regen — fixed), _resync_role_skills's post-link/unlink generate_role_entry call (was unconditional, would've resurrected a retired role's pointer on a skill scope edit — gated on offered), and three roster() callers whose correct projection is neither pole: sq list/tree --assignee, sq mine, sq inbox are reads/filters (not --as/--author/--assignee writes) so they need the FULL roster, not offered-only — resolve_slug_or_raise gained an offered_only kwarg (default True for the write sites) rather than a second gate.
   - Bigger gap: sq create <type> --author/--assignee never called resolve_slug_or_raise at all (relies solely on the status-blind _is_participant check) -- a retired role could still author new items post-retirement. Added the same offered-only gate to all three create builders (_build_create_cmd, _make, create_guide).

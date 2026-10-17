@@ -61,8 +61,8 @@ _Add with `sq task 345 add-subtask "<title>"`; track with `sq task 345 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-09T12:31:31Z] Catherine Manager:
+- [2026-07-09T12:31:31Z] `manager` Catherine Manager:
   - Reclassified: this is a review finding (module-cohesion — badge rendering misplaced in _discussion), not a feature deliverable. Cancelling the task; it will be recorded as a finding on TASK-342's review and only spawn a fix-task if/when we act on it.
-- [2026-07-09T19:44:55Z] Catherine Manager:
+- [2026-07-09T19:44:55Z] `manager` Catherine Manager:
   - Superseded by TASK-347, which is the fix-task that actually landed this relocation (addresses REV-346 F4, now Done/Fixed). Staying Cancelled.
 <!-- sq:discussion:end -->

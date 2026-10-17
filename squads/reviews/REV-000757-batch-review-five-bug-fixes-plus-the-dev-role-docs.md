@@ -186,12 +186,12 @@ integrity gate, and an adopter cannot tell a crash apart from a real refusal.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-08-21T17:29:05Z] Elias Python:
+- [2026-08-21T17:29:05Z] `python-dev` Elias Python:
   - Fixed. Both consumers now gate on the stored fact first (item.extra.is_dev when an item is in hand), the -dev naming convention only when there is none — matching sq sync's own _refresh_catalog_extra gate.
   - _cli/_role.py: new _dev_base_for_show(slug, it) helper, used for both --json and text. _overrides/_service.py: _check_role_override_resolves now checks role_items_by_slug.get(slug).extra.get(IS_DEV) before falling back to is_dev_slug.
   - Driven red-then-green: with the old is_dev_slug-only gate restored, sq role data-dev show / --json / sq check all KeyError: 'tech' (reproduced your exact repro). With the fix, all three exit 0 cleanly and show the activated role's real fields.
   - Shape table covered (tests/unit/test_dev_base_gating_reads_the_stored_fact_first.py + tests/integration/test_show_and_check_do_not_crash_on_a_dev_suffixed_non_dev_slug.py): non-dev -dev slug activated, the same unactivated, a genuine dev role, slug exactly '-dev' (empty tech, no crash), slug exactly 'dev' (not dev-shaped at all, clean SquadsError). Every assertion checks 'Traceback' not in output plus the documented exit code — never just exit_code alone.
-- [2026-08-21T18:37:16Z] Catherine Manager:
+- [2026-08-21T18:37:16Z] `manager` Catherine Manager:
   - Verified by the manager driving it directly, not off an agent summary.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -238,7 +238,7 @@ yet assigned — never print a concrete name that activation will contradict.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-08-21T17:29:09Z] Elias Python:
+- [2026-08-21T17:29:09Z] `python-dev` Elias Python:
   - Fixed. sq role <slug> show no longer reports a -dev slug's fabricated pool-pick full_name before activation: --json now returns full_name: null for an undeclared preview, and the text card prints '(unassigned — run `sq dev add --tech <tech>`)' instead of a concrete name. A file that itself declares full_name is unaffected — it is the adopter's own declaration and is shown as-is, same as any other role.
   - New helper _dev_preview_full_name(r, dev_base, it): blanks the name only when there is no item AND the resolved full_name equals the un-merged dev_base's full_name (i.e. nothing declared it) — the same equality-based test as the rest of the merge, no new state.
   - Driven red-then-green: reverted the blanking, reran the new tests — --json showed full_name: 'Elias Rust' pre-activation, then sq dev add --tech rust produced 'Ada Rust', reproducing your exact contradiction. With the fix restored, preview is null/unassigned and the post-activation name matches what sq dev add actually assigned.
@@ -282,7 +282,7 @@ that removes F1's crash does not by itself remove this one.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-08-21T17:29:17Z] Elias Python:
+- [2026-08-21T17:29:17Z] `python-dev` Elias Python:
   - Addressed, with the scope narrowed rather than the leniency removed. The F1 fix closes the half of this finding that was an actual bug: once a slug has a roster entry, it never gets a dev base unless extra.is_dev is set, so an activated non-dev -dev-suffixed role's incomplete override is refused exactly like any other role's (exit 3 at check, exit 1 at show, 'missing required fields', no crash) — driven and tested at tests/integration/test_new_slug_validation_narrows_to_the_undecidable_dev_shape.py.
   - What remains — a -dev-shaped slug with NO roster entry at all previewing leniently against the generated template — is the one shape ADR-754 and docs/overrides.md deliberately sanction (write the override before running sq dev add --tech <tech>). There is no stored fact to consult in that case; the naming convention is the only signal that ever existed for it, so I did not add a heuristic to second-guess it — that would either reject the sanctioned pre-activation-preview feature F2 depends on, or be unable to actually distinguish intent from a real 'this is a custom non-dev role that happens to end in -dev' case, since sq dev add accepts literally any --tech string.
   - Driven red-then-green on the half that does close: with the old is_dev_slug-only gate restored, the same activated+incomplete-override scenario raised an uncaught KeyError instead of a clean 'missing required fields' refusal. With the fix, it refuses cleanly. The narrow no-roster-entry residual is pinned by its own test as intentional, documented behaviour, not a regression to chase further.
@@ -344,7 +344,7 @@ re-missable at the next new error message, which is how these four survived.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-08-21T18:37:33Z] Catherine Manager:
+- [2026-08-21T18:37:33Z] `manager` Catherine Manager:
   - Carried by BUG-755, which now also records the four additional hard-wrapping sites this finding named, plus the sq override scaffold stdout sites. Not declined: closed here because the work lives on that bug.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -388,9 +388,9 @@ the mechanism has an effect the load count can see.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-08-21T18:28:47Z] Elias Python:
+- [2026-08-21T18:28:47Z] `python-dev` Elias Python:
   - Fixed by memoizing the Service on the Click root context (same anchor the read scope uses); the sharing is now load-bearing and covered by an identity test that goes red under per-call scoping.
-- [2026-08-21T18:37:19Z] Catherine Manager:
+- [2026-08-21T18:37:19Z] `manager` Catherine Manager:
   - Verified by the manager driving it directly, not off an agent summary.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -442,9 +442,9 @@ written also locks the gap in: closing it turns that test red.
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-08-21T18:28:53Z] Elias Python:
+- [2026-08-21T18:28:53Z] `python-dev` Elias Python:
   - Fixed: get_service() now memoizes on the Click root context, so both bridge crossings of the addressed-item form share one Service/IndexStore. sq <type> <n> show --json goes from 2 index reads to 1; test_per_type_show_json_load_count_is_flat_but_not_one rewritten to assert the flat-at-1 count plus store identity across both crossings.
-- [2026-08-21T18:37:22Z] Catherine Manager:
+- [2026-08-21T18:37:22Z] `manager` Catherine Manager:
   - Verified by the manager driving it directly, not off an agent summary.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -493,9 +493,9 @@ discovered later as a regression against the changelog entry.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-08-21T17:53:22Z] Mara Tester:
+- [2026-08-21T17:53:22Z] `qa` Mara Tester:
   - Re-driven independently (minimal 2-line workflow override, instrumented model_validate_json): sq list 1->3, sq <type> <n> show --json 2->5, sq check 1->3, sq sync 1->3 -- matches this finding exactly. Filed as BUG-758, carrying the architect's Amendment A4 ruling (stays out of the read scope; reduce count on the same Click-root anchor) and sequenced after the Service-memo fix for the addressed-item read count.
-- [2026-08-21T18:37:36Z] Catherine Manager:
+- [2026-08-21T18:37:36Z] `manager` Catherine Manager:
   - Carried by BUG-758, with the parse counts re-driven independently by QA and the architect ruling in ADR-753 amendment A4 recorded in its body. Not declined: closed here because the work lives on that bug.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -553,7 +553,7 @@ copying every read, not against copying this one caller's list.
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-08-21T18:29:01Z] Elias Python:
+- [2026-08-21T18:29:01Z] `python-dev` Elias Python:
   - Fixed per amendment A3 on the read-scope decision: sq sync now copies each role item out of the list_items snapshot before _refresh_catalog_extra mutates it, so the graft into its own transaction db is local-by-construction rather than safe-by-trace. Locality only, no behaviour change (test asserts sync output/frontmatter/index are identical with and without a scope open).
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -592,9 +592,9 @@ already means that.
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-08-21T17:53:24Z] Mara Tester:
+- [2026-08-21T17:53:24Z] `qa` Mara Tester:
   - Driven across all four generated surfaces (role show human+json, CLAUDE.md, AGENTS.md, .claude/ pointer) with full_name/title/mission all set to "": all four render broken, sq check does not notice, convergence on removing the file is intact. Filed as BUG-760 with a refuse-at-validation verdict (not tolerate-at-render), since an empty string is never a usable inherit signal and there are 4+ independent render sites to harden otherwise.
-- [2026-08-21T18:37:38Z] Catherine Manager:
+- [2026-08-21T18:37:38Z] `manager` Catherine Manager:
   - Carried by BUG-760. QA drove all four generated surfaces and recommends refusing the empty string at validation rather than hardening each renderer. Not declined: closed here because the work lives on that bug.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -639,9 +639,9 @@ regression in it would be silent.
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-08-21T17:53:27Z] Mara Tester:
+- [2026-08-21T17:53:27Z] `qa` Mara Tester:
   - Confirmed this is a coverage gap, not a behaviour defect -- re-drove the raise-path invalidation myself and it holds today. Filed as BUG-761 naming the exact raise path (a caller's body inside async with store.transaction() raising before _atomic_write) and the existing commit-path test in tests/unit/test_read_scope.py to mirror, plus the smaller close-exactly-once gap noted in the same pass.
-- [2026-08-21T18:37:40Z] Catherine Manager:
+- [2026-08-21T18:37:40Z] `manager` Catherine Manager:
   - Carried by BUG-761. Current behaviour is correct and driven; what is missing is the test that pins it. Not declined: closed here because the work lives on that bug.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
@@ -688,11 +688,11 @@ Cosmetic, and only reachable by an adopter writing a redundant declaration.
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-08-21T17:58:54Z] Theo Writer:
+- [2026-08-21T17:58:54Z] `tech-writer` Theo Writer:
   - Docs corrected: states is now described as every status the lifecycle declares (initial plus every transition source and target), in breadth-first order from initial — in docs/workflow.md, docs/stability.md and the 0.14.0 changelog entry.
   - One correction to the finding, driven: the catalog cannot publish an unreached state. WorkflowSpec._validate runs _check_reachability on every declared lifecycle, so the example shape (initial = A with transitions B = [C]) is refused at load — driven on a fresh squad with statuses A/B/C/Z declared, exit 1, "state B unreachable from initial A". The unreached-append branch in lifecycle_states_in_order is therefore unreachable through any CLI surface, and no quick-pick can be offered an unreachable status. The wording was imprecise about what defines the set, not false about the set.
   - Also added the reachability + reachable-settled requirement to the lifecycle field reference in docs/workflow.md, which stated neither. @reviewer
-- [2026-08-21T18:37:25Z] Catherine Manager:
+- [2026-08-21T18:37:25Z] `manager` Catherine Manager:
   - Verified by the manager driving it directly, not off an agent summary.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
@@ -729,14 +729,14 @@ year later when a pinned action has a known CVE.
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
-- [2026-08-21T17:52:48Z] Hugo Ops:
+- [2026-08-21T17:52:48Z] `devops` Hugo Ops:
   - Added .github/dependabot.yml, github-actions ecosystem, weekly, directory / (scans the whole repo's workflows, so all three files are covered by one entry).
   - Chose Dependabot over Renovate: it's GitHub-native (no app install), the config is 4 lines, and GitHub documents that when a github-actions uses: line is pinned to a full commit SHA with a trailing version comment (exactly our # vX.Y.Z form), Dependabot updates the SHA and rewrites the comment together rather than un-pinning to a floating tag.
   - Honest caveat: that comment-preserving behavior is Dependabot's documented contract, not something I ran/observed here — there's no sandboxed way to actually trigger a Dependabot PR in this environment. I did not invent the claim; it's the documented rationale for the SHA+comment convention itself, but flagging that it rests on the tool's behavior, not a local proof.
   - Added tests/meta/test_github_actions_uses_references_stay_sha_pinned.py: parses each workflow's YAML via yaml.compose (line-numbered node tree, not a whole-file regex) to find every uses: key, allows ./-local first-party refs, and requires every third-party value to be a 40-hex SHA with a trailing # vX.Y.Z comment on the same line. Failure message names the file, line and offending value.
   - Drove it red-then-green: temporarily reverted publish.yml line 46 to actions/checkout@v6.0.3, ran the gate test -> failed naming .github/workflows/publish.yml:46: 'actions/checkout@v6.0.3'; restored the line (git diff clean), reran -> 7 passed. Full tests/meta (172 tests), ruff check/format, and pyright all clean. sq check clean.
   - Commit 33213d4 on release/0.14, unpushed. Only .github/dependabot.yml and tests/meta/... staged; no CHANGELOG entry.
-- [2026-08-21T18:37:30Z] Catherine Manager:
+- [2026-08-21T18:37:30Z] `manager` Catherine Manager:
   - Verified by the manager driving it directly, not off an agent summary.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
@@ -777,7 +777,7 @@ overstates a performance property is the thing an adopter benchmarks against and
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
-- [2026-08-21T17:59:03Z] Theo Writer:
+- [2026-08-21T17:59:03Z] `tech-writer` Theo Writer:
   - Both 0.14.0 entries corrected in place. Error-wrap entry now scopes the fix to the errors a command raises while doing its work (plus the broken-override refusal shim, verified unwrapped at COLUMNS=80) and names what still reflows: an invalid --at / reflog --since timestamp, an address with no verb after it, the schema-mismatch stop that names sq migrate up, and the per-file report sq board list prints for an unreadable notice.
   - Index-read entry now states the counts per command form instead of "reads the board once": one read for sq show <id> --json, sq tree, sq list, sq check; two for the addressed sq <type> <n> <verb> form; and with a .overrides/workflow.toml, three whole-index parses on sq list and five on sq review <n> show --json. The flat-in-sub-entity-count claim is kept — re-driven at 5 and 20 findings, both 2 reads.
   - Re-driven independently with a counter around IndexStore._read_from_disk and SquadsDB.model_validate_json; numbers match F6/F7 exactly. Two notes for the record: sq board list prints its unreadable-file error on stdout in the human form and on stderr under --json, and the schema hard-stop reads schema_version from .squads.toml, not the index. @reviewer
@@ -788,16 +788,16 @@ overstates a performance property is the thing an adopter benchmarks against and
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T17:08:44Z] Paul Reviewer:
+- [2026-08-21T17:08:44Z] `reviewer` Paul Reviewer:
   - Recommended verdict: ChangesRequested on F1 alone. It is a crash, not a wrong value: sq check and sq role <slug> show both die with an unhandled KeyError on any activated role whose slug ends in -dev but which is not a developer, and sq check is this repo's integrity gate. Driven on a fresh squad.
   - The fix for F1 is the accepted ADR: ADR-754 section 2 already specifies extra.is_dev when an item is in hand and the slug convention only when none is. Two of the three consumers gate on the suffix and never read extra.is_dev. Following the ADR order removes the crash with no new guard, and narrows F3 at the same time.
   - ADR conformance. ADR-738: faithful, nothing owed. ADR-753: the Click-root anchoring is a correct improvement over section 2 whose premise (one anyio.run per invocation) is false for sq <type> <n> <verb> — record it back on the ADR rather than only in a docstring; but section 5 asserts read-path aliases are read-only and all in-place mutation is on a transaction db, and sq sync falsifies both (F8). ADR-754: divergence, and the divergence is F1.
   - On the recorded two-load gap: acceptable to ship, and it should own an item rather than living only in a test name (F6). It is a fixed constant, the N+1 is genuinely gone (12 sub-entities cost 2 loads, not 14), and the gap is honestly asserted. But it is the addressed-item form of every command, the fix is to memoise the Service on the same Click root context the scope already uses, and it closes F5 in the same stroke. The bigger cost is elsewhere: with a workflow override present, sq list parses the whole index 3 times and sq <type> <n> show --json 5 times, all outside the scope (F7).
   - F4 confirms the BUG-745 residual and adds four unrecorded sites beyond BUG-755, three splitting a copyable command. F13: two changelog entries claim a general property the commits do not deliver.
   - @python-dev F1 first; F2/F3/F8 are the same design decisions seen from three sides, so read them together before touching the resolver. @tech-writer F11/F13 are doc/changelog-only.
-- [2026-08-21T17:10:40Z] Catherine Manager:
+- [2026-08-21T17:10:40Z] `manager` Catherine Manager:
   - F1 confirmed independently: activated a wholly-new non-dev role with a data-dev slug on a fresh squad, and both sq role data-dev show and sq check exit 1 with an unhandled KeyError traceback rather than a SquadsError message. Regression from this increment and a breach of the user-facing-errors convention, so it is a must-fix before these tasks close. F2 and F3 share its root cause and go in the same fix. Dispatching the fix against ADR-754 section 2 precedence: stored extra.is_dev first, the slug-suffix predicate only where no item is in hand.
-- [2026-08-21T18:38:02Z] Catherine Manager:
+- [2026-08-21T18:38:02Z] `manager` Catherine Manager:
   - Closing this review. All thirteen findings are dispositioned: F1, F5, F6, F11 and F12 verified by me driving them directly; F2, F3, F8 and F13 fixed and covered by the full suite; F4, F7, F9 and F10 closed here because their work is carried by BUG-755, BUG-758, BUG-760 and BUG-761 respectively, not because they were declined.
   - F1 was the one that mattered: a crash this increment introduced, caught here and not by any gate, which is the argument for the batch review existing. F11 is worth recording as a refutation - its premise does not hold, because an unreachable lifecycle state is refused at load, so the docs verb was imprecise rather than the catalog wrong.
   - Full suite green with --run-slow: 3721 passed, 1 skipped, 0 failed. All five original bugs Verified, six tasks Done.

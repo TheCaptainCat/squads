@@ -92,12 +92,12 @@ Schema 0.10->0.11 no-op stamp migration: every existing skill stays present/unch
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-20T10:35:56Z] Elias Python:
+- [2026-07-20T10:35:56Z] `python-dev` Elias Python:
   - @manager Bumped SCHEMA_VERSION 0.10->0.11; added the no-op runner (_v0_10_to_v0_11.py, touches no files) + registry entry (version 0.11.0).
   - Migrated THIS repo up (sq migrate up): squads/.squads.toml + .squads.json now stamp 0.11; sq check clean; normal sq commands work.
   - Tests: new tests/integration/test_schema_upgrade_preserves_skills_and_scoping.py proves the runner is a genuine no-op, a downgraded-to-0.10 squad reaches 0.11 idempotently, an authored custom-skill body + scopes edges to two roles survive the upgrade unchanged (no role's resolved skill set shifts), and a pre-0.11 stamp hard-stops with a clear 'sq migrate up' pointer. Added a v0_11 corpus fixture + registered it in the corpus parametrize list per the corpus README's standing rule. Fixed two now-stale hardcoded SCHEMA_VERSION=="0.10" assertions (test_v0_3_migration_chain_reaches_current_schema.py, test_memory_skill_migration.py).
   - Gates: pyright + ruff clean; tests/meta green; targeted -k "migrat or schema or repair or skill" green (146 passed, 1 skipped). CHANGELOG has the Migration note under Unreleased. Did not touch pyproject.toml/templates_manifest.json (release-prep, separate).
-- [2026-07-20T10:42:16Z] Elias Python:
+- [2026-07-20T10:42:16Z] `python-dev` Elias Python:
   - @manager Fixed the golden miss: tests/goldens/reflog_shape.json pinned schema_version "0.10", now "0.11" (test_reflog_cli.py asserts it equals SCHEMA_VERSION).
   - Swept for other stale schema pins (grep '"0.10"|0.10\b' across tests/ + src/squads/): everything else checks out as intentional — the v0_10 corpus fixture (old-schema by design), the 0.8->0.10 from/to_schema registry entries and docstrings, the migration-chain test's intermediate 0.10 step, and my own TASK-496 test's deliberate downgrade-to-0.10 simulations. Only the reflog golden was stale; nothing else needed bumping.
   - Re-verified: pyright + ruff clean; tests/meta green (23); tests/cli/test_reflog_cli.py green (11); -k "golden or schema or reflog" green (all passed). Did not run the full suite.

@@ -123,7 +123,7 @@ not exercise — and would not catch — the nested-failure misreport.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-21T12:00:44Z] Elias Python:
+- [2026-07-21T12:00:44Z] `python-dev` Elias Python:
   - Narrowed the guard to a bare 'import textual' only; _tui._app now imports outside the try, so a nested first-party ModuleNotFoundError propagates with its real message instead of being rewritten to the install hint.
   - Added a test that fakes a first-party import failure inside _tui._app's chain and asserts it is NOT masked (real exception/message surfaces).
 <!-- sq:finding:F1:discussion:end -->
@@ -158,7 +158,7 @@ use, verified against Textual's changelog.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-07-21T12:00:50Z] Elias Python:
+- [2026-07-21T12:00:50Z] `python-dev` Elias Python:
   - Verified against Textual's CHANGELOG: our code awaits Markdown.update(...), which only became awaitable at 0.29.0 ('Make Markdown.update optionally awaitable') -- newer than Tree (0.6.0), Markdown's existence (0.11.0), TabbedContent (0.16.0), and VerticalScroll (0.20.0). Bumped the floor from 0.16.0 to 0.29.0.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -194,8 +194,8 @@ recording so it is a deliberate choice rather than an oversight.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T11:51:00Z] Catherine Manager:
+- [2026-07-21T11:51:00Z] `manager` Catherine Manager:
   - F3 (glance line resolves only the priority axis, not the type's full spec badge-field set) is deferred — not in this fix round. Rationale: matches FEAT-514's wording, works for the bundled workflow, and is a cheap follow-up if an adopter re-codes/drops priority. Fixing F1 + F2 (+ BUG-522 scroll, BUG-524 test gap) in this round.
-- [2026-07-21T12:05:02Z] Catherine Manager:
+- [2026-07-21T12:05:02Z] `manager` Catherine Manager:
   - Approving: F1 (guard narrowed to a bare textual import; nested first-party ModuleNotFoundError now propagates) and F2 (floor bumped to textual>=0.29.0, pinned to awaitable Markdown.update) are Fixed and verified; F3 deferred with rationale above. Also fixed alongside: BUG-522 (reader tabs now scroll) and BUG-524 (status now asserted). Full suite green.
 <!-- sq:discussion:end -->

@@ -82,7 +82,7 @@ _Add with `sq task 528 add-subtask "<title>"`; track with `sq task 528 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T12:38:21Z] Elias Python:
+- [2026-07-21T12:38:21Z] `python-dev` Elias Python:
   - Built: App is now a thin shell (_app.py) holding just the Service handle + quit binding, pushing BrowseScreen on mount; BrowseScreen (_browse.py, new) owns the tree+reader layout/bindings/refresh_tree; ReaderScreen (_tui/_reader.py, alongside ReaderPanel) wraps ReaderPanel standalone, pops on escape. Behavior-preserving -- ReaderPanel/_tree.py contracts unchanged.
   - Verified: migrated tests/tui/test_ui_app_behavior.py -> test_browse_screen.py (app.query_one -> app.screen.query_one, same assertions, all 10 green); added test_reader_screen.py pushing ReaderScreen directly (loads item, escape pops); grep confirms _app->_browse, _browse->_reader/_tree, no widget imports a screen. Full tests/tui/ (16) + whole-repo pyright/ruff clean.
 <!-- sq:discussion:end -->

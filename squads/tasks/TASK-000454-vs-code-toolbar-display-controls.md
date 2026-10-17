@@ -48,7 +48,7 @@ _Add with `sq task 454 add-subtask "<title>"`; track with `sq task 454 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T15:24:12Z] Ada Typescript:
+- [2026-07-17T15:24:12Z] `typescript-dev` Ada Typescript:
   - Implemented F2-F7 in clients/vscode/ (all six).
   - F2: shared domain/idOrder.ts (Intl.Collator numeric), used in listView.ts's leaf sort — no more plain localeCompare on ids.
   - F3: group-by-type moved from the squads.groupBy quick-pick to a view-title icon toggle (squads.toggleGroupByType, package.json 'toggled' context-key binding, $(list-tree)).

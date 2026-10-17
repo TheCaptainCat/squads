@@ -238,20 +238,20 @@ FEAT-980 and merge before the bump. It has no feature or task yet.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-15T19:17:34Z] Robert Architect:
+- [2026-10-15T19:17:34Z] `architect` Robert Architect:
   - 2026-10-15: drafted from the op-pierre rulings on MILE-934 (2026-10-15T19:11:19Z, corrected at 19:16:53Z: -C keeps the walk-up). The no-walk-up reading is listed only under Alternatives, as rejected.
   - @manager for the operator: (1) -C is repeatable as in git and must come before the command (not hoisted). (2) Relative path arguments (--file, the sq import file) resolve against -C, which is what "as if started in" means. (3) --dir is refused with a message naming -C (exit 2) through the 0.x line, not aliased; an alias would work for most in-tree layouts, so that is the operator call to confirm. (4) sq -C X init needs X to exist and creates X/.squads.toml + X/squads; BUG-1008 asked for the squad AT X, so its expectation changes.
   - @manager build order: right after TASK-954, before FEAT-980; no bundled file or schema change, so the bump does not gate it. It has no feature or task yet. The board notice on scratch squads (addressed with --dir) and the private memory on scratch cd failures both name --dir and need rewording once it lands. Dated notes owed on ADR-263, ADR-622 and ADR-534 once accepted.
-- [2026-10-15T19:19:36Z] Pierre Chat:
+- [2026-10-15T19:19:36Z] `op-pierre` Pierre Chat:
   - 2026-10-15, on the four points of this record, all confirmed:
     
     1. `--dir` is refused with a message naming `-C`, with no alias.
     2. `-C` comes before the command and can be repeated, git-style.
     3. Relative path arguments resolve against `-C`.
     4. `sq -C X init` creates `X/.squads.toml` with the squad in `X/squads`.
-- [2026-10-15T20:11:53Z] Pierre Chat:
+- [2026-10-15T20:11:53Z] `op-pierre` Pierre Chat:
   - 2026-10-15: accepted.
-- [2026-10-15T20:17:28Z] Robert Architect:
+- [2026-10-15T20:17:28Z] `architect` Robert Architect:
   - @manager Dated notes are added for all three ADRs in section 7, each as "Note 2026-10-15 (ADR-1009)" at the affected passage, and each has a related ref back to this record: ADR-263 (after the Recommendation; get_command reads the parsed -C values through the shared helper, and the --dir discussion in Options 1 and 2 is historical), ADR-622 (the CLI surface's --dir bullet becomes -C before the command), ADR-534 (after the section 1 inventory; active_dir and set_active_dir are removed, and client_cwd carries the effective directory).
     None was skipped. ADR-249, ADR-266 and ADR-153 got nothing, as section 7 says.
     Every diff against HEAD is additions only, apart from the updated_at the body verb stamps. No status changed, no stray content tags, and sq check is clean.

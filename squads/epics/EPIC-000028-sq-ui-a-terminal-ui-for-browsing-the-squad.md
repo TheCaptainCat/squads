@@ -41,6 +41,6 @@ navigation, the item reader with tabs, then the first mutation increment.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T11:26:52Z] Pierre Chat:
+- [2026-07-21T11:26:52Z] `op-pierre` Pierre Chat:
   - Test layer: the sq ui tests get their own tests/tui/ layer (Textual Pilot harness fits none of unit/service/cli/integration), registered properly in tests/CONVENTIONS.md + the meta ticket-ID scanner — not folded into tests/cli/.
 <!-- sq:discussion:end -->

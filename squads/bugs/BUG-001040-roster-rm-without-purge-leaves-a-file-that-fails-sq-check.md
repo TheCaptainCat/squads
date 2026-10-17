@@ -43,8 +43,8 @@ Found in the docs audit (REV-1034, F8 and its summary).
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T11:16:27Z] Pierre Chat:
+- [2026-10-16T11:16:27Z] `op-pierre` Pierre Chat:
   - 2026-10-16: a plain rm (no --purge) refuses, and the message says exactly what to run.
-- [2026-10-16T11:20:13Z] Elias Python:
+- [2026-10-16T11:20:13Z] `python-dev` Elias Python:
   - Fixed on branch worktree-agent-adaaa829aeaea66dd, commit d3a7da9d: plain rm on a role, skill or operator now refuses and names the --purge command and the status Archived alternative. Work-item remove already always unlinks, so it has no such flaw. Docs still show rm [--purge] as optional (docs/roles.md, README.md, docs/stability.md); left for the writer.
 <!-- sq:discussion:end -->

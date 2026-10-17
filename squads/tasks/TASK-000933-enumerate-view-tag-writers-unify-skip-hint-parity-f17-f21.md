@@ -286,7 +286,7 @@ Trigger the version-drift backfill on a strict-parse failure (treat as drift) in
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-09T15:10:20Z] Elias Python:
+- [2026-09-09T15:10:20Z] `python-dev` Elias Python:
   - Implemented per the enumeration/parity-first plan. All four falsified before fixing, both directions confirmed; gates + sq check clean; full report below.
   - ST1 (F17): 6 markers.view_tag( sites confirmed exhaustive (AST scan, validated against a wrapped-attribute known positive). Classified: _base.py:_create_core gated, _maintenance.py:_converge_body_tag gated-at-caller, _backend.py:_write_managed_skill was ungated -> now gated (callers pass body_tag=None when undeclared), _views.py:insert_view self-gated, _views.py:remove_view deliberately-ungated, _validators.py:_item_skill_shadowed not-a-writer. tests/meta/test_view_tag_writer_sites_are_exhaustively_classified.py + service-level driven repro (skill side, mirrors the existing role-side F12 test).
   - ST2 (F18/F20): sync() now returns SyncSkips (list[str] subclass, zero-breakage for ~45 existing call sites) carrying .backfill_skipped; sq sync prints a withheld-stamp sentence instead of the green line when non-empty, exit stays 0 (explicitly out of scope). sq migrate up gained the missing unreadable-loop, same wording as sq repair. tests/cli/test_repair_corridor_message_and_exit_parity.py, 6 rows.

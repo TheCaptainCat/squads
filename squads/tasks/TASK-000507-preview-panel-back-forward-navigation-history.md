@@ -122,7 +122,7 @@ Discoverable back/forward controls. New squads.previewBack/previewForward comman
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-20T12:35:39Z] Ada Typescript:
+- [2026-07-20T12:35:39Z] `typescript-dev` Ada Typescript:
   - Implemented per-panel back/forward history in itemPreviewManager.ts, backed by a pure domain/previewHistory.ts helper (push/truncate/back/forward/canBack/canForward), unit-tested in test/previewHistory.test.ts.
   - Real navigation (tree selection, link/@mention click) pushes+truncates via a new navigate() path; goBack/goForward only move the index and re-render through the existing 'reload' path; refreshOpenPreviews ('patch') is untouched.
   - Controls: squads.previewBack/previewForward commands (commands.ts), title-bar buttons + Alt+Left/Right keybindings gated to activeWebviewPanelId == squadsItemPreview, inert-at-ends via a package.json command 'enablement' clause on squads.previewCanGoBack/previewCanGoForward context keys.

@@ -238,11 +238,11 @@ Done when:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-15T08:07:27Z] Olivia Lead:
+- [2026-09-15T08:07:27Z] `tech-lead` Olivia Lead:
   - ST1/ST2 rescoped for the accepted ADR-947 rather than the shape TASK-944 was going to invent. Exit 4 is a new row in the adapter's general exit-code mapping (classifyNonZeroExit), the same standing as 2 and 3 — both fixes land there, so the adapter still gains no per-command exit-code knowledge. The omissions detail comes from the one line of stderr that parses as a JSON object; payloads stay bare arrays, so there is no new field on the listing to read. ST2 renamed to say where the edit goes.
   - Added: a malformed or absent omissions line on an exit 4 must still render the payload, degrading to 'partial, no detail' rather than to an error; and an older sq exits 1 and falls through to today's behaviour, so no version probe.
   - implements ADR-947 added; depends-on TASK-944 stands, CLI first. Left Draft. @manager
-- [2026-09-15T12:29:46Z] Ada Typescript:
+- [2026-09-15T12:29:46Z] `typescript-dev` Ada Typescript:
   - All four subtasks Done. clients/vscode only; src/squads and tests/ untouched.
   - F2/ST1: MemoryFetchResult's loaded variant gained an optional omissions field, populated from the general adapter outcome (not memory-specific parsing). memoryGlanceText/memoryTooltipLine append a (partial) marker + omissions summary; memoryChildren still renders the entries that were read. A pool is partial iff omissions !== undefined (present-but-empty means the report itself was malformed/absent, degrading to 'partial, no detail' rather than clean).
   - F3/ST2: classifyNonZeroExit gained one row for exit 4 -> a success outcome carrying data (stdout) + omissions (parsed via the 'one stderr line that parses as a JSON object' rule), instead of falling into runtime-error. runSqJson/runSqJsonObject thread omissions through unchanged. Every caller (getTree/getList/getMemoryList/getBoardList/etc.) inherits this from one place; the adapter still pins no per-command exit-code knowledge. renderBoardHtml renders the readable notices plus a visible 'listing partial' line instead of the old failure branch that discarded them.

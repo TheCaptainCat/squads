@@ -71,7 +71,7 @@ Done when the renumber transaction appends exactly ONE append-only 'renumber' re
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-06T10:15:41Z] Elias Python:
+- [2026-07-06T10:15:41Z] `python-dev` Elias Python:
   - Landed: added 'renumber' to the reflog's closed op vocabulary (_index/_reflog.py docstring only — CLI --op help text left untouched, out of scope this round).
   - Service.renumber() now appends exactly one 'renumber' reflog line after the index commit (via _rebuild_index_from_disk), delta={from, onto, by, remap} with onto/by reflecting which form the operator used (the other null) — no in-place rewrite of any historical line.
   - Content-side prose-mention rewrite confirmed working via rewrite_ids reuse (already the case; added a fixture asserting it).

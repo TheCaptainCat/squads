@@ -312,7 +312,7 @@ a driven test on the sequence "a role item carrying a whitespace-only stored nam
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-08-22T12:05:25Z] Elias Python:
+- [2026-08-22T12:05:25Z] `python-dev` Elias Python:
   - Fixed: chose self-heal over skip-and-report. role_base_from_item/dev_base_from_item (_roles/_resolver.py) and RoleDef.from_extra (_roles/_catalog.py) now treat a stored blank/whitespace full_name the same as absent, falling back to the catalog name (bundled) or the pool name at position 0 (dev) -- exactly what the next sq sync would converge onto, matching the pre-c6a03b2 dev_role behaviour.
   - Chose self-heal, not skip-and-report: _refresh_catalog_extra already mirrors any change role_base_from_item produces straight into frontmatter+index in the same transaction, so tolerating the read produces a durable fix with zero extra plumbing -- an adopter never sees the blank again after one sq sync, vs. a skip line that would leave it blank forever until they manually renamed it.
   - Driven, bundled role (devops), planted stored blank on both frontmatter and index: before -- sq sync/show/regen all exit 1 'role full_name is blank or whitespace-only'; after -- all four (sync, show, regen, check) exit 0, and sq sync rewrites full_name back to 'Hugo Ops' on disk and in the index. A second sync is silent (no further change).
@@ -320,7 +320,7 @@ a driven test on the sequence "a role item carrying a whitespace-only stored nam
   - Confirmed the four BUG-778 input-side refusals are untouched: sq dev add --tech rust --name '' / '   ' and sq role activate qa --name '' / '   ' all still refuse at exit 1 with the same message.
   - New tests: tests/unit/test_role_resolver_tolerates_a_stored_blank_full_name.py (seam-level, both role_base_from_item/dev_base_from_item and RoleDef.from_extra, both role shapes) and tests/integration/test_stored_blank_role_name_self_heals_on_sync.py (corpus-level: plants the blank on disk+index, drives sq sync/role show/role regen/check via the CLI). 20 of 28 new tests fail against the pre-fix code, confirmed by stashing the fix and re-running.
   - Gates: pyright/ruff/ruff format clean; tests/meta clean; targeted role/sync/check/backend suite (868 tests) green; sq check clean and sq repair a stable no-op on this repo.
-- [2026-08-22T12:19:54Z] Theo Writer:
+- [2026-08-22T12:19:54Z] `tech-writer` Theo Writer:
   - Changelog entry written for adopters, reframed from the handoff text: "no longer breaks sq sync/role show/regen" describes a regression that never shipped, so the entry states what an adopter upgrading from 0.13.0 actually sees — a whitespace-only name stored by an older version is written back to a real one (catalog name for a bundled role, pool name for a developer) on the next sync, in both the record and the index, with nothing to run by hand.
   - Drove the self-heal myself on both shapes: planted a whitespace-only full_name on frontmatter and index for python-dev and for reviewer; sync/show/regen/check all exit 0 and the name comes back as Elias Python / Paul Reviewer; a second sync is silent.
 <!-- sq:finding:F1:discussion:end -->
@@ -382,13 +382,13 @@ all rather than in 0.14.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-08-22T12:05:36Z] Elias Python:
+- [2026-08-22T12:05:36Z] `python-dev` Elias Python:
   - Fixed: took the reviewer's own remedy -- dropped @abstractmethod on managed_entry_paths (_backends/_base.py) and gave it a concrete default returning []. AgentBackend is back to exactly the seven documented methods; both bundled backends (ClaudeCodeBackend, AgentsMdBackend) still override it unchanged.
   - Proof: a subclass implementing only the seven methods docs/stability.md and docs/backends.md list now instantiates cleanly (it TypeError'd before the fix -- verified by stashing it). AgentBackend.__abstractmethods__ is exactly that seven-name frozenset; managed_entry_paths is confirmed absent from it.
   - New test: tests/unit/test_agent_backend_abc_stays_at_seven_documented_methods.py -- pins the seven-name abstract set against the documents' own list, instantiates a seven-method-only subclass, checks the base default returns [], and asserts both shipped backends still define their own override (vars(ClaudeCodeBackend)/vars(AgentsMdBackend)).
   - docs/stability.md and docs/backends.md untouched, per the boundary -- they were already correct.
   - Gates: pyright/ruff/ruff format clean; tests/meta clean; targeted role/sync/check/backend suite (868 tests) green; sq check clean and sq repair a stable no-op on this repo.
-- [2026-08-22T12:19:46Z] Theo Writer:
+- [2026-08-22T12:19:46Z] `tech-writer` Theo Writer:
   - Changelog entry written, but reframed: the eighth abstract method never appeared in a release, so an adopter upgrading from 0.13.0 never saw a backend break and "works again" would be a false history. The entry says what is true relative to 0.13.0 — the interface gains one optional managed_entry_paths with a base default, the seven abstract methods are unchanged, and a backend that does not implement it simply reports no per-entry pointers. Verified: the abstract set is the same seven names at the tag and now.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -443,7 +443,7 @@ should stop promising what this rule does not do.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-08-22T12:21:16Z] Elias Python:
+- [2026-08-22T12:21:16Z] `python-dev` Elias Python:
   - Fixed: split _backend_reconciled (_services/_validators.py) into two. The top-level managed_paths loop stays there, unconfirmed (disk+config only, cannot flicker). The per-entry managed_entry_paths loop moved out into two new functions, backend_entry_candidates (scan-time candidates) and backend_entry_missing (single-candidate confirm predicate, same shape as on_disk_not_indexed/not_on_disk) -- both routed through check()'s existing _confirm_cross_source, which now reloads the index once and recomputes each backend's live-roster set fresh before re-checking any candidate.
   - check()'s own docstring updated to name the per-entry pointer claim alongside status/parent drift and index/disk reconciliation as one of the confirmed cross-source claims -- it no longer under-describes its own behaviour.
   - Driven, the exact false positive from the finding, reproduced with two real coroutines and a real transaction (not a stale-snapshot harness): activate qa, race check() against a concurrent retirement (set_status Archived) that commits while check's scan is paused right after its index snapshot loads. Before the fix: warn '.claude/agents/qa.md managed pointer missing'. After the fix: no issue reported -- the confirm round's fresh reload sees qa as Archived and drops the candidate.
@@ -504,11 +504,11 @@ generated config is defensible.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-08-22T12:19:45Z] Theo Writer:
+- [2026-08-22T12:19:45Z] `tech-writer` Theo Writer:
   - Adopter-facing half is corrected: the changelog no longer justifies the warn level by the gitignore argument. It now says the level plainly — a missing per-entry pointer is warn because running sq sync recovers it and it does not by itself mean the backend was never set up, so your exit code is unchanged; a missing top-level managed file is still an error, so a backend directory deleted wholesale still fails.
   - Driven on a two-backend-free squad after the tree came back green: one pointer removed gives warn at exit 0; rm -rf .claude gives error on .claude/settings.json plus warns, exit 3 — which is your finding, stated as behaviour rather than as a rationale.
   - Note the source side of your finding is partly still open: _base.py managed_paths docstring (around the managed_entry_paths reference) still carries the gitignore rationale, while _validators.py backend_entry_candidates has been corrected. Out of my boundary this pass — flagging for whoever owns src. @reviewer
-- [2026-08-22T12:21:29Z] Elias Python:
+- [2026-08-22T12:21:29Z] `python-dev` Elias Python:
   - Fixed: corrected both false docstrings, level unchanged (still warn).
   - AgentBackend.managed_paths (_backends/_base.py): dropped the 'an adopter who has deliberately gitignored ... must not fail the gate over that choice' claim. Corrected wording: gitignoring does not escape sq check -- the same backend's top-level managed_paths entry (e.g. claude_code's .claude/settings.json) is already error and already fails a fully gitignored directory, before and after the per-entry rule existed. The honest reason: a per-entry pointer going untracked while the top-level files stayed tracked was previously invisible to sq check altogether (not error, not warn, nothing); warn keeps that previously-silent shape's exit code unchanged rather than adding a new error to a patch release.
   - _backend_reconciled's docstring (_services/_validators.py) -- as part of the F3 split, the per-entry rationale moved to backend_entry_candidates' own docstring, restated there in the same corrected wording (not the false one).
@@ -558,12 +558,12 @@ pattern is worth naming, not just the instances.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-08-22T12:19:34Z] Theo Writer:
+- [2026-08-22T12:19:34Z] `tech-writer` Theo Writer:
   - Reauthored the whole 0.13.1 section as its owner: 2 Added + 10 Fixed, every history claim re-checked against the v0.13.0 tree rather than the working tree.
   - Your two corrections hold. (1) _refuse_blank_strings is absent from v0.13.0, so "has always" was false — I resolved it structurally instead of by rewording: the flag refusal and the override-field refusal are now one entry, so the relationship is shown rather than asserted. (2) Exactly two writers today (_refresh_catalog_extra + _refresh_role_skills_extra, dedup by exact text), so "twice" is right; that entry is now merged into the check-side divergence entry, since one divergence reported by two commands is one adopter story.
   - Fourth overclaim of the same family, found and fixed: the role-override entry said a declared one-line description was "previously ignored no matter what it said". False at the tag — activate_role wrote extra.description from the resolved role, so a description declared before activation did reach the pointer. What never happened was a later edit reaching it, because description was not in RoleDef._EXTRA_FIELD_KEYS at v0.13.0 and so was never reconciled on sync. Entry now says that.
   - Also fixed: a garbled double-splice in the per-entry pointer entry (the warn clause and the top-level clause each appeared twice); an index-parse count written as "two rather than three (and the addressed form five)", which I re-measured to 1 read + 2 parses with an override and 1 without; and two adjacent name entries that read as contradicting each other on whether a lost name self-heals.
-- [2026-08-22T13:49:27Z] Catherine Manager:
+- [2026-08-22T13:49:27Z] `manager` Catherine Manager:
   - Fixed. The tech-writer now owns this section and reauthored it end to end, verifying every historical claim against the v0.13.0 tree rather than the working tree. He found a fourth overclaim this finding did not name - the role-override entry claimed a declared description was previously ignored no matter what it said, when in fact a description declared before activation did reach the pointer and only a later edit never did - and he repaired a garbled double-splice that was mine, from editing the same sentence twice by hand. I have recorded the process correction: I stop splicing dev-handed prose into that file.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -618,7 +618,7 @@ whether the `Artifact` contract they exist to satisfy is the thing to relax.
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-08-22T14:13:19Z] Elias Python:
+- [2026-08-22T14:13:19Z] `python-dev` Elias Python:
   - Decision (op-pierre): stop generating the .agents_md/roles|skills staging files at all, rather than reword the report or delete only the files.
   - generate_role_entry/generate_skill_entry write nothing now; each returns a pathless Artifact naming the (unwritten) legacy path — the ABC/Artifact contract needed no path-must-exist change, so neither stop condition fired. managed_entry_paths override dropped for agents_md -> falls to the ABC default ([]), so check/sync no longer name these files (F6's own resolution, confirmed not coded separately).
   - Pre-existing .agents_md files on an upgraded squad: generate_role_entry/generate_skill_entry and remove_artifacts now delete-if-exists at that legacy path, so one ordinary sq sync cleans up any leftover file for a role/skill still in the roster (live or retired). A leftover file whose item was removed outright is never visited by sync; candidate_orphans (unchanged logic) still reports it on sq adopt -- driven end to end in a scratch squad (copied old-build leftovers in, ran sq sync, matching-slug files gone, stray unknown-slug file survived and was flagged by sq adopt).
@@ -631,18 +631,18 @@ whether the `Artifact` contract they exist to satisfy is the thing to relax.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-22T11:47:11Z] Paul Reviewer:
+- [2026-08-22T11:47:11Z] `reviewer` Paul Reviewer:
   - ChangesRequested on F1 alone. Do not cut 0.13.1 from this state.
   - F1, driven against v0.13.0 installed from its own tree: a squad that named an agent with a whitespace-only --name on the last released version cannot run sq sync or sq role <slug> show at 0.13.1. The value is durable on 0.13.0 across repeated syncs with sq check clean; on 0.13.1 the sweep aborts on the first offending role and regenerates nothing, sq check still says "no issues", and neither sq repair nor archiving the role clears it - only deleting the entry does. Both role shapes are affected; the developer shape needs no precondition at all. The refusal is right on the input side, where it already is at both CLI sites; what needs fixing is the read path weaponising it against data a previous release wrote.
   - F2 is cheap and worth doing in the same pass: the increment added an eighth abstract method to AgentBackend, which docs/stability.md and docs/backends.md both state does not happen, and the docs own seven-method example no longer instantiates. Dropping the abstractmethod decorator for a return-empty default keeps the promise and changes nothing else. F3-F6 are low; none of them loses anything.
   - The fold-in equivalence holds: 44 driven shapes, seam-refuses matches check-reports in both directions, exemptions and invented timestamps intact, sq repair clears every reported shape, and no false positive across a 16-step lifecycle. A clean squad sync and check output is byte-identical to the pre-commit tree. The retirement and dropped-type paths are correct, and the sync dedup is both reachable and properly tested (the new test counts lines rather than substring-matching).
   - The edited migration test is justified: the skew it now repairs away is real, is created by the test own index-bypassing helper, and run_pending_migrations does call repair() after every migration - so the assertion is strictly stronger than before, not weakened.
   - @python-dev for F1 and F2. @manager: the release-gate answer is no until F1 is closed.
-- [2026-08-22T11:49:24Z] Catherine Manager:
+- [2026-08-22T11:49:24Z] `manager` Catherine Manager:
   - F1 confirmed independently and accepted as a release blocker. Drove it by planting a stored blank name in both the frontmatter and the index - the state v0.13.0 allowed - then running this build: sq sync exits 1 and regenerates nothing, sq role show exits 1, and sq check reports no issues at exit 0, so the operator is told neither what is wrong nor how to clear it. Cutting 0.13.1 in this state would brick sq sync for any adopter who did what the previous release permitted.
   - The principle the fix must follow, and it is already this codebase convention: validate at the input boundary, tolerate at the read boundary. Item.from_frontmatter tolerates loose spellings for exactly this reason. Our refusal belongs where an operator supplies a name, not where stored data is read back.
   - F2 accepted too: docs/stability.md and docs/backends.md both promise exactly seven abstract methods and that the set does not grow, and a patch release that grows it makes a published contract false. Taking the reviewers own remedy - a default implementation rather than an eighth abstractmethod - which keeps the promise and changes nothing else.
-- [2026-08-22T14:17:19Z] Catherine Manager:
+- [2026-08-22T14:17:19Z] `manager` Catherine Manager:
   - Closing this review. All six findings are fixed and each was driven by me as well as by its author. F1 was the release blocker and the reason this review existed: a stored whitespace-only name, legal on 0.13.0, made sq sync exit 1 and regenerate nothing while sq check reported no issues - we would have shipped a patch that bricked sync for any adopter who did what the previous release allowed. The fix tolerates stored data at the read boundary and heals it on the next sync, while the input-side refusal stays.
   - Three of the six were a stale rationale outliving the code it described - the warn level justified by an argument untrue of the default backend, a comment claiming nothing ever wrote extra.description, and a docstring arguing the stream choice was a --json concern. A wrong explanation propagates further than a wrong line, so each correction was required rather than optional.
   - Two pre-existing tests were found asserting their own defect: one pinned board list stdout stream, one pinned the inbox and search error text in stdout. Both would have made the defect permanent and both surfaced only because someone changed the behaviour they pinned.

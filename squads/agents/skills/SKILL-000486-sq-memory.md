@@ -3,6 +3,7 @@ id: SKILL-486
 sequence_id: 486
 type: skill
 title: sq-memory
+slug: sq-memory
 status: Active
 author: sq-memory
 description: 'Your role''s committed memory notebook and the team bulletin board:
@@ -12,9 +13,13 @@ description: 'Your role''s committed memory notebook and the team bulletin board
   team.'
 created_at: '2026-07-18T21:49:05Z'
 updated_at: '2026-07-18T21:49:05Z'
-extra:
-  slug: sq-memory
+origin: system
 ---
 <!-- sq:body -->
 <!-- sq:view:memory_skill -->
 <!-- sq:body:end -->
+
+## Discussion
+
+<!-- sq:discussion -->
+<!-- sq:discussion:end -->

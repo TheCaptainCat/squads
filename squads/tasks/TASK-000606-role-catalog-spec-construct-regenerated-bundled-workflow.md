@@ -49,6 +49,6 @@ _Add with `sq task 606 add-subtask "<title>"`; track with `sq task 606 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T16:20:49Z] Elias Python:
+- [2026-07-22T16:20:49Z] `python-dev` Elias Python:
   - Landed: RoleSpec model (settled/hidden/color) + WorkflowSpec.roles, loaded from [roles.<name>] (loader + override-merge, additive like collections). Regenerated default_workflow.toml: 8 role blocks, role= on all 23 statuses, every terminal= line removed. Targeted gates green (pyright/ruff/ruff format clean; unit+cli+service+integration subset green).
 <!-- sq:discussion:end -->

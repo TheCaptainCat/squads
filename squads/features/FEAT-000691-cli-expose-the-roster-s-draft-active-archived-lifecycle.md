@@ -301,52 +301,52 @@ role's generated entry still preloads it). This is BUG-698's second, separate ga
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-29T13:14:30Z] Pierre Chat:
+- [2026-07-29T13:14:30Z] `op-pierre` Pierre Chat:
   - Scheduled for 0.13.
-- [2026-07-29T14:45:14Z] Olivia Lead:
+- [2026-07-29T14:45:14Z] `tech-lead` Olivia Lead:
   - Broken down into TASK-695 (one task, six subtasks mapped to US1/US2/US3). Left in Draft for the dispatch gate.
   - @product-owner three acceptance-criteria corrections. (1) `sq skill list` does not exist and deliberately so — docs/stability.md says the skill type has no dedicated list verb; the equivalent is `sq list -t skill`. (2) Nothing in the generated `.claude`/AGENTS.md surfaces enumerates the roster addressed verbs today (no `sq-role` skill exists, and the CLAUDE.md region only cites `sq role <slug> show` for impersonation), so US3 reduces to `--help`/epilogs plus the adopter docs — I scoped it that way rather than adding new roster grammar to the managed templates. (3) US2 cannot be proven end-to-end against a renamed roster lifecycle: the workflow override loader is additive-only and refuses to redefine a built-in type or lifecycle, so an adopter cannot rebind role/skill/operator today. The task proves it structurally (no status literals) plus via the per-type error enumeration.
   - Also worth a separate decision, not folded in: roster items are created `Active` and the bundled lifecycle has no edge back into `Draft`, so the body's "parked Draft and picked up later" scenario stays unreachable without `--force` even after this lands. And `Service.roster()`/`operators()` ignore status, so an Archived role keeps its `.claude` pointer, its CLAUDE.md roster row, and its validity as an `--as`/`--assignee` slug.
-- [2026-07-29T14:47:01Z] Catherine Manager:
+- [2026-07-29T14:47:01Z] `manager` Catherine Manager:
   - Corrected two factual errors the breakdown found: the acceptance criteria cited a non-existent 'sq skill list' (docs/stability.md is explicit that skills have no dedicated list verb — 'sq list -t skill' is the equivalent), and the Draft-parking rationale was unreachable since roster entries are created Active with no lifecycle edge back to Draft. Archived is the target this closes.
-- [2026-07-29T14:50:17Z] Pierre Chat:
+- [2026-07-29T14:50:17Z] `op-pierre` Pierre Chat:
   - Fold the archive-semantics work behind this feature: an Archived roster entry must stop being offered as an active participant (roster()/operators() status-awareness, the .claude pointer, the CLAUDE.md roster row, --as/--assignee validity). Not a separate feature.
   - The roster is locked: role/skill/operator keep their built-in lifecycles and are not adopter-customisable. We do not need custom roster lifecycles. US2's promise ('a custom roster lifecycle gets the same command for free') is therefore void and needs reframing — the no-status-literals implementation constraint stands on engine-hygiene grounds, not adopter customisation.
-- [2026-07-29T15:06:27Z] Pierre Chat:
+- [2026-07-29T15:06:27Z] `op-pierre` Pierre Chat:
   - Reversing the lockup: constrain, don't lock. The roster lifecycle stays customisable and the engine keys off the declared status roles (active/retired), not the literal status names.
   - The principle behind it: squads must not break when a project's customisation is too loose. That holds for every item type — the engine must validate the minimum semantics it depends on rather than trusting a spec. The roster is the special case because its entries are materialised into the agent hosts' own files (Claude Code today, Copilot and Codex later), so a loose roster spec breaks the generated backend config, not just an sq view.
-- [2026-07-29T15:19:49Z] Robert Architect:
+- [2026-07-29T15:19:49Z] `architect` Robert Architect:
   - Authored two decisions for the remaining archive-semantics work: ADR-696 (the general rule — engine keys off declared status roles, loader enforces a per-capability floor, workflow overrides may shadow built-ins under validation) and ADR-697 (the roster-as-backend-projection contract — active means materialised, anything else withdrawn, both through the existing AgentBackend methods).
   - Split because they sit on different planes: ADR-696 is spec-load validation and applies to every type; ADR-697 is the runtime materialisation seam and only concerns the roster. ADR-697 builds on ADR-696.
   - ADR-696 lifts the additive-only override restriction — without it 'constrain, don't lock' is unreachable for the roster, since no adopter can rebind role/skill/operator to a renamed lifecycle at all. Shadowing becomes per-field merge, validated; only the three roster type keys and their fixed category stay prohibited. This narrows ADR-541's type-axis floor.
   - The non-disablable rule is a derived transition-time invariant, not a per-entry 'required' flag: a retirement is refused when the resulting projection would break an active backend's config (last live role, the is_default role, a still-referenced skill). A flag would store a derivable fact and could not catch the last-live-role case at all.
   - One refinement to the framing, flagged rather than assumed: the engine needs only the 'active' role by name. Retirement and default-hiding are consumed through the role object's settled/hidden flags, so requiring the names 'retired'/'pending' would re-import name-locking one level up. Both stay in the bundled spec.
   - @manager both left Proposed for op-pierre to read and accept; sq check clean, nothing committed.
-- [2026-07-29T16:34:24Z] Nina Product:
+- [2026-07-29T16:34:24Z] `product-owner` Nina Product:
   - US2 rewritten: it now states only what TASK-695/ST3 delivered (no literal roster status name anywhere in the new verb; targets derived per-type from the spec). The adopter-facing half — a project rebinding role/skill/operator to a renamed lifecycle and proving this verb against it — waits on ADR-696's override-loader lift, which is decided but not implemented and has no task under this feature.
   - Recommendation: that lift is a workflow-spec-loader change reaching every item type, not a CLI concern scoped to this feature's status verb. I judge it belongs in its own feature once scheduled, not folded into a story here — flagging before creating anything.
-- [2026-07-29T16:34:34Z] Nina Product:
+- [2026-07-29T16:34:34Z] `product-owner` Nina Product:
   - Ruling on the decorative Draft roster status (ADR-696/697): drop it from the bundled role/skill/operator lifecycle. Nothing in the bundled spec ever transitions into it, every roster-create verb writes the active status directly, and this repo's own squad has zero roster items sitting at Draft — it is unreachable vocabulary shipped for a 'parked, picked up later' scenario this same investigation already found dead. Collapsing the bundled roster lifecycle to Active/Archived satisfies R1/R2 trivially (Active is the sole active status, Archived is the one reachable settled status) and matches the two-role model (active/retired) ADR-697 actually drives off.
   - An adopter who wants a pre-active provisioning state can declare one themselves once the ADR-696 override lift lands — dropping it from the bundled default doesn't remove that option, it just stops shipping dead vocabulary as the default.
   - Migration flag, not decided around: Draft is reachable today via --force (Active/Archived -> Draft), so a squad could in principle already have a roster item stamped Draft. Dropping the status from the bundled spec needs a pre-flight check across existing squads (validate_against_index would fail-closed on load if any live roster item holds it) and, if any are found, a migration remapping them to Active before the status is removed — this is implementation work for whoever picks up the drop, not something I'm deciding around.
-- [2026-07-29T16:39:59Z] Pierre Chat:
+- [2026-07-29T16:39:59Z] `op-pierre` Pierre Chat:
   - Confirmed: drop Draft from the bundled roster lifecycle, collapsing to Active/Archived, including the pre-flight check and remap for any existing squad holding it via --force.
   - Confirmed: the ADR-696 override lift gets its own feature rather than a story here — it is a spec-loader change reaching every item type.
-- [2026-07-30T07:53:10Z] Olivia Lead:
+- [2026-07-30T07:53:10Z] `tech-lead` Olivia Lead:
   - Broken down US4/US5/US6 into four tasks, all left in Draft for the dispatch gate: TASK-699 (spec-semantics foundation + the confirmed Draft drop, no story), TASK-700 (US6, the sq check reporter, urgent), TASK-701 (US5, the C1-C3 gate + --unlink), TASK-702 (US4, the backend projection). Serial chain 699 → 700 → 701; 702 runs parallel with 700 after 699. Recorded as depends-on edges, so sq blocked shows the order.
   - TASK-699 is an addition to the three stories, not a restatement of them: ADR-696 §2's role-keyed accessors (role_statuses / sole_role_status) do not exist yet — _RESERVED_FLOOR and the three STATUS_* literals are still live across nine call sites — and every one of US4/US5/US6 is specified in terms of 'the status resolves to the active role'. Without it each of the three would grow its own liveness predicate. Its scope is ADR-696 §2/§3/§5 only; the §4 override lift stays out, per the ruling that it gets its own feature.
   - TASK-700 owns the C1-C3 clause predicates and TASK-701 consumes them, rather than each deriving its own. That is why the reporter is first in the chain as well as first in priority.
   - @python-dev the Draft-drop migration tail is settled and needs no migration runner — two load-path facts, both verified in code and both written up as assertions on TASK-699/ST6: validate_against_index tests the spec's global status set (the dropped name stays declared for work and guide) and only runs at all when a workflow override file is present, so nothing hard-stops; and _apply_status with force=True skips the edge check, so an item at a no-longer-declared status is remappable in place. The residue is one item_status_valid error per affected item in sq check. Assert both rather than trusting the write-up.
-- [2026-07-30T07:57:44Z] Pierre Chat:
+- [2026-07-30T07:57:44Z] `op-pierre` Pierre Chat:
   - All three archive stories (US4/US5/US6) stay in 0.13 — the verb and its guards ship together, so no adopter sees the unguarded intermediate state.
   - Dropping the bundled Draft roster status also ships in 0.13, with FEAT-691.
-- [2026-07-31T09:40:02Z] Olivia Lead:
+- [2026-07-31T09:40:02Z] `tech-lead` Olivia Lead:
   - Four tasks cut against REV-706, all Draft: TASK-707 (the clause family and its enforcement), TASK-708 (the projection path), TASK-709 (the adopter-facing changelog and docs), TASK-710 (the is_default designation verb). US4 and US5 are the two the review judged not met; 707 and 708 are what close them, and 709 carries the US3 gap on --unlink.
   - TASK-710 is parented here on purpose — same surface (sq role <addr>), its spec is ADR-697 §9, and every other roster-verb task already hangs off this feature, so the decision-to-task trail stays one hop. It maps to no story: US1-US6 do not cover designation, so it must not be counted against this feature's acceptance and does not gate 0.13. That leaves a Draft child under a feature heading for Done — either close this feature with an explicit note that 710 rides the next roster increment, or reparent it then. Do not let it close silently.
-- [2026-07-31T09:54:23Z] Pierre Chat:
+- [2026-07-31T09:54:23Z] `op-pierre` Pierre Chat:
   - TASK-710 (the is_default designation verb) stays in this feature and ships with it — it is small enough not to warrant its own increment. The feature closes when it is done too, not before.
-- [2026-07-31T11:49:05Z] Olivia Lead:
+- [2026-07-31T11:49:05Z] `tech-lead` Olivia Lead:
   - US5 moved back off Done: two of its criteria are unmet as shipped. The delta comparison still refuses a transition that strictly reduces a pre-existing violation (the importer replay too), so the pure pre-write rule is not satisfied; and the scoped-edge remedy names --unlink on a reactivation, where the command rejects it, so the every-refusal-names-a-remedy criterion fails in that direction. TASK-711 carries both, mapped to this story.
-- [2026-07-31T12:41:57Z] Catherine Manager:
+- [2026-07-31T12:41:57Z] `manager` Catherine Manager:
   - Closing: all six stories meet their acceptance as written per the reviewer's round-three verdict, all eleven tasks are Done, the batch review is Approved by a second party, and the defect this feature exposed is Verified. Non-visual work, so accepted directly rather than held for an operator pass; two low findings stay open on the review as recorded follow-ups.
 <!-- sq:discussion:end -->

@@ -142,7 +142,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-16T09:06:29Z] Theo Writer:
+- [2026-10-16T09:06:29Z] `tech-writer` Theo Writer:
   - Fixed in docs/stability.md (Override inspection): documented as an array, one row for the override named or one per drifted override; matches the command and its docstring, no ADR pins an object shape.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -165,7 +165,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-16T09:01:38Z] Mara Tester:
+- [2026-10-16T09:01:38Z] `qa` Mara Tester:
   - Filed as BUG-1041 (code defect, doc is right). Closing here; the fix and its test live on the bug.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -190,7 +190,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-16T09:06:32Z] Theo Writer:
+- [2026-10-16T09:06:32Z] `tech-writer` Theo Writer:
   - Fixed in docs/stability.md (ID numbering): only the prefix moves, and only on a retype.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -213,7 +213,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-16T09:06:35Z] Theo Writer:
+- [2026-10-16T09:06:35Z] `tech-writer` Theo Writer:
   - Fixed in docs/stability.md (Project-level overrides) and docs/internals.md tree: the three spec documents workflow.toml, roles.toml and playbook.toml (ADR-777 makes roles.toml a document too), shared grammar, [selected] scoped to workflow/roles.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -236,7 +236,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-16T09:06:38Z] Theo Writer:
+- [2026-10-16T09:06:38Z] `tech-writer` Theo Writer:
   - Fixed in docs/internals.md section 7, retitled Backends: the seven abstract methods, claude_code and agents_md, active_backends, pointer to backends.md.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -259,7 +259,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-10-16T09:06:40Z] Theo Writer:
+- [2026-10-16T09:06:40Z] `tech-writer` Theo Writer:
   - Fixed in docs/internals.md layout tree: schema_version, squad_dir, active_backends, squads_version (driven on a fresh init).
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -282,7 +282,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-10-16T09:06:43Z] Theo Writer:
+- [2026-10-16T09:06:43Z] `tech-writer` Theo Writer:
   - Fixed in docs/internals.md section 9: the real 26-template tree, grouped, with the rule that an override uses the same relative path.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -305,7 +305,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-10-16T09:06:46Z] Theo Writer:
+- [2026-10-16T09:06:46Z] `tech-writer` Theo Writer:
   - Fixed in docs/internals.md section 5: block shown as written today (driven), presentation computed on read, the :head/summary re-render sentence replaced by the heading re-render on a title change.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -328,7 +328,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-10-16T09:06:49Z] Theo Writer:
+- [2026-10-16T09:06:49Z] `tech-writer` Theo Writer:
   - Fixed in docs/internals.md section 4: counter raised to the highest number on disk, never lowered; padding carried as a floor too.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -351,7 +351,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-10-16T09:06:52Z] Theo Writer:
+- [2026-10-16T09:06:52Z] `tech-writer` Theo Writer:
   - Fixed in docs/migration.md version table: driven, and migrate up does not bump the toml copy either (it stamps only schema_version and says run sq sync), so the toml copy is init/sync (adopt when it creates the file), the index copy every rebuild.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
@@ -376,7 +376,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-10-16T09:06:56Z] Theo Writer:
+- [2026-10-16T09:06:56Z] `tech-writer` Theo Writer:
   - Fixed in docs/internals.md: _services._service and the mixin facade, the two-tier check (scan + validator catalog), _services/_collab.py, squads._cli:main, migration.md vs adoption.md pairing.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
@@ -401,7 +401,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
-- [2026-10-16T09:06:59Z] Theo Writer:
+- [2026-10-16T09:06:59Z] `tech-writer` Theo Writer:
   - Fixed in docs/internals.md: contracts/, milestones/, operators/, AGENTS.md, .reflog.jsonl, roles.toml/playbook.toml in the tree; padding in the index root; disallowedTools: Agent; greeting and sq-memory as managed skills.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
@@ -424,7 +424,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
-- [2026-10-16T09:07:02Z] Theo Writer:
+- [2026-10-16T09:07:02Z] `tech-writer` Theo Writer:
   - Fixed in docs/stability.md: exit 3 row names sq import, and the bulk-import paragraph says why it exits 3 after a committed write.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
@@ -447,7 +447,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F14:discussion -->
-- [2026-10-16T09:07:05Z] Theo Writer:
+- [2026-10-16T09:07:05Z] `tech-writer` Theo Writer:
   - Fixed in docs/stability.md catalog table: ref-kinds row plus the null rule for role and direction (driven, 10 rows).
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
@@ -472,9 +472,9 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F15:discussion -->
-- [2026-10-16T09:10:28Z] Robert Architect:
+- [2026-10-16T09:10:28Z] `architect` Robert Architect:
   - ADR-775 already carries `ADR-49 (supersedes)` (added 2026-08-22), so no new edge was needed; it replaces ADR-49 in full, which under board notice 6 means retirement, not a dated amendment. Dated note posted on ADR-49 (2026-10-16). The Accepted to Superseded move (`sq decision 49 status Superseded`) is allowed by the adr lifecycle but waits on @op-pierre, so this finding stays Open until it lands. docs/stability.md needs no change.
-- [2026-10-16T13:04:35Z] Catherine Manager:
+- [2026-10-16T13:04:35Z] `manager` Catherine Manager:
   - ADR-49 moved to Superseded by op-pierre's instruction (2026-10-16); ADR-775 supersedes it.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
@@ -497,7 +497,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F16:discussion -->
-- [2026-10-16T09:07:08Z] Theo Writer:
+- [2026-10-16T09:07:08Z] `tech-writer` Theo Writer:
   - Fixed in docs/stability.md (Shell completion): fish and PowerShell scripts are generated by the same flags, install steps unverified, so outside the supported surface. README left as is (not my file); it no longer contradicts.
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
@@ -522,7 +522,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F17:discussion -->
-- [2026-10-16T09:07:11Z] Theo Writer:
+- [2026-10-16T09:07:11Z] `tech-writer` Theo Writer:
   - Fixed: stability.md (numeric version compare, no Invariant 1, subentities: key), migration.md (no source paths, runner modules, store.load aside, or version_notice/require_current_schema/SCHEMA_VERSION names).
 <!-- sq:finding:F17:discussion:end -->
 <!-- sq:finding:F17:end -->
@@ -545,7 +545,7 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F18:discussion -->
-- [2026-10-16T09:07:14Z] Theo Writer:
+- [2026-10-16T09:07:14Z] `tech-writer` Theo Writer:
   - Fixed in docs/migration.md three-tiers table: skill files out of the tool-owned row, AGENTS.md section in, and a note that SKILL-NNNNNN-<slug>.md is a durable item whose body holds only a view tag.
 <!-- sq:finding:F18:discussion:end -->
 <!-- sq:finding:F18:end -->
@@ -554,13 +554,13 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T08:52:37Z] Paul Reviewer:
+- [2026-10-16T08:52:37Z] `reviewer` Paul Reviewer:
   - Audit complete: 18 findings (1 high, 9 medium, 8 low); verdict recommended ChangesRequested on the docs, left InReview for the approver. The migration promise held on all twelve fixture corpora; the defects are the architecture half of internals.md, one Tier 3 shape (F1), one code-side contract break in the reflog (F2) and a false sq repair claim in migration.md (F10).
   - @tech-writer owns F1 (doc side), F3-F18 doc edits; @python-dev F2 (reflog target padding at init seeding); @architect F15 (ADR-49 vs ADR-775).
-- [2026-10-16T09:07:24Z] Theo Writer:
+- [2026-10-16T09:07:24Z] `tech-writer` Theo Writer:
   - Doc fixes landed in docs/stability.md, docs/migration.md, docs/internals.md: F1, F3-F14, F16-F18 Fixed. F2 (code: padded reflog target for seeded skills) and F15 (ADR-49 vs ADR-775) left Open for @python-dev and @architect.
   - Also fixed, no finding: internals.md section 4 said repair empties role bodies and never touches skill bodies; driven, a body with prose is left alone and an empty role or generated-skill body gets its view tag back.
   - Code observation: sq override diff --json with no name and nothing drifted prints a text line, not [].
-- [2026-10-16T13:04:53Z] Catherine Manager:
+- [2026-10-16T13:04:53Z] `manager` Catherine Manager:
   - Approved: every finding Fixed or closed with a home (F2 → BUG-1041); F15 closed by ADR-49 moving to Superseded.
 <!-- sq:discussion:end -->

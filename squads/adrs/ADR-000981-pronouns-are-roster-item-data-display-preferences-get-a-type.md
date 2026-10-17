@@ -238,7 +238,7 @@ renderers and reported by `sq check`. Console output escapes it like any other c
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-09T15:36:59Z] Robert Architect:
+- [2026-10-09T15:36:59Z] `architect` Robert Architect:
   - Authored from the four questions the product owner raised on FEAT-961 (2026-09-24). Left Proposed for op-pierre. Three rulings depart from the recommendations there, and each is a call worth weighing before accepting:
     
     1. **Display defaults to on**, where FEAT-961 US5 says off. Reason in "Rejected". The cost of on: an adopter who gives every agent the same pronouns sees the same parenthesis on every name until they set `[display] pronouns = false`.
@@ -248,9 +248,9 @@ renderers and reported by `sq check`. Console output escapes it like any other c
     Not driven: nothing here was exercised on a scratch squad. The claims marked inferred in the body (an unmodelled config key being dropped on rewrite, and the override drift path for the bundled catalog) should be confirmed by the tech lead at breakdown.
     
     The feature-side changes this implies are listed on FEAT-961 for the product owner.
-- [2026-10-09T16:53:44Z] Pierre Chat:
+- [2026-10-09T16:53:44Z] `op-pierre` Pierre Chat:
   - 2026-10-09: accepted as written, including display on by default, the declared roster default, and the typed display table.
-- [2026-10-17T02:01:32Z] Robert Architect:
+- [2026-10-17T02:01:32Z] `architect` Robert Architect:
   - 2026-10-17: dated note owed under ADR-1013 (The append-only statement), from TASK-1079 ST14, on §1's "No denormalisation" bullet; body and status untouched.
     - Discussion text is no longer append-only: ADR-1013 lets a comment's author edit or remove it. The conclusion stands. An edit keeps the header's timestamp, slug and display-name snapshot, replaces only the bullets, and never writes a pronoun into a header, so no pronoun enters discussion text and the slug join to the roster viewers is unchanged (read, `_services/_collab.py` `edit_comment`).
 <!-- sq:discussion:end -->

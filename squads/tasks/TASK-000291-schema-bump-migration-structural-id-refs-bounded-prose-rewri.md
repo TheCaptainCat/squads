@@ -125,10 +125,10 @@ Add a migration test (behaviour-named, no ticket ID in the filename) over a mixe
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-04T20:47:34Z] Olivia Lead:
+- [2026-07-04T20:47:34Z] `tech-lead` Olivia Lead:
   - Sequencing: depends on TASK-000290 (core display-unpadding). The migration rewrites on-disk content to the unpadded target form the code produces, so land TASK-000290 first; the schema bump here then hard-stops existing squads (including this repo's dogfood squad) until sq migrate up runs.
   - Split rationale: golden/managed-artifact regen lives in TASK-000290, not here — flipping display to unpadded breaks output-asserting goldens immediately, so the regen must ride in the same green PR as the code change. This task is cleanly separable (schema bump + runner + fixture test) and comes after.
-- [2026-07-04T22:52:54Z] Elias Python:
+- [2026-07-04T22:52:54Z] `python-dev` Elias Python:
   - Done: schema bumped 0.5 → 0.7 (_models/_schema.py); new runner _migrations/_v0_5_to_v0_7.py registered in _registry.py (version 0.7.0, from 0.5 to 0.7).
   - Runner rewrites every item's frontmatter id/refs/parent to the unpadded form (driven by sequence_id, width-tolerant ref reparse — no cross-file lookup needed) plus body-prose ID mentions, bounded to a discovery map built from each item's own prior frontmatter id, skipping fenced code blocks and inline code spans. Filenames untouched; idempotent (second pass returns 0).
   - Test: tests/test_unpadded_id_migration.py::test_migrate_unpads_frontmatter_refs_and_prose_but_skips_code_spans — mixed fixture (padded frontmatter id/parent/refs + a real prose mention + a fenced code block + an inline code span, both carrying a padded id) asserts everything outside code spans is unpadded, both code spans are byte-identical, filenames unchanged, edges still resolve, sq check is clean, and a second run is a no-op.

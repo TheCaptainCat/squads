@@ -71,7 +71,7 @@ Flatten toggle defaulting to grouped, two-command icon-swap idiom, on both views
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-07-29T10:03:32Z] Ada Typescript:
+- [2026-07-29T10:03:32Z] `typescript-dev` Ada Typescript:
   - Group-by-type toggle added to both Roster and Records, defaulting to grouped (opposite default from Work Items' own group-by-type, which is untouched). New per-view state field (MetaViewState.groupByType / RecordsViewState.groupByType, both domain-level, vscode-free) plus flatten branch in buildMetaView/buildRecordsView — ungrouped mode returns one id-sorted flat list (compareIds, same comparator Work Items' own ungrouped view uses) instead of the per-type buckets, restricted to the view's own eligible types so nothing leaks across views.
   - Same two-command icon-swap idiom and titles as Work Items' pair (Group by Type / Ungroup, list-flat / list-tree icons) — new ids per view (toggleGroupByTypeMeta/ungroupByTypeMeta, toggleGroupByTypeRecords/ungroupByTypeRecords) since each is a distinct state with a different default, not the same command reused.
   - What to check in the dev host: Roster and Records both open grouped (unchanged first-open appearance); click Group by Type/Ungroup on each and confirm it flattens to one list and the button's icon/title swap; Work Items untouched.
@@ -88,7 +88,7 @@ Hide superseded/deprecated decisions and deprecated guides, via the spec's statu
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-07-29T10:03:44Z] Ada Typescript:
+- [2026-07-29T10:03:44Z] `typescript-dev` Ada Typescript:
   - Hide-terminal on Records reuses the exact mechanism the Roster's hide-archived uses — resolveRole(status).hidden joined through the statuses/roles catalogs, never a literal status string. Superseded (role 'superseded') and Deprecated/Cancelled/Rejected (role 'retired') are all hidden:true; Accepted/Published (role 'in_force') are settled but hidden:false, so they stay visible while final-but-live, matching sq list --help's own documented split.
   - Wording: 'Terminal', not 'closed' — command titles are Show/Hide Terminal Records. Two-command icon-swap pair (squads.toggleShowTerminal/squads.hideTerminal), default hidden, contributed to squadsRecords view/title only.
   - What to check in the dev host: a superseded decision or deprecated guide is hidden by default; toggle reveals it (and merely-settled-but-live items like an Accepted decision stay visible throughout, never dimmed away).
@@ -105,7 +105,7 @@ Roster and Records each get a call-site-documented clear back to default (groupe
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-07-29T10:03:55Z] Ada Typescript:
+- [2026-07-29T10:03:55Z] `typescript-dev` Ada Typescript:
   - All 4 new toggles (Roster group-by-type, Records group-by-type, Records show-terminal, plus the already-shipped Roster show-archived) are visible purely via their icon-swap pair — no new .description text needed, since every state added this round is a toggle with an icon pair, unlike the Roster's status filter (a quick-pick, no icon pair, TASK-688's reason .description exists at all). Recorded as a deliberate scope decision, not an oversight.
   - Clear added for Records (squads.clearRecordsFilter, 1_squads group, mirrors clearMetaFilter's placement): resets groupByType/showTerminal to default (grouped, terminal hidden) — not show-everything — documented at the command's registration site in commands.ts. Roster's existing clearMetaFilter now also resets the new groupByType field for free (already returns to DEFAULT_META_VIEW_STATE wholesale).
   - What to check in the dev host: flatten + show-terminal both on Records, confirm the toolbar shows both via their icons; Clear Filter, confirm the view returns to its first-open appearance. Same on Roster with its 3 states (status filter, show-archived, group-by-type).
@@ -122,7 +122,7 @@ Live verification on the Windows dev host.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-07-29T12:46:12Z] Pierre Chat:
+- [2026-07-29T12:46:12Z] `op-pierre` Pierre Chat:
   - Verified on the stable dev host: the roster and records controls read and behave correctly.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->

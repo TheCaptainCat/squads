@@ -89,9 +89,9 @@ caveat)? Don't presume the answer; scope the fix once that's settled.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-24T17:47:06Z] Pierre Chat:
+- [2026-08-24T17:47:06Z] `op-pierre` Pierre Chat:
   - Reading the markdown files directly is forbidden: agents must use the CLI. If nothing told an agent that, that is a bug in squads. It gets more useful once the materialised views are live.
-- [2026-08-24T20:33:10Z] Olivia Lead:
+- [2026-08-24T20:33:10Z] `tech-lead` Olivia Lead:
   - Fix scoped as TASK-793 (fixes ref), assigned to the tech-writer and Ready. Bug stays Open until it lands.
   - Answering the open question left for me: (2) is not gate-able. Whether an agent opens a file instead of running the CLI is a property of its tool-use outside any sq-tracked artifact, so no check rule can observe it — this is documentation-only. The `file:` line stays as it is per the operator: after ADR-776 a human resolving a merge is its one legitimate reader.
   - The sweep for other carriers found three more bundled templates (role.md.j2, the two .claude pointers) and seven doc lines beyond the four you cited; all are in TASK-793.

@@ -75,9 +75,9 @@ Covers making `sq check` degrade gracefully on a bad workflow override: `Service
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-30T08:29:12Z] Catherine Manager:
+- [2026-06-30T08:29:12Z] `manager` Catherine Manager:
   - AC#5 wiring gate (from REV-246 + QA on Wave 1): validate_against_index() is implemented in _workflow/_loader.py but has NO production call site — AC#5 ('removing a status still in use by live items fails closed, listing offending IDs') is not end-to-end. This task MUST wire it in. Design constraint: 'fails closed' means a normal command on such a squad hard-stops (open_service is the natural point) with the 'run sq workflow lint' pointer — BUT sq workflow lint (TASK-242) must still run and report the offenders without being self-blocked by the same check. FEAT-209 cannot be signed off AC#5-complete until this is wired and proven by an end-to-end test.
-- [2026-06-30T08:45:56Z] Elias Python:
+- [2026-06-30T08:45:56Z] `python-dev` Elias Python:
   - Implemented AC#5 wiring and sq check integration (TASK-243).
   - AC#5 wiring: validate_against_index_fail_closed(spec, squad_dir) in _loader.py reads the index synchronously (bypassing the async layer) after load_workflow_spec succeeds, raises SquadsError listing every offending item ID if the merged spec drops a type or status still used by live items. Called from open_service() (F3/REV-246 fast-path also wired: no-override squads use cached _BUNDLED_SPEC without re-parsing). sq workflow lint bypasses this by calling lint_workflow_spec() directly.
   - sq check integration (AC#4): check command now probes lint_workflow_spec() before calling get_service(). If any error findings, appends CheckIssue('error', 'workflow', 'workflow config invalid — run sq workflow lint'). If get_service() raises (AC#5 hard-stop), falls back to bundled spec and constructs Service(sp) directly so remaining checks (markers, dangling links, etc.) still run.
@@ -85,7 +85,7 @@ Covers making `sq check` degrade gracefully on a bad workflow override: `Service
   - Tests added in tests/test_workflow_override.py: test_lint_no_override_reports_ok, test_lint_valid_override_reports_ok, test_lint_invalid_override_collects_all_errors, test_lint_collects_index_cross_check_errors, test_lint_does_not_self_block_on_ac5_spec, test_lint_cli_exits_0_on_no_override, test_lint_cli_exits_0_on_valid_override, test_lint_cli_exits_1_on_invalid_override, test_workflow_show_still_works, test_workflow_show_subcommand_works, test_check_no_workflow_issue_when_spec_valid, test_check_reports_workflow_issue_for_invalid_spec, test_ac5_open_service_fails_closed_with_live_items, test_ac5_lint_reports_not_hard_stops_on_dropped_status, test_open_service_no_override_uses_bundled_fast_path. Previous gap-doc test updated to reflect the now-wired AC#5.
   - Gate results: pyright 0 errors/0 warnings, ruff check clean, ruff format clean. Targeted pytest (test_workflow_override.py + test_workflow_spec.py + test_service.py + test_load_boundary_vocab.py) 132/132 passed.
   - @manager: TASK-242 and TASK-243 Done. AC#5 is wired end-to-end. Wave 2 complete. Ready for review.
-- [2026-06-30T09:29:52Z] Elias Python:
+- [2026-06-30T09:29:52Z] `python-dev` Elias Python:
   - Fix 2 (F2 / REV-248) applied — TASK-243 follow-up.
   - In `_services/_service.py` open_service: deleted the vestigial F5 comment block (the OSError guard that was described but did not exist) and removed the no-op `try/except SquadsError: raise SquadsError(f'{exc}')` re-wrap around `validate_against_index_fail_closed`. Now calls it directly — the function's own SquadsError message already carries the lint pointer.
 <!-- sq:discussion:end -->

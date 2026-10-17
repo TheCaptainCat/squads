@@ -58,12 +58,12 @@ future concurrent-fan-out feature (e.g. a batch command that runs several mutati
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-24T14:40:22Z] Pierre Chat:
+- [2026-07-24T14:40:22Z] `op-pierre` Pierre Chat:
   - Investigated + fix proposed; parked — not scheduled for 0.12.1.
-- [2026-07-27T13:53:03Z] Pierre Chat:
+- [2026-07-27T13:53:03Z] `op-pierre` Pierre Chat:
   - Unparked: fix all three. Architect settles the .md-vs-index ordering/atomicity model in an ADR first, then implement.
-- [2026-07-27T14:06:14Z] Robert Architect:
+- [2026-07-27T14:06:14Z] `architect` Robert Architect:
   - ADR-663 §4 settles the handle: task-local, store-scoped, set inside the locks, token-reset; the discarded pre-lock load goes with it. Moving the assignment after Layer 1 only narrows the window (Layer 1 is per-loop).
-- [2026-07-27T14:26:23Z] Olivia Lead:
+- [2026-07-27T14:26:23Z] `tech-lead` Olivia Lead:
   - Broken down: TASK-666 closes this (ADR-663 §4 — task-local, store-scoped transaction context set inside the locks, token-reset; the discarded pre-lock load goes with it). The ADR takes the second of the two proposed fixes; moving the assignment after Layer 1 only narrows the window.
 <!-- sq:discussion:end -->

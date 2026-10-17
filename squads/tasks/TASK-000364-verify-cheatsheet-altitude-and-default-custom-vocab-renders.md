@@ -55,6 +55,6 @@ _Add with `sq task 364 add-subtask "<title>"`; track with `sq task 364 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-10T04:43:43Z] Catherine Manager:
+- [2026-07-10T04:43:43Z] `manager` Catherine Manager:
   - Verification complete. US1 (custom-vocab render): a custom type participates in the cheatsheet, test-proven (incident/finding) + reviewer-confirmed. US2 (altitude): rendered cheatsheet is a concise cross-type system map — one condensed line per authoring type-role pairing, distinct from the per-type sq-<type> playbooks (independently confirmed by reviewer read + manager read of the golden). US3 (default readability): the bundled cheatsheet reads well, accurate lifecycles/aliases/retype/ref-kinds. No code expected; verified via the regenerated golden + TASK-363's independent review + the custom-type test.
 <!-- sq:discussion:end -->

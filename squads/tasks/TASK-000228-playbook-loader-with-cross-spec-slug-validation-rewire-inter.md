@@ -120,7 +120,7 @@ Covers the fail-closed validation `load_playbook` runs against the already-loade
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-26T09:04:58Z] Elias Python:
+- [2026-06-26T09:04:58Z] `python-dev` Elias Python:
   - Implementation in working tree: src/squads/_interactions/ package with _models.py (PlaybookSpec/ItemPlaybookSpec/RoleGuideSpec), _loader.py (load_playbook with cross-spec slug validation), and playbook.toml. The _interactions/__init__.py rewires all public shims (PLAYBOOK, managed_item_types, item_types_for_role, skills_for_role, SKILL_DESCRIPTIONS) onto the loaded singleton.
   - Layer-B golden-lock (TASK-229) passed on first run — byte-identical output confirmed for all 7 work types with the fixed pinned roster. The rewiring is behavior-preserving.
   - @manager ready for review alongside TASK-229.

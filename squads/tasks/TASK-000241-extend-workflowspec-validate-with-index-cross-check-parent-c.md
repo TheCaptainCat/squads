@@ -77,12 +77,12 @@ Covers extending the fail-closed validation with the two checks the feature name
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-30T08:12:03Z] Elias Python:
+- [2026-06-30T08:12:03Z] `python-dev` Elias Python:
   - Added _check_parent_cycles() DFS to _models.py, wired into WorkflowSpec._validate as §5-7. Reports ALL cycles in one pass (no graphlib — by design, for full error surface required by sq workflow lint).
   - Removed _SUBENTITY_KINDS from _models.py — it was dead code (defined but never referenced in that module). The same constant exists in __init__.py where it IS used.
   - validate_against_index(spec, db) in _loader.py: cross-checks live index items against spec.items and spec.statuses, returning a list of error strings. Wired into tests; TASK-242 (sq workflow lint) and TASK-243 (sq check) call this.
   - Cycle detection uses the ruff-preferred list unpacking form ([*cycle_nodes, parent]) instead of list concatenation.
-- [2026-06-30T08:26:54Z] Mara Tester:
+- [2026-06-30T08:26:54Z] `qa` Mara Tester:
   - Parent-cycle detection PASS: A→B→A and A→B→C→A cycles in the type-parent graph both raise SquadsError naming the cycle. test_parent_cycle_detected_direct + test_parent_cycle_detected_three_node. Bundled spec is cycle-free (test_no_parent_cycle_bundled_spec).
   - validate_against_index PASS (function itself): item type missing → error lists item ID; item status missing → error lists item ID; sub-entity status missing → error lists parent item ID. Added test_validate_against_index_subentity_bad_status (sub-entity axis was not previously tested).
   - DEFECT FOUND — AC#5 wiring gap: validate_against_index is implemented correctly but is NOT called from open_service. A squad with a live item whose status is no longer in the override spec proceeds without error — the fail-closed guarantee that AC#5 requires is not enforced end-to-end. Reproduced: open_service with an override that drops a previously-used status succeeds silently. Documented in test_ac5_validate_against_index_not_called_by_open_service (assertion currently expects no raise — invertible once fixed). This defect is out of scope for TASK-239/240/241; it should be tracked and fixed before or in TASK-243 (sq check), which is the other natural wiring point.

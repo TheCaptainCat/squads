@@ -211,31 +211,31 @@ A single shared override engine, reused by the workflow, playbook, and roles loa
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T15:17:30Z] Pierre Chat:
+- [2026-07-21T15:17:30Z] `op-pierre` Pierre Chat:
   - Two hard constraints on this epic: (1) dropping any droppable built-in must never break sq — clean refusal or full functionality, no consumer traceback; (2) meta-types (role/skill/operator) are frozen absolutely — no deactivate/rename/re-prefix/field-merge, any override touching them is rejected.
-- [2026-07-21T15:40:33Z] Pierre Chat:
+- [2026-07-21T15:40:33Z] `op-pierre` Pierre Chat:
   - Direction: replace the is_meta boolean with a 'category' axis (roster / work / architecture) on each item-type spec. ADR/PRD become an 'architecture' category (records, not burn-down work). Deactivation floor = roster category; roster rename gated on a separate meta_kind de-naming. Robert to pin the taxonomy + per-category contract in a foundational ADR before features are cut.
-- [2026-07-21T15:43:56Z] Pierre Chat:
+- [2026-07-21T15:43:56Z] `op-pierre` Pierre Chat:
   - Constraint: the category catalog is hard-coded in squads — closed set, fixed semantics, not part of the override surface. Adopters cannot create/rename/redefine a category; a custom type only picks one of the fixed categories to inherit its behaviour.
-- [2026-07-21T15:48:49Z] Pierre Chat:
+- [2026-07-21T15:48:49Z] `op-pierre` Pierre Chat:
   - Category naming + rules: call the third category 'records' (not architecture); guide is a record, review is work. Records take no parent — records relate via refs, not hierarchy — and this must be enforced at create/update AND in sq check (today parents=[] on decision/guide is unenforced: 5 ADRs hold parents while sq check is clean). Both the TUI and VS Code extension trees need a Records group; migrate the 5 parented ADRs to related refs.
-- [2026-07-21T20:08:03Z] Pierre Chat:
+- [2026-07-21T20:08:03Z] `op-pierre` Pierre Chat:
   - Sequencing (op-pierre): statelessness first — land FEAT-533 (removes the _PLAYBOOK_SPEC/_active_spec singletons) before cutting EPIC-538/540 features onto the per-request seam. ADR-541 and ADR-534 held at Proposed for now (not accepted yet); feature-cutting waits on that acceptance.
-- [2026-07-21T20:51:37Z] Nina Product:
+- [2026-07-21T20:51:37Z] `product-owner` Nina Product:
   - Refreshed body: dropped the resolved open-questions section, corrected the statelessness/records/roster-lock framing, and added the work<->records reassignment outcome + explicit Plane-1/Plane-2 split with EPIC-540 — all aligned to ADR-541. Status unchanged (Draft).
-- [2026-07-24T07:55:01Z] Catherine Manager:
+- [2026-07-24T07:55:01Z] `manager` Catherine Manager:
   - Reconciled to Done — all children Done and epic acceptance met: work-item types drop/rename/re-prefix with only role/skill/operator reserved (FEAT-567/573), the category catalog is closed and roster fails closed off the override surface (ADR-541/FEAT-567), records take no parent enforced (FEAT-568/572), custom records types + work<->records reassignment (FEAT-569), records UI/visibility (FEAT-570), spec-driven add-* flags (FEAT-571), custom non-dev roles (FEAT-543), and the status role-object model (FEAT-605). Spec-driven customization complete.
-- [2026-07-30T08:34:56Z] Pierre Chat:
+- [2026-07-30T08:34:56Z] `op-pierre` Pierre Chat:
   - Reopened. Three of this epic's stated outcomes were never cut as features and are absent from the code: the single shared override merge engine (deep-merge, active deselect, $(*self) splat-refs), the playbook as the fourth override kind (.overrides/playbook.toml wired into sq override, drift-check and base-stamps), and consolidating the three bundled TOMLs under squads/_specs/ mirroring the .overrides/ layout. It was reconciled to Done on 2026-07-24 against child completeness rather than against this outcome list.
   - These three land in 0.13, not later. The design in this epic's body is settled input, not a starting point to re-derive.
-- [2026-07-31T13:05:40Z] Nina Product:
+- [2026-07-31T13:05:40Z] `product-owner` Nina Product:
   - Cut the 3 reopened outcomes as FEAT-712 (shared merge engine: deep-merge/selected/splat-refs), FEAT-713 (workflow overridability, depends-on FEAT-712, folds in the drop/rename consumer audit), FEAT-714 (playbook as 4th override kind + per-request context seam, depends-on FEAT-712), FEAT-715 (consolidate bundled specs under squads/_specs/ — name-normalization already done, only the directory move remains). Records-no-parent, category reassignment, records UI, and the 5-ADR migration were already covered by FEAT-567/568/569/570/572. All 4 left Draft; sq check clean.
-- [2026-07-31T14:14:44Z] Nina Product:
+- [2026-07-31T14:14:44Z] `product-owner` Nina Product:
   - Corrected roster-lock wording per ADR-696 §4/ADR-541 amendment (7 spots): only the 3 type keys + category are locked; lifecycle/prefix/folder/labels/order field-merge under the floor.
   - Corrected the re-prefix acceptance bullet per ADR-696 §5a: field-merge works, but is refused against a non-empty corpus (affected IDs listed), not applied unconditionally.
-- [2026-08-01T20:43:57Z] Catherine Manager:
+- [2026-08-01T20:43:57Z] `manager` Catherine Manager:
   - Scope call recorded on FEAT-713: the override ships in 0.13. Consequence for this epic: the consumer-audit outcome is a release gate, not a best-effort. A sharded read-only sweep for spec-blind consumers runs once the current fix round lands — every candidate driven rather than read, since the previous audit declared three of five site groups clean by reading. Each real gap earns a tests/meta guard so the class cannot return.
-- [2026-08-15T18:08:45Z] Catherine Manager:
+- [2026-08-15T18:08:45Z] `manager` Catherine Manager:
   - Closing against the OUTCOME LIST, bullet by bullet -- not against child completeness. This epic was closed that way once before while three outcomes had no feature at all, and the merge design was re-derived weeks later as an ADR. Mara Tester verified all nine outcomes and both invariants from a pinned worktree, driving roughly 210 command invocations across ~14 throwaway squads.
   - Delivered clean, driven: (3) the playbook as fourth override kind, end to end -- scaffold, stamp, drift, diff, update, and a one-line splat-ref adding a real section to a generated skill; (4) the three bundled TOMLs consolidated under _specs/ with no default_ prefix anywhere; (6) records-take-no-parent enforced at create, update, retype AND in sq check at exit 3 -- and the corpus claim is now true, the epic said 5 ADRs held parents and 0 of 58 do; (8) the records group in both clients single-sourced from category, TUI driven headlessly with a Textual pilot showing REV-22 under Records after a reassignment; (9) the 5 parented ADRs migrated to related refs.
   - Delivered with defects, all since fixed: (1) the shared merge engine -- deep-merge, selected deselect, splat-refs, fail-closed on a dangling path -- with F4 F11 F13 fixed; (2) full overridability with the referential-integrity and live-index guards, F1 F12 fixed; (5) the consumer audit, which ran twice as REV-726 and REV-736 and closed 81 findings between them. Both invariants hold: unsafe drops refuse cleanly with no traceback, and safe drops were absorbed across seven squads and a 30-command battery each with zero tracebacks.

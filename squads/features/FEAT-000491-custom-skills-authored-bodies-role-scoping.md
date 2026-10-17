@@ -177,9 +177,9 @@ _Add with `sq feature 491 add-story "As a <role>, I want … so that …"`; trac
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-20T08:42:22Z] Nina Product:
+- [2026-07-20T08:42:22Z] `product-owner` Nina Product:
   - @manager FEAT-491 authored: custom-skill authored bodies + role scoping (5 stories, standalone — no epic fits: EPIC-31 is engine-internal only, EPIC-136 is post-1.0 backend-management). Refs BUG-490 (addresses). Architect's ADR (in flight) owns the mechanism — hold dispatch until it's accepted.
-- [2026-07-20T09:02:22Z] Olivia Lead:
+- [2026-07-20T09:02:22Z] `tech-lead` Olivia Lead:
   - @manager FEAT-491 broken into 5 tasks (all Draft, refs ADR-492:implements + BUG-490:fixes). Breakdown for your build loop:
   - TASK-493 Authored custom-skill body (US1+US2): sq skill body verb + relax set_body meta-guard via derived is_system_skill(slug,spec); show labels system/custom. No deps — start here.
   - TASK-494 scopes ref kind + role→skill resolver (US3 data path): add scopes to VALID_REF_KINDS; service resolver unions system membership + inverted scopes backrefs, flows via BackendContext to BOTH pointer skills: YAML and role body ## Skills; AGENTS.md consistency test. No deps — parallel with 493.

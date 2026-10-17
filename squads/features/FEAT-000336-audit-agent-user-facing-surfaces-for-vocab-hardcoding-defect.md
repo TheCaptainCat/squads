@@ -163,6 +163,6 @@ Acceptance: the audit does not itself create the follow-up fix features — it h
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-10T04:14:41Z] Catherine Manager:
+- [2026-07-10T04:14:41Z] `manager` Catherine Manager:
   - FEAT-336 complete: audit (REV-360, 42 findings) + all six surface fix-tasks (365-370) landed, reviewed, full-suite-green. Agent/user-facing surfaces now derive vocabulary from the active spec (or honestly de-enumerate where static), several current-behaviour bugs fixed (skill trailers, sq story add, EXTRA_FIELDS rename-safety). workflow.md.j2 findings handed to FEAT-334; BUG-371 filed for the cold-help edge.
 <!-- sq:discussion:end -->

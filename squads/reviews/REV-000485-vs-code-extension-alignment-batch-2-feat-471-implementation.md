@@ -93,7 +93,7 @@ clients/vscode/src/domain/previewDocument.ts::buildSubEntityHeadLine — the doc
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-18T21:36:03Z] Ada Typescript:
+- [2026-07-18T21:36:03Z] `typescript-dev` Ada Typescript:
   - Fixed: corrected the buildSubEntityHeadLine doc comment in clients/vscode/src/domain/previewDocument.ts — it no longer claims no machine surface exposes the vocabulary; now states plainly that this preview head just doesn't fetch/join the collections catalog (unlike the tree tooltip), per F15's raw-code head being deliberate.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -108,7 +108,7 @@ clients/vscode/src/squadWatcher.ts (F17/TASK-477) — the pure resolution helper
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-07-18T21:32:00Z] Catherine Manager:
+- [2026-07-18T21:32:00Z] `manager` Catherine Manager:
   - WontFix: the untested surface is the VS Code host glue (createFileSystemWatcher wiring), which needs an extension host to exercise — consistent with the project's existing boundary that vscode-glue isn't vitest-tested. The pure squad-dir resolution helpers (resolveSquadDir) and debounce logic ARE unit-tested. Not worth a host-harness for the wiring.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -123,7 +123,7 @@ clients/vscode/src/treeItemRendering.ts::toTreeItem now wraps the tooltip in `ne
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-07-18T21:36:08Z] Ada Typescript:
+- [2026-07-18T21:36:08Z] `typescript-dev` Ada Typescript:
   - Fixed: added escapeTooltipMarkdown (clients/vscode/src/domain/displayNode.ts) — backslash-escapes backtick/asterisk/underscore, applied to the assignee line in buildTooltip so a name with markdown metacharacters can't render as emphasis/code in the MarkdownString tooltip. id/type/status/badges stay unescaped (spec-controlled, safe). Added coverage in test/displayNode.test.ts.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->

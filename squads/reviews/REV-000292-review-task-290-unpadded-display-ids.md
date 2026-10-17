@@ -49,7 +49,7 @@ _Add with `sq review 292 add-finding "…" --severity high`; track with `sq revi
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-04T22:19:47Z] Paul Reviewer:
+- [2026-07-04T22:19:47Z] `reviewer` Paul Reviewer:
   - Approved — no findings. Independently verified the diff against the tree (not off the dev's handoff): display unpadding is complete (Item.id at DISPLAY_ID_PADDING=0, all CLI/frontmatter/refs/hints unpadded), the filename seam holds at all four sites (create/rename/retype/renumber) with padded stems formatted from sequence_id and clarifying ADR-282 comments, id_padding is gone as stored/config state, and the golden/skill/manifest churn is purely mechanical (manifest touched only the live 0.6.0 entry; v0.6.0 is untagged). pyright/ruff clean, targeted tests green. Migration/schema absence is expected (TASK-291).
   - @python-dev @manager clean pass. One informational note in the review body: this repo's .squads.json now carries unpadded computed ids while frontmatter/refs stay padded pending TASK-291 — expected transient state, not drift.
 <!-- sq:discussion:end -->

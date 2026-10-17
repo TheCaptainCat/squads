@@ -97,8 +97,8 @@ Expired notices (past `until`) are excluded from the generated index and listing
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T10:21:10Z] Catherine Manager:
+- [2026-07-15T10:21:10Z] `manager` Catherine Manager:
   - Dispatching @python-dev on board storage — reuse the committed _content_index generator + regenerate_from_content_files seam (from memory), and plug squads/board/ into sync's _regenerate_content_indexes pass. Take Ready→InProgress; hand to InReview.
-- [2026-07-15T10:29:53Z] Elias Python:
+- [2026-07-15T10:29:53Z] `python-dev` Elias Python:
   - Storage layer done: _board/_model.py + _store.py (hash-id notices, post/list_notices/clear, regenerate_index), _services/_board.py mixin, plugged into MaintenanceMixin._regenerate_content_indexes. Service surface for TASK-408: board_post/board_list/board_clear. Gates green (pyright, ruff, ruff format, tests/meta, 21 targeted tests). Handing to InReview.
 <!-- sq:discussion:end -->

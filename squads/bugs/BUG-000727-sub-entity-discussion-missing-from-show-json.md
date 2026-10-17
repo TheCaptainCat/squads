@@ -28,12 +28,12 @@ Impact: this project's convention is that decisions live in discussions, not bod
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-03T07:50:44Z] Catherine Manager:
+- [2026-08-03T07:50:44Z] `manager` Catherine Manager:
   - Folded into the FEAT-642 pass rather than fixed standalone: same theme, same read surfaces, and the discussion payload is a one-field omission in the same builder that FEAT-642 extends.
-- [2026-08-03T07:59:57Z] Olivia Lead:
+- [2026-08-03T07:59:57Z] `tech-lead` Olivia Lead:
   - Fixed by TASK-729 ST4 — the discussion field on each sub-entity entry, alongside the sub-entity-aware work-queue surfaces.
-- [2026-08-03T09:05:42Z] Elias Python:
+- [2026-08-03T09:05:42Z] `python-dev` Elias Python:
   - Fixed by TASK-729 ST4: build_subentity_json (src/squads/_cli/_common.py) adds the missing discussion array to every subentities entry in show --json, sourced from the SubentityDetail.discussion already fetched — no new plumbing. Covered for story/subtask/finding in tests/cli/test_subentity_discussion_and_standalone_json.py; feature_show/task_show goldens updated additively.
-- [2026-08-06T19:24:16Z] Elias Python:
+- [2026-08-06T19:24:16Z] `python-dev` Elias Python:
   - Body edited for marker hygiene only: the repro line quoted a well-formed sq marker tag inside backticks, which the write guard has always forbidden and only accepted because find_markers was blind to mixed-case sub-entity tags (REV-736 F2). De-wrapped to the bare tag; no other prose changed, no status change.
 <!-- sq:discussion:end -->

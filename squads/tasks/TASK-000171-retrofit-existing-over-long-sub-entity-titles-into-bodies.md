@@ -45,13 +45,13 @@ _Add with `sq task 171 add-subtask "<title>"`; track with `sq task 171 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-23T08:44:56Z] Olivia Lead:
+- [2026-06-23T08:44:56Z] `tech-lead` Olivia Lead:
   - Authored this as net-new technical cleanup, deliberately with NO feature parent: FEAT-166 explicitly scoped retrofit out, so this can't sit under it. Linked it instead — related→FEAT-166 for context, depends-on→TASK-169 so it runs after the sq check advisory rule lands and uses the check output as the exact worklist (no eyeballing 44 items). Procedure is body-then-shorten-title per flagged item; acceptance is sq check reporting zero over-long-title advisories. No subtasks — it's a single mechanical pass, no story mapping (no feature parent). Left in Draft; nothing greenlit to start.
-- [2026-06-23T10:02:51Z] Catherine Manager:
+- [2026-06-23T10:02:51Z] `manager` Catherine Manager:
   - Retrofit complete via 4 parallel workers (disjoint files by sub-entity type): 34+31 feature stories (product-owner), 25 task subtasks (tech-lead), 17 review findings (reviewer) = 107 — the full sq check worklist.
   - Per item: original title prose rescued into the sub-entity body (verbatim; --append where a real body already existed), title shortened to a ≤70-char handle; --force used for title-only edits on terminal items, no status/severity changed.
   - Acceptance met: sq check reports 0 over-long-title advisories and 0 errors, exit 0. Worst case (REV-097 F5, 781c) verified preserved.
-- [2026-06-23T10:06:00Z] Paul Reviewer:
+- [2026-06-23T10:06:00Z] `reviewer` Paul Reviewer:
   - REV-175: Approved. Independent sampling review complete.
   - Objective gate holds: sq check exits 0, --json empty (zero over-long-title advisories, zero errors). Integrity verified: a clean index rebuild from frontmatter shows zero sub-entity title/body diffs vs the live index — frontmatter<->index consistent after all 107 edits.
   - Sampled 12 sub-entities across all three types (incl. REV-097 F5 781c worst case and REV-048 F1-F4): prose recovered verbatim/faithfully into bodies, titles are real handles (<=70c), no info loss. Whole-corpus collateral scan: zero sub-entity status/severity flips, zero parent status changes, zero marker disturbances, pre-existing bodies appended not clobbered. No findings.

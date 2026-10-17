@@ -60,7 +60,7 @@ _Add with `sq task 617 add-subtask "<title>"`; track with `sq task 617 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T18:13:30Z] Elias Python:
+- [2026-07-22T18:13:30Z] `python-dev` Elias Python:
   - Added tests/service/test_add_subentity_seeds_status_inline.py (add_story/add_subtask/add_finding seed --status, severity default/flag unchanged, flagless-add unchanged, cross-lifecycle rejection both directions: story-status-on-finding and finding-status-on-story).
   - Added tests/cli/test_add_subentity_status_flag_cli.py: CLI smoke for --status on all three bundled kinds + additive flagless case + clean (no-traceback) rejection of an out-of-lifecycle value.
   - Extended tests/cli/test_custom_subentity_kind_cli.py (existing custom-spec 'action' kind, held roster constant) with two --status cases: seeds a non-initial custom-lifecycle status, and rejects a globally-valid-but-out-of-kind status ('Blocked') cleanly — proves the per-field flag derivation is unaffected and --status generalizes to a custom kind.

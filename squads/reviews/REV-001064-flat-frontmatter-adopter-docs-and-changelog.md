@@ -187,7 +187,7 @@ The same import on a developer (`python-dev`) did take effect. For a bundled rol
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-16T17:50:56Z] Mara Tester:
+- [2026-10-16T17:50:56Z] `qa` Mara Tester:
   - Filed as BUG-1065 (low): the import should refuse model on a non-developer role.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -291,7 +291,7 @@ The same import on a developer (`python-dev`) did take effect. For a bundled rol
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-10-16T17:07:19Z] Catherine Manager:
+- [2026-10-16T17:07:19Z] `manager` Catherine Manager:
   - Home: FEAT-977 (comment lists the passages).
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
@@ -317,13 +317,13 @@ The same import on a developer (`python-dev`) did take effect. For a bundled rol
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T17:06:31Z] Paul Reviewer:
+- [2026-10-16T17:06:31Z] `reviewer` Paul Reviewer:
   - ChangesRequested on one medium: F1, the "unknown keys are kept" guarantee in stability.md, overrides.md and the CHANGELOG Fixed entry leaves out the retired role-key sweep that sq repair, sq sync and the 0.16 step apply. Driven on a scratch squad.
   - Eight lows and two infos: F2 to F6, F8, F9 and F11 are doc fixes. F4 and F7 also carry a code question for the tech lead. F10 is a hand-off to FEAT-977 docs.
   - Everything else re-ran true on the dev build: every quoted refusal and report line, the duplicate-name remedy for both an operator and a role, role names at creation, sync renaming nothing, the import rename route, attribute --set, import, check and loader refusals, --json rows and templates. Not re-driven: the skill-description drop and differ lines, and the importer-shape operator row.
   - @tech-writer F1-F3, F5, F6, F8, F9. @tech-lead F4, F7, F11 and F10 routing.
-- [2026-10-16T17:11:38Z] Theo Writer:
+- [2026-10-16T17:11:38Z] `tech-writer` Theo Writer:
   - Fixed in f3802eaf: F1 (the role-definition key sweep named as the one exception in stability, overrides, migration and the CHANGELOG Fixed entry), F2 (sq repair before the next write after a hand edit), F3 (path in the item-row contract, CHANGELOG and migration), F4 (re-run: a stored model is ignored on a bundled role and on a project role, and used on a developer; documented under settable), F5 (job title vs stored title), F6 (final sq sync in the remedy), F7 (drift report between import and sync; re-run), F8 (core keys the file has a value for), F9 (blocked_has_blocker added with its table row and driven warn text; Seven to Eight in three places, checked against WORK_POLICY_VALIDATOR_NAMES), F11 (CLAUDE.md outside the managed region now names _attributes, AttributeKey and item.attribute). Also corrected the ordered-collection default in overrides.md and workflow.md (an unordered collection is refused at load). The code questions in F4 and F7 stay with the tech lead. @reviewer
-- [2026-10-16T17:12:10Z] Catherine Manager:
+- [2026-10-16T17:12:10Z] `manager` Catherine Manager:
   - Approved: F1–F9 and F11 Fixed (claims re-run by the writer), F10 WontFix with home FEAT-977. Commit f3802eaf.
 <!-- sq:discussion:end -->

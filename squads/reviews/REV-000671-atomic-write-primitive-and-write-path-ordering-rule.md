@@ -371,7 +371,7 @@ fields exist nowhere else, and losing them is what makes the state above unrecov
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-27T20:53:37Z] Paul Reviewer:
+- [2026-07-27T20:53:37Z] `reviewer` Paul Reviewer:
   - Verified against ebaf966. All four write branches in _write_managed_skill now use atomic_write_text; re-ran my write spy over a fresh init+sync and every one of the 10 SKILL item files is atomic (was 10 plain / 8 atomic before), leaving only .claude/ pointers and settings.json on the plain writer.
   - Independently checked the _agents_md conclusion rather than taking it: spied a full init+sync with backend=agents_md — its only plain writes are the .agents_md/roles/*.md staging files, which carry no frontmatter id and no index entry. The conclusion holds.
 <!-- sq:finding:F1:discussion:end -->
@@ -423,11 +423,11 @@ index-backed output.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-07-27T20:53:52Z] Paul Reviewer:
+- [2026-07-27T20:53:52Z] `reviewer` Paul Reviewer:
   - Verified against ebaf966, by re-running the sabotage myself rather than taking the report. Three variants: (A) bare truncate-in-place — 4 tests red; (B) in-place write that still flushes and fsyncs, i.e. non-atomic but durable — 4 tests red, which is the sharper case and the one that matters. Both now fail on the right assertion: the CLI test reads the item file's own frontmatter and catches description='Renamed' having landed.
   - The vacuous *.tmp assertion is gone, replaced by an assertion that the primitive's new error-path cleanup actually removed the temp sibling — it now tests something.
   - One residual coupling filed separately as F13: the fault hook is os.fsync, which ADR-663 §2 explicitly sanctions removing.
-- [2026-07-27T20:56:17Z] Paul Reviewer:
+- [2026-07-27T20:56:17Z] `reviewer` Paul Reviewer:
   - Correction to my note above: the fsync-hook follow-up is F11, not F13.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -462,7 +462,7 @@ async, or leaving them sync and using the same temp+replace shape inline).
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-07-27T20:53:58Z] Paul Reviewer:
+- [2026-07-27T20:53:58Z] `reviewer` Paul Reviewer:
   - Verified against ebaf966. managed_region.inject routes all four branches through atomic_write_text — confirmed live: CLAUDE.md and AGENTS.md now appear in the atomic set of a full init+sync. The override stamp writers use the new _aio.atomic_replace_sync; factoring the sync core out rather than cloning the temp+fsync+replace shape is the right call, and the same core now backs both the sync and async wrappers.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -500,13 +500,13 @@ divergence), or §1 gains the qualifier "provided repair runs before the next mu
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-07-27T20:19:54Z] Catherine Manager:
+- [2026-07-27T20:19:54Z] `manager` Catherine Manager:
   - Left Open deliberately: not fixed in 0.12.2. The architect ruled it a gap in the stated guarantee rather than the chosen direction, narrowed ADR-663 §1 to a three-way bound, and sanctioned detection-not-merging as the remedy — cut as TASK-672 for 0.13, since a guard that refuses a mutation is user-visible behaviour and does not belong in a patch. Closing this as Fixed would misrepresent what ships.
-- [2026-07-27T20:26:15Z] Pierre Chat:
+- [2026-07-27T20:26:15Z] `op-pierre` Pierre Chat:
   - Not deferring: the guard ships in 0.12.2 (TASK-672).
-- [2026-07-27T22:20:07Z] Catherine Manager:
+- [2026-07-27T22:20:07Z] `manager` Catherine Manager:
   - Remedy shipped in this release, not deferred: the refuse-on-unrepaired-skew guard landed with TASK-672. Bookkeeping lag on my part — this should have closed when the guard landed.
-- [2026-07-27T23:27:58Z] Paul Reviewer:
+- [2026-07-27T23:27:58Z] `reviewer` Paul Reviewer:
   - Verified against d2fbefb. Re-ran my original loss repro: crash the index commit during 'update --desc', then run an ordinary set_status. Before, the description key silently vanished; now the second mutation is refused, the on-disk value survives intact, and after 'sq repair' both the interrupted change and the new one land. The guard has teeth — making frontmatter_skew inert turns 7 tests red across the guard, sub-entity/ref and sync-skip files.
   - The round-trip-through-one-serializer design holds under load: I swept both guarded seams across all 651 items of a copy of this repo's own board, before and after a sync — 1302 legitimate mutations, zero false refusals. The batch shapes (rename_type/rename_status pre-flight, the importer's pre-pass) run before the first write, so a bulk op cannot partially apply over an unrepaired item.
   - One hole in where the exclusion is applied, filed as F14 — not in how the comparison works.
@@ -544,9 +544,9 @@ stop telling a future reader that repair covers a truncation.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-07-27T16:10:31Z] Catherine Manager:
+- [2026-07-27T16:10:31Z] `manager` Catherine Manager:
   - ADR-663 §2 amended: migration runners are not exempt in principle — new migration code uses the primitive; the shipped runners stay frozen because a migration is one-shot, operator-driven and preceded by the runbook's version-control rollback point. The 'repair reconciles it' reason was mine and was wrong for atomicity.
-- [2026-07-27T20:54:09Z] Paul Reviewer:
+- [2026-07-27T20:54:09Z] `reviewer` Paul Reviewer:
   - Verified: ADR-663 §2 now carries the corrected reasoning — migration runners are not exempt in principle, the shipped ones stay frozen because a migration is one-shot, operator-driven and preceded by the runbook's version-control rollback point, and it says in as many words that this is not because repair reconciles a truncation. That is the record I asked for.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -582,9 +582,9 @@ regions of an item `.md` the committing transaction did not mirror").
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-07-27T16:10:32Z] Catherine Manager:
+- [2026-07-27T16:10:32Z] `manager` Catherine Manager:
   - ADR-663 §1 gains a third exemption bullet naming this as the permitted skew, with both conditions pinned: a derived value the committing transaction did not mirror into the index, and reproducible by sq sync.
-- [2026-07-27T20:54:15Z] Paul Reviewer:
+- [2026-07-27T20:54:15Z] `reviewer` Paul Reviewer:
   - Verified: ADR-663 §1 now names a third exemption — re-derivable regions of an item .md the committing transaction did not mirror into the index — with both conditions pinned (derived value the transaction did not mirror, and reproducible by sq sync). It is framed as the permitted skew rather than the absence of one, which is the distinction I wanted. No code change was needed and none was made.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -615,11 +615,11 @@ make the two diverge. Fixing it in both places keeps them identical.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-07-27T20:54:30Z] Paul Reviewer:
+- [2026-07-27T20:54:30Z] `reviewer` Paul Reviewer:
   - Verified for both halves as specified. Cleanup: atomic_replace_sync and both IndexStore writers now unlink the temp sibling on the way out under except BaseException, and the unit test that previously asserted the leak now asserts its absence — that test change is correct, not convenient: it was pinning the behaviour this finding asked to change, and it still fails if the cleanup is removed.
   - Gitignore: verified live. Into a project with an existing root .gitignore, init appends only the pattern and leaves node_modules/ and *.log untouched; a second run is a no-op. Appending rather than rewriting is the right mechanism and applies F3's own lesson.
   - The fix's reach is narrower than the hole — filed separately as F14 rather than reopening this one.
-- [2026-07-27T20:56:19Z] Paul Reviewer:
+- [2026-07-27T20:56:19Z] `reviewer` Paul Reviewer:
   - Correction to my note above: the gitignore-reach follow-up is F12, not F14.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -651,7 +651,7 @@ One service-level test per family, patching `_aio.write_text` to raise if reache
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-07-27T20:54:35Z] Paul Reviewer:
+- [2026-07-27T20:54:35Z] `reviewer` Paul Reviewer:
   - Verified by sabotage, not by reading: re-introducing the pre-fix impure rename inside _rename turns test_a_dry_run_title_change_never_renames_the_file_on_disk red on exactly the right assertion (the original filename no longer exists). The apply-side companion test asserts the physical move, closing the half that the index-reading assertion could never have caught.
   - The routing gate file also has teeth — routing _section_edit_core back to _aio.write_text turns test_commenting_never_reaches_the_plain_write red.
 <!-- sq:finding:F8:discussion:end -->
@@ -675,12 +675,12 @@ internal primitive.
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-07-27T23:28:30Z] Paul Reviewer:
+- [2026-07-27T23:28:30Z] `reviewer` Paul Reviewer:
   - Still open, and it should not ship open. The 0.12.2 section now has three bullets — the check confirm round, the skew guard, and clean errors — but nothing at all for the change the release is actually named after: an interrupted write can no longer truncate an item file or cost the item. That is the one thing an adopter most needs to know, ADR-663's Consequences section requires the line, and QA's fork+SIGKILL run is now the evidence for it.
   - Wording constraint from the ADR's own amendment: claim the truncation is gone and the survivor is repairable; do NOT claim an interrupted mutation is durable across continued use without repair. The guard bullet already carries the second half correctly.
-- [2026-07-27T23:59:27Z] Catherine Manager:
+- [2026-07-27T23:59:27Z] `manager` Catherine Manager:
   - Stale: the 0.12.2 changelog section now carries all four adopter-facing bullets, rewritten as one coherent section.
-- [2026-07-28T00:04:38Z] Paul Reviewer:
+- [2026-07-28T00:04:38Z] `reviewer` Paul Reviewer:
   - Verified: the rewritten 0.12.2 section (2ac52c9) now carries the durability line — 'An interrupted mutation leaves a repairable skew instead of a truncated file' — with the cost of the guard stated plainly and the per-item scope named. It claims the truncation is gone and the survivor repairable without claiming durability across continued use, which is exactly the wording ADR-663's amendment requires. The stale-path bullet's 'when you try to read it' now under-claims slightly rather than over-claiming, which is the safe direction.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -736,7 +736,7 @@ item whose index path is stale must still be reported.
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-07-27T23:28:01Z] Paul Reviewer:
+- [2026-07-27T23:28:01Z] `reviewer` Paul Reviewer:
   - Verified against 83fde39. The fallback to the scan's recorded path is the right shape and I could not break it: it only fires when the fresh-index path is absent, so an in-flight retype (index path correct, file present) never reaches it; sequence numbers are never reissued, so the fallback cannot read another item's file; and 'gone from both paths' still skips, which is the genuine post-scan-deletion case. The other two directions are unaffected — a stale index path cannot produce a false 'missing', since the scan's folder walk finds the file and the sequence never enters missing_seqs.
   - The regression test uses the real code path (fault the index commit during a title+status update) and has teeth: removing the fallback turns it red.
 <!-- sq:finding:F10:discussion:end -->
@@ -770,7 +770,7 @@ same global patch).
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-07-27T23:28:15Z] Paul Reviewer:
+- [2026-07-27T23:28:15Z] `reviewer` Paul Reviewer:
   - Verified against 83fde39, and the fix is exactly the one that was needed: the hook is now a Path.replace patch scoped to the item's own path, so the index commit's own replace is not caught. I re-ran all three sabotages — (A) bare truncate-in-place: both tests red; (B) in-place write that still fsyncs: both red; (C) fsync dropped with temp+replace intact, the relief ADR-663 §2 sanctions: both GREEN. The tests now fail for loss of atomicity and tolerate the sanctioned change, which is the whole point.
   - Dropping the frac parametrisation is fine: once the fault is inside the real primitive, the target is untouched regardless of how much of the temp was written, and QA's fork+SIGKILL covers the byte-level reality.
 <!-- sq:finding:F11:discussion:end -->
@@ -801,7 +801,7 @@ both delivered as written.
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
-- [2026-07-27T23:28:18Z] Paul Reviewer:
+- [2026-07-27T23:28:18Z] `reviewer` Paul Reviewer:
   - Verified against 83fde39: ensure_root_tmp_ignored moved to _maintenance and is now called from sync as well as init/adopt. Confirmed live — syncing a pre-existing squad that had no root .gitignore produced one carrying the pattern, and the append-to-existing path still leaves adopter lines untouched and is a no-op on re-run. An existing squad now picks it up on its next sync instead of carrying the hole forever.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
@@ -844,7 +844,7 @@ loses log lines rather than assuming parity with the old attribute.
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
-- [2026-07-27T23:28:21Z] Paul Reviewer:
+- [2026-07-27T23:28:21Z] `reviewer` Paul Reviewer:
   - Verified against 83fde39 (wording) and 3e28b8e (the rename). The docstring now states plainly that instance identity is NOT a faithful translation in the nested case, spells out that A's entries are silently discarded rather than misattributed, argues why failing closed beats path identity's fail-open, and names the promotion trigger for the per-store mapping. That is the choice I asked for, made explicitly. The mechanism is unchanged and still unreachable — no live path opens one store's transaction inside another's.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
@@ -906,7 +906,7 @@ Nothing in the suite exercises that pair today, which is why it landed.
 #### Discussion
 
 <!-- sq:finding:F14:discussion -->
-- [2026-07-28T00:04:34Z] Paul Reviewer:
+- [2026-07-28T00:04:34Z] `reviewer` Paul Reviewer:
   - Verified against 019fdbd, falsified first. Both of my repros now pass: link-role followed by a role mutation succeeds, and the catalog-change-then-sync trigger succeeds — that second one is the case the derived set was specifically meant to close, and it does. Disabling PERMITTED_EXTRA_SKEW brings both refusals straight back and turns the two new regression tests red, so the fix is real and pinned rather than incidentally passing.
   - Re-swept both guarded seams across all 651 items of a copy of this repo's board: 1302 mutations, zero false refusals, and a real skew is still refused (re-ran F4's loss repro — refused, value survives, repair clears it).
   - The set's membership over-exempts on item types the regen writers never touch — filed as F17, low, not a reopening of this one.
@@ -964,7 +964,7 @@ or narrow it to the read verbs it currently describes.
 #### Discussion
 
 <!-- sq:finding:F15:discussion -->
-- [2026-07-28T00:04:36Z] Paul Reviewer:
+- [2026-07-28T00:04:36Z] `reviewer` Paul Reviewer:
   - Verified against 019fdbd. Re-ran my verb probe on a real interrupted-rename state: update, status and add-subtask now all return the clean 'file is missing from its indexed location … run sq repair' error, alongside the read verbs that already did. Confirmed through the CLI too — 'sq task 9 update --desc x' prints the clean error, exit 1, no traceback. Reverting update_frontmatter to the raw read turns the two new CLI regression tests red.
   - Placement reasoning re-checked and still right: check's confirm fallback and the importer's pre-pass keep the raw read they need as a signal, and both remain pinned.
   - One of the two deliberately-excluded sites is genuinely fine (the pre-rename read has a path_exists in the same condition, inside the lock); the other is not — filed as F18.
@@ -1010,9 +1010,9 @@ a release blocker.
 #### Discussion
 
 <!-- sq:finding:F16:discussion -->
-- [2026-07-28T00:04:53Z] Paul Reviewer:
+- [2026-07-28T00:04:53Z] `reviewer` Paul Reviewer:
   - Left open deliberately, not deferred-and-forgotten: the behaviour is unchanged from before this round (one unparseable item file still aborts sq check and sq repair board-wide), it is not a regression, and it is being ticketed for 0.13. Not blocking 0.12.2. The part worth carrying into that ticket is that the remedy, not just the gate, is what goes unavailable — repair rebuilding from every file it can read and reporting the ones it cannot is the shape I would want.
-- [2026-07-28T00:27:48Z] Catherine Manager:
+- [2026-07-28T00:27:48Z] `manager` Catherine Manager:
   - Deferred to 0.13 by design, not overlooked: folded into TASK-674, which was amended and retitled to cover it. That ticket resolves the tension between this finding and its own original 'repair must abort' criterion — repair carries the unreadable item's existing index entry forward rather than dropping it, so nothing disappears and the remedy stays available.
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
@@ -1160,7 +1160,7 @@ model rests on, which is the last place a latent import-time failure should live
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-27T16:02:48Z] Paul Reviewer:
+- [2026-07-27T16:02:48Z] `reviewer` Paul Reviewer:
   - Reviewed 68a44ed..fc9be74 as committed (git show, not the working tree — another dev is mid-edit in _index/_store.py). Method and per-question verdicts are in the body; nine findings filed, one high.
   - F1 is the only one I would hold the work on: sq sync still writes the 10 stamped skill item files through the truncating _aio.write_text (measured by wrapping both writers over one sync), and I reproduced the full unrecoverable end state — repair drops the item, sync writes a new legacy body beside the corrupt one, seeding skips it, sq check exits 3 permanently. The backend already imports _aio, so it is a three-line fix.
   - F2 is the second one worth acting on before this is called proven: I sabotaged the primitive into a bare truncate-in-place and both interruption tests (including the headline data-loss test) stayed green — the board/memory/.squads.toml tests caught it, the item-file ones did not. Details and the cheap faithful variant are in the finding.
@@ -1168,9 +1168,9 @@ model rests on, which is the last place a latent import-time failure should live
   - Gates re-run on the committed tree in a scratch worktree: pyright, ruff check and ruff format clean; targeted import/retype/remove/sub-entity/board/memory/rename suites green. I did not run the full suite or sq check — the operator owns both.
   - Board note, no finding filed: all six subtasks (ST1-ST6) are still Todo while the parent sits InReview.
   - @tech-lead @python-dev F1 and F2 are the actionable pair; F3/F4 are model-level and need @architect's call rather than a patch here.
-- [2026-07-27T20:19:40Z] Catherine Manager:
+- [2026-07-27T20:19:40Z] `manager` Catherine Manager:
   - F1/F2/F3/F7/F8 fixed in the tree; awaiting full-suite verification and re-review. F2's acceptance was met by demonstration: sabotaging the primitive to a bare truncate turns both interruption tests red (4 failed), restoring turns them green. Signed off the dev's scope call to touch _services/_service.py for F7's gitignore half — it was the only way to close it. F4/F5/F6 ruled by the architect; F9 goes to the tech writer at the end of the round.
-- [2026-07-27T20:57:11Z] Paul Reviewer:
+- [2026-07-27T20:57:11Z] `reviewer` Paul Reviewer:
   - Second pass at bb39384 (ebaf966 + d6cd884 + 13888b8). All five fixes verified by re-breaking them, not by reading: F1, F2, F3, F5, F6, F7, F8 → Verified. Details and the sabotage table are in each finding and the appended body section.
   - One new high finding, F10, and it is a shipping blocker for 0.12.2 as it stands: sq check's confirm round re-reads a drift candidate at the path the INDEX holds and silently skips on FileNotFoundError, so when that path is stale the durable drift is never reported. An interrupted title-changing update leaves exactly that state (rename, then frontmatter write, then the index commit that never lands). Reproduced through the real code path and end to end — the CLI prints '✓ no issues' and exits 0; ebaf966, one commit earlier, reports the drift. Fix is a fallback to the scan's own path for that sequence before giving up.
   - F10 matters beyond its own scope because @architect's F4 ruling accepts the silent-clobber risk on the strength of this exact signal — 'the drift message tells the reader to repair before mutating that item again'. With F10 open there is no message.
@@ -1178,16 +1178,16 @@ model rests on, which is the last place a latent import-time failure should live
   - Otherwise the read side is sound: the confirm round pays nothing on a clean board, and durable inconsistencies survive concurrent activity on other items — I wrote three adversarial race tests to check that specifically. The transaction context is right and fixes more than was claimed: restoring the old shared attribute leaves 1 of 8 reflog lines surviving, so that misattribution was reachable, not latent.
   - On pace: this round is not being rushed in the sense of skipped work — the fixes are thorough and the new tests have teeth. But F10 is a regression that landed in the same commit as its own test suite and neither the suite nor the gate caught it, which is the second time in this ticket that a green suite has stood in for a proof. Fix F10, add the regression test, and I would call 0.12.2 shippable.
   - @python-dev F10 is the one to act on. @tech-lead F11/F12 are cheap; F13 is a judgement call for @architect on wording versus mechanism.
-- [2026-07-27T22:24:25Z] Catherine Manager:
+- [2026-07-27T22:24:25Z] `manager` Catherine Manager:
   - Verification gaps recorded so they outlive the session: (1) no real fork+SIGKILL test post-fix — every durability claim since BUG-668's original repro rests on fault injection; QA is closing this before the PR. (2) Cross-process races are reasoned, not exercised — all new race tests are single-process. (3) Migration runners _v0_4_to_v0_5 and _v0_8_to_v0_10 keep the post-commit legacy-slug unlink; deliberate, frozen code, mitigated by the runbook's version-control rollback point (see TASK-664). (4) ADR-663's Context section still reads as a defect inventory rather than a statement of the seam — cosmetic, left by the architect.
-- [2026-07-27T22:38:30Z] Mara Tester:
+- [2026-07-27T22:38:30Z] `qa` Mara Tester:
   - Real fork+SIGKILL against the current build (not fault injection), against a throwaway squad: plain frontmatter/status writes (set_status) — killed both before and after the atomic_replace_sync rename, on and off — leave the item fully intact every time: no truncation, still indexed, resolvable by show/list -a, sq check reports either clean or a correct markdown-ahead warn (never a crash), and sq repair converges. BUG-668's original destructive-truncation class is fixed and holds under a genuine kill.
   - Also repeated a genuine two-OS-process race (multiprocessing, not asyncio tasks in one process) against check()'s confirm round: two mutator processes hammering disjoint items with set_status while a third polled check() continuously for 12s — 555 check() calls, zero phantom issues, board clean throughout and after. Closes the single-process gap for the race dimension.
   - Found a distinct, still-open gap while covering the title-changing update's rename-then-write window (F10's territory): killing during/after the rename but before the index commits — with title+status both changed, matching F10's own repro — check correctly reports the drift (F10's fallback-path fix holds for detection). But show --full and comment (any command that reads the item's file, not just the confirm round) still resolve the path from the stale index entry with no fallback, and raise a raw uncaught FileNotFoundError instead of a clean error, until sq repair runs. No data loss, no truncation, no orphan, sq repair fully recovers it every time — index-only show and list -a stay fine throughout — but the raw-traceback symptom (same class as BUG-669/675) is reproducible in this one window and wasn't covered by F10's fix, which only patched check's own path resolution, not item_file's callers generally.
   - Verdict: the release-blocking concern (destructive write) is fixed and verified under a real kill. This second gap is narrower (UX/robustness, not data loss) and I'm not filing it unilaterally since job scope here was verify+report — flagging it for a call on whether it blocks.
-- [2026-07-27T22:45:40Z] Mara Tester:
+- [2026-07-27T22:45:40Z] `qa` Mara Tester:
   - Kill-test verification against release/0.12.2: real fork+SIGKILL (not fault injection) — file always old-complete or new-complete, never truncated; always indexed and resolvable; sq repair converges every time. Genuine two-process race (multiprocessing): two mutators on disjoint items, a third polling check() for 12s, 555 calls, zero phantom issues. Both gaps the review listed as unverifiable are now closed.
-- [2026-07-27T23:29:20Z] Paul Reviewer:
+- [2026-07-27T23:29:20Z] `reviewer` Paul Reviewer:
   - Third pass at 7fcb7c0 on release/0.12.2. F4, F10, F11, F12, F13 verified by re-breaking each one; F1-F3, F5-F8 stay Verified. Sabotage table and per-area verdicts are in the appended body section. Three new findings, no highs — but the review stays ChangesRequested and I would hold the PR, for reasons that are mostly cheap to clear.
   - F14 (medium) — the guard's ignore-set is attached to the writer, not the field, so a role that has been through link-role or a catalog-changing sync becomes permanently un-mutable on a board where nothing was ever interrupted. sq check says clean, sq sync does not clear it, only sq repair does. Reachable via sq import and any API consumer; sq role has no update verb today, which is the only reason this isn't high. Evidence: reproduced through the shipped CLI in three commands. Counter-evidence for the design as a whole: 1302 legitimate mutations across a copy of this repo's own 651-item board, before and after a sync, zero false refusals — the comparison is sound, the placement of the exclusion is not.
   - F15 (medium) — the stale-path clean failure reached the read verbs only. update, status and add-subtask still dump a raw FileNotFoundError traceback in exactly the state 3a864be is about. Two knock-ons: BUG-676 is marked Fixed while its own root-cause statement still holds, and the 0.12.2 changelog states this as done, which an adopter can disprove in one command. About five call sites.
@@ -1196,16 +1196,16 @@ model rests on, which is the last place a latent import-time failure should live
   - Answers to the five questions, in short: the guard's design holds and its escape is the one hole (F14); F10's fallback is correct and I could not make it misfire; 3a864be's placement reasoning is right and both pins are real, the coverage is not (F15); 3e28b8e is behaviour-neutral, including log()'s no-op and the per-type slug fallback; the c39e033 fold is a true refactor — byte-identical temp names, verified at runtime. QA's evidence is sufficient for the claims as written.
   - On sequencing, since you asked: the same failure mode has now produced F1, F10 and F15 — a commit lands with its own test suite, the suite passes, and a defect in that same commit survives because the tests were written to confirm the change rather than to falsify it. The fix is not more tests; it is one habit, applied by whoever writes the change: break the fix, watch the test fail, put it back. Making that a standing requirement for durability-class work would have caught all three before they reached me.
   - @python-dev F15 is the shortest path to yes; @tech-writer F9 and the third changelog bullet; @architect F14 needs a call — exclude by field everywhere, or accept it and narrow the message.
-- [2026-07-27T23:30:03Z] Paul Reviewer:
+- [2026-07-27T23:30:03Z] `reviewer` Paul Reviewer:
   - Correction on two changelog points, because the working tree has moved since the commits I reviewed. There is an uncommitted CHANGELOG edit in flight that (a) adds the durability bullet F9 asked for — 'an interrupted mutation leaves a repairable skew instead of a truncated file', with the cost stated plainly — and (b) narrows the stale-path bullet to '...instead of failing with a traceback when you try to read it'.
   - So F9's substance is being addressed, and F15's changelog knock-on is defused by that 'when you try to read it' qualifier — the narrowed claim is true as shipped. What that leaves is a choice to make on purpose rather than by phrasing: update/status/add-subtask still crash raw in that window, and either they get routed through _read_item_file too, or that stays a known, unstated defect in a release whose theme is clean failure. My recommendation is still the five call sites.
-- [2026-07-28T00:05:33Z] Paul Reviewer:
+- [2026-07-28T00:05:33Z] `reviewer` Paul Reviewer:
   - Fourth pass at 019fdbd. F14 and F15 verified — both falsified first (emptying PERMITTED_EXTRA_SKEW brings both false-refusal repros straight back and reddens the two new tests; reverting update_frontmatter's read reddens the two new CLI tests). F9 verified too: the rewritten changelog carries the durability line with the guard's cost stated plainly and no over-claim. Re-swept 1302 legitimate mutations across a copy of this repo's 651-item board: zero false refusals, and a real skew is still refused.
   - Answers to the three questions. (1) Keep the import — _roles/_catalog sits below _itemfile (only _errors, _models, _roles/_loader, _roles/_models, _util), so it is a downward edge and derived-not-duplicated is worth it. Drop the throwaway instance: it runs at module import, so a future required field on RoleDef breaks CLI startup rather than a test, and it assumes to_extra() is value-independent — true today, I checked it against three real resolved roles, but unpinned. A class-level RoleDef.extra_keys() removes both hazards and keeps the derivation. Whichever shape, add one assertion that the set is a superset of a real role's to_extra() keys. Filed as F19.
   - (2) The set is the right idea with the wrong membership question: it answers 'what does a catalog role's extra contain', not 'what does a regen writer persist outside a transaction'. Those diverge on dev roles — _refresh_catalog_extra explicitly skips is_dev roles, yet 8 of their 9 settable extra fields are now exempt — and on a skill's model, which no regen writer touches. Reproduced silent loss of an interrupted --set model= on a dev role. Work items are unaffected (--set is spec-validated; the bundled spec declares only target_ref and tags). Low. Filed as F17; fix is to condition the exclusion on the item being a catalog-managed role.
   - (3) One of the two is fine, one isn't. The pre-rename read has its path_exists in the same condition inside the write lock — nothing to convert. _snapshot_files does not: it reads every item on the board with no guard, so one stale path anywhere makes sq migrate rename-type/rename-status die with a raw traceback (reproduced through the CLI). One call to fix, and it yields a better message than the generic one. Filed as F18.
   - Final status: Approved. Sixteen of nineteen findings verified fixed by falsification; F16, F17, F18 and F19 are all low, all narrow, none is reachable without an interrupted write plus an unusual mutation route, and holding a third time over them would be disproportionate to what they cost an adopter. F19 is the one I would still do before the tag, not because it is risky today but because an import-time constructor in the module the durability model rests on is the wrong kind of thing to inherit.
   - @tech-lead F16-F19 for 0.13. @manager shippable as 0.12.2 — open the PR.
-- [2026-07-28T07:25:22Z] Catherine Manager:
+- [2026-07-28T07:25:22Z] `manager` Catherine Manager:
   - Round closed: all eight tasks Done, all seven bugs Verified. Basis — this review Approved (18 of 19 findings resolved, F16 deferred to TASK-674), QA's real fork+SIGKILL and two-process race against the release branch, and PR #11 green across all eight CI checks including the Windows matrix.
 <!-- sq:discussion:end -->

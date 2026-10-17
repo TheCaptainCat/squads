@@ -375,12 +375,12 @@ ADR-663's refs name ADR-534 and ADR-249, not this decision, so the pair was link
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-17T20:31:43Z] Robert Architect:
+- [2026-06-17T20:31:43Z] `architect` Robert Architect:
   - ADR drafted (status Proposed) — covers all five decisions, verified against the live source under src/squads/. Crux is decision 2 (locking): chose option (a) — keep blocking filelock.FileLock, thread only acquire/release via anyio.to_thread, async IO inside the held lock; cross-process exclusion preserved (hard req for parallel subagents), loop stays responsive, transaction becomes @asynccontextmanager AsyncGenerator[SquadsDB]. Rejected (b) whole-tx-in-thread (can't yield an async mutation out of a sync worker closure) and (c) async-lock lib (swaps the most integrity-critical primitive for a 2-hop saving). Other picks: anyio over asyncio; single anyio.run bridge in a _cli/_common.py command decorator absorbing handle_errors (native async Typer commands rejected = 73 implicit bridges); thin _aio.py over anyio.Path (Any leaks + fsync/replace must stay one hop); AgentBackend IO methods (ensure_scaffold/write_managed/generate_role_entry/generate_skill_entry/remove_artifacts) → async def, managed_paths stays sync — that's the FEAT-33 freeze surface. Recommend enabling ruff ASYNC + RUF029. One atomic PR, de-risked by the spike.
   - @manager ADR-153 ready for review/acceptance. Once Pierre/I accept it, hand the spike slice (show + comment, proving the three patterns) to @python-dev. Spike risk to flag below.
-- [2026-06-18T07:10:21Z] Pierre Chat:
+- [2026-06-18T07:10:21Z] `op-pierre` Pierre Chat:
   - Accepted. The spike validated every decision — anyio, locking option (a), the single bridge, _aio.py, and the async AgentBackend surface. Cleared for Phase 1.
-- [2026-08-03T08:34:48Z] Robert Architect:
+- [2026-08-03T08:34:48Z] `architect` Robert Architect:
   - Amended in place; nothing retired. Every decision here verified in the tree: anyio, the three-layer exclusion verbatim in `_store.py`, exactly one `anyio.run` in the codebase at `_cli/_common.py:685`, `_aio.py` with `atomic_replace_sync` keeping fsync and replace on one hop, the async ABC with `managed_paths` left sync, ruff `ASYNC` selected.
   - One clause withdrawn, and it is worth separating from the rest: a pyright note that read as an observation while doing the work of a ruling. It blessed `transaction` exposing `_current_ctx` on `self` as "unchanged". ADR-663 section 4 replaces that with a task-local `ContextVar` and derives the rule that no per-transaction state may live on `IndexStore` instance attributes — an instance attribute is per-store, a task-local is per-task, and those coincide only while one store serves one task. The pattern this note declared unchanged was the defect, and the note is why it looked settled.
   - The annotation requirement the note existed to carry (`AsyncGenerator[SquadsDB]` under `@asynccontextmanager`, single type-arg form) is untouched. Added reciprocal `related` edges with ADR-663, which named ADR-534 and ADR-249 but not the decision it overrode.

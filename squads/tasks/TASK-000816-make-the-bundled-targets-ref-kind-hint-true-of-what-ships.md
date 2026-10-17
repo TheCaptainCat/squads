@@ -186,12 +186,12 @@ carry the new wording, every guard passes, and `sq sync` is a no-op.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-25T22:35:59Z] Olivia Lead:
+- [2026-08-25T22:35:59Z] `tech-lead` Olivia Lead:
   - Its own task rather than a line on an existing one: the wording is spec data in _specs/workflow.toml, so it belongs to the ref_kinds owner, and every candidate host is already past authoring. Parented to FEAT-790 / US1, where the entry is declared. Swept the spec documents for other prose assuming unbuilt capabilities — targets is the only one.
-- [2026-08-25T23:11:13Z] Olivia Lead:
+- [2026-08-25T23:11:13Z] `tech-lead` Olivia Lead:
   - Ordering constraint from ADR-777 D1-D3, recorded here because this task regenerates the manifest. The generators write mode still sweeps orphaned blobs, which is destructive whenever [project].version names a version that has already shipped. 0.14.0 is unshipped and untagged, so regenerating today is safe and this task is unblocked.
   - If v0.14.0 is tagged before this lands, it stops being safe: the regeneration would rewrite a shipped entry and sweep that releases own revisions. So either regenerate before the tag, or after TASK-822 removes the sweep. Not filed as depends-on because nothing in this tasks own work waits on TASK-822 — it is a tag-day constraint, not a code dependency.
-- [2026-08-26T09:15:54Z] Elias Python:
+- [2026-08-26T09:15:54Z] `python-dev` Elias Python:
   - Rewrote both lines in _specs/workflow.toml (:288 comment, :337 hint): targets is now described as a navigational membership edge with no engine binding, meaning set by whatever reads it — no forward reference to a view or milestone; the Consumer column already read Navigation so the two now agree.
   - Regenerated the frozen copies: gen_template_manifest.py (0.14.0 entry only — verified via git diff), content_store.json (one new blob inserted), the four goldens (workflow_ref_kinds.json, workflow_cheatsheet.txt, workflow_cheatsheet_raw.txt, agents_md_section.txt via UPDATE_GOLDENS=1), and sq sync for this repo's skill copy (second sync run is a no-op).
   - Regeneration orphaned the old workflow.toml blob in the content store (0.14.0 untagged, so per the script's own docs this is safe); ran git fetch --tags + seed_content_store.py --rebuild to drop it — 1 dropped, 0 restored, no other version's entries moved. --check and --release-gate both now pass clean.

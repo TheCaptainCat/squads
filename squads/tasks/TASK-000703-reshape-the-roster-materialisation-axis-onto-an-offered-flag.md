@@ -410,7 +410,7 @@ allowlist entry, and every one of its own self-tests asserts a property that is 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-30T10:09:34Z] Olivia Lead:
+- [2026-07-30T10:09:34Z] `tech-lead` Olivia Lead:
   - Cut against ADR-696's second amendment (2026-07-30), which retires vocabulary TASK-699 landed rather than sitting beside it. All seven scope points were verified against the code before writing: the create-default at `_base.py:460`, the four roster `status=` arguments, the four maintenance seed sites and their reflog payloads, the roster table's tick and header, and the landed `exactly one` floor.
   - Two drift items the amendment does not mention, found while verifying. (1) The hygiene scan's `_ALLOWED_HITS` allowlists the roster table's `Active` column header by (path, line, value) — renaming the header makes that entry dead, and a stale line-numbered allowlist silently starts excusing whatever moves onto that line. (2) The scan's own same-line-masking self-test loses its premise if the allowlist empties: it still passes while testing nothing. Both are carried on ST5.
   - One more, found in the client: the VS Code skew canary asserts exact object equality on the offered role's catalog row, so adding the field breaks it even though the shape assertion is a subset match. That is the assertion doing its job and it must be updated deliberately, not loosened. Carried on ST1.

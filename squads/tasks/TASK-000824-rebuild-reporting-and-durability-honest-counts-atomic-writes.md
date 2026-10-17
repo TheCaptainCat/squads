@@ -202,7 +202,7 @@ regression this subtask exists to prevent.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-08-26T09:07:32Z] Elias Python:
+- [2026-08-26T09:07:32Z] `python-dev` Elias Python:
   - Replaced the net-delta drop count with two set computations (restored = new_store - old_store, dropped = old_store - new_store), reported independently on the summary line. Added restore-only, drop-only, and both-in-one-run tests plus a real --rebuild no-op run against the shipped documents.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -242,7 +242,7 @@ parses. A test that only checks the happy path proves nothing here.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-08-26T09:07:40Z] Elias Python:
+- [2026-08-26T09:07:40Z] `python-dev` Elias Python:
   - Split _write_json into _stage_json (write+fsync temp) and a rename step; added _write_json_pair which stages both documents fully before replacing either, cleaning up any already-staged sibling if a later stage fails. Applied to all three write-pair call sites in both scripts. _load_json now catches JSONDecodeError and prints a named diagnosis plus git checkout + --rebuild recovery instead of raising. Corrected the durability prose in the module docstring. Proved both with fault-injection tests (staging failure, interrupted-between-renames, and a real --rebuild run interrupted mid-write against the actual tracked documents).
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
@@ -276,7 +276,7 @@ Assert both modes' success lines in tests, and assert they differ.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-08-26T09:07:47Z] Elias Python:
+- [2026-08-26T09:07:47Z] `python-dev` Elias Python:
   - --release-gate's clean line now says 'release gate passed - orphan-free' explicitly; --check's stays as coverage-only, so the two are never byte-identical (driven and asserted). Reworded the count as 'N index reference(s) over M stored blob(s)' in both modes. Updated SKILL-000508 section 2 with both exact success lines so an operator can tell which command ran.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
@@ -285,9 +285,9 @@ Assert both modes' success lines in tests, and assert they differ.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-26T08:22:19Z] Pierre Chat:
+- [2026-08-26T08:22:19Z] `op-pierre` Pierre Chat:
   - Lands with the other follow-ups rather than being pulled ahead of the tag: recovery is a git checkout and the whole-index check already diagnoses the mismatch, so the exposure is bounded.
-- [2026-08-26T09:08:11Z] Elias Python:
+- [2026-08-26T09:08:11Z] `python-dev` Elias Python:
   - F6: rebuild reports restored/dropped as two independent set-derived counts (never a size delta); a run that only restores no longer prints '0 dropped'. Driven against the real tree: '0 restored, 0 dropped' on a clean no-op rebuild.
   - F7: _write_json split into _stage_json + _write_json_pair in both scripts — both documents are fully staged (write+fsync) before either is renamed, and a staging fault cleans up any sibling already staged. _load_json diagnoses a truncated/unparseable document by name with a git-checkout + --rebuild recovery instead of raising JSONDecodeError. Proved via fault injection: (1) a staging-time fault leaves both originals untouched with no leftover .tmp; (2) an interruption between the two renames leaves the first document new and the second document old but fully parseable, and the resulting state is exactly what --check's whole-index widening flags. Docstring corrected: refusal writes nothing, a completed write never leaves a partial document, residual is a two-rename window not a transaction.
   - F8: --release-gate's clean line now reads 'release gate passed - orphan-free, ...' and is never byte-identical to plain --check's; counts reworded as 'N index reference(s) over M stored blob(s)'. SKILL-000508 section 2 shows both exact success lines.

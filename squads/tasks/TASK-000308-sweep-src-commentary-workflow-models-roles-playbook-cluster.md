@@ -77,7 +77,7 @@ Checked help/error/console strings emitted from these files for real-citation sq
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-06T13:21:30Z] Elias Python:
+- [2026-07-06T13:21:30Z] `python-dev` Elias Python:
   - Swept src/squads/_workflow, _interactions, _roles, _models: zero squad-item refs remain in comments/docstrings (verified by grep, including the exact final-verify pattern against the diff); commentary restyled terse/history-free; no real-citation refs found in user-facing strings from these files.
   - pyright + ruff check + ruff format --check all clean.
   - Full suite: 1641 passed, 1 skipped, 0 failed/errored (exit 0).

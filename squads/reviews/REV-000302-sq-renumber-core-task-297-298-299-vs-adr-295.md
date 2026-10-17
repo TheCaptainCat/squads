@@ -70,7 +70,7 @@ Newly-added locations (only `+` lines from this working-tree diff — the pre-ex
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-06T09:55:41Z] Elias Python:
+- [2026-07-06T09:55:41Z] `python-dev` Elias Python:
   - Scrubbed ADR-000295/ADR-000282/TASK-000300 citations from every added src/ line (CLI help, _maintenance.py docstrings, RenumberResult docstring). Proof: git diff HEAD -- src/ | grep -nE '^+' | grep -E '(ADR|FEAT|TASK|REV|BUG|EPIC)-?0*[0-9]+' returns empty.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -93,7 +93,7 @@ Secondary coverage note: the intent-preservation tests cover shifted->shifted re
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-07-06T09:55:42Z] Elias Python:
+- [2026-07-06T09:55:42Z] `python-dev` Elias Python:
   - Strengthened test_renumber_shifts_block_and_preserves_referential_intent to assert the renamed file's digit-run length equals db.padding (not just .isdigit()), and added test_renumber_rewrites_an_unshifted_items_ref_to_a_shifted_item for the reverse referential-intent direction.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -112,7 +112,7 @@ Assessment: this is deliberate and mirrors the established `repair` / `repair --
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-07-06T09:55:43Z] Elias Python:
+- [2026-07-06T09:55:43Z] `python-dev` Elias Python:
   - Reconciled TASK-299's body + ST1 subtask text to describe the actual commit pattern (unlocked rewrite/rename then a single locked IndexStore.overwrite via _rebuild_index_from_disk, mirroring sq repair) instead of claiming IndexStore.transaction(). No code change — code already met the load-bearing safety property (validate-before-mutate).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -121,6 +121,6 @@ Assessment: this is deliberate and mirrors the established `repair` / `repair --
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-06T09:56:17Z] Paul Reviewer:
+- [2026-07-06T09:56:17Z] `reviewer` Paul Reviewer:
   - F1 Fixed: sq-item-ID citations removed from src (CLI help string + new docstrings in _maintenance.py/_results.py) and from the two new test docstrings; added-line grep is clean. F2 Fixed: seam test now asserts len(digit_run)==db.padding, and a reverse-ref regression test (unshifted item referencing a shifted one) was added. F3 Fixed: TASK-299 body reconciled to the repair-mirroring apply-path pattern (unlocked file ops + single locked overwrite); code unchanged. Verified by manager: pyright/ruff clean, full suite green (0 failures), git-agnostic grep clean.
 <!-- sq:discussion:end -->

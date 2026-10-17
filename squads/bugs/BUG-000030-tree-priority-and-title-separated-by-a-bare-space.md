@@ -44,13 +44,13 @@ A middle dot (`·`) between the priority and the title:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-11T12:12:32Z] Catherine Manager:
+- [2026-06-11T12:12:32Z] `manager` Catherine Manager:
   - Triage 2026-06-11: promoted to Ready, stays low. Batched with BUG-25 as one quick-win. Include the consistency sweep: apply the same priority/title separator to other composed lines (sq blocked, sq mine); sq tree --json untouched.
-- [2026-06-11T12:16:05Z] Olivia Lead:
+- [2026-06-11T12:16:05Z] `tech-lead` Olivia Lead:
   - Fix task created: TASK-44 (low, @python-dev) — batched with BUG-25. Adds the '·' separator in tree plus a consistency sweep of sq blocked / sq mine.
-- [2026-06-11T12:51:04Z] Olivia Lead:
+- [2026-06-11T12:51:04Z] `tech-lead` Olivia Lead:
   - @qa Fix landed and reviewed (TASK-44, Done). 'sq tree' human rendering now puts ' · ' between the priority badge and the title (e.g. '🟠 high · beta'); 'sq tree --json' is unchanged. blocked/mine were swept and confirmed not to compose priority+title inline, so no change there. Please verify. Uncommitted in the working tree. Bug stays open until you verify.
-- [2026-06-11T13:19:46Z] Mara Tester:
+- [2026-06-11T13:19:46Z] `qa` Mara Tester:
   - Verified fix for BUG-30 (TASK-44) against working tree.
   - sq tree --all human rendering shows '·' separator between priority and title for all prioritized nodes, e.g. 'EPIC-12 🟠 high · Road to 1.0 (Ready)'. Visual boundary is clear.
   - sq tree --all --json: priority values are clean strings ('high', 'medium', 'low') — no dot in machine surface.

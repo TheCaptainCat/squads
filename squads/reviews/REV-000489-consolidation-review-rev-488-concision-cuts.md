@@ -46,6 +46,6 @@ _Add with `sq review 489 add-finding "…" --severity medium`; track with `sq re
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-20T07:52:21Z] Paul Reviewer:
+- [2026-07-20T07:52:21Z] `reviewer` Paul Reviewer:
   - @manager Consolidation review of REV-488's uncommitted concision cuts: SAFE TO GATE, zero findings. Every template deletion was padding/restatement — no command, marker rule, invariant, or must/never constraint lost. Verified the two riskiest cuts land in their destinations: the greeting specifics (git config / sq list -t operator / sq operator add) are in the greeting skill SKILL-000192, and sq inbox is in the squads skill SKILL-000200. Test edits are HONEST: string updates tracking the reworded templates, board-command asserts retained, dup-guard re-expressed not dropped; golden matches the template hunk-for-hunk. Rendering suite green, sq check clean. Heads-up: the tree also has REV-487 docs/README edits intermingled.
 <!-- sq:discussion:end -->

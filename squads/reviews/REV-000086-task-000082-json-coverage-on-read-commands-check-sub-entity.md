@@ -93,19 +93,19 @@ Medium: the --json contract this task owns is correct; the risk is the cross-tas
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T20:39:54Z] Paul Reviewer:
+- [2026-06-12T20:39:54Z] `reviewer` Paul Reviewer:
   - @manager verdict: ChangesRequested on TASK-82. The delivered --json behaviour is correct, conventional, and well-tested (gate green) — the two findings are both about the contract surface TASK-84 will freeze, not behaviour bugs.
   - F1 (medium): role/skill/operator `show --json` expose the path as "file"; every other --json surface uses "path". Rename to "path" before goldens.
   - F2 (medium): `check` table path exits 1, `check --json` exits 3 — same command, divergent exit codes. Either align both to 3 here, or hand the table-path migration explicitly to TASK-83. Don't let the seam ship a disagreement to 1.0.
   - Small surface to fix; happy to re-review on the bounce. @python-dev see F1/F2 bodies for specifics.
-- [2026-06-12T20:42:58Z] Elias Python:
+- [2026-06-12T20:42:58Z] `python-dev` Elias Python:
   - F1 and F2 addressed. Changes are working-tree only (no commit).
   - F1 (medium — file→path rename): src/squads/_cli/_skill.py line 105 and src/squads/_cli/_operator.py line 99 renamed the JSON key from "file" to "path" in the --json output of skill show and operator show. The role show --json shape was already clean (no path field emitted there). Tests updated: test_skill_show_json now asserts "path" in data; test_operator_show_json docstring and assertion both updated to "path".
   - F2 (medium — check table path exit 3): src/squads/_cli/_main.py line 466 changed raise typer.Exit(1) → raise typer.Exit(3) on the table path of sq check. Both paths (--json and table) now consistently exit 3 when any error-level issue is found. Test test_check_cli_flags_index_item_with_no_file updated to assert exit_code == 3.
   - TASK-83 note: the check exit-3 implementation landed here via F2. Left a comment on TASK-83 (--as python-dev) noting remaining scope is documentation and exit-code test coverage only.
   - Gate: 387 passed, 1 skipped — pyright 0 errors — ruff clean — sq check ✓ no issues.
   - @reviewer please re-review. @manager F1/F2 fixed, TASK-82 back to Done.
-- [2026-06-12T20:44:49Z] Paul Reviewer:
+- [2026-06-12T20:44:49Z] `reviewer` Paul Reviewer:
   - @manager APPROVED. Re-reviewed the bounce on TASK-82; both findings verified fixed, gate green (387 passed / 1 skipped, pyright 0 errors, ruff clean).
   - F1 (Verified): role/skill/operator show --json now emit "path" — _skill.py:105 and _operator.py:99 renamed file→path; role show carries no path field. All in-scope read surfaces agree on "path".
   - F2 (Verified): _main.py table path now raises typer.Exit(3); both check paths (table + --json) exit 3 on error-level issues, 0 on warnings-only or clean. Tests assert 0/3/0.

@@ -70,7 +70,7 @@ _Add with `sq task 258 add-subtask "<title>"`; track with `sq task 258 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-30T12:34:45Z] Elias Python:
+- [2026-06-30T12:34:45Z] `python-dev` Elias Python:
   - Done. folder_for/squad_relative/type_for_id all updated to accept optional spec=; builtins short-circuit through FOLDER_BY_TYPE/TYPE_BY_PREFIX (byte-identical), custom types use spec.items[type].folder / spec.prefix_to_type. WorkflowSpec imported at module top-level in _paths.py — no cycle (checked: _paths→_workflow._models→_models._enums has no back-edges).
   - _iter_item_files() return type widened from Iterator[tuple[ItemType, Path]] to Iterator[tuple[str, Path]] to accommodate custom folder scans. repair/repad/_renumber_plan updated accordingly — callers extract prefix from existing ID strings rather than from the type enum.
   - Folder auto-creation: sync() now scaffolds all spec-declared type folders after the built-in sweep. write_new itself calls mkdir(path.parent) so first-write creates the folder. AC#7 (byte-identical builtins) confirmed by parametrized tests over all ItemType members.

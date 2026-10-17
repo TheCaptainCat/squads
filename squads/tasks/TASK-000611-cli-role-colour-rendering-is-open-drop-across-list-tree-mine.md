@@ -42,7 +42,7 @@ _Add with `sq task 611 add-subtask "<title>"`; track with `sq task 611 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T16:47:33Z] Elias Python:
+- [2026-07-22T16:47:33Z] `python-dev` Elias Python:
   - Implemented: intent->rich colour map + status_style/status_text helpers in src/squads/_cli/_common.py (positive=green, danger=red, warning=yellow, info=cyan, muted=bright_black, neutral='' — total map, unrecognised intent falls back to neutral, no crash).
   - Applied via Rich's style= param (Text objects), never markup interpolation: _item_table's Status column (shared by sq list/sq mine), sq tree's node label (parens dim, status coloured), and sq workflow statuses' Status cell.
   - sq workload has no per-status cell (aggregated open/closed counts only, already role-derived via spec.is_open from increment 1) — no colour site there; noting this since the task listed it among surfaces.

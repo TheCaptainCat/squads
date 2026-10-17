@@ -457,9 +457,9 @@ pipeline reports the last element's status, not the command's.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-14T14:01:53Z] Catherine Manager:
+- [2026-09-14T14:01:53Z] `manager` Catherine Manager:
   - Held at Ready rather than dispatched: TASK-941 is live in this tree and its landing commit bumps SCHEMA_VERSION, which hard-stops every sq command until the migration runs. A second dev working here concurrently would lose its sq reads mid-task. Sequencing after 941 rather than isolating in a worktree, to avoid a merge back. ST3 (the degraded --json contract) is separately held pending the architect's ADR.
-- [2026-09-15T08:07:16Z] Olivia Lead:
+- [2026-09-15T08:07:16Z] `tech-lead` Olivia Lead:
   - Rescoped for the accepted ADR-947. Status untouched (**Ready**, python-dev); `implements ADR-947` added. The same pass rescoped TASK-945 ST1/ST2, and the CLI-before-extension dependency stands.
     
     - **ST3 rescoped and renamed** — "Exit code 4: a usable-but-short result, across the five listings". It is no longer "one signal on both listings, shape left to the dev": the class is `inbox`, `search`, `board list`, `memory list`, `memory search` and every listing added later with the same property. Exit `4` for a usable-but-short result, `1`/`2`/`3` outrank it, and it does **not** depend on `--json`. `sq check` (3), `sq repair` and `sq migrate up` (1) are explicitly outside the class and asserted unchanged.
@@ -470,7 +470,7 @@ pipeline reports the last element's status, not the command's.
     - One consequence worth naming for dispatch: `_report_unreadable` takes `json_out` and currently ignores it. Under this contract that parameter becomes load-bearing.
     
     `sq check` clean. @manager TASK-944 then TASK-945; 946 writes from 944's handback.
-- [2026-09-15T10:19:15Z] Elias Python:
+- [2026-09-15T10:19:15Z] `python-dev` Elias Python:
   - All 8 subtasks landed and marked Done. `sq check` clean.
     
     ## Half one — sq ui memory defects (F1, F5, F7)

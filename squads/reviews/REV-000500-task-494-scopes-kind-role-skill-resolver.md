@@ -48,7 +48,7 @@ Why it matters: the sibling helper this one names as its 'Companion', _skill_pat
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-20T09:52:06Z] Paul Reviewer:
+- [2026-07-20T09:52:06Z] `reviewer` Paul Reviewer:
   - @manager verdict: APPROVE. Findings: 1 low (F1, non-blocking), 0 critical/high/medium.
   - TASK-494 is sound. Kind-filtering is real (backrefs is kind-agnostic; the resolver requires kind=='scopes' AND ref_id_matches to the role, so a related/blocks edge to the role does not leak in — proven by the different-kind test). Dedup is system-first, scoped tail sorted lexically; a skill that is both system and scoped is dropped from the tail via seen=set(system). Zero scope edges yields output byte-identical to skills_for_role (list splat of the same order; role-not-found returns system directly).
   - No layering violation: _backends/_base.py imports only the pure, index-blind skills_for_role for the fallback (no _index/SquadsDB import); both generate_role_entry implementations read ctx.resolved_skills_for(role.slug) identically, and the fallback fires for bare-ctx sites (activate_role/add_dev/retype), so those paths are unchanged. extra.skills is a re-derivable cache written only-on-change by sync; repair needs no new logic. Scope discipline holds: no link-role/unlink-role, no partial-sync hook, no schema bump, no ticket IDs in source/tests.

@@ -175,7 +175,7 @@ unguarded.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-26T08:43:50Z] Elias Python:
+- [2026-08-26T08:43:50Z] `python-dev` Elias Python:
   - F5 fixed: guard now flags a module import (import squads._models._item / from squads import _models) plus an attribute access naming a forbidden primitive, aliased or not — matches the reviewer's two driven bypasses. No-false-positive leg covered (module import naming no forbidden attribute stays unflagged).
   - F5/F9 pin: _WIRE_ENCODING_PRIMITIVES now asserted to resolve in squads._models._item (hasattr per name); _REF_KIND_LITERALS now asserted == frozenset(bundled_spec().ref_kinds), exact equality not superset.
   - All new assertions falsified: broke the ST1 fix (disabled the trigger) -> 3 tests red -> restored -> green; broke ST2 (added a fake primitive name) -> red -> restored -> green; broke ST3 (renamed a bundled ref_kinds table in workflow.toml, i.e. moved the real source) -> red -> restored -> green.
@@ -183,7 +183,7 @@ unguarded.
   - Known remaining exposure, not closed by this task: a bare 'import squads' followed by a fully-dotted attribute chain (squads._models._item.make_ref) is still unflagged, since the trigger only fires on imports that name something under squads._models specifically (per ST1's two stated shapes). Dynamic dispatch (getattr(module, 'make_ref')) is also unflagged — inherent to any static AST name/attribute scan. Neither shape appears in the current migrations tree.
   - tests/meta: 244 passed. Targeted (both files): 18 passed. Gates: pyright 0 errors, ruff check clean, ruff format clean, sq check clean.
   - @reviewer ready for review.
-- [2026-08-26T08:47:53Z] Elias Python:
+- [2026-08-26T08:47:53Z] `python-dev` Elias Python:
   - Addressed feedback: widened the trigger from 'reaches squads._models' to 'reaches squads at all' (any import naming squads or squads.<anything>, at any depth). Closes the bare 'import squads' + fully-dotted 'squads._models._item.make_ref(...)' chain, which was open in the first pass and reproduced the same shape of defect the task exists to fix.
   - Falsified the same way: reproduced the bare-import bypass, confirmed it passed under the narrower (first-pass) trigger, then confirmed the widened trigger catches it; reverted and re-confirmed green. Added the matching no-false-positive leg (bare 'import squads' reaching only Item/SubEntity, never a forbidden attribute, stays unflagged) and re-verified against the real migrations tree, which has several bare 'from squads import _discussion/_sections/_aio/_clock' imports today -- none trip the widened scan.
   - Docstring updated to state the guard's actual boundary: it catches every statically-named reach for a forbidden primitive however the reimport is phrased (module-level, package-level, or bare-squads-plus-dotted-chain); it explicitly does not and cannot catch dynamic dispatch (getattr(module, 'make_ref')) -- recorded as a stated limit of the mechanism, not left implicit.

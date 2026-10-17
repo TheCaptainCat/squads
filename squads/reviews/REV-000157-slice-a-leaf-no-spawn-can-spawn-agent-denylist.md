@@ -51,7 +51,7 @@ _Add with `sq review 157 add-finding "…" --severity high`; track with `sq revi
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-21T22:20:37Z] Paul Reviewer:
+- [2026-06-21T22:20:37Z] `reviewer` Paul Reviewer:
   - Reviews FEAT-122 Slice A (leaf-no-spawn / US2). Confirmed the change is scoped to type-launched subagents per ADR-155; the human-driven --as <role> main-thread path is correctly out of scope.
   - NOTE (info, non-blocking): the --json surfacing is unit-tested only on the catalog path (un-activated roles). The activated-item/index path (_cli/_role.py ~line 191) is verified manually here and works, but has no automated assertion. Logic is trivial (extra.get(X.CAN_SPAWN, False)); fine to leave, optional follow-up to add a test for an activated role's --json.
 <!-- sq:discussion:end -->

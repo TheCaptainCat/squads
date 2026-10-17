@@ -97,8 +97,8 @@ As a squads maintainer, I want every hardcoded `is ItemType.TASK` / `is ItemType
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-26T07:31:04Z] Catherine Manager:
+- [2026-06-26T07:31:04Z] `manager` Catherine Manager:
   - Design constraint (from op-pierre): this feature relaxes the `spec == enums` equality that currently forces all meta-types/statuses to be present. When it does, introduce an explicit RESERVED_TYPES / RESERVED_STATUSES invariant (role/skill/operator + the structural statuses the agent + sub-entity lifecycles need) and make the loader FAIL CLOSED if a custom spec omits any reserved member — replacing the blunt `== enums` check that does this job by accident today.
-- [2026-06-26T09:44:13Z] Catherine Manager:
+- [2026-06-26T09:44:13Z] `manager` Catherine Manager:
   - Process rule (from the FEAT-220 incident, REV-230): for externalize/refactor-with-byte-identical-output work, the characterization golden must be authored FIRST — against HEAD, as a gating test — BEFORE the rewire, so the change runs under a passing guard rather than leaving the proof as a last task an agent can abandon. Pin ALL inputs (roster/flags/clock) for generated-artifact comparisons. See [[pin-roster-when-diffing-generated-skills]]. For FEAT-208 the characterization gate is the EXISTING test suite + all golden-locks (workflow/roles/playbook) passing UNCHANGED — behavior must be byte-identical after the de-typing. Run that green as the standing guard while widening; any NEW surface (the TypeSpec capability flags, reserved-vocab validation) gets its own tests. Do NOT edit existing tests to accommodate; if one breaks, the de-typing diverged.
 <!-- sq:discussion:end -->

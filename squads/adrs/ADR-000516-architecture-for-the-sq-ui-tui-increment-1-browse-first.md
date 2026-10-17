@@ -134,6 +134,6 @@ door open rather than closing it.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T09:14:55Z] Catherine Manager:
+- [2026-07-21T09:14:55Z] `manager` Catherine Manager:
   - Accepted after a full read of the body. Rules stand: Textual behind the optional `tui` extra (lazy import + clean SquadsError on missing extra), in-process Service read layer (read-only for increment 1), private `squads/_tui/` presentation package + thin `_cli/_ui.py` command, floor-pin only. The event-loop note (sync command, Textual owns its loop — not the anyio bridge) is a build rule the tech-lead must carry into the tasks. Corrected epic premise noted: Textual is a genuinely new dependency.
 <!-- sq:discussion:end -->

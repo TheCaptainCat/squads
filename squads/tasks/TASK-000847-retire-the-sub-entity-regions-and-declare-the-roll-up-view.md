@@ -292,9 +292,9 @@ message, and an override's `selected.views` drops one.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-09-01T08:37:55Z] Elias Python:
+- [2026-09-01T08:37:55Z] `python-dev` Elias Python:
   - Declared story_rollup/subtask_rollup/finding_rollup as freestanding subentity-source views in workflow.toml, per field-order match to summary_columns.
-- [2026-09-01T09:04:11Z] Elias Python:
+- [2026-09-01T09:04:11Z] `python-dev` Elias Python:
   - Retired per architect ruling (ADR-776, third 2026-09-01 amendment): no bundled sub-entity roll-up view ships, freestanding or attached. Declarations removed from workflow.toml; the computed successor (_print_subentity_summary) already shipped and is untouched.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -329,9 +329,9 @@ produces.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-09-01T08:37:59Z] Elias Python:
+- [2026-09-01T08:37:59Z] `python-dev` Elias Python:
   - Added templates/views/{story,subtask,finding}_rollup.md.j2 -- thin table template over fields/groups, matching subentities/summary.md.j2's layout, new files (summary.md.j2 untouched).
-- [2026-09-01T09:04:19Z] Elias Python:
+- [2026-09-01T09:04:19Z] `python-dev` Elias Python:
   - Retired alongside ST1: the three templates/views/*_rollup.md.j2 presentation templates are deleted -- an override at that path proved to re-present sq workflow view only, never sq review N show, so there was nothing to re-present.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
@@ -366,7 +366,7 @@ sub-entity mutation test still passes with only the removed-region assertions up
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-09-01T08:38:02Z] Elias Python:
+- [2026-09-01T08:38:02Z] `python-dev` Elias Python:
   - Dropped ensure_summary/_refresh_head/_story_label from _services/_subentities.py; _write_block_file now only re-renders the block heading.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
@@ -402,7 +402,7 @@ the older fixtures pass unchanged, and a `vulture` run reports nothing new here.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-09-01T08:38:05Z] Elias Python:
+- [2026-09-01T08:38:05Z] `python-dev` Elias Python:
   - set_head/ensure_summary/render_summary and both subentities/{head,summary}.md.j2 kept, docstrings now name the exact frozen migration caller pinning each.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
@@ -439,7 +439,7 @@ scaffolded sub-entity block carries no `:head` region, a file still carrying a l
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
-- [2026-09-01T08:38:08Z] Elias Python:
+- [2026-09-01T08:38:08Z] `python-dev` Elias Python:
   - Removed sq:summary from items/{task,feature,review}.md.j2 and the :head scaffold from subentities/block.md.j2; _collab.py's region registry drops the summary entry; search-narrowing tests/goldens updated.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
@@ -487,7 +487,7 @@ documented at both ends.
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
-- [2026-09-01T08:38:11Z] Elias Python:
+- [2026-09-01T08:38:11Z] `python-dev` Elias Python:
   - New tests/unit/test_computed_subentity_renderings_are_stable.py pins exact bytes for show/--full/--raw/--json/list-table on a severity finding, plus the badge-line/json in-memory (no-file) proof; badge-divergence documented at summary_row and the view declarations.
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
@@ -520,7 +520,7 @@ the `0.14.0` entry, and the override freshness guard test is green.
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
-- [2026-09-01T08:38:14Z] Elias Python:
+- [2026-09-01T08:38:14Z] `python-dev` Elias Python:
   - Regenerated the manifest (python scripts/gen_template_manifest.py); only the 0.14.0 entry moved, --check passes, 2 expected orphan blobs reported (not cleared, per convention).
 <!-- sq:subtask:ST7:discussion:end -->
 <!-- sq:subtask:ST7:end -->
@@ -529,7 +529,7 @@ the `0.14.0` entry, and the override freshness guard test is green.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-01T08:39:36Z] Elias Python:
+- [2026-09-01T08:39:36Z] `python-dev` Elias Python:
   - Implemented per the 2026-09-01 ADR-776 amendment: the roll-up is reissued as three freestanding views, the head has no successor.
     
     Removed:
@@ -554,7 +554,7 @@ the `0.14.0` entry, and the override freshness guard test is green.
     Undone: the corpus strip (TASK-849, already on the board) -- deliberately out of scope here, per your note that a live re-materialising write path would have undone it. `tests/meta` had 5 pre-existing-pattern failures, all in `test_override_manifest_and_stamp_freshness.py`, all traced to the 2 legitimate orphan blobs above (confirmed 0 orphans at HEAD before this session); not a regression in this change.
     
     @reviewer for review; @architect re: the freestanding-vs-attached call above.
-- [2026-09-01T08:54:57Z] Robert Architect:
+- [2026-09-01T08:54:57Z] `architect` Robert Architect:
   - Ruled, and it changes the delivery. ADR-776 has a third 2026-09-01 amendment: **no bundled sub-entity roll-up view ships** — not freestanding, not attached. Your freestanding-vs-attached call was right on its own terms; the question underneath it was whether a bundled declaration belongs at all, and it does not.
     
     Why: the roll-up's computed successor already ships and you left it untouched (`_print_subentity_summary`, called unconditionally by `_print_item_content`). So the declared view is a second rendering of computed data, reachable only through `sq workflow view` — while naming bundled vocabulary an adopter is free to change. Driven on a scratch squad: an override that is only `[subentity_kinds.finding] fields = []` fails the whole CLI, not just the view. The two buys claimed for it don't land either — an override at `.overrides/templates/views/finding_rollup.md.j2` re-presents `sq workflow view` and changes nothing under `sq review <n> show`; the `[selected]` drop is the un-brick step, not a capability. TASK-830 found this and removed its bundled views for the same reason.
@@ -571,7 +571,7 @@ the `0.14.0` entry, and the override freshness guard test is green.
     Driven, this is the whole red gate: with the three declarations removed, all 15 coupling failures pass (`test_subentity_field_flags_follow_the_active_spec` 8, `test_workflow_subentity_kinds_cli` 6, `test_badge_collections` 1). The other 4 in your 19 are not the coupling and are yours to close separately — the two marker-count floors (`test_marker_injection_guard`, `test_marker_recognition_across_prefix_casings`) are ST5's region removal costing 2 markers per sub-entity; the two roster-drift ones belong to the role-side change.
     
     @python-dev to apply. @reviewer the review holds otherwise.
-- [2026-09-01T09:04:44Z] Elias Python:
+- [2026-09-01T09:04:44Z] `python-dev` Elias Python:
   - Applied the ruling (ADR-776, third 2026-09-01 amendment): no bundled sub-entity roll-up view ships, freestanding or attached.
     
     Subtraction:

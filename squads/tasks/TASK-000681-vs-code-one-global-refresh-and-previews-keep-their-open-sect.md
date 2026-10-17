@@ -343,7 +343,7 @@ Acceptance:
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-07-28T15:23:35Z] Pierre Chat:
+- [2026-07-28T15:23:35Z] `op-pierre` Pierre Chat:
   - Dev-host check on the Windows host: the button is present, placed and styled correctly beside the nav arrows, and clickable. Folds stayed expanded across a watcher-driven refresh.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
@@ -352,13 +352,13 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-28T08:05:08Z] Olivia Lead:
+- [2026-07-28T08:05:08Z] `tech-lead` Olivia Lead:
   - One task, fixing both bugs — and the reason is a dependency, not convenience. Today the three tree buttons don't touch an open preview, so clicking one never collapses anything; the collapse only fires on the watcher. Land BUG-679's global refresh alone and every click starts collapsing every open sub-entity body and graph fold — trading three clicks for a collapsed preview makes Pierre's original complaint worse. BUG-680 is a precondition for 679's new behaviour being worth having. They also share refreshOpenPreviews(), the file, and the dev-host session, which is the scarce resource.
   - Answer to the toolbar question, and it inverts the concern: the nav arrows are NOT contributed commands. package.json's menus block has only the three view/title tree entries; previewBack/previewForward appear solely under keybindings. The arrows are rendered inside the webview page (.sq-nav-toolbar / .sq-nav-buttons / [data-sq-nav] delegation in domain/previewDocument.ts), and previewMessages.ts records why — VS Code's editor/title/navigation menu 'doesn't reliably surface inline buttons for a plain createWebviewPanel, confirmed by screenshot'. So: no navigation@N ordinal, placement is markup order (prepend). The catch is elsewhere — the action can't be a contributed command, it must post a message the host handles (the NavigateHistoryMessage pattern), and the button lives inside the content it refreshes, so it must survive its own swap. 'Works once then goes dead' is the failure mode, and it's invisible to a unit test.
   - Global-refresh shape is extraction, not invention: extension.ts's watcher handler already calls all three providers plus refreshOpenPreviews(). Two decisions left explicit rather than to the diff — keep three command ids or collapse to one, and retitle whatever survives since 'Refresh Tree' in the Command Palette would be a lie. The watcher must call the shared command rather than keep its own copy. ST4 is dev-host verification assigned @op-pierre: both bugs were filed from code inspection with on-screen behaviour explicitly unverified, so it is what actually closes them.
-- [2026-07-28T14:45:36Z] Catherine Manager:
+- [2026-07-28T14:45:36Z] `manager` Catherine Manager:
   - Dispatched to Ada for 0.12.3. Both bugs close together — the global refresh is only an improvement if previews keep their open sections, otherwise every click collapses them.
-- [2026-07-28T15:08:49Z] Ada Typescript:
+- [2026-07-28T15:08:49Z] `typescript-dev` Ada Typescript:
   - ST1-ST3 implemented and gates clean (compile/typecheck/lint/format/npm test/npm run test:canary).
   - ST1: collapsed the three refresh commands into one squads.refreshAll (title "Refresh All"), all three view/title entries now point at it. Orchestration extracted to a pure domain/refreshAll.ts (structural Refreshable/PreviewRefreshable interfaces, no vscode import) so it's unit-tested with fakes, not inline in the command callback. The watcher and the new in-content button both invoke the command by id (src/commandIds.ts) rather than each keeping a copy.
   - ST2: reused ExpansionTracker (same class the trees use) per open panel. Sub-entity body folds are keyed by local_id, the two graph folds by fixed ids 'children'/'refs' -- both now carry data-sq-fold-id and a real open attribute. The webview reports toggles via a new capture-phase 'toggle' listener (native toggle doesn't bubble) -> ToggleFoldMessage -> tracker.setExpanded. Tracker resets on any navigation to a different item (local_id isn't globally unique) and prunes against the fresh sub-entity/graph id set on every successful patch render -- skipped on a failed fetch so a transient error doesn't wipe tracked state.
@@ -366,8 +366,8 @@ Acceptance:
   - Falsified both behaviours (break/restore, see my reply to the dispatcher for verbatim output): dropped the preview call from refreshAll -> refreshAll.test.ts failed; zeroed the open attribute in buildGraphSection and buildSubEntityHtml -> previewDocument.test.ts failed on the fold-restore assertions for both graph and sub-entity folds. All three restored and green.
   - Not verified by me: the button surviving a real content swap in a live webview, and the toolbar's visual placement/hover-styling -- that's ST4, on the dev host.
   - ST4 (@op-pierre) is the only remaining open item; task stays InProgress until that's recorded.
-- [2026-07-28T15:16:45Z] Catherine Manager:
+- [2026-07-28T15:16:45Z] `manager` Catherine Manager:
   - Dev-host verification in progress: checking the in-content refresh button, its survival across a content swap, and fold preservation on all three refresh triggers.
-- [2026-07-28T15:22:44Z] Pierre Chat:
+- [2026-07-28T15:22:44Z] `op-pierre` Pierre Chat:
   - The in-content refresh button is a railguard, not a routine control: auto-refresh normally handles everything, and I only reached for a manual refresh once when the watcher failed. No visual feedback on click is acceptable for that role — the indication is the stale content updating.
 <!-- sq:discussion:end -->

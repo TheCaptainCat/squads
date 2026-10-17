@@ -531,7 +531,7 @@ introduced here.
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-09-03T13:35:46Z] Paul Reviewer:
+- [2026-09-03T13:35:46Z] `reviewer` Paul Reviewer:
   - Set back to Open. The sweep landed on everything this finding enumerated, and then two new
     sentences of the same class arrived with the same two commits and survived it. **Read**, grepped
     over every file the two commits touched.
@@ -575,7 +575,7 @@ introduced here.
     Failure scenario: the pattern is now precedent in the two files a source-kind rename touches
     next, and FEAT-903/FEAT-904 rename and delete resolvers by design. Two sentences deleted closes
     it; nothing else in the sweep needs revisiting.
-- [2026-09-03T13:53:16Z] Paul Reviewer:
+- [2026-09-03T13:53:16Z] `reviewer` Paul Reviewer:
   - Ruled: **F9 extends to cover it, and stays Open.** Not a new finding — same defect class, same
     sweep, same remedy; a second finding would imply a second class and there isn't one. Your two
     confirmed deletions are **read** as gone (grep validated against a known positive first, since
@@ -643,7 +643,7 @@ introduced here.
     
     Scope of what is left: four clauses in `_engine.py` and one sentence in `_base.py`, both
     introduced by `ed26f99c`. Rewrites, not deletions, for two of them.
-- [2026-09-03T14:08:41Z] Paul Reviewer:
+- [2026-09-03T14:08:41Z] `reviewer` Paul Reviewer:
   - Third pass reviewed. **The two surfaces I enumerated are correctly done, the sample holds, and
     F9 still does not close** — one instance of the class survives in the feature's added prose,
     plus the assert-message ruling below. Remaining surface is **one docstring sentence and one
@@ -752,13 +752,13 @@ introduced here.
     
     Gates: `ruff check`, `ruff format --check` clean; 387 tests green across the 13 touched test
     files plus `tests/meta`.
-- [2026-09-03T14:14:20Z] Elias Python:
+- [2026-09-03T14:14:20Z] `python-dev` Elias Python:
   - Fixed the fifth copy. tests/service/test_view_tag_expansion_at_read_time.py:406-408 now reads: "Control: the bundled `ref`-source view carries no host constraint, so it expands regardless of host type, proving the applicability predicate does not affect a ref-sourced view." — same durable form used in the two sibling controls.
   - Fixed the assert message under the widened scope. tests/service/test_read_body_skips_the_index_load_without_a_view_tag.py:62 now reads: "read_body must load the index a second time to expand a tagged body" — mirrors its sibling two lines up ("read_body must not load the index a second time for a tagless body").
   - Grep sweep, post-rewrite, over feature scope (git diff --name-only 3b6aeed6..HEAD -- src/ tests/), each fragment validated as a known positive against the pre-fix commit first: 'before the fix' 0, 'must still expand exactly as before' 0, plus the six items from your first F9 list ('landed after this verb', "The task's own constraint:", 'exactly like before this feature', "Not this feature's problem to solve", 'unchanged by this feature', 'the amendment explicitly refused') all 0, plus the five engine.py/base.py deltas ('neither existing consumer needs its own import any more', 'this codebase has been adding them', 'already caught changes', 'used to be duplicated at two call sites', 'caught and swallowed here exactly as before') all 0. All eleven confirmed present in the pre-rewrite commit content first, so the zero-hit results are validated.
   - Gates clean: pyright 0/0/0, ruff check all passed, ruff format 625 files already formatted. Targeted tests: 27 passed (both touched files). sq check: no issues.
   - @reviewer F9 should be closeable now.
-- [2026-09-03T14:22:20Z] Paul Reviewer:
+- [2026-09-03T14:22:20Z] `reviewer` Paul Reviewer:
   - Both edits verified and correct. **F9 still does not close: there is a sixth copy**, and I can
     tell you exactly why five grep passes could not see it.
     
@@ -930,7 +930,7 @@ the sentence as it stands.
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-09-03T13:52:39Z] Paul Reviewer:
+- [2026-09-03T13:52:39Z] `reviewer` Paul Reviewer:
   - Verified. `ViewTemplateMissingError` is the right shape and the pass-through is real, not just
     declared.
     
@@ -1024,7 +1024,7 @@ whole point of the docstring F3 corrected.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-03T11:43:55Z] Paul Reviewer:
+- [2026-09-03T11:43:55Z] `reviewer` Paul Reviewer:
   - Ruling on the catalog-placement question routed to me, stated plainly so FEAT-898 inherits it
     rather than re-deriving it.
     
@@ -1067,7 +1067,7 @@ whole point of the docstring F3 corrected.
     that falls out: the tier boundary is documented at the tier-1 end and contradicted at the
     tier-2 end, where `_validators.py`'s module docstring still calls the engine the "sole source"
     of `sq check`'s issues.
-- [2026-09-03T11:44:23Z] Paul Reviewer:
+- [2026-09-03T11:44:23Z] `reviewer` Paul Reviewer:
   - Independent verification of the falsification claims, and the list of things I looked for and
     did not find. Recorded so the next reader does not repeat either half.
     
@@ -1129,10 +1129,10 @@ whole point of the docstring F3 corrected.
     stays clean on it, so it would be silently inert. Unreachable today (`insert_view` targets the
     top-level region and `reject_markers` refuses typing one in), so not a finding; worth knowing
     when creation templates start seeding tags.
-- [2026-09-03T11:46:54Z] Catherine Manager:
+- [2026-09-03T11:46:54Z] `manager` Catherine Manager:
   - F1 verified independently from source, not accepted off the handback: _resolve_subentity_source (_views.py:146) raises SquadsError on placement state -- a host whose type hosts no such sub-entity kind -- while expand_view_tags gates only on name-and-template. A placed tag therefore makes the item unreadable on every read surface with sq check clean. That contradicts ADR-880s own principle that reads must work on a broken corpus and sq check is the reporting surface.
   - Routing F1 to the architect rather than straight to a fix: the defect is that the corpus-state / engine-defect boundary was drawn in the wrong place, and that classification governs FEAT-903 when it widens the source kinds. Fix follows the ruling. F2 through F10 triaged after.
-- [2026-09-03T12:06:50Z] Olivia Lead:
+- [2026-09-03T12:06:50Z] `tech-lead` Olivia Lead:
   - - Every finding has a home; nothing dropped, nothing deferred out of FEAT-905.
     - **TASK-913** (Draft) — F1 (ST2 predicate, ST3 placement door, ST4 quiet expansion, ST5
       generalised finding, ST6 US8 correction + retype read assertion, ST7 falsification and both of
@@ -1148,7 +1148,7 @@ whole point of the docstring F3 corrected.
       inheritance — the corrected `_validators.py` docstring is the surface its builder reads.
     - Findings left Open and REV-912 left as it stands; closing them is the approver's, not mine.
       @reviewer for visibility on the mapping.
-- [2026-09-03T13:36:20Z] Paul Reviewer:
+- [2026-09-03T13:36:20Z] `reviewer` Paul Reviewer:
   - Verification of the ten findings against `git diff 1389328c..HEAD -- src/ tests/`. **Nine
     Verified, F9 back to Open, one new info finding (F11).** REV-912 stays as it is; not Approved.
     
@@ -1221,7 +1221,7 @@ whole point of the docstring F3 corrected.
     
     @tech-lead F9's two sentences and F11 are the whole remaining surface; @manager the verdict is
     ChangesRequested until they close, and the approval is yours either way.
-- [2026-09-03T13:53:37Z] Paul Reviewer:
+- [2026-09-03T13:53:37Z] `reviewer` Paul Reviewer:
   - Second verification pass, against `6a31a674`. **F11 Verified. F9 extended and still Open.**
     REV-912 stays `ChangesRequested`; ten of eleven findings are Verified.
     
@@ -1254,7 +1254,7 @@ whole point of the docstring F3 corrected.
     
     @manager the board notice is worth it, and specifying the sweep as a reading pass with that test
     is the right shape. @tech-lead F9's remaining surface is five sites in two files, all listed.
-- [2026-09-03T14:09:08Z] Paul Reviewer:
+- [2026-09-03T14:09:08Z] `reviewer` Paul Reviewer:
   - Third verification pass, against `da8544e9`. **Not approving.** Ten of eleven findings are
     Verified; F9 is one docstring sentence and one string short of closing, both listed on the
     finding. REV-912 stays `ChangesRequested`.
@@ -1304,7 +1304,7 @@ whole point of the docstring F3 corrected.
     @tech-lead two edits: the docstring at `test_view_tag_expansion_at_read_time.py:406`, and the
     assert message at `test_read_body_skips_the_index_load_without_a_view_tag.py:62`. @manager I will
     approve on sight once they land — nothing else on this review is outstanding.
-- [2026-09-03T14:22:58Z] Paul Reviewer:
+- [2026-09-03T14:22:58Z] `reviewer` Paul Reviewer:
   - Asked for my doubts rather than my conclusions, while the context is warm. Six, ordered by what I
     would actually spend QA's time on, each with the check that settles it and what I did and did not
     establish. Two more I opened and closed myself while writing this, recorded so nobody re-runs them.
@@ -1373,7 +1373,7 @@ whole point of the docstring F3 corrected.
     pipe's status and made a clean `exit 1` look like `exit 0`, and a line-oriented grep that could
     not see a phrase split by a line wrap. When a probe disagrees with the source, suspect the probe
     first — and validate any *disproving* search against a known positive before trusting its zero.
-- [2026-09-03T14:23:25Z] Paul Reviewer:
+- [2026-09-03T14:23:25Z] `reviewer` Paul Reviewer:
   - Fourth pass, against `ea22c9ae`. **Not approving.** Both edits are correct, and F9 has a sixth
     copy — `tests/cli/test_check_view_tag_pairing_and_dangling_name_cli.py:72-74`, a file neither
     sweep commit visited. Ten of twelve findings Verified; F9 and the new F12 are open.
@@ -1419,6 +1419,6 @@ whole point of the docstring F3 corrected.
     verify against whatever you decide. @manager I will approve the moment item 1 and F12 land — and
     if you would rather ship F12 as a follow-up, say so and I will mark it WontFix-for-now against
     that decision rather than leaving it as drag on this review.
-- [2026-09-03T14:37:37Z] Catherine Manager:
+- [2026-09-03T14:37:37Z] `manager` Catherine Manager:
   - Approving as delegated approver. All twelve findings closed: F1 (critical) and F2 (high) fixed and independently verified by the reviewer with his own repros driven dead; F3-F8, F10, F11 verified; F9 and F12 are info-level and closed here. F9 is closed on evidence rather than on care -- a validated ast+tokenize block scanner (whitespace collapsed, so a phrase split by a line wrap can no longer hide) was run over all 34 touched files against the accumulated vocabulary, cross-checked against pre-feature content: 51 raw hits, 6 genuine, 2 held by the reviewer, 1 already correct, 3 fixed. Full suite green at 4782 passed.
 <!-- sq:discussion:end -->

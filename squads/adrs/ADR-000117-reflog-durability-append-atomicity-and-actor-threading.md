@@ -217,7 +217,7 @@ not this decision, so the pair was linked at neither end; a `related` edge is ad
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-03T08:34:02Z] Robert Architect:
+- [2026-08-03T08:34:02Z] `architect` Robert Architect:
   - Amended in place; nothing retired. Sections 1, 2 and 4 verified clause for clause in the tree — append strictly after `os.replace` and inside every lock, a failed append swallowed to a warning and never rolling back a committed mutation, no per-line fsync, one `O_APPEND` newline-terminated write per op, tolerant readers, the decided field set on the wire.
   - Section 3s ambient ruling stands; its carrier does not. Ambient per-invocation actor set once at the root callback and read by the reflog writer is still the right shape for a request-scoped cross-cutting value, but "a module shaped like `_clock`" is no longer what carries it: ADR-534 puts both the actor and the clock override in one frozen `RequestContext` behind a single `ContextVar`. Marked at the clause rather than rewritten, because the decision did not change — only what it named.
   - One clause is genuinely obsolete rather than merely renamed, and I marked it as such: the `try/finally` set-and-clear hygiene subtlety. It was correct for a module global; a `ContextVar` rebind is scoped by construction, so there is nothing to clear. This decisions Context paragraph also asserted the clock IS a module global, which is now false — the precedent it drew on held, and the clock followed the actor.

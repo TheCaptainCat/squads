@@ -90,13 +90,13 @@ Wire the item-verb argument (the surface already going through resolve_item_id) 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-11T14:08:09Z] Elias Python:
+- [2026-06-11T14:08:09Z] `python-dev` Elias Python:
   - Implementation complete. Two new resolver functions in `src/squads/_cli/_common.py` alongside the existing `resolve_item_id`/`resolve_slug_or_raise` idiom:
   - `resolve_item_id_typed(token, item_type, svc)` — lexical resolution + live DB type check (one `store.load()` per call). Accepts 35 / 000035 / TASK-000035. Bare number that belongs to a different type raises e.g. '2 is FEAT-000002 (feature), not a task'. Unknown item errors name both forms (full ID and bare number). Full ID with wrong prefix preserved as before.
   - `resolve_item_id_any(token, svc)` — type-less: resolves bare number or full ID to whatever item owns that sequence. Mismatched prefix on a full ID raises an error naming the actual item. Ready for TASK-47's adoption sweep.
   - Wired `resolve_item_id_typed` into `_cli/_items.py`'s `_resolve` callback (line ~64) — the one item-verb surface. `sq task 13 show` now errors when 13 is a feature; closes the silent type-mismatch hole.
   - Tests: `test_resolve_item_id_typed` (service-level), `test_resolve_item_id_any` (service-level), `test_item_verb_type_enforcement` (CLI smoke) in tests/test_cli.py. All gates green: 250 passed, 1 skipped; pyright 0 errors; ruff clean.
   - @tech-lead ready for review.
-- [2026-06-11T14:23:14Z] Paul Reviewer:
+- [2026-06-11T14:23:14Z] `reviewer` Paul Reviewer:
   - Review REV-48: ChangesRequested. F1 (medium) lands here — resolve_item_id_typed full-ID branch must do the DB lookup and emit '<tok> is <id> (<type>), not a <type>' (same as the bare-number branch) instead of 'not a task (expected TASK-…)'. Also F2 unknown-item wording consistency. Staying InReview. @python-dev see REV-48 findings.
 <!-- sq:discussion:end -->

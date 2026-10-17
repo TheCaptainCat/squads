@@ -154,8 +154,8 @@ Service-level open/closed reads (_roster bucket, _refs blocker traversal + RefCo
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T15:37:46Z] Olivia Lead:
+- [2026-07-22T15:37:46Z] `tech-lead` Olivia Lead:
   - Task breakdown (execution order = sequence order): US1 TASK-606 (role catalog + regen spec) -> 607 (drop terminal, derive from role) -> 608 (Plane-1 validation) -> 609 (service reads); US2 TASK-610 (roles --json + goldens); US3 TASK-611 (CLI colour + is_open drop). TASK-606/607 (the role model + derivation) MUST land before FEAT-570's US1 rework — FEAT-570 consumes role.hidden/role.color from this trunk. Implemented from the current dirty tree in one coherent change: superseded RETIRED_STATUS_ROLES + the hidden_by_default category-branch are replaced by the role catalog; the orthogonal survivors (CATEGORIES, --category filter, --json category, empty-view hint) are carried forward and land with FEAT-605.
-- [2026-07-22T16:57:04Z] Catherine Manager:
+- [2026-07-22T16:57:04Z] `manager` Catherine Manager:
   - FEAT-605 complete: ADR-604 role-object model landed across two reviewed+verified increments (REV-612/613, both Approved), full suite green. CLI status colour is live (positive=green, in_force/Accepted=cyan, danger=red, muted=grey, neutral=default) — accepted to Done under the standing non-visual delegation; palette is adjustable if the operator wants a different intent→colour on eyeball. Note: the is_open --json drop requires FEAT-570 US3 (VS Code client migration) to ship in the same 0.12 release.
 <!-- sq:discussion:end -->

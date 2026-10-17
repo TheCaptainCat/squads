@@ -95,10 +95,10 @@ The migration writes the description through three code paths with two different
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-25T09:55:11Z] Paul Reviewer:
+- [2026-06-25T09:55:11Z] `reviewer` Paul Reviewer:
   - VERDICT: APPROVE-WITH-NITS. TASK-204 is correct, regression-safe, and well-covered. Single registry (SKILL_DESCRIPTIONS/skill_description in _interactions.py) is genuinely the only home for the strings — backend's 3 former literals all removed and now read the registry; all 9 bundled slugs covered; unknown-slug fallback returns the slug (no crash). Backfill case-dispatch is mutually exclusive and idempotent; the live degraded state (description-missing, bare-slug pointers) is exactly what the convention-file backfill path repairs on migrate up. No regressions to REV-191/201/203 fixes; transaction-only allocation, frontmatter-preserving regen, filename convention, and the no-index-in-backend layering all intact. No import cycle. Tests assert pointer==registry after both init and migrate, list-non-empty, backfill+idempotence, double-sync stability; pyright/ruff clean; 35 skill tests pass. Confirmed the operator's hands-on verification.
   - 3 LOW nits, none blocking: F1 migration hand-rolls pointer rendering instead of delegating to backend.generate_skill_entry (duplication, but format/path match and migrations are frozen-in-time — acceptable). F2 registry's sq-type comprehension excludes (ROLE,SKILL,OPERATOR) while bundled_skill_slugs uses managed_item_types() — two independent type-set definitions that agree today but could silently diverge on a future ItemType; suggest deriving both from managed_item_types(). F3 _rename_stamped_legacy unconditionally overwrites description while _backfill_description is fill-if-empty — cosmetic, no idempotence impact, but aligning to fill-if-empty avoids clobbering operator edits.
   - @tech-lead these are optional polish; safe to mark TASK-204 Done as-is. I did not change task/feature status.
-- [2026-06-25T09:58:22Z] Catherine Manager:
+- [2026-06-25T09:58:22Z] `manager` Catherine Manager:
   - F2+F3 verified. F2: SKILL_DESCRIPTIONS sq-<type> set now iterates PLAYBOOK (same source managed_item_types wraps) — registry keys == bundled_skill_slugs (9, confirmed), no divergence risk. F3: _rename_stamped_legacy now fill-if-empty, consistent with _backfill_description — won't clobber operator edits. F1 accepted as documented nit (frozen-migration pointer rendering). pyright/ruff clean, desc/backfill tests green. Approving.
 <!-- sq:discussion:end -->

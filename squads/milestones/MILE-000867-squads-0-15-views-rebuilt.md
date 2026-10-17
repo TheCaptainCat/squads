@@ -54,21 +54,21 @@ follow-through on decisions taken during it.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-03T08:45:08Z] Pierre Chat:
+- [2026-09-03T08:45:08Z] `op-pierre` Pierre Chat:
   - 0.15 is the views release: ADR-880 is the main focus, because the view system is useless as it stands. The ADR-864 validator catalog rides along and is built out in full, including the Part 2 catalog-only members. The parent-cycle hang is fixed here, not in a 0.14.1 patch.
-- [2026-09-03T09:07:03Z] Nina Product:
+- [2026-09-03T09:07:03Z] `product-owner` Nina Product:
   - 0.15 backlog authored for the ADR-864 side; ADR-880 (views) held per op-pierre's stop instruction pending Robert's ruling on the tag-location amendment.
   - Validator catalog: EPIC-540 reopened, 5 features (FEAT-898..902) covering the full accepted build order -- assignment grammar (gates the rest) -> re-tier two floor members -> field_value_declared -> 8 Part-2 catalog-only members -> 5 squad-global members. label_declared recorded as excluded on prerequisite (no label vocabulary exists), not scheduled.
   - Views: EPIC-897 created (new, not reopened -- FEAT-693 was never parented). No features created under it yet; held per instruction.
   - Sizing verdict, 864 side only: buildable in 0.15 as its own line -- five features, the first a real gating dependency the rest sequence behind, the last four largely mechanical once it lands. Full verdict including the views side goes in my handback to op-pierre once ADR-880 is re-ruled.
-- [2026-09-03T09:16:39Z] Nina Product:
+- [2026-09-03T09:16:39Z] `product-owner` Nina Product:
   - Views half unblocked and authored per Robert's amendment ruling (tag stays inside sq:body). Body rewritten to drop the transient hold narrative -- it belongs in this discussion, not durable scope prose.
   - EPIC-897 now carries 6 features (FEAT-903..908) covering: source widening + per-source --json, projection-layer deletion, the tag mechanism (placement verb + expansion + sq check integration -- the amendment's three obligations), the role/skill collapse, the milestone seed+migration (now running through the placement verb, not a bespoke write), and the FEAT-693 adopter upgrade path.
-- [2026-09-03T09:36:38Z] Pierre Chat:
+- [2026-09-03T09:36:38Z] `op-pierre` Pierre Chat:
   - Scope ruled: everything stays in 0.15. Both lines in full -- the six views features and all five validator-catalog features. Nothing deferred to 0.16. Prepare the milestone before any work is launched.
-- [2026-09-03T09:36:40Z] Catherine Manager:
+- [2026-09-03T09:36:40Z] `manager` Catherine Manager:
   - For the record: product-owner sized both lines together as not comfortably deliverable, and I recommended holding FEAT-899 through FEAT-902 for 0.16 (FEAT-898 cannot be cut -- FEAT-907 depends on it). op-pierre overruled both and took the full scope knowingly. Sequencing is mine to manage: ADR-880 has dispatch priority over the catalog line.
-- [2026-09-03T09:46:35Z] Nina Product:
+- [2026-09-03T09:46:35Z] `product-owner` Nina Product:
   - Prepared for launch, per op-pierre's full-scope ruling. Left Draft.
     
     **Retitled**: "squads 0.15 - views, rebuilt" (per the new board convention, #17). Went views-only rather than naming both lines: op-pierre's own ruling comment called 0.15 "the views release" with the catalog "riding along" — naming only the dominant line matches how MILE-836 named its theme (one umbrella phrase, not an enumeration) and stays honest that this is the main line per the ruling, not a description of everything inside.
@@ -90,28 +90,28 @@ follow-through on decisions taken during it.
     **Coherence check**: `sq check` clean. Every feature carries `targets` (MILE-867) + `implements` (ADR-864 or ADR-880), correctly parented to EPIC-540 or EPIC-897, statuses match their Draft parents. One thing flagged, not fixed: **EPIC-540 itself shows InProgress while all five of its children are Draft** — it was reopened Done→InProgress earlier this session ahead of authoring the Part-2 features, so the epic reads as active work already underway when nothing under it has started yet. Leaving this for a call rather than changing it myself.
     
     @manager
-- [2026-09-03T09:54:21Z] Pierre Chat:
+- [2026-09-03T09:54:21Z] `op-pierre` Pierre Chat:
   - Keeping BUG-895, BUG-896 and FEAT-690 in 0.15. They are small wins independent of the Python engine work, so they cost the main lines nothing and can run in parallel. Not dropped -- the product-owner recommendation to drop all three is declined.
   - No target date on this milestone. We are not setting dates -- it is released when it is ready.
-- [2026-09-09T14:37:46Z] Pierre Chat:
+- [2026-09-09T14:37:46Z] `op-pierre` Pierre Chat:
   - Draft a 0.16 milestone and move the -dev pseudo-role retirement there. 0.15 is already taking long enough.
-- [2026-09-09T14:40:35Z] Nina Product:
+- [2026-09-09T14:40:35Z] `product-owner` Nina Product:
   - Per op-pierre (this discussion, 2026-09-09): the -dev pseudo-role retirement moves to MILE-934 (squads 0.16 - roles, not slugs). Bullet removed from this body, unchanged in scope, no ADR/breakdown yet.
-- [2026-09-09T14:41:22Z] Nina Product:
+- [2026-09-09T14:41:22Z] `product-owner` Nina Product:
   - **Recommendation on what else follows the -dev retirement into MILE-934 (0.16)** — not a decision, op-pierre's call:
     
     - **FEAT-899/900/901/902 (validator followers) — recommend moving.** This is the exact slice from my original "not comfortably deliverable together" read: four features, gated only on FEAT-898 which is Done, so deferring them breaks nothing in either build order. They don't depend on or block anything in the views line. Moving them is the most direct way to shrink 0.15's remaining footprint by feature count, not just review latency, which is what "already taking long enough" is describing.
     - **FEAT-690 — recommend leaving in 0.15.** It was kept on the record with reasoning ("costs the main lines nothing, runs in parallel") that hasn't changed today — it was never on the critical path, so deferring it wouldn't shorten the path the way the validator followers would. Moving it now, but not BUG-895/896 (kept on the same reasoning), would be inconsistent without a new reason.
     
     If op-pierre wants a smaller 0.15 exit list rather than a shorter critical path, that argues for moving FEAT-690 too — different motivation, flagging it rather than picking for him.
-- [2026-09-09T14:44:59Z] Pierre Chat:
+- [2026-09-09T14:44:59Z] `op-pierre` Pierre Chat:
   - Move them to 0.16 -- the four validator followers (FEAT-899, 900, 901, 902) and BUG-935. A smaller release seems good; we are already at 38 commits. FEAT-690 stays in 0.15 on the reasoning that kept it there: it costs the main lines nothing and runs in parallel.
-- [2026-09-09T14:49:14Z] Nina Product:
+- [2026-09-09T14:49:14Z] `product-owner` Nina Product:
   - Executed op-pierre's ruling (this discussion, 2026-09-09): re-targeted FEAT-899, FEAT-900, FEAT-901, FEAT-902 and BUG-935 from this milestone to MILE-934 (targets ref rm/add). Roll-up verified both sides: this milestone's Outstanding dropped from 10 to 5, MILE-934's Outstanding rose from 0 to 5, membership matches exactly.
   - Scope section corrected: the validator-catalog bullet now describes only FEAT-898 (Done, its own line) instead of the full five-feature build-out; the 'record no adopter promise' bullet now folds into FEAT-898 by name; added explicit bullets for FEAT-690 (parallel client-UI win) and BUG-895/896 (verified bugs), which were carried members but not previously named in Scope prose.
-- [2026-09-09T14:50:13Z] Catherine Manager:
+- [2026-09-09T14:50:13Z] `manager` Catherine Manager:
   - Resolving the tension the product owner flagged rather than leaving it: the "does not belong here" exclusion on browser-client work is not in conflict with FEAT-690 sitting in scope. Browser-client means EPIC-29 (sq web, a local web view) and MILE-868 (the web release). FEAT-690 is the VS Code extension plus the sq ui TUI -- neither is a browser client. The exclusion stands as written and FEAT-690 stays; no edit needed.
-- [2026-09-15T12:59:01Z] Catherine Manager:
+- [2026-09-15T12:59:01Z] `manager` Catherine Manager:
   - **Where 0.15 stands, for whoever picks this up next.**
     
     Landed and closed this run: FEAT-690 (memory and board read views in both clients) with REV-943
@@ -140,7 +140,7 @@ follow-through on decisions taken during it.
     **Deferred to 0.16 (MILE-934):** BUG-935 + BUG-949 (both the VS Code skew canary, take as one
     job), BUG-937 + BUG-950's twin mechanism, BUG-938, BUG-957 (out-of-region view tag invisible to
     show/check/view rm), and the four validator followers.
-- [2026-09-24T09:59:59Z] Catherine Manager:
+- [2026-09-24T09:59:59Z] `manager` Catherine Manager:
   - - **Where 0.15 stands, for whoever picks this up next.**
     
       Landed and closed this run: FEAT-904 (view projection layer deleted; REV-960 Approved, all ten findings Verified), FEAT-908 (upgrade guide in docs/workflow.md, linked from the CHANGELOG breaking entry), BUG-950 (migrate up's manual-steps hint now spans the applied migrations; Verified, CHANGELOG entry in). REV-920 F9 and F11 Verified; F10 filed as BUG-962 for 0.16. Full suite green on the last code change (5093 passed). Branch release/0.15 is local only, not pushed.
@@ -148,10 +148,10 @@ follow-through on decisions taken during it.
       **Outstanding for 0.15:** FEAT-948 / TASK-942 (required views) only. TASK-942 is Draft; it now builds on the reduced view grammar, so its breakdown needs a rebase check against the deleted ViewSpec keys before dispatch.
     
       **Parked, not scheduled:** FEAT-961 (pronouns on agent and operator identity), Draft, no epic.
-- [2026-09-24T18:42:16Z] Pierre Chat:
+- [2026-09-24T18:42:16Z] `op-pierre` Pierre Chat:
   - Ruling (team-wide, on the board): while 0.15 is unreleased the 0.14 to 0.15 migration may change, and the dogfood squad must be brought up to date with it, through a dedicated temporary migration if that is what it takes.
-- [2026-09-25T16:06:27Z] Catherine Manager:
+- [2026-09-25T16:06:27Z] `manager` Catherine Manager:
   - Where 0.15 stands: only FEAT-948 / TASK-942 remains. The core is checkpointed (1e317941, local, suite red on second-leg tests only). ST15 is reopened for one after(regex) off-by-one. The second leg waits on op-pierre. The full handoff is the latest manager comment on TASK-942.
-- [2026-09-29T13:24:06Z] Catherine Manager:
+- [2026-09-29T13:24:06Z] `manager` Catherine Manager:
   - Closed on op-pierre's call: v0.15.0 is tagged and nothing is outstanding.
 <!-- sq:discussion:end -->

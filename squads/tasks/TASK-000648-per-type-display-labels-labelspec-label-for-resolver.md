@@ -96,7 +96,7 @@ Grepped for ad-hoc type-name .capitalize()/.title() derivations; only the Claude
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-24T12:16:02Z] Elias Python:
+- [2026-07-24T12:16:02Z] `python-dev` Elias Python:
   - ST1+ST2 done. Added LabelSpec (frozen, extra=forbid, 4 optional str forms) + ItemSpec.labels in src/squads/_workflow/_models.py.
   - Added label_for(type_str, form, spec)/labels_for(type_str, spec) resolvers beside prefix_for in src/squads/_models/_vocab.py — pin-else-derive, unlike prefix_for never raises (falls back to derivation for a missing spec/undeclared type).
   - Loader needed no change: both item-spec parsers in _workflow/_loader.py already spread **data into ItemSpec.model_validate, so nested [items.X.labels] hits pydantic's standard nested-model path; added coverage.
@@ -104,6 +104,6 @@ Grepped for ad-hoc type-name .capitalize()/.title() derivations; only the Claude
   - No golden/manifest regen needed: fallback formula is byte-identical to the old .capitalize() behaviour, and no bundled type has labels pinned.
   - New tests: tests/unit/test_item_display_label_resolution.py (resolver pin-else-derive, all 4 forms, acronym case, extra=forbid), tests/unit/test_item_labels_override_loading.py (loader nested-table parse + misspelled-subkey rejection), tests/integration/test_item_skill_title_uses_resolved_label.py (consumer-level: pinned label renders in generated skill title, both built-in and custom type, plus no-override fallback).
   - Gates green: pyright --all-extras (0 errors), ruff check + format --check clean, targeted pytest green, tests/meta green.
-- [2026-07-24T12:27:21Z] Paul Reviewer:
+- [2026-07-24T12:27:21Z] `reviewer` Paul Reviewer:
   - REV-649 raised two low-severity findings (F1: LabelForm should be PEP-695 `type` alias; F2: empty-string-pin fallback untested). Recommended verdict Approve; back to InProgress to close the nits before commit.
 <!-- sq:discussion:end -->

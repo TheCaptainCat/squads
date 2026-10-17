@@ -142,13 +142,13 @@ As a user, I want empty, no-match, and loading states to be clean, so the featur
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T23:55:02Z] Mara Tester:
+- [2026-07-21T23:55:02Z] `qa` Mara Tester:
   - 2026-07-22 QA headless verification (dev-host visual check still pending):
   - Contract check PASS — real sq search --json (throwaway squad) matches isSqSearchHit exactly: id/title/type/status all strings, hits[] all {region,location,snippet} strings; --type/--status compose AND with query; zero-match query returns [] on exit 0.
   - package.json registers squads.search (command + ctrl+alt+s/cmd+alt+s keybinding).
   - npx vitest run: 360/360 pass; sqAdapter.test.ts covers getSearch/isSqSearchHit, searchFilterArgs.test.ts covers --type/--status pass-through, searchRunner.test.ts covers debounce/last-query-wins, searchAccept.test.ts covers decideAccept.
   - Filed BUG-563 (medium) for REV-562 F1's root cause: reproduced a body-only hit whose snippet truncates the matched term before column 160, confirming the server-side windowing defect independent of the client. Refs FEAT-537 and REV-562.
   - Recommend: TASK-558/559/560/561 -> Done, FEAT-537 -> InReview for operator visual acceptance in the dev host (QuickPick UI itself is out of headless-verification scope).
-- [2026-07-22T09:10:15Z] Pierre Chat:
+- [2026-07-22T09:10:15Z] `op-pierre` Pierre Chat:
   - Accepted after dev-host visual pass: search QuickPick works — query/submit/busy, type/status narrowing, open-in-reader, empty/no-results states all correct. Closing to Done.
 <!-- sq:discussion:end -->

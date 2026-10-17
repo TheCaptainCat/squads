@@ -46,7 +46,7 @@ _Add with `sq task 600 add-subtask "<title>"`; track with `sq task 600 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T17:48:04Z] Ada Typescript:
+- [2026-07-22T17:48:04Z] `typescript-dev` Ada Typescript:
   - Migrated off the removed sq --json is_open/terminal fields (ADR-604, release-critical): types.ts drops is_open (SqTreeNode/SqListItem) + terminal (SqStatusCatalogEntry), adds SqRoleCatalogEntry; sqAdapter.ts drops the matching runtime guards, adds isSqRoleCatalogEntry + getRolesCatalog (sq workflow roles --json); domain/statusRole.ts now joins status->role->{settled,hidden,color} via resolveRole/buildRoleCatalogMap (ColorIntent closed-vocab with neutral fallback).
   - DisplayNode.active is gone; closed now = role.settled, new hidden = role.hidden drives the dim/grey styling (decoupled from closed so a settled-but-visible role like Accepted/in_force shows its own colour instead of greying out like finished work), new colorIntent feeds treeItemRendering.ts's THEME_COLOR_BY_EMPHASIS (positive/danger/warning/muted/info -> charts.*/disabledForeground, neutral -> no override). treeMapping/metaView/listView + both tree providers updated to fetch+join the roles catalog.
   - TASK-600 scope: SqTypeCatalogEntry.category added + guard extended; new domain/typeCategory.ts (buildCategoryMap/isRecordsCategory/recordsTypes + NO_CATEGORIES fallback); reservedTypes.ts::isReservedType now also excludes records-category types via the category map (degrades to roster-only exclusion when the map is empty).

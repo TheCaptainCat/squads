@@ -99,12 +99,12 @@ _Add with `sq review 230 add-finding "…" --severity high`; track with `sq revi
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-26T09:20:34Z] Paul Reviewer:
+- [2026-06-26T09:20:34Z] `reviewer` Paul Reviewer:
   - **Verdict: APPROVE-WITH-NITS.**
   - FEAT-220 is behavior-preserving and well-locked. I anchored the review to pre-FEAT-220 HEAD (which still carries the original _interactions.py): the bundled playbook.toml is byte-identical to HEAD's PLAYBOOK both structurally (0 mismatches, all 7 work types, ordered role guides) and at rendered sq-<type> skill output (0 byte mismatches with a dev-bearing roster). Loader fail-closed validation fires on all five rules; *dev exempt; extra='forbid'/frozen on models; rewire faithful; backend byte-identical; no cycle / no future-import / no identity landmines; pyright + ruff + full suite green.
   - On the flagged Layer-B non-circularity concern: the _SNAPSHOT is a frozen Python literal embedded in the test (it does NOT read the TOML at runtime), and I confirmed it is byte-identical to HEAD's original PLAYBOOK. So it IS independently anchored to pre-FEAT-220 HEAD and is a valid regression gate — **it does NOT need re-freezing from HEAD.** The only issue is the misleading 'verbatim from playbook.toml' comment (F2, doc nit).
   - Two LOW findings, neither blocking: F1 — the loader cherry-picks named keys so a typo'd TOML key bypasses extra='forbid' and is silently dropped (defense-in-depth; matches the existing FEAT-219 loader pattern, so a pattern-wide follow-up, not a FEAT-220 regression). F2 — reword the snapshot-provenance comment. Both are safe to land as-is or fix in a quick follow-up.
   - @tech-lead — no changes required; the two nits are your call to fold in now or defer. Not setting task/feature status per review scope.
-- [2026-06-26T09:27:27Z] Catherine Manager:
+- [2026-06-26T09:27:27Z] `manager` Catherine Manager:
   - F1+F2 verified fixed. F1: _interactions/_loader.py + _roles/_loader.py now route raw TOML through model_validate so extra='forbid' fires — confirmed an unknown key (commandz/entr) fails closed with two new negative tests; bundled playbook.toml/roles.toml still load. Workflow loader correctly left unchanged (its models lack extra='forbid' — separate gap, tracked on FEAT-209/ADR-214). F2: snapshot comment reworded to cite the pre-FEAT-220 PLAYBOOK literals (HEAD) as the source of truth. Non-circularity of Layer-B independently confirmed by reviewer + manager. pyright/ruff clean, 45 targeted tests green. Approving.
 <!-- sq:discussion:end -->

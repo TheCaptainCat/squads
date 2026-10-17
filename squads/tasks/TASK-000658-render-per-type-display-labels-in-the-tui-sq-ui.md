@@ -59,6 +59,6 @@ Routed the filter dropdown, search-type dropdown, and search-hit type badge thro
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-27T07:58:03Z] Elias Python:
+- [2026-07-27T07:58:03Z] `python-dev` Elias Python:
   - Routed _tui/_filter.py's type-filter dropdown, _tui/_search.py's search-type dropdown, and the search hit row's ($type) badge through label_for(singular). Reader/tree/status-bar have no raw-type display (checked, none found). Tests added in tests/tui/test_filter_screen.py and tests/tui/test_search_screen.py; pyright/ruff clean; tests/tui green (47 passed).
 <!-- sq:discussion:end -->

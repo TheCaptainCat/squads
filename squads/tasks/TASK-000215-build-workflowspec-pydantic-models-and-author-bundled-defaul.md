@@ -113,6 +113,6 @@ Covers authoring the bundled src/squads/_workflow/default_workflow.toml (promoti
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-25T14:43:51Z] Catherine Manager:
+- [2026-06-25T14:43:51Z] `manager` Catherine Manager:
   - NAMING (op-pierre): do NOT use the 'machines' keyword in the workflow spec or default_workflow.toml. Rename the config key + model field — proposed: 'lifecycle(s)' (`[lifecycles.work]`, `TypeSpec.lifecycle`), and 'subentity_lifecycles'; the internal model class can follow (e.g. StatusLifecycle). To be applied/confirmed in the FEAT-207 review pass.
 <!-- sq:discussion:end -->

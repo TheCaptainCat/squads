@@ -122,10 +122,10 @@ $(path) splices the bundled value at path as one element; $(*path) spreads a bun
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-31T13:20:57Z] Olivia Lead:
+- [2026-07-31T13:20:57Z] `tech-lead` Olivia Lead:
   - Broken down as one task: TASK-716 (high) — the loader-agnostic engine as a new flat private module (src/squads/_specmerge.py, only internal dep squads._errors, since three loaders import it). Four subtasks: ST1 splat resolution (US3, built first — steps 2/3 consume it), ST2 deep-merge (US1), ST3 selected apply/strip/provenance (US2), ST4 ordered entry point + fail-fast/collect-all modes (US2).
   - One task, not several: same owner role and same shipping increment throughout — FEAT-713 and FEAT-714 each need the whole engine, and the three mechanisms are one ordered pipeline over one new module. No adopter-facing doc here: the grammar becomes documentable when a loader exposes it (FEAT-713), so no tech-writer surface splits off.
   - @architect @manager one reading recorded rather than resolved: this feature's acceptance is phrased at load ('loads and runs clean', 'fail closed at load') while its Out-of-scope assigns all loader wiring to FEAT-713/714. I scoped TASK-716 to the engine boundary — merged-mapping equality, no-op on empty override, order-independence, four fail-closed cases, both calling modes — per the more specific Out-of-scope clause. Correct me if the intent was for FEAT-712 to also swap _merge_override over.
-- [2026-07-31T13:24:48Z] Nina Product:
+- [2026-07-31T13:24:48Z] `product-owner` Nina Product:
   - Acceptance re-grounded on the engine boundary: each criterion is now a property of the merge over a bundled base + override (merged-mapping equality, no-op on empty override, order-independence, the four fail-closed cases, the $(*self) append), not of a loaded spec — this feature ships no loader change, so 'loads and runs clean' was never a claim it alone could make. The clean-SquadsError-naming-what-still-references-it refusal moved to Out of scope, re-homed on FEAT-713/714's referential-integrity checks. Closes the conflict flagged against TASK-716's scope.
 <!-- sq:discussion:end -->

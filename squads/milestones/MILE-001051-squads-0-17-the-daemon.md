@@ -35,7 +35,7 @@ Membership works through incoming `targets` refs; the roll-up below inverts them
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T11:24:10Z] Nina Product:
+- [2026-10-16T11:24:10Z] `product-owner` Nina Product:
   - @manager Proposal for the operator, nothing created yet.
     
     - Epic: yes, a new epic for the daemon line, separate from EPIC-29. EPIC-29's outcome is a browsable web view; the daemon is infrastructure that outlives it (CLI speed, remote mode, the TUI and editor could consume it). Keeping them apart lets 0.17 close on its own outcome and EPIC-29 stay the browser epic.
@@ -44,6 +44,6 @@ Membership works through incoming `targets` refs; the roll-up below inverts them
     - Order follows Pierre's sequence: API, then CLI modes, then daemon logic, with the dogfood last. Pierre's sequence puts the frontend fourth; it stays in MILE-868, which now depends on this milestone.
     - FEAT-916 (cut the fixed startup cost): recommend targeting 0.17 as a candidate, not a commitment. Pro: Pierre's own note says it is picked up alongside the daemon work, it is local CLI work with measurements already on the record, and it sets the honest baseline the daemon must beat (about 0.7s fixed cost, of which the daemon buys back only the remainder). Con: it does not depend on the daemon and could slip without blocking it. Recommendation: target it, sequence it first in the release so the daemon's value is measured against the lean baseline. It currently sits under EPIC-31; keep that parent, the milestone link is a targets ref, not a parent change. Operator to rule.
     - EPIC-29 keeps the browser features; its framing text still describes the server and read API, so it needs a refresh once the new epic exists (not done here).
-- [2026-10-16T11:25:09Z] Pierre Chat:
+- [2026-10-16T11:25:09Z] `op-pierre` Pierre Chat:
   - 2026-10-16: the CLI's remote mode and the browser frontend must hit the same API endpoints. One API, two clients; no separate daemon protocol.
 <!-- sq:discussion:end -->

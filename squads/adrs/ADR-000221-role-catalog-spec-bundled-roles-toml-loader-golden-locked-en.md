@@ -244,7 +244,7 @@ referential-integrity contract holding — the role catalog is the playbook's sl
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-03T08:44:26Z] Robert Architect:
+- [2026-08-03T08:44:26Z] `architect` Robert Architect:
   - Amended in place; nothing retired. Mechanical rulings verified in force: `load_role_catalog`, the catalog singleton, the `PREDEFINED` shim still consumed by the CLI, `DEV_NAME_POOL` retained, and section 5s referential-integrity contract holding with the role catalog as the playbooks slug authority.
   - Narrowed the scope boundarys "the catalog is bundled-only", which is reversed in fact — `.overrides/roles/<slug>.toml` ships and `resolve_role(slug, squad_dir)` does project-override-then-bundled with a field-wise merge. This was never a contested ruling; the boundary stated that releases scope and ADR-85 is what crossed it, but the sentence reads as a standing prohibition. Path corrected to `src/squads/_specs/roles.toml`.
   - Annotated the `RoleSpec` declaration with its module, which is the correction most likely to save a reader real time: there are now two models with that name — the agent-role entry this decision defines in `_roles/_models.py`, and the status-role entry ADR-474/696 defines in `_workflow/_models.py`. A reader following this decision greps and lands on a model about status colour and settledness. Nothing behavioural diverges, and neither decision was wrong to pick the name — "role" is doing two honest jobs in this codebase.

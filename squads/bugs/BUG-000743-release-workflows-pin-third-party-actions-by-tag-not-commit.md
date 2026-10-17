@@ -23,11 +23,11 @@ Secondary observation from the same read, recorded so it is not lost: the "read 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T12:35:52Z] Pierre Chat:
+- [2026-08-21T12:35:52Z] `op-pierre` Pierre Chat:
   - In scope for 0.14.0: op-pierre pulled all five open bugs into the next release, overriding the earlier per-bug deferral to a later cycle.
-- [2026-08-21T12:50:45Z] Catherine Manager:
+- [2026-08-21T12:50:45Z] `manager` Catherine Manager:
   - Fix landed in 84cfa04 on release/0.14 (TASK-748). Independently re-resolved all four SHAs via git ls-remote: checkout v6.0.3, setup-python v6.2.0, setup-uv v8.2.0 and setup-node v5 all match the pinned hashes, and setup-node v5 and v5.0.0 are the same commit, so the floating-major substitution is not a downgrade. Every uses: line across the three workflows is SHA-pinned with a trailing version comment. Awaiting QA verification.
-- [2026-08-21T16:56:59Z] Mara Tester:
+- [2026-08-21T16:56:59Z] `qa` Mara Tester:
   - Verified every uses: line across publish.yml/test.yml/vscode-client.yml — all 40-char commit SHAs with trailing version comments, no floating tags/@main.
   - Independently re-resolved all 4 distinct SHAs via git ls-remote --tags: checkout df4cb1c.../v6.0.3 (peeled from annotated tag), setup-python a309ff8b.../v6.2.0, setup-uv fac544c0.../v8.2.0, and setup-node a0853c24.../v5 == v5.0.0 (same commit, confirms no downgrade) — all match exactly.
 <!-- sq:discussion:end -->

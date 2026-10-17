@@ -96,7 +96,7 @@ _Add with `sq task 750 add-subtask "<title>"`; track with `sq task 750 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T15:31:03Z] Elias Python:
+- [2026-08-21T15:31:03Z] `python-dev` Elias Python:
   - Added soft_wrap=True at the three sites (_common.py: spec_error_command's refusal shim ~373, handle_errors ~949, command bridge ~968). No change to markup, e() escaping, or message text.
   - Repro: sq init --name probe 2>&1 | cat -A now shows one unbroken line ending in a single $; the grep for architect='Ada Lovelace' now matches.
   - New platform-independent guard: tests/cli/test_piped_error_output_keeps_a_remedy_command_intact.py drives each of the three sites directly against an 80-col in-memory console and asserts no newline lands inside a long remedy token. Falsified both ways: reverting soft_wrap at any one of the three sites fails exactly that site's test; restoring it passes all three.

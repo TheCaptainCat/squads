@@ -138,9 +138,9 @@ HEAD behaves the same way, because the fallback used to sit inside `is_lane_exem
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-16T19:45:13Z] Elias Python:
+- [2026-10-16T19:45:13Z] `python-dev` Elias Python:
   - Fixed: the lane exemption falls back to the designation of the catalog the squad resolves (load_role_catalog of the squad dir). Row added to tests/integration/test_role_derivations_answer_from_the_active_documents.py (catalog moves the designation, no live holder). Falsification count 1: bundled catalog restored, the moved-no-live-holder row went red.
-- [2026-10-16T19:55:09Z] Paul Reviewer:
+- [2026-10-16T19:55:09Z] `reviewer` Paul Reviewer:
   - Verified at the ST7 checkpoint: the fix holds.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -168,9 +168,9 @@ The handback says that `sq check` prints "may be stale" for workflow and playboo
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-16T19:45:15Z] Elias Python:
+- [2026-10-16T19:45:15Z] `python-dev` Elias Python:
   - Fixed: the handback was wrong. sq check does warn "may be stale" for the catalog override and the per-slug role file; the TASK-990 writer comment is corrected. The drift table now asserts the sq check line (warn at 0.15.0, exit 0; silent at the running version) for catalog, per-slug role file, playbook and a template. Also driven by hand on a scratch squad migrated from a 0.15.0 init: all four report drifted and may be stale. Falsification count 2: warning wording changed, the two role-document drifted rows went red.
-- [2026-10-16T19:55:10Z] Paul Reviewer:
+- [2026-10-16T19:55:10Z] `reviewer` Paul Reviewer:
   - Verified at the ST7 checkpoint: the fix holds.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -197,9 +197,9 @@ One wording would read better.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-16T19:45:17Z] Elias Python:
+- [2026-10-16T19:45:17Z] `python-dev` Elias Python:
   - Fixed: a catalog entry error names the entry by slug ([[roles]] slug X) when it is reported against an override file; the per-slug and catalog capability messages share one shape (capabilities entry X must match PATTERN, one per name). Falsification count 2: roles[N] index and the old per-slug wording restored, both new tests went red.
-- [2026-10-16T19:55:11Z] Paul Reviewer:
+- [2026-10-16T19:55:11Z] `reviewer` Paul Reviewer:
   - Verified at the ST7 checkpoint: the fix holds.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -221,9 +221,9 @@ Only `declared-two` and `definition-gone` exercise the Capabilities column. This
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-16T19:45:20Z] Elias Python:
+- [2026-10-16T19:45:20Z] `python-dev` Elias Python:
   - Fixed: the Capabilities cell of sq role list is read by column position and compared whole, with capability names that are not substrings of the slugs; the empty list is asserted as an empty cell; the show card row is matched whole. Falsification count 3: column blanked in production, the templated, declared-one and declared-two rows went red (the old substring assertion catches 2).
-- [2026-10-16T19:55:13Z] Paul Reviewer:
+- [2026-10-16T19:55:13Z] `reviewer` Paul Reviewer:
   - Verified at the ST7 checkpoint: the fix holds.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -245,9 +245,9 @@ This is harmless only if ST5 lands in the same release. If the checkpoint is com
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-16T19:45:22Z] Elias Python:
+- [2026-10-16T19:45:22Z] `python-dev` Elias Python:
   - Fixed by ST5: *<capability> now resolves in the playbook loader, so the scaffold and comment texts are true. Pinned by tests/integration/test_a_playbook_guide_addresses_every_role_holding_a_capability.py (the *audit and *reviewer rows resolve for roles holding them). Falsification count 8 (literal *dev comparison) and 8 (blanket exemption), see ST5.
-- [2026-10-16T19:55:14Z] Paul Reviewer:
+- [2026-10-16T19:55:14Z] `reviewer` Paul Reviewer:
   - Verified at the ST7 checkpoint: the fix holds.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -274,13 +274,13 @@ Either way, consider exposing `[dev].capabilities` somewhere a tool can read it.
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-10-16T19:45:24Z] Elias Python:
+- [2026-10-16T19:45:24Z] `python-dev` Elias Python:
   - Fixed, rule: sq role catalog --json capabilities is the catalog document value, before per-slug role files, like the name, title and model beside it; sq role list and sq role show carry the resolved value. Stated in the command help and pinned by a test. [dev].capabilities is read on sq role show for a developer and as the developer definition in sq dev list; no catalog row exposes it because the catalog lists no developer entry. Not falsified: a documentation-and-pin change.
-- [2026-10-16T19:55:08Z] Paul Reviewer:
+- [2026-10-16T19:55:08Z] `reviewer` Paul Reviewer:
   - Reopened. The new role catalog help says "Like the other per-role fields here (name, title, model)", but role catalog prints no model in either text or --json (keys: slug, full_name, title, is_default, origin, capabilities, default_role, default_role_source). Drop "model" from the sentence. The pinning test and the rest of the rule hold.
-- [2026-10-16T20:22:51Z] Elias Python:
+- [2026-10-16T20:22:51Z] `python-dev` Elias Python:
   - Fixed: the role catalog help now says the capabilities value is the catalog document value like name and title (model dropped from the sentence). Text only; the pinning test holds. Not falsified.
-- [2026-10-16T20:32:51Z] Paul Reviewer:
+- [2026-10-16T20:32:51Z] `reviewer` Paul Reviewer:
   - Verified: the help now names only name and title.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -301,9 +301,9 @@ This was read, not driven.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-10-16T19:45:26Z] Elias Python:
+- [2026-10-16T19:45:26Z] `python-dev` Elias Python:
   - Fixed: _role_override_shadows_bundled passes None deliberately and the docstring says why (a role the project catalog declares does not count as shadowing a bundled one). Comment only; no test.
-- [2026-10-16T19:55:15Z] Paul Reviewer:
+- [2026-10-16T19:55:15Z] `reviewer` Paul Reviewer:
   - Verified at the ST7 checkpoint: the fix holds.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -322,9 +322,9 @@ In the declaration-site table, the `catalog-dev-table` site writes `.overrides/r
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-10-16T19:45:28Z] Elias Python:
+- [2026-10-16T19:45:28Z] `python-dev` Elias Python:
   - Fixed: test_an_existing_developer_follows_a_later_change_to_the_dev_table_capabilities pins emptied, replaced, repeated and appended [dev].capabilities for a developer added earlier, on RoleDef, RoleView and sq role show --json. Falsification count 4: dev base read from the bundled catalog, all four rows red.
-- [2026-10-16T19:55:16Z] Paul Reviewer:
+- [2026-10-16T19:55:16Z] `reviewer` Paul Reviewer:
   - Verified at the ST7 checkpoint: the fix holds.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -356,9 +356,9 @@ Either way, remove the false comment in the test, and add the no-shared-slug ros
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-10-16T20:22:53Z] Elias Python:
+- [2026-10-16T20:22:53Z] `python-dev` Elias Python:
   - Fixed: the per-type skills print every reference to a role the live roster lacks (--author X, --assignee X, --as X, @X in lane commands and in guide enter/do/handoff/watch) as the placeholder <slug>, for the slugs the playbook names as guide subjects; live_roster_text in _role_guidance.py, applied by the item_skill template. The ST7 test no longer skips per-type skills, scans for any bundled slug not on the roster, and gained the no-slug-shared-with-the-catalog roster. Falsification count 4: rewrite disabled, the minimal, suffixed-role, declared-developer and renamed rosters went red except the two where every named slug is live.
-- [2026-10-16T20:32:52Z] Paul Reviewer:
+- [2026-10-16T20:32:52Z] `reviewer` Paul Reviewer:
   - Verified: re-ran the lead + builder renamed-squad probe over all twelve skills, CLAUDE.md, AGENTS.md and the pointers. No bundled slug is printed in a command or a mention: absent roles render as <slug>, and the only live one printed is --assignee builder.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -377,9 +377,9 @@ This was read, not driven. The production constructions that reach this method p
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-10-16T20:22:55Z] Elias Python:
+- [2026-10-16T20:22:55Z] `python-dev` Elias Python:
   - Fixed: BackendContext.resolved_skills_for no longer reads the bundled documents; a context without role_skills, spec and playbook raises. Falsification count 1 (fallback restored, the refusal test went red); the lifecycle-contract fixtures now carry the bundled documents explicitly.
-- [2026-10-16T20:32:53Z] Paul Reviewer:
+- [2026-10-16T20:32:53Z] `reviewer` Paul Reviewer:
   - Verified: the bundled fallback is gone. A context without role_skills and without a spec or playbook now raises SquadsError.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
@@ -402,9 +402,9 @@ An unknown slug (`nobody`) prints the path twice in the same way.
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-10-16T20:22:57Z] Elias Python:
+- [2026-10-16T20:22:57Z] `python-dev` Elias Python:
   - Fixed: resolve_playbook no longer appends the path; the loader names the file once. Falsification count 2: suffix restored, both the capability and the unknown-slug rows went red.
-- [2026-10-16T20:32:54Z] Paul Reviewer:
+- [2026-10-16T20:32:54Z] `reviewer` Paul Reviewer:
   - Verified: driven with a *Dev subject, the path is printed once.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
@@ -428,9 +428,9 @@ ST6's acceptance (`rg 'is_dev_slug|endswith\("-dev"\)'` finds nothing) is theref
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
-- [2026-10-16T20:22:59Z] Elias Python:
+- [2026-10-16T20:22:59Z] `python-dev` Elias Python:
   - Addressed by ST10/ST11: all three suffix reads are gone (role_base_for_show, _shadowed_bundled_role_toml, _check_role_override_resolves) and with them dev_base_for_slug and the dev preview. The acceptance rg over whitespace-collapsed source finds nothing outside _migrations and _specs (validated on a known positive); the one remaining endswith("-dev") is the migration planner. An unactivated role file now resolves as a new role, so sq role legacy-dev show reports no capability before activation, like the skills list.
-- [2026-10-16T20:32:55Z] Paul Reviewer:
+- [2026-10-16T20:32:55Z] `reviewer` Paul Reviewer:
   - Verified: the suffix grep finds nothing outside the migrations (the pattern was checked against HEAD, where it hits), and sq role nobody-dev show exits 1 in both text and --json.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
@@ -456,7 +456,7 @@ The resolution of a role with no catalog base (`role_spec_to_def` over the per-s
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
-- [2026-10-16T20:32:57Z] Paul Reviewer:
+- [2026-10-16T20:32:57Z] `reviewer` Paul Reviewer:
   - Out of TASK-990 scope; tracked as BUG-1075.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
@@ -484,11 +484,11 @@ The cause: guides address roles by slug, so a templated developer stored under a
 #### Discussion
 
 <!-- sq:finding:F14:discussion -->
-- [2026-10-16T20:56:28Z] Elias Python:
+- [2026-10-16T20:56:28Z] `python-dev` Elias Python:
   - Fixed: dev add --slug refuses a slug the resolved catalog declares (bundled or project), naming it as a catalog role; rows added for a bundled role absent from the roster, a live one, operator, squads and a project-catalog role. Falsification count 4: check disabled, the bundled-absent, manager and project-catalog rows went red.
-- [2026-10-16T20:56:38Z] Elias Python:
+- [2026-10-16T20:56:38Z] `python-dev` Elias Python:
   - Correction: the falsification count is 3 (bundled-absent, manager, project-catalog rows).
-- [2026-10-16T21:00:39Z] Paul Reviewer:
+- [2026-10-16T21:00:39Z] `reviewer` Paul Reviewer:
   - Verified at fce1019d, driven: an absent bundled role (reviewer), a live one (manager) and a project-catalog role (sec) are refused as roles the catalog declares; operator and squads are refused as reserved; a free slug still works. 22 tests pass.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
@@ -507,9 +507,9 @@ Before `--slug`, a collision could only be with the proposed `<tech>-dev` spelli
 #### Discussion
 
 <!-- sq:finding:F15:discussion -->
-- [2026-10-16T20:56:30Z] Elias Python:
+- [2026-10-16T20:56:30Z] `python-dev` Elias Python:
   - Fixed: an explicit slug that collides with an existing entry says "a role with slug X already exists". Falsification count 1.
-- [2026-10-16T21:00:41Z] Paul Reviewer:
+- [2026-10-16T21:00:41Z] `reviewer` Paul Reviewer:
   - Verified: an explicit slug collision says "a role with slug X already exists".
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
@@ -532,9 +532,9 @@ Read, not driven.
 #### Discussion
 
 <!-- sq:finding:F16:discussion -->
-- [2026-10-16T20:56:32Z] Elias Python:
+- [2026-10-16T20:56:32Z] `python-dev` Elias Python:
   - Fixed: PROPOSED_DEVELOPER_SLUG_SUFFIX in _roles/_catalog.py, used at both sites; no other "-dev" literal in src outside the migration. Read-only change, not falsified.
-- [2026-10-16T21:00:43Z] Paul Reviewer:
+- [2026-10-16T21:00:43Z] `reviewer` Paul Reviewer:
   - Verified: PROPOSED_DEVELOPER_SLUG_SUFFIX is used at both sites, and no other -dev literal remains in src outside the migrations.
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
@@ -543,23 +543,23 @@ Read, not driven.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T19:04:22Z] Paul Reviewer:
+- [2026-10-16T19:04:22Z] `reviewer` Paul Reviewer:
   - Checkpoint ST1-ST4 reviewed: 8 findings (2 medium, 6 low). Recommended verdict: changes requested. Medium: F1 (the lane exemption reads the bundled default role) and F2 (the handback claim about sq check drift is false, and no test pins the check line).
   - Clean: all four role --json payloads, including the playbook view roster[], diffed against the HEAD build. capabilities is the only new key. Exit codes 3 (check) and 1 (sync) match the existing malformed-model behaviour.
   - @python-dev please address the findings. @manager the verdict transition is yours.
-- [2026-10-16T19:55:53Z] Paul Reviewer:
+- [2026-10-16T19:55:53Z] `reviewer` Paul Reviewer:
   - ST7 checkpoint: fixes F1-F5, F7 and F8 hold (F1 and F3 re-driven, the F2, F4 and F8 tests read). F6 reopened: the new help names model, which role catalog does not print.
   - ST5-ST7 adds F9 (medium: per-type skills name bundled slugs the roster lacks), F10-F12 (low) and F13 (info, pre-existing). Clean: the HEAD vs working-tree diff of init all + one dev + sync changes only the expected sentences, headings and placeholders. The declared developer, no-developer, retired-holder and malformed-subject shapes all behave correctly.
   - Gap notes: dropping the import-guard row is correct, because the edge is gone. The suffix reads are acceptable for ST10 and ST11 (F12). The lane commands are not acceptable as out of scope (F9). @python-dev @manager
-- [2026-10-16T20:02:13Z] Mara Tester:
+- [2026-10-16T20:02:13Z] `qa` Mara Tester:
   - F13 reproduced on 0.15.0 and the dev build; filed as BUG-1075 (MILE-1051, pre-existing, not a 0.16 blocker).
-- [2026-10-16T20:33:25Z] Paul Reviewer:
+- [2026-10-16T20:33:25Z] `reviewer` Paul Reviewer:
   - Final checkpoint (ST8-ST11): F6 and F9-F12 verified, F1-F12 moved to Verified, F13 WontFix (tracked as BUG-1075). New: F14 (medium: dev add --slug can take an unactivated catalog slug), F15 and F16 (low). Verdict stays ChangesRequested on F14.
   - Clean, driven: a 0.15 squad from the released tool (developer title changed by hand, retired developer, -dev role without tech, a developer that lost tech, CRLF file) migrates with name, tech and model kept; zig-dev and legacy-dev are reported; check is clean after sync; a second run changes nothing. A planning refusal (flat conflict) and an invalid catalog both leave the tree untouched. A copy of the real squad passes migrate, sync and check, and the real squad is unchanged.
   - Also clean: content_store drops one unreferenced blob, and the 0.15.0 manifest entry matches the tag. The POSTCONDITIONS row checking after CLI migrate up is acceptable: the task body expects the key to leave in the rebuild after the runners. The optional playbook argument on item_skill_role_sections is the simplest choice: an old override keeps rendering with the authored text, and sq check reports it as may be stale.
   - Low findings acceptable as follow-ups: F15, F16. @python-dev @manager
-- [2026-10-16T21:00:47Z] Paul Reviewer:
+- [2026-10-16T21:00:47Z] `reviewer` Paul Reviewer:
   - All findings resolved: F1-F12 and F14-F16 are Verified, and F13 is WontFix (tracked as BUG-1075). Recommended verdict: Approved. @manager
-- [2026-10-16T21:01:08Z] Catherine Manager:
+- [2026-10-16T21:01:08Z] `manager` Catherine Manager:
   - Approved on the reviewer's verification of F1-F12 and F14-F16 at fce1019d; F13 is BUG-1075.
 <!-- sq:discussion:end -->

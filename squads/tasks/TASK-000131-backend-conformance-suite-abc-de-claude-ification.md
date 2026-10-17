@@ -95,11 +95,11 @@ Covers merging the ABC corrections the conformance exercise surfaces to de-Claud
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-15T13:03:23Z] Olivia Lead:
+- [2026-06-15T13:03:23Z] `tech-lead` Olivia Lead:
   - @architect heads-up: this task may surface AgentBackend ABC changes. The ABC is 1.0 stability-contract material (FEAT-13). Pure docstring/comment de-Claude-ification is safe to merge directly. But any *signature* change to _base.py, or moving the claude_dir/claude_md path ownership out of the shared _paths.py, ripples into the frozen contract AND the only existing backend — that needs an accepted ADR before merge, not a free-hand edit.
   - FEAT-13 flag: do not file ABC changes there; flag them. The stability-contract reflection happens once the change is settled.
   - Sequencing: conformance-suite-first (this task) then TASK-132. The suite captures what the contract actually requires and drives the Claude-isms out, so the agents_md backend is written against an honest ABC rather than discovering leaks late.
-- [2026-06-15T13:15:10Z] Elias Python:
+- [2026-06-15T13:15:10Z] `python-dev` Elias Python:
   - Phase 1 complete: conformance suite (ST1) written and green against claude_code (37/37 tests, full gate clean).
   - New file: tests/test_backend_conformance.py — parametrized on _BACKEND_FACTORIES; a second backend plugs in by adding one entry there.
   - Suite covers: Artifact invariants (immutable, relative forward-slash paths, backend name), ensure_scaffold idempotency + clobber guard, write_managed idempotency + no-dup-region + roster/operator reflection, generate_role_pointer / generate_skill_pointer (artifact exists, backend name, idempotent), remove_artifacts (missing_ok, cleans up role + skill), full round-trip, service-level sync smoke test.
@@ -111,7 +111,7 @@ Covers merging the ABC corrections the conformance exercise surfaces to de-Claud
   - CC-005 [STRUCTURAL] _paths.py:67-71 — claude_dir and claude_md live in the SHARED SquadPaths dataclass. An AGENTS.md backend has no clean seam to declare its own root file — it must bypass the paths object and reach into ctx.root directly (defeating the abstraction). Proposed options in the catalogue; all require ADR.
   - CC-006 [STRUCTURAL] _registry.py:18 — get_backend() hard-imports _claude_code for side-effect registration. No analogous trigger exists for a second backend. Fix: explicit multi-backend import list in the registry, or entry_points discovery; needs ADR.
   - @architect the two STRUCTURAL findings (CC-005, CC-006) and possibly CC-003 need your call before any code changes. CC-001/002/004 are docstring-only and safe to apply directly.
-- [2026-06-15T13:18:28Z] Robert Architect:
+- [2026-06-15T13:18:28Z] `architect` Robert Architect:
   - ADR-133 ACCEPTED — ruling on the ABC de-Claude-ification (CC-001..CC-006). All six are in scope; apply them together in ST2. Mechanical changes are spelled out per item in the ADR body (read `sq decision 133 show --full`) — no design calls left for you.
   - CC-003 (rename): generate_role_pointer→generate_role_entry, generate_skill_pointer→generate_skill_entry. Pure rename, signatures unchanged. Update the ABC defs+docstrings in _base.py, the concrete defs in _claude_code/_backend.py (bodies untouched), and ALL call sites: _services/_items.py (169,171), _services/_roster.py (49,74,105), _services/_maintenance.py (85,88), and tests/test_backend_conformance.py. Grep both names across src/ and tests/ until clean. Claude-internal Artifact.kind strings (e.g. 'skill_pointer') stay as-is.
   - CC-005 (path seam): chose option A. DELETE claude_dir/claude_md from SquadPaths (_paths.py ~65-72) and the Claude enumeration in the root field comment. The Claude backend resolves its own files from ctx.root via two local constants (_CLAUDE_DIR='.claude', _CLAUDE_MD='CLAUDE.md') — replace every ctx.paths.claude_dir/claude_md (backend lines 31,98,99,110,182,202,219,223). Fix the one non-backend leak at _cli/_main.py:185 (drop the path, print the backend name instead). Claude-backend tests keep asserting Claude layout but compose project.root/'.claude' etc.; the conformance suite stays Claude-free (ctx.root/artifact.path only). No new import edges.
@@ -119,7 +119,7 @@ Covers merging the ABC corrections the conformance exercise surfaces to de-Claud
   - CC-001/002/004 are cosmetic and IN SCOPE — ship in the same change (Artifact.kind comment, write_managed docstring, BackendContext.rel/root_relative docstrings; exact wording in the ADR).
   - Constraints to hold: import graph stays acyclic; nothing into .squads.json; Invariant 6 (only the backend + its own tests touch .claude/CLAUDE.md). Gate after applying: uv run pyright && ruff check && ruff format --check && pytest — conformance suite must stay green for claude_code.
   - Stability-contract: do NOT file a separate item — these ABC renames + the path seam are a FEAT-13 deferral; reflect them there once merged. @python-dev you're clear to implement ST2.
-- [2026-06-15T13:44:01Z] Elias Python:
+- [2026-06-15T13:44:01Z] `python-dev` Elias Python:
   - ST2 complete: all ABC corrections from ADR-133 applied (CC-001..CC-006).
   - CC-003: generate_role_pointer→generate_role_entry, generate_skill_pointer→generate_skill_entry renamed in ABC (_base.py), ClaudeCodeBackend (_backend.py), and all call sites: _services/_items.py, _roster.py, _maintenance.py, and tests/test_backend_conformance.py. Grep clean.
   - CC-005: claude_dir/claude_md deleted from SquadPaths (_paths.py). Claude backend resolves its own paths via _CLAUDE_DIR='.claude' and _CLAUDE_MD='CLAUDE.md' module constants from ctx.root. All 8 occurrences in _backend.py replaced. CLI leak at _main.py:185 fixed with backend-neutral line. Claude-backend tests updated to compose project.root / '.claude' and project.root / 'CLAUDE.md' directly.
@@ -127,7 +127,7 @@ Covers merging the ABC corrections the conformance exercise surfaces to de-Claud
   - CC-001/002/004: Artifact.kind comment, write_managed docstring, and BackendContext.rel/root_relative docstrings updated to backend-neutral wording.
   - Gate: 794 tests pass (783 original + 11 new), pyright 0 errors, ruff clean.
   - @reviewer ready for review. @qa the full suite is green.
-- [2026-06-15T13:54:20Z] Mara Tester:
+- [2026-06-15T13:54:20Z] `qa` Mara Tester:
   - QA verification complete. PASS for TASK-131 acceptance criteria:
   - - tests/test_backend_conformance.py: 70 tests pass (35 per backend, both claude_code and agents_md)
   - - ABC: generate_role_pointer/generate_skill_pointer correctly renamed to generate_role_entry/generate_skill_entry at all call sites (grep clean)
@@ -136,9 +136,9 @@ Covers merging the ABC corrections the conformance exercise surfaces to de-Claud
   - - CC-001/002/004: Artifact.kind comment, write_managed docstring, BackendContext.rel/root_relative docstrings all backend-neutral
   - - Full gate: 794 tests pass, pyright 0 errors, ruff clean
   - Minor cosmetic note (not blocking): OperatorView docstring on _base.py line 35 still says 'CLAUDE.md people roster' — not in ADR scope, low priority.
-- [2026-06-15T13:58:21Z] Paul Reviewer:
+- [2026-06-15T13:58:21Z] `reviewer` Paul Reviewer:
   - REV-135: CHANGES REQUESTED (verdict scoped to FEAT-16; TASK-131's own work is solid). Your half — conformance suite + ADR-133 de-Claude-ification — is correctly done: CC-001..006 all applied, grep-clean rename, claude_dir/claude_md out of SquadPaths, idempotent registry loader, Invariant 6 restored, gate green. One honest note on the suite (no change required by you, but flagging): it asserts structure (paths exist, idempotency, round-trip, no-orphans, roster reflected by name-OR-slug) but NOT that workflow/skill *content* lands — which is the exact gap TASK-132's agents_md slipped through green (F1). If you want the suite to be a usefulness contract too, add a content assertion; otherwise this is a known, documented limitation.
   - @python-dev the blocking finding is all on TASK-132 (F1). See REV-135.
-- [2026-06-15T14:22:06Z] Paul Reviewer:
+- [2026-06-15T14:22:06Z] `reviewer` Paul Reviewer:
   - No re-review needed — TASK-131 (ABC de-Claude-ification + conformance suite) and ADR-133 were already approved under REV-135 and were untouched by the TASK-132 fix round (the agents_md fixes required zero _base.py changes, as the ADR demanded). Approval stands.
 <!-- sq:discussion:end -->

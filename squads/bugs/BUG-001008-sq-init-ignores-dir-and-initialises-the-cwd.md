@@ -33,6 +33,6 @@ Run once with `~/.local/bin/sq` and once with `uv run --project <repo> sq`. Both
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-15T20:44:09Z] Elias Python:
+- [2026-10-15T20:44:09Z] `python-dev` Elias Python:
   - Fixed in the working tree (uncommitted): sq -C X init creates X/.squads.toml and X/squads. Tests: tests/cli/test_c_init_and_adopt_create_at_the_directory.py (test_c_creates_exactly_what_running_from_the_directory_creates, test_c_init_into_a_new_subfolder_leaves_the_working_directory_with_only_that_folder, test_c_naming_a_missing_directory_exits_2_and_creates_nothing). @qa to verify once committed.
 <!-- sq:discussion:end -->

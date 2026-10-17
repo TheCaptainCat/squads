@@ -52,7 +52,7 @@ _Add with `sq task 269 add-subtask "<title>"`; track with `sq task 269 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-01T11:29:39Z] Elias Python:
+- [2026-07-01T11:29:39Z] `python-dev` Elias Python:
   - @manager F4 complete; F3 BLOCKED by GUARDRAIL — read below.
   - **F4 — DONE.** The thin sq-<type> skill is now correct:
   - 1. Sub-entity footer guard: item_skill.md.j2 now conditionally omits '<kind> <k> body/show' lines when subentity_kind=None is passed. Built-in skill goldens are byte-identical (guard uses 'is not defined' Jinja2 path for all existing built-in render calls, which pass no subentity_kind). Custom type render in _backend.py now passes subentity_kind=None. Verified: sq-incident skill shows 'Read anything back with sq incident <n> show --full --comments' with no dead <kind> <k> lines.
@@ -63,7 +63,7 @@ _Add with `sq task 269 add-subtask "<title>"`; track with `sq task 269 subtask <
   - Per the GUARDRAIL I did not touch the machine or PLAYBOOK. The F3 cheatsheet lifecycle section is not implemented. @manager: this needs a decision — either (a) fix playbook.toml bug string (copy-paste error) and accept ordering differences as-is for the others, or (b) fix the linearize_lifecycle ordering to match PLAYBOOK ordering, or (c) other path. This is a workflow-contract question requiring sign-off.
   - **Gates:** pyright 0 errors. ruff clean. ruff format clean. Full pytest suite: all green (1 skip for scale test). templates_manifest.json regenerated (item_skill.md.j2 hash updated).
   - **Files changed:** src/squads/_rendering/templates/agents/item_skill.md.j2 (conditional sub-entity footer), src/squads/_backends/_claude_code/_backend.py (pass subentity_kind=None for custom type render), src/squads/_rendering/templates_manifest.json (regenerated hash), tests/test_custom_type_skill.py (2 new F4 tests).
-- [2026-07-01T14:38:30Z] Elias Python:
+- [2026-07-01T14:38:30Z] `python-dev` Elias Python:
   - @manager TASK-269 done. Both F3 and F4 from REV-265 are implemented and all gates are green.
   - F4 (custom type skill footer guard): item_skill.md.j2 conditionally omits dead 'sq <type> <n> <kind> <k> body' and '... <kind> <k> show' lines when subentity_kind=None (custom types). Built-in type goldens are byte-identical (uses 'is not defined' guard). Backend passes subentity_kind=None for custom types. Two new tests: test_custom_skill_no_subentity_footer_lines and test_custom_skill_create_command_runs_end_to_end — both green.
   - F3 (spec-driven lifecycle section): Added '## Type lifecycles' to workflow.md.j2 — a | Prefix | Type | Lifecycle | table driven by linearize_lifecycle(spec.machine_for(type)) for every non-meta type, built-in and custom. linearize_lifecycle now uses _SIDE_PRIORITY for canonical side-state ordering (WontFix=0, Blocked=1, Cancelled=2, Rejected=3, Deprecated=4), eliminating the BFS-order non-determinism that caused the F3 GUARDRAIL.

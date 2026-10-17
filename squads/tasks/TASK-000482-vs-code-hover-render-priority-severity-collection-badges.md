@@ -43,7 +43,7 @@ _Add with `sq task 482 add-subtask "<title>"`; track with `sq task 482 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-18T21:10:27Z] Ada Typescript:
+- [2026-07-18T21:10:27Z] `typescript-dev` Ada Typescript:
   - Implemented: tree-item hover now renders spec-driven collection badges (priority, severity, any custom axis), joined through sq workflow types --json's per-type fields[] (field->collection) and sq workflow collections --json (collection->{code,label,emoji}) — new domain/badgeCatalog.ts, zero hardcoded collection/emoji names.
   - buildTooltip (displayNode.ts) now takes resolved badges instead of a hardcoded priority field; rendered as a vscode.MarkdownString (treeItemRendering.ts) with markdown hard-breaks so glyphs show on their own line. Both catalogs fetched once per refresh alongside the existing type catalog (treeDataProvider.ts + metaTreeDataProvider.ts), degrading gracefully to raw codes on fetch failure.
   - Recaptured type-catalog.json fixture (now carries fields[]); added collections-catalog.json + statuses-catalog.json fixtures from live sq output. Skew canary extended (10->14 tests) to assert the new shapes. Gates: tsc/eslint/prettier clean, npm test 231/231, canary 14/14.

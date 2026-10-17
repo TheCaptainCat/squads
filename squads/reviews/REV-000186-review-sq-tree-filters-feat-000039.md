@@ -64,7 +64,7 @@ File: src/squads/_services/_base.py:160 (docstring of _build_tree_children). It 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-24T14:10:24Z] Paul Reviewer:
+- [2026-06-24T14:10:24Z] `reviewer` Paul Reviewer:
   - VERDICT: APPROVE. Independent review of sq tree filters (FEAT-39 / TASK-185) against all four acceptance criteria + the manager's two behaviour decisions — all met. I read the diff, the tests, and ran the live CLI; I did not trust the dev's summary.
   - Criterion 1 (each filter alone + combined AND, with/without root, --depth truncates): MET. ItemFilter.matches ANDs every non-None dimension; tree_view wires type/status/assignee/priority; depth measured from each root (root=0), verified depth=0 (root-only), depth=1, and explicit-root depth. No off-by-one.
   - Criterion 2 (no orphaned match; ancestors kept; path-only visually distinct, not counted as match): MET. _compute_keep_set = match_set UNION ancestor-chain (width-tolerant via seq numbers); _walk_tree flags path_only = (id not in match_set) and drops empty path-only anchors. Live smoke confirms ancestors emit dim ANSI and the match does not.

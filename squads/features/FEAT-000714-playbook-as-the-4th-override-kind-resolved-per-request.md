@@ -126,18 +126,18 @@ sq override scaffold/diff/update treat the playbook as a fourth kind alongside w
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-31T13:42:46Z] Olivia Lead:
+- [2026-07-31T13:42:46Z] `tech-lead` Olivia Lead:
   - Broken down as one task: TASK-720 (high, python-dev). Four subtasks: ST1 the playbook loader over the shared engine (US1); ST2 the seam — merged playbook as a field on _context.RequestContext, bundled _PLAYBOOK_SPEC untouched as the module-level immutable (US2); ST3 threading every playbook consumer onto the merged value (US2); ST4 sq override as a fourth kind (US3).
   - One task, not several: same owner role and one shipping increment throughout — the override is not correct without the seam, and the seam has no purpose without the override. ST3 is the widest surface (the _interactions accessors plus backends, _services/_base, _maintenance, _config_integrity, _roster, the cheatsheet) but it is the same change applied at each call site, not a second increment.
   - ST3 carries one cleanup the audit will hit: _services/_config_integrity.py holds a standing comment that item_types_for_role reads the bundled singleton and never the active spec, which its surrounding remedy logic leans on. That stops being true here — the note gets re-read and updated or deleted, not left to mislead.
   - @manager ordering note for dispatch: ST3 and TASK-718's ST4 (FEAT-713's consumer audit) touch the same call sites — the generated sq-<type> skill writers and the _interactions accessors. Sequence them; do not run the two devs concurrently in one tree.
-- [2026-07-31T14:28:55Z] Robert Architect:
+- [2026-07-31T14:28:55Z] `architect` Robert Architect:
   - @architect ruling recorded for this feature's benefit: the playbook override needs NO escaping clause and no field exemption for its shell-bearing values.
   - The splat sigil is POSIX command-substitution syntax, and this document is the one of the three that carries command lines — a playbook entry's commands are CLI invocations and its guidance arrays quote them. Under the engine's original detection predicate (any occurrence of the sigil in a string value is a violation) an ordinary snippet like git commit -m "$(cat msg)" would have been a hard load failure on the adopter's squad, explained in terms of a grammar its author never used, and sq override scaffold would have owed a permanent escape-on-the-way-out duty.
   - Ruled instead as ADR-696 §4a (dated amendment): a value is in token territory only if it BEGINS with an unescaped sigil; a value that merely contains one after its first character is data, left verbatim. So shell content in commands and in the guidance arrays is safe with no work in this feature, and the scaffolded playbook override is byte-identical to its bundled source rather than an escaped variant of it. The fix lives in the engine (FEAT-712 / TASK-716), not here.
   - One thing to keep true when this feature's scaffold lands: do not introduce a bundled playbook string value that BEGINS with the sigil, which is the single residual case that would still need the double-sigil escape. TASK-716 carries a tests/meta guard asserting exactly that across the bundled documents, so a violation is caught by the gate rather than by an adopter — but a scaffold writer that synthesises new strings should know the constraint exists rather than discovering it from a red gate.
-- [2026-08-02T20:16:15Z] Catherine Manager:
+- [2026-08-02T20:16:15Z] `manager` Catherine Manager:
   - Carry REV-726 F17 into this feature scope. The bundled playbook holds 63 cross-type command references; under a rename or drop they instruct an agent to run refused commands from inside a surviving type skill (sq-feature telling the product owner to sq create task after task was renamed). Making the playbook overridable is what gives an adopter the remedy, so the acceptance should state the limitation and the path out rather than leaving prose staleness undocumented.
-- [2026-08-03T15:48:12Z] Catherine Manager:
+- [2026-08-03T15:48:12Z] `manager` Catherine Manager:
   - All three stories delivered by TASK-720 (four subtasks Done); review REV-735 Approved as second party. The playbook ships as the fourth override kind in 0.13, resolved per request rather than cached at import.
 <!-- sq:discussion:end -->

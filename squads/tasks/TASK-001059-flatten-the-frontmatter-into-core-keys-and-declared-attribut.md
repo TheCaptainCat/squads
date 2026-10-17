@@ -192,7 +192,7 @@ or versions; never run bare `ls`.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-10-16T14:56:18Z] Elias Python:
+- [2026-10-16T14:56:18Z] `python-dev` Elias Python:
   - Falsification: one literal-keyed attribute read planted in src turned the tree scan red (1 of 11 tests); restored, green.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -230,7 +230,7 @@ or versions; never run bare `ls`.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-10-16T14:56:19Z] Elias Python:
+- [2026-10-16T14:56:19Z] `python-dev` Elias Python:
   - Falsification: with the attribute-name/pinned checks and the extra_fields refusal disabled, 24 of 28 refusal rows went red; restored, 28 green.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
@@ -261,7 +261,7 @@ or versions; never run bare `ls`.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-10-16T14:56:20Z] Elias Python:
+- [2026-10-16T14:56:20Z] `python-dev` Elias Python:
   - Falsification: attribute_valid returning nothing, the undeclared check returning nothing, and bool coercion accepting anything turned 7 of 18 rows red (5+1+1); restored, 18 green.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
@@ -292,7 +292,7 @@ or versions; never run bare `ls`.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-10-16T14:56:21Z] Elias Python:
+- [2026-10-16T14:56:21Z] `python-dev` Elias Python:
   - Falsification: a writer that drops undeclared keys turned 60 of 122 cells red (never-declared, nested, list, null, json-only x 12 paths); also dropping the override-removed key turned 72 red incl. the removed-from-override column 12/15; restored, 122 green. Paths that do not use the writer (renumber, runner) stay green by design.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
@@ -335,7 +335,7 @@ or versions; never run bare `ls`.
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
-- [2026-10-16T14:56:22Z] Elias Python:
+- [2026-10-16T14:56:22Z] `python-dev` Elias Python:
   - Falsification: removing the name pin turned 5 rows red (chosen x layers); freezing the stored name as the bundled base turned 2 red; pointer reading title instead of description turned 1 red. Restored, green. Precedence follows the operator's corrected comment (bundled, roles.toml, per-slug, chosen name last), which is also ST5's body.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
@@ -390,7 +390,7 @@ bare `ls`.
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
-- [2026-10-16T14:56:23Z] Elias Python:
+- [2026-10-16T14:56:23Z] `python-dev` Elias Python:
   - Falsification: keeping retired role keys 1 red; name_chosen always false 3 red; operator title not taken 3 red; no writer-order 13 red. Restored, 36 green.
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
@@ -423,7 +423,7 @@ or versions; never run bare `ls`.
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
-- [2026-10-16T14:56:25Z] Elias Python:
+- [2026-10-16T14:56:25Z] `python-dev` Elias Python:
   - Dry run on a copy under scratchpad t1059 (own git repo, resolve() confirmed the copy): 27 files flattened, 23 keys lifted (allowed_tools 2, is_default 10, is_dev 2, model 2, tags 1, target_date 1, tech 3, when_to_use 2), 2 skill descriptions dropped, 9 path keys removed, 0 operators retitled, 0 roles chosen / 10 never named; 4159 headers in 906 files. 1025 item files, 0 with extra, every roster file has slug; sq sync then sq check clean; second run a no-op; repo git status squads unchanged. Only frontmatter movement beyond the named changes: created_at/updated_at moved after description in the 9 system skill files (writer order).
 <!-- sq:subtask:ST7:discussion:end -->
 <!-- sq:subtask:ST7:end -->
@@ -452,7 +452,7 @@ or versions; never run bare `ls`.
 #### Discussion
 
 <!-- sq:subtask:ST8:discussion -->
-- [2026-10-16T14:56:26Z] Elias Python:
+- [2026-10-16T14:56:26Z] `python-dev` Elias Python:
   - Falsification: rows without attributes 7 red; added-key names unprotected 2 red; no flat render item 3 red. Restored, green. Goldens (list, show, mine, workflow_types, migrated corpora) and the v0_16 fixture regenerated; manifest regenerated.
 <!-- sq:subtask:ST8:discussion:end -->
 <!-- sq:subtask:ST8:end -->
@@ -512,7 +512,7 @@ Rules: present-truth prose with no history; never run bare `ls`.
 #### Discussion
 
 <!-- sq:subtask:ST10:discussion -->
-- [2026-10-16T16:54:03Z] Theo Writer:
+- [2026-10-16T16:54:03Z] `tech-writer` Theo Writer:
   - Docs and CHANGELOG [0.16.0] for the flat frontmatter, committed 1e2c1d1e (docs/migration.md, overrides.md, stability.md, roles.md, internals.md, adoption.md, faq.md, README.md, CHANGELOG.md). Every claim re-driven on scratch squads: 0.15 squads built with sq 0.15.0, migrated with the dev build (report lines, the four refusals, the three operator rows, the differing skill description line, the duplicate-name remedy end to end); attributes, --set/import refusals, sq check kind and required errors, frontmatter_key_undeclared, unknown keys kept, date normalized on write, --json rows, workflow types attributes, loader refusals, extra_fields refusal; role names stored at creation (--name, per-slug, roles.toml, bundled, pool) and not renamed by sync.
   - Role rename is documented through an sq import update event with title (driven: renames, reflog records old and new, sync keeps it). The update verb is not mentioned.
   - CHANGELOG: operator-identity text removed; five BREAKING entries (flat frontmatter + migration, extra_fields, --json rows, template variable, stored role names), two Added (attributes, frontmatter_key_undeclared), one Fixed (unknown keys kept). No fix entry for roles.toml names, per the stored-name ruling.
@@ -524,21 +524,21 @@ Rules: present-truth prose with no history; never run bare `ls`.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T13:06:28Z] Olivia Lead:
+- [2026-10-16T13:06:28Z] `tech-lead` Olivia Lead:
   - 2026-10-16: authored from FEAT-1016 and ADR-1007. The flattening is a contribution of the existing 0.15 to 0.16 step and absorbs operator-identity; planners read pre-write files, so header resolution (ADR-979 A6 as built) does not depend on writer order.
   - BUG-1049 is not included: its expected behaviour is an open choice assigned to the architect. ST1 and ST5 keep role_base_from_item precedence unchanged so the bug fix lands on flat keys once ruled.
   - Left Draft; promoted at dispatch.
-- [2026-10-16T13:08:47Z] Pierre Chat:
+- [2026-10-16T13:08:47Z] `op-pierre` Pierre Chat:
   - 2026-10-16: (1) merge the operator-identity contribution into the flat-frontmatter one and drop its MANUAL, CHANGELOG and doc text; (2) ST9 goes to typescript-dev.
-- [2026-10-16T13:11:36Z] Olivia Lead:
+- [2026-10-16T13:11:36Z] `tech-lead` Olivia Lead:
   - 2026-10-16: amended per op-pierre rulings. BUG-1049 folded in: name_chosen declared in ST2, resolution in ST5 (ST1 re-points reads only), 0.16 marking in ST6 (stored name equal to the bundled catalog name = unchosen, else chosen; pool-shaped dev name = unchosen), docs and CHANGELOG in ST10. Ref added (fixes).
   - Reading of "a chosen name stays": a per-slug full_name no longer renames a chosen role. @op-pierre correct me if the per-slug file should still win.
   - Moved Draft to Ready; dispatch waits on FEAT-1016 Ready.
-- [2026-10-16T13:21:23Z] Pierre Chat:
+- [2026-10-16T13:21:23Z] `op-pierre` Pierre Chat:
   - 2026-10-16: role name precedence, lowest to highest: bundled catalog, roles.toml, the chosen name (--name at activation, name_chosen), the per-slug override file. A per-slug full_name still renames a chosen role; the chosen name only protects against catalog and roles.toml changes. This supersedes the ST5 reading that a chosen name ignores the per-slug file.
-- [2026-10-16T13:22:49Z] Pierre Chat:
+- [2026-10-16T13:22:49Z] `op-pierre` Pierre Chat:
   - 2026-10-16: correction to the earlier precedence comment. Role name precedence, lowest to highest: bundled catalog, roles.toml, the per-slug override file, the chosen name. A chosen name (set by activate --name, or by sq role <slug> update once FEAT-977 lands; stored with name_chosen) is never changed by configuration; it is renamed only through update. Configuration supplies the default name of a role never named. This is the reading ST5 already carries.
-- [2026-10-16T14:56:45Z] Elias Python:
+- [2026-10-16T14:56:45Z] `python-dev` Elias Python:
   - @tech-writer material for ST10, exact user-visible text as built (driven on scratch squads; the step's MANUAL is `sq migrate chlog v0.15.0..v0.16.0`, section "The frontmatter is flat").
     
     Report lines of `sq migrate up` (after the comment-header line):
@@ -560,18 +560,18 @@ Rules: present-truth prose with no history; never run bare `ls`.
     Role name rule: precedence lowest to highest: bundled catalog, roles.toml, per-slug .overrides/roles/<slug>.toml, then a chosen name (`sq role activate --name`, `sq dev add --name`, `sq init --name`/[init.names]/typed prompt), which no layer changes. A role never named takes the most specific layer's name on every sync; a developer never named keeps its pool name unless the per-slug file sets one. The 0.16 step marks existing roles: bundled role whose name equals the bundled catalog's -> never named, else chosen; developer whose name is a first name of the resolved pool + its tech -> never named, else chosen; project-defined role -> never named. Remedy to keep a name for a role marked never named: set it as `full_name` in `.overrides/roles/<slug>.toml`. roles.toml scaffold comment states the rule.
     
     Other user-visible changes: `extra_fields` in an override is refused at load ("'extra_fields' is not a declared key ... replace it with `[items.<type>.attributes]` and one `<name> = { kind = "str" }` line per key (kind is str, list, bool or date)"); attributes grammar kind/required/settable; roster attributes pinned (role: is_default, is_dev, model, name_chosen, tech; skill: allowed_tools, model, when_to_use), refusal text "roster type 'role' must declare attribute 'x' with kind 'k' — add `x = { kind = "k" }` under [items.role.attributes]"; refused attribute names: core keys, badges/body/discussion/matched_subentities, path, prefix, extra, a badge code on the same type. `sq check` error `attribute 'x': expected a list of strings, got ...` / `missing required attribute 'x'`; opt-in validator `frontmatter_key_undeclared` (warn) `frontmatter key 'x' is not declared on <type>`; `--set` refuses a bad value ("'weight' expects true or false; got 'heavy'", "'d' expects an ISO date (YYYY-MM-DD); got ..."), bool coercion is now strict. `--json` item rows (list, show, create, mine): attributes flat at top level, no `extra`; a name equal to a row field or an added key (badges, body, discussion, matched_subentities) stays in the file, out of the row. `sq workflow types --json` entries gain `attributes` ({name: {kind, required, settable}}). Templates: `item.<key>` replaces `extra.<key>`; `extra` variable gone. Operators: name is `title` only (no full_name); a skill's description is its only summary. Unknown frontmatter keys are kept on every write (hand-added keys, keys of a removed declaration, stray fixture keys such as schema_version/id_padding on old skills).
-- [2026-10-16T14:56:46Z] Elias Python:
+- [2026-10-16T14:56:46Z] `python-dev` Elias Python:
   - ST1-ST8 built in the main tree (uncommitted). Gates green: pyright 0, ruff check/format clean, sq check clean; meta+integration+cli in full plus every test the diff selects: 10408 passed. I did not run the whole suite. Notes for review: (1) ST5 follows the operator's corrected comment (config layers bundled, roles.toml, per-slug; a chosen name is last and no layer changes it). (2) The 0.16 step writes keys in the model writer's order, so 9 system-skill files in this squad also move created_at/updated_at after description, the only frontmatter movement beyond the named changes. (3) is_dev is pinned and declared on role until its removal lands. (4) Because TASK-1001 also edits VALIDATOR_NAMES/DEFAULT_VALIDATOR_LEVEL/UNGUARDED_VALIDATOR_NAMES and the effective-set tests, expect a merge there (mine add attribute_valid to COMMON_CORE and frontmatter_key_undeclared as catalog-only). @manager
-- [2026-10-16T15:38:35Z] Elias Python:
+- [2026-10-16T15:38:35Z] `python-dev` Elias Python:
   - New user-visible text for the writer: report line "N dropped skill description(s) differed from the one kept" plus a file line each; refusal "extra.<key> would become the item's own '<key>'; move it out by hand"; later-step refusal says to rebuild the index with the earlier release repair command. Names equal to any configuration layer count as never named; developers keep pool_name. MANUAL covers all of this.
-- [2026-10-16T16:16:19Z] Pierre Chat:
+- [2026-10-16T16:16:19Z] `op-pierre` Pierre Chat:
   - 2026-10-16, supersedes today's earlier rulings on role name precedence and on REV-1063 F3: a role's stored name is its name. At creation it comes from --name when given, otherwise from the configuration (bundled catalog, roles.toml, per-slug file, developer pool). After that no configuration change renames it; renaming goes through the role's update verb (FEAT-977). The 0.16 migration keeps every stored name as it is. name_chosen and pool_name are removed.
-- [2026-10-16T16:31:18Z] Elias Python:
+- [2026-10-16T16:31:18Z] `python-dev` Elias Python:
   - For the writer (new rule, supersedes my earlier note on name_chosen/pool_name): a role's stored name is its name. At creation it comes from --name, otherwise from the configuration (bundled catalog, roles.toml, per-slug file, developer pool). No later configuration change renames it, and sq sync never does. The 0.16 migration keeps every stored name and adds no name key. The migration MANUAL says so in one paragraph; the report no longer counts roles as named or never named. Other new text stands: the "N dropped skill description(s) differed from the one kept" report line with a file line each, the refusal "extra.<key> would become the item's own '<key>'; move it out by hand", and the later-step refusal telling the operator to rebuild the index with the earlier release's repair command. The roles.toml scaffold comment describes the creation-time rule.
-- [2026-10-16T16:38:43Z] Ada Typescript:
+- [2026-10-16T16:38:43Z] `typescript-dev` Ada Typescript:
   - ST9 done (386bccab). The client reads no extra key (one doc comment fixed); the canary asserts the flat core row set plus, per row, membership in its type attributes from sq workflow types --json, and TYPE_ENTRY_KEYS gains attributes. Fixtures flattened. Falsification: a stray row key and a re-added extra object each turned the live list test red (1 of 83), restored green.
-- [2026-10-16T17:06:32Z] Paul Reviewer:
+- [2026-10-16T17:06:32Z] `reviewer` Paul Reviewer:
   - ST10 reviewed in REV-1064 (ChangesRequested, 1 medium + 10 low/info). @manager
-- [2026-10-16T17:12:13Z] Catherine Manager:
+- [2026-10-16T17:12:13Z] `manager` Catherine Manager:
   - Moved to Done under the manager's delegation: ST1–ST10 Done, REV-1063 and REV-1064 Approved, full suite 11,174 passed.
 <!-- sq:discussion:end -->

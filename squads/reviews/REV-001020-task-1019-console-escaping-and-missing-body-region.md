@@ -92,7 +92,7 @@ Then apply the existing trailing-run step. A lone `\[` decodes to `[` whether Ri
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-15T20:56:42Z] Paul Reviewer:
+- [2026-10-15T20:56:42Z] `reviewer` Paul Reviewer:
   - Verified on a6680468 (driven). Every [ is now escaped the same way. The fuzz found 0 failures over the 9331 exhaustive strings, the 20000 random strings and the special cases, side-by-side values included. A further 3124 cases also passed: a value followed by ], three values in a row, and a value after a closed tag. Both examples in this finding now print exactly. On a scratch squad, list, tree, show --full --comments, subtask show, board list and feature show print the same as with stock escape, except the two bug cases: the trailing backslash and the non-tag \[A-Z]. Panel widths are unchanged.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -112,9 +112,9 @@ So the defect class BUG-1012 describes (a raw `KeyError` on a write, with `sq ch
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-15T20:56:48Z] Paul Reviewer:
+- [2026-10-15T20:56:48Z] `reviewer` Paul Reviewer:
   - Kept Open. This is outside TASK-1019 and its home is a new bug. @qa, file it with the reproduction in this finding, then link it here so the finding can close as WontFix-here.
-- [2026-10-15T20:57:20Z] Catherine Manager:
+- [2026-10-15T20:57:20Z] `manager` Catherine Manager:
   - Home: BUG-1022 (sub-entity body write KeyError, check silent), filed by QA.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -137,7 +137,7 @@ Both Fixed entries were written by the developer. Under the board rule, CHANGELO
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-15T20:56:47Z] Paul Reviewer:
+- [2026-10-15T20:56:47Z] `reviewer` Paul Reviewer:
   - Verified on a6680468 (read). Both entries are removed, so neither fix has a CHANGELOG entry now. @tech-writer, write them for the unreleased Fixed section. Do not claim exact printing for emoji codes: :smile: still renders as an emoji.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -157,7 +157,7 @@ Both Fixed entries were written by the developer. Under the board rule, CHANGELO
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-15T20:56:44Z] Paul Reviewer:
+- [2026-10-15T20:56:44Z] `reviewer` Paul Reviewer:
   - Verified on a6680468 (driven). With its body pair removed, a custom skill now gets the generic missing-region error. A reversed sq:body pair gets close before open, and so does a reversed sq:discussion pair, since the check covers every non-view tag. Each file is reported once. An intact squad and the copy of the live squad give no new findings.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -166,13 +166,13 @@ Both Fixed entries were written by the developer. Under the board rule, CHANGELO
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-15T20:48:46Z] Paul Reviewer:
+- [2026-10-15T20:48:46Z] `reviewer` Paul Reviewer:
   - @manager REV-1020 on TASK-1019 is at ChangesRequested, with 4 findings. ST1 and ST2 each meet their own acceptance tables. The guard holds for every region shape I tried, and the new check finding appears exactly once on every work type and operator, with no double report.
   - F1 (medium, driven): the new escaping is correct for one value on its own, but two values side by side can drop text or raise MarkupError, which stock escape never did. There is no live call site for it yet. A context-free encoding passed the same fuzz with 0 failures and is a small change: send it back to python-dev.
   - F2 (low, driven) is outside this task: sub-entity body writes still raise a raw KeyError and check is silent. @qa should file it as a bug. F3 (low, driven): check is silent on a custom skill with no body pair and on a reversed pair. F4 (low): the CHANGELOG overclaims (emoji codes still render, \D comes from upper-casing, skills only with a seeded view) and should go to @tech-writer.
-- [2026-10-15T20:56:54Z] Paul Reviewer:
+- [2026-10-15T20:56:54Z] `reviewer` Paul Reviewer:
   - @manager Pass 2 on a6680468: I recommend Approve, and nothing blocks. F1, F3 and F4 are Verified, each with its evidence on the finding. On the numbering, the dev is right: F3 is the changelog finding and F4 the check finding. My pass-1 handback had the two swapped.
   - I left the Approved transition to you because I authored this review; my standing rule is not to approve my own review. F2 is still Open: it is outside this task and waits on a QA bug. The two fixes have no CHANGELOG entries now, so @tech-writer needs to write them.
-- [2026-10-15T20:57:22Z] Catherine Manager:
+- [2026-10-15T20:57:22Z] `manager` Catherine Manager:
   - Approved by the manager on the reviewer recommendation: F1, F3, F4 verified; F2 tracked in BUG-1022; worktree full suite 9469 passed, 0 failed.
 <!-- sq:discussion:end -->

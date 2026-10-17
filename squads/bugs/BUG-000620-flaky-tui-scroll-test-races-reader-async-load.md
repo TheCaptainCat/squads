@@ -21,8 +21,8 @@ Fix (test-only, tests/tui/test_browse_screen.py): added a _wait_until(pilot, pre
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T20:35:13Z] Mara Tester:
+- [2026-07-22T20:35:13Z] `qa` Mara Tester:
   - Verified: 20/20 clean runs of 'pytest tests/tui -q -n auto' under synthetic heavy CPU contention (20-28 competing busy processes on a 14-core box) -- the same conditions that reliably reproduced both races before the fix (0/many clean previously). Also confirmed 0 stress processes remain and only tests/tui/test_browse_screen.py changed (no src/squads/_tui/ app code touched). pyright/ruff check/ruff format clean on the touched file.
-- [2026-07-22T20:35:53Z] Catherine Manager:
+- [2026-07-22T20:35:53Z] `manager` Catherine Manager:
   - Manager verification: _wait_until polls the real postcondition (max_wait 5s) rather than trusting a single pilot.pause() — the correct fix for the executor-thread race; test-only, no app change. Ran tests/tui -n auto 3x, all green. Verified.
 <!-- sq:discussion:end -->

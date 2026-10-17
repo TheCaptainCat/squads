@@ -187,23 +187,23 @@ As a project admin, I want `sq migrate rename-status <type> <old> <new>` to rewr
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-09T21:16:38Z] Pierre Chat:
+- [2026-07-09T21:16:38Z] `op-pierre` Pierre Chat:
   - Deferred indefinitely. Bulk rename of built-in vocabulary is a customization convenience for external adopters; squads is single-user and the retype machinery + additive overrides already cover the rare case. Kept on the backlog (not cancelled) — revisit only if squads becomes publicly adoptable, where 'evolve your vocabulary after the fact' would be part of the customization story. Not scheduled; off the active line.
-- [2026-07-09T21:18:48Z] Pierre Chat:
+- [2026-07-09T21:18:48Z] `op-pierre` Pierre Chat:
   - Supersedes the deferral above: retracted. squads is a multi-user/adoptable product (single-user only during construction), so vocabulary rename migrations are first-class adopter scope, not hypothetical. Promoted to the active line alongside FEAT-212. Dependencies FEAT-210/211/326 all Done — unblocked.
-- [2026-07-09T21:19:29Z] Pierre Chat:
+- [2026-07-09T21:19:29Z] `op-pierre` Pierre Chat:
   - Sequencing: hold re-baseline until Robert's FEAT-212 ADR lands — the two are design-coupled (shared spec-vocab/migration surface under EPIC-280), and the ADR may reshape the rename approach. Stays Ready; PO re-baseline + tech-lead breakdown follow with the ADR in hand.
-- [2026-07-09T21:31:51Z] Nina Product:
+- [2026-07-09T21:31:51Z] `product-owner` Nina Product:
   - Re-baselined against post-EPIC-325 world (ADR-322/323 Accepted, FEAT-326 Done).
   - Scope changed: dropped 'relax additive-only' (no such constraint applies — target type/status is added via ordinary additive override first, then this feature bulk-moves data onto it).
   - rename-type can't call _retype.retype() as-is: its sub-entity refusal + status-reset guardrails are wrong for a same-type rename (would reject every FEAT/TASK/REV with stories/subtasks/findings). Needs its own bulk path reusing _retype.py's rewrite primitives under rename-specific validation — flagged for tech-lead design.
   - rename-status stays per-type (status names are global vocabulary shared across lifecycles — renaming one in place would ripple into every other type); new-status validated against that type's own workflow_for(type).states.
   - Dropped the schema-bump / _migrations/_registry.py acceptance criteria — this is an on-demand data rewrite like sq migrate repad, not a SCHEMA_VERSION-gated auto migration. Reflog-audited instead.
   - Dependencies FEAT-210/211/326 all Done; unblocked, no outstanding dependency. Still Ready; recommend tech-lead breakdown treats rename-type as new design work (bulk-rename path), not a thin wrapper over retype().
-- [2026-07-09T21:47:56Z] Pierre Chat:
+- [2026-07-09T21:47:56Z] `op-pierre` Pierre Chat:
   - Re-baseline shape signed off: no SCHEMA_VERSION bump (on-demand project-invoked rewrite, like sq migrate repad, outside the upgrade chain); rename-type uses new bulk-rewrite primitives that carry sub-entities/status over (NOT a retype() wrapper — retype's guardrails would reject anything with sub-entities); the target type must be declared via ordinary additive override first, then rename-type moves data onto it (never auto-declares). Proceed on this shape. Sequenced after FEAT-212.
-- [2026-07-10T01:36:11Z] Mara Tester:
+- [2026-07-10T01:36:11Z] `qa` Mara Tester:
   - Acceptance sweep (TASK-359) found BUG-362: declaring a rename target type that mirrors an existing type's subentity_kind (as this feature's own worked example does) breaks add_subtask/add_finding/add_story on the OLD type's items while both coexist pre-rename. Doesn't block rename-type/rename-status themselves (worked around in the acceptance test by seeding before declaring the override) but blocks the feature's documented usage pattern.
-- [2026-07-10T01:55:59Z] Catherine Manager:
+- [2026-07-10T01:55:59Z] `manager` Catherine Manager:
   - FEAT-281 complete. All tasks landed and committed: TASK-355 (rename-safe retype primitive), 356 (rename-type bulk service, atomic), 357 (rename-status bulk service), 358 (sq migrate CLI wiring), 359 (independent acceptance sweep — all 5 ACs PASS). The sweep surfaced BUG-362 (sub-entity owner resolution when two types share a kind — the exact declare-then-rename pattern this feature documents); fixed and Verified. Re-baseline shape honoured: no SCHEMA_VERSION bump, on-demand rewrites like repad, rename-type carries sub-entities/status unconditionally via new bulk primitives, target type declared additively first. Reviewer-approved throughout; full suite green.
 <!-- sq:discussion:end -->

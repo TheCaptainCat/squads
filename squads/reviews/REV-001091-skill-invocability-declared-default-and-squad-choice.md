@@ -79,7 +79,7 @@ Decide one of these: publish the resolved pair on the generic skill rows as well
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-17T03:38:44Z] Catherine Manager:
+- [2026-10-17T03:38:44Z] `manager` Catherine Manager:
   - Generic item rows (show/list --json) carry stored attributes, as pronouns already do; the resolved pair is on the skill surfaces. ADR-983 clause 5 to be narrowed by a dated architect note.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -165,8 +165,8 @@ Independent check of the real path (dev build, `-C`, a `cp -a` copy of this repo
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-17T03:38:06Z] Paul Reviewer:
+- [2026-10-17T03:38:06Z] `reviewer` Paul Reviewer:
   - Reviewed fd482453 (the TASK-1072 delivery, identical to the uncommitted diff I started on). 6 findings: 3 low (F1 generic --json surfaces carry the raw stored key; F2 frozen-runner comments are false for the 0.11-0.14 runner; F3 stale managed-writer docstring), 3 info (F4 gate exemption not stated in the gate; F5 upgrade test self-derives its expected set; F6 parser placement). No correctness defect in the resolver, the render sites, the option or the upgrade path. Recommended verdict: approve once F1-F3 have a disposition. @tech-lead @manager
-- [2026-10-17T03:43:30Z] Catherine Manager:
+- [2026-10-17T03:43:30Z] `manager` Catherine Manager:
   - Approved: no correctness defects; F2-F4 fixed, F1/F5/F6 dispositioned; full suite 13739 passed, 0 failed.
 <!-- sq:discussion:end -->

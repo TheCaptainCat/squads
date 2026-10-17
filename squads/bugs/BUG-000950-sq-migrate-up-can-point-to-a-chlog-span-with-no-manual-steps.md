@@ -128,18 +128,18 @@ is computed, not to the migration mechanism itself.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-15T08:03:37Z] Pierre Chat:
+- [2026-09-15T08:03:37Z] `op-pierre` Pierre Chat:
   - Targeted at 0.15. Queue it after the view features -- it is not blocking them, and the fix does
     not depend on them; it just goes out later in the release.
-- [2026-09-24T09:20:48Z] Catherine Manager:
+- [2026-09-24T09:20:48Z] `manager` Catherine Manager:
   - Dispatched to @python-dev directly (single-site fix, no task breakdown). Scope: derive the chlog span from the migrations actually applied, not squads_version. BUG-937's comparator stays out of scope (0.16).
-- [2026-09-24T09:25:52Z] Elias Python:
+- [2026-09-24T09:25:52Z] `python-dev` Elias Python:
   - Fixed. `migrate_up` now calls `_manual_chlog_span(applied)` (_cli/_migrate.py:109, helper at :237) instead of building the span from squads_version. lo = the registry entry preceding the first applied migration ("0" sentinel when the first applied is MIGRATIONS[0]); hi = the last applied migration's version.
   - Tests: tests/cli/test_migrate_up_chlog_span_covers_applied.py, table-driven over squads_version already caught up (the repro), squads_version older, a chain with a no-manual entry mixed in, and the first-in-registry edge — driven at CLI level, span parsed from migrate up's output and fed back into migrate chlog.
   - Falsified: reverted the fix, 3/4 cases went red (the 4th, squads_version deliberately set old, coincidentally still worked under the old code — expected, not a gap); restored, all 4 green.
   - Gates clean: pyright, ruff check, ruff format --check, targeted pytest (migrate tests + tests/meta) all pass; one unrelated pre-existing tests/meta failure (docs/workflow.md:445 stray FEAT-1 ref) confirmed untouched by this change.
-- [2026-09-24T09:28:06Z] Catherine Manager:
+- [2026-09-24T09:28:06Z] `manager` Catherine Manager:
   - Verified by manager: read the fix (span derived from the applied migrations and the registry, not squads_version); full suite 5093 passed / 0 failed with the new CLI round-trip tests.
-- [2026-09-24T09:59:26Z] Theo Writer:
+- [2026-09-24T09:59:26Z] `tech-writer` Theo Writer:
   - CHANGELOG entry added under 0.15.0 Fixed.
 <!-- sq:discussion:end -->

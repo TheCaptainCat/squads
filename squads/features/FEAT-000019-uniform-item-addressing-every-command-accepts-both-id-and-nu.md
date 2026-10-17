@@ -123,14 +123,14 @@ As a user who typos the type, I want sq to tell me 13 is a feature instead of si
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-10T13:00:06Z] Pierre Chat:
+- [2026-06-10T13:00:06Z] `op-pierre` Pierre Chat:
   - Decision: when the addressed type doesn't match the item (e.g. `sq task 13` but 13 is a feature), error and point to the right type — never silently act on it.
-- [2026-06-11T14:00:49Z] Olivia Lead:
+- [2026-06-11T14:00:49Z] `tech-lead` Olivia Lead:
   - Broke FEAT-19 into two sequenced tasks, both high, assigned @python-dev (Elias).
   - TASK-46 (foundation): shared item-address resolver in _cli/_common.py — typed resolve verifies the resolved item's ACTUAL type against the live DB (closes the sq task 13 → FEAT-13 silent-obey hole, _index.py:57 _seq ignores type), plus a type-less resolve for the sweep. Maps US1 (both forms) + US3 (type-mismatch error).
   - TASK-47 (adoption sweep, blocked by 046): route every raw surface through the resolver — create --parent/--ref, update --parent, ref add/rm, tree root, list --parent, role/skill/operator targets, subtask --story; uniform both-forms error wording. ref add stays kind-agnostic; --parent resolves then defers to parent_allowed. Maps US2 (copy-paste everywhere) + US3 (wording).
   - TASK-46 blocks TASK-47. Stability-contract documentation acceptance is deferred to FEAT-13 (rule recorded here, ref kept). Seed test: test_resolve_item_id in tests/test_cli.py:232.
-- [2026-06-11T14:41:09Z] Mara Tester:
+- [2026-06-11T14:41:09Z] `qa` Mara Tester:
   - QA sign-off: FEAT-19 verified hands-on in a scratch squad (tmp dir, sq init, items of type epic/feature/task/bug/decision/operator/role/skill).
   - US1 (both forms everywhere) — PASS. Verified: sq <type> N show (bare+full), sq tree (bare+full), create --parent (bare+full), update --parent (bare+full), create --ref (bare+full+bare:kind+full:kind), ref add (bare+full+bare:kind+full:kind), ref rm (bare+full), sq list --parent (bare+full), sq role regen (bare+full), sq skill show (bare+full), sq operator rm (bare+full), subtask --story US1 and --story 1 — all accepted both forms.
   - US2 (copy-paste) — PASS. IDs as rendered in sq tree (FEAT-000010, TASK-000011, EPIC-000009) fed directly into show, tree, --parent, ref add — all accepted unchanged.

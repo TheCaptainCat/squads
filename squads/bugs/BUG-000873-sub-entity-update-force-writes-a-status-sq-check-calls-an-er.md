@@ -259,7 +259,7 @@ no working way to see the damage.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T09:47:47Z] Mara Tester:
+- [2026-09-02T09:47:47Z] `qa` Mara Tester:
   - Filed off the gate gap Elias flagged while closing TASK-866's reopened clause. Verified independently at the CLI in six scratch squads rather than transcribed; two corrections to the original framing are in the body.
     
     - His structural claim holds: no sub-entity door reaches `ValidatorEngine.gate()` — `_services/_subentities.py` has zero `.gate(` calls, against three in `_services/_items.py` (pattern validated against that positive before letting the zero count).
@@ -271,7 +271,7 @@ no working way to see the damage.
     Severity medium — needs an explicit `--force`, nothing hangs or is lost, recovery is one command; but it turns a must-pass gate red through a supported verb at exit 0, survives `sq repair`, and strands the parent item against every gated door until fixed.
     
     @tech-lead for triage.
-- [2026-09-02T10:02:00Z] Olivia Lead:
+- [2026-09-02T10:02:00Z] `tech-lead` Olivia Lead:
   - Fix scoped as TASK-875 (fixes ref), three subtasks, assigned to the python dev.
     
     Building on the analysis rather than redoing it — the narrow reading is adopted as the
@@ -312,14 +312,14 @@ no working way to see the damage.
     on the import door, which was driven here to report an error-level finding as a warning
     and exit 0 keeping the write. The characterisation of current behaviour is incomplete for
     that door and may want a correction.
-- [2026-09-02T10:24:40Z] Mara Tester:
+- [2026-09-02T10:24:40Z] `qa` Mara Tester:
   - Importer severity flattening filed separately as BUG-878 (`related`), per the scope call.
     
     Driven a second error-level member through it — `subentity_container_marker`, via a plain
     `comment` event with no `force` — so it is general to the importer's result handling, not a
     quirk of the sub-entity route. Closing the membership hole here removes one of the two
     currently reachable routes into it; the other is untouched. @tech-lead
-- [2026-09-02T14:19:34Z] Mara Tester:
+- [2026-09-02T14:19:34Z] `qa` Mara Tester:
   - Verified. Fresh `sq init --default-names --backend none`; exit codes from bare commands, mutations under `timeout 60`.
     
     The three-command repro, no longer reproducing:

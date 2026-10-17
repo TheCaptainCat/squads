@@ -366,7 +366,7 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-04T13:39:40Z] Elias Python:
+- [2026-09-04T13:39:40Z] `python-dev` Elias Python:
   - Implemented all five subtasks. Summary per subtask, floor proposal, both directions of falsification, and gate results below.
     
     ## ST1 — assignment grammar
@@ -448,7 +448,7 @@ Acceptance:
     The speculative spelling (`name:param@warn`) composes fine, but the ADR doesn't mention the duplicate-entry/override problem that appears the moment a type wants to override an already-bundled member's level or param — `effective_validator_names`'s old concatenate-only behaviour would have silently run the member twice. Not a contradiction, just underspecified; the de-dup-by-bare-name-last-wins design is mine, flagged here as a design decision worth a second look rather than something the record already settled.
     
     Files touched: `src/squads/_workflow/_models.py`, `src/squads/_services/_validators.py`, `src/squads/_services/_subentities.py`, `src/squads/_interactions/__init__.py`; new tests `tests/service/test_declared_validator_level_governs_report_and_gate.py`, `tests/service/test_parent_present_selectable_at_warn.py`, `tests/service/test_subentity_title_max_threshold_is_spec_resolved.py`, `tests/meta/test_validator_level_is_resolved_not_hardcoded_per_member.py`; extended `tests/unit/test_validators_assignment_surface.py`, `tests/unit/test_validator_engine_scaffold.py`; allowlisted the three new module-level dicts in `tests/meta/test_no_unallowlisted_module_level_mutable_state.py`.
-- [2026-09-04T14:47:14Z] Elias Python:
+- [2026-09-04T14:47:14Z] `python-dev` Elias Python:
   - REV-925 fixes landed (not committed — awaiting review/handoff per the operator's workflow).
   - F1 (high, fixed). Root cause: the F1 dedup keyed on bare validator name only. Fix: a new validator_selection_key(entry) -> (bare, param) in _workflow/_models.py — for a member in PARAMETERIZED_VALIDATOR_NAMES with a param present, the key includes the param (so two different-param entries are independent selections); every other case (non-parameterized member, or a parameterized one named with no param) keys on bare name alone, same as before. Used identically by _check_validators_assignment's duplicate refusal and effective_validator_names' de-dup, so both agree on what counts as a duplicate.
   - Second half of the fix (not asked for by name, but load-bearing): effective_validator_names now lets a bundled bare entry and a type's param'd override of the same member survive as two distinct tuple entries (they used to collapse to one). Left alone, that would make ValidatorEngine._run_per_item's dispatch loop call the member's CATALOG function twice for one item -- a real double-report regression I caught while testing (broke test_a_declared_threshold_moves_where_sq_check_fires_with_the_same_number: 2 matching issues instead of 1). Fixed by making _run_per_item dedupe by bare name before calling self.catalog[bare](ctx) -- each catalog member reads all its own type's matching entries back off ctx.spec/item_spec.validators itself (both _ref_rule_target_present and _resolved_level already do this), so calling it more than once per bare name only repeats the same issue(s).
@@ -461,7 +461,7 @@ Acceptance:
   - Did not run the full suite (per standing guidance) -- this selection plus tests/meta/tests/integration is what I ran. My diff stays scoped to the 5 files above; squads/.squads.json and the concurrent FEAT-906/TASK-923 churn under squads/ this session is the other reviewer's, not mine.
   - Where I think the review's framing could be sharpened, not where I think it's wrong: F1's own text frames the fix as specific to the multi-target pattern, but the actual bug surface is two-sided -- the load-time refusal AND effective_validator_names' dedup both needed the same key change, and that change alone would have introduced a NEW double-report bug for subentity_title_max's bundle-override case if I hadn't also made the dispatch loop idempotent per bare name. That second half isn't mentioned in the finding at all; I'm fairly confident it's load-bearing (falsification #2 above breaks a pre-existing test, not just a new one) rather than me over-engineering, but it's worth a second pair of eyes since it's the one piece I derived rather than was told.
   - @reviewer ready for re-review.
-- [2026-09-04T15:44:45Z] Elias Python:
+- [2026-09-04T15:44:45Z] `python-dev` Elias Python:
   - REV-925 F5 (high) fixed. Root cause confirmed as the reviewer described: validator_selection_key keyed every PARAMETERIZED_VALIDATOR_NAMES member on (bare, param), but only ref_rule_target_present's own resolver unions multiple entries — item_subentity_title_max returns on the first match. "Is parameterized" and "accepts multiple selections" are different properties; the fix declares the second one explicitly instead of inferring it from the first.
     
     Fix, in _workflow/_models.py:
@@ -491,7 +491,7 @@ Acceptance:
     Where I think the review's framing could be sharpened: none — F5 as written matches what I found exactly, root cause and all. One thing worth flagging for the record since it's not in the finding: the same conflated-property mistake could recur for CONSISTENCY_CLAUSES/UNGUARDED_VALIDATOR_NAMES if a future catalog member needs a similarly two-part classification — the assert-over-a-union pattern this fix adds is now the second instance of that discipline in this module, which is the shape the task asked for.
     
     @reviewer ready for re-review.
-- [2026-09-08T13:38:47Z] Elias Python:
+- [2026-09-08T13:38:47Z] `python-dev` Elias Python:
   - F5 residue + F6, both addressed. No behaviour change for F5; F6 is message-only with a new pinning test.
     
     **F5 — docstring rewrite.** `effective_validator_names`'s paragraph (`_workflow/_models.py`) no longer states a property over `PARAMETERIZED_VALIDATOR_NAMES` as a whole. It now says: a `MULTI_SELECTION_VALIDATOR_NAMES` member (`ref_rule_target_present`) with two different params keys differently for each and both survive, because its own resolver unions every entry; a `SINGLE_SELECTION_VALIDATOR_NAMES` member (`subentity_title_max`) keys on its bare name alone regardless of param, so it never reaches this function with two surviving entries — `_check_validators_assignment` refuses the second outright, because that member's resolver reads only its first matching entry rather than unioning. No test change (none needed — an existing assertion already proves the corrected wording).

@@ -53,15 +53,15 @@ reconciles.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T19:45:00Z] Robert Architect:
+- [2026-08-21T19:45:00Z] `architect` Robert Architect:
   - Same split driven on a second pair: create stamps description=role.mission, so a declared mission updates extra.mission and leaves the item description on the bundled text — sq role <slug> show then contradicts itself (card vs ## Mission). Settled with the name pair in ADR-766.
   - Adjacent, different shape: a declared description reaches nothing (absent from RoleDef._EXTRA_FIELD_KEYS), so the generated pointer keeps the bundled one-liner — needs its own item.
-- [2026-08-21T19:47:50Z] Pierre Chat:
+- [2026-08-21T19:47:50Z] `op-pierre` Pierre Chat:
   - The adjacent defect Robert found - a declared description in a role override reaching nothing because the key is absent from RoleDefs extra-field table - is folded into this bug rather than filed separately. Same seam, same projection table, one dev. The skew-widening trap goes in the task body as a constraint.
-- [2026-08-21T20:30:32Z] Catherine Manager:
+- [2026-08-21T20:30:32Z] `manager` Catherine Manager:
   - Fix landed in 03c0802 on release/0.14 (TASK-767). Verified independently on a fresh squad with an architect override declaring full_name, mission and description: sq list now shows Ada Lovelace where it showed the stale bundled name, the item frontmatter carries the projected title and description, the CLAUDE.md roster agrees, and the declared description reaches the .claude pointer for the first time. The role file is still ROLE-000002-architect.md, so the rename did not move it - that was the data-loss risk in this fix. sq check exits 0.
   - The projection is declared as a table on RoleDef rather than two inline assignments, per ADR-766, so a future RoleDef field that also lands on a top-level item field cannot be half-wired. PERMITTED_EXTRA_SKEW membership is unchanged and now pinned literally in a test rather than re-derived, which is what stops the dropped description from silently widening the guard.
-- [2026-08-21T20:48:31Z] Mara Tester:
+- [2026-08-21T20:48:31Z] `qa` Mara Tester:
   - Drove both field pairs on both role kinds on a fresh squad (backends claude_code + agents_md): architect (bundled) full_name/mission override and python-dev (dev) full_name/mission override. After sq sync, frontmatter title/description, index title/description, sq list -t role, sq role <slug> show's card AND its ## Mission body, CLAUDE.md and AGENTS.md rosters all agree on the declared value for both roles -- no split anywhere. sq check exits 0.
   - Declared description reached .claude/agents/<slug>.md for both roles (the adjacent defect folded into this bug).
   - Path unchanged across the rename: squads/agents/roles/ROLE-000002-architect.md stayed the same file/path after full_name changed the title -- no _rename/slug-recompute triggered, confirmed by listing the roles directory before and after sync.

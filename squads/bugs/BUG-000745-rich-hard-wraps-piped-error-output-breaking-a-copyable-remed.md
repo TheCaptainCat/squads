@@ -38,14 +38,14 @@ Worth noting what fixing this would buy beyond the defect itself: the Windows pi
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-20T14:21:49Z] Catherine Manager:
+- [2026-08-20T14:21:49Z] `manager` Catherine Manager:
   - Verified myself before filing: sq init --name probe piped through cat -A shows the newline inside architect=Ada Lovelace. Not scoped to 0.13 -- the release PR is open and green-pending, and a rendering change to every error message is not a thing to slip in at this point. First candidate for 0.14.
-- [2026-08-21T12:35:54Z] Pierre Chat:
+- [2026-08-21T12:35:54Z] `op-pierre` Pierre Chat:
   - In scope for 0.14.0: op-pierre pulled all five open bugs into the next release, overriding the earlier per-bug deferral to a later cycle.
-- [2026-08-21T15:32:37Z] Catherine Manager:
+- [2026-08-21T15:32:37Z] `manager` Catherine Manager:
   - Fix landed in ca7cee3 on release/0.14 (TASK-750). Drove the reproduction myself: sq init --name probe piped through cat -A now shows the remedy unbroken and grep for the full token matches. Falsification held at all three sites individually. Windows conftest pin kept, with reasoning recorded on the task.
   - Residual of the same defect class, driven, NOT covered by this fix: the schema-mismatch hard-stop in require_current_schema (_cli/_common.py:1011) is not soft-wrapped, and at 80 columns its remedy splits — rendering that exact message through Rich at width 80 yields "Run sq migrate \nup to upgrade it", so grep for the whole remedy fails. That is the one message every adopter with a stale squad hits, and its remedy is a command they must copy. The version notice and the per-file degrade loops share the shape. Handing to QA to file as its own bug rather than widening a task already in review.
-- [2026-08-21T16:57:09Z] Mara Tester:
+- [2026-08-21T16:57:09Z] `qa` Mara Tester:
   - Drove the bug's exact reproduction in a throwaway dir: sq init --name probe 2>&1 | cat -A now shows the --name format error as one unbroken line; grep for the whole remedy string matches.
   - Residual of the same defect class, driven end-to-end (not just a Rich render): require_current_schema's schema-mismatch hard-stop (_cli/_common.py:1061) is NOT soft-wrapped. Built a fresh squad, set schema_version behind SCHEMA_VERSION in .squads.toml, ran COLUMNS=80 sq list piped: output is 'Run sq migrate \nup to upgrade it' — grep -c "sq migrate up" on the piped output is 0. This is the message every adopter with a stale squad hits. Filing as its own bug per the manager's handoff.
 <!-- sq:discussion:end -->

@@ -84,11 +84,11 @@ Covers the structured-actor data-model foundation (FEAT-125 US1, ADR-158): readi
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-22T09:13:16Z] Olivia Lead:
+- [2026-06-22T09:13:16Z] `tech-lead` Olivia Lead:
   - @python-dev US1 of FEAT-125 / ADR-158 (Accepted) — the read-and-record foundation. squads is a passive tool, never in the spawn path: read optional SQUADS_SESSION_ID/SQUADS_PARENT_SESSION_ID once at main_callback into _actor.py (alongside the slug; NOT settable by any later flag), record them as additive optional siblings on the reflog (actor stays a flat slug string) and as optional created_session/modified_session item frontmatter. Best-effort/untrusted/observability-only wording is mandatory in every field doc + the migration MANUAL.
   - SCHEMA RISK — read carefully: SCHEMA_VERSION is ALREADY 0.3 (a _v0_2_to_v0_3 head-region migration already shipped). Your additive bump is 0.3 -> 0.4, NOT 0.2 -> 0.3 as the older ADR/feature text implies. Add _migrations/_v0_3_to_v0_4.py (additive, no file rewrite — a no-op runner returning 0 + a MANUAL runbook is fine), wire it into MIGRATIONS, bump SCHEMA_VERSION to 0.4, add the changelog entry. Coordinate per CLAUDE.md's migration-registry rule.
   - Acceptance: legacy slug-only reflog lines parse as session=None; existing item files load unchanged (sq repair proves Invariant 1); sq migrate up runs clean on a 0.3 squad; pyright + ruff check + ruff format --check clean; full pytest green; service-level + CLI smoke tests (reflog --json shows new fields when env set, absent otherwise). The --tree view + show --full surfacing are US2/TASK-160 — out of scope here.
-- [2026-06-22T09:55:53Z] Elias Python:
+- [2026-06-22T09:55:53Z] `python-dev` Elias Python:
   - Implementation complete. Files changed:
   - - src/squads/_actor.py — added seed_session()/current_session(); reads SQUADS_SESSION_ID/SQUADS_PARENT_SESSION_ID from env once at CLI root; set_actor() unchanged (slug-only path)
   - - src/squads/_cli/__init__.py — added actor.seed_session(from_env=True) call in main_callback alongside the existing set_actor('system') call
@@ -110,14 +110,14 @@ Covers the structured-actor data-model foundation (FEAT-125 US1, ADR-158): readi
   - - tests/test_cli.py, test_reflog_core.py, test_reflog_read.py — updated hardcoded 0.3 strings to SCHEMA_VERSION
   - - tests/goldens/ — updated golden JSON files for new session fields on Item
   - Gate results: uv run pyright: 0 errors. uv run ruff check: clean. uv run ruff format --check: clean. uv run pytest: 890 passed, 1 skipped. sq migrate up on the project: already at schema v0.4; clean. @reviewer
-- [2026-06-22T10:10:02Z] Paul Reviewer:
+- [2026-06-22T10:10:02Z] `reviewer` Paul Reviewer:
   - Approved, ready for QA. @qa — independent review recorded as REV-161 (Approved). This implements FEAT-125 US1 under ADR-158.
   - Verified: schema 0.3->0.4 bump + _v0_3_to_v0_4 no-op runner wired into MIGRATIONS with MANUAL runbook + changelog; sq migrate up idempotent and clean on a real 0.3 corpus (json+toml both stamp to 0.4). Back-compat holds — legacy slug-only reflog lines parse with session fields None, items without created/modified_session load fine, to_frontmatter omits when None, sq repair rebuilds. actor stays a flat slug string; session_id/parent_session_id are additive optional siblings. Session fields are env-only (seed_session(from_env=True) at main_callback) and NOT settable by --as/--author or any flag; empty-string env coerced to None. Best-effort/untrusted/observability-only wording present in all surfaces. modified_session propagation complete across set_status/update/link/unlink/add_ref/rm_ref/_locked_section_edit.
   - Gates re-run by me: pyright 0 errors; ruff check clean; ruff format --check clean; full pytest green (two runs exit 0). 
   - One LOW, non-blocking finding (REV-161 F1): the new tests/fixtures/corpus/v0_4/ fixture has .squads.json still at schema_version 0.3 while its .squads.toml is 0.4 — fixture hygiene only, no runtime/back-compat impact (the corpus test passes; a real migration stamps both consistently). @python-dev can re-stamp the fixture json to 0.4 at convenience; does not block QA.
-- [2026-06-22T10:11:22Z] Catherine Manager:
+- [2026-06-22T10:11:22Z] `manager` Catherine Manager:
   - REV-161 finding F1 (v0_4 corpus fixture .squads.json stamped 0.3 vs toml 0.4) fixed: re-stamped schema_version to 0.4; corpus migration tests green. Ready for QA. @qa
-- [2026-06-22T10:37:16Z] Mara Tester:
+- [2026-06-22T10:37:16Z] `qa` Mara Tester:
   - QA verification PASSED — TASK-159 closes.
   - Full suite: 890 passed, 1 skipped. Specific suites: test_session_lineage.py (26 tests) and test_migration_corpus.py (9 tests) both 100% green.
   - Migration (v0_3→v0_4): copied v0_3 corpus fixture to a temp dir, ran `sq migrate up` (from within the dir so .squads.toml is found). Runner stamped both .squads.toml and .squads.json to schema_version 0.4. `sq check` returned no issues. Second `sq migrate up` correctly returned 'already at schema v0.4; nothing to migrate' (idempotent). `sq repair` rebuilt index (6 items, counter=6 — no loss). v0_4 corpus fixture F1 confirmed fixed: both .squads.toml and .squads.json now consistently at 0.4.

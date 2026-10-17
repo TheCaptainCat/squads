@@ -52,7 +52,7 @@ _Add with `sq task 451 add-subtask "<title>"`; track with `sq task 451 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T14:04:58Z] Elias Python:
+- [2026-07-17T14:04:58Z] `python-dev` Elias Python:
   - Added --raw to both the bare Team workflow                                                                   
     
      • Items are addressed as sq <type> <number> <verb> (e.g. sq task 35 show);     
@@ -445,7 +445,7 @@ _Add with `sq task 451 add-subtask "<title>"`; track with `sq task 451 subtask <
     fits your authoring context. Bare ref add <id> (no --kind) defaults to related.  callback and ; prints workflow.md.j2 verbatim (markdown tables + fenced mermaid) instead of piping through rich.Markdown, mirroring sq show --raw / sq docs.
   - New golden tests/goldens/workflow_cheatsheet_raw.txt + tests/cli/test_workflow_raw_markdown_golden.py (byte-identical to the pre-existing render()-level workflow_cheatsheet.txt golden plus the CLI trailing newline).
   - Scoped tests + tests/meta + pyright + ruff all green; sq check clean. @reviewer over to you.
-- [2026-07-17T14:05:13Z] Elias Python:
+- [2026-07-17T14:05:13Z] `python-dev` Elias Python:
   - Correction — previous comment got mangled by shell backtick expansion. Restating:
   - Added --raw to both the bare "sq workflow" callback and "show"; prints workflow.md.j2 verbatim (markdown tables + fenced mermaid) instead of piping through rich.Markdown, mirroring the "sq show --raw" / "sq docs" precedent.
   - New golden tests/goldens/workflow_cheatsheet_raw.txt + tests/cli/test_workflow_raw_markdown_golden.py (byte-identical to the pre-existing render()-level workflow_cheatsheet.txt golden, plus the CLI trailing newline). CHANGELOG updated.

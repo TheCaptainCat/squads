@@ -57,15 +57,15 @@ the outcome it targets — a working, adopter-declarable view mechanism — has 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-03T09:01:22Z] Nina Product:
+- [2026-09-03T09:01:22Z] `product-owner` Nina Product:
   - Epic-parentage call: new epic, not a reopened one. EPIC-538 (spec-driven customization) and EPIC-540 (pluggable validators) are both Done. FEAT-693 (derived views, 0.14) was never a child of either -- it targeted MILE-836 directly with no parent epic at all.
   - EPIC-538's outcome (type vocab drop/rename/re-prefix + playbook override, only 3 roster types reserved) is fully delivered and closed against exactly that outcome. ADR-880's view rebuild is a different outcome -- a render-time mechanism, not vocabulary customization -- so reopening EPIC-538 would conflate two outcomes under one epic and misrepresent what its 0.14 closure meant.
   - Reopened EPIC-540 instead for the validator-catalog work (see that epic's comment) -- same test does not favor reopening here because there is no existing epic whose outcome statement matches the view mechanism; inventing one now is honest, not scope creep.
   - This also fixes a standing gap: derived views have needed an epic since 0.14 and never had one.
-- [2026-09-03T09:01:36Z] Nina Product:
+- [2026-09-03T09:01:36Z] `product-owner` Nina Product:
   - HOLD per op-pierre: Robert is ruling a live amendment to ADR-880 -- whether the view tag lives inside the authored sq:body region (as currently ruled) or outside it. This changes whether the retroactivity migration writes into authored prose at all, and whether the 'body write drops the tag' advisory needs to exist.
   - No features are created under this epic yet. Holding views feature authoring until the amendment is ruled; this epic's Scope section (seed/migrate the tag into :body) reflects the pre-amendment ruling and may need a rewrite once Robert rules.
-- [2026-09-29T09:34:47Z] Nina Product:
+- [2026-09-29T09:34:47Z] `product-owner` Nina Product:
   - Closing against outcomes (Pierre approved):
   - Source widened to role/playbook/self -> FEAT-903 (verified: role_definition/self sources render)
   - Projection layer + grammar deleted -> FEAT-904 (verified: retired fields/group_by/order_by key fails load with fix hint)

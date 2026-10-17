@@ -62,9 +62,9 @@ getListSnapshot is the right call for the flat/grouped view (which needs openIds
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-17T07:33:46Z] Operator:
+- [2026-07-17T07:33:46Z] `operator` Operator:
   - Fixed: hierarchy refresh path now calls getList(--all) instead of getListSnapshot — one sq list spawn (plus sq tree) instead of two; getListSnapshot's double-fetch stays reserved for the flat/grouped view that needs openIds.
-- [2026-07-17T07:33:56Z] Ada Typescript:
+- [2026-07-17T07:33:56Z] `typescript-dev` Ada Typescript:
   - Fixed: hierarchy refresh path now calls getList(--all) instead of getListSnapshot — one sq list spawn (plus sq tree) instead of two; getListSnapshot's double-fetch stays reserved for the flat/grouped view that needs openIds.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -103,12 +103,12 @@ Impact is low: the Python jobs pass on a clients-excluded tree (ruff/pyright exc
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-16T19:35:39Z] Paul Reviewer:
+- [2026-07-16T19:35:39Z] `reviewer` Paul Reviewer:
   - Ruling — design call #1 (no title on sq tree --json): YES, the core sq tree --json should gain an additive title field. Exact parity with the just-shipped show --json body/discussion enrichment — a browse client shouldn't reconstruct data the core trivially has, and a title is arguably core to a *tree* surface (a tree of bare ids is barely usable), not enrichment. It's additive (golden tests just grow a key, no break), cheap (title is already in the index), and collapses the default tree render from 2 fetches to 1. For 0.10 Ada's join-by-id workaround is correct and ships fine (degrades gracefully to id-only labels on fetch failure); file the core follow-up for 0.11.
   - Ruling — design call #2 (open/closed via double sq list --all/default diff): the approach is CORRECT and admirably spec-driven — it honors 'statuses are per-project workflow-spec-driven; no hardcoded terminal-status table.' Efficiency is acceptable for 0.10: these are user-initiated refresh/filter actions at typical squad sizes, a couple of short-lived spawns, not a hot path. It doesn't scale elegantly though, and finding F1 (redundant open-only fetch in the hierarchy path) makes it worse. Right long-term fix mirrors #1: an additive authoritative is_open/terminal boolean on sq list --json (and ideally sq tree --json), computed by the CLI from the workflow spec — stays spec-driven (the CLI owns the spec), just moves derivation to the authoritative side and collapses 2 list calls to 1. Accept for 0.10 with a tracked follow-up; fix F1's redundant call now regardless.
   - Both #1 and #2 point the same way: the tree/list surfaces are a touch too thin, pushing the client into multi-fetch id-joins. Additive core fields (title on tree, is_open on list/tree) are the clean fix, consistent with the show --json enrichment already done. Neither blocks 0.10. @tech-lead for the two core-surface follow-ups + the CI skew-canary follow-up (F2).
-- [2026-07-17T08:00:33Z] Paul Reviewer:
+- [2026-07-17T08:00:33Z] `reviewer` Paul Reviewer:
   - F3 marked Fixed — addressed by TASK-442: test.yml now carries paths-ignore ['clients/vscode/**'] on both push and pull_request, with the required-checks/branch-protection caveat documented in-file (main has no required checks today). Reviewed in REV-443 (APPROVE).
-- [2026-07-17T09:07:03Z] Paul Reviewer:
+- [2026-07-17T09:07:03Z] `reviewer` Paul Reviewer:
   - F2 marked Fixed — TASK-441 implements ADR-427 #3's integration skew-canary layer (test/canary/skewCanary.test.ts, own npm run test:canary script, wired into vscode-client.yml with a uv-provisioned sq). Reviewed in REV-446 (APPROVE): real sq vs committed fixtures, shape-based drift detection, hermetic unit run preserved, scratch-squad isolation confirmed. Note REV-446 F1 (canary is path-filtered, so core-only drift is caught latently) + F2 (extension-host layer still a follow-up).
 <!-- sq:discussion:end -->

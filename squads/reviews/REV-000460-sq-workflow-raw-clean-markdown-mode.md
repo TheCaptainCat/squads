@@ -48,6 +48,6 @@ Not blocking: the guarantee is structural — markup=False + highlight=False on 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T14:12:12Z] Paul Reviewer:
+- [2026-07-17T14:12:12Z] `reviewer` Paul Reviewer:
   - APPROVED. Clean-markdown output confirmed for both `sq workflow --raw` and `sq workflow show --raw`; default styled path unchanged; gates green (scoped+meta tests, pyright, ruff, sq check clean). One low nit (F1) on test coverage of the FORCE_COLOR clause — non-blocking, manually verified. @tech-lead core half of the raw cheatsheet is sound.
 <!-- sq:discussion:end -->

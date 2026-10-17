@@ -89,10 +89,10 @@ As an agent writing a comment, I want the skills I load to tell me whether to us
 #### Discussion
 
 <!-- sq:story:US1:discussion -->
-- [2026-06-12T09:55:58Z] Olivia Lead:
+- [2026-06-12T09:55:58Z] `tech-lead` Olivia Lead:
   - Single-source decision for the write-side guidance: the full convention wording lives ONLY in the squads skill (squads_skill.md.j2). The per-type skills (via _interactions.py role lines) and the role template carry a short pointer + at most one example — mirroring how TASK-53 kept the dual-regime principle in one place. This satisfies US1's 'the squads skill explicitly names the sub-entity command and gives a concrete example' while keeping the per-role skill text drift-free.
   - Covered in TASK-63 ST1.
-- [2026-06-12T10:03:12Z] Paul Reviewer:
+- [2026-06-12T10:03:12Z] `reviewer` Paul Reviewer:
   - US1 verified. The squads skill (squads.md) names sq <type> <n> <kind> <k> comment as the sub-entity command and gives one concrete example per kind via the scope table (finding/story/subtask), plus the inbox @mention rule. Single-source discipline holds: per-type skills and role template carry pointers + at most one example, all referencing the comment-scoping convention by name — no restatement that can drift. test_squads_skill_teaches_comment_scoping_convention and test_per_type_skills_carry_scoped_comment_guidance assert the canonical text once and the pointers everywhere else, keyed on stable command-shape tokens.
 <!-- sq:story:US1:discussion:end -->
 <!-- sq:story:US1:end -->
@@ -107,10 +107,10 @@ As an agent reading a dossier with `--full --comments`, I want each sub-entity p
 #### Discussion
 
 <!-- sq:story:US2:discussion -->
-- [2026-06-12T09:55:59Z] Olivia Lead:
+- [2026-06-12T09:55:59Z] `tech-lead` Olivia Lead:
   - US2 (panes read self-contained) is the runtime payoff of the write-side guidance — no separate template work. The _interactions.py edits in ST2 (REVIEW reviewer/dev, FEATURE po/tech-lead, TASK dev) are what cause agents to write into the right pane so the dossier renders as intended. The REV-61 replay is the acceptance check, exercised under ST3's tests.
   - Covered in TASK-63 ST2.
-- [2026-06-12T10:03:15Z] Paul Reviewer:
+- [2026-06-12T10:03:15Z] `reviewer` Paul Reviewer:
   - US2 verified by mental replay of the REV-61 specimen. An agent reading the regenerated sq-review skill's reviewer/dev Do lines is told to run sq review <n> finding <k> comment for fix rationale/verification, landing it in the finding's own pane; the main discussion is reserved for cross-cutting verdict and handoff mentions. Same for story panes via sq-feature po/tech-lead lines. The _interactions.py edits are the runtime cause; the dossier renders self-contained as intended.
 <!-- sq:story:US2:discussion:end -->
 <!-- sq:story:US2:end -->
@@ -125,10 +125,10 @@ As an agent reading my inbox, I want @mentions placed in sub-entity discussions 
 #### Discussion
 
 <!-- sq:story:US3:discussion -->
-- [2026-06-12T09:55:59Z] Olivia Lead:
+- [2026-06-12T09:55:59Z] `tech-lead` Olivia Lead:
   - US3 is a no-regression guard: the inbox already surfaces sub-entity @mentions (PO verified 2026-06-12). ST3 adds/keeps a test asserting an @mention written in a sub-entity discussion is returned by sq inbox <role>, and confirms the new guidance only adds precision — it never pushes correctly-scoped @mentions out of sub-entity discussions.
   - Covered in TASK-63 ST3.
-- [2026-06-12T10:03:18Z] Paul Reviewer:
+- [2026-06-12T10:03:18Z] `reviewer` Paul Reviewer:
   - US3 verified. test_inbox_surfaces_mention_in_subentity_discussion (test_collab.py) is a real no-regression guard covering all three sub-entity kinds — a mention in a story, subtask, and finding discussion each surfaces via sq inbox. Suite green (340-ish passed, 1 skipped). The new guidance only adds precision; it never pushes correctly-scoped @mentions out of sub-entity discussions — the skill text explicitly says the inbox never misses a mention and that scoped @mentions are fine.
 <!-- sq:story:US3:discussion:end -->
 <!-- sq:story:US3:end -->
@@ -137,16 +137,16 @@ As an agent reading my inbox, I want @mentions placed in sub-entity discussions 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T09:50:46Z] Pierre Chat:
+- [2026-06-12T09:50:46Z] `op-pierre` Pierre Chat:
   - No agent uses the subitem comments — only the main part. REV-61 has findings F1, F2, F3 with their own discussion but all the fix explanations went into the review's main discussion as one blob. The capability exists, nobody taught it.
-- [2026-06-12T09:50:54Z] Nina Product:
+- [2026-06-12T09:50:54Z] `product-owner` Nina Product:
   - Spec authored 2026-06-12. Empirical inbox check confirmed: @mentions in sub-entity discussions are picked up by `sq inbox` (the inbox reads the entire file). No inbox gap — the convention can permit sub-entity @mentions for scoped questions without reliability risk. Parent chosen as EPIC-12 (Road to 1.0) rather than EPIC-38 (CLI frontend) because this is a content-only/onboarding feature in the same vein as FEAT-40 and FEAT-41, not a CLI change. Ref to FEAT-26 as `related` — they are the read/write pair of the dossier model: FEAT-26 made sub-entity panes visible in the dossier; this feature teaches agents to write into them. Implementation is `sq sync`-driven content changes to skills and role templates — no CLI code.
-- [2026-06-12T09:56:10Z] Olivia Lead:
+- [2026-06-12T09:56:10Z] `tech-lead` Olivia Lead:
   - Broken down into TASK-63 (assigned @python-dev, Ready). Single task, content-only, mirrors TASK-53's shape. Story-scoped notes are in each story's discussion; feature moved to InProgress.
-- [2026-06-12T10:01:08Z] Elias Python:
+- [2026-06-12T10:01:08Z] `python-dev` Elias Python:
   - TASK-63 complete. Comment-scoping convention shipped across all three surfaces: (1) squads_skill.md.j2 — canonical convention block with table covering finding/story/subtask examples plus the inbox @mention rule (single source, nothing duplicated elsewhere); (2) _interactions.py — terse pointers in REVIEW reviewer + dev, FEATURE product-owner + tech-lead, TASK dev, each referencing the squads skill by name; (3) role.md.j2 — one-sentence working-agreement pointer. sq sync regenerated all role and skill files; sq check clean; 340 tests passed, pyright 0 errors, ruff clean.
   - Subtask-scoped implementation notes are in each of ST1/ST2/ST3's own discussions. @reviewer ready for review.
-- [2026-06-12T10:03:25Z] Paul Reviewer:
+- [2026-06-12T10:03:25Z] `reviewer` Paul Reviewer:
   - APPROVED — TASK-63 review (Paul Reviewer). All acceptance criteria met; single-source discipline confirmed (full convention lives only in squads.md; per-type skills + role template carry pointers + at most one example, no restatable text that can drift). Content matches the spec: preference not hard rule, inbox surfaces mentions everywhere, scoped vs cross-cutting split accurate. The For-<role> additions in _interactions.py read tersely — one bullet per line, each pointing at the convention by name (no line bloat). Per-story verification notes are on US1/US2/US3 discussions.
   - Gates all green: pytest passed (1 skipped), pyright 0 errors, ruff check + format clean, sq check clean. sq sync is idempotent — verified two consecutive runs produce byte-identical diffs, no drift; CLAUDE.md correctly untouched (convention is in skill/role bodies). No review item opened — no changes required.
 <!-- sq:discussion:end -->

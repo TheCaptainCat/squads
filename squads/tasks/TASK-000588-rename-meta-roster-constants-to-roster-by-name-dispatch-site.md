@@ -74,6 +74,6 @@ _Add with `sq task 588 add-subtask "<title>"`; track with `sq task 588 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T12:23:48Z] Elias Python:
+- [2026-07-22T12:23:48Z] `python-dev` Elias Python:
   - Renamed META_ROLE/SKILL/OPERATOR/TYPES -> ROSTER_* across 18 files (src+tests), mechanical only; sq check byte-identical, pyright/ruff/format clean, targeted pytest green; is_meta literal + _meta_compat.py untouched.
 <!-- sq:discussion:end -->

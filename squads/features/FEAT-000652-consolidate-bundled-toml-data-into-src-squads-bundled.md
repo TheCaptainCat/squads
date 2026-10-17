@@ -42,6 +42,6 @@ _Add with `sq feature 652 add-story "As a <role>, I want … so that …"`; trac
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-24T13:03:13Z] Pierre Chat:
+- [2026-07-24T13:03:13Z] `op-pierre` Pierre Chat:
   - Folder name: I picked `_bundled` (over `_data`/`_spec`). Requested for the 0.12.1 release.
 <!-- sq:discussion:end -->

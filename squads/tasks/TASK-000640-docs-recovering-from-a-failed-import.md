@@ -46,6 +46,6 @@ _Add with `sq task 640 add-subtask "<title>"`; track with `sq task 640 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-24T07:46:50Z] Theo Writer:
+- [2026-07-24T07:46:50Z] `tech-writer` Theo Writer:
   - Documented import recovery: validate-first pre-pass writes nothing on errors (fix and re-run); rare mid-apply I/O crash can leave partial writes (run sq repair to reconcile); no idempotency yet (don't blind-retry — duplicate items). Added section 3 'Bulk import from JSONL' to docs/adoption.md with validation/recovery steps and --dry-run guard.
 <!-- sq:discussion:end -->

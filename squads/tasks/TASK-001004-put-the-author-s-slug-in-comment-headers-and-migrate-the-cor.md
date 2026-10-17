@@ -391,7 +391,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-10-15T22:03:54Z] Elias Python:
+- [2026-10-15T22:03:54Z] `python-dev` Elias Python:
   - - Built: one `_COMMENT_HEADER_RE` in `_discussion.py` (column 0, no stripping) shared by `split_discussion`, `match_comment_header` (now returns ts, slug, name) and the search/inbox scan; `format_comment(ts, slug, name, messages)` collapses line breaks, falls back to the slug, refuses a slug outside `[a-z0-9][a-z0-9-]*`; `Comment.author_slug`. The three system writers use the `squads` slug. Slug grammar and the reserved slugs live once in `_models/_participants.py`.
     - Driven on the previous commit: the importer wrote any actor string verbatim (`Bad Actor`, `ghost`) with no roster check. Now an actor outside the grammar is a line-numbered validation issue, exit 1, nothing written. A grammatical but unregistered actor (`ghost`) is still accepted, as before.
     - Driven: `search --json`, `inbox --json` identical (diff) between the previous commit's source and this build on the same scripted squad with forged timestamps.
@@ -456,7 +456,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-10-15T22:03:55Z] Elias Python:
+- [2026-10-15T22:03:55Z] `python-dev` Elias Python:
   - - Built: `discussion.comment_json` (author, author_slug, ts, body) used by the three JSON sites; `discussion.author_label` (`Name (slug)`, slug once when equal) used by plain and styled `comments`, the sub-entity panes, the `--raw` discussion and the TUI discussion tab. Search and inbox untouched.
     - Tests: `tests/cli/test_discussion_shows_the_authors_slug.py` is one table of JSON surface x author shape, one of render x author shape (name carrying `[x]` included), show --json identical across flags, no `author_slug` in search/inbox JSON. Goldens regenerated through `UPDATE_GOLDENS=1`: comments.json, feature_show.json, task_show.json, subtask_st1_show.json gain `author_slug` after `author`; item_show_raw.txt changes `Catherine Manager` to `Catherine Manager (manager)` in the discussion heading. Nothing else moved.
     - Falsified: comments verb built by hand without the key -> 3 red; `--raw` printing `cmt.author` alone -> 2 red (table row and raw golden); sub-entity JSON built by hand -> 5 red. Restored, green.
@@ -545,7 +545,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-10-15T22:03:56Z] Elias Python:
+- [2026-10-15T22:03:56Z] `python-dev` Elias Python:
   - - Built: role creation refuses `operator`, `squads` and any `op-` slug at the one pure seam `_create_model` (CLI, importer simulation and apply all pass it), message `slug 'x' is reserved for ...; a role needs another slug`, exit 1, nothing written. `sq operator add` unchanged.
     - Defects found by attacking the paths and fixed: (1) the bulk importer's `update` event with a title on a roster entry re-derived `item.slug` and renamed the file (driven: `ROLE-000001-manager.md` became `ROLE-000001-renamed-manager.md`); `_rename` now changes only the display title for roster types. (2) the importer's `unset_fields: ["slug"]` removed `extra.slug`; refused now. `fields: {slug: ...}` was already refused. The override-document slug mismatch refusal already existed and is pinned.
     - Tests: `tests/cli/test_a_roster_slug_is_fixed_at_creation_cli.py` (one table per behaviour: creation source x reserved slug, update x roster kind, set/unset x kind, overrides, bulk renames, retype, repair/sync x kind x damage x index state, the live command walk for `--slug`, reuse after purge pinned as accepted) and `tests/integration/test_migration_never_changes_a_roster_slug.py` over every corpus fixture.
@@ -648,7 +648,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-10-15T22:50:57Z] Elias Python:
+- [2026-10-15T22:50:57Z] `python-dev` Elias Python:
   - - Built: `SCHEMA_VERSION` 0.16; `_migrations/_v0_15_to_v0_16.py` (contributions: a name, a planning function, a MANUAL section, a summary clause; `run_contributions` plans all, refuses with one error listing every failure and a count, then runs the writers in order; `migrate` opens one index transaction under `ctx.spec`); one registry entry (`0.16.0`, 0.15 to 0.16) reading `SUMMARY` and `MANUAL` from the module. `MigrationOutcome.report`, `MigrationRun.reports`, and `sq migrate up` prints each line under its step.
     - A planning function takes `(ctx, db)` and returns a `Planned` that holds its own writer closure; this keeps the tuple of contributions fully typed with no Any, cast or ignore.
     - A later contributor appends one `Contribution` to `CONTRIBUTIONS` and one row to `POSTCONDITIONS` in `tests/cli/test_migrate_up_rewrites_comment_headers_cli.py`; the "every contribution" test is parametrised over the tuple and fails until a row exists.
@@ -820,7 +820,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
-- [2026-10-15T22:51:01Z] Elias Python:
+- [2026-10-15T22:51:01Z] `python-dev` Elias Python:
   - - Built: the `comment-headers` contribution. Planning reads every role and operator (live and retired) from its own file's frontmatter, adds `Operator` and `squads`, scans every discussion region (`discussion` and any `:discussion` tag, found with `find_markers`, view tags excluded) at column 0 only, resolves each legacy name over the whole corpus, and reports failures as `file:line` lines (no entry, several entries sorted, bad timestamp, region not closed) then a count, one line per failing name, the remedy (names `a squads release that reads schema vX (vY is one)`, adds the earlier-steps sentence below 0.15) and "Nothing was written". The writer re-reads each file as bytes, replaces only legacy header lines keeping the name's bytes and each line's own terminator (CRLF kept), and writes no frontmatter, so `updated_at` is untouched.
     - Operators whose slug does not start with `op-` are listed in the completed run's report, never refused (the architect's pending amendment can turn that into a refusal later).
     - Tests: `tests/service/test_the_header_migration_resolves_every_name_before_it_writes.py` (shape table: 10 resolving rows, 6 refusing, 4 left alone, body header, unclosed region, operator without full_name, role titled Operator, odd operator slug) and `test_the_header_migration_changes_headers_only.py` (failure by top-level/story/subtask/finding x first/middle/last, one failure among many files, all kinds in one report, bullets byte-identical incl. fenced code, blank continuation, nested list, CRLF, comment-level equivalence against the legacy parse, idempotence, interrupted write then rerun, below 0.15 chain with and without a refusal, a second contribution editing one file). The refusal row for the gate's behavioural table is in `test_a_refused_migrate_up_names_only_commands_the_gate_permits.py`.
@@ -907,7 +907,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
-- [2026-10-15T22:51:04Z] Elias Python:
+- [2026-10-15T22:51:04Z] `python-dev` Elias Python:
   - - Built `tests/fixtures/corpus/v0_15_discussions/` with the released 0.15.0 tool (`~/.local/bin/sq`, `squads 0.15.0`), never hand-edited, clock via `--at` from 2025-05-20T11:01:00Z a minute per command; build commands are in `tests/fixtures/corpus/README.md`. 19 header lines: 18 in discussions (role of each kind, developer role, accented operator, `Operator`, a `squads` retype entry, story/subtask/finding and every top-level type, an archived role and an archived operator that commented) plus 1 quoted in a task body outside any discussion. Reference `sq search`/`sq inbox` output of the released tool is under `tests/fixtures/corpus_references/v0_15_discussions/`.
     - Built `tests/fixtures/corpus/v0_16/` by the real `sq migrate up` of this build on a scratch copy of the frozen `v0_15`, `--at 2025-05-20T11:00:00Z`; its diff from `v0_15` is the two schema stamps.
     - `_CORPUS_CASES` gained both rows. The role-mirror test now asserts its premise only for corpora older than 0.15 and ignores a developer role's kept `model`; the template-owned-skill test skips a corpus with none.
@@ -988,7 +988,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
-- [2026-10-15T22:51:07Z] Elias Python:
+- [2026-10-15T22:51:07Z] `python-dev` Elias Python:
   - - **1. Copy (driven).** `git archive 126a5570 squads .squads.toml .claude CLAUDE.md` into a scratch directory; dev build is this uncommitted tree on top of 126a5570 (schema 0.16). Copy deleted afterwards.
     - **2. Totals (driven).** 990 item files scanned, 3175 discussion regions, 3885 legacy headers, 0 already in the new grammar, 881 files hold a legacy header. Independent count: `rg '^- \['` over the copy's `.md` files gives 3887 lines, minus the 2 new-grammar examples in the body of ADR-979 (outside any region) = 3885. The count method was validated on FEAT-000026 (13 lines, matches its file). The planning pass wrote nothing (tree hash identical before and after).
     - **3. Names that do not resolve: none.** Empty list: 0 failures, no bad timestamp, no unclosed region, no name matching two entries.
@@ -1003,7 +1003,7 @@ Gates and working rules: the task body.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-12T06:50:36Z] Olivia Lead:
+- [2026-10-12T06:50:36Z] `tech-lead` Olivia Lead:
   - 2026-10-12: authored from FEAT-980 and ADR-979 under the build order of this date (MILE-934): this task creates the 0.16 migration step and TASK-990 and FEAT-976 add to it. Left in Draft, nothing promoted, no developer briefed. Three tasks: this one (stories 1 to 4, Python), TASK-1005 (story 4, VS Code client, typescript-dev) and TASK-1006 (story 5, tech-writer). Everything below is read, not driven, unless marked. @manager
     
     **To confirm with the architect before a developer starts.** Each is built as stated in the body under "Rules this task fixes where the decision is silent"; say if one is wrong.
@@ -1030,7 +1030,7 @@ Gates and working rules: the task body.
     **Sentences elsewhere that the new order makes wrong** (not edited, they are not this task's): TASK-990's "Migration and schema" section and ST8 still create the runner; TASK-991's last working rule says FEAT-976 and FEAT-980 add their paragraphs to a migration section it creates, where TASK-1006 now creates it. FEAT-980 itself has no sentence saying another feature creates the runner.
     
     **What TASK-990 and FEAT-976 inherit.** One contribution appended to the tuple in `_migrations/_v0_15_to_v0_16.py` and one row in the runner's test table. The report channel TASK-990's ST8 planned to add (`MigrationOutcome.report`, `MigrationRun`, the printed lines) is built here.
-- [2026-10-12T06:54:13Z] Catherine Manager:
+- [2026-10-12T06:54:13Z] `manager` Catherine Manager:
   - 2026-10-12, manager's calls on the tech lead's four questions for the operator. Three are mine and are flagged to the operator as such; one is his.
     
     - **One task, two review points.** TASK-1004 stays one task; the reviewer passes after ST3 and at the end. The writer, the reader and the migration cannot ship apart.
@@ -1039,9 +1039,9 @@ Gates and working rules: the task body.
     - **Open, for the operator:** TASK-1005 shows the slug in the VS Code preview, which story 4 does not ask for. TASK-1005 is not promoted until he answers.
     
     The eight design questions are with @architect; TASK-1004 is not promoted until they are ruled and TASK-954 has landed.
-- [2026-10-15T21:43:32Z] Catherine Manager:
+- [2026-10-15T21:43:32Z] `manager` Catherine Manager:
   - Dispatched to @python-dev: ST1-ST3 first, then the review checkpoint, then ST4-ST7 (manager call of 2026-10-12). -C (FEAT-1015) has landed; scratch probes use -C.
-- [2026-10-15T22:04:38Z] Elias Python:
+- [2026-10-15T22:04:38Z] `python-dev` Elias Python:
   - - @manager ST1 to ST3 are done and ST4 to ST7 untouched: the review checkpoint. Nothing committed. Gates: `pyright` 0 errors, `ruff check src tests` and `ruff format --check src tests` clean, `tests/meta` 356 passed. A wide targeted run (unit, cli, service, tui, integration, filtered by comment/discussion/search/import/roster/repair/migration keywords) gave 4036 passed, 8 skipped, 0 failed. No full suite run. The squad on this branch still holds legacy headers, so this build reads none of them until ST4 to ST7 land, as the task expects.
     - **Driven** (scratch squads, dev build with `-C`): importer with out-of-grammar and unregistered actors on the previous commit (wrote them verbatim) and on this build (refuses `Bad Actor`, line numbered, nothing written); `search --json` and `inbox --json` diffed identical between the previous commit's source and this build; importer `update` with a title on a role and an operator (renamed the file, before the fix); importer `fields` and `unset_fields` on `slug`; project role file, catalog entry, import and `dev add --tech op` for each reserved slug; every corpus fixture migrated with roster files compared; every test table falsified, counts on each subtask.
     - **Read, not driven**: the `_apply_override` slug-mismatch refusal (pinned by a CLI test, not changed); the VS Code client (untouched, TASK-1005's work); the styled TUI tab through a mounted screen (the pure `_discussion_view` is asserted).
@@ -1057,7 +1057,7 @@ Gates and working rules: the task body.
       - Changed behaviour: an importer `update` title on a role, skill or operator now changes the title only; the file name and slug stay.
     - **Clause to test**: US1 grammar, parser, search scan, round trips: `test_comment_header_grammar.py`, `test_every_comment_writer_stamps_the_slug_header.py`, `test_search_and_inbox_read_the_header_the_way_comments_do.py`, `test_comment_writers_stamp_the_slug_cli.py`. US1 human renders and US4 Python half: `test_discussion_shows_the_authors_slug.py`. US2: `test_a_roster_slug_is_fixed_at_creation_cli.py`, `test_migration_never_changes_a_roster_slug.py`.
     - **Rewritten, not deleted**: `test_discussion_comment_formatting_and_mentions.py` (four tests to the new signature), `test_comments_readback_command_cli.py` (key set), `test_time_forging_backdates_items_and_comments.py` (stored header), five goldens.
-- [2026-10-15T22:51:34Z] Elias Python:
+- [2026-10-15T22:51:34Z] `python-dev` Elias Python:
   - - @manager ST1 to ST7 are done and REV-1026 F1, F2, F4, F5 and F6 are Fixed (F3 left for the architect's amendment). Nothing is committed. Gates: `pyright` 0 errors, `ruff check src tests` and `ruff format --check src tests` clean, `sq check` clean. Wide run once to a file (`tests/meta tests/unit tests/service tests/integration tests/cli tests/tui`): 10404 passed, 12 skipped, 0 FAILED. No slow tests, no full suite.
     - **Review fixes (driven).** F1: a message is split with `splitlines()` as the readers do; one table of every `splitlines` separator x six writers (item and subtask, `-m` and `--file`, importer on both) reads back as exactly one comment under the true author (52 red when reverted). F2: `_create_model` demands the slug grammar for every roster type and the reserved check ignores case (10 and 1 red). F4: `ANONYMOUS_SLUG` and `ANONYMOUS_NAME` live in `_models/_participants.py`. F5: the importer refuses `squads` and `operator` as a comment actor, `ghost` still imports (2 red). F6: `unset_fields` is validated with the same `require_settable` as `fields` (12 red); this replaced my slug-only guard.
     - **Migration, driven.** The 0.16 step (`_migrations/_v0_15_to_v0_16.py`), `MigrationOutcome.report`, `MigrationRun.reports`, the report lines under a step, `sq migrate help` row, `chlog v0.15.0..v0.16.0`, the failure report and MANUAL are built as ST4 and ST5 specify. Each subtask carries its own comment with tests and falsification counts. The operator-slug rule (F3) is report-only: an operator slug without `op-` is listed in a completed run's report.
@@ -1065,11 +1065,11 @@ Gates and working rules: the task body.
     - **Beyond the brief, for your attention.** (1) Nine tests ran from the repository root and resolved this repository's own 0.15 squad, so the schema bump made them refuse; a `tests/conftest.py` autouse fixture now starts each test in an empty directory. (2) Search attribution differs from the released tool for one hit in the new fixture: an indented `- [x] ...` line inside a comment was read as a second header by the released scan; the shared parser attributes it correctly (asserted explicitly). (3) The index file of a refused migrate run is rebuilt by the run's first step, as before; item files and the stamp are untouched (tested by hash). (4) The step's failure remedy names the release as `a squads release that reads schema v0.15 (v0.15.0 is one)` through a deferred import of `release_reading_schema`, because the registry imports the runner.
     - **Golden diff to review** (`UPDATE_GOLDENS=1` on `test_migrate_up_output_is_unchanged_for_every_corpus.py`): the schema stamp in 8 `.squads.json` and 6 `.squads.toml` copies, one added line in `v0_15/SHARED.txt`, new directories `v0_15`, `v0_15_discussions`, `v0_16`. Also changed by hand: `tests/goldens/reflog_shape.json` stamp. New fixtures: `tests/fixtures/corpus/v0_15_discussions` (written by the released 0.15.0 tool), `v0_16`, and the reference output under `tests/fixtures/corpus_references/`.
     - **Adopter-visible additions for the tech writer.** The migration's report line (`N comment header(s) to rewrite in M file(s); K already carried a slug`), the failure report (one `file:line` per header, `N problem(s) found.`, one line per failing name with header and file counts, the remedy, `Nothing was written and the schema is unchanged.`), the `chlog` MANUAL text, the operator-without-`op-` report note, the new refusals from the review fixes (`cannot create this role as 'Squads': a slug is lowercase letters, digits and hyphens`; `cannot comment as 'squads': that slug is reserved` for an import; `'<key>' is not a settable field on a <type>; valid: ...` for an unknown `unset` key), and that a message line break of any kind never starts a new comment.
-- [2026-10-16T07:40:44Z] Paul Reviewer:
+- [2026-10-16T07:40:44Z] `reviewer` Paul Reviewer:
   - End-of-task review is REV-1027: ChangesRequested on three medium findings (below-0.15 refusal remedy, operator without full_name, importer refusing as operator). Details on the review. @python-dev @manager
-- [2026-10-16T08:04:49Z] Catherine Manager:
+- [2026-10-16T08:04:49Z] `manager` Catherine Manager:
   - Moved to Done under the manager's delegation (2026-10-11): REV-1026 and REV-1027 Approved, full suite 10,410 passed, gates clean. REV-1026 F3 stays open pending the ADR-979 amendment (A1–A6) confirmation.
-- [2026-10-16T08:19:24Z] Theo Writer:
+- [2026-10-16T08:19:24Z] `tech-writer` Theo Writer:
   - - @python-dev MANUAL review for the comment-header contribution (`_HEADER_MANUAL`), read as an adopter who was just refused. Each remedy was performed with the released 0.15.0 tool on a scratch squad, then the dev build's `sq migrate up` completed. The wording is yours to apply; `docs/migration.md` § "Upgrading to 0.16: the schema step" already uses the corrected remedies, so the two agree once these land.
       - **"A role is known by its title" is misleading (driven).** `sq role list` shows `Name: Robert Architect` and `Title: architect`; the runner matches frontmatter `title`, which is the Name column. Proposed: "A role is known by its name (the `Name` column of `sq role list`)".
       - **The example paths are not real path shapes.** `tasks/add-login.md:41` should be `tasks/TASK-000012-add-login.md:41` (and the same for the other two lines). Optionally add the per-name line the real report prints after the count: `  'Hugo Ops': 1 header(s) in 1 file(s)`.
@@ -1078,6 +1078,6 @@ Gates and working rules: the task body.
       - **The release sentence disagrees with the refusal below 0.15 (driven on a copy of the v0_11 corpus).** The MANUAL says "made with the squads release your squad is stamped for"; the refusal says "a squads release that reads schema v0.15", and below 0.15 the stamp is still the old one. Proposed: "Changes to the roster are made with a squads release that reads the squad's schema; the refusal names one. On a squad stamped below 0.15, run `sq migrate up` with 0.15.0 first, then change the roster with it."
       - **Missing bullet (driven).** The "is not a well-formed sq marker (one space on each side of the tag)" failure has no remedy line. Proposed: widen the last bullet to "A discussion marker that shares its line with text, or is not spelled as sq writes it: put each `sq:` marker on a line of its own, spelled as sq writes it (the tag between `<!--` and `-->`, one space on each side)."
       - Everything else holds as written: the header-only rewrite, no frontmatter change, the per-kind failure text, the timestamp remedy (indenting the line makes it part of the comment above; driven), the no-map-option sentence, re-run safety, and the operator-without-`op-` report line.
-- [2026-10-16T08:22:34Z] Elias Python:
+- [2026-10-16T08:22:34Z] `python-dev` Elias Python:
   - - @manager @tech-writer all six MANUAL corrections applied in `_HEADER_MANUAL` (and the preamble) in `src/squads/_migrations/_v0_15_to_v0_16.py`, worded as `docs/migration.md`: (1) a role is known by its name, the Name column of `sq role list`; (2) example paths in the real shape (`TASK-NNNNNN-...`, since the ticket-id guard bans real numbers) plus the count and per-name lines; (3) the actual re-add commands (`sq role activate <slug> --name`, `sq dev add --tech --name`, `sq operator add --slug`); (4) duplicate names: edit `title:` / `full_name:` for the run, edit back and run `sq repair`; (5) roster changes use a release that reads the squad's schema, the refusal names one, below 0.15 run 0.15.0 first; (6) the marker bullet now covers "not spelled as sq writes it". The "nothing is written" claims in the MANUAL and the preamble now say "this step writes nothing and the schema stamp is unchanged", as the refusal does. SUMMARY needed no change. No test pinned the old text. Gates: pyright and ruff clean, `sq check` clean, tests/meta plus the migration service, CLI and registry tests: 440 passed. Not committed on top of 45ea351e.
 <!-- sq:discussion:end -->

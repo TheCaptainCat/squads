@@ -137,25 +137,25 @@ This is the shape `item_skill_shadowed` exists to report, and the standing sweep
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-09-28T19:12:49Z] Elias Python:
+- [2026-09-28T19:12:49Z] `python-dev` Elias Python:
   - Reclaim now excludes any per-item-type skill whose type is project-declared (_is_provably_legacy_type in _v0_14_to_v0_15.py) — its declaration date is unrecoverable from disk, so its skill's content is never provably legacy and is skipped and reported instead. Reproduced the exact repro (skill add sq-widget + authored body + later [items.widget] + migrate up on a fresh v0.14.0 squad): SKILL is now skipped by id, body byte-unchanged, sq check reports item_skill_shadowed instead of silent loss.
-- [2026-09-28T22:51:31Z] Paul Reviewer:
+- [2026-09-28T22:51:31Z] `reviewer` Paul Reviewer:
   - Verified the exact repro, still Open. On a real v0.14.0 squad (`uvx … @v0.14.0`), running `skill add sq-widget` with prose, then declaring `[items.widget]` and migrating, now skips SKILL-21 and leaves the prose byte-unchanged. Fixed for that shape (fc54db1d). New repro for the same loss via a type that squads bundled only from 0.14:
     1. `uvx --from git+file://…@v0.13.1 sq init`, then `sq skill add sq-milestone --desc "our milestone runbook"` and `sq skill sq-milestone body -m "Hand-written milestone runbook: cut the branch, tag, announce."`. `sq check` is clean. (`milestone` and `contract` do not exist at 0.13.1, so this is an ordinary custom skill.)
     2. Run `sq migrate up` with v0.14.0 only: the prose survives.
     3. Run `sq migrate up` with HEAD: `SKILL-000019-sq-milestone.md` now holds only the `item_skill` tag. The prose is gone, with no skip row.
     
     Read: `_BUNDLED_TYPES_AT_0_14` includes `contract` and `milestone`, and `_is_provably_legacy_type`'s docstring premise ("every squad … was created no earlier than some release … which already bundled every type in `_BUNDLED_TYPES_AT_0_14`") is false. A squad created at 0.8–0.13.1 had neither type, so its `sq-contract`/`sq-milestone` could be authored. The provable set is the types bundled at the corpus's *origin* release. At minimum that means excluding types introduced in 0.14. Better: key on whether the body equals what the released writer rendered.
-- [2026-09-28T23:26:59Z] Elias Python:
+- [2026-09-28T23:26:59Z] `python-dev` Elias Python:
   - Replaced the type-bundled-ness heuristic with a real provenance signal: seed_bundled_skills stamps a per-item-type skill's extra with only {slug}, add_skill always also stamps description/when_to_use/allowed_tools (even empty) -- verified against the v0_14 fixture and real v0.13.1/v0.14.0 uvx installs. _is_provably_template_seeded reads that presence directly; the old bundled-type set is gone. Reproduced red->green on a fresh v0.13.1->v0.14.0->this-tree chain (sq-milestone runbook now survives the 0.15 migration, skipped and reported) and via pytest falsification (stub true: 5 tests fail, incl. both new regression tests; restored: all pass). tests/fixtures/corpus/v0_15 confirmed unchanged (its own skills are genuinely bare-extra tool-seeded; test_migration_corpus.py passes unmodified).
-- [2026-09-29T00:04:38Z] Paul Reviewer:
+- [2026-09-29T00:04:38Z] `reviewer` Paul Reviewer:
   - Re-verified against HEAD 1ab4d170, still Open. The review's own chain passes: a `sq skill add sq-milestone` at v0.13.1, then v0.14.0, then HEAD skips SKILL-19 and keeps its prose, because its `extra` carries `description`/`when_to_use`/`allowed_tools`. But the provenance signal is unsound for a skill made by another creation route. New repro:
     1. At v0.13.1, `sq import` one event: `{"op":"create","type":"skill","title":"sq-contract","slug":"sq-contract","body":"Imported contract runbook prose.","as":"manager"}`. The created file has **no `extra` at all**, and `sq check` is clean. (`contract` is not a type at 0.13.1, so this is an ordinary custom skill.)
     2. `sq migrate up` with v0.14.0: the prose survives.
     3. `sq migrate up` with HEAD: `SKILL-000019-sq-contract.md` now holds only the `item_skill` tag. The prose is gone, and there is no skip row.
     
     Read: `_is_provably_template_seeded` returns True whenever the `add_skill` keys are *absent*, so a skill created by the importer, by `sq adopt` of a hand-written file, or by hand (none of which stamps those keys) reads as tool-seeded. Absence is not proof. The signal needs a positive marker of tool seeding, or a body that matches what the released writer rendered.
-- [2026-09-29T07:51:27Z] Elias Python:
+- [2026-09-29T07:51:27Z] `python-dev` Elias Python:
   - Per op-pierre's ruling: removed the provenance check and the project-declared-type skip entirely.
     The 0.15 reclaim now overwrites every marker-free, non-empty per-item-type skill body onto its
     tag unconditionally, same as a role/system skill always has -- no distinction between a genuine
@@ -174,7 +174,7 @@ This is the shape `item_skill_shadowed` exists to report, and the standing sweep
     in for sq-widget/sq-milestone: exactly the 2 new overwrite-asserting tests go red; restored:
     green). tests/fixtures/corpus/v0_15 confirmed unchanged (test_migration_corpus.py passes as-is --
     its own bundled skills were always overwritten either way).
-- [2026-09-29T09:16:18Z] Paul Reviewer:
+- [2026-09-29T09:16:18Z] `reviewer` Paul Reviewer:
   - Verified against op-pierre's ruling at HEAD 8042b0f6. On a v0.13.1 → v0.14.0 → HEAD chain, a `sq skill add sq-milestone` runbook, an `sq import`-created `sq-contract`, and the tool-seeded `sq-bug` all end tag-only. The overwrite is reported in the step's count ("— 12 changed"), and `sq migrate chlog v0.14.0..v0.15.0` says plainly that every marker-free per-item-type body is overwritten unconditionally before 1.0. There is no provenance skip; the only skips left are an unreadable file, a missing region and marker-shaped content.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -197,9 +197,9 @@ This is the shape `item_skill_shadowed` exists to report, and the standing sweep
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-09-28T21:15:32Z] Elias Python:
+- [2026-09-28T21:15:32Z] `python-dev` Elias Python:
   - Fixed: mirrored insert-side separator (place_view_tags) + made strip_marker_lines run-aware for a chain of tags sharing one cut point (both were needed — the fuzz found the second bug). Round-trip/idempotence proven via 800-case seeded fuzz + table cases; falsified.
-- [2026-09-28T22:51:33Z] Paul Reviewer:
+- [2026-09-28T22:51:33Z] `reviewer` Paul Reviewer:
   - Verified against HEAD (61a95690). All three repros are clean on a scratch squad: the `after(^Line one)` → `bottom` move closes the paragraph back up exactly; the `## Objective`/`notes after(^$)` rewrite is byte-identical; and the first replace over the scaffold with `after(^_TODO: what counts)` exits 0 without `--force`. My original 7,744-case fuzz now shows 0 failures. Two consequences of the mirrored-spacing fix are filed as F12 and F13.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -225,9 +225,9 @@ This is the shape `item_skill_shadowed` exists to report, and the standing sweep
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-09-28T21:15:33Z] Elias Python:
+- [2026-09-28T21:15:33Z] `python-dev` Elias Python:
   - Fixed: reinstate_absent_body_region recovers a missing sq:body pair when the would-be span is empty-or-tag-only (never guesses at real prose); wired into _converge_body_tag (repair/sync/migrate) and view add/disable (roster hosts only). New sq check finding for the region-entirely-absent shape. Corrected the same false 'reported skip' claim in the 0.14->0.15 reclaim's second step.
-- [2026-09-28T22:51:35Z] Paul Reviewer:
+- [2026-09-28T22:51:35Z] `reviewer` Paul Reviewer:
   - Verified against HEAD. With the body markers deleted from `ROLE-000005-qa.md`, `sq repair`, `sq role qa view add role_definition` and `sq sync` (drifted) each reinstate the region and leave `sq check` clean. `sq check` names the region-absent shape before recovery. A reinstatement next to headed prose is filed as F14.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -249,9 +249,9 @@ This is the shape `item_skill_shadowed` exists to report, and the standing sweep
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-09-28T22:11:32Z] Elias Python:
+- [2026-09-28T22:11:32Z] `python-dev` Elias Python:
   - Fixed: skill_authoring_surface now names the concrete file/type (the [types.<t>] lane in .overrides/playbook.toml, or the .overrides/templates/<path> view-template-override path + sq override scaffold command), using ROLES_OVERRIDE_FILENAME/PLAYBOOK_OVERRIDE_FILENAME/new TEMPLATES_OVERRIDE_DIR constants. Also fixed a real bug this surfaced: _render_body's empty-hint print left the dynamic text unescaped, so Rich silently swallowed the new [types.bug]-shaped text (and, pre-existing, any hint mentioning [selected]) as unrecognized markup.
-- [2026-09-28T22:51:36Z] Paul Reviewer:
+- [2026-09-28T22:51:36Z] `reviewer` Paul Reviewer:
   - Verified: `sq-bug` names the `[types.bug]` lane in `.overrides/playbook.toml`, `squads` names `.overrides/playbook.toml`, and `greeting` names `.overrides/templates/views/greeting_skill.md.j2` plus `sq override scaffold views/greeting_skill.md.j2`, which runs and creates the file. The docs/workflow.md:1219 sample matches the output. The hint text with brackets renders escaped in `sq skill sq-bug show`.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -273,11 +273,11 @@ This is the shape `item_skill_shadowed` exists to report, and the standing sweep
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-09-28T22:11:34Z] Elias Python:
+- [2026-09-28T22:11:34Z] `python-dev` Elias Python:
   - Fixed: the 0.14->0.15 MANUAL no longer says 'nothing to fix here' for an out-of-region milestone tag; it now says what docs/workflow.md already did -- delete the out-of-region line, then view add milestone_rollup -- since every body write now re-inserts an absent seeded tag, making the old advice actively wrong. Docs untouched, per instruction.
-- [2026-09-28T22:36:51Z] Elias Python:
+- [2026-09-28T22:36:51Z] `python-dev` Elias Python:
   - Follow-up (writer's verification pass): the sq migrate up CLI's own skip line (src/squads/_cli/_migrate.py, separate from the MANUAL text already fixed) still ended 'needs none of this' for an out-of-region milestone tag. Aligned it with the MANUAL/docs remedy (delete the outside line, then view add); validated grep found no other copy of the old wording. Reproduced red-then-green on a v0_14 fixture copy.
-- [2026-09-28T22:51:38Z] Paul Reviewer:
+- [2026-09-28T22:51:38Z] `reviewer` Paul Reviewer:
   - Verified: "nothing to fix" and "Do not run" are gone from the MANUAL and from the `_cli/_migrate.py` skip line. Both now say to delete the out-of-region line, then `view add`, matching docs/workflow.md.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -305,9 +305,9 @@ position = "after(x)\n"
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-09-28T22:11:35Z] Elias Python:
+- [2026-09-28T22:11:35Z] `python-dev` Elias Python:
   - Fixed: both _BARE_TOML_KEY_RE and _AFTER_POSITION_RE now use fullmatch instead of match, so a view name or an after() pattern ending in a trailing newline is refused at load, matching the alphabet rule's own intent.
-- [2026-09-28T22:51:41Z] Paul Reviewer:
+- [2026-09-28T22:51:41Z] `reviewer` Paul Reviewer:
   - Verified: `[views."nl\n"]` and `position = "after(x)\n"` are both refused by `sq workflow lint` (2 errors).
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -331,9 +331,9 @@ These sites only display the shape and write nothing, so no output is wrong toda
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-09-28T22:11:37Z] Elias Python:
+- [2026-09-28T22:11:37Z] `python-dev` Elias Python:
   - Fixed: all five current hand-spelled sq:view:{name} sites (the 4 named plus one my own F11 batch added) now route through markers.open_marker(markers.view_tag(...)) or markers.PREFIX+markers.view_tag(...).
-- [2026-09-28T22:51:43Z] Paul Reviewer:
+- [2026-09-28T22:51:43Z] `reviewer` Paul Reviewer:
   - Verified: `rg -n 'f"[^"]*sq:view:\{' src/squads --glob '*.py'` finds nothing.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -352,9 +352,9 @@ These sites only display the shape and write nothing, so no output is wrong toda
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-09-28T22:11:41Z] Elias Python:
+- [2026-09-28T22:11:41Z] `python-dev` Elias Python:
   - Fixed all three: view disable now distinguishes 'placed' (no prior tag) from 'disabled' (turned off or collapsed) via a new view_tag_present pre-check; the overwrite preview passes the tag-stripped prose (current_prose) to reject_body_overwrite instead of the raw, tag-and-all region; the conflicting-state refusal now leads with 'item_type addr:'.
-- [2026-09-28T22:51:45Z] Paul Reviewer:
+- [2026-09-28T22:51:45Z] `reviewer` Paul Reviewer:
   - Verified: `view disable nope` prints "had no existing tag — placed disabled"; the overwrite preview counts 3 lines for `hello`/blank/`appended`; the conflict refusal leads with "milestone 21:".
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -380,11 +380,11 @@ The same fixture also shows the condition **reported twice**: `duplicate marker 
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-09-28T19:38:29Z] Elias Python:
+- [2026-09-28T19:38:29Z] `python-dev` Elias Python:
   - add_view/disable_view's no-op check now requires exactly one matching tag in the target state (view_tag_settled in _views.py), not a set-of-states comparison that a same-state duplicate also satisfies -- both verbs now genuinely collapse a duplicate via place_view_tags's own force=. sq check's duplicate-by-name report now fires only for a cross-state duplicate (an enabled plus a disabled copy), which _marker_issues cannot see; a same-state duplicate is reported once, by _marker_issues alone. Reproduced both original repros (2 enabled + view add, 2 disabled + view disable) on a scratch squad: single report, remedy places/collapses, sq check clean after.
-- [2026-09-28T22:36:50Z] Elias Python:
+- [2026-09-28T22:36:50Z] `python-dev` Elias Python:
   - Follow-up (writer's verification pass): a same-state duplicate (two enabled, or two disabled, copies) used to surface only _marker_issues's generic 'duplicate marker ...' with no remedy, unlike the cross-state case. _seeded_view_issues's duplicate condition now covers both shapes (both verbs already collapse a same-state duplicate too), and _marker_issues defers the whole view-tag family to it -- exactly one finding, carrying the real view add/disable remedy. Reproduced red on the pre-follow-up code, green after; both the widened condition and the marker-issues deferral falsified independently.
-- [2026-09-28T22:51:47Z] Paul Reviewer:
+- [2026-09-28T22:51:47Z] `reviewer` Paul Reviewer:
   - Verified: for two enabled copies, `view add` collapses them; for two disabled copies, `view disable` collapses them. Each duplicate is reported exactly once, by the named remedy line, and check is clean afterwards. A cross-state pair is still refused on a body write, with both remedies named.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -408,9 +408,9 @@ ADR-880 §1 says "A view dropped from `[selected]` seeds nothing anywhere". The 
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-09-28T19:38:41Z] Elias Python:
+- [2026-09-28T19:38:41Z] `python-dev` Elias Python:
   - _create_core now strips every view tag from the creation template's own rendered region before running place_view_tags, so a bundled scaffold's hardcoded tag (role_definition in agents/role.md.j2, milestone_rollup in items/milestone.md.j2) is never treated as existing content to preserve -- what survives is decided entirely by seeded_view_names, byte-identical to the template's own copy for a still-declared view and absent for a dropped one. Fixed the false _create_core comment claiming this already worked. One fix point covers every creation path (create, activate_role/dev add/role add, add_skill, add_operator, and the bulk importer's own create op, which all funnel through _create_core); sq adopt never renders a creation template, so it cannot reach this shape. Reproduced both original repros (dev add and create milestone under a dropped view) on a scratch squad: no dangling tag, no check error, no literal tag shown to the reader.
-- [2026-09-28T22:51:50Z] Paul Reviewer:
+- [2026-09-28T22:51:50Z] `reviewer` Paul Reviewer:
   - Verified: with `role_definition` and `milestone_rollup` dropped, `sq dev add --tech rust` and `sq create milestone` write no tag, `sq check` has no error on either, and `show` prints no literal tag. After the views are restored, check names `view add`.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
@@ -432,11 +432,11 @@ Either way, `sq role dev-agent show` then renders the legacy `# Dev Agent` text 
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-09-28T19:12:57Z] Elias Python:
+- [2026-09-28T19:12:57Z] `python-dev` Elias Python:
   - sq check's missing-seeded-view-tag finding now names only view disable, not view add, on a roster host (role/skill) whose body already carries non-empty prose alongside the missing tag -- view add would stack a second, live rendering, view disable renders nothing so the surviving prose stays the document's only rendering. Reproduced both routes (adopt of a v0_11-shaped folder with no config, and a marker-shaped migration skip followed by hand-removing the marker) on scratch squads: sq check now names only view disable, and running it ends with sq check clean and a single rendering, no data loss.
-- [2026-09-28T21:15:35Z] Elias Python:
+- [2026-09-28T21:15:35Z] `python-dev` Elias Python:
   - Fixed per op-pierre's ruling: sq check + the migration MANUAL now name the full 4-step remedy (drop view, clear text, restore view, view add) with exact filled-in commands, never view-disable-only. Verified end to end for role/system-skill/per-item-type-skill, both the adopt route and the marker-shaped-migration-skip route.
-- [2026-09-28T22:51:52Z] Paul Reviewer:
+- [2026-09-28T22:51:52Z] `reviewer` Paul Reviewer:
   - Verified against op-pierre's ruling, end to end. `sq check` names the filled-in four-step remedy (drop the view, clear the text, restore it, `view add`), with no `view disable` fallback. I ran each step literally for a role (`echo '{"op": "body", "target": "ROLE-1", …}' | sq import -`), for a system skill (`greeting`) and for a per-item-type skill (`sq-contract`) on an `sq adopt` of pre-0.14 folders, and for the role on the marker-skip migration route. Each ended with `sq check` clean and a single live rendering. One consequence, the remedy telling an author to delete a runbook F1's fix deliberately preserved, is filed as F15.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
@@ -464,7 +464,7 @@ That is from `sq milestone 23 show --raw`. In Markdown the view's output merges 
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
-- [2026-09-29T07:51:50Z] Elias Python:
+- [2026-09-29T07:51:50Z] `python-dev` Elias Python:
   - Per op-pierre's ruling: the padding now lives entirely in expand_view_tags (the one read-time
     expansion path) -- stored bytes are never touched, only the rendered output. Each rendered view
     gets a full blank line on either side that borders real prose, never at the body's own edges,
@@ -488,7 +488,7 @@ That is from `sq milestone 23 show --raw`. In Markdown the view's output merges 
     "takes the spacing of the spot it lands in" -- true of the stored bytes, but doesn't mention that
     read-time expansion now pads a rendered view out to a full blank line regardless of that stored
     spacing. Worth a clarifying sentence.
-- [2026-09-29T09:16:23Z] Paul Reviewer:
+- [2026-09-29T09:16:23Z] `reviewer` Paul Reviewer:
   - Verified per the ruling: the stored body keeps the author's single line break (`Line one…` / tag / `line two…`), and `show --raw` pads the rendered `notes` view with a blank line on each side, so it no longer merges with the prose. ADR-880 §4 is amended to match. One consequence for disabled tags is filed as F17.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
@@ -509,7 +509,7 @@ That is from `sq milestone 23 show --raw`. In Markdown the view's output merges 
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
-- [2026-09-29T07:52:02Z] Elias Python:
+- [2026-09-29T07:52:02Z] `python-dev` Elias Python:
   - A line holding only spaces/tabs now counts as blank for both placement (_local_separator, via a
     new _blank_run_length helper) and the chain-detection check in strip_marker_lines (changed
     .strip("\n \t") to .strip("\n") so a whitespace-only line between two hand-placed tags breaks
@@ -529,7 +529,7 @@ That is from `sq milestone 23 show --raw`. In Markdown the view's output merges 
     a second regression test for the chain-break case directly. Falsified both (stub the
     _build_segments fix: 200 cases red; stub the chain-detection fix: the dedicated chain test red);
     restored: green, 1001 passed. Ran the full fast suite (6260 tests) alongside F12 -- green.
-- [2026-09-29T09:16:30Z] Paul Reviewer:
+- [2026-09-29T09:16:30Z] `reviewer` Paul Reviewer:
   - Verified per the amended §4, which treats a whitespace-only line as a blank line. The F13 repro (`Intro paragraph.` / two-space line / `Second paragraph.`) keeps the two paragraphs separate after `view add` and `--append`. The whitespace line is normalised to an empty line, which the ADR allows, and my wider fuzz shows 0 non-whitespace changes. Recorded as a note, not a finding: a position whose pattern matches whitespace characters themselves (for example `after(^ +$)`) loses its match once the line is normalised, so such a tag moves on the next write (for example `A\n\t\n\nb c\n \nx`). That breaks §4's byte-stable wording, but only for that contrived pattern shape.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
@@ -550,11 +550,11 @@ This is the out-of-region shape BUG-957 tracks, but produced by the tool itself.
 #### Discussion
 
 <!-- sq:finding:F14:discussion -->
-- [2026-09-28T23:45:32Z] Elias Python:
+- [2026-09-28T23:45:32Z] `python-dev` Elias Python:
   - reinstate_absent_body_region now requires the span between the tag-run and the next real marker to collapse to exactly one heading line immediately followed by the sq:discussion open marker -- not just 'starts with #, and a discussion marker appears somewhere after'. The v0_11 dev-agent shape (heading-led prose running on for several lines before the file's real Discussion region) previously passed that looser check and got wrapped in front of, orphaning the prose; now it is correctly refused and left exactly as it was, and check reports the region-less-file finding plainly instead of going silent. Verified live: copied v0_11, deleted the role's sq:body markers, ran migrate up/repair/sync -- no crash, no data loss, sq check names the manual-recovery finding. Table-driven unit tests added (prose after frontmatter, heading-led with/without a real discussion region, tag-only, empty, unrelated marker, differing heading depth/text) and falsified (loosening the check back to the old behavior: exactly the 3 refusal tests go red; restored: 15/15 green).
-- [2026-09-28T23:57:41Z] Elias Python:
+- [2026-09-28T23:57:41Z] `python-dev` Elias Python:
   - Follow-up (writer): when the region is entirely absent, _seeded_view_issues now suppresses its own 'missing seeded view tag' report for that host, leaving _absent_body_region_issues as the sole finding -- its remedy is the only one that can ever work there (view add/disable both require an existing region). Reproduced both shapes (unsafe stray text: view add exited 1 before the fix; safe bare-tag: same working remedy, just duplicated), fixed, falsified (stub the suppression off: the unsafe-shape test goes red; restored: 16/16 green).
-- [2026-09-29T00:04:42Z] Paul Reviewer:
+- [2026-09-29T00:04:42Z] `reviewer` Paul Reviewer:
   - Verified against HEAD (a38ddeea, 1ab4d170). On a v0_11 copy with only the `sq:body` pair deleted from `ROLE-000001-dev-agent.md` (body starts with `# Dev Agent`), `sq migrate up` skips ROLE-1, the trailing repair leaves the file untouched, and `sq check` reports the missing region, saying to "recover the file by hand". Neither `view add` nor `repair` reinstates it. I also attacked a one-line heading body, prose after the tag run, and prose before the tag run: `after` is either multi-line or unheaded, and each is refused.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
@@ -577,11 +577,11 @@ The same pairing shows on an adopted `sq-contract` (v0_14 folders). There the te
 #### Discussion
 
 <!-- sq:finding:F15:discussion -->
-- [2026-09-28T23:27:06Z] Elias Python:
+- [2026-09-28T23:27:06Z] `python-dev` Elias Python:
   - sq check's missing-seeded-view-tag remedy and item_skill_shadowed's warning now agree: for a per-item-type skill whose slug still documents a currently-declared type (the exact shape F1's skip can leave), both name moving the prose to a new sq skill add <new-slug> first, then clearing the original -- never a clear-first sequence. clear_roster_body_cmd moved to _views.py (shared, no import cycle between _maintenance.py and _validators.py) so both compose the identical clear command. Also fixed the doubled-quote bug (repr-then-possessive gave 'widget''s). Verified end to end on two scratch squads: the v0.14.0 sq-widget/project-declared-type repro, and an sq adopt of v0_14-shaped folders (sq-contract, genuinely legacy) -- both converge to sq check clean with the moved prose intact under its new slug. Regression tests added and falsified (stub the old remedy text: exactly the 2 new tests fail; restored: green).
-- [2026-09-29T00:04:44Z] Paul Reviewer:
+- [2026-09-29T00:04:44Z] `reviewer` Paul Reviewer:
   - Verified the preservation part, but one step fails as written, so this stays Open. On the real v0.14.0 widget squad after the HEAD migration, `sq check` names the five steps, and running them literally preserves the runbook and ends with check clean for `sq-widget`. Step 1's read command is wrong, though: "read it with `sq skill sq-widget show --raw`". `--raw` only drops markdown rendering; stdout still starts with the `show` panel (id/slug/kind/status/file box), so `show --raw > moved.md` then `sq skill widget-runbook body --file moved.md` writes the panel into the new skill's body. Driven: `sq skill widget-runbook show --raw` now begins with the nested `SKILL-21 sq-widget … kind: system (template-owned)` box. `item_skill_shadowed` names the same command. It needs a command that prints the body alone.
-- [2026-09-29T00:18:30Z] Elias Python:
+- [2026-09-29T00:18:30Z] `python-dev` Elias Python:
   - Reopened root cause: `show --raw`'s stdout leads with the metadata panel box, so step 1's
     `> moved.md` captured the panel, not just the prose. Neither `--raw` nor the existing `--json`
     gave exact-bytes body-only output for a skill (an ordinary item's own `show --json` already has
@@ -601,9 +601,9 @@ The same pairing shows on an adopted `sq-contract` (v0_14 folders). There the te
     docs/workflow.md:521's sample `sq check` output block still shows the stale `show --raw` command
     in its literal text -- now false, flagged for the writer, not touched here (no docs edits this
     batch).
-- [2026-09-29T00:25:46Z] Paul Reviewer:
+- [2026-09-29T00:25:46Z] `reviewer` Paul Reviewer:
   - Verified Fixed at HEAD 611f6988 (b6a983b4). I migrated the v0.14.0-origin widget squad with HEAD and ran the five steps exactly as `sq check` prints them: `sq skill add widget-runbook`; `sq skill sq-widget show --json | jq -r .body > moved.md`; `body --file moved.md`; drop `item_skill`; `body -m "" --force`; restore; `view add item_skill`. The moved skill's `sq:body` region is byte-identical to the original runbook's region at the committed 0.14 base (`cmp`), and `sq check` is clean for both skills. A richer body (backticks, `$HOME`, brackets, quotes, a tab, a fenced block, non-ASCII) also round-trips unchanged through `show --json | jq -r .body` and `body --file`. The same command in `item_skill_shadowed`'s tag-present variant is a separate problem, filed as F16.
-- [2026-09-29T00:25:47Z] Paul Reviewer:
+- [2026-09-29T00:25:47Z] `reviewer` Paul Reviewer:
   - On `jq` in a check remedy (a judgement, not a finding): acceptable. The docs already depend on it (docs/recipes.md, docs/faq.md, and the `sq renumber` hint in `_cli/_main.py`), `jq -r` keeps the text exact apart from one trailing newline that `body --file` normalises, and the step is a one-time manual recovery, not a routine path. Two caveats worth a sentence in docs/workflow.md: `jq` is not a squads dependency and is absent on stock Windows/macOS; and on Windows PowerShell 5.1, `>` writes UTF-16, which `body --file` would then read wrongly (inferred, not driven). A jq-free way to print only the body (for example a `--body` or `--field body` flag on `show`) would remove both.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
@@ -628,7 +628,7 @@ The tag-missing variant (the five-step error) is unaffected, because there is no
 #### Discussion
 
 <!-- sq:finding:F16:discussion -->
-- [2026-09-29T07:51:37Z] Elias Python:
+- [2026-09-29T07:51:37Z] `python-dev` Elias Python:
   - Per op-pierre's ruling: removed the jq/show-json read step from both remedies entirely. The
     item_skill_shadowed warning and the seeded-view-issues check error now both say only: move the
     prose into its own skill with sq skill add <new-slug>, then drop the type from [selected], clear
@@ -640,7 +640,7 @@ The tag-missing variant (the five-step error) is unaffected, because there is no
     Verified end to end on a scratch squad (the gizmo repro): the warning names no read command at
     all now; ran the corrected 4-step sequence (move manually, drop, clear, restore) and confirmed sq
     check ends clean with the prose intact under its new skill.
-- [2026-09-29T09:16:35Z] Paul Reviewer:
+- [2026-09-29T09:16:35Z] `reviewer` Paul Reviewer:
   - Verified: the tag-present `item_skill_shadowed` warning on `sq-gizmo` now says "move the prose first (`sq skill add <new-slug>`)", with no jq or save command, and `rg -n jq src/squads` finds only the unrelated `sq renumber` hint.
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
@@ -659,7 +659,7 @@ The tag-missing variant (the five-step error) is unaffected, because there is no
 #### Discussion
 
 <!-- sq:finding:F17:discussion -->
-- [2026-09-29T09:27:57Z] Paul Reviewer:
+- [2026-09-29T09:27:57Z] `reviewer` Paul Reviewer:
   - Verified at f053083e. The original repro now renders `Line one…` directly followed by `line two…` (`show --raw` and `show --json`). I also drove the shapes through `show --raw`, and each renders as if the tag were absent: mid-paragraph → `A line\nB line`; its own paragraph → `A para\n\nB para`; body start and body end → `A para`; sharing a line → `A B` and `A text\nB line`; beside an enabled view → `A para`, the padded view, `B para`; two disabled tags mid-paragraph → `A line\nB line`; two disabled tags between paragraphs → `A para\n\nB para`; disabled-only body → empty.
 <!-- sq:finding:F17:discussion:end -->
 <!-- sq:finding:F17:end -->
@@ -674,7 +674,7 @@ The tag-missing variant (the five-step error) is unaffected, because there is no
 #### Discussion
 
 <!-- sq:finding:F18:discussion -->
-- [2026-09-29T09:28:05Z] Paul Reviewer:
+- [2026-09-29T09:28:05Z] `reviewer` Paul Reviewer:
   - Verified: `_services/_maintenance.py:601-603` now says the reclaim never ran against such prose (an `sq adopt`, or a type declared later), which matches the unconditional reclaim.
 <!-- sq:finding:F18:discussion:end -->
 <!-- sq:finding:F18:end -->
@@ -683,40 +683,40 @@ The tag-missing variant (the five-step error) is unaffected, because there is no
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-28T18:36:29Z] Paul Reviewer:
+- [2026-09-28T18:36:29Z] `reviewer` Paul Reviewer:
   - @manager @tech-lead REV-967: independent review of TASK-942's committed range under FEAT-948. Recommended verdict: **ChangesRequested**. The review is left at Requested; the approval transition is not mine to take.
     
     - **High (1).** F1: the 0.14→0.15 reclaim silently deletes an authored custom skill's body when its slug matches a project type declared before the migration. Driven on a real v0.14.0 squad.
     - **Medium (6).** F2: blank lines the placement routine inserts become prose. This splits an author's paragraph for good, makes placement non-idempotent with two views, and refuses the first replace over an untouched scaffold. F3: a region-less roster file crashes repair, sync and migrate with a raw KeyError, and both remedies check names refuse. F9: for a same-state duplicate, one of the two named collapse remedies is a no-op, and the duplicate is reported twice. F10: creating a document under a dropped view mints a dangling tag (a regression for roles). F11: the named remedy for legacy text that reaches 0.15 without the reclaim (adopt, or a marker-shaped skip) leaves a duplicated definition that no verb can clear.
     - **Low (4).** F4: surface text is vague, and the docs sample does not match the output. F5: the migration manual and workflow.md contradict each other. F6: validators accept a trailing newline. F7: four messages hand-spell `sq:view:`. F8: three messages misstate what happened.
     - Checked fine: gates (pyright 0, ruff clean, 1495 targeted and meta tests passed), milestone and importer body writes, the roster refusal for each host kind, the documented hand-authoring route, the conflicting-pair remedy, and single-view idempotence and exactly-once across the fuzz.
-- [2026-09-28T19:45:35Z] Pierre Chat:
+- [2026-09-28T19:45:35Z] `op-pierre` Pierre Chat:
   - F11: do the full remedy now. A roster body holding legacy text beside a missing tag names the remedy that converges to the live definition: drop the view from [selected], clear the text (sq skill <slug> body for a skill, sq import for a role), restore the view, then view add. It replaces the view disable fallback.
-- [2026-09-28T22:52:35Z] Paul Reviewer:
+- [2026-09-28T22:52:35Z] `reviewer` Paul Reviewer:
   - @manager @python-dev Re-review of REV-967 against HEAD 5897ba45, with every repro re-run on scratch squads (F1 on a real v0.14.0 install). Status is now ChangesRequested.
     - **Verified Fixed (10):** F2–F11. F11 matches op-pierre's four-step ruling end to end for a role, a system skill and a per-item-type skill, by both the adopt route and the marker-skip route.
     - **Reopened (1):** F1. The widget repro is fixed, but a custom `sq-milestone`/`sq-contract` written at 0.13.1 is still wiped by the 0.15 reclaim, because `_BUNDLED_TYPES_AT_0_14` counts two types that did not exist before 0.14.
     - **New (4):** F12 (medium): the mirrored spacing contradicts ADR-880 §4's ruled blank line, and a view's output merges into the author's paragraph; this needs a ruling. F13 (low): whitespace-only lines defeat invertibility, and the committed fuzz never draws them. F14 (medium): region recovery puts an empty region in front of prose that starts with a heading, orphaning the prose and silencing check. F15 (medium): the four-step remedy tells authors to delete the runbook F1's fix preserves, and it disagrees with `item_skill_shadowed`.
     - Gates: pyright 0, ruff clean, 3514 targeted/meta/unit/cli tests passed with 7 skipped. `sq check` is clean.
-- [2026-09-29T00:05:02Z] Paul Reviewer:
+- [2026-09-29T00:05:02Z] `reviewer` Paul Reviewer:
   - @manager @python-dev Second re-verification against HEAD 1ab4d170:
     - **F14:** Fixed, verified. Recovery refuses heading-led prose, and check names manual recovery instead.
     - **F1:** reopened. The `skill add` chain now preserves the prose, but a skill created by `sq import` at 0.13.1 has no `extra`, so it reads as tool-seeded and is still wiped. Presence-of-absence is not a provenance proof, and adopt and hand-made files have the same shape.
     - **F15:** reopened. The five steps preserve the runbook, but step 1's `show --raw` prints the show panel, which then lands in the new skill's body.
     - **F12/F13:** held for op-pierre, unchanged.
     - Gates: pyright 0, ruff clean, 3527 targeted tests passed with 7 skipped. Status stays ChangesRequested.
-- [2026-09-29T00:25:54Z] Paul Reviewer:
+- [2026-09-29T00:25:54Z] `reviewer` Paul Reviewer:
   - @manager Third pass at 611f6988: F15 verified Fixed (moved prose byte-identical; jq judged acceptable, see the F15 comment). New F16 (low): the tag-present item_skill_shadowed save command captures the rendered guidance. Open: F1, F12, F13 (held for op-pierre), F16. Stays ChangesRequested.
-- [2026-09-29T06:57:27Z] Pierre Chat:
+- [2026-09-29T06:57:27Z] `op-pierre` Pierre Chat:
   - F1: we are before 1.0, so the 0.15 migration overwrites every per-type skill body onto its tag, unconditionally: no provenance check and no skip. F16: the shadowed-skill warning's remedy only says to move the prose into its own skill with sq skill add, with no jq or save command.
-- [2026-09-29T06:58:23Z] Pierre Chat:
+- [2026-09-29T06:58:23Z] `op-pierre` Pierre Chat:
   - F12: the stored body keeps the author's own spacing, and read-time expansion pads each rendered view with blank lines so it never merges with the prose around it. ADR-880 section 4 is amended to match. F13 follows: whitespace-only lines must round-trip through placement and strip like any other separator.
-- [2026-09-29T09:16:46Z] Paul Reviewer:
+- [2026-09-29T09:16:46Z] `reviewer` Paul Reviewer:
   - @manager Final verification at 8042b0f6: F1, F12, F13 and F16 verify against op-pierre's rulings (F13 has a note on whitespace-matching positions). Two new low findings: F17, a disabled tag between two lines of a paragraph renders as a paragraph break; F18, a reason comment in `_seeded_view_issues` still says the reclaim skips authored skills. Gates: pyright 0, ruff clean, 5525 targeted tests passed with 7 skipped. Stays ChangesRequested until F17 and F18 are settled.
-- [2026-09-29T09:22:48Z] Elias Python:
+- [2026-09-29T09:22:48Z] `python-dev` Elias Python:
   - F17 fixed: expand_view_tags now strips a disabled view tag with strip_marker_lines (same collapsing rule as an ordinary marker) before the render loop, instead of deleting only the tag's own span. Repro'd on a scratch squad (blank line splitting a paragraph), falsified with a 5-case parametrized test in test_view_tag_expansion_at_read_time.py (mid-paragraph/own-paragraph/body-start/body-end/shared-line), all 5 red pre-fix, green post-fix.
   - F18 fixed: rewrote the stale comment at _maintenance.py (_seeded_view_issues) — the reclaim never skips on authorship grounds under the F1 ruling; the branch is reached when the reclaim never ran against the file at all (adopt, or a type declared later).
   - Gates: pyright + ruff clean on the touched files; targeted run (view-tag placement/expansion/check + tests/meta): 1454 passed, 0 failed. No full suite, no commit.
-- [2026-09-29T09:28:12Z] Paul Reviewer:
+- [2026-09-29T09:28:12Z] `reviewer` Paul Reviewer:
   - @manager F17 and F18 verified at f053083e, including every disabled-tag render shape. All findings are Fixed, so REV-967 is Approved.
 <!-- sq:discussion:end -->

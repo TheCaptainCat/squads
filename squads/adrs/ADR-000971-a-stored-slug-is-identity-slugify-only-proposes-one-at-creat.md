@@ -146,8 +146,8 @@ it never says what the role may do (ADR-984 decision 4).
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-29T13:45:27Z] Robert Architect:
+- [2026-09-29T13:45:27Z] `architect` Robert Architect:
   - @op-pierre for your call: left Proposed. Written to settle the TASK-969 ST4/ST5 questions the tech lead raised.
-- [2026-09-29T13:53:01Z] Pierre Chat:
+- [2026-09-29T13:53:01Z] `op-pierre` Pierre Chat:
   - Accepted. No slug-rename command: existing slugs stay as they are.
 <!-- sq:discussion:end -->

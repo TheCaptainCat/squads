@@ -67,7 +67,7 @@ Close the guidance gap so agents brief with show --full --comments: update the e
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T09:27:12Z] Elias Python:
+- [2026-06-12T09:27:12Z] `python-dev` Elias Python:
   - TASK-60 complete. All gates green (333 passed, pyright + ruff clean).
   - Single-source for the briefing guidance: item_skill.md.j2 now injects a universal first Enter bullet — 'Read the full item dossier: `sq \<type\> \<n\> show --full --comments`' — into every role section of every per-type sq-\<type\> skill. No changes to _interactions.py were needed; the template is the right single point.
   - squads_skill.md.j2: updated three locations — Golden rules sub-entity read line, Anchor-to-an-item guidance (now explicitly names --full --comments), and the Common commands show example.

@@ -32,7 +32,7 @@ _Add with `sq task 273 add-subtask "<title>"`; track with `sq task 273 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-01T20:08:17Z] Elias Python:
+- [2026-07-01T20:08:17Z] `python-dev` Elias Python:
   - Done. Two fixes from REV-265 re-review.
   - **Fix 1 — sq create <alias> (built-in + custom):** Two complementary mechanisms: (a) At module load, after registering each built-in canonical command on create_app, a second loop reads spec.items[t].aliases from the bundled spec (same source as the resource-group loop in __init__.py) and registers each alias as hidden=True on create_app — so sq create feat/t/b/dec/rev/e/g all work. Guide aliases handled separately after the guide command definition. (b) In _CustomCreateGroup.get_command, when the canonical name lookup fails, the code now tries spec.alias_to_type.get(cmd_name) and resolves to the canonical custom type — same pattern as _CustomTypeGroup.get_command in __init__.py. So sq create inc dispatches to incident's create command.
   - **Fix 2 — parenthesize except:** ruff's formatter (Python 3.14 target, PEP 758) converts except (A, B): back to except A, B:. The file is already in ruff-preferred form; no effective change needed to pass ruff format --check.

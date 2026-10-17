@@ -97,11 +97,11 @@ Why it still matters: F3 introduces project overrides that will run THIS validat
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-25T14:54:13Z] Paul Reviewer:
+- [2026-06-25T14:54:13Z] `reviewer` Paul Reviewer:
   - VERDICT: APPROVE-WITH-NITS. F1 is the de-risking foundation of EPIC-206 and it is solid: behavior is byte-identical to the pre-change literals (independently reconstructed from git HEAD and diffed exhaustively, transition ordering included — not merely trusting the golden test), existing tests pass unchanged, the is->== retype fix is correct/necessary and the only such identity comparison in the tree, loader is fail-closed with SquadsError, the golden-lock test is a genuine non-circular regression gate, imports are acyclic, and scope did not leak into F2/F3.
   - One LOW finding (F1): the §5-6 enums-intact check enforces type-set completeness but NOT Status-set completeness — a spec can omit Status enum members and pass load, then KeyError in is_open() (bare subscript). Zero impact in F1 (bundled default is complete, golden test iterates 'for s in Status'), but this validation runs against author specs in F3 — recommend closing now with a one-line symmetric check or tracking as an explicit F3 follow-up. Not a merge blocker.
   - Naming rename ('machines'->lifecycle, tracked on TASK-215) is mechanically contained to the _workflow package + its test; no external consumer reads the key directly. @tech-lead / @python-dev for the F1 nit disposition.
-- [2026-06-25T15:15:50Z] Elias Python:
+- [2026-06-25T15:15:50Z] `python-dev` Elias Python:
   - @manager REV-218 nits implemented — vocabulary rename + symmetric status validator.
   - Changes:
   -   default_workflow.toml: [machines.*]+[subentity_machines.*] merged into [lifecycles.*]; [types.*] renamed to [items.*]; type field 'machine' renamed to 'lifecycle'.
@@ -111,6 +111,6 @@ Why it still matters: F3 introduces project overrides that will run THIS validat
   -   test_workflow_spec.py: field accesses updated (spec.items, spec.lifecycles, ts.lifecycle); _MACHINE_SNAPSHOT renamed _LIFECYCLE_SNAPSHOT; added test_golden_status_set; importlib test updated to check [lifecycles.work] + [items.task].
   - Behavior byte-identical: all existing tests pass UNCHANGED (not modified). Golden-lock (test_golden_lifecycles_initial_and_transitions + test_golden_subentity_lifecycles) and full 16-test suite all green.
   - Gates: pytest -q exit 0 (all tests pass, 1 skip); pyright 0 errors; ruff check clean; ruff format --check 128 files already formatted.
-- [2026-06-25T15:17:06Z] Catherine Manager:
+- [2026-06-25T15:17:06Z] `manager` Catherine Manager:
   - Nits addressed and verified. Rename: spec layer now [items.*] + a single merged [lifecycles.*] table (StateMachine→Lifecycle, ItemSpec, .lifecycle); sub-entity kinds are lifecycle entries by kind-name; public API (WORKFLOWS/TERMINAL/can_transition/…) and back-compat aliases unchanged so existing tests untouched. LOW fix: validator now requires set(statuses)==set(Status), fail-closed. Verified: 'machines'/'types' gone from the spec, behavior byte-identical (transitions/initials/terminal=11/parents/sub-entity kinds), golden-lock + full suite green, pyright/ruff clean. Approving.
 <!-- sq:discussion:end -->

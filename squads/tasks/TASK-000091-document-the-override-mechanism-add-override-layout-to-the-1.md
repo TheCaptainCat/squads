@@ -71,7 +71,7 @@ Covers adding the override layout to the FEAT-13 durable-contract doc (co-author
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T22:05:47Z] Theo Writer:
+- [2026-06-12T22:05:47Z] `tech-writer` Theo Writer:
   - Complete: wrote docs/overrides.md (ST1) covering .overrides/ layout, precedence, staleness detection, the sq override command workflow, and agent naming at init. Accessible via 'sq docs overrides' and linked from docs/README.md. All CLI surfaces verified against shipped code.
   - Contract doc deferral complete (ST2): confirmed FEAT-13 has the four override contract surfaces from TASK-089 (Elias, 2026-06-12T21:54:21Z), added tech-writer comment flagging that docs/overrides.md now documents these for users. Ready for FEAT-13 author to synthesize into the stability.md tier when writing that feature.
 <!-- sq:discussion:end -->

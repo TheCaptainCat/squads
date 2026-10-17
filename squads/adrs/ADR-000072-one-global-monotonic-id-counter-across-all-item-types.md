@@ -83,7 +83,7 @@ mechanism details in the original wording have moved:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-03T08:41:19Z] Robert Architect:
+- [2026-08-03T08:41:19Z] `architect` Robert Architect:
   - Dropped the "Left **Proposed** for the manager to accept with the set" closer and retitled the section from "Status note" to "Provenance". Status prose in a body is forbidden here and this one had been false since the day the set was accepted. The provenance itself is kept and is worth keeping — this decision predates squads tracking itself and lived only in CLAUDE.md and docs/internals.md, which is why the body reads retroactively. Part of one sweep across the ten retroactive decisions (49, 71-78, 85), not ten tickets.
   - Corrected the citations in place, marked as a refresh rather than a change of substance. `allocate_id(item_type, *, prefix)` takes a prefix resolved from the active spec (ADR-266, then ADR-322) and formats at the squads padding, not a literal 6 (ADR-282 for display, ADR-104 for the filename floor). It also now raises when the counter would exceed the paddings capacity, pointing at `sq migrate repad` — a strengthening of the allocate-inside-the-transaction rule, not a change to it.
   - Both rulings hold as decided: one global counter, allocation only inside `IndexStore.transaction()` under the cross-process lock, `sequence_id` as the real identity with `id` derived. `sq repair --renumber` still exists and does not collide with ADR-295s separate `sq renumber` verb.

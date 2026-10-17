@@ -117,7 +117,7 @@ pinned by a test.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-08-03T11:10:51Z] Ada Typescript:
+- [2026-08-03T11:10:51Z] `typescript-dev` Ada Typescript:
   - Added optional discussion field to SqSubEntity (types.ts) and accepted it as optional in isSqSubEntity (sqAdapter.ts), split into a hasOptionalDiscussion helper to keep guard complexity in check.
   - Covered by tests in sqAdapter.test.ts: an entry carrying discussion, an entry with the key absent, and a malformed-entries entry (rejected).
   - Falsified: made the guard require the field (dropped the undefined branch) and both the absent-key test and the pre-existing sub-entity fixture test went red with parse-error; restored and both went green.
@@ -145,12 +145,12 @@ sub-entity renders exactly as before; markup in a comment body is escaped, not i
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-08-03T11:11:06Z] Ada Typescript:
+- [2026-08-03T11:11:06Z] `typescript-dev` Ada Typescript:
   - Added buildSubEntityDiscussionHtml in previewDocument.ts, mirroring buildDiscussionHtml/buildCommentHtml (same escaping, same markdown pass, same folds-away-to-nothing-when-empty behaviour) and wired it into buildSubEntityHtml after the body block. Carries no data-sq-fold-id of its own, so it can't collide with the body fold's local_id-keyed tracking.
   - Covered by tests in previewDocument.test.ts: rendered comment with author/timestamp, empty-array folds away, absent-key folds away, HTML escaped in body/author/ts, comment order preserved, one sub-entity's comments don't leak into another's pane, and the fold-id isolation from the body fold.
   - Falsified 3 ways: (1) dropped the discussion block from the returned markup -- 4 rendering/escaping/order tests went red; (2) removed the empty-array short-circuit -- the empty-discussion test went red; (3) stamped the block with the sub-entity's own local_id as its fold id -- the fold-isolation test went red (found 2 data-sq-fold-id occurrences instead of 1). Restored each time and re-ran green.
   - Visual confirmation inside a real VS Code webview needs the operator's dev host and was not attempted here.
-- [2026-08-03T11:15:48Z] Ada Typescript:
+- [2026-08-03T11:15:48Z] `typescript-dev` Ada Typescript:
   - Follow-up per coordinator review: 'keeps one sub-entity's comments out of another's pane' used an indexOf/toBeLessThan ordering check that stayed green even with the whole discussion block removed (both indexes -1, -1<-1 is false... but the underlying risk was real: a missing string trivially satisfies an ordering comparison). Rewrote it to slice the markup at the second sub-entity's header and assert each pane positively contains its own comment and not the other's.
   - Falsified the same way as before: dropped the discussion block from buildSubEntityHtml's output again -- this test now goes red too (previously it was not among the 4 that failed). Restored, green.
   - Audited the rest of the new assertions for the same shape (indexOf/</>, or a not.toContain that would pass on total removal): the array-order test's indexOf comparison is safe because a total-removal collapses both operands to -1, which fails -1<-1 (already proven in the earlier falsification pass, where that test was one of the 4 that went red); the empty/absent not.toContain tests target a narrower defect (rendering for empty/absent input) that's independently falsified and doesn't claim totality; the fold-id-isolation test targets a different named defect (fold id reuse) and correctly fails against it. None of those needed changes.
@@ -161,27 +161,27 @@ sub-entity renders exactly as before; markup in a comment body is escaped, not i
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-03T07:59:55Z] Olivia Lead:
+- [2026-08-03T07:59:55Z] `tech-lead` Olivia Lead:
   - Split from the core task because the owner surface differs — TypeScript client rendering in clients/vscode, not Python. Depends on the sub-entity discussion field the core task adds.
   - Fully unit-testable (the preview builders are exported pure functions, incl. the older-sq skew case where the field is absent); only the final visual inside a real webview needs the VS Code dev host on the operator host.
-- [2026-08-03T08:10:15Z] Olivia Lead:
+- [2026-08-03T08:10:15Z] `tech-lead` Olivia Lead:
   - Both subtasks mapped to US4 — the client render is the other half of the same story as the JSON field, not a story of its own. Body now states that traceability; scope, the optional-field skew requirement, and the dev-host visual limit are unchanged.
-- [2026-08-03T13:59:18Z] Pierre Chat:
+- [2026-08-03T13:59:18Z] `op-pierre` Pierre Chat:
   - Verified visually in the extension dev host. The sub-entity panes and their discussions render correctly.
   - One unrequested behaviour, accepted as shipped: the panes and the sub-discussions are expanded by default. Nothing asked for that and it was not specified either way. I do not mind it -- leave it as is. Recording so it is not read later as a defect and quietly collapsed.
-- [2026-08-03T14:34:59Z] Theo Writer:
+- [2026-08-03T14:34:59Z] `tech-writer` Theo Writer:
   - Ruling on whether the expanded-by-default panes belong in the 0.13.0 notes: **no, not on their own** — and there is a blocker on the alternative.
   - On the substance: a default open/closed state is below the line for release notes. It asks nothing of the adopter, has no migration, no scripting consequence and no remedy to describe. Release notes say what someone must now do differently or can newly do; "a panel starts open" is neither, and giving it an entry would pad the section. The operator's reason for recording it — so it is not later read as a defect — is served by this item, which is where the next reader of the code will look.
   - What WOULD merit a line is the feature it is a detail of: the item preview rendering each sub-entity's discussion at all, which is new and user-visible. If that gets an entry, "the sub-entity panes and their discussions open expanded" belongs as one clause inside it, where it costs nothing and pre-empts the same is-this-a-bug question.
   - The blocker: `clients/vscode/package.json` is still at 0.12.3 and `## [0.13.0]` currently contains no VS Code content at all, so whether any client change ships with this release is release sequencing, which I do not own and will not assume. I have written no VS Code entry. @manager if the extension is being versioned for 0.13.0, say so and I will add the preview entry with that clause; if it ships later, it belongs in that release's notes and this ruling stands as-is.
   - For the record, verified rather than taken on report: the sub-entity discussion blocks are hardcoded `<details class="sq-graph" open>` in `previewDocument.ts`, unconditionally — unlike the sub-entity *body* fold, which is state-driven and remembered across a refresh. So the observation is accurate and the two folds genuinely behave differently.
-- [2026-08-03T14:40:55Z] Theo Writer:
+- [2026-08-03T14:40:55Z] `tech-writer` Theo Writer:
   - VS Code entry written into the 0.13.0 notes, with the expanded-by-default state as a clause inside it rather than an entry of its own. Confirmed the unified-version mechanism myself before writing client content into a core release: publish.yml reads the version from pyproject.toml, guards the tag against it, then runs `npm version <core-version> --no-git-tag-version --allow-same-version` in clients/vscode, so the extension is versioned from the core at publish time and the committed 0.12.3 is by design.
   - Verified the visible behaviour at the source rather than from the render module alone. The chain is `show --json` -> each `subentities` entry carrying `discussion` (author/ts/body, which I drove on the CLI in an earlier pass) -> the adapter's optional-key guard -> the pane render. Every claim in the entry is pinned by an existing assertion: the `Discussion (n)` count, author + ISO timestamp + markdown body, no block on an empty array, no block when the key is absent entirely, and comments in array order. For the mention/item-id linkifying I traced the mechanism rather than trusting the docstring — the sub-entity path calls the same `buildCommentHtml` -> `renderMarkdownToHtml` with `roles` forwarded that the item-level discussion uses, and that path is directly asserted, so the entry says "exactly as in the item's own discussion" and is true whether or not roles resolve.
   - Two adopter-visible details I added beyond the requested clause, both driven from the code. (1) The body fold and the discussion fold behave differently: the body remembers being collapsed across a refresh (it is keyed by local_id), the discussion does not and reopens, because it deliberately carries no fold id so it cannot collide with the body fold's tracking. That matters because the 0.12.3 notes advertised "an open preview keeps its expanded sections across a refresh", so an adopter has a documented expectation this one does not meet — saying so pre-empts a false regression report. (2) A preview driven by an older `sq` that predates the field shows no sub-entity comments rather than failing to render the item; the adapter treats the missing key as empty specifically so one absent array cannot blank the whole preview.
-- [2026-08-03T14:41:03Z] Theo Writer:
+- [2026-08-03T14:41:03Z] `tech-writer` Theo Writer:
   - Out of my scope, flagged not fixed: the Marketplace overview undersells this feature. `clients/vscode/MARKETPLACE.md` line 122-123 describes sub-entities as "a feature's stories, a task's subtasks, a review's findings, each carrying its own status, assignee and severity" — no mention of the body or the discussion, both of which the pane now renders. That file is the page a prospective adopter reads before installing (publish.yml swaps it in as the VSIX overview in place of README.md), so if the extension ships in lockstep with 0.13.0 its store page will describe less than the release notes announce.
   - Suggested correction if you want it, ready to apply: extend that bullet to "...each carrying its own status, assignee and severity, its body, and its own discussion." @manager it is under clients/ and outside the CHANGELOG.md + docs/ scope I was given, and reviewers are reading that tree, so I have not touched it.
-- [2026-08-20T19:27:10Z] Pierre Chat:
+- [2026-08-20T19:27:10Z] `op-pierre` Pierre Chat:
   - The fold inconsistency I accepted earlier on this task is fixed under BUG-746 and verified. This task stays Done; recording it here so the earlier leave-it-as-is note is not read as the final word.
 <!-- sq:discussion:end -->

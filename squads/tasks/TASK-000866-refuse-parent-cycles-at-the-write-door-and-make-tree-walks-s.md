@@ -237,7 +237,7 @@ state the command that clears the edge.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-09-02T08:04:11Z] Elias Python:
+- [2026-09-02T08:04:11Z] `python-dev` Elias Python:
   - Landed. `parent_acyclic` is now a member of `VALIDATOR_NAMES` and of `COMMON_CORE` (the always-on floor), implemented in `_services/_validators.py` and registered in `CATALOG`; the closure assertion against `VALIDATOR_NAMES` passes unchanged because common-core placement needs no reachability clause.
     
     The walk starts at the item's proposed parent and follows `SquadsDB.get` upward. Identity in the visited set is `Item.sequence_id`, never the id string — driven: a corpus whose stored `parent` is `BUG-000010` while the item's own id is `BUG-10` is caught, and an id-string `seen` set would have walked past it. A parent that resolves to nothing stops the walk and leaves the report to `parent_in`'s dangling-parent branch, so one broken edge stays one finding.
@@ -274,7 +274,7 @@ otherwise ship untested.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-09-02T08:10:31Z] Elias Python:
+- [2026-09-02T08:10:31Z] `python-dev` Elias Python:
   - Both walks in `_services/_base.py` now carry a visited set keyed on `Item.sequence_id`.
     
     `_compute_keep_set`: each per-match upward walk seeds `seen` with the starting item's sequence and stops when the resolved parent sequence repeats. The revisited ancestor is added to the keep set before the walk stops, so a cyclic pair still renders as the hierarchy someone wrote rather than half of it.
@@ -313,7 +313,7 @@ one.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-09-02T08:11:28Z] Elias Python:
+- [2026-09-02T08:11:28Z] `python-dev` Elias Python:
   - No second implementation was needed: the floor member from ST1 backs the report surface through the same engine, so detection came with it. What this subtask added is the proof, at both levels.
     
     Driven on a scratch squad whose cycle was written straight into frontmatter and then indexed by `repair` (the shape an adopted or hand-edited corpus arrives in — and, deliberately, one with mismatched pad widths: `BUG-9`'s stored parent was `BUG-000010`):
@@ -350,7 +350,7 @@ reason.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-09-02T08:13:31Z] Elias Python:
+- [2026-09-02T08:13:31Z] `python-dev` Elias Python:
   - Fixed in `_cli/_items.py`'s `update`: the mutual-exclusion guard and the resolution below both now test `parent is not None` rather than truthiness, and an empty or whitespace-only value is refused outright.
     
     Driven, before: `sq feature 10 update --parent ""` printed `updated FEAT-10` and exited 0 with the parent untouched; `--parent "" --no-parent` also exited 0.
@@ -391,7 +391,7 @@ including the targeted-unrelated-root and depth-bounded ones that a naive fix wo
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
-- [2026-09-02T08:25:00Z] Elias Python:
+- [2026-09-02T08:25:00Z] `python-dev` Elias Python:
   - Each of the three guards was removed, the suite re-run, the guard restored, and the suite re-run again. Both observations per guard, verbatim.
     
     **1. The validator.** Neutered the body of `_parent_acyclic` (an early `return []`, so the wiring, the closure assertion and the catalog all stay intact and only the behaviour is gone).
@@ -426,7 +426,7 @@ including the targeted-unrelated-root and depth-bounded ones that a naive fix wo
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T07:53:47Z] Olivia Lead:
+- [2026-09-02T07:53:47Z] `tech-lead` Olivia Lead:
   - Authored off op-pierre's ruling that this defect lands in 0.14. One task, five subtasks — the
     surface is coherent and the owner role is the same throughout, so no sibling tasks.
     
@@ -461,13 +461,13 @@ including the targeted-unrelated-root and depth-bounded ones that a naive fix wo
     @architect noted your catalog record proposes this member. I have used the same name, but the task
     stands on the shipped composition machinery alone and does not depend on your wider catalog design
     being ruled. Nothing here forecloses it.
-- [2026-09-02T08:25:33Z] Elias Python:
+- [2026-09-02T08:25:33Z] `python-dev` Elias Python:
   - Built and handed back. Per-subtask detail is on ST1-ST5's own discussions; two things there that contradict the brief: the downward walk is NOT unreachable through the public path once the upward guard lands (ST2), and sq create --parent "" still has the truthiness bug I left out of scope (ST4). Full suite 4418 passed, 7 skipped, 0 failed; pyright/ruff/sq check clean. Nothing committed. @tech-lead @reviewer
-- [2026-09-02T08:44:45Z] Catherine Manager:
+- [2026-09-02T08:44:45Z] `manager` Catherine Manager:
   - Reopened InReview->InProgress. Acceptance is not met: the settled consequence recorded on this task says an item inside a cycle cannot be updated at all, a status change included. QA drove the shortcut verb and it exits 0 and writes the transition — sq <type> <n> status <S> goes through set_status, a separate service path that never reaches ValidatorEngine.gate, while update --status on the same item exits 1.
   - Not amending the clause to match what shipped. The verb's own help calls it a shortcut for update --status; either it enforces the same gate or the task's prose stops claiming it does, and the first is the honest one.
   - Also folding in the retype refusal message, which prints a chain reading as unclosed (REV-10 -> BUG-9 -> BUG-10). Correct on sequence identity since the prospective item keeps its number, but the operator sees two endpoints against a message required to name both.
-- [2026-09-02T09:23:56Z] Elias Python:
+- [2026-09-02T09:23:56Z] `python-dev` Elias Python:
   - - Reopened clause closed: the `status` verb now reaches the same gate. The gate call moved onto the shared transition core (`_set_status_model` in `_services/_items.py`), where `_update_model` already has one, so `set_status`, `set_roster_status` and the bulk importer's status events (pre-pass and apply) all refuse what `update --status` refuses. I did not narrow the acceptance.
     
     - Driven before, on a frontmatter-built cross-width cycle: `sq bug 9 status InProgress` exit **0**, transition written, while `sq bug 9 update --status InProgress` exit 1. After: exit 1, `BUG-9's parent chain forms a cycle: BUG-9 -> BUG-10 -> BUG-9; break it with sq bug 10 update --no-parent`, status unchanged. `--force` does not carry past it (it overrides the lifecycle edge, never the catalog). An item outside the loop still transitions, exit 0.
@@ -489,9 +489,9 @@ including the targeted-unrelated-root and depth-bounded ones that a naive fix wo
     - One consequence to record rather than bury: a roster entry whose frontmatter was hand-edited into a self-parent can no longer change status either, and the roster surface has no `update --no-parent` — recovery there is `rm` or fixing the frontmatter back. Roster items cannot acquire a parent through any command, so this is only reachable by hand-editing, and `sq check` already errored on that corpus before this change.
     
     @manager @qa ready for re-verification.
-- [2026-09-02T09:26:40Z] Catherine Manager:
+- [2026-09-02T09:26:40Z] `manager` Catherine Manager:
   - Ruling on the clause's literal reading, which the dev raised rather than quietly narrowing: his reading is the right one. 'Cannot be updated' names the metadata-update axis — the update verb and its shortcut — not every write. Blocking body and comment would block the discussion an operator uses to coordinate recovery, which would make the fail-closed design worse, not safer. The clause stands as written and is now met.
   - His roster-path consequence is accepted: a roster entry hand-edited into a self-parent can no longer change status, and the roster surface has no --no-parent. Only reachable by hand-editing, and sq check already errored on that corpus beforehand. Not exempting the roster path to avoid it.
-- [2026-09-02T09:47:57Z] Mara Tester:
+- [2026-09-02T09:47:57Z] `qa` Mara Tester:
   - The sub-entity gate gap Elias flagged rather than decided is now BUG-873 (linked `related` to BUG-865). Verified at the CLI, not transcribed: the structural claim holds, `subentity_status_valid` is reachable through `<kind> <k> update --status … --force` at exit 0 with `sq check` exit 3 after, but `subtask_story_mapping` is held shut by bespoke guards on every door and cannot be violated through the shipped CLI. Nothing here reopens this task. @tech-lead
 <!-- sq:discussion:end -->

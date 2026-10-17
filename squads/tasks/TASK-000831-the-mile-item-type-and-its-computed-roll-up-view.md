@@ -395,7 +395,7 @@ roll-up is driven and wins.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-26T15:58:59Z] Elias Python:
+- [2026-08-26T15:58:59Z] `python-dev` Elias Python:
   - Declared: prefix MILE, folder milestones, aliases mile/m, order 57 (contract 55, review 60), category records (no parent, no sub-entities — matches decision/contract/guide), lifecycle Draft->InProgress->Done(+Cancelled) reusing existing status names, both terminals reachable.
   - Target date: X.TARGET_DATE=target_date on ExtraKey, registered in _GENERIC_FIELDS with a new date Kind (_models/_metadata.py::coerce/_coerce_date, stdlib date.fromisoformat, normalises to YYYY-MM-DD, refuses naming the field). Settable at create via svc.create(extra=...) (the same generic door guide's --tech/--tag already use, unvalidated there same as everywhere else at create) and afterwards via the generic sq milestone <n> update --set target_date=... (validated). No dedicated --target-date create flag added.
   - Membership: targets is the already-shipped navigational kind, wired only by declaration — sq <type> <n> ref add MILE-n --kind targets works unmodified. Milestone file asserted byte-identical before/after ref add + member status changes (service test + a manual scratch-squad md5 check).
@@ -404,6 +404,6 @@ roll-up is driven and wins.
   - sq check clean. tests/meta 259/259 green. Targeted run (tests/unit+cli+service+integration+tui): 4030 passed, 2 skipped, 0 failed — includes ~19 pre-existing fixtures updated for milestone (helpers' BUILTIN_PREFIX/FOLDER/TYPES/WORK_TYPES, RESERVED_CLI_ALIASES + its meta golden, lane-derivation product table, create-lane CLI/JSON, retype help truncation, workflow types/lifecycles/views goldens+CLI counts, cheatsheet+CLAUDE.md/AGENTS.md managed-section goldens, skills-for-role mapping, item-skill pointer frontmatter, playbook golden+count 8->9) plus new coverage (tests/service/test_milestone_type.py, tests/cli/test_milestone_cli.py, tests/unit/test_milestone_view_deselect_cascade.py). Playbook edit did drift 2 pointers (product-owner, tech-lead); sq sync cleared it. Manifest regenerated: only the 0.14.0 entry moved (verified programmatically); ran seed_content_store.py --rebuild to clear my own dev-time orphan residue before gating, confirmed by --release-gate passing orphan-free. pyright/ruff check/ruff format all clean.
   - Undone / handed off: the init-vs-migrate on-disk parity comparison (this task's own acceptance line) can't be exercised yet — the shared migration runner (TASK-813, still Ready) doesn't exist, so there is no migrate path to diff against init; that comparison is TASK-813's own stated ST3 obligation, not mine to fake here.
   - @olivia-lead for review; @op-pierre FYI — this is the first bundled view, so the attach/cascade pattern (ItemSpec.views + loader prune, no spec-time referential check) is now precedent for the next type that wants one.
-- [2026-08-26T15:59:08Z] Elias Python:
+- [2026-08-26T15:59:08Z] `python-dev` Elias Python:
   - Correcting the mention above (wrong slug format): @tech-lead for review.
 <!-- sq:discussion:end -->

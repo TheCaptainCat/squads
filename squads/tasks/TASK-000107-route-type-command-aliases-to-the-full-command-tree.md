@@ -78,15 +78,15 @@ Covers the CLI test matrix asserting alias/canonical equivalence: each alias sam
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-15T07:50:16Z] Elias Python:
+- [2026-06-15T07:50:16Z] `python-dev` Elias Python:
   - Implemented TASK-107 (ST1 + ST2).
   - ST1 — Added TYPE_ALIASES: dict[ItemType, tuple[str, ...]] to src/squads/_models/_enums.py, co-located with WORK_TYPES as the single source of truth. Map: epic→e, feature→feat/f, task→t, bug→b, decision→dec/d, review→rev/r, guide→g. TASK-108 (docs) can import it directly from there.
   - ST1 — Updated src/squads/_cli/__init__.py: the registration loop now builds each type's Typer sub-app once and registers it under its canonical name, then loops TYPE_ALIASES to register the same app object under each alias with hidden=True. The aliases are pure input sugar — output (IDs, type names, JSON) is derived from the item model, so it stays canonical without any extra code.
   - ST2 — Added tests/test_aliases.py: 19 tests covering (a) the alias map structure (completeness, no duplicates), (b) collision check (b!=blocked, t!=tree, r!=repair, d!=docs empirically), (c) hidden-from-help assertion for all aliases, (d) canonical output identity (alias output == canonical output) for all 7 types, (e) deep chain equivalence (f N story K show, t N subtask K show, r N finding K show, t N ref add, dec N status), (f) JSON type field stays canonical, (g) error messages use canonical form.
   - Full gate: 598 passed, 1 skipped; 0 pyright errors; ruff clean. @reviewer @qa for verification.
-- [2026-06-15T08:05:25Z] Paul Reviewer:
+- [2026-06-15T08:05:25Z] `reviewer` Paul Reviewer:
   - Reviewed under REV-109 — **Approved.** Alias routing is correct: each type sub-app is built once and re-registered under canonical + hidden alias names (the _addr hidden=True pattern), so every alias exposes the identical full tree. Verified all 7 letters + feat/dec/rev across deep chains (story/subtask/finding/ref/status) including mutations, canonical output/errors/--json, and no single-letter collision (b!=blocked, t!=tree, r!=repair, d!=docs). TYPE_ALIASES is the single source of truth. Gate green (602 passed/1 skipped, pyright clean, ruff clean). Test matrix in tests/test_aliases.py is adequate.
-- [2026-06-15T08:07:24Z] Mara Tester:
+- [2026-06-15T08:07:24Z] `qa` Mara Tester:
   - QA verification complete — PASS.
   - **Acceptance criterion (TASK-107):** sq f/feat/t/b/d/dec/r/rev/g/e all route to the full command tree including deep verb + sub-entity chains. Empirically verified: feature story show, feat story show, task subtask show, review finding show (r/rev), decision status (dec/d), bug comment (b), task ref add (t), epic show (e). Every alias uses the same Typer app object (hidden=True, same tree). Output identical to canonical in all cases.
   - **Canonical output:** --json verified for all 7 types via aliases — type field is canonical (feature/task/bug/decision/review/guide/epic), id is full canonical ID (FEAT-/TASK-/BUG-/ADR-/REV-/GUIDE-/EPIC-). Error messages also use canonical IDs (e.g. sq f 9999 show → 'FEAT-009999').

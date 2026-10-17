@@ -105,7 +105,7 @@ _Add with `sq review 1010 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-15T19:39:07Z] Paul Reviewer:
+- [2026-10-15T19:39:07Z] `reviewer` Paul Reviewer:
   - Pass 2, driven: 36 patterns tried in-process. Every pattern that matches the empty string, including under (?i), (?x), (?m) flags, alternations with an empty branch, (?:), a{0}, (?#c), negative lookarounds and \A, \Z, \B, is refused. A whitespace-only parameter gets the missing-parameter message. Zero-width-only patterns load and report nothing: \b, (?=A) and (?<=a) report nothing, and (?=A)@error accepts a create titled ABC. Verified in b60c264c.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -127,7 +127,7 @@ _Add with `sq review 1010 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-15T19:39:09Z] Paul Reviewer:
+- [2026-10-15T19:39:09Z] `reviewer` Paul Reviewer:
   - Pass 2, read and driven: report(only=) skips untouched items and the import passes its touched ids. The status, sub-status and comment door outputs are correct. The one gap, a sub-status target written unnormalised, is filed as F9 (info; the cause predates this task). There is no retype import op. Verified in 1e519734.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -147,7 +147,7 @@ _Add with `sq review 1010 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-15T19:39:11Z] Paul Reviewer:
+- [2026-10-15T19:39:11Z] `reviewer` Paul Reviewer:
   - Pass 2, driven: the create refusal now reads: title is 6 chars (threshold: 5) ...; there is no advisory prefix. Verified in 1e519734.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -168,7 +168,7 @@ _Add with `sq review 1010 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-15T19:39:13Z] Paul Reviewer:
+- [2026-10-15T19:39:13Z] `reviewer` Paul Reviewer:
   - Pass 2, driven: a create refused at @error now prints the door-neutral hint, which names no id. Verified in 1e519734.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -188,7 +188,7 @@ _Add with `sq review 1010 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-15T19:39:14Z] Paul Reviewer:
+- [2026-10-15T19:39:14Z] `reviewer` Paul Reviewer:
   - Pass 2, driven at item_title_max:5: six decomposed é are reported as 6 chars, five decomposed é are accepted, Hangul jamo x3 composes to 3 and is accepted, and q+U+0303 x3 (no precomposed form) counts as 6. The message carries the count after NFC. This matches the documented limit, code points after NFC. Verified in 1e519734.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -209,11 +209,11 @@ _Add with `sq review 1010 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-10-15T19:34:50Z] Elias Python:
+- [2026-10-15T19:34:50Z] `python-dev` Elias Python:
   - WontFix: the guard cannot know a field that the scaffold interpolates changed after creation (no creation-time history of target_ref, or of the type for the default template). Same limit as the body overwrite guard, stated in the writer handoff. Home: a bug to be filed by qa (routed via manager), covering both the guard and body_written.
-- [2026-10-15T19:36:11Z] Mara Tester:
+- [2026-10-15T19:36:11Z] `qa` Mara Tester:
   - Home for this finding: BUG-1014.
-- [2026-10-15T19:39:16Z] Paul Reviewer:
+- [2026-10-15T19:39:16Z] `reviewer` Paul Reviewer:
   - Pass 2: WontFix accepted. The limit is shared with the overwrite guard and now has a home, BUG-1014.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -233,14 +233,14 @@ _Add with `sq review 1010 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-10-15T19:39:20Z] Paul Reviewer:
+- [2026-10-15T19:39:20Z] `reviewer` Paul Reviewer:
   - Pass 2: reopened and raised to medium. **Driven.** `sq workflow lint` passes the spec that every other command refuses.
     
     - In a scratch squad whose override is `validators = ['external_id_not_in_title:[[a]]']`, `sq workflow lint` prints "workflow spec OK — no errors or warnings." and exits 0. In the same squad, `sq list` and `sq check` refuse the spec, quoting "compiles with a warning: Possible nested set at position 1 — rewrite it".
     - **Cause** (driven in-process with `-I`): `re` caches compiled patterns, and Python warns only when it first parses a pattern. When `_check_external_id_pattern` runs a second time in the same process, the cache returns the compiled pattern, no warning is caught, and the entry loads. `[[a]]`: refused on the first call, loads on the second. The lint process evidently validates the spec twice; that last step is inferred.
     - The other warnings Python's `re` emits come through the same path and fail the same way on a cache hit: the nested set, `&&`, `||` and `~~` warnings were all caught on a first compile. Because whether the refusal appears depends on what was compiled earlier in the process, the refusal is not stable. The unit row may also depend on test order under xdist (inferred).
     - **Fix:** run the warning check through something that does not use the cache. Options are `re._parser.parse(param)` under `catch_warnings`, or `re.purge()` immediately before the compile. Add a test that validates the same entry twice in one process and asserts both validations refuse, and a CLI row that asserts `sq workflow lint` exits 1.
-- [2026-10-15T19:44:40Z] Paul Reviewer:
+- [2026-10-15T19:44:40Z] `reviewer` Paul Reviewer:
   - Pass 3, driven: verified in 3548f802. In-process, with the cache primed by a plain compile first, these shapes load: a leading (?i), (?x) with a # comment, (?ix), (?a), (?s), (?m), (?u), (?i)(?x) and (?i:...). These are refused on the plain compile, before the copy is made: (?L), a trailing backslash, a lone backslash, (?i without its closing parenthesis, and a(?i)b (global flags not at the start). [[a]], (?i)[[a]] and [a&&b] are refused on all four repetitions. On the CLI, sq workflow lint exits 1 on two consecutive runs for each of [[a]], (?i)[[a]] and (?x)[a&&b] # c, sq list exits 1, and no FutureWarning reaches stderr.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -260,9 +260,9 @@ _Add with `sq review 1010 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-10-15T19:34:51Z] Elias Python:
+- [2026-10-15T19:34:51Z] `python-dev` Elias Python:
   - Test comment corrected to say the missing-region write ends in an unhandled KeyError. The crash itself is not fixed here; qa is filing it.
-- [2026-10-15T19:39:18Z] Paul Reviewer:
+- [2026-10-15T19:39:18Z] `reviewer` Paul Reviewer:
   - Pass 2, read: the test comment now states the unhandled KeyError. The crash has its home in BUG-1012. Closed for this task.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -283,7 +283,7 @@ _Add with `sq review 1010 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-10-15T19:44:44Z] Paul Reviewer:
+- [2026-10-15T19:44:44Z] `reviewer` Paul Reviewer:
   - Pass 3, driven: verified in 3548f802. An import sub-status on TASK-2 reports the description finding for each of the spellings 2, task-2, TASK-2 and TASK-000002.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -292,7 +292,7 @@ _Add with `sq review 1010 add-finding "…" --severity medium`; track with `sq r
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-15T19:25:48Z] Paul Reviewer:
+- [2026-10-15T19:25:48Z] `reviewer` Paul Reviewer:
   - 2026-10-15: review of TASK-1001 part one is filed. Recommended verdict: changes requested, on two medium findings. @manager
     
     - F1: an `external_id_not_in_title` pattern that matches the empty string (`x*`), or a pattern that is only a space, loads clean. It then reports every item, and at `@error` it refuses every write of the type. Refuse it at load.
@@ -300,8 +300,8 @@ _Add with `sq review 1010 add-finding "…" --severity medium`; track with `sq r
     - Low: F3 says "advisory:" in an error refusal. F4's create-refusal hint names an id that was never allocated. F5 counts code points, not visible characters. F6: body_written misses a review scaffold once `target_ref` is set. Info: F7 a FutureWarning is printed on every command; F8 is a pre-existing KeyError on a missing body region, plus a test comment that misstates it.
     - Verified clean: no bundled byte changed (checked against a known positive), the gate skips `warn` members and refuses at `@error` on create, update, status and retype, the shared body predicate is equivalent to the old guard, 18 load refusals behave as documented, BUG-1003 is fixed for bare and kinded refs, tests/meta has 345 passed, there is no new import cycle, and pyright and ruff are clean.
     - Routing: F8's crash is pre-existing and needs its own owner. The full suite was not run.
-- [2026-10-15T19:39:28Z] Paul Reviewer:
+- [2026-10-15T19:39:28Z] `reviewer` Paul Reviewer:
   - 2026-10-15, pass 2: F1 to F5 are Verified. F6 WontFix is accepted (home BUG-1014). F8 is Fixed (the test comment is corrected; the crash is in BUG-1012). F7 is reopened at medium: sq workflow lint prints spec OK and exits 0 for [[a]] while every other command refuses it, because re caches compiled patterns and warns only on the first compile. New F9 (info, cause predates this task): an import sub-status with an unnormalised target skips board debt. The review stays ChangesRequested on F7 alone; that fix is small. @manager
-- [2026-10-15T19:44:52Z] Paul Reviewer:
+- [2026-10-15T19:44:52Z] `reviewer` Paul Reviewer:
   - 2026-10-15, pass 3: F7 and F9 are Verified in 3548f802 and nothing blocking remains, so the review is moved to Approved on the manager's instruction. Final state: F1 to F5, F7 and F9 Verified; F6 WontFix (BUG-1014); F8 Fixed (crash in BUG-1012). I did not run the full suite. @manager
 <!-- sq:discussion:end -->

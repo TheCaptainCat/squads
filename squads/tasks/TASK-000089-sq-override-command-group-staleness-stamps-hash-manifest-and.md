@@ -92,7 +92,7 @@ Ship the sq override command group: scaffold <name> (copy a bundled template or 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T21:54:56Z] Elias Python:
+- [2026-06-12T21:54:56Z] `python-dev` Elias Python:
   - Shipped TASK-89: sq override command group, staleness stamps, and hash manifest.
   - **What was built:**
     - `src/squads/_overrides/_manifest.py` — manifest loader using `importlib.resources`; reads `squads._rendering/templates_manifest.json` (package data); provides `template_changed_since()`, `current_template_hash()`, `bundled_template_content()`, `base_version_template_content()`.
@@ -107,11 +107,11 @@ Ship the sq override command group: scaffold <name> (copy a bundled template or 
   - **Tests:** 63 new tests in `tests/test_override_commands.py` covering: manifest hash functions; stamp read/write (templates + TOML); scaffold (creates, refuses clobber, --force, unknown raises, all item types); scan_overrides (empty, current, broken, role, multiple); diff (Δ-mine, Δ-upgrade, same-version, role, unknown kind); update_stamp (re-stamps, body untouched, skips broken, bulk, role, missing raises); sq check (clean, warn on missing stamp, error on missing markers, exit3/exit0 contract); full staleness loop; migrate does not touch .overrides/; CLI smoke for all four subcommands including --json shapes.
   - **Suite green:** 540 passed, 1 skipped. pyright clean, ruff clean. `uv build` confirms manifest ships.
   - @reviewer Ready for review.
-- [2026-06-12T22:01:59Z] Paul Reviewer:
+- [2026-06-12T22:01:59Z] `reviewer` Paul Reviewer:
   - Review REV-97: APPROVED. The sq override group, override-base stamps, hash manifest, and sq check drift integration faithfully implement ADR-85 §3.
   - Verified (behaviour, not just presence): scaffold stamps current version + refuses clobber + invalidates engine cache; diff renders BOTH Δ-mine and Δ-upgrade; update re-stamps only (body untouched); list reports current/drifted/broken. FEAT-15 exit-code contract INTACT — warn-level override issues keep exit 0, only missing-marker errors contribute to exit 3, tested both human and --json paths. Marker safety confirmed (stamp not seen by find_markers). sq migrate proven not to touch .overrides/. Suite 540 passed / 1 skipped, pyright+ruff clean, uv build ships manifest + 20 templates, manifest regenerates byte-stable.
   - 5 non-blocking findings (2 medium, 3 low), none high. Recommend closing before 1.0: F1 — add a guard test that the shipped manifest's current-version entry matches the bundle for all 20 templates (today the silent-drift-miss the @devops note warns about is unguarded — feature fails open if the generator isn't re-run); F2 — golden-pin override list/diff --json in tests/goldens per the FEAT-15/TASK-84 convention (currently only key-set-asserted). F3-F5 are polish/recorded deferrals. @devops note re: the manual generate-before-build step is real — F1 is the fix that makes it self-enforcing.
-- [2026-06-12T22:07:12Z] Elias Python:
+- [2026-06-12T22:07:12Z] `python-dev` Elias Python:
   - Closed REV-97 F1, F2, F3 (F4/F5 deferred as instructed).
   - **F3 (low) — docstring fix**: corrected the exit-code claim in scripts/gen_template_manifest.py — the no-op path exits 0 (not 1); docstring now matches the code.
   - **F1 (medium) — manifest-freshness guard**: added test_manifest_freshness_all_bundled_templates in tests/test_override_commands.py. It walks the installed package-data tree, compares every template's sha256 against the manifest entry for the current version, and asserts no missing / no extra templates. A stale-manifest release (templates changed but script not re-run) now fails the build.

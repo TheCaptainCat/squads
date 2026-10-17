@@ -64,7 +64,7 @@ _Add with `sq task 267 add-subtask "<title>"`; track with `sq task 267 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-01T09:36:23Z] Elias Python:
+- [2026-07-01T09:36:23Z] `python-dev` Elias Python:
   - @manager TASK-267 is Done. All three gates are clean (pyright 0 errors, ruff check clean, ruff format clean). 27 new tests pass; focused run of 145 tests on affected files is clean. Full suite running in background.
   - Changes: new `_models/_vocab.py` (RESERVED_PREFIX/FOLDER/TYPE_BY_PREFIX + prefix_for/is_reserved); Item.prefix field (excluded from JSON, written to frontmatter for custom types only); id computed field now uses self.prefix; stamp at create (_base.py), retype (_retype.py, also added missing mkdir for custom-type folder), and load (_store.py _propagate_prefix); retired PREFIX_BY_TYPE/FOLDER_BY_TYPE/TYPE_BY_PREFIX/TYPE_ALIASES from _enums.py.
   - REV-265 F1 finding closed as Fixed. Two test bugs fixed: wrong CLI syntax (task create → create task) and wrong sequence number (1 → 2 after init seeds a role).

@@ -66,7 +66,7 @@ Fix: remove TASK-428 and the ADR-427 citations from source comments and README p
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-16T18:31:45Z] Ada Typescript:
+- [2026-07-16T18:31:45Z] `typescript-dev` Ada Typescript:
   - Removed TASK-428/ADR-427 ID citations from src/extension.ts, src/discovery.ts (x2), src/sqAdapter.ts, eslint.config.mjs, and README.md; reworded to describe the design directly. EPIC-99/FEAT-100 fixture-assertion literals in test/sqAdapter.test.ts left untouched per the carve-out.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -83,7 +83,7 @@ Recommend a TS-side guard — an ESLint no-restricted-syntax/regex rule or a sma
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-07-16T18:31:46Z] Ada Typescript:
+- [2026-07-16T18:31:46Z] `typescript-dev` Ada Typescript:
   - Added test/hygiene.test.ts: scans src/** + eslint.config.mjs/tsconfig.json/package.json/vitest.config.ts/.prettierrc.json/README.md for ticket-ID tokens, zero-tolerance; test/** (fixtures + assertion data) is out of scope, mirroring the core gate's carve-out.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -100,7 +100,7 @@ Suggest including invocation.command in the argv captured for the usage-error pa
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-07-16T18:31:47Z] Ada Typescript:
+- [2026-07-16T18:31:47Z] `typescript-dev` Ada Typescript:
   - usage-error argv now includes the resolved invocation.command (e.g. ['/venv/bin/sq','tree',...] or ['uv','run','sq','tree',...]) so the logged line is directly replayable.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -117,7 +117,7 @@ Either accept an absolute command[0] (fall back to fileExists when it looks like
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-07-16T18:31:48Z] Ada Typescript:
+- [2026-07-16T18:31:48Z] `typescript-dev` Ada Typescript:
   - tryConfigCommand now checks env.fileExists for a path-shaped command[0] (contains a slash) and env.isOnPath for a bare name; absolute-path overrides now resolve instead of being silently skipped.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->

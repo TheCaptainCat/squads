@@ -3,6 +3,7 @@ id: SKILL-974
 sequence_id: 974
 type: skill
 title: Launch dev host
+slug: launch-dev-host
 status: Active
 author: launch-dev-host
 refs:
@@ -13,13 +14,10 @@ description: Open a VS Code Extension Development Host from WSL for the operator
   see a client change.
 created_at: '2026-09-29T14:09:09Z'
 updated_at: '2026-09-29T14:09:27Z'
-extra:
-  slug: launch-dev-host
-  description: Open a VS Code Extension Development Host from WSL for the operator
-    to see a client change.
-  when_to_use: When the operator needs to see a VS Code client change in a dev host,
-    or a dev-host launch fails.
-  allowed_tools: ''
+when_to_use: When the operator needs to see a VS Code client change in a dev host,
+  or a dev-host launch fails.
+allowed_tools: ''
+origin: project
 ---
 <!-- sq:body -->
 # Launch the VS Code dev host

@@ -71,7 +71,7 @@ _Add with `sq task 546 add-subtask "<title>"`; track with `sq task 546 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T21:09:56Z] Elias Python:
+- [2026-07-21T21:09:56Z] `python-dev` Elias Python:
   - Added discoverability: sq role catalog (non-JSON) now prints a hint pointing at 'sq override scaffold --new <slug>' + 'sq role activate <slug>'; --json shape unchanged. sq role activate --help now mentions the custom non-dev role / .overrides/roles/<slug>.toml path.
   - Docs: docs/overrides.md (scaffold section + 'brand-new role slug' + 'Define a custom role' example) and docs/roles.md (new 'Custom non-dev roles' subsection) now lead with sq override scaffold --new; adopter-facing only, no internal refs.
   - Files: src/squads/_cli/_role.py, docs/overrides.md, docs/roles.md; new tests/cli/test_role_commands_cli.py.

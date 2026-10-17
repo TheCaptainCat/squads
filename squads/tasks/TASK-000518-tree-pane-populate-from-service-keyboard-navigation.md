@@ -112,7 +112,7 @@ Keyboard-only navigation via the Tree widget: siblings up/down, expand into chil
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T10:01:34Z] Elias Python:
+- [2026-07-21T10:01:34Z] `python-dev` Elias Python:
   - Built: squads/_tui/_tree.py populates a Textual Tree from svc.tree_view() (node.item/children/path_only) -- no --json, no reimplemented traversal; fully expanded at launch to match sq tree's default display. Keyboard nav is Tree's built-in bindings (up/down/shift+left/enter/space) -- no custom key handling needed.
   - Verified: tests/cli/test_ui_app_behavior.py asserts tree structure == svc.tree_view() for a fixture hierarchy, and keyboard-only down/down/shift+left moves through siblings, into children, and back to parent with the cursor always on a real node.
 <!-- sq:discussion:end -->

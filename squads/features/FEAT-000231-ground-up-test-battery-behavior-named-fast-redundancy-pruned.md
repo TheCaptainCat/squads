@@ -277,7 +277,7 @@ As a future developer introducing a schema change, I want a coverage ledger mapp
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-26T14:38:35Z] Catherine Manager:
+- [2026-06-26T14:38:35Z] `manager` Catherine Manager:
   - Design principle (Pierre) — the test overhaul follows directly from squads being generic now. The suite was built for the OLD hardcoded-per-type design: exhaustive per-type happy-path coverage, but structurally blind to genericity failure modes (bad vocab was impossible when types were enums). Restructure the battery around FOUR pillars, not per-type re-testing:
     1. Generic-engine tests — the mechanism once (transitions/terminal/parent/flags keyed on a spec), not per type.
     2. Spec-validation + golden — the bundled spec is now a tested artifact (shape + correct flag values).
@@ -285,17 +285,17 @@ As a future developer introducing a schema change, I want a coverage ledger mapp
     4. Failure/edge surface (FIRST-CLASS, the part the old suite lacked) — invalid/unknown vocab at the load boundary, malformed spec, reserved-vocab violations, override-merge conflicts, custom-type/status scenarios.
     
     Motivating case = the FEAT-208 F1 miss: a 1247-test suite missed that corrupt frontmatter (an invalid type/status) is silently indexed then crashes sq check — because the bad-vocab path never existed under enums and was never characterized. Genericity opened the failure mode; the battery must cover it. Net: fewer per-type tests, but the genericity earns its own validation/edge pile — budget for it explicitly. Pairs with the FORCE_COLOR / has_dev / is-vs-== entries in the coverage ledger.
-- [2026-07-08T08:36:29Z] Catherine Manager:
+- [2026-07-08T08:36:29Z] `manager` Catherine Manager:
   - Scheduled into the 0.8 release by op-pierre, sequenced AFTER EPIC-325 (the spec/generic-engine rewrite) — depends-on EPIC-325 added. Rationale: (1) perf — the current ~4-min suite is not acceptable; the rewrite must land a dramatically faster suite (QA to set a concrete wall-clock target, sub-minute goal). (2) quality — the tests are a mess: dev-archaeology names, FEAT-000NNN refs, and redundant CLI smokes, per this feature's own overview.
   - Deferred until EPIC-325 lands so the battery is written against the FINAL generic spec engine (byte-identical-default behaviour, no ItemType/Status enums), not a moving target. Kept OFF the EPIC-325 critical path — the enum/badge golden fallout from FEAT-326/327 is still owned inside those features, not here.
   - Before dispatch (post-EPIC-325): @qa to add a concrete perf-target acceptance criterion and @tech-lead to break this into tasks + re-baseline scope against the shipped engine. Staying Draft until that prose refresh; then Ready.
-- [2026-07-08T08:39:38Z] Catherine Manager:
+- [2026-07-08T08:39:38Z] `manager` Catherine Manager:
   - Design inputs from op-pierre (scope for the rewrite): (1) Parallelize with pytest-xdist — run '-n auto' across available cores. Largely orthogonal to the rewrite (a config + dep add) and likely the single biggest cheap wall-clock win; the scale/slow tests that dominate today parallelize well. (2) The behavioural WHY: agents re-run the full suite 3-4x back-to-back even when explicitly told not to, repeatedly — prompt discipline alone doesn't hold (cf. the main-loop-owns-the-suite + run-once-to-a-file guidance). So the design goal is to make a re-run CHEAP enough that the thrash is harmless, not to rely on instructions suppressing it. Target framing: sub-minute full run via xdist + marking/excluding slow scale tests by default, full sweep explicit/CI.
-- [2026-07-09T09:46:01Z] Pierre Chat:
+- [2026-07-09T09:46:01Z] `op-pierre` Pierre Chat:
   - The test-suite rebuild here is a full DESTROY-and-rebuild — all tests get torn down and rebuilt fresh, not incrementally renamed or restructured. So don't fix test naming/structure piecemeal beforehand (e.g. ticket-ID filenames like test_workflow_renderer_261.py); this feature replaces the lot.
-- [2026-07-09T21:47:55Z] Pierre Chat:
+- [2026-07-09T21:47:55Z] `op-pierre` Pierre Chat:
   - Sequencing decision: the ground-up test-suite rebuild runs LAST — after FEAT-212 and FEAT-281 land. 212/281 reshape the sub-entity/migration/vocab surfaces the suite targets; rebuilding first discards that coverage and collides on the test tree mid-dev. Guardrail on 212/281 dispatch: thin, behavior-named acceptance tests only — FEAT-231 owns exhaustive coverage. The addopts '-m not slow' wall-clock win is folded INTO the rebuild (no piecemeal patching of the old suite).
-- [2026-07-10T04:50:51Z] Olivia Lead:
+- [2026-07-10T04:50:51Z] `tech-lead` Olivia Lead:
   - Broke the rebuild into 5 phased Draft tasks (0->4, largely sequential) realizing the recorded strategy — no re-invention, no implementation:
     
     - TASK-372 Phase 0 — behavior inventory + coverage ledger (the accept gate; NO deletion). ST1->US4 (ledger covers every Principle-5 bug-class + the four-pillar edge cases incl. the FEAT-208 F1 load-boundary crash), ST2->US3 (durations + cov profiling to find duplicate-invariant clusters).
@@ -309,13 +309,13 @@ As a future developer introducing a schema change, I want a coverage ledger mapp
     Baseline for scoping: current suite is ~1796 tests across 80 flat files, -n auto xdist, `slow` marker already registered but not yet in addopts.
     
     All 5 left Draft. Open questions for op-pierre before Ready/dispatch: (1) confirm the <30s default-run target as the acceptance number, or set a firmer sub-minute/CI figure; (2) is `tests/COVERAGE_LEDGER.md` the right home/name for the durable ledger; (3) Phase 3 sign-off gate is on YOU — Phase 0's ledger completeness is what you'll be signing.
-- [2026-07-10T05:31:47Z] Catherine Manager:
+- [2026-07-10T05:31:47Z] `manager` Catherine Manager:
   - HELD at the Phase-0 accept gate for operator direction. Phase 0 (TASK-372) complete + reviewer-signed-off: tests/COVERAGE_LEDGER.md (159 rows, all 80 current files homed, zero blind spots) is the delete-authorizing gate. Phases 1-4 (373-376) are Draft and NOT dispatched. Rationale for holding here rather than auto-building the rebuild overnight: (a) Phase 1's CONVENTIONS.md sets the whole new suite's structure/naming — a design call worth the operator's shaping; (b) Phase 2 is a large speculative rebuild better directed after ledger review; (c) Phase 3 deletes the EPIC-206 safety net and is explicitly gated on operator sign-off of this ledger. Open questions for op-pierre: (1) confirm the perf-target accept number (profiling shows -m 'not slow' = 25.78s, already under the 30s AC); (2) ledger granularity (159 rows) + home (tests/COVERAGE_LEDGER.md) OK as the durable artifact?; (3) greenlight to proceed with Phases 1-2 (non-destructive, new suite built alongside old), with Phase 3 swap still requiring explicit sign-off after parity is proven.
-- [2026-07-10T15:49:44Z] Mara Tester:
+- [2026-07-10T15:49:44Z] `qa` Mara Tester:
   - FEAT-231 ACCEPTED. All 6 acceptance criteria + US1-4 verified end-to-end on the final post-swap state (full verdict + evidence on TASK-376).
   - Headline numbers: default 'uv run pytest' = 24.09s, 1225 collected (1219 passed/6 skipped) — under the 30s target. 'uv run pytest --run-slow' = 2m34.7s, 1225 collected (1224 passed/1 skipped), exit 0 — the 5 scale tests all exercised.
   - Zero dev-archaeology vocab (layer_a/layer_b/golden_lock/ticket-ID) in the shipped test tree outside the two governance docs + the hygiene test's own allowlisted test data. Coverage ledger: 211 rows/26 groups, every Principle-5 bug-class mapped. sq check: exit 0, clean.
   - Light-polish doc fixes made during acceptance: CONVENTIONS.md and COVERAGE_LEDGER.md intros/status lines were still framed as in-progress (Phase 0/1 language) post-swap; corrected to reflect the finalized state, plus one factual fix (the shipped slow-test opt-in is a --run-slow collection hook, not an addopts -m 'not slow' flip as the draft had said).
-- [2026-07-10T15:53:02Z] Pierre Chat:
+- [2026-07-10T15:53:02Z] `op-pierre` Pierre Chat:
   - tests/COVERAGE_LEDGER.md removed post-swap: it was rebuild scaffolding (the accept-gate old->new coverage map), not a living artifact — once the old suite was deleted its 'old home' column became dead references and it would only rot as new tests are added. The rebuild history lives in git + TASK-372..376; CONVENTIONS.md is the durable go-forward artifact. This supersedes the FEAT-231 AC that called for the ledger as a standing characterization doc.
 <!-- sq:discussion:end -->

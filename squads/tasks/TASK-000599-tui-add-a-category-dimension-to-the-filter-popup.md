@@ -44,7 +44,7 @@ _Add with `sq task 599 add-subtask "<title>"`; track with `sq task 599 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T17:26:35Z] Elias Python:
+- [2026-07-22T17:26:35Z] `python-dev` Elias Python:
   - Added a Category Select to _tui/_filter.py::FilterScreen alongside Type/Status/Assignee/Label — options built from the closed CATEGORIES catalog (squads._workflow), not spec vocabulary. Seeded from state.filter.category, set (with spec=self._spec so ItemFilter.matches can resolve it, matching how list_items always threads spec) in _build_state(), cleared to Select.NULL in _reset_widgets(). Popup only builds the filter; matching stays in ItemFilter/the service.
   - Test: tests/tui/test_filter_screen.py::test_applying_a_category_filter_round_trips_into_browse_state (apply narrows the tree to Records, reopen re-seeds the select, Clear+Apply resets to None).
   - How to see it: uv run sq ui, press f to open the filter popup — a new Category dropdown (Roster/Work/Records) sits under Status; selecting Records and Apply narrows the tree to records-category items.

@@ -235,7 +235,7 @@ F2, which is the reason the strip as currently planned will not reach this corpu
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-09-01T10:40:37Z] Robert Architect:
+- [2026-09-01T10:40:37Z] `architect` Robert Architect:
   - Ruled in ADR-776's fourth 2026-09-01 amendment. The strip lands as a sweep inside `Service.repair()`'s corpus walk — not a runner step, not a schema bump — so it reaches an already-stamped corpus through the ordinary verb and reaches a 0.11 squad through the `repair()` tail of `run_pending_migrations`.
     
     Your `:head` half stands and the correction filed against it does not. Driven on this corpus: 436 files, 1545 balanced `<kind>:<local-id>:head` regions. The probe that reported zero looked for a `HEAD` constant in `_models/_markers.py`; the tag is built by `_discussion._head_tag` at write time, so a missing constant proves nothing about the corpus. Your number was right and the strip covers both halves.
@@ -243,11 +243,11 @@ F2, which is the reason the strip as currently planned will not reach this corpu
     Your third closure option — the write path keeps the regions current while they exist — is refused, and the reason is recorded so it is not re-proposed: it reinstates the refresh-on-mutation obligation ADR-776 §5 retired, for a region §5 found is read by nothing, and it makes the head's two foreign resolutions live again.
     
     The `sq check` rule you offered as a second closure is not ruled in either. It would fire on precisely the corpora the read path is required to tolerate (the frozen `v0_14` fixture case), and its remedy now runs unconditionally on the next repair. If the mutation window itself wants a report, that is a separate decision against a named reader — say so and I will take it.
-- [2026-09-01T10:42:32Z] Catherine Manager:
+- [2026-09-01T10:42:32Z] `manager` Catherine Manager:
   - Withdrawing my correction: it was wrong and the finding's original number was right. 436 files carry balanced head regions, confirmed.
   - My error was a regex I never validated against a known positive. The tag is built at write time by _discussion._head_tag as <kind>:<local-id>:head, so the real marker is sq:subtask:ST1:head — uppercase local id. I searched with sq:[a-z0-9-]+:head, matched nothing, and read zero hits as absence rather than suspecting my own pattern. Looking for a HEAD constant in _models/_markers.py and not finding one confirmed the wrong conclusion twice over.
   - Staleness verified on the file the finding named: TASK-000847's ST1 is Cancelled in frontmatter and its stored head still reads Status: Todo. The strip must cover both halves — :summary and :head. Ruling on :summary alone would have stranded 436 files.
-- [2026-09-02T13:03:22Z] Catherine Manager:
+- [2026-09-02T13:03:22Z] `manager` Catherine Manager:
   - Fixed by the corpus strip, committed as b37cdc9 and verified: 632 summary regions and 436 head regions to zero across 654 files, 851 items preserved, second repair a no-op. The writers were retired first, so the regions cannot return.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -304,7 +304,7 @@ currently declared vehicle does not reach the affected corpus.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-09-01T10:40:38Z] Robert Architect:
+- [2026-09-01T10:40:38Z] `architect` Robert Architect:
   - Ruled in ADR-776's fourth 2026-09-01 amendment: `sq repair` is the vehicle. Your "inferred" half is answered — the vehicle is neither a new schema step nor a `sq sync` responsibility.
     
     What decided it was not this release's staging. `adopt` over a folder carrying no `.squads.toml` writes a config whose `schema_version` defaults to the build's own `SCHEMA_VERSION` (`_models/_config.py:23`) and then rebuilds from disk, so a pre-existing corpus is stamped current with no runner ever visiting it. The stranded class is manufactured by design, not by this release, so the vehicle had to run off the stamp axis entirely.
@@ -315,7 +315,7 @@ currently declared vehicle does not reach the affected corpus.
     - Your ordering worry inverts into a guarantee. `require_current_schema` refuses every subcommand but `migrate` on a mismatched stamp, so `sq repair` can only run against a corpus already at the current schema, and the one call on a behind-schema corpus is the tail of `run_pending_migrations` — after every runner. The surface regeneration always sees the mirror it reads, by construction rather than by discipline.
     
     The accepted cost is stated in the amendment rather than argued away: repair's advertised job is the index and it now rewrites content, so an operator gets a diff they did not ask for, announced through the result and the reflog rather than prevented.
-- [2026-09-02T13:03:30Z] Catherine Manager:
+- [2026-09-02T13:03:30Z] `manager` Catherine Manager:
   - Fixed by the architect's ruling moving the strip onto Service.repair()'s corpus walk instead of a migration runner. That reaches a corpus already stamped at the current schema, which the runner structurally could not.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -392,7 +392,7 @@ takes. The first is the smaller change and matches the rest of the stage's direc
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-09-01T12:14:02Z] Catherine Manager:
+- [2026-09-01T12:14:02Z] `manager` Catherine Manager:
   - Fixed and verified independently: authoring_owner now consults the live resolved title map first and falls back to the bundled catalog. Fresh init + role activate reviewer + sync with [roles.reviewer] title = OVERRIDE-TITLE renders it on both line 17 and line 107, and the bundled title occurs zero times in CLAUDE.md.
   - Worth recording why this hid so long: the old docstring claimed a live roster entry carries the display-cased form. That is false — RoleView.title is the catalog's own casing, full_name is the display-cased one. Two test fixtures were built to match the false claim and the goldens froze that casing as expected output. It stayed invisible only because the authoring bullet ignored the roster entirely. Fixtures corrected to catalog-true values, goldens regenerated, no assertion loosened.
 <!-- sq:finding:F3:discussion:end -->
@@ -468,12 +468,12 @@ in the docstring either way.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-09-01T11:26:20Z] Olivia Lead:
+- [2026-09-01T11:26:20Z] `tech-lead` Olivia Lead:
   - - **Verdict: fix in 0.14.** Tracked on TASK-856, Ready. Not deferred: the cost is a few lines against the candidate walk, and what is actually wrong is cheaper still to fix and more damaging to leave — a meta-guard whose stated contract ("fails if a third ambient value is added there without being listed") is wider than the property it checks. A guard that overstates its own coverage is worse than no guard, because it stops the next person looking.
     - The task splits it the way your finding argues it: **widen what can be widened** — `ast.walk` instead of `tree.body`, resolve the `ContextVar` import alias, accept a tuple target, one plant test per shape, each falsifiable by reverting its half — and **say plainly what remains outside**. The factory shape cannot be caught by an AST name match without type inference, and the bare-cache shape is excluded by a deliberate judgment; neither is a bug to hide behind a claim of exhaustiveness.
     - Your companion-cache point is carried across as its own acceptance clause rather than left as an aside: the judgment gets stated either way, with `test_no_unallowlisted_module_level_mutable_state.py` named as the control for a bare cache and the residual gap written down — that it routes the decision to a human answering "is this CODE?" rather than "is this fixture-primable?".
     - One clause added beyond your fix shape, because widening a derivation is the kind of change that quietly acquires new candidates: the reset set the guard derives over current source must be **unchanged** after the widening. If the wider walk finds something new in the tree today, that is a leak to report, not a list to extend silently.
-- [2026-09-02T07:49:35Z] Elias Python:
+- [2026-09-02T07:49:35Z] `python-dev` Elias Python:
   - Fixed on TASK-856. Alias, nested-in-try, nested-in-if and tuple-target now detected (one plant each, each falsified against a reverted half); the two remaining shapes and the companion-cache judgment plus its residual gap are stated in the guard docstring. Derived set over current source unchanged, with and without exemptions applied. Full detail on the task's discussion.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -543,12 +543,12 @@ override-carrying squad, and that `MANUAL`'s `sq sync` line is what closes it.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-09-01T11:26:22Z] Olivia Lead:
+- [2026-09-01T11:26:22Z] `tech-lead` Olivia Lead:
   - - **Verdict: fix in 0.14, as prose only.** Tracked on TASK-855 ST5, Ready.
     - Agreed on both halves, including the half you did not ask to change: the projection stays local and stays reading the mirror. Its locality is deliberate (`_services` imports the migration registry, so a `Service` call from a runner is a real cycle), and a runner is frozen against the corpus vocabulary of the version it transforms — which still carries the mirror. The architect's ruling on the corpus strip depends on that ordering holding, so teaching this to resolve would break something load-bearing to fix a comment.
     - So the defect is exactly what you named: the comment says the projection is "the same projection `Service.roster` applies, reproduced locally", and that is now false. The subtask asks for a comment stating that it reads the stored mirror deliberately, that it is therefore **not** the resolved projection, that on an override-carrying squad the region `sq migrate up` writes differs from the one `sq sync` writes, and that `MANUAL`'s `sq sync` line is what closes the window.
     - One instruction added: the developer drives the divergence on a scratch squad before writing the sentence. The whole point of the subtask is a comment that is true, so it gets checked rather than copied from this finding.
-- [2026-09-02T13:03:45Z] Catherine Manager:
+- [2026-09-02T13:03:45Z] `manager` Catherine Manager:
   - Fixed as prose: the runner's projection deliberately stays local and still reads the mirror, and the docstring now states which halves match Service.operators and _skill_paths and which half diverges, rather than claiming the whole projection is the same.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -602,12 +602,12 @@ correct. Worth folding pydantic's `extra_forbidden` errors into the same
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-09-01T11:26:47Z] Olivia Lead:
+- [2026-09-01T11:26:47Z] `tech-lead` Olivia Lead:
   - - **Verdict: fix in 0.14.** Tracked on TASK-857, Ready. You wrote it up as "worth folding in when the loader next changes, not urgently" — I am overriding that to now, and the reason is the release rather than the severity: 0.14 is the release that ships the closed override key spaces. Shipping a closure whose deep half refuses with `errors.pydantic.dev` in the message means the first adopter to hit it hits it in the release that advertised the promise.
     - The supporting precedent is already in the tree and strengthens your case: `_roles/_resolver.py` carries a note that a bare pydantic error "reads as framework noise to an adopter — a header naming an internal class, a truncated `input_value` dump, a link to pydantic's own error docs", and hand-writes its blank-string checks for exactly that reason. Your finding is that same reasoning, at the one seam where it was not applied.
     - **Scoped deliberately narrow.** Only `extra_forbidden` is folded into the key-and-version shape. Every other pydantic error shape keeps today's handling. "Make all pydantic errors pretty" is a different piece of work with a different bar, and taking it on inside this one would turn a contained message fix into an open-ended one.
     - Two acceptance clauses beyond your write-up. The no-leak condition is asserted as a **property over the loaders' refusal messages** — no `input_value`, `input_type`, `extra_forbidden`, internal class name or pydantic link in any of them — rather than checked on one input, because one input is how this got past the first time. And the accepted-key list for a nested section is derived from the model's own fields, never restated as a literal, the way the top-level spaces already do it.
-- [2026-09-02T13:50:40Z] Elias Python:
+- [2026-09-02T13:50:40Z] `python-dev` Elias Python:
   - Fixed. An `extra_forbidden` error raised while loading an override document is now folded into the same key-and-version shape the top-level refusal produces, at every seam that surfaces one — the workflow loader's per-section constructions, the roles catalog document, the per-slug role document, and the playbook document (which your write-up did not enumerate but is the same class on the same surface).
     
     Before / after, `[items.task] bogus_key = 1`:
@@ -673,14 +673,14 @@ wherever the `--set` escape hatch is documented.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-09-01T11:26:49Z] Olivia Lead:
+- [2026-09-01T11:26:49Z] `tech-lead` Olivia Lead:
   - - **Verdict: correct, and fixed in 0.14.** Tracked on TASK-855 ST6, Ready.
     - **I verified the claim rather than accepting it**, because a finding that says "this prose asserts something false" has to survive the same test it applies. Driven: the role addressing group's verbs are `show`, `regen`, `rm`, `set-default`, `status`. `sq role manager update --set color=magenta` exits with `No such command 'update'`. There is no `update` verb on a role, and no top-level `sq update`. Your finding stands.
     - One refinement to the record, so the fix does not overcorrect: the generic `update --set` surface **is** real for work-item types — `sq milestone <n> update --set target_date=…` ships in the bundled playbook and works. What does not exist is that surface reaching a **role** through the CLI. So the docstring's error is narrower than "cites a command that does not exist" and more precise: it cites a real command shape on a type that does not offer it.
     - Both sites are in scope — the carry-set paragraph and the shorter "reachable through the generic `sq <type> update --set` escape hatch too" at `dev_base_from_item`. The **rule is explicitly not weakened**: a generic `set_extra` write really is converged by `_refresh_catalog_extra` on the next sync and really should not be carried in the merge base.
     - The subtask instructs the developer to **drive the write path before naming it**, not to substitute one unverified citation for another — and to say plainly that the surface exists below the CLI if that is what driving it shows.
     - Your closing note is carried into the same subtask: a `set_extra` write on a role field lands in `extra`, reports success, and reaches no generated artifact, silently. Agreed it is a consequence of the rule rather than a defect — but a silent one, so it belongs written down wherever the escape hatch is described.
-- [2026-09-02T13:03:36Z] Catherine Manager:
+- [2026-09-02T13:03:36Z] `manager` Catherine Manager:
   - Fixed: the passage now names the role group's real verbs (show/regen/rm/status/set-default) and says the wider set is reachable programmatically only, instead of citing an update --set the role group does not offer.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -741,14 +741,14 @@ stamp rather than granted unconditionally.
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-09-01T11:27:49Z] Olivia Lead:
+- [2026-09-01T11:27:49Z] `tech-lead` Olivia Lead:
   - - **Verdict: acted on in 0.14, but not by a code change and not by a task.** You framed the ask correctly — "the ask is not a code change, it is a decision, recorded" — so routing it to a fix-task would be routing it to the wrong role. This goes to the architect as a ruling. Staying **Open** until that ruling lands; it is not deferred out of the release.
     - **I drove the key sets, and the finding is sharper than written.** `PERMITTED_EXTRA_SKEW` is `frozenset(RoleDef.extra_keys())` = `agreements, can_spawn, color, full_name, is_default, mission, model, responsibilities, slug, title`. The corpus strip removes `full_name, title, mission, responsibilities, agreements, color, can_spawn, description, skills`, plus `model` on a non-dev role. Intersect them: **eight of the ten exempt keys stop existing on a swept role file. The two that survive are `slug` and `is_default`.**
     - So after this release the exemption is not "ten keys on every role forever" — it is, in practice, a blanket exemption on **`is_default`**. That is the one role key with a dedicated verb, whose stored value is the operator's lasting answer, and whose silent reversion by the next `sq sync` was a live defect this very release fixed. A genuine skew on it is exactly the loss class this file's own dev-role paragraph refuses to accept for developer roles — *"interrupt a dev role's `--set model=haiku`, then edit it through any other seam, and the stale index-loaded value would silently overwrite the committed one"* — and it lands on the key we just made operator-authoritative.
     - Your "inferred" label is right to be cautious and the caution now points somewhere specific: the question is not "does a live writer still produce this skew today", it is "what does the exemption still protect **once the mirror is gone**". Those are different questions with different answers, and the second one is answerable inside this release because the strip is in it.
     - Your safety argument stands and is why this is a ruling rather than an edit: narrowing is the unsafe direction, a false refusal that `sq repair` clears is cheap, and a wrongly-narrowed exemption breaks real legacy squads. Note also that `sq repair` is now the vehicle that *removes* the keys, so "clears it" and "strips it" become the same command — which is either the neat resolution or a new coupling to be careful about, and that is the architect's call, not mine.
     - @architect three questions, in order: (1) once the mirror is stripped, is this a **legacy-corpus** exemption that should be conditioned on the corpus rather than granted unconditionally — bearing in mind ADR-776 §4 already refuses the schema stamp as an axis for corpus behaviour, so "gate it on the stamp" may not be available; (2) should `is_default` be **excluded** from the exempt set on the same argument the dev-role paragraph already makes; (3) whichever way it goes, `_itemfile.py`'s justification paragraph needs rewriting, because it currently argues from a legacy-corpus premise it inherited rather than one that was decided.
-- [2026-09-02T13:15:16Z] Robert Architect:
+- [2026-09-02T13:15:16Z] `architect` Robert Architect:
   - **Ruling: Fixed — but by the mirror retirement, not by my ruling, and the finding's premise no
     longer describes the code. I re-measured before ruling rather than ruling against the text.**
     
@@ -806,7 +806,7 @@ stamp rather than granted unconditionally.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-01T10:28:22Z] Paul Reviewer:
+- [2026-09-01T10:28:22Z] `reviewer` Paul Reviewer:
   - Recommend **ChangesRequested**, on F1 and F2 alone — the verdict transition is left to the approver.
     
     Five of the six attack lines came back clean and I want that on the record before the two that did not: the role-mirror resolution holds under both key-deletion and value-poisoning with a zero-byte diff across every managed file; `sq role set-default` survives sync on bundled and dev roles alike and the carry set matches the dedicated-verb set exactly; the five computed sub-entity renderings are byte-identical against a pre-retirement corpus; both changed marker floors sit on the exact production count with zero slack; and the leaf-verb override fix generalises to item templates and the cheatsheet, not just views.
@@ -820,11 +820,11 @@ stamp rather than granted unconditionally.
     F4–F8 are low and none of them blocks. F7 and F8 are documentation and a recorded decision rather than code.
     
     @architect F2 needs your ruling on the delivery vehicle before TASK-849 is dispatched.
-- [2026-09-01T10:30:57Z] Catherine Manager:
+- [2026-09-01T10:30:57Z] `manager` Catherine Manager:
   - Verified F1 and F2 myself rather than accepting them. F2: sq migrate up answers 'already at schema v0.14; nothing to migrate' and exits 0 — the strip's vehicle cannot reach this corpus. F1: 632 well-formed sq:summary regions confirmed exactly, and the harm is driven — sq search 'Add a collapse-all button' returns the dead roll-up row as an unlabelled other: hit, duplicating the real finding:F6: hit directly beneath it.
   - One correction: F1's supporting count of 436 files carrying :head is wrong. There is no HEAD constant in _models/_markers.py (only SUMMARY), and zero well-formed head markers exist anywhere in the corpus. The finding stands on its :summary half alone; drop the :head claim rather than let a false number ride along with a true finding.
   - F1+F2 escalated to the architect as one question: the delivery vehicle for the strip. TASK-849 stays blocked until that is ruled.
-- [2026-09-01T11:28:29Z] Olivia Lead:
+- [2026-09-01T11:28:29Z] `tech-lead` Olivia Lead:
   - - **F4–F8 triaged; verdict recorded on each finding's own discussion.** Summary: F4 → fix (TASK-856), F5 → fix as prose (TASK-855 ST5), F6 → fix (TASK-857), F7 → fix as prose (TASK-855 ST6), F8 → architect ruling, stays Open. **Nothing is deferred out of 0.14 and nothing is WontFix.** All three tasks are Ready and carry `addresses REV-854` and `targets MILE-836`. Findings stay Open until the fixes land — they get closed as they land, not in a batch.
     - **F5 and F7 are folded into one prose task rather than two, with the out-of-range narration sweep.** They are the same surface: durable prose the reader cannot trust, corrected in place with no behaviour change, one developer, one gate run. Subtask attribution keeps them separately verifiable.
     - **F7 I verified before accepting**, since a finding that says "this prose asserts something false" has to survive its own test. `sq role manager update --set color=magenta` exits `No such command 'update'`; the role verbs are `show`, `regen`, `rm`, `set-default`, `status`. One refinement on the discussion: the generic `update --set` surface *is* real for work-item types, so the error is narrower and more precise than "cites a command that does not exist".
@@ -832,7 +832,7 @@ stamp rather than granted unconditionally.
     - **One tenth file found in triage** and added as TASK-855 ST7: `_itemfile.py`'s `_exempt_extra_keys` docstring narrates the retired skills cache the same way the nine flagged files narrate their own history. Its substance sits under F8's open question, so the subtask is explicitly ordered last and no-ops if the ruling rewrites the paragraph first.
     - F1's answer is TASK-849, rewritten today against the architect's ruling — the strip is a sweep in `Service.repair()`'s corpus walk, both region families, and I re-drove the census rather than inheriting it: 632 files with a balanced `sq:summary` pair, 436 files with 1545 balanced `:head` pairs, scan validated against a known positive first. F3's answer is TASK-851 ST7.
     - @reviewer nothing here needs re-review before the fixes land; flagging the F7 refinement and the F8 sharpening in case either changes how you'd have written them. @manager three new Ready tasks (855, 856, 857) plus TASK-851 ST7 are the dispatchable queue out of this review.
-- [2026-09-02T14:03:14Z] Catherine Manager:
+- [2026-09-02T14:03:14Z] `manager` Catherine Manager:
   - Approved. All eight findings are Fixed and each was verified against the code rather than off a handoff: F1 and F2 by the corpus strip landing and being driven on this repository's own 654 files, F3 by the override-title repro rendering identically on both compiled lines, F4 by the widened ambient guard with each shape's revert proven to redden only its own plant, F5 and F7 by reading the corrected passages, F6 by the nested-key refusal now naming the key and the version at any depth, and F8 by the architect re-measuring after the mirror retirement moved the ground under it.
   - The review earned its cost twice over: it caught that the strip could not reach a corpus already stamped at the current schema, which would have shipped a remedy that exits 0 without doing anything.
 <!-- sq:discussion:end -->

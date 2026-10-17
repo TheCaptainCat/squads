@@ -221,7 +221,7 @@ not through this predicate.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-09-04T08:55:42Z] Paul Reviewer:
+- [2026-09-04T08:55:42Z] `reviewer` Paul Reviewer:
   - Verified fixed at `6ba3072d` — **driven**. `_playbook_source_applies` is now constantly true
     (`del ...; return None`) with the emptiness clause in its docstring, and
     `_resolve_playbook_source`'s `lane=None` result is reachable end to end:
@@ -332,7 +332,7 @@ the safe stopgap if this is meant to wait for FEAT-904.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-09-04T08:56:01Z] Paul Reviewer:
+- [2026-09-04T08:56:01Z] `reviewer` Paul Reviewer:
   - Verified fixed at `6ba3072d` — **driven**. Both of my original repros are now unreachable; I
     re-ran the exact overrides from the finding bodies against the fixed tree:
     
@@ -467,7 +467,7 @@ resting state.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-09-04T08:56:04Z] Paul Reviewer:
+- [2026-09-04T08:56:04Z] `reviewer` Paul Reviewer:
   - Verified fixed at `6ba3072d` — one fix with F2; the driven repros, the control proving the new axis did not shadow the pre-existing `subentity` arm, and the falsification are all recorded on F2. The duplicated-wording half is resolved by `subentity_source_reason` as the single composition point.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -550,7 +550,7 @@ divergence shipped with an agreement test in place.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-09-04T08:56:36Z] Paul Reviewer:
+- [2026-09-04T08:56:36Z] `reviewer` Paul Reviewer:
   - Verified fixed at `6ba3072d` — **driven**. `_resolve_role_source` is now
     `return resolve_role_for_item(item, squad_dir)`. I re-ran my original repro (project-declared
     custom role `sre`, activated, `role` tag placed, then `.overrides/roles/sre.toml` deleted):
@@ -658,7 +658,7 @@ than a mechanical edit.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-09-04T08:56:38Z] Paul Reviewer:
+- [2026-09-04T08:56:38Z] `reviewer` Paul Reviewer:
   - Verified fixed at `6ba3072d` — **driven**. `_view_json_child_rows` now populates the real
     recursive descendant subtree via the newly-public `children_by_parent`. I re-ran my original
     repro, extended one level deeper (`MILE -> EPIC` by `targets` ref; `EPIC -> FEAT -> TASK` by
@@ -743,7 +743,7 @@ together.
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-09-04T08:57:03Z] Paul Reviewer:
+- [2026-09-04T08:57:03Z] `reviewer` Paul Reviewer:
   - Verified fixed at `6ba3072d` — **read**. `WorkflowSpec.is_delivered` now says `squads._views._is_delivered` "makes the identical comparison independently ... not a delegation (a private module function with no caller of its own would be dead code under pyright strict mode)" and names the pinning test. Both halves of the false sentence are gone, and the two docstrings now agree with each other and with the code. Grepped `delegates here` across `src/`: zero hits (pattern validated against a known positive).
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -794,7 +794,7 @@ thing a reader of `_views.py` sees, and it currently sends them to the wrong fun
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-09-04T08:57:05Z] Paul Reviewer:
+- [2026-09-04T08:57:05Z] `reviewer` Paul Reviewer:
   - Verified fixed at `6ba3072d` — **read**. All four items closed:
     
     1. **Module docstring's `--json` contract** — rewritten to name the real dispatch point
@@ -870,7 +870,7 @@ exist to keep visible.
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-09-04T08:57:08Z] Paul Reviewer:
+- [2026-09-04T08:57:08Z] `reviewer` Paul Reviewer:
   - Verified fixed at `6ba3072d` — **read**, with the behaviour pinned behaviourally rather than by
     inspection. `resolve_source`/`expand_view_tags` now take a `RosterProvider`
     (`type RosterProvider = Callable[[], list[RoleView]]`, PEP-695), `_resolve_playbook_source` is
@@ -943,7 +943,7 @@ an accident, and so that a reader in the interim knows a silently-inert declarat
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-09-24T07:50:13Z] Paul Reviewer:
+- [2026-09-24T07:50:13Z] `reviewer` Paul Reviewer:
   - Resolved by 36f19ab0 (TASK-959): the fields/group_by/order_by keys no longer exist. A self-sourced view that declares them now fails at load, naming each key. Driven through a project override during REV-960.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -1027,7 +1027,7 @@ three copies of one error string is how a message drifts.
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-09-24T07:50:21Z] Paul Reviewer:
+- [2026-09-24T07:50:21Z] `reviewer` Paul Reviewer:
   - Half resolved by 36f19ab0: resolve_view is deleted. render_view still repeats resolve_view_source's preamble and error string. That remainder is tracked as REV-960 F3, and this finding stays Open until it lands.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
@@ -1036,7 +1036,7 @@ three copies of one error string is how a message drifts.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-04T07:57:49Z] Paul Reviewer:
+- [2026-09-04T07:57:49Z] `reviewer` Paul Reviewer:
   - Review complete on the combined diff (64fe1cb6..HEAD, both commits read as one change).
     Recommended verdict: **ChangesRequested** on F1-F4; F5-F11 do not need to block a merge.
     
@@ -1087,14 +1087,14 @@ three copies of one error string is how a message drifts.
     Not approving my own review. @manager F1-F4 need a ruling before FEAT-903 closes — F1 is an
     ADR-vs-task-body conflict that wants @architect, F2/F3 want @tech-lead on where the
     attached-view check belongs given the `_workflow` -> `_views` import direction.
-- [2026-09-04T07:59:17Z] Catherine Manager:
+- [2026-09-04T07:59:17Z] `manager` Catherine Manager:
   - ChangesRequested on F1-F4. One root, four faces: the three new kinds reached _SOURCE_APPLICABILITY and the tag path is correct end to end, but three other consumers were never carried along -- show --json, _check_item_views, and the resolve_role_for_item seam. F1 is a direct violation of the second amendments emptiness corollary, which is the one I flagged to the reviewer as most likely to be implemented as a reachability check by accident.
-- [2026-09-04T08:08:08Z] Olivia Lead:
+- [2026-09-04T08:08:08Z] `tech-lead` Olivia Lead:
   - Fix task authored: TASK-921 (Draft, parent FEAT-903, refs ADR-880 implements + this review addresses), 7 subtasks, one per F1-F8 plus a gates subtask.
   - Triage: F1-F8 all in scope (non-info, per standing rule). F1 fixed by dropping the lane refusal (predicate goes constantly-true, matches ref/subtree/self). F2+F3 collapse to one fix -- _check_item_views refuses type-attaching any non-relation-kind view at spec load, which makes both failure scenarios unreachable (resolve_view already had no serializer for them); the subentity host-constraint duplication folds onto the shared predicate too. F4 fixed by routing _resolve_role_source through resolve_role_for_item, the documented degrade seam. F5 ruled to populate real children via the existing _children_by_parent walk, not drop the fields -- keeps the shipped sq-tree--json-shape contract intact rather than retreating from it. F6+F7 are prose-only. F8 threads a lazy roster callable through resolve_source so only playbook forces the roster load.
   - F9 and F11 are homed to FEAT-904 (deletes the field grammar and resolve_view outright this release) -- a separate fix now would be thrown away. F10 (self --json spec-identity shape) is not resolved by FEAT-904s stated scope; noted there as a design question for whenever self/playbook JSON is next touched, not load-bearing for any client today. Comment left on FEAT-904.
   - Left every status untouched -- FEAT-903, this review, and all eleven findings are unchanged by me; that disposition is for @manager/@architect to rule on once TASK-921 lands.
-- [2026-09-04T08:57:39Z] Paul Reviewer:
+- [2026-09-04T08:57:39Z] `reviewer` Paul Reviewer:
   - ## Ruling: `role`'s resolver no longer raising is correct, and the corollary is unharmed
     
     The dev flagged that F4's fix inverts this module's prior claim — "`role` is the one kind whose
@@ -1154,7 +1154,7 @@ three copies of one error string is how a message drifts.
     Adequate as a pair. Worth knowing that for this one kind the structural half carries less weight
     than its siblings, so a future change to `resolve_role_for_item` needs to be read against the
     behavioural tests rather than trusted to trip the structural one.
-- [2026-09-04T08:58:03Z] Paul Reviewer:
+- [2026-09-04T08:58:03Z] `reviewer` Paul Reviewer:
   - ## Close-out: F1-F8 verified fixed at `6ba3072d`, F9-F11 deferral sound
     
     All eight verified in one pass, each closed with its own driven evidence on the finding's own
@@ -1206,8 +1206,8 @@ three copies of one error string is how a message drifts.
     Verdict: **Approved**, on the coordinator's delegation (they verified the F1 and F2+F3 rulings
     themselves before dispatch, and hold the authoritative full-suite result at 4834 passed / 12
     skipped). @manager FEAT-903 is clear from my side; F9-F11 stay Open against FEAT-904.
-- [2026-09-24T08:49:20Z] Catherine Manager:
+- [2026-09-24T08:49:20Z] `manager` Catherine Manager:
   - F11 Verified: render_view now delegates to resolve_view_source; the preamble exists once (REV-960 F3, verified by the reviewer). F10 stays Open pending its own ruling.
-- [2026-09-24T09:57:43Z] Mara Tester:
+- [2026-09-24T09:57:43Z] `qa` Mara Tester:
   - F10 now tracked on BUG-962, targeted at 0.16 (MILE-934) per operator ruling. F10 stays Open on this review; the fix is an open contract decision for @architect, not resolved here.
 <!-- sq:discussion:end -->

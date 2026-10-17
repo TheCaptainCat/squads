@@ -62,7 +62,7 @@ State the convention once in squads_skill.md.j2 (single source): sub-entity comm
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-06-12T09:59:16Z] Elias Python:
+- [2026-06-12T09:59:16Z] `python-dev` Elias Python:
   - Added comment-scoping convention block to squads_skill.md.j2 under the Hand-back-through-sq bullet (single-source location). Convention covers all three sub-entity kinds with a table (finding/story/subtask examples) plus the inbox rule on @mention placement.
   - Added one-sentence pointer to role.md.j2 working-agreements: names the sub-entity-scoped command shape, the main-discussion default, and references the squads skill convention by name.
   - sq sync run — all role and skill files regenerated; sq check clean.
@@ -79,7 +79,7 @@ Add role-specific scoped-comment guidance to the per-role lines in _interactions
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-06-12T09:59:27Z] Elias Python:
+- [2026-06-12T09:59:27Z] `python-dev` Elias Python:
   - Updated _interactions.py with role-specific scoped-comment guidance: REVIEW reviewer (use finding <k> comment for rationale/verification, main discussion for cross-cutting verdict), REVIEW dev (finding <k> comment when closing with rationale), FEATURE product-owner (story <k> comment for acceptance clarifications), FEATURE tech-lead (story <k> comment for story questions), TASK dev (subtask <k> comment for implementation notes, task comment for handoffs).
   - Each line points at the squads skill convention by name — no restatement. sq sync clean, sq check clean.
 <!-- sq:subtask:ST2:discussion:end -->
@@ -95,7 +95,7 @@ Tests: assert generated squads/sq-review/sq-feature/sq-task skills + role files 
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-06-12T10:00:49Z] Elias Python:
+- [2026-06-12T10:00:49Z] `python-dev` Elias Python:
   - Added three tests to test_skills.py: (1) squads skill carries the convention (Scope your comment, all three kind <k> command shapes, inbox rule); (2) sq-review/sq-feature/sq-task per-type skills carry scoped-comment guidance (kind <k> comment shape + comment-scoping convention phrase); (3) role body has comment-scoping pointer to squads skill.
   - Added test_inbox_surfaces_mention_in_subentity_discussion to test_collab.py: no-regression guard for all three sub-entity kinds (story/US1, subtask/ST1, finding/F1) — each @mention in a sub-entity discussion appears in sq inbox.
   - Tests keyed on stable tokens (command shape 'story <k> comment', phrase 'comment-scoping convention') not full sentences. Full suite: 340 passed 1 skipped. pyright: 0 errors. ruff: clean.
@@ -106,7 +106,7 @@ Tests: assert generated squads/sq-review/sq-feature/sq-task skills + role files 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T09:56:10Z] Olivia Lead:
+- [2026-06-12T09:56:10Z] `tech-lead` Olivia Lead:
   - @python-dev TASK-63 is Ready — content/template only, same shape as TASK-53 (FEAT-40). Goal: ship the comment-scoping convention into the generated skills + role templates.
   - Single source: state the full convention ONCE in squads_skill.md.j2 (the 'Working directly with the operator' / hand-back area). Everywhere else references it. ST1 = squads skill + role template; ST2 = the per-role enter/do/handoff lines in _interactions.py (REVIEW reviewer/dev, FEATURE po/tech-lead, TASK dev) that feed the per-type skills' For-X sections; ST3 = tests + the no-regression inbox assertion.
   - Constraints: no CLI/parsing/inbox code changes; the inbox already picks up sub-entity @mentions; verify a clean 'uv run sq sync' regenerates all skill + role files with markers intact; pyright + ruff clean. Full wording to ship is in the FEAT-62 body — read it.
