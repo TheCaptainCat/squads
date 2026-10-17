@@ -120,7 +120,11 @@ async def test_update_without_an_option_exits_1_and_writes_nothing(squad, invoke
 
     assert result.exit_code == 1, result.output
     assert "nothing to update" in result.output
-    expected = "pass --title)" if kind != "skill" else "pass at least one of --title, --desc"
+    expected = (
+        "pass at least one of --title, --desc"
+        if kind == "skill"
+        else "pass at least one of --title, --pronouns"
+    )
     assert expected in " ".join(result.output.split())
     assert squad_tree(squad) == before
 

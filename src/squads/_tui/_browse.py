@@ -109,7 +109,17 @@ class BrowseScreen(Screen[None]):
         nodes = sort_siblings(nodes, self.state.sort)
         memory = {slug: await self._svc.memory_list(slug) for slug in roster_identity_slugs(nodes)}
         self._tree.reset("squad")
-        populate_tree(self._tree, nodes, self._svc.spec, memory)
+        pronouns = {r.slug: r.pronouns for r in await self._svc.roster_all()} | {
+            o.slug: o.pronouns for o in await self._svc.operators_all()
+        }
+        populate_tree(
+            self._tree,
+            nodes,
+            self._svc.spec,
+            memory,
+            pronouns,
+            self._svc.paths.config.display.pronouns,
+        )
         self._update_indicator()
 
     def _update_indicator(self) -> None:

@@ -25,7 +25,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 import squads._cli._common as common
-from squads import __version__
+from squads import __version__, _pronouns
 from squads import _views as views
 from squads._cli._common import (
     AddressDispatchGroup,
@@ -54,6 +54,7 @@ from squads._roles._catalog import RoleDef
 from squads._roles._loader import ROLES_OVERRIDE_FILENAME, load_role_catalog
 from squads._roles._resolver import (
     pinned_name_of,
+    resolve_pronouns,
     resolve_role_for_item,
     resolve_role_with_base,
 )
@@ -224,6 +225,7 @@ async def role_list(json_out: bool = typer.Option(False, "--json")) -> None:
                         "id": r.id,
                         "slug": role.slug,
                         "full_name": role.full_name,
+                        "pronouns": role.pronouns,
                         "title": role.title,
                         "is_default": role.is_default,
                         "capabilities": list(role.capabilities),
@@ -242,7 +244,9 @@ async def role_list(json_out: bool = typer.Option(False, "--json")) -> None:
     for r, role in resolved:
         table.add_row(
             e(role.slug),
-            e(role.full_name),
+            _pronouns.named(
+                role.full_name, role.pronouns, enabled=svc.paths.config.display.pronouns
+            ),
             e(role.title),
             e(", ".join(role.capabilities)),
             "✓" if role.is_default else "",
@@ -262,6 +266,9 @@ async def activate_role(
     name: str | None = typer.Option(
         None, "--name", help="Full name for this agent (overrides bundled default)."
     ),
+    pronouns: str | None = typer.Option(
+        None, "--pronouns", help="Pronouns for this agent, e.g. they/them (one line, up to 40)."
+    ),
 ) -> None:
     """Activate a role: create its tracked item and Claude pointer.
 
@@ -273,9 +280,12 @@ async def activate_role(
     *refused*, not silently returned: bring it back with ``sq role <slug> status <live-status>``.
     """
     svc = get_service()
-    item = await svc.activate_role(slug, name=name)
+    item = await svc.activate_role(slug, name=name, pronouns=pronouns)
     await svc.refresh_managed()
-    console.print(f"activated [bold]{item.title}[/bold] ({item.id})")
+    name = common.named_markup(
+        svc, item.title, resolve_pronouns(_pronouns.pronouns(item), svc.paths.squad_dir)
+    )
+    console.print(f"activated [bold]{name}[/bold] ({item.id})")
 
 
 # ---------------------------------------------------------------- addressed subgroup (_addr)
@@ -385,6 +395,9 @@ async def show_role(
     # (``None`` here).
     base_role = common.role_base_for_show(slug, it, svc.paths.squad_dir)
     shown_origin = role_origin(slug) if it is None else attrs.origin(it)
+    shown_pronouns = resolve_pronouns(
+        _pronouns.pronouns(it) if it is not None else None, svc.paths.squad_dir
+    )
 
     if json_out:
         data = await common.build_role_json_payload(svc, slug, item_id, it, base_role, addr)
@@ -411,8 +424,9 @@ async def show_role(
         # Mission/responsibilities are deliberately absent: the resolved definition printed
         # below carries them once, in the form an agent is meant to read, rather than the
         # card repeating what it does not need to.
+        shown_name = common.named_markup(svc, r.full_name, shown_pronouns, style="bold")
         rows = [
-            f"[bold]{e(r.full_name)}[/bold] (`{e(r.slug)}`)",
+            f"{shown_name} (`{e(r.slug)}`)",
             f"[bold]title:[/bold] {e(r.title)}",
             f"[bold]origin:[/bold] {shown_origin or '—'}",
             f"[bold]model:[/bold] {e(r.model or 'inherit')}",
@@ -521,12 +535,15 @@ async def set_default_role(ctx: typer.Context) -> None:
 async def update_role(
     ctx: typer.Context,
     title: str | None = typer.Option(None, "--title", help="The role's name."),
+    pronouns: str | None = typer.Option(
+        None, "--pronouns", help="The role's pronouns; a blank value clears them."
+    ),
 ) -> None:
-    """Rename a role; its slug, file and pointer directory never change."""
-    common.require_update_fields(title=title)
+    """Rename a role or set its pronouns; its slug, file and pointer directory never change."""
+    common.require_update_fields(title=title, pronouns=pronouns)
     item_id = _require_id(ctx)
     svc = get_service()
-    await svc.update(item_id, title=title)
+    await svc.update(item_id, title=title, pronouns=pronouns)
     await svc.refresh_managed()
     console.print(f"updated {item_id}")
 

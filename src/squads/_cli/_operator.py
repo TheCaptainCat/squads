@@ -19,6 +19,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 import squads._cli._common as common
+from squads import _pronouns
 from squads._cli._common import (
     AddressDispatchGroup,
     console,
@@ -59,11 +60,15 @@ operator_app = typer.Typer(
 async def operator_add(
     name: str = typer.Argument(..., help='The human\'s display name, e.g. "Alice Tester".'),
     slug: str | None = typer.Option(None, "--slug", help="Override the derived `op-<first>` slug."),
+    pronouns: str | None = typer.Option(
+        None, "--pronouns", help="The operator's pronouns, e.g. they/them (one line, up to 40)."
+    ),
 ) -> None:
     """Register a human operator (assignable + can author items/comments)."""
     svc = get_service()
-    item = await svc.add_operator(name, slug=slug)
-    console.print(f"registered [bold]{e(item.title)}[/bold] (`{item.slug}`) {item.id}")
+    item = await svc.add_operator(name, slug=slug, pronouns=pronouns)
+    name = common.named_markup(svc, item.title, _pronouns.pronouns(item))
+    console.print(f"registered [bold]{name}[/bold] (`{item.slug}`) {item.id}")
 
 
 # --------------------------------------------------------------------------- list
@@ -83,6 +88,7 @@ async def operator_list(json_out: bool = typer.Option(False, "--json")) -> None:
                         "id": op.id,
                         "slug": op.slug,
                         "full_name": op.title,
+                        "pronouns": _pronouns.pronouns(op),
                         "status": op.status,
                     }
                     for op in operators
@@ -96,7 +102,9 @@ async def operator_list(json_out: bool = typer.Option(False, "--json")) -> None:
     for op in operators:
         table.add_row(
             e(op.slug),
-            e(op.title),
+            _pronouns.named(
+                op.title, _pronouns.pronouns(op), enabled=svc.paths.config.display.pronouns
+            ),
             op.id,
             e(op.status),
         )
@@ -139,6 +147,7 @@ async def operator_show(
                     "id": it.id,
                     "slug": it.slug,
                     "full_name": it.title,
+                    "pronouns": _pronouns.pronouns(it),
                     "status": it.status,
                     "path": it.path,
                 }
@@ -147,7 +156,7 @@ async def operator_show(
         return
     await common.warn_duplicate_id(svc, it)
     rows = [
-        f"[bold]{e(it.title)}[/bold]",
+        common.named_markup(svc, it.title, _pronouns.pronouns(it), style="bold"),
         f"[bold]slug:[/bold] {e(it.slug)}",
         f"[bold]id:[/bold] {it.id}",
         f"[bold]status:[/bold] {it.status}",
@@ -169,12 +178,15 @@ async def operator_show(
 async def operator_update(
     ctx: typer.Context,
     title: str | None = typer.Option(None, "--title", help="The operator's display name."),
+    pronouns: str | None = typer.Option(
+        None, "--pronouns", help="The operator's pronouns; a blank value clears them."
+    ),
 ) -> None:
-    """Rename an operator; its slug, file and id never change."""
-    common.require_update_fields(title=title)
+    """Rename an operator or set their pronouns; its slug, file and id never change."""
+    common.require_update_fields(title=title, pronouns=pronouns)
     item_id: str = ctx.obj["id"]
     svc = get_service()
-    await svc.update(item_id, title=title)
+    await svc.update(item_id, title=title, pronouns=pronouns)
     await svc.refresh_managed()
     console.print(f"updated {item_id}")
 

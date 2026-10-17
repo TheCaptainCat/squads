@@ -38,6 +38,7 @@ _ROSTER = (
     "agent_registered",
     "parent_acyclic",
     "attribute_valid",
+    "pronouns_valid",
 )
 
 EXPECTED: dict[str, tuple[str, ...]] = {

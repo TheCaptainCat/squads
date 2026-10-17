@@ -128,6 +128,7 @@ class ClaudeCodeBackend(AgentBackend):
                     "full_name": r.full_name,
                     "title": r.title,
                     "slug": r.slug,
+                    "pronouns": r.pronouns,
                     "capabilities": list(r.capabilities),
                 }
                 for r in roster
@@ -137,7 +138,10 @@ class ClaudeCodeBackend(AgentBackend):
                 default.slug if default else None,
                 [r.slug for r in developer_roles(roster, load_role_catalog(ctx.squad_dir))],
             ),
-            operators=[{"full_name": o.full_name, "slug": o.slug} for o in operators],
+            operators=[
+                {"full_name": o.full_name, "slug": o.slug, "pronouns": o.pronouns}
+                for o in operators
+            ],
             # No live role carrying `is_default` is a legitimate state, not a gap to paper over
             # with a fabricated slug: the template omits the default-role line and the
             # orchestration paragraph's name entirely rather than inventing one, the same
@@ -349,6 +353,7 @@ class ClaudeCodeBackend(AgentBackend):
             "claude/pointer_agent.md.j2",
             slug=role.slug,
             full_name=role.full_name,
+            pronouns=role.pronouns,
             role_title=role.title,
             description=oneline(role.description),
             model=model,

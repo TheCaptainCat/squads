@@ -557,6 +557,7 @@ ref_rules = []
 is_default = { kind = "bool", settable = false }
 model = { kind = "str" }
 origin = { kind = "str", required = true, settable = false }
+pronouns = { kind = "str", settable = false }
 tech = { kind = "str", settable = false }
 
 [items.skill]
@@ -592,6 +593,9 @@ category = "roster"
 ref_rules = []
 # subentity_kind absent → None
 # parent_required absent → None
+
+[items.operator.attributes]
+pronouns = { kind = "str", settable = false }
 
 # ---------------------------------------------------------------------------
 # Sub-entity kinds — machine binding (`lifecycle`) + done-toggle target (`completion`) +

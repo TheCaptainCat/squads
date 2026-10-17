@@ -85,6 +85,7 @@ def test_the_claude_md_managed_section_body_matches_its_pinned_golden() -> None:
         roles=[
             {
                 "full_name": r.full_name,
+                "pronouns": r.pronouns,
                 "title": r.title,
                 "slug": r.slug,
                 "capabilities": list(r.capabilities),
@@ -94,7 +95,10 @@ def test_the_claude_md_managed_section_body_matches_its_pinned_golden() -> None:
         delegate_examples=delegate_example_slugs(
             _PINNED_ROSTER, _DEFAULT_ROLE.slug, ["python-dev"]
         ),
-        operators=[{"full_name": o.full_name, "slug": o.slug} for o in _PINNED_OPERATORS],
+        operators=[
+            {"full_name": o.full_name, "slug": o.slug, "pronouns": o.pronouns}
+            for o in _PINNED_OPERATORS
+        ],
         default_role_full_name=_DEFAULT_ROLE.full_name,
         default_role_slug=_DEFAULT_ROLE.slug,
         spec=bundled_spec(),
@@ -123,6 +127,7 @@ def test_the_agents_md_managed_section_body_matches_its_pinned_golden() -> None:
         roles=[
             {
                 "full_name": r.full_name,
+                "pronouns": r.pronouns,
                 "title": r.title,
                 "slug": r.slug,
                 "capabilities": list(r.capabilities),
@@ -132,7 +137,10 @@ def test_the_agents_md_managed_section_body_matches_its_pinned_golden() -> None:
             for r in _PINNED_ROSTER
         ],
         developer_slugs=["python-dev"],
-        operators=[{"full_name": o.full_name, "slug": o.slug} for o in _PINNED_OPERATORS],
+        operators=[
+            {"full_name": o.full_name, "slug": o.slug, "pronouns": o.pronouns}
+            for o in _PINNED_OPERATORS
+        ],
         spec=spec,
         also_creatable_types=_also_creatable_types(spec, anchor_ctx["anchor"]),
         **anchor_ctx,

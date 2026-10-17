@@ -4,11 +4,12 @@ import typer
 from rich.table import Table
 
 import squads._cli._common as common
-from squads._cli._common import console, e, get_service
+from squads import _pronouns
+from squads._cli._common import console, get_service
 from squads._interactions._role_guidance import developer_roles
 from squads._models import _attributes as attrs
 from squads._roles._loader import load_role_catalog
-from squads._roles._resolver import resolve_role_tolerantly
+from squads._roles._resolver import resolve_pronouns, resolve_role_tolerantly
 from squads._workflow import ROSTER_ROLE
 
 dev_app = typer.Typer(no_args_is_help=True, help="Manage stack-specific developer roles.")
@@ -25,11 +26,17 @@ async def dev_add(
     slug: str | None = typer.Option(
         None, "--slug", help="Slug to store the developer under (default: <tech>-dev)."
     ),
+    pronouns: str | None = typer.Option(
+        None, "--pronouns", help="Pronouns for this developer, e.g. they/them (one line, up to 40)."
+    ),
 ):
     """Bootstrap a developer for a technology (e.g. `sq dev add --tech dotnet`)."""
     svc = get_service()
-    item = await svc.add_dev(tech, name=name, model=model, slug=slug)
-    console.print(f"added [bold]{e(item.title)}[/bold] (`{item.slug}`) {item.id}")
+    item = await svc.add_dev(tech, name=name, model=model, slug=slug, pronouns=pronouns)
+    name = common.named_markup(
+        svc, item.title, resolve_pronouns(_pronouns.pronouns(item), svc.paths.squad_dir)
+    )
+    console.print(f"added [bold]{name}[/bold] (`{item.slug}`) {item.id}")
 
 
 @dev_app.command("list")
@@ -54,7 +61,11 @@ async def dev_list():
         table.add_row(
             it.id,
             it.slug,
-            e(it.title),
+            _pronouns.named(
+                it.title,
+                roles[it.slug].pronouns,
+                enabled=svc.paths.config.display.pronouns,
+            ),
             attrs.tech(it) or "",
         )
     console.print(table)

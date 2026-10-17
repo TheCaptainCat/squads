@@ -3,6 +3,7 @@
     "id": "ROLE-1",
     "slug": "manager",
     "full_name": "Catherine Manager",
+    "pronouns": null,
     "title": "manager",
     "is_default": true,
     "capabilities": [],

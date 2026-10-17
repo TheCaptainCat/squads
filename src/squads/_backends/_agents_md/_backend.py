@@ -106,6 +106,7 @@ class AgentsMdBackend(AgentBackend):
                 "full_name": r.full_name,
                 "title": r.title,
                 "slug": r.slug,
+                "pronouns": r.pronouns,
                 "capabilities": list(r.capabilities),
                 "mission": r.mission,
                 "responsibilities": list(r.responsibilities),
@@ -124,7 +125,10 @@ class AgentsMdBackend(AgentBackend):
             developer_slugs=[
                 r.slug for r in developer_roles(roster, load_role_catalog(ctx.squad_dir))
             ],
-            operators=[{"full_name": o.full_name, "slug": o.slug} for o in operators],
+            operators=[
+                {"full_name": o.full_name, "slug": o.slug, "pronouns": o.pronouns}
+                for o in operators
+            ],
             spec=spec,
             # The ACTIVE (merged) playbook, so the included cheatsheet's authoring bullets
             # resolve an override-declared authoring role rather than the bundled lanes only.

@@ -16,10 +16,12 @@ from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkf
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import ensure_no_skew
 from squads._models import _markers as markers
+from squads._models._attributes import AttributeKey
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, format_item_id, ref_id_matches, split_ref
 from squads._models._metadata import coerce_attribute, require_settable
 from squads._paths import number_for_id
+from squads._pronouns import checked_pronouns
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import resolve_role_for_item
 from squads._services import _retirement as retirement
@@ -205,6 +207,7 @@ class ItemsMixin(ServiceCore):
         clear_parent: bool = False,
         set_attributes: dict[str, str] | None = None,
         unset_attributes: list[str] | None = None,
+        pronouns: str | None = None,
     ) -> Item:
         """Opens its own transaction, then delegates to :meth:`_update_core` — the bulk
         importer calls that core directly (its own transaction is already open). The
@@ -228,6 +231,7 @@ class ItemsMixin(ServiceCore):
                 clear_parent=clear_parent,
                 set_attributes=set_attributes,
                 unset_attributes=unset_attributes,
+                pronouns=pronouns,
             )
         if (
             self.spec.item_is_roster(item.type)
@@ -255,6 +259,8 @@ class ItemsMixin(ServiceCore):
             supplied = set(bundled_spec().item_attributes(item.type))
             if item.type == ROSTER_ROLE:
                 supplied |= {f.name for f in dataclasses.fields(RoleDef)} - {"slug"}
+            # Pronouns are identity the operator sets, not content a role document supplies.
+            supplied.discard(AttributeKey.PRONOUNS)
             changed = {
                 name
                 for name, given in (("title", title), ("description", description))
@@ -282,6 +288,7 @@ class ItemsMixin(ServiceCore):
         clear_parent: bool = False,
         set_attributes: dict[str, str] | None = None,
         unset_attributes: list[str] | None = None,
+        pronouns: str | None = None,
         now: datetime | None = None,
     ) -> tuple[Item, dict[str, object], tuple[Path, Path] | None, Item]:
         """The PURE half of a metadata update: no file I/O. Returns ``(item, delta, rename,
@@ -351,6 +358,8 @@ class ItemsMixin(ServiceCore):
             item.parent = parent
         self._apply_labels(item, add_labels, rm_labels)
         self._apply_attributes(item, set_attributes, unset_attributes)
+        if pronouns is not None:
+            delta["pronouns"] = self._apply_pronouns(item, pronouns)
         item.updated_at = now if now is not None else clock.now()
         item.modified_session, _ = actor.current_session()
         # Fail-closed on the updated item's first error-level catalog violation — the
@@ -377,6 +386,7 @@ class ItemsMixin(ServiceCore):
         clear_parent: bool = False,
         set_attributes: dict[str, str] | None = None,
         unset_attributes: list[str] | None = None,
+        pronouns: str | None = None,
     ) -> Item:
         """The metadata-update mutation core: takes an already-open transaction's ``db``.
 
@@ -408,6 +418,7 @@ class ItemsMixin(ServiceCore):
             clear_parent=clear_parent,
             set_attributes=set_attributes,
             unset_attributes=unset_attributes,
+            pronouns=pronouns,
         )
         default_kind = self.spec.default_ref_kind()
         if rename_paths is not None:
@@ -456,6 +467,18 @@ class ItemsMixin(ServiceCore):
             else:
                 require_settable(item.type, key, self.spec.item_attributes(item.type))
                 item.attributes.pop(key, None)
+
+    def _apply_pronouns(self, item: Item, raw: str) -> str | None:
+        """Store *raw* as the item's pronouns, trimmed; blank removes them. Returns the value now
+        stored. Refuses a value that fails the shape rule, or a type that declares no pronouns."""
+        if AttributeKey.PRONOUNS not in self.spec.item_attributes(item.type):
+            raise SquadsError(f"a {item.type} does not carry pronouns")
+        value = checked_pronouns(raw)
+        if value is None:
+            item.attributes.pop(AttributeKey.PRONOUNS, None)
+        else:
+            item.attributes[AttributeKey.PRONOUNS] = value
+        return value
 
     def _apply_status(self, item: Item, status: str, *, force: bool) -> None:
         # Defensive str() — status is spec vocabulary (a plain string), no enum involved.

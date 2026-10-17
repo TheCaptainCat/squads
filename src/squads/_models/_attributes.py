@@ -35,6 +35,8 @@ class AttributeKey:
     TECH = "tech"
     # roles and skills
     ORIGIN = "origin"
+    # roles and operators
+    PRONOUNS = "pronouns"
     # skills
     WHEN_TO_USE = "when_to_use"
     ALLOWED_TOOLS = "allowed_tools"

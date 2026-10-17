@@ -267,6 +267,7 @@ _cli -> _models typing
 _cli -> _overrides top
 _cli -> _paths local
 _cli -> _paths top
+_cli -> _pronouns top
 _cli -> _rendering local
 _cli -> _rendering top
 _cli -> _roles top
@@ -358,6 +359,9 @@ _overrides -> squads top
 _paths -> _errors top
 _paths -> _models top
 _paths -> _workflow top
+_pronouns -> _errors top
+_pronouns -> _models top
+_pronouns -> _sections top
 _rendering -> _badges top
 _rendering -> _errors top
 _rendering -> _interactions top
@@ -368,6 +372,7 @@ _rendering -> _util top
 _rendering -> _workflow top
 _roles -> _errors top
 _roles -> _models top
+_roles -> _pronouns top
 _roles -> _specmerge top
 _roles -> _util top
 _sections -> _errors top
@@ -391,6 +396,7 @@ _services -> _migrations top
 _services -> _models top
 _services -> _overrides local
 _services -> _paths top
+_services -> _pronouns top
 _services -> _rendering local
 _services -> _rendering top
 _services -> _roles top
@@ -408,6 +414,7 @@ _tui -> _clock top
 _tui -> _discussion top
 _tui -> _memory top
 _tui -> _models top
+_tui -> _pronouns top
 _tui -> _services top
 _tui -> _workflow top
 _views -> _errors top

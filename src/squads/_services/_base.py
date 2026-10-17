@@ -65,6 +65,7 @@ from squads._models._participants import (
 )
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
+from squads._pronouns import pronouns
 from squads._rendering._engine import render, scaffold_body, set_active_squad_dir
 from squads._roles._catalog import RoleDef
 from squads._roles._loader import ROLES_OVERRIDE_FILENAME, load_role_catalog
@@ -1555,6 +1556,7 @@ class ServiceCore:
             mission=role.mission,
             responsibilities=role.responsibilities,
             capabilities=role.capabilities,
+            pronouns=role.pronouns,
         )
 
     async def roster(self) -> list[RoleView]:
@@ -1599,6 +1601,7 @@ class ServiceCore:
             OperatorView(
                 slug=it.slug,
                 full_name=it.title,
+                pronouns=pronouns(it),
             )
             for it in await self.list_items(item_type=ROSTER_OPERATOR)
             if it.status in live
@@ -1611,6 +1614,7 @@ class ServiceCore:
             OperatorView(
                 slug=it.slug,
                 full_name=it.title,
+                pronouns=pronouns(it),
             )
             for it in await self.list_items(item_type=ROSTER_OPERATOR)
         ]
