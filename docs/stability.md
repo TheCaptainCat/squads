@@ -760,7 +760,9 @@ The frozen surface includes:
   [roles.md § "Where a role or skill comes from"](roles.md#where-a-role-or-skill-comes-from-origin)).
   `role list`, `role <addr> show`, `operator list` and `operator <addr> show` carry `pronouns`
   after `full_name` on every row: the resolved value, or `null` (see
-  [roles.md § "Pronouns"](roles.md#pronouns))
+  [roles.md § "Pronouns"](roles.md#pronouns)). `skill <addr> show --json` carries `operator_invocable` (the resolved boolean) and
+  `operator_invocable_set` (whether the squad stored the choice); see
+  [roles.md § "Whether an operator can invoke a skill"](roles.md#whether-an-operator-can-invoke-a-skill)
 - **The workflow catalogs** — the machine-readable form of your squad's *active* vocabulary,
   bundled plus any override, and the surface to read instead of hardcoding a name:
 

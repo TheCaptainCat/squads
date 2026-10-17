@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1090,
+  "counter": 1091,
   "padding": 6,
   "items": {
     "12": {
@@ -7216,7 +7216,7 @@
       "type": "feature",
       "title": "Skill invocability: declared default, squad's own choice",
       "slug": "skill-invocability-declared-default-squad-s-own-choice",
-      "status": "InProgress",
+      "status": "Done",
       "description": "A skill's operator_invocable attribute: a bundled default plus a stored squad choice, rendered by the Claude Code backend",
       "parent": null,
       "author": "product-owner",
@@ -7288,7 +7288,7 @@
       ],
       "path": "features/FEAT-000966-skill-invocability-declared-default-squad-s-own-choice.md",
       "created_at": "2026-09-28T17:54:53Z",
-      "updated_at": "2026-10-17T03:11:07Z",
+      "updated_at": "2026-10-17T03:43:33Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31626,7 +31626,7 @@
       "subentities": [],
       "path": "adrs/ADR-000983-skill-invocability-a-declared-default-and-a-squad-s-stored-c.md",
       "created_at": "2026-10-09T18:27:22Z",
-      "updated_at": "2026-10-15T20:17:02Z",
+      "updated_at": "2026-10-17T03:39:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45403,7 +45403,7 @@
       "type": "feature",
       "title": "The --help surface follows one rule",
       "slug": "the-help-surface-follows-one-rule",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "Every command's help answers what it does, what to type and what comes back, in one dialect with every flag described.",
       "parent": null,
       "author": "product-owner",
@@ -45509,7 +45509,7 @@
       ],
       "path": "features/FEAT-001024-the-help-surface-follows-one-rule.md",
       "created_at": "2026-10-15T21:43:01Z",
-      "updated_at": "2026-10-16T19:50:32Z",
+      "updated_at": "2026-10-17T03:43:35Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -48777,7 +48777,7 @@
       "type": "task",
       "title": "Resolve and render skill operator invocability",
       "slug": "resolve-and-render-skill-operator-invocability",
-      "status": "InProgress",
+      "status": "Done",
       "description": "A declared default per bundled skill, a squad's stored choice set by the CLI, rendered as user-invocable: false by the Claude Code backend",
       "parent": "FEAT-966",
       "author": "tech-lead",
@@ -48857,7 +48857,7 @@
       ],
       "path": "tasks/TASK-001072-resolve-and-render-skill-operator-invocability.md",
       "created_at": "2026-10-16T19:55:32Z",
-      "updated_at": "2026-10-17T03:31:48Z",
+      "updated_at": "2026-10-17T03:43:32Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -49424,7 +49424,7 @@
       "type": "task",
       "title": "Bring every --help screen under one rule",
       "slug": "bring-every-help-screen-under-one-rule",
-      "status": "Draft",
+      "status": "Ready",
       "description": "help text per REV-958 R1-R9: writer strings and docs, shared flag definitions, markup and layout, and a tests/meta guard",
       "parent": "FEAT-1024",
       "author": "tech-lead",
@@ -49540,7 +49540,7 @@
       ],
       "path": "tasks/TASK-001080-bring-every-help-screen-under-one-rule.md",
       "created_at": "2026-10-16T21:15:20Z",
-      "updated_at": "2026-10-16T21:16:00Z",
+      "updated_at": "2026-10-17T03:43:34Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -50153,6 +50153,86 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-1090"
+    },
+    "1091": {
+      "sequence_id": 1091,
+      "type": "review",
+      "title": "Skill invocability: declared default and squad choice",
+      "slug": "skill-invocability-declared-default-and-squad-choice",
+      "status": "Requested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1072"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Generic show/list --json publish the raw stored key, not the resolved pair",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Frozen-runner comments claim no host key, but the 0.11-0.14 runner writes it",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Stale managed-writer docstring: pointer renders from name and description alone",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Roster write gate does not state the operator_invocable exemption itself",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Upgrade-path test derives its expected system set from the output under test",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Option parser lives among the attribute accessors",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001091-skill-invocability-declared-default-and-squad-choice.md",
+      "created_at": "2026-10-17T03:36:50Z",
+      "updated_at": "2026-10-17T03:43:30Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1091"
     }
   }
 }

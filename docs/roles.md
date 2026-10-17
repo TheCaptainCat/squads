@@ -217,6 +217,52 @@ anything, so a skill slug is not accepted by `--as`, `--author` or `--assignee`.
 generated skill's body yourself, see
 [overrides.md § "Authoring a role or skill body by hand"](overrides.md#authoring-a-role-or-skill-body-by-hand).
 
+### Whether an operator can invoke a skill
+
+Every skill says whether an operator can run it by name in the agent host (`/greeting` in Claude
+Code). Agents load skills either way. Each skill has a declared default:
+
+| Skill | Operator invocable by default |
+|---|---|
+| `squads`, `greeting`, `sq-memory` | no |
+| every `sq-<type>` skill | no |
+| a skill you add with `sq skill add`, whatever its name | yes |
+
+A squad chooses its own value per skill with `--operator-invocable`, on `sq skill add` and
+`sq skill <slug> update`:
+
+```bash
+sq skill greeting update --operator-invocable yes    # store "invocable"
+sq skill runbook update --operator-invocable no      # store "not invocable"
+sq skill greeting update --operator-invocable default   # drop the stored choice, follow the default
+```
+
+`yes` and `no` store the choice, even when it equals the default, and a stored choice is never
+overwritten by a later release. `default` removes it, so the skill follows its declared default,
+including a default a later release changes, from the next `sq sync`. Leaving the option out
+changes nothing, and any other value exits `1` with nothing written:
+`error: --operator-invocable takes yes, no or default, not 'maybe'`. The option is accepted on a
+generated skill, where it is the one change `update` allows: a generated skill's title,
+description and when-to-use stay refused, and a command that combines them with the option is
+refused whole. `--set operator_invocable=…` and an `sq import` `fields` entry naming it are
+refused.
+
+**What the agent host does with it.** In Claude Code, a skill that is not operator invocable gets
+`user-invocable: false` in its `.claude/skills/<slug>/SKILL.md` pointer, and an invocable one
+gets no such line. The operator then cannot run it as `/<slug>`, but an agent that lists the skill
+still preloads it. The `AGENTS.md` backend has no place for
+the value and writes nothing for it.
+
+**Where it shows.** `sq skill <slug> show` prints `operator invocable: yes|no`, followed by
+`(set by this squad)` or `(declared default)`, and its `--json` carries `operator_invocable`
+(the resolved boolean) and `operator_invocable_set` (whether the squad chose it). The stored
+choice is the `operator_invocable` key in the skill's frontmatter, so a generic item row
+(`sq list -t skill --json`, `sq show`) carries it only when the squad has stored one.
+
+**After upgrading,** the generated pointers change on the first `sq sync`: until then `sq check`
+warns that each bundled skill's pointer has drifted, and from then on Claude Code does not run a
+bundled skill as `/<slug>`. No migration is needed.
+
 ## Updating and commenting on roles, skills and operators
 
 Roles, skills and operators take the item verbs `update`, `comment`, `comments` and `remove`, plus

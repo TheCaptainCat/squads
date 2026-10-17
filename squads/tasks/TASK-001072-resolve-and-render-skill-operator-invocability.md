@@ -3,7 +3,7 @@ id: TASK-1072
 sequence_id: 1072
 type: task
 title: Resolve and render skill operator invocability
-status: InProgress
+status: Done
 parent: FEAT-966
 author: tech-lead
 refs:
@@ -44,7 +44,7 @@ subentities:
   assignee: qa
   story: US2
 created_at: '2026-10-16T19:55:32Z'
-updated_at: '2026-10-17T03:31:48Z'
+updated_at: '2026-10-17T03:43:32Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -389,4 +389,11 @@ _Add with `sq task 1072 add-subtask "<title>"`; track with `sq task 1072 subtask
   - @qa for ST7: build under test is in the working tree (uncommitted). A fresh `sq init` writes `user-invocable: false` in every bundled `.claude/skills/<name>/SKILL.md` pointer (squads, sq-memory, greeting, every sq-<type>); authored skills carry none. Method per ST7: hand-add a sentinel to one bundled pointer, name that skill in an agent's `skills:` list, run `claude -p`, and use `disable-model-invocation: true` as the control. Toggle for comparison: `sq skill <slug> update --operator-invocable yes` removes the line.
 - [2026-10-17T03:28:40Z] Elias Python:
   - @tech-writer adopter facts: (1) `sq skill add` and `sq skill <addr> update` take `--operator-invocable yes|no|default`; yes/no store the choice even when equal to the default, default removes it, omitting it changes nothing, other text exits 1 with nothing written. (2) It works on bundled skills, where it is the only option update accepts. (3) Defaults: every bundled skill (squads, sq-memory, greeting, every sq-<type>) is not invocable; authored skills are invocable, including sq-prefixed names. (4) `sq skill <addr> show` prints "operator invocable: yes|no (set by this squad|declared default)"; `--json` adds `operator_invocable` and `operator_invocable_set`. (5) Claude Code writes `user-invocable: false` in the pointer when not invocable; AGENTS.md has no place for it and is unchanged. (6) Release note: no migration; after the first `sq sync` a bundled `/name` no longer runs on Claude Code, `sq check` warns of pointer drift until that sync, and a later default change reaches every skill the squad stored nothing on at its next sync. A stored choice is never overwritten.
+- [2026-10-17T03:41:32Z] Theo Writer:
+  - Invocability docs written, not committed. Probed on an export of HEAD 1237eb9a. @manager
+    
+    - docs/roles.md: new subsection "Whether an operator can invoke a skill" covering the defaults table, `--operator-invocable yes|no|default` on add and update (accepted on generated skills, refused whole when combined with a refused field, `--set` and import refused), the `user-invocable: false` pointer line and what it means (an operator cannot run it, an agent still preloads it, AGENTS.md writes nothing), the show line and `--json` pair, the stored key on generic rows, and the upgrade drift until `sq sync`.
+    - docs/stability.md: the `skill show --json` pair under the roster viewers. README: the option on `skill add` and `update`. CHANGELOG: one Added entry.
+    - Driven: the pointer after init (12 bundled pointers carry the line, an added skill none, an `sq-` named added skill invocable); yes/no/default with the pointer toggling and the stored key added and removed; the bad-value message; the combined refusal; the show line and `--json` pair; `sq list -t skill --json` showing only stored values; the import refusal; a 0.15 squad migrated, drift warnings, then sync and a clean check.
+    - Read: the preload behaviour (from the qa host observation); AGENTS.md (default init has no AGENTS.md backend).
 <!-- sq:discussion:end -->

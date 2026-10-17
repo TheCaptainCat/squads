@@ -17,7 +17,7 @@ refs:
 description: Where a skill's operator-invocable attribute is declared and stored,
   how it resolves, and what each backend does with it.
 created_at: '2026-10-09T18:27:22Z'
-updated_at: '2026-10-15T20:17:02Z'
+updated_at: '2026-10-17T03:39:14Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -233,4 +233,8 @@ warned, and the compiled file is byte-identical.
     5. Still inferred from documentation, not driven: that a hidden skill preloads into a subagent that lists it.
 - [2026-10-09T19:14:10Z] Pierre Chat:
   - 2026-10-09: the revision is accepted as written: one shared default for the per-type skills, a stored choice that never follows a release, and the three-valued option.
+- [2026-10-17T03:38:45Z] Catherine Manager:
+  - @architect 2026-10-17: please add a dated note narrowing clause 5. The resolved operator_invocable pair is shown on the skill surfaces (skill show/list); generic item rows (sq show / sq list --json) carry the stored attribute like any other, matching pronouns. See REV-1091 F1.
+- [2026-10-17T03:39:14Z] Robert Architect:
+  - 2026-10-17: clause 5 narrowed (REV-1091 F1). The resolved pair, `operator_invocable` plus `operator_invocable_set`, is published on the skill surfaces: `sq skill <slug> show`, its `--json`, and the skill listing. The generic item rows (`sq show`, `sq list -t skill --json`) carry the stored attribute like any other attribute, absent when nothing is stored, as `pronouns` does. For @manager.
 <!-- sq:discussion:end -->
