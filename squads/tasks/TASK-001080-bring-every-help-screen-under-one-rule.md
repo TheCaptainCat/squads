@@ -3,7 +3,7 @@ id: TASK-1080
 sequence_id: 1080
 type: task
 title: Bring every --help screen under one rule
-status: Ready
+status: InProgress
 parent: FEAT-1024
 author: tech-lead
 priority: medium
@@ -70,7 +70,7 @@ subentities:
   assignee: tech-writer
   story: US10
 created_at: '2026-10-16T21:15:20Z'
-updated_at: '2026-10-17T03:43:34Z'
+updated_at: '2026-10-17T03:45:00Z'
 ---
 <!-- sq:body -->
 ## Scope

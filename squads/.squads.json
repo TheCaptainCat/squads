@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1091,
+  "counter": 1092,
   "padding": 6,
   "items": {
     "12": {
@@ -41849,7 +41849,7 @@
       "type": "review",
       "title": "Structural review of the engine: layering and cohesion",
       "slug": "structural-review-of-the-engine-layering-and-cohesion",
-      "status": "ChangesRequested",
+      "status": "Approved",
       "description": "Module boundaries, layering and cohesion across the sq engine, including whether DI answers the construction tensions.",
       "parent": null,
       "author": "architect",
@@ -41864,7 +41864,7 @@
         {
           "local_id": "F1",
           "title": "Two disagreeing answers to whether a role is a developer",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "high",
           "story": null,
@@ -41873,7 +41873,7 @@
         {
           "local_id": "F2",
           "title": "RoleView lives in _backends and forces protocol stand-ins",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -41882,7 +41882,7 @@
         {
           "local_id": "F3",
           "title": "Roster projection is 400 lines of ServiceCore, used by six mixins",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -41900,7 +41900,7 @@
         {
           "local_id": "F5",
           "title": "_interactions/__init__.py is an undeclared 1k-line policy hub",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -41909,7 +41909,7 @@
         {
           "local_id": "F6",
           "title": "48 parameters silently default a missing spec to the bundled one",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -41918,7 +41918,7 @@
         {
           "local_id": "F7",
           "title": "Bundled sub-entity vocabulary survives as test-only API and tags",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -41927,7 +41927,7 @@
         {
           "local_id": "F8",
           "title": "Three spec loaders hand-write one load shape",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -41936,7 +41936,7 @@
         {
           "local_id": "F9",
           "title": "WorkflowSpec methods are fine; its file holds three other things",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -41945,7 +41945,7 @@
         {
           "local_id": "F10",
           "title": "_maintenance.py is two modules: the rebuild corridor and check",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -41954,7 +41954,7 @@
         {
           "local_id": "F11",
           "title": "sq check has eight finding sources and names none of them",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -41963,7 +41963,7 @@
         {
           "local_id": "F12",
           "title": "View layout is right; _views.py itself holds five jobs",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -41981,7 +41981,7 @@
         {
           "local_id": "F14",
           "title": "DI container: no at today's graph size, with measurements",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -41990,7 +41990,7 @@
         {
           "local_id": "F15",
           "title": "Service is built at eight sites; three omit the playbook",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -41999,7 +41999,7 @@
         {
           "local_id": "F16",
           "title": "Layering is stated in three places and guarded by no test",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -42008,7 +42008,7 @@
         {
           "local_id": "F17",
           "title": "retype and import write one file several times per transaction",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -42017,7 +42017,7 @@
         {
           "local_id": "F18",
           "title": "Comment rule: 95 of 127 source files fail a mechanical check",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -42026,7 +42026,7 @@
         {
           "local_id": "F19",
           "title": "Comment rule: 414 of 566 test files fail a mechanical check",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -42035,7 +42035,7 @@
       ],
       "path": "reviews/REV-000956-structural-review-of-the-engine-layering-and-cohesion.md",
       "created_at": "2026-09-15T09:01:18Z",
-      "updated_at": "2026-10-09T19:23:56Z",
+      "updated_at": "2026-10-17T03:51:04Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -49424,7 +49424,7 @@
       "type": "task",
       "title": "Bring every --help screen under one rule",
       "slug": "bring-every-help-screen-under-one-rule",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "help text per REV-958 R1-R9: writer strings and docs, shared flag definitions, markup and layout, and a tests/meta guard",
       "parent": "FEAT-1024",
       "author": "tech-lead",
@@ -49540,7 +49540,7 @@
       ],
       "path": "tasks/TASK-001080-bring-every-help-screen-under-one-rule.md",
       "created_at": "2026-10-16T21:15:20Z",
-      "updated_at": "2026-10-17T03:43:34Z",
+      "updated_at": "2026-10-17T03:45:00Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -50233,6 +50233,87 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-1091"
+    },
+    "1092": {
+      "sequence_id": 1092,
+      "type": "feature",
+      "title": "Structural cleanup of engine layering and cohesion",
+      "slug": "structural-cleanup-of-engine-layering-and-cohesion",
+      "status": "Draft",
+      "description": "Home for the 13 open REV-956 findings: roster, spec threading, file splits, check registry, DI decision, comment rule.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-1051:targets",
+        "REV-956"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Roster cluster and policy hub extraction (F3, F5)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Spec threading and loader unification (F6, F8, F15)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Split the oversized files (F9, F10, F12, F7)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Name every sq check finding by a registered rule (F11)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Decide on a DI container (F14)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "Apply the comment rule to source and tests (F18, F19)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001092-structural-cleanup-of-engine-layering-and-cohesion.md",
+      "created_at": "2026-10-17T03:49:43Z",
+      "updated_at": "2026-10-17T03:50:11Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-1092"
     }
   }
 }
