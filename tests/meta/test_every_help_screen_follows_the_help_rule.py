@@ -52,6 +52,7 @@ class Screen:
     source: str
     params: tuple[tuple[str, str], ...]
     rendered: str
+    epilog: str = ""
 
     @property
     def lines(self) -> list[str]:
@@ -73,7 +74,7 @@ class Screen:
 
     @property
     def texts(self) -> list[str]:
-        return [*self.lines, *(text for _, text in self.params)]
+        return [*self.lines, *self.epilog.splitlines(), *(text for _, text in self.params)]
 
 
 def screen_of(node: Node) -> Screen:
@@ -81,7 +82,8 @@ def screen_of(node: Node) -> Screen:
         (getattr(p, "name", "?") or "?", (getattr(p, "help", None) or "").strip())
         for p in documented_params(node)
     )
-    return Screen(node.label, help_source(node), params, render_help(node))
+    epilog = getattr(node.command, "epilog", None) or ""
+    return Screen(node.label, help_source(node), params, render_help(node), epilog)
 
 
 def blank_descriptions(screen: Screen) -> list[str]:
@@ -125,6 +127,14 @@ def lines_fit(screen: Screen) -> list[str]:
     ]
 
 
+def epilog_words_fit(screen: Screen) -> list[str]:
+    return [
+        f"{screen.label}: an epilog word is {len(word)} characters and breaks mid-word"
+        for word in screen.epilog.split()
+        if len(word) > BODY_LINE_MAX - 2
+    ]
+
+
 def nothing_truncated(screen: Screen) -> list[str]:
     return [
         f"{screen.label}: a screen line is cut by an ellipsis: {line!r}"
@@ -144,6 +154,7 @@ CHECKS: dict[str, Callable[[Screen], list[str]]] = {
     "no bracketed lowercase tag": no_bracket_tag,
     "no source line over 78 columns": lines_fit,
     "no enumeration cut by an ellipsis at 80 columns": nothing_truncated,
+    "no epilog word wider than the screen": epilog_words_fit,
 }
 
 
@@ -158,6 +169,7 @@ BAD_SCREENS: dict[str, Screen] = {
     "no bracketed lowercase tag": Screen("sq bad", "Do.\n\nSee [bold] here.", (), ""),
     "no source line over 78 columns": Screen("sq bad", "Do.\n\n" + "x" * 79, (), ""),
     "no enumeration cut by an ellipsis at 80 columns": Screen("sq bad", "Do.", (), "a|b|c…"),
+    "no epilog word wider than the screen": Screen("sq bad", "Do.", (), "", "x" * 80),
 }
 
 
@@ -223,5 +235,6 @@ async def test_every_custom_vocabulary_help_screen_passes(project) -> None:
     screens = _screens()
     labels = {screen.label for screen in screens}
     assert {"sq investigation", "sq investigation analysis", "sq create investigation"} <= labels
+    assert "sq skill" in labels
     found = _violations(screens)
     assert not found, "\n".join(found[:40])

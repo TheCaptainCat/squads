@@ -213,5 +213,5 @@ register_status_verb(_addr, lambda ctx: ctx.obj["id"])
 operator_app.add_typer(_addr, name="_addr", hidden=True)
 
 operator_app.info.epilog = (operator_app.info.epilog or "").replace(
-    "{verbs}", common.addr_verbs(_addr)
+    "{verbs}", common.addr_verbs(_addr, ", ")
 )

@@ -38,6 +38,22 @@ WORDINGS: dict[str, set[str]] = {
     },
     "--label": {"Label to add (repeatable).", "Show only items carrying this label."},
     "--type": {"Show only items of this type (see `sq workflow types`)."},
+    "--all": {"Include closed items.", "Show both directions."},
+    "--status": {
+        "Show only items in this status, closed or not (see `sq workflow statuses`).",
+        "Status to move to (see `sq workflow lifecycles`).",
+        "Status to start in instead of the first one.",
+    },
+    "--parent": {
+        "Parent item ID or number.",
+        "Show only the direct children of this item ID or number.",
+        "New parent item ID or number.",
+    },
+    "--pronouns": {
+        "Pronouns, such as they/them; one line, up to 40 characters.",
+        "The role's pronouns; a blank value clears them.",
+        "The operator's pronouns; a blank value clears them.",
+    },
     "--force": {
         "Make a transition the lifecycle does not allow.",
         "Make a transition the lifecycle does not allow; a change that would leave "

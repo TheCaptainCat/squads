@@ -1862,9 +1862,19 @@ def get_squad_paths() -> SquadPaths:
     return resolve(client_cwd=get_context().client_cwd)
 
 
+_SILENT_H = ("hour", "honest", "honor", "heir")
+_CONSONANT_SOUND = ("uni", "use", "usu", "uti", "ubi", "eu", "one")
+
+
 def article(word: str) -> str:
-    """Return ``"an"`` for vowel-initial words, ``"a"`` otherwise."""
-    return "an" if word and word[0].lower() in "aeiou" else "a"
+    """``"an"`` before a vowel sound, ``"a"`` before a consonant sound: ``an epic``, ``a unit``,
+    ``a user_story``, ``an hour``."""
+    w = word.lower()
+    if w.startswith(_SILENT_H):
+        return "an"
+    if w.startswith(_CONSONANT_SOUND):
+        return "a"
+    return "an" if w[:1] in ("a", "e", "i", "o", "u") else "a"
 
 
 def _mismatch_msg(label: str, actual_id: str, actual_type: str, expected_type: str) -> str:
@@ -2088,12 +2098,12 @@ class AddressDispatchGroup(typer.core.TyperGroup):
         return super()._click_resolve_command(ctx, args)
 
 
-def addr_verbs(addr_app: typer.Typer) -> str:
-    """The verbs registered on an addressed subgroup, hidden aliases left out, as ``a|b|c`` for
-    a group's help epilog."""
+def addr_verbs(addr_app: typer.Typer, sep: str = "|") -> str:
+    """The verbs registered on an addressed subgroup, hidden aliases left out, joined by *sep*
+    (``a|b|c`` by default; the help epilog uses ``, `` so the list wraps)."""
     names = [c.name for c in addr_app.registered_commands if c.name and not c.hidden]
     names += [g.name for g in addr_app.registered_groups if g.name and not g.hidden]
-    return "|".join(names)
+    return sep.join(names)
 
 
 def spec_aware_command_cls(

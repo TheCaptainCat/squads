@@ -449,4 +449,6 @@ _addr.add_typer(_view_app, name="view")
 
 skill_app.add_typer(_addr, name="_addr", hidden=True)
 
-skill_app.info.epilog = (skill_app.info.epilog or "").replace("{verbs}", common.addr_verbs(_addr))
+skill_app.info.epilog = (skill_app.info.epilog or "").replace(
+    "{verbs}", common.addr_verbs(_addr, ", ")
+)

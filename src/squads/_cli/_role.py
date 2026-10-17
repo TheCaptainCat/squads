@@ -605,4 +605,6 @@ _addr.add_typer(_view_app, name="view")
 
 role_app.add_typer(_addr, name="_addr", hidden=True)
 
-role_app.info.epilog = (role_app.info.epilog or "").replace("{verbs}", common.addr_verbs(_addr))
+role_app.info.epilog = (role_app.info.epilog or "").replace(
+    "{verbs}", common.addr_verbs(_addr, ", ")
+)
