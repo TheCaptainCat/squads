@@ -3,7 +3,7 @@ id: REV-1091
 sequence_id: 1091
 type: review
 title: 'Skill invocability: declared default and squad choice'
-status: Requested
+status: Approved
 author: reviewer
 refs:
 - TASK-1072
@@ -35,7 +35,7 @@ subentities:
   status: WontFix
   severity: info
 created_at: '2026-10-17T03:36:50Z'
-updated_at: '2026-10-17T03:43:30Z'
+updated_at: '2026-10-17T03:43:51Z'
 ---
 <!-- sq:body -->
 ## Scope
