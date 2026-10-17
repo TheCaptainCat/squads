@@ -441,6 +441,18 @@ export function isSqRoleCatalogEntry(value: unknown): value is SqRoleCatalogEntr
   );
 }
 
+/** The comment hash keys are optional: an older `sq` omits them, and `edited_ts` is `null` for a
+ * comment never edited. */
+function hasOptionalHashKeys(entry: Record<string, unknown>): boolean {
+  return (
+    (entry.short_hash === undefined || typeof entry.short_hash === 'string') &&
+    (entry.hash === undefined || typeof entry.hash === 'string') &&
+    (entry.edited_ts === undefined ||
+      entry.edited_ts === null ||
+      typeof entry.edited_ts === 'string')
+  );
+}
+
 /** `author_slug` is optional: an older `sq` omits it, so an absent key must not fail the guard. */
 export function isSqDiscussionEntry(value: unknown): value is SqDiscussionEntry {
   if (typeof value !== 'object' || value === null) {
@@ -451,7 +463,8 @@ export function isSqDiscussionEntry(value: unknown): value is SqDiscussionEntry 
     typeof entry.author === 'string' &&
     (entry.author_slug === undefined || typeof entry.author_slug === 'string') &&
     typeof entry.ts === 'string' &&
-    typeof entry.body === 'string'
+    typeof entry.body === 'string' &&
+    hasOptionalHashKeys(entry)
   );
 }
 

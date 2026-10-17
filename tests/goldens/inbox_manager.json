@@ -9,6 +9,10 @@
     "regions": [
       "subtask:ST1:discussion#1",
       null
+    ],
+    "hashes": [
+      "ece71b22cb21595adef2bdbe69d0595390228c86a32f69e6b3f509f96ecbe902",
+      "0ce89c43dcc742700d77c72d038d52ad714e5082cf1fa912f5bda2faad0e6697"
     ]
   },
   {
@@ -18,6 +22,9 @@
       "@manager owns the rotation window"
     ],
     "regions": [
+      null
+    ],
+    "hashes": [
       null
     ]
   }

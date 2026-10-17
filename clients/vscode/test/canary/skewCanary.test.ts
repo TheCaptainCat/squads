@@ -490,7 +490,15 @@ describe('the list-row key assertion', () => {
 
 /** Required here on purpose, `author_slug` included: this layer describes what the current `sq`
  * emits, not what the client's tolerant guard can survive. */
-const DISCUSSION_ENTRY_KEYS = ['author', 'author_slug', 'ts', 'body'] as const;
+const DISCUSSION_ENTRY_KEYS = [
+  'author',
+  'author_slug',
+  'ts',
+  'body',
+  'hash',
+  'short_hash',
+  'edited_ts',
+] as const;
 
 function assertDiscussionEntryKeys(entry: object): void {
   assertExactKeys(entry, DISCUSSION_ENTRY_KEYS);
@@ -499,8 +507,10 @@ function assertDiscussionEntryKeys(entry: object): void {
 
 describe('the discussion-entry key assertion', () => {
   const base = { author: 'Ada', ts: '2026-01-01T00:00:00Z', body: 'hi' };
+  const hashes = { hash: 'a'.repeat(64), short_hash: 'aaaaaaa', edited_ts: null };
   const shapes: readonly { name: string; payload: object; passes: boolean }[] = [
-    { name: 'the full set', payload: { ...base, author_slug: 'a' }, passes: true },
+    { name: 'the full set', payload: { ...base, author_slug: 'a', ...hashes }, passes: true },
+    { name: 'the hash keys omitted', payload: { ...base, author_slug: 'a' }, passes: false },
     { name: 'author_slug omitted', payload: base, passes: false },
     { name: 'a renamed key', payload: { ...base, slug: 'a' }, passes: false },
     { name: 'a key dropped', payload: { author: 'Ada', ts: base.ts }, passes: false },

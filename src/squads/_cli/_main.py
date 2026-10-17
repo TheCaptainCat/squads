@@ -851,6 +851,7 @@ async def inbox(
                         "title": hit.item.title,
                         "lines": [ln.text for ln in hit.lines],
                         "regions": [ln.region for ln in hit.lines],
+                        "hashes": [ln.hash for ln in hit.lines],
                     }
                     for hit in hits
                 ]
@@ -892,10 +893,9 @@ async def search(
           {
             "id": "TASK-<n>", "title": "...", "type": "task", "status": "InProgress",
             "hits": [
-              {"region": "body", "location": "body", "snippet": "..."},
-              {"region": "subtask:ST<n>", "location": "subtask:ST<n>", "snippet": "..."},
+              {"region": "body", "location": "body", "snippet": "...", "hash": null},
               {"region": "discussion#1", "location": "discussion — comment 1 (manager, ...)",
-               "snippet": "[<ts>] manager: ..."}
+               "snippet": "[<ts>] manager: ...", "hash": "<64 hex>"}
             ]
           }
         ]
@@ -922,7 +922,12 @@ async def search(
                         "type": r.item.type,
                         "status": r.item.status,
                         "hits": [
-                            {"region": h.region, "location": h.location, "snippet": h.snippet}
+                            {
+                                "region": h.region,
+                                "location": h.location,
+                                "snippet": h.snippet,
+                                "hash": h.hash,
+                            }
                             for h in r.hits
                         ],
                     }

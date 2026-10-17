@@ -47,7 +47,7 @@ def test_split_discussion_parses_each_comment_at_its_own_header_line() -> None:
         "- [2026-06-07T10:00:00Z] `alice` Alice:\n  - First.\n"
         "- [2026-06-07T11:00:00Z] `bob` Bob:\n  - Second.\n"
     )
-    comments = discussion.split_discussion(region)
+    comments = discussion.split_discussion(region, sequence_id=1)
     assert len(comments) == 2
     assert comments[0].author == "Alice" and "First." in comments[0].body
     assert comments[1].author == "Bob" and "Second." in comments[1].body

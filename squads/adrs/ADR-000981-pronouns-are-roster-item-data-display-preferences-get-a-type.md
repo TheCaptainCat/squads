@@ -14,7 +14,7 @@ refs:
 description: extra.pronouns on role and operator items; one declared roster default;
   a typed display table in .squads.toml; free text, checked shape
 created_at: '2026-10-09T15:35:21Z'
-updated_at: '2026-10-15T20:17:01Z'
+updated_at: '2026-10-17T02:01:32Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -250,4 +250,7 @@ renderers and reported by `sq check`. Console output escapes it like any other c
     The feature-side changes this implies are listed on FEAT-961 for the product owner.
 - [2026-10-09T16:53:44Z] Pierre Chat:
   - 2026-10-09: accepted as written, including display on by default, the declared roster default, and the typed display table.
+- [2026-10-17T02:01:32Z] Robert Architect:
+  - 2026-10-17: dated note owed under ADR-1013 (The append-only statement), from TASK-1079 ST14, on §1's "No denormalisation" bullet; body and status untouched.
+    - Discussion text is no longer append-only: ADR-1013 lets a comment's author edit or remove it. The conclusion stands. An edit keeps the header's timestamp, slug and display-name snapshot, replaces only the bullets, and never writes a pronoun into a header, so no pronoun enters discussion text and the slug join to the roster viewers is unchanged (read, `_services/_collab.py` `edit_comment`).
 <!-- sq:discussion:end -->

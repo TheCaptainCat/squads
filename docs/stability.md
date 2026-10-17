@@ -107,17 +107,21 @@ with a header line that sq writes, followed by the author's bullets indented und
 - [2026-10-16T08:09:29Z] `tech-lead` Olivia Lead:
 - [2026-10-16T08:09:30Z] `op-zo` Zoë Müller:
 - [2026-10-16T08:09:31Z] `operator` Operator:
+- [2026-10-16T08:09:32Z, edited 2026-10-16T09:00:00Z] `tech-lead` Olivia Lead:
 ```
 
 The grammar:
 
 ```
-header    = "- [" timestamp "] `" slug "` " name ":"
+header    = "- [" timestamp [", edited " timestamp] "] `" slug "` " name ":"
 timestamp = YYYY-MM-DDTHH:MM:SSZ      (UTC, whole seconds)
 slug      = [a-z0-9][a-z0-9-]*        (the characters of an @mention)
 name      = one or more characters, on the same line
 ```
 
+- **The edit mark.** `, edited <timestamp>` records when the comment's author last corrected it
+  with `comment <hash> edit`. The first timestamp, the slug and the name stay as written; a
+  second edit replaces the mark rather than adding one.
 - **A header starts at the left margin.** A line of the same shape that is indented is part of the
   comment above it, not the start of a new one: a nested `- [x] Done:` checkbox or a pasted log
   line never splits a comment.
@@ -188,6 +192,31 @@ name      = one or more characters, on the same line
 A squad written by a release before 0.16 holds headers without the slug (`- [<timestamp>]
 <name>:`). `sq migrate up` rewrites them once; see
 [migration.md](migration.md#upgrading-to-016-the-schema-step).
+
+### Comment hashes
+
+Every comment has a hash: the SHA-256, in lowercase hex, of these fields joined by a NUL byte:
+
+```
+"sq-comment-1", the item's sequence number, the scope, the author slug, the header timestamp, the canonical text
+```
+
+- **The scope** is empty for the item's own discussion and `<kind>:<local id>` (`subtask:ST<k>`)
+  for a sub-entity's. A role, skill or operator has one discussion, with an empty scope.
+- **The canonical text** is the comment's lines under its header, with trailing spaces and tabs
+  stripped from each line, leading and trailing blank lines dropped, and the rest joined with LF.
+  CRLF, CR and LF checkouts give the same hash; a line breaks at CR, LF or CRLF only.
+- **What changes it, and what does not.** Editing the text changes the hash; retyping the item
+  does not, because the sequence number is used rather than the formatted id. The edit mark is
+  not part of it.
+- **The short hash** is what renders show: the first 7 characters, widened for the whole
+  discussion until every distinct hash in it differs. A command takes any prefix of 4 or more
+  hex characters, in any letter case, and resolves it within one discussion only. A prefix that
+  matches two comments is refused with both; one that matches nothing is refused, and the
+  message names the discussion of the same item that holds it, if any.
+- **Duplicates.** Two comments with the same hash (same author, timestamp and text in one
+  discussion) are refused on write and on import. If a file already holds them, they are read
+  as they are, and an edit or a removal acts on all of them together.
 
 ### A roster slug never changes
 
@@ -327,6 +356,8 @@ The line schema (frozen field set):
   | `update` | item metadata changes (assignee, badge fields, labels, …) |
   | `body` | an item's body is set |
   | `comment` | a comment is appended |
+  | `comment_edit` | a comment's author edits it (`delta.comments`: `author`, `hash`, `region`, `ts`, `before`, `after_hash`) |
+  | `comment_remove` | a comment's author removes it (`delta.comments`: `author`, `hash`, `region`, `ts`, `before`) |
   | `subentity` | a sub-entity is added, edited (status, assignee, fields, body), or removed |
   | `ref` | a ref is added, removed, or severed |
   | `link` | an item's parent is set or cleared |
@@ -815,11 +846,17 @@ The frozen surface includes:
   *instead of* that prose, not alongside it
 - **Discussion entries:** every entry of a `discussion` array in `show --json` (an item's own, and
   each sub-entity's, whether nested under `subentities` or from the sub-entity's own `show --json`)
-  and every entry of `comments --json` is `{author, author_slug, ts, body}`. `author` is the
-  display name the header recorded and `author_slug` is the author's slug (see
+  and every entry of `comments --json` is
+  `{author, author_slug, ts, edited_ts, hash, short_hash, body}`. `author` is the display name the
+  header recorded and `author_slug` is the author's slug (see
   [Comment headers](#comment-headers)); match an author on `author_slug`, never on `author`.
-  `search --json` and `inbox --json` carry no `author_slug`: a search hit names the author by
-  display name in its `location` and `snippet`, and an inbox row names no author
+  `edited_ts` is the edit mark's timestamp or `null`; `hash` is the full hash and `short_hash` the
+  displayed prefix (see [Comment hashes](#comment-hashes)). `comment <hash> show --json` emits one
+  such entry plus `item`, `scope` (`null` or `<kind>:<local id>`) and `copies` (how many
+  duplicates share the hash). `search --json` and `inbox --json` carry no `author_slug`: a search
+  hit names the author by display name in its `location` and `snippet`, and carries the hit
+  comment's `hash` (`null` outside a discussion); an inbox row names no author, and carries
+  `hashes`, one per entry of `lines` and `regions`
 - **Bulk import:** `sq import --json` (with or without `--dry-run`)
 - **Commands that stay human-output-only:** `repair`, `renumber`, `docs`, `sync`, `init`,
   `sq workflow show` (the cheatsheet), `sq workflow lint` (which reports through its exit code —

@@ -71,7 +71,8 @@ async def test_every_discussion_entry_carries_the_name_and_the_slug(
 
     found = entries(json.loads(r.output))
 
-    assert all(list(e) == ["author", "author_slug", "ts", "body"] for e in found)
+    keys = ["author", "author_slug", "ts", "edited_ts", "hash", "short_hash", "body"]
+    assert all(list(e) == keys for e in found)
     assert [(e["author"], e["author_slug"]) for e in found] == expected
 
 

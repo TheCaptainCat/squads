@@ -13,6 +13,9 @@
       "author": "Catherine Manager",
       "author_slug": "manager",
       "ts": "2026-06-07T10:00:00Z",
+      "edited_ts": null,
+      "hash": "ece71b22cb21595adef2bdbe69d0595390228c86a32f69e6b3f509f96ecbe902",
+      "short_hash": "ece71b2",
       "body": "- @manager please double check this subtask"
     }
   ]

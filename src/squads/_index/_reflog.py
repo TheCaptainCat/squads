@@ -83,6 +83,8 @@ REFLOG_OPS: tuple[str, ...] = (
     "update",
     "body",
     "comment",
+    "comment_edit",
+    "comment_remove",
     "subentity",
     "ref",
     "link",

@@ -286,6 +286,7 @@ _cli -> squads top
 _clock -> _context top
 _context -> _workflow typing
 _discussion -> _badges top
+_discussion -> _errors top
 _discussion -> _models top
 _discussion -> _rendering top
 _discussion -> _sections top

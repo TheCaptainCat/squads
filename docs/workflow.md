@@ -81,6 +81,44 @@ sq task 3 comment --as op-alice -m "approved"  # record the human's own words
 being assigned to you, and the reverse. `sq blocked` keys on the dependency kinds — `depends-on`
 from the waiting item, `blocks` from the blocker (see [§ "Ref kinds"](#ref-kinds)).
 
+### Addressing a comment by its hash
+
+Every comment shows a short hash first in its header, in `comments` and `show --comments`
+(`sq inbox --json` carries the full hash of each line it lists):
+
+```
+--- b0411f7 [2026-10-17T02:01:12Z] Olivia Lead (tech-lead) ---
+- First note @reviewer
+```
+
+`comment <hash>` then works on that one comment, on an item, a sub-entity (`sq task 3 subtask 1
+comment <hash> …`), a role, a skill or an operator:
+
+```bash
+sq task 3 comment <hash> show                                  # print it, with where it lives (--json, --raw)
+sq task 3 comment <hash> edit -m "Corrected text" --as tech-lead   # or --file; --json prints the result
+sq task 3 comment <hash> remove --as tech-lead                 # asks first; --yes skips it, --json prints what went
+```
+
+The hash is any 4 or more leading hex characters, in either case, and is looked up in that one
+discussion only; a hash from a subtask's discussion, given at the item, is refused with the
+address that holds it. `-m`, `--file` and `--as` go after the verb, and a hash with no verb exits
+`2`. The full definition is in [stability.md § "Comment hashes"](stability.md#comment-hashes).
+
+- **Only the author edits or removes a comment.** `--as` must be the slug in the header, or the
+  command exits `1` with nothing written:
+  `error: b0411f7 on TASK-<n> was written by tech-lead; --as manager cannot change it`. This guards
+  against a slip; it is not a permission, since `--as` takes any live slug.
+- **An edit keeps the comment's place, timestamp and author**, and marks the header
+  `(edited <timestamp>)`. It gives the comment a new hash, so the old one is refused afterwards
+  (`no comment b0411f7 in TASK-<n>'s discussion (edited or removed since it was read?)`): a quoted
+  hash pins the text its author read. Editing to the same text writes nothing.
+- **`sq inbox` reads the current text.** A mention an edit adds shows there, one it removes
+  disappears, and nobody is told of the change.
+- **The discussion is a timestamped history that only each comment's author can correct.** Every
+  edit and removal is recorded in the reflog as `comment_edit` or `comment_remove`, with the text
+  as it was (see [§ "Operation reflog"](#operation-reflog-sq-reflog)).
+
 ---
 
 ## Type-command aliases
@@ -548,7 +586,7 @@ so a forged or copied id is indistinguishable from a real one — never make a t
 them. Only the immediate parent is stored; walk `parent_session_id` edges to reconstruct a chain
 (`sq reflog --tree` does exactly that). Lines written without them read back with both absent.
 
-**Op names.** The vocabulary is closed — these sixteen and no others, and the same sixteen
+**Op names.** The vocabulary is closed — these eighteen and no others, and the same eighteen
 `sq reflog --op` accepts. Both this table and that option's help come from one declared list, so
 they cannot drift apart. An `op` you meet that isn't here came from a squads version other than the
 one this guide ships with; your reflog is not corrupt.
@@ -559,7 +597,9 @@ one this guide ships with; your reflog is not corrupt.
 | `status` | `sq <type> <n> status …` |
 | `update` | `sq <type> <n> update …` — including a re-parent via `--parent` |
 | `body` | `sq <type> <n> body …` |
-| `comment` | `sq <type> <n> comment …`, on an item or a sub-entity |
+| `comment` | `sq <type> <n> comment …`, on an item, a sub-entity, a role, a skill or an operator |
+| `comment_edit` | `comment <hash> edit` — one line per edit; `delta.comments` lists each comment it changed, with its `author`, `hash`, `region`, `ts`, the `before` text and the `after_hash` |
+| `comment_remove` | `comment <hash> remove` — one line per removal; `delta.comments` lists each removed comment with its `author`, `hash`, `region`, `ts` and `before` text |
 | `subentity` | `add-story` / `add-subtask` / `add-finding`, and a sub-entity's `update` / `body` / `remove`. The specific change is in `delta.op` |
 | `ref` | `sq <type> <n> ref add` / `ref rm`, and refs severed by a forced `remove` |
 | `link` | An item's parent set or cleared through the service's own link path. **No CLI verb reaches this today** — from the CLI, a parent change arrives as `update` |

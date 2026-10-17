@@ -654,6 +654,37 @@ describe('buildDiscussionHtml', () => {
     expect(html.indexOf('Elias Python')).toBeLessThan(html.indexOf('Ada Typescript'));
   });
 
+  describe('the comment hash and edit mark', () => {
+    const base = { author: 'Ada', ts: '2026-01-01T00:00:00Z', body: 'hi' };
+    const header = (extra: object): string =>
+      /<div class="sq-comment-header">.*?<\/div>/.exec(
+        buildDiscussionHtml({ entries: [{ ...base, ...extra }] }),
+      )?.[0] ?? '';
+    const full = 'a'.repeat(64);
+
+    it('shows the short hash first, with the full hash as its title, and the edit mark last', () => {
+      const html = header({ hash: full, short_hash: 'aaaaaaa', edited_ts: '2026-01-02T00:00:00Z' });
+      expect(html).toBe(
+        `<div class="sq-comment-header"><span class="sq-comment-hash" title="${full}">aaaaaaa</span> ` +
+          `<span class="sq-comment-author">Ada</span> ` +
+          `<span class="sq-comment-ts">2026-01-01T00:00:00Z</span> ` +
+          `<span class="sq-comment-edited">(edited 2026-01-02T00:00:00Z)</span></div>`,
+      );
+    });
+
+    it('omits the edit mark when edited_ts is null', () => {
+      const html = header({ hash: full, short_hash: 'aaaaaaa', edited_ts: null });
+      expect(html).toContain('sq-comment-hash');
+      expect(html).not.toContain('sq-comment-edited');
+    });
+
+    it('renders an older sq entry with neither field as before', () => {
+      const html = header({});
+      expect(html).not.toContain('sq-comment-hash');
+      expect(html).not.toContain('sq-comment-edited');
+    });
+  });
+
   describe('the author header', () => {
     const header = (author: string, authorSlug?: string): string => {
       const entry = { author, ts: '2026-01-01T00:00:00Z', body: 'hi' };

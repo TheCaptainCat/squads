@@ -309,6 +309,9 @@ reference: **[workflow.md](workflow.md)**.
 
 `sq <type> <n> comment` appends a timestamped entry — ``- [<timestamp>] `<slug>` <name>:`` + one
 sub-item per `-m` — under the right discussion anchor (top-level, or a story/subtask/finding's).
+`comment <hash> edit` rewrites one entry in place and adds `, edited <timestamp>` inside the
+brackets; `comment <hash> remove` takes it out. Each comment's hash is computed on read from its
+item, scope, header and text, and is never stored.
 `@role` mentions in the text feed `sq inbox <role>`, which scans open items for `@role` and
 surfaces the matching lines. The header stores the `--as <slug>` itself, which is the author's
 identity, and the display name resolved from it at write time (a role's name, an operator's full

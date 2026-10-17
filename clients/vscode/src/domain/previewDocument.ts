@@ -123,8 +123,12 @@ details.sq-graph .sq-graph-empty {
   font-weight: 600;
   color: var(--vscode-editor-foreground);
 }
-.sq-comment-slug {
+.sq-comment-slug,
+.sq-comment-hash {
   font-family: var(--vscode-editor-font-family, monospace);
+}
+.sq-comment-edited {
+  font-style: italic;
 }
 .sq-subentity {
   margin: 0.9rem 0;
@@ -606,10 +610,19 @@ function buildCommentHtml(
     entry.author_slug !== entry.author
       ? `<span class="sq-comment-slug">${escapeHtml(entry.author_slug)}</span> `
       : '';
+  const short = entry.short_hash ?? entry.hash?.slice(0, 7) ?? '';
+  const hash =
+    short === ''
+      ? ''
+      : `<span class="sq-comment-hash"${entry.hash === undefined ? '' : ` title="${escapeHtml(entry.hash)}"`}>${escapeHtml(short)}</span> `;
+  const edited =
+    entry.edited_ts === undefined || entry.edited_ts === null || entry.edited_ts === ''
+      ? ''
+      : ` <span class="sq-comment-edited">(edited ${escapeHtml(entry.edited_ts)})</span>`;
   return (
-    `<div class="sq-comment"><div class="sq-comment-header">` +
+    `<div class="sq-comment"><div class="sq-comment-header">${hash}` +
     `<span class="sq-comment-author">${escapeHtml(entry.author)}</span> ${slug}` +
-    `<span class="sq-comment-ts">${escapeHtml(entry.ts)}</span></div>` +
+    `<span class="sq-comment-ts">${escapeHtml(entry.ts)}</span>${edited}</div>` +
     `<div class="sq-comment-body">${renderMarkdownToHtml(entry.body, currentId, false, roles, ids, items)}</div></div>`
   );
 }

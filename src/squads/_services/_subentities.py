@@ -756,7 +756,10 @@ class SubentitiesMixin(ServiceCore):
         disc = (
             sections.get_section(text, markers.discussion_tag(f"{kind}:{local_id}")) or ""
         ).strip("\n")
-        return SubentityDetail(info=sub, body=body, discussion=disc)
+        comments = discussion.split_discussion(
+            disc, sequence_id=item.sequence_id, scope=f"{kind}:{local_id}"
+        )
+        return SubentityDetail(info=sub, body=body, discussion=disc, comments=comments)
 
     async def _write_block_file(
         self,

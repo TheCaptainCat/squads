@@ -38,7 +38,7 @@ def test_a_written_header_reads_back_as_the_same_timestamp_slug_and_name(
 
     assert out.splitlines()[0] == f"- [{TS}] `{slug}` {shown}:"
     assert discussion.match_comment_header(out.splitlines()[0]) == (TS, slug, shown)
-    (comment,) = discussion.split_discussion(out)
+    (comment,) = discussion.split_discussion(out, sequence_id=1)
     assert (comment.timestamp, comment.author_slug, comment.author) == (TS, slug, shown)
     assert comment.body == "- first\n- second"
 
@@ -64,7 +64,7 @@ def test_a_written_header_reads_back_as_the_same_timestamp_slug_and_name(
 )
 def test_a_line_that_is_not_in_the_grammar_is_not_a_header(line: str) -> None:
     assert discussion.match_comment_header(line) is None
-    assert discussion.split_discussion(line) == []
+    assert discussion.split_discussion(line, sequence_id=1) == []
 
 
 def test_an_indented_header_shaped_line_stays_inside_the_comment_body() -> None:
@@ -75,7 +75,7 @@ def test_an_indented_header_shaped_line_stays_inside_the_comment_body() -> None:
         "  - [x] Done:\n"
     )
 
-    (comment,) = discussion.split_discussion(region)
+    (comment,) = discussion.split_discussion(region, sequence_id=1)
 
     assert comment.author_slug == "qa"
     assert "`bob` Bob:" in comment.body

@@ -28,6 +28,9 @@
           "author": "Catherine Manager",
           "author_slug": "manager",
           "ts": "2026-06-07T10:00:00Z",
+          "edited_ts": null,
+          "hash": "5c4b595e1e847480abc92aaa4e4cf8165f909fd4a8e67fe37427cb592631466a",
+          "short_hash": "5c4b595",
           "body": "- Scoped to password auth only for this release."
         }
       ]
