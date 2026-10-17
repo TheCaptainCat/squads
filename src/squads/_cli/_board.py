@@ -33,17 +33,21 @@ from squads._cli._common import (
 
 board_app = typer.Typer(
     no_args_is_help=True,
-    help="The team bulletin board: broadcast notices with an optional expiry.",
+    help="Post, list and take down notices on the team board.",
 )
 
 
 @board_app.command("post")
 @command
 async def post_notice(
-    message: list[str] = typer.Option(None, "-m", "--message", help="The notice text."),
-    file: str | None = typer.Option(None, "--file", help="Notice body from a file ('-' = stdin)."),
+    message: list[str] = typer.Option(
+        None, "-m", "--message", help="A paragraph of text; repeat for several."
+    ),
+    file: str | None = typer.Option(
+        None, "--file", help="Read the text from a file instead of `-m`; `-` reads stdin."
+    ),
     until: str | None = typer.Option(
-        None, "--until", help="Expiry (ISO 8601 date/datetime); the notice hides once past."
+        None, "--until", help="ISO 8601 date or time after which the notice is hidden."
     ),
     as_: str | None = typer.Option(
         None, "--as", help="Author: a role slug or 'op-<slug>' (required)."
@@ -60,13 +64,14 @@ async def post_notice(
 
 @board_app.command("list")
 @command
-async def list_notices(json_out: bool = typer.Option(False, "--json")) -> None:
-    """List current (unexpired) notices with their positional ordinal.
+async def list_notices(
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per notice."
+    ),
+) -> None:
+    """List the notices that have not expired, numbered for `sq board clear`.
 
-    Exit codes: 0 = a clean listing, 4 = one or more notices could not be read (the readable
-    notices are still listed). The skipped notices are named on stderr: one
-    ``error: <message>`` line each in human mode, or one ``{"omitted": [...]}`` JSON line under
-    ``--json``. The JSON array shape is unchanged either way.
+    Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
     svc = get_service()
     notices, unreadable = await svc.board_list()
@@ -103,9 +108,9 @@ async def list_notices(json_out: bool = typer.Option(False, "--json")) -> None:
 @board_app.command("clear")
 @command
 async def clear_notice(
-    n: int = typer.Argument(..., help="Positional ordinal from `sq board list`."),
+    n: int = typer.Argument(..., help="The notice's number in `sq board list`."),
 ) -> None:
-    """Take down the n-th listed notice (resolved against the live listing)."""
+    """Take down a notice by its number in the current listing."""
     svc = get_service()
     notice = await svc.board_clear(n)
     console.print(f"cleared [bold]{e(notice.id)}[/bold]")

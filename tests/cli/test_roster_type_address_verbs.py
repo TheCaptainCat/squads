@@ -503,8 +503,7 @@ async def test_status_unlink_help_text_uses_adopter_vocabulary_with_no_engine_ja
     result = await invoke(["role", "qa", "status", "--help"])
     assert result.exit_code == 0, result.output
     normalized = _dewrapped(result.output)
-    assert "remove the scoping the refusal named" in normalized
-    assert "a custom skill's link to a role" in normalized
+    assert "remove the skill-to-role link the refusal names" in normalized
     for banned in (
         "config-integrity",
         "clause",
@@ -528,7 +527,7 @@ async def test_status_force_help_text_is_present_and_scoped_to_the_lifecycle_edg
     assert result.exit_code == 0, result.output
     normalized = _dewrapped(result.output)
     assert "lifecycle" in normalized
-    assert "Never overrides" in normalized
+    assert "is still refused" in normalized
     for banned in ("config-integrity", "clause", "C1", "C2", "C3"):
         assert banned not in normalized
 

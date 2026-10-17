@@ -227,10 +227,9 @@ def root_epilog(spec: WorkflowSpec) -> str:
 app = typer.Typer(
     name="sq",
     help=(
-        "The coordination layer for a team of AI agents: stable IDs, roles & skills, "
-        "a status lifecycle, and handoffs.\n\n"
-        "New here? Run `sq workflow` for how the team works, `sq docs` to read the full docs "
-        "offline, or `sq <command> --help` for details."
+        "Track a team of AI agents' work: IDs, roles, lifecycles and handoffs.\n\n"
+        "New here? Run `sq workflow` for how the team works, `sq docs` to read the\n"
+        "full docs offline, or `sq <command> --help` for details."
     ),
     epilog=root_epilog(bundled_spec()),
     no_args_is_help=True,
@@ -288,7 +287,7 @@ def main_callback(
     at: str | None = typer.Option(
         None,
         "--at",
-        help="Forge timestamps for this command (ISO 8601, UTC) — for migrating history.",
+        help="Record this ISO 8601 UTC time instead of now, to bring in past history.",
         metavar="WHEN",
     ),
     version: bool = typer.Option(
@@ -349,12 +348,12 @@ app.add_typer(_skill.skill_app, name="skill", help="Manage agent skills.")
 app.add_typer(
     _memory.memory_app,
     name="memory",
-    help="A role's committed memory notebook (list/search/show/add/forget).",
+    help="Read and write a role's memory notebook.",
 )
 app.add_typer(
     _board.board_app,
     name="board",
-    help="The team bulletin board (post/list/clear).",
+    help="Post, list and take down notices on the team board.",
 )
 app.add_typer(
     _migrate.migrate_app, name="migrate", help="Run schema migrations and read their steps."
@@ -367,7 +366,7 @@ app.add_typer(
 app.add_typer(
     _workflow_cmd.workflow_app,
     name="workflow",
-    help="Workflow cheatsheet and spec validation (`sq workflow lint`).",
+    help="Show the team workflow and the active spec's vocabulary.",
 )
 
 # Resource-oriented item groups: `sq <type> <num> <verb> …`.

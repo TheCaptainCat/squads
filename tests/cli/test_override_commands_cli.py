@@ -342,7 +342,7 @@ async def test_scaffold_and_diff_help_distinguish_role_from_roles_catalog(projec
     scaffold_help = await invoke(["override", "scaffold", "--help"])
     assert scaffold_help.exit_code == 0, scaffold_help.output
     assert "--roles-catalog" in scaffold_help.output
-    assert "distinct from --role" in scaffold_help.output.replace("\n", " ")
+    assert "one role, bundled (`--role`)" in scaffold_help.output
 
     diff_help = await invoke(["override", "diff", "--help"])
     assert diff_help.exit_code == 0, diff_help.output

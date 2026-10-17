@@ -2007,26 +2007,27 @@ def register_status_verb(
     @command
     async def status(  # pyright: ignore[reportUnusedFunction] — registered via the decorator above
         ctx: typer.Context,
-        new_status: str = typer.Argument(..., metavar="STATUS"),
+        new_status: str = typer.Argument(
+            ..., metavar="STATUS", help="Status to move to (see `sq workflow lifecycles`)."
+        ),
         force: bool = typer.Option(
             False,
             "--force",
             help=(
-                "Override the lifecycle's own disallowed transition edge. Never overrides a "
-                "refusal that the resulting config would be invalid."
+                "Make a transition the lifecycle does not allow; a change that would leave "
+                "the config invalid is still refused."
             ),
         ),
         unlink: bool = typer.Option(
             False,
             "--unlink",
             help=(
-                "On a retirement, remove the scoping the refusal named — a custom skill's "
-                "link to a role — then re-run the check, rather than overriding it. Refused "
-                "on any other transition."
+                "On a retirement, remove the skill-to-role link the refusal names, then "
+                "check again; refused on any other transition."
             ),
         ),
     ) -> None:
-        """Transition the entity's status (shortcut for the work-item `status` verb)."""
+        """Move this entry to another status."""
         item_id = id_from_ctx(ctx)
         result = await get_service().set_roster_status(
             item_id, parse_status(new_status), force=force, unlink=unlink
@@ -2062,7 +2063,10 @@ def register_remove_verb(
             False, "--purge", help="Delete the file too; remove refuses without it."
         ),
     ) -> None:
-        """Delete for good; needs --purge (or set the status to Archived)."""
+        """Delete this entry for good; it needs `--purge`.
+
+        To keep it on record instead, set its status to `Archived`.
+        """
         item_id = id_from_ctx(ctx)
         svc = get_service()
         removal = await svc.remove_item(item_id, purge=purge)
@@ -2083,18 +2087,24 @@ def register_body_verb(addr_app: typer.Typer, id_from_ctx: Callable[[typer.Conte
     @command
     async def body(
         ctx: typer.Context,
-        message: list[str] = typer.Option(None, "-m", "--message", help="Body paragraph."),
-        file: str | None = typer.Option(None, "--file", help="Body from a file ('-' = stdin)."),
-        append: bool = typer.Option(False, "--append", help="Append instead of replacing."),
+        message: list[str] = typer.Option(
+            None, "-m", "--message", help="A paragraph of text; repeat for several."
+        ),
+        file: str | None = typer.Option(
+            None, "--file", help="Read the text from a file instead of `-m`; `-` reads stdin."
+        ),
+        append: bool = typer.Option(
+            False, "--append", help="Append to the body instead of replacing it."
+        ),
         force: bool = typer.Option(
-            False, "--force", help="Replace an already-written body (destructive, no undo)."
+            False, "--force", help="Replace a body already written; what it held is lost."
         ),
     ) -> None:
-        """Set (or --append to) the body.
+        """Set or append to the body.
 
-        Replacing an already-written body is refused unless --force. A body generated from a
-        declared view (a role, a system or per-type skill) is refused outright; --force does
-        not lift that, and an operator body is never refused for it.
+        Replacing a body someone has already written is refused unless `--force`.
+        A body generated from a declared view (a role, a system or per-type skill)
+        is refused even with `--force`; an operator body is never refused for it.
         """
         item_id = id_from_ctx(ctx)
         text = resolve_body(message or None, file)
@@ -2163,13 +2173,17 @@ def _register_comment_append(comment_app: typer.Typer, target: CommentTarget) ->
     @command
     async def comment(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
         ctx: typer.Context,
-        message: list[str] = typer.Option(None, "-m", "--message", help="A talking point."),
-        file: str | None = typer.Option(None, "--file", help="Comment from a file ('-' = stdin)."),
+        message: list[str] = typer.Option(
+            None, "-m", "--message", help="One point of the comment; repeat for several."
+        ),
+        file: str | None = typer.Option(
+            None, "--file", help="Read the text from a file instead of `-m`; `-` reads stdin."
+        ),
         as_: str | None = typer.Option(
-            None, "--as", help="Author: a role slug or 'op-<slug>' (required)."
+            None, "--as", help="Author: a role slug or `op-<slug>` (required)."
         ),
     ) -> None:
-        """Append a timestamped comment to the discussion, or work on one by its hash.
+        """Add a comment to the discussion, or act on one by its hash.
 
         Append: comment -m TEXT [-m TEXT ...] --as SLUG, or comment --file PATH --as SLUG.
 
@@ -2202,8 +2216,10 @@ def _register_comment_show(addr_app: typer.Typer, target: CommentTarget) -> None
     @command
     async def show(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
         ctx: typer.Context,
-        json_out: bool = typer.Option(False, "--json"),
-        raw: bool = typer.Option(False, "--raw", help="Plain text even on a terminal."),
+        json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the comment."),
+        raw: bool = typer.Option(
+            False, "--raw", help="Print plain text instead of rendered markdown."
+        ),
     ) -> None:
         """Show one comment."""
         item_id, sub = target(ctx)
@@ -2229,12 +2245,21 @@ def _register_comment_edit(addr_app: typer.Typer, target: CommentTarget) -> None
     @command
     async def edit(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
         ctx: typer.Context,
-        message: list[str] = typer.Option(None, "-m", "--message", help="The new text."),
-        file: str | None = typer.Option(None, "--file", help="New text from a file ('-' = stdin)."),
+        message: list[str] = typer.Option(
+            None, "-m", "--message", help="One point of the comment; repeat for several."
+        ),
+        file: str | None = typer.Option(
+            None, "--file", help="Read the text from a file instead of `-m`; `-` reads stdin."
+        ),
         as_: str | None = typer.Option(None, "--as", help="Its author (required)."),
-        json_out: bool = typer.Option(False, "--json"),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the edited comment."
+        ),
     ) -> None:
-        """Replace a comment's text. Its header keeps the time and author and gains an edit mark."""
+        """Replace a comment's text; its header gains an edit mark.
+
+        The header keeps the comment's time and author.
+        """
         svc = get_service()
         slug = await resolve_actor_or_raise(require_as(as_), svc)
         actor.set_actor(slug)
@@ -2262,9 +2287,11 @@ def _register_comment_remove(addr_app: typer.Typer, target: CommentTarget) -> No
         ctx: typer.Context,
         as_: str | None = typer.Option(None, "--as", help="Its author (required)."),
         yes: bool = typer.Option(False, "--yes", help="Skip the confirmation prompt."),
-        json_out: bool = typer.Option(False, "--json"),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print a JSON array, one object per removed copy."
+        ),
     ) -> None:
-        """Delete a comment (every copy of it, when it was written twice)."""
+        """Delete a comment, and every copy of it if it was written twice."""
         svc = get_service()
         slug = await resolve_actor_or_raise(require_as(as_), svc)
         actor.set_actor(slug)
@@ -2309,6 +2336,7 @@ def register_comment_group(app: typer.Typer, target: CommentTarget) -> None:
             ..., metavar="HASH", help="4 or more leading hex characters."
         ),
     ) -> None:
+        """Show, edit or remove one comment, addressed by its hash."""
         ctx.obj = {**ctx.obj, "hash": hash_value}
 
     _register_comment_show(addr_app, target)
@@ -2328,10 +2356,12 @@ def register_comment_verbs(app: typer.Typer, id_from_ctx: Callable[[typer.Contex
     @app.command("comments")
     @command
     async def comments(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
-        ctx: typer.Context, json_out: bool = typer.Option(False, "--json")
+        ctx: typer.Context,
+        json_out: bool = typer.Option(
+            False, "--json", help="Print a JSON array, one object per comment."
+        ),
     ) -> None:
-        """Read back the top-level discussion (the dedicated, machine-readable verb --
-        `show --comments` renders the same discussion inline alongside the rest)."""
+        """Print the top-level discussion."""
         cmt_list = await get_service().comments(id_from_ctx(ctx))
         if json_out:
             print_json_clean(json.dumps(discussion.comments_json(cmt_list)))

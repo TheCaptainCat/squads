@@ -124,25 +124,29 @@ def _build_create_cmd(item_type_str: str) -> _click.Command:
     async def _cmd(  # noqa: PLR0913 — Typer options are the command's surface
         title: str = typer.Argument(..., help="Item title."),
         author: str = typer.Option(
-            ..., "--author", help="Authoring agent (role slug); must be registered."
+            ..., "--author", help="Author: a registered role slug or `op-<slug>`."
         ),
-        parent: str | None = typer.Option(None, "--parent", help="Parent item ID."),
+        parent: str | None = typer.Option(None, "--parent", help="Parent item ID or number."),
         desc: str = typer.Option(
-            "", "--desc", help="Short summary (shown in lists; not the body)."
+            "", "--desc", help="Short summary shown in listings; not the body."
         ),
-        label: list[str] = typer.Option(None, "--label", help="Label (repeatable)."),
+        label: list[str] = typer.Option(None, "--label", help="Label to add (repeatable)."),
         ref: list[str] = typer.Option(
-            None, "--ref", help="Forward-ref to another ID (repeatable)."
+            None, "--ref", help="Item to ref, as `ID` or `ID:kind` (repeatable)."
         ),
-        assignee: str | None = typer.Option(None, "--assignee", help="Role slug or ID."),
+        assignee: str | None = typer.Option(
+            None, "--assignee", help="Role or operator slug to assign."
+        ),
         priority: str | None = typer.Option(None, "--priority", help=_priority_help(item_type_str)),
         message: list[str] = typer.Option(
-            None, "-m", "--message", help="Body paragraph; repeat for several (or use --file)."
+            None, "-m", "--message", help="A paragraph of text; repeat for several."
         ),
         file: str | None = typer.Option(
-            None, "--file", help="Read the body from a file ('-' = stdin)."
+            None, "--file", help="Read the text from a file instead of `-m`; `-` reads stdin."
         ),
-        json_out: bool = typer.Option(False, "--json"),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the created item."
+        ),
     ):
         svc = get_service()
         # --author/--assignee accept only a live slug: a retired role stops being
@@ -378,25 +382,29 @@ def _make(item_type_str: str):
     async def cmd(  # noqa: PLR0913 — Typer options are the command's surface
         title: str = typer.Argument(..., help="Item title."),
         author: str = typer.Option(
-            ..., "--author", help="Authoring agent (role slug); must be registered."
+            ..., "--author", help="Author: a registered role slug or `op-<slug>`."
         ),
-        parent: str | None = typer.Option(None, "--parent", help="Parent item ID."),
+        parent: str | None = typer.Option(None, "--parent", help="Parent item ID or number."),
         desc: str = typer.Option(
-            "", "--desc", help="Short summary (shown in lists; not the body)."
+            "", "--desc", help="Short summary shown in listings; not the body."
         ),
-        label: list[str] = typer.Option(None, "--label", help="Label (repeatable)."),
+        label: list[str] = typer.Option(None, "--label", help="Label to add (repeatable)."),
         ref: list[str] = typer.Option(
-            None, "--ref", help="Forward-ref to another ID (repeatable)."
+            None, "--ref", help="Item to ref, as `ID` or `ID:kind` (repeatable)."
         ),
-        assignee: str | None = typer.Option(None, "--assignee", help="Role slug or ID."),
+        assignee: str | None = typer.Option(
+            None, "--assignee", help="Role or operator slug to assign."
+        ),
         priority: str | None = typer.Option(None, "--priority", help=_priority_help(item_type_str)),
         message: list[str] = typer.Option(
-            None, "-m", "--message", help="Body paragraph; repeat for several (or use --file)."
+            None, "-m", "--message", help="A paragraph of text; repeat for several."
         ),
         file: str | None = typer.Option(
-            None, "--file", help="Read the body from a file ('-' = stdin)."
+            None, "--file", help="Read the text from a file instead of `-m`; `-` reads stdin."
         ),
-        json_out: bool = typer.Option(False, "--json"),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the created item."
+        ),
     ):
         svc = get_service()
         # --author/--assignee accept only a live slug: a retired role stops being
@@ -465,19 +473,25 @@ _STATIC_CREATE_TYPES: frozenset[str] = frozenset({*_CREATABLE, "guide"})
 @common.command
 async def create_guide(  # noqa: PLR0913 — Typer options are the command's surface
     title: str = typer.Argument(..., help="Guide title."),
-    author: str = typer.Option(..., "--author", help="Authoring agent (role slug)."),
-    tech: str | None = typer.Option(None, "--tech", help="Technology (e.g. python, react)."),
-    tag: list[str] = typer.Option(None, "--tag", help="Tag (repeatable)."),
-    parent: str | None = typer.Option(None, "--parent", help="Parent item ID."),
-    desc: str = typer.Option("", "--desc", help="Short summary (shown in lists; not the body)."),
-    assignee: str | None = typer.Option(None, "--assignee", help="Role slug or ID."),
+    author: str = typer.Option(
+        ..., "--author", help="Author: a registered role slug or `op-<slug>`."
+    ),
+    tech: str | None = typer.Option(
+        None, "--tech", help="Technology, such as `python` or `react`."
+    ),
+    tag: list[str] = typer.Option(None, "--tag", help="Tag to add (repeatable)."),
+    parent: str | None = typer.Option(None, "--parent", help="Parent item ID or number."),
+    desc: str = typer.Option("", "--desc", help="Short summary shown in listings; not the body."),
+    assignee: str | None = typer.Option(
+        None, "--assignee", help="Role or operator slug to assign."
+    ),
     message: list[str] = typer.Option(
-        None, "-m", "--message", help="Body paragraph; repeat for several (or use --file)."
+        None, "-m", "--message", help="A paragraph of text; repeat for several."
     ),
     file: str | None = typer.Option(
-        None, "--file", help="Read the body from a file ('-' = stdin)."
+        None, "--file", help="Read the text from a file instead of `-m`; `-` reads stdin."
     ),
-    json_out: bool = typer.Option(False, "--json"),
+    json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the created item."),
 ):
     attributes: dict[str, object] = {}
     if tech:

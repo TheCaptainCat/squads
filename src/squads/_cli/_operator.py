@@ -58,13 +58,15 @@ operator_app = typer.Typer(
 @operator_app.command("add")
 @common.command
 async def operator_add(
-    name: str = typer.Argument(..., help='The human\'s display name, e.g. "Alice Tester".'),
-    slug: str | None = typer.Option(None, "--slug", help="Override the derived `op-<first>` slug."),
+    name: str = typer.Argument(..., help='The person\'s display name, such as "Alice Tester".'),
+    slug: str | None = typer.Option(
+        None, "--slug", help="Slug to use instead of `op-<first name>`."
+    ),
     pronouns: str | None = typer.Option(
-        None, "--pronouns", help="The operator's pronouns, e.g. they/them (one line, up to 40)."
+        None, "--pronouns", help="Pronouns, such as they/them; one line, up to 40 characters."
     ),
 ) -> None:
-    """Register a human operator (assignable + can author items/comments)."""
+    """Register a person who can be assigned work and write items and comments."""
     svc = get_service()
     item = await svc.add_operator(name, slug=slug, pronouns=pronouns)
     name = common.named_markup(svc, item.title, _pronouns.pronouns(item))
@@ -76,7 +78,11 @@ async def operator_add(
 
 @operator_app.command("list")
 @common.command
-async def operator_list(json_out: bool = typer.Option(False, "--json")) -> None:
+async def operator_list(
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per operator."
+    ),
+) -> None:
     """List the registered human operators."""
     svc = get_service()
     operators = await svc.list_operators()
@@ -119,7 +125,8 @@ _addr = typer.Typer(no_args_is_help=True, help="Operate on an operator by slug, 
 @_addr.callback()
 @common.command
 async def _resolve_addr(
-    ctx: typer.Context, addr: str = typer.Argument(..., metavar="ADDR")
+    ctx: typer.Context,
+    addr: str = typer.Argument(..., metavar="ADDR", help="Operator slug, ID or number."),
 ) -> None:
     svc = get_service()
     ctx.ensure_object(dict)
@@ -130,8 +137,8 @@ async def _resolve_addr(
 @common.command
 async def operator_show(
     ctx: typer.Context,
-    raw: bool = typer.Option(False, "--raw", help="Print plain body text (no markdown rendering)."),
-    json_out: bool = typer.Option(False, "--json"),
+    raw: bool = typer.Option(False, "--raw", help="Print plain text instead of rendered markdown."),
+    json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the operator."),
     comments: bool = typer.Option(
         False, "--comments", help="Append the discussion as comments (text output)."
     ),
@@ -182,7 +189,7 @@ async def operator_update(
         None, "--pronouns", help="The operator's pronouns; a blank value clears them."
     ),
 ) -> None:
-    """Rename an operator or set their pronouns; its slug, file and id never change."""
+    """Rename an operator or set their pronouns; the slug never changes."""
     common.require_update_fields(title=title, pronouns=pronouns)
     item_id: str = ctx.obj["id"]
     svc = get_service()

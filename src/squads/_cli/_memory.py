@@ -38,7 +38,7 @@ from squads._cli._common import (
 
 memory_app = typer.Typer(
     no_args_is_help=True,
-    help="A role's committed memory notebook (list/search/show/add/forget).",
+    help="Read and write a role's memory notebook.",
 )
 
 _ROLE_KEY = "role_slug"
@@ -52,7 +52,7 @@ def _role(ctx: typer.Context) -> str:
 @common.command
 async def _resolve_role(
     ctx: typer.Context,
-    role: str = typer.Argument(..., help="Role slug (e.g. python-dev or op-alice)."),
+    role: str = typer.Argument(..., help="Role or operator slug, such as `python-dev`."),
 ) -> None:
     svc = get_service()
     ctx.obj = {_ROLE_KEY: await resolve_slug_or_raise(role, svc, live_only=False)}
@@ -60,14 +60,15 @@ async def _resolve_role(
 
 @memory_app.command("list")
 @common.command
-async def list_memories(ctx: typer.Context, json_out: bool = typer.Option(False, "--json")) -> None:
-    """Print the role's memory index: one line per memory (slug + summary).
+async def list_memories(
+    ctx: typer.Context,
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per memory."
+    ),
+) -> None:
+    """List the role's memories, one line each: slug and summary.
 
-    Exit codes: 0 = a clean listing, 4 = one or more memory files could not be read (the
-    readable memories are still listed, so a short exit-4 pool is never mistaken for a
-    genuinely smaller one). The skipped files are named on stderr: one ``error: <message>``
-    line each in human mode, or one ``{"omitted": [...]}`` JSON line under ``--json``. The
-    ``--json`` array shape is unchanged either way.
+    Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
     role_slug = _role(ctx)
     svc = get_service()
@@ -101,14 +102,13 @@ async def list_memories(ctx: typer.Context, json_out: bool = typer.Option(False,
 async def search_memories(
     ctx: typer.Context,
     query: str = typer.Argument(..., help="Text to find (case-insensitive)."),
-    json_out: bool = typer.Option(False, "--json"),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per matching memory."
+    ),
 ) -> None:
-    """Memories whose summary or body contains the query text.
+    """Find the role's memories whose summary or body contains text.
 
-    Same degrade-signal rule as `sq memory <role> list`: exit 0 = a clean search, 4 = one or
-    more memory files could not be read, reported the same way — an ``error: <message>`` line
-    per skipped file in human mode, one compact ``{"omitted": [...]}`` JSON line under
-    ``--json``.
+    Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
     role_slug = _role(ctx)
     svc = get_service()
@@ -135,10 +135,10 @@ async def search_memories(
 @common.command
 async def show_memory(
     ctx: typer.Context,
-    slug: str = typer.Argument(..., help="Memory slug."),
-    json_out: bool = typer.Option(False, "--json"),
+    slug: str = typer.Argument(..., help="Memory slug, as `sq memory <role> list` prints it."),
+    json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the memory."),
 ) -> None:
-    """Print one memory's full body, addressed by slug (not index position)."""
+    """Print one memory in full, addressed by its slug."""
     role_slug = _role(ctx)
     svc = get_service()
     entry = await svc.memory_show(role_slug, slug)
@@ -167,17 +167,17 @@ async def add_memory(
     ctx: typer.Context,
     fact: str = typer.Argument(
         ...,
-        help="A snappy one-line summary of the memory (also the default slug source); "
-        "put the detailed write-up in --file.",
+        help="One-line summary of the memory, which also names its slug; "
+        "put the detail in `--file`.",
     ),
     file: str | None = typer.Option(
-        None, "--file", help="Read a longer body from PATH ('-' for stdin)."
+        None, "--file", help="Read the memory's body from a file; `-` reads stdin."
     ),
     slug: str | None = typer.Option(
-        None, "--slug", help="Name the handle explicitly instead of deriving it from the fact."
+        None, "--slug", help="Slug to file the memory under instead of one made from the summary."
     ),
 ) -> None:
-    """Jot a new memory to the role's pool; regenerates the role's index."""
+    """Add a memory to the role's notebook."""
     role_slug = _role(ctx)
     svc = get_service()
     body = resolve_body_optional(None, file)
@@ -188,9 +188,10 @@ async def add_memory(
 @memory_app.command("forget")
 @common.command
 async def forget_memory(
-    ctx: typer.Context, slug: str = typer.Argument(..., help="Memory slug.")
+    ctx: typer.Context,
+    slug: str = typer.Argument(..., help="Memory slug, as `sq memory <role> list` prints it."),
 ) -> None:
-    """Delete one memory for real (history retained in git); regenerates the index."""
+    """Delete one memory; git history still holds it."""
     role_slug = _role(ctx)
     svc = get_service()
     await svc.memory_forget(role_slug, slug)

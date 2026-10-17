@@ -200,9 +200,9 @@ The documented, stable contract:
 | Code | Meaning | When you see it |
 |------|---------|-----------------|
 | `0` | Success | Command completed normally (including `sq check` with no errors, or warnings only). |
-| `1` | squads could not complete what you asked | A `SquadsError` (unknown ID, invalid transition, etc.), a schema-version mismatch (`sq migrate up` is needed), or `sq repair` reporting a file it could not read while rebuilding. |
+| `1` | squads could not complete what you asked | A `SquadsError` (unknown ID, invalid transition, etc.), a schema-version mismatch (`sq migrate up` is needed), or `sq repair` (or the rebuild that ends `sq migrate up`) reporting a file it could not read while rebuilding. |
 | `2` | Usage error | Invalid `--at` timestamp format; Typer/Click usage errors (unknown option, missing required argument). |
-| `3` | `sq check` found error-level issues | One or more `error`-level issues were reported. `warn`-level-only results still exit 0. |
+| `3` | Error-level issues were found | `sq check` reported one or more `error`-level issues, or `sq import` applied the file and the check of the items it touched found one. The import's events are on disk: do not retry it, read `applied` from its `--json` output. `warn`-level-only results still exit 0. |
 | `4` | The answer is short | A listing finished and named what it could not read: `sq board list`, `sq inbox`, `sq search`, `sq memory <role> list`, `sq memory <role> search`. stdout still carries a valid payload in its usual shape. |
 
 Code `3` is the useful one for CI gates — scripts can use `sq check || exit 1` or test the code
