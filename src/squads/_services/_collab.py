@@ -12,6 +12,7 @@ from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._omission import Omission
+from squads._models._participants import ANONYMOUS_SLUG
 from squads._paths import SquadPaths
 from squads._services._base import ServiceCore, reject_markers
 from squads._services._results import (
@@ -113,9 +114,9 @@ def _scan_comment_headers(lines: list[str], bounds: tuple[int, int]) -> list[tup
     start, end = bounds
     headers: list[tuple[int, str, str]] = []
     for line_no in range(start + 1, end):
-        m = discussion.match_comment_header(lines[line_no - 1].strip())
+        m = discussion.match_comment_header(lines[line_no - 1])
         if m is not None:
-            headers.append((line_no, m[0], m[1]))
+            headers.append((line_no, m[0], m[2]))
     return headers
 
 
@@ -252,7 +253,7 @@ class CollabMixin(ServiceCore):
         item_id: str,
         messages: list[str],
         *,
-        as_slug: str = "operator",
+        as_slug: str = ANONYMOUS_SLUG,
         story: str | None = None,
         subtask: str | None = None,
         finding: str | None = None,
@@ -278,7 +279,7 @@ class CollabMixin(ServiceCore):
         item_id: str,
         messages: list[str],
         *,
-        as_slug: str = "operator",
+        as_slug: str = ANONYMOUS_SLUG,
         story: str | None = None,
         subtask: str | None = None,
         finding: str | None = None,
@@ -293,7 +294,7 @@ class CollabMixin(ServiceCore):
             reject_markers(msg, "comment message")
         tag = self._discussion_tag(story, subtask, finding, sub)
         entry = discussion.format_comment(
-            clock.iso(clock.now()), self._author_of(db, as_slug), messages
+            clock.iso(clock.now()), as_slug, self._author_of(db, as_slug), messages
         )
 
         def mutate(text: str, _item: Item) -> tuple[str, bool]:

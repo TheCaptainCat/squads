@@ -28,6 +28,7 @@ from squads._itemfile import (
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item
+from squads._models._participants import SYSTEM_SLUG
 from squads._paths import SquadPaths
 from squads._services._base import ServiceCore
 from squads._services._results import RenameResult
@@ -322,7 +323,7 @@ async def _append_rename_comment(path: Path, old_id: str, new_id: str, item: Ite
     """Append a system comment recording the rename to the item's discussion."""
     now_iso = clock.iso(clock.now())
     msg = f"renamed {old_id} → {new_id}; status carried as {item.status}"
-    entry = discussion.format_comment(now_iso, "squads", [msg])
+    entry = discussion.format_comment(now_iso, SYSTEM_SLUG, SYSTEM_SLUG, [msg])
     text = await _aio.read_text(path)
     if sections.has_section(text, markers.DISCUSSION):
         text = sections.append_to_section(text, markers.DISCUSSION, entry)
@@ -333,7 +334,7 @@ async def _append_rename_status_comment(path: Path, old_status: str, new_status:
     """Append a system comment recording the status rename to the item's discussion."""
     now_iso = clock.iso(clock.now())
     msg = f"status renamed {old_status} → {new_status}"
-    entry = discussion.format_comment(now_iso, "squads", [msg])
+    entry = discussion.format_comment(now_iso, SYSTEM_SLUG, SYSTEM_SLUG, [msg])
     text = await _aio.read_text(path)
     if sections.has_section(text, markers.DISCUSSION):
         text = sections.append_to_section(text, markers.DISCUSSION, entry)

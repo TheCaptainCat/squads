@@ -18,6 +18,7 @@ from dataclasses import dataclass
 
 from squads import _badges as badges
 from squads._models import _markers as markers
+from squads._models._participants import SLUG_PATTERN, require_valid_slug
 from squads._models._subentity import SubEntity
 from squads._rendering._engine import render
 from squads._sections import get_section, replace_section
@@ -25,9 +26,11 @@ from squads._workflow import WorkflowSpec, bundled_spec
 
 _MENTION_RE = re.compile(r"(?<![A-Za-z0-9_])@([a-z0-9][a-z0-9-]*)")
 
-# Matches the header line of a formatted comment, e.g.:
-#   - [2026-06-07T10:00:00Z] Author Name:
-_COMMENT_HEADER_RE = re.compile(r"^- \[([^\]]+)\] (.+?):$")
+# The one comment-header pattern, anchored at column 0 and never applied to a stripped line:
+#   - [2026-06-07T10:00:00Z] `architect` Robert Architect:
+_COMMENT_HEADER_RE = re.compile(
+    rf"^- \[(\d{{4}}-\d{{2}}-\d{{2}}T\d{{2}}:\d{{2}}:\d{{2}}Z)\] `({SLUG_PATTERN})` (.+):$"
+)
 
 
 def _resolve_spec(spec: WorkflowSpec | None) -> WorkflowSpec:
@@ -38,15 +41,20 @@ def _resolve_spec(spec: WorkflowSpec | None) -> WorkflowSpec:
 # --------------------------------------------------------------------------- comments
 
 
-def format_comment(timestamp_iso: str, author: str, messages: list[str]) -> str:
-    """One discussion entry: a timestamped author line + one bullet per message.
+def format_comment(timestamp_iso: str, slug: str, name: str, messages: list[str]) -> str:
+    """One discussion entry: a header naming the author's slug and display name, then one bullet
+    per message.
 
-    A multi-line message keeps its first line on the bullet and indents continuation lines so they
-    stay nested under it.
+    The name is a display snapshot: line breaks collapse to spaces and an empty name falls back to
+    the slug. A multi-line message keeps its first line on the bullet and indents continuation
+    lines so they stay nested under it.
     """
-    lines = [f"- [{timestamp_iso}] {author}:"]
+    require_valid_slug(slug, action="write a comment")
+    shown = " ".join(part.strip() for part in name.splitlines() if part.strip()) or slug
+    lines = [f"- [{timestamp_iso}] `{slug}` {shown}:"]
     for msg in messages:
-        first, *rest = msg.split("\n")
+        # split as the readers do, so no line an author writes can land at column 0
+        first, *rest = msg.splitlines() or [""]
         lines.append(f"  - {first}")
         # indent *every* continuation line (blanks included) to the bullet's content column, so a
         # nested fenced code block — and its internal blank lines — stays inside the list item.
@@ -59,42 +67,45 @@ class Comment:
     """A single parsed comment from a discussion region."""
 
     timestamp: str
-    author: str
+    author: str  # the display name written in the header
+    author_slug: str
     body: str  # the raw bullet lines for this comment, stripped of their outer indentation
 
 
 def split_discussion(region: str) -> list[Comment]:
     """Parse a discussion region (the content between sq:discussion markers) into Comment objects.
 
-    Each comment starts with ``- [TIMESTAMP] Author:`` and is followed by indented bullet lines
-    (``  - text`` or continuation lines ``    text``).  The body field preserves the bullets as-is
-    (including any fenced code blocks), stripping only the leading 2-space indent level so it reads
-    as standalone markdown.
+    Each comment starts with ``- [TIMESTAMP] `slug` Author:`` and is followed by indented bullet
+    lines (``  - text`` or continuation lines ``    text``).  The body field preserves the bullets
+    as-is (including any fenced code blocks), stripping only the leading 2-space indent level so
+    it reads as standalone markdown.
 
     Empty or whitespace-only regions return an empty list.  Lines that do not start a new header
     are accumulated as the current comment's body.  This is the inverse of :func:`format_comment`.
     """
     comments: list[Comment] = []
-    current_ts: str | None = None
-    current_author: str | None = None
+    header: tuple[str, str, str] | None = None
     body_lines: list[str] = []
 
-    for raw_line in region.splitlines():
-        m = _COMMENT_HEADER_RE.match(raw_line)
-        if m:
-            # Flush any previous comment
-            if current_ts is not None and current_author is not None:
-                comments.append(
-                    Comment(
-                        timestamp=current_ts,
-                        author=current_author,
-                        body="\n".join(body_lines).strip(),
-                    )
+    def flush() -> None:
+        if header is not None:
+            ts, slug, name = header
+            comments.append(
+                Comment(
+                    timestamp=ts,
+                    author=name,
+                    author_slug=slug,
+                    body="\n".join(body_lines).strip(),
                 )
-            current_ts = m.group(1)
-            current_author = m.group(2)
+            )
+
+    for raw_line in region.splitlines():
+        parsed = match_comment_header(raw_line)
+        if parsed is not None:
+            flush()
+            header = parsed
             body_lines = []
-        elif current_ts is not None:
+        elif header is not None:
             # Strip the 2-space indent that format_comment adds at the message level.
             # Continuation lines have 4 spaces; after stripping 2 they become "  text", which
             # renders correctly under the bullet.  We do NOT collapse blank lines — fenced code
@@ -104,27 +115,33 @@ def split_discussion(region: str) -> list[Comment]:
             else:
                 body_lines.append(raw_line)
 
-    # Flush the last comment
-    if current_ts is not None and current_author is not None:
-        comments.append(
-            Comment(
-                timestamp=current_ts,
-                author=current_author,
-                body="\n".join(body_lines).strip(),
-            )
-        )
-
+    flush()
     return comments
 
 
-def match_comment_header(line: str) -> tuple[str, str] | None:
-    """If ``line`` is a comment header (``- [TIMESTAMP] Author:``), return ``(timestamp, author)``.
+def author_label(cmt: Comment) -> str:
+    """The author as a person reads it: ``Name (slug)``, or the slug once when the name is it."""
+    return cmt.author if cmt.author == cmt.author_slug else f"{cmt.author} ({cmt.author_slug})"
+
+
+def comment_json(cmt: Comment) -> dict[str, str]:
+    """One discussion entry for ``--json``: the display name, the permanent slug, time and body."""
+    return {
+        "author": cmt.author,
+        "author_slug": cmt.author_slug,
+        "ts": cmt.timestamp,
+        "body": cmt.body,
+    }
+
+
+def match_comment_header(line: str) -> tuple[str, str, str] | None:
+    """If ``line`` is a comment header, return ``(timestamp, slug, name)``.
 
     Exposed for callers that need to attribute a line to *which* comment (e.g. search result
     region attribution) without re-parsing a whole discussion region via :func:`split_discussion`.
     """
     m = _COMMENT_HEADER_RE.match(line)
-    return (m.group(1), m.group(2)) if m else None
+    return (m.group(1), m.group(2), m.group(3)) if m else None
 
 
 def extract_mentions(text: str) -> set[str]:

@@ -9,25 +9,29 @@ from squads._models._subentity import SubEntity
 
 
 def test_format_comment_renders_a_dated_bullet_list() -> None:
-    out = discussion.format_comment("2026-06-07T10:00:00Z", "Robert Architect", ["a", "b"])
-    assert out == "- [2026-06-07T10:00:00Z] Robert Architect:\n  - a\n  - b"
+    out = discussion.format_comment(
+        "2026-06-07T10:00:00Z", "architect", "Robert Architect", ["a", "b"]
+    )
+    assert out == "- [2026-06-07T10:00:00Z] `architect` Robert Architect:\n  - a\n  - b"
 
 
 def test_format_comment_nests_a_multiline_message_under_its_own_bullet() -> None:
     out = discussion.format_comment(
-        "2026-06-07T10:00:00Z", "Olivia Lead", ["Parser\nhandles scopes", "@qa verify"]
+        "2026-06-07T10:00:00Z", "tech-lead", "Olivia Lead", ["Parser\nhandles scopes", "@qa verify"]
     )
     assert out == (
-        "- [2026-06-07T10:00:00Z] Olivia Lead:\n  - Parser\n    handles scopes\n  - @qa verify"
+        "- [2026-06-07T10:00:00Z] `tech-lead` Olivia Lead:\n"
+        "  - Parser\n    handles scopes\n  - @qa verify"
     )
 
 
 def test_format_comment_nests_a_fenced_code_block_including_its_blank_lines() -> None:
     out = discussion.format_comment(
-        "2026-06-07T10:00:00Z", "Dev", ["Fix:\n```py\na = 1\n\nb = 2\n```"]
+        "2026-06-07T10:00:00Z", "dev", "Dev", ["Fix:\n```py\na = 1\n\nb = 2\n```"]
     )
     assert out == (
-        "- [2026-06-07T10:00:00Z] Dev:\n  - Fix:\n    ```py\n    a = 1\n    \n    b = 2\n    ```"
+        "- [2026-06-07T10:00:00Z] `dev` Dev:\n"
+        "  - Fix:\n    ```py\n    a = 1\n    \n    b = 2\n    ```"
     )
 
 
@@ -40,7 +44,8 @@ def test_split_discussion_parses_each_comment_at_its_own_header_line() -> None:
     """A region with two comments is split into two Comment objects — the mid-loop flush at
     each new header line, not just the final flush after the last one."""
     region = (
-        "- [2026-06-07T10:00:00Z] Alice:\n  - First.\n- [2026-06-07T11:00:00Z] Bob:\n  - Second.\n"
+        "- [2026-06-07T10:00:00Z] `alice` Alice:\n  - First.\n"
+        "- [2026-06-07T11:00:00Z] `bob` Bob:\n  - Second.\n"
     )
     comments = discussion.split_discussion(region)
     assert len(comments) == 2

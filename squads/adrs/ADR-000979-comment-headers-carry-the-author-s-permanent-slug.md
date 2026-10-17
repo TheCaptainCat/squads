@@ -13,7 +13,7 @@ refs:
 description: Header is - [ts] `slug` Name:; slugs never change; legacy headers migrated
   once; --json gains author_slug
 created_at: '2026-09-29T14:33:58Z'
-updated_at: '2026-10-15T20:16:59Z'
+updated_at: '2026-10-16T07:43:46Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -107,6 +107,10 @@ name      = one or more characters, single line
   retype, name `squads`). No role may be created with either slug, or with a slug that starts
   with `op-`, which is reserved for operators.
 
+> **Amended 2026-10-16 (A1, A2):** the reservation above binds roles only. An operator slug must
+> also start with `op-`, and a slug names one author across roles and operators; skills are
+> outside that namespace. See **Amendments — 2026-10-16**.
+
 **3. The pretty name is a snapshot for display.**
 
 - The writer resolves the name at write time exactly as `_author_of` does today, collapses any
@@ -149,6 +153,24 @@ It fails loudly rather than guessing:
 Invariant 3 holds. The header is sq's own attribution line, written by `format_comment` and
 never by an author. The migration changes nothing an agent wrote.
 
+> **Amended 2026-10-16 (A4):** the resolution step gains a roster check that runs before any
+> header is resolved, and an entry that breaks A1 or A2 is a failure of the same kind as the
+> ones listed above: nothing is written. See A4.
+
+> **Amended 2026-10-16 (A6):** a legacy name that matches no title is then matched against
+> operator slugs, because the released 0.15.0 writer named an operator without a full name by
+> its slug. See A6.
+
+> **Note 2026-10-16 (REV-1027 F7):** the header rewrite does not go through `_sections.py`. It
+> reads each item file as raw bytes, uses `_sections.find_markers` only to locate the discussion
+> regions, and replaces each legacy header line whole, keeping that line's own terminator (LF
+> or CRLF). Two reasons. Byte preservation: every byte outside the replaced header lines,
+> the comment's bullets and line endings included, comes out identical. Header-line-only
+> edits: `_sections.py` offers whole-region edits on decoded text (`replace_section`,
+> `append_to_section`) and no single-line replace (read), so going through it would re-emit
+> every discussion region to change one line in it. Invariant 3 holds in substance: the lines
+> replaced are sq's own attribution lines, never an author's prose.
+
 **5. `--json` gains `author_slug`.**
 
 - Every `discussion` entry (`show --json` for an item and a sub-entity) and every
@@ -187,6 +209,9 @@ never by an author. The migration changes nothing an agent wrote.
 > flattening returns the name `extra.full_name` held before it (inferred from ADR-1007 decision 9).
 > See ADR-1007 decisions 2 and 8.
 
+> **Amended 2026-10-16 (A1):** creation through `sq operator add --slug` and through the bulk
+> importer applies the operator rule of A1, at the same seam as the role rule. See A1.
+
 ## Consequences
 
 - **Schema.** `SCHEMA_VERSION` becomes `0.16`, with a 0.15 to 0.16 migration registered as
@@ -208,6 +233,180 @@ never by an author. The migration changes nothing an agent wrote.
   `SqDiscussionEntry`. It must stay optional, because an older `sq` omits it.
 - **Pretty names drift by design.** After a display rename, old headers show the old name and
   new headers the new one, both under the same slug.
+
+## Amendments — 2026-10-16
+
+Decisions 1 to 6 stand as ruled. A1 to A5 rule the case REV-1026 finding F3 raised, and A6 the case of
+REV-1027 finding F2. Decision
+2 reserves `operator`, `squads` and `op-` against roles, and says nothing about operators. The
+text above is unedited apart from the dated notes that point here. Evidence is marked **driven**
+(run on this repository's squad with the released `sq`, or recorded as driven on REV-1026),
+**read** (source read) or **inferred**.
+
+**The gap** (driven, REV-1026 F3). `sq operator add --slug` and the importer's operator `create`
+accept `squads`, `operator`, a live role's slug (`qa`), `Bad Slug` and `OP-UP`. An operator
+holding `squads` writes headers identical to rename and retype entries. One holding `operator`
+is shown as `Operator`, because `_author_of` answers the anonymous slug before it reads the
+roster (read, `_services/_base.py`). One holding `qa` gives two live entries one slug, and
+`sq check` reports nothing. One holding `Bad Slug` or `OP-UP` can never comment. Each breaks the
+statement decision 2 rests on: the two reserved slugs cover authors that are not roster entries,
+and a slug is an author's identity.
+
+### A1 — An operator slug starts with `op-` and is in the grammar
+
+```
+operator slug = "op-" [a-z0-9] [a-z0-9-]*
+role slug     = [a-z0-9] [a-z0-9-]*, not "operator", not "squads", not starting with "op-"
+skill slug    = [a-z0-9] [a-z0-9-]*
+```
+
+- Operator creation refuses any other slug, explicit or derived, with exit 1 and nothing
+  written. That is `sq operator add --slug`, the importer's operator `create`, and any path
+  added later, because the rule sits at the roster creation seam that already holds the role
+  rule (read, `_check_roster_slug` in `_services/_base.py`). The message names the rule and,
+  when one exists, the compliant form: `operator slug 'Anna' must start with 'op-' and be
+  lowercase letters, digits and hyphens (e.g. 'op-anna')`.
+- Creation does not lowercase or prefix a typed slug. A slug is permanent (decision 1), so the
+  one that is stored is the one that was typed and accepted.
+- The derived default already complies: `op-` plus the slugified first name, or `op-untitled`
+  when nothing slugifies (driven, a direct call of `operator_slug` on an accented name, a
+  non-Latin name and a punctuation-only name).
+- The one rule closes every case of the gap. `squads` and `operator` do not start with `op-`. A
+  role slug cannot start with `op-` (decision 2), so no operator slug can equal a role slug.
+  `Bad Slug` and `OP-UP` are outside the grammar.
+
+### A2 — One author namespace: roles and operators; skills are outside it
+
+- **The author namespace** is every role (developer roles included) and every operator, live
+  and retired, plus the two reserved participant slugs. A slug in it names exactly one author.
+  This is what lets ADR-1013 match an author by slug equality.
+- Uniqueness inside the namespace follows from three rules, and no new cross-type check is
+  needed at creation: A1 and decision 2 make the role and operator slug sets disjoint by
+  prefix and exclude the reserved slugs from both, and creation already refuses a duplicate
+  within a type (read, `_refuse_duplicate_slug` in `_services/_roster.py`).
+- **Skills are not in it.** A skill never authors anything: `--as` resolves against roles and
+  operators only (read, `resolve_slug_or_raise`), and a skill is addressed only under
+  `sq skill`. The bundled `squads` skill already holds the system slug (driven,
+  `sq skill squads show` is SKILL-200 on this squad), so a skill slug cannot share the author
+  namespace without a contradiction already shipped. A skill slug is unique among skills and in
+  the grammar (REV-1026 F2's seam), and is otherwise unconstrained.
+- **Consequence.** `sq check`'s `agent_registered` builds its set from every roster type,
+  skills included (read, `registered_slugs` in `_services/_validators.py`), so an item whose
+  author or assignee names a skill passes. The set becomes roles and operators.
+
+### A3 — `sq check` reports a roster entry that breaks A1 or A2
+
+- After A1 creation cannot produce such an entry. One can still arrive: a hand-edited file, or
+  two branches that each added an operator under the same slug and were then merged (inferred,
+  the same way ID collisions arrive).
+- A new squad-global rule, `roster_slug_valid`, on by default at `error`, reports each role and
+  operator, live or retired, whose slug is outside its grammar in A1, or that shares its slug
+  with another entry of the namespace. One issue per entry, naming the item, the slug, the rule
+  broken and, for a shared slug, the other holders:
+  `OP-12: operator slug 'qa' does not start with 'op-'; it is also held by ROLE-5`.
+- **It reports and never gates a write**, for the reason `default_designation_duplicated`
+  gives (read): the remedy runs through creation and removal, and a gate on a later unrelated
+  write would lock the squad out of that remedy.
+- **The remedy** is in the message: `sq operator <id> rm --purge`, then `sq operator add` under
+  the same name, which takes a compliant slug. Headers already written keep the old slug:
+  decision 1 lets nothing rewrite them, and decision 6 already accepts the ambiguity of a purged
+  slug's history. Addressing by id matters, because a slug matching a group verb cannot be
+  addressed by slug (read, `sq operator --help`).
+
+### A4 — The 0.16 migration refuses; it does not only report
+
+The planning pass checks the roster before it resolves any header, and an entry that breaks A1
+or A2 is a failure. Report-only is not enough, for three reasons:
+
+- **It is the last point where the fix is clean** (inferred, from decision 4). A legacy header
+  names its author by display name. Before the run, a non-compliant operator can be purged and
+  added again under the same name, and its headers resolve to the new `op-` slug. After the run
+  every header carries the slug and decision 1 forbids rewriting it, so the old slug is fixed in
+  the history for good.
+- **An out-of-grammar slug breaks the corpus** (read, the new pattern). A composed header such
+  as ``- [ts] `Bad Slug` Name:`` does not match the pattern, so the reader does not see a header,
+  and that comment's lines join the comment before it.
+- **A reserved or shared slug fixes a false identity in place** (inferred, from ADR-1013 §9).
+  Headers rewritten to `squads` become system entries that no `--as` can edit; headers
+  rewritten to `operator` become anonymous; headers rewritten to `qa` become editable by
+  whoever holds `qa`.
+
+What the run does:
+
+- Every role and operator item, live and retired, is checked against A1 and A2 before any
+  header is resolved. A breach is one line per entry, file-level, in the same report as the
+  header failures, and counts toward the same exit 1 with nothing written:
+  `operators/OP-000012-qa.md: operator slug 'qa' does not start with 'op-'; also held by ROLE-5`.
+- Each entry is reported once. The headers that name it are not also listed one per line.
+- The `manual` runbook adds the remedy, run with the release the squad is stamped for (the gate
+  lets only `sq migrate up`, `help` and `chlog` past): `sq operator <id> rm --purge`, then
+  `sq operator add "<the same full name>"`, then `sq migrate up` again. The purge is required:
+  a plain `rm` drops the index entry and keeps the file, and the run's reconcile indexes the file
+  again (read, `remove_item` in `_services/_items.py`). Open items assigned to the old slug are
+  reassigned with `update --assignee`. An item's `author` keeps the old slug, which `sq check`'s
+  `agent_registered` then names.
+- A role that breaks decision 2 or the grammar is reported the same way. Its remedy is the
+  project role file renamed to a compliant slug and the role activated again, with the old one
+  purged.
+- This repository's squad holds one operator, `op-pierre`, and no role in breach (driven,
+  `sq operator list` and `sq role list`), so the check costs it nothing.
+
+### A5 — ADR-1013's author match
+
+- The match stays slug equality (ADR-1013 §9). A1 and A2 are what make equality mean the same
+  author. Where A3 reports a shared slug, the match cannot tell the holders apart, and the
+  remedy is A3's, not a stronger match.
+- **`squads` resolves for no actor**, whatever the roster holds. `--as squads` is refused by
+  every comment writer, the importer's `as` included, so system entries stay immutable by rule
+  and not because no roster entry happens to hold the slug. Rename and retype keep writing it
+  internally. The rest of REV-1026 F5 (an importer actor not in the roster) is not ruled here.
+- **`operator` always resolves to the anonymous author** before the roster is read, as
+  `resolve_slug_or_raise` and `_author_of` already do (read). A roster entry holding it is A3's
+  report, never an identity.
+
+### A6 — A legacy name resolves by title, then by an operator's slug
+
+This rules REV-1027 finding F2. The released 0.15.0 writer named an operator by
+`extra.full_name`, falling back to its slug (read, `_author_of` in 0.15.0). An operator the
+released importer created without a full name therefore has headers such as
+`- [2026-10-16T07:36:53Z] op-ann:` (driven, REV-1027 F2). Decision 4 resolves an operator by
+its full name, falling back to its title, so the run refuses on a registered, live operator,
+and the remedy in its `manual` (add the entry back under that name) would create a second
+operator whose display name is `op-ann` and attribute the headers to it.
+
+- Each legacy name is matched first against the titles decision 4 lists: every role's
+  `item.title`, every operator's full name or title, and the two reserved names `Operator` and
+  `squads`.
+- Only when no title matches is the name matched against the slugs of every operator item,
+  live and retired. A match resolves to that operator's slug.
+- A title match always wins. A name that matches a title and another entry's operator slug
+  resolves by the title and is not a collision.
+- A name equal to a role slug, or to no slug in the roster, still matches no entry. The rule
+  for importer actors that are not in the roster stands.
+- The name's bytes are kept, as for every rewritten header:
+  ``- [2026-10-16T07:36:53Z] `op-ann` op-ann:``.
+
+### What the amendments oblige
+
+- Operator creation refuses a slug outside `op-[a-z0-9][a-z0-9-]*`, on every path, with nothing
+  written. A table: `squads`, `operator`, `qa` with role `qa` live, `Bad Slug`, `OP-UP`, `op-`,
+  `op--x` refused; `op-anna` and the derived default accepted.
+- `agent_registered` reads roles and operators only.
+- `roster_slug_valid` reports each breaching or shared entry, live and retired, at `error`, and
+  gates no write.
+- The 0.16 planning pass refuses on a breaching entry, reports it once per entry before any
+  header resolves, and the `manual` names the purge-and-add remedy. Proof: each breach kind,
+  alone and beside header failures, with every file hashing identically before and after.
+- `--as squads` is refused by every comment writer, the importer included, even when an entry
+  holds `squads`.
+- Adopter-visible: `sq operator add --slug` and the importer refuse a slug that does not start
+  with `op-`, and a squad holding such an operator does not migrate until it is replaced.
+  `docs/migration.md`, the 0.16 CHANGELOG and `docs/stability.md` Tier 1 (beside the header
+  grammar) say so.
+- The 0.16 planning pass resolves a legacy name by title, then by operator slug (A6). Proof: the
+  header the released 0.15.0 writer actually writes for an operator without a full name
+  migrates to that operator's slug, a title match beats an operator-slug match, and a name
+  equal only to a role slug still fails.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -226,4 +425,17 @@ never by an author. The migration changes nothing an agent wrote.
   - Migration failures: fix the roster and re-run; no --map flag.
 - [2026-09-29T14:57:04Z] Pierre Chat:
   - Accepted.
+- [2026-10-15T22:17:49Z] Robert Architect:
+  - - 2026-10-16: amended for REV-1026 F3, additions only (three dated notes plus "Amendments — 2026-10-16", A1 to A5); status untouched.
+    - A1: an operator slug is `op-[a-z0-9][a-z0-9-]*`, refused otherwise at the roster creation seam (operator add --slug, importer). No silent lowercasing.
+    - A2: one author namespace, roles plus operators plus the two reserved slugs; skills are outside it (the bundled SKILL-200 already holds `squads`, driven). agent_registered stops counting skill slugs.
+    - A3: new `roster_slug_valid` check, error, report-only, remedy `sq operator <id> rm --purge` then `operator add`.
+    - A4: the 0.16 planning pass refuses, not report-only: before the run a breaching operator can be purged and re-added under the same name and its legacy headers resolve to the new slug; after it the slug is fixed in history. An out-of-grammar slug would also produce header lines the new pattern does not match. This changes ST5 as briefed. This squad is unaffected (op-pierre only, driven).
+    - A5: ADR-1013's match stays slug equality; `--as squads` is refused by every writer including the importer actor, `operator` is always the anonymous author.
+    - @manager for op-pierre's confirmation: this changes what an adopter may type (operator add --slug) and makes a non-compliant operator block `sq migrate up`. Route A4 to @python-dev for ST5 once confirmed.
+- [2026-10-16T07:43:46Z] Robert Architect:
+  - - 2026-10-16: two additions for REV-1027, additions only; status untouched.
+      - A6 (REV-1027 F2): the 0.16 migration resolves a legacy name by title first and, failing that, by an operator's slug, because the released 0.15.0 writer wrote an operator without `full_name` as its slug (`- [ts] op-ann:`). A dated note under decision 4 points to it. A6 is part of the pending amendment and is subject to op-pierre's confirmation together with A1 to A5.
+      - Note under decision 4 (REV-1027 F7): the header rewrite replaces whole header lines in the raw bytes, keeping each line's terminator, with `_sections.find_markers` used only to locate regions; reason: byte preservation and header-line-only edits, which `_sections.py`'s whole-region API does not give.
+      - @manager for op-pierre's confirmation of A1 to A6; once confirmed, A6 goes to @python-dev with REV-1027 F2.
 <!-- sq:discussion:end -->

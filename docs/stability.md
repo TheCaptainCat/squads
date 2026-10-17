@@ -67,6 +67,80 @@ frontmatter (`Item.subentities`), not in the body. Only prose (the `:body` and `
 stays in the body markers. This is **Invariant 1** — frontmatter is the source of truth — and it
 makes the index rebuildable from files alone (see [internals.md](internals.md) § 4).
 
+### Comment headers
+
+Every comment in a discussion region (an item's own, or a story's, subtask's or finding's) opens
+with a header line that sq writes, followed by the author's bullets indented under it:
+
+```
+- [2026-10-16T08:09:29Z] `tech-lead` Olivia Lead:
+- [2026-10-16T08:09:30Z] `op-zo` Zoë Müller:
+- [2026-10-16T08:09:31Z] `operator` Operator:
+```
+
+The grammar:
+
+```
+header    = "- [" timestamp "] `" slug "` " name ":"
+timestamp = YYYY-MM-DDTHH:MM:SSZ      (UTC, whole seconds)
+slug      = [a-z0-9][a-z0-9-]*        (the characters of an @mention)
+name      = one or more characters, on the same line
+```
+
+- **A header starts at the left margin.** A line of the same shape that is indented is part of the
+  comment above it, not the start of a new one: a nested `- [x] Done:` checkbox or a pasted log
+  line never splits a comment.
+- **The slug is the author's identity; the name is a snapshot.** The slug is the author's roster
+  slug, the same one `--as` takes. The name is the author's display name at the moment the comment
+  was written, kept for people to read. When a display name changes later, older headers keep the
+  old name under the same slug. That is history, not drift, and nothing rewrites it. The writer
+  collapses line breaks in a name to spaces, and writes the slug in place of an empty name.
+- **Two author slugs are written for authors that are not roster entries:** `operator`, named
+  `Operator`, for a comment written with `--as operator`, and `squads`, named `squads`, for an
+  entry sq writes itself (when an item is retyped, for example).
+- **Creating a role with `operator`, `squads` or a slug that starts with `op-` is refused**, with
+  exit `1` and nothing written:
+
+  ```
+  error: slug 'op-dev' is reserved for operators (the 'op-' prefix); a role needs another slug
+  ```
+
+  The check runs when a role is created, and nowhere else. A role an earlier release created
+  under one of these slugs keeps it, and the 0.16 migration neither reports nor refuses it.
+  Operator slugs are not checked against these rules: `sq operator add --slug` accepts `squads` or
+  a slug without the `op-` prefix. So a header's slug alone does not tell you whether its author
+  is sq, an operator or a role; look the slug up in the roster (`sq role list`,
+  `sq operator list`).
+
+A squad written by a release before 0.16 holds headers without the slug (`- [<timestamp>]
+<name>:`). `sq migrate up` rewrites them once; see
+[migration.md](migration.md#upgrading-to-016-the-schema-step).
+
+### A roster slug never changes
+
+The slug of a roster entry is fixed when the entry is created: a role's is its catalog key or
+its project role file's name, whatever `--name` it is given, a developer role's comes from `--tech`
+(`sq dev add --tech python` gives `python-dev`), a skill's from its catalog entry or the name
+given to `sq skill add`, and an operator's from its first name (`op-` plus the first name) or
+`sq operator add --slug`. After that no command, override or
+migration changes it, and the entry's file keeps its name. Comment headers, item `author` and
+`assignee` fields and `@mentions` all name an author by slug, so a slug that changed would orphan
+them.
+
+- **Display names are not identity.** Changing a role's or an operator's display name leaves its
+  slug, its file name and every header already written as they were.
+- **An override cannot rename.** A role override is bound to its slug by its file name, and one
+  that declares a different `slug` is refused:
+
+  ```
+  error: role override …/.overrides/roles/architect.toml: declares slug 'arch' but the filename says 'architect' — the filename is canonical; rename the file or drop the 'slug' key
+  ```
+
+- **A purged slug can be taken again.** A slug freed by `rm --purge` may be given to a new entry,
+  and creation does not look at comment history. Comments written before the purge then carry the
+  new entry's slug, and read as its comments wherever an author is matched by slug; their name
+  snapshot still shows who wrote them.
+
 ### Project-level overrides
 
 A squad may customize bundled templates, roles, and item-type vocabulary under `.overrides/`, a
@@ -550,6 +624,13 @@ renamed or retyped within a major version. The frozen surface includes:
   degraded listing emits the same frozen shape a clean one does, for the entries it could read.
   Human output keeps its `error: <message>` prose, one line per omission; `--json` emits the report
   *instead of* that prose, not alongside it
+- **Discussion entries:** every entry of a `discussion` array in `show --json` (an item's own, and
+  each sub-entity's, whether nested under `subentities` or from the sub-entity's own `show --json`)
+  and every entry of `comments --json` is `{author, author_slug, ts, body}`. `author` is the
+  display name the header recorded and `author_slug` is the author's slug (see
+  [Comment headers](#comment-headers)); match an author on `author_slug`, never on `author`.
+  `search --json` and `inbox --json` carry no `author_slug`: a search hit names the author by
+  display name in its `location` and `snippet`, and an inbox row names no author
 - **Bulk import:** `sq import --json` (with or without `--dry-run`)
 - **Commands that stay human-output-only:** `repair`, `renumber`, `docs`, `sync`, `init`,
   `sq workflow show` (the cheatsheet), `sq workflow lint` (which reports through its exit code —

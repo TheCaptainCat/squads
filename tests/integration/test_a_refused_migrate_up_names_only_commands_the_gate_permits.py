@@ -290,7 +290,7 @@ async def test_the_trailing_repairs_vocabulary_refusal_names_the_command_the_gat
 
     monkeypatch.setattr(_maintenance.MaintenanceMixin, "_pre_runner_refusal", lambda *a, **k: None)
     inert = [
-        dataclasses.replace(m, run=_nothing) if m.to_schema == "0.15" else m
+        dataclasses.replace(m, run=_nothing) if m.to_schema in ("0.15", "0.16") else m
         for m in _registry.MIGRATIONS
     ]
     monkeypatch.setattr(_maintenance, "MIGRATIONS", inert)
@@ -381,3 +381,21 @@ async def test_repair_at_the_current_schema_still_says_sq_repair(
         await svc.repair()
     with pytest.raises(SquadsError, match="before running `sq migrate up`"):
         await svc.repair(rerun="`sq migrate up`")
+
+
+async def test_a_header_name_that_resolves_to_no_entry_names_only_permitted_commands(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, invoke: Any
+) -> None:
+    root = tmp_path / "v0_15_discussions"
+    shutil.copytree(_CORPUS_DIR / "v0_15_discussions", root)
+    (role,) = root.glob("agents/roles/*-python-dev.md")
+    _edit(root, role.relative_to(root).as_posix(), "title: Elias Python", "title: Elias Renamed")
+    monkeypatch.chdir(root)
+
+    result = await invoke(["migrate", "up"])
+
+    out = " ".join(result.output.split())
+    assert result.exit_code == 1, result.output
+    assert "matches no roster entry" in out and _stamp(root) == "0.15"
+    assert _named_commands(result.output) <= _permitted()
+    assert "re-run `sq migrate up`" in out

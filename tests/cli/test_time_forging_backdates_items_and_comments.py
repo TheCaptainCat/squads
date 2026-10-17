@@ -29,7 +29,7 @@ def test_at_forges_a_comments_timestamp(runner, tmp_path, monkeypatch) -> None:
         ["--at", "2019-12-31T23:00:00Z", "task", "2", "comment", "--as", "manager", "-m", "hi"],
     )
     text = next((tmp_path / "squads" / "tasks").glob("*.md")).read_text(encoding="utf-8")
-    assert "- [2019-12-31T23:00:00Z] Catherine Manager:" in text
+    assert "- [2019-12-31T23:00:00Z] `manager` Catherine Manager:" in text
 
 
 def test_an_unparseable_at_value_is_rejected(runner, tmp_path, monkeypatch) -> None:

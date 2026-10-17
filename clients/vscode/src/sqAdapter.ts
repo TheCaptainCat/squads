@@ -440,13 +440,15 @@ export function isSqRoleCatalogEntry(value: unknown): value is SqRoleCatalogEntr
   );
 }
 
-function isSqDiscussionEntry(value: unknown): value is SqDiscussionEntry {
+/** `author_slug` is optional: an older `sq` omits it, so an absent key must not fail the guard. */
+export function isSqDiscussionEntry(value: unknown): value is SqDiscussionEntry {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
   const entry = value as Record<string, unknown>;
   return (
     typeof entry.author === 'string' &&
+    (entry.author_slug === undefined || typeof entry.author_slug === 'string') &&
     typeof entry.ts === 'string' &&
     typeof entry.body === 'string'
   );

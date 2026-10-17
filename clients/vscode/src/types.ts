@@ -170,9 +170,11 @@ export interface SqRoleCatalogEntry {
 }
 
 /** One entry of `sq show <id> --json`'s `discussion` array — a single comment: author display
- * name, ISO timestamp, and markdown body. */
+ * name, ISO timestamp, and markdown body. `author_slug` is optional because an older `sq` omits
+ * it. */
 export interface SqDiscussionEntry {
   readonly author: string;
+  readonly author_slug?: string;
   readonly ts: string;
   readonly body: string;
 }

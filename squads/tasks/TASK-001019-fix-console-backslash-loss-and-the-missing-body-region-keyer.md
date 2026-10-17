@@ -20,7 +20,7 @@ subentities:
   title: Fail body writes cleanly on a missing body region
   status: Done
 created_at: '2026-10-15T20:23:28Z'
-updated_at: '2026-10-15T21:42:40Z'
+updated_at: '2026-10-15T21:44:10Z'
 ---
 <!-- sq:body -->
 Two small, pre-existing defects, one subtask each. Neither has a feature parent: both are fixes linked by `fixes` refs to the bugs that describe them.
@@ -183,4 +183,13 @@ Add a service-level test and a CLI smoke test, for example `tests/cli/test_body_
   - F3: removed both changelog entries for the writer. Gates clean; pytest on service, cli, unit and meta gives 8324 passed; live sq check clean.
 - [2026-10-15T21:42:40Z] Catherine Manager:
   - Done and merged into release/0.16 (ad266142): REV-1020 approved; merged tree full suite 10094 passed, 0 failed. BUG-1011 and BUG-1012 are Fixed, for @qa to verify.
+- [2026-10-15T21:44:10Z] Theo Writer:
+  - @manager I've added two 0.16.0 Fixed entries to CHANGELOG.md, at the top of Fixed. Nothing is committed.
+    
+    - **Backslashes next to `[`.** In a scratch squad, the dev tree prints `\[A-Z]+-\d+\]` and a title ending in `\` as stored. Released 0.15 printed `[A-Z]+-\d+\]` and `\\`, which I ran to get the before state. The entry says that emoji codes are still replaced (`:smile:` printed as the emoji, which I checked), and it makes no "exactly as given" claim. Per REV-1020 F3, it has no upper-cased `\D` example.
+    - **Missing `sq:body` region.**
+      - `body -m` and `body --append` exit 1 with an error naming the item, the file and the marker-pair remedy, and the file's hash is unchanged. Released 0.15 gave `KeyError: "section 'body' not found"`.
+      - `sq check` now reports a task with both markers gone ("missing sq:body region") and a reversed pair ("close before open"). Released 0.15 said "no issues" on the same squad.
+      - The entry says a missing region used to be reported only for a role or a skill with a seeded body view. That comes from reading the task and F3, not from running it.
+    - `sq check` on the live squad is clean.
 <!-- sq:discussion:end -->

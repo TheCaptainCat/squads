@@ -26,6 +26,7 @@
       "discussion": [
         {
           "author": "Catherine Manager",
+          "author_slug": "manager",
           "ts": "2026-06-07T10:00:00Z",
           "body": "- Scoped to password auth only for this release."
         }

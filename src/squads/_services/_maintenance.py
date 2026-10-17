@@ -49,7 +49,7 @@ from squads._itemfile import (
     write_text,
 )
 from squads._migrations._context import MigrationContext
-from squads._migrations._registry import MIGRATIONS, release_reading_schema
+from squads._migrations._registry import MIGRATIONS, Migration, release_reading_schema
 from squads._models import _markers as markers
 from squads._models._config import CONFIG_FILENAME
 from squads._models._extras import ExtraKey as X
@@ -931,13 +931,32 @@ def _is_legacy_skill_body(md: Path, item_type: str, spec: WorkflowSpec) -> bool:
     return not md.name.startswith(skill_prefix)
 
 
+def _reader_phrase(schema: str) -> str:
+    """The release that can read a squad stamped *schema*, as the refusals name it."""
+    release = release_reading_schema(schema)
+    return f"a squads release that reads schema v{schema}" + (
+        f" (v{release} is one)" if release else ""
+    )
+
+
+def _earlier_steps_note(running: Migration | None, applied: list[Migration]) -> str:
+    """What a refusal by a step says about who can change the roster: the release the squad is
+    stamped for, and, when earlier steps ran, that they did."""
+    if running is None:
+        return ""
+    if running is applied[0]:
+        return f"Change the roster with {_reader_phrase(running.from_schema)}.\n"
+    return (
+        "Earlier steps of this run have already been applied, so running again is safe, and "
+        f"the files are now in the shape of schema v{running.from_schema}: change the roster "
+        f"with {_reader_phrase(running.from_schema)}.\n"
+    )
+
+
 def _index_full_refusal(exc: IndexFullError, schema: str) -> str:
     """The refusal for a pending runner that needs an id the index has none left to give: the
     way out is a release that can widen the padding, then this command again."""
-    release = release_reading_schema(schema)
-    reader = f"a squads release that reads schema v{schema}" + (
-        f" (v{release} is one)" if release else ""
-    )
+    reader = _reader_phrase(schema)
     return (
         f"the index is full: all {exc.capacity:,} ids at padding {exc.padding} are used up, "
         f"and a pending migration needs another. Widen the padding with {reader}, then "
@@ -1704,6 +1723,7 @@ class MaintenanceMixin(ServiceCore):
         applied = [m for m in MIGRATIONS if schema_tuple(m.to_schema) > schema_tuple(disk)]
         changed: dict[str, int] = {}
         skipped: dict[str, list[str]] = {}
+        reports: dict[str, tuple[str, ...]] = {}
         ctx = MigrationContext(paths=self.paths, spec=self.spec, playbook=self.playbook)
         reconciled: ReconcileResult | None = None
         if applied:
@@ -1723,19 +1743,25 @@ class MaintenanceMixin(ServiceCore):
             if not reconciled.had_index:
                 await self._keep_reconciled(built, reconciled, disk)
         repaired: RepairResult | None = None
+        running: Migration | None = None
         try:
             for m in applied:
+                running = m
                 outcome = await m.run(ctx)
                 changed[m.to_schema] = outcome.count
                 if outcome.skipped:
                     skipped[m.to_schema] = list(outcome.skipped)
+                if outcome.report:
+                    reports[m.to_schema] = outcome.report
+            running = None
             if applied:
                 repaired = await self.repair(rerun="`sq migrate up`")
         except IndexFullError as exc:
             raise SquadsError(_index_full_refusal(exc, disk)) from exc
         except SquadsError as exc:
             raise SquadsError(
-                f"{exc}\nThe squad is still at schema v{disk}: fix the cause, then re-run "
+                f"{exc}\n{_earlier_steps_note(running, applied)}"
+                f"The squad is still at schema v{disk}: fix the cause, then re-run "
                 "`sq migrate up`, which rebuilds the index from the files first."
             ) from exc
         if applied:
@@ -1760,6 +1786,7 @@ class MaintenanceMixin(ServiceCore):
             applied=applied,
             changed=changed,
             skipped=skipped,
+            reports=reports,
             repair=repaired,
             reconcile=reconciled,
         )
@@ -1774,10 +1801,7 @@ class MaintenanceMixin(ServiceCore):
         """Why the run must stop before its first runner, or ``None``: an item file that cannot
         be indexed, or a corpus that does not fit the vocabulary the run resolved."""
         schema = self.paths.config.schema_version
-        release = release_reading_schema(schema)
-        reader = f"a squads release that reads schema v{schema}" + (
-            f" (v{release} is one)" if release else ""
-        )
+        reader = _reader_phrase(schema)
         if result.unindexable:
             return _unindexable_refusal(result, reader)
         override = self.paths.squad_dir / WORKFLOW_OVERRIDE_FILENAME
