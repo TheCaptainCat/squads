@@ -23,13 +23,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from _helpers import dev_role
 from squads import __version__
-from squads._cli._common import dev_preview_full_name, role_base_for_show
+from squads._cli._common import role_base_for_show
 from squads._models._attributes import AttributeKey as X
 from squads._models._item import Item
 from squads._overrides._service import check_override_issues
-from squads._roles._catalog import dev_role
-from squads._roles._resolver import dev_base_for_slug, dev_base_from_item
+from squads._roles._resolver import dev_base_from_item
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -37,7 +37,7 @@ _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 def _item(slug: str, *, is_dev: bool, extra: dict[str, Any] | None = None) -> Item:
     extra = dict(extra or {})
     if is_dev:
-        extra[X.IS_DEV] = True
+        extra.setdefault(X.TECH, slug.removesuffix("-dev"))
     return Item(
         sequence_id=1,
         type="role",
@@ -86,16 +86,12 @@ def test_check_override_issues_gives_the_same_role_no_dev_base(tmp_path: Path) -
     assert issues == []  # loads cleanly through the ordinary (non-dev) path -- no crash, no report
 
 
-# ----------------------------------------------------------------- shape 2: unactivated, non-dev
+# ----------------------------------------------------------------- shape 2: no item
 
 
-def test_an_unactivated_non_dev_slug_ending_in_dev_still_falls_back_to_the_dev_preview() -> None:
-    """No item at all -- there is no stored fact to read, so the naming convention is the only
-    signal available. Not itself a new failure mode: the merge
-    still succeeds because the override supplies every field it needs (see the file-shape
-    space more broadly at tests/integration/test_a_dev_shaped_slug_with_no_roster_entry_still_
-    resolves.py)."""
-    assert role_base_for_show("data-dev", None) == dev_base_for_slug("data-dev")
+def test_a_slug_with_no_item_has_no_base_whatever_it_ends_in() -> None:
+    for slug in ("data-dev", "-dev", "dev"):
+        assert role_base_for_show(slug, None) is None
 
 
 # --------------------------------------------------------------------- shape 3: genuine dev role
@@ -106,47 +102,6 @@ def test_a_genuine_dev_role_still_gets_dev_base_from_item() -> None:
     item = _item(
         "python-dev",
         is_dev=True,
-        extra={**role.to_attributes(is_dev=True), X.TECH: "python"},
+        extra={**role.to_attributes(templated=True), X.TECH: "python"},
     )
-    assert role_base_for_show("python-dev", item) == dev_base_from_item(item)
-
-
-# --------------------------------------------------------------------- shape 4/5: is_dev_slug edges
-
-
-def test_a_slug_that_is_exactly_the_dev_suffix_does_not_crash() -> None:
-    """``"-dev"`` (an empty tech) still matches the naming convention -- ``is_dev_slug`` is a
-    bare ``str.endswith`` check -- so it must resolve to *some* base, not raise. The empty-tech
-    slug it derives (``slugify("")`` falls back to ``"untitled"``) is its own pre-existing
-    corner case, not this fix's contract; the fix's contract is only "does not crash"."""
-    base = role_base_for_show("-dev", None)
-    assert base is not None
-    assert base.full_name  # a name was produced, whatever it is -- no crash reaching it
-
-
-def test_a_slug_that_is_dev_with_no_hyphen_is_not_dev_shaped_at_all() -> None:
-    """``"dev"`` has no hyphen, so it does not end with ``"-dev"`` -- it must fall through to
-    the ordinary (``None``) base exactly like any unrelated slug, whether or not an item
-    exists."""
-    assert role_base_for_show("dev", None) is None
-    assert role_base_for_show("dev", _item("dev", is_dev=False)) is None
-
-
-# --------------------------------------------------------------------- the full-name preview guard
-
-
-def test_preview_full_name_is_blanked_only_for_an_undeclared_fabricated_name() -> None:
-    unactivated_base = dev_base_for_slug("rust-dev")
-    assert dev_preview_full_name(unactivated_base, unactivated_base, None) is None
-
-
-def test_preview_full_name_is_kept_when_the_override_declares_it() -> None:
-    unactivated_base = dev_base_for_slug("rust-dev")
-    declared = dev_role("rust", name="Priya Rust")
-    assert dev_preview_full_name(declared, unactivated_base, None) == "Priya Rust"
-
-
-def test_preview_full_name_is_never_blanked_for_an_activated_role() -> None:
-    item = _item("data-dev", is_dev=False)
-    role = dev_role("data")  # whatever `resolve_role_with_base` would have returned
-    assert dev_preview_full_name(role, None, item) == role.full_name
+    assert role_base_for_show("python-dev", item) == dev_base_from_item(item, None)

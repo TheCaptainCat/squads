@@ -97,7 +97,6 @@ async def test_a_bad_declaration_refuses_every_command_and_writes_nothing(
 #: (id, roster type, pinned key removed, kind it is pinned with)
 PINNED = [
     ("role-is-default", "role", "is_default", "bool"),
-    ("role-is-dev", "role", "is_dev", "bool"),
     ("role-model", "role", "model", "str"),
     ("role-tech", "role", "tech", "str"),
     ("skill-allowed-tools", "skill", "allowed_tools", "str"),

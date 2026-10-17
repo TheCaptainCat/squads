@@ -581,12 +581,14 @@ class TestDiffOverride:
         delta_mine = diff_override(squad_dir, "security-analyst", "role").delta_mine
         assert "(empty — role overrides start from scratch)" in delta_mine
 
-    async def test_role_override_stamped_at_a_version_with_only_a_template_edit_stays_current(
+    async def test_role_override_stamped_at_the_running_version_stays_current(
         self, project
     ) -> None:
-        """A role override stays current when only the unrelated body template changed."""
+        """A role override stamped at the running version is current."""
         squad_dir = project.squad_dir
-        _place_role(squad_dir, "architect", '# squads:override-base:0.13.0\nfull_name = "Ada"\n')
+        _place_role(
+            squad_dir, "architect", f'# squads:override-base:{__version__}\nfull_name = "Ada"\n'
+        )
         assert scan_overrides(squad_dir)[0].state == STATE_CURRENT
 
     async def test_role_drift_is_routed_through_roles_toml_not_the_body_template(

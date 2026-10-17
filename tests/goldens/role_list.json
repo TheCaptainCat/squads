@@ -5,6 +5,7 @@
     "full_name": "Catherine Manager",
     "title": "manager",
     "is_default": true,
+    "capabilities": [],
     "status": "Active"
   }
 ]

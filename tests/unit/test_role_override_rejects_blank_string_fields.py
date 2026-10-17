@@ -62,6 +62,8 @@ _BLANK_LIST_FIELDS: list[tuple[str, str]] = [
     ("responsibilities", '["Real one", "   "]'),
     ("agreements", '["Real one", ""]'),
     ("agreements", '["Real one", "   "]'),
+    ("capabilities", '["audit", ""]'),
+    ("capabilities", '["audit", "   "]'),
 ]
 
 

@@ -3,7 +3,7 @@ id: FEAT-986
 sequence_id: 986
 type: feature
 title: 'Retire the -dev pseudo-role: a developer declares a capability'
-status: Ready
+status: Done
 author: product-owner
 refs:
 - MILE-934:targets
@@ -46,7 +46,7 @@ subentities:
   title: As an adopter, I want the docs to cover capabilities and the upgrade changes
   status: Todo
 created_at: '2026-10-09T19:16:16Z'
-updated_at: '2026-10-16T13:10:45Z'
+updated_at: '2026-10-16T21:01:57Z'
 ---
 <!-- sq:body -->
 ## Why

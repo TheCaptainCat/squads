@@ -28,7 +28,9 @@ async def test_an_explicit_name_resolves_that_types_own_lane_not_the_hosts(svc) 
     view = ViewSpec(source=ViewSource(kind="playbook", name="bug"))
     roster = await svc.roster()
 
-    result = views._resolve_playbook_source(view, task, svc.playbook, lambda: roster, svc.spec)
+    result = views._resolve_playbook_source(
+        view, task, svc.playbook, lambda: roster, svc.spec, None
+    )
 
     assert result.item_type == "bug"
     assert result.lane == svc.playbook.types["bug"]
@@ -40,7 +42,9 @@ async def test_an_absent_name_resolves_the_hosts_own_type(svc) -> None:
     view = ViewSpec(source=ViewSource(kind="playbook"))
     roster = await svc.roster()
 
-    result = views._resolve_playbook_source(view, task, svc.playbook, lambda: roster, svc.spec)
+    result = views._resolve_playbook_source(
+        view, task, svc.playbook, lambda: roster, svc.spec, None
+    )
 
     assert result.item_type == "task"
     assert result.lane == svc.playbook.types["task"]
@@ -75,7 +79,7 @@ async def test_a_declared_type_with_no_lane_resolves_an_empty_lane_not_a_raise(s
 
     view = ViewSpec(source=ViewSource(kind="playbook"))
     result = views._resolve_playbook_source(
-        view, doc_item, merged_playbook, lambda: [], merged_spec
+        view, doc_item, merged_playbook, lambda: [], merged_spec, None
     )
 
     assert result.item_type == "doc"
@@ -87,7 +91,9 @@ async def test_a_skill_hosts_absent_name_resolves_the_type_its_own_slug_document
     view = ViewSpec(source=ViewSource(kind="playbook"))
     roster = await svc.roster()
 
-    result = views._resolve_playbook_source(view, skill, svc.playbook, lambda: roster, svc.spec)
+    result = views._resolve_playbook_source(
+        view, skill, svc.playbook, lambda: roster, svc.spec, None
+    )
 
     assert result.item_type == "task"
     assert result.lane == svc.playbook.types["task"]
@@ -106,7 +112,9 @@ async def test_the_gate_prevents_an_ordinary_items_slug_from_naming_a_different_
     view = ViewSpec(source=ViewSource(kind="playbook"))
     roster = await svc.roster()
 
-    result = views._resolve_playbook_source(view, task, svc.playbook, lambda: roster, svc.spec)
+    result = views._resolve_playbook_source(
+        view, task, svc.playbook, lambda: roster, svc.spec, None
+    )
 
     assert result.item_type == "task"
 
@@ -119,7 +127,7 @@ async def test_a_skill_hosts_undocumented_slug_falls_back_to_its_own_type(svc) -
     assert skill.slug == "sq-onboarding"
     view = ViewSpec(source=ViewSource(kind="playbook"))
 
-    result = views._resolve_playbook_source(view, skill, svc.playbook, lambda: [], svc.spec)
+    result = views._resolve_playbook_source(view, skill, svc.playbook, lambda: [], svc.spec, None)
 
     assert result.item_type == "skill"
     assert result.lane is None

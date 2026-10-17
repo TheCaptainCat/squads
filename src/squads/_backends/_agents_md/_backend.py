@@ -18,9 +18,11 @@ runs.
 from squads import _aio
 from squads._backends._agents_md import _managed as managed
 from squads._backends._base import AgentBackend, Artifact, BackendContext
+from squads._interactions._role_guidance import developer_roles
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
+from squads._roles._loader import load_role_catalog
 from squads._roles._projection import OperatorView, RoleView
 from squads._workflow import ROSTER_SKILL
 from squads._workflow._models import WorkflowSpec
@@ -104,6 +106,7 @@ class AgentsMdBackend(AgentBackend):
                 "full_name": r.full_name,
                 "title": r.title,
                 "slug": r.slug,
+                "capabilities": list(r.capabilities),
                 "mission": r.mission,
                 "responsibilities": list(r.responsibilities),
             }
@@ -118,6 +121,9 @@ class AgentsMdBackend(AgentBackend):
             "agents_md/agents_section.md.j2",
             squad_dir=squad_dir,
             roles=roles_data,
+            developer_slugs=[
+                r.slug for r in developer_roles(roster, load_role_catalog(ctx.squad_dir))
+            ],
             operators=[{"full_name": o.full_name, "slug": o.slug} for o in operators],
             spec=spec,
             # The ACTIVE (merged) playbook, so the included cheatsheet's authoring bullets

@@ -344,7 +344,7 @@ def _index_slugs(project) -> dict[str, tuple[str, str | None]]:
 # --------------------------------------------------------------------------- no slug option
 
 #: The only roster verbs that may declare a ``--slug`` option: the ones that create an entity.
-SLUG_OPTION_ALLOWLIST = frozenset({("operator", "add")})
+SLUG_OPTION_ALLOWLIST = frozenset({("operator", "add"), ("dev", "add")})
 ROSTER_GROUPS = ("role", "dev", "skill", "operator")
 
 

@@ -57,7 +57,7 @@ above.
 ### What runs on an out-of-date squad
 
 On a squad whose `schema_version` differs from the package's, `sq` refuses every command except
-these three, and `--help` on any command. `--help` counts only as an option of its own: not after
+those in the table below, and `--help` on any command. `--help` counts only as an option of its own: not after
 `--`, and not as the value of another option (`-m --help` is a message, and is gated like the rest
 of the command; in `-m -m --help` the message is `-m` and `--help` is help). `-h` is not a help
 option of `sq`. The gate applies however the squad is reached, from a folder inside the project or
@@ -68,8 +68,12 @@ down, or behind a symlink.
 |---------|--------------------------|----------------------------|
 | `sq migrate up` | runs | refused: upgrade the squads package |
 | `sq migrate help`, `sq migrate chlog` | run | run |
+| `sq override list`, `sq override diff`, `sq override update` | run | refused: upgrade the squads package |
 
-`help` and `chlog` let you read the steps *before* applying them. `sq migrate repad`, `sq migrate rename-type` and
+`help` and `chlog` let you read the steps *before* applying them. The three `sq override` commands read
+and re-stamp only the files under `.overrides/`, so you can compare an override with the bundled
+default and re-stamp it while the squad is still behind; `sq override scaffold` is refused like any
+other command. `sq migrate repad`, `sq migrate rename-type` and
 `sq migrate rename-status` are maintenance commands for a squad at the current schema, and are
 refused like any other command until `sq migrate up` has run. If `sq migrate up` refuses because
 your workflow override no longer declares a type or status your items still use, restore the
@@ -213,7 +217,8 @@ problems are described below with what to do about them. `sq migrate chlog v0.15
 prints the same steps.
 
 **Fix a refused run with an earlier release.** Until the migration completes, this release runs
-nothing on the squad but `sq migrate up`, `sq migrate help` and `sq migrate chlog`, so a roster
+nothing on the squad but `sq migrate up`, `sq migrate help`, `sq migrate chlog` and the three
+`sq override` commands above, so a roster
 change (adding a role or an operator back) is made with a release that reads the squad's current
 schema, then `sq migrate up` is run again with this one. The refusal names such a release:
 

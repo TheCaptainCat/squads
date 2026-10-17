@@ -14,9 +14,10 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import dev_role
 from squads._models._attributes import AttributeKey as X
 from squads._models._item import Item
-from squads._roles._catalog import PREDEFINED, dev_role
+from squads._roles._catalog import PREDEFINED
 from squads._roles._resolver import (
     dev_base_from_item,
     pinned_name_of,
@@ -48,7 +49,7 @@ def _item(slug: str, attributes: dict[str, object], title: str | None = None) ->
 
 def test_a_bundled_roles_base_is_the_catalog_entry_whatever_name_the_item_stores() -> None:
     item = _item("architect", {}, title="Ada Lovelace")
-    assert role_base_from_item(item) == _BUNDLED_ARCHITECT
+    assert role_base_from_item(item, None) == _BUNDLED_ARCHITECT
 
 
 def test_every_bundled_field_comes_from_the_current_catalog_not_the_item() -> None:
@@ -64,11 +65,11 @@ def test_every_bundled_field_comes_from_the_current_catalog_not_the_item() -> No
             "color": "magenta",
         },
     )
-    assert role_base_from_item(item) == _BUNDLED_ARCHITECT
+    assert role_base_from_item(item, None) == _BUNDLED_ARCHITECT
 
 
 def test_a_bundled_roles_is_default_designation_is_carried_from_the_item() -> None:
-    base = role_base_from_item(_item("architect", {X.IS_DEFAULT: True}))
+    base = role_base_from_item(_item("architect", {X.IS_DEFAULT: True}), None)
     assert base is not None
     assert base.is_default is True
     assert _BUNDLED_ARCHITECT.is_default is False  # sanity: the catalog itself says otherwise
@@ -144,21 +145,21 @@ def test_a_bundled_roles_stored_name_wins_over_every_layer(
 
 
 def _dev(attributes: dict[str, object], title: str) -> Item:
-    return _item("typescript-dev", {X.IS_DEV: True, X.TECH: "typescript", **attributes}, title)
+    return _item("typescript-dev", {X.TECH: "typescript", **attributes}, title)
 
 
 def test_a_developer_role_delegates_to_dev_base_from_item() -> None:
     role = dev_role("python", name="Elias Python", model="opus")
     item = _item(
         "python-dev",
-        {**role.to_attributes(is_dev=True), X.IS_DEV: True, X.TECH: "python"},
+        {**role.to_attributes(templated=True), X.TECH: "python"},
         title=role.full_name,
     )
-    assert role_base_from_item(item) == dev_base_from_item(item)
+    assert role_base_from_item(item, None) == dev_base_from_item(item, None)
 
 
 def test_a_developer_roles_name_and_model_come_from_the_item_not_the_pool() -> None:
-    base = role_base_from_item(_dev({X.MODEL: "opus"}, "Ada Typescript"))
+    base = role_base_from_item(_dev({X.MODEL: "opus"}, "Ada Typescript"), None)
     assert base is not None
     assert base.full_name == "Ada Typescript"
     assert base.model == "opus"
@@ -166,8 +167,8 @@ def test_a_developer_roles_name_and_model_come_from_the_item_not_the_pool() -> N
 
 
 def test_a_developer_roles_is_default_designation_is_carried_from_the_item() -> None:
-    assert dev_base_from_item(_dev({X.IS_DEFAULT: True}, "Ada Typescript")).is_default is True
-    assert dev_base_from_item(_dev({}, "Ada Typescript")).is_default is False
+    assert dev_base_from_item(_dev({X.IS_DEFAULT: True}, "Ada Typescript"), None).is_default is True
+    assert dev_base_from_item(_dev({}, "Ada Typescript"), None).is_default is False
 
 
 #: (id, per-slug full_name, expected): a developer role keeps its stored name whatever a
@@ -207,11 +208,11 @@ def test_a_developer_roles_stored_name_is_never_rerolled(
 
 
 def test_a_wholly_custom_role_with_no_catalog_entry_and_no_dev_shape_returns_none() -> None:
-    assert role_base_from_item(_item("compliance-officer", {}, title="Sam Security")) is None
+    assert role_base_from_item(_item("compliance-officer", {}, title="Sam Security"), None) is None
 
 
 def test_a_non_dev_role_whose_slug_merely_ends_in_dev_returns_none_not_a_crash() -> None:
-    assert role_base_from_item(_item("data-dev", {}, title="Dana Analyst")) is None
+    assert role_base_from_item(_item("data-dev", {}, title="Dana Analyst"), None) is None
 
 
 # --------------------------------------------------------------------- pinned_name_of
@@ -232,5 +233,5 @@ def test_a_non_blank_stored_name_is_pinned(title: str, expected: str | None) -> 
 
 def test_the_bundled_predefined_entry_is_never_mutated_by_building_a_base() -> None:
     original = replace(_BUNDLED_ARCHITECT)
-    role_base_from_item(_item("architect", {X.IS_DEFAULT: True}, title="Ada Lovelace"))
+    role_base_from_item(_item("architect", {X.IS_DEFAULT: True}, title="Ada Lovelace"), None)
     assert next(r for r in PREDEFINED if r.slug == "architect") == original

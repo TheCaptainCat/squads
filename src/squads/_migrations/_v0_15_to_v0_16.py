@@ -34,7 +34,7 @@ from dataclasses import dataclass, field
 from typing import Any, NamedTuple, cast
 
 from squads import _aio
-from squads._errors import SquadsError
+from squads._errors import RoleNotFoundError, SquadsError
 from squads._index._store import IndexStore
 from squads._itemfile import read_frontmatter, write_text
 from squads._migrations._context import MigrationContext
@@ -43,6 +43,8 @@ from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item, slug_from_stem
 from squads._models._participants import roster_slug_breaches
+from squads._roles._loader import load_role_catalog
+from squads._roles._resolver import resolve_role_with_base
 from squads._sections import find_markers, replace_frontmatter
 from squads._workflow._models import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, ROSTER_TYPES
 
@@ -775,6 +777,84 @@ Edit the file so the two places agree (drop the one you do not want), then run `
 again.
 """
 
+
+def _held_capabilities(
+    ctx: MigrationContext, front: dict[str, Any], developer: frozenset[str]
+) -> tuple[str, ...] | None:
+    """The capabilities the role whose flat frontmatter is *front* holds, or ``None`` when no
+    definition is left to say. A templated role holds the ``[dev]`` table's."""
+    slug = cast("str", front["slug"])
+    if front.get("tech"):
+        return tuple(developer)
+    try:
+        return resolve_role_with_base(slug, ctx.paths.squad_dir, base=None).capabilities
+    except RoleNotFoundError:
+        return None
+    except SquadsError:
+        return ()
+
+
+async def _plan_developer_capability(ctx: MigrationContext, db: SquadsDB) -> Planned:
+    """Report every role named ``-dev`` that holds no capability the ``[dev]`` table declares:
+    it is an ordinary role from now on. Nothing is written; the developer marker leaves through
+    the retired role keys and the rebuild after the runners.
+
+    A role file is read as the flatten step will leave it, since this plans before that writer.
+    """
+    live = ctx.spec.live_statuses(ROSTER_ROLE)
+    developer = frozenset(load_role_catalog(ctx.paths.squad_dir).dev.capabilities)
+    default_kind = ctx.spec.default_ref_kind()
+    reported: list[str] = []
+    for it in sorted(db.items.values(), key=lambda i: i.sequence_id):
+        if it.type != ROSTER_ROLE:
+            continue
+        text = (await _aio.read_bytes(ctx.paths.abspath(it.path))).decode("utf-8")
+        data = read_frontmatter(text=text, source=it.path)
+        flat = flatten_frontmatter(
+            data, file_slug=_file_slug(ctx, it), default_kind=default_kind, source=it.path
+        )
+        front = flat.data
+        slug = front.get("slug")
+        if flat.problems or not isinstance(slug, str) or not slug.endswith("-dev"):
+            continue
+        held = _held_capabilities(ctx, front, developer)
+        if held is not None and developer.intersection(held):
+            continue
+        notes = [] if it.status in live else ["retired"]
+        if held is None:
+            notes.append("no role file left")
+        reported.append(f"  {slug}" + (f" ({', '.join(notes)})" if notes else ""))
+    if not reported:
+        return Planned()
+    return Planned(
+        report=(
+            f"{len(reported)} role(s) named -dev hold no developer capability and are now "
+            "ordinary roles; declare the capability in the role file and run `sq sync` to "
+            "restore the developer guidance:",
+            *reported,
+        )
+    )
+
+
+_DEVELOPER_MANUAL = """\
+### A developer is a role that declares a capability
+
+A developer is now a role whose role file declares a capability the `[dev]` table of the role
+catalog also declares (the bundled catalog declares `dev`). The stored `is_dev` marker is gone.
+`sq migrate up` removes it from developer items and changes nothing else in them: the name,
+`tech` and `model` stay as they were.
+
+- A role the run reports keeps working as an ordinary role. It regains the developer guidance
+  when its role file declares the capability and `sq sync` runs; there is no automatic fix.
+- An override file written for a developer that was not added yet is now reported by `sq check`;
+  the ways out are `sq dev add` or removing the file.
+- An existing developer picks up a project `[dev]` colour on the next `sq sync` and keeps the
+  model and the name it was created with.
+- A stamped catalog, playbook, workflow or per-slug role override reports "may be stale" because
+  the bundled documents changed: run `sq override diff`, then `sq override update`.
+"""
+
+
 CONTRIBUTIONS: tuple[Contribution, ...] = (
     Contribution(
         name="comment-headers",
@@ -787,6 +867,15 @@ CONTRIBUTIONS: tuple[Contribution, ...] = (
         plan=_plan_flat_frontmatter,
         manual=_FLAT_MANUAL,
         summary=("Item frontmatter is flat: the extra block is lifted to top-level keys."),
+    ),
+    Contribution(
+        name="developer-capability",
+        plan=_plan_developer_capability,
+        manual=_DEVELOPER_MANUAL,
+        summary=(
+            "The developer marker is dropped from role items, and roles named -dev that "
+            "declare no capability are reported."
+        ),
     ),
 )
 

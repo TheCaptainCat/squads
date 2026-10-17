@@ -32,7 +32,6 @@ class AttributeKey:
     MODEL = "model"
     IS_DEFAULT = "is_default"
     # developers
-    IS_DEV = "is_dev"
     TECH = "tech"
     # skills
     WHEN_TO_USE = "when_to_use"
@@ -97,8 +96,9 @@ def list_attribute(item: Item, key: str) -> list[str] | None:
     return None
 
 
-def is_dev(item: Item) -> bool:
-    return flag_attribute(item, AttributeKey.IS_DEV) is True
+def is_templated(item: Item) -> bool:
+    """Whether *item* is a templated role: one created from a technology (``sq dev add``)."""
+    return tech(item) is not None
 
 
 def is_default(item: Item) -> bool | None:

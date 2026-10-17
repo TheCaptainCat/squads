@@ -98,19 +98,19 @@ async def test_a_live_dev_roles_json_show_carries_the_full_fields(project, svc, 
     assert data["title"] == "Python developer"
 
 
-async def test_a_dev_toml_for_a_tech_with_no_roster_entry_still_resolves(
+async def test_a_dev_toml_for_a_tech_with_no_roster_entry_is_reported_as_a_new_role(
     project, svc, invoke
 ) -> None:
-    """No ``sq dev add`` has run for this tech -- ``dev_base_for_slug`` supplies the generated
-    pool-name base instead of an item's stored identity, and the file is still reachable and
-    still refusable on this surface (the same shape ``sq role <slug> show`` already handles for
-    a never-activated bundled role)."""
+    """No ``sq dev add`` has run for this tech, so the file is a role definition of its own and
+    must carry every required field; ``sq check`` says so and the card refuses."""
     _place_dev_toml(project.squad_dir, "rust-dev", 'title = "Rust wrangler"\n')
 
-    result = await invoke(["role", "rust-dev", "show"])
+    checked = await invoke(["check"])
+    shown = await invoke(["role", "rust-dev", "show"])
 
-    assert result.exit_code == 0, result.output
-    assert "Rust wrangler" in result.output
+    assert checked.exit_code != 0, checked.output
+    assert "missing required fields" in " ".join(checked.output.split())
+    assert shown.exit_code == 1, shown.output
 
 
 async def test_declaring_full_name_renames_nothing_via_the_sync_cli_command(

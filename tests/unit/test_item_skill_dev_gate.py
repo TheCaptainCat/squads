@@ -1,5 +1,5 @@
 """The generated sq-<type> skill body's ``*dev`` role-guide sentinel: present only when a
-``*-dev`` role is in the roster (rendered as "## For developers"), absent — not crashing —
+``*-dev`` role is in the roster (rendered under a "## For `*dev`:" heading), absent — not crashing —
 otherwise, and byte-identical (modulo the golden's own trailing newline — see below) to a
 pinned golden on the pinned, has-dev roster.
 
@@ -14,7 +14,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from squads._interactions import PLAYBOOK, get_playbook_spec
-from squads._interactions._role_guidance import is_dev_slug
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._roles._projection import RoleView
@@ -44,11 +43,15 @@ _ROSTER_WITH_DEV: list[RoleView] = [
         slug="tech-writer", full_name="Theo Writer", title="technical writer", is_default=False
     ),
     RoleView(
-        slug="python-dev", full_name="Elias Python", title="Python developer", is_default=False
+        slug="python-dev",
+        full_name="Elias Python",
+        title="Python developer",
+        is_default=False,
+        capabilities=("dev",),
     ),
 ]
 
-_ROSTER_NO_DEV: list[RoleView] = [r for r in _ROSTER_WITH_DEV if not is_dev_slug(r.slug)]
+_ROSTER_NO_DEV: list[RoleView] = [r for r in _ROSTER_WITH_DEV if not r.capabilities]
 
 
 def _probe_skill_item(item_type: str) -> Item:
@@ -87,7 +90,7 @@ def _render_item_skill(item_type: str, roster: list[RoleView]) -> str:
 def test_dev_section_renders_for_the_three_types_with_a_dev_guide_when_a_dev_is_in_roster() -> None:
     for item_type in PLAYBOOK:
         body = _render_item_skill(item_type, _ROSTER_WITH_DEV)
-        has_section = "## For developers" in body
+        has_section = "## For `*dev`: " in body
         assert has_section == (item_type in _DEV_GUIDE_TYPES), (
             f"{item_type}: dev-section presence {has_section} unexpected"
         )
@@ -96,7 +99,7 @@ def test_dev_section_renders_for_the_three_types_with_a_dev_guide_when_a_dev_is_
 def test_dev_section_is_absent_without_crashing_when_no_dev_is_in_roster() -> None:
     for item_type in _DEV_GUIDE_TYPES:
         body = _render_item_skill(item_type, _ROSTER_NO_DEV)
-        assert "## For developers" not in body
+        assert "## For `*dev`: " not in body
 
 
 def test_rendered_skill_body_is_byte_identical_to_the_pinned_golden_on_the_dev_roster() -> None:

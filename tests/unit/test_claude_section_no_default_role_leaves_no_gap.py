@@ -16,6 +16,7 @@ def _render(default_role_full_name: str | None) -> str:
         "claude/claude_section.md.j2",
         squad_dir="squads",
         roles=_ROLES,
+        delegate_examples=[],
         operators=[],
         default_role_full_name=default_role_full_name,
         default_role_slug="a" if default_role_full_name else None,

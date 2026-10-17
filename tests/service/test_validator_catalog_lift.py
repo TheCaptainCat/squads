@@ -10,6 +10,7 @@ import pytest
 
 from _helpers import create_item
 from _selection_table import service_with
+from squads import _clock as clock
 from squads._interactions import TITLE_ADVISORY_MAX
 from squads._services._validators import (
     CATALOG,
@@ -122,6 +123,7 @@ async def test_ref_kind_valid_flags_an_unknown_kind(svc):
 
 async def test_agent_registered_flags_a_deregistered_author(svc):
     task = (await svc.create("task", "t", author="manager")).item
+    await svc.activate_role("architect")  # the last live role cannot be removed
     await svc.remove_item((await svc.get("ROLE-000001")).id, purge=True)
     db = await svc.store.load()
     ctx = ValidatorContext(
@@ -309,7 +311,7 @@ async def test_supersedes_incoming_is_silent_once_superseded(svc):
 async def test_index_reconciled_flags_an_item_with_no_markdown_file(svc):
     task = (await create_item(svc, "task", "t")).item
     db = await svc.store.load()  # on_disk stays {} — no on-disk entry for this item's sequence
-    ctx = SquadGlobalContext(index=db, on_disk={}, spec=svc.spec, paths=svc.paths)
+    ctx = SquadGlobalContext(now=clock.now(), index=db, on_disk={}, spec=svc.spec, paths=svc.paths)
     issues = SQUAD_GLOBAL_CATALOG["index_reconciled"](ctx)
     assert any(i.item == task.id and "no markdown file found" in i.message for i in issues)
 
@@ -319,7 +321,9 @@ async def test_index_reconciled_flags_a_file_absent_from_the_index(svc):
     db = await svc.store.load()
     on_disk = {task.sequence_id: (task.id, Path("unused"), {})}
     del db.items[task.sequence_id]  # present on disk, absent from the (in-memory) index
-    ctx = SquadGlobalContext(index=db, on_disk=on_disk, spec=svc.spec, paths=svc.paths)
+    ctx = SquadGlobalContext(
+        now=clock.now(), index=db, on_disk=on_disk, spec=svc.spec, paths=svc.paths
+    )
     issues = SQUAD_GLOBAL_CATALOG["index_reconciled"](ctx)
     assert any(i.item == task.id and "on disk but not in index" in i.message for i in issues)
 
@@ -327,7 +331,7 @@ async def test_index_reconciled_flags_a_file_absent_from_the_index(svc):
 async def test_backend_reconciled_flags_a_missing_managed_file(svc):
     (svc.paths.root / "CLAUDE.md").unlink(missing_ok=True)
     db = await svc.store.load()
-    ctx = SquadGlobalContext(index=db, on_disk={}, spec=svc.spec, paths=svc.paths)
+    ctx = SquadGlobalContext(now=clock.now(), index=db, on_disk={}, spec=svc.spec, paths=svc.paths)
     issues = SQUAD_GLOBAL_CATALOG["backend_reconciled"](ctx)
     assert any("managed file missing" in i.message for i in issues)
 
@@ -335,7 +339,7 @@ async def test_backend_reconciled_flags_a_missing_managed_file(svc):
 async def test_backend_reconciled_is_silent_after_sync(svc):
     await svc.sync()
     db = await svc.store.load()
-    ctx = SquadGlobalContext(index=db, on_disk={}, spec=svc.spec, paths=svc.paths)
+    ctx = SquadGlobalContext(now=clock.now(), index=db, on_disk={}, spec=svc.spec, paths=svc.paths)
     assert SQUAD_GLOBAL_CATALOG["backend_reconciled"](ctx) == []
 
 

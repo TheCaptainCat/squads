@@ -249,11 +249,6 @@
         "required": false,
         "settable": false
       },
-      "is_dev": {
-        "kind": "bool",
-        "required": false,
-        "settable": false
-      },
       "model": {
         "kind": "str",
         "required": false,

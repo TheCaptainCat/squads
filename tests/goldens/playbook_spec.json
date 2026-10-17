@@ -98,7 +98,7 @@
             "use `sq feature <n> story <k> comment` for story-scoped questions (see the `squads` skill's comment-scoping convention)"
           ],
           "handoff": [
-            "when tasks are created, assigned, and sequenced, `@<tech>-dev` (or spawn the developer) to begin implementation"
+            "when tasks are created, assigned, and sequenced, `@<developer>` (or spawn the developer) to begin implementation"
           ],
           "watch": [
             "if a story is ambiguous, ask the product-owner (`@product-owner`) first"
@@ -144,7 +144,7 @@
             "set `--priority`/`--assignee`; sequence with `ref add … --kind blocks`"
           ],
           "handoff": [
-            "once the task is fully defined, assign the developer (`sq task <n> update --assignee <tech>-dev`) — spawn or `@<tech>-dev` to start implementation"
+            "once the task is fully defined, assign the developer (`sq task <n> update --assignee <developer>`) — spawn or `@<developer>` to start implementation"
           ],
           "watch": [
             "a task's parent must be a feature; link bugs/reviews via refs, never as parent"
@@ -183,7 +183,7 @@
             "log findings with `--severity`; drive Requested → InReview → verdict"
           ],
           "handoff": [
-            "on ChangesRequested, `@<tech>-dev` with the findings",
+            "on ChangesRequested, `@<developer>` with the findings",
             "on Approved, comment the verdict so the task can close"
           ],
           "watch": [
@@ -201,7 +201,7 @@
           ],
           "handoff": [
             "on pass, comment confirmation so the task can reach Done",
-            "on fail, file a bug (`sq create bug …`) and `@<tech>-dev`"
+            "on fail, file a bug (`sq create bug …`) and `@<developer>`"
           ],
           "watch": [
             "verify against acceptance criteria, not just that it runs"
@@ -261,7 +261,7 @@
             "triage and prioritise; create the fix task and assign a developer"
           ],
           "handoff": [
-            "once the fix task is created and assigned, `@<tech>-dev` to start the fix"
+            "once the fix task is created and assigned, `@<developer>` to start the fix"
           ],
           "watch": [],
           "authors": false
@@ -457,7 +457,7 @@
             "use `sq review <n> finding <k> comment` for finding-scoped notes (rationale, verification notes, 'agreed — closing this one') — cross-cutting notes and the final verdict go on the review (see the `squads` skill's comment-scoping convention)"
           ],
           "handoff": [
-            "on ChangesRequested, `@<tech>-dev` with the findings",
+            "on ChangesRequested, `@<developer>` with the findings",
             "on Approved, comment the verdict"
           ],
           "watch": [

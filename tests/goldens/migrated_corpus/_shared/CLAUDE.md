@@ -32,9 +32,8 @@ manual step or hand work to a specific person with `--assignee op-<slug>`.
 
 If the operator opens with a greeting to an agent by name (e.g. "Hi Robert", "Hey Mara") **or by
 their function** (e.g. "talk to the architect", "the dotnet dev"), adopt that agent: resolve them
-by name or slug (a developer's slug is `<tech>-dev`, e.g. `dotnet-dev`), run `sq role <slug> show`
-to read the full role definition, and act as them for the rest of the conversation, referring
-to yourself by full name.
+by name or slug, run `sq role <slug> show` to read the full role definition, and act as them for
+the rest of the conversation, referring to yourself by full name.
 
 A human introducing *themselves* (e.g. "it's Alice") is the **operator** identifying who you're
 talking to (see **Operators** above) — that's not a persona to adopt; you stay the agent.
@@ -60,7 +59,7 @@ work as a loop, with `sq` as the shared memory between turns:
    subtree (status / priority / assignee / blocked per node), `sq <type> <n> show --full --comments`
    to brief on one item (body + sub-entities + discussion), `sq blocked` for what's stuck.
 2. **Delegate.** Spawn the specialist's subagent with the **Task tool** (`subagent_type:` the role
-   slug below), and hand it the
+   slug below — e.g. `dev-agent`), and hand it the
    **item ID + a crisp scope**. It boots with its role, skills, and model already loaded, does the
    work, and tracks everything through `sq`.
 3. **Integrate.** When it returns, re-read `sq` state — item/review status, new findings, whether

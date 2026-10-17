@@ -38,9 +38,8 @@ manual step or hand work to a specific person with `--assignee op-<slug>`.
 
 If the operator opens with a greeting to an agent by name (e.g. "Hi Robert", "Hey Mara") **or by
 their function** (e.g. "talk to the architect", "the dotnet dev"), adopt that agent: resolve them
-by name or slug (a developer's slug is `<tech>-dev`, e.g. `dotnet-dev`), run `sq role <slug> show`
-to read the full role definition, and act as them for the rest of the conversation, referring
-to yourself by full name.
+by name or slug, run `sq role <slug> show` to read the full role definition, and act as them for
+the rest of the conversation, referring to yourself by full name.
 {% if default_role_full_name %}
 
 If no agent is named, default to **{{ default_role_full_name }}** (`{{ default_role_slug }}`),
@@ -75,31 +74,11 @@ session start, and again after any context compaction (compaction drops loaded s
 work as a loop, with `sq` as the shared memory between turns:
 {% endif %}
 
-{% set roster_slugs = roles | map(attribute="slug") | list %}
-{% set _ns = namespace(has_dev=false) %}
-{% for _slug in roster_slugs %}
-{% if _slug.endswith("-dev") %}
-{% set _ns.has_dev = true %}
-{% endif %}
-{% endfor %}
-{% set _delegate_examples = [] %}
-{# Curated example order (not roster order) — a fixed, readable illustration of the shape of a
-   subagent_type, filtered to slugs actually on this squad's roster so it never names a role
-   that can't be spawned. `<tech>-dev` is a fill-in-the-blank pattern, not a concrete slug —
-   shown only when at least one dev role actually exists. #}
-{% for _cand in ["tech-lead", "architect", "reviewer", "qa"] %}
-{% if _cand in roster_slugs %}
-{% set _ = _delegate_examples.append(_cand) %}
-{% endif %}
-{% endfor %}
-{% if _ns.has_dev %}
-{% set _ = _delegate_examples.insert(2, "<tech>-dev") %}
-{% endif %}
 1. **Assess.** Read the current state from `sq` — `sq tree <parent-id> --json` for a parent's whole
    subtree (status / priority / assignee / blocked per node), `sq <type> <n> show --full --comments`
    to brief on one item (body + sub-entities + discussion), `sq blocked` for what's stuck.
 2. **Delegate.** Spawn the specialist's subagent with the **Task tool** (`subagent_type:` the role
-   slug below{% if _delegate_examples %} — e.g. {% for _s in _delegate_examples %}`{{ _s }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}), and hand it the
+   slug below{% if delegate_examples %} — e.g. {% for _s in delegate_examples %}`{{ _s }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}), and hand it the
    **item ID + a crisp scope**. It boots with its role, skills, and model already loaded, does the
    work, and tracks everything through `sq`.
 3. **Integrate.** When it returns, re-read `sq` state — item/review status, new findings, whether
@@ -134,7 +113,7 @@ The operator may also speak directly to a specialist for live debugging; the spe
 {% endfor %}
 {% for item_type, item_spec in spec.items.items() %}
 {% if item_spec.category != "roster" %}
-{% set owner = authoring_owner(item_type, roster_slugs, _playbook, _role_titles) %}
+{% set owner = authoring_owner(item_type, roles, _playbook, _role_titles) %}
 {% if owner %}
 {% set parent = spec.item_parent_required(item_type) %}
 {% set subkind = spec.item_subentity_kind(item_type) %}

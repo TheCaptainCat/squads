@@ -48,7 +48,7 @@ sq feature <n> stories
 - use `sq feature <n> story <k> comment` for story-scoped questions (see the `squads` skill's comment-scoping convention)
 
 **Hand off:**
-- when tasks are created, assigned, and sequenced, `@<tech>-dev` (or spawn the developer) to begin implementation
+- when tasks are created, assigned, and sequenced, `@<developer>` (or spawn the developer) to begin implementation
 
 **Watch for:**
 - if a story is ambiguous, ask the product-owner (`@product-owner`) first

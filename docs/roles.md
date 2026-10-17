@@ -280,6 +280,11 @@ to choose from:
 error: cannot remove ROLE-5 without --purge: the markdown file would stay on disk and `sq check` would flag it. To delete it for good, run `sq role ROLE-5 rm --purge`; to retire it and keep it on record, run `sq role ROLE-5 status Archived`.
 ```
 
+A removal is held to the same structural checks as retiring the entry, so `rm --purge` is refused
+wherever `status Archived` is (the last live role, or a skill the roles or item types still rely on),
+and it prints the same warnings (open assigned work, a lost default-role designation). Removing an
+entry that is already archived is not checked again. Each removal is recorded in the reflog.
+
 The retire route is named only while the entry is live. Items the entry authored or is assigned keep
 its slug, and `sq check` then reports them as naming an unregistered author or assignee. A slug freed
 this way can be given to a new entry; see

@@ -3,7 +3,7 @@ id: FEAT-1024
 sequence_id: 1024
 type: feature
 title: The --help surface follows one rule
-status: Draft
+status: Ready
 author: product-owner
 priority: medium
 refs:
@@ -44,10 +44,16 @@ subentities:
   title: As an adopter, I want the docs and changelog to match the new help
   status: Todo
 created_at: '2026-10-15T21:43:01Z'
-updated_at: '2026-10-16T11:25:55Z'
+updated_at: '2026-10-16T19:50:32Z'
 ---
 <!-- sq:body -->
-Brings the rendered `--help` surface into line with the rule on what a command's help holds, so that a person with the tool and no repository finds what they typed `--help` to learn. The rule, the eleven findings and their measurements are the review's; the stories below cite the rule (R1 to R9) and the findings (F1 to F11) and add acceptance only.
+## Problem
+
+A person with the tool and no repository types `--help` to learn what a command does, what to type and what comes back. Today the help screens answer with maintainer reasoning and private names, 13 field references that belong in the docs, 186 undescribed options and arguments, three exit-code forms, mixed markup and lines that break at 80 columns.
+
+## Capability
+
+Brings the rendered `--help` surface into line with the rule on what a command's help holds. The rule, the eleven findings and their measurements are the review's; the stories below cite the rule (R1 to R9) and the findings (F1 to F11) and add acceptance only.
 
 ## Scope
 
@@ -69,13 +75,15 @@ Brings the rendered `--help` surface into line with the rule on what a command's
 - A verdict on the designs whose rationale leaves the help body (`check`'s degradation, `role catalog`'s default column). Only where the prose lives is in scope.
 - The structural refactors and the comment pass of the structural review. Text moved out of help into comments and helper docstrings follows the project comment rule: one or two sentences, no release versions, no ticket ids, no history.
 
+## Rulings that bind this feature
+
+- ADR-1025 (accepted): listing a field in `docs/stability.md` records the existing freeze and widens nothing; no new tier; each key is marked vocabulary, open set or display (US3).
+- Architect, on this item's discussion: exit 4 is stated in one line on each of the five partial-result commands (US6); the guard checks an over-10-line body against an immutable allowlist and walks a test-local override (US9).
+- Help stays on Rich console markup (op-pierre, 2026-10-09).
+
 ## Sequencing
 
 Help text touches `_cli/` broadly, so this is built after FEAT-980, after the 0.16.0 bump and after TASK-989, so it does not collide with the CLI changes in flight. The milestone's build order places it as step 7: the writer's strings first, then one developer task that places them and adds the guard. The review sizes the writer's pass at about a day and a half on the stronger model and the placement at about two days. A docs change precedes or accompanies the trim wherever a help body is the only home of a contract (US3, US6).
-
-## Open questions for the architect
-
-Raised in US3, US6 and US9, and answered there by the architect (ruled in ADR-1025 for US3); each story records the question and its answer.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -121,15 +129,14 @@ Acceptance (F1, R3):
 ### US3 — As a script author, I want the JSON field reference in the docs, not in help
 
 <!-- sq:story:US3:body -->
-Acceptance (F3, R5, R6):
+Acceptance (F3, R5, R6; ADR-1025):
 - The 13 listed bodies keep the one-line --json description naming the top-level shape, any don't-misuse sentence (graph: branch on edge_semantic, never edge_kind; tree: anchor true is an invented root for a parent cycle; search: region says where the hit was found) and the pointer 'Fields: sq docs stability'.
 - Nine bodies shrink with no docs change, the docs already carrying their fields.
 - For search, tree, graph and workflow ref-kinds, the field reference lands in docs/stability.md in the same change that removes it from help. The stability sentence naming help as their authority is withdrawn, not reworded to another authority.
-- The docs list each key and mark its value as vocabulary, open set or display, per ADR-1025. Listing a field records the existing freeze and widens nothing; no new tier. edge_semantic, search region and ref-kind role are open sets. The graph --json field list includes badges, which its help omits.
+- The docs enumerate each key from the live payload, not from help, and mark its value as vocabulary, open set or display. Listing a field records the existing freeze and widens nothing; no new tier. edge_semantic, search region and ref-kind role are open sets; the open-set mark on ref-kind role is added in docs/workflow.md too. The graph --json field list includes badges, which its help omits.
+- A related graph edge's edge_semantic is "default" in the live payload, and neither the trimmed help nor the docs say null.
 - The ref-kinds catalog row in docs/stability.md is added.
 - graph is about 8 body lines and search about 6.
-
-Question for the architect: writing these fields into the stability document may extend the frozen --json contract from the named commands to every field. Answered in ADR-1025 (awaiting the operator's acceptance, which the docs pass waits for).
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -189,8 +196,6 @@ Acceptance (F5, R7):
 - inbox, search, board list and memory list/search each carry exactly: 'Exit codes: 4 partial result; what could be read is printed. See sq docs faq.' The mechanics (stderr line per skipped file, JSON line, unchanged payload) live in the docs only. No contract change.
 - sq import keeps, in two lines, that exit 3 means the work is applied: do not retry, read applied from --json.
 - docs/faq.md's row for code 3 names sq import before import's paragraph shrinks.
-
-Question for the architect: whether the exit-4 partial-result contract is stated in help at all, given docs/faq.md and docs/stability.md state it once for all five. Answered: one line, text above.
 <!-- sq:story:US6:body:end -->
 
 #### Discussion
@@ -246,20 +251,18 @@ Acceptance (F9, F10, R1, R4):
 
 <!-- sq:story:US9:body -->
 Acceptance (F11):
-- A tests/meta module walks the live Click tree in-process, covering per-type and per-kind commands, and makes seven assertions for every canonical command:
+- A tests/meta module walks the live Click tree in-process under the bundled spec in a tmp squad, covering per-type and per-kind commands, and makes seven assertions for every canonical command:
   1. non-empty option and argument descriptions;
   2. one-line summary of 72 characters or fewer;
   3. no doubled backtick, role or '::' line ending;
   4. no bracket tag;
   5. no body line over 78 columns;
   6. no truncation ellipsis at 80 columns;
-  7. a body over 10 source lines appears in an immutable allowlist of (command path, reason) pairs; an allowlist entry that no longer matches a body over 10 lines fails the test as stale.
-- The line-count rule in assertion 7 is the one stated in the CONTRIBUTING section of US1, and the two agree on what counts as a source line.
-- A second walk runs over a test-local override declaring an awkward custom type, sub-entity kind and ref kind, never the repo's own override, and makes the same assertions.
-- Each assertion is enabled with the story that fixes its finding, not before.
+  7. a body over 10 source lines appears in an immutable module-constant tuple of (command path, one-line reason) pairs; an entry that no longer matches a body over 10 lines fails the test as stale. The reason names what a reader would type or read differently; 'the contract has nowhere else to live' is not one.
+- A body's source lines are counted after the summary paragraph and before any form feed, blank lines not counted. The CONTRIBUTING section of US1 states the same count.
+- A second, smaller walk runs over a test-local override declaring one custom type with a sub-entity kind and a ref kind (a vowel-initial name, an irregular plural, a realistic label length), never the repo's own override. It walks the type's group and kind verbs, its create command and the root listing, and makes the same assertions on every string squads writes. It does not bound the adopter's own declared strings.
+- Each assertion is enabled with the story that fixes its finding, not before; assertion 7 is enabled after US2, US3 and US8, seeded with what remains.
 - The guard runs in the default suite in a few seconds and adds no module-level mutable state.
-
-Question for the architect: how the guard encodes an accepted exception to the 10-source-line tripwire, and how it treats project-declared types. Answered: the immutable allowlist and the second walk above.
 <!-- sq:story:US9:body:end -->
 
 #### Discussion
@@ -302,4 +305,6 @@ Acceptance:
     - Needs the operator: accept ADR-1025 before the US3 docs pass. It marks edge_semantic, search region and ref-kind role as open sets, which docs/workflow.md's four-value role list comes closest to reading as closed.
 - [2026-10-16T11:25:55Z] Catherine Manager:
   - For US3: sq graph --help says a related edge has edge_semantic null; the live payload gives "default". docs/stability.md now follows the payload (found during the docs audit, REV-1047).
+- [2026-10-16T19:50:29Z] Nina Product:
+  - 2026-10-16 readiness pass: added problem and a rulings section; folded the architect answers into US3, US6 and US9 (seven guard assertions with the immutable allowlist, second walk over a test-local override); ADR-1025 is Accepted so US3 no longer waits on it; US3 notes edge_semantic is 'default' in the live payload. No open question. Moved to Ready.
 <!-- sq:discussion:end -->

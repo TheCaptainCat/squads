@@ -55,6 +55,18 @@ corpus/
              Archived` and `sq operator op-pierre status Archived` after they commented. The reference
              output the released tool gave for `sq search` and `sq inbox` on it is under
              `tests/fixtures/corpus_references/v0_15_discussions/`.
+  v0_15_developers/ — schema 0.15, written end to end by the released 0.15.0 tool (never hand-edited,
+             apart from the role files it was given as input), clock pinned to `2025-05-20T11:00:00Z`
+             plus one minute per command. Holds the role shapes the other fixtures lack: a developer
+             added with `--model opus` (`python-dev`), one with a per-slug role override (`go-dev`),
+             a retired developer (`rust-dev`), a project role whose slug ends in `-dev` created from
+             a role file (`legacy-dev`), the same retired (`old-dev`) and a project role with another
+             slug (`builder`). Built with: `sq init --squad-dir . --backend none --roles minimal
+             --default-names`; `sq dev add --tech python --model opus`, `--tech go`, `--tech rust`;
+             `sq override scaffold --new legacy-dev|old-dev|builder` with each file's name, title,
+             description and mission filled in; `sq override scaffold --role go-dev` plus a `color`
+             line; `sq role activate legacy-dev|old-dev|builder`; `sq role rust-dev|old-dev status
+             Archived`; the lock file left out.
   v0_16/   — schema 0.16: the real 0.15→0.16 `sq migrate up` against a scratch copy of the frozen
              `v0_15` fixture, clock pinned to `2025-05-20T11:00:00Z`, committed as written minus the
              reflog. Regenerate it whenever a contribution is added to the 0.16 migration step.

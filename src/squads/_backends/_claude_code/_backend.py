@@ -18,10 +18,12 @@ from squads._backends._claude_code._frontmatter import (
     normalize_model,
     oneline,
 )
+from squads._interactions._role_guidance import delegate_example_slugs, developer_roles
 from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
+from squads._roles._loader import load_role_catalog
 from squads._roles._projection import OperatorView, RoleView
 from squads._views import place_view_tags
 from squads._workflow import ROSTER_SKILL
@@ -121,7 +123,20 @@ class ClaudeCodeBackend(AgentBackend):
         section = render(
             "claude/claude_section.md.j2",
             squad_dir=squad_dir,
-            roles=[{"full_name": r.full_name, "title": r.title, "slug": r.slug} for r in roster],
+            roles=[
+                {
+                    "full_name": r.full_name,
+                    "title": r.title,
+                    "slug": r.slug,
+                    "capabilities": list(r.capabilities),
+                }
+                for r in roster
+            ],
+            delegate_examples=delegate_example_slugs(
+                roster,
+                default.slug if default else None,
+                [r.slug for r in developer_roles(roster, load_role_catalog(ctx.squad_dir))],
+            ),
             operators=[{"full_name": o.full_name, "slug": o.slug} for o in operators],
             # No live role carrying `is_default` is a legitimate state, not a gap to paper over
             # with a fabricated slug: the template omits the default-role line and the
@@ -337,7 +352,7 @@ class ClaudeCodeBackend(AgentBackend):
             model=model,
             color=role.color,
             startup_commands=_startup_commands(role.slug),
-            skills=ctx.resolved_skills_for(role.slug),
+            skills=ctx.resolved_skills_for(role),
             can_spawn=role.can_spawn,
         )
 

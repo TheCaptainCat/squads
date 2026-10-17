@@ -17,6 +17,7 @@ _CUSTOM = (
     'mission = "Guard the gate."\n'
     'responsibilities = ["Watch", "Ward"]\n'
     'full_name = "Gwen Guardian"\n'
+    'capabilities = ["guard"]\n'
 )
 
 
@@ -46,6 +47,7 @@ async def test_a_bundled_role_projects_its_catalog_entry(svc):
             "Author cross-cutting guides",
             "Review designs before implementation",
         ),
+        "capabilities": (),
     }
 
 
@@ -79,6 +81,7 @@ async def test_a_templated_developer_projects_the_generated_definition(svc):
             "Write tests for changes",
             "Follow the relevant guides; ask the architect when unsure",
         ),
+        "capabilities": ("dev",),
     }
 
 
@@ -92,6 +95,7 @@ async def test_a_project_role_declared_by_a_role_file_projects_that_file(project
         "is_default": False,
         "mission": "Guard the gate.",
         "responsibilities": ("Watch", "Ward"),
+        "capabilities": ("guard",),
     }
 
 
@@ -106,6 +110,7 @@ async def test_a_role_whose_backing_definition_is_gone_projects_what_the_item_st
         "is_default": False,
         "mission": "Guard the gate.",
         "responsibilities": (),
+        "capabilities": (),
     }
 
 

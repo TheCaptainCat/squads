@@ -59,9 +59,10 @@ async def test_active_role_sections_reflect_only_actually_active_roles(svc, proj
 
 async def test_actor_guidance_is_structured_not_free_prose(svc, project):
     await svc.add_dev("python")
+    await svc.activate_role("reviewer")
     await svc.refresh_managed()
     task = await _item_skill_body(svc, "task")
-    assert "## For developers" in task
+    assert "## For `*dev`:" in task
     for label in ("**Enter**", "**Do:**", "**Hand off:**", "**Watch for:**"):
         assert label in task
     assert "acceptance criteria" in task
@@ -70,10 +71,10 @@ async def test_actor_guidance_is_structured_not_free_prose(svc, project):
 
 
 async def test_the_dev_section_is_gated_on_an_active_dev_role(svc, project):
-    assert "## For developers" not in await _item_skill_body(svc, "task")
+    assert "## For `*dev`:" not in await _item_skill_body(svc, "task")
     await svc.add_dev("rust")
     await svc.refresh_managed()
-    assert "## For developers" in await _item_skill_body(svc, "task")
+    assert "## For `*dev`:" in await _item_skill_body(svc, "task")
 
 
 async def test_the_reviewers_section_carries_its_own_scope_discipline(svc, project):

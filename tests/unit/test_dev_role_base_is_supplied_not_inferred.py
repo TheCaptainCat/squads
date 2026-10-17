@@ -21,9 +21,10 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import dev_role
 from squads._errors import RoleNotFoundError, SquadsError
-from squads._roles._catalog import PREDEFINED, dev_role
-from squads._roles._resolver import dev_base_for_slug, resolve_role, resolve_role_with_base
+from squads._roles._catalog import PREDEFINED
+from squads._roles._resolver import resolve_role, resolve_role_with_base
 
 
 def _place_role_toml(squad_dir: Path, slug: str, content: str) -> Path:
@@ -80,28 +81,16 @@ def test_base_none_still_falls_back_to_the_bundled_catalog_entry(tmp_path) -> No
     assert r == bundled
 
 
-# --------------------------------------------------------------------- dev_base_for_slug
-
-
-def test_dev_base_for_slug_matches_the_generated_pool_role(tmp_path) -> None:
-    assert dev_base_for_slug("python-dev") == dev_role("python")
-
-
-def test_dev_base_for_slug_strips_only_the_dev_suffix() -> None:
-    assert dev_base_for_slug("dotnet-dev").slug == "dotnet-dev"
-    assert dev_base_for_slug("dotnet-dev").full_name.endswith("Dotnet")
-
-
 # --------------------------------------------------------------------- supplied base + override
 
 
 def test_no_override_file_returns_the_supplied_base_unchanged(tmp_path) -> None:
-    base = dev_base_for_slug("python-dev")
+    base = dev_role("python")
     assert resolve_role_with_base("python-dev", tmp_path, base=base) == base
 
 
 def test_a_partial_override_merges_field_wise_over_the_supplied_base(tmp_path) -> None:
-    base = dev_base_for_slug("python-dev")
+    base = dev_role("python")
     _place_role_toml(tmp_path, "python-dev", 'title = "Senior Python developer"\n')
     r = resolve_role_with_base("python-dev", tmp_path, base=base)
     assert r.title == "Senior Python developer"
@@ -111,7 +100,7 @@ def test_a_partial_override_merges_field_wise_over_the_supplied_base(tmp_path) -
 
 
 def test_a_complete_override_sets_every_field_it_declares(tmp_path) -> None:
-    base = dev_base_for_slug("python-dev")
+    base = dev_role("python")
     _place_role_toml(
         tmp_path,
         "python-dev",
@@ -128,14 +117,14 @@ def test_a_complete_override_sets_every_field_it_declares(tmp_path) -> None:
 
 
 def test_an_invalid_model_still_refuses_with_a_supplied_base(tmp_path) -> None:
-    base = dev_base_for_slug("python-dev")
+    base = dev_role("python")
     _place_role_toml(tmp_path, "python-dev", 'model = "opuss"\n')
     with pytest.raises(SquadsError, match="opuss"):
         resolve_role_with_base("python-dev", tmp_path, base=base)
 
 
 def test_a_slug_disagreeing_with_the_filename_still_refuses_with_a_supplied_base(tmp_path) -> None:
-    base = dev_base_for_slug("python-dev")
+    base = dev_role("python")
     _place_role_toml(tmp_path, "python-dev", 'slug = "other-dev"\ntitle = "x"\n')
     with pytest.raises(SquadsError, match="filename"):
         resolve_role_with_base("python-dev", tmp_path, base=base)

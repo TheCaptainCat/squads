@@ -54,7 +54,9 @@ async def test_a_playbook_source_receives_source_item_spec_and_squad_dir(svc) ->
     task = (await create_item(svc, "task", "T")).item
     roster = await svc.roster()
     view = ViewSpec(source=ViewSource(kind="playbook"))
-    result = views._resolve_playbook_source(view, task, svc.playbook, lambda: roster, svc.spec)
+    result = views._resolve_playbook_source(
+        view, task, svc.playbook, lambda: roster, svc.spec, None
+    )
 
     rendered = views.render_source_view(
         "playbook_probe", result, task, svc.spec, svc.paths.config.squad_dir
@@ -75,7 +77,9 @@ async def test_a_playbook_source_carries_the_whole_active_playbook_not_only_its_
     task = (await create_item(svc, "task", "T")).item
     roster = await svc.roster()
     view = ViewSpec(source=ViewSource(kind="playbook"))
-    result = views._resolve_playbook_source(view, task, svc.playbook, lambda: roster, svc.spec)
+    result = views._resolve_playbook_source(
+        view, task, svc.playbook, lambda: roster, svc.spec, None
+    )
 
     assert result.playbook is svc.playbook
 

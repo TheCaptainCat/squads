@@ -33,7 +33,7 @@ subentities:
   title: As an adopter, I want to see whether a skill's value is my own choice
   status: Todo
 created_at: '2026-09-28T17:54:53Z'
-updated_at: '2026-10-09T19:18:25Z'
+updated_at: '2026-10-16T19:58:52Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -265,4 +265,6 @@ Acceptance:
     - Implementation hazard for the task: the generic `--set` boolean coercion turns any unrecognised text into `false` (read: `_models/_metadata.py::coerce`). This option must not go through it.
 - [2026-10-09T19:18:25Z] Nina Product:
   - 2026-10-09 aligned with ADR-983 (Accepted) and the architect's second list: operator_invocable as a declared default plus stored choice, origin not read; US1-US5 rewritten with testable acceptance (guard, three render sites agree, three-valued option, AGENTS.md silent, clean after sq sync, preload to be seen on a real host); new US6 for the read surfaces; refs depends-on FEAT-977 and implements ADR-983, FEAT-976 stays a plain ref. Moved to Ready.
+- [2026-10-16T19:58:52Z] Olivia Lead:
+  - Task TASK-1072 (Draft) carries the breakdown; dependencies in its body.
 <!-- sq:discussion:end -->

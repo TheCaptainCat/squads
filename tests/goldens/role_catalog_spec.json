@@ -17,7 +17,8 @@
       "model": "opus",
       "color": "cyan",
       "is_default": true,
-      "can_spawn": true
+      "can_spawn": true,
+      "capabilities": []
     },
     {
       "slug": "architect",
@@ -35,7 +36,8 @@
       "model": "opus",
       "color": "blue",
       "is_default": false,
-      "can_spawn": false
+      "can_spawn": false,
+      "capabilities": []
     },
     {
       "slug": "tech-lead",
@@ -55,7 +57,8 @@
       "model": "opus",
       "color": "purple",
       "is_default": false,
-      "can_spawn": true
+      "can_spawn": true,
+      "capabilities": []
     },
     {
       "slug": "reviewer",
@@ -74,7 +77,8 @@
       "model": "opus",
       "color": "red",
       "is_default": false,
-      "can_spawn": false
+      "can_spawn": false,
+      "capabilities": []
     },
     {
       "slug": "qa",
@@ -91,7 +95,8 @@
       "model": "sonnet",
       "color": "green",
       "is_default": false,
-      "can_spawn": false
+      "can_spawn": false,
+      "capabilities": []
     },
     {
       "slug": "devops",
@@ -108,7 +113,8 @@
       "model": "sonnet",
       "color": "orange",
       "is_default": false,
-      "can_spawn": false
+      "can_spawn": false,
+      "capabilities": []
     },
     {
       "slug": "product-owner",
@@ -125,7 +131,8 @@
       "model": "sonnet",
       "color": "yellow",
       "is_default": false,
-      "can_spawn": false
+      "can_spawn": false,
+      "capabilities": []
     },
     {
       "slug": "tech-writer",
@@ -141,7 +148,8 @@
       "model": "haiku",
       "color": "pink",
       "is_default": false,
-      "can_spawn": false
+      "can_spawn": false,
+      "capabilities": []
     }
   ],
   "bundles": {
@@ -181,6 +189,9 @@
       "Donald"
     ],
     "model": "sonnet",
-    "color": "green"
+    "color": "green",
+    "capabilities": [
+      "dev"
+    ]
   }
 }

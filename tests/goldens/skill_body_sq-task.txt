@@ -28,12 +28,12 @@ sq task <n> status InProgress
 - set `--priority`/`--assignee`; sequence with `ref add … --kind blocks`
 
 **Hand off:**
-- once the task is fully defined, assign the developer (`sq task <n> update --assignee <tech>-dev`) — spawn or `@<tech>-dev` to start implementation
+- once the task is fully defined, assign the developer (`sq task <n> update --assignee <developer>`) — spawn or `@<developer>` to start implementation
 
 **Watch for:**
 - a task's parent must be a feature; link bugs/reviews via refs, never as parent
 
-## For developers
+## For `*dev`: Elias Python (`python-dev`)
 
 **Enter** — before you act:
 - Read the full item dossier: `sq task <n> show --full --comments` (decisions and
@@ -69,7 +69,7 @@ sq task <n> status InProgress
 - log findings with `--severity`; drive Requested → InReview → verdict
 
 **Hand off:**
-- on ChangesRequested, `@<tech>-dev` with the findings
+- on ChangesRequested, `@<developer>` with the findings
 - on Approved, comment the verdict so the task can close
 
 **Watch for:**
@@ -88,7 +88,7 @@ sq task <n> status InProgress
 
 **Hand off:**
 - on pass, comment confirmation so the task can reach Done
-- on fail, file a bug (`sq create bug …`) and `@<tech>-dev`
+- on fail, file a bug (`sq create bug …`) and `@<developer>`
 
 **Watch for:**
 - verify against acceptance criteria, not just that it runs

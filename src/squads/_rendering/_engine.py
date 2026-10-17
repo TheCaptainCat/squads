@@ -31,7 +31,11 @@ from squads._interactions import (
     custom_item_skill_commands,
     parent_chain,
 )
-from squads._interactions._role_guidance import example_assignee_slug, item_skill_role_sections
+from squads._interactions._role_guidance import (
+    example_assignee_slug,
+    item_skill_role_sections,
+    live_roster_text,
+)
 from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._models._vocab import label_for
@@ -117,6 +121,7 @@ def _make_env(squad_dir: Path | None) -> Environment:
     # templates/views/item_skill.md.j2 (and any adopter override) as filters, never
     # reimplemented in the template itself.
     env.filters["item_skill_role_sections"] = item_skill_role_sections  # pyright: ignore[reportArgumentType]
+    env.filters["live_roster_text"] = live_roster_text  # pyright: ignore[reportArgumentType]
     env.filters["custom_item_skill_commands"] = custom_item_skill_commands  # pyright: ignore[reportArgumentType]
     env.filters["label_for"] = label_for  # pyright: ignore[reportArgumentType]
     # playbook helpers — the role->type authoring narrative in workflow.md.j2 renders from the

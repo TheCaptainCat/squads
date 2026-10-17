@@ -14,15 +14,21 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import role_of
 from squads._backends._base import BackendContext
 from squads._backends._claude_code._backend import ClaudeCodeBackend
 from squads._interactions import _role_guidance as role_guidance
+from squads._interactions import get_playbook_spec
 from squads._models._config import SquadsConfig
 from squads._models._item import Item
 from squads._paths import SquadPaths
 from squads._roles._catalog import RoleDef
+from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
+
+_SPEC = bundled_spec()
+_PB = get_playbook_spec()
 
 
 @pytest.fixture
@@ -80,13 +86,16 @@ def _make_role_item(squad_dir: Path, slug: str) -> Item:
 #: one custom skill scoped in via a ``scopes`` ref edge. Deliberately NOT what
 #: ``role_guidance.skills_for_role`` returns on its own, so any backend that bypassed
 #: ``BackendContext`` in favour of a direct call would fail the assertions below.
-_RESOLVED_SKILLS = [*role_guidance.skills_for_role("architect"), "release-runbook"]
+_RESOLVED_SKILLS = [
+    *role_guidance.skills_for_role(role_of("architect"), _SPEC, _PB),
+    "release-runbook",
+]
 
 
 async def test_the_resolved_list_differs_from_the_pure_system_only_mapping() -> None:
     """Sanity: the fixture actually exercises the scoped path, not a no-op equal to the pure
     function's own output."""
-    assert role_guidance.skills_for_role("architect") != _RESOLVED_SKILLS
+    assert role_guidance.skills_for_role(role_of("architect"), _SPEC, _PB) != _RESOLVED_SKILLS
 
 
 async def test_the_role_entry_carries_the_context_resolved_list_verbatim(
@@ -98,7 +107,7 @@ async def test_the_role_entry_carries_the_context_resolved_list_verbatim(
     artifact = await backend.generate_role_entry(ctx, item, role_def)
     content = (ctx.root / artifact.path).read_text(encoding="utf-8")
     assert "release-runbook" in content
-    for system_skill in role_guidance.skills_for_role("architect"):
+    for system_skill in role_guidance.skills_for_role(role_of("architect"), _SPEC, _PB):
         assert system_skill in content
 
 
@@ -107,11 +116,20 @@ async def test_absent_from_role_skills_falls_back_to_the_pure_mapping(
 ) -> None:
     """No ``role_skills`` entry (pre-resolver call sites, e.g. brand-new role creation) — the
     backend must still fall back to the pure system-only list, not omit skills."""
-    ctx = BackendContext(paths=paths)  # role_skills defaults to {}
+    ctx = BackendContext(paths=paths, spec=_SPEC, playbook=_PB)  # role_skills defaults to {}
     await backend.ensure_scaffold(ctx)
     item = _make_role_item(paths.squad_dir, role_def.slug)
     artifact = await backend.generate_role_entry(ctx, item, role_def)
     content = (ctx.root / artifact.path).read_text(encoding="utf-8")
     assert "release-runbook" not in content
-    for system_skill in role_guidance.skills_for_role("architect"):
+    for system_skill in role_guidance.skills_for_role(role_of("architect"), _SPEC, _PB):
         assert system_skill in content
+
+
+async def test_a_context_without_role_skills_or_documents_refuses_instead_of_reading_bundled(
+    paths: SquadPaths, role_def: RoleDef
+) -> None:
+    from squads._errors import SquadsError
+
+    with pytest.raises(SquadsError):
+        BackendContext(paths=paths).resolved_skills_for(role_def)

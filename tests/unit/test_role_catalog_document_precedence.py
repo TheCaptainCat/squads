@@ -118,5 +118,5 @@ def test_dev_pool_override_reaches_a_newly_generated_dev_role(tmp_path: Path) ->
 
 
 def test_dev_pool_override_does_not_apply_with_no_squad_dir(tmp_path: Path) -> None:
-    resolved = resolve_dev_role("rust")
+    resolved = resolve_dev_role("rust", squad_dir=None)
     assert resolved.model == "sonnet"  # the bundled default, unaffected by any override

@@ -392,7 +392,6 @@
       "modified_session": null,
       "attributes": {
         "model": "sonnet",
-        "is_dev": true,
         "tech": "python"
       },
       "slug_in_file": true,

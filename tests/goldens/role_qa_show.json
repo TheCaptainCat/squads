@@ -8,6 +8,7 @@
   "model": "sonnet",
   "is_default": false,
   "can_spawn": false,
+  "capabilities": [],
   "create_lane": [
     "bug"
   ],

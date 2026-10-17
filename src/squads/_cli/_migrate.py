@@ -41,20 +41,13 @@ def _reconcile_line(result: ReconcileResult) -> str:
 
 @migrate_app.callback()
 def migrate_gate(ctx: typer.Context) -> None:
-    """Gate each ``sq migrate`` command by the grant it declares; one without a grant is
-    refused on a squad whose schema differs from the package's."""
-    if ctx.invoked_subcommand is not None:
-        common.apply_gate(migrate_grants().get(ctx.invoked_subcommand))
+    """Gate each ``sq migrate`` command by the grant it declares."""
+    common.gate_group_command(ctx, migrate_app)
 
 
 def migrate_grants() -> dict[str, common.GateGrant]:
     """The grant each ``sq migrate`` command declares, by command name."""
-    found: dict[str, common.GateGrant] = {}
-    for info in migrate_app.registered_commands:
-        grant = common.gate_grant(info.callback) if info.callback is not None else None
-        if info.name is not None and grant is not None:
-            found[info.name] = grant
-    return found
+    return common.grants_by_command(migrate_app)
 
 
 @migrate_app.command("up")

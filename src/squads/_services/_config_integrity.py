@@ -21,6 +21,7 @@ or a report reads as the condition plus its remedy, nothing else (see :func:`ren
 
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 
 from squads._interactions import item_skill_name
@@ -28,6 +29,8 @@ from squads._interactions._models import PlaybookSpec
 from squads._interactions._role_guidance import item_types_for_role, skills_for_role
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, ref_id_matches, split_ref
+from squads._roles._catalog import RoleDef
+from squads._roles._resolver import resolve_role_tolerantly
 from squads._workflow._models import ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
 
 #: Clause identifiers — internal, never rendered. Named for the condition each checks so the
@@ -97,6 +100,8 @@ class ConfigIntegrityFinding:
     remedy: str | None = None
     kind: Kind | None = None
     severable_targets: frozenset[str] = frozenset()
+    dependency: str = ""
+    removal_remedy: str | None = None
 
 
 #: ``scoped_edge``'s remedy when the caller is not a retirement of the finding's own ``entry`` —
@@ -109,7 +114,9 @@ _SCOPED_EDGE_NO_UNLINK_REMEDY = (
 )
 
 
-def render_finding(finding: ConfigIntegrityFinding, *, unlink_available: bool = False) -> str:
+def render_finding(
+    finding: ConfigIntegrityFinding, *, unlink_available: bool = False, removal: bool = False
+) -> str:
     """The finding's condition, plus its remedy when one exists — the single place
     ``message``/``remedy`` are ever concatenated, so the two halves are joined exactly once and
     never twice, and every caller renders the identical *condition* text for the same finding:
@@ -125,6 +132,13 @@ def render_finding(finding: ConfigIntegrityFinding, *, unlink_available: bool = 
     Only ``scoped_edge``'s stored remedy ever varies by it — every other kind's remedy already
     holds regardless of direction.
     """
+    if removal:
+        # A removal leaves the entry live in its own right: only the dependency and the step
+        # that clears it apply, never a status the entry would reach or a way to reactivate it.
+        text = finding.dependency or finding.message
+        if finding.removal_remedy is not None:
+            return f"{text} — remedy: {finding.removal_remedy}"
+        return text
     remedy = finding.remedy
     if finding.kind == SCOPED_EDGE and not unlink_available:
         remedy = _SCOPED_EDGE_NO_UNLINK_REMEDY
@@ -166,7 +180,7 @@ def _scopes_role(skill: Item, role: Item, spec: WorkflowSpec) -> bool:
 
 
 def _always_on_floor(
-    live_roles: Sequence[Item], spec: WorkflowSpec, playbook: PlaybookSpec | None = None
+    live_roles: Sequence[RoleDef], spec: WorkflowSpec, playbook: PlaybookSpec
 ) -> frozenset[str]:
     """Whatever ``skills_for_role`` implies for *every* live role — the un-retirable floor,
     derived rather than a hand-maintained list of names: that formulation survives a rename and
@@ -191,9 +205,8 @@ def _always_on_floor(
         return frozenset()
     sets: list[frozenset[str]] = []
     for r in live_roles:
-        slug = r.slug
-        implied = {item_skill_name(t) for t in item_types_for_role(slug, spec, playbook)}
-        sets.append(frozenset(skills_for_role(slug, spec, playbook)) - implied)
+        implied = {item_skill_name(t) for t in item_types_for_role(r, spec, playbook)}
+        sets.append(frozenset(skills_for_role(r, spec, playbook)) - implied)
     floor = sets[0]
     for s in sets[1:]:
         floor &= s
@@ -219,6 +232,7 @@ def check_no_live_role(
                 "are active — the generated config can present no agent"
             ),
             remedy="activate another role first",
+            removal_remedy="activate another role first",
         )
     ]
 
@@ -227,7 +241,8 @@ def check_preloaded_skill(
     index: SquadsDB,
     spec: WorkflowSpec,
     active_backends: Sequence[str],
-    playbook: PlaybookSpec | None = None,
+    playbook: PlaybookSpec,
+    squad_dir: Path,
 ) -> list[ConfigIntegrityFinding]:
     """``preloaded_skill`` — a referenced skill, already broken: a non-live ``skill`` entry
     still named by a live role's resolved preload list. Classified into three kinds — a stored
@@ -245,7 +260,8 @@ def check_preloaded_skill(
     live_roles = _live_role_items(index, spec)
     if not live_roles:
         return []
-    floor = _always_on_floor(live_roles, spec, playbook)
+    resolved = {r.id: resolve_role_tolerantly(r, squad_dir) for r in live_roles}
+    floor = _always_on_floor(list(resolved.values()), spec, playbook)
     live_skill_statuses = spec.live_statuses(ROSTER_SKILL)
     findings: list[ConfigIntegrityFinding] = []
     for skill in index.items.values():
@@ -265,6 +281,10 @@ def check_preloaded_skill(
                     ),
                     remedy=None,  # no code path from which one could ever be offered
                     kind=ALWAYS_ON_FLOOR,
+                    dependency=(
+                        "every role preloads it unconditionally; it is part of the roster's "
+                        "permanent floor and cannot be removed"
+                    ),
                 )
             )
             continue
@@ -281,7 +301,7 @@ def check_preloaded_skill(
             role_slug = role.slug
             implicating_types.update(
                 t
-                for t in item_types_for_role(role_slug, spec, playbook)
+                for t in item_types_for_role(resolved[role.id], spec, playbook)
                 if item_skill_name(t) == slug
             )
             if _scopes_role(skill, role, spec):
@@ -300,6 +320,8 @@ def check_preloaded_skill(
                     remedy="pass --unlink, or run `sq skill <addr> unlink-role <role>` first",
                     kind=SCOPED_EDGE,
                     severable_targets=frozenset(scoped_role_ids),
+                    dependency=f"scoped to live role(s): {_cap_and_join(scoped_roles)}",
+                    removal_remedy="run `sq skill <addr> unlink-role <role>` first",
                 )
             )
         if implicating_types:
@@ -319,6 +341,10 @@ def check_preloaded_skill(
                         "`[selected]` in .overrides/workflow.toml"
                     ),
                     kind=TYPE_IMPLIED,
+                    dependency=f"implied by declared type(s): {_cap_and_join(implicating_types)}",
+                    removal_remedy=(
+                        "drop the type via `[selected]` in .overrides/workflow.toml first"
+                    ),
                 )
             )
     return findings
@@ -328,19 +354,20 @@ def check_all(
     index: SquadsDB,
     spec: WorkflowSpec,
     active_backends: Sequence[str],
-    playbook: PlaybookSpec | None = None,
+    playbook: PlaybookSpec,
+    squad_dir: Path,
 ) -> list[ConfigIntegrityFinding]:
     """Every clause's findings, ``no_live_role`` then ``preloaded_skill`` — the single entry
     point both the reporter and the gate call, rather than each composing the clauses itself.
     This fixed clause order, together with ``check_preloaded_skill``'s declared per-skill kind
     order, is what makes output deterministic wherever more than one finding renders together.
 
-    ``playbook`` defaults to the bundled singleton (``None``) — passed through to
-    ``check_preloaded_skill`` alone, since ``no_live_role`` never reads playbook data. A caller
-    with the active/merged playbook in hand (``Service.playbook``) threads it explicitly so the
-    always-on floor and type-implied kind reflect a project override's guidance changes.
+    ``playbook`` is the active/merged one (``Service.playbook``), passed through with
+    *squad_dir* to ``check_preloaded_skill`` alone, since ``no_live_role`` never reads playbook
+    data or role documents; they make the always-on floor and type-implied kind reflect a
+    project override's guidance and its roles' declared capabilities.
     """
     return [
         *check_no_live_role(index, spec, active_backends),
-        *check_preloaded_skill(index, spec, active_backends, playbook),
+        *check_preloaded_skill(index, spec, active_backends, playbook, squad_dir),
     ]
