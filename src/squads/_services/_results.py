@@ -438,6 +438,8 @@ class InboxLine:
 
     text: str
     region: str | None
+    hash: str | None = None
+    """The full hash of the comment the line is in, when it is in one."""
 
 
 @dataclass(frozen=True)
@@ -463,6 +465,8 @@ class SearchHit:
     region: str
     location: str
     snippet: str
+    hash: str | None = None
+    """The full hash of the comment the hit landed in, when it did."""
 
 
 @dataclass(frozen=True)

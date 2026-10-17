@@ -8,7 +8,8 @@
       {
         "region": "description",
         "location": "description",
-        "snippet": "Login and logout flows"
+        "snippet": "Login and logout flows",
+        "hash": null
       }
     ]
   },
@@ -21,17 +22,20 @@
       {
         "region": "title",
         "location": "title",
-        "snippet": "Implement login"
+        "snippet": "Implement login",
+        "hash": null
       },
       {
         "region": "subtask:ST1",
         "location": "subtask:ST1",
-        "snippet": "### ST1 \u2014 Write login handler"
+        "snippet": "### ST1 \u2014 Write login handler",
+        "hash": null
       },
       {
         "region": "discussion#1",
         "location": "discussion \u2014 comment 1 (Catherine Manager, 2026-06-07T10:00:00Z)",
-        "snippet": "[2026-06-07T10:00:00Z] Catherine Manager: - @manager please review the login handler"
+        "snippet": "[2026-06-07T10:00:00Z] Catherine Manager: - @manager please review the login handler",
+        "hash": "0ce89c43dcc742700d77c72d038d52ad714e5082cf1fa912f5bda2faad0e6697"
       }
     ]
   },
@@ -44,7 +48,8 @@
       {
         "region": "title",
         "location": "title",
-        "snippet": "Login crashes on empty password"
+        "snippet": "Login crashes on empty password",
+        "hash": null
       }
     ]
   },
@@ -57,7 +62,8 @@
       {
         "region": "title",
         "location": "title",
-        "snippet": "Code review for login"
+        "snippet": "Code review for login",
+        "hash": null
       }
     ]
   }

@@ -147,7 +147,7 @@ async def test_a_name_is_not_a_slug(svc) -> None:
     built = await scene(svc, ["mine"])
     (c,) = await built.comments()
 
-    await _refused(svc, built, c.hash[:7], ["x"], "Catherine Manager", "written by manager")
+    await _refused(svc, built, c.hash[:7], ["x"], "Catherine Manager", "unknown slug")
 
 
 async def test_a_system_entry_can_not_be_edited_by_anyone(svc) -> None:
@@ -214,3 +214,21 @@ async def test_an_edit_that_would_equal_another_comment_is_refused(svc) -> None:
     assert first.timestamp == second.timestamp
 
     await _refused(svc, built, first.hash[:7], ["beta"], "manager", "already has this comment")
+
+
+@pytest.mark.parametrize("verb", ["edit", "remove"])
+async def test_a_retired_author_is_refused_by_the_service_itself(svc, verb) -> None:
+    await svc.activate_role("qa")
+    built = await scene(svc, ["from qa"], authors=["qa"])
+    (c,) = await built.comments()
+    role = await svc.roster_item("role", "qa")
+    await svc.set_status(role.id, "Archived")
+    before = _bytes(built)
+
+    with pytest.raises(SquadsError, match="is retired; reactivate it"):
+        if verb == "edit":
+            await svc.edit_comment(built.item_id, c.hash[:7], ["x"], as_slug="qa")
+        else:
+            await svc.remove_comment(built.item_id, c.hash[:7], as_slug="qa")
+
+    assert _bytes(built) == before

@@ -108,3 +108,19 @@ async def test_an_unknown_hash_is_refused(board, invoke, token) -> None:
 
     assert r.exit_code == 1
     assert "edited or removed since it was read" in " ".join(r.output.split())
+
+
+async def test_show_reports_the_members_of_a_duplicate_group_as_copies(
+    board, invoke, project
+) -> None:
+    path = next(project.squad_dir.glob("tasks/TASK-*.md"))
+    text = path.read_text(encoding="utf-8")
+    start = text.index("- [", text.index("<!-- sq:discussion -->"))
+    end = text.index("<!-- sq:discussion:end -->")
+    path.write_text(text[:end] + text[start:end] + text[end:], encoding="utf-8")
+    full = await _hash(invoke, ITEM)
+
+    r = await invoke([*ITEM, "comment", full[:7], "show", "--json"])
+
+    assert r.exit_code == 0, r.output
+    assert json.loads(r.output)["copies"] == 2

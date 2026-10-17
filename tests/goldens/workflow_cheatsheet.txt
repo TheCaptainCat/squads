@@ -24,7 +24,10 @@
   <type> <n> comment --as <slug> -m "…"` (repeat `-m` for separate bullets; use `@role`) or `--file
   PATH` for one longer or code-bearing comment — an unescaped backtick or `$(...)` in a quoted `-m`
   is substituted by the shell before `sq` ever runs, so a message with backticks or a fenced code
-  block belongs in a file.
+  block belongs in a file. Show, correct or withdraw a comment by its hash with `sq <type> <n>
+  [<kind> <k>] comment <hash> show|edit|remove` (`edit` and `remove` take `--as <slug>`, and only
+  the comment's author can use them); an edit changes the hash, so after a refusal read the
+  discussion again.
 
 ## Type-command aliases
 

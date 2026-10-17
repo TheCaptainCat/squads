@@ -117,3 +117,39 @@ async def test_comment_help_describes_both_forms(board, invoke, level) -> None:
     assert "comment -m TEXT" in out
     assert "comment HASH show|edit|remove" in out
     assert "_addr" not in out
+
+
+@pytest.mark.parametrize("level", [ITEM, SUB], ids=["item", "subentity"])
+async def test_the_hash_help_names_the_hash_once(board, invoke, level) -> None:
+    r = await invoke([*level, "comment", "a1b2c3d", "--help"])
+
+    out = " ".join(r.output.split())
+    assert r.exit_code == 0
+    assert "comment HASH COMMAND [ARGS]..." in out
+    assert "HASH [OPTIONS] HASH" not in out
+    assert "hash_ " not in out
+
+
+@pytest.mark.parametrize("verb", ["show", "edit", "remove"])
+@pytest.mark.parametrize("level", [ITEM, SUB], ids=["item", "subentity"])
+async def test_each_verbs_usage_names_the_hash_once(board, invoke, level, verb) -> None:
+    r = await invoke([*level, "comment", "a1b2c3d", verb, "--help"])
+
+    out = " ".join(r.output.split())
+    assert r.exit_code == 0
+    assert f"comment HASH {verb} [OPTIONS]" in out
+    assert "HASH HASH" not in out
+
+
+async def test_the_hash_argument_table_keeps_the_name_hash(board, invoke) -> None:
+    r = await invoke([*ITEM, "comment", "a1b2c3d", "--help"])
+
+    row = next(ln for ln in r.output.splitlines() if "hash_value" in ln)
+    assert "HASH" in row
+
+
+async def test_the_roster_hash_help_names_the_hash_once(board, svc, invoke) -> None:
+    await svc.add_operator("Xavier")
+    r = await invoke(["operator", "op-xavier", "comment", "a1b2c3d", "edit", "--help"])
+
+    assert "HASH HASH" not in " ".join(r.output.split())

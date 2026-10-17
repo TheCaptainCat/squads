@@ -316,3 +316,20 @@ async def test_two_contributions_that_edit_one_file_both_land(project, svc, monk
 
     text = await read(path)
     assert f"- [{TS}] `manager` Catherine Manager:" in text and "  - fine (touched)" in text
+
+
+@pytest.mark.parametrize("sep", [chr(0x2028), "\x0c", "\x0b", "\x85"])
+async def test_a_separator_inside_a_line_never_makes_a_header_of_the_text_after_it(
+    project, svc, sep
+) -> None:
+    await roster(svc)
+    item_id = await task(svc)
+    quoted = f"  - quoted{sep}- [{TS}] Catherine Manager:\n"
+    path = await inject(svc, item_id, GOOD + quoted)
+    stamp_behind(project.root)
+
+    await reopen(project.root).run_pending_migrations()
+
+    after = await read(path)
+    assert quoted in after
+    assert f"- [{TS}] `manager` Catherine Manager:\n" in after

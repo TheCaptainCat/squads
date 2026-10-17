@@ -179,6 +179,12 @@ export interface SqDiscussionEntry {
   readonly author_slug?: string;
   readonly ts: string;
   readonly body: string;
+  /** Short comment hash, unique within its discussion; absent from an older `sq`. */
+  readonly short_hash?: string;
+  /** Full comment hash; absent from an older `sq`. */
+  readonly hash?: string;
+  /** When the comment was last edited; `null` when never, absent from an older `sq`. */
+  readonly edited_ts?: string | null;
 }
 
 /** One entry of `sq show <id> --json`'s `subentities` array — a story/subtask/finding tracked on

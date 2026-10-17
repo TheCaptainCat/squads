@@ -966,8 +966,9 @@ async def _print_item_raw(svc: Service, it: Item, *, comments: bool, full: bool)
         )
         lines += ["", "## Discussion"]
         if cmts:
-            for cmt in cmts:
-                lines += ["", f"### {discussion.author_label(cmt)} — {cmt.timestamp}", "", cmt.body]
+            for cmt, short in zip(cmts, discussion.short_hashes(cmts), strict=True):
+                head = f"### {short} {discussion.author_label(cmt)} — {cmt.timestamp}"
+                lines += ["", head + discussion.edited_suffix(cmt), "", cmt.body]
         else:
             lines += ["", "_(no discussion)_"]
     console.print("\n".join(lines), markup=False, highlight=False, soft_wrap=True)
@@ -1044,7 +1045,10 @@ def print_subentity(detail: SubentityDetail, kind: str) -> None:
     console.print()
     console.print(e(detail.body) if detail.body else "[dim](no body yet)[/dim]")
     console.print("\n[bold]Discussion[/bold]")
-    console.print(e(detail.discussion) if detail.discussion else "[dim](none)[/dim]")
+    if detail.comments:
+        (_render_comments_styled if _is_styled() else _render_comments_plain)(detail.comments)
+    else:
+        console.print(e(detail.discussion) if detail.discussion else "[dim](none)[/dim]")
 
 
 def client_path(file: str) -> Path:
@@ -2114,7 +2118,18 @@ class CommentGroup(typer.core.TyperGroup):
                 soft_wrap=True,
             )
             raise typer.Exit(2)
-        return "<hash>", addr_cmd, args
+        return "HASH", addr_cmd, args
+
+
+class _HashGroup(typer.core.TyperGroup):
+    """The group behind a hash: its name is the hash in usage, so the argument is not repeated."""
+
+    def collect_usage_pieces(self, ctx: Any) -> list[str]:
+        return [self.subcommand_metavar]
+
+    def get_params(self, ctx: Any) -> list[Any]:
+        # a verb's usage path is built from this group's params: the name already shows the hash
+        return [] if ctx.command is not self else super().get_params(ctx)
 
 
 type CommentTarget = Callable[[typer.Context], tuple[str, tuple[str, str] | None]]
@@ -2269,16 +2284,18 @@ def register_comment_group(app: typer.Typer, target: CommentTarget) -> None:
     has the same author, header and ``@mention`` rules wherever it is written or changed.
     """
     comment_app = typer.Typer(cls=CommentGroup, add_completion=False)
-    addr_app = typer.Typer(add_completion=False)
+    addr_app = typer.Typer(cls=_HashGroup, add_completion=False)
 
     _register_comment_append(comment_app, target)
 
     @addr_app.callback()
     def _hash(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
         ctx: typer.Context,
-        hash_: str = typer.Argument(..., metavar="HASH", help="4 or more leading hex characters."),
+        hash_value: str = typer.Argument(
+            ..., metavar="HASH", help="4 or more leading hex characters."
+        ),
     ) -> None:
-        ctx.obj = {**ctx.obj, "hash": hash_}
+        ctx.obj = {**ctx.obj, "hash": hash_value}
 
     _register_comment_show(addr_app, target)
     _register_comment_edit(addr_app, target)
