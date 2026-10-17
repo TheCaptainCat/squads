@@ -34,6 +34,7 @@ from squads._cli._common import (
     get_service,
     is_full_id_shape,
     print_json_clean,
+    register_body_verb,
     register_comment_verbs,
     register_remove_verb,
     register_status_verb,
@@ -325,18 +326,10 @@ def _require_id(ctx: typer.Context) -> str:
 
 
 def _role_empty_body_hint(hint_state: views.EmptyBodyHintState, slug: str) -> str:
-    """The ``sq role <slug> show`` empty-body hint for *hint_state* — split out of
-    :func:`show_role` purely to keep that function under the complexity ceiling. There is no
-    ``body`` verb in the ``sq role`` addressing group, and ``set_body`` refuses a role body
-    outright (replace and append alike), so the default "set it
-    with `body`" hint names an action this group cannot take, and neither can ``--force``,
-    ``sq import``, or anything short of the role's real authoring surface. ``sq sync`` is a real
-    remedy for one of the four states :func:`~squads._views.empty_body_hint_state` distinguishes
-    — it converges an empty role body onto its placement tag, but only on an outstanding
-    version drift, and only when the view is declared; naming it in any other state would send
-    an operator in a circle, so this reads the shared predicate rather than guessing. *slug*
-    fills in the real command the operator would actually run — ``<slug>`` names a file-naming
-    convention below, never a copy-pasteable command, so that one stays a placeholder."""
+    """The ``sq role <slug> show`` empty-body hint for *hint_state*. ``body`` is refused while
+    the role's view is declared (``--force`` does not lift it), so the default "set it with
+    `body`" hint is replaced by the remedy the state calls for; ``sq sync`` is named only where
+    it converges an empty body onto its tag. *slug* fills in the real command."""
     name = ROLE_DEFINITION_VIEW_NAME
     if hint_state == "disabled":
         return f"(disabled — `sq role {slug} view add {name}` re-enables it)"
@@ -464,15 +457,8 @@ async def show_role(
                 "run `sq check` to see why)[/dim]",
                 soft_wrap=True,
             )
-        # There is no `body` verb in the `sq role` addressing group, and `set_body` refuses a
-        # role body outright (replace and append alike), so the
-        # default "set it with `body`" hint names an action this group cannot take, and neither
-        # can `--force`, `sq import`, or anything short of the role's real authoring surface.
-        # `sq sync` is a real remedy for one of the four states `empty_body_hint_state`
-        # distinguishes — it converges an empty role body onto its placement tag, but only on
-        # an outstanding version drift, and only when the view is declared; naming it in any
-        # other state would send an operator in a circle, so this reads the shared predicate
-        # rather than guessing.
+        # `body` is refused while the view is declared, so the default hint would name an
+        # action that cannot run; the hint names the real remedy for the view's state.
         hint_state = views.empty_body_hint_state(
             ROLE_DEFINITION_VIEW_NAME,
             svc.spec,
@@ -544,6 +530,7 @@ async def update_role(
     console.print(f"updated {item_id}")
 
 
+register_body_verb(_addr, _require_id)
 register_remove_verb(_addr, _require_id, refresh_managed=True)
 register_comment_verbs(_addr, _require_id)
 register_status_verb(_addr, _require_id)

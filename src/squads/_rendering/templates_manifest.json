@@ -343,7 +343,7 @@
     "_rendering/templates/subentities/block.md.j2": "d11fbbed7b754e9201d0a8d38366894b4d34eb3d362587c57826e3fd30fbd29a",
     "_rendering/templates/subentities/head.md.j2": "aa518f815f6840832c6c148cdcbec1834747ac0fc6974c1c0b476aedb4a744e7",
     "_rendering/templates/subentities/summary.md.j2": "8a025754bdfdda21747270a9f7fbee0420c17e6070b2a3bc5e38c2d8dd60f0e7",
-    "_rendering/templates/views/greeting_skill.md.j2": "5012f985e7c26fd714b1f0e52e70955c32b2c5347efe61ef8d0fd25422eeaf7b",
+    "_rendering/templates/views/greeting_skill.md.j2": "be932e063cf9779dbbb68e3defd906a62580ab208d4a3a92768855d3ae73ad3a",
     "_rendering/templates/views/item_skill.md.j2": "96de99cfcc1f080a5b0af03068804a3ac4040b6745db05a44ab82155e37e0fbc",
     "_rendering/templates/views/memory_skill.md.j2": "d1030ff2de40151dbb95bb67e36fdfdee97b5e8b0422f0aa26069f9d172f0363",
     "_rendering/templates/views/milestone_rollup.md.j2": "a8e3ddc2468525e2fb4546b0f2c3f09c77b7c56ad94b135f425638d4d9b47428",

@@ -526,11 +526,11 @@ def _seeded_view_issues(
 ) -> list[str]:
     """Every seeded view (:func:`~squads._views.seeded_view_names`) present exactly once and no
     view name duplicated, checked directly against *text* on disk — each violation reported
-    with its real, runnable remedy. A roster host with prose beside a missing tag names moving
-    the prose to a new skill before clearing it, never clearing outright, since it may be an
-    author's real runbook; an entirely absent region defers to
-    :func:`_absent_body_region_issues` instead, since neither ``view add`` nor ``view disable``
-    can act on one. Reports only, never repairs."""
+    with its real, runnable remedy. A role body holding prose in place of its tag is a
+    supported state and reports nothing; a skill with prose beside a missing tag names moving
+    the prose to a new skill before clearing it, since it may be an author's real runbook. An
+    entirely absent region defers to :func:`_absent_body_region_issues`. Reports only, never
+    repairs."""
     seeded = views.seeded_view_names(item_type, slug, spec)
     counts: Counter[str] = Counter()
     for raw in sections.find_markers(text):
@@ -539,16 +539,6 @@ def _seeded_view_issues(
             counts[parts.name] += 1
     is_roster = item_type in (ROSTER_ROLE, ROSTER_SKILL)
     addr: int | str = slug if is_roster else (n if n is not None else "<n>")
-    # A roster host's body can carry non-empty prose alongside a missing tag — legacy text a
-    # migration skip or an adopted pre-0.14 corpus left, or an author's own runbook a later
-    # type declaration classified. `view add` would place a second, live rendering beside that
-    # prose rather than replacing it (the roster write refusal gives this guard no way to clear
-    # prose on its own), so the full four-step remedy is named instead: drop
-    # the view from `[selected]` (making the host briefly not roster-classified, so its body
-    # write refusal lifts), clear the text, restore the view, then `view add` — the only
-    # sequence that converges to a single live rendering, never `view disable` alone (which
-    # leaves the legacy prose stranded, unclearable, forever). An ordinary, non-roster host's
-    # seeded view has no such second surface, so `view add` stays offered unconditionally.
     region = sections.get_section(text, markers.BODY) if is_roster else None
     # A roster host whose `sq:body` marker pair is entirely absent is a different, narrower
     # shape than a present-but-tagless region (`_absent_body_region_issues`, immediately below,
@@ -565,7 +555,7 @@ def _seeded_view_issues(
     prose_beside_missing_tag = is_roster and bool(views.strip_view_tags(region or "").strip())
     problems: list[str] = []
     for name in sorted(seeded - set(counts)):
-        if region_absent:
+        if region_absent or (prose_beside_missing_tag and item_type == ROSTER_ROLE):
             continue
         tag = markers.open_marker(markers.view_tag(name))
         if prose_beside_missing_tag:

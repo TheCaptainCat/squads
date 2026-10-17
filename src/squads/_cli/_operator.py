@@ -25,6 +25,7 @@ from squads._cli._common import (
     e,
     get_service,
     print_json_clean,
+    register_body_verb,
     register_comment_verbs,
     register_remove_verb,
     register_status_verb,
@@ -178,6 +179,7 @@ async def operator_update(
     console.print(f"updated {item_id}")
 
 
+register_body_verb(_addr, lambda ctx: ctx.obj["id"])
 register_remove_verb(_addr, lambda ctx: ctx.obj["id"], refresh_managed=True)
 register_comment_verbs(_addr, lambda ctx: ctx.obj["id"])
 register_status_verb(_addr, lambda ctx: ctx.obj["id"])

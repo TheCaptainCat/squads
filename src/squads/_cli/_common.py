@@ -2046,6 +2046,34 @@ def register_remove_verb(
     addr_app.command("rm", hidden=True)(remove)
 
 
+def register_body_verb(addr_app: typer.Typer, id_from_ctx: Callable[[typer.Context], str]) -> None:
+    """Register ``body`` on an addressed roster subgroup: one body for roles, skills and
+    operators, driving ``Service.set_body`` so every write meets the same refusals.
+    ``id_from_ctx`` is the caller's address convention, as for :func:`register_status_verb`."""
+
+    @command
+    async def body(
+        ctx: typer.Context,
+        message: list[str] = typer.Option(None, "-m", "--message", help="Body paragraph."),
+        file: str | None = typer.Option(None, "--file", help="Body from a file ('-' = stdin)."),
+        append: bool = typer.Option(False, "--append", help="Append instead of replacing."),
+        force: bool = typer.Option(
+            False, "--force", help="Replace an already-written body (destructive, no undo)."
+        ),
+    ) -> None:
+        """Set (or --append to) the body.
+
+        Replacing an already-written body is refused unless --force. A role whose body is
+        generated from a view is refused outright; --force does not lift that.
+        """
+        item_id = id_from_ctx(ctx)
+        text = resolve_body(message or None, file)
+        await get_service().set_body(item_id, text, append=append, force=force)
+        console.print(f"{item_id}: body {'appended' if append else 'set'}")
+
+    addr_app.command("body")(body)
+
+
 def register_comment_verbs(app: typer.Typer, id_from_ctx: Callable[[typer.Context], str]) -> None:
     """Register ``comment`` and ``comments`` on an addressed subgroup: a work item's, or a
     role's, skill's or operator's. One body for all of them, so a comment has the same author,

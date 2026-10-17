@@ -57,9 +57,8 @@ async def test_a_host_missing_its_seeded_tag_is_reported_at_error_level(svc) -> 
     ), [i.message for i in matches]
 
 
-async def test_a_role_missing_its_tag_beside_prose_names_the_full_four_step_remedy(svc) -> None:
-    """A role missing its tag beside real prose names the full four-step remedy, never
-    ``view disable`` alone."""
+async def test_a_role_with_prose_in_place_of_its_tag_is_not_reported(svc) -> None:
+    """Prose in a role body is a supported state: no missing-tag finding."""
     role = await svc.roster_item("role", "manager") or await svc.activate_role("manager")
     path = item_file(svc.paths, role)
     text = replace_section(
@@ -69,15 +68,7 @@ async def test_a_role_missing_its_tag_beside_prose_names_the_full_four_step_reme
 
     issues = await svc.check()
 
-    matches = [i for i in issues if "missing seeded view tag" in i.message]
-    assert matches, [i.message for i in issues]
-    message = next(i.message for i in matches)
-    assert "drop 'role_definition' from [selected]" in message
-    assert "sq import -" in message
-    assert f'target": "{role.id}"' in message
-    assert "restore 'role_definition' to [selected]" in message
-    assert "sq role manager view add role_definition" in message
-    assert "view disable" not in message
+    assert [i.message for i in issues if "missing seeded view tag" in i.message] == []
 
 
 async def test_a_system_skill_missing_its_tag_beside_prose_names_the_four_step_remedy(

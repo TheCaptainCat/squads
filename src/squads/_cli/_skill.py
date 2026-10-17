@@ -35,12 +35,12 @@ from squads._cli._common import (
     e,
     get_service,
     print_json_clean,
+    register_body_verb,
     register_comment_verbs,
     register_remove_verb,
     register_status_verb,
     render_body_text,
     resolve_agent_addr,
-    resolve_body,
     resolve_item_id_any,
     view_disable_result_message,
 )
@@ -220,28 +220,6 @@ async def skill_show(
         common.print_comments(await svc.comments(it.id))
 
 
-@_addr.command("body")
-@common.command
-async def skill_body(
-    ctx: typer.Context,
-    message: list[str] = typer.Option(None, "-m", "--message", help="Body paragraph."),
-    file: str | None = typer.Option(None, "--file", help="Body from a file ('-' = stdin)."),
-    append: bool = typer.Option(False, "--append", help="Append instead of replacing."),
-    force: bool = typer.Option(
-        False, "--force", help="Replace an already-written body (destructive, no undo)."
-    ),
-) -> None:
-    """Set (or --append to) a custom skill's body (rejected for system/bundled skills).
-
-    Replacing an already-written body is refused unless --force, the same guard the item body
-    carries — probing whether the verb is permitted here costs nothing.
-    """
-    item_id: str = ctx.obj["id"]
-    svc = get_service()
-    await svc.set_body(item_id, resolve_body(message or None, file), append=append, force=force)
-    console.print(f"{item_id}: body {'appended' if append else 'set'}")
-
-
 @_addr.command("refs")
 @common.command
 async def skill_refs(
@@ -379,6 +357,7 @@ async def skill_update(
     console.print(f"updated {item_id}")
 
 
+register_body_verb(_addr, lambda ctx: ctx.obj["id"])
 register_remove_verb(_addr, lambda ctx: ctx.obj["id"])
 register_comment_verbs(_addr, lambda ctx: ctx.obj["id"])
 register_status_verb(_addr, lambda ctx: ctx.obj["id"])
