@@ -638,3 +638,39 @@ class DefaultRoleMoveResult:
     item: Item
     cleared: list[str]
     changed: bool
+
+
+@dataclass(frozen=True)
+class FoundComment:
+    """The comment a hash prefix addresses: its item, discussion scope (``""`` for the item's
+    own, ``<kind>:<local_id>`` for a sub-entity's), the duplicate group in file order and the
+    group's displayed hash."""
+
+    item: Item
+    scope: str
+    group: list[Comment]
+    shown: str
+
+
+@dataclass(frozen=True)
+class EditedComment:
+    """The outcome of ``comment <hash> edit``: the comment before, the one now stored (same as
+    before when the text did not change) and whether anything was written."""
+
+    item: Item
+    scope: str
+    old: Comment
+    old_shown: str
+    new: Comment
+    new_shown: str
+    changed: bool
+
+
+@dataclass(frozen=True)
+class RemovedComments:
+    """The outcome of ``comment <hash> remove``: every member of the group, as they were."""
+
+    item: Item
+    scope: str
+    removed: list[Comment]
+    shown: str

@@ -25,7 +25,7 @@ from squads._models import _markers as markers
 from squads._models._participants import SLUG_PATTERN, require_valid_slug
 from squads._models._subentity import SubEntity
 from squads._rendering._engine import render
-from squads._sections import get_section, replace_section
+from squads._sections import get_section, replace_section, split_lines
 from squads._workflow import WorkflowSpec, bundled_spec
 
 _MENTION_RE = re.compile(r"(?<![A-Za-z0-9_])@([a-z0-9][a-z0-9-]*)")
@@ -42,7 +42,6 @@ _HASH_DOMAIN = "sq-comment-1"
 SHORT_HASH_LENGTH = 7
 MIN_HASH_PREFIX = 4
 
-_LINE_RE = re.compile(r"[^\r\n]*(?:\r\n|\r|\n)|[^\r\n]+")
 _HEX_RE = re.compile(r"[0-9a-fA-F]+")
 
 
@@ -74,7 +73,7 @@ def format_comment(
     mark = f", edited {edited_ts}" if edited_ts else ""
     lines = [f"- [{timestamp_iso}{mark}] `{slug}` {shown}:"]
     for msg in messages:
-        # split as the readers do, so no line an author writes can land at column 0
+        # split on every break str.splitlines knows, so no author line can land at column 0
         first, *rest = msg.splitlines() or [""]
         lines.append(f"  - {first}")
         # indent *every* continuation line (blanks included) to the bullet's content column, so a
@@ -98,7 +97,7 @@ class Comment:
 
 def _region_lines(region: str) -> list[str]:
     """*region*'s lines with their terminators (CRLF, CR and LF alike), none merged or lost."""
-    return _LINE_RE.findall(region)
+    return split_lines(region, keepends=True)
 
 
 def _content(line: str) -> str:
@@ -129,8 +128,9 @@ def comment_hash(sequence_id: int, scope: str, slug: str, timestamp: str, text: 
 def split_discussion(region: str, *, sequence_id: int, scope: str = "") -> list[Comment]:
     """Parse a discussion region (the content between sq:discussion markers) into Comment objects.
 
-    Each comment starts with ``- [TIMESTAMP] `slug` Author:`` and is followed by indented bullet
-    lines (``  - text`` or continuation lines ``    text``).  The body field preserves the bullets
+    Each comment starts with ``- [TIMESTAMP] `slug` Author:`` (``- [TIMESTAMP, edited TIMESTAMP]
+    ...`` once edited) and is followed by indented bullet lines (``  - text`` or continuation
+    lines ``    text``).  The body field preserves the bullets
     as-is (including any fenced code blocks), stripping only the leading 2-space indent level so
     it reads as standalone markdown.
 
@@ -235,14 +235,30 @@ def author_label(cmt: Comment) -> str:
     return cmt.author if cmt.author == cmt.author_slug else f"{cmt.author} ({cmt.author_slug})"
 
 
-def comment_json(cmt: Comment) -> dict[str, str]:
-    """One discussion entry for ``--json``: the display name, the permanent slug, time and body."""
+def comment_json(cmt: Comment, short_hash: str) -> dict[str, str | None]:
+    """One discussion entry for ``--json``: the display name, the permanent slug, time, edit
+    time, full and displayed hash, and body."""
     return {
         "author": cmt.author,
         "author_slug": cmt.author_slug,
         "ts": cmt.timestamp,
+        "edited_ts": cmt.edited_ts,
+        "hash": cmt.hash,
+        "short_hash": short_hash,
         "body": cmt.body,
     }
+
+
+def comments_json(comments: Sequence[Comment]) -> list[dict[str, str | None]]:
+    """:func:`comment_json` for a whole discussion, with hashes shown at the scope's length."""
+    return [
+        comment_json(c, short) for c, short in zip(comments, short_hashes(comments), strict=True)
+    ]
+
+
+def edited_suffix(cmt: Comment) -> str:
+    """``" (edited <ts>)"`` for an edited comment, else nothing."""
+    return f" (edited {cmt.edited_ts})" if cmt.edited_ts else ""
 
 
 def match_comment_header(line: str) -> tuple[str, str, str] | None:
@@ -266,7 +282,13 @@ def legacy_header_lines(region: str) -> list[tuple[int, str]]:
     ]
 
 
-def replace_comments(region: str, changes: Sequence[tuple[Comment, str | None]]) -> str:
+def replace_comments(
+    region: str,
+    changes: Sequence[tuple[Comment, str | None]],
+    *,
+    sequence_id: int,
+    scope: str = "",
+) -> str:
     """*region* with the given comments replaced by an entry or, for ``None``, removed.
 
     Each comment is edited by its line span (header to the next header); every other line, the
@@ -274,7 +296,15 @@ def replace_comments(region: str, changes: Sequence[tuple[Comment, str | None]])
     comment and takes the line terminator of the header it replaces. A removal takes the comment
     and the blank lines after it; the last comment, when nothing followed it, takes the blank
     lines before it instead (unless it is the first comment, whose predecessor is the preamble).
+
+    A span is valid only against the exact string it was parsed from. *region* is parsed again
+    here, and a change whose comment is not the one now at its span (same hash) is refused.
     """
+    current = {c.span: c for c in split_discussion(region, sequence_id=sequence_id, scope=scope)}
+    for cmt, _ in changes:
+        found = current.get(cmt.span)
+        if found is None or found.hash != cmt.hash:
+            raise SquadsError("the discussion changed since the comment was read; read it again")
     lines = _region_lines(region)
     first_head = next(
         (i for i, ln in enumerate(lines) if _COMMENT_HEADER_RE.match(_content(ln))), len(lines)

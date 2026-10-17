@@ -7,6 +7,7 @@ import itertools
 import pytest
 
 from squads import _discussion as discussion
+from squads._errors import SquadsError
 
 TS = "2026-06-07T10:00:00Z"
 EDIT_TS = "2026-06-08T09:00:00Z"
@@ -36,7 +37,7 @@ def _region(entries: list[str], layout: str, eol: str, preamble: str) -> str:
 
 POSITIONS = {"first": 0, "middle": 1, "last": 2}
 LAYOUTS = ["compact", "blank-between", "blank-after"]
-EOLS = {"lf": "\n", "crlf": "\r\n"}
+EOLS = {"lf": "\n", "crlf": "\r\n", "cr": "\r"}
 PREAMBLES = {"no-preamble": "", "preamble": "Notes before the first comment."}
 
 
@@ -57,7 +58,7 @@ def test_removing_a_comment_leaves_every_other_line_byte_identical(
     survivors = [e for i, e in enumerate(entries) if i != at]
     cmts = discussion.split_discussion(region, sequence_id=1)
 
-    out = discussion.replace_comments(region, [(cmts[at], None)])
+    out = discussion.replace_comments(region, [(cmts[at], None)], sequence_id=1)
 
     assert out == _region(survivors, layout, EOLS[eol], PREAMBLES[pre])
 
@@ -72,7 +73,7 @@ def test_replacing_a_comment_leaves_every_other_line_byte_identical(
     cmts = discussion.split_discussion(region, sequence_id=1)
     new = _entry(at, "multi-line", edited=EDIT_TS)
 
-    out = discussion.replace_comments(region, [(cmts[at], new)])
+    out = discussion.replace_comments(region, [(cmts[at], new)], sequence_id=1)
 
     expected = [new if i == at else e for i, e in enumerate(entries)]
     assert out == _region(expected, layout, EOLS[eol], PREAMBLES[pre])
@@ -87,7 +88,7 @@ def test_removing_the_only_comment_leaves_the_preamble_alone(
     region = _region([_entry(0, "single")], layout, eol, pre)
     (cmt,) = discussion.split_discussion(region, sequence_id=1)
 
-    out = discussion.replace_comments(region, [(cmt, None)])
+    out = discussion.replace_comments(region, [(cmt, None)], sequence_id=1)
 
     assert out == eol + (pre + eol + eol if pre else "")
 
@@ -96,7 +97,7 @@ def test_a_region_without_a_final_newline_keeps_that_after_a_replacement() -> No
     region = "\n" + _entry(0, "single") + "\n" + _entry(1, "single")
     cmts = discussion.split_discussion(region, sequence_id=1)
 
-    out = discussion.replace_comments(region, [(cmts[1], _entry(1, "multi-line"))])
+    out = discussion.replace_comments(region, [(cmts[1], _entry(1, "multi-line"))], sequence_id=1)
 
     assert out == "\n" + _entry(0, "single") + "\n" + _entry(1, "multi-line")
 
@@ -108,7 +109,7 @@ def test_a_group_is_edited_into_its_first_member_and_loses_the_rest() -> None:
     assert first.hash == copy.hash
 
     new = _entry(0, "multi-line", edited=EDIT_TS)
-    out = discussion.replace_comments(region, [(first, new), (copy, None)])
+    out = discussion.replace_comments(region, [(first, new), (copy, None)], sequence_id=1)
 
     assert out == "\n" + "\n".join([new, _entry(1, "single")]) + "\n"
 
@@ -119,7 +120,7 @@ def test_removing_a_whole_group_leaves_the_others_in_order() -> None:
     region = "\n" + "\n".join(entries) + "\n"
     cmts = discussion.split_discussion(region, sequence_id=1)
 
-    out = discussion.replace_comments(region, [(cmts[1], None), (cmts[3], None)])
+    out = discussion.replace_comments(region, [(cmts[1], None), (cmts[3], None)], sequence_id=1)
 
     assert out == "\n" + "\n".join([entries[0], entries[2]]) + "\n"
 
@@ -128,7 +129,7 @@ def test_a_replacement_in_a_crlf_region_is_written_with_crlf() -> None:
     region = _region([_entry(0, "single")], "compact", "\r\n", "")
     (cmt,) = discussion.split_discussion(region, sequence_id=1)
 
-    out = discussion.replace_comments(region, [(cmt, _entry(0, "multi-line"))])
+    out = discussion.replace_comments(region, [(cmt, _entry(0, "multi-line"))], sequence_id=1)
 
     assert "\n" not in out.replace("\r\n", "")
 
@@ -156,7 +157,9 @@ def test_a_second_edit_replaces_the_mark_instead_of_adding_one() -> None:
     later = "2026-06-09T12:00:00Z"
 
     out = discussion.replace_comments(
-        first, [(cmt, discussion.format_comment(TS, "qa", "Mara", ["y"], edited_ts=later))]
+        first,
+        [(cmt, discussion.format_comment(TS, "qa", "Mara", ["y"], edited_ts=later))],
+        sequence_id=1,
     )
 
     (after,) = discussion.split_discussion(out, sequence_id=1)
@@ -187,3 +190,67 @@ def test_a_column_zero_line_that_opens_like_a_header_but_is_not_one_is_found(
     region: str, found: list[int]
 ) -> None:
     assert [n for n, _ in discussion.legacy_header_lines(region)] == found
+
+
+# ------------------------------------------------------------------ mixed terminators
+
+
+def test_a_replacement_takes_its_headers_terminator_and_neighbours_keep_theirs() -> None:
+    a, b, c = (_entry(n, "single") for n in range(3))
+    region = f"\n{a}\n{b.splitlines()[0]}\r\n{b.splitlines()[1]}\n{c}\n"
+    cmts = discussion.split_discussion(region, sequence_id=1)
+    new = _entry(1, "multi-line")
+
+    out = discussion.replace_comments(region, [(cmts[1], new)], sequence_id=1)
+
+    assert out == f"\n{a}\n" + new.replace("\n", "\r\n") + f"\r\n{c}\n"
+
+
+def test_removing_a_comment_in_a_mixed_file_keeps_the_neighbours_bytes() -> None:
+    a, b, c = (_entry(n, "single") for n in range(3))
+    region = f"\n{a}\r\n{b}\n{c}\r\n"
+    cmts = discussion.split_discussion(region, sequence_id=1)
+
+    out = discussion.replace_comments(region, [(cmts[1], None)], sequence_id=1)
+
+    assert out == f"\n{a}\r\n{c}\r\n"
+
+
+# ------------------------------------------------------------------ spans of another string
+
+
+def _two() -> str:
+    return "\n" + _entry(0, "single") + "\n" + _entry(1, "single") + "\n"
+
+
+@pytest.mark.parametrize(
+    ("read_as", "splice_into"),
+    [
+        pytest.param(
+            _two().strip("\n"), _two(), id="parsed-from-the-stripped-region-spliced-into-the-raw"
+        ),
+        pytest.param(
+            _two(), "\n" + _entry(9, "single") + _two(), id="a-comment-was-appended-above-since"
+        ),
+        pytest.param(
+            _two(), _two().replace("one line #1", "changed #1"), id="the-text-was-edited-since"
+        ),
+        pytest.param(_two(), "\n", id="the-region-was-emptied-since"),
+    ],
+)
+def test_a_span_from_another_string_is_refused_and_nothing_is_spliced(
+    read_as: str, splice_into: str
+) -> None:
+    target = discussion.split_discussion(read_as, sequence_id=1)[1]
+
+    with pytest.raises(SquadsError, match="read it again"):
+        discussion.replace_comments(splice_into, [(target, None)], sequence_id=1)
+
+
+def test_a_span_is_refused_under_another_scope_or_item() -> None:
+    region = _two()
+    target = discussion.split_discussion(region, sequence_id=1)[0]
+
+    for seq, scope in ((2, ""), (1, "subtask:ST1")):
+        with pytest.raises(SquadsError, match="read it again"):
+            discussion.replace_comments(region, [(target, None)], sequence_id=seq, scope=scope)

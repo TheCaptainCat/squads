@@ -628,23 +628,32 @@ def _is_styled() -> bool:
     return console.is_terminal and not console.no_color
 
 
-def _render_comments_plain(comments: list[discussion.Comment]) -> None:
+def _render_comments_plain(
+    comments: list[discussion.Comment], shorts: list[str] | None = None
+) -> None:
     """Render comments as plain delimited text (piped / NO_COLOR / --raw degradation).
 
     Uses raw (un-escaped) values because markup=False is in effect — e() escaping must not be
-    applied here or it will leak backslashes into the plain output.
+    applied here or it will leak backslashes into the plain output. ``shorts`` are the displayed
+    hashes, one per comment (the scope's, when the list is a part of it).
     """
-    for cmt in comments:
-        header = f"--- [{cmt.timestamp}] {discussion.author_label(cmt)} ---"
+    for cmt, short in zip(comments, shorts or discussion.short_hashes(comments), strict=True):
+        label = discussion.author_label(cmt)
+        header = f"--- {short} [{cmt.timestamp}] {label}{discussion.edited_suffix(cmt)} ---"
         console.print(header, markup=False, highlight=False)
         console.print(cmt.body, markup=False, highlight=False)
         console.print()
 
 
-def _render_comments_styled(comments: list[discussion.Comment]) -> None:
+def _render_comments_styled(
+    comments: list[discussion.Comment], shorts: list[str] | None = None
+) -> None:
     """Render each comment as a Rich Panel (TTY, color enabled, not --raw)."""
-    for cmt in comments:
-        title = f"{e(cmt.timestamp)}  {e(discussion.author_label(cmt))}"
+    for cmt, short in zip(comments, shorts or discussion.short_hashes(comments), strict=True):
+        title = (
+            f"{e(short)}  {e(cmt.timestamp)}  {e(discussion.author_label(cmt))}"
+            f"{e(discussion.edited_suffix(cmt))}"
+        )
         # Body is parsed markdown; pass through Markdown() so bullets/code are styled.
         # We do NOT escape here — the body is trusted markdown content, not user-input markup.
         console.print(Panel(Markdown(cmt.body), title=title, expand=False))
@@ -784,8 +793,11 @@ async def _print_full_panes(svc: Service, it: Item, *, styled: bool, comments: b
             if comments:
                 sub_cmts = detail.comments
                 if sub_cmts:
-                    for cmt in sub_cmts:
-                        cmt_title = f"{e(cmt.timestamp)}  {e(discussion.author_label(cmt))}"
+                    for cmt, short in zip(sub_cmts, discussion.short_hashes(sub_cmts), strict=True):
+                        cmt_title = (
+                            f"{e(short)}  {e(cmt.timestamp)}  {e(discussion.author_label(cmt))}"
+                            f"{e(discussion.edited_suffix(cmt))}"
+                        )
                         inner_renderables.append(
                             Panel(Markdown(cmt.body), title=cmt_title, expand=False)
                         )
@@ -1169,14 +1181,14 @@ def build_subentity_json(spec: WorkflowSpec, kind: str, detail: SubentityDetail)
 
     Frontmatter fields (``local_id``/``title``/``status``/``assignee``/``severity``/
     ``story``/``extra``) plus ``body``, the generic per-field ``badges`` map, and an additive
-    ``discussion`` array (ordered ``{author, author_slug, ts, body}``, same shape/order as the
-    item-level one) — generic across every sub-entity kind, since sub-entity discussion is not
-    per-kind.
+    ``discussion`` array (ordered ``{author, author_slug, ts, edited_ts, hash, short_hash,
+    body}``, same shape/order as the item-level one) — generic across every sub-entity kind,
+    since sub-entity discussion is not per-kind.
     """
     data: dict[str, Any] = json.loads(detail.info.model_dump_json())
     data["body"] = detail.body
     data["badges"] = badges.resolve_badges(spec, kind, detail.info.badge_value)
-    data["discussion"] = [discussion.comment_json(cmt) for cmt in detail.comments]
+    data["discussion"] = discussion.comments_json(detail.comments)
     return data
 
 
@@ -1184,22 +1196,17 @@ async def build_item_json(svc: Service, it: Item) -> str:
     """The ``show --json`` payload: frontmatter fields plus body/discussion — additive only.
 
     Adds top-level ``body`` (raw body markdown), ``discussion`` (ordered ``{author, author_slug,
-    ts, body}`` list), and ``badges`` (the generic per-item badge map, keyed by field
-    code — see :func:`squads._badges.resolve_badges`); plus, per ``subentities`` entry, the
-    shared shape built by :func:`build_subentity_json` (adds ``body``, ``badges``, and
-    ``discussion``). Added unconditionally — not gated by ``--comments``/``--full`` — so the
-    existing invariant that ``show --json`` is byte-identical across
-    ``--raw``/``--comments``/``--full`` still holds. Nothing existing is renamed or removed.
+    ts, edited_ts, hash, short_hash, body}`` list), and ``badges`` (the generic per-item badge
+    map, keyed by field code — see :func:`squads._badges.resolve_badges`); plus, per
+    ``subentities`` entry, the shared shape built by :func:`build_subentity_json` (adds
+    ``body``, ``badges``, and ``discussion``). Added unconditionally — not gated by
+    ``--comments``/``--full`` — so the existing invariant that ``show --json`` is byte-identical
+    across ``--raw``/``--comments``/``--full`` still holds. Nothing existing is renamed or removed.
     """
     spec = get_active_spec()
     payload: dict[str, Any] = it.to_row()
     payload["body"] = await svc.read_body(it.id)
-    payload["discussion"] = [
-        discussion.comment_json(cmt)
-        for cmt in discussion.split_discussion(
-            await svc.read_discussion(it.id), sequence_id=it.sequence_id
-        )
-    ]
+    payload["discussion"] = discussion.comments_json(await svc.comments(it.id))
     payload["badges"] = badges.resolve_badges(spec, it.type, it.badge_value)
     kind = spec.item_subentity_kind(it.type)
     if kind:
@@ -2079,13 +2086,51 @@ def register_body_verb(addr_app: typer.Typer, id_from_ctx: Callable[[typer.Conte
     addr_app.command("body")(body)
 
 
-def register_comment_verbs(app: typer.Typer, id_from_ctx: Callable[[typer.Context], str]) -> None:
-    """Register ``comment`` and ``comments`` on an addressed subgroup: a work item's, or a
-    role's, skill's or operator's. One body for all of them, so a comment has the same author,
-    header and ``@mention`` rules wherever it is written. ``id_from_ctx`` is the caller's own
-    address convention, as for :func:`register_status_verb`."""
+class CommentGroup(typer.core.TyperGroup):
+    """The ``comment`` group: appends when given ``-m``/``--file``, and routes a leading hash to
+    the hidden ``_addr`` subgroup carrying ``show``, ``edit`` and ``remove``.
 
-    @app.command("comment")
+    Only a bare positional token is read as a hash; a message arrives as an option value, which
+    the parser has consumed by then.
+    """
+
+    def _click_resolve_command(self, ctx: Any, args: list[str]) -> Any:  # type: ignore[override]
+        token = args[0]
+        addr_cmd = self.get_command(ctx, "_addr")
+        if addr_cmd is None or ctx.resilient_parsing:
+            return super()._click_resolve_command(ctx, args)
+        if not discussion.is_hash_token(token):
+            err_console.print(
+                f"[red]error:[/red] {e(repr(token))} is not a comment hash (4 or more hex "
+                "characters); a new comment takes -m or --file",
+                soft_wrap=True,
+            )
+            raise typer.Exit(2)
+        registered: dict[str, Any] = getattr(addr_cmd, "commands", {})
+        verbs = [n for n, c in registered.items() if not c.hidden]
+        if len(args) < 2 or not (args[1].startswith("-") or args[1] in verbs):
+            err_console.print(
+                f"[red]error:[/red] missing verb after {e(token)}: {'|'.join(verbs)}",
+                soft_wrap=True,
+            )
+            raise typer.Exit(2)
+        return "<hash>", addr_cmd, args
+
+
+type CommentTarget = Callable[[typer.Context], tuple[str, tuple[str, str] | None]]
+"""A caller's address convention: the item id and, for a sub-entity, its ``(kind, local_id)``."""
+
+
+def _comment_label(item_id: str, sub: tuple[str, str] | None) -> str:
+    return item_id if sub is None else f"{item_id} {sub[1]}"
+
+
+def _first_line(cmt: discussion.Comment) -> str:
+    return (cmt.body.splitlines() or [""])[0]
+
+
+def _register_comment_append(comment_app: typer.Typer, target: CommentTarget) -> None:
+    @comment_app.callback(invoke_without_command=True)
     @command
     async def comment(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
         ctx: typer.Context,
@@ -2095,13 +2140,159 @@ def register_comment_verbs(app: typer.Typer, id_from_ctx: Callable[[typer.Contex
             None, "--as", help="Author: a role slug or 'op-<slug>' (required)."
         ),
     ) -> None:
-        """Append a timestamped comment to the discussion."""
+        """Append a timestamped comment to the discussion, or work on one by its hash.
+
+        Append: comment -m TEXT [-m TEXT ...] --as SLUG, or comment --file PATH --as SLUG.
+
+        By hash: comment HASH show|edit|remove. HASH is any 4 or more leading hex characters.
+
+        -m, --file and --as go after the verb. Only a comment's author can edit or remove it.
+        """
+
+        if ctx.invoked_subcommand is not None:
+            if message or file or as_:
+                err_console.print(
+                    "[red]error:[/red] -m, --file and --as go after the verb: "
+                    "comment HASH edit -m TEXT --as SLUG",
+                    soft_wrap=True,
+                )
+                raise typer.Exit(2)
+            return
         svc = get_service()
         slug = await resolve_actor_or_raise(require_as(as_), svc)
         actor.set_actor(slug)
-        item_id = id_from_ctx(ctx)
-        await svc.comment(item_id, resolve_comment_messages(message or None, file), as_slug=slug)
-        console.print(f"commented on {item_id} as {slug}")
+        item_id, sub = target(ctx)
+        await svc.comment(
+            item_id, resolve_comment_messages(message or None, file), as_slug=slug, sub=sub
+        )
+        console.print(f"commented on {_comment_label(item_id, sub)} as {slug}")
+
+
+def _register_comment_show(addr_app: typer.Typer, target: CommentTarget) -> None:
+    @addr_app.command("show")
+    @command
+    async def show(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
+        ctx: typer.Context,
+        json_out: bool = typer.Option(False, "--json"),
+        raw: bool = typer.Option(False, "--raw", help="Plain text even on a terminal."),
+    ) -> None:
+        """Show one comment."""
+        item_id, sub = target(ctx)
+        found = await get_service().find_comment(item_id, ctx.obj["hash"], sub=sub)
+        first = found.group[0]
+        if json_out:
+            payload = {
+                **discussion.comment_json(first, found.shown),
+                "item": found.item.id,
+                "scope": found.scope or None,
+                "copies": len(found.group),
+            }
+            print_json_clean(json.dumps(payload))
+            return
+        where = found.item.id if sub is None else f"{found.item.id} · {sub[0]} {sub[1]}"
+        console.print(where, markup=False, highlight=False)
+        render = _render_comments_styled if _is_styled() and not raw else _render_comments_plain
+        render([first], [found.shown])
+
+
+def _register_comment_edit(addr_app: typer.Typer, target: CommentTarget) -> None:
+    @addr_app.command("edit")
+    @command
+    async def edit(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
+        ctx: typer.Context,
+        message: list[str] = typer.Option(None, "-m", "--message", help="The new text."),
+        file: str | None = typer.Option(None, "--file", help="New text from a file ('-' = stdin)."),
+        as_: str | None = typer.Option(None, "--as", help="Its author (required)."),
+        json_out: bool = typer.Option(False, "--json"),
+    ) -> None:
+        """Replace a comment's text. Its header keeps the time and author and gains an edit mark."""
+        svc = get_service()
+        slug = await resolve_actor_or_raise(require_as(as_), svc)
+        actor.set_actor(slug)
+        item_id, sub = target(ctx)
+        messages = resolve_comment_messages(message or None, file)
+        res = await svc.edit_comment(item_id, ctx.obj["hash"], messages, as_slug=slug, sub=sub)
+        label = _comment_label(item_id, sub)
+        if json_out:
+            print_json_clean(json.dumps(discussion.comment_json(res.new, res.new_shown)))
+        elif res.changed:
+            console.print(
+                f"edited {res.old_shown} on {label} ({slug}, {res.old.timestamp}); "
+                f"now {res.new_shown}",
+                markup=False,
+                highlight=False,
+            )
+        else:
+            console.print(f"{res.old_shown} on {label} is unchanged; nothing written")
+
+
+def _register_comment_remove(addr_app: typer.Typer, target: CommentTarget) -> None:
+    @addr_app.command("remove")
+    @command
+    async def remove(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
+        ctx: typer.Context,
+        as_: str | None = typer.Option(None, "--as", help="Its author (required)."),
+        yes: bool = typer.Option(False, "--yes", help="Skip the confirmation prompt."),
+        json_out: bool = typer.Option(False, "--json"),
+    ) -> None:
+        """Delete a comment (every copy of it, when it was written twice)."""
+        svc = get_service()
+        slug = await resolve_actor_or_raise(require_as(as_), svc)
+        actor.set_actor(slug)
+        item_id, sub = target(ctx)
+        found = await svc.find_comment(item_id, ctx.obj["hash"], sub=sub, as_slug=slug)
+        if not yes:
+            for cmt in found.group:
+                console.print(
+                    f"{cmt.timestamp} {cmt.author_slug}: {_first_line(cmt)}",
+                    markup=False,
+                    highlight=False,
+                )
+            n = len(found.group)
+            typer.confirm(
+                f"Remove {'this comment' if n == 1 else f'these {n} comments'}?", abort=True
+            )
+        res = await svc.remove_comment(item_id, ctx.obj["hash"], as_slug=slug, sub=sub)
+        if json_out:
+            print_json_clean(
+                json.dumps([discussion.comment_json(c, res.shown) for c in res.removed])
+            )
+            return
+        count = "" if len(res.removed) == 1 else f" ({len(res.removed)} copies)"
+        console.print(f"removed {res.shown} from {_comment_label(item_id, sub)}{count}")
+
+
+def register_comment_group(app: typer.Typer, target: CommentTarget) -> None:
+    """Register ``comment`` on an addressed subgroup as the group of :class:`CommentGroup`.
+
+    One body for every level (a work item, a sub-entity, a role, skill or operator), so a comment
+    has the same author, header and ``@mention`` rules wherever it is written or changed.
+    """
+    comment_app = typer.Typer(cls=CommentGroup, add_completion=False)
+    addr_app = typer.Typer(add_completion=False)
+
+    _register_comment_append(comment_app, target)
+
+    @addr_app.callback()
+    def _hash(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
+        ctx: typer.Context,
+        hash_: str = typer.Argument(..., metavar="HASH", help="4 or more leading hex characters."),
+    ) -> None:
+        ctx.obj = {**ctx.obj, "hash": hash_}
+
+    _register_comment_show(addr_app, target)
+    _register_comment_edit(addr_app, target)
+    _register_comment_remove(addr_app, target)
+    comment_app.add_typer(addr_app, name="_addr", hidden=True)
+    app.add_typer(comment_app, name="comment")
+
+
+def register_comment_verbs(app: typer.Typer, id_from_ctx: Callable[[typer.Context], str]) -> None:
+    """Register ``comment`` and ``comments`` on an addressed subgroup: a work item's, or a
+    role's, skill's or operator's. ``id_from_ctx`` is the caller's own address convention, as for
+    :func:`register_status_verb`."""
+
+    register_comment_group(app, lambda ctx: (id_from_ctx(ctx), None))
 
     @app.command("comments")
     @command
@@ -2112,7 +2303,7 @@ def register_comment_verbs(app: typer.Typer, id_from_ctx: Callable[[typer.Contex
         `show --comments` renders the same discussion inline alongside the rest)."""
         cmt_list = await get_service().comments(id_from_ctx(ctx))
         if json_out:
-            print_json_clean(json.dumps([discussion.comment_json(c) for c in cmt_list]))
+            print_json_clean(json.dumps(discussion.comments_json(cmt_list)))
             return
         print_comments(cmt_list)
 
