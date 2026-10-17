@@ -1200,9 +1200,8 @@ def _role_override_shadows_bundled(
     Without this, a wholly custom, never-``sq dev add``-created role whose slug merely happens
     to end in ``-dev`` (activated, so a roster item exists and carries no ``tech``)
     would be misread as shadowing the generated dev-pool base by slug shape alone — exactly
-    the "skipped for the whole ``-dev`` suffix space" false positive the stored-fact-first fix
-    (see ``tests/unit/test_dev_base_gating_reads_the_stored_fact_first.py``) closed for every
-    other consumer of a role base.
+    the "skipped for the whole ``-dev`` suffix space" false positive, which every other
+    consumer of a role base avoids by reading the stored fact first.
 
     The roster item's base is read against the bundled catalog alone (no squad directory), so a
     role the project catalog declares does not count as shadowing a bundled one.

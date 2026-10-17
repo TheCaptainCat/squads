@@ -1,6 +1,6 @@
 """``sq check`` reports each role and operator, live or retired, whose slug is outside its
 grammar or shared inside the author namespace, one error per entry with the replacing commands.
-Creation can no longer produce such an entry, so the tests build them with the creation check
+Creation cannot produce such an entry, so the tests build them with the creation check
 switched off, the way a hand-edited file or a merge would."""
 
 import re

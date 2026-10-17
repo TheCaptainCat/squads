@@ -1610,7 +1610,7 @@ class MaintenanceMixin(ServiceCore):
             )
         except RoleNotFoundError:
             return None  # orphaned custom role item: no catalog entry, no override file
-        # The developer marker lives on the item, and it is what decides whether the
+        # Whether the item carries ``tech`` (a templated developer) decides whether the
         # dev-only column (``model``) is part of this merge — see ``RoleDef.to_attributes``.
         catalog_attributes = catalog_role.to_attributes(templated=attrs.is_templated(item))
         item_fields = catalog_role.to_item_fields()

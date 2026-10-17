@@ -49,8 +49,8 @@ async def test_sync_never_mutates_an_item_a_caller_is_still_holding_from_list_it
         assert not skipped, skipped
 
         # The object this test is still holding — handed out by list_items before sync ran —
-        # must be exactly as it was. If sync mutated the snapshot's own alias in place (the
-        # bug the copy fixes), this would now carry the reconciled mission.
+        # must be exactly as it was. If sync mutated the snapshot's own alias in place, this
+        # would now carry the reconciled mission.
         assert held.description == STALE_MISSION
 
     # The commit itself is real: a fresh read (a new Service, no scope) sees the mission

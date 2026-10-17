@@ -9,8 +9,8 @@ release could already have one of those values *stored* as the role item's ``tit
 The seams a role item's stored ``title`` passes through are :func:`role_base_from_item` and
 :func:`dev_base_from_item` (both in ``squads._roles._resolver``, used by ``sq sync``'s catalog
 refresh and ``sq role <slug> show``) and :func:`pinned_name_of`. None of them must ever hand a
-stored blank to :class:`RoleDef.__post_init__` — that would weaponise an input-side refusal
-against a fact this codebase itself used to write and call healthy. Each must instead self-heal
+stored blank to :class:`RoleDef.__post_init__` — that would turn an input-side refusal
+against a stored value that ``sq sync`` accepts. Each must instead self-heal
 to the value the next full ``sq sync`` converges the item onto: the catalog's name for a
 predefined role, the generated pool name for a developer role.
 

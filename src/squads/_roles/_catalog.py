@@ -99,7 +99,7 @@ class RoleDef:
         """The attributes stored on the ROLE item — see :data:`_ATTRIBUTE_FIELDS` for why this
         is a short list and what answers the rest.
 
-        *templated* selects whether :data:`_DEV_ATTRIBUTE_FIELDS` (today: ``model``) is written
+        *templated* selects whether :data:`_DEV_ATTRIBUTE_FIELDS` (``model``) is written
         too. It is a parameter rather than derived from ``self.slug`` deliberately: the shape
         lives on the *item* (it carries ``tech``), and every caller already knows which shape it
         is writing.
