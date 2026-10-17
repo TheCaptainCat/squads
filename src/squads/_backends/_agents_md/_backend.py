@@ -58,8 +58,9 @@ class AgentsMdBackend(AgentBackend):
     fetch command: clause 2 asks whether a runtime fetch can substitute, and a host that cannot
     run a command has no fetch available.
     Question 2: the expressible set is identity plus prose only — no ``model``, no ``color``, no
-    capability-boundary field, no preload list: the compiled document has no per-entry frontmatter
-    at all, only the roster/mission text ``write_managed`` renders.
+    capability-boundary field, no preload list, and no place for a skill's ``operator_invocable``
+    (no slash menu, no per-skill entry): the compiled document has no per-entry frontmatter at
+    all, only the roster/mission text ``write_managed`` renders.
     Question 3: not applicable — there is no per-entry file for a host to discover and dispatch;
     ``AGENTS.md`` is one whole document, found the way the host finds any file.
     Question 4: no capability boundary is expressed (:meth:`restriction_fragment`'s inherited
@@ -106,6 +107,7 @@ class AgentsMdBackend(AgentBackend):
                 "full_name": r.full_name,
                 "title": r.title,
                 "slug": r.slug,
+                "pronouns": r.pronouns,
                 "capabilities": list(r.capabilities),
                 "mission": r.mission,
                 "responsibilities": list(r.responsibilities),
@@ -124,7 +126,10 @@ class AgentsMdBackend(AgentBackend):
             developer_slugs=[
                 r.slug for r in developer_roles(roster, load_role_catalog(ctx.squad_dir))
             ],
-            operators=[{"full_name": o.full_name, "slug": o.slug} for o in operators],
+            operators=[
+                {"full_name": o.full_name, "slug": o.slug, "pronouns": o.pronouns}
+                for o in operators
+            ],
             spec=spec,
             # The ACTIVE (merged) playbook, so the included cheatsheet's authoring bullets
             # resolve an override-declared authoring role rather than the bundled lanes only.

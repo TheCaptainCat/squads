@@ -8,6 +8,7 @@
  * simply renders as plain text rather than breaking the preview.
  */
 import type { SqListItem } from '../types';
+import { nameWithPronouns, NO_PRONOUNS_CONTEXT, type PronounsContext } from './pronouns';
 
 /** One resolvable role mention target: the role item's id — the mention's navigation target,
  * routed through the same `a.sq-item-link` click->navigate mechanism plain item-id references
@@ -28,23 +29,26 @@ export const NO_ROLE_DIRECTORY: RoleDirectory = new Map();
  * list --json`'s `description` field on a role row) — "useful specifics from the role" per the
  * bug report, without reaching into the fuller `responsibilities` a plain hover can't usefully
  * lay out. */
-function hoverTextFor(role: SqListItem): string {
+function hoverTextFor(role: SqListItem, pronouns: PronounsContext): string {
   const mission = role.description.trim();
-  return mission === ''
-    ? `${role.title} (${role.slug})`
-    : `${role.title} (${role.slug}) — ${mission}`;
+  const name = nameWithPronouns(role.title, role.slug, pronouns.pronouns, pronouns.enabled);
+  return mission === '' ? `${name} (${role.slug})` : `${name} (${role.slug}) — ${mission}`;
 }
 
 /** Builds the slug -> mention lookup from a `sq list -t role --json` fetch. Non-role rows (there
  * should be none, given the `-t role` filter, but a stale/misbehaving `sq` isn't trusted blindly)
- * are skipped rather than asserted against. */
-export function buildRoleDirectory(roles: readonly SqListItem[]): RoleDirectory {
+ * are skipped rather than asserted against. `pronouns`, when enabled, follows the name in the
+ * hover text. */
+export function buildRoleDirectory(
+  roles: readonly SqListItem[],
+  pronouns: PronounsContext = NO_PRONOUNS_CONTEXT,
+): RoleDirectory {
   const map = new Map<string, RoleMention>();
   for (const role of roles) {
     if (role.type !== 'role') {
       continue;
     }
-    map.set(role.slug, { id: role.id, hoverText: hoverTextFor(role) });
+    map.set(role.slug, { id: role.id, hoverText: hoverTextFor(role, pronouns) });
   }
   return map;
 }

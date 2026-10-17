@@ -57,13 +57,14 @@ from typing import Any, cast
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._models import _attributes as attrs
 from squads._models._item import Item
+from squads._pronouns import pronouns
 from squads._roles._catalog import (
     PREDEFINED,
     RoleDef,
     dev_role_from_pool,
     role_spec_to_def,
 )
-from squads._roles._loader import VALID_MODELS, load_role_catalog
+from squads._roles._loader import VALID_MODELS, load_role_catalog, refuse_pronouns_key
 from squads._roles._models import CAPABILITY_NAME_PATTERN, RoleSpec, malformed_capability_names
 from squads._specmerge import RawMapping, describe_spec_error, merge_override
 
@@ -198,6 +199,7 @@ def _apply_override(base: RoleDef | None, data: RawMapping, slug: str, origin: s
                 + ", ".join(missing)
             )
 
+    refuse_pronouns_key({**data, "slug": slug}, f"invalid role override {origin}")
     declared_slug = data.get("slug")
     if declared_slug is not None and declared_slug != slug:
         raise SquadsError(
@@ -420,11 +422,20 @@ def resolve_role_for_item(item: Item, squad_dir: Path | None) -> RoleDef:
     """
     base = role_base_from_item(item, squad_dir)
     try:
-        return resolve_role_with_base(
+        role = resolve_role_with_base(
             item.slug, squad_dir, base=base, pinned_name=pinned_name_of(item)
         )
     except RoleNotFoundError:
-        return RoleDef.from_item(item)
+        role = RoleDef.from_item(item)
+    return replace(role, pronouns=resolve_pronouns(pronouns(item), squad_dir))
+
+
+def resolve_pronouns(own: str | None, squad_dir: Path | None) -> str | None:
+    """A role's pronouns: its *own* value, else the role catalog document's declared
+    ``[defaults].pronouns``, else ``None``. The result is never written to an item."""
+    if own is not None:
+        return own
+    return load_role_catalog(squad_dir).defaults.pronouns
 
 
 def resolve_role_tolerantly(item: Item, squad_dir: Path | None) -> RoleDef:

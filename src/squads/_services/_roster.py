@@ -1,18 +1,22 @@
 """Agent roster: activating bundled roles, on-demand stack developers, and skills."""
 
+from dataclasses import replace as dc_replace
+
 from squads import _actor as actor
 from squads import _clock as clock
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
 from squads._models import _attributes as attrs
-from squads._models._attributes import AttributeKey
+from squads._models._attributes import AttributeKey, parse_invocable_choice
 from squads._models._item import Item
+from squads._pronouns import checked_pronouns
 from squads._roles._catalog import PROPOSED_DEVELOPER_SLUG_SUFFIX
 from squads._roles._loader import load_role_catalog
 from squads._roles._resolver import (
     holds_default_designation,
     resolve_dev_role,
+    resolve_pronouns,
     resolve_role,
 )
 from squads._services._base import ServiceCore
@@ -22,12 +26,15 @@ from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL
 
 
 class RosterMixin(ServiceCore):
-    async def activate_role(self, slug: str, *, name: str | None = None) -> Item:
+    async def activate_role(
+        self, slug: str, *, name: str | None = None, pronouns: str | None = None
+    ) -> Item:
         """Activate a bundled (or project-override) role.
 
         ``name`` overrides the ``RoleDef.full_name`` that would otherwise be used.  When omitted
         the name comes from the resolved ``RoleDef`` (which already reads project TOML overrides,
-        so a ``roles/<slug>.toml`` with ``full_name`` is also honoured).
+        so a ``roles/<slug>.toml`` with ``full_name`` is also honoured). ``pronouns`` is stored
+        on the new item; blank stores nothing.
 
         **Postcondition: the returned role is live.**  An existing *live* entry is returned
         untouched (activating twice is a no-op, which `init`/`adopt` rely on).  An existing
@@ -37,9 +44,15 @@ class RosterMixin(ServiceCore):
         for.  Returning it untouched instead would report an activation that did not happen.
         """
         role = resolve_role(slug, self.paths.squad_dir)
+        own_pronouns = checked_pronouns(pronouns)
         existing = await self.roster_item(ROSTER_ROLE, slug)
         if existing is not None:
             if existing.status in self.spec.live_statuses(ROSTER_ROLE):
+                if own_pronouns is not None:
+                    raise SquadsError(
+                        f"role {slug!r} is already active; change its pronouns with "
+                        f"`sq role {slug} update --pronouns <text>`"
+                    )
                 return existing
             raise SquadsError(
                 f"role {slug!r} already exists and is {existing.status} ({existing.id}); "
@@ -48,8 +61,6 @@ class RosterMixin(ServiceCore):
             )
         # Apply the explicit name override on top of whatever the resolver returned.
         if name is not None:
-            from dataclasses import replace as dc_replace
-
             role = dc_replace(role, full_name=name)
         res = await self.create(
             ROSTER_ROLE,
@@ -57,8 +68,9 @@ class RosterMixin(ServiceCore):
             description=role.mission,
             slug=role.slug,
             author=role.slug,  # an activated role authors itself
-            attributes=role.to_attributes(),
+            attributes={**role.to_attributes(), **self._pronouns_attribute(own_pronouns)},
         )
+        role = dc_replace(role, pronouns=resolve_pronouns(own_pronouns, self.paths.squad_dir))
         # Materialise iff live: a project whose roster lifecycle's own
         # `initial` is non-live gets a parked-then-activated entry with no files yet —
         # nothing here branches on *how* the entry got created, only on the status it holds.
@@ -75,7 +87,9 @@ class RosterMixin(ServiceCore):
         name: str | None = None,
         model: str | None = None,
         slug: str | None = None,
+        pronouns: str | None = None,
     ) -> Item:
+        own_pronouns = checked_pronouns(pronouns)
         roles = await self.list_items(item_type=ROSTER_ROLE)
         seq = sum(1 for it in roles if attrs.is_templated(it))
         role = resolve_dev_role(
@@ -105,8 +119,10 @@ class RosterMixin(ServiceCore):
             attributes={
                 **role.to_attributes(templated=True),
                 AttributeKey.TECH: tech,
+                **self._pronouns_attribute(own_pronouns),
             },
         )
+        role = dc_replace(role, pronouns=resolve_pronouns(own_pronouns, self.paths.squad_dir))
         # Materialise iff live — see the matching comment in activate_role.
         if res.item.status in self.spec.live_statuses(ROSTER_ROLE):
             ctx = self._ctx
@@ -123,7 +139,9 @@ class RosterMixin(ServiceCore):
         when_to_use: str = "",
         allowed_tools: str = "",
         parent: str | None = None,
+        operator_invocable: str | None = None,
     ) -> Item:
+        chosen = None if operator_invocable is None else parse_invocable_choice(operator_invocable)
         slug = slugify(name)
         await self._refuse_duplicate_slug(ROSTER_SKILL, "a skill", slug, legacy_slugify(name))
         res = await self.create(
@@ -136,6 +154,7 @@ class RosterMixin(ServiceCore):
             attributes={
                 AttributeKey.WHEN_TO_USE: when_to_use,
                 AttributeKey.ALLOWED_TOOLS: allowed_tools,
+                **({} if chosen is None else {AttributeKey.OPERATOR_INVOCABLE: chosen}),
             },
         )
         # Materialise iff live — see the matching comment in activate_role.
@@ -154,8 +173,18 @@ class RosterMixin(ServiceCore):
             if await self.roster_item(item_type, candidate) is not None:
                 raise SquadsError(f"{noun} with slug {candidate!r} already exists")
 
-    async def add_operator(self, name: str, *, slug: str | None = None) -> Item:
-        """Register a human operator (assignable + can author items/comments), e.g. `op-alice`."""
+    @staticmethod
+    def _pronouns_attribute(own: str | None) -> dict[str, str]:
+        """The attribute mapping that stores *own* pronouns, empty when there are none."""
+        return {} if own is None else {AttributeKey.PRONOUNS: own}
+
+    async def add_operator(
+        self, name: str, *, slug: str | None = None, pronouns: str | None = None
+    ) -> Item:
+        """Register a human operator (assignable + can author items/comments), e.g. `op-alice`.
+
+        ``pronouns`` is stored on the new item; blank stores nothing."""
+        own_pronouns = checked_pronouns(pronouns)
         explicit = slug is not None
         slug = slug or operator_slug(name)
         await self._refuse_duplicate_slug(
@@ -166,6 +195,7 @@ class RosterMixin(ServiceCore):
             name,
             slug=slug,
             author=slug,  # an operator authors itself
+            attributes=self._pronouns_attribute(own_pronouns),
         )
         await self.refresh_managed()  # so the CLAUDE.md operator roster picks it up
         return res.item

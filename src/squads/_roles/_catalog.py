@@ -17,6 +17,7 @@ from squads._errors import RoleNotFoundError, SquadsError
 from squads._models import _attributes as attrs
 from squads._models._attributes import AttributeKey
 from squads._models._item import Item
+from squads._pronouns import pronouns
 from squads._roles._loader import load_role_catalog
 from squads._roles._models import DevPoolSpec, RoleCatalogSpec, RoleSpec
 from squads._util import slugify
@@ -39,6 +40,7 @@ class RoleDef:
     is_default: bool = False
     can_spawn: bool = False  # True only for orchestrating roles (manager, tech-lead)
     capabilities: tuple[str, ...] = ()  # resolved from the catalog; never stored on an item
+    pronouns: str | None = None  # the item's own value, else the catalog's declared default
 
     def __post_init__(self) -> None:
         """Refuse a blank/whitespace-only ``full_name`` at the one point every construction
@@ -151,6 +153,7 @@ class RoleDef:
             mission=item.description or item.title,
             model=attrs.model(item),
             is_default=attrs.is_default(item) is True,
+            pronouns=pronouns(item),
         )
 
 

@@ -30,6 +30,7 @@ from squads._interactions import (
     get_playbook_spec,
     is_live_roster_entry,
     item_origin,
+    resolve_operator_invocable,
 )
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._role_guidance import (
@@ -65,6 +66,7 @@ from squads._models._participants import (
 )
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
+from squads._pronouns import pronouns
 from squads._rendering._engine import render, scaffold_body, set_active_squad_dir
 from squads._roles._catalog import RoleDef
 from squads._roles._loader import ROLES_OVERRIDE_FILENAME, load_role_catalog
@@ -1555,6 +1557,7 @@ class ServiceCore:
             mission=role.mission,
             responsibilities=role.responsibilities,
             capabilities=role.capabilities,
+            pronouns=role.pronouns,
         )
 
     async def roster(self) -> list[RoleView]:
@@ -1599,6 +1602,7 @@ class ServiceCore:
             OperatorView(
                 slug=it.slug,
                 full_name=it.title,
+                pronouns=pronouns(it),
             )
             for it in await self.list_items(item_type=ROSTER_OPERATOR)
             if it.status in live
@@ -1611,6 +1615,7 @@ class ServiceCore:
             OperatorView(
                 slug=it.slug,
                 full_name=it.title,
+                pronouns=pronouns(it),
             )
             for it in await self.list_items(item_type=ROSTER_OPERATOR)
         ]
@@ -1629,6 +1634,16 @@ class ServiceCore:
         skill_items = await self.list_items(item_type=ROSTER_SKILL)
         live = self.spec.live_statuses(ROSTER_SKILL)
         return {it.slug: self.paths.abspath(it.path) for it in skill_items if it.status in live}
+
+    async def _skill_invocable(self) -> dict[str, bool]:
+        """Slug -> resolved ``operator_invocable`` for every live SKILL item, handed to the
+        backends so none re-derives the value."""
+        live = self.spec.live_statuses(ROSTER_SKILL)
+        return {
+            it.slug: resolve_operator_invocable(it.slug, it, self.spec)[0]
+            for it in await self.list_items(item_type=ROSTER_SKILL)
+            if it.status in live
+        }
 
     def _resolve_role_skills(self, slug: str, role: Item | None, db: SquadsDB) -> list[str]:
         """Pure (no I/O) core of the resolver: *db* and *role* are already loaded by the caller.
@@ -1714,6 +1729,7 @@ class ServiceCore:
         ctx = BackendContext(
             paths=self.paths,
             skill_paths=skill_map,
+            skill_invocable=await self._skill_invocable(),
             role_skills=role_skills,
             spec=self.spec,
             playbook=self.playbook,

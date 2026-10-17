@@ -22,6 +22,7 @@ import type {
   SqMemoryListRow,
   SqOmission,
   SqRoleCatalogEntry,
+  SqRosterIdentity,
   SqSearchHit,
   SqSearchHitRegion,
   SqShowJson,
@@ -407,6 +408,19 @@ export function isSqCollectionCatalogEntry(value: unknown): value is SqCollectio
     (typeof entry.default === 'string' || entry.default === null) &&
     Array.isArray(entry.badges) &&
     entry.badges.every(isSqCollectionBadge)
+  );
+}
+
+/** Shape guard for one `sq role list --json` / `sq operator list --json` row; `pronouns` is
+ * optional because an older `sq` omits it. Exported so the skew canary reuses it. */
+export function isSqRosterIdentity(value: unknown): value is SqRosterIdentity {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const entry = value as Record<string, unknown>;
+  return (
+    typeof entry.slug === 'string' &&
+    (entry.pronouns === undefined || entry.pronouns === null || typeof entry.pronouns === 'string')
   );
 }
 
@@ -833,6 +847,36 @@ export function getRolesCatalog(
     workspaceRoot,
     ['workflow', 'roles', '--json'],
     isSqRoleCatalogEntry,
+  );
+}
+
+/** `sq role list --json` — the roles' resolved pronouns, joined by slug. */
+export function getRoleIdentities(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+): Promise<SqOutcome<SqRosterIdentity[]>> {
+  return runSqJson(
+    runner,
+    invocation,
+    workspaceRoot,
+    ['role', 'list', '--json'],
+    isSqRosterIdentity,
+  );
+}
+
+/** `sq operator list --json` — the operators' resolved pronouns, joined by slug. */
+export function getOperatorIdentities(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+): Promise<SqOutcome<SqRosterIdentity[]>> {
+  return runSqJson(
+    runner,
+    invocation,
+    workspaceRoot,
+    ['operator', 'list', '--json'],
+    isSqRosterIdentity,
   );
 }
 

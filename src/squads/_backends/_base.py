@@ -6,12 +6,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from squads._errors import SquadsError
+from squads._interactions import resolve_operator_invocable
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._role_guidance import skills_for_role
 from squads._models._item import Item
 from squads._paths import SquadPaths
 from squads._roles._catalog import RoleDef
 from squads._roles._projection import OperatorView, RoleView
+from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
 
 
@@ -61,6 +63,9 @@ class BackendContext:
     # (e.g. a conformance test using `managed_paths` alone).
     live_role_slugs: frozenset[str]
     live_skill_slugs: frozenset[str]
+    # Slug -> resolved ``operator_invocable`` for every live skill item, populated by the service
+    # for the item-less managed writer. A slug absent here resolves to its declared default.
+    skill_invocable: dict[str, bool]
 
     def __init__(
         self,
@@ -71,6 +76,7 @@ class BackendContext:
         playbook: PlaybookSpec | None = None,
         live_role_slugs: frozenset[str] | None = None,
         live_skill_slugs: frozenset[str] | None = None,
+        skill_invocable: dict[str, bool] | None = None,
     ) -> None:
         self.paths = paths
         self.skill_paths = skill_paths if skill_paths is not None else {}
@@ -79,6 +85,7 @@ class BackendContext:
         self.playbook = playbook
         self.live_role_slugs = live_role_slugs if live_role_slugs is not None else frozenset()
         self.live_skill_slugs = live_skill_slugs if live_skill_slugs is not None else frozenset()
+        self.skill_invocable = skill_invocable if skill_invocable is not None else {}
 
     @property
     def root(self) -> Path:
@@ -91,6 +98,14 @@ class BackendContext:
     def rel(self, path: Path) -> str:
         """Root-relative forward-slash path (for Artifact paths and backend-owned references)."""
         return os.path.relpath(path, self.root).replace(os.sep, "/")
+
+    def operator_invocable(self, slug: str, item: Item | None = None) -> bool:
+        """Whether the person at the keyboard is offered skill *slug*: resolved from *item* when
+        one is given, else from the service-supplied map, else the declared default."""
+        if item is None and slug in self.skill_invocable:
+            return self.skill_invocable[slug]
+        spec = self.spec if self.spec is not None else bundled_spec()
+        return resolve_operator_invocable(slug, item, spec)[0]
 
     def resolved_skills_for(self, role: RoleDef) -> list[str]:
         """A role's resolved preload-skill list: ``role_skills[slug]`` when populated, else the

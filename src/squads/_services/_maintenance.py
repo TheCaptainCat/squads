@@ -1193,6 +1193,7 @@ class MaintenanceMixin(ServiceCore):
         ctx_with_skills = BackendContext(
             paths=self.paths,
             skill_paths=skill_map,
+            skill_invocable=await self._skill_invocable(),
             role_skills=role_skills,
             spec=self.spec,
             playbook=self.playbook,
@@ -1657,11 +1658,13 @@ class MaintenanceMixin(ServiceCore):
 
     async def _stamp_version(self, version: str) -> None:
         cfg = self.paths.config.model_copy(update={"squads_version": version})
-        await _aio.atomic_write_text(self.paths.config_path, cfg.to_toml())
+        original = await _aio.read_text(self.paths.config_path)
+        await _aio.atomic_write_text(self.paths.config_path, cfg.to_toml_keeping(original))
 
     async def _stamp_schema(self, version: str) -> None:
         cfg = self.paths.config.model_copy(update={"schema_version": version})
-        await _aio.atomic_write_text(self.paths.config_path, cfg.to_toml())
+        original = await _aio.read_text(self.paths.config_path)
+        await _aio.atomic_write_text(self.paths.config_path, cfg.to_toml_keeping(original))
 
     # ------------------------------------------------------------------ migrations
     async def run_pending_migrations(self) -> MigrationRun:

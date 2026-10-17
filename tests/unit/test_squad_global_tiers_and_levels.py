@@ -23,6 +23,7 @@ _ALWAYS_ON_LEVELS = {
     "default_designation_duplicated": "error",
     "roster_slug_valid": "error",
     "playbook_guide_role_live": "warn",
+    "display_config_valid": "warn",
 }
 
 

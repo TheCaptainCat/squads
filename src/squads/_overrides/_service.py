@@ -670,11 +670,13 @@ _ROLES_CATALOG_SCAFFOLD_BODY = """\
 # `sq init --name`). The name is then stored on the role and no change here renames it.
 #
 # Rules:
-#   - Top-level keys are limited to: roles, bundles, dev (plus [selected] below).
+#   - Top-level keys are limited to: roles, bundles, dev, defaults (plus [selected] below).
 #   - [bundles.<name>] fields merge field-by-field over the bundled default; a new bundle
 #     name is simply added.
 #   - [dev] fields (model, color, capabilities, name_pool) merge field-by-field — override
 #     just one without restating the others.
+#   - [defaults] holds roster-wide values a role takes when it has none of its own: pronouns
+#     (one line, 1 to 40 characters). Never written onto a role; operators never take it.
 #   - [[roles]] entries are keyed by their own 'slug': an entry naming a bundled slug
 #     field-merges onto it (write only the field you want to change); an entry naming a new
 #     slug defines a wholly new role (full_name, title, description, mission all required).
@@ -688,6 +690,9 @@ _ROLES_CATALOG_SCAFFOLD_BODY = """\
 #
 # [dev]
 # model = "opus"
+#
+# [defaults]
+# pronouns = "they/them"
 #
 # [[roles]]
 # slug = "architect"

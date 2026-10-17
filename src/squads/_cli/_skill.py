@@ -49,11 +49,17 @@ from squads._interactions import (
     SYSTEM_SKILL_VIEW_NAMES,
     is_system_skill,
     orphaned_skill_item_type,
+    resolve_operator_invocable,
 )
 from squads._models import _attributes as attrs
 from squads._models._attributes import AttributeKey
 from squads._models._item import split_ref
 from squads._models._schema import version_drifted
+
+_INVOCABLE_HELP = (
+    "Offer the skill to the person at the keyboard: yes, no, or default to follow the "
+    "declared default again."
+)
 
 
 class _SkillDispatchGroup(AddressDispatchGroup):
@@ -85,6 +91,9 @@ async def skill_add(
     when_to_use: str = typer.Option("", "--when-to-use"),
     allowed_tools: str = typer.Option("", "--allowed-tools"),
     parent: str | None = typer.Option(None, "--parent"),
+    operator_invocable: str | None = typer.Option(
+        None, "--operator-invocable", help=_INVOCABLE_HELP
+    ),
 ) -> None:
     """Create a skill item and its Claude pointer."""
     svc = get_service()
@@ -95,6 +104,7 @@ async def skill_add(
         when_to_use=when_to_use,
         allowed_tools=allowed_tools,
         parent=resolved_parent,
+        operator_invocable=operator_invocable,
     )
     console.print(f"created skill [bold]{item.id}[/bold] → {item.path}")
 
@@ -130,6 +140,7 @@ async def skill_show(
     it = await svc.get(item_id)
     slug = it.slug
     system = is_system_skill(slug, svc.spec)
+    invocable, invocable_set = resolve_operator_invocable(slug, it, svc.spec)
     if json_out:
         print_json_clean(
             json.dumps(
@@ -141,6 +152,8 @@ async def skill_show(
                     "description": it.description,
                     "when_to_use": attrs.string_attribute(it, AttributeKey.WHEN_TO_USE) or "",
                     "allowed_tools": attrs.string_attribute(it, AttributeKey.ALLOWED_TOOLS) or "",
+                    "operator_invocable": invocable,
+                    "operator_invocable_set": invocable_set,
                     "path": it.path,
                     **common.origin_json(attrs.origin(it)),
                     # Tag-expanded, same as an ordinary item's `show --json` body field.
@@ -155,6 +168,8 @@ async def skill_show(
         f"[bold]slug:[/bold] {slug}",
         f"[bold]origin:[/bold] {attrs.origin(it) or '—'}",
         f"[bold]status:[/bold] {it.status}",
+        f"[bold]operator invocable:[/bold] {'yes' if invocable else 'no'} "
+        f"({'set by this squad' if invocable_set else 'declared default'})",
         f"[bold]file:[/bold] {it.path}",
     ]
     when_to_use = attrs.string_attribute(it, AttributeKey.WHEN_TO_USE)
@@ -342,9 +357,14 @@ async def skill_update(
     title: str | None = typer.Option(None, "--title", help="The skill's display title."),
     desc: str | None = typer.Option(None, "--desc", help="One-line description."),
     when_to_use: str | None = typer.Option(None, "--when-to-use", help="When to reach for it."),
+    operator_invocable: str | None = typer.Option(
+        None, "--operator-invocable", help=_INVOCABLE_HELP
+    ),
 ) -> None:
     """Edit a skill's display fields; its slug, file and pointer directory never change."""
-    common.require_update_fields(title=title, desc=desc, when_to_use=when_to_use)
+    common.require_update_fields(
+        title=title, desc=desc, when_to_use=when_to_use, operator_invocable=operator_invocable
+    )
     item_id: str = ctx.obj["id"]
     await get_service().update(
         item_id,
@@ -353,6 +373,7 @@ async def skill_update(
         set_attributes=(
             {AttributeKey.WHEN_TO_USE: when_to_use} if when_to_use is not None else None
         ),
+        operator_invocable=operator_invocable,
     )
     console.print(f"updated {item_id}")
 

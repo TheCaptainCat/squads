@@ -174,6 +174,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "external_id_not_in_title",
         "attribute_valid",
         "frontmatter_key_undeclared",
+        "pronouns_valid",
     }
 )
 
@@ -188,6 +189,7 @@ SQUAD_GLOBAL_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "default_designation_duplicated",
         "roster_slug_valid",
         "playbook_guide_role_live",
+        "display_config_valid",
         "children_settled_with_parent",
         "dependency_acyclic",
         "wip_limit",
@@ -206,6 +208,7 @@ ALWAYS_ON_SQUAD_GLOBAL_NAMES: frozenset[str] = frozenset(
         "default_designation_duplicated",
         "roster_slug_valid",
         "playbook_guide_role_live",
+        "display_config_valid",
     }
 )
 
@@ -240,6 +243,7 @@ DEFAULT_SQUAD_GLOBAL_LEVEL: dict[str, str] = {
     "default_designation_duplicated": "error",
     "roster_slug_valid": "error",
     "playbook_guide_role_live": "warn",
+    "display_config_valid": "warn",
     "children_settled_with_parent": "warn",
     "dependency_acyclic": "warn",
     "wip_limit": "warn",
@@ -478,6 +482,7 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "external_id_not_in_title": "warn",
     "attribute_valid": "error",
     "frontmatter_key_undeclared": "warn",
+    "pronouns_valid": "error",
 }
 assert set(DEFAULT_VALIDATOR_LEVEL) == VALIDATOR_NAMES, (
     "DEFAULT_VALIDATOR_LEVEL must declare exactly one bundled default per VALIDATOR_NAMES member"
@@ -569,7 +574,7 @@ COMMON_CORE: tuple[str, ...] = (
 #: consumer asks only "roster or not"). A type's own ``validators`` list extends this floor and
 #: may never subtract from it.
 CATEGORY_BUNDLES: dict[str, tuple[str, ...]] = {
-    "roster": (),
+    "roster": ("pronouns_valid",),
     "work": (
         "parent_in",
         "subentity_status_valid",
@@ -2205,6 +2210,8 @@ CONSISTENCY_CLAUSES: tuple[tuple[frozenset[str], ConsistencyClause], ...] = (
 #:   each sits in no category bundle and in no floor, so it is only ever effective when a type
 #:   names it, and no category reassignment can take it away. ``subentity_title_max`` is still
 #:   one of the :data:`SUBENTITY_VALIDATOR_NAMES` that satisfy :func:`_clause_subentity_checked`.
+#: - ``pronouns_valid`` is the roster category's whole bundle and judges one attribute no capability
+#:   depends on, so there is nothing for a clause to protect.
 #: - The members of :data:`WORK_POLICY_VALIDATOR_NAMES` are the same shape again: in no bundle
 #:   and no floor, effective only where a type names them, so no category reassignment can take
 #:   one away.
@@ -2225,6 +2232,7 @@ UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "settled_requires_discussion",
         "external_id_not_in_title",
         "frontmatter_key_undeclared",
+        "pronouns_valid",
     }
 )
 
@@ -2339,17 +2347,23 @@ def _check_field_codes(
 
 #: The attributes the engine materialises into agent-host files, by roster type, with the kind
 #: each must be declared with. A resolved spec may add attributes to a roster type but may not
-#: drop or re-kind one of these.
+#: drop or re-kind one of these. Every pin is required the same way: an override merges over the
+#: bundled spec, which declares them all, so only a spec built whole by hand must restate them.
 PINNED_ROSTER_ATTRIBUTES: dict[str, dict[str, str]] = {
     ROSTER_ROLE: {
         AttributeKey.IS_DEFAULT: "bool",
         AttributeKey.MODEL: "str",
         AttributeKey.ORIGIN: "str",
+        AttributeKey.PRONOUNS: "str",
         AttributeKey.TECH: "str",
+    },
+    ROSTER_OPERATOR: {
+        AttributeKey.PRONOUNS: "str",
     },
     ROSTER_SKILL: {
         AttributeKey.ALLOWED_TOOLS: "str",
         AttributeKey.MODEL: "str",
+        AttributeKey.OPERATOR_INVOCABLE: "bool",
         AttributeKey.ORIGIN: "str",
         AttributeKey.WHEN_TO_USE: "str",
     },

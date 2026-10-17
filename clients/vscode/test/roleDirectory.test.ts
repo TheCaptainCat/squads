@@ -67,3 +67,22 @@ describe('NO_ROLE_DIRECTORY', () => {
     expect(NO_ROLE_DIRECTORY.size).toBe(0);
   });
 });
+
+describe('buildRoleDirectory pronouns', () => {
+  const pronouns = new Map([['manager', 'she/her']]);
+
+  it('follows the name with the pronouns when enabled', () => {
+    const dir = buildRoleDirectory([makeRole({ description: '' })], { pronouns, enabled: true });
+    expect(dir.get('manager')?.hoverText).toBe('Catherine Manager (she/her) (manager)');
+  });
+
+  it('leaves the hover text unchanged when disabled or unset', () => {
+    const off = buildRoleDirectory([makeRole({ description: '' })], { pronouns, enabled: false });
+    const unset = buildRoleDirectory([makeRole({ description: '' })], {
+      pronouns: new Map(),
+      enabled: true,
+    });
+    expect(off.get('manager')?.hoverText).toBe('Catherine Manager (manager)');
+    expect(unset.get('manager')?.hoverText).toBe('Catherine Manager (manager)');
+  });
+});

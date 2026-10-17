@@ -95,7 +95,11 @@ def test_parent_hint_uses_the_declared_hint_text_not_a_re_derived_literal() -> N
                     attributes=pinned_attributes("skill"),
                 ),
                 "operator": ItemSpec(
-                    prefix="OP", folder="operators", lifecycle="agent", category="roster"
+                    prefix="OP",
+                    folder="operators",
+                    lifecycle="agent",
+                    category="roster",
+                    attributes=pinned_attributes("operator"),
                 ),
                 "capability": ItemSpec(prefix="CAP", folder="capabilities", lifecycle="work"),
                 "chore": ItemSpec(

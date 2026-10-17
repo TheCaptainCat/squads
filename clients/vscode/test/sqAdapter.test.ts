@@ -12,7 +12,9 @@ import {
   getGraph,
   getList,
   getMemoryList,
+  getOperatorIdentities,
   getRaw,
+  getRoleIdentities,
   getRolesCatalog,
   getSearch,
   getShowJson,
@@ -23,6 +25,7 @@ import {
   getWorkflowRaw,
   isSqDiscussionEntry,
   isSqRoleCatalogEntry,
+  isSqRosterIdentity,
   isSqSearchHit,
 } from '../src/sqAdapter';
 
@@ -1335,5 +1338,26 @@ describe('getSubentityKindsCatalog', () => {
     await getSubentityKindsCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
 
     expect(calls[0]?.args).toEqual(['workflow', 'subentity-kinds', '--json']);
+  });
+});
+
+describe('roster identity fetches', () => {
+  it('builds argv for role list and operator list', async () => {
+    const { runner, calls } = recordingRunner({ stdout: '[]', stderr: '', exitCode: 0 });
+    await getRoleIdentities(runner, UV_INVOCATION, WORKSPACE_ROOT);
+    await getOperatorIdentities(runner, UV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(calls.map((call) => call.args)).toEqual([
+      ['run', 'sq', 'role', 'list', '--json'],
+      ['run', 'sq', 'operator', 'list', '--json'],
+    ]);
+  });
+
+  it('accepts a string, null, or absent pronouns (an older sq) and refuses a non-string', () => {
+    expect(isSqRosterIdentity({ slug: 'manager', pronouns: 'she/her' })).toBe(true);
+    expect(isSqRosterIdentity({ slug: 'manager', pronouns: null })).toBe(true);
+    expect(isSqRosterIdentity({ slug: 'manager' })).toBe(true);
+    expect(isSqRosterIdentity({ slug: 'manager', pronouns: 3 })).toBe(false);
+    expect(isSqRosterIdentity({ pronouns: 'she/her' })).toBe(false);
   });
 });

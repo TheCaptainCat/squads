@@ -8,7 +8,7 @@ truth. Use `sq <type> <number> <verb>` to interact with work items.
 ## Agent roster
 
 {% for r in roles %}
-- **{{ r.full_name }}** — {{ r.title }} (`{{ r.slug }}`)
+- **{{ r.full_name }}**{% if r.get('pronouns') %} ({{ r.pronouns }}){% endif %} — {{ r.title }} (`{{ r.slug }}`)
 {% endfor %}
 
 ## Operators (people)
@@ -17,7 +17,7 @@ Operators are the **humans** who work on this project. They can author items, be
 leave comments. Address them by their `op-` slug.
 {% if operators %}
 {% for o in operators %}
-- **{{ o.full_name }}** (`{{ o.slug }}`)
+- **{{ o.full_name }}**{% if o.get('pronouns') %} ({{ o.pronouns }}){% endif %} (`{{ o.slug }}`)
 {% endfor %}
 {% else %}
 _None registered yet._

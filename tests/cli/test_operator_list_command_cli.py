@@ -23,7 +23,7 @@ async def test_json_output_field_set_matches_operator_show(project, invoke) -> N
     assert len(listed) == 1
     row = listed[0]
     shown = json.loads((await invoke(["operator", "op-alice", "show", "--json"])).output)
-    assert set(row) == {"id", "slug", "full_name", "status"}
+    assert set(row) == {"id", "slug", "full_name", "pronouns", "status"}
     assert row["id"] == shown["id"]
     assert row["slug"] == shown["slug"] == "op-alice"
     assert row["full_name"] == shown["full_name"] == "Alice Tester"

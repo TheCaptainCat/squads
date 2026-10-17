@@ -73,7 +73,13 @@ def _build_spec(
             category="roster",
             attributes=pinned_attributes("skill"),
         ),
-        "operator": ItemSpec(prefix="OP", folder="operators", lifecycle="agent", category="roster"),
+        "operator": ItemSpec(
+            prefix="OP",
+            folder="operators",
+            lifecycle="agent",
+            category="roster",
+            attributes=pinned_attributes("operator"),
+        ),
     }
     return WorkflowSpec.model_validate(
         {

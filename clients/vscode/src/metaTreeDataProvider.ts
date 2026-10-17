@@ -38,6 +38,7 @@ import {
   type MetaViewState,
 } from './domain/metaFilter';
 import { buildMetaView } from './domain/metaView';
+import { buildPronounsMap, NO_PRONOUNS } from './domain/pronouns';
 import { resolveSquadDir, type SquadDirEnvironment } from './domain/squadDir';
 import {
   buildRoleCatalogMap,
@@ -52,6 +53,8 @@ import {
   getCollectionsCatalog,
   getList,
   getMemoryList,
+  getOperatorIdentities,
+  getRoleIdentities,
   getRolesCatalog,
   getStatusesCatalog,
   getTypeCatalog,
@@ -175,14 +178,23 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
     // highlight / the raw type string as its own header rather than breaking the view
     // (`buildFieldBindings`/`buildBadgeVocabulary`/`buildStatusRoleMap`/`buildRoleCatalogMap`/
     // `buildTypeLabelMap` on an empty array is the same as each graceful-fallback default).
-    const [outcome, catalogOutcome, collectionsOutcome, statusesOutcome, rolesOutcome] =
-      await Promise.all([
-        getList(this.runner, invocation, this.workspaceRoot, ['--all']),
-        getTypeCatalog(this.runner, invocation, this.workspaceRoot),
-        getCollectionsCatalog(this.runner, invocation, this.workspaceRoot),
-        getStatusesCatalog(this.runner, invocation, this.workspaceRoot),
-        getRolesCatalog(this.runner, invocation, this.workspaceRoot),
-      ]);
+    const [
+      outcome,
+      catalogOutcome,
+      collectionsOutcome,
+      statusesOutcome,
+      rolesOutcome,
+      roleRows,
+      operatorRows,
+    ] = await Promise.all([
+      getList(this.runner, invocation, this.workspaceRoot, ['--all']),
+      getTypeCatalog(this.runner, invocation, this.workspaceRoot),
+      getCollectionsCatalog(this.runner, invocation, this.workspaceRoot),
+      getStatusesCatalog(this.runner, invocation, this.workspaceRoot),
+      getRolesCatalog(this.runner, invocation, this.workspaceRoot),
+      getRoleIdentities(this.runner, invocation, this.workspaceRoot),
+      getOperatorIdentities(this.runner, invocation, this.workspaceRoot),
+    ]);
     if (outcome.kind !== 'success') {
       this.failFrom(outcome);
       return;
@@ -212,6 +224,14 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
     // produced.
     const slugs = memoryEligibleSlugs(outcome.data, statusRoles, roleCatalog, this.state);
     const memoryPools = await fetchMemoryPools(this.runner, invocation, this.workspaceRoot, slugs);
+    // A failed fetch (or an older `sq` without the key) just shows no pronouns.
+    const pronouns = {
+      pronouns:
+        roleRows.kind === 'success' && operatorRows.kind === 'success'
+          ? buildPronounsMap([...roleRows.data, ...operatorRows.data])
+          : NO_PRONOUNS,
+      enabled: vscode.workspace.getConfiguration('squads').get<boolean>('showPronouns', true),
+    };
     this.roots = buildMetaView(
       outcome.data,
       fieldBindings,
@@ -220,7 +240,7 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
       roleCatalog,
       labelMap,
       this.state,
-      { pools: memoryPools, now: new Date() },
+      { memory: { pools: memoryPools, now: new Date() }, pronouns },
     );
     this.expansion.prune(collectNodeIds(this.roots));
     this.changeEmitter.fire(undefined);

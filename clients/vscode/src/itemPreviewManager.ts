@@ -96,6 +96,7 @@ import {
   UPDATE_CONTENT_COMMAND,
   type UpdateContentMessage,
 } from './domain/previewMessages';
+import { buildPronounsMap, NO_PRONOUNS, type PronounsContext } from './domain/pronouns';
 import { buildRoleDirectory, NO_ROLE_DIRECTORY, type RoleDirectory } from './domain/roleDirectory';
 import type { ProcessRunner } from './processRunner';
 import {
@@ -105,6 +106,7 @@ import {
   getList,
   getMemoryShow,
   getRaw,
+  getRoleIdentities,
   getShowJson,
   getSubentityKindsCatalog,
   getTree,
@@ -159,8 +161,13 @@ function toSubEntitiesOutcome(outcome: SqOutcome<SqShowJson>): SubEntitiesOutcom
 /** Degrades a failed/unreachable `sq list -t role --json` fetch to `NO_ROLE_DIRECTORY` — same
  * graceful-degrade shape `treeDataProvider.ts`'s catalog joins use — so a `@<slug>` mention
  * simply renders as plain text rather than breaking the preview render. */
-function roleDirectoryFrom(outcome: SqOutcome<readonly SqListItem[]>): RoleDirectory {
-  return outcome.kind === 'success' ? buildRoleDirectory(outcome.data) : NO_ROLE_DIRECTORY;
+function roleDirectoryFrom(
+  outcome: SqOutcome<readonly SqListItem[]>,
+  pronouns: PronounsContext,
+): RoleDirectory {
+  return outcome.kind === 'success'
+    ? buildRoleDirectory(outcome.data, pronouns)
+    : NO_ROLE_DIRECTORY;
 }
 
 /** Hover text for every id the prose may link, from one batched `sq list --json --all`. Same
@@ -532,17 +539,27 @@ export class ItemPreviewManager {
       discussionHtml = buildDiscussionHtml({ entries: null, message }, id);
     } else {
       const { invocation } = resolution;
-      const [dossier, tree, graph, showJson, roleList, itemList, typeCatalog, kindCatalog] =
-        await Promise.all([
-          getRaw(this.runner, invocation, this.workspaceRoot, id),
-          getTree(this.runner, invocation, this.workspaceRoot, id),
-          getGraph(this.runner, invocation, this.workspaceRoot, id),
-          getShowJson(this.runner, invocation, this.workspaceRoot, id),
-          getList(this.runner, invocation, this.workspaceRoot, ['-t', 'role']),
-          getList(this.runner, invocation, this.workspaceRoot, ['--all']),
-          getTypeCatalog(this.runner, invocation, this.workspaceRoot),
-          getSubentityKindsCatalog(this.runner, invocation, this.workspaceRoot),
-        ]);
+      const [
+        dossier,
+        tree,
+        graph,
+        showJson,
+        roleList,
+        itemList,
+        typeCatalog,
+        kindCatalog,
+        roleRows,
+      ] = await Promise.all([
+        getRaw(this.runner, invocation, this.workspaceRoot, id),
+        getTree(this.runner, invocation, this.workspaceRoot, id),
+        getGraph(this.runner, invocation, this.workspaceRoot, id),
+        getShowJson(this.runner, invocation, this.workspaceRoot, id),
+        getList(this.runner, invocation, this.workspaceRoot, ['-t', 'role']),
+        getList(this.runner, invocation, this.workspaceRoot, ['--all']),
+        getTypeCatalog(this.runner, invocation, this.workspaceRoot),
+        getSubentityKindsCatalog(this.runner, invocation, this.workspaceRoot),
+        getRoleIdentities(this.runner, invocation, this.workspaceRoot),
+      ]);
       if (dossier.kind !== 'success') {
         if (dossier.kind === 'spawn-error') {
           this.discovery.invalidate();
@@ -552,7 +569,10 @@ export class ItemPreviewManager {
       // Degrades via `roleDirectoryFrom` rather than a second notification — same treatment as
       // the tree/graph/sub-entities/discussion fetches below, none of which are the actionable
       // failure.
-      const roles = roleDirectoryFrom(roleList);
+      const roles = roleDirectoryFrom(roleList, {
+        pronouns: roleRows.kind === 'success' ? buildPronounsMap(roleRows.data) : NO_PRONOUNS,
+        enabled: vscode.workspace.getConfiguration('squads').get<boolean>('showPronouns', true),
+      });
       const ids = itemIdMatcherFrom(typeCatalog);
       const items = itemDirectoryFrom(itemList);
       ({ titleText, headerHtml, bodyHtml } = renderOutcomeHtml(id, dossier, roles, ids, items));

@@ -259,6 +259,11 @@
         "required": true,
         "settable": false
       },
+      "pronouns": {
+        "kind": "str",
+        "required": false,
+        "settable": false
+      },
       "tech": {
         "kind": "str",
         "required": false,
@@ -292,6 +297,11 @@
         "required": false,
         "settable": true
       },
+      "operator_invocable": {
+        "kind": "bool",
+        "required": false,
+        "settable": false
+      },
       "origin": {
         "kind": "str",
         "required": true,
@@ -319,7 +329,13 @@
     "subentity_kind": null,
     "lifecycle": "agent",
     "fields": [],
-    "attributes": {},
+    "attributes": {
+      "pronouns": {
+        "kind": "str",
+        "required": false,
+        "settable": false
+      }
+    },
     "labels": {
       "singular": "Operator",
       "plural": "Operators",

@@ -91,6 +91,11 @@ export function activate(context: vscode.ExtensionContext): void {
   });
   context.subscriptions.push(
     metaTreeView,
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration('squads.showPronouns')) {
+        void metaTreeDataProvider.refresh();
+      }
+    }),
     metaTreeView.onDidExpandElement((event) => {
       metaTreeDataProvider.setExpanded(event.element.id, true);
     }),

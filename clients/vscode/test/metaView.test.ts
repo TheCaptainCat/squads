@@ -228,10 +228,7 @@ describe('buildMetaView', () => {
         undefined,
         undefined,
         undefined,
-        {
-          pools,
-          now: NOW,
-        },
+        { memory: { pools: pools, now: NOW } },
       );
 
       expect(roles?.children[0]?.label).toBe('ROLE-1  ROLE-1 title  memory: 1 · 1d ago');
@@ -254,10 +251,7 @@ describe('buildMetaView', () => {
         undefined,
         undefined,
         undefined,
-        {
-          pools,
-          now: NOW,
-        },
+        { memory: { pools: pools, now: NOW } },
       );
 
       expect(skills?.children[0]?.label).toBe('SKILL-1  SKILL-1 title');
@@ -285,10 +279,7 @@ describe('buildMetaView', () => {
         undefined,
         undefined,
         undefined,
-        {
-          pools,
-          now: NOW,
-        },
+        { memory: { pools: pools, now: NOW } },
       );
 
       expect(roles?.children[0]?.label).toContain('memory: 0');
@@ -306,10 +297,7 @@ describe('buildMetaView', () => {
         undefined,
         undefined,
         undefined,
-        {
-          pools,
-          now: NOW,
-        },
+        { memory: { pools: pools, now: NOW } },
       );
 
       const node = roles?.children[0];
@@ -345,10 +333,7 @@ describe('buildMetaView', () => {
         undefined,
         undefined,
         undefined,
-        {
-          pools,
-          now: NOW,
-        },
+        { memory: { pools: pools, now: NOW } },
       );
 
       const entry = roles?.children[0]?.children[0];
@@ -380,3 +365,55 @@ function makeItem(id: string, type: string): SqListItem {
     updated_at: '2026-01-01T00:00:00Z',
   };
 }
+
+describe('buildMetaView pronouns', () => {
+  const pronouns = new Map([
+    ['manager', 'she/her'],
+    ['op-pierre', 'he/him'],
+  ]);
+  const leaf = (nodes: ReturnType<typeof buildMetaView>, id: string) =>
+    nodes.flatMap((group) => group.children).find((child) => child.itemId === id);
+
+  it('puts a de-emphasised (pronouns) ahead of the status on a Role/Operator leaf only', () => {
+    const roles = LIST_FIXTURE.filter((item) => item.type === 'role' && item.slug === 'manager');
+    const operators = LIST_FIXTURE.filter((item) => item.type === 'operator');
+    const items = [...roles, ...operators, ...LIST_FIXTURE.filter((i) => i.type === 'skill')];
+    const nodes = buildMetaView(
+      items,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        pronouns: { pronouns: new Map(items.map((item) => [item.slug, 'xe/xem'])), enabled: true },
+      },
+    );
+    for (const item of items) {
+      const description = leaf(nodes, item.id)?.description;
+      if (item.type === 'skill') {
+        expect(description).toBe(item.status);
+      } else {
+        expect(description).toBe(`(xe/xem)  ${item.status}`);
+      }
+      expect(leaf(nodes, item.id)?.label).not.toContain('xe/xem');
+    }
+  });
+
+  it('shows no pronouns when the setting is off, none are known, or the value is unset', () => {
+    const manager = LIST_FIXTURE.find((item) => item.type === 'role' && item.slug === 'manager');
+    expect(manager).toBeDefined();
+    const items = manager === undefined ? [] : [manager];
+    const build = (enabled: boolean, map: ReadonlyMap<string, string>) =>
+      leaf(
+        buildMetaView(items, undefined, undefined, undefined, undefined, undefined, undefined, {
+          pronouns: { pronouns: map, enabled },
+        }),
+        manager?.id ?? '',
+      )?.description;
+    expect(build(false, pronouns)).toBe(manager?.status);
+    expect(build(true, new Map())).toBe(manager?.status);
+    expect(build(true, pronouns)).toBe(`(she/her)  ${manager?.status ?? ''}`);
+  });
+});

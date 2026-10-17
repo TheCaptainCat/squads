@@ -2,6 +2,7 @@
   "id": "OP-9",
   "slug": "op-alice",
   "full_name": "Alice Tester",
+  "pronouns": null,
   "status": "Active",
   "path": "operators/OP-000009-op-alice.md"
 }

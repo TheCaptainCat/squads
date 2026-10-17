@@ -8,7 +8,7 @@ truth. See the `squads` skill for the `sq` CLI.
 ## Agent roster
 
 {% for r in roles %}
-- **{{ r.full_name }}** — {{ r.title }} (`{{ r.slug }}`)
+- **{{ r.full_name }}**{% if r.get('pronouns') %} ({{ r.pronouns }}){% endif %} — {{ r.title }} (`{{ r.slug }}`)
 {% endfor %}
 
 ## Operators (people)
@@ -18,7 +18,7 @@ be assigned work (including manual steps). They are *not* agents: never spawn th
 by their `op-` slug.
 {% if operators %}
 {% for o in operators %}
-- **{{ o.full_name }}** (`{{ o.slug }}`)
+- **{{ o.full_name }}**{% if o.get('pronouns') %} ({{ o.pronouns }}){% endif %} (`{{ o.slug }}`)
 {% endfor %}
 {% else %}
 _None registered yet._
