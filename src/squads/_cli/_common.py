@@ -782,7 +782,7 @@ async def _print_full_panes(svc: Service, it: Item, *, styled: bool, comments: b
             if body_text:
                 inner_renderables.append(Markdown(body_text))
             if comments:
-                sub_cmts = discussion.split_discussion(detail.discussion)
+                sub_cmts = detail.comments
                 if sub_cmts:
                     for cmt in sub_cmts:
                         cmt_title = f"{e(cmt.timestamp)}  {e(discussion.author_label(cmt))}"
@@ -804,7 +804,7 @@ async def _print_full_panes(svc: Service, it: Item, *, styled: bool, comments: b
             if body_text:
                 console.print(body_text, markup=False, highlight=False)
             if comments:
-                sub_cmts = discussion.split_discussion(detail.discussion)
+                sub_cmts = detail.comments
                 _render_comments_plain(sub_cmts)
             console.print()
 
@@ -864,7 +864,9 @@ async def _print_item_content(
 
 async def _print_discussion(svc: Service, it: Item, *, styled: bool) -> None:
     """Render the main discussion as per-comment panes or plain blocks."""
-    cmt_list = discussion.split_discussion(await svc.read_discussion(it.id))
+    cmt_list = discussion.split_discussion(
+        await svc.read_discussion(it.id), sequence_id=it.sequence_id
+    )
     if cmt_list:
         console.print()
         if styled:
@@ -947,7 +949,9 @@ async def _print_item_raw(svc: Service, it: Item, *, comments: bool, full: bool)
     if full:
         lines.extend(await _raw_subentity_sections(svc, it))
     if comments:
-        cmts = discussion.split_discussion(await svc.read_discussion(it.id))
+        cmts = discussion.split_discussion(
+            await svc.read_discussion(it.id), sequence_id=it.sequence_id
+        )
         lines += ["", "## Discussion"]
         if cmts:
             for cmt in cmts:
@@ -1172,9 +1176,7 @@ def build_subentity_json(spec: WorkflowSpec, kind: str, detail: SubentityDetail)
     data: dict[str, Any] = json.loads(detail.info.model_dump_json())
     data["body"] = detail.body
     data["badges"] = badges.resolve_badges(spec, kind, detail.info.badge_value)
-    data["discussion"] = [
-        discussion.comment_json(cmt) for cmt in discussion.split_discussion(detail.discussion)
-    ]
+    data["discussion"] = [discussion.comment_json(cmt) for cmt in detail.comments]
     return data
 
 
@@ -1194,7 +1196,9 @@ async def build_item_json(svc: Service, it: Item) -> str:
     payload["body"] = await svc.read_body(it.id)
     payload["discussion"] = [
         discussion.comment_json(cmt)
-        for cmt in discussion.split_discussion(await svc.read_discussion(it.id))
+        for cmt in discussion.split_discussion(
+            await svc.read_discussion(it.id), sequence_id=it.sequence_id
+        )
     ]
     payload["badges"] = badges.resolve_badges(spec, it.type, it.badge_value)
     kind = spec.item_subentity_kind(it.type)

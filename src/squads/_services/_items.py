@@ -733,7 +733,9 @@ class ItemsMixin(ServiceCore):
         """The item's top-level discussion, parsed into timestamped entries (for the dedicated
         ``sq <type> <n> comments`` read-back verb) — composes :meth:`read_discussion` +
         :func:`discussion.split_discussion` so CLI callers never re-parse the region themselves."""
-        return discussion.split_discussion(await self.read_discussion(item_id))
+        item = await self.get(item_id)
+        region = await self.read_discussion(item_id)
+        return discussion.split_discussion(region, sequence_id=item.sequence_id)
 
     def _enforce_retirement(
         self, db: SquadsDB, item: Item, target: str, *, purge: bool = False

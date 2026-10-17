@@ -55,7 +55,7 @@ class ReaderPanel(Vertical):
         await self.query_one("#body-view", Markdown).update(body.strip() or "*(no body yet)*")
         subentities_md = await _subentities_view(svc, item, svc.spec)
         await self.query_one("#subentities-view", Markdown).update(subentities_md)
-        comments = discussion.split_discussion(discussion_region)
+        comments = discussion.split_discussion(discussion_region, sequence_id=item.sequence_id)
         await self.query_one("#discussion-view", Markdown).update(_discussion_view(comments))
 
 

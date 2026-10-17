@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from squads._discussion import Comment
 from squads._index._reconcile import ReconcileResult
 from squads._migrations._registry import Migration
 from squads._models._index import SquadsDB
@@ -167,6 +168,7 @@ class SubentityDetail:
     info: SubEntity
     body: str
     discussion: str
+    comments: list[Comment] = field(default_factory=list[Comment])
 
 
 @dataclass

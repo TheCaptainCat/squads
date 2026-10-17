@@ -145,7 +145,7 @@ async def test_only_header_lines_differ_and_the_comments_read_back_the_same(
     assert new == old.replace("] Catherine Manager:", "] `manager` Catherine Manager:")
     assert new.endswith(newline) and old.endswith(newline)
     assert after.splitlines()[:5] == before.splitlines()[:5]  # the frontmatter block
-    live = discussion.split_discussion(_region(after))
+    live = discussion.split_discussion(_region(after), sequence_id=1)
     assert [(c.timestamp, c.author, c.body) for c in live] == legacy_comments
     assert [c.author_slug for c in live] == ["manager"]
 
