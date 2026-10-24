@@ -3,10 +3,10 @@ id: MILE-1051
 sequence_id: 1051
 type: milestone
 title: squads 0.17 - the daemon
-status: Draft
+status: InProgress
 author: product-owner
 created_at: '2026-10-16T11:23:46Z'
-updated_at: '2026-10-16T11:25:09Z'
+updated_at: '2026-10-24T13:27:51Z'
 ---
 <!-- sq:body -->
 The daemon release: a local process that serves squad state over an API on localhost, and a CLI that can talk to it. This milestone holds the work that makes that line usable on one machine, for one person. The web epic carries the larger outcome and the framing; the browser frontend builds on this milestone.

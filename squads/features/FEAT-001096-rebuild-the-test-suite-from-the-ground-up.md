@@ -42,7 +42,7 @@ subentities:
   title: Measure per-OS CI times and test count
   status: Todo
 created_at: '2026-10-17T07:56:25Z'
-updated_at: '2026-10-17T07:57:06Z'
+updated_at: '2026-10-24T13:44:14Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -275,4 +275,13 @@ As the operator, I want measured results against the proposed targets, so that I
 <!-- sq:discussion -->
 - [2026-10-17T07:57:06Z] `product-owner` Nina Product:
   - @manager: targeted at MILE-1051 (0.17) for now; the milestone is the operator's call. Targets in the body are proposals for the operator.
+- [2026-10-24T13:31:04Z] `op-pierre` Pierre Chat:
+  - Scheduled in 0.17: the rebuild starts right after the current queue (TASK-1110, TASK-1098, TASK-1103 to TASK-1107) and before the daemon work, so the daemon's tests are written under the new rules.
+- [2026-10-24T13:33:48Z] `op-pierre` Pierre Chat:
+  - Targets: a test pipeline over 10 minutes is not acceptable (50 minutes today is intolerable). Every CI test job stays under 10 minutes; Windows may take up to 15.
+- [2026-10-24T13:44:14Z] `tech-lead` Olivia Lead:
+  - - Planned as six Draft tasks: TASK-1111 inventory, ledger, audit and CI baseline (qa, with devops on the baseline); TASK-1112 new root, conventions, guards and fixtures; TASK-1113, TASK-1114 and TASK-1115 one area increment each (python-dev); TASK-1116 close-out and per-OS measurement (devops).
+    - Measured on 2026-10-24: 13,816 tests, 4,975 functions, 9,605 parametrised rows. CI pytest step on the 2026-10-17 main push: Windows 53 min, macOS 14, Ubuntu 8, which is about 231, 62 and 35 ms per test. Windows is the binding constraint: under 15 min means about 3,900 tests at today's per-test cost.
+    - TASK-1111 depends on the whole queue named on 2026-10-24 (TASK-1110, TASK-1098, TASK-1103 to TASK-1107), because those tasks are not chained to each other.
+    - @manager, the operator still has to decide: the count ceiling (3,500 proposed), whether old files are deleted per area (planned that way, so CI never gets slower than today; US9 says one deletion commit at the end and would need rewording), whether Windows runs the full suite or a platform subset, what happens to TASK-1095, and what the new root is called and whether it becomes tests/ at the end.
 <!-- sq:discussion:end -->

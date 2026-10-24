@@ -1,0 +1,99 @@
+---
+id: TASK-1115
+sequence_id: 1115
+type: task
+title: Rebuild backend, skills, rendering and TUI tests, retire old files
+status: Draft
+parent: FEAT-1096
+author: tech-lead
+assignee: python-dev
+priority: high
+refs:
+- TASK-1112:depends-on
+description: Pointers, skills, has_dev gate, goldens, Windows paths and line endings,
+  TUI; parity then deletion.
+subentities:
+- local_id: ST1
+  title: Rebuild pointer and skill generation through init, sync and migrate
+  status: Todo
+  story: US8
+- local_id: ST2
+  title: Rebuild goldens, rendering, Windows path and line-ending rows, and the TUI
+    tests
+  status: Todo
+  story: US8
+- local_id: ST3
+  title: Prove backend and rendering parity and delete the old files they cover
+  status: Todo
+  story: US9
+created_at: '2026-10-24T13:42:18Z'
+updated_at: '2026-10-24T13:43:29Z'
+---
+<!-- sq:body -->
+Rebuild the backend, skills, rendering and TUI tests in the new root (US8), then prove parity and delete the old files this area covers (US9). Generated artifacts are checked by pinned goldens and `tests/meta` guards rather than per-instance tests.
+
+**Measured:** about 2,450 old tests in 180 files fall here by filename (claude, agents_md, pointer, skill, backend, sync, golden, render, template, manifest, role, roster, operator, pronoun), plus 77 tests in 11 files under `tests/tui`. `tests/goldens` holds 54 entries. The largest are `tests/cli/test_content_writes_on_a_generated_role_or_skill_are_refused_cli.py` (143) and `tests/cli/test_pronouns_are_set_and_cleared_through_the_verbs_cli.py` (97).
+
+Ledger classes owned here: dangling `.claude` pointers after init, sync and migrate; the `has_dev` gate with dev-less and dev-bearing rosters held constant; reactivation regenerating a complete pointer and retirement recompiling every compiled region (REV-706 F1); escaped squad paths on Windows; golden renders with pinned inputs (CLAUDE.md section, AGENTS.md section, workflow cheatsheet, template manifest).
+
+**Parity proof before deletion.** For every ledger entry of this area, apply its recorded break in a scratch worktree, run only the old test ids the ledger lists and the new test that owns the entry, and record that both go red (or that the old suite had a gap). Only then are the old files covering the area deleted, in this increment, in one reviewed commit. An old file that still covers an entry outside this area stays until that area lands.
+
+**Acceptance**
+
+- No dangling pointer after init, sync and migrate is one guard over the generated tree, not one test per role.
+- The `has_dev` gate has a dev-less and a dev-bearing row with everything else pinned; reactivation yields the same pointer as first creation.
+- Windows line-ending and path-escape cases have rows; goldens pin roster, flags and frozen clock.
+- TUI tests run in the new root and are stable under xdist.
+- Every entry owned here is red when its seam breaks (recorded); the old files covering only this area are deleted; CI time per OS after the increment is recorded and not above the time before it.
+<!-- sq:body:end -->
+
+## Subtasks
+
+_Add with `sq task 1115 add-subtask "<title>"`; track with `sq task 1115 subtask <n> update --status <Status>`._
+
+<!-- sq:subtasks -->
+
+<!-- sq:subtask:ST1 -->
+### ST1 — Rebuild pointer and skill generation through init, sync and migrate
+
+<!-- sq:subtask:ST1:body -->
+Rebuild pointer and skill generation through init, sync and migrate: a guard that every generated pointer resolves, the `has_dev` gate on two pinned rosters, reactivation equal to first creation, and retirement recompiling every compiled region.
+<!-- sq:subtask:ST1:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST1:discussion -->
+<!-- sq:subtask:ST1:discussion:end -->
+<!-- sq:subtask:ST1:end -->
+
+<!-- sq:subtask:ST2 -->
+### ST2 — Rebuild goldens, rendering, Windows path and line-ending rows, and the TUI tests
+
+<!-- sq:subtask:ST2:body -->
+Rebuild the goldens and rendering tests with pinned inputs (CLAUDE.md and AGENTS.md sections, workflow cheatsheet, template manifest), the Windows line-ending and path-escape rows, and the 77 TUI tests, each owning one behaviour.
+<!-- sq:subtask:ST2:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST2:discussion -->
+<!-- sq:subtask:ST2:discussion:end -->
+<!-- sq:subtask:ST2:end -->
+
+<!-- sq:subtask:ST3 -->
+### ST3 — Prove backend and rendering parity and delete the old files they cover
+
+<!-- sq:subtask:ST3:body -->
+Apply each entry's recorded break for this area in a scratch worktree, show the listed old tests and the new owner both red, record it in the ledger, then delete the old files this area alone covers in one reviewed commit. Record CI time per OS after the increment.
+<!-- sq:subtask:ST3:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST3:discussion -->
+<!-- sq:subtask:ST3:discussion:end -->
+<!-- sq:subtask:ST3:end -->
+<!-- sq:subtasks:end -->
+
+## Discussion
+
+<!-- sq:discussion -->
+<!-- sq:discussion:end -->

@@ -3,14 +3,14 @@ id: EPIC-897
 sequence_id: 897
 type: epic
 title: Views as a source plus a template, rendered at a tag
-status: Done
+status: InProgress
 author: product-owner
 refs:
 - ADR-880
 description: 'Rebuild the view mechanism per ADR-880: source + template, a tag marks
   where it renders; the projection layer and its grammar are deleted'
 created_at: '2026-09-03T09:00:54Z'
-updated_at: '2026-09-29T09:34:50Z'
+updated_at: '2026-10-24T13:04:09Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -75,4 +75,6 @@ the outcome it targets — a working, adopter-declarable view mechanism — has 
   - Adopter upgrade path for the retired 0.14 grammar -> FEAT-908 (verified: clear load-time error, fix hint, CHANGELOG)
   - Out-of-scope, explicitly deferred to 0.16 (MILE-934): BUG-957 (tag outside sq:body invisible to show/check/view rm) and FEAT-966 (skill user-invocability, unrelated to this epic's outcomes).
   - Every outcome delivered; no gaps.
+- [2026-10-24T13:04:09Z] `manager` Catherine Manager:
+  - Reopened: FEAT-1108 (view transforms, structured view data in show --json) extends this epic's source-plus-template mechanism with a declared transform per view. Reopened on op-pierre's guidance to reopen epics when useful.
 <!-- sq:discussion:end -->
