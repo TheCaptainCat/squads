@@ -1,7 +1,7 @@
 {
   "schema_version": "0.16",
   "squads_version": "0.16.0",
-  "counter": 1096,
+  "counter": 1116,
   "padding": 6,
   "items": {
     "12": {
@@ -411,7 +411,7 @@
       "type": "epic",
       "title": "Views as a source plus a template, rendered at a tag",
       "slug": "views-as-a-source-plus-a-template-rendered-at-a-tag",
-      "status": "Done",
+      "status": "InProgress",
       "description": "Rebuild the view mechanism per ADR-880: source + template, a tag marks where it renders; the projection layer and its grammar are deleted",
       "parent": null,
       "author": "product-owner",
@@ -425,7 +425,7 @@
       "subentities": [],
       "path": "epics/EPIC-000897-views-as-a-source-plus-a-template-rendered-at-a-tag.md",
       "created_at": "2026-09-03T09:00:54Z",
-      "updated_at": "2026-09-29T09:34:50Z",
+      "updated_at": "2026-10-24T13:04:09Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -8433,7 +8433,7 @@
       ],
       "path": "features/FEAT-001096-rebuild-the-test-suite-from-the-ground-up.md",
       "created_at": "2026-10-17T07:56:25Z",
-      "updated_at": "2026-10-17T07:57:06Z",
+      "updated_at": "2026-10-24T13:44:14Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -36085,7 +36085,7 @@
       "type": "milestone",
       "title": "squads 0.16 - one roster, flat files",
       "slug": "squads-0-16-one-roster-flat-files",
-      "status": "InProgress",
+      "status": "Done",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -36099,7 +36099,7 @@
       "subentities": [],
       "path": "milestones/MILE-000934-squads-0-16-one-roster-flat-files.md",
       "created_at": "2026-09-09T14:39:43Z",
-      "updated_at": "2026-10-17T05:33:55Z",
+      "updated_at": "2026-10-24T13:00:35Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -36111,7 +36111,7 @@
       "type": "milestone",
       "title": "squads 0.17 - the daemon",
       "slug": "squads-0-17-the-daemon",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -36123,7 +36123,7 @@
       "subentities": [],
       "path": "milestones/MILE-001051-squads-0-17-the-daemon.md",
       "created_at": "2026-10-16T11:23:46Z",
-      "updated_at": "2026-10-16T11:25:09Z",
+      "updated_at": "2026-10-24T13:27:51Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -51688,6 +51688,1442 @@
       "attributes": {},
       "slug_in_file": true,
       "id": "OP-10"
+    },
+    "1097": {
+      "sequence_id": 1097,
+      "type": "feature",
+      "title": "Working language: one configured language for the squad",
+      "slug": "working-language-one-configured-language-for-the-squad",
+      "status": "Draft",
+      "description": "A squad declares one working language for sq content and agent communication; agents answer the human in the human's language.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-1051:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Configure working_language in .squads.toml",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Render the language rule in every backend and the squads skill",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Write working_language on init and adopt",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Document working_language for adopters",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001097-working-language-one-configured-language-for-the-squad.md",
+      "created_at": "2026-10-24T08:48:52Z",
+      "updated_at": "2026-10-24T09:13:47Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1097"
+    },
+    "1098": {
+      "sequence_id": 1098,
+      "type": "task",
+      "title": "Add working_language config, Babel check and rendered rule",
+      "slug": "add-working-language-config-babel-check-and-rendered-rule",
+      "status": "Draft",
+      "description": "Validate working_language with Babel at startup and render the language rule in every backend and the squads skill.",
+      "parent": "FEAT-1097",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1100:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add Babel, the resolver and the raw config key",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Validate on every command and warn on stderr",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Render the rule in both backends and the squads skill",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Write working_language on init and adopt",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Document the key and add the CHANGELOG entry",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Report a malformed working_language in sq check",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001098-add-working-language-config-babel-check-and-rendered-rule.md",
+      "created_at": "2026-10-24T09:11:31Z",
+      "updated_at": "2026-10-24T09:20:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1098"
+    },
+    "1099": {
+      "sequence_id": 1099,
+      "type": "review",
+      "title": "Adopter field report on 0.15.0: upgrade and a day of work",
+      "slug": "adopter-field-report-on-0-15-0-upgrade-and-a-day-of-work",
+      "status": "InReview",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-565",
+        "FEAT-566",
+        "FEAT-124",
+        "ADR-1052"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "The sq import event schema is undocumented: no op/field reference",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "sync reports an older release's generated pointer as 'had drifted'",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "No warning when a type holds items but no active role authors it",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Index-lock contention is silent, and a 10 s wait ends in a raw Timeout traceback",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "A milestone body cannot round-trip: tag refused, rendered roll-up duplicated",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Operator-assigned subtasks need --force to go Todo to Done",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Finding lifecycle has no Noted or Deferred state",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "sq list has no compact form; long titles wrap over several lines",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "sq create bug has no --severity; only priority is exposed at create",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "A review can be Approved with Open findings and sq check stays silent",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "Bundled reviewer guidance does not say when a review is warranted",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "Role-override docs never show splat-refs on list fields",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "sq role show does not say how to change a role's definition",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "Loop step 5 narration sweep names no owner role",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "override scaffold --role writes a near-empty file",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F16",
+          "title": "A second author on a type silently drops its CLAUDE.md workflow bullet",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F17",
+          "title": "Bundled handoffs hardcode @reviewer instead of the review's author",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001099-adopter-field-report-on-0-15-0-upgrade-and-a-day-of-work.md",
+      "created_at": "2026-10-24T09:19:58Z",
+      "updated_at": "2026-10-24T13:00:12Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1099"
+    },
+    "1100": {
+      "sequence_id": 1100,
+      "type": "decision",
+      "title": "working_language: one BCP 47 tag in .squads.toml, English fallback",
+      "slug": "working-language-one-bcp-47-tag-in-squads-toml-english-fallb",
+      "status": "Accepted",
+      "description": "A top-level working_language key holds a Babel-known BCP 47 tag; absent means English silently, malformed warns and falls back to English",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1097"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001100-working-language-one-bcp-47-tag-in-squads-toml-english-fallb.md",
+      "created_at": "2026-10-24T09:20:18Z",
+      "updated_at": "2026-10-24T09:22:24Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1100"
+    },
+    "1101": {
+      "sequence_id": 1101,
+      "type": "feature",
+      "title": "Adopter field-report fixes: errors, round-trips, checks, guidance",
+      "slug": "adopter-field-report-fixes-errors-round-trips-checks-guidanc",
+      "status": "Draft",
+      "description": "Fixes for the triaged findings of REV-1099: defects, new checks, docs and bundled guidance.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-1051:targets",
+        "REV-1099:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Writes fail cleanly under index-lock contention",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Milestone bodies round-trip and create sets every declared field",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Generated files report the truth after a team or version change",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Operator subtasks close without --force",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "sq check flags Approved reviews with Open findings and unowned types",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "Findings can be Deferred or Noted",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US7",
+          "title": "Adopters can find how to import, override and change roles",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US8",
+          "title": "Bundled guidance names the right owners and asks the right questions",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US9",
+          "title": "sq list has a compact one-line form",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001101-adopter-field-report-fixes-errors-round-trips-checks-guidanc.md",
+      "created_at": "2026-10-24T09:39:06Z",
+      "updated_at": "2026-10-24T13:00:13Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1101"
+    },
+    "1102": {
+      "sequence_id": 1102,
+      "type": "decision",
+      "title": "Findings gain Noted and Deferred; a Deferred finding names its carrier",
+      "slug": "findings-gain-noted-and-deferred-a-deferred-finding-names-it",
+      "status": "Accepted",
+      "description": "Open gains terminal Noted (done role) and Deferred (new deferred role); Deferred stores a deferred_to item pointer that sq check verifies",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1099:addresses"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001102-findings-gain-noted-and-deferred-a-deferred-finding-names-it.md",
+      "created_at": "2026-10-24T09:45:21Z",
+      "updated_at": "2026-10-24T09:57:04Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1102"
+    },
+    "1103": {
+      "sequence_id": 1103,
+      "type": "task",
+      "title": "Fix lock contention, milestone round-trip, create fields, sync wording",
+      "slug": "fix-lock-contention-milestone-round-trip-create-fields-sync",
+      "status": "Draft",
+      "description": "Defects F4, F5, F9, F16, F6 and F2 from REV-1099.",
+      "parent": "FEAT-1101",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1099:addresses",
+        "FEAT-1108:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Report index-lock waits on stderr and fail a timeout as a clean SquadsError",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Stop a milestone body write-back from duplicating the roll-up, and name the fix for a view tag",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Expose every declared field as a create option and store a declared default",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Render a type's Team workflow line for any number of authoring roles",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Call an older release's pointer outdated, and say what sync still does after migrate",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Allow Todo to Done in the bundled sub-entity lifecycle",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Write the 0.17.0 CHANGELOG entries for this task's defect fixes",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001103-fix-lock-contention-milestone-round-trip-create-fields-sync.md",
+      "created_at": "2026-10-24T10:04:00Z",
+      "updated_at": "2026-10-24T13:20:02Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1103"
+    },
+    "1104": {
+      "sequence_id": 1104,
+      "type": "task",
+      "title": "Warn on settled reviews with open findings and on unowned types",
+      "slug": "warn-on-settled-reviews-with-open-findings-and-on-unowned-ty",
+      "status": "Draft",
+      "description": "New sq check rules for F10 and F3 from REV-1099.",
+      "parent": "FEAT-1101",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1099:addresses",
+        "TASK-1105:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add subentities_settled_with_parent and select it on the bundled review type",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Add type_has_live_author, naming the catalog role to activate",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Give every outstanding finding on this repo's settled reviews a real disposition",
+          "status": "Todo",
+          "assignee": "reviewer",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Write the 0.17.0 CHANGELOG entries for the two new check rules",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001104-warn-on-settled-reviews-with-open-findings-and-on-unowned-ty.md",
+      "created_at": "2026-10-24T10:04:02Z",
+      "updated_at": "2026-10-24T10:08:29Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1104"
+    },
+    "1105": {
+      "sequence_id": 1105,
+      "type": "task",
+      "title": "Add Noted and Deferred finding states with a carrier pointer",
+      "slug": "add-noted-and-deferred-finding-states-with-a-carrier-pointer",
+      "status": "Draft",
+      "description": "The finding lifecycle of ADR-1102 (REV-1099 F7).",
+      "parent": "FEAT-1101",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1099:addresses",
+        "ADR-1102:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Declare Noted, Deferred and the deferred role flag, and refuse the flag on item lifecycles",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Store deferred_to: update and add flags, refusals, head line, JSON row and import op",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Remap deferred_to on retype, type rename and renumber, and sever it on remove",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Add the subentity_deferral_resolved check, with the retired-carrier warning",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Add the Noted and Deferred line to the bundled reviewer guidance",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Refresh the stability and workflow docs for the finding lifecycle, and write the CHANGELOG entry",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001105-add-noted-and-deferred-finding-states-with-a-carrier-pointer.md",
+      "created_at": "2026-10-24T10:04:03Z",
+      "updated_at": "2026-10-24T10:08:04Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1105"
+    },
+    "1106": {
+      "sequence_id": 1106,
+      "type": "task",
+      "title": "Role ergonomics, bundled handoffs and a compact sq list",
+      "slug": "role-ergonomics-bundled-handoffs-and-a-compact-sq-list",
+      "status": "Draft",
+      "description": "F13, F15, F8, F17 and F14 from REV-1099.",
+      "parent": "FEAT-1101",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1099:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "End role show with how to change the role's definition",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Scaffold every overridable role field with its bundled value and the append idiom",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Add sq list --compact, one line per item with a truncated title",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US9",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Word the bundled review and bug handoffs by the item's author",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Give the tech writer the narration sweep, name it in loop step 5, and default it to sonnet",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Write the 0.17.0 CHANGELOG entries for the role, list and guidance changes",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001106-role-ergonomics-bundled-handoffs-and-a-compact-sq-list.md",
+      "created_at": "2026-10-24T10:04:05Z",
+      "updated_at": "2026-10-24T10:08:11Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1106"
+    },
+    "1107": {
+      "sequence_id": 1107,
+      "type": "task",
+      "title": "Document import events, role splat-refs and the review question",
+      "slug": "document-import-events-role-splat-refs-and-the-review-questi",
+      "status": "Draft",
+      "description": "Doc-only fixes F1, F12 and F11 from REV-1099.",
+      "parent": "FEAT-1101",
+      "author": "tech-lead",
+      "assignee": "tech-writer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1099:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Document every sq import op with its fields and an example line",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Guard the import op reference against the event model",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Show splat-refs on role list fields in the override docs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Add an interview question on when to open a review",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Write the 0.17.0 Documentation note for the import, override and interview docs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001107-document-import-events-role-splat-refs-and-the-review-questi.md",
+      "created_at": "2026-10-24T10:04:07Z",
+      "updated_at": "2026-10-24T10:08:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1107"
+    },
+    "1108": {
+      "sequence_id": 1108,
+      "type": "feature",
+      "title": "View transforms: structured data for views",
+      "slug": "view-transforms-structured-data-for-views",
+      "status": "InProgress",
+      "description": "A view may declare a transform that feeds both its template and show --json.",
+      "parent": "EPIC-897",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-1051:targets",
+        "REV-1099:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Declare and run a transform for a view",
+          "status": "InProgress",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Resolve override transforms safely from the client's squad",
+          "status": "InProgress",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "show --json: stored body plus a views key",
+          "status": "InProgress",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Milestone roll-up transform matches its text",
+          "status": "InProgress",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Document transforms and their trust model",
+          "status": "InProgress",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001108-view-transforms-structured-data-for-views.md",
+      "created_at": "2026-10-24T13:01:42Z",
+      "updated_at": "2026-10-24T13:27:58Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1108"
+    },
+    "1109": {
+      "sequence_id": 1109,
+      "type": "decision",
+      "title": "View transforms and the show --json view contract",
+      "slug": "view-transforms-and-the-show-json-view-contract",
+      "status": "Accepted",
+      "description": "Spec-declared Python transforms feed a view's template and a views key in show --json; body returns the stored text",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1099:addresses",
+        "FEAT-1108"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001109-view-transforms-and-the-show-json-view-contract.md",
+      "created_at": "2026-10-24T13:07:46Z",
+      "updated_at": "2026-10-24T13:11:46Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1109"
+    },
+    "1110": {
+      "sequence_id": 1110,
+      "type": "task",
+      "title": "Build view transforms and the show --json views contract",
+      "slug": "build-view-transforms-and-the-show-json-views-contract",
+      "status": "InProgress",
+      "description": "Transform declaration, safe loading, views key and milestone roll-up data.",
+      "parent": "FEAT-1108",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1109:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Declare a view transform in the spec with shape-only load checks and override precedence",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Load, bind and call a transform, validate its JSON output, and feed it to the template as data",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Resolve override transforms from the threaded squad dir, confined to .overrides/ after symlinks",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Report unresolvable override transforms in sq check and sq workflow lint",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Return the stored body and a views key from every item show --json payload",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Give milestone_rollup a bundled transform and render its template from data",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Show a commented transform in the workflow override scaffold",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Document the transform key, signature, path rule and trust model",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST9",
+          "title": "Write the 0.17.0 CHANGELOG entries for view transforms",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001110-build-view-transforms-and-the-show-json-views-contract.md",
+      "created_at": "2026-10-24T13:16:43Z",
+      "updated_at": "2026-10-24T13:28:01Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1110"
+    },
+    "1111": {
+      "sequence_id": 1111,
+      "type": "task",
+      "title": "Inventory the old suite: parity ledger and falsification audit",
+      "slug": "inventory-the-old-suite-parity-ledger-and-falsification-audi",
+      "status": "Draft",
+      "description": "Parity ledger, per-module falsification audit and per-OS CI baseline; read-only on tests.",
+      "parent": "FEAT-1096",
+      "author": "tech-lead",
+      "assignee": "qa",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1110:depends-on",
+        "TASK-1098:depends-on",
+        "TASK-1103:depends-on",
+        "TASK-1104:depends-on",
+        "TASK-1105:depends-on",
+        "TASK-1106:depends-on",
+        "TASK-1107:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Build the parity ledger from regression classes, fixed bugs and review defects",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Run the falsification audit per source module on the old suite",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Record the per-OS CI baseline with durations and worker counts",
+          "status": "Todo",
+          "assignee": "devops",
+          "severity": null,
+          "story": "US10",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001111-inventory-the-old-suite-parity-ledger-and-falsification-audi.md",
+      "created_at": "2026-10-24T13:42:12Z",
+      "updated_at": "2026-10-24T13:43:25Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1111"
+    },
+    "1112": {
+      "sequence_id": 1112,
+      "type": "task",
+      "title": "Set up the new suite root, its conventions and meta guards",
+      "slug": "set-up-the-new-suite-root-its-conventions-and-meta-guards",
+      "status": "Draft",
+      "description": "New root beside the old one, conventions, volume and naming guards, shared fixtures, pinned goldens.",
+      "parent": "FEAT-1096",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1111:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Write the conventions, layer policy and row budget for the new root",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Add meta guards for the count ceiling, row budget, naming and seam owners",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Create the new root with shared copy-per-row fixtures and pinned goldens",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001112-set-up-the-new-suite-root-its-conventions-and-meta-guards.md",
+      "created_at": "2026-10-24T13:42:14Z",
+      "updated_at": "2026-10-24T13:43:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1112"
+    },
+    "1113": {
+      "sequence_id": 1113,
+      "type": "task",
+      "title": "Rebuild the integrity core tests and retire their old files",
+      "slug": "rebuild-the-integrity-core-tests-and-retire-their-old-files",
+      "status": "Draft",
+      "description": "Store, counter, markers, path guard, write-once, migrations and repair; parity then deletion.",
+      "parent": "FEAT-1096",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1112:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Rebuild the store, counter, marker, path-guard and write-once tests",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Rebuild the migration, reconcile, corpus-fit, repair and renumber tests",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Prove integrity-core parity and delete the old files it covers",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US9",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001113-rebuild-the-integrity-core-tests-and-retire-their-old-files.md",
+      "created_at": "2026-10-24T13:42:15Z",
+      "updated_at": "2026-10-24T13:43:27Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1113"
+    },
+    "1114": {
+      "sequence_id": 1114,
+      "type": "task",
+      "title": "Rebuild the engine, services and CLI tests and retire old files",
+      "slug": "rebuild-the-engine-services-and-cli-tests-and-retire-old-fil",
+      "status": "Draft",
+      "description": "Spec loading, sq check, -C and gate, views, comments, items and roster services; parity then deletion.",
+      "parent": "FEAT-1096",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1112:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Rebuild spec, override and vocabulary loading at the load boundary",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Rebuild the sq check rules as one boundary table per check",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Rebuild the CLI spine: the -C property, schema gate, exit codes and clean --json",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Rebuild views, view tags, comments and discussion tests",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Rebuild items, sub-entities, refs and roster lifecycle service tests",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Prove engine, services and CLI parity and delete the old files they cover",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US9",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001114-rebuild-the-engine-services-and-cli-tests-and-retire-old-fil.md",
+      "created_at": "2026-10-24T13:42:16Z",
+      "updated_at": "2026-10-24T13:43:28Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1114"
+    },
+    "1115": {
+      "sequence_id": 1115,
+      "type": "task",
+      "title": "Rebuild backend, skills, rendering and TUI tests, retire old files",
+      "slug": "rebuild-backend-skills-rendering-and-tui-tests-retire-old-fi",
+      "status": "Draft",
+      "description": "Pointers, skills, has_dev gate, goldens, Windows paths and line endings, TUI; parity then deletion.",
+      "parent": "FEAT-1096",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1112:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Rebuild pointer and skill generation through init, sync and migrate",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Rebuild goldens, rendering, Windows path and line-ending rows, and the TUI tests",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Prove backend and rendering parity and delete the old files they cover",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US9",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001115-rebuild-backend-skills-rendering-and-tui-tests-retire-old-fi.md",
+      "created_at": "2026-10-24T13:42:18Z",
+      "updated_at": "2026-10-24T13:43:29Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1115"
+    },
+    "1116": {
+      "sequence_id": 1116,
+      "type": "task",
+      "title": "Close the rebuild and measure per-OS CI against the targets",
+      "slug": "close-the-rebuild-and-measure-per-os-ci-against-the-targets",
+      "status": "Draft",
+      "description": "Old root gone, ledger complete, one CI run per OS recorded against the binding targets.",
+      "parent": "FEAT-1096",
+      "author": "tech-lead",
+      "assignee": "devops",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1113:depends-on",
+        "TASK-1114:depends-on",
+        "TASK-1115:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Confirm the old root is gone and the parity ledger is complete",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US9",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Record one CI run per OS against the binding targets",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US10",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001116-close-the-rebuild-and-measure-per-os-ci-against-the-targets.md",
+      "created_at": "2026-10-24T13:42:20Z",
+      "updated_at": "2026-10-24T13:43:33Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1116"
     }
   }
 }

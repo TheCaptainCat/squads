@@ -23,7 +23,8 @@ clear message):
      skipped with a clear note (first-run case).
   6. Regenerate the version-embedding goldens:
      ``UPDATE_GOLDENS=1 uv run --all-extras pytest
-     tests/cli/test_json_output_shape.py -q -n0``.
+     tests/cli/test_json_output_shape.py
+     tests/integration/test_migrate_up_output_is_unchanged_for_every_corpus.py -q -n0``.
   7. ``sq sync`` to re-stamp this repo's managed files.
   8. Print a summary of every file/step, old -> new.
 
@@ -44,7 +45,10 @@ _PYPROJECT_PATH = _REPO_ROOT / "pyproject.toml"
 _PACKAGE_JSON_PATH = _REPO_ROOT / "clients" / "vscode" / "package.json"
 _MANIFEST_REL_PATH = Path("src") / "squads" / "_rendering" / "templates_manifest.json"
 _GEN_MANIFEST_SCRIPT = Path("scripts") / "gen_template_manifest.py"
-_GOLDENS_TEST_PATH = Path("tests") / "cli" / "test_json_output_shape.py"
+_GOLDENS_TEST_PATHS = (
+    Path("tests") / "cli" / "test_json_output_shape.py",
+    Path("tests") / "integration" / "test_migrate_up_output_is_unchanged_for_every_corpus.py",
+)
 
 _VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:[.\-][0-9A-Za-z.]+)?$")
 
@@ -215,7 +219,15 @@ def _step5_template_manifest(current_version: str, *, dry_run: bool) -> None:
 
 def _step6_regen_goldens(*, dry_run: bool) -> None:
     _step(6, "regenerate version-embedding goldens")
-    goldens_cmd = ["uv", "run", "--all-extras", "pytest", str(_GOLDENS_TEST_PATH), "-q", "-n0"]
+    goldens_cmd = [
+        "uv",
+        "run",
+        "--all-extras",
+        "pytest",
+        *(str(path) for path in _GOLDENS_TEST_PATHS),
+        "-q",
+        "-n0",
+    ]
     if dry_run:
         print(f"  [dry-run] would run (with UPDATE_GOLDENS=1): {' '.join(goldens_cmd)}")
         return
