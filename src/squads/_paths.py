@@ -48,6 +48,14 @@ def load_config(config_path: Path) -> SquadsConfig:
         raise SquadsError(f"invalid {config_path.name}: {exc.errors()[0]['msg']}") from exc
 
 
+def resolve_within(base: Path, relative: str) -> tuple[Path, bool]:
+    """The symlink-resolved path of *relative* under *base*, and whether it stays inside *base*
+    (itself compared after resolution). The one confinement guard."""
+    root = base.resolve()
+    target = (root / relative).resolve()
+    return target, target.is_relative_to(root)
+
+
 @dataclass(frozen=True)
 class SquadPaths:
     """Resolved locations for one active squad."""
@@ -94,9 +102,7 @@ class SquadPaths:
         Guards against path traversal: a ``path`` from a hand-edited index/frontmatter cannot
         escape the squad folder.
         """
-        base = self.squad_dir.resolve()
-        resolved = (base / squad_relative).resolve()
-        if not resolved.is_relative_to(base):
+        if not resolve_within(self.squad_dir, squad_relative)[1]:
             raise InvalidIdError(f"path {squad_relative!r} escapes the squad folder")
         return self.squad_dir / squad_relative
 

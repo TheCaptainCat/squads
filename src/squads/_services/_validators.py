@@ -93,6 +93,7 @@ from squads._roles._resolver import (
 )
 from squads._services import _config_integrity as config_integrity
 from squads._services._results import CheckIssue
+from squads._transform import check_view_transforms
 from squads._workflow._models import (
     DEFAULT_SQUAD_GLOBAL_LEVEL,
     DEFAULT_VALIDATOR_LEVEL,
@@ -1524,6 +1525,17 @@ def _display_config_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
     ]
 
 
+def _view_transform_resolves(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """Each override view transform that cannot be called: its file is missing, escapes
+    ``.overrides/``, fails to import, or lacks a function sq can call. Imports the file, so its
+    top-level code runs; the function is never called."""
+    level = squad_global_level(ctx.spec, "view_transform_resolves")
+    return [
+        CheckIssue(level, f"views.{name}.transform", message)
+        for name, message in check_view_transforms(ctx.spec, ctx.paths.squad_dir)
+    ]
+
+
 def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
     """A playbook guide whose role slug names no live role — a warning per dropped guide.
 
@@ -1824,6 +1836,7 @@ SQUAD_GLOBAL_CATALOG: dict[str, SquadGlobalValidator] = {
     "roster_slug_valid": _roster_slug_valid,
     "playbook_guide_role_live": _playbook_guide_role_live,
     "display_config_valid": _display_config_valid,
+    "view_transform_resolves": _view_transform_resolves,
     "children_settled_with_parent": _children_settled_with_parent,
     "dependency_acyclic": _dependency_acyclic,
     "wip_limit": _wip_limit,

@@ -20,6 +20,7 @@ JSON_KEYS = {
     "path",
     "origin",
     "body",
+    "views",
 }
 
 

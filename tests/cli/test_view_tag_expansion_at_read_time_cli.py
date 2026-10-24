@@ -40,7 +40,7 @@ async def test_show_styled_renders_the_view_in_place_of_the_tag(project, invoke)
     assert "Outstanding" in shown.output
 
 
-async def test_show_json_body_field_carries_the_expanded_text_not_the_literal_tag(
+async def test_show_json_body_keeps_the_literal_tag_and_views_carries_the_data(
     project, invoke
 ) -> None:
     await invoke(["create", "task", "T", "--author", "manager"])
@@ -49,9 +49,12 @@ async def test_show_json_body_field_carries_the_expanded_text_not_the_literal_ta
     shown = await invoke(["task", "2", "show", "--json"])
 
     assert shown.exit_code == 0, shown.output
-    body = json.loads(shown.output)["body"]
-    assert f"sq:view:{_BUNDLED_VIEW}" not in body
-    assert "Outstanding" in body
+    payload = json.loads(shown.output)
+    assert f"sq:view:{_BUNDLED_VIEW}" in payload["body"]
+    assert "Outstanding" not in payload["body"]
+    assert payload["views"][_BUNDLED_VIEW] == {"delivered": [], "outstanding": [], "settled": []}
+    raw = await invoke(["task", "2", "show", "--raw"])
+    assert "Outstanding" in raw.output
 
 
 async def test_a_body_with_no_tag_shows_unchanged_across_every_surface(project, invoke) -> None:

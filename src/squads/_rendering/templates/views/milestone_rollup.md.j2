@@ -1,25 +1,12 @@
-{% set delivered = [] %}
-{% set outstanding = [] %}
-{% set settled_not_delivered = [] %}
-{% for r in source %}
-{% if spec.is_delivered(r.type, r.status) %}
-{% set _ = delivered.append(r) %}
-{% elif spec.role_for(r.status).settled %}
-{% set _ = settled_not_delivered.append(r) %}
-{% else %}
-{% set _ = outstanding.append(r) %}
-{% endif %}
-{% endfor %}
+{% set delivered = data.delivered %}
+{% set outstanding = data.outstanding %}
+{% set settled_not_delivered = data.settled %}
 {% macro member_line(r) %}- **{{ r.id }}** ({{ r.type }}) {{ r.status }} — {{ r.title }}{% if r.assignee %} — {{ r.assignee }}{% endif %}
 {% endmacro %}
-{# Each section sorts type-ascending then sequence-id-ascending, case-sensitively (ASCII
-   order, matching Python's default string comparison) rather than Jinja's own
-   case-insensitive default — deterministic for a mixed-case custom item-type name, not just
-   the bundled all-lowercase ones. #}
 ## Delivered ({{ delivered | length }})
 
 {% if delivered %}
-{% for r in delivered | sort(attribute="type,sequence_id", case_sensitive=True) %}
+{% for r in delivered %}
 {{ member_line(r) }}
 {% endfor %}
 
@@ -30,7 +17,7 @@ _(none yet)_
 ## Outstanding ({{ outstanding | length }})
 
 {% if outstanding %}
-{% for r in outstanding | sort(attribute="type,sequence_id", case_sensitive=True) %}
+{% for r in outstanding %}
 {{ member_line(r) }}
 {% endfor %}
 
@@ -41,7 +28,7 @@ _(nothing outstanding)_
 ## Settled without delivering ({{ settled_not_delivered | length }})
 
 {% if settled_not_delivered %}
-{% for r in settled_not_delivered | sort(attribute="type,sequence_id", case_sensitive=True) %}
+{% for r in settled_not_delivered %}
 {{ member_line(r) }}
 {% endfor %}
 {% else %}

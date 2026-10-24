@@ -11,7 +11,7 @@ refs:
 description: Spec-declared Python transforms feed a view's template and a views key
   in show --json; body returns the stored text
 created_at: '2026-10-24T13:07:46Z'
-updated_at: '2026-10-24T13:11:46Z'
+updated_at: '2026-10-24T14:40:30Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -42,7 +42,7 @@ Grounding: `src/squads/_views.py` (`resolve_source`, `render_source_view`, `expa
 
 ### Loading
 
-- An override file is loaded with `importlib.util.spec_from_file_location` under a module name derived from a hash of its resolved path. The module is placed in `sys.modules` only while `exec_module` runs, so that `dataclasses` and `typing` find it, and is removed afterwards. Nothing about a loaded transform outlives the request, which keeps two squads served by one daemon from sharing a cached `transforms.py` and keeps an edited file from going stale.
+- An override file is loaded by reading its bytes, compiling them, and running them with `exec()` in a fresh module named from a hash of its resolved path. No bytecode is read or written under `.overrides/`. The module is placed in `sys.modules` only while that code runs, so that `dataclasses` and `typing` find it, and is removed afterwards. Nothing about a loaded transform outlives the request, which keeps two squads served by one daemon from sharing a cached `transforms.py` and keeps an edited file from going stale.
 - A file is loaded once per request: a body placing two views from the same file executes it once. There is no cross-request cache.
 - `sys.path` is never changed. A transform file imports the standard library, installed packages, and nothing else, so its helpers live in the same file.
 - Bundled modules import normally and stay cached in `sys.modules`. They are code, not request data (the `_context.py` triage rule).
@@ -51,7 +51,7 @@ Grounding: `src/squads/_views.py` (`resolve_source`, `render_source_view`, `expa
 
 - The call is `fn(source, *, item, spec)`, run synchronously. `source` is the value `resolve_source` returns, in its native shape (`list[Item]`, `list[SubEntity]`, `RoleDef`, `PlaybookSource`, `Item`). `item` is the host and `spec` is the active `WorkflowSpec`.
 - **sq passes only the keywords the function declares.** It reads `inspect.signature(fn)`. The first parameter must accept a positional argument. `item` and `spec` are passed when a parameter of that name exists, and both are passed when the function takes `**kwargs`. A function that requires any other parameter is refused, with the parameter named. A keyword sq adds later is therefore never a breaking change for an existing transform.
-- **Read-only, enforced by copying.** `Item` and `SubEntity` are mutable pydantic models, and under a daemon a mutation could leak into a later request. So `source` and `item` are passed as deep copies (`model_copy(deep=True)`, element by element for a list) made for each call. `spec` is frozen and is passed as is. Nothing a transform returns or mutates reaches disk, because the read path has no write.
+- **Read-only, enforced by copying.** `Item` and `SubEntity` are mutable pydantic models, and `WorkflowSpec`'s `frozen=True` blocks attribute assignment but not changes to its `dict` fields. Under a daemon the parsed spec stays warm across requests, so a mutation of any argument could leak into a later request. So `source`, `item` and `spec` are all passed as deep copies (`model_copy(deep=True)`, element by element for a list) made for each call. Copying the bundled spec costs about 0.4 ms. Nothing a transform returns or mutates reaches disk, because the read path has no write.
 
 ### Output
 
@@ -62,7 +62,7 @@ Grounding: `src/squads/_views.py` (`resolve_source`, `render_source_view`, `expa
 
 - **One error class, `ViewTransformError(SquadsError)`, covering every failure:** a file missing or escaping `.overrides/`, a failed import, a missing or uncallable function, a rejected signature, an exception raised inside the transform, a wrong top-level type, or a non-JSON value.
 - Its message names the view, the host item, the declaration (`<path>:<function>` or `<module>:<function>`) and the cause. For an exception, the cause is its type, its message, and the last traceback frame inside the transform's own file (`file:line`). For a bad return, the cause is the JSON path of the first offending value (`$.delivered[3].when`). It reads as a clean `@handle_errors` exit 1, never a traceback.
-- **The failure is loud on every surface that computes the view:** `sq show` (styled and `--raw`), `show --json`, and `sq workflow view`. This follows the precedent of a template render failure (`_render_resolved_source_or_raise`). Only `Exception` is caught: `KeyboardInterrupt` and `SystemExit` propagate.
+- **The failure is loud on every surface that computes the view:** `sq show` (styled and `--raw`), `show --json`, and `sq workflow view`. This follows the precedent of a template render failure (`_render_resolved_source_or_raise`). `Exception` and `SystemExit` raised by a transform, at import or at call, become `ViewTransformError`; `sys.exit()` in user code is a failure, never an exit. Every other `BaseException` propagates: `KeyboardInterrupt` still interrupts, and `asyncio.CancelledError` still cancels a daemon request.
 - An unresolvable tag (undeclared view, missing template, inapplicable source) stays literal and quiet, as today. The transform never runs for it.
 
 ### `show --json`
@@ -121,7 +121,10 @@ Grounding: `src/squads/_views.py` (`resolve_source`, `render_source_view`, `expa
 - `module` allowed in overrides: it would let an override name arbitrary importable code (`os:system`) without a file under `.overrides/`.
 - Checking that the file and function exist at spec load: it would add a stat and an import to every command, and a filesystem fact is not a spec fact (the precedent is a missing template).
 - Registering override modules in `sys.modules` for good: they would go stale under a daemon and collide across squads.
+- Loading with `spec_from_file_location` + `exec_module`: the bytecode cache serves a stale file when it is edited within the same second.
 - Passing the live objects with a read-only contract that nothing enforces: a mutation would leak across daemon requests.
+- A read-only proxy over the spec: a wrapper for every nested container and method return value, against a 0.4 ms copy.
+- Catching all of `BaseException`: it would swallow `KeyboardInterrupt` and a daemon's `CancelledError`.
 - Transform output replacing `source` in Jinja: it would break every existing template override of a view that gains a transform.
 - Degrading a transform error to a literal tag or a `null` entry: a quiet wrong answer, and inconsistent with how template failures behave.
 - A `rendered_body` key next to `body`: it duplicates `--raw` and keeps the F5 round-trip trap one key away.
@@ -137,4 +140,8 @@ Grounding: `src/squads/_views.py` (`resolve_source`, `render_source_view`, `expa
   - Drafted from the op-pierre rulings on REV-1099 F5; refs REV-1099 (addresses) and FEAT-1108. Open for operator ruling: skill show --json body also goes stored-text; workflow view --json keeps the source; transform errors are loud. @product-owner FEAT-1108 can cite this; docs/stability.md needs a tech-writer refresh once accepted.
 - [2026-10-24T13:11:45Z] `op-pierre` Pierre Chat:
   - All five points accepted: sq skill show --json follows the same rule; sq workflow view --json keeps returning the source; a broken transform fails the read loudly; views becomes a reserved attribute name; the write-side acceptance of an unchanged placed tag belongs to the F5 fix.
+- [2026-10-24T14:30:00Z] `architect` Robert Architect:
+  - Amended 2026-10-24 after REV-1117 F1 and F4: spec is deep-copied per call like source and item (frozen=True does not protect its dicts), and a transform raising Exception or SystemExit, at import or call, becomes a ViewTransformError; every other BaseException propagates. Options rejected: a read-only spec proxy, catching all of BaseException.
+- [2026-10-24T14:40:30Z] `architect` Robert Architect:
+  - 2026-10-24: Loading bullet restated to the implemented rule (compile the bytes and `exec()` them, no bytecode under `.overrides/`, in `sys.modules` only while executing); `spec_from_file_location` + `exec_module` added to Options rejected (stale bytecode within one second). Per the accepted deviation on REV-1117.
 <!-- sq:discussion:end -->

@@ -36,6 +36,11 @@ async def test_the_scaffolded_example_lints_clean_once_uncommented(project, invo
 
     path = project.squad_dir / ".overrides" / "workflow.toml"
     path.write_text(_uncomment_the_worked_example(path.read_text(encoding="utf-8")), "utf-8")
+    transforms = project.squad_dir / ".overrides" / "transforms"
+    transforms.mkdir()
+    (transforms / "related_incidents.py").write_text(
+        "def related_incidents(source):\n    return []\n"
+    )
 
     result = await invoke(["workflow", "lint"])
 

@@ -42,12 +42,11 @@ async def test_create_set_target_date_join_and_show_the_rollup(project, invoke) 
     data = json.loads(r.output)
     assert data["target_date"] == "2026-12-01"
     assert "extra" not in data
-    # The roll-up is placed by a body tag, not a `views` key on the item's JSON: its rendered
-    # output is part of the body's own expanded text, the same one plain `show` printed above.
-    assert "views" not in data
-    assert "## Delivered" in data["body"]
-    assert "## Outstanding" in data["body"]
-    assert task_id in data["body"]
+    # `body` is the stored text with the roll-up tag; the roll-up itself is the data under `views`.
+    assert "sq:view:milestone_rollup" in data["body"]
+    assert "## Delivered" not in data["body"]
+    rollup = data["views"]["milestone_rollup"]
+    assert task_id in [row["id"] for row in rollup["outstanding"]]
 
 
 async def test_an_unparseable_target_date_is_refused_via_the_cli(project, invoke) -> None:

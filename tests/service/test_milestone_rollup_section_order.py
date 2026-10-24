@@ -9,6 +9,9 @@ import pytest
 
 from _helpers import create_item
 from squads import _views as views
+from squads._models._item import Item
+from squads._transform import TransformData
+from squads._view_transforms import milestone_rollup
 
 pytestmark = pytest.mark.anyio
 
@@ -107,7 +110,12 @@ async def test_the_type_sort_is_case_sensitive_not_jinjas_case_insensitive_defau
     ]
 
     rendered = views.render_source_view(
-        "milestone_rollup", cast(views.SourceResult, members), host, svc.spec, None
+        "milestone_rollup",
+        cast(views.SourceResult, members),
+        host,
+        svc.spec,
+        None,
+        cast(TransformData, milestone_rollup(cast(list[Item], members), spec=svc.spec)),
     )
 
     assert "## Outstanding (2)" in rendered

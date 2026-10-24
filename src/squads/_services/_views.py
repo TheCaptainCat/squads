@@ -15,6 +15,7 @@ from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._paths import number_for_id
 from squads._services._base import ServiceCore
+from squads._transform import TransformLoader
 from squads._workflow._models import ROSTER_ROLE, ROSTER_SKILL, ViewSpec
 
 
@@ -182,7 +183,13 @@ class ViewsMixin(ServiceCore):
         render entry point, shared with read-time tag expansion): this method has no
         resolution logic of its own to keep in step with it."""
         view, item, result = await self.resolve_view_source(view_name, item_id)
-        del view  # the resolved source is what render_source_view needs, not the declaration
+        data = (
+            TransformLoader(self.paths.squad_dir).run(
+                view_name, view.transform, result, item=item, spec=self.spec
+            )
+            if view.transform is not None
+            else None
+        )
         return views.render_source_view(
-            view_name, result, item, self.spec, self.paths.config.squad_dir
+            view_name, result, item, self.spec, self.paths.config.squad_dir, data
         )

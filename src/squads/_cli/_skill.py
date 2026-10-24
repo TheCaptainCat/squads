@@ -171,8 +171,9 @@ async def skill_show(
                     "operator_invocable_set": invocable_set,
                     "path": it.path,
                     **common.origin_json(attrs.origin(it)),
-                    # Tag-expanded, same as an ordinary item's `show --json` body field.
-                    "body": await svc.read_body(it.id),
+                    # Stored text with its view tags as tags, and the tags' data, as for any item.
+                    "body": await svc.read_stored_body(it.id),
+                    "views": await svc.view_data(it.id),
                 }
             )
         )

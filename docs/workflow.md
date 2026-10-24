@@ -338,18 +338,22 @@ findings. Transitions are validated by the sub-entity machines; `--force` overri
 A **derived view** is a declared, read-only source over relationships an item already has: every
 item pointing here with a given ref kind, this item's own sub-entities, its descendants of some
 type, its own merged role definition, a type's playbook lane, or the item itself. A view's
-*declaration* is a source and nothing else:
+*declaration* is a source, plus two optional keys:
 
 - **source** — where the data comes from. `ref` (every item carrying a forward ref of the named
   kind to this item, recovered by inverting stored edges), `subentity` (this item's own
   sub-entities of the named kind), `subtree` (this item's descendants of the named type), `role`
   (this item's own merged role definition), `playbook` (a type's playbook lane), or `self` (this
   item, with no join at all).
+- **position** — where the view's tag sits in a body.
+- **transform** — a Python function that turns the resolved source into plain data, which the
+  template reads and `show --json` returns (see [§ "View transforms"](#view-transforms)).
 
 Resolving it has one further step, presentation: a template rendered against the source's own
 resolved shape, resolved by the view's own name. For a relation source (`ref`/`subentity`/
 `subtree`) that shape is a plain list of real items or sub-entities, unflattened — the template
-groups and orders them itself, with Jinja's `groupby`/`sort`/`selectattr`.
+groups and orders them itself, with Jinja's `groupby`/`sort`/`selectattr`, or reads the data its
+transform computed.
 
 ```bash
 sq workflow views                       # every declared view: its source
@@ -369,16 +373,22 @@ per-node rows, a `subentity` source matches the per-kind list `--json`, `role` m
 <slug> show --json`, `self` matches the host item's `sq show <id> --json` plus a `spec` key
 (`schema_version`, `override`, and a `digest` to compare for equality only — see
 [stability.md](stability.md)), and `playbook` carries its lane plus the live roster — and skips
-presentation entirely. That is the supported way to build on a view; the CLI's own rendering is one
-presentation over the same data, never a second source of truth for it.
+presentation entirely. A view that declares a transform has a second machine-readable form: the
+item's `show --json` carries the transform's output under `views.<name>`. Those two are the
+supported ways to build on a view; the CLI's own rendering is one presentation over the same data,
+never a second source of truth for it.
+
+**`show --json` returns the body as stored.** Its `body` key is the text of the item's body region
+with each view tag left as a tag (`<!-- sq:view:milestone_rollup -->`), not the rendered view: what
+it reports is what the item file stores. The rendered text is on `sq show` and `sq show --raw`.
 
 The bundled spec declares one *relation*-sourced view, `milestone_rollup` — see below — plus five
 non-relation ones behind the role/skill surfaces. Declaring your own is a section of the workflow
 override: [§ "Derived views"](#derived-views-field-reference) has the field reference.
 
-A view declares only its `source`. An override that gives a view `fields`, `group_by` or
-`order_by`, or attaches a view to a type with `items.<type>.views`, does not load, and the error
-names the key; [migration.md § "Upgrading to 0.15: view declarations"](migration.md#upgrading-to-015-view-declarations)
+A view declares no field list, grouping or ordering. An override that gives a view `fields`,
+`group_by` or `order_by`, or attaches a view to a type with `items.<type>.views`, does not load,
+and the error names the key; [migration.md § "Upgrading to 0.15: view declarations"](migration.md#upgrading-to-015-view-declarations)
 converts such a declaration.
 
 ---
@@ -442,7 +452,26 @@ _(none)_
 
 ```bash
 sq milestone <n> show                            # the roll-up, rendered
-sq workflow view milestone_rollup MILE-<n> --json  # the same members as records
+sq milestone <n> show --json | jq .views.milestone_rollup   # the same split, as data
+sq workflow view milestone_rollup MILE-<n> --json  # the members as full records, unsplit
+```
+
+The split is computed by the view's bundled transform, so the JSON and the rendering always agree.
+`views.milestone_rollup` holds three lists, `delivered`, `outstanding` and `settled`, each ordered
+by type and then sequence number, and each row is `{id, type, title, status, assignee}`, with
+`assignee` `null` when nobody is assigned. For a milestone with one draft feature and one
+cancelled feature:
+
+```json
+{
+  "delivered": [],
+  "outstanding": [
+    {"id": "FEAT-<n>", "type": "feature", "title": "Ship the widget", "status": "Draft", "assignee": null}
+  ],
+  "settled": [
+    {"id": "FEAT-<m>", "type": "feature", "title": "Old idea", "status": "Cancelled", "assignee": null}
+  ]
+}
 ```
 
 squads has no estimation vocabulary, so a milestone reports items, not effort: counts of what is
@@ -953,8 +982,9 @@ through `[selected]`.
 source = { kind = "ref", name = "escalates" }
 ```
 
-A view declares two things: `source`, which every view carries, and an optional `position`.
-`source` is an inline table of `kind` and `name`:
+A view declares `source`, which every view carries, an optional `position`, and an optional
+`transform` ([§ "View transforms"](#view-transforms) below). `source` is an inline table of `kind`
+and `name`:
 
 - `kind = "ref"` — every item carrying a forward ref of kind `name` to the item the view is
   resolved against, recovered by inverting stored edges. `name` must be a declared entry of
@@ -1017,8 +1047,9 @@ sq override update views/milestone_rollup.md.j2     # re-stamp once you have rec
 The template receives `source` — the resolved value in its own native shape, unflattened: a plain
 list of real `Item`/sub-entity objects for `ref`/`subentity`/`subtree`, or the source's own value
 for `role`/`playbook`/`self` — plus `item` (the host the view resolved against) and `spec` (the
-active workflow spec). There is no separate field/grouping grammar to declare: a template groups
-and orders the list itself with Jinja's `groupby`/`sort`/`selectattr` under `StrictUndefined`, and
+active workflow spec), and `data` when the view declares a transform. There is no separate
+field/grouping grammar to declare: a template groups and orders the list itself with Jinja's
+`groupby`/`sort`/`selectattr` under `StrictUndefined` (or a transform does it in Python), and
 resolves a status badge with the registered `badge` filter (`{{ r.status | badge(spec) }}`) rather
 than hand-writing an emoji. **Group on `spec.status_role(r.status)`, not on a literal status
 name** — a view's members can span several types whose lifecycles spell "finished" differently
@@ -1162,8 +1193,138 @@ reports it with everything else.
 
 ```bash
 sq workflow views          # name, source kind, source name
-sq workflow views --json   # machine-readable
+sq workflow views --json   # machine-readable, with each view's transform
 ```
+
+#### View transforms
+
+A view can declare a **transform**: a Python function that turns the view's resolved source into
+plain data. The view's template reads that data as `data`, and the item's `show --json` returns
+it under `views.<name>`, so the rendered text and the JSON come from one computation. The bundled
+`milestone_rollup` view has one; [overrides.md § "Giving a view a transform"](overrides.md#giving-a-view-a-transform)
+walks through adding your own.
+
+```toml
+[views.story_progress]
+source = { kind = "subentity", name = "story" }
+transform = { path = "transforms/progress.py", function = "story_progress" }
+```
+
+**Declaration.** `transform` is an inline table in one of two forms:
+
+- `{ path = "<file>.py", function = "<name>" }` — a file under the squad's `.overrides/` folder,
+  `path` relative to it. This is the one form an override may write.
+- `{ module = "squads.<module>", function = "<name>" }` — a module squads ships, for bundled views
+  only. An override that writes `module`, or writes a `transform` table without both `path` and
+  `function`, is refused at load:
+
+  ```
+  views.x.transform: an override transform is `{ path, function }` and may not name `module` — write `transform = { path = "transforms/<file>.py", function = "<name>" }` with the file under .overrides/.
+  ```
+
+An override may copy a bundled transform with a splat-ref, `transform =
+"$(views.milestone_rollup.transform)"`, because that can only name code squads ships. Writing
+`path` and `function` onto a bundled view replaces its transform, and `sq workflow views --json`
+then shows `{path, function}` for it. An override cannot remove a bundled view's transform: it can
+replace it with its own, or override the view's template to ignore `data`.
+
+**What loading the spec checks.** The declaration's shape, and nothing else: no file is opened and
+nothing is imported, so a broken transform file never stops a command that does not render its
+view. Exactly one of `module` and `path`; `function` is a Python identifier that is not a keyword;
+`path` is relative and POSIX (no leading `/`, no backslash, no drive letter, no control
+character), ends in `.py` and has no `..` segment; `module` is a dotted name under `squads.`. A
+failure stops the load like any other spec error, and `sq workflow lint` lists it:
+
+```
+view 'x': transform path '../evil.py' must not contain a `..` segment
+```
+
+**What `sq check` and `sq workflow lint` check.** The file: it exists, is a regular file, still
+lies inside `.overrides/` once its symlinks are resolved, imports, defines `function` as a callable
+that is not `async`, and has a signature sq can call (below). `sq check` reports each failure
+through its always-on `view_transform_resolves` check at `error`, so it exits `3`; `sq workflow
+lint` reports it once the spec itself is clean, and exits `1`:
+
+```
+error views.story_progress.transform: view 'story_progress' (transform transforms/progress.py:story_progress): module has no attribute 'story_progress'
+```
+
+Both commands **import the file, so its top-level code runs**; neither calls the function. They
+cannot report an exception that depends on the data an item hands the function: that shows on the
+first read that renders the view. Bundled transforms are not checked here.
+
+**The call.** sq calls the function synchronously as `fn(source, *, item, spec)`:
+
+- `source` — the view's resolved source, the same value the template receives as `source`: a list
+  of items for `ref` and `subtree`, a list of sub-entities for `subentity`, the merged role
+  definition for `role`, the playbook lane and roster for `playbook`, the item itself for `self`.
+  `sq workflow view <name> <id> --json` prints it, so it is the way to see what the function gets.
+- `item` — the item whose body places the view.
+- `spec` — the active workflow spec, with the same methods a template uses, such as
+  `spec.role_for(status).settled` and `spec.is_delivered(type, status)`.
+
+sq reads the function's signature and passes only the keywords it names: `def f(source)`,
+`def f(source, *, spec)` and `def f(source, *, item, spec)` all work, and a `**kwargs` parameter
+receives both. A keyword sq passes in a later release therefore never reaches a function that
+does not ask for it. The first parameter must take the source positionally. Any other parameter
+must have a default, and sq never fills it; a required one is refused by name (`it requires an
+unsupported parameter 'extra'`). An `async def` function, a name that is not callable, and a
+callable whose signature cannot be read are refused too.
+
+Each call receives **deep copies** of `source`, `item` and `spec`, made for that call, so a
+function that changes what it was given changes nothing else: not the next view, not the item
+file. A read never writes to disk.
+
+**What it returns.** A JSON value whose top level is a `dict` or a `list`. Inside it, sq accepts
+`dict` with `str` keys, `list`, `str`, `int`, finite `float`, `bool` and `None`. Anything else is
+refused: a tuple, a set, a pydantic model, a `datetime`, NaN, infinity, an integer too large to
+write out, a value that contains itself, and nesting deeper than 100 levels. sq checks the value
+as returned rather than converting it, so the template and the JSON receive exactly the same
+value. The refusal names the JSON path of the first offending value:
+
+```
+error: view 'story_progress' on FEAT-<n> (transform transforms/progress.py:story_progress): returned a value that is not JSON data: $.when: tuple is not JSON data
+```
+
+**In the template.** A view with a transform renders its template with `data`, the returned value,
+beside `source`, `item`, `spec` and `squad_dir`. `source` keeps its meaning, so a template override
+written against `source` keeps working when its view gains a transform. A view without a transform
+gets no `data`, and a template that reads it fails under `StrictUndefined`.
+
+**Where the output shows.**
+
+| Surface | What it gives |
+|---|---|
+| `sq show <id>`, `sq <type> <n> show` (styled, `--full`, `--raw`) | the template rendered with `data` |
+| `sq show <id> --json`, `sq <type> <n> show --json`, `sq skill <addr> show --json` | `views.<name>`: the returned value |
+| `sq workflow view <name> <id>` | the template rendered with `data` |
+| `sq workflow view <name> <id> --json` | the source, the transform's input; never its output |
+| `sq workflow views --json` | each row's `transform`: `null`, or the merged declaration |
+
+A view appears under `views` when its tag is placed in the body, enabled, resolvable (the view is
+declared, its template exists and its source applies to the item), and the view declares a
+transform. A disabled tag, a view with no transform and a tag that does not resolve are left out,
+and `views` is `{}` when nothing qualifies. Sub-entities carry no `views` key.
+
+**When it fails.** Every failure is one error naming the view, the item, the declaration and the
+cause, with exit `1` and no traceback: a missing file, a path that leaves `.overrides/`, a failed
+import, a missing or refused function, an exception raised inside it, or a value that is not JSON
+data. For an exception, the cause is its type and message, plus the last line of the transform
+file the traceback passed through when there is one:
+
+```
+error: view 'story_progress' on FEAT-<n> (transform transforms/progress.py:story_progress): ZeroDivisionError: division by zero (at …/squads/.overrides/transforms/progress.py:2)
+```
+
+The failure is loud on every surface that renders the view, `--json` included, so a broken
+transform fails every read of the items that place its view until it is fixed or the tag is
+disabled (`sq <type> <n> view disable <name>`, which does not run it). Body writes and `view
+add`/`view disable` do not run transforms. `sys.exit()` in a transform, at import or at call, is a
+failure like any other, never an exit; `KeyboardInterrupt` is not caught, so Ctrl-C still
+interrupts. A tag that does not resolve stays literal and quiet, and its transform never runs.
+
+**Write transforms as pure computation.** A transform runs on every read that renders its view,
+nothing caches its result between reads, and a slow one slows each of those reads.
 
 ### What the override may and may not change
 
@@ -1212,6 +1373,9 @@ This command checks:
 - **Structure**: all lifecycles, statuses, and item types are correctly defined
 - **References**: all status names used in transitions are declared; all lifecycle names are defined
 - **Liveness**: any types or statuses still referenced by items in the squad are not removed
+- **View transforms**, once everything above is clean: each override transform's file is found
+  inside `.overrides/`, imports and names a function sq can call — importing it runs its
+  top-level code (see [§ "View transforms"](#view-transforms))
 
 If valid, the output is:
 

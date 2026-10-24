@@ -3,7 +3,7 @@ id: TASK-1095
 sequence_id: 1095
 type: task
 title: Bring CI test time back down, Windows first
-status: Draft
+status: Cancelled
 author: tech-lead
 refs:
 - MILE-1051:targets
@@ -28,7 +28,7 @@ subentities:
   title: Measure the write-once guard's cost, and keep it on
   status: Todo
 created_at: '2026-10-17T07:42:12Z'
-updated_at: '2026-10-17T07:57:07Z'
+updated_at: '2026-10-24T14:09:09Z'
 ---
 <!-- sq:body -->
 CI test time roughly tripled between the 0.15 and 0.16 release PRs. This task brings it back down, Windows first, using the simplest measures before any restructuring.
@@ -148,4 +148,6 @@ Measure the suite with and without the write-once guard on one OS to confirm or 
   - 2026-10-17: a speed boost is not enough. We need another complete rebuild of the test suite, from the ground up.
 - [2026-10-17T07:57:07Z] `product-owner` Nina Product:
   - Linked FEAT-1096 (complete test-suite rebuild, per op-pierre 2026-10-17). This task's profiling and setup-sharing work is one input to it.
+- [2026-10-24T14:09:09Z] `manager` Catherine Manager:
+  - Cancelled on op-pierre's ruling: superseded by the FEAT-1096 rebuild, whose TASK-1111 ST3 carries the per-OS profiling.
 <!-- sq:discussion:end -->

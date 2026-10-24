@@ -3,14 +3,14 @@ id: EPIC-897
 sequence_id: 897
 type: epic
 title: Views as a source plus a template, rendered at a tag
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - ADR-880
 description: 'Rebuild the view mechanism per ADR-880: source + template, a tag marks
   where it renders; the projection layer and its grammar are deleted'
 created_at: '2026-09-03T09:00:54Z'
-updated_at: '2026-10-24T13:04:09Z'
+updated_at: '2026-10-24T14:47:12Z'
 ---
 <!-- sq:body -->
 ## Outcome

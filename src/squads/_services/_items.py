@@ -28,6 +28,7 @@ from squads._services import _retirement as retirement
 from squads._services._base import ServiceCore, reject_body_overwrite, reject_markers
 from squads._services._results import RemoveResult, RosterRemoval, RosterStatusResult
 from squads._services._validators import ValidatorEngine
+from squads._transform import TransformData
 from squads._util import slugify
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, bundled_spec
 
@@ -739,11 +740,11 @@ class ItemsMixin(ServiceCore):
         """The item's top-level ``:body`` region content (for ``sq show``), with any
         ``sq:view:<name>`` tag it carries expanded to that view's rendered output.
 
-        **The one shared body-read boundary.** Every read surface — ``sq show``, ``--raw``,
-        the ``--json`` body field, the TUI reader, the operator pane, and the skill read —
-        resolves a body through this method and nothing else reads the ``sq:body`` region for
-        display, so expansion inherits from this single place rather than being reimplemented
-        per surface (see :func:`~squads._views.expand_view_tags`).
+        **The one shared body-read boundary for rendered text.** Every text surface — ``sq
+        show``, ``--raw``, the TUI reader, the operator pane, and the skill read — resolves a
+        body through this method, so expansion inherits from this single place rather than being
+        reimplemented per surface (see :func:`~squads._views.expand_view_tags`). ``show --json``
+        reads :meth:`read_stored_body` instead, the text with its tags left as tags.
 
         Read-only: the body-*write* path (:meth:`set_body`'s ``mutate`` closure) reads the
         region directly and never through here, so expanded bytes never reach disk.
@@ -758,8 +759,7 @@ class ItemsMixin(ServiceCore):
         thread and should not silently acquire an index dependency for the common case.
         """
         item = await self.get(item_id)
-        text = await self._read_item_file(item, item_file(self.paths, item))
-        body = (sections.get_section(text, markers.BODY) or "").strip("\n")
+        body = await self._stored_body(item)
         if not views.has_view_tag(body):
             return body
         db = await self.store.load()
@@ -773,6 +773,29 @@ class ItemsMixin(ServiceCore):
             roster,
             self.paths.squad_dir,
             self.paths.config.squad_dir,
+        )
+
+    async def _stored_body(self, item: Item) -> str:
+        text = await self._read_item_file(item, item_file(self.paths, item))
+        return (sections.get_section(text, markers.BODY) or "").strip("\n")
+
+    async def read_stored_body(self, item_id: str) -> str:
+        """The item's ``:body`` region exactly as stored, each ``sq:view:<name>`` tag left as a
+        tag. The text a client can write back; :meth:`read_body` is the one that expands tags."""
+        return await self._stored_body(await self.get(item_id))
+
+    async def view_data(self, item_id: str) -> dict[str, TransformData]:
+        """The transform output of each enabled, resolvable view tag in the item's stored body
+        whose view declares a transform, keyed by view name; ``{}`` when none qualifies. No
+        index load when the body carries no tag."""
+        item = await self.get(item_id)
+        body = await self._stored_body(item)
+        if not views.has_view_tag(body):
+            return {}
+        db = await self.store.load()
+        roster = cache(lambda: self.roster_from_db(db))
+        return views.view_data(
+            body, item, db, self.spec, self.playbook, roster, self.paths.squad_dir
         )
 
     async def read_discussion(self, item_id: str) -> str:

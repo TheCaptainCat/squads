@@ -88,6 +88,8 @@ def test_the_workflow_scaffolds_worked_example_declares_a_valid_view(tmp_path) -
     view = spec.views["related_incidents"]
     assert view.source.kind == "ref"
     assert view.source.name in spec.ref_kinds
+    assert view.transform is not None
+    assert view.transform.path == "transforms/related_incidents.py"
 
 
 def test_the_workflow_scaffolds_worked_example_view_refuses_cleanly_without_a_template(

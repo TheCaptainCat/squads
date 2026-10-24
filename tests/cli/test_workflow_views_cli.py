@@ -124,9 +124,9 @@ async def test_json_every_row_carries_the_frozen_field_set(project, invoke) -> N
 
 
 def test_frozen_field_set_is_exactly_the_reduced_shape() -> None:
-    """No ``fields``/``group_by``/``order_by`` column survives — a view declares only its
-    source."""
-    assert VIEW_CATALOG_FIELDS == ("view", "source_kind", "source_name")
+    """No ``fields``/``group_by``/``order_by`` column survives — a row names a view, its
+    source and its transform."""
+    assert VIEW_CATALOG_FIELDS == ("view", "source_kind", "source_name", "transform")
 
 
 def test_every_catalog_row_has_exactly_the_frozen_field_set() -> None:
