@@ -3,7 +3,7 @@ id: ADR-1109
 sequence_id: 1109
 type: decision
 title: View transforms and the show --json view contract
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - REV-1099:addresses
@@ -11,7 +11,7 @@ refs:
 description: Spec-declared Python transforms feed a view's template and a views key
   in show --json; body returns the stored text
 created_at: '2026-10-24T13:07:46Z'
-updated_at: '2026-10-24T13:08:07Z'
+updated_at: '2026-10-24T13:11:46Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -135,4 +135,6 @@ Grounding: `src/squads/_views.py` (`resolve_source`, `render_source_view`, `expa
 <!-- sq:discussion -->
 - [2026-10-24T13:08:07Z] `architect` Robert Architect:
   - Drafted from the op-pierre rulings on REV-1099 F5; refs REV-1099 (addresses) and FEAT-1108. Open for operator ruling: skill show --json body also goes stored-text; workflow view --json keeps the source; transform errors are loud. @product-owner FEAT-1108 can cite this; docs/stability.md needs a tech-writer refresh once accepted.
+- [2026-10-24T13:11:45Z] `op-pierre` Pierre Chat:
+  - All five points accepted: sq skill show --json follows the same rule; sq workflow view --json keeps returning the source; a broken transform fails the read loudly; views becomes a reserved attribute name; the write-side acceptance of an unchanged placed tag belongs to the F5 fix.
 <!-- sq:discussion:end -->
