@@ -1,7 +1,7 @@
 {
   "schema_version": "0.16",
   "squads_version": "0.16.0",
-  "counter": 1107,
+  "counter": 1109,
   "padding": 6,
   "items": {
     "12": {
@@ -411,7 +411,7 @@
       "type": "epic",
       "title": "Views as a source plus a template, rendered at a tag",
       "slug": "views-as-a-source-plus-a-template-rendered-at-a-tag",
-      "status": "Done",
+      "status": "InProgress",
       "description": "Rebuild the view mechanism per ADR-880: source + template, a tag marks where it renders; the projection layer and its grammar are deleted",
       "parent": null,
       "author": "product-owner",
@@ -425,7 +425,7 @@
       "subentities": [],
       "path": "epics/EPIC-000897-views-as-a-source-plus-a-template-rendered-at-a-tag.md",
       "created_at": "2026-09-03T09:00:54Z",
-      "updated_at": "2026-09-29T09:34:50Z",
+      "updated_at": "2026-10-24T13:04:09Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52191,7 +52191,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-1099:addresses"
+        "REV-1099:addresses",
+        "FEAT-1108:depends-on"
       ],
       "subentities": [
         {
@@ -52260,7 +52261,7 @@
       ],
       "path": "tasks/TASK-001103-fix-lock-contention-milestone-round-trip-create-fields-sync.md",
       "created_at": "2026-10-24T10:04:00Z",
-      "updated_at": "2026-10-24T10:07:53Z",
+      "updated_at": "2026-10-24T13:02:05Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52565,6 +52566,106 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "TASK-1107"
+    },
+    "1108": {
+      "sequence_id": 1108,
+      "type": "feature",
+      "title": "View transforms: structured data for views",
+      "slug": "view-transforms-structured-data-for-views",
+      "status": "Draft",
+      "description": "A view may declare a transform that feeds both its template and show --json.",
+      "parent": "EPIC-897",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-1051:targets",
+        "REV-1099:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Declare and run a transform for a view",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Resolve override transforms safely from the client's squad",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "show --json: stored body plus a views key",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Milestone roll-up transform matches its text",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Document transforms and their trust model",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001108-view-transforms-structured-data-for-views.md",
+      "created_at": "2026-10-24T13:01:42Z",
+      "updated_at": "2026-10-24T13:04:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1108"
+    },
+    "1109": {
+      "sequence_id": 1109,
+      "type": "decision",
+      "title": "View transforms and the show --json view contract",
+      "slug": "view-transforms-and-the-show-json-view-contract",
+      "status": "Proposed",
+      "description": "Spec-declared Python transforms feed a view's template and a views key in show --json; body returns the stored text",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1099:addresses",
+        "FEAT-1108"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001109-view-transforms-and-the-show-json-view-contract.md",
+      "created_at": "2026-10-24T13:07:46Z",
+      "updated_at": "2026-10-24T13:08:07Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1109"
     }
   }
 }

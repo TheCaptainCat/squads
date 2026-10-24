@@ -9,6 +9,7 @@ author: tech-lead
 assignee: python-dev
 refs:
 - REV-1099:addresses
+- FEAT-1108:depends-on
 description: Defects F4, F5, F9, F16, F6 and F2 from REV-1099.
 subentities:
 - local_id: ST1
@@ -43,7 +44,7 @@ subentities:
   assignee: tech-writer
   story: US1
 created_at: '2026-10-24T10:04:00Z'
-updated_at: '2026-10-24T10:07:53Z'
+updated_at: '2026-10-24T13:02:05Z'
 ---
 <!-- sq:body -->
 ## Goal
