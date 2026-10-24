@@ -1,7 +1,7 @@
 {
   "schema_version": "0.16",
   "squads_version": "0.16.0",
-  "counter": 1096,
+  "counter": 1097,
   "padding": 6,
   "items": {
     "12": {
@@ -51688,6 +51688,69 @@
       "attributes": {},
       "slug_in_file": true,
       "id": "OP-10"
+    },
+    "1097": {
+      "sequence_id": 1097,
+      "type": "feature",
+      "title": "Working language: one configured language for the squad",
+      "slug": "working-language-one-configured-language-for-the-squad",
+      "status": "Draft",
+      "description": "A squad declares one working language for sq content and agent communication; agents answer the human in the human's language.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-1051:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Configure working_language in .squads.toml",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Render the language rule in every backend and the squads skill",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Write working_language on init and adopt",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Document working_language for adopters",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001097-working-language-one-configured-language-for-the-squad.md",
+      "created_at": "2026-10-24T08:48:52Z",
+      "updated_at": "2026-10-24T09:05:39Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1097"
     }
   }
 }
