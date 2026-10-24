@@ -84,7 +84,13 @@ CORE_KEYS: tuple[str, ...] = (
 
 #: Names a ``--json`` item row adds on top of the item's own keys. An attribute named like one is
 #: kept in the file and left out of the row.
-ROW_ADDED_KEYS: tuple[str, ...] = ("badges", "body", "discussion", "matched_subentities")
+ROW_ADDED_KEYS: tuple[str, ...] = (
+    "badges",
+    "body",
+    "discussion",
+    "matched_subentities",
+    "views",
+)
 
 #: Model fields that are not frontmatter: refused as declared attribute names. A hand-added key of
 #: such a name is kept like any unknown key and left out of a ``--json`` row.

@@ -71,6 +71,7 @@ from squads._roles._loader import load_role_catalog
 from squads._roles._projection import RoleView
 from squads._roles._resolver import resolve_role_for_item
 from squads._sections import get_section, iter_marker_spans, split_frontmatter, strip_marker_lines
+from squads._transform import TransformData, TransformLoader
 from squads._workflow._models import (
     ROSTER_ROLE,
     ROSTER_SKILL,
@@ -570,6 +571,7 @@ def render_source_view(
     item: Item,
     spec: WorkflowSpec,
     squad_dir_display: str | None,
+    data: TransformData | None = None,
 ) -> str:
     """Render *view_name*'s already-resolved *result* through its presentation template —
     ``templates/views/<view_name>.md.j2``, resolved by the one Jinja2 engine every rendering
@@ -600,7 +602,11 @@ def render_source_view(
     a project override on disk, and deriving a display string from it (e.g. its last path
     segment) is only correct when the configured value happens to be a single path segment —
     nothing about ``squad_dir`` requires that, so this function is handed the configured string
-    directly and never touches the Path at all."""
+    directly and never touches the Path at all.
+
+    *data* is the view's transform output; the template receives it as ``data`` only when it is
+    given, so a template of a view without a transform that reads ``data`` fails under
+    ``StrictUndefined``."""
     template_name = view_template_name(view_name)
     if not has_template(template_name):
         raise ViewTemplateMissingError(
@@ -609,7 +615,15 @@ def render_source_view(
             f".overrides/templates/{template_name}) before it can be rendered; until then, "
             "resolve it with `--json`, which does not render at all"
         )
-    return render(template_name, source=result, item=item, spec=spec, squad_dir=squad_dir_display)
+    context: dict[str, object] = {
+        "source": result,
+        "item": item,
+        "spec": spec,
+        "squad_dir": squad_dir_display,
+    }
+    if data is not None:
+        context["data"] = data
+    return render(template_name, **context)
 
 
 def has_view_tag(text: str) -> bool:
@@ -1105,8 +1119,10 @@ def expand_view_tags(
     """*text* with every well-formed ``sq:view:<name>`` tag replaced by that view's rendered
     output, in place. A disabled tag is removed the way ``strip_marker_lines`` removes a
     marker, never left as a blank line; an unresolvable enabled tag stays literal. Read-only,
-    and pads a rendered view with a blank line against neighbouring prose."""
+    and pads a rendered view with a blank line against neighbouring prose. A view that declares a
+    transform runs it once per tag; a failing transform raises rather than leaving the tag."""
     text, _ = strip_marker_lines(text, _keep_unless_disabled_view_tag)
+    loader = TransformLoader(squad_dir)
     segments: list[tuple[str, str]] = []
     pending = ""
     last = 0
@@ -1124,7 +1140,14 @@ def expand_view_tags(
             continue  # undeclared, template missing, or source inapplicable — left literal
         view = spec.views[name]
         result = resolve_source(view, name, item, db, spec, playbook, roster, squad_dir)
-        rendered = _render_resolved_source_or_raise(name, result, item, spec, squad_dir_display)
+        data = (
+            loader.run(name, view.transform, result, item=item, spec=spec)
+            if view.transform is not None
+            else None
+        )
+        rendered = _render_resolved_source_or_raise(
+            name, result, item, spec, squad_dir_display, data
+        )
         pending += text[last:start]
         segments.append(("literal", pending))
         # Stripped of its own leading/trailing newlines so the padding this function adds is
@@ -1139,6 +1162,35 @@ def expand_view_tags(
     pending += text[last:]
     segments.append(("literal", pending))
     return _assemble_padded_expansion(segments)
+
+
+def view_data(
+    text: str,
+    item: Item,
+    db: SquadsDB,
+    spec: WorkflowSpec,
+    playbook: PlaybookSpec,
+    roster: RosterProvider,
+    squad_dir: Path | None,
+) -> dict[str, TransformData]:
+    """Each enabled, resolvable ``sq:view:<name>`` tag of *text* whose view declares a
+    transform, mapped to that transform's output. Gated by :func:`resolve_view_target` exactly
+    as :func:`expand_view_tags` is, so text and data agree on which tags are live; a disabled,
+    unresolvable or transform-less tag contributes nothing."""
+    loader = TransformLoader(squad_dir)
+    data: dict[str, TransformData] = {}
+    for raw, _start, _end in iter_marker_spans(text):
+        parts = markers.view_tag_parts(raw)
+        if parts is None or parts.disabled or parts.name in data:
+            continue
+        if resolve_view_target(parts.name, item.type, spec, playbook) is not None:
+            continue
+        view = spec.views[parts.name]
+        if view.transform is None:
+            continue
+        result = resolve_source(view, parts.name, item, db, spec, playbook, roster, squad_dir)
+        data[parts.name] = loader.run(parts.name, view.transform, result, item=item, spec=spec)
+    return data
 
 
 def _pad_between(chunk: str, *, pad_before: bool, pad_after: bool) -> str:
@@ -1177,6 +1229,7 @@ def _render_resolved_source_or_raise(
     item: Item,
     spec: WorkflowSpec,
     squad_dir_display: str | None,
+    data: TransformData | None = None,
 ) -> str:
     """:func:`render_source_view`, with a template failure under ``StrictUndefined``
     translated into a :class:`SquadsError` naming *item* — the engine-defect half of
@@ -1192,7 +1245,7 @@ def _render_resolved_source_or_raise(
     :class:`SquadsError` clause below — is let through unchanged on the rare race where the
     template disappears between the two checks."""
     try:
-        return render_source_view(view_name, result, item, spec, squad_dir_display)
+        return render_source_view(view_name, result, item, spec, squad_dir_display, data)
     except ViewTemplateMissingError:
         raise
     except SquadsError as exc:

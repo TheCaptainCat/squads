@@ -49,7 +49,7 @@ async def test_skill_show_json_body_is_the_exact_stored_prose_alone(seeded_paths
     r = await invoke(["skill", str(sk.sequence_id), "show", "--json"])
     data = json.loads(r.output)
 
-    assert data["body"] == await svc.read_body(sk.id)
+    assert data["body"] == await svc.read_stored_body(sk.id)
     assert data["body"] == "Exact prose, nothing else."
 
 

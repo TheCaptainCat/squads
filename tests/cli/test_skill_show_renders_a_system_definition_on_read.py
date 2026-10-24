@@ -59,8 +59,8 @@ async def test_show_prints_a_system_definition_although_the_item_stores_only_its
 async def test_show_json_carries_every_field_including_origin_and_the_exact_body(
     seeded, invoke
 ) -> None:
-    """``--json``'s ``body`` is the same tag-expanded read every other reader gets, isolated
-    with nothing else on stdout."""
+    """``--json``'s ``body`` is the stored text, its view tag left as a tag, isolated with
+    nothing else on stdout; ``views`` is empty because a skill's view declares no transform."""
     r = await invoke(["skill", "sq-task", "show", "--json"])
     assert r.exit_code == 0, r.output
     payload = json.loads(r.output)
@@ -77,18 +77,21 @@ async def test_show_json_carries_every_field_including_origin_and_the_exact_body
         "path",
         "origin",
         "body",
+        "views",
     }
     assert payload["slug"] == "sq-task"
     assert payload["origin"] == "system"
 
     svc = service.Service(seeded)
-    assert payload["body"] == await svc.read_body(await _sq_task_id(svc))
+    assert payload["body"] == await svc.read_stored_body(await _sq_task_id(svc))
+    assert "sq:view:" in payload["body"]
+    assert payload["views"] == {}
 
     custom = await svc.add_skill("Release Runbook", description="Ship a release safely.")
     r = await invoke(["skill", str(custom.sequence_id), "show", "--json"])
     custom_payload = json.loads(r.output)
     assert custom_payload["origin"] == "project"
-    assert custom_payload["body"] == await svc.read_body(custom.id)
+    assert custom_payload["body"] == await svc.read_stored_body(custom.id)
 
 
 async def _sq_task_id(svc: service.Service) -> str:

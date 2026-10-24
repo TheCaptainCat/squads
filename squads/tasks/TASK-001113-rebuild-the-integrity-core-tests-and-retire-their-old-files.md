@@ -26,7 +26,7 @@ subentities:
   status: Todo
   story: US9
 created_at: '2026-10-24T13:42:15Z'
-updated_at: '2026-10-24T13:43:27Z'
+updated_at: '2026-10-24T14:34:03Z'
 ---
 <!-- sq:body -->
 Rebuild the integrity core in the new root, deepest layering first: index store, global counter, transactions, markers and `reject_markers`, the `abspath` traversal guard, the write-once guard, migrations, reconcile, corpus-fit, repair and renumber (US6), then prove parity and delete the old files this area covers (US9).
@@ -40,7 +40,7 @@ Ledger classes owned here: migration edges (forward-only, repair idempotency, no
 **Acceptance**
 
 - Every integrity-core ledger entry has a named test or `tests/meta` guard in the new root with its break recorded red.
-- Migration, repair idempotency, corpus-fit and write-once behaviour are each covered once; no cross-product table; the row budget guard passes.
+- Migration, repair idempotency, corpus-fit and write-once behaviour are each covered once; no cross-product table, checked in review.
 - "Every prose input passes `reject_markers`" is one `tests/meta` guard over the input sites, not one test per verb.
 - The old files covering only this area are deleted; the CI time per OS after this increment is recorded and is not above the time before it.
 <!-- sq:body:end -->

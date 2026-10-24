@@ -25,6 +25,7 @@ derived from the referenced role, never stored directly. They are encoded in
 closed-set ``Priority``/``Severity`` enums.
 """
 
+import keyword
 import math
 import re
 import uuid
@@ -190,6 +191,7 @@ SQUAD_GLOBAL_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "roster_slug_valid",
         "playbook_guide_role_live",
         "display_config_valid",
+        "view_transform_resolves",
         "children_settled_with_parent",
         "dependency_acyclic",
         "wip_limit",
@@ -209,6 +211,7 @@ ALWAYS_ON_SQUAD_GLOBAL_NAMES: frozenset[str] = frozenset(
         "roster_slug_valid",
         "playbook_guide_role_live",
         "display_config_valid",
+        "view_transform_resolves",
     }
 )
 
@@ -244,6 +247,7 @@ DEFAULT_SQUAD_GLOBAL_LEVEL: dict[str, str] = {
     "roster_slug_valid": "error",
     "playbook_guide_role_live": "warn",
     "display_config_valid": "warn",
+    "view_transform_resolves": "error",
     "children_settled_with_parent": "warn",
     "dependency_acyclic": "warn",
     "wip_limit": "warn",
@@ -1112,6 +1116,19 @@ def parse_view_position(raw: str) -> ViewPosition:
     raise ValueError(f"position {raw!r}: not one of 'top', 'bottom', 'after(<regex>)'")
 
 
+class ViewTransform(BaseModel):
+    """A view's declared transform: ``function`` in a bundled ``module`` (a dotted import under
+    ``squads.``) or in an override ``path`` (relative to ``.overrides/``, confined to it).
+    Exactly one of ``module``/``path``; shape is checked by :func:`_check_views`, and nothing
+    here touches the filesystem or imports."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    module: str | None = None
+    path: str | None = None
+    function: str
+
+
 class ViewSpec(BaseModel):
     """One declared entry of ``[views]`` — a source, and where its tag is placed.
 
@@ -1142,6 +1159,7 @@ class ViewSpec(BaseModel):
 
     source: ViewSource
     position: str = "bottom"
+    transform: ViewTransform | None = None
 
 
 class RoleSpec(BaseModel):
@@ -2508,6 +2526,42 @@ def _check_views(
         except ValueError as exc:
             errors.append(f"{tag}: invalid position {v.position!r}: {exc}")
         _check_view_source(tag, v.source, items, subentity_kinds, ref_kinds, errors)
+        if v.transform is not None:
+            errors.extend(f"{tag}: {problem}" for problem in view_transform_problems(v.transform))
+
+
+def view_transform_problems(transform: ViewTransform) -> list[str]:
+    """Every shape defect of *transform*, none when it is well formed. Pure string checks: no
+    file is opened and nothing is imported."""
+    problems: list[str] = []
+    if (transform.module is None) == (transform.path is None):
+        problems.append("transform takes exactly one of `module` or `path`")
+    if not transform.function.isidentifier() or keyword.iskeyword(transform.function):
+        problems.append(f"transform function {transform.function!r} is not an identifier")
+    if transform.module is not None and not _TRANSFORM_MODULE_RE.fullmatch(transform.module):
+        problems.append(
+            f"transform module {transform.module!r} is not a dotted identifier under `squads.`"
+        )
+    if transform.path is not None:
+        problems.extend(_transform_path_problems(transform.path))
+    return problems
+
+
+#: ``squads.`` followed by one or more dotted identifier segments.
+_TRANSFORM_MODULE_RE = re_compile(r"^squads(\.[A-Za-z_][A-Za-z0-9_]*)+$")
+
+
+def _transform_path_problems(path: str) -> list[str]:
+    problems: list[str] = []
+    if any(ord(c) < 32 or ord(c) == 127 for c in path):
+        problems.append(f"transform path {path!r} must not contain control characters")
+    elif "\\" in path or path.startswith("/") or re.match(r"^[A-Za-z]:", path):
+        problems.append(f"transform path {path!r} must be a relative POSIX path")
+    elif ".." in path.split("/"):
+        problems.append(f"transform path {path!r} must not contain a `..` segment")
+    if not path.endswith(".py"):
+        problems.append(f"transform path {path!r} must end in `.py`")
+    return problems
 
 
 def subentity_source_reason(

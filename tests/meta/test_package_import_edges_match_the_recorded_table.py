@@ -274,6 +274,7 @@ _cli -> _roles top
 _cli -> _services local
 _cli -> _services top
 _cli -> _services typing
+_cli -> _transform local
 _cli -> _tui local
 _cli -> _util top
 _cli -> _views local
@@ -401,6 +402,7 @@ _services -> _rendering local
 _services -> _rendering top
 _services -> _roles top
 _services -> _sections top
+_services -> _transform top
 _services -> _util top
 _services -> _views top
 _services -> _workflow local
@@ -408,6 +410,10 @@ _services -> _workflow top
 _services -> squads top
 _specmerge -> _errors top
 _specmerge -> squads top
+_transform -> _errors top
+_transform -> _models top
+_transform -> _paths local
+_transform -> _workflow typing
 _tui -> _badges top
 _tui -> _board top
 _tui -> _clock top
@@ -417,6 +423,8 @@ _tui -> _models top
 _tui -> _pronouns top
 _tui -> _services top
 _tui -> _workflow top
+_view_transforms -> _models top
+_view_transforms -> _workflow top
 _views -> _errors top
 _views -> _interactions top
 _views -> _models top
@@ -424,6 +432,7 @@ _views -> _paths top
 _views -> _rendering top
 _views -> _roles top
 _views -> _sections top
+_views -> _transform top
 _views -> _workflow top
 _workflow -> _errors local
 _workflow -> _errors top

@@ -3,7 +3,7 @@ id: FEAT-1108
 sequence_id: 1108
 type: feature
 title: 'View transforms: structured data for views'
-status: InProgress
+status: Done
 parent: EPIC-897
 author: product-owner
 priority: high
@@ -15,21 +15,21 @@ description: A view may declare a transform that feeds both its template and sho
 subentities:
 - local_id: US1
   title: Declare and run a transform for a view
-  status: InProgress
+  status: Done
 - local_id: US2
   title: Resolve override transforms safely from the client's squad
-  status: InProgress
+  status: Done
 - local_id: US3
   title: 'show --json: stored body plus a views key'
-  status: InProgress
+  status: Done
 - local_id: US4
   title: Milestone roll-up transform matches its text
-  status: InProgress
+  status: Done
 - local_id: US5
   title: Document transforms and their trust model
-  status: InProgress
+  status: Done
 created_at: '2026-10-24T13:01:42Z'
-updated_at: '2026-10-24T13:27:58Z'
+updated_at: '2026-10-24T14:47:11Z'
 ---
 <!-- sq:body -->
 ## Problem

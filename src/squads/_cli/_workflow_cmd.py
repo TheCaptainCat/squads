@@ -704,7 +704,7 @@ def workflow_ref_kinds(
 # ─── views ──────────────────────────────────────────────────────────────────
 
 #: Frozen field set for the ``sq workflow views --json`` catalog.
-VIEW_CATALOG_FIELDS: tuple[str, str, str] = ("view", "source_kind", "source_name")
+VIEW_CATALOG_FIELDS: tuple[str, str, str, str] = ("view", "source_kind", "source_name", "transform")
 
 
 def _view_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
@@ -716,11 +716,17 @@ def _view_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
     (``"ref"``/``"subentity"``/``"subtree"``/``"role"``/``"playbook"``/``"self"`` + the
     declared kind/type it names, or ``null`` for the three kinds that take none — join
     ``source_name`` into ``sq workflow ref-kinds``/``subentity-kinds``/``types --json``
-    depending on ``source_kind``). A view declares nothing else: no field/group-by/order-by
-    grammar survives to report.
+    depending on ``source_kind``). ``transform`` is the declaration as merged (``{module,
+    function}`` or ``{path, function}``) or ``null``. No
+    field/group-by/order-by grammar exists to report.
     """
     return [
-        {"view": name, "source_kind": v.source.kind, "source_name": v.source.name}
+        {
+            "view": name,
+            "source_kind": v.source.kind,
+            "source_name": v.source.name,
+            "transform": v.transform.model_dump(exclude_none=True) if v.transform else None,
+        }
         for name, v in sorted(spec.views.items())
     ]
 
@@ -988,7 +994,12 @@ def workflow_lint() -> None:
     """
     from squads._context import get_context
     from squads._paths import resolve
-    from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, lint_workflow_spec
+    from squads._transform import check_view_transforms
+    from squads._workflow._loader import (
+        WORKFLOW_OVERRIDE_FILENAME,
+        lint_workflow_spec,
+        load_workflow_spec,
+    )
 
     ctx = get_context()
     try:
@@ -1007,6 +1018,16 @@ def workflow_lint() -> None:
         return
 
     findings = lint_workflow_spec(squad_dir)
+    if not any(f[0] == "error" for f in findings):
+        findings.extend(
+            (
+                "error",
+                f"views.{name}.transform",
+                message,
+                "fix or restore the file under .overrides/ (it is imported, not called).",
+            )
+            for name, message in check_view_transforms(load_workflow_spec(squad_dir), squad_dir)
+        )
 
     errors = [f for f in findings if f[0] == "error"]
     warnings = [f for f in findings if f[0] == "warn"]

@@ -33,7 +33,7 @@ subentities:
   assignee: devops
   story: US10
 created_at: '2026-10-24T13:42:12Z'
-updated_at: '2026-10-24T13:43:25Z'
+updated_at: '2026-10-24T14:10:11Z'
 ---
 <!-- sq:body -->
 Inventory what the old suite protects before any of it is rebuilt: the parity ledger (US1), the falsification audit (US2) and the per-OS CI baseline every later increment is measured against (US10). Read-only on `tests/` and `src/`: no old test is deleted or edited here.
@@ -99,7 +99,7 @@ For each `src/` module, break its seams one at a time in a scratch worktree and 
 ### ST3 — Record the per-OS CI baseline with durations and worker counts
 
 <!-- sq:subtask:ST3:body -->
-Run the CI test job once per OS with `--durations=50` and record wall time, the worker count `-n auto` got, and the top offenders with their setup and call split. It is the same measurement as TASK-1095's profiling subtask; if the operator folds TASK-1095 into this feature, this subtask carries it. Check whether Windows Defender scans the temp directory on the hosted runner. Record what was measured and what was inferred.
+Run the CI test job once per OS with `--durations=50` and record wall time, the worker count `-n auto` got, and the top offenders with their setup and call split. TASK-1095 is cancelled and this subtask carries its profiling. Windows runs the full suite, so its profile is the one that steers the rebuild. Check whether Windows Defender scans the temp directory on the hosted runner. Record what was measured and what was inferred.
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion

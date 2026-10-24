@@ -1,7 +1,7 @@
 {
   "schema_version": "0.16",
   "squads_version": "0.16.0",
-  "counter": 1116,
+  "counter": 1117,
   "padding": 6,
   "items": {
     "12": {
@@ -411,7 +411,7 @@
       "type": "epic",
       "title": "Views as a source plus a template, rendered at a tag",
       "slug": "views-as-a-source-plus-a-template-rendered-at-a-tag",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Rebuild the view mechanism per ADR-880: source + template, a tag marks where it renders; the projection layer and its grammar are deleted",
       "parent": null,
       "author": "product-owner",
@@ -425,7 +425,7 @@
       "subentities": [],
       "path": "epics/EPIC-000897-views-as-a-source-plus-a-template-rendered-at-a-tag.md",
       "created_at": "2026-09-03T09:00:54Z",
-      "updated_at": "2026-10-24T13:04:09Z",
+      "updated_at": "2026-10-24T14:47:12Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -8433,7 +8433,7 @@
       ],
       "path": "features/FEAT-001096-rebuild-the-test-suite-from-the-ground-up.md",
       "created_at": "2026-10-17T07:56:25Z",
-      "updated_at": "2026-10-24T13:44:14Z",
+      "updated_at": "2026-10-24T14:34:30Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -29663,7 +29663,7 @@
       "type": "task",
       "title": "Bring CI test time back down, Windows first",
       "slug": "bring-ci-test-time-back-down-windows-first",
-      "status": "Draft",
+      "status": "Cancelled",
       "description": "CI went 19/2.5/4.5 min to 42/14.5/11 (Win/mac/Ubuntu) in 0.16; profile, then cut setup cost.",
       "parent": null,
       "author": "tech-lead",
@@ -29724,7 +29724,7 @@
       ],
       "path": "tasks/TASK-001095-bring-ci-test-time-back-down-windows-first.md",
       "created_at": "2026-10-17T07:42:12Z",
-      "updated_at": "2026-10-17T07:57:07Z",
+      "updated_at": "2026-10-24T14:09:09Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52572,7 +52572,7 @@
       "type": "feature",
       "title": "View transforms: structured data for views",
       "slug": "view-transforms-structured-data-for-views",
-      "status": "InProgress",
+      "status": "Done",
       "description": "A view may declare a transform that feeds both its template and show --json.",
       "parent": "EPIC-897",
       "author": "product-owner",
@@ -52588,7 +52588,7 @@
         {
           "local_id": "US1",
           "title": "Declare and run a transform for a view",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -52597,7 +52597,7 @@
         {
           "local_id": "US2",
           "title": "Resolve override transforms safely from the client's squad",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -52606,7 +52606,7 @@
         {
           "local_id": "US3",
           "title": "show --json: stored body plus a views key",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -52615,7 +52615,7 @@
         {
           "local_id": "US4",
           "title": "Milestone roll-up transform matches its text",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -52624,7 +52624,7 @@
         {
           "local_id": "US5",
           "title": "Document transforms and their trust model",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -52633,7 +52633,7 @@
       ],
       "path": "features/FEAT-001108-view-transforms-structured-data-for-views.md",
       "created_at": "2026-10-24T13:01:42Z",
-      "updated_at": "2026-10-24T13:27:58Z",
+      "updated_at": "2026-10-24T14:47:11Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52660,7 +52660,7 @@
       "subentities": [],
       "path": "adrs/ADR-001109-view-transforms-and-the-show-json-view-contract.md",
       "created_at": "2026-10-24T13:07:46Z",
-      "updated_at": "2026-10-24T13:11:46Z",
+      "updated_at": "2026-10-24T14:40:30Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52672,7 +52672,7 @@
       "type": "task",
       "title": "Build view transforms and the show --json views contract",
       "slug": "build-view-transforms-and-the-show-json-views-contract",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Transform declaration, safe loading, views key and milestone roll-up data.",
       "parent": "FEAT-1108",
       "author": "tech-lead",
@@ -52687,7 +52687,7 @@
         {
           "local_id": "ST1",
           "title": "Declare a view transform in the spec with shape-only load checks and override precedence",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US1",
@@ -52696,7 +52696,7 @@
         {
           "local_id": "ST2",
           "title": "Load, bind and call a transform, validate its JSON output, and feed it to the template as data",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US1",
@@ -52705,7 +52705,7 @@
         {
           "local_id": "ST3",
           "title": "Resolve override transforms from the threaded squad dir, confined to .overrides/ after symlinks",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US2",
@@ -52714,7 +52714,7 @@
         {
           "local_id": "ST4",
           "title": "Report unresolvable override transforms in sq check and sq workflow lint",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US1",
@@ -52723,7 +52723,7 @@
         {
           "local_id": "ST5",
           "title": "Return the stored body and a views key from every item show --json payload",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US3",
@@ -52732,7 +52732,7 @@
         {
           "local_id": "ST6",
           "title": "Give milestone_rollup a bundled transform and render its template from data",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US4",
@@ -52741,7 +52741,7 @@
         {
           "local_id": "ST7",
           "title": "Show a commented transform in the workflow override scaffold",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US5",
@@ -52750,7 +52750,7 @@
         {
           "local_id": "ST8",
           "title": "Document the transform key, signature, path rule and trust model",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "severity": null,
           "story": "US5",
@@ -52759,7 +52759,7 @@
         {
           "local_id": "ST9",
           "title": "Write the 0.17.0 CHANGELOG entries for view transforms",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "severity": null,
           "story": "US3",
@@ -52768,7 +52768,7 @@
       ],
       "path": "tasks/TASK-001110-build-view-transforms-and-the-show-json-views-contract.md",
       "created_at": "2026-10-24T13:16:43Z",
-      "updated_at": "2026-10-24T13:28:01Z",
+      "updated_at": "2026-10-24T14:47:13Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52828,7 +52828,7 @@
       ],
       "path": "tasks/TASK-001111-inventory-the-old-suite-parity-ledger-and-falsification-audi.md",
       "created_at": "2026-10-24T13:42:12Z",
-      "updated_at": "2026-10-24T13:43:25Z",
+      "updated_at": "2026-10-24T14:10:11Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52854,7 +52854,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Write the conventions, layer policy and row budget for the new root",
+          "title": "Write the conventions, layer policy and review checks for the new root",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -52863,7 +52863,7 @@
         },
         {
           "local_id": "ST2",
-          "title": "Add meta guards for the count ceiling, row budget, naming and seam owners",
+          "title": "Add meta guards for test naming and one owner layer per seam",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -52882,7 +52882,7 @@
       ],
       "path": "tasks/TASK-001112-set-up-the-new-suite-root-its-conventions-and-meta-guards.md",
       "created_at": "2026-10-24T13:42:14Z",
-      "updated_at": "2026-10-24T13:43:26Z",
+      "updated_at": "2026-10-24T14:34:29Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52936,7 +52936,7 @@
       ],
       "path": "tasks/TASK-001113-rebuild-the-integrity-core-tests-and-retire-their-old-files.md",
       "created_at": "2026-10-24T13:42:15Z",
-      "updated_at": "2026-10-24T13:43:27Z",
+      "updated_at": "2026-10-24T14:34:03Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -53118,12 +53118,102 @@
       ],
       "path": "tasks/TASK-001116-close-the-rebuild-and-measure-per-os-ci-against-the-targets.md",
       "created_at": "2026-10-24T13:42:20Z",
-      "updated_at": "2026-10-24T13:43:33Z",
+      "updated_at": "2026-10-24T14:10:13Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
       "slug_in_file": false,
       "id": "TASK-1116"
+    },
+    "1117": {
+      "sequence_id": 1117,
+      "type": "review",
+      "title": "View transforms and the show --json views contract",
+      "slug": "view-transforms-and-the-show-json-views-contract",
+      "status": "Approved",
+      "description": "Review of TASK-1110 ST1-ST7 (commit 12c1888f) against ADR-1109.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1110"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "A transform can mutate the active spec: only source and item are copied",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "A NUL character in an override transform path raises a traceback in show, check and lint",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "The JSON walk accepts an int too large to serialize; show --json then raises a traceback",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "SystemExit from a transform makes sq check and show --json exit 0 with no output",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "read_body docstring still lists the show --json body field as one of its surfaces",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Call-time lookups of the transform module fail once it leaves sys.modules: document it",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Test economy: an unfailable sort claim, duplicated shape rows, a decorative decoy",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001117-view-transforms-and-the-show-json-views-contract.md",
+      "created_at": "2026-10-24T14:14:37Z",
+      "updated_at": "2026-10-24T14:38:31Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1117"
     }
   }
 }

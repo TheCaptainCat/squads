@@ -3,7 +3,7 @@ id: TASK-1110
 sequence_id: 1110
 type: task
 title: Build view transforms and the show --json views contract
-status: InProgress
+status: Done
 parent: FEAT-1108
 author: tech-lead
 assignee: python-dev
@@ -16,53 +16,53 @@ subentities:
 - local_id: ST1
   title: Declare a view transform in the spec with shape-only load checks and override
     precedence
-  status: Todo
+  status: Done
   assignee: python-dev
   story: US1
 - local_id: ST2
   title: Load, bind and call a transform, validate its JSON output, and feed it to
     the template as data
-  status: Todo
+  status: Done
   assignee: python-dev
   story: US1
 - local_id: ST3
   title: Resolve override transforms from the threaded squad dir, confined to .overrides/
     after symlinks
-  status: Todo
+  status: Done
   assignee: python-dev
   story: US2
 - local_id: ST4
   title: Report unresolvable override transforms in sq check and sq workflow lint
-  status: Todo
+  status: Done
   assignee: python-dev
   story: US1
 - local_id: ST5
   title: Return the stored body and a views key from every item show --json payload
-  status: Todo
+  status: Done
   assignee: python-dev
   story: US3
 - local_id: ST6
   title: Give milestone_rollup a bundled transform and render its template from data
-  status: Todo
+  status: Done
   assignee: python-dev
   story: US4
 - local_id: ST7
   title: Show a commented transform in the workflow override scaffold
-  status: Todo
+  status: Done
   assignee: python-dev
   story: US5
 - local_id: ST8
   title: Document the transform key, signature, path rule and trust model
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US5
 - local_id: ST9
   title: Write the 0.17.0 CHANGELOG entries for view transforms
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US3
 created_at: '2026-10-24T13:16:43Z'
-updated_at: '2026-10-24T13:28:01Z'
+updated_at: '2026-10-24T14:47:13Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -322,4 +322,20 @@ Write the 0.17.0 CHANGELOG entries for view transforms from the task's CHANGELOG
 <!-- sq:discussion -->
 - [2026-10-24T13:28:01Z] `manager` Catherine Manager:
   - Dispatched to @python-dev for ST1-ST7 (ST8 docs and ST9 CHANGELOG go to the tech-writer after). Operator go: 2026-10-24.
+- [2026-10-24T13:52:28Z] `python-dev` Elias Python:
+  - @manager ST1-ST7 done, uncommitted. ST8/ST9 untouched.
+    
+    - New: src/squads/_transform.py (loader, binding, JSON walk, check), src/squads/_view_transforms.py (milestone_rollup). Changed: _workflow/_models.py + _loader.py (ViewTransform, shape checks, override pre-merge refusal, module-drop), _models/_attributes.py (views reserved), _paths.py (resolve_within, abspath built on it), _views.py, _services/_views.py, _services/_items.py (read_stored_body, view_data), _services/_validators.py (new always-on error check view_transform_resolves), _cli/_common.py, _cli/_skill.py, _cli/_workflow_cmd.py (lint + transform column), workflow.toml, milestone_rollup.md.j2, scaffold text.
+    - Gates: pyright 0 errors, ruff check and format clean, sq check clean. tests/meta+integration+cli+unit+service ran: 32 failed of 13.8k. After fixes, the remaining failures are all the template-manifest family: 7 in tests/meta/test_override_manifest_and_stamp_freshness.py + test_override_kind_uniformity, plus 1 integration scaffold diff test. They need the manifest regenerated, which I did NOT do: pyproject is still 0.16.0 (tagged), so the script would overwrite the released 0.16.0 entry (and regen left orphan blobs). Regenerate at the 0.17.0 bump.
+    - Falsification (break -> red -> restored): process-cwd instead of squad dir (cwd, 37 red incl. -C CLI and client_cwd service tests); confinement check forced true (outward-symlink engine row + lint/check CLI red, sentinel written); pre-merge override check removed (3 grammar rows red); no deep copy of source/item (copy test red); memo removed; sys.modules not cleaned (2 red); disabled-tag gate removed (view_data test red).
+    - Tests added: 21 functions in 3 new files (unit 11, service 8, cli 2), about 75 parametrised rows; 7 existing tests flipped/extended, 4 goldens regenerated and reviewed (views: {} / transform column only), edge-table rows, one tier-table line.
+    - Deviations: (1) new squad-global validator view_transform_resolves (docs/overrides.md validator table needs a row: writer). (2) Override files are compiled from bytes and exec'd, not exec_module, because the bytecode cache served a stale edit in the same second. (3) _transform imports _workflow only under TYPE_CHECKING and _paths locally, to keep it out of the top-level import cycle; ADR unaffected. (4) The uncommented scaffold example now needs its transform file to lint clean; that integration test creates it.
+    - Driven via dev CLI in a scratch squad: milestone show --json (tag in body, views partition), override path transform via sq -C from another directory, outward symlink refused by lint, check and show with no sentinel written.
+- [2026-10-24T14:21:51Z] `python-dev` Elias Python:
+  - @manager REV-1117 F1-F5 and F7 fixed (F6 left for the tech-writer), uncommitted. Changes: spec deep-copied per call; (Exception, SystemExit) caught at import and call; control characters refused in transform paths; oversized ints refused by the JSON walk; read_body docstring; test cleanups. Net tests: +4 rows, +1 function (SystemExit, 2 rows), -2 rows. Each new row falsified (red then restored). pyright, ruff, touched tests and tests/meta green (514).
+- [2026-10-24T14:38:43Z] `tech-writer` Theo Writer:
+  - @manager ST8 and ST9 done, uncommitted. docs/workflow.md: new "View transforms" reference (declaration, load/check/lint checks, call and keywords, copies, return shapes, template data, surfaces table, errors), transform in the Derived views overview and field reference, show --json body-as-stored paragraph, milestone views.milestone_rollup example, lint checklist line. docs/overrides.md: worked example "Giving a view a transform" (path lookup via -C, confinement and symlinks, trust rule, imports, the sys.modules limitation for REV-1117 F6), layout tree, view_transform_resolves row (always-on now eight), views in the reserved-key lists, the milestone template paragraph corrected. docs/stability.md: layout + trust, reserved keys, show --json body/views table, workflow views transform field, self payload. CHANGELOG 0.17.0: four Added, two Changed (BREAKING body, reserved views).
+  - Every example output was driven on the dev build in a scratch squad. Found false: the body write path still refuses a body read back from show --json (the tag is rejected as a marker), so the docs make no round-trip claim; that is the write half tracked elsewhere.
+- [2026-10-24T14:47:13Z] `manager` Catherine Manager:
+  - Done: REV-1117 Approved (all findings Verified or Fixed), full suite 13863 passed, docs and CHANGELOG written. Closed on the operator's delegation for reviewed non-visual work.
 <!-- sq:discussion:end -->

@@ -93,6 +93,8 @@ All overrides live under a single umbrella directory, **`<squad-dir>/.overrides/
     manager.toml
     python-dev.toml
     custom-role.toml
+  transforms/
+    progress.py               # a view transform: any path a view's `transform` names
 ```
 
 **Key points:**
@@ -113,6 +115,9 @@ All overrides live under a single umbrella directory, **`<squad-dir>/.overrides/
   item type, and the guidance each of them reads before touching one (see
   [Playbook overrides](#playbook-overrides-role-guidance-per-item-type)). It is what your generated
   `sq-<type>` skills are compiled from.
+- **Transform files** are Python files a view's `transform = { path = … }` names, relative to
+  `.overrides/` (`transforms/` is a convention, not a requirement). They are code that sq runs:
+  see [Giving a view a transform](#giving-a-view-a-transform).
 - The directory is discovered automatically by the same walk-up that finds `.squads.toml`. It
   travels with your squad folder, so it's portable across projects.
 
@@ -505,7 +510,7 @@ written until a command that targets that key replaces it.
 
 **What the loader refuses.** An attribute cannot take the name of a core key, of another attribute
 or badge field on the same type, of a key `--json` adds to an item row (`badges`, `body`,
-`discussion`, `matched_subentities`), or `extra`, `path` or `prefix`:
+`discussion`, `matched_subentities`, `views`), or `extra`, `path` or `prefix`:
 
 ```
 - 'guide': attribute 'title' is a reserved key — pick another name
@@ -536,8 +541,8 @@ before the next write to that item, which is refused until then with a message n
 `sq repair`. `sq check` reports the drift meanwhile, and reports the key itself once it is
 indexed.
 `--json` item rows carry them too, at the top level beside the core keys, except a key named like
-one `--json` adds (`badges`, `body`, `discussion`, `matched_subentities`), which stays in the file
-and out of the row. A value is kept in the form JSON can carry: a YAML-only value is written back
+one `--json` adds (`badges`, `body`, `discussion`, `matched_subentities`, `views`), which stays in
+the file and out of the row. A value is kept in the form JSON can carry: a YAML-only value is written back
 as its JSON equivalent the next time the item is written, so an unquoted date such as
 `review_date: 2026-11-01` becomes the string `'2026-11-01'`, and a mapping key that is not a string
 becomes one.
@@ -1147,7 +1152,7 @@ sq check             # what do they find?
 Some checks look at the squad as a whole rather than at one item. They run once per `sq check`,
 never at the create/update gate, and they belong to no type's list.
 
-**Always on.** Seven report a defect in any squad, so they run in every squad and cannot be selected,
+**Always on.** Eight report a defect in any squad, so they run in every squad and cannot be selected,
 dropped or given another level:
 
 | Check | Reports | Level |
@@ -1159,6 +1164,7 @@ dropped or given another level:
 | `roster_slug_valid` | a role or operator slug that breaks the slug rules (see [stability.md § "Comment headers"](stability.md#comment-headers)) | `error` |
 | `playbook_guide_role_live` | a playbook guide that names no live role | `warn` |
 | `display_config_valid` | an unknown key or a non-boolean value in `.squads.toml`'s `[display]` table | `warn` |
+| `view_transform_resolves` | an override view transform whose file is missing, leaves `.overrides/`, fails to import, or lacks a function sq can call; it imports the file, which runs its top-level code (see [Giving a view a transform](#giving-a-view-a-transform)) | `error` |
 
 **Opt-in.** Five state a policy a team may or may not hold. A squad selects them in the `[squad]`
 table of `.overrides/workflow.toml`, whose one key, `validators`, takes the entry grammar a type's
@@ -1570,8 +1576,8 @@ its own merged role definition, a type's playbook lane, or the item itself — r
 template. Views are declared in `[views]`, and nothing about them is a special case: they merge,
 shadow and drop exactly like item types and statuses do.
 
-A view declares only its `source`: `fields`, `group_by`, `order_by` and a type attachment
-(`items.<type>.views`) are refused by name, and
+A view declares its `source`, and optionally a `position` and a `transform`. `fields`, `group_by`,
+`order_by` and a type attachment (`items.<type>.views`) are refused by name, and
 [migration.md § "Upgrading to 0.15: view declarations"](migration.md#upgrading-to-015-view-declarations)
 shows the load error and a worked conversion.
 
@@ -1589,7 +1595,8 @@ source = { kind = "ref", name = "escalates" }
 first three, `source.name` must be a declared ref kind, sub-entity kind or item type respectively
 — a name your merged spec does not declare is refused at load, with the rest of the spec's
 cross-references. There is no field list, no grouping, no ordering to declare — a view is a
-source, an optional `position`, and a template, nothing more. The complete field reference is
+source, an optional `position`, an optional `transform`, and a template, nothing more. The
+complete field reference is
 in [workflow.md § "Derived views"](workflow.md#derived-views-field-reference).
 
 ##### Setting a view's position
@@ -1640,8 +1647,9 @@ sq override list                                    # your override, with its ba
 
 The template receives `source` — the resolved value, unflattened: a plain list of real
 `Item`/sub-entity objects for `ref`/`subentity`/`subtree`, or the source's own native value for
-`role`/`playbook`/`self` — plus `item` and `spec`. Grouping and ordering are the template's own
-job, with Jinja's `groupby`/`sort`/`selectattr`:
+`role`/`playbook`/`self` — plus `item` and `spec`, and `data` when the view declares a transform.
+Without a transform, grouping and ordering are the template's own job, with Jinja's
+`groupby`/`sort`/`selectattr`:
 
 ```jinja
 {% for r in source | sort(attribute="type,sequence_id") %}
@@ -1649,10 +1657,12 @@ job, with Jinja's `groupby`/`sort`/`selectattr`:
 {% endfor %}
 ```
 
-Reordering the bundled milestone roll-up, or regrouping it onto a different axis, is therefore a
-template change, not a declaration change — copy the template with `sq override scaffold`, edit
-its Jinja `sort`/`groupby` call, and the one-line `[views.milestone_rollup]` declaration itself
-never needs to move.
+The bundled milestone roll-up has a transform: its template renders `data.delivered`,
+`data.outstanding` and `data.settled`, already split and ordered. Restyling it is a template
+change — copy the template with `sq override scaffold` and edit it. A template override can still
+read `source` and group it its own way, but its text then no longer matches what `show --json`
+reports under `views.milestone_rollup`; to change the split for both, give the view a transform of
+your own (below).
 
 **A view you declare needs a template of your own at that path.** There is no generic fallback
 rendering: until `.overrides/templates/views/<name>.md.j2` exists, resolve your view with `--json`,
@@ -1668,6 +1678,124 @@ views = []          # drop the declaration
 
 A tag already placed for a dropped view no longer resolves: `sq check` reports each one at error
 level, and `sq <type> <n> view disable <name>` quiets it. A tag is never removed, only disabled.
+
+##### Giving a view a transform
+
+A transform is a Python function that turns a view's source into plain data. The template renders
+that data, and `show --json` returns it under `views.<name>`, so a script reads the same numbers a
+person sees. The grammar, the call and every rule are in
+[workflow.md § "View transforms"](workflow.md#view-transforms); this is the worked example.
+
+A feature view that counts its stories. Declare it in `.overrides/workflow.toml`:
+
+```toml
+[views.story_progress]
+source = { kind = "subentity", name = "story" }
+transform = { path = "transforms/progress.py", function = "story_progress" }
+```
+
+Write the function in `.overrides/transforms/progress.py`. It takes the source positionally and
+asks for `spec` by name, so sq passes `spec` and not `item`:
+
+```python
+def story_progress(source, *, spec):
+    done = [s for s in source if spec.role_for(s.status).settled]
+    return {
+        "total": len(source),
+        "done": len(done),
+        "open": [
+            {"id": s.local_id, "title": s.title, "status": s.status}
+            for s in source
+            if s not in done
+        ],
+    }
+```
+
+Render the data in `.overrides/templates/views/story_progress.md.j2`:
+
+```jinja
+**Stories: {{ data.done }} of {{ data.total }} settled.**
+{% for s in data.open %}
+- {{ s.id }} {{ s.status }} — {{ s.title }}
+{% endfor %}
+```
+
+Check it, then place the view on a feature:
+
+```bash
+sq workflow lint                          # the declaration, then the file: imports, function found
+sq feature <n> view add story_progress
+sq feature <n> show                       # the rendered line and the open stories
+sq feature <n> show --json | jq .views    # the same data
+sq workflow view story_progress FEAT-<n> --json   # what the function receives
+```
+
+`show --json` then carries the function's return value, and `body` keeps the tag as stored:
+
+```json
+{
+  "views": {
+    "story_progress": {
+      "total": 2,
+      "done": 0,
+      "open": [
+        {"id": "US<j>", "title": "Draw the widget", "status": "InProgress"},
+        {"id": "US<k>", "title": "Paint the widget", "status": "Todo"}
+      ]
+    }
+  },
+  "body": "## Summary\n\n_TODO: summarise this feature._\n\n<!-- sq:view:story_progress -->"
+}
+```
+
+`sq override scaffold workflow` writes a commented version of the same declaration on its
+`related_incidents` example.
+
+**Where the file is looked up.** `path` is relative to the `.overrides/` folder of the squad the
+command runs against: the squad `-C` names, or the one the walk-up from the working directory
+finds. The process's own working directory takes no part, so `sq -C ../other-project show <id>`
+runs the other project's transforms and never a file of the same name where you stand.
+
+**Confined to `.overrides/`.** The loader refuses a `path` with a `..` segment, an absolute path or
+a backslash. A symlink is followed and only its final target counts: a link inside `.overrides/`
+whose target is also inside is accepted, and one whose target is outside is refused, naming the
+resolved target, before any of that file's code runs:
+
+```
+error: view 'story_progress' on FEAT-<n> (transform transforms/progress.py:story_progress): path resolves to /home/me/elsewhere/outside.py, outside .overrides/
+```
+
+`.overrides` may itself be a symlink to a folder elsewhere: the comparison is made after resolving
+it.
+
+**A transform file is code your team commits, and sq runs it.** Treat it as you would a
+`conftest.py`: it runs with the permissions of whoever runs `sq`, with nothing asked first. Any
+command that renders its view runs it — `sq show`, `--raw` and `--json`, `sq workflow view`, the
+TUI reader — and `sq check` and `sq workflow lint` import it, which runs its top-level code, to
+check that it loads. Review a change to a transform file as you would a change to any other code
+in the repository, and do not run `sq` on a squad whose `.overrides/` you do not trust.
+
+**What a transform file can import.** The standard library and the packages installed in the
+environment `sq` runs in. sq does not add `.overrides/` to the import path, so a helper module
+next to the file cannot be imported: keep helpers in the same file. sq reads the file afresh on
+each read and writes no bytecode cache under `.overrides/`, so an edit takes effect on the next
+command.
+
+**The file is not a registered module when the function runs.** sq executes the file under a
+generated module name that stays in `sys.modules` only while the file's top level runs, so nothing
+from one read survives into the next. Code that looks that module up by name *during the call*
+fails:
+
+- `typing.get_type_hints()` on a class whose annotation names a class defined later in the file:
+  `NameError: name 'Later' is not defined`;
+- a pydantic model with a forward reference to a later class: the model is reported as not fully
+  defined;
+- `pickle` of an instance of a class the file defines:
+  `PicklingError: Can't pickle <class '_squads_view_transform_…'>: No module named '_squads_view_transform_…'`.
+
+Each comes out as an ordinary transform error. Plain functions, dicts, lists and
+dataclasses without forward references work as they do anywhere; return plain data rather than
+instances.
 
 ##### Authoring a role or skill body by hand
 

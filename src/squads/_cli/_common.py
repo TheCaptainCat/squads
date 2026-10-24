@@ -1320,7 +1320,9 @@ def build_subentity_json(spec: WorkflowSpec, kind: str, detail: SubentityDetail)
 async def build_item_json(svc: Service, it: Item) -> str:
     """The ``show --json`` payload: frontmatter fields plus body/discussion — additive only.
 
-    Adds top-level ``body`` (raw body markdown), ``discussion`` (ordered ``{author, author_slug,
+    Adds top-level ``body`` (the stored body markdown, view tags left as tags), ``views`` (the
+    transform output of each placed, enabled view that declares one, keyed by view name),
+    ``discussion`` (ordered ``{author, author_slug,
     ts, edited_ts, hash, short_hash, body}`` list), and ``badges`` (the generic per-item badge
     map, keyed by field code — see :func:`squads._badges.resolve_badges`); plus, per
     ``subentities`` entry, the shared shape built by :func:`build_subentity_json` (adds
@@ -1330,7 +1332,8 @@ async def build_item_json(svc: Service, it: Item) -> str:
     """
     spec = get_active_spec()
     payload: dict[str, Any] = it.to_row()
-    payload["body"] = await svc.read_body(it.id)
+    payload["body"] = await svc.read_stored_body(it.id)
+    payload["views"] = await svc.view_data(it.id)
     payload["discussion"] = discussion.comments_json(await svc.comments(it.id))
     payload["badges"] = badges.resolve_badges(spec, it.type, it.badge_value)
     kind = spec.item_subentity_kind(it.type)

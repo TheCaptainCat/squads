@@ -546,14 +546,19 @@ _WORKFLOW_SCAFFOLD_BODY = """\
 # lifecycle = "incident"
 #
 # [views.related_incidents]
-# # A derived view: a source (a declared ref kind, a sub-entity kind, or a subtree) and nothing
-# # else. Computed fresh on every request — nothing is ever written into a body. The
+# # A derived view: a source (a declared ref kind, a sub-entity kind, or a subtree) and an
+# # optional transform. Computed fresh on every request — nothing is ever written into a body. The
 # # presentation template receives the source's own resolved records directly (real items, not
 # # a flattened row) and does its own grouping/ordering with Jinja's groupby/sort/selectattr.
 # # Needs a presentation template of its own before it can render: create one at
 # # templates/views/related_incidents.md.j2 (or .overrides/templates/views/related_incidents.md.j2
 # # to shadow the bundled default) — until you do, resolve it with `--json`, which does not render.
 # source = { kind = "ref", name = "related" }
+# # Optional: a transform turns the source into plain data (dict or list of JSON values) that
+# # the template reads as `data` and `show --json` returns under `views.related_incidents`.
+# # The file lives under .overrides/ and defines `def related_incidents(source, *, item, spec)`;
+# # sq passes only the keywords it declares. It is trusted code, run with your permissions.
+# transform = { path = "transforms/related_incidents.py", function = "related_incidents" }
 # -----------------------------------------------------------------------------
 """
 

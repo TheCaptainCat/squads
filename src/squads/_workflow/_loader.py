@@ -167,6 +167,44 @@ def _scan_retired_view_grammar_keys(table: RawMapping, path: str) -> list[str]:
     return hits
 
 
+def _override_transform_violations(raw_override: RawMapping, origin: str) -> list[MergeViolation]:
+    """Every ``views.<name>.transform`` table the override writes that names ``module`` or
+    lacks ``path`` or ``function``: an override reaches code through a file under
+    ``.overrides/``, never through an import. A splat-ref string is not a table and passes."""
+    violations: list[MergeViolation] = []
+    views_section = raw_override.get("views")
+    if not isinstance(views_section, dict):
+        return violations
+    for name, table in cast(RawMapping, views_section).items():
+        transform = cast(RawMapping, table).get("transform") if isinstance(table, dict) else None
+        if not isinstance(transform, dict):
+            continue
+        keys = set(cast(RawMapping, transform))
+        if "module" in keys or not {"path", "function"} <= keys:
+            violations.append(
+                MergeViolation(
+                    origin,
+                    f"views.{name}.transform",
+                    "an override transform is `{ path, function }` and may not name `module`",
+                    'write `transform = { path = "transforms/<file>.py", function = "<name>" }` '
+                    "with the file under .overrides/.",
+                )
+            )
+    return violations
+
+
+def _drop_bundled_module_where_override_sets_path(merged: RawMapping) -> None:
+    """Remove the bundled ``module`` leaf from a merged transform that also carries ``path``,
+    so an override's ``path`` replaces the bundled transform instead of conflicting with it."""
+    views_section = merged.get("views")
+    if not isinstance(views_section, dict):
+        return
+    for table in cast(RawMapping, views_section).values():
+        transform = cast(RawMapping, table).get("transform") if isinstance(table, dict) else None
+        if isinstance(transform, dict) and "path" in cast(RawMapping, transform):
+            cast(dict[str, Any], transform).pop("module", None)
+
+
 def _retired_view_grammar_violations(raw_override: RawMapping, origin: str) -> list[MergeViolation]:
     """Every retired-grammar key still declared in *raw_override* â€” the four keys retired
     (``fields``, ``group_by``, ``order_by`` on a view; ``views`` on an item type), scanned on
@@ -299,6 +337,7 @@ def load_workflow_spec(squad_dir: Path | None = None) -> WorkflowSpec:
     origin = str(override_path)
     retired_violations = [
         *_retired_view_grammar_violations(raw_override, origin),
+        *_override_transform_violations(raw_override, origin),
         *_selected_squad_violations(raw_override, origin),
     ]
     if retired_violations:
@@ -321,6 +360,7 @@ def load_workflow_spec(squad_dir: Path | None = None) -> WorkflowSpec:
 
     _raise_on_floor_violation(merged, origin)
     _strip_ref_rule_targets_of_dropped_types(merged, result.deselections)
+    _drop_bundled_module_where_override_sets_path(merged)
 
     try:
         return _build_spec(merged)
@@ -1432,6 +1472,7 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 â
     # call one "brand-new" instead.
     retired_violations = [
         *_retired_view_grammar_violations(raw_override, str(override_path)),
+        *_override_transform_violations(raw_override, str(override_path)),
         *_selected_squad_violations(raw_override, str(override_path)),
     ]
     if retired_violations:
@@ -1472,6 +1513,7 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 â
         return findings
 
     _strip_ref_rule_targets_of_dropped_types(merged, result.deselections)
+    _drop_bundled_module_where_override_sets_path(merged)
 
     # Phase 5 â€” structural + referential validation.
     try:

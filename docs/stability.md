@@ -251,13 +251,17 @@ them.
 A squad may customize bundled templates, roles, and item-type vocabulary under `.overrides/`, a
 folder in the squad directory. The frozen surfaces are:
 
-- **Layout:** `<squad-dir>/.overrides/{templates,roles}/` and three spec documents,
-  `.overrides/workflow.toml`, `.overrides/roles.toml` and `.overrides/playbook.toml`. Templates
+- **Layout:** `<squad-dir>/.overrides/{templates,roles}/`, three spec documents,
+  `.overrides/workflow.toml`, `.overrides/roles.toml` and `.overrides/playbook.toml`, and any view
+  transform files the workflow override names by a `path` relative to `.overrides/`. Templates
   mirror bundled template names 1:1; per-role files are TOML keyed by slug (e.g., `architect.toml`);
   `workflow.toml` is the squad's vocabulary delta — item types, statuses, lifecycles, badge
   collections, status roles, ref kinds, derived views, and the squad-wide checks it selects; `roles.toml` is a delta over the whole role
   catalog (its roles, bundles and the `[dev]` table developers are built from); `playbook.toml` is a delta over the playbook, the
-  per-type guidance each role gets.
+  per-type guidance each role gets. A transform file is Python that sq runs with the user's
+  permissions, like a `conftest.py`: every read that renders its view calls it, and `sq check` and
+  `sq workflow lint` import it, which runs its top-level code. There is no approval step; see
+  [overrides.md § "Giving a view a transform"](overrides.md#giving-a-view-a-transform).
 - **Precedence:** per-file, project → bundled. Presence of a file is the override. Templates
   override whole-file; a role resolves bundled, then `roles.toml`, then its per-slug file, merging
   field-wise; the workflow override composes over the bundled vocabulary and **may shadow a
@@ -273,7 +277,7 @@ folder in the squad directory. The frozen surfaces are:
   one `<name> = { kind = …, required = …, settable = … }` entry each. `kind` is one of `str`,
   `list`, `bool`, `date`; `required` and `settable` default to `false` and `true`. An attribute may
   not take the name of a core key, of another attribute or badge field on its type, of a key
-  `--json` adds to an item row (`badges`, `body`, `discussion`, `matched_subentities`), or
+  `--json` adds to an item row (`badges`, `body`, `discussion`, `matched_subentities`, `views`), or
   `extra`, `path` or `prefix`. The `role` and `skill` attributes the bundled spec declares may be
   added to but not dropped or given another kind. `extra_fields` is not a key of a type and is
   refused at load.
@@ -751,10 +755,19 @@ The frozen surface includes:
 - **Item rows:** an item object from `list`, `show`, `create` or `mine` is the item's core keys,
   `path` (the item file's path relative to the squad folder, such as `tasks/TASK-NNNNNN-x.md`),
   each attribute its file stores, at the top level beside them, and the keys the command adds
-  (`badges`, `body`, `discussion`, `matched_subentities`). There is no nested container. An
+  (`badges`, `body`, `discussion`, `matched_subentities`, `views`). There is no nested container. An
   attribute appears only when the file stores it, so a reader learns a type's possible attributes
   from `sq workflow types --json` (`attributes`: name to `{kind, required, settable}`), not from
   the rows. A key stored under the name of an added key stays in the file and out of the row.
+
+  On an item's `show --json` (`sq show <id>`, `sq <type> <n> show`, `sq skill <addr> show`):
+
+  | Key | Value |
+  |---|---|
+  | `body` | the stored text of the item's `sq:body` region, each `sq:view:<name>` tag left as a tag, never rendered. The rendered text is on `sq show` and `--raw` |
+  | `views` | always present: an object of view name (vocabulary) to the output of that view's transform, for each view whose tag is placed and enabled in the body, resolves against the item, and declares a transform; `{}` when none does. Each value is the JSON the transform returned, whose shape that transform defines; `milestone_rollup`'s is `{delivered, outstanding, settled}`, three lists of `{id, type, title, status, assignee}` |
+
+  A sub-entity's object carries no `views`.
 - **Roster viewers:** `role catalog`, `role list`, `role <addr> show`, `skill <addr> show`,
   `operator list`, `operator <addr> show`. Skills have no dedicated `skill list` — use the generic
   `list -t skill`. A role or skill row carries `origin`, `system` or `project` (see
@@ -775,7 +788,7 @@ The frozen surface includes:
   | `sq workflow statuses --json` | status | `status`, `role`, `badge` |
   | `sq workflow roles --json` | status role | `role`, `settled`, `hidden`, `color`, `live`, `blocked` |
   | `sq workflow lifecycles --json` | lifecycle | `lifecycle`, `initial`, `states`, `transitions` |
-  | `sq workflow views --json` | derived view | `view`, `source_kind`, `source_name` |
+  | `sq workflow views --json` | derived view | `view`, `source_kind`, `source_name`, `transform` |
   | `sq workflow ref-kinds --json` | ref kind | `kind` (vocabulary), `label` (display), `hint` (display), `role` (open set), `direction` |
 
   Each emits a bare JSON array, one row per declared entry in a documented order, with **every key
@@ -798,7 +811,9 @@ The frozen surface includes:
 
   A `views` row's own `source_name` keys into whichever catalog its `source_kind` names —
   `ref-kinds`, `subentity-kinds` or `types` — the one join whose destination is decided by a
-  sibling field rather than fixed.
+  sibling field rather than fixed. Its `transform` is `null` for a view without one, or the
+  declaration as merged: `{module, function}` for a bundled transform, `{path, function}` for an
+  override's, `path` relative to `.overrides/`.
 - **Derived views resolved against an item:** `sq workflow view <name> <id> --json` skips
   presentation entirely and emits the resolved source in the shape its own kind already has a
   serializer for — never a shared envelope. A `ref`/`subtree` source matches `sq tree --json`'s
@@ -806,7 +821,10 @@ The frozen surface includes:
   --json`); `role` matches `sq role <slug> show --json`; `self` matches the host item's own `show
   --json` plus a `spec` key, `{schema_version, override, digest}`; `playbook` has no existing
   counterpart, so its own shape is `{type, lane, roster}` (`lane` is `null` for a type outside
-  every guide's lane domain). No shape carries a `fields`/`group_by`/`groups` key.
+  every guide's lane domain). No shape carries a `fields`/`group_by`/`groups` key. Because `self`
+  is the host's `show --json`, it carries that payload's stored `body` and its `views` key. The
+  payload is the source whether or not the view declares a transform: it is the transform's input,
+  and the transform's output is on the host's `show --json` under `views.<name>`.
 
   In the `self` `spec` key, `digest` identifies the merged workflow spec that resolved the
   payload: the bundled spec with any project override applied. Compare it for **equality only**.

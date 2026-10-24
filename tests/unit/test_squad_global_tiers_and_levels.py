@@ -24,6 +24,7 @@ _ALWAYS_ON_LEVELS = {
     "roster_slug_valid": "error",
     "playbook_guide_role_live": "warn",
     "display_config_valid": "warn",
+    "view_transform_resolves": "error",
 }
 
 
