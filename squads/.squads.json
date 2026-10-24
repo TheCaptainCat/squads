@@ -1,7 +1,7 @@
 {
   "schema_version": "0.16",
   "squads_version": "0.16.0",
-  "counter": 1100,
+  "counter": 1102,
   "padding": 6,
   "items": {
     "12": {
@@ -52009,7 +52009,7 @@
       ],
       "path": "reviews/REV-001099-adopter-field-report-on-0-15-0-upgrade-and-a-day-of-work.md",
       "created_at": "2026-10-24T09:19:58Z",
-      "updated_at": "2026-10-24T09:23:59Z",
+      "updated_at": "2026-10-24T09:37:25Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52041,6 +52041,141 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "ADR-1100"
+    },
+    "1101": {
+      "sequence_id": 1101,
+      "type": "feature",
+      "title": "Adopter field-report fixes: errors, round-trips, checks, guidance",
+      "slug": "adopter-field-report-fixes-errors-round-trips-checks-guidanc",
+      "status": "Draft",
+      "description": "Fixes for the triaged findings of REV-1099: defects, new checks, docs and bundled guidance.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-1051:targets",
+        "REV-1099:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Writes fail cleanly under index-lock contention",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Milestone bodies round-trip and create sets every declared field",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Generated files report the truth after a team or version change",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Operator subtasks close without --force",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "sq check flags Approved reviews with Open findings and unowned types",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "Findings can be Deferred or Noted",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US7",
+          "title": "Adopters can find how to import, override and change roles",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US8",
+          "title": "Bundled guidance names the right owners and asks the right questions",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US9",
+          "title": "sq list has a compact one-line form",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001101-adopter-field-report-fixes-errors-round-trips-checks-guidanc.md",
+      "created_at": "2026-10-24T09:39:06Z",
+      "updated_at": "2026-10-24T09:40:05Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1101"
+    },
+    "1102": {
+      "sequence_id": 1102,
+      "type": "decision",
+      "title": "Findings gain Noted and Deferred; a Deferred finding names its carrier",
+      "slug": "findings-gain-noted-and-deferred-a-deferred-finding-names-it",
+      "status": "Accepted",
+      "description": "Open gains terminal Noted (done role) and Deferred (new deferred role); Deferred stores a deferred_to item pointer that sq check verifies",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1099:addresses"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001102-findings-gain-noted-and-deferred-a-deferred-finding-names-it.md",
+      "created_at": "2026-10-24T09:45:21Z",
+      "updated_at": "2026-10-24T09:57:04Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1102"
     }
   }
 }
