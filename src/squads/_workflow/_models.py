@@ -191,6 +191,7 @@ SQUAD_GLOBAL_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "roster_slug_valid",
         "playbook_guide_role_live",
         "display_config_valid",
+        "working_language_valid",
         "view_transform_resolves",
         "children_settled_with_parent",
         "dependency_acyclic",
@@ -211,6 +212,7 @@ ALWAYS_ON_SQUAD_GLOBAL_NAMES: frozenset[str] = frozenset(
         "roster_slug_valid",
         "playbook_guide_role_live",
         "display_config_valid",
+        "working_language_valid",
         "view_transform_resolves",
     }
 )
@@ -247,6 +249,7 @@ DEFAULT_SQUAD_GLOBAL_LEVEL: dict[str, str] = {
     "roster_slug_valid": "error",
     "playbook_guide_role_live": "warn",
     "display_config_valid": "warn",
+    "working_language_valid": "warn",
     "view_transform_resolves": "error",
     "children_settled_with_parent": "warn",
     "dependency_acyclic": "warn",

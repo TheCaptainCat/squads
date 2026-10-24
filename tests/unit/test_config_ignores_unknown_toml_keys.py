@@ -22,5 +22,5 @@ def test_a_stale_unrecognized_key_loads_cleanly_without_error() -> None:
 
 
 def test_a_freshly_written_config_never_declares_the_retired_role_default() -> None:
-    cfg = SquadsConfig(squad_dir="squads", active_backends=["claude_code"], squads_version="0.12.3")
+    cfg = SquadsConfig(squad_dir="squads", active_backends=["claude_code"])
     assert "default_role" not in cfg.to_toml()

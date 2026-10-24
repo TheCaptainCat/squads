@@ -48,16 +48,17 @@ async def _fixture(svc):
         await svc.roster(),
         svc.paths.squad_dir,
         svc.paths.config.squad_dir,
+        svc.working_language,
     )
 
 
 async def test_a_real_view_tag_is_recognised_by_both_and_actually_expands(svc) -> None:
-    item, db, spec, playbook, roster, squad_dir, squad_dir_display = await _fixture(svc)
+    item, db, spec, playbook, roster, squad_dir, squad_dir_display, language = await _fixture(svc)
     text = f"prose <!-- sq:{markers.view_tag(_BUNDLED_VIEW)} --> more prose"
 
     assert has_view_tag(text) is True
     expanded = expand_view_tags(
-        text, item, db, spec, playbook, lambda: roster, squad_dir, squad_dir_display
+        text, item, db, spec, playbook, lambda: roster, squad_dir, squad_dir_display, language
     )
     assert expanded != text
     assert markers.view_tag(_BUNDLED_VIEW) not in expanded
@@ -65,12 +66,12 @@ async def test_a_real_view_tag_is_recognised_by_both_and_actually_expands(svc) -
 
 @pytest.mark.parametrize("shape", list(_NOT_A_VIEW_TAG.values()), ids=list(_NOT_A_VIEW_TAG))
 async def test_a_non_view_shape_is_refused_by_both_and_never_expands(svc, shape: str) -> None:
-    item, db, spec, playbook, roster, squad_dir, squad_dir_display = await _fixture(svc)
+    item, db, spec, playbook, roster, squad_dir, squad_dir_display, language = await _fixture(svc)
 
     assert has_view_tag(shape) is False
     assert (
         expand_view_tags(
-            shape, item, db, spec, playbook, lambda: roster, squad_dir, squad_dir_display
+            shape, item, db, spec, playbook, lambda: roster, squad_dir, squad_dir_display, language
         )
         == shape
     )
@@ -79,14 +80,14 @@ async def test_a_non_view_shape_is_refused_by_both_and_never_expands(svc, shape:
 async def test_agreement_holds_with_a_recognised_tag_alongside_a_non_view_marker(svc) -> None:
     """A mixed body — one real view tag plus one near-miss — must still expand only the real
     tag; the near-miss neither recogniser touches."""
-    item, db, spec, playbook, roster, squad_dir, squad_dir_display = await _fixture(svc)
+    item, db, spec, playbook, roster, squad_dir, squad_dir_display, language = await _fixture(svc)
     text = (
         f"before <!-- sq:viewpoint:x --> middle <!-- sq:{markers.view_tag(_BUNDLED_VIEW)} --> after"
     )
 
     assert has_view_tag(text) is True
     expanded = expand_view_tags(
-        text, item, db, spec, playbook, lambda: roster, squad_dir, squad_dir_display
+        text, item, db, spec, playbook, lambda: roster, squad_dir, squad_dir_display, language
     )
     assert "<!-- sq:viewpoint:x -->" in expanded
     assert markers.view_tag(_BUNDLED_VIEW) not in expanded

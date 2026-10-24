@@ -1,7 +1,6 @@
 """``sq role show`` and ``sq skill show`` pick an empty body's hint from the same predicate,
 table-driven here over its three states so the two commands can never disagree."""
 
-import re
 from pathlib import Path
 
 import pytest
@@ -14,7 +13,7 @@ from squads._workflow import load_workflow_spec
 
 pytestmark = pytest.mark.anyio
 
-_SYNC_SENTENCE = "run `sq sync` to populate it"
+_SYNC_SENTENCE = "run `sq sync`; if it stays empty"
 
 
 def _collapsed(text: str) -> str:
@@ -37,15 +36,6 @@ def _disable_view_tag(svc, item, name: str) -> None:
         text.replace(tag, f"<!-- {markers.PREFIX}{markers.view_tag(name, disabled=True)} -->"),
         encoding="utf-8",
     )
-
-
-def _stamp_older_squads_version(squad_dir: Path) -> None:
-    """Rewrite ``.squads.toml``'s ``squads_version`` to an older release, leaving
-    ``schema_version`` untouched, so version drift is outstanding."""
-    toml_path = squad_dir.parent / ".squads.toml"
-    text = toml_path.read_text(encoding="utf-8")
-    text = re.sub(r'squads_version = ".*"', 'squads_version = "0.1.0"', text)
-    toml_path.write_text(text, encoding="utf-8")
 
 
 _DROP_ROLE_DEFINITION = """\
@@ -131,27 +121,16 @@ async def test_role_view_disabled_names_the_real_role_in_the_re_enable_command(s
     assert "<slug>" not in _collapsed(r.output)
 
 
-async def test_role_view_declared_with_drift_outstanding_says_run_sync(svc, invoke) -> None:
+async def test_role_view_declared_says_run_sync_then_names_the_authoring_surface(
+    svc, invoke
+) -> None:
     role = await svc.activate_role("reviewer")
     _empty_body(svc, role)
-    _stamp_older_squads_version(svc.paths.squad_dir)
 
     r = await invoke(["role", "reviewer", "show", "--raw"])
 
     assert r.exit_code == 0, r.output
     assert _SYNC_SENTENCE in _collapsed(r.output)
-
-
-async def test_role_view_declared_with_no_drift_does_not_say_run_sync(svc, invoke) -> None:
-    """With no version drift outstanding, ``sq sync`` is a no-op, so the hint names the role's
-    real authoring surface instead."""
-    role = await svc.activate_role("reviewer")
-    _empty_body(svc, role)
-
-    r = await invoke(["role", "reviewer", "show", "--raw"])
-
-    assert r.exit_code == 0, r.output
-    assert _SYNC_SENTENCE not in _collapsed(r.output)
     assert "roles.toml" in r.output
     assert "sq role reviewer view add role_definition" in _collapsed(r.output)
 
@@ -174,30 +153,18 @@ async def test_skill_view_undeclared_names_the_view_not_sync(svc, invoke) -> Non
     assert "not declared" in r.output
 
 
-async def test_skill_view_declared_with_drift_outstanding_says_run_sync(svc, invoke) -> None:
+async def test_skill_view_declared_says_run_sync_then_names_the_playbook_overrides(
+    svc, invoke
+) -> None:
     await svc.seed_bundled_skills()
     skill = await svc.roster_item("skill", "squads")
     assert skill is not None
     _empty_body(svc, skill)
-    _stamp_older_squads_version(svc.paths.squad_dir)
 
     r = await invoke(["skill", "squads", "show", "--raw"])
 
     assert r.exit_code == 0, r.output
     assert _SYNC_SENTENCE in _collapsed(r.output)
-
-
-async def test_skill_view_declared_with_no_drift_does_not_say_run_sync(svc, invoke) -> None:
-    """With no version drift outstanding, the skill's hint names the playbook overrides."""
-    await svc.seed_bundled_skills()
-    skill = await svc.roster_item("skill", "squads")
-    assert skill is not None
-    _empty_body(svc, skill)
-
-    r = await invoke(["skill", "squads", "show", "--raw"])
-
-    assert r.exit_code == 0, r.output
-    assert _SYNC_SENTENCE not in _collapsed(r.output)
     assert "`.overrides/playbook.toml`" in r.output
     assert "view add squads_skill" in _collapsed(r.output)
 
@@ -235,7 +202,7 @@ async def test_skill_view_declared_with_no_drift_does_not_say_run_sync(svc, invo
         ),
     ],
 )
-async def test_skill_no_drift_hint_names_the_same_surface_as_the_refusal(
+async def test_skill_hint_names_the_same_surface_as_the_refusal(
     svc, invoke, slug, view_name, expected, unexpected
 ) -> None:
     """The show hint and the body-write refusal read the same authoring-surface predicate, so
@@ -248,7 +215,6 @@ async def test_skill_no_drift_hint_names_the_same_surface_as_the_refusal(
     r = await invoke(["skill", slug, "show", "--raw"])
 
     assert r.exit_code == 0, r.output
-    assert _SYNC_SENTENCE not in _collapsed(r.output)
     assert expected in _collapsed(r.output), r.output
     assert unexpected not in _collapsed(r.output), r.output
     assert f"sq skill {slug} view add {view_name}" in _collapsed(r.output)

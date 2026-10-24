@@ -16,7 +16,7 @@ about moving an *existing squad* from one squads version to the next.
 pip install -U squads                  # or: uvx squads@<new> …
 git switch -c chore/upgrade-squads     # clean rollback point
 
-sq migrate up                          # if the squad is behind: reindex, check, run the schema runners, repair, restamp
+sq migrate up                          # if the squad is behind: reindex, check, run the schema runners, repair, stamp the schema
 sq migrate chlog v<old>..v<new>        # any manual (LLM-assisted) steps for that release range
 sq check                               # validate FIRST — see below; fix anything it reports
 sq sync                                # then regenerate tool-owned files (.claude/, CLAUDE.md, skills)
@@ -38,11 +38,10 @@ inside that same command, with no second `sq sync` needed. Checking first just s
 out from an agent that has stopped being spawnable.
 
 You don't need to track when a migration is due: on an out-of-date squad **`sq` stops every command
-and tells you to run `sq migrate up`**. If the squad is current, `sq migrate up` is a no-op. The
-version notice you see on an ordinary command points at `sq sync`, since refreshing the managed
-files is the usual case; it is not shown while the squad's schema differs from the package's,
-because `sq sync` is refused until it matches. When you are moving between versions, use the order
-above.
+and tells you to run `sq migrate up`**. If the squad is current, `sq migrate up` is a no-op.
+Nothing tells you when the managed files are older than the installed `sq`: run `sq sync` after
+every upgrade, in the order above (after `sq migrate up` when one is due, since `sq sync` is
+refused while the squad's schema differs from the package's).
 
 ---
 
@@ -134,19 +133,42 @@ the cause, then re-run `sq migrate up`, which rebuilds the index from the files 
 
 ## How versions are stamped
 
-squads records **two** independent version numbers (in `.squads.toml` and `.squads.json`):
+squads records one version number, `schema_version`, in `.squads.toml` and `.squads.json`. It is
+the **durable-format contract** (`sq migrate help` lists every schema with its changelog); while
+alpha it tracks the release that introduced the schema. It changes only when the on-disk
+frontmatter, markers or layout change incompatibly, and `sq migrate up` stamps it.
 
-| Field | Meaning | Bumped when |
-|-------|---------|-------------|
-| `squads_version` | Package version that last wrote the managed files. Informational. | In `.squads.toml`, the copy the version notice reads: every `sq init` / `sq sync` (and `sq adopt` when it creates the file). In `.squads.json`: every index rebuild (`sq repair`, and the one ending `sq migrate up`). |
-| `schema_version` | The **durable-format contract** (`sq migrate help` lists every schema with its changelog). While alpha it tracks the release that introduced the schema. | Only when the on-disk frontmatter / markers / layout change incompatibly; `sq migrate up` stamps it. |
-
-`squads_version` drives a **non-fatal** notice: *"squads X detected … run `sq sync`"* — about
-regenerating tool-owned files, not data. It is printed only while the schema matches, and `sq
-sync` clears it: `sq repair` and `sq migrate up` leave `.squads.toml`'s copy as it was.
 `schema_version` is the **hard gate**: if the squad's value differs from the one the installed
 package reads, it stops the command — behind → *"run `sq migrate up`"*, ahead → *"upgrade the
-squads package"*.
+squads package"*. It is the only version check: no file records which package version last
+regenerated the managed files, so run `sq sync` after every upgrade. A `squads_version` line or
+key left by an earlier release is ignored on read and can be deleted.
+
+### What `sq migrate up` writes to `.squads.toml`
+
+`.squads.toml` is your file: `sq sync`, `sq repair` and every other command leave it untouched, and
+only `sq init` (or an `sq adopt` that creates it) and `sq migrate up` write it. When `sq migrate up`
+runs at least one migration, it changes the value of the one top-level `schema_version = "<v>"`
+line and nothing else, so your comments, key order and settings survive. The new text is computed
+and checked before the first runner and written last, after the index rebuild.
+
+It refuses, before any migration runs and with the schema unchanged, when that edit cannot be
+made safely: there is no such line or more than one, the value is a multi-line or escaped string,
+or the edited file would not parse back to the same table with only `schema_version` changed. The
+message names the file and the line, and asks you to write `schema_version = "<current>"` on a
+single line and re-run `sq migrate up`.
+
+A file that still carries the `default_backend` or `default_role` keys written by very old releases
+is regenerated whole instead: `default_backend` becomes `active_backends`, `default_role` is
+dropped, and the new `schema_version` is set. **Comments in that file are lost.** Any other key
+squads does not read is left out and named in the report:
+
+```
+  dropped from .squads.toml (not read by squads): <key>, …
+```
+
+If the regenerated file would not read back to the same settings, the run refuses before its first
+runner and writes nothing; remove `default_backend` and `default_role` by hand, then re-run.
 
 ---
 
@@ -814,7 +836,7 @@ reports the same states on its roles and skills, with the same remedies.
 
 ## Migration history (early schema evolution)
 
-`sq migrate up` runs every pending step in order and restamps the config. The two earliest
+`sq migrate up` runs every pending step in order and stamps the new schema. The two earliest
 migrations, in detail:
 
 - **0.1 → 0.2**: folds `extra.ref_kinds` into inline `ID:kind` refs;

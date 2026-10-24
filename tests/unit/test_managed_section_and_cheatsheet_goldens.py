@@ -20,6 +20,7 @@ from _helpers import dev_role
 from squads._backends._agents_md._backend import _also_creatable_types
 from squads._interactions import cheatsheet_anchor_context
 from squads._interactions._role_guidance import delegate_example_slugs
+from squads._language import WorkingLanguage
 from squads._rendering._engine import render
 from squads._roles._catalog import get_catalog
 from squads._roles._projection import OperatorView, RoleView
@@ -82,6 +83,7 @@ def test_the_claude_md_managed_section_body_matches_its_pinned_golden() -> None:
     actual = render(
         "claude/claude_section.md.j2",
         squad_dir="squads",
+        working_language=WorkingLanguage("en", "English"),
         roles=[
             {
                 "full_name": r.full_name,
@@ -124,6 +126,7 @@ def test_the_agents_md_managed_section_body_matches_its_pinned_golden() -> None:
     actual = render(
         "agents_md/agents_section.md.j2",
         squad_dir="squads",
+        working_language=WorkingLanguage("en", "English"),
         roles=[
             {
                 "full_name": r.full_name,

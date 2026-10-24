@@ -76,6 +76,7 @@ from squads._interactions import (
 )
 from squads._interactions._loader import playbook_override_guide_pairs
 from squads._interactions._models import PlaybookSpec
+from squads._language import resolve_working_language
 from squads._models import _markers as markers
 from squads._models._attributes import ORIGIN_VALUES, AttributeKey
 from squads._models._config import CONFIG_FILENAME
@@ -1525,6 +1526,14 @@ def _display_config_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
     ]
 
 
+def _working_language_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """A ``working_language`` in ``.squads.toml`` that is not a BCP 47 tag Babel knows; English
+    applies. An absent key is valid. The finding names the config file."""
+    level = squad_global_level(ctx.spec, "working_language_valid")
+    _, problem = resolve_working_language(ctx.paths.config.working_language)
+    return [] if problem is None else [CheckIssue(level, CONFIG_FILENAME, problem)]
+
+
 def _view_transform_resolves(ctx: SquadGlobalContext) -> list[CheckIssue]:
     """Each override view transform that cannot be called: its file is missing, escapes
     ``.overrides/``, fails to import, or lacks a function sq can call. Imports the file, so its
@@ -1836,6 +1845,7 @@ SQUAD_GLOBAL_CATALOG: dict[str, SquadGlobalValidator] = {
     "roster_slug_valid": _roster_slug_valid,
     "playbook_guide_role_live": _playbook_guide_role_live,
     "display_config_valid": _display_config_valid,
+    "working_language_valid": _working_language_valid,
     "view_transform_resolves": _view_transform_resolves,
     "children_settled_with_parent": _children_settled_with_parent,
     "dependency_acyclic": _dependency_acyclic,

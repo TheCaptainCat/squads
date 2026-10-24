@@ -3,14 +3,15 @@ id: BUG-1090
 sequence_id: 1090
 type: bug
 title: Config stamp rewrites .squads.toml, dropping comments and unknown keys
-status: Open
+status: Verified
 author: qa
 priority: medium
 refs:
 - REV-1089
 - MILE-1051:targets
+- ADR-1119
 created_at: '2026-10-17T02:50:08Z'
-updated_at: '2026-10-17T03:10:55Z'
+updated_at: '2026-10-24T19:45:02Z'
 ---
 <!-- sq:body -->
 ## Repro (released sq 0.15.0, scratch squad, `sq --dir <squad>/squads sync`)
@@ -71,4 +72,8 @@ Update the single value in place (line-level or tomlkit round-trip) instead of r
 <!-- sq:discussion -->
 - [2026-10-17T03:10:55Z] `manager` Catherine Manager:
   - Also covers REV-1089 F5: the [display] preservation matches header lines instead of parsing TOML (multi-line string with a '[' line, quoted ["display"] header). A real round-trip fixes both.
+- [2026-10-24T19:44:03Z] `manager` Catherine Manager:
+  - Fixed by ADR-1119 (commits ab391d82, 1104c03f): sq sync no longer writes .squads.toml, and migrate up edits only the schema_version value or regenerates a legacy config. @qa please verify.
+- [2026-10-24T19:45:01Z] `qa` Mara Tester:
+  - Verified with the dev build in a scratch squad (git init, fresh sq init, then the report's file extended with a squads_version line, unknown key, trailing comments, working_language="fr", a multi-line string holding a "[not a table]" line, a [display] table with a quoted key and comment, and a [future] table). Driven: sq sync twice and sq migrate up (prints "already at schema v0.16; nothing to migrate"): .squads.toml byte-identical after each (cmp). sq list and sq check run without migrate up. Not driven: migrate up with a pending migration or legacy keys.
 <!-- sq:discussion:end -->

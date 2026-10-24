@@ -7,6 +7,7 @@ sub-entity/parent requirement changes.
 """
 
 from squads._interactions import authoring_owner, parent_chain
+from squads._language import WorkingLanguage
 from squads._rendering._engine import render
 from squads._workflow import bundled_spec
 from squads._workflow._models import ItemSpec, WorkflowSpec
@@ -81,6 +82,7 @@ def test_the_claude_md_section_also_tracks_the_same_parent_rename() -> None:
     rendered = render(
         "claude/claude_section.md.j2",
         squad_dir="squads",
+        working_language=WorkingLanguage("en", "English"),
         # task's owner (tech-lead) must be on the roster for its authoring bullet — the one
         # this test asserts on — to render at all now that authoring_owner is roster-aware.
         roles=[{"full_name": "Olivia Lead", "title": "Tech lead", "slug": "tech-lead"}],

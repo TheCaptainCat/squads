@@ -313,10 +313,9 @@ class SyncSkips(list[str]):
     run reports, in the same ``list[str]`` shape every existing caller already treats it as
     (iterate, index, ``in``, ``len()``, equality with a plain list).
 
-    The version-drift body-tag convergence this covers never declines a region — it either
-    fills a genuinely empty one or leaves a non-empty one untouched, silently — so it never has
-    anything of its own to add here, and the ``squads_version`` stamp this run writes is never
-    withheld on its account."""
+    The body-tag convergence this covers never declines a region — it either fills a genuinely
+    empty one or leaves a non-empty one untouched, silently — so it never has anything of its
+    own to add here."""
 
 
 @dataclass(frozen=True)
@@ -351,6 +350,9 @@ class MigrationRun:
 
     ``reports`` is each applied migration's printable report lines, keyed like ``changed``.
 
+    ``config_dropped`` names the ``.squads.toml`` keys a regeneration of the file left out, because
+    the config model does not carry them.
+
     ``reconcile`` is what the index rebuild before the first runner did (ids newly indexed, ids
     dropped because no file backs them); ``None`` exactly when ``applied`` is empty.
     """
@@ -363,6 +365,7 @@ class MigrationRun:
     )
     repair: RepairResult | None = None
     reconcile: ReconcileResult | None = None
+    config_dropped: tuple[str, ...] = ()
 
 
 @dataclass

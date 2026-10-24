@@ -73,15 +73,9 @@ async def test_repair_preserves_the_marker_free_prose(svc) -> None:
     assert _region(path) == before, "the region was rewritten"
 
 
-async def test_a_version_drift_backfill_preserves_the_marker_free_prose(svc) -> None:
-    """``sq sync``'s version-drift backfill also preserves the marker-free prose."""
+async def test_the_sync_backfill_preserves_the_marker_free_prose(svc) -> None:
+    """``sq sync``'s backfill also preserves the marker-free prose."""
     _role_id, path = await _drop_author_re_add(svc)
-    cfg_path = svc.paths.config_path
-    text = cfg_path.read_text(encoding="utf-8")
-    cfg_path.write_text(
-        text.replace(f'squads_version = "{__version__}"', 'squads_version = "0.1.0"'),
-        encoding="utf-8",
-    )
 
     before = _region(path)
     await service.Service(svc.paths).sync()

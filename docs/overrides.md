@@ -1152,7 +1152,7 @@ sq check             # what do they find?
 Some checks look at the squad as a whole rather than at one item. They run once per `sq check`,
 never at the create/update gate, and they belong to no type's list.
 
-**Always on.** Eight report a defect in any squad, so they run in every squad and cannot be selected,
+**Always on.** Nine report a defect in any squad, so they run in every squad and cannot be selected,
 dropped or given another level:
 
 | Check | Reports | Level |
@@ -1164,6 +1164,7 @@ dropped or given another level:
 | `roster_slug_valid` | a role or operator slug that breaks the slug rules (see [stability.md § "Comment headers"](stability.md#comment-headers)) | `error` |
 | `playbook_guide_role_live` | a playbook guide that names no live role | `warn` |
 | `display_config_valid` | an unknown key or a non-boolean value in `.squads.toml`'s `[display]` table | `warn` |
+| `working_language_valid` | a `working_language` in `.squads.toml` that is not a language tag squads recognises; English applies | `warn` |
 | `view_transform_resolves` | an override view transform whose file is missing, leaves `.overrides/`, fails to import, or lacks a function sq can call; it imports the file, which runs its top-level code (see [Giving a view a transform](#giving-a-view-a-transform)) | `error` |
 
 **Opt-in.** Five state a policy a team may or may not hold. A squad selects them in the `[squad]`
@@ -2318,7 +2319,7 @@ as a TOML comment on the file's first line:
 Either way it records the version you scaffolded at — "this override was branched from squads
 `<version>`." When you later upgrade squads and run `sq check`, it compares:
 
-- Your override's `override-base` stamp against the current `squads_version`.
+- Your override's `override-base` stamp against the installed squads version.
 - The bundled template at your override's `override-base` version against the bundled template
   in the *current* version (recovered from the shipped `templates_manifest.json`, which indexes
   all bundled templates by version and hash).
@@ -2435,7 +2436,7 @@ Run `sq check` often while editing to catch structural errors (missing markers) 
 sq override update items/task.md.j2
 ```
 
-This rewrites the `squads:override-base:` stamp to the current `squads_version` — **and nothing
+This rewrites the `squads:override-base:` stamp to the installed squads version — **and nothing
 else**. The body you just merged is untouched. Re-stamping is your assertion: "I have reconciled
 this against the current bundled default."
 
@@ -2584,7 +2585,7 @@ sq override update
 ```
 
 **What it does:**
-- Rewrites the `squads:override-base:` stamp to the current `squads_version`.
+- Rewrites the `squads:override-base:` stamp to the installed squads version.
 - **Never touches the override body** — this is not auto-rewriting. It is your signed assertion
   that you have manually reconciled the override against the current bundled default.
 
@@ -2606,7 +2607,7 @@ sq override list --json
 - **Name:** template path, role slug, `workflow`, `playbook`, or `roles` (e.g.,
   `items/task.md.j2`, `architect`).
 - **Kind:** `template`, `role`, `workflow`, `playbook`, or `roles`.
-- **Base version:** the `squads_version` the override was branched from (from the stamp), or
+- **Base version:** the squads version the override was branched from (from the stamp), or
   `(unstamped)` for an override that has no stamp.
 - **State:** 
   - `current` — the bundled counterpart hasn't changed since the base stamp.

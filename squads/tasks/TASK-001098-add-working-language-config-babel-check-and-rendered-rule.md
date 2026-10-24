@@ -3,7 +3,7 @@ id: TASK-1098
 sequence_id: 1098
 type: task
 title: Add working_language config, Babel check and rendered rule
-status: Draft
+status: Done
 parent: FEAT-1097
 author: tech-lead
 refs:
@@ -13,31 +13,36 @@ description: Validate working_language with Babel at startup and render the lang
 subentities:
 - local_id: ST1
   title: Add Babel, the resolver and the raw config key
-  status: Todo
+  status: Done
+  assignee: python-dev
   story: US1
 - local_id: ST2
   title: Validate on every command and warn on stderr
-  status: Todo
+  status: Done
+  assignee: python-dev
   story: US1
 - local_id: ST3
   title: Render the rule in both backends and the squads skill
-  status: Todo
+  status: Done
+  assignee: python-dev
   story: US2
 - local_id: ST4
   title: Write working_language on init and adopt
-  status: Todo
+  status: Done
+  assignee: python-dev
   story: US3
 - local_id: ST5
   title: Document the key and add the CHANGELOG entry
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US4
 - local_id: ST6
   title: Report a malformed working_language in sq check
-  status: Todo
+  status: Done
+  assignee: python-dev
   story: US1
 created_at: '2026-10-24T09:11:31Z'
-updated_at: '2026-10-24T09:20:26Z'
+updated_at: '2026-10-24T19:01:44Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -281,4 +286,32 @@ Report a malformed `working_language` in `sq check`.
   - 3. sq check also reports a malformed working_language, like the display table check.
   - 4. The new .squads.toml key gets a short ADR from the architect.
   - 5. Running sq sync on this repo is a release step, outside this task.
+- [2026-10-24T14:47:37Z] `manager` Catherine Manager:
+  - Dispatched to @python-dev for the code subtasks; the docs and CHANGELOG subtask goes to the tech-writer after.
+- [2026-10-24T15:01:23Z] `python-dev` Elias Python:
+  - @manager ST1, ST2, ST3, ST4 and ST6 are done; ST5 (docs, CHANGELOG) is left to the tech-writer. Not committed.
+    
+    - Babel 2.18 added (pyproject + uv.lock). New `_language.py` resolver; `SquadsConfig.working_language` (raw value, non-string kept as repr); `to_toml_keeping` carries the line verbatim and never adds it.
+    - `working_language_notice()` in `main_callback` warns once on stderr; `BackendContext.working_language` and `ServiceCore.working_language` feed the shared `working_language.md.j2` partial into CLAUDE.md, AGENTS.md and the squads skill; `init` and an adopt that creates the config write `"en"`; `working_language_valid` (warn) in `sq check`, with its row in docs/overrides.md.
+    - Regenerated: template manifest (0.17.0 entry, check clean), the two section goldens, the shared migrated-corpus CLAUDE.md golden.
+    - Gates: pyright, ruff check and format clean; tests/meta, tests/unit and tests/integration pass (5297 passed); `sq check` clean. The service and cli directories were not run.
+    - Tests added: 2 files, 9 functions, 29 cases (unit 20, service 9). Falsified: malformed accepted as valid, init not writing the key, stamp adding the key, stamp normalising the line, and the missing startup call each turn them red.
+    - Drove the dev CLI in a scratch squad: init writes the key, `fr` and `pt-BR` render in CLAUDE.md, AGENTS.md and the skill, a malformed value warns once on stderr with `--json` still parsing and `sq check` reporting it, an absent key is silent and a sync does not add it.
+    - Deviations from ADR-1100: none. The `sq check` message reuses the resolver text ("...; using English (en)") rather than a separate "applies" wording. No level-override test added; the level goes through the shared squad-global resolver.
+- [2026-10-24T15:34:12Z] `python-dev` Elias Python:
+  - @manager REV-1118 F1-F8 addressed, not committed. Needs your call: with the stamp no longer rebuilding .squads.toml, the legacy default_backend (v0.2 corpus) and default_role keys now survive a stamp where the rebuild used to rewrite/drop them; 11 migration-corpus golden tests fail on exactly that (tests/integration/test_migrate_up_output_is_unchanged_for_every_corpus.py x10, test_migration_corpus.py::test_v0_2_migration_rewrites_the_legacy_backend_key). I left the goldens untouched; either the migrations normalise those keys explicitly or the goldens are regenerated.
+- [2026-10-24T17:28:31Z] `op-pierre` Pierre Chat:
+  - Decision: `.squads.toml` is the adopter's file. `sq` writes it only at `init`/adopt (whole file) and during `sq migrate up`. `squads_version` leaves `.squads.toml`; the generated-file drift check derives from the generated files' own version stamps. The one remaining rewrite is the `schema_version` line during a migration. Legacy 0.2-era keys are handled by parsing with `tomllib` and regenerating the file during the migration, comments lost on those squads. No `tomlkit`. Needs a short ADR before implementation.
+- [2026-10-24T18:35:35Z] `python-dev` Elias Python:
+  - - ADR-1119 implemented, uncommitted. squads_version is gone from SquadsConfig and SquadsDB, version_notice, _stamp_version, to_toml_keeping, drop_legacy_config_keys, the drift hints (empty_body_hint_state now has three states) and the squads_version args of plan_reconcile and create_empty. sq sync no longer writes .squads.toml and the roster backfill is unconditional. New _migrations/_config_text.py: the verified one-value schema_version edit (computed before the first runner, written last, SquadsError naming file and line otherwise) and the legacy-key regeneration with read-back check; keys the model does not carry print in the migrate report. to_toml now writes a non-default [display] table so a regeneration keeps it. F5 and F9 of REV-1118 fixed and commented.
+    - Backfill timing, 208 roles and 512 skills (scratch squad, dev build): sync 4.05 s and 4.04 s with the backfill against 3.83 s and 3.79 s without it, so about 0.2 s; the backfill alone measures 0.117 s on a converged roster.
+    - Gates: pyright, ruff check and format clean; sq check clean. Ran tests/meta, integration, service, unit and the touched cli files: 10538 passed. Full suite not run. migrated_corpus goldens regenerated with UPDATE_GOLDENS=1 (squads_version gone from the indexes; regenerated legacy configs now share one copy in _shared).
+    - git status: about 45 modified, 4 deleted and 2 renamed test files (git rm and git mv left those staged), 4 new files, goldens under tests/goldens/migrated_corpus. Nothing committed.
+    - Not done: docs still describe squads_version and the upgrade notice (docs/faq.md, docs/migration.md, docs/internals.md), and CHANGELOG has no entry; both belong to the writer.
+- [2026-10-24T18:46:19Z] `tech-writer` Theo Writer:
+  - @manager ST5 done, not committed. working_language documented in docs/stability.md (new "Working language in .squads.toml" and "Who writes .squads.toml" subsections), docs/adoption.md ("The working language": two-language model, tag examples, adopt-over-existing behaviour) and a FAQ entry for the warning; README tree comment updated.
+  - squads_version and upgrade-notice prose replaced with present truth in docs/faq.md, docs/migration.md (version-stamping section rewritten, new "What sq migrate up writes to .squads.toml"), docs/internals.md, docs/backends.md, docs/overrides.md (override-base stamp now says "installed squads version").
+  - CHANGELOG 0.17.0: one Added entry (working_language), two Changed (sync leaves .squads.toml alone; migrate up stamps one value or refuses, legacy-key regeneration loses comments), one Removed (squads_version + notice, run sq sync after upgrading). Claims checked against src and a scratch squad (warning text, sq check exit 0 at warn, rendered rule, tag examples). tests/meta passes (456).
+- [2026-10-24T19:01:44Z] `manager` Catherine Manager:
+  - Done: ADR-1100 and ADR-1119 implemented, REV-1118 Approved with all 15 findings Verified, full suite green at 1104c03f, docs and CHANGELOG landed.
 <!-- sq:discussion:end -->

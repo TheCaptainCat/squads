@@ -25,7 +25,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 import squads._cli._common as common
-from squads import __version__, _pronouns
+from squads import _pronouns
 from squads import _views as views
 from squads._cli._common import (
     AddressDispatchGroup,
@@ -48,7 +48,6 @@ from squads._interactions import ROLE_DEFINITION_VIEW_NAME, role_origin
 from squads._interactions._role_guidance import allowed_create_types
 from squads._models import _attributes as attrs
 from squads._models._item import Item
-from squads._models._schema import version_drifted
 from squads._paths import resolve as resolve_squad_paths
 from squads._roles._catalog import RoleDef
 from squads._roles._loader import ROLES_OVERRIDE_FILENAME, load_role_catalog
@@ -94,7 +93,7 @@ def _catalog_squad_dir() -> Path | None:
     always a valid answer to "what could I activate". Outside a squad there is no
     ``.overrides/roles.toml`` to read, so the bundled catalog stays the honest answer; inside
     one, resolving it lets the listing merge in a project's own catalog-document declarations.
-    Mirrors ``_cli._common.version_notice``'s own not-a-squad handling (resolve, treat
+    Mirrors ``_cli._common.working_language_notice``'s own not-a-squad handling (resolve, treat
     ``SquadsError`` as "no squad" rather than a failure).
     """
     ctx = get_context()
@@ -341,14 +340,12 @@ def _role_empty_body_hint(hint_state: views.EmptyBodyHintState, slug: str) -> st
     name = ROLE_DEFINITION_VIEW_NAME
     if hint_state == "disabled":
         return f"(disabled — `sq role {slug} view add {name}` re-enables it)"
-    if hint_state == "declared_no_drift":
+    if hint_state == "declared":
         return (
-            f"(empty — declare the definition in `{ROLES_OVERRIDE_FILENAME}`, or "
-            "`.overrides/roles/<slug>.toml` for a project-defined role, to author one instead "
-            f"— or run `sq role {slug} view add {name}` directly)"
+            "(empty — run `sq sync`; if it stays empty, declare the definition in "
+            f"`{ROLES_OVERRIDE_FILENAME}`, or `.overrides/roles/<slug>.toml` for a "
+            f"project-defined role, or run `sq role {slug} view add {name}`)"
         )
-    if hint_state == "declared_drift_outstanding":
-        return "(empty — run `sq sync` to populate it)"
     return (
         f"(empty — the view {name!r} is not declared in this project's spec, so `sq sync` "
         "cannot populate it; declare it in `.overrides/workflow.toml` to restore the "
@@ -474,7 +471,6 @@ async def show_role(
         hint_state = views.empty_body_hint_state(
             ROLE_DEFINITION_VIEW_NAME,
             svc.spec,
-            drift_outstanding=version_drifted(__version__, svc.paths.config.squads_version),
             disabled=await svc.view_tag_state(it.id, ROLE_DEFINITION_VIEW_NAME) is True,
         )
         empty_hint = _role_empty_body_hint(hint_state, slug)

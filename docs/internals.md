@@ -42,7 +42,7 @@ the index, the filesystem, the backends, and rendering together.
 
 ```
 <project root>/
-├── .squads.toml          # config: schema_version, squad_dir, active_backends, squads_version
+├── .squads.toml          # config: schema_version, squad_dir, active_backends, working_language
 ├── CLAUDE.md             # claude_code backend: managed section (between <!-- squads:start/end -->) + your own content
 ├── AGENTS.md             # agents_md backend, when active: the same kind of managed section
 ├── .claude/              # claude_code backend: tool-owned pointers + config
@@ -80,7 +80,7 @@ the index, the filesystem, the backends, and rendering together.
 
 ## 3. The index and the global counter (`_index/_store.py`, `_models/_index.py`)
 
-`SquadsDB` is the JSON root: `{schema_version, squads_version, counter, padding, items: {sequence# → Item}}`
+`SquadsDB` is the JSON root: `{schema_version, counter, padding, items: {sequence# → Item}}`
 (`padding` is the filename width, default 6).
 Items are **keyed by their integer `sequence_id`** (the global counter number — the item's real
 identity); the formatted `id` (`TASK-<n>`) is *derived* from `type` + `sequence_id`, and displayed unpadded.
@@ -361,10 +361,11 @@ What it generates:
 - **settings.json** — created if absent, else **merged** (union of `permissions.allow`), never
   clobbering your keys.
 
-`BackendContext` carries the resolved `SquadPaths` + version and the `rel()` helper (project-root-
-relative, forward-slash paths used in pointers and `Artifact` records). `sq sync` regenerates every
-managed file to the current version and stamps `.squads.toml`; any command notices when the
-installed version is newer than the recorded one and nudges you to run it.
+`BackendContext` carries the resolved `SquadPaths` and the `rel()` helper (project-root-relative,
+forward-slash paths used in pointers and `Artifact` records). `sq sync` regenerates every managed
+file from the installed version and writes nothing to `.squads.toml`; no command compares the
+managed files' version with the installed one, so refreshing them after an upgrade is the
+adopter's `sq sync`.
 
 ---
 
@@ -431,7 +432,7 @@ invocation (parsed by `parse_iso`), which is how a migration preserves historica
 
 Typer app, exposed twice as `squads`/`sq` (entry point `squads._cli:main`, which runs the `app`). The root callback takes
 the effective directory computed from the global `-C` options as `RequestContext.client_cwd` (it
-never calls `os.chdir`), reads `--at`, runs the version notice, and dispatches. Conventions:
+never calls `os.chdir`), reads `--at`, warns on an unrecognised `working_language`, and dispatches. Conventions:
 
 - Errors that are the user's to see subclass `SquadsError`; a `@handle_errors` decorator turns them
   into a clean message + exit 1 (the corrupt-index and validation paths funnel here).
@@ -447,7 +448,7 @@ never calls `os.chdir`), reads `--at`, runs the version notice, and dispatches. 
 ```
  sq create task … --parent FEAT-<n>
    │
-   ├─ root callback: set -C / --at, version notice
+   ├─ root callback: set -C / --at, working_language warning
    ├─ _cli/_create.py  ──▶  get_service()  ──▶  _paths.resolve()  ──▶  SquadPaths
    └─ Service.create(TASK, "Fix login", parent=FEAT-<n>)
         └─ IndexStore.transaction()  [lock .squads.json]

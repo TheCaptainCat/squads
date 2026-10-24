@@ -1,7 +1,7 @@
 {
   "schema_version": "0.16",
   "squads_version": "0.16.0",
-  "counter": 1117,
+  "counter": 1120,
   "padding": 6,
   "items": {
     "12": {
@@ -7127,7 +7127,7 @@
       "type": "feature",
       "title": "Cut sq's fixed pre-dispatch startup cost",
       "slug": "cut-sq-s-fixed-pre-dispatch-startup-cost",
-      "status": "Draft",
+      "status": "Ready",
       "description": "",
       "parent": "EPIC-31",
       "author": "product-owner",
@@ -7139,10 +7139,38 @@
         "EPIC-29",
         "MILE-1051:targets"
       ],
-      "subentities": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Attribute the fixed startup cost by phase",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Defer work no command needs at startup",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Record the before and after timings",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
       "path": "features/FEAT-000916-cut-sq-s-fixed-pre-dispatch-startup-cost.md",
       "created_at": "2026-09-03T13:06:26Z",
-      "updated_at": "2026-10-16T11:28:12Z",
+      "updated_at": "2026-10-24T19:42:49Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -8246,7 +8274,7 @@
       "type": "feature",
       "title": "Structural cleanup of engine layering and cohesion",
       "slug": "structural-cleanup-of-engine-layering-and-cohesion",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Home for the 13 open REV-956 findings: roster, spec threading, file splits, check registry, DI decision, comment rule.",
       "parent": null,
       "author": "product-owner",
@@ -8316,7 +8344,7 @@
       ],
       "path": "features/FEAT-001092-structural-cleanup-of-engine-layering-and-cohesion.md",
       "created_at": "2026-10-17T03:49:43Z",
-      "updated_at": "2026-10-17T03:50:11Z",
+      "updated_at": "2026-10-24T19:43:22Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -8328,7 +8356,7 @@
       "type": "feature",
       "title": "Rebuild the test suite from the ground up",
       "slug": "rebuild-the-test-suite-from-the-ground-up",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Replace the 13,800-test suite with a smaller, falsification-checked one; parity ledger, per-OS CI targets.",
       "parent": null,
       "author": "product-owner",
@@ -8433,7 +8461,7 @@
       ],
       "path": "features/FEAT-001096-rebuild-the-test-suite-from-the-ground-up.md",
       "created_at": "2026-10-17T07:56:25Z",
-      "updated_at": "2026-10-24T14:34:30Z",
+      "updated_at": "2026-10-24T19:42:24Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -29251,7 +29279,7 @@
       "type": "task",
       "title": "Replace the validator tier wording with plain terms",
       "slug": "replace-the-validator-tier-wording-with-plain-terms",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Wording only: always on, on by default for a category, opt-in, file checks",
       "parent": null,
       "author": "tech-lead",
@@ -29294,7 +29322,7 @@
       ],
       "path": "tasks/TASK-001077-replace-the-validator-tier-wording-with-plain-terms.md",
       "created_at": "2026-10-16T20:59:53Z",
-      "updated_at": "2026-10-16T21:00:22Z",
+      "updated_at": "2026-10-24T19:46:27Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -33394,7 +33422,7 @@
       "type": "bug",
       "title": "Config stamp rewrites .squads.toml, dropping comments and unknown keys",
       "slug": "config-stamp-rewrites-squads-toml-dropping-comments-and-unkn",
-      "status": "Open",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -33404,12 +33432,13 @@
       "labels": [],
       "refs": [
         "REV-1089",
-        "MILE-1051:targets"
+        "MILE-1051:targets",
+        "ADR-1119"
       ],
       "subentities": [],
       "path": "bugs/BUG-001090-config-stamp-rewrites-squads-toml-dropping-comments-and-unkn.md",
       "created_at": "2026-10-17T02:50:08Z",
-      "updated_at": "2026-10-17T03:10:55Z",
+      "updated_at": "2026-10-24T19:45:02Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -51694,7 +51723,7 @@
       "type": "feature",
       "title": "Working language: one configured language for the squad",
       "slug": "working-language-one-configured-language-for-the-squad",
-      "status": "Draft",
+      "status": "Done",
       "description": "A squad declares one working language for sq content and agent communication; agents answer the human in the human's language.",
       "parent": null,
       "author": "product-owner",
@@ -51709,7 +51738,7 @@
         {
           "local_id": "US1",
           "title": "Configure working_language in .squads.toml",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -51718,7 +51747,7 @@
         {
           "local_id": "US2",
           "title": "Render the language rule in every backend and the squads skill",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -51727,7 +51756,7 @@
         {
           "local_id": "US3",
           "title": "Write working_language on init and adopt",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -51736,7 +51765,7 @@
         {
           "local_id": "US4",
           "title": "Document working_language for adopters",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -51745,7 +51774,7 @@
       ],
       "path": "features/FEAT-001097-working-language-one-configured-language-for-the-squad.md",
       "created_at": "2026-10-24T08:48:52Z",
-      "updated_at": "2026-10-24T09:13:47Z",
+      "updated_at": "2026-10-24T19:02:02Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -51757,7 +51786,7 @@
       "type": "task",
       "title": "Add working_language config, Babel check and rendered rule",
       "slug": "add-working-language-config-babel-check-and-rendered-rule",
-      "status": "Draft",
+      "status": "Done",
       "description": "Validate working_language with Babel at startup and render the language rule in every backend and the squads skill.",
       "parent": "FEAT-1097",
       "author": "tech-lead",
@@ -51772,8 +51801,8 @@
         {
           "local_id": "ST1",
           "title": "Add Babel, the resolver and the raw config key",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US1",
           "extra": {}
@@ -51781,8 +51810,8 @@
         {
           "local_id": "ST2",
           "title": "Validate on every command and warn on stderr",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US1",
           "extra": {}
@@ -51790,8 +51819,8 @@
         {
           "local_id": "ST3",
           "title": "Render the rule in both backends and the squads skill",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US2",
           "extra": {}
@@ -51799,8 +51828,8 @@
         {
           "local_id": "ST4",
           "title": "Write working_language on init and adopt",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US3",
           "extra": {}
@@ -51808,7 +51837,7 @@
         {
           "local_id": "ST5",
           "title": "Document the key and add the CHANGELOG entry",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "severity": null,
           "story": "US4",
@@ -51817,8 +51846,8 @@
         {
           "local_id": "ST6",
           "title": "Report a malformed working_language in sq check",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US1",
           "extra": {}
@@ -51826,7 +51855,7 @@
       ],
       "path": "tasks/TASK-001098-add-working-language-config-babel-check-and-rendered-rule.md",
       "created_at": "2026-10-24T09:11:31Z",
-      "updated_at": "2026-10-24T09:20:26Z",
+      "updated_at": "2026-10-24T19:01:44Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52035,7 +52064,7 @@
       "subentities": [],
       "path": "adrs/ADR-001100-working-language-one-bcp-47-tag-in-squads-toml-english-fallb.md",
       "created_at": "2026-10-24T09:20:18Z",
-      "updated_at": "2026-10-24T09:22:24Z",
+      "updated_at": "2026-10-24T18:18:13Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52047,7 +52076,7 @@
       "type": "feature",
       "title": "Adopter field-report fixes: errors, round-trips, checks, guidance",
       "slug": "adopter-field-report-fixes-errors-round-trips-checks-guidanc",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "Fixes for the triaged findings of REV-1099: defects, new checks, docs and bundled guidance.",
       "parent": null,
       "author": "product-owner",
@@ -52144,7 +52173,7 @@
       ],
       "path": "features/FEAT-001101-adopter-field-report-fixes-errors-round-trips-checks-guidanc.md",
       "created_at": "2026-10-24T09:39:06Z",
-      "updated_at": "2026-10-24T13:00:13Z",
+      "updated_at": "2026-10-24T19:44:05Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52182,8 +52211,8 @@
       "type": "task",
       "title": "Fix lock contention, milestone round-trip, create fields, sync wording",
       "slug": "fix-lock-contention-milestone-round-trip-create-fields-sync",
-      "status": "Draft",
-      "description": "Defects F4, F5, F9, F16, F6 and F2 from REV-1099.",
+      "status": "InProgress",
+      "description": "Defects F4, F5, F9, F16, F6 and F2 from REV-1099, plus BUG-1120.",
       "parent": "FEAT-1101",
       "author": "tech-lead",
       "assignee": "python-dev",
@@ -52192,13 +52221,14 @@
       "labels": [],
       "refs": [
         "REV-1099:addresses",
-        "FEAT-1108:depends-on"
+        "FEAT-1108:depends-on",
+        "BUG-1120:fixes"
       ],
       "subentities": [
         {
           "local_id": "ST1",
           "title": "Report index-lock waits on stderr and fail a timeout as a clean SquadsError",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -52207,7 +52237,7 @@
         {
           "local_id": "ST2",
           "title": "Stop a milestone body write-back from duplicating the roll-up, and name the fix for a view tag",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -52233,7 +52263,7 @@
         },
         {
           "local_id": "ST5",
-          "title": "Call an older release's pointer outdated, and say what sync still does after migrate",
+          "title": "Word a regenerated pointer and the post-migrate line accurately",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -52257,11 +52287,20 @@
           "severity": null,
           "story": "US1",
           "extra": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Rebuild the index when init --force runs over an existing squad",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
         }
       ],
       "path": "tasks/TASK-001103-fix-lock-contention-milestone-round-trip-create-fields-sync.md",
       "created_at": "2026-10-24T10:04:00Z",
-      "updated_at": "2026-10-24T13:20:02Z",
+      "updated_at": "2026-10-24T19:47:52Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52273,7 +52312,7 @@
       "type": "task",
       "title": "Warn on settled reviews with open findings and on unowned types",
       "slug": "warn-on-settled-reviews-with-open-findings-and-on-unowned-ty",
-      "status": "Draft",
+      "status": "Ready",
       "description": "New sq check rules for F10 and F3 from REV-1099.",
       "parent": "FEAT-1101",
       "author": "tech-lead",
@@ -52325,7 +52364,7 @@
       ],
       "path": "tasks/TASK-001104-warn-on-settled-reviews-with-open-findings-and-on-unowned-ty.md",
       "created_at": "2026-10-24T10:04:02Z",
-      "updated_at": "2026-10-24T10:08:29Z",
+      "updated_at": "2026-10-24T19:46:22Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52337,7 +52376,7 @@
       "type": "task",
       "title": "Add Noted and Deferred finding states with a carrier pointer",
       "slug": "add-noted-and-deferred-finding-states-with-a-carrier-pointer",
-      "status": "Draft",
+      "status": "Ready",
       "description": "The finding lifecycle of ADR-1102 (REV-1099 F7).",
       "parent": "FEAT-1101",
       "author": "tech-lead",
@@ -52407,7 +52446,7 @@
       ],
       "path": "tasks/TASK-001105-add-noted-and-deferred-finding-states-with-a-carrier-pointer.md",
       "created_at": "2026-10-24T10:04:03Z",
-      "updated_at": "2026-10-24T10:08:04Z",
+      "updated_at": "2026-10-24T19:46:24Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52419,7 +52458,7 @@
       "type": "task",
       "title": "Role ergonomics, bundled handoffs and a compact sq list",
       "slug": "role-ergonomics-bundled-handoffs-and-a-compact-sq-list",
-      "status": "Draft",
+      "status": "Ready",
       "description": "F13, F15, F8, F17 and F14 from REV-1099.",
       "parent": "FEAT-1101",
       "author": "tech-lead",
@@ -52488,7 +52527,7 @@
       ],
       "path": "tasks/TASK-001106-role-ergonomics-bundled-handoffs-and-a-compact-sq-list.md",
       "created_at": "2026-10-24T10:04:05Z",
-      "updated_at": "2026-10-24T10:08:11Z",
+      "updated_at": "2026-10-24T19:46:25Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52500,7 +52539,7 @@
       "type": "task",
       "title": "Document import events, role splat-refs and the review question",
       "slug": "document-import-events-role-splat-refs-and-the-review-questi",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Doc-only fixes F1, F12 and F11 from REV-1099.",
       "parent": "FEAT-1101",
       "author": "tech-lead",
@@ -52509,7 +52548,9 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-1099:addresses"
+        "REV-1099:addresses",
+        "TASK-1105:depends-on",
+        "TASK-1103:depends-on"
       ],
       "subentities": [
         {
@@ -52560,7 +52601,7 @@
       ],
       "path": "tasks/TASK-001107-document-import-events-role-splat-refs-and-the-review-questi.md",
       "created_at": "2026-10-24T10:04:07Z",
-      "updated_at": "2026-10-24T10:08:17Z",
+      "updated_at": "2026-10-24T19:46:26Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52780,8 +52821,8 @@
       "type": "task",
       "title": "Inventory the old suite: parity ledger and falsification audit",
       "slug": "inventory-the-old-suite-parity-ledger-and-falsification-audi",
-      "status": "Draft",
-      "description": "Parity ledger, per-module falsification audit and per-OS CI baseline; read-only on tests.",
+      "status": "Ready",
+      "description": "Parity ledger, per-module falsification audit and per-OS CI baseline; read-only on tests and src.",
       "parent": "FEAT-1096",
       "author": "tech-lead",
       "assignee": "qa",
@@ -52800,7 +52841,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Build the parity ledger from regression classes, fixed bugs and review defects",
+          "title": "Build the parity ledger from regression classes, bugs and findings",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -52828,7 +52869,7 @@
       ],
       "path": "tasks/TASK-001111-inventory-the-old-suite-parity-ledger-and-falsification-audi.md",
       "created_at": "2026-10-24T13:42:12Z",
-      "updated_at": "2026-10-24T14:10:11Z",
+      "updated_at": "2026-10-24T19:48:41Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52840,8 +52881,8 @@
       "type": "task",
       "title": "Set up the new suite root, its conventions and meta guards",
       "slug": "set-up-the-new-suite-root-its-conventions-and-meta-guards",
-      "status": "Draft",
-      "description": "New root beside the old one, conventions, volume and naming guards, shared fixtures, pinned goldens.",
+      "status": "Ready",
+      "description": "New root beside the old one, conventions, naming and owner-layer guards, copy-per-row fixtures, golden mechanism.",
       "parent": "FEAT-1096",
       "author": "tech-lead",
       "assignee": "python-dev",
@@ -52872,7 +52913,7 @@
         },
         {
           "local_id": "ST3",
-          "title": "Create the new root with shared copy-per-row fixtures and pinned goldens",
+          "title": "Create the new root with copy-per-row fixtures and the golden mechanism",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -52882,7 +52923,7 @@
       ],
       "path": "tasks/TASK-001112-set-up-the-new-suite-root-its-conventions-and-meta-guards.md",
       "created_at": "2026-10-24T13:42:14Z",
-      "updated_at": "2026-10-24T14:34:29Z",
+      "updated_at": "2026-10-24T19:48:43Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52894,7 +52935,7 @@
       "type": "task",
       "title": "Rebuild the integrity core tests and retire their old files",
       "slug": "rebuild-the-integrity-core-tests-and-retire-their-old-files",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Store, counter, markers, path guard, write-once, migrations and repair; parity then deletion.",
       "parent": "FEAT-1096",
       "author": "tech-lead",
@@ -52917,7 +52958,7 @@
         },
         {
           "local_id": "ST2",
-          "title": "Rebuild the migration, reconcile, corpus-fit, repair and renumber tests",
+          "title": "Rebuild migration, reconcile, corpus-fit, repair and renumber tests",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -52936,7 +52977,7 @@
       ],
       "path": "tasks/TASK-001113-rebuild-the-integrity-core-tests-and-retire-their-old-files.md",
       "created_at": "2026-10-24T13:42:15Z",
-      "updated_at": "2026-10-24T14:34:03Z",
+      "updated_at": "2026-10-24T19:48:44Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52948,7 +52989,7 @@
       "type": "task",
       "title": "Rebuild the engine, services and CLI tests and retire old files",
       "slug": "rebuild-the-engine-services-and-cli-tests-and-retire-old-fil",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Spec loading, sq check, -C and gate, views, comments, items and roster services; parity then deletion.",
       "parent": "FEAT-1096",
       "author": "tech-lead",
@@ -52957,7 +52998,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "TASK-1112:depends-on"
+        "TASK-1112:depends-on",
+        "TASK-1113:depends-on"
       ],
       "subentities": [
         {
@@ -52980,7 +53022,7 @@
         },
         {
           "local_id": "ST3",
-          "title": "Rebuild the CLI spine: the -C property, schema gate, exit codes and clean --json",
+          "title": "Rebuild the CLI spine: -C, schema gate, exit codes and clean --json",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -53007,7 +53049,7 @@
         },
         {
           "local_id": "ST6",
-          "title": "Prove engine, services and CLI parity and delete the old files they cover",
+          "title": "Prove engine, services and CLI parity and delete their old files",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -53017,7 +53059,7 @@
       ],
       "path": "tasks/TASK-001114-rebuild-the-engine-services-and-cli-tests-and-retire-old-fil.md",
       "created_at": "2026-10-24T13:42:16Z",
-      "updated_at": "2026-10-24T13:43:28Z",
+      "updated_at": "2026-10-24T19:48:45Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -53029,7 +53071,7 @@
       "type": "task",
       "title": "Rebuild backend, skills, rendering and TUI tests, retire old files",
       "slug": "rebuild-backend-skills-rendering-and-tui-tests-retire-old-fi",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Pointers, skills, has_dev gate, goldens, Windows paths and line endings, TUI; parity then deletion.",
       "parent": "FEAT-1096",
       "author": "tech-lead",
@@ -53038,7 +53080,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "TASK-1112:depends-on"
+        "TASK-1112:depends-on",
+        "TASK-1114:depends-on"
       ],
       "subentities": [
         {
@@ -53052,7 +53095,7 @@
         },
         {
           "local_id": "ST2",
-          "title": "Rebuild goldens, rendering, Windows path and line-ending rows, and the TUI tests",
+          "title": "Rebuild goldens, rendering, Windows path rows and the TUI tests",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -53071,7 +53114,7 @@
       ],
       "path": "tasks/TASK-001115-rebuild-backend-skills-rendering-and-tui-tests-retire-old-fi.md",
       "created_at": "2026-10-24T13:42:18Z",
-      "updated_at": "2026-10-24T13:43:29Z",
+      "updated_at": "2026-10-24T19:48:47Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -53083,8 +53126,8 @@
       "type": "task",
       "title": "Close the rebuild and measure per-OS CI against the targets",
       "slug": "close-the-rebuild-and-measure-per-os-ci-against-the-targets",
-      "status": "Draft",
-      "description": "Old root gone, ledger complete, one CI run per OS recorded against the binding targets.",
+      "status": "Ready",
+      "description": "Old root retired, new root renamed to tests/, ledger complete, one CI run per OS against the targets.",
       "parent": "FEAT-1096",
       "author": "tech-lead",
       "assignee": "devops",
@@ -53099,7 +53142,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Confirm the old root is gone and the parity ledger is complete",
+          "title": "Retire the rest of the old root and rename the new one to tests/",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -53118,7 +53161,7 @@
       ],
       "path": "tasks/TASK-001116-close-the-rebuild-and-measure-per-os-ci-against-the-targets.md",
       "created_at": "2026-10-24T13:42:20Z",
-      "updated_at": "2026-10-24T14:10:13Z",
+      "updated_at": "2026-10-24T19:48:48Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -53214,6 +53257,220 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "REV-1117"
+    },
+    "1118": {
+      "sequence_id": 1118,
+      "type": "review",
+      "title": "Review: working_language setting, startup check and rendered rule",
+      "slug": "review-working-language-setting-startup-check-and-rendered-r",
+      "status": "Approved",
+      "description": "Review of the working_language commit for TASK-1098 against ADR-1100",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1098"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "A multi-line working_language value is truncated by a stamp, leaving .squads.toml unparseable",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "A quoted working_language key is silently dropped by a stamp",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "sq sync crashes with a traceback when working_language is the last line, unterminated, after a display line",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "A stamp deletes language and locale keys, contrary to US1's untouched claim",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Problem text calls valid-but-unknown tags 'not a BCP 47 tag' and shows Python reprs",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "und and root resolve silently to US English and to a non-language; aliases gain a region",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "The outside-a-squad warning test cannot fail",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "working_language defaults to English in the view renderers; derived in two places",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "sq migrate up corrupts .squads.toml when default_backend carries a trailing comment",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "sq migrate up crashes with a traceback when a legacy file has an [init.names] slug that needs quoting",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "sq migrate up turns a CRLF .squads.toml into LF; the crlf unit row tests input the CLI never sends",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "Valid files are refused with an instruction they already satisfy: an array line read as a header, a nan value",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "Legacy regeneration drops unusable [display] entries and a non-table init.names without reporting them",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "The interrupted-write test for the migrate up config write was deleted with the stamp tests",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "A migrate refusal test still asserts against squads_version, which nothing reads",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001118-review-working-language-setting-startup-check-and-rendered-r.md",
+      "created_at": "2026-10-24T15:25:35Z",
+      "updated_at": "2026-10-24T19:01:13Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1118"
+    },
+    "1119": {
+      "sequence_id": 1119,
+      "type": "decision",
+      "title": "sq writes .squads.toml only at init and migrate up",
+      "slug": "sq-writes-squads-toml-only-at-init-and-migrate-up",
+      "status": "Accepted",
+      "description": "The adopter owns .squads.toml; squads_version is dropped everywhere and only the schema gate remains",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1098",
+        "ADR-1100",
+        "REV-1118"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001119-sq-writes-squads-toml-only-at-init-and-migrate-up.md",
+      "created_at": "2026-10-24T17:31:43Z",
+      "updated_at": "2026-10-24T18:17:07Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1119"
+    },
+    "1120": {
+      "sequence_id": 1120,
+      "type": "bug",
+      "title": "init --force on an existing squad leaves skills out of the index",
+      "slug": "init-force-on-an-existing-squad-leaves-skills-out-of-the-ind",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-001120-init-force-on-an-existing-squad-leaves-skills-out-of-the-ind.md",
+      "created_at": "2026-10-24T18:52:57Z",
+      "updated_at": "2026-10-24T18:53:00Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "BUG-1120"
     }
   }
 }

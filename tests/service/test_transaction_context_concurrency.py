@@ -18,7 +18,7 @@ async def test_concurrent_transactions_on_one_store_never_cross_attribute_reflog
     tmp_path,
 ):
     store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
-    store.create_empty("0.1.0")
+    store.create_empty()
 
     n = 8
 

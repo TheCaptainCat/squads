@@ -406,9 +406,51 @@ A `[display]` table in `.squads.toml` holds one boolean, `pronouns` (default `tr
 whether human CLI output and `sq ui` print a role's or operator's pronouns after the name. It
 changes nothing else: `--json` payloads, exit codes, stored data and generated agent files are
 identical either way. The table is closed: an unknown key or a non-boolean value is ignored with a
-`sq check` warning, and the default applies. Rewriting `.squads.toml` (a version or schema stamp)
-keeps the `[display]` table exactly as written. See
+`sq check` warning, and the default applies. See
 [roles.md § "Pronouns"](roles.md#pronouns).
+
+### Working language in `.squads.toml`
+
+A top-level `working_language` key holds one BCP 47 language tag, such as `fr`, `en` or `pt-BR`.
+It names the language of everything that goes through `sq` (item titles, bodies, sub-entity text,
+comments) and of all agent-to-agent communication. The language agents use with a human is never
+configured: they reply in the language that human writes in.
+
+- **Valid values.** A tag is valid when Babel knows it as written, without likely-subtag
+  resolution: `fr`, `pt-BR`, `sr-Latn` and `zh-Hant-TW` are valid. There is no hand-picked list.
+  An underscore form (`fr_FR`), an unknown or private-use tag (`tlh`, `en-US-x-foo`), `und`,
+  alias codes such as `iw`, an empty string and any non-string value are not.
+- **Absent.** English (`en`) applies, with no warning.
+- **Not a valid tag.** English applies. Every command prints one warning on stderr, so `--json`
+  stdout stays parseable, and `sq check` reports it through the always-on `working_language_valid`
+  check (`warn`). At that default level no command fails because of it.
+- **Where it shows.** The rule is rendered into the managed `CLAUDE.md` and `AGENTS.md` sections
+  and the `squads` skill, with Babel's English name for the language plus the tag as written:
+  "French (`fr`)". After changing the key, `sq sync` refreshes the managed sections; the skill
+  picks it up the next time it is read.
+- **Written by.** `sq init`, and `sq adopt` when it creates `.squads.toml`, write
+  `working_language = "en"`. No other command adds, changes or removes it.
+- The names `language` and `locale` are not part of this setting; they are reserved for the CLI's
+  own display language.
+
+### Who writes `.squads.toml`
+
+`.squads.toml` is the adopter's file. `sq` writes it in two places only:
+
+- **`sq init`, and `sq adopt` when the file is missing**, write the whole file.
+- **`sq migrate up`**, when it runs at least one migration, edits the value of the one top-level
+  `schema_version = "<v>"` line and nothing else: comments, key order, `working_language`,
+  `[display]` and any key squads does not read stay as written. When that edit cannot be made
+  safely (no such line or more than one, a value written as a multi-line or escaped string, or a
+  result that does not parse back to the same table with only `schema_version` changed), the run
+  refuses before any migration starts, names the file and line, and says what to write by hand.
+  A file that still carries the `default_backend` or `default_role` keys of a very old release is
+  instead regenerated from what squads reads (`default_backend` becomes `active_backends`,
+  `default_role` is dropped); comments are lost on that file, and the report names any other key
+  the regenerated file leaves out.
+
+`sq sync`, `sq repair` and every other command leave the file untouched. A `squads_version` line
+left by an earlier release is not read by any command and can be deleted.
 
 ---
 
@@ -870,7 +912,7 @@ The frozen surface includes:
     catalogs set.
 
   **Find the report as the one line of stderr that parses as a JSON object.** Stderr carries prose
-  that is not part of any result — the `sq sync` version notice, for one — so "stderr is JSON" is
+  that is not part of any result — a `working_language` warning, for one — so "stderr is JSON" is
   false where "at most one line of stderr is JSON" holds. The report never goes to stdout, and
   stdout stays exactly one JSON document.
 

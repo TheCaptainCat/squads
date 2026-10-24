@@ -62,7 +62,7 @@ async def test_an_empty_role_body_does_not_name_the_nonexistent_body_verb(svc, i
     assert r.exit_code == 0, r.output
     assert "set it with" not in r.output
     assert "roles.toml" in r.output
-    assert "sq sync" not in r.output
+    assert "run `sq sync`" in " ".join(r.output.split())
 
 
 async def test_an_empty_system_skill_body_under_a_live_type_points_at_sync_not_the_type(
@@ -78,7 +78,7 @@ async def test_an_empty_system_skill_body_under_a_live_type_points_at_sync_not_t
 
     assert r.exit_code == 0, r.output
     assert "`.overrides/playbook.toml`" in r.output
-    assert "sq sync" not in r.output
+    assert "run `sq sync`" in " ".join(r.output.split())
     assert "no longer" not in r.output
 
 
@@ -94,7 +94,7 @@ async def test_an_empty_per_type_skill_body_under_a_live_type_also_points_at_the
 
     assert r.exit_code == 0, r.output
     assert "the `[types.task]` lane in `.overrides/playbook.toml`" in _collapsed(r.output)
-    assert "sq sync" not in r.output
+    assert "run `sq sync`" in " ".join(r.output.split())
     assert "no longer" not in r.output
 
 

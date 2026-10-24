@@ -27,7 +27,6 @@ import typer
 from rich.panel import Panel
 
 import squads._cli._common as common
-from squads import __version__
 from squads import _views as views
 from squads._cli._common import (
     AddressDispatchGroup,
@@ -54,7 +53,6 @@ from squads._interactions import (
 from squads._models import _attributes as attrs
 from squads._models._attributes import AttributeKey
 from squads._models._item import split_ref
-from squads._models._schema import version_drifted
 
 _INVOCABLE_HELP = (
     "Offer the skill to the person at the keyboard: yes, no, or default to follow the "
@@ -203,10 +201,7 @@ async def skill_show(
     # `ITEM_SKILL_VIEW_NAME` for every other per-type skill — is itself not declared in
     # `self.spec.views` (`views.empty_body_hint_state`'s first question, matching the same
     # condition `MaintenanceMixin._repair_body_tag`'s classifier gates the backfill on); or the
-    # view is declared and a version drift is still outstanding, the one state `sq sync`
-    # actually fixes; or the view is declared with no drift outstanding — `sq sync`'s trigger
-    # has nothing to run, so it is a no-op against this body and the hint must name a remedy
-    # that actually is one (`views.empty_body_hint_state`'s second question). A custom skill's
+    # view is declared and `sq sync` has not populated the body yet. A custom skill's
     # body reads empty for a sixth reason entirely — nobody has written it yet.
     dropped_type = orphaned_skill_item_type(slug, svc.spec) if system else None
     view_name = SYSTEM_SKILL_VIEW_NAMES.get(slug) or (ITEM_SKILL_VIEW_NAME if system else None)
@@ -219,7 +214,6 @@ async def skill_show(
         hint_state = views.empty_body_hint_state(
             view_name,
             svc.spec,
-            drift_outstanding=version_drifted(__version__, svc.paths.config.squads_version),
             disabled=await svc.view_tag_state(it.id, view_name) is True,
         )
         if hint_state == "disabled":
@@ -232,13 +226,12 @@ async def skill_show(
                 f"before it was dropped, disable it with `sq skill {slug} view disable "
                 f"{view_name}`)"
             )
-        elif hint_state == "declared_drift_outstanding":
-            empty_hint = "(empty — run `sq sync` to populate it)"
         else:
             surface = views.skill_authoring_surface(view_name, slug, svc.spec, svc.playbook)
             empty_hint = (
-                f"(empty — its content's real authoring surface is {surface}; author it "
-                f"there instead — or run `sq skill {slug} view add {view_name}` directly)"
+                "(empty — run `sq sync`; if it stays empty, its content's real authoring "
+                f"surface is {surface}; author it there instead — or run "
+                f"`sq skill {slug} view add {view_name}`)"
             )
     else:
         empty_hint = f'(empty — write it with `sq skill {slug} body -m "…"`)'

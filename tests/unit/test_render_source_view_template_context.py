@@ -33,7 +33,7 @@ async def test_a_role_source_receives_source_item_spec_and_squad_dir(svc) -> Non
     result = views._resolve_role_source(role_item, squad_dir)
 
     rendered = views.render_source_view(
-        "role_probe", result, role_item, svc.spec, svc.paths.config.squad_dir
+        "role_probe", result, role_item, svc.spec, svc.paths.config.squad_dir, svc.working_language
     )
 
     slug, item_id, n_items, sd = rendered.strip().split("|")
@@ -59,7 +59,7 @@ async def test_a_playbook_source_receives_source_item_spec_and_squad_dir(svc) ->
     )
 
     rendered = views.render_source_view(
-        "playbook_probe", result, task, svc.spec, svc.paths.config.squad_dir
+        "playbook_probe", result, task, svc.spec, svc.paths.config.squad_dir, svc.working_language
     )
 
     item_type, n_roster, item_id, sd = rendered.strip().split("|")
@@ -94,7 +94,7 @@ async def test_a_self_source_receives_source_item_spec_and_squad_dir(svc) -> Non
     result = views._resolve_self_source(task)
 
     rendered = views.render_source_view(
-        "self_probe", result, task, svc.spec, svc.paths.config.squad_dir
+        "self_probe", result, task, svc.spec, svc.paths.config.squad_dir, svc.working_language
     )
 
     rec_id, item_id, sd = rendered.strip().split("|")

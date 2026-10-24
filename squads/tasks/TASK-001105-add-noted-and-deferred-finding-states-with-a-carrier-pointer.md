@@ -3,7 +3,7 @@ id: TASK-1105
 sequence_id: 1105
 type: task
 title: Add Noted and Deferred finding states with a carrier pointer
-status: Draft
+status: Ready
 parent: FEAT-1101
 author: tech-lead
 assignee: python-dev
@@ -41,7 +41,7 @@ subentities:
   assignee: tech-writer
   story: US6
 created_at: '2026-10-24T10:04:03Z'
-updated_at: '2026-10-24T10:08:04Z'
+updated_at: '2026-10-24T19:46:24Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -78,16 +78,16 @@ Deliver ADR-1102 (REV-1099 F7). Findings gain a terminal `Noted` (role `done`) a
 
 ## Tests
 
-Service-level plus CLI smoke. Run `tests/meta`, `tests/integration` and `tests/cli`. Falsify each test.
+One table per behaviour. A row exists only if breaking the fix turns it red, so check each one that way. Rows are boundaries and failures, never a cross product. Service level unless stated; one CLI row where the CLI adds an option. Run `tests/meta`, `tests/integration` and `tests/cli`.
 
-- Table over transitions: Open → each of the four targets; Noted/Deferred → Open refused without `--force` and allowed with it; Deferred without a pointer refused, also with `--force`.
-- Table over `--deferred-to` shapes: full ID, bare number, nonexistent ID, on a non-deferred finding, on a story (kind reaching no deferred status), pointer move without `--status`, leaving the status clears it.
-- Head line and `--json` row with and without a pointer.
-- Remapping: retype, type rename and renumber of the carrier each rewrite the pointer. Removing the carrier severs it and check then reports nothing stale.
-- The check: table over carrier status roles (pending, active, done, retired, superseded, missing) plus the hand-edited stray pointer.
-- Overrides: a project override that redeclares `Open = ["Fixed", "WontFix"]` loads and keeps its own machine. A project status `Postponed` with a `deferred`-flagged role gets the refusal, the pointer and the check. An item lifecycle reaching a deferred-flagged status is refused at load.
-- Import: a `sub-status` event with and without `deferred_to`.
-- Round-trip: `sq repair` rebuilds the pointer from frontmatter (invariant 1).
+- **Finding lifecycle edges**. Rows: Open to Noted allowed; Noted to Open refused without `--force`; Noted to Open allowed with `--force`. Open to Deferred is covered by the pointer table; the existing edges keep their tests.
+- **The pointer on update**. Rows: Deferred with no pointer refused; the same refused with `--force`; a full ID stored; a bare number resolved; a nonexistent ID refused; `--deferred-to` on a finding not moving into a deferred status refused; `--deferred-to` on a story (a kind reaching no deferred status) refused; `--deferred-to` without `--status` on a deferred finding moves the pointer; leaving Deferred (with `--force`) clears it.
+- **Other entry points to the same rule** (one row each): `add-finding --status Deferred --deferred-to` stores it; an import `sub-status` with `deferred_to` stores it; an import `sub-status` to Deferred without it is refused. One CLI row: `finding <k> update --status Deferred --deferred-to <n>` stores the pointer.
+- **Rendering**. Rows: the `:head` line reads "Deferred to `<ID>` — `<title>`"; the `--json` row carries `deferred_to`, and `null` when absent.
+- **Loader and flag keying**. Rows: an override redeclaring `Open = ["Fixed", "WontFix"]` loads with its own machine; an item lifecycle reaching a deferred-flagged status is refused at load; a project status `Postponed` with a deferred-flagged role gets the missing-pointer refusal.
+- **Remapping** (one row per code path): retype, type rename, `sq renumber`, `sq repair --renumber` (`_duplicate_ids.py`) each rewrite the pointer; removing the carrier severs it.
+- **`subentity_deferral_resolved`**. Rows: a deferred finding with no pointer (hand edit) warns; an unresolved pointer warns; a Cancelled carrier warns; a bug carrier at WontFix warns (another status name with the `retired` role); a Superseded carrier is silent; an active carrier is silent; a pointer on a finding not in a deferred status warns.
+- **Invariant 1**: `sq repair` rebuilds the index with the pointer intact.
 
 ## Generated output
 
@@ -192,4 +192,6 @@ Part of REV-1099 F7, per ADR-1102 Consequences. In `docs/stability.md`, update t
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-24T19:46:24Z] `tech-lead` Olivia Lead:
+  - Rechecked against ADR-1102 (Accepted) and the code; Tests rewritten as one table per behaviour, boundary and failure rows only. Moved to Ready.
 <!-- sq:discussion:end -->

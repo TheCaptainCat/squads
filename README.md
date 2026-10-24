@@ -162,7 +162,7 @@ squad, which is what you do most once agents are the ones writing:
 
 ```
 your-project/
-├── .squads.toml                 # config (squad dir, active backends, schema + package version)
+├── .squads.toml                 # config (schema version, squad dir, active backends, working language)
 ├── CLAUDE.md                    # managed section: process + greeting impersonation
 ├── .claude/
 │   ├── agents/<slug>.md         # POINTER → `sq role <slug> show`

@@ -33,6 +33,7 @@ from squads._errors import NotInitializedError, RoleNotFoundError, SquadsError
 from squads._index._store import enter_read_scope, exit_read_scope
 from squads._interactions import role_origin
 from squads._interactions._role_guidance import allowed_create_types
+from squads._language import resolve_working_language
 from squads._models import _attributes as attrs
 from squads._models._attributes import AttributeKey
 from squads._models._item import (
@@ -57,7 +58,6 @@ from squads._roles._resolver import (
 )
 from squads._services._results import BlockResult, SelfRemedied, SubentityDetail
 from squads._services._service import Service, open_service, resolve_playbook
-from squads._util import version_tuple
 from squads._workflow import CATEGORIES, ROSTER_OPERATOR, ROSTER_ROLE, bundled_spec
 from squads._workflow._models import RESERVED_CLI_ALIASES, WorkflowSpec, reserved_alias_owner
 
@@ -1696,21 +1696,15 @@ def _close_read_scope(root: _click.core.Context) -> None:
     root.meta.pop(_BYPASS_SERVICE_META_KEY, None)
 
 
-def version_notice() -> None:
-    """Print a non-fatal notice if the installed squads is newer than the managed files."""
+def working_language_notice() -> None:
+    """Warn on stderr when ``working_language`` is not a language tag; English applies."""
     try:
         sp = resolve(client_cwd=get_context().client_cwd)
     except SquadsError:
-        return  # not initialized yet (e.g. before `sq init`)
-    if sp.config.schema_version != SCHEMA_VERSION:
-        return  # `sq sync` is refused until the schema matches
-    recorded = sp.config.squads_version
-    if recorded and version_tuple(__version__) > version_tuple(recorded):
-        err_console.print(
-            f"[yellow]squads {__version__} detected (managed files at {recorded}). "
-            f"Run `sq sync` to refresh them.[/yellow]",
-            soft_wrap=True,
-        )
+        return  # not in a squad, or an unreadable config
+    _, problem = resolve_working_language(sp.config.working_language)
+    if problem is not None:
+        err_console.print(f"[yellow]warning:[/yellow] {e(problem)}", soft_wrap=True)
 
 
 class Ground(enum.StrEnum):

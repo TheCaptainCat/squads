@@ -58,10 +58,22 @@ A subtask references a user story that doesn't exist in the task's parent featur
 (`sq feature <n> add-story "…"`), remap the subtask (`--story`), or ensure the task's parent
 is the right feature.
 
-### "squads X detected (managed files at Y). Run `sq sync`."
-You upgraded squads; the project's tool-owned files (the `squads`/`sq-<type>` skills, pointers,
-`CLAUDE.md` section) are from an older version. `sq sync` regenerates them and stamps the config.
-It never touches your authored content.
+### I upgraded squads: do I need to do anything?
+Run `sq sync`. It regenerates the project's tool-owned files (the `squads`/`sq-<type>` skills,
+pointers, the `CLAUDE.md` and `AGENTS.md` sections) from the installed version. Nothing warns you
+that they are older than the installed `sq`, so make it part of every upgrade. `sq sync` never
+touches your authored content or `.squads.toml`. If the release changed the on-disk format, `sq`
+stops every command and asks for `sq migrate up` first; see [migration.md](migration.md).
+
+### What is the `squads_version` line in my `.squads.toml`?
+squads does not use that key: no command reads, writes or removes it, so you can delete the
+line.
+
+### "working_language … is not a language tag squads recognises; using English (en)"
+The `working_language` value in `.squads.toml` is not a BCP 47 tag squads knows, so the squad
+works in English. Use a hyphenated tag such as `fr`, `de` or `pt-BR` (not `fr_FR`), then run
+`sq sync` to refresh the managed files. See
+[adoption.md § "The working language"](adoption.md#the-working-language).
 
 ### Can I edit the markdown by hand?
 No — the `.md` files are fully sq-managed. Set an item's body with `sq <type> <n> body` and a

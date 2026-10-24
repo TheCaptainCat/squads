@@ -53,7 +53,6 @@ def _entry_with_attributes(entry: Any) -> Any:
 
 class SquadsDB(BaseModel):
     schema_version: NonEmpty = SCHEMA_VERSION
-    squads_version: NonEmpty = "0.0.0"
     #: One global monotonic counter; numbers are unique across all types.
     counter: NonNegativeInt = 0
     #: Zero-pad width for item **filenames** in this squad (e.g. 6 → ``PREFIX-000007-slug.md``).

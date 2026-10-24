@@ -9,8 +9,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
-from squads import __version__, _aio
 from squads import _actor as actor
+from squads import _aio
 from squads import _clock as clock
 from squads import _sections as sections
 from squads import _views as views
@@ -50,6 +50,7 @@ from squads._itemfile import (
     update_frontmatter,
     write_text,
 )
+from squads._migrations._config_text import ConfigRewrite, plan_config_rewrite
 from squads._migrations._context import MigrationContext
 from squads._migrations._registry import MIGRATIONS, Migration, release_reading_schema
 from squads._models import _attributes as attrs
@@ -67,7 +68,7 @@ from squads._models._item import (
     slug_from_stem,
 )
 from squads._models._metadata import RETIRED_ROLE_KEYS
-from squads._models._schema import SCHEMA_VERSION, schema_tuple, version_drifted
+from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._vocab import prefix_for
 from squads._paths import number_for_id
 from squads._roles._catalog import RoleDef
@@ -977,10 +978,10 @@ def _unindexable_refusal(result: ReconcileResult, reader: str) -> str:
 class MaintenanceMixin(ServiceCore):
     # ------------------------------------------------------------------ sync
     async def sync(self) -> SyncSkips:
-        """Regenerate all tool-owned managed files to the current version, and stamp the
-        config. The version-drift body-tag backfill (:meth:`_backfill_roster_body_tags`) never
-        declines (convergence is strict, so it either fills a genuinely empty region or leaves
-        a non-empty one untouched, silently), so the stamp is never withheld on its account.
+        """Regenerate all tool-owned managed files to the current version. The body-tag backfill
+        (:meth:`_backfill_roster_body_tags`) never declines (convergence is strict, so it either
+        fills a genuinely empty region or leaves a non-empty one untouched, silently). Never
+        writes ``.squads.toml``.
 
         **Deduplicated by exact text before returning.** A generic safety net over the
         per-writer skip-report messages below, not tied to any one of them — collapsing exact
@@ -1019,12 +1020,6 @@ class MaintenanceMixin(ServiceCore):
         the squad still syncs (exit stays 0 — ``sq check`` is the dedicated reporter that
         gates).
         """
-        # Read before anything below can change it (nothing does — `_stamp_version` at the end
-        # writes a *copy* of `self.paths.config`, never mutates the live one — but capturing it
-        # here, once, up front is what makes that fact irrelevant to reason about instead of
-        # relied upon). This is the squads_version *this sync run itself* is upgrading from.
-        recorded_version = self.paths.config.squads_version
-
         # Idempotent: a squad initialised before this pattern existed picks it up here
         # instead of carrying the hole for the rest of its life.
         await ensure_root_tmp_ignored(self.paths.root)
@@ -1061,7 +1056,7 @@ class MaintenanceMixin(ServiceCore):
         # helper the single-item transition path uses — is gated. The role's own definition
         # renders at read time off the ``sq:view:role_definition`` tag its ``sq:body`` carries
         # (``squads._views.expand_view_tags``, via ``ItemsMixin.read_body``); the roster loops
-        # below don't write that tag either — the version-drift backfill just below does, once,
+        # below don't write that tag either — the body-tag backfill just below does, once,
         # ahead of them (see ``_backfill_roster_body_tags``).
         # Copied out of the snapshot before any mutation: ``list_items`` returns the read
         # scope's own aliases with no copy, and ``_refresh_catalog_attributes`` below mutates
@@ -1076,50 +1071,10 @@ class MaintenanceMixin(ServiceCore):
         ]
         roster_skills = await self.list_items(item_type=ROSTER_SKILL)
 
-        # This is the reachable trigger for the role/system-skill/per-item-type-skill body-tag
-        # convergence step (:meth:`_repair_body_tag`/:func:`_converge_body_tag`, the mechanism
-        # ``sq repair``'s corpus sweep also carries), on the ordinary upgrade path rather than
-        # only a manually run ``sq repair``. ``run_pending_migrations`` reaches that sweep only
-        # when a schema migration actually applies, so a squads release that bumps
-        # ``squads_version`` without also bumping ``schema_version`` leaves ``sq migrate up``
-        # with nothing to run and the sweep unreached; ``sync()``'s own end-of-run
-        # ``_stamp_version`` writes only the config's ``squads_version`` field, never a body. A
-        # role's or a permanently-system skill's ``sq:body`` region left empty by a release that
-        # rendered the definition on read rather than storing it (the shape a pre-tag-mechanism
-        # corpus carries) is not itself an error condition — an empty, untagged body is
-        # unremarkable to ``sq check`` — so nothing short of this call converges it once such a
-        # corpus reaches a build that has the tag mechanism.
-        #
-        # Keyed on ``squads_version`` drift, not ``schema_version`` drift: this is content
-        # convergence, not a schema change, so it rides the version this squad is stamped at
-        # rather than a schema bump for a release that introduces no new on-disk shape (see
-        # ``_models._schema``'s own doctrine on what a schema bump means). A squad already at
-        # the current version costs nothing beyond the comparison itself — no corpus walk runs
-        # — so this stays cheap on every ordinary, no-drift sync.
-        #
-        # Compared with :func:`~squads._models._schema.version_drifted`, not the tolerant
-        # :func:`~squads._util.version_tuple` that the CLI's purely
-        # cosmetic drift notice uses: ``squads_version``/``__version__`` is the installed *package*
-        # version, which can carry a pre-release/dev/local segment (``"0.15.0rc1"``) the strict
-        # per-segment parse has no model for. The tolerant comparator strips non-digits per
-        # segment and concatenates the survivors instead of raising — which orders a prerelease
-        # *above* its own release and *equal to* the next patch (``"0.15.0rc1"`` ->
-        # ``(0, 15, 1)``, same as ``"0.15.1"``), so a squad stamped by a prerelease build would
-        # read as never-drifted against every release that follows. That is the one comparator
-        # this trigger must not inherit: this convergence step is exactly the mechanism a squad
-        # recovers through, so under-triggering it silently is worse than over-triggering it —
-        # see :func:`~squads._models._schema.version_drifted`'s own docstring for the fail-safe
-        # reasoning. ``version_notice()`` (``_cli/_common.py``) keeps the tolerant comparator —
-        # a wrong cosmetic notice on a prerelease stamp costs nothing this trigger's own
-        # correctness depends on, and the two are not required to agree on that field.
-        #
-        # Scoped to exactly the convergence step, not :meth:`repair` wholesale: no index
-        # rebuild, no retired-region strip, no ref-encoding canonicalisation. Folding the whole
-        # of ``repair()`` in here would make every version-drift sync an index-reordering event
-        # too — this reuses only :func:`_converge_body_tag` through
-        # :meth:`_backfill_roster_body_tags`, which touches a body region and nothing else.
-        if version_drifted(__version__, recorded_version):
-            await self._backfill_roster_body_tags(roster_roles, roster_skills)
+        # The role/system-skill/per-item-type-skill body-tag convergence step
+        # (:meth:`_repair_body_tag`/:func:`_converge_body_tag`), scoped to the roster: no index
+        # rebuild, no retired-region strip, no ref-encoding canonicalisation.
+        await self._backfill_roster_body_tags(roster_roles, roster_skills)
 
         # The roster-scoped set of per-entry pointers that *should* exist after this run —
         # the same live predicate and the same backend declaration `sq check`'s
@@ -1250,9 +1205,6 @@ class MaintenanceMixin(ServiceCore):
         # disk that no `SKILL` item indexes — at the one moment the answer is unambiguous,
         # right after this run both wrote the bodies and seeded them.
         skipped += self._unindexed_skill_bodies()
-        # Stamped unconditionally: the version-drift backfill above never declines, so there
-        # is nothing that would make withholding the stamp meaningful.
-        await self._stamp_version(__version__)
         # Collapse exact duplicates only (order-preserving) — see the docstring above. A
         # second, textually different message about the same item is never touched by this.
         return SyncSkips(dict.fromkeys(skipped))
@@ -1656,16 +1608,6 @@ class MaintenanceMixin(ServiceCore):
             return str(exc)
         return None
 
-    async def _stamp_version(self, version: str) -> None:
-        cfg = self.paths.config.model_copy(update={"squads_version": version})
-        original = await _aio.read_text(self.paths.config_path)
-        await _aio.atomic_write_text(self.paths.config_path, cfg.to_toml_keeping(original))
-
-    async def _stamp_schema(self, version: str) -> None:
-        cfg = self.paths.config.model_copy(update={"schema_version": version})
-        original = await _aio.read_text(self.paths.config_path)
-        await _aio.atomic_write_text(self.paths.config_path, cfg.to_toml_keeping(original))
-
     # ------------------------------------------------------------------ migrations
     async def run_pending_migrations(self) -> MigrationRun:
         """Apply each migration whose target schema exceeds the on-disk one, in order.
@@ -1696,13 +1638,15 @@ class MaintenanceMixin(ServiceCore):
         ctx = MigrationContext(paths=self.paths, spec=self.spec, playbook=self.playbook)
         reconciled: ReconcileResult | None = None
         original_index: str | None = None
+        config_rewrite: ConfigRewrite | None = None
         if applied:
-            built, reconciled = await plan_reconcile(
-                self.paths.squad_dir,
-                self.store,
-                disk,
-                squads_version=self.paths.config.squads_version,
+            # Computed and checked before any file changes, written last.
+            config_rewrite = plan_config_rewrite(
+                await self._config_text(),
+                SCHEMA_VERSION,
+                self.paths.config_path.name,
             )
+            built, reconciled = await plan_reconcile(self.paths.squad_dir, self.store, disk)
             # With a readable index the rebuilt one is kept even when the run stops; with none,
             # a run refused before its first runner leaves the squad as it found it.
             if reconciled.had_index:
@@ -1733,8 +1677,8 @@ class MaintenanceMixin(ServiceCore):
             raise await self._refusal_after_runner(
                 exc, running, applied, disk, original_index
             ) from exc
-        if applied:
-            await self._stamp_schema(SCHEMA_VERSION)
+        if config_rewrite is not None:
+            await _aio.atomic_write_text(self.paths.config_path, config_rewrite.text)
             # Reflog: log the migration batch after repair has completed.
             sid, psid = actor.current_session()
             await append_line(
@@ -1758,7 +1702,16 @@ class MaintenanceMixin(ServiceCore):
             reports=reports,
             repair=repaired,
             reconcile=reconciled,
+            config_dropped=config_rewrite.dropped if config_rewrite else (),
         )
+
+    async def _config_text(self) -> str:
+        """``.squads.toml`` as written, line endings included."""
+        raw = await _aio.read_bytes(self.paths.config_path)
+        try:
+            return raw.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise SquadsError(f"{self.paths.config_path.name} is not valid UTF-8: {exc}") from exc
 
     async def _refusal_after_runner(
         self,
@@ -2313,7 +2266,7 @@ class MaintenanceMixin(ServiceCore):
     ) -> None:
         """Converge every role's and skill's ``sq:body`` region onto its placement tag, in
         place — the one piece of :meth:`repair`'s corpus sweep :meth:`sync` needs on the
-        ordinary upgrade path (see the version-drift call site in :meth:`sync`), without
+        ordinary path (see the call site in :meth:`sync`), without
         :meth:`repair`'s index rebuild, retired-region strip, or ref-encoding
         canonicalisation.
 
@@ -2493,7 +2446,7 @@ class MaintenanceMixin(ServiceCore):
         ``skipped`` — every other file in the same corpus still converges normally, since the
         decline is caught per file inside the loop below rather than propagating out of it.
         """
-        db = SquadsDB(squads_version=__version__, counter=0)
+        db = SquadsDB(counter=0)
         max_n = 0
         max_filename_width = 0
         unreadable: list[str] = []
@@ -3103,7 +3056,7 @@ class MaintenanceMixin(ServiceCore):
             db = await self.store.load()
             stripped = []
         else:
-            db = SquadsDB(squads_version=__version__, counter=counter, padding=padding)
+            db = SquadsDB(counter=counter, padding=padding)
             stripped = []
         return RenumberResult(remap=remap, db=db, warning=warning, stripped=stripped)
 

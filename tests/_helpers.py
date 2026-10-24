@@ -254,7 +254,9 @@ async def resolved_skill_definition(svc: Any, slug: str) -> str:
         lambda: svc.roster_from_db(db),
         svc.paths.squad_dir,
     )
-    rendered = render_source_view(view_name, result, item, svc.spec, svc.paths.config.squad_dir)
+    rendered = render_source_view(
+        view_name, result, item, svc.spec, svc.paths.config.squad_dir, svc.working_language
+    )
     return rendered.strip("\n")
 
 

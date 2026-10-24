@@ -23,6 +23,15 @@ Operators are the **humans** who work on this project. They can author items, be
 leave comments. Address them by their `op-` slug.
 - **Alice Tester** (`op-alice`)
 
+## Working language
+
+This squad's working language is **English** (`en`).
+Everything that goes through `sq` (item titles, bodies, sub-entity text, comments) and all
+communication between agents (briefs, handbacks, `@mention` comments) is written in
+English. When you talk to a human, reply in the language that human writes in,
+message by message. There is always exactly one of each: the working language, set in
+`.squads.toml`, and the conversation language, deduced from the human.
+
 ## Start of a run
 
 At the start of a run, load your role memory — `sq memory <role> list`, then `sq memory <role>

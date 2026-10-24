@@ -7,12 +7,13 @@ concern mixin under ``_services/``.
 
 from pathlib import Path
 
-from squads import __version__, _aio
+from squads import _aio
 from squads._errors import AlreadyInitializedError, PlaybookConfigError, SquadsError
 from squads._index._store import IndexStore
 from squads._interactions import get_playbook_spec
 from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME, load_playbook
 from squads._interactions._models import PlaybookSpec
+from squads._language import DEFAULT_WORKING_LANGUAGE
 from squads._models._config import CONFIG_FILENAME, SquadsConfig
 from squads._paths import SquadPaths, load_config, process_dir, resolve
 from squads._roles._catalog import RoleDef, get_catalog, resolve_roles
@@ -149,8 +150,8 @@ async def init(
     config = SquadsConfig(
         squad_dir=squad_dir,
         active_backends=effective_backends,
-        squads_version=__version__,
         init_names=effective_names,
+        working_language=DEFAULT_WORKING_LANGUAGE,
     )
     await _aio.atomic_write_text(config_path, config.to_toml())
     await ensure_root_tmp_ignored(root)
@@ -162,7 +163,7 @@ async def init(
     await _aio.write_text(sp.squad_dir / ".gitignore", ".squads.json.lock\n*.tmp\n")
 
     store = IndexStore(sp.index_path, sp.lock_path)
-    await store.create_empty_threaded(__version__)
+    await store.create_empty_threaded()
 
     svc = Service(sp, spec=effective_spec, playbook=resolve_playbook(effective_spec, sp.squad_dir))
     if not no_claude:
@@ -222,7 +223,7 @@ async def adopt(
         config = SquadsConfig(
             squad_dir=squad_dir,
             active_backends=effective_backends,
-            squads_version=__version__,
+            working_language=DEFAULT_WORKING_LANGUAGE,
         )
         await _aio.atomic_write_text(config_path, config.to_toml())
     await ensure_root_tmp_ignored(root)
@@ -238,7 +239,7 @@ async def adopt(
 
     store = IndexStore(sp.index_path, sp.lock_path)
     if not store.exists():
-        await store.create_empty_threaded(__version__)
+        await store.create_empty_threaded()
 
     svc = Service(sp, spec=effective_spec, playbook=resolve_playbook(effective_spec, sp.squad_dir))
     # Import any existing squads-native .md files (sets counter from them).

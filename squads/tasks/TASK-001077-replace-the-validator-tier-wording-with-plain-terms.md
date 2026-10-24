@@ -3,7 +3,7 @@ id: TASK-1077
 sequence_id: 1077
 type: task
 title: Replace the validator tier wording with plain terms
-status: Draft
+status: Ready
 author: tech-lead
 priority: low
 refs:
@@ -26,7 +26,7 @@ subentities:
   status: Todo
   assignee: tech-writer
 created_at: '2026-10-16T20:59:53Z'
-updated_at: '2026-10-16T21:00:22Z'
+updated_at: '2026-10-24T19:46:27Z'
 ---
 <!-- sq:body -->
 Drop the word "tier" for validators and use plain terms. Wording only: no behaviour, name, or output change.
@@ -46,15 +46,16 @@ ADR-864's separate *level* floor (`VALIDATOR_LEVEL_FLOOR`: a selection may raise
 
 ## Occurrences in scope
 
-Found with `rg -n -i '\btier' src tests docs CLAUDE.md`, keeping only validator uses:
+Found with `rg -n -i '\btier' src tests docs CLAUDE.md`, keeping only validator uses. Line numbers move, so rerun the search rather than trusting a list.
 
 - ADR-864: the title ("Validator catalog: three tiers, declared levels, no injected Python"), the "The tiering test" heading, and the body's "Three tiers", "tier it belongs in", and "the tier that makes..." prose.
-- `src/squads/_services/_validators.py`: module docstring, lines 12, 25, 39, 41, 45.
-- `src/squads/_services/_maintenance.py`: 3614 and 3616 (the `_scan_for_check` docstring, "Tier 1 of sq check's two finding tiers").
-- `src/squads/_views.py`: 675 and 712 ("the check tier").
-- `src/squads/_models/_item.py`: 645 ("the file-level check tier").
-- `src/squads/_workflow/_models.py`: 228 (assertion message "placed in exactly one tier") and 491 ("the same tiering test").
-- `docs/internals.md`: 150 ("It runs in two tiers").
+- `src/squads/_services/_validators.py`: the module docstring ("file-level tier", "a second, always-on tier", "tier-1 finding", "both tiers").
+- `src/squads/_services/_maintenance.py`: the `_scan_for_check` docstring ("Tier 1 of sq check's two finding tiers", "This tier runs first").
+- `src/squads/_views.py`: two docstrings ("the check tier").
+- `src/squads/_models/_item.py`: "the file-level check tier".
+- `src/squads/_workflow/_models.py`: the assertion message "placed in exactly one tier" and the comment "the same tiering test".
+- `tests/cli/test_content_writes_on_a_generated_role_or_skill_are_refused_cli.py`: a docstring ("the check tier").
+- `docs/internals.md`: "It runs in two tiers".
 
 ## Out of scope (a different concept, stays)
 
@@ -67,9 +68,13 @@ Found with `rg -n -i '\btier' src tests docs CLAUDE.md`, keeping only validator 
 
 - `rg -n -i '\btier' src tests docs CLAUDE.md` returns no validator use of "tier". Only the out-of-scope hits above remain.
 - The architect has renamed ADR-864's title (and so its filename) and the "The tiering test" heading, and the body uses the plain terms. A dated discussion comment records the rename.
-- Docstrings, comments, and the assertion message in `src/` use the plain terms. Tests and goldens still pass unchanged.
+- Docstrings, comments, and the assertion message in `src/`, and the one test docstring, use the plain terms. Tests and goldens still pass unchanged.
 - The adopter docs (`docs/internals.md`, plus any "category bundle" or "catalog-only" phrasing in `docs/overrides.md`) use the plain terms.
 - `sq check` is clean.
+
+## Tests
+
+Wording only, so no new tests. The `rg` gate in Acceptance is the check, and the existing tests and goldens must pass unchanged.
 <!-- sq:body:end -->
 
 ## Subtasks
@@ -95,7 +100,7 @@ Rename the title (and so the filename) and the "The tiering test" heading. Repla
 ### ST2 — Use the plain terms in validator docstrings, comments and the assertion message
 
 <!-- sq:subtask:ST2:body -->
-Covers the in-scope src/ lines in the task body: _services/_validators.py (module docstring), _services/_maintenance.py (the _scan_for_check docstring), _views.py, _models/_item.py, and _workflow/_models.py (line 228 assertion message, line 491 comment). Call "tier 1" file checks and "tier 2" the validator catalog. Wording only: no identifiers, behaviour or output change. Run the pyright, ruff and pytest gates.
+Covers the in-scope lines in the task body: _services/_validators.py (module docstring), _services/_maintenance.py (the _scan_for_check docstring), _views.py, _models/_item.py, _workflow/_models.py (the assertion message and the tiering-test comment), and the docstring in tests/cli/test_content_writes_on_a_generated_role_or_skill_are_refused_cli.py. Call "tier 1" file checks and "tier 2" the validator catalog. Wording only: no identifiers, behaviour or output change. Run the pyright, ruff and pytest gates.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -123,4 +128,6 @@ docs/internals.md line 150 ("It runs in two tiers"): call the two parts file che
 <!-- sq:discussion -->
 - [2026-10-16T21:00:22Z] `tech-lead` Olivia Lead:
   - Left unparented. EPIC-540 has two open features: FEAT-901 (opt-in per-item checks) and FEAT-902 (squad-global checks). Each covers one set of validators and both target 0.16 (MILE-934). This wording pass runs across the whole catalog and is planned for 0.17 (MILE-1051). Putting it under either feature would keep a 0.16 feature open for 0.17 work. Asked for by op-pierre on ADR-864, 2026-10-16.
+- [2026-10-24T19:46:27Z] `tech-lead` Olivia Lead:
+  - Refreshed the occurrence list (line numbers had moved, one test docstring added) and added a Tests line: no new tests, the rg gate is the check. Moved to Ready.
 <!-- sq:discussion:end -->

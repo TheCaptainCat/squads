@@ -12,7 +12,7 @@ from squads._models._item import DEFAULT_ID_PADDING, format_item_id
 def test_padding_defaults_to_six_and_round_trips_through_json(tmp_path):
     assert DEFAULT_ID_PADDING == 6
     store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
-    db = store.create_empty("0.1.0")
+    db = store.create_empty()
     assert db.padding == DEFAULT_ID_PADDING
     data = SquadsDB.model_validate_json(db.to_json())
     assert data.padding == DEFAULT_ID_PADDING

@@ -10,7 +10,7 @@ pytestmark = pytest.mark.anyio
 
 async def test_a_held_lock_forces_timeout_through_the_async_transaction(tmp_path):
     store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
-    store.create_empty("0.1.0")
+    store.create_empty()
 
     competing = FileLock(str(tmp_path / ".squads.json.lock"), timeout=0)
     competing.acquire()

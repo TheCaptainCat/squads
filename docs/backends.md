@@ -180,8 +180,8 @@ Backends self-register. To add, say, a `cursor` backend:
 
 - **Idempotent.** `ensure_scaffold`/`write_managed` run on every `init`/`adopt`/`sync` — never
   destroy user edits; merge where a file may already exist (see `_merge_settings`).
-- **Versioned.** `sq sync` regenerates everything to the current version and stamps `.squads.toml`;
-  any command nudges the user to sync when the installed version is newer.
+- **Versioned.** `sq sync` regenerates everything from the installed version and never writes
+  `.squads.toml`; after an upgrade the adopter runs `sq sync`, since nothing else prompts it.
 - **Stay in your lane.** A backend only writes tool config / pointers — it never owns item content
   (that's the `.md` frontmatter + body). Nothing outside a backend should touch the tool's config
   directory.

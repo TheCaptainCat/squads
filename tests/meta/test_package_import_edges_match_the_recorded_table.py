@@ -233,6 +233,7 @@ _backends -> _aio top
 _backends -> _errors top
 _backends -> _interactions local
 _backends -> _interactions top
+_backends -> _language top
 _backends -> _models top
 _backends -> _paths top
 _backends -> _rendering top
@@ -260,6 +261,7 @@ _cli -> _errors top
 _cli -> _index top
 _cli -> _interactions top
 _cli -> _interactions typing
+_cli -> _language top
 _cli -> _migrations top
 _cli -> _models local
 _cli -> _models top
@@ -392,6 +394,7 @@ _services -> _index local
 _services -> _index top
 _services -> _interactions top
 _services -> _itemfile top
+_services -> _language top
 _services -> _memory top
 _services -> _migrations top
 _services -> _models top
@@ -407,7 +410,6 @@ _services -> _util top
 _services -> _views top
 _services -> _workflow local
 _services -> _workflow top
-_services -> squads top
 _specmerge -> _errors top
 _specmerge -> squads top
 _transform -> _errors top
@@ -427,6 +429,7 @@ _view_transforms -> _models top
 _view_transforms -> _workflow top
 _views -> _errors top
 _views -> _interactions top
+_views -> _language top
 _views -> _models top
 _views -> _paths top
 _views -> _rendering top

@@ -122,6 +122,7 @@ class AgentsMdBackend(AgentBackend):
         section = render(
             "agents_md/agents_section.md.j2",
             squad_dir=squad_dir,
+            working_language=ctx.working_language,
             roles=roles_data,
             developer_slugs=[
                 r.slug for r in developer_roles(roster, load_role_catalog(ctx.squad_dir))

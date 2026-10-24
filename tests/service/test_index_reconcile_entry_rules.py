@@ -46,7 +46,7 @@ async def run_reconcile(
 ) -> tuple[ReconcileResult, dict[str, Any]]:
     paths = paths_at(root)
     store = IndexStore(paths.index_path, paths.lock_path, spec=spec)
-    result = await reconcile_index(paths.squad_dir, store, schema, squads_version="9.9.9")
+    result = await reconcile_index(paths.squad_dir, store, schema)
     return result, json.loads(paths.index_path.read_text(encoding="utf-8"))
 
 

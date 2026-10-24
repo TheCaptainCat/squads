@@ -367,9 +367,7 @@ async def test_both_questions_pass_over_every_aged_corpus(corpus: str, tmp_path:
     shutil.copytree(_CORPUS_DIR / corpus, root)
     paths = _paths_at(root)
     store = IndexStore(paths.index_path, paths.lock_path)
-    built, result = await plan_reconcile(
-        paths.squad_dir, store, paths.config.schema_version, squads_version="9"
-    )
+    built, result = await plan_reconcile(paths.squad_dir, store, paths.config.schema_version)
 
     refusal = _corpus_fit.corpus_fit_refusal(
         built,
@@ -806,7 +804,7 @@ _SCHEMA_FIXTURES = [
 
 
 @pytest.mark.parametrize(("corpus", "schema"), _SCHEMA_FIXTURES)
-async def test_a_refusal_names_a_release_that_reads_the_squads_schema_not_the_last_sync(
+async def test_a_refusal_names_a_release_that_reads_the_squads_schema(
     corpus: str, schema: str, tmp_path: Path, frozen_time: object
 ) -> None:
     from squads._migrations._registry import MIGRATIONS
@@ -815,7 +813,6 @@ async def test_a_refusal_names_a_release_that_reads_the_squads_schema_not_the_la
     shutil.copytree(_CORPUS_DIR / corpus, root)
     _archived_item(root)
     _no_index(root)
-    synced = tomllib.loads((root / ".squads.toml").read_text(encoding="utf-8"))["squads_version"]
 
     with pytest.raises(Exception, match="no migration has run") as excinfo:
         await Service(_paths_at(root)).run_pending_migrations()
@@ -824,7 +821,6 @@ async def test_a_refusal_names_a_release_that_reads_the_squads_schema_not_the_la
     named = re.search(rf"reads schema v{re.escape(schema)} \(v([\d.]+) is one\)", message)
     assert named, message
     assert any(m.version == named[1] and m.to_schema == schema for m in MIGRATIONS)
-    assert f"v{synced}" not in message or synced == named[1]
 
 
 # --------------------------------------------------------------------------- spellings of a folder

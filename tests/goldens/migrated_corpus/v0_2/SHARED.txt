@@ -11,6 +11,7 @@
 .claude/skills/sq-review/SKILL.md
 .claude/skills/sq-task/SKILL.md
 .claude/skills/squads/SKILL.md
+.squads.toml
 CLAUDE.md
 agents/skills/SKILL-000007-sq-contract.md
 agents/skills/SKILL-000008-sq-milestone.md

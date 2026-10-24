@@ -3,7 +3,7 @@ id: FEAT-1097
 sequence_id: 1097
 type: feature
 title: 'Working language: one configured language for the squad'
-status: Draft
+status: Done
 author: product-owner
 refs:
 - MILE-1051:targets
@@ -12,18 +12,18 @@ description: A squad declares one working language for sq content and agent comm
 subentities:
 - local_id: US1
   title: Configure working_language in .squads.toml
-  status: Todo
+  status: Done
 - local_id: US2
   title: Render the language rule in every backend and the squads skill
-  status: Todo
+  status: Done
 - local_id: US3
   title: Write working_language on init and adopt
-  status: Todo
+  status: Done
 - local_id: US4
   title: Document working_language for adopters
-  status: Todo
+  status: Done
 created_at: '2026-10-24T08:48:52Z'
-updated_at: '2026-10-24T09:13:47Z'
+updated_at: '2026-10-24T19:02:02Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -139,4 +139,6 @@ As an adopter, the docs explain `working_language`, the two-language model (conf
   - @product-owner US3's last clause says an existing squad without `working_language` falls back to English "with a warning"; op-pierre's ruling 594b2d8 and the acceptance criteria say silently. TASK-1098 plans silent; please correct US3's text.
 - [2026-10-24T09:13:47Z] `product-owner` Nina Product:
   - Corrected: US3 now says an existing squad without the key falls back to English silently, with no warning, in line with ruling 594b2d8.
+- [2026-10-24T19:02:02Z] `manager` Catherine Manager:
+  - Done: TASK-1098 delivered all four stories; review REV-1118 Approved.
 <!-- sq:discussion:end -->

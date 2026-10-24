@@ -340,11 +340,10 @@ class _Scan:
 
 
 async def plan_reconcile(
-    squad_dir: Path, store: IndexStore, schema_version: str, *, squads_version: str
+    squad_dir: Path, store: IndexStore, schema_version: str
 ) -> tuple[SquadsDB, ReconcileResult]:
     """Build, without writing, the index that mirrors the item files under *squad_dir*, stamped
-    with *schema_version* (the corpus's own). *squads_version* is used only when there is no
-    readable previous index to carry it from."""
+    with *schema_version* (the corpus's own)."""
     previous = await _read_previous(store)
     scan = _Scan(squad_dir, previous)
     if previous is None:
@@ -387,7 +386,6 @@ async def plan_reconcile(
     )
     db = SquadsDB(
         schema_version=schema_version,
-        squads_version=previous.squads_version if previous else squads_version,
         counter=max(previous.counter if previous else 0, scan.max_n),
         padding=max(previous.padding if previous else DEFAULT_ID_PADDING, scan.max_width),
         items=dict(sorted(items.items())),
@@ -403,11 +401,9 @@ async def plan_reconcile(
 
 
 async def reconcile_index(
-    squad_dir: Path, store: IndexStore, schema_version: str, *, squads_version: str
+    squad_dir: Path, store: IndexStore, schema_version: str
 ) -> ReconcileResult:
     """:func:`plan_reconcile`, then write the built index."""
-    db, result = await plan_reconcile(
-        squad_dir, store, schema_version, squads_version=squads_version
-    )
+    db, result = await plan_reconcile(squad_dir, store, schema_version)
     await store.overwrite(db)
     return result

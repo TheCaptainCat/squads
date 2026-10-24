@@ -4,19 +4,15 @@ tag, the retired-key strip and the ref encoding into one pending rewrite; sync's
 backfill writes a file that none of its later steps touch.
 """
 
-from dataclasses import replace
 from typing import Any
 
 import pytest
 
 from _helpers import create_item
-from squads import __version__
 from squads._index._resolver import item_file
 from squads._itemfile import read_frontmatter
 from squads._models import _markers as markers
-from squads._paths import load_config
 from squads._sections import replace_frontmatter, replace_section
-from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
 
@@ -52,19 +48,6 @@ def _damage(svc: Any, item: Any, *, tag: bool, frontmatter: bool) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def _drift_the_stamp(svc: Any) -> Any:
-    """A service over paths whose recorded version is behind the installed one."""
-    cfg = svc.paths.config_path
-    cfg.write_text(
-        cfg.read_text(encoding="utf-8").replace(
-            f'squads_version = "{__version__}"', 'squads_version = "0.1.0"'
-        ),
-        encoding="utf-8",
-    )
-    fresh = replace(svc.paths, config=load_config(cfg))
-    return service.Service(fresh, spec=svc.spec)
-
-
 #: (kind, needs the body tag, needs the frontmatter rewrite). A work item has no placement tag,
 #: and only a role carries retired keys.
 ROWS = [
@@ -96,24 +79,19 @@ async def test_repair_writes_each_item_file_once(svc, write_ledger, kind, tag, f
 
 
 @pytest.mark.parametrize(("kind", "tag", "frontmatter"), ROWS)
-async def test_a_version_drifted_sync_writes_each_item_file_once(
-    svc, write_ledger, kind, tag, frontmatter
-):
+async def test_a_sync_writes_each_item_file_once(svc, write_ledger, kind, tag, frontmatter):
     item = await _target(svc, kind)
     _damage(svc, item, tag=tag, frontmatter=frontmatter)
     path = item_file(svc.paths, item).resolve()
-    drifted = _drift_the_stamp(svc)
     write_ledger.seen.clear()
 
-    await drifted.sync()
+    await svc.sync()
 
     converges_tag = tag and kind != "work item"
     assert write_ledger.seen[path] == (1 if converges_tag else 0)
     assert set(write_ledger.seen.values()) <= {1}
     write_ledger.seen.clear()
-    await service.Service(
-        replace(drifted.paths, config=load_config(drifted.paths.config_path)), spec=svc.spec
-    ).sync()
+    await svc.sync()
     assert write_ledger.seen[path] == 0
 
 
