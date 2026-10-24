@@ -26,8 +26,13 @@ def tmp_squad(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return tmp_path
 
 
+def _is_drift(message: str) -> bool:
+    """A currency finding: the warn wording or the capability-restriction error."""
+    return "out of date or edited by hand" in message or "drifted" in message
+
+
 def _drift_issues(issues, rel_path: str):
-    return [i for i in issues if rel_path in i.item and "drifted" in i.message]
+    return [i for i in issues if rel_path in i.item and _is_drift(i.message)]
 
 
 # --------------------------------------------------------------------------- a current pointer
@@ -141,15 +146,15 @@ async def test_retire_reactivate_produces_no_drift_finding_at_any_point(tmp_squa
     item = await svc.activate_role("qa")
 
     issues = await svc.check()
-    assert not any("drifted" in i.message for i in issues), issues
+    assert not any(_is_drift(i.message) for i in issues), issues
 
     await svc.set_status(item.id, "Archived")
     issues = await svc.check()
-    assert not any("qa" in i.item and "drifted" in i.message for i in issues), issues
+    assert not any("qa" in i.item and _is_drift(i.message) for i in issues), issues
 
     await svc.set_status(item.id, "Active")
     issues = await svc.check()
-    assert not any("drifted" in i.message for i in issues), issues
+    assert not any(_is_drift(i.message) for i in issues), issues
 
 
 # --------------------------------------------------------------------------- sq sync's own report
@@ -169,7 +174,7 @@ async def test_sync_reports_a_currency_fix_distinctly_from_a_presence_fix(tmp_sq
 
     skipped = await svc.sync()
     presence = [m for m in skipped if "was missing" in m]
-    currency = [m for m in skipped if "had drifted" in m]
+    currency = [m for m in skipped if "out of date or edited by hand" in m]
     assert any("qa.md" in m for m in presence), skipped
     assert any("manager.md" in m for m in currency), skipped
     assert not any("manager.md" in m for m in presence)

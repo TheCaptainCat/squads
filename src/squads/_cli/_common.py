@@ -856,10 +856,10 @@ def _build_item_panel_rows(it: Item) -> list[str]:
     return rows
 
 
-def _subentity_badge_line(sub: SubEntity, kind: str) -> str:
+def _subentity_badge_line(sub: SubEntity, kind: str, carrier_title: str | None = None) -> str:
     """The badges for a sub-entity, joined for a single display line: status, then one per
     declared field with a stored value, then the assignee, then the mapped story iff the kind
-    declares ``maps_parent_story``.
+    declares ``maps_parent_story``, then the item that carries its deferred work.
 
     Generic over the kind's declared fields (spec-driven, not a ``kind == "finding"``/
     ``"subtask"`` literal). Shared by the styled pane title and the ``--raw`` markdown section.
@@ -876,17 +876,23 @@ def _subentity_badge_line(sub: SubEntity, kind: str) -> str:
     ks = spec.subentity_kinds.get(kind)
     if ks is not None and ks.maps_parent_story and sub.story:
         parts.append(sub.story)
+    if sub.deferred_to:
+        parts.append(
+            f"Deferred to {sub.deferred_to} — {carrier_title}"
+            if carrier_title
+            else f"Deferred to {sub.deferred_to}"
+        )
     return "  ".join(parts)
 
 
-def _subentity_pane_title_raw(sub: SubEntity, kind: str) -> str:
+def _subentity_pane_title_raw(sub: SubEntity, kind: str, carrier_title: str | None = None) -> str:
     """Build the raw (un-escaped) pane title for a sub-entity.
 
     Returns plain text with no Rich markup escaping applied.  Callers that need to pass the title
     into a Rich Panel (styled path) must apply e() themselves; callers printing with markup=False
     (plain path) use this value directly so no backslashes leak.
     """
-    return f"{sub.local_id} — {sub.title}  {_subentity_badge_line(sub, kind)}"
+    return f"{sub.local_id} — {sub.title}  {_subentity_badge_line(sub, kind, carrier_title)}"
 
 
 async def _print_full_panes(svc: Service, it: Item, *, styled: bool, comments: bool) -> None:
@@ -904,7 +910,7 @@ async def _print_full_panes(svc: Service, it: Item, *, styled: bool, comments: b
     for sub in it.subentities:
         detail = await svc.get_block(it.id, kind, sub.local_id)
         # Build the raw (un-escaped) title once; apply e() only at the styled Panel boundary.
-        raw_title = _subentity_pane_title_raw(sub, kind)
+        raw_title = _subentity_pane_title_raw(sub, kind, detail.carrier_title)
         body_text = detail.body or ""
 
         if styled:
@@ -1056,7 +1062,7 @@ async def _raw_subentity_sections(svc: Service, it: Item) -> list[str]:
             "",
             f"## {kind.title()} {sub.local_id} — {sub.title}",
             "",
-            _subentity_badge_line(sub, kind),
+            _subentity_badge_line(sub, kind, detail.carrier_title),
             "",
             detail.body or "",
         ]
@@ -1162,6 +1168,11 @@ def print_subentity(detail: SubentityDetail, kind: str) -> None:
             meta.append(f"{field.label.lower()}: {e(value)}")
     if info.story:
         meta.append(f"story: {e(info.story)}")
+    if info.deferred_to:
+        meta.append(
+            f"deferred to: {e(info.deferred_to)}"
+            + (f" — {e(detail.carrier_title)}" if detail.carrier_title else "")
+        )
     console.print("  " + "   ".join(meta))
     console.print()
     console.print(e(detail.body) if detail.body else "[dim](no body yet)[/dim]")
@@ -1282,9 +1293,10 @@ def build_subentity_row_json(
     assignee: str | None,
     severity: str | None,
     story: str | None,
+    deferred_to: str | None,
 ) -> dict[str, Any]:
     """One row of the per-kind ``sq <type> <n> <kind>s --json`` shape: ``local_id``/``title``/
-    ``status``/``assignee``/``severity``/``story``. Shared by that list command
+    ``status``/``assignee``/``severity``/``story``/``deferred_to``. Shared by that list command
     (``squads._cli._items``) and a ``subentity`` view's ``--json`` dispatch
     (``squads._cli._workflow_cmd``), the same way :func:`build_item_row_json` is shared for the
     tree shape."""
@@ -1295,6 +1307,7 @@ def build_subentity_row_json(
         "assignee": assignee,
         "severity": severity,
         "story": story,
+        "deferred_to": deferred_to,
     }
 
 

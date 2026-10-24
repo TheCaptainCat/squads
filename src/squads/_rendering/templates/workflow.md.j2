@@ -7,7 +7,7 @@
    one condensed line per type-role authoring pairing (who creates it + its single
    highest-signal handoff: parent/sub-entity/ref). The enter/do/handoff/watch detail for one
    type lives in its own sq-<type> skill; don't duplicate that here. Every fact below is
-   derived by looping spec.items/authoring_owner/parent_chain — never a hardcoded type literal —
+   derived by looping spec.items/authoring_owners/parent_chain — never a hardcoded type literal —
    so a dropped or renamed built-in type degrades gracefully instead of crashing. #}
 {% set _roles = roles if (roles is defined and roles is not none) else none %}
 {% set _playbook = playbook if playbook is defined else none %}
@@ -17,8 +17,8 @@
 {% endfor %}
 {% for item_type, item_spec in spec.items.items() %}
 {% if item_spec.category != "roster" %}
-{% set owner = authoring_owner(item_type, _roles or none, _playbook, role_titles) %}
-{% if owner %}
+{% set owners = authoring_owners(item_type, _roles or none, _playbook, role_titles) %}
+{% if owners %}
 {% set parent = spec.item_parent_required(item_type) %}
 {% set subkind = spec.item_subentity_kind(item_type) %}
 {% set refkinds = spec.item_ref_rules(item_type) | map(attribute="kind") | list %}
@@ -26,7 +26,7 @@
    maps_parent_story maps into), so it is read off that kind's declared local_prefix — never
    the bundled "US" literal, which a renamed prefix makes a command that exits 1. #}
 {% set story_kind = spec.item_subentity_kind(parent) if (parent and parent in spec.items) else none %}
-- **{{ owner[1][0] | upper }}{{ owner[1][1:] }}** → `sq create {{ item_type }} "…" --author {{ owner[0] }}`{% if parent and parent in spec.items %} `--parent {{ spec.items[parent].prefix }}-…`{% endif %}{% if subkind %}, then `add-{{ subkind }} "…"`{% if spec.subentity_kinds[subkind].maps_parent_story and story_kind %} `--story {{ spec.subentity_kinds[story_kind].local_prefix }}n`{% endif %}{% endif %}{% if refkinds %}; link with `ref add <id> --kind {{ refkinds | join("|") }}`{% endif %}.
+- {% for owner in owners %}**{{ owner[1][0] | upper }}{{ owner[1][1:] }}**{% if loop.revindex == 2 %} or {% elif not loop.last %}, {% endif %}{% endfor %} → `sq create {{ item_type }} "…" --author {{ owners | map(attribute=0) | join("|") }}`{% if parent and parent in spec.items %} `--parent {{ spec.items[parent].prefix }}-…`{% endif %}{% if subkind %}, then `add-{{ subkind }} "…"`{% if spec.subentity_kinds[subkind].maps_parent_story and story_kind %} `--story {{ spec.subentity_kinds[story_kind].local_prefix }}n`{% endif %}{% endif %}{% if refkinds %}; link with `ref add <id> --kind {{ refkinds | join("|") }}`{% endif %}.
 {% endif %}
 {% endif %}
 {% endfor %}

@@ -35,6 +35,11 @@
     "badge": null
   },
   {
+    "status": "Deferred",
+    "role": "deferred",
+    "badge": "\ud83d\udfe3"
+  },
+  {
     "status": "Deprecated",
     "role": "retired",
     "badge": null
@@ -63,6 +68,11 @@
     "status": "InReview",
     "role": "active",
     "badge": null
+  },
+  {
+    "status": "Noted",
+    "role": "done",
+    "badge": "\ud83d\udd35"
   },
   {
     "status": "Open",

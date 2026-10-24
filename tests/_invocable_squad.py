@@ -66,7 +66,11 @@ def pointer_lines(paths: SquadPaths, slug: str) -> list[str]:
 async def drifted(invoke) -> list[str]:
     """The pointer paths ``sq check`` reports as drifted."""
     r = await invoke(["check", "--json"])
-    return sorted(i["item"] for i in json.loads(r.stdout) if "had drifted" in i["message"])
+    return sorted(
+        i["item"]
+        for i in json.loads(r.stdout)
+        if "out of date or edited by hand" in i["message"] or "drifted" in i["message"]
+    )
 
 
 async def skill_show(invoke, slug: str) -> dict[str, Any]:

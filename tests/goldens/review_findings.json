@@ -5,6 +5,7 @@
     "status": "Open",
     "assignee": null,
     "severity": "high",
-    "story": null
+    "story": null,
+    "deferred_to": null
   }
 ]

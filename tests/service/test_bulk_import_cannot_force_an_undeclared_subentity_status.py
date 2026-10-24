@@ -54,7 +54,8 @@ async def test_a_forced_sub_status_event_cannot_write_a_status_the_kind_does_not
 
 async def test_a_forced_sub_status_event_still_applies_an_edge_the_machine_forbids(svc):
     task, local_id = await _task_with_one_subtask(svc)
-    assert not svc.spec.subentity_can_transition("subtask", "Todo", "Done")
+    await svc.set_block_status(task.id, "subtask", local_id, "Blocked")
+    assert not svc.spec.subentity_can_transition("subtask", "Blocked", "Done")
 
     result = await svc.import_events(
         _lines(

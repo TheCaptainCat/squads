@@ -16,6 +16,10 @@ refs:
 - TASK-1105:depends-on
 - TASK-1106:depends-on
 - TASK-1107:depends-on
+- TASK-1123:depends-on
+- TASK-1124:depends-on
+- TASK-1125:depends-on
+- TASK-1126:depends-on
 description: Parity ledger, per-module falsification audit and per-OS CI baseline;
   read-only on tests and src.
 subentities:
@@ -33,7 +37,7 @@ subentities:
   assignee: devops
   story: US10
 created_at: '2026-10-24T13:42:12Z'
-updated_at: '2026-10-24T19:48:41Z'
+updated_at: '2026-10-24T21:56:19Z'
 ---
 <!-- sq:body -->
 Inventory what the old suite protects before any of it is rebuilt: the parity ledger (US1), the falsification audit (US2) and the per-OS CI baseline every later increment is measured against (US10). Read-only on `tests/` and `src/`: no old test is deleted or edited here. The one file this task adds to the repo is the ledger, `tests_next/LEDGER.md`, which starts the new root; the rest of that root is set up by the next task.
@@ -119,4 +123,6 @@ Make the CI test job runnable on demand on a branch and print `--durations=50` w
 <!-- sq:discussion -->
 - [2026-10-24T19:48:41Z] `tech-lead` Olivia Lead:
   - Re-read for Ready on 2026-10-24: recounted the suite (13,931 tests, 751 files), set the ledger at tests_next/LEDGER.md and the audit report as a comment here, added the meta-guard audit, the ST2-before-ST1 order and an on-demand CI run with durations (ST3). Moved to Ready.
+- [2026-10-24T21:56:19Z] `tech-lead` Olivia Lead:
+  - Added depends-on TASK-1123 (startup, FEAT-916) and TASK-1124, TASK-1125, TASK-1126 (FEAT-1092 structure). The ledger's seam fields and the audit's break patches name modules and functions those tasks move, so this inventory runs on the code as it will stay. The queue in the body's second paragraph now includes them.
 <!-- sq:discussion:end -->

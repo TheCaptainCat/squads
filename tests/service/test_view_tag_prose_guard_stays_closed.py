@@ -1,5 +1,5 @@
-"""A view tag never enters through the prose door: ``reject_markers`` refuses it exactly like
-any other marker, while the identical unwrapped text is accepted. Placement is the only door."""
+"""A view tag never enters through the prose door: a body write refuses one the item has not
+placed, while the identical unwrapped text is accepted. Placement is the only door."""
 
 import inspect
 
@@ -43,7 +43,7 @@ def test_reject_markers_takes_no_per_name_exception_or_allow_parameter() -> None
 )
 async def test_body_write_refuses_the_wrapped_view_tag(svc, label, write) -> None:
     task = (await create_item(svc, "task", "t")).item
-    with pytest.raises(SquadsError, match="marker"):
+    with pytest.raises(SquadsError, match="not placed"):
         await write(svc, task.id)
 
 
@@ -60,7 +60,7 @@ async def test_a_view_tag_never_reaches_the_body_via_a_refused_write(svc) -> Non
     task = (await create_item(svc, "task", "t")).item
     path = svc.paths.abspath((await svc.get(task.id)).path)
     before = path.read_text(encoding="utf-8")
-    with pytest.raises(SquadsError, match="marker"):
+    with pytest.raises(SquadsError, match="not placed"):
         await svc.set_body(task.id, f"see {_WRAPPED}")
     after = path.read_text(encoding="utf-8")
     assert after == before
@@ -70,7 +70,7 @@ async def test_a_view_tag_never_reaches_the_body_via_a_refused_write(svc) -> Non
 async def test_placement_is_the_only_door_the_tag_gets_in_through(svc) -> None:
     """The same view on the same item is refused through prose but accepted through placement."""
     task = (await create_item(svc, "task", "t")).item
-    with pytest.raises(SquadsError, match="marker"):
+    with pytest.raises(SquadsError, match="not placed"):
         await svc.set_body(task.id, f"see {_WRAPPED}")
 
     inserted = await svc.add_view(task.id, _NAME)

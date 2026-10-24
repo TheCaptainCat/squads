@@ -118,15 +118,15 @@ The operator may also speak directly to a specialist for live debugging; the spe
 {% endfor %}
 {% for item_type, item_spec in spec.items.items() %}
 {% if item_spec.category != "roster" %}
-{% set owner = authoring_owner(item_type, roles, _playbook, _role_titles) %}
-{% if owner %}
+{% set owners = authoring_owners(item_type, roles, _playbook, _role_titles) %}
+{% if owners %}
 {% set parent = spec.item_parent_required(item_type) %}
 {% set subkind = spec.item_subentity_kind(item_type) %}
 {% set refkinds = spec.item_ref_rules(item_type) | map(attribute="kind") | list %}
 {# The `--story` local-id prefix is the PARENT type's sub-entity kind's declared
    local_prefix, never the bundled "US" — a renamed prefix makes that literal exit 1. #}
 {% set story_kind = spec.item_subentity_kind(parent) if (parent and parent in spec.items) else none %}
-- The **{{ owner[1] }}** authors **{{ item_type }}s** (`sq create {{ item_type }}`){% if parent and parent in spec.items %}; its parent is the {{ parent }} it implements (`--parent {{ spec.items[parent].prefix }}-…`){% endif %}{% if subkind %}, breaking work into `add-{{ subkind }}`{% if spec.subentity_kinds[subkind].maps_parent_story and story_kind %} (`--story {{ spec.subentity_kinds[story_kind].local_prefix }}n` maps one to a parent story){% endif %}{% endif %}{% if refkinds %}, and links fixes/follow-ups via `ref add <id> --kind {{ refkinds | join("|") }}`{% endif %}.
+- {% for owner in owners %}{{ "The" if loop.first else "the" }} **{{ owner[1] }}**{% if loop.revindex == 2 %} and {% elif not loop.last %}, {% endif %}{% endfor %} {{ "authors" if owners | length == 1 else "author" }} **{{ item_type }}s** (`sq create {{ item_type }}`){% if parent and parent in spec.items %}; its parent is the {{ parent }} it implements (`--parent {{ spec.items[parent].prefix }}-…`){% endif %}{% if subkind %}, breaking work into `add-{{ subkind }}`{% if spec.subentity_kinds[subkind].maps_parent_story and story_kind %} (`--story {{ spec.subentity_kinds[story_kind].local_prefix }}n` maps one to a parent story){% endif %}{% endif %}{% if refkinds %}, and links fixes/follow-ups via `ref add <id> --kind {{ refkinds | join("|") }}`{% endif %}.
 {% endif %}
 {% endif %}
 {% endfor %}

@@ -111,6 +111,7 @@ The operator may also speak directly to a specialist for live debugging; the spe
 - The **product owner** authors **contracts** (`sq create contract`), and links fixes/follow-ups via `ref add <id> --kind supersedes`.
 - The **product owner** authors **milestones** (`sq create milestone`).
 - The **code reviewer** authors **reviews** (`sq create review`), breaking work into `add-finding`.
+- The **architect** and the **technical writer** author **guides** (`sq create guide`).
 - `sq check` enforces each declared parent/sub-entity rule (task).
 
 ## Working with squads

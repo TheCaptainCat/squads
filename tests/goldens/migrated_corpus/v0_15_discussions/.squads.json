@@ -49,6 +49,7 @@
           "assignee": null,
           "severity": null,
           "story": null,
+          "deferred_to": null,
           "extra": {}
         }
       ],
@@ -83,6 +84,7 @@
           "assignee": null,
           "severity": null,
           "story": null,
+          "deferred_to": null,
           "extra": {}
         }
       ],
@@ -261,6 +263,7 @@
           "assignee": null,
           "severity": "medium",
           "story": null,
+          "deferred_to": null,
           "extra": {}
         }
       ],

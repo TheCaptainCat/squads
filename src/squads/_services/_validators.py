@@ -553,6 +553,60 @@ def _subentity_status_valid(ctx: ValidatorContext) -> list[CheckIssue]:
     ]
 
 
+def _subentity_deferral_resolved(ctx: ValidatorContext) -> list[CheckIssue]:
+    """A sub-entity in a status whose role declares ``deferred`` names an indexed carrier that
+    has not been retired, and no other sub-entity names a carrier at all.
+
+    Roles are read by name, never a status spelling: a carrier in a ``superseded`` status is
+    fine, its work continuing in the item that supersedes it.
+    """
+    item = ctx.item
+    kind = ctx.spec.item_subentity_kind(item.type)
+    if kind is None or ctx.index is None:
+        return []
+    level = _resolved_level(ctx, "subentity_deferral_resolved")
+    issues: list[CheckIssue] = []
+    for s in item.subentities:
+        what = f"{kind} {s.local_id}"
+        if not ctx.spec.role_for(s.status).deferred:
+            if s.deferred_to:
+                issues.append(
+                    CheckIssue(
+                        level,
+                        item.id,
+                        f"{what} is {s.status} yet names {s.deferred_to} as its carrier; "
+                        "only a deferred status carries one",
+                    )
+                )
+            continue
+        if not s.deferred_to:
+            issues.append(
+                CheckIssue(level, item.id, f"{what} is {s.status} but names no carrying item")
+            )
+            continue
+        carrier = ctx.index.get(s.deferred_to)
+        if carrier is None:
+            issues.append(
+                CheckIssue(level, item.id, f"{what} is {s.status} to {s.deferred_to}, not found")
+            )
+        elif carrier.id == item.id:
+            issues.append(
+                CheckIssue(
+                    level, item.id, f"{what} is {s.status} to its own item, which is no carrier"
+                )
+            )
+        elif ctx.spec.status_role(carrier.status) == "retired":
+            issues.append(
+                CheckIssue(
+                    level,
+                    item.id,
+                    f"{what} is {s.status} to {carrier.id}, which is {carrier.status} "
+                    "and will not carry the work",
+                )
+            )
+    return issues
+
+
 def _subentity_container_marker(ctx: ValidatorContext) -> list[CheckIssue]:
     """The item's on-disk container marker still matches the plural its kind declares.
 
@@ -1065,6 +1119,7 @@ CATALOG: dict[str, Validator] = {
     "subentity_container_marker": _subentity_container_marker,
     "subentity_body_written": _subentity_body_written,
     "subentity_title_max": _subentity_title_max,
+    "subentity_deferral_resolved": _subentity_deferral_resolved,
     "no_status_banner": _no_status_banner,
     "supersedes_incoming": _supersedes_incoming,
     "ref_rule_target_present": _ref_rule_target_present,
@@ -1380,7 +1435,11 @@ def backend_entry_drift(
         expected = backend.restriction_fragment(role)
         if expected is not None and expected not in disk_text:
             level = "error"
-    verb = "capability restriction had drifted" if level == "error" else "had drifted"
+    verb = (
+        "capability restriction had drifted"
+        if level == "error"
+        else "is out of date or edited by hand"
+    )
     return CheckIssue(
         level, rel_path, f"managed pointer {verb} — run `sq sync` (backend: {backend.name})"
     )

@@ -2,7 +2,7 @@
 
 - Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`);
   create with `sq create <type>`. Run `sq <type> --help` / `sq <type> <n> --help` to explore.
-- **Sub-entities are tracked too:** `feature` → `story` (`Todo → InProgress → Done (+ Blocked, Cancelled)`); `task` → `subtask` (`Todo → InProgress → Done (+ Blocked, Cancelled)`); `review` → `finding` (`Open → Fixed → Verified (+ WontFix)`).
+- **Sub-entities are tracked too:** `feature` → `story` (`Todo → InProgress → Done (+ Blocked, Cancelled)`); `task` → `subtask` (`Todo → InProgress → Done (+ Blocked, Cancelled)`); `review` → `finding` (`Open → Fixed → Verified (+ WontFix, Noted, Deferred)`).
   `update` is the one metadata entry point for a sub-entity (`--title`/`--status`/`--assignee`,
   plus any declared field flag). Each parent shows an sq-managed summary table.
 - Hierarchy: epic → feature → task. `sq check` enforces the parent rules.

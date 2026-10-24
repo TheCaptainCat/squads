@@ -12,7 +12,7 @@ The single global counter and all item metadata live here. Every mutation goes t
   ``thread_local=False`` is safe because Layer 2 guarantees single-threaded entry.
 
 Lock order is always Layer 1 → 2 → 3; release reverse. Every acquire is in ``try/finally`` so
-nothing leaks on exception/cancellation/``filelock.Timeout``. Commits are atomic ``os.replace``
+nothing leaks on exception/cancellation/lock timeout. Commits are atomic ``os.replace``
 so concurrent ``sq`` invocations never corrupt the file or collide on IDs.
 
 **Skew direction: markdown is always ahead of or equal to the index, never behind.** Within a
@@ -77,19 +77,23 @@ import threading
 from collections.abc import AsyncGenerator, Generator
 from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
+from functools import partial
 from pathlib import Path
 from typing import Any
 
 import anyio
-from filelock import FileLock
+from filelock import FileLock, Timeout
 from pydantic import ValidationError
 
 from squads import _aio
-from squads._errors import SquadsError, UndecodableFileError
+from squads._errors import IndexLockTimeoutError, SquadsError, UndecodableFileError
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
 from squads._workflow._models import Field, WorkflowSpec
+
+# Seconds a lock acquire waits before it tells the user it is waiting.
+_LOCK_NOTICE_AFTER = 1.0
 
 
 def _check_field_codes(
@@ -371,6 +375,7 @@ class IndexStore:
         # Layer 3 — cross-process file lock. thread_local=False is safe because Layer 2
         # guarantees single-threaded entry, so its shared-state race is unreachable.
         self._lock = FileLock(str(lock_path), timeout=lock_timeout, thread_local=False)
+        self._lock_timeout = lock_timeout
         # Layer 2 — proc-mutex: one OS thread in the file-lock section at a time.
         self._proc_mutex: threading.Lock = threading.Lock()
         # Layer 1 — per-running-loop anyio.Lock cache (one instance shared across loops
@@ -386,6 +391,28 @@ class IndexStore:
             if loop_id not in self._loop_locks:
                 self._loop_locks[loop_id] = anyio.Lock()
             return self._loop_locks[loop_id]
+
+    async def _acquire_file_lock(self) -> None:
+        """Take Layer 3: wait up to :data:`_LOCK_NOTICE_AFTER` quietly, say so on stderr, then
+        wait out the rest of the timeout.
+
+        Raises :class:`IndexLockTimeoutError` when the lock is still held at the end.
+        """
+        first = min(_LOCK_NOTICE_AFTER, self._lock_timeout)
+        try:
+            await _aio.to_thread(partial(self._lock.acquire, timeout=first))
+        except Timeout:
+            await self._acquire_after_notice(first)
+
+    async def _acquire_after_notice(self, waited: float) -> None:
+        """Say on stderr that the lock is being waited for, then wait out the timeout's rest."""
+        print(f"waiting for the index lock {self.lock_path}…", file=sys.stderr)
+        try:
+            await _aio.to_thread(
+                partial(self._lock.acquire, timeout=max(self._lock_timeout - waited, 0.0))
+            )
+        except Timeout:
+            raise IndexLockTimeoutError(self.lock_path) from None
 
     # ------------------------------------------------------------------ create / read
     def create_empty(self) -> SquadsDB:
@@ -498,9 +525,9 @@ class IndexStore:
         """Load under the lock, yield the DB to mutate, then atomically write it back.
 
         Three-layer lock taken Layer 1 → 2 → 3; Layers 2/3 via ``_aio.to_thread``.
-        ``filelock.Timeout`` from the Layer 3 acquire propagates unchanged with no lock
-        leak (inner ``finally`` no-ops, outer releases the proc-mutex, the ``async with``
-        releases the per-loop lock).
+        A Layer 3 acquire that times out raises :class:`IndexLockTimeoutError` with no lock
+        leak (the outer ``finally`` releases the proc-mutex, the ``async with`` releases the
+        per-loop lock).
 
         The active-transaction context (read by ``log``) is bound to the
         ``_active_transaction`` ``ContextVar`` only once Layer 3 is held and the in-lock
@@ -537,8 +564,8 @@ class IndexStore:
             await _aio.to_thread(self._proc_mutex.acquire)
             try:
                 # Layer 3 — acquire file lock on a worker thread, inside the proc-mutex.
-                # filelock.Timeout propagates here unchanged; inner finally is a no-op.
-                await _aio.to_thread(self._lock.acquire)
+                # A timeout raises IndexLockTimeoutError here; the outer finally releases Layer 2.
+                await self._acquire_file_lock()
                 token = None
                 try:
                     # The one and only load: this is also the context transaction()
@@ -663,7 +690,7 @@ class IndexStore:
         async with self._loop_lock():
             await _aio.to_thread(self._proc_mutex.acquire)
             try:
-                await _aio.to_thread(self._lock.acquire)
+                await self._acquire_file_lock()
                 try:
                     await self._atomic_write(db)
                 finally:

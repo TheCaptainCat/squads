@@ -6,6 +6,8 @@ values, not pytest fixtures.
 
 import hashlib
 import re
+import subprocess
+import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -345,3 +347,24 @@ def role_of(slug: str, *capabilities: str) -> Any:
 
     held = capabilities or (("dev",) if slug.endswith("-dev") else ())
     return RoleView(slug=slug, full_name=slug, title=slug, is_default=False, capabilities=held)
+
+
+_LOCK_HOLDER = (
+    "import sys, time, filelock\n"
+    "lock = filelock.FileLock(sys.argv[1])\n"
+    "lock.acquire()\n"
+    "print('held', flush=True)\n"
+    "time.sleep(float(sys.argv[2]))\n"
+)
+
+
+def hold_lock(lock_path: Path, seconds: float) -> subprocess.Popen[str]:
+    """Start a process that holds *lock_path* for *seconds*, returning once it holds it."""
+    proc = subprocess.Popen(
+        [sys.executable, "-I", "-c", _LOCK_HOLDER, str(lock_path), str(seconds)],
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    assert proc.stdout is not None
+    assert proc.stdout.readline().strip() == "held"
+    return proc

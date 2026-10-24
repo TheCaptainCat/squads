@@ -360,7 +360,7 @@
     "_rendering/templates/agents/role.md.j2": "508cab2ee059960798b3026fcb2628d1287d2f01fc8af4a6182be5ba0cf0b1aa",
     "_rendering/templates/agents/skill.md.j2": "d2608b71e8ec5b6e2108c0ff19d35c2fac8e787c7f6bf95816ca225264a989ed",
     "_rendering/templates/agents_md/agents_section.md.j2": "437eb8cf7277e1b178187e0c2649344d91b33fe0f3de99886a33a03bd6bc8145",
-    "_rendering/templates/claude/claude_section.md.j2": "ba6aa6fc8c50f214f41e4027f23a99efd0e1c07e37d9ca912713d528a9d62a83",
+    "_rendering/templates/claude/claude_section.md.j2": "ae11ec09f7e611a7abecfe20f3a0e3f0ab993a378c6fdde2bb015060ac632d77",
     "_rendering/templates/claude/pointer_agent.md.j2": "b0ea3bf5c28be1e6fc6897e7048ea265f28e32a30f2229efbafdf46f4c877a69",
     "_rendering/templates/claude/pointer_skill.md.j2": "b7851c49a75ca4fdb8f0f9e7d1bd9fab8557006b033dceb7e4335566b9760179",
     "_rendering/templates/items/_default.md.j2": "d4b39440e7da5e65fb913a33788545a9d9238786ae8a929e9513134e6ede98a3",
@@ -382,12 +382,12 @@
     "_rendering/templates/views/milestone_rollup.md.j2": "c4c4c4c6737650fedb126a81ad7c9429e55823a2d57bc5cc5fd3b59b09f20a8e",
     "_rendering/templates/views/role_definition.md.j2": "1a3e3f46e67ba4192c737f7722316c818155c6756770754a6373c8b602c11e2e",
     "_rendering/templates/views/squads_skill.md.j2": "41491c5f55128f2045959bd4947cacce83392456e7499803eb1149c24ecbd832",
-    "_rendering/templates/workflow.md.j2": "ea98a9fc9f6946c97e59111b49c788dd730e1b3d98fa1045be11e64ffb57b3be",
+    "_rendering/templates/workflow.md.j2": "12097e2f9ab6f514e040cde0dad26a69c82cfe78fad73c3555e7e2331329bc1b",
     "_rendering/templates/workflow_static.md.j2": "42a6707b57c79ee25fad1539167089e6f3deeeb6183fcb2c01e14b5f7f859708",
     "_rendering/templates/working_language.md.j2": "cf5ce9439d3f9d569882868708e110990349dcd304ef33e6f9191bad0a643316",
-    "_specs/playbook.toml": "26265250ca00e86e93cdd9f5f6bf68462f872eeae37d067bd89faed0deec54f7",
+    "_specs/playbook.toml": "91485162e29fa7e65ebaa3c09e287667bc3d0c4757319bbf5de9bd12b2d51a97",
     "_specs/roles.toml": "7bee9321ba993906f920eec3f578069d36a3e59abdacbd338d1f5b4afb9321bf",
-    "_specs/workflow.toml": "7d04ae15064cb4ff5be07320e08fb310ebbe2e1fbe5d66eddd9f2daa59d23abd"
+    "_specs/workflow.toml": "7767c007bb4895edfa92b4f38c76d1a5249d4614a0e0755979154ba90bf26c17"
   },
   "0.4.0": {
     "_rendering/templates/agents/greeting_skill.md.j2": "ead65be126550ae3826abd2a0f401d3c911e336f41500e97762eab5bd024e4dc",

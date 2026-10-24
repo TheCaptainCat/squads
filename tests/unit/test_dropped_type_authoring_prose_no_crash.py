@@ -33,7 +33,7 @@ def test_dropping_task_from_the_spec_does_not_crash_the_claude_md_section() -> N
         squad_dir="squads",
         working_language=WorkingLanguage("en", "English"),
         # epic/feature's owner (product-owner) must be on the roster for its authoring
-        # bullet — the one this test asserts on — to render now that authoring_owner is
+        # bullet — the one this test asserts on — to render now that authoring_owners is
         # roster-aware.
         roles=[{"full_name": "Nina Product", "title": "product owner", "slug": "product-owner"}],
         delegate_examples=[],

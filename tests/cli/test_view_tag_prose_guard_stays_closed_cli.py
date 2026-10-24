@@ -1,6 +1,6 @@
 """The CLI half of the view-tag placement design's control: ``sq <type> <n> body -m``/
-``--file`` refuses a well-formed view tag, while the same text with its HTML-comment wrapper
-stripped goes through — driven at the CLI surface, not just the service.
+``--file`` refuses a well-formed view tag the item has not placed, while the same text with its
+HTML-comment wrapper stripped goes through — driven at the CLI surface, not just the service.
 """
 
 from pathlib import Path
@@ -17,7 +17,7 @@ async def test_body_dash_m_refuses_the_wrapped_view_tag(project, invoke) -> None
     await invoke(["create", "task", "T", "--author", "manager"])
     r = await invoke(["task", "2", "body", "-m", f"see {_WRAPPED}"])
     assert r.exit_code == 1
-    assert "marker" in r.output
+    assert "not placed" in r.output
 
 
 async def test_body_dash_m_accepts_the_unwrapped_text_the_control(project, invoke) -> None:
@@ -36,7 +36,7 @@ async def test_body_file_refuses_the_wrapped_view_tag(project, invoke, tmp_path:
     r = await invoke(["task", "2", "body", "--file", str(body_file)])
 
     assert r.exit_code == 1
-    assert "marker" in r.output
+    assert "not placed" in r.output
 
 
 async def test_body_file_accepts_the_unwrapped_text_the_control(

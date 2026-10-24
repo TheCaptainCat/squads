@@ -441,6 +441,12 @@ def reject_markers(text: str, what: str = "body") -> None:
     )
 
 
+def reject_non_view_markers(text: str, what: str = "body") -> None:
+    """:func:`reject_markers` over *text* with its ``sq:view:<name>`` tags set aside, for the body
+    writers that compare those tags with the ones already placed instead of refusing them."""
+    reject_markers(views.strip_view_tags(text), what)
+
+
 #: How many leading lines of the body about to be discarded the refusal quotes back.  Enough to
 #: recognise the content, short enough that the message stays readable in a terminal.
 BODY_OVERWRITE_PREVIEW_LINES = 3
@@ -888,11 +894,7 @@ class ServiceCore:
             attributes=attributes or {},
         )
         _stamp_origin(item, self.spec)
-        for code, value in (fields or {}).items():
-            field = self._badge_field(item_type, code)
-            if field is None:
-                raise SquadsError(f"{code!r} is not a declared field for {item_type}")
-            item.set_badge_value(field.code, self._parse_badge_code(field, value))
+        self._set_declared_fields(item, fields or {})
         db.add(item)
         # Fail-closed on the new item's first error-level catalog violation (parent
         # type-eligibility, item status validity, …) — the same engine `sq check` reports.
@@ -925,6 +927,20 @@ class ServiceCore:
                 " Lane checks are best-effort and advisory — proceeding."
             )
         return item, lane_warning
+
+    def _set_declared_fields(self, item: Item, given: dict[str, str]) -> None:
+        """Store each *given* field value on a new *item*, then the declared default of every
+        field still unset. A code the type does not declare is refused."""
+        for code, value in given.items():
+            field = self._badge_field(item.type, code)
+            if field is None:
+                raise SquadsError(f"{code!r} is not a declared field for {item.type}")
+            item.set_badge_value(field.code, self._parse_badge_code(field, value))
+        for field in self.spec.fields_for(item.type):
+            if item.badge_value(field.code) is None and (
+                default := self.field_default(item.type, field.code)
+            ):
+                item.set_badge_value(field.code, default)
 
     async def _create_core(  # noqa: PLR0913 — mirrors `create`'s own keyword surface
         self,
@@ -1422,6 +1438,19 @@ class ServiceCore:
         <field>=<code>``): priority/severity/a project's own custom axis alike — not a
         hand-maintained allowlist of attribute-backed codes."""
         return next((f for f in self.spec.fields_for(item_type) if f.code == key), None)
+
+    def field_default(self, type_or_kind: str, code: str) -> str | None:
+        """The badge code an omitted field falls back to: the field's own ``default``,
+        else its collection's ``default``, else ``None`` (generic — no field/collection
+        special-cased by name). Public: create and the CLI's generic add-<kind> builder
+        both resolve an omitted field through it."""
+        field = next((f for f in self.spec.fields_for(type_or_kind) if f.code == code), None)
+        if field is None:
+            return None
+        if field.default:
+            return field.default
+        coll = self.spec.collections.get(field.collection)
+        return coll.default if coll else None
 
     def _parse_badge_code(self, field: Field, raw: str) -> str:
         """Validate/normalize a ``--set <field>=<code>`` value against its bound collection."""

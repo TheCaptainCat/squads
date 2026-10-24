@@ -5,6 +5,7 @@
     "status": "Todo",
     "assignee": "manager",
     "severity": null,
-    "story": "US1"
+    "story": "US1",
+    "deferred_to": null
   }
 ]

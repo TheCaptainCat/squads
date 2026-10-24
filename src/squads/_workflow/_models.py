@@ -161,6 +161,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "subentity_container_marker",
         "subentity_body_written",
         "subentity_title_max",
+        "subentity_deferral_resolved",
         "no_status_banner",
         "supersedes_incoming",
         "ref_rule_target_present",
@@ -475,6 +476,7 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "subentity_container_marker": "error",
     "subentity_body_written": "warn",
     "subentity_title_max": "warn",
+    "subentity_deferral_resolved": "warn",
     "no_status_banner": "warn",
     "supersedes_incoming": "warn",
     "ref_rule_target_present": "warn",
@@ -587,6 +589,7 @@ CATEGORY_BUNDLES: dict[str, tuple[str, ...]] = {
         "subentity_status_valid",
         "subentity_container_marker",
         "subentity_body_written",
+        "subentity_deferral_resolved",
         "subtask_story_mapping",
     ),
     "records": ("no_parent", "supersedes_incoming"),
@@ -605,6 +608,7 @@ SUBENTITY_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "subentity_container_marker",
         "subentity_body_written",
         "subentity_title_max",
+        "subentity_deferral_resolved",
     }
 )
 
@@ -1190,6 +1194,9 @@ class RoleSpec(BaseModel):
       too, not only a roster one.
     - ``blocked`` — do the role's statuses mean the item is waiting on something else? Defaults
       ``False``; unlike the other booleans it accepts only a TOML boolean.
+    - ``deferred`` — is the work of an entity resting in this role's statuses carried by another
+      item that the entity names? Defaults ``False`` and accepts only a TOML boolean. Only a
+      sub-entity lifecycle may reach such a status.
 
     Roles are an OPEN vocabulary (an adopter may declare custom roles); colour intent is a
     CLOSED palette so every client can render any role safely with a neutral fallback.
@@ -1202,6 +1209,7 @@ class RoleSpec(BaseModel):
     color: str
     live: bool = False
     blocked: StrictBool = False
+    deferred: StrictBool = False
 
 
 class StatusSpec(BaseModel):
@@ -1266,15 +1274,21 @@ def _check_reachability(
         )
 
 
+def _status_role(
+    status: str, statuses: dict[str, StatusSpec], roles: dict[str, RoleSpec]
+) -> RoleSpec | None:
+    """The role *status* resolves to: an absent ``role`` falls back to ``FALLBACK_ROLE_NAME``,
+    and an unresolvable role name (already caught by ``_check_role_references``) is ``None``
+    rather than raising here."""
+    spec = statuses.get(status)
+    return roles.get((spec.role if spec else None) or FALLBACK_ROLE_NAME)
+
+
 def _status_settled(
     status: str, statuses: dict[str, StatusSpec], roles: dict[str, RoleSpec]
 ) -> bool:
-    """Whether *status* resolves to a settled role — an absent ``role`` falls back to
-    ``FALLBACK_ROLE_NAME``; an unresolvable role name (should already be caught by
-    ``_check_role_references``) is treated as not-settled rather than raising here."""
-    spec = statuses.get(status)
-    role_name = (spec.role if spec else None) or FALLBACK_ROLE_NAME
-    role = roles.get(role_name)
+    """Whether *status* resolves to a settled role; an unresolvable role is not-settled."""
+    role = _status_role(status, statuses, roles)
     return bool(role and role.settled)
 
 
@@ -1309,25 +1323,47 @@ def _check_reachable_settled(
 
 
 def _status_live(status: str, statuses: dict[str, StatusSpec], roles: dict[str, RoleSpec]) -> bool:
-    """Whether *status* resolves to a live role — mirrors ``_status_settled``'s lookup: an
-    absent ``role`` falls back to ``FALLBACK_ROLE_NAME``; an unresolvable role name (should
-    already be caught by ``_check_role_references``) is treated as not-live rather than
-    raising here."""
-    spec = statuses.get(status)
-    role_name = (spec.role if spec else None) or FALLBACK_ROLE_NAME
-    role = roles.get(role_name)
+    """Whether *status* resolves to a role declaring ``live``; an unresolvable role is not."""
+    role = _status_role(status, statuses, roles)
     return bool(role and role.live)
 
 
 def _status_blocked(
     status: str, statuses: dict[str, StatusSpec], roles: dict[str, RoleSpec]
 ) -> bool:
-    """Whether *status* resolves to a role declaring ``blocked`` — the same lookup as
-    ``_status_live``, reading the other flag."""
-    spec = statuses.get(status)
-    role_name = (spec.role if spec else None) or FALLBACK_ROLE_NAME
-    role = roles.get(role_name)
+    """Whether *status* resolves to a role declaring ``blocked``; an unresolvable role is not."""
+    role = _status_role(status, statuses, roles)
     return bool(role and role.blocked)
+
+
+def _status_deferred(
+    status: str, statuses: dict[str, StatusSpec], roles: dict[str, RoleSpec]
+) -> bool:
+    """Whether *status* resolves to a role declaring ``deferred``; an unresolvable role is not."""
+    role = _status_role(status, statuses, roles)
+    return bool(role and role.deferred)
+
+
+def _check_item_lifecycles_avoid_deferred(
+    items: dict[str, ItemSpec],
+    lifecycles: dict[str, Lifecycle],
+    statuses: dict[str, StatusSpec],
+    roles: dict[str, RoleSpec],
+    errors: list[str],
+) -> None:
+    """An item lifecycle must not reach a status whose role declares ``deferred``: items name
+    their carrier through refs, and the flag would silently do nothing on them."""
+    for t, ts in items.items():
+        lifecycle = lifecycles.get(ts.lifecycle)
+        if lifecycle is None:
+            continue
+        reached = sorted(s for s in lifecycle.states if _status_deferred(s, statuses, roles))
+        if reached:
+            errors.append(
+                f"item {t!r}: lifecycle {ts.lifecycle!r} reaches {reached} whose role declares "
+                "deferred = true — only a sub-entity lifecycle may; use a ref to name a carrier "
+                "or give the status another role"
+            )
 
 
 def _check_roster_lifecycle_floor(
@@ -2093,7 +2129,7 @@ def _clause_subentity_checked(
     _kinds: dict[str, SubentityKindSpec],
     _ref_kinds: dict[str, RefKindSpec],
 ) -> list[str]:
-    """Guards the sub-entity validators a bundle supplies; any of the four
+    """Guards the sub-entity validators a bundle supplies; any of the
     :data:`SUBENTITY_VALIDATOR_NAMES` satisfies it. A type declaring a ``subentity_kind``
     must keep at least one validator whose subject is that kind. The ``records`` bundle carries
     none, so a hosting type moved there keeps its sub-entities while every check on them stops
@@ -3287,6 +3323,14 @@ class WorkflowSpec(BaseModel):
         Raises ``KeyError`` for an undeclared *kind* — same shape as :meth:`machine_for`."""
         return self.lifecycles[self.subentity_kinds[kind].lifecycle]
 
+    def subentity_deferred_statuses(self, kind: str) -> frozenset[str]:
+        """The statuses of *kind*'s lifecycle whose role declares ``deferred``.
+
+        Raises ``KeyError`` for an undeclared *kind* — inherits :meth:`_subentity_machine`'s
+        raise."""
+        machine = self._subentity_machine(kind)
+        return frozenset(s for s in machine.states if self.role_for(s).deferred)
+
     def subentity_workflow(self, kind: str) -> Workflow:
         """Return the ``Workflow`` shim for the given sub-entity kind.
 
@@ -3410,6 +3454,10 @@ class WorkflowSpec(BaseModel):
         # and R2 (a settled, non-live status reachable from a live one) — the create-at
         # target and the retirement path the engine needs.
         _check_roster_lifecycle_floor(
+            self.items, self.lifecycles, self.statuses, self.roles, errors
+        )
+
+        _check_item_lifecycles_avoid_deferred(
             self.items, self.lifecycles, self.statuses, self.roles, errors
         )
 

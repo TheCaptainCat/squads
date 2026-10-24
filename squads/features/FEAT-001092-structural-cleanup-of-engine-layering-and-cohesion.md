@@ -31,7 +31,7 @@ subentities:
   title: Apply the comment rule to source and tests (F18, F19)
   status: Todo
 created_at: '2026-10-17T03:49:43Z'
-updated_at: '2026-10-24T19:43:22Z'
+updated_at: '2026-10-24T21:59:26Z'
 ---
 <!-- sq:body -->
 The structural review of the engine layering and cohesion (REV-956) held thirteen
@@ -175,4 +175,16 @@ Bring source and test docstrings and comments under the project comment rule: 95
 <!-- sq:discussion -->
 - [2026-10-24T19:43:22Z] `product-owner` Nina Product:
   - @tech-lead needs a breakdown into tasks (no tasks yet). Premises re-measured 2026-10-24: file sizes and bundled_spec call count still close to the review; counts in stories are to be re-measured at the start of each. Acceptance criteria added.
+- [2026-10-24T21:56:18Z] `tech-lead` Olivia Lead:
+  - Broken down into four tasks:
+    - TASK-1124: behaviour-free moves for US1-US3 (F3, F5-F10, F12), eight subtasks. Ready.
+    - TASK-1125: the composition root (F15). Draft, waiting on the DI decision (US5, F14), with my recommendation to @op-pierre on the task.
+    - TASK-1126: check rule names (US4, F11). Ready.
+    - TASK-1127: the source comment sweep (US6, F18). Ready.
+    US5 is a decision, not a task: @architect records it as an ADR once op-pierre rules.
+    F19 rides the rebuild as a new subtask on TASK-1112 (the new root is held to the one-line test docstring rule). The remainder of F7, deleting the per-kind service wrappers, is a new subtask on TASK-1116, once the old suite is gone.
+    Order: TASK-1123 (FEAT-916), then TASK-1124, TASK-1125, TASK-1126, run serially by one developer since they share `_services/_base.py`, `_cli/_common.py` and `_cli/_main.py`. Then the test rebuild (TASK-1111 depends on all four). Why: the rebuild's ledger names seams by module and function, its mutation patches target `src/`, and its biggest tables (the check-by-type table, the `-C` gate differential) run through exactly the code these tasks move. Moving the code after the ledger is written would make the rebuild port everything twice. TASK-1127 changes prose only, moves no seam, and runs beside the rebuild.
+    TASK-1124 also depends on TASK-1106 (new `_interactions` token resolver) and TASK-1077 (validator wording in the same files). TASK-1126 depends on TASK-1104, whose new check warnings it names.
+- [2026-10-24T21:59:26Z] `architect` Robert Architect:
+  - US5 (REV-956 F14) is ADR-1128, Proposed with options A/B and a recommendation for A; awaiting @op-pierre.
 <!-- sq:discussion:end -->

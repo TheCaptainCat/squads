@@ -5,7 +5,8 @@
     "hidden": false,
     "color": "positive",
     "live": true,
-    "blocked": false
+    "blocked": false,
+    "deferred": false
   },
   {
     "role": "attention",
@@ -13,7 +14,8 @@
     "hidden": false,
     "color": "danger",
     "live": false,
-    "blocked": false
+    "blocked": false,
+    "deferred": false
   },
   {
     "role": "blocked",
@@ -21,7 +23,17 @@
     "hidden": false,
     "color": "danger",
     "live": false,
-    "blocked": true
+    "blocked": true,
+    "deferred": false
+  },
+  {
+    "role": "deferred",
+    "settled": true,
+    "hidden": true,
+    "color": "info",
+    "live": false,
+    "blocked": false,
+    "deferred": true
   },
   {
     "role": "done",
@@ -29,7 +41,8 @@
     "hidden": true,
     "color": "positive",
     "live": false,
-    "blocked": false
+    "blocked": false,
+    "deferred": false
   },
   {
     "role": "in_force",
@@ -37,7 +50,8 @@
     "hidden": false,
     "color": "info",
     "live": false,
-    "blocked": false
+    "blocked": false,
+    "deferred": false
   },
   {
     "role": "pending",
@@ -45,7 +59,8 @@
     "hidden": false,
     "color": "neutral",
     "live": false,
-    "blocked": false
+    "blocked": false,
+    "deferred": false
   },
   {
     "role": "retired",
@@ -53,7 +68,8 @@
     "hidden": true,
     "color": "muted",
     "live": false,
-    "blocked": false
+    "blocked": false,
+    "deferred": false
   },
   {
     "role": "superseded",
@@ -61,6 +77,7 @@
     "hidden": true,
     "color": "muted",
     "live": false,
-    "blocked": false
+    "blocked": false,
+    "deferred": false
   }
 ]

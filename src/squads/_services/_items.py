@@ -25,7 +25,7 @@ from squads._pronouns import checked_pronouns
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import resolve_role_for_item
 from squads._services import _retirement as retirement
-from squads._services._base import ServiceCore, reject_body_overwrite, reject_markers
+from squads._services._base import ServiceCore, reject_body_overwrite, reject_non_view_markers
 from squads._services._results import RemoveResult, RosterRemoval, RosterStatusResult
 from squads._services._validators import ValidatorEngine
 from squads._transform import TransformData
@@ -649,6 +649,38 @@ class ItemsMixin(ServiceCore):
         ):
             raise SquadsError(f"{item_id} is a {item.type}; its body is generated, not authored")
 
+    def _refuse_unplaced_view_tags(self, item: Item, region: str, body: str) -> None:
+        """Raise when *body* carries a view tag that *region* (the item's current ``sq:body``
+        content) has not placed with the same name and state. The one check the body write and
+        the importer's pre-pass both run."""
+        if unplaced := views.unplaced_view_tags(region, body):
+            raise SquadsError(self._unplaced_view_tag_message(item, unplaced[0]))
+
+    def _unplaced_view_tag_message(self, item: Item, raw_tag: str) -> str:
+        """The refusal for a body write carrying view tag *raw_tag* that the item has not placed
+        in that state, naming the view verbs only when they work for this host."""
+        parts = markers.view_tag_parts(raw_tag)
+        assert parts is not None  # `unplaced_view_tags` only returns view tags
+        text = (
+            f"the body contains the view tag line {raw_tag}, which is not placed on {item.id} "
+            "in that state. Leave it out of the body: sq keeps a placed tag in place"
+        )
+        has_view_verbs = item.type in (ROSTER_ROLE, ROSTER_SKILL) or not self.spec.item_is_roster(
+            item.type
+        )
+        if (
+            not has_view_verbs
+            or views.resolve_view_target(parts.name, item.type, self.spec, self.playbook)
+            is not None
+        ):
+            return f"{text}."
+        host = "role" if item.type == ROSTER_ROLE else item.type
+        addr = item.slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item.id)
+        return (
+            f"{text}; to show or hide the view use `sq {host} {addr} view add {parts.name}` or "
+            f"`sq {host} {addr} view disable {parts.name}`."
+        )
+
     def _body_mutate(
         self, item_id: str, body: str, *, append: bool, force: bool = False
     ) -> Callable[[str, Item], tuple[str, bool]]:
@@ -660,8 +692,9 @@ class ItemsMixin(ServiceCore):
         append onto whatever is there — is applied by the one re-placement routine
         (:func:`~squads._views.place_view_tags`), which also
         re-inserts every view tag at its declared position, so this closure never touches a
-        tag's bytes directly."""
-        reject_markers(body)
+        tag's bytes directly. An incoming view tag that matches one already placed in the region is
+        dropped from the incoming text (the routine puts it back); any other is refused."""
+        reject_non_view_markers(body)
 
         def mutate(text: str, item: Item) -> tuple[str, bool]:
             self._reject_unwritable_body(item_id, item, append=append)
@@ -675,6 +708,8 @@ class ItemsMixin(ServiceCore):
                     "(for example from git) and run the command again"
                 )
             current = region.strip("\n")
+            self._refuse_unplaced_view_tags(item, current, body)
+            incoming = views.strip_view_tags(body)
             authored = False
             if not append:
                 # Replacing: authored iff there is prose (tags stripped from both sides, so a
@@ -696,7 +731,7 @@ class ItemsMixin(ServiceCore):
             )
             new_inner = views.place_view_tags(
                 current,
-                body,
+                incoming,
                 append=append,
                 seeded=views.seeded_view_names(item.type, slug, self.spec),
                 spec=self.spec,
@@ -936,7 +971,8 @@ class ItemsMixin(ServiceCore):
         - Refuses when the item has incoming refs **and** ``force`` is False; lists every
           referrer so the operator can act.
         - When ``force`` is True, severs every incoming ref by removing the matching forward-
-          edge entry from each referrer's frontmatter, inside the **same transaction**.
+          edge entry from each referrer's frontmatter, inside the **same transaction**. A
+          sub-entity's ``deferred_to`` naming the item counts as an incoming ref and is cleared.
 
         **Counter invariant:** ``db.counter`` is **never modified** here.  A freed sequence
         number is a sanctioned gap — it is never reissued.
@@ -962,12 +998,12 @@ class ItemsMixin(ServiceCore):
             # ------------------------------------------------------------------
             # 2. Incoming refs check
             # ------------------------------------------------------------------
-            referrer_ids = db.backrefs(item.id)
+            referrer_ids = sorted({*db.backrefs(item.id), *db.deferral_holders(item.id)})
             if referrer_ids and not force:
                 listed = ", ".join(referrer_ids)
                 raise SquadsError(
                     f"cannot remove {item.id}: it is referenced by: {listed}. "
-                    "Re-parent/remove those items first, or re-run with --force to sever refs."
+                    "Re-parent/remove those items first, or re-run with --force to sever them."
                 )
 
             # ------------------------------------------------------------------
@@ -991,6 +1027,11 @@ class ItemsMixin(ServiceCore):
                         for r in referrer.refs
                         if not ref_id_matches(split_ref(r)[0], target_prefix, target_seq)
                     ]
+                    for sub in referrer.subentities:
+                        if sub.deferred_to and ref_id_matches(
+                            sub.deferred_to, target_prefix, target_seq
+                        ):
+                            sub.deferred_to = None
                     referrer.updated_at = clock.now()
                     await self._update_item_frontmatter(referrer, base)
                     severed.append(ref_id)

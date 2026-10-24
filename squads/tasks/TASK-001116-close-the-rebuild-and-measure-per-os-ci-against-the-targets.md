@@ -23,8 +23,12 @@ subentities:
   title: Record one CI run per OS against the binding targets
   status: Todo
   story: US10
+- local_id: ST3
+  title: Delete the per-kind sub-entity service wrappers
+  status: Todo
+  story: US9
 created_at: '2026-10-24T13:42:20Z'
-updated_at: '2026-10-24T19:48:48Z'
+updated_at: '2026-10-24T21:56:21Z'
 ---
 <!-- sq:body -->
 Close the rebuild: retire what is left of the old root, rename the new one, finish the parity record (US9), and measure CI per OS against the binding targets (US10).
@@ -73,6 +77,19 @@ Run the full suite in the CI test job once per OS, Windows included, after the r
 <!-- sq:subtask:ST2:discussion -->
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
+
+<!-- sq:subtask:ST3 -->
+### ST3 — Delete the per-kind sub-entity service wrappers
+
+<!-- sq:subtask:ST3:body -->
+Once the last old test file is deleted, remove the per-kind sub-entity wrappers on `SubentitiesMixin` (`add_story`, `add_subtask`, `add_finding`, `list_stories`, `set_subtask_status`, `update_finding` and the rest, in `src/squads/_services/_subentities.py`) that only the old suite called, and their entries in `pyproject.toml`'s vulture `ignore_names`. Check first that nothing in `src/` or the new root calls them. New tests use the generic block surface. This closes the remainder of REV-956 F7.
+<!-- sq:subtask:ST3:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST3:discussion -->
+<!-- sq:subtask:ST3:discussion:end -->
+<!-- sq:subtask:ST3:end -->
 <!-- sq:subtasks:end -->
 
 ## Discussion
@@ -80,4 +97,6 @@ Run the full suite in the CI test job once per OS, Windows included, after the r
 <!-- sq:discussion -->
 - [2026-10-24T19:48:48Z] `tech-lead` Olivia Lead:
   - Re-read for Ready on 2026-10-24: ST1 now deletes what the areas leave behind (cross-area files, helpers, conftest) and updates every path naming either root. Dropped the unruled local-run proposals (60 s full, 30 s default, 12 min Windows design target): the CI targets are the only bound. Moved to Ready.
+- [2026-10-24T21:56:21Z] `tech-lead` Olivia Lead:
+  - Added ST3: delete the per-kind sub-entity service wrappers once the old suite is gone, carrying the rest of REV-956 F7 from FEAT-1092.
 <!-- sq:discussion:end -->

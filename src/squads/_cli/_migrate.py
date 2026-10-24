@@ -110,7 +110,8 @@ async def migrate_up():
         )
     console.print(
         f"[green]migrated[/green] to schema v{SCHEMA_VERSION}; index rebuilt — "
-        "run `sq sync` to refresh managed files",
+        "run `sq sync` to regenerate the agent files "
+        "(pointers, skills, CLAUDE.md/AGENTS.md sections)",
         soft_wrap=True,
     )
     # The rebuild this command runs is also the corpus sweep, and this is the only route a

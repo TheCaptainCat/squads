@@ -1,4 +1,4 @@
-"""``authoring_owner``/``parent_chain`` (the spec-driven replacement for hardcoded "product
+"""``authoring_owners``/``parent_chain`` (the spec-driven replacement for hardcoded "product
 owner -> features" prose), and proof the rendered authoring narrative genuinely tracks the
 spec rather than a string coincidence: renaming a type's parent changes its parent name,
 prefix, and hierarchy line everywhere (including CLAUDE.md's own wording); a bullet is
@@ -6,22 +6,22 @@ gracefully omitted (not fabricated) when a type has no single in-lane owner or i
 sub-entity/parent requirement changes.
 """
 
-from squads._interactions import authoring_owner, parent_chain
+from squads._interactions import authoring_owners, parent_chain
 from squads._language import WorkingLanguage
 from squads._rendering._engine import render
 from squads._workflow import bundled_spec
 from squads._workflow._models import ItemSpec, WorkflowSpec
 
 
-def test_authoring_owner_resolves_the_lane_owning_role_per_type() -> None:
-    assert authoring_owner("feature") == ("product-owner", "product owner")
-    assert authoring_owner("task") == ("tech-lead", "tech lead")
+def test_authoring_owners_resolve_the_lane_owning_roles_per_type() -> None:
+    assert authoring_owners("feature") == [("product-owner", "product owner")]
+    assert authoring_owners("task") == [("tech-lead", "tech lead")]
 
 
-def test_authoring_owner_returns_none_for_an_unknown_or_ownerless_type() -> None:
-    assert authoring_owner("no-such-type") is None
-    assert authoring_owner("role") is None  # roster type
-    assert authoring_owner("incident") is None  # a hypothetical custom type, absent from lanes
+def test_authoring_owners_is_empty_for_an_unknown_or_ownerless_type() -> None:
+    assert authoring_owners("no-such-type") == []
+    assert authoring_owners("role") == []  # roster type
+    assert authoring_owners("incident") == []  # a hypothetical custom type, absent from lanes
 
 
 def test_parent_chain_derives_the_authoring_hierarchy() -> None:
@@ -84,7 +84,7 @@ def test_the_claude_md_section_also_tracks_the_same_parent_rename() -> None:
         squad_dir="squads",
         working_language=WorkingLanguage("en", "English"),
         # task's owner (tech-lead) must be on the roster for its authoring bullet — the one
-        # this test asserts on — to render at all now that authoring_owner is roster-aware.
+        # this test asserts on — to render at all now that authoring_owners is roster-aware.
         roles=[{"full_name": "Olivia Lead", "title": "Tech lead", "slug": "tech-lead"}],
         delegate_examples=[],
         operators=[],

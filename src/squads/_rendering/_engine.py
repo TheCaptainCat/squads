@@ -25,7 +25,7 @@ from jinja2 import ChoiceLoader, Environment, FileSystemLoader, PackageLoader, S
 from squads import _badges as badges
 from squads._errors import SquadsError
 from squads._interactions import (
-    authoring_owner,
+    authoring_owners,
     cheatsheet_anchor_context,
     cheatsheet_anchor_type,
     custom_item_skill_commands,
@@ -127,7 +127,7 @@ def _make_env(squad_dir: Path | None) -> Environment:
     # playbook helpers — the role->type authoring narrative in workflow.md.j2 renders from the
     # playbook's declared create-lanes + the role catalog + the spec's parent chain, not
     # hardcoded prose.
-    env.globals["authoring_owner"] = authoring_owner  # pyright: ignore[reportArgumentType]
+    env.globals["authoring_owners"] = authoring_owners  # pyright: ignore[reportArgumentType]
     env.globals["parent_chain"] = parent_chain  # pyright: ignore[reportArgumentType]
     # the "--assignee <who>" value in a generated example block: a slug off the LIVE roster,
     # never a bundled slug literal that exits 1 on a squad that doesn't carry that role.

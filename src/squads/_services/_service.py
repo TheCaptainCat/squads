@@ -163,9 +163,17 @@ async def init(
     await _aio.write_text(sp.squad_dir / ".gitignore", ".squads.json.lock\n*.tmp\n")
 
     store = IndexStore(sp.index_path, sp.lock_path)
-    await store.create_empty_threaded()
+    index_exists = store.exists()
+    holds_corpus = index_exists or _holds_item_files(sp, effective_spec)
+    if not index_exists:
+        await store.create_empty_threaded()
 
     svc = Service(sp, spec=effective_spec, playbook=resolve_playbook(effective_spec, sp.squad_dir))
+    if holds_corpus:
+        # Over an existing squad, rebuild the index from disk over the one already there (under
+        # the index lock, carrying forward what cannot be parsed, as `sq repair` does) so roles
+        # and skills are not created a second time and the counter does not restart.
+        await svc.repair()
     if not no_claude:
         await svc.scaffold_backend()
 
@@ -186,6 +194,14 @@ async def init(
         warnings += await svc.candidate_orphans()
 
     return InitResult(paths=sp, roles=created, warnings=warnings)
+
+
+def _holds_item_files(sp: SquadPaths, spec: WorkflowSpec) -> bool:
+    """Whether the squad folder already holds an item file of any declared type."""
+    return any(
+        next((sp.squad_dir / ts.folder).glob(f"{ts.prefix}-*.md"), None) is not None
+        for ts in spec.items.values()
+    )
 
 
 async def adopt(

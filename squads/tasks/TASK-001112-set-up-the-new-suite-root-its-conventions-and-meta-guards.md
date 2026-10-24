@@ -25,8 +25,12 @@ subentities:
   title: Create the new root with copy-per-row fixtures and the golden mechanism
   status: Todo
   story: US5
+- local_id: ST4
+  title: Hold the new root to the one-line test docstring rule
+  status: Todo
+  story: US4
 created_at: '2026-10-24T13:42:14Z'
-updated_at: '2026-10-24T19:48:43Z'
+updated_at: '2026-10-24T21:56:20Z'
 ---
 <!-- sq:body -->
 Set up the new suite's root, its rules and the guards that enforce them, so the area rebuilds that follow write to one standard. Covers US3 (conventions), US4 (meta guards) and US5 (fixtures and goldens). No old test is deleted here except the `tests/meta` guards that move to the new root.
@@ -90,6 +94,19 @@ Create the rest of `tests_next/`: its `conftest.py`, the build-once-copy-per-row
 <!-- sq:subtask:ST3:discussion -->
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
+
+<!-- sq:subtask:ST4 -->
+### ST4 — Hold the new root to the one-line test docstring rule
+
+<!-- sq:subtask:ST4:body -->
+Hold the new root to the project comment rule from its first file: a test docstring is one line, any other docstring (module, helper, fixture) is one or two sentences, comments do not restate the code, and there are no release versions, ticket ids or history phrases. State the rule in the conventions document. Add a `tests/meta` guard scoped to the new root that enforces the objective parts: test-docstring length, other-docstring length over five non-blank lines, version strings outside migration subjects, and ticket-id shapes. Scan with `ast` plus `tokenize`, whitespace collapsed, and add a liveness row. Old-root files are not swept; they are deleted area by area. This carries REV-956 F19 (1431 test docstrings fail the check on 2026-10-17).
+<!-- sq:subtask:ST4:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST4:discussion -->
+<!-- sq:subtask:ST4:discussion:end -->
+<!-- sq:subtask:ST4:end -->
 <!-- sq:subtasks:end -->
 
 ## Discussion
@@ -97,4 +114,6 @@ Create the rest of `tests_next/`: its `conftest.py`, the build-once-copy-per-row
 <!-- sq:discussion -->
 - [2026-10-24T19:48:43Z] `tech-lead` Olivia Lead:
   - Re-read for Ready on 2026-10-24: added the two-roots constraint (top-level module names and --run-slow clash today), the pyproject wiring, tests_next/ paths for conventions and guards, the CONTRIBUTING pointer, and goldens ported by their area. Moved to Ready.
+- [2026-10-24T21:56:20Z] `tech-lead` Olivia Lead:
+  - Added ST4: the new root is held to the one-line test docstring rule, carrying REV-956 F19 from FEAT-1092.
 <!-- sq:discussion:end -->

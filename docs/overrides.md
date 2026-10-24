@@ -1304,7 +1304,7 @@ Fields:
   defaults to `false`) is refused at load with `collection 'impact': unordered collections are not
   supported yet`. **Declare the badges strongest first** — rank follows declaration order, the way
   the bundled `priority` collection runs urgent → low
-- `default` — optional; the badge code used when no value is set
+- `default` — optional; the badge code an item or sub-entity gets when it is created without a value
 - `badges` — the badge definitions, each with `code`, `label` and `emoji`
 
 A collection is a *library*; a type carries it by declaring a **field** bound to it. Add one to a
@@ -1318,6 +1318,7 @@ fields = ["$(*self)", { code = "impact", label = "Impact", collection = "impact"
 Then, on any item of that type:
 
 ```bash
+sq create task "…" --impact high        # set it at creation (one option per declared field)
 sq task <n> update --set impact=high    # set it  (--unset impact clears it)
 sq list --badge impact=high             # exact filter on any declared badge field
 sq list --min-badge impact=medium       # threshold filter, ordered collections only
@@ -1326,6 +1327,17 @@ sq list --sort impact                   # sort by an ordered field's rank
 
 The bundled `priority` axis has dedicated sugar for the same operations — `--priority` /
 `--min-priority` — and every other badge field goes through `--set` / `--badge` / `--min-badge`.
+
+A field can declare its own `default`, which wins over the collection's:
+`{ code = "risk", label = "Risk", collection = "impact", default = "low" }`. `sq create` stores that
+default for every declared field it is not given a value for; a field with no default on either
+level stays unset. Items that already exist keep what they store.
+
+An item field's `code` cannot be the name of a built-in `sq create` option: `author`, `parent`,
+`desc`, `label`, `ref`, `assignee`, `message`, `file`, `json` or `help`. Such a field is refused
+when the spec loads, so every command stops with
+``items.task field[2]: code 'label' is also a built-in `sq create` option (--label); declare the field under another code``
+until you rename it. Values items already store under the old code are not moved to the new one.
 
 #### Status roles: terminal/hidden/color attributes
 
@@ -1350,7 +1362,36 @@ status with `role = "rolename"`, squads uses that role's attributes to determine
   Invalid role 'blocked': blocked must be true or false, got 'yes'
   ```
 
-Squads ships with eight bundled roles covering common patterns. You can reference them in your
+- **`deferred`** — whether a sub-entity resting at this status has handed its work to another
+  item, which it names with `--deferred-to`. It defaults to `false`, takes `true` or `false` and
+  nothing else, and the bundled `deferred` role is the only bundled role that declares it. A move
+  into such a status is refused without a carrier, and the `subentity_deferral_resolved` check
+  verifies the carrier (see [workflow.md](workflow.md#closing-a-finding-as-noted-or-deferred)
+  § "Closing a finding as Noted or Deferred"). Only a sub-entity lifecycle may reach a status of
+  such a role; an item lifecycle that does is refused at load:
+
+  ```
+  item 'bug': lifecycle 'bug' reaches ['Deferred'] whose role declares deferred = true — only a
+  sub-entity lifecycle may; use a ref to name a carrier or give the status another role
+  ```
+
+  A status of your own gets the behaviour by naming such a role, whatever the status is called:
+
+  ```toml
+  [roles.later]
+  settled = true
+  hidden = true
+  color = "info"
+  deferred = true
+
+  [statuses.Postponed]
+  role = "later"
+
+  [lifecycles.finding.transitions]
+  Open = ["Fixed", "WontFix", "Noted", "Deferred", "Postponed"]
+  ```
+
+Squads ships with nine bundled roles covering common patterns. You can reference them in your
 statuses, or define custom roles in your override:
 
 ```toml
@@ -1365,16 +1406,17 @@ role = "my_custom_role"
 
 **Bundled role reference:**
 
-| Role | `settled` | `hidden` | `color` | `live` | `blocked` | Use case |
-|------|-----------|----------|---------|--------|-----------|----------|
-| `pending` | `false` | `false` | `neutral` | `false` | `false` | Draft, proposed, requested (awaiting work) |
-| `active` | `false` | `false` | `positive` | `true` | `false` | In progress, under review, being addressed |
-| `attention` | `false` | `false` | `danger` | `false` | `false` | Blocked, failing, or needs urgent attention |
-| `blocked` | `false` | `false` | `danger` | `false` | `true` | Explicitly blocked and waiting |
-| `in_force` | `true` | `false` | `info` | `false` | `false` | Accepted, published, or in effect (terminal, shown) |
-| `done` | `true` | `true` | `positive` | `false` | `false` | Complete or verified (terminal, hidden by default) |
-| `retired` | `true` | `true` | `muted` | `false` | `false` | Superseded, deprecated, or cancelled (terminal, hidden) |
-| `superseded` | `true` | `true` | `muted` | `false` | `false` | Replaced by a newer decision (terminal, hidden) |
+| Role | `settled` | `hidden` | `color` | `live` | `blocked` | `deferred` | Use case |
+|------|-----------|----------|---------|--------|-----------|------------|----------|
+| `pending` | `false` | `false` | `neutral` | `false` | `false` | `false` | Draft, proposed, requested (awaiting work) |
+| `active` | `false` | `false` | `positive` | `true` | `false` | `false` | In progress, under review, being addressed |
+| `attention` | `false` | `false` | `danger` | `false` | `false` | `false` | Blocked, failing, or needs urgent attention |
+| `blocked` | `false` | `false` | `danger` | `false` | `true` | `false` | Explicitly blocked and waiting |
+| `in_force` | `true` | `false` | `info` | `false` | `false` | `false` | Accepted, published, or in effect (terminal, shown) |
+| `deferred` | `true` | `true` | `info` | `false` | `false` | `true` | Work handed to another item the sub-entity names (terminal, hidden) |
+| `done` | `true` | `true` | `positive` | `false` | `false` | `false` | Complete, verified or noted (terminal, hidden by default) |
+| `retired` | `true` | `true` | `muted` | `false` | `false` | `false` | Superseded, deprecated, or cancelled (terminal, hidden) |
+| `superseded` | `true` | `true` | `muted` | `false` | `false` | `false` | Replaced by a newer decision (terminal, hidden) |
 
 **Color semantics:**
 
@@ -2205,8 +2247,10 @@ roles = [
 ```
 
 After `sq sync`, `sq create bug --author security-analyst` no longer prints
-`advisory: 'security-analyst' is not the in-lane author for 'bug' items`, and
-`sq role security-analyst show` lists `bug` under `creates`.
+`advisory: 'security-analyst' is not the in-lane author for 'bug' items`,
+`sq role security-analyst show` lists `bug` under `creates`, and the bug line of the team workflow
+in `CLAUDE.md` and `AGENTS.md` names every in-lane author on the roster ("The **QA engineer** and
+the **security analyst** author **bugs** …").
 
 ### Rules
 
