@@ -1,7 +1,7 @@
 {
   "schema_version": "0.16",
   "squads_version": "0.16.0",
-  "counter": 1097,
+  "counter": 1100,
   "padding": 6,
   "items": {
     "12": {
@@ -51745,12 +51745,302 @@
       ],
       "path": "features/FEAT-001097-working-language-one-configured-language-for-the-squad.md",
       "created_at": "2026-10-24T08:48:52Z",
-      "updated_at": "2026-10-24T09:05:39Z",
+      "updated_at": "2026-10-24T09:13:47Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
       "slug_in_file": false,
       "id": "FEAT-1097"
+    },
+    "1098": {
+      "sequence_id": 1098,
+      "type": "task",
+      "title": "Add working_language config, Babel check and rendered rule",
+      "slug": "add-working-language-config-babel-check-and-rendered-rule",
+      "status": "Draft",
+      "description": "Validate working_language with Babel at startup and render the language rule in every backend and the squads skill.",
+      "parent": "FEAT-1097",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1100:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add Babel, the resolver and the raw config key",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Validate on every command and warn on stderr",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Render the rule in both backends and the squads skill",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Write working_language on init and adopt",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Document the key and add the CHANGELOG entry",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Report a malformed working_language in sq check",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001098-add-working-language-config-babel-check-and-rendered-rule.md",
+      "created_at": "2026-10-24T09:11:31Z",
+      "updated_at": "2026-10-24T09:20:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1098"
+    },
+    "1099": {
+      "sequence_id": 1099,
+      "type": "review",
+      "title": "Adopter field report on 0.15.0: upgrade and a day of work",
+      "slug": "adopter-field-report-on-0-15-0-upgrade-and-a-day-of-work",
+      "status": "InReview",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-565",
+        "FEAT-566",
+        "FEAT-124",
+        "ADR-1052"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "The sq import event schema is undocumented: no op/field reference",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "sync reports an older release's generated pointer as 'had drifted'",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "No warning when a type holds items but no active role authors it",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Index-lock contention is silent, and a 10 s wait ends in a raw Timeout traceback",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "A milestone body cannot round-trip: tag refused, rendered roll-up duplicated",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Operator-assigned subtasks need --force to go Todo to Done",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Finding lifecycle has no Noted or Deferred state",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "sq list has no compact form; long titles wrap over several lines",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "sq create bug has no --severity; only priority is exposed at create",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "A review can be Approved with Open findings and sq check stays silent",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "Bundled reviewer guidance does not say when a review is warranted",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "Role-override docs never show splat-refs on list fields",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "sq role show does not say how to change a role's definition",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "Loop step 5 narration sweep names no owner role",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "override scaffold --role writes a near-empty file",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F16",
+          "title": "A second author on a type silently drops its CLAUDE.md workflow bullet",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F17",
+          "title": "Bundled handoffs hardcode @reviewer instead of the review's author",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001099-adopter-field-report-on-0-15-0-upgrade-and-a-day-of-work.md",
+      "created_at": "2026-10-24T09:19:58Z",
+      "updated_at": "2026-10-24T09:23:59Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1099"
+    },
+    "1100": {
+      "sequence_id": 1100,
+      "type": "decision",
+      "title": "working_language: one BCP 47 tag in .squads.toml, English fallback",
+      "slug": "working-language-one-bcp-47-tag-in-squads-toml-english-fallb",
+      "status": "Accepted",
+      "description": "A top-level working_language key holds a Babel-known BCP 47 tag; absent means English silently, malformed warns and falls back to English",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1097"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001100-working-language-one-bcp-47-tag-in-squads-toml-english-fallb.md",
+      "created_at": "2026-10-24T09:20:18Z",
+      "updated_at": "2026-10-24T09:22:24Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1100"
     }
   }
 }
