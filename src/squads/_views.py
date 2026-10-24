@@ -112,7 +112,7 @@ class PlaybookSource:
     ``playbook`` is the *whole* active/merged document *lane* was looked up in — not one
     consumer's ingredient, a second one: a per-type skill (``lane`` alone) never reads it, but
     ``squads_skill.md.j2``'s embedded workflow cheatsheet loops every declared type's own
-    authoring lane (``authoring_owner``, via the shared ``workflow.md.j2`` partial), which
+    authoring lane (``authoring_owners``, via the shared ``workflow.md.j2`` partial), which
     ``lane`` — one type's own entry — cannot answer. Carried here rather than added as a
     parallel ``render_source_view`` context key because it is already in hand at the one place
     a ``playbook`` source resolves (:func:`_resolve_playbook_source`), the same reasoning that
@@ -813,6 +813,18 @@ def out_of_region_view_error(item_id: str, name: str, text: str) -> str | None:
         f"{item_id}: view {name} has a tag outside sq:body (<!-- {stray[0]} -->), which "
         "`view add`/`view disable` do not manage; move it inside the sq:body region first"
     )
+
+
+def unplaced_view_tags(region: str, incoming: str) -> list[str]:
+    """The view tags in *incoming*, as written, that *region* does not already carry with the
+    same name and state. A body read back from the item holds only placed tags, so it answers
+    empty."""
+    _prose, placed = _region_view_tags(region)
+    return [
+        raw
+        for raw, _start, _end in iter_marker_spans(incoming)
+        if (parts := markers.view_tag_parts(raw)) is not None and parts not in placed
+    ]
 
 
 def strip_view_tags(text: str) -> str:

@@ -12,7 +12,7 @@ from _selection_table import service_with, write_override
 
 pytestmark = pytest.mark.anyio
 
-_SIX_KEYS = ["role", "settled", "hidden", "color", "live", "blocked"]
+_KEYS = ["role", "settled", "hidden", "color", "live", "blocked", "deferred"]
 
 
 async def _roles(invoke) -> list[dict[str, object]]:
@@ -21,16 +21,17 @@ async def _roles(invoke) -> list[dict[str, object]]:
     return json.loads(result.output)
 
 
-async def test_every_row_carries_the_six_keys_in_order_and_only_the_blocked_role_is_flagged(
+async def test_every_row_carries_the_keys_in_order_and_only_the_blocked_role_is_flagged(
     project, invoke
 ) -> None:
     rows = await _roles(invoke)
-    assert len(rows) == 8
-    assert all(list(row) == _SIX_KEYS for row in rows)
+    assert len(rows) == 9
+    assert all(list(row) == _KEYS for row in rows)
     assert {row["role"]: row["blocked"] for row in rows} == {
         "active": False,
         "attention": False,
         "blocked": True,
+        "deferred": False,
         "done": False,
         "in_force": False,
         "pending": False,
@@ -43,7 +44,7 @@ async def test_the_text_table_shows_the_column(project, invoke) -> None:
     result = await invoke(["workflow", "roles"])
     assert result.exit_code == 0, result.output
     header, *lines = result.output.splitlines()
-    assert header.split()[-1] == "Blocked"
+    assert header.split()[-2:] == ["Blocked", "Deferred"]
     blocked_line = next(line for line in lines if line.split()[0] == "blocked")
     assert blocked_line.split()[-1] == "yes"
     pending_line = next(line for line in lines if line.split()[0] == "pending")

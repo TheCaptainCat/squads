@@ -45,6 +45,7 @@ async def test_force_still_moves_a_subtask_across_an_edge_the_machine_forbids(
     project, invoke
 ) -> None:
     await _task_with_a_subtask(invoke)
+    await invoke(["task", "2", "subtask", "1", "update", "--status", "Blocked"])
 
     r = await invoke(["task", "2", "subtask", "1", "update", "--status", "Done", "--force"])
 
@@ -56,9 +57,10 @@ async def test_force_still_moves_a_subtask_across_an_edge_the_machine_forbids(
 
 async def test_the_same_edge_without_force_still_reports_the_transition(project, invoke) -> None:
     await _task_with_a_subtask(invoke)
+    await invoke(["task", "2", "subtask", "1", "update", "--status", "Blocked"])
 
     r = await invoke(["task", "2", "subtask", "1", "update", "--status", "Done"])
 
     assert r.exit_code == 1, r.output
-    assert "cannot move Todo" in r.output
+    assert "cannot move Blocked" in r.output
     assert "--force" in r.output

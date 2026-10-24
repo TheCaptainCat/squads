@@ -35,7 +35,8 @@ version of the first; this is the full reference. The rules are enforced — at 
   - a purely-technical task has no feature parent and no such ref.
 - The hierarchy spine is **epic → feature → task**, with **subtasks → user stories**.
 - Other roles read these to do their work: **QA** derives tests from user stories; the **reviewer**
-  drives review items; the **architect** records **ADRs** and authors **guides**.
+  drives review items; the **architect** records **ADRs**; the **architect** and the
+  **technical writer** author **guides**.
 - The **product owner** also names **milestones** (`sq create milestone`) — the releases and cycles
   work is aimed at — and authors **contracts** (`sq create contract`), the living record of what the
   product does for a user. Neither sits in the epic → feature → task spine: work reaches a milestone
@@ -279,7 +280,8 @@ says so, never because of its name and never because it is a dead end. Most sett
 decide whether work is finished.
 
 With the bundled vocabulary the settled statuses are `Accepted`, `Approved`, `Archived`,
-`Cancelled`, `Deprecated`, `Done`, `Published`, `Rejected`, `Superseded`, `Verified` and `WontFix`.
+`Cancelled`, `Deferred`, `Deprecated`, `Done`, `Noted`, `Published`, `Rejected`, `Superseded`,
+`Verified` and `WontFix`.
 `sq inbox` surfaces only **open** (non-settled) items. Hiding in `sq list` / `sq tree` is a
 *separate* axis (`hidden` on the same role) — bundled `Accepted` and `Published` are settled without
 being hidden.
@@ -320,9 +322,9 @@ replace it on purpose.
 
 | Sub-entity | Lives on | Add / transition | Lifecycle |
 |------------|----------|------------------|-----------|
-| **subtask** | task | `sq task <n> add-subtask "…" [--story USn]` · `sq task <n> subtask <k> update --status <S>` | `Todo → InProgress → Done` (+ Blocked, Cancelled) |
-| **user story** | feature | `sq feature <n> add-story "…"` · `sq feature <n> story <k> update --status <S>` | `Todo → InProgress → Done` (+ Blocked, Cancelled) |
-| **finding** | review | `sq review <n> add-finding "…" --severity high` · `sq review <n> finding <k> update --status <S>` | `Open → Fixed → Verified` (+ WontFix) |
+| **subtask** | task | `sq task <n> add-subtask "…" [--story USn]` · `sq task <n> subtask <k> update --status <S>` | `Todo → InProgress → Done`, or `Todo → Done` directly (+ Blocked, Cancelled) |
+| **user story** | feature | `sq feature <n> add-story "…"` · `sq feature <n> story <k> update --status <S>` | `Todo → InProgress → Done`, or `Todo → Done` directly (+ Blocked, Cancelled) |
+| **finding** | review | `sq review <n> add-finding "…" --severity high` · `sq review <n> finding <k> update --status <S>` | `Open → Fixed → Verified` (+ WontFix, Noted, Deferred) |
 
 `sq <type> <n> <kind> <k> update` is the one metadata entry point for a sub-entity — `--title`,
 `--status` (+`--force`), `--assignee`/`--clear-assignee`, plus a subtask's `--story`/`--no-story` and
@@ -331,6 +333,70 @@ a finding's `--severity`. Findings carry a **severity** value from the bundled `
 with `update --severity`. The severity collection is fully customizable via `.overrides/workflow.toml`;
 you can relabel badges, change emoji, add/remove values, or define a custom collection for your
 findings. Transitions are validated by the sub-entity machines; `--force` overrides.
+
+### Closing a finding as Noted or Deferred
+
+A finding has four ways out of `Open`, and two of them say something `Fixed` and `WontFix` cannot:
+
+```
+Open     → { Fixed, WontFix, Noted, Deferred }
+Fixed    → { Verified, Open }
+Verified → { }
+WontFix  → { Open }
+```
+
+- **`Noted`** (🔵, the `done` role) closes a finding with nothing to fix, such as an `info`
+  finding that records a point the reviewer confirmed.
+- **`Deferred`** (🟣, the `deferred` role) says another item carries the work, and the finding
+  names that item:
+
+  ```bash
+  sq review <n> finding <k> update --status Deferred --deferred-to <ID>
+  ```
+
+Both are settled, so neither counts as open work. Neither has an outgoing edge, so reopening one
+takes `--force`.
+
+The rules for the carrier pointer:
+
+- `--deferred-to` takes a full id or a bare number, resolved like a ref; an item that does not
+  exist is refused.
+- Moving to `Deferred` without a carrier is refused, and `--force` does not waive it:
+
+  ```
+  error: <k> cannot be Deferred without the item that carries the work; pass --deferred-to <ID>
+  ```
+
+- On a finding already `Deferred`, `--deferred-to` alone moves the pointer to another item. On a
+  finding in any other status it is refused, and a kind whose lifecycle reaches no deferred
+  status (a story, a subtask) has no `--deferred-to` option.
+- `sq review <n> add-finding "…" --status Deferred --deferred-to <ID>` adds a finding already
+  deferred.
+- Moving the finding out of `Deferred` clears the pointer; the discussion keeps the history.
+- Retyping or renumbering the carrier updates the pointer. Removing the carrier is refused unless
+  you pass `--force`, which clears the pointer and leaves the finding `Deferred` with no carrier.
+
+The pointer is stored as `deferred_to:` on the finding's entry in the review's frontmatter, only
+when set. `sq review <n> show --full` ends the finding's line with `Deferred to <ID> — <title>`,
+`sq review <n> finding <k> show` prints `deferred to: <ID> — <title>`, and every sub-entity
+`--json` object carries `deferred_to` (`null` when absent).
+
+`sq check` verifies the pointer with the `subentity_deferral_resolved` check, at `warn`. It reports
+a deferred finding that names no carrier or one that is not found, a carrier resting at a status
+of the `retired` role (bundled `Cancelled`, or a bug's `WontFix`), and a `deferred_to` on a finding
+that is not deferred. A carrier at a status of the `superseded` role is not reported: its work
+continues in the item that supersedes it.
+
+**If your override redeclares the finding's `Open` list**, your lifecycle stays as you wrote it,
+without `Noted` or `Deferred`. Add both to the list to adopt them:
+
+```toml
+[lifecycles.finding.transitions]
+Open = ["Fixed", "WontFix", "Noted", "Deferred"]
+```
+
+The behaviour comes from the `deferred` flag on the status's role, not from the name `Deferred`,
+so a status of your own gets it by naming a role that sets the flag (see "Status roles" below).
 ---
 
 ## Derived views
@@ -381,6 +447,10 @@ never a second source of truth for it.
 **`show --json` returns the body as stored.** Its `body` key is the text of the item's body region
 with each view tag left as a tag (`<!-- sq:view:milestone_rollup -->`), not the rendered view: what
 it reports is what the item file stores. The rendered text is on `sq show` and `sq show --raw`.
+That body can be written back as it came: `body --force`, `body --append` and an import `body`
+event accept a view tag that is already placed on the item in the same state, and keep it at its
+declared position, so a milestone keeps one roll-up. Any other view tag line is refused, with a
+message that names the line and says to leave it out.
 
 The bundled spec declares one *relation*-sourced view, `milestone_rollup` — see below — plus five
 non-relation ones behind the role/skill surfaces. Declaring your own is a section of the workflow
@@ -752,7 +822,7 @@ All statuses you define in a custom lifecycle must be declared in the `[statuses
 
 #### Status roles: terminal/hidden/color governance
 
-Every status references a **role**, which is a catalog entry governing five attributes:
+Every status references a **role**, which is a catalog entry governing six attributes:
 
 - **`settled`** — boolean; `true` means the status is terminal (work is done; hidden from `sq inbox`
   by default).
@@ -773,22 +843,29 @@ Every status references a **role**, which is a catalog entry governing five attr
   edges. An override that replaces the bundled roles with its own adds `blocked = true` to its
   waiting role before it can select that check (see
   [overrides.md](overrides.md#status-roles-terminalhiddencolor-attributes) § "Status roles").
+- **`deferred`** — boolean, defaults `false`; `true` means a sub-entity at the status has handed
+  its work to another item, which it names with `--deferred-to`. A move into such a status needs
+  that carrier, and `subentity_deferral_resolved` checks it (see "Closing a finding as Noted or
+  Deferred" above). The bundled `deferred` role is the only bundled role that declares it. Only a
+  sub-entity lifecycle may reach a status of such a role; an item lifecycle that does is refused
+  at load, since an item names related work with refs.
 
 Squads ships with a bundled role catalog. In your override, you can reference built-in roles or
 define new ones. A status that names no role resolves to `pending`.
 
 **Bundled roles:**
 
-| Role | `settled` | `hidden` | `color` | `live` | `blocked` | Typical use |
-|------|-----------|----------|---------|--------|-----------|------------|
-| `pending` | `false` | `false` | `neutral` | `false` | `false` | Draft, Proposed, Requested — awaiting action |
-| `active` | `false` | `false` | `positive` | `true` | `false` | InProgress, InReview, ChangesRequested — actively being worked |
-| `attention` | `false` | `false` | `danger` | `false` | `false` | Open issues, failing tests, urgent needs |
-| `blocked` | `false` | `false` | `danger` | `false` | `true` | Blocked — stopped by a dependency |
-| `in_force` | `true` | `false` | `info` | `false` | `false` | Accepted, Published — in effect, terminal but shown |
-| `done` | `true` | `true` | `positive` | `false` | `false` | Done, Verified, Approved — complete and hidden by default |
-| `retired` | `true` | `true` | `muted` | `false` | `false` | Cancelled, Deprecated, Rejected — terminal and hidden |
-| `superseded` | `true` | `true` | `muted` | `false` | `false` | Superseded — replaced by a newer item, terminal and hidden |
+| Role | `settled` | `hidden` | `color` | `live` | `blocked` | `deferred` | Typical use |
+|------|-----------|----------|---------|--------|-----------|------------|------------|
+| `pending` | `false` | `false` | `neutral` | `false` | `false` | `false` | Draft, Proposed, Requested — awaiting action |
+| `active` | `false` | `false` | `positive` | `true` | `false` | `false` | InProgress, InReview, ChangesRequested — actively being worked |
+| `attention` | `false` | `false` | `danger` | `false` | `false` | `false` | Open issues, failing tests, urgent needs |
+| `blocked` | `false` | `false` | `danger` | `false` | `true` | `false` | Blocked — stopped by a dependency |
+| `in_force` | `true` | `false` | `info` | `false` | `false` | `false` | Accepted, Published — in effect, terminal but shown |
+| `deferred` | `true` | `true` | `info` | `false` | `false` | `true` | Deferred — the work is carried by another item the sub-entity names |
+| `done` | `true` | `true` | `positive` | `false` | `false` | `false` | Done, Verified, Noted, Approved — complete and hidden by default |
+| `retired` | `true` | `true` | `muted` | `false` | `false` | `false` | Cancelled, Deprecated, Rejected — terminal and hidden |
+| `superseded` | `true` | `true` | `muted` | `false` | `false` | `false` | Superseded — replaced by a newer item, terminal and hidden |
 
 **Defining a custom role:**
 
@@ -894,7 +971,7 @@ badges = [
 
 `label` is required, and so in practice is `ordered = true`: the key defaults to `false`, and a
 collection that is not ordered is refused at load (`collection 'impact': unordered collections
-are not supported yet`). A collection ranks by declaration order, **strongest first**. `default` is the code used when no value is set.
+are not supported yet`). A collection ranks by declaration order, **strongest first**. `default` is the code an item or sub-entity gets when it is created without a value (see below).
 
 The bundled default collections are `priority` (urgent, high, medium, low) and `severity`
 (critical, high, medium, low, info). A collection is a library — a type carries it by declaring a
@@ -905,8 +982,11 @@ The bundled default collections are `priority` (urgent, high, medium, low) and `
 fields = [{ code = "impact", label = "Impact", collection = "impact" }]
 ```
 
-Values are set with `sq <type> <n> update --set impact=high` and filtered with `sq list --badge
-impact=high` / `--min-badge` / `--sort`. The bundled priority axis additionally has `--priority`
+Values are set at creation with one option per declared field (`sq create incident "…" --impact
+high`), later with `sq <type> <n> update --set impact=high`, and filtered with `sq list --badge
+impact=high` / `--min-badge` / `--sort`. A field created without a value stores the field's own
+`default` if it declares one, else its collection's `default`, else nothing; the bundled bug's
+`severity` field defaults to `medium`. Items that already exist keep what they store. The bundled priority axis additionally has `--priority`
 and `--min-priority` sugar.
 
 Removing a badge code from a collection is refused while live items still carry that code; the

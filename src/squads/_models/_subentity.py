@@ -24,6 +24,9 @@ class SubEntity(BaseModel):
     severity: str | None = None
     #: Subtasks only — the mapped user story's local id (e.g. ``US<n>``).
     story: str | None = None
+    #: Only in a status whose role declares ``deferred`` — the formatted id of the item that
+    #: carries the work.
+    deferred_to: str | None = None
     #: Any other spec-declared field's badge code, keyed by field code (e.g. a custom
     #: ``urgency``). ``severity`` keeps its own typed slot above for byte-identical
     #: round-trip; this is the generic overflow, the direct analog of ``Item.extra``.
@@ -101,6 +104,8 @@ class SubEntity(BaseModel):
             data["severity"] = self.severity
         if self.story:
             data["story"] = self.story
+        if self.deferred_to:
+            data["deferred_to"] = self.deferred_to
         if self.extra:
             data["extra"] = self.extra
         return data

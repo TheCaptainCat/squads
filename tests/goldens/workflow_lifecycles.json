@@ -160,6 +160,8 @@
       "Open",
       "Fixed",
       "WontFix",
+      "Noted",
+      "Deferred",
       "Verified"
     ],
     "transitions": [
@@ -170,6 +172,14 @@
       {
         "from": "Open",
         "to": "WontFix"
+      },
+      {
+        "from": "Open",
+        "to": "Noted"
+      },
+      {
+        "from": "Open",
+        "to": "Deferred"
       },
       {
         "from": "Fixed",
@@ -315,6 +325,10 @@
       {
         "from": "Todo",
         "to": "Cancelled"
+      },
+      {
+        "from": "Todo",
+        "to": "Done"
       },
       {
         "from": "InProgress",

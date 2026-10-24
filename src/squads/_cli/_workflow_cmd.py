@@ -95,7 +95,7 @@ async def _print_cheatsheet(*, raw: bool) -> None:
     """
     from squads._rendering._engine import render
 
-    # The cheatsheet's authoring bullets (authoring_owner) are roster-aware when a live
+    # The cheatsheet's authoring bullets (authoring_owners) are roster-aware when a live
     # roster is available, so an agent reading `sq workflow` sees the same "who actually
     # authors what" answer as CLAUDE.md/the squads skill — never a role this squad doesn't
     # have. `sq workflow` is also a valid reference command *outside* any squad (before
@@ -566,21 +566,22 @@ def workflow_statuses(
 # ─── roles ───────────────────────────────────────────────────────────────────────
 
 #: Frozen field set for the ``sq workflow roles --json`` catalog.
-ROLE_CATALOG_FIELDS: tuple[str, str, str, str, str, str] = (
+ROLE_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str] = (
     "role",
     "settled",
     "hidden",
     "color",
     "live",
     "blocked",
+    "deferred",
 )
 
 
 def _role_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
     """The frozen role-catalog rows, ascending role name — a client joins a status's ``role``
     (from ``sq workflow statuses --json``) to this catalog to resolve ``settled``/``hidden``/
-    ``color``/``live``/``blocked`` instead of hardcoding any role name or deriving it from
-    category."""
+    ``color``/``live``/``blocked``/``deferred`` instead of hardcoding any role name or deriving it
+    from category."""
     return [
         {
             "role": name,
@@ -589,6 +590,7 @@ def _role_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
             "color": r.color,
             "live": r.live,
             "blocked": r.blocked,
+            "deferred": r.deferred,
         }
         for name, r in sorted(spec.roles.items())
     ]
@@ -616,7 +618,7 @@ def workflow_roles(
         return
 
     table = Table(box=None, pad_edge=False)
-    for col in ("Role", "Settled", "Hidden", "Color", "Live", "Blocked"):
+    for col in ("Role", "Settled", "Hidden", "Color", "Live", "Blocked", "Deferred"):
         table.add_column(col)
     for row in rows:
         table.add_row(
@@ -626,6 +628,7 @@ def workflow_roles(
             e(str(row["color"])),
             "yes" if row["live"] else "",
             "yes" if row["blocked"] else "",
+            "yes" if row["deferred"] else "",
         )
     console.print(table)
 
@@ -931,6 +934,7 @@ async def _view_json_payload(
                 assignee=r.assignee,
                 severity=r.badge_value("severity"),
                 story=r.story,
+                deferred_to=r.deferred_to,
             )
             for r in subentities
         ]

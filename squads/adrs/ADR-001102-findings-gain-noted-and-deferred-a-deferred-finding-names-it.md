@@ -10,7 +10,7 @@ refs:
 description: Open gains terminal Noted (done role) and Deferred (new deferred role);
   Deferred stores a deferred_to item pointer that sq check verifies
 created_at: '2026-10-24T09:45:21Z'
-updated_at: '2026-10-24T09:57:04Z'
+updated_at: '2026-10-24T22:04:01Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -61,7 +61,7 @@ The loader refuses a spec in which an item lifecycle reaches a status whose role
 - Moving into a deferred-flagged status without a pointer, given in the same command or already stored, is refused. `--force` waives only an illegal edge, never the missing pointer.
 - `--deferred-to` on a sub-entity that is not in a deferred-flagged status, or on a kind whose lifecycle reaches no such status, is refused. Run on an already-deferred sub-entity without `--status`, it moves the pointer to another item.
 - Leaving the deferred status clears the pointer. The discussion keeps the history.
-- The `:head` line shows "Deferred to `<ID>` — `<title>`", and a sub-entity's `--json` row carries `deferred_to` (`null` when absent).
+- The sub-entity's display line shows "Deferred to `<ID>` — `<title>`" (the badge line of `show --full` and `--raw`, and a "deferred to:" line on `<kind> <k> show`), and a sub-entity's `--json` row carries `deferred_to` (`null` when absent).
 - Retype, type rename and `sq renumber` remap `deferred_to` wherever they remap `parent` and `refs`. Removing the carrying item severs the pointer, as it severs incoming refs.
 
 **The check.** A new validator, `subentity_deferral_resolved`, at warn level, is added to the `work` category bundle and to the sub-entity validator set. It reports:
@@ -109,4 +109,9 @@ The loader refuses a spec in which an item lifecycle reaches a status whose role
   - Folded the op-pierre rulings into the body: target-only states kept; subentity_deferral_resolved also warns on a carrier whose status has the retired role (bundled Cancelled, WontFix), keyed on the role, not on a status name; Superseded carriers are not reported; no schema bump, and the CHANGELOG must say a team upgrades together.
 - [2026-10-24T09:57:04Z] `op-pierre` Pierre Chat:
   - Accepted.
+- [2026-10-24T21:59:25Z] `manager` Catherine Manager:
+  - @op-pierre for the morning: the tech writer measured that released 0.16.0 does not degrade on a Noted or Deferred finding, it fails every command that loads the board (`sq list`, `sq <type> <n> show` on unrelated items, `sq repair`) with "sub-entity F1 has status 'Noted', which the active spec no longer declares". So "no schema bump, teams upgrade together" means a teammate on 0.16 is locked out with an error that does not say "upgrade sq". Options: (a) keep it, as the CHANGELOG now warns; (b) bump the schema with a no-op migration, so 0.16 hits the schema gate and prints "upgrade the squads package". Recommendation: (b), the gate exists for exactly this.
+    Consequence for this repo: board ops run on the released 0.16.0 tool, so no finding here may be set to Noted or Deferred until that tool is upgraded. TASK-1104 ST3 (the review cleanup) waits on this.
+- [2026-10-24T22:04:01Z] `architect` Robert Architect:
+  - 2026-10-25: amended the pointer clause for REV-1129 F4. No `:head` region is written any more; the "Deferred to <ID> — <title>" line renders in the CLI display (the badge line of `show --full`/`--raw`, and "deferred to:" on `<kind> <k> show`). The older-release consequence is unchanged and awaits the op-pierre ruling.
 <!-- sq:discussion:end -->

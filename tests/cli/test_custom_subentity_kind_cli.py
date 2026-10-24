@@ -135,6 +135,7 @@ async def test_add_list_and_mutation_verbs_all_work_with_no_code_change(project,
             "assignee": None,
             "severity": None,
             "story": None,
+            "deferred_to": None,
         }
     ]
 

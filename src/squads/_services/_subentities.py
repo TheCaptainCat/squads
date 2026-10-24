@@ -50,19 +50,6 @@ class SubentitiesMixin(ServiceCore):
             checked[code] = self._parse_badge_code(field, value)
         return checked
 
-    def field_default(self, type_or_kind: str, code: str) -> str | None:
-        """The badge code an omitted field falls back to: the field's own ``default``,
-        else its collection's ``default``, else ``None`` (generic — no field/collection
-        special-cased by name). Public: the CLI's generic add-<kind> builder calls this
-        directly for every declared field, not just ``finding``'s ``severity``."""
-        field = next((f for f in self.spec.fields_for(type_or_kind) if f.code == code), None)
-        if field is None:
-            return None
-        if field.default:
-            return field.default
-        coll = self.spec.collections.get(field.collection)
-        return coll.default if coll else None
-
     async def add_story(
         self,
         feature_id: str,
@@ -98,6 +85,7 @@ class SubentitiesMixin(ServiceCore):
         severity: str | None = None,
         assignee: str | None = None,
         status: str | None = None,
+        deferred_to: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
         # Omit the field entirely when the active spec's `finding` kind declares no
@@ -112,6 +100,7 @@ class SubentitiesMixin(ServiceCore):
             fields={"severity": resolved_severity} if resolved_severity is not None else None,
             assignee=assignee,
             status=status,
+            deferred_to=deferred_to,
             body=body,
         )
 
@@ -122,7 +111,7 @@ class SubentitiesMixin(ServiceCore):
     # per-kind wrappers. The wrappers above stay thin delegators over it for their existing
     # (test) call sites.
 
-    async def add_block(
+    async def add_block(  # noqa: PLR0913 — the sub-entity scaffold entry point
         self,
         item_id: str,
         kind: str,
@@ -132,6 +121,7 @@ class SubentitiesMixin(ServiceCore):
         fields: dict[str, str] | None = None,
         assignee: str | None = None,
         status: str | None = None,
+        deferred_to: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
         """Opens its own transaction, then delegates to :meth:`_add_block_core` — the bulk
@@ -146,6 +136,7 @@ class SubentitiesMixin(ServiceCore):
                 fields=fields,
                 assignee=assignee,
                 status=status,
+                deferred_to=deferred_to,
                 body=body,
             )
 
@@ -160,6 +151,7 @@ class SubentitiesMixin(ServiceCore):
         fields: dict[str, str] | None = None,
         assignee: str | None = None,
         status: str | None = None,
+        deferred_to: str | None = None,
         body: str | None = None,
         now: datetime | None = None,
     ) -> tuple[Item, SubEntity, Item]:
@@ -202,6 +194,7 @@ class SubentitiesMixin(ServiceCore):
         # on the kind's own declarations first.
         for code, value in self._checked_field_values(kind, fields).items():
             sub.set_badge_value(code, value)
+        self._settle_deferral(db, kind, item, sub, moved=True, deferred_to=deferred_to)
         item.subentities.append(sub)
         item.updated_at = now if now is not None else clock.now()
         return item, sub, base
@@ -217,6 +210,7 @@ class SubentitiesMixin(ServiceCore):
         fields: dict[str, str] | None = None,
         assignee: str | None = None,
         status: str | None = None,
+        deferred_to: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
         """The sub-entity-scaffold mutation core: takes an already-open transaction's ``db``."""
@@ -230,6 +224,7 @@ class SubentitiesMixin(ServiceCore):
             fields=fields,
             assignee=assignee,
             status=status,
+            deferred_to=deferred_to,
             body=body,
         )
         local_id = sub.local_id
@@ -357,7 +352,7 @@ class SubentitiesMixin(ServiceCore):
             force=force,
         )
 
-    async def update_finding(
+    async def update_finding(  # noqa: PLR0913 — mirrors `update_block`'s keyword surface
         self,
         review_id: str,
         local_id: str,
@@ -367,6 +362,7 @@ class SubentitiesMixin(ServiceCore):
         assignee: str | None = None,
         clear_assignee: bool = False,
         status: str | None = None,
+        deferred_to: str | None = None,
         force: bool = False,
     ) -> None:
         await self.update_block(
@@ -378,6 +374,7 @@ class SubentitiesMixin(ServiceCore):
             assignee=assignee,
             clear_assignee=clear_assignee,
             status=status,
+            deferred_to=deferred_to,
             force=force,
         )
 
@@ -404,6 +401,7 @@ class SubentitiesMixin(ServiceCore):
         status: str,
         *,
         force: bool = False,
+        deferred_to: str | None = None,
         now: datetime | None = None,
     ) -> tuple[Item, SubEntity, str, Item]:
         """The PURE half of a sub-entity status transition: no file I/O.
@@ -418,6 +416,7 @@ class SubentitiesMixin(ServiceCore):
         base = item.model_copy(deep=True)
         old_status = sub.status
         self._apply_subentity_status(kind, sub, status, force=force)
+        self._settle_deferral(db, kind, item, sub, moved=True, deferred_to=deferred_to)
         item.updated_at = now if now is not None else clock.now()
         return item, sub, old_status, base
 
@@ -430,10 +429,11 @@ class SubentitiesMixin(ServiceCore):
         status: str,
         *,
         force: bool = False,
+        deferred_to: str | None = None,
     ) -> None:
         """The sub-entity status-transition mutation core: takes an already-open ``db``."""
         item, sub, old_status, base = self._set_block_status_model(
-            db, parent_id, kind, local_id, status, force=force
+            db, parent_id, kind, local_id, status, force=force, deferred_to=deferred_to
         )
         await self._write_block_file(item, item_file(self.paths, item), sub=sub, base=base)
         self.store.log(
@@ -507,6 +507,53 @@ class SubentitiesMixin(ServiceCore):
             )
         sub.status = status
 
+    def _settle_deferral(
+        self,
+        db: SquadsDB,
+        kind: str,
+        item: Item,
+        sub: SubEntity,
+        *,
+        moved: bool,
+        deferred_to: str | None,
+    ) -> None:
+        """Bring *sub*'s ``deferred_to`` in line with its status, after a status move
+        (*moved*; a new sub-entity enters its status) and/or a carrier named by the caller.
+
+        A pointer needs a deferred-role status and an existing item; entering such a status
+        without one, stored or given, is refused (``--force`` never waives that); leaving one
+        clears the pointer.
+        """
+        deferred_statuses = self.spec.subentity_deferred_statuses(kind)
+        in_deferred = sub.status in deferred_statuses
+        if deferred_to is not None:
+            if not deferred_statuses:
+                raise SquadsError(
+                    f"{kind}s have no deferred status, so --deferred-to / deferred_to cannot apply"
+                )
+            if not in_deferred:
+                choices = ", ".join(sorted(deferred_statuses))
+                raise SquadsError(
+                    f"a carrier (--deferred-to / deferred_to) applies to a {kind} in a deferred "
+                    f"status ({choices}); "
+                    f"{sub.local_id} is {sub.status}"
+                )
+            carrier = require_item(db, deferred_to)
+            if carrier.id == item.id:
+                raise SquadsError(f"{item.id} cannot carry its own {kind}'s work")
+            if self.spec.item_is_roster(carrier.type):
+                raise SquadsError(
+                    f"{carrier.id} is a {carrier.type}, not an item that carries work"
+                )
+            sub.deferred_to = carrier.id
+        elif moved and not in_deferred:
+            sub.deferred_to = None
+        if moved and in_deferred and sub.deferred_to is None:
+            raise SquadsError(
+                f"{sub.local_id} cannot be {sub.status} without the item that carries the "
+                "work; pass --deferred-to <ID> (import: deferred_to)"
+            )
+
     async def _set_block_assignee(
         self, parent_id: str, kind: str, local_id: str, assignee: str | None
     ) -> None:
@@ -564,6 +611,7 @@ class SubentitiesMixin(ServiceCore):
         assignee: str | None = None,
         clear_assignee: bool = False,
         status: str | None = None,
+        deferred_to: str | None = None,
         force: bool = False,
     ) -> None:
         """Opens its own transaction, then delegates to :meth:`_update_block_core` — the bulk
@@ -581,6 +629,7 @@ class SubentitiesMixin(ServiceCore):
                 assignee=assignee,
                 clear_assignee=clear_assignee,
                 status=status,
+                deferred_to=deferred_to,
                 force=force,
             )
 
@@ -598,6 +647,7 @@ class SubentitiesMixin(ServiceCore):
         assignee: str | None = None,
         clear_assignee: bool = False,
         status: str | None = None,
+        deferred_to: str | None = None,
         force: bool = False,
     ) -> None:
         """The sub-entity metadata-update mutation core: takes an already-open ``db``."""
@@ -623,6 +673,9 @@ class SubentitiesMixin(ServiceCore):
             sub.assignee = assignee
         if status is not None:
             self._apply_subentity_status(kind, sub, status, force=force)
+        self._settle_deferral(
+            db, kind, item, sub, moved=status is not None, deferred_to=deferred_to
+        )
         item.updated_at = clock.now()
         await self._write_block_file(item, item_file(self.paths, item), sub=sub, base=base)
         self.store.log(
@@ -759,7 +812,14 @@ class SubentitiesMixin(ServiceCore):
         comments = discussion.split_discussion(
             disc, sequence_id=item.sequence_id, scope=f"{kind}:{local_id}"
         )
-        return SubentityDetail(info=sub, body=body, discussion=disc, comments=comments)
+        carrier = (await self.store.load()).get(sub.deferred_to) if sub.deferred_to else None
+        return SubentityDetail(
+            info=sub,
+            body=body,
+            discussion=disc,
+            comments=comments,
+            carrier_title=carrier.title if carrier else None,
+        )
 
     async def _write_block_file(
         self,

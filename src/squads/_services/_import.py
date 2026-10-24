@@ -33,14 +33,16 @@ from pydantic import ValidationError
 from squads import _actor as actor
 from squads import _aio
 from squads import _clock as clock
+from squads import _sections as sections
 from squads._context import bind_context, get_context
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import frontmatter_skew, skew_message
+from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import make_ref, split_ref
 from squads._models._participants import refuse_system_actor, require_valid_slug
-from squads._services._base import reject_markers
+from squads._services._base import reject_markers, reject_non_view_markers
 from squads._services._collab import CollabMixin
 from squads._services._import_model import (
     AddFindingEvent,
@@ -264,6 +266,8 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
                     issues,
                     default_kind=default_kind,
                 )
+                if isinstance(ev.event, BodyEvent):
+                    await self._check_body_view_tags(shadow, handles, ev.event)
                 self._simulate_one(shadow, handles, ev)
             except _COLLECTIBLE as exc:
                 issues.append(ImportIssue(line=ev.line, message=str(exc)))
@@ -273,6 +277,24 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             handle_to_sub=dict(handles.subentities),
             issues=issues,
         )
+
+    async def _check_body_view_tags(
+        self, shadow: SquadsDB, handles: HandleMap, event: BodyEvent
+    ) -> None:
+        """Run the apply pass's placed-view-tag comparison against the target's current
+        ``sq:body`` region: its file for an item that exists, its creation scaffold for one this
+        import creates. A missing file or region is left to the apply pass to report."""
+        item = shadow.get(handles.resolve_item(event.target))
+        if item is None:
+            return
+        try:
+            text = await _aio.read_text(item_file(self.paths, item))
+        except FileNotFoundError:
+            region = self.pristine_body(item)
+        else:
+            region = sections.get_section(text, markers.BODY)
+        if region is not None:
+            self._refuse_unplaced_view_tags(item, region.strip("\n"), event.body)
 
     async def _check_target_skew(
         self,
@@ -337,7 +359,14 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             target = handles.resolve_item(event.target)
             local_id = handles.resolve_local(target, event.local)
             self._set_block_status_model(
-                shadow, target, event.kind, local_id, event.status, force=event.force, now=ev.at
+                shadow,
+                target,
+                event.kind,
+                local_id,
+                event.status,
+                force=event.force,
+                deferred_to=handles.resolve_item(event.deferred_to) if event.deferred_to else None,
+                now=ev.at,
             )
         elif isinstance(event, SubBodyEvent):
             self._sim_sub_body(shadow, handles, event)
@@ -380,7 +409,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         # see `ItemsMixin._reject_unwritable_body`'s own docstring for why a second, hand-rolled
         # membership test here would be exactly the drift a single derivation exists to prevent.
         self._reject_unwritable_body(target, item, append=event.append)
-        reject_markers(event.body)
+        reject_non_view_markers(event.body)
 
     def _sim_comment(
         self, shadow: SquadsDB, handles: HandleMap, event: CommentEvent, actor_slug: str
@@ -431,6 +460,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             fields=resolved_fields,
             assignee=event.assignee,
             status=event.status,
+            deferred_to=handles.resolve_item(event.deferred_to) if event.deferred_to else None,
             body=event.body,
             now=ev.at,
         )
@@ -593,7 +623,13 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             target = handles.resolve_item(event.target)
             local_id = handles.resolve_local(target, event.local)
             await self._set_block_status_core(
-                db, target, event.kind, local_id, event.status, force=event.force
+                db,
+                target,
+                event.kind,
+                local_id,
+                event.status,
+                force=event.force,
+                deferred_to=handles.resolve_item(event.deferred_to) if event.deferred_to else None,
             )
             return {require_item(db, target).id}
         if isinstance(event, SubBodyEvent):
@@ -652,6 +688,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             fields=resolved_fields,
             assignee=event.assignee,
             status=event.status,
+            deferred_to=handles.resolve_item(event.deferred_to) if event.deferred_to else None,
             body=event.body,
         )
         if event.handle:

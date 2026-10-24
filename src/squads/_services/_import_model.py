@@ -101,6 +101,7 @@ class AddSubEvent(_EventBase):
     fields: dict[str, str] = {}
     assignee: str | None = None
     status: str | None = None
+    deferred_to: str | None = None
     body: str | None = None
     handle: str | None = None
 
@@ -160,6 +161,7 @@ class AddFindingEvent(_EventBase):
     severity: str | None = None
     assignee: str | None = None
     status: str | None = None
+    deferred_to: str | None = None
     body: str | None = None
     handle: str | None = None
 
@@ -171,6 +173,7 @@ class AddFindingEvent(_EventBase):
             fields={"severity": self.severity} if self.severity else {},
             assignee=self.assignee,
             status=self.status,
+            deferred_to=self.deferred_to,
             body=self.body,
             handle=self.handle,
         )
@@ -184,6 +187,7 @@ class SubStatusEvent(_EventBase):
     kind: str
     local: str
     status: str
+    deferred_to: str | None = None
     force: bool = False
 
 

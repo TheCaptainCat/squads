@@ -53,7 +53,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _TEMPLATES_DIR = _REPO_ROOT / "src" / "squads" / "_rendering" / "templates"
 
 #: The templates whose worked examples are built from `cheatsheet_anchor_type`/
-#: `authoring_owner`/the live roster rather than a hardcoded literal. Not every template in the
+#: `authoring_owners`/the live roster rather than a hardcoded literal. Not every template in the
 #: tree belongs here: a per-type item body template (`items/task.md.j2`) legitimately names its
 #: own type.
 _GUARDED_TEMPLATES: tuple[str, ...] = (

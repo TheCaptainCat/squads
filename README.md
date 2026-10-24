@@ -189,8 +189,8 @@ The following table shows the **bundled default** status lifecycles:
 | guide | `Draft → Published → Deprecated` |
 | role / skill / operator | `Active ⇄ Archived` |
 
-Sub-entities have their own, shorter lifecycles: a story or subtask runs `Todo → InProgress → Done`
-(+ `Blocked`, `Cancelled`); a review finding runs `Open → Fixed → Verified` (+ `WontFix`).
+Sub-entities have their own, shorter lifecycles: a story or subtask runs `Todo → InProgress → Done`,
+or `Todo → Done` directly (+ `Blocked`, `Cancelled`); a review finding runs `Open → Fixed → Verified` (+ `WontFix`, `Noted`, `Deferred`), where `Deferred` names the item that carries the work.
 
 A roster lifecycle also declares which of its statuses are **live** — the ones whose entries are
 presented to an agent host. Archiving a role, skill or operator therefore **retires** it: its
@@ -297,7 +297,7 @@ command has short aliases — `e f t b d c m r g`, plus `feat`/`dec`/`prd`/`mile
 works exactly like the canonical spelling.
 
 **Items**
-- `sq create epic|feature|task|bug|decision|contract|milestone|review|guide TITLE --author <slug> [--parent ID] [--desc] [--label] [--ref ID] [--assignee] [--priority CODE] [-m "body"|--file] [--json]` — where `CODE` is from the bundled priority collection (urgent, high, medium, low) or a custom collection defined in the workflow override; guides take `--tech`/`--tag` in place of `--label`/`--ref`/`--priority`
+- `sq create epic|feature|task|bug|decision|contract|milestone|review|guide TITLE --author <slug> [--parent ID] [--desc] [--label] [--ref ID] [--assignee] [--priority CODE] [--<field> CODE] [-m "body"|--file] [--json]` — one `--<field>` option per field the type declares (a bug's `--severity`, or a field an override adds), where `CODE` is from the field's collection (`--help` lists them); a field left out stores its declared default, so a new bug gets `severity: medium`; guides take `--tech`/`--tag` in place of `--label`/`--ref`/`--priority`
 - `sq list [--type|--status|--category|--parent|--label|--assignee|--priority|--min-priority|--badge|--min-badge|--sort] [--all] [--json]` · `sq tree [ROOT_ID] [--all] [--json]` — closed (Done/Cancelled/…) items are hidden unless `--all` (or an explicit `--status`); `tree --json` emits the nested subtree (status/priority/assignee/blocked) for orchestrating agents
 - `sq <type> <n> show [--full] [--comments] [--raw] [--json]` — `--full` adds a pane per sub-entity, `--comments` the discussion: the whole dossier in one call · `sq show <ID>` shows any item by ID or bare number, whatever its type
 - `sq <type> <n> body [-m "…"|--file PATH] [--append]` · `sq <type> <n> comments` — read the discussion back on its own; each comment shows its short hash
@@ -317,7 +317,7 @@ works exactly like the canonical spelling.
 - `sq feature <n> add-story "…" [--assignee] [-m|--file]` · `sq feature <n> stories`
 - `sq task <n> add-subtask "…" [--story USn] [--assignee] [-m|--file]` · `sq task <n> subtasks`
 - `sq review <n> add-finding "…" [--severity] [--assignee] [-m|--file]` · `sq review <n> findings`
-- `sq <type> <n> <kind> <k> show|update|body|comment` — `update` sets `--title`/`--status`/`--assignee` (+ a subtask's `--story`, a finding's `--severity`)
+- `sq <type> <n> <kind> <k> show|update|body|comment` — `update` sets `--title`/`--status`/`--assignee` (+ a subtask's `--story`, a finding's `--severity` and `--deferred-to <ID>`)
 
 `add-<kind>` **scaffolds an empty block**; set its body with the nested `… <kind> <k> body` (or pass
 `-m`/`--file` to `add-<kind>`). `sq` owns the body, metadata (status/assignee/severity/story), and

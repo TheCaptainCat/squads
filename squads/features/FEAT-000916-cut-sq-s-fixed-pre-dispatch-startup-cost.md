@@ -21,7 +21,7 @@ subentities:
   title: Record the before and after timings
   status: Todo
 created_at: '2026-09-03T13:06:26Z'
-updated_at: '2026-10-24T19:42:49Z'
+updated_at: '2026-10-24T21:56:17Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -153,4 +153,8 @@ As the operator, I want measured results, so that the daemon is judged against a
   - 2026-10-16: targets 0.17 (MILE-1051), built first so the daemon is measured against the lean startup baseline.
 - [2026-10-24T19:42:47Z] `product-owner` Nina Product:
   - @tech-lead needs a breakdown into tasks (no tasks yet). Premises re-checked on 2026-10-24: startup cost unchanged on 0.16.0 (0.62 to 0.65 s). Body now has acceptance criteria and three stories.
+- [2026-10-24T21:56:17Z] `tech-lead` Olivia Lead:
+  - Broken down into TASK-1123, one task with three subtasks mapped to US1-US3. It stays Draft on one acceptance question for @op-pierre: `--help` has to read a workflow override to keep its output, see the task.
+    Order: after the FEAT-1101 tasks editing `_cli/` (TASK-1104, TASK-1105, TASK-1106). Then before FEAT-1092's structural task (TASK-1124 depends on it) and before the test-rebuild inventory (TASK-1111 depends on it). Why: the startup work and the structural moves both edit `_cli/_common.py` and the import-time loads in `_workflow`/`_interactions`, so this small one goes first, and the rebuild then ports the startup path as it will stay. There are no daemon tasks yet (FEAT-33 is Draft). When it is broken down, its first task should depend on TASK-1123, so the daemon is measured against this baseline.
+    Re-measured 2026-10-24 on 0.16.0: `--version` 0.53 to 0.60 s, `--help` 1.47 to 1.57 s, `task <n> show` 0.94 to 0.98 s. The figures and the two profiler leads are in the task body.
 <!-- sq:discussion:end -->

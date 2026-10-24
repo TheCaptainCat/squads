@@ -62,7 +62,7 @@ async def test_tree_json_node_carries_badges_alongside_the_legacy_priority_key(
     nodes = json.loads(result.output)
     assert len(nodes) == 1
     assert nodes[0]["priority"] == "urgent"
-    assert nodes[0]["badges"] == {"priority": "urgent"}
+    assert nodes[0]["badges"] == {"priority": "urgent", "severity": "medium"}
 
 
 async def test_show_json_top_level_badges_alongside_priority_and_severity(project, invoke) -> None:

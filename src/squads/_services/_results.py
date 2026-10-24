@@ -169,6 +169,8 @@ class SubentityDetail:
     body: str
     discussion: str
     comments: list[Comment] = field(default_factory=list[Comment])
+    #: The title of the item named by ``info.deferred_to``; ``None`` when none resolves.
+    carrier_title: str | None = None
 
 
 @dataclass

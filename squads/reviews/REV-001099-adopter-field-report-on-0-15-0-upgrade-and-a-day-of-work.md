@@ -17,7 +17,7 @@ subentities:
   severity: medium
 - local_id: F2
   title: sync reports an older release's generated pointer as 'had drifted'
-  status: Open
+  status: Verified
   severity: low
 - local_id: F3
   title: No warning when a type holds items but no active role authors it
@@ -25,15 +25,15 @@ subentities:
   severity: low
 - local_id: F4
   title: Index-lock contention is silent, and a 10 s wait ends in a raw Timeout traceback
-  status: Open
+  status: Verified
   severity: high
 - local_id: F5
   title: 'A milestone body cannot round-trip: tag refused, rendered roll-up duplicated'
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F6
   title: Operator-assigned subtasks need --force to go Todo to Done
-  status: Open
+  status: Verified
   severity: low
 - local_id: F7
   title: Finding lifecycle has no Noted or Deferred state
@@ -45,7 +45,7 @@ subentities:
   severity: low
 - local_id: F9
   title: sq create bug has no --severity; only priority is exposed at create
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F10
   title: A review can be Approved with Open findings and sq check stays silent
@@ -73,14 +73,14 @@ subentities:
   severity: low
 - local_id: F16
   title: A second author on a type silently drops its CLAUDE.md workflow bullet
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F17
   title: Bundled handoffs hardcode @reviewer instead of the review's author
   status: Open
   severity: low
 created_at: '2026-10-24T09:19:58Z'
-updated_at: '2026-10-24T13:00:12Z'
+updated_at: '2026-10-24T20:57:52Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -213,6 +213,8 @@ the two steps overlap.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-24T20:57:23Z] `manager` Catherine Manager:
+  - Fixed by TASK-1103 (294089b4, 868d5e48); verified in review REV-1122 (Approved).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -270,6 +272,8 @@ same guarantees.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-24T20:57:29Z] `manager` Catherine Manager:
+  - Fixed by TASK-1103 (294089b4, 868d5e48); verified in review REV-1122 (Approved).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -309,6 +313,8 @@ fix for an already-placed view tag.
   - The views key in show --json carries only views that declare a transform.
   - Trust: user transforms are trusted, documented like a conftest.py; no approval gate.
   - The view-transform work is its own feature, top priority, and the F5 fix depends on it.
+- [2026-10-24T20:57:35Z] `manager` Catherine Manager:
+  - Fixed by TASK-1103 (294089b4, 868d5e48); verified in review REV-1122 (Approved).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -331,6 +337,8 @@ default should not require a force for an ordinary case.
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-10-24T20:57:41Z] `manager` Catherine Manager:
+  - Fixed by TASK-1103 (294089b4, 868d5e48); verified in review REV-1122 (Approved).
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -404,6 +412,8 @@ fields, and settle whether a declared default is stored at create time.
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
+- [2026-10-24T20:57:46Z] `manager` Catherine Manager:
+  - Fixed by TASK-1103 (294089b4, 868d5e48); verified in review REV-1122 (Approved).
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -568,6 +578,8 @@ playbook that a second author changes the generated workflow list.
 #### Discussion
 
 <!-- sq:finding:F16:discussion -->
+- [2026-10-24T20:57:52Z] `manager` Catherine Manager:
+  - Fixed by TASK-1103 (294089b4, 868d5e48); verified in review REV-1122 (Approved).
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
 

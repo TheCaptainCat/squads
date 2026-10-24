@@ -21,6 +21,7 @@
         "assignee": null,
         "severity": null,
         "story": null,
+        "deferred_to": null,
         "extra": {}
       }
     ],

@@ -22,6 +22,7 @@
       "assignee": "manager",
       "severity": null,
       "story": "US1",
+      "deferred_to": null,
       "extra": {},
       "body": "_Describe this subtask here \u2014 free-form paragraphs or bullet lists._",
       "badges": {},

@@ -719,6 +719,7 @@ def _register_subentity(item: typer.Typer, kind: str, spec: WorkflowSpec) -> Non
                             assignee=b.assignee,
                             severity=b.severity,
                             story=b.story,
+                            deferred_to=b.deferred_to,
                         )
                         for b in blocks
                     ]
@@ -765,6 +766,31 @@ def _resolve_add_fields(
     return values
 
 
+def _deferred_to_params(kind: str, spec: WorkflowSpec) -> list[inspect.Parameter]:
+    """The ``--deferred-to`` option, present only on a kind whose lifecycle reaches a status of
+    a ``deferred`` role."""
+    if not spec.subentity_deferred_statuses(kind):
+        return []
+    return [
+        inspect.Parameter(
+            "deferred_to",
+            inspect.Parameter.KEYWORD_ONLY,
+            default=typer.Option(
+                None,
+                "--deferred-to",
+                help="Item that carries the work (ID or number); needed for a deferred status.",
+            ),
+            annotation=str | None,
+        )
+    ]
+
+
+async def _resolve_deferred_to(svc: Service, kwargs: dict[str, object]) -> str | None:
+    """The full ID behind ``--deferred-to``, or ``None`` when it was not given."""
+    token = _kw_str(kwargs, "deferred_to")
+    return await resolve_item_id_any(token, svc) if token else None
+
+
 def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
     """Register ``add-<kind>``: base flags + one ``--<field-code>`` option per declared field
     + ``--story`` iff the kind maps to a parent story + ``--status`` to seed a non-initial
@@ -809,6 +835,7 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             ),
             annotation=str | None,
         ),
+        *_deferred_to_params(kind, spec),
         inspect.Parameter(
             "message",
             inspect.Parameter.KEYWORD_ONLY,
@@ -851,6 +878,7 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             fields=field_values or None,
             assignee=validated_assignee,
             status=parse_status(status) if status else None,
+            deferred_to=await _resolve_deferred_to(svc, kwargs),
             body=resolve_body_optional(message or None, file),
         )
         print_block(_id(ctx), res, _kw_bool(kwargs, "json_out"))
@@ -915,6 +943,7 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             default=common.move_status_option(),
             annotation=str | None,
         ),
+        *_deferred_to_params(kind, spec),
         inspect.Parameter(
             "force",
             inspect.Parameter.KEYWORD_ONLY,
@@ -945,7 +974,18 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
         if story and no_story:
             raise SquadsError("use --story or --no-story, not both")
         _guard_update(
-            has_any=any((title, field_values, story, no_story, assignee, clear_assignee, status)),
+            has_any=any(
+                (
+                    title,
+                    field_values,
+                    story,
+                    no_story,
+                    assignee,
+                    clear_assignee,
+                    status,
+                    _kw_str(kwargs, "deferred_to"),
+                )
+            ),
             assignee=assignee,
             clear_assignee=clear_assignee,
         )
@@ -963,6 +1003,7 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             assignee=validated_assignee,
             clear_assignee=clear_assignee,
             status=parse_status(status) if status else None,
+            deferred_to=await _resolve_deferred_to(svc, kwargs),
             force=force,
         )
         console.print(f"updated {pid} {lid}")

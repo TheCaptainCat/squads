@@ -3,7 +3,7 @@ id: TASK-1105
 sequence_id: 1105
 type: task
 title: Add Noted and Deferred finding states with a carrier pointer
-status: Ready
+status: InProgress
 parent: FEAT-1101
 author: tech-lead
 assignee: python-dev
@@ -15,33 +15,33 @@ subentities:
 - local_id: ST1
   title: Declare Noted, Deferred and the deferred role flag, and refuse the flag on
     item lifecycles
-  status: Todo
+  status: Done
   story: US6
 - local_id: ST2
   title: 'Store deferred_to: update and add flags, refusals, head line, JSON row and
     import op'
-  status: Todo
+  status: Done
   story: US6
 - local_id: ST3
   title: Remap deferred_to on retype, type rename and renumber, and sever it on remove
-  status: Todo
+  status: Done
   story: US6
 - local_id: ST4
   title: Add the subentity_deferral_resolved check, with the retired-carrier warning
-  status: Todo
+  status: Done
   story: US6
 - local_id: ST5
   title: Add the Noted and Deferred line to the bundled reviewer guidance
-  status: Todo
+  status: Done
   story: US6
 - local_id: ST6
   title: Refresh the stability and workflow docs for the finding lifecycle, and write
     the CHANGELOG entry
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US6
 created_at: '2026-10-24T10:04:03Z'
-updated_at: '2026-10-24T19:46:24Z'
+updated_at: '2026-10-24T21:58:23Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -194,4 +194,36 @@ Part of REV-1099 F7, per ADR-1102 Consequences. In `docs/stability.md`, update t
 <!-- sq:discussion -->
 - [2026-10-24T19:46:24Z] `tech-lead` Olivia Lead:
   - Rechecked against ADR-1102 (Accepted) and the code; Tests rewritten as one table per behaviour, boundary and failure rows only. Moved to Ready.
+- [2026-10-24T21:34:59Z] `python-dev` Elias Python:
+  - Implemented ADR-1102; ST1 to ST5 Done, ST6 left to the tech writer. Not committed.
+    
+    **Per subtask**
+    - ST1: finding `Open` gains target-only `Noted` (done role, blue) and `Deferred` (new `deferred` role, purple). `RoleSpec.deferred` is a TOML-boolean-only flag; the loader refuses an item lifecycle that reaches a deferred-role status; `sq workflow roles` (json and table) gains `deferred`. New `WorkflowSpec.subentity_deferred_statuses(kind)`; everything keys on the flag.
+    - ST2: typed `SubEntity.deferred_to`, written to frontmatter only when set. `update --deferred-to` and `add-<kind> --status ... --deferred-to` exist only on kinds that reach a deferred status; the service refuses the missing pointer even with `--force`, a nonexistent item, and a wrong status or kind. The pointer moves without `--status` and leaving the status clears it. `sub-status` import events take `deferred_to` (handles resolve). Display: `Deferred to <ID> — <title>` on the finding line in `show --full` and `--raw`, `deferred to:` on `finding <k> show`; every sub-entity JSON row (`show`, `<kind>s --json`, view rows) carries `deferred_to` (null when absent). The `:head` region and `_refresh_head` the task names no longer exist, so the line lives in `_cli/_common._subentity_badge_line`, with the carrier title resolved in `get_block` (`SubentityDetail.carrier_title`).
+    - ST3: `resync_edges` (retype, type rename) remaps the pointer in the index; `renumber` and `repair --renumber` rewrite it through the whole-word id rewrite they already do. `remove_work_item` counts a deferred_to as an incoming reference: refused without `--force`, cleared with it. Same-id groups in `repair --renumber` are listed, not rewritten, by design; the pointer shows up in that list through the generic frontmatter scan.
+    - ST4: `subentity_deferral_resolved` (warn) in VALIDATOR_NAMES, CATALOG, DEFAULT_VALIDATOR_LEVEL, SUBENTITY_VALIDATOR_NAMES and the `work` bundle: missing or unresolved pointer, carrier with the `retired` role (superseded exempt), stray pointer on a non-deferred sub-entity.
+    - ST5: one line in the reviewer guidance (`playbook.toml`).
+    
+    **Generated output**: manifest and content store via `gen_template_manifest.py` then `seed_content_store.py --rebuild` (dropped the one stale 0.17.0 blob; `--release-gate` passes). Goldens via UPDATE_GOLDENS=1 (json shapes, workflow, migrated corpus indexes, cheatsheet, agents section) plus the sq-review skill body and playbook_spec goldens, which have no update switch, regenerated from the test module's own render functions. Note: the stored index now carries `deferred_to: null` on every sub-entity, like `story: null`.
+    
+    **Tests**: 5 new files (service: pointer/lifecycle/entry points, loader flag, remapping, check table; cli: display and json). 21 hand-applied mutations of the source each turn a new test red. Existing tests adjusted: roles flag test, validator-set table, custom-kind json row, and the forced-status walk now skips a deferred status (it needs a carrier). Ran green: tests/meta, integration, cli, unit (8752 passed), plus tests/service by keyword. Full suite not run. `~/.local/bin/sq check` clean; pyright, ruff check and format clean.
+    
+    **CHANGELOG substance (0.17.0)**, as in the task body, plus:
+    - `sq <type> <n> <kind>s --json` and `show --json` rows gain `deferred_to`; `sq workflow roles --json` rows gain `deferred`; the index file gains a `deferred_to: null` per sub-entity.
+    - Removing an item that is a carrier needs `--force`, which clears the pointers.
+    - Import `sub-status` accepts `deferred_to`; import `add-sub`/`add-finding` do not, so a finding added as Deferred through an import is refused.
+    
+    `git status --short`: 24 modified (src 18, tests 6 incl. goldens summarized below), 5 new test files, plus squads/ board files and the untracked .claude/worktrees (not mine). Goldens modified: ~27 files under tests/goldens.
+- [2026-10-24T21:58:23Z] `tech-writer` Theo Writer:
+  - ST6 done: CHANGELOG 0.17.0 entries plus docs, every claim driven on the dev build in a scratch squad. Not committed.
+    
+    - CHANGELOG.md: five Added entries (Noted/Deferred with `--deferred-to` and the display; the `deferred` role flag; `deferred_to`/`deferred` in JSON and import `sub-status`; `subentity_deferral_resolved`; carrier removal needing `--force`), plus a Changed entry telling teams to upgrade together.
+    - docs/workflow.md: a new "Closing a finding as Noted or Deferred" section; the finding row, the settled-status list and the role table/attribute list gain the new states and the flag.
+    - docs/overrides.md: the `deferred` flag bullet with the load refusal and a `Postponed` example; the role table gains the column and the `deferred` row; nine bundled roles.
+    - docs/stability.md: the sub-entity state paragraph (the pointer), the sub-entity JSON object (`deferred_to`), and the `sq workflow roles --json` row (`deferred`).
+    - README.md: the finding lifecycle line and `--deferred-to` among the update options.
+    
+    Measured, and it differs from the ADR's Consequences: released 0.16.0 does not just report undeclared statuses and drop `deferred_to`. Once one review holds a Noted or Deferred finding, 0.16 fails on every command that loads the board (`sq list`, an unrelated `sq task <n> show`, `sq repair`) with "sub-entity F1 has status 'Noted', which the active spec no longer declares". The CHANGELOG states that measured behaviour. @architect the ADR's Consequences line may want a dated correction.
+    
+    Docs guard to run: tests/meta/test_documented_commands_resolve_against_cli.py (new `sq review … update --status Deferred --deferred-to` and `add-finding --status Deferred --deferred-to` invocations). @manager
 <!-- sq:discussion:end -->

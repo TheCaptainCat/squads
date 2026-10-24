@@ -40,7 +40,8 @@ pytestmark = pytest.mark.anyio
 
 
 #: One row per bundled kind: the parent item type, the kind, a declared state that is NOT
-#: reachable from the kind's initial state (so writing it exercises the edge waiver), and a
+#: reachable from some declared state of the kind (so writing it from there exercises the edge
+#: waiver), and a
 #: status that is real vocabulary in the squad but belongs to a *different* kind's machine.
 KIND_ROWS = [
     pytest.param("task", "subtask", "Done", "Verified", id="subtask"),
@@ -58,6 +59,23 @@ async def _parent_with_one_block(svc, item_type: str, kind: str):
 async def _stored_status(svc, item_id: str, kind: str, local_id: str) -> str:
     (sub,) = [s for s in await svc.list_blocks(item_id, kind) if s.local_id == local_id]
     return sub.status
+
+
+async def _park_where_unreachable(svc, item_id: str, kind: str, local_id: str, target: str) -> None:
+    """Move the block to a declared state the machine cannot take to *target*, unless it
+    already sits in one: a kind whose initial state reaches every other state has no edge to
+    waive from there."""
+    current = await _stored_status(svc, item_id, kind, local_id)
+    if not svc.spec.subentity_can_transition(kind, current, target):
+        return
+    parking = next(
+        state
+        for state in sorted(svc.spec.subentity_workflow(kind).states)
+        if svc.spec.subentity_can_transition(kind, current, state)
+        and not svc.spec.subentity_can_transition(kind, state, target)
+        and state != target
+    )
+    await svc.set_block_status(item_id, kind, local_id, parking)
 
 
 def _write_stored_status(path: Path, index: int, status: str) -> None:
@@ -135,6 +153,7 @@ async def test_an_edge_the_machine_forbids_still_succeeds_under_force(
     svc, item_type: str, kind: str, unreachable: str, cross_kind: str
 ) -> None:
     item, local_id = await _parent_with_one_block(svc, item_type, kind)
+    await _park_where_unreachable(svc, item.id, kind, local_id, unreachable)
     initial = await _stored_status(svc, item.id, kind, local_id)
     assert not svc.spec.subentity_can_transition(kind, initial, unreachable)
 
@@ -148,6 +167,7 @@ async def test_an_edge_the_machine_forbids_still_fails_without_force(
     svc, item_type: str, kind: str, unreachable: str, cross_kind: str
 ) -> None:
     item, local_id = await _parent_with_one_block(svc, item_type, kind)
+    await _park_where_unreachable(svc, item.id, kind, local_id, unreachable)
     initial = await _stored_status(svc, item.id, kind, local_id)
 
     with pytest.raises(InvalidTransitionError) as excinfo:
@@ -166,10 +186,12 @@ async def test_every_status_this_door_accepts_leaves_the_integrity_gate_clean(
 ) -> None:
     """Walk the kind's whole declared vocabulary through the forced door — the set of writes
     this path can still accept — and assert the corpus each one produces is one ``sq check``
-    reports no error on."""
+    reports no error on. A deferred status needs the item that carries the work, which this
+    door cannot be given, so it is not among the writes it accepts."""
     item, local_id = await _parent_with_one_block(svc, item_type, kind)
 
-    for status in sorted(svc.spec.subentity_workflow(kind).states):
+    accepted = svc.spec.subentity_workflow(kind).states - svc.spec.subentity_deferred_statuses(kind)
+    for status in sorted(accepted):
         await svc.set_block_status(item.id, kind, local_id, status, force=True)
         assert await _stored_status(svc, item.id, kind, local_id) == status
         errors = [i for i in await svc.check() if i.level == "error"]

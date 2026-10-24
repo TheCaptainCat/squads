@@ -9,6 +9,7 @@ resolves the active spec via ``common.get_active_spec()`` at Click dispatch time
 the root callback — so the same spec that the resource groups see is also visible here.
 """
 
+import contextlib
 import json
 from collections.abc import Callable
 from typing import Any, ClassVar
@@ -35,6 +36,7 @@ from squads._models._attributes import AttributeKey
 from squads._models._item import make_ref, split_ref
 from squads._services._service import Service
 from squads._workflow import bundled_spec
+from squads._workflow._models import Field, WorkflowSpec
 
 
 async def _resolve_parent_option(parent: str | None, svc: Service) -> str | None:
@@ -109,6 +111,72 @@ def _refresh_priority_help(item_type_str: str) -> Callable[[list[object]], None]
     return _refresh
 
 
+def _field_help(item_type: str, field: Field, spec: WorkflowSpec) -> str:
+    """``--<field-code>`` help for *field* on *item_type*: its label and the codes of the
+    collection it binds."""
+    coll = spec.collections.get(field.collection)
+    if coll and coll.badges:
+        return f"{field.label}: {'|'.join(b.code for b in coll.badges)}."
+    return f"{field.label} badge code."
+
+
+#: ``Context.meta`` key under which the declared-field options file the values they receive.
+_FIELDS_META_KEY = "squads.create_fields"
+
+
+def _remember_field(ctx: _click.Context, param: _click.Parameter, value: str | None) -> None:
+    """Option callback: file *value* under its field code. The options are added per
+    invocation, so the command function has no parameter to receive them."""
+    if value is not None and param.name is not None:
+        ctx.meta.setdefault(_FIELDS_META_KEY, {})[param.name] = value
+
+
+def _declared_field_options(item_type: str, taken: set[str]) -> list[typer.core.TyperOption]:
+    """One ``--<field-code>`` option per field *item_type* declares in the active spec, skipping
+    the codes whose option already exists (``--priority`` is a static option)."""
+    spec = common.get_active_spec()
+    return [
+        typer.core.TyperOption(
+            param_decls=[f"--{f.code}", f.code],
+            default=None,
+            help=_field_help(item_type, f, spec),
+            expose_value=False,
+            callback=_remember_field,
+        )
+        for f in spec.fields_for(item_type)
+        if f.code not in taken
+    ]
+
+
+def _create_command_cls(item_type: str) -> type[typer.core.TyperCommand]:
+    """The command class for ``sq create <item_type>``: its ``--help`` and its options follow
+    the live spec, so a field an override declares is settable by its code like a bundled one.
+
+    The options are added in ``get_params``, which Click runs for parsing and for ``--help``
+    alike, after the per-invocation spec is bound. Fail-soft for the reason
+    :func:`common.spec_aware_command_cls` documents.
+    """
+    base = common.spec_aware_command_cls(_refresh_priority_help(item_type))
+
+    class _CreateCommand(base):
+        def get_params(self, ctx: Any) -> list[Any]:
+            params = super().get_params(ctx)
+            with contextlib.suppress(Exception):
+                taken = {
+                    opt.removeprefix("--") for p in params for opt in (*p.opts, *p.secondary_opts)
+                }
+                params = [*params, *_declared_field_options(item_type, taken)]
+            return params
+
+    return _CreateCommand
+
+
+def _given_fields(ctx: typer.Context) -> dict[str, str] | None:
+    """The values the declared-field options received, keyed by field code; ``None`` when none
+    was given."""
+    return dict(ctx.meta.get(_FIELDS_META_KEY, {})) or None
+
+
 def _build_create_cmd(item_type_str: str) -> _click.Command:
     """Build a Click command for ``sq create <item_type_str> TITLE …``.
 
@@ -119,66 +187,6 @@ def _build_create_cmd(item_type_str: str) -> _click.Command:
     ``click.Command`` (not a group).  This way ``sq create incident TITLE`` dispatches
     correctly — ``incident`` is a leaf command, not another group.
     """
-
-    @common.command
-    async def _cmd(  # noqa: PLR0913 — Typer options are the command's surface
-        title: str = typer.Argument(..., help="Item title."),
-        author: str = common.author_option(),
-        parent: str | None = common.parent_option(),
-        desc: str = common.desc_option(),
-        label: list[str] = common.label_option(),
-        ref: list[str] = typer.Option(
-            None, "--ref", help="Item to ref, as `ID` or `ID:kind` (repeatable)."
-        ),
-        assignee: str | None = common.assignee_option(),
-        priority: str | None = typer.Option(None, "--priority", help=_priority_help(item_type_str)),
-        message: list[str] = common.message_option(),
-        file: str | None = common.file_option(),
-        json_out: bool = typer.Option(
-            False, "--json", help="Print one JSON object: the created item."
-        ),
-    ):
-        svc = get_service()
-        # --author/--assignee accept only a live slug: a retired role stops being
-        # an active participant, though its past authorship stays readable.
-        validated_author = await resolve_slug_or_raise(author, svc)
-        actor.set_actor(validated_author)
-        validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
-        resolved_parent = await _resolve_parent_option(parent, svc)
-        resolved_refs: list[str] | None = None
-        if ref:
-            resolved_refs = []
-            for r in ref:
-                rid, kind = split_ref(r)
-                resolved_refs.append(make_ref(await resolve_item_id_any(rid, svc), kind))
-        res = await svc.create(
-            item_type_str,
-            title,
-            description=desc,
-            parent=resolved_parent,
-            author=validated_author,
-            labels=label or None,
-            refs=resolved_refs,
-            assignee=validated_assignee,
-            # No pre-parse here: the collection `priority` binds is per-type, and the
-            # service's `_check_priority` already resolves it from the type's own declared
-            # field. A second CLI-side parse against a literally-named collection is the
-            # third door into a two-door axis, and the one that gets it wrong.
-            priority=priority,
-            body=resolve_body_optional(message or None, file),
-        )
-        if json_out:
-            data = res.item.to_row()
-            if res.lane_warning is not None:
-                data["lane_warning"] = res.lane_warning
-            print_json_clean(json.dumps(data))
-        else:
-            console.print(f"created [bold]{res.item.id}[/bold] → {res.path}")
-            if res.lane_warning is not None:
-                console.print(e(res.lane_warning))
-
-    _cmd.__name__ = f"create_{item_type_str}"
-
     # Register the function as the sole command in a fresh Typer app.  When there is
     # exactly one command, ``typer.main.get_command`` returns the command directly (a
     # ``TyperCommand``, which is a ``click.Command``), not a group — so the caller gets a
@@ -188,8 +196,8 @@ def _build_create_cmd(item_type_str: str) -> _click.Command:
     _tmp_app.command(
         item_type_str,
         help=f"Create {common.article(item_type_str)} {item_type_str}.",
-        cls=common.spec_aware_command_cls(_refresh_priority_help(item_type_str)),
-    )(_cmd)
+        cls=_create_command_cls(item_type_str),
+    )(_make(item_type_str))
     leaf: _click.Command = typer.main.get_command(_tmp_app)  # type: ignore[assignment]
     leaf.name = item_type_str
     return leaf
@@ -370,6 +378,7 @@ _CREATABLE: tuple[str, ...] = tuple(
 def _make(item_type_str: str):
     @common.command
     async def cmd(  # noqa: PLR0913 — Typer options are the command's surface
+        ctx: typer.Context,
         title: str = typer.Argument(..., help="Item title."),
         author: str = common.author_option(),
         parent: str | None = common.parent_option(),
@@ -413,6 +422,7 @@ def _make(item_type_str: str):
             # field. A second CLI-side parse against a literally-named collection is the
             # third door into a two-door axis, and the one that gets it wrong.
             priority=priority,
+            fields=_given_fields(ctx),
             body=resolve_body_optional(message or None, file),
         )
         if json_out:
@@ -433,7 +443,7 @@ for _t in _CREATABLE:
     create_app.command(
         _t,
         help=f"Create {common.article(_t)} {_t}.",
-        cls=common.spec_aware_command_cls(_refresh_priority_help(_t)),
+        cls=_create_command_cls(_t),
     )(_make(_t))
 
 # Register hidden aliases for the _CREATABLE types so `sq create feat TITLE` dispatches
@@ -442,9 +452,7 @@ for _t in _CREATABLE:
 # in --help, preserving byte-identical output.
 for _t in _CREATABLE:
     for _alias in _create_spec.items[_t].aliases:
-        create_app.command(
-            _alias, hidden=True, cls=common.spec_aware_command_cls(_refresh_priority_help(_t))
-        )(_make(_t))
+        create_app.command(_alias, hidden=True, cls=_create_command_cls(_t))(_make(_t))
 
 # Type names with a static `sq create <type>` command already registered above — used by
 # _CustomCreateGroup to draw the line between "already known" and "resolve dynamically".

@@ -78,3 +78,14 @@ class IndexFullError(SquadsError):
         super().__init__(message)
         self.capacity = capacity
         self.padding = padding
+
+
+class IndexLockTimeoutError(SquadsError):
+    """The index lock stayed held by another process for the whole wait."""
+
+    def __init__(self, lock_path: Path) -> None:
+        super().__init__(
+            f"the index lock {lock_path} is held by another sq process; "
+            "nothing was written, retry the command"
+        )
+        self.lock_path = lock_path

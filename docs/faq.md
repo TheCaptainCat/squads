@@ -42,6 +42,15 @@ truth, so just rebuild: `sq repair` — on a clean working tree, since it
 [rewrites item files too](#does-sq-repair-change-my-files). If two branches reused an ID number,
 use `sq repair --renumber` to fix it after the merge (see **Handling ID collisions** below).
 
+### "waiting for the index lock …" / "the index lock … is held by another sq process"
+Every write takes a lock on `.squads.json.lock`, so two `sq` commands that write at once run one
+after the other. A command that has waited about a second prints
+`waiting for the index lock <path>…` on stderr and keeps waiting. If the lock is still held after
+10 seconds, it exits `1` with `error: the index lock <path> is held by another sq process; nothing
+was written, retry the command`. Nothing was written, so run the command again; if it keeps
+failing, look for an `sq` process that is still running. The notice and the error go to stderr
+only, so `--json` output on stdout stays clean.
+
 ### "a task's parent must be of type feature …"
 The hierarchy is enforced: a **task**'s parent must be a **feature**, a **feature**'s parent an
 **epic**. A bug or review is *not* a parent — attach it with a ref:

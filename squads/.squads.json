@@ -1,7 +1,7 @@
 {
   "schema_version": "0.16",
   "squads_version": "0.16.0",
-  "counter": 1120,
+  "counter": 1129,
   "padding": 6,
   "items": {
     "12": {
@@ -7170,7 +7170,7 @@
       ],
       "path": "features/FEAT-000916-cut-sq-s-fixed-pre-dispatch-startup-cost.md",
       "created_at": "2026-09-03T13:06:26Z",
-      "updated_at": "2026-10-24T19:42:49Z",
+      "updated_at": "2026-10-24T21:56:17Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -8344,7 +8344,7 @@
       ],
       "path": "features/FEAT-001092-structural-cleanup-of-engine-layering-and-cohesion.md",
       "created_at": "2026-10-17T03:49:43Z",
-      "updated_at": "2026-10-24T19:43:22Z",
+      "updated_at": "2026-10-24T21:59:26Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -51894,7 +51894,7 @@
         {
           "local_id": "F2",
           "title": "sync reports an older release's generated pointer as 'had drifted'",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -51912,7 +51912,7 @@
         {
           "local_id": "F4",
           "title": "Index-lock contention is silent, and a 10 s wait ends in a raw Timeout traceback",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "high",
           "story": null,
@@ -51921,7 +51921,7 @@
         {
           "local_id": "F5",
           "title": "A milestone body cannot round-trip: tag refused, rendered roll-up duplicated",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -51930,7 +51930,7 @@
         {
           "local_id": "F6",
           "title": "Operator-assigned subtasks need --force to go Todo to Done",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -51957,7 +51957,7 @@
         {
           "local_id": "F9",
           "title": "sq create bug has no --severity; only priority is exposed at create",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -52020,7 +52020,7 @@
         {
           "local_id": "F16",
           "title": "A second author on a type silently drops its CLAUDE.md workflow bullet",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -52038,7 +52038,7 @@
       ],
       "path": "reviews/REV-001099-adopter-field-report-on-0-15-0-upgrade-and-a-day-of-work.md",
       "created_at": "2026-10-24T09:19:58Z",
-      "updated_at": "2026-10-24T13:00:12Z",
+      "updated_at": "2026-10-24T20:57:52Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52199,7 +52199,7 @@
       "subentities": [],
       "path": "adrs/ADR-001102-findings-gain-noted-and-deferred-a-deferred-finding-names-it.md",
       "created_at": "2026-10-24T09:45:21Z",
-      "updated_at": "2026-10-24T09:57:04Z",
+      "updated_at": "2026-10-24T22:04:01Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52211,7 +52211,7 @@
       "type": "task",
       "title": "Fix lock contention, milestone round-trip, create fields, sync wording",
       "slug": "fix-lock-contention-milestone-round-trip-create-fields-sync",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Defects F4, F5, F9, F16, F6 and F2 from REV-1099, plus BUG-1120.",
       "parent": "FEAT-1101",
       "author": "tech-lead",
@@ -52237,7 +52237,7 @@
         {
           "local_id": "ST2",
           "title": "Stop a milestone body write-back from duplicating the roll-up, and name the fix for a view tag",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -52246,7 +52246,7 @@
         {
           "local_id": "ST3",
           "title": "Expose every declared field as a create option and store a declared default",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -52255,7 +52255,7 @@
         {
           "local_id": "ST4",
           "title": "Render a type's Team workflow line for any number of authoring roles",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -52264,7 +52264,7 @@
         {
           "local_id": "ST5",
           "title": "Word a regenerated pointer and the post-migrate line accurately",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -52273,7 +52273,7 @@
         {
           "local_id": "ST6",
           "title": "Allow Todo to Done in the bundled sub-entity lifecycle",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -52282,7 +52282,7 @@
         {
           "local_id": "ST7",
           "title": "Write the 0.17.0 CHANGELOG entries for this task's defect fixes",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "severity": null,
           "story": "US1",
@@ -52291,7 +52291,7 @@
         {
           "local_id": "ST8",
           "title": "Rebuild the index when init --force runs over an existing squad",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -52300,7 +52300,7 @@
       ],
       "path": "tasks/TASK-001103-fix-lock-contention-milestone-round-trip-create-fields-sync.md",
       "created_at": "2026-10-24T10:04:00Z",
-      "updated_at": "2026-10-24T19:47:52Z",
+      "updated_at": "2026-10-24T20:58:01Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52376,7 +52376,7 @@
       "type": "task",
       "title": "Add Noted and Deferred finding states with a carrier pointer",
       "slug": "add-noted-and-deferred-finding-states-with-a-carrier-pointer",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "The finding lifecycle of ADR-1102 (REV-1099 F7).",
       "parent": "FEAT-1101",
       "author": "tech-lead",
@@ -52392,7 +52392,7 @@
         {
           "local_id": "ST1",
           "title": "Declare Noted, Deferred and the deferred role flag, and refuse the flag on item lifecycles",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -52401,7 +52401,7 @@
         {
           "local_id": "ST2",
           "title": "Store deferred_to: update and add flags, refusals, head line, JSON row and import op",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -52410,7 +52410,7 @@
         {
           "local_id": "ST3",
           "title": "Remap deferred_to on retype, type rename and renumber, and sever it on remove",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -52419,7 +52419,7 @@
         {
           "local_id": "ST4",
           "title": "Add the subentity_deferral_resolved check, with the retired-carrier warning",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -52428,7 +52428,7 @@
         {
           "local_id": "ST5",
           "title": "Add the Noted and Deferred line to the bundled reviewer guidance",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -52437,7 +52437,7 @@
         {
           "local_id": "ST6",
           "title": "Refresh the stability and workflow docs for the finding lifecycle, and write the CHANGELOG entry",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "severity": null,
           "story": "US6",
@@ -52446,7 +52446,7 @@
       ],
       "path": "tasks/TASK-001105-add-noted-and-deferred-finding-states-with-a-carrier-pointer.md",
       "created_at": "2026-10-24T10:04:03Z",
-      "updated_at": "2026-10-24T19:46:24Z",
+      "updated_at": "2026-10-24T21:58:23Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52467,7 +52467,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-1099:addresses"
+        "REV-1099:addresses",
+        "ADR-1121:implements"
       ],
       "subentities": [
         {
@@ -52499,7 +52500,7 @@
         },
         {
           "local_id": "ST4",
-          "title": "Word the bundled review and bug handoffs by the item's author",
+          "title": "Declare bundled capabilities and resolve @*name tokens in skills",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -52523,11 +52524,29 @@
           "severity": null,
           "story": "US7",
           "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Convert every bundled hand-off to capability tokens",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "extra": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Report unheld capability tokens in override guides",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "extra": {}
         }
       ],
       "path": "tasks/TASK-001106-role-ergonomics-bundled-handoffs-and-a-compact-sq-list.md",
       "created_at": "2026-10-24T10:04:05Z",
-      "updated_at": "2026-10-24T19:46:25Z",
+      "updated_at": "2026-10-24T21:23:27Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52836,7 +52855,11 @@
         "TASK-1104:depends-on",
         "TASK-1105:depends-on",
         "TASK-1106:depends-on",
-        "TASK-1107:depends-on"
+        "TASK-1107:depends-on",
+        "TASK-1123:depends-on",
+        "TASK-1124:depends-on",
+        "TASK-1125:depends-on",
+        "TASK-1126:depends-on"
       ],
       "subentities": [
         {
@@ -52869,7 +52892,7 @@
       ],
       "path": "tasks/TASK-001111-inventory-the-old-suite-parity-ledger-and-falsification-audi.md",
       "created_at": "2026-10-24T13:42:12Z",
-      "updated_at": "2026-10-24T19:48:41Z",
+      "updated_at": "2026-10-24T21:56:19Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52919,11 +52942,20 @@
           "severity": null,
           "story": "US5",
           "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Hold the new root to the one-line test docstring rule",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
         }
       ],
       "path": "tasks/TASK-001112-set-up-the-new-suite-root-its-conventions-and-meta-guards.md",
       "created_at": "2026-10-24T13:42:14Z",
-      "updated_at": "2026-10-24T19:48:43Z",
+      "updated_at": "2026-10-24T21:56:20Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -53157,11 +53189,20 @@
           "severity": null,
           "story": "US10",
           "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Delete the per-kind sub-entity service wrappers",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US9",
+          "extra": {}
         }
       ],
       "path": "tasks/TASK-001116-close-the-rebuild-and-measure-per-os-ci-against-the-targets.md",
       "created_at": "2026-10-24T13:42:20Z",
-      "updated_at": "2026-10-24T19:48:48Z",
+      "updated_at": "2026-10-24T21:56:21Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -53453,7 +53494,7 @@
       "type": "bug",
       "title": "init --force on an existing squad leaves skills out of the index",
       "slug": "init-force-on-an-existing-squad-leaves-skills-out-of-the-ind",
-      "status": "Open",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -53465,12 +53506,566 @@
       "subentities": [],
       "path": "bugs/BUG-001120-init-force-on-an-existing-squad-leaves-skills-out-of-the-ind.md",
       "created_at": "2026-10-24T18:52:57Z",
-      "updated_at": "2026-10-24T18:53:00Z",
+      "updated_at": "2026-10-24T20:59:27Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
       "slug_in_file": false,
       "id": "BUG-1120"
+    },
+    "1121": {
+      "sequence_id": 1121,
+      "type": "decision",
+      "title": "Hand-offs mention roles by capability",
+      "slug": "hand-offs-mention-roles-by-capability",
+      "status": "Accepted",
+      "description": "A handoff names a capability (@*review) and renders as the @-mentions of its live holders.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1106",
+        "REV-1099"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001121-hand-offs-mention-roles-by-capability.md",
+      "created_at": "2026-10-24T20:03:12Z",
+      "updated_at": "2026-10-24T21:20:49Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1121"
+    },
+    "1122": {
+      "sequence_id": 1122,
+      "type": "review",
+      "title": "Review TASK-1103 lock, view-tag, create-field and init fixes",
+      "slug": "review-task-1103-lock-view-tag-create-field-and-init-fixes",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1103"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Import dry-run passes a body op whose view tag is unplaced; the apply then fails with no line number",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Operator body refusal names view add/disable verbs that the operator type does not have",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "A field code matching a built-in create option is silently shadowed, or doubles --json and breaks it",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "init --force empties the index before repair, so a lock timeout or bad item file loses it",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Authoring roles are ordered by first lane across all types, not the type's declared order",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001122-review-task-1103-lock-view-tag-create-field-and-init-fixes.md",
+      "created_at": "2026-10-24T20:32:14Z",
+      "updated_at": "2026-10-24T20:57:02Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1122"
+    },
+    "1123": {
+      "sequence_id": 1123,
+      "type": "task",
+      "title": "Cut sq's fixed startup cost, measured before and after",
+      "slug": "cut-sq-s-fixed-startup-cost-measured-before-and-after",
+      "status": "Draft",
+      "description": "Attribute the fixed cost by phase, defer what no command needs, record timings.",
+      "parent": "FEAT-916",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1104:depends-on",
+        "TASK-1105:depends-on",
+        "TASK-1106:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Attribute the fixed startup cost by phase",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Defer startup work the invoked command does not need",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Record before and after timings on FEAT-916",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001123-cut-sq-s-fixed-startup-cost-measured-before-and-after.md",
+      "created_at": "2026-10-24T21:53:14Z",
+      "updated_at": "2026-10-24T21:56:14Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1123"
+    },
+    "1124": {
+      "sequence_id": 1124,
+      "type": "task",
+      "title": "Move the roster, thread the spec and split oversized modules",
+      "slug": "move-the-roster-thread-the-spec-and-split-oversized-modules",
+      "status": "Ready",
+      "description": "Behaviour-free moves for REV-956 F3, F5-F10, F12: roster, interactions init, spec threading, loaders, file splits.",
+      "parent": "FEAT-1092",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-956:addresses",
+        "TASK-1123:depends-on",
+        "TASK-1106:depends-on",
+        "TASK-1077:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Extract the roster projection into a collaborator",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Move the interactions init into named modules",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Prune bundled shims and make spec parameters required",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Load the three spec documents through one descriptor",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Split registries, validity checks and ordering out of models",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Share the corpus walk and move check into its own mixin",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Move the view tag engine and remedy builders out of views",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Replace bundled sub-entity tags with one generic helper",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001124-move-the-roster-thread-the-spec-and-split-oversized-modules.md",
+      "created_at": "2026-10-24T21:53:25Z",
+      "updated_at": "2026-10-24T21:55:43Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1124"
+    },
+    "1125": {
+      "sequence_id": 1125,
+      "type": "task",
+      "title": "Build Service at one composition root, without module state",
+      "slug": "build-service-at-one-composition-root-without-module-state",
+      "status": "Draft",
+      "description": "REV-956 F15: one composition function, collaborators passed in, renderer squad dir explicit, literal backend table.",
+      "parent": "FEAT-1092",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-956:addresses",
+        "TASK-1124:depends-on",
+        "ADR-1128:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Route every Service construction through one function",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Pass store and backends in; make the registry a table",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Pass the squad directory to the renderer explicitly",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001125-build-service-at-one-composition-root-without-module-state.md",
+      "created_at": "2026-10-24T21:53:44Z",
+      "updated_at": "2026-10-24T21:59:28Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1125"
+    },
+    "1126": {
+      "sequence_id": 1126,
+      "type": "task",
+      "title": "Name every sq check finding by a registered rule",
+      "slug": "name-every-sq-check-finding-by-a-registered-rule",
+      "status": "Ready",
+      "description": "REV-956 F11: additive rule key in sq check --json, a rule registry, a guard, and adopter docs on binding rules.",
+      "parent": "FEAT-1092",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-956:addresses",
+        "TASK-1125:depends-on",
+        "TASK-1124:depends-on",
+        "TASK-1077:depends-on",
+        "TASK-1104:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add the rule field, registry and guard; emit rule in --json",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Document the binding check rules for adopters",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001126-name-every-sq-check-finding-by-a-registered-rule.md",
+      "created_at": "2026-10-24T21:53:55Z",
+      "updated_at": "2026-10-24T21:55:44Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1126"
+    },
+    "1127": {
+      "sequence_id": 1127,
+      "type": "task",
+      "title": "Apply the comment rule to source docstrings and comments",
+      "slug": "apply-the-comment-rule-to-source-docstrings-and-comments",
+      "status": "Ready",
+      "description": "REV-956 F18: per-package prose sweep of src/ against the comment rule, plus a release-version guard.",
+      "parent": "FEAT-1092",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-956:addresses",
+        "TASK-1126:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Re-run the comment scan and add the version guard",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Sweep the services package",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Sweep workflow, overrides, index, models and migrations",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Sweep the CLI and TUI, leaving help docstrings",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Sweep the remaining packages and report the after-count",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001127-apply-the-comment-rule-to-source-docstrings-and-comments.md",
+      "created_at": "2026-10-24T21:54:04Z",
+      "updated_at": "2026-10-24T21:55:45Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1127"
+    },
+    "1128": {
+      "sequence_id": 1128,
+      "type": "decision",
+      "title": "Service wiring: a DI container or one composition function",
+      "slug": "service-wiring-a-di-container-or-one-composition-function",
+      "status": "Proposed",
+      "description": "REV-956 F14: options A (no container, one composition function) and B (soupape); recommends A, reopen on request-scoped growth in the daemon",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1092",
+        "REV-956",
+        "TASK-1125",
+        "ADR-1052"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001128-service-wiring-a-di-container-or-one-composition-function.md",
+      "created_at": "2026-10-24T21:58:58Z",
+      "updated_at": "2026-10-24T21:59:25Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1128"
+    },
+    "1129": {
+      "sequence_id": 1129,
+      "type": "review",
+      "title": "Review of the Noted and Deferred finding states",
+      "slug": "review-of-the-noted-and-deferred-finding-states",
+      "status": "ChangesRequested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1105"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Released 0.16 hard-stops on every command once one finding is Noted or Deferred",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Import add-finding cannot seed a Deferred finding, and the refusal names a CLI flag",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "A deferred-flagged initial status lets add-<kind> create a deferred entity with no pointer",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "ADR-1102 names a :head line that is no longer written; amend the clause",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "_status_deferred is a fourth copy of the status-to-role lookup",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Tests: pointer table split into functions, a cross-layer duplicate, index-only seeding",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Self-pointers and roster items are accepted as deferral carriers",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001129-review-of-the-noted-and-deferred-finding-states.md",
+      "created_at": "2026-10-24T22:00:20Z",
+      "updated_at": "2026-10-24T22:23:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1129"
     }
   }
 }

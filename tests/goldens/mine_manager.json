@@ -23,6 +23,7 @@
         "assignee": "manager",
         "severity": null,
         "story": "US1",
+        "deferred_to": null,
         "extra": {}
       }
     ],

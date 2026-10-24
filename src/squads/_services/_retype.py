@@ -280,7 +280,8 @@ async def apply_type_change(
 
 
 def resync_edges(db: SquadsDB, remap: dict[str, str], *, exclude: set[int]) -> None:
-    """Update in-memory index entries whose parent or refs point at any old ID in *remap*.
+    """Update in-memory index entries whose parent, refs or sub-entity ``deferred_to`` point at any
+    old ID in *remap*.
 
     Bulk-capable by construction: one pass over ``db.items`` applies every ``{old: new}``
     pair in *remap*, so a multi-item rename resyncs edges once instead of once per renamed
@@ -293,6 +294,9 @@ def resync_edges(db: SquadsDB, remap: dict[str, str], *, exclude: set[int]) -> N
         if other.parent in remap:
             other.parent = remap[other.parent]
         other.refs = [_remap_ref(r, remap) for r in other.refs]
+        for sub in other.subentities:
+            if sub.deferred_to in remap:
+                sub.deferred_to = remap[sub.deferred_to]
 
 
 def _remap_ref(ref: str, remap: dict[str, str]) -> str:

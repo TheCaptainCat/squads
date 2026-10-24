@@ -109,7 +109,7 @@ Both are cross-source (they compare the index against the disk), so both go thro
 one confirm round rather than being reported straight off the scan — a mutation racing the check
 (most commonly a retirement withdrawing the very pointer being checked) resolves rather than
 producing a false positive. `sq sync` reports what it regenerated for each, worded "was missing"
-or "had drifted" so an operator can tell the two facts about their repository apart.
+or "out of date or edited by hand" so an operator can tell the two facts about their repository apart.
 
 `BackendContext` carries the resolved `SquadPaths` and helpers (each backend computes its own
 `.claude/`-equivalent directory internally — there's no shared `claude_dir` on `SquadPaths`):

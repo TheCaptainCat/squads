@@ -185,7 +185,11 @@ def test_a_behind_squad_is_not_told_to_run_the_command_the_gate_refuses(
 
     _, output = _run(_COMMANDS[command], root, monkeypatch)
 
-    assert "sq sync" not in output.replace("run `sq sync` to refresh managed files", "")
+    assert "sq sync" not in output.replace(
+        "run `sq sync` to regenerate the agent files "
+        "(pointers, skills, CLAUDE.md/AGENTS.md sections)",
+        "",
+    )
 
 
 def test_outside_a_squad_the_migrate_commands_behave_as_before(

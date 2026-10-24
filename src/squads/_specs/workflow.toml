@@ -9,9 +9,9 @@
 # enums); "does type/kind X carry field Y" is a fields_for(X) lookup.
 #
 # [roles.*] is the role catalog — the sole explicit status axis. Every status below names one
-# role via `role`; the role object carries `settled`/`hidden`/`color`/`live`/`blocked` (terminal/
-# is_open/default-visibility/materialisation are all derived from the referenced role, never
-# stored per-status). `badge` stays its own independent per-status field.
+# role via `role`; the role object carries `settled`/`hidden`/`color`/`live`/`blocked`/`deferred`
+# (terminal/is_open/default-visibility/materialisation are all derived from the referenced role,
+# never stored per-status). `badge` stays its own independent per-status field.
 
 # ---------------------------------------------------------------------------
 # Named lifecycle state machines — item lifecycles and sub-entity lifecycles
@@ -122,29 +122,33 @@ Archived = ["Active"]
 initial = "Todo"
 
 [lifecycles.subentity.transitions]
-Todo = ["InProgress", "Blocked", "Cancelled"]
+Todo = ["InProgress", "Blocked", "Cancelled", "Done"]
 InProgress = ["Done", "Blocked", "Cancelled"]
 Blocked = ["InProgress", "Cancelled"]
 Done = ["InProgress"]
 Cancelled = ["Todo"]
 
 [lifecycles.finding]
-# Review findings: Open → Fixed → Verified (+ WontFix)
+# Review findings: Open → Fixed → Verified (+ WontFix); Noted and Deferred are terminal
+# targets of Open with no table key of their own, so an override that redeclares the Open list
+# keeps its own machine.
 initial = "Open"
 
 [lifecycles.finding.transitions]
-Open = ["Fixed", "WontFix"]
+Open = ["Fixed", "WontFix", "Noted", "Deferred"]
 Fixed = ["Verified", "Open"]
 Verified = []
 WontFix = ["Open"]
 
 # ---------------------------------------------------------------------------
-# Roles — the role catalog. Eight bundled roles; every status below names exactly one.
+# Roles — the role catalog. Nine bundled roles; every status below names exactly one.
 # `hidden` is default-visibility; `color` is a semantic
 # colour intent from the closed palette (positive/danger/warning/muted/neutral/info),
 # mapped to a concrete colour per client (not here). `live` (defaults false) is the
 # materialisation axis — the one bundled live role is `active`. `blocked` (defaults false)
 # marks statuses that wait on something else — the one bundled flagged role is `blocked`.
+# `deferred` (defaults false) marks statuses whose work is carried by another item the entity
+# names — the one bundled flagged role is `deferred`.
 # `warning` is unused by
 # the bundled defaults — reserved for adopters.
 # ---------------------------------------------------------------------------
@@ -180,6 +184,12 @@ color = "info"
 settled = true
 hidden = true
 color = "positive"
+
+[roles.deferred]
+settled = true
+hidden = true
+color = "info"
+deferred = true
 
 [roles.retired]
 settled = true
@@ -278,6 +288,14 @@ role = "done"
 [statuses.WontFix]
 badge = "⚫"
 role = "retired"
+
+[statuses.Noted]
+badge = "🔵"
+role = "done"
+
+[statuses.Deferred]
+badge = "🟣"
+role = "deferred"
 
 # ---------------------------------------------------------------------------
 # Collections — reusable badge libraries. priority/severity are the sole vocabulary for

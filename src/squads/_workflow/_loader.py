@@ -522,14 +522,31 @@ def _parse_ref_rules(raw_rules: Any, ctx: str, declared_kinds: frozenset[str]) -
     return rules
 
 
-def _parse_fields(raw_fields: Any, ctx: str) -> list[Field]:
-    """Parse a list of field dicts into ``Field`` objects (``extra="forbid"`` per entry)."""
+#: The long options every ``sq create <type>`` command has besides its field options. A field
+#: code spelled like one would be shadowed by it, so an item type may not declare one.
+CREATE_OPTION_NAMES: frozenset[str] = frozenset(
+    {"author", "parent", "desc", "label", "ref", "assignee", "message", "file", "json", "help"}
+)
+
+
+def _parse_fields(
+    raw_fields: Any, ctx: str, *, reserved: frozenset[str] = frozenset()
+) -> list[Field]:
+    """Parse a list of field dicts into ``Field`` objects (``extra="forbid"`` per entry).
+
+    A code in *reserved* is refused, naming the code and *ctx*."""
     fields: list[Field] = []
     for i, field_data in enumerate(as_entry_list(raw_fields, f"{ctx}.fields")):
         try:
-            fields.append(Field.model_validate(field_data))
+            field = Field.model_validate(field_data)
         except Exception as exc:
             raise SquadsError(f"{ctx} field[{i}]: {describe_spec_error(exc, Field)}") from exc
+        if field.code in reserved:
+            raise SquadsError(
+                f"{ctx} field[{i}]: code {field.code!r} is also a built-in `sq create` option "
+                f"(--{field.code}); declare the field under another code"
+            )
+        fields.append(field)
     return fields
 
 
@@ -558,11 +575,13 @@ def _parse_collection(code: str, data: dict[str, Any]) -> Collection:
 
 def _parse_role(code: str, data: dict[str, Any]) -> RoleSpec:
     """Parse one ``[roles.<code>]`` table into a ``RoleSpec`` (``extra="forbid"`` fires here).
-    ``blocked`` accepts only a TOML boolean, refused here in the loader's own words."""
-    if "blocked" in data and not isinstance(data["blocked"], bool):
-        raise SquadsError(
-            f"Invalid role {code!r}: blocked must be true or false, got {data['blocked']!r}"
-        )
+    ``blocked`` and ``deferred`` accept only a TOML boolean, refused here in the loader's own
+    words."""
+    for flag in ("blocked", "deferred"):
+        if flag in data and not isinstance(data[flag], bool):
+            raise SquadsError(
+                f"Invalid role {code!r}: {flag} must be true or false, got {data[flag]!r}"
+            )
     try:
         return RoleSpec.model_validate(data)
     except Exception as exc:
@@ -681,7 +700,9 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
             )
         parents: list[str] = list(cast(list[Any], raw_parents))
         ref_rules = _parse_ref_rules(data.get("ref_rules", []), f"items.{name}", declared_ref_kinds)
-        fields = _parse_fields(data.get("fields", []), f"items.{name}")
+        fields = _parse_fields(
+            data.get("fields", []), f"items.{name}", reserved=CREATE_OPTION_NAMES
+        )
         # Build the payload: start with the raw data, then override the pre-coerced fields
         # so model_validate sees the right types AND any unknown keys trigger extra="forbid".
         payload: dict[str, Any] = {

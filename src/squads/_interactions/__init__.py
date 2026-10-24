@@ -17,6 +17,7 @@ statement of that limitation and its remedy — the two halves are deliberately 
 only the first is enforced.
 """
 
+import contextlib
 from collections.abc import Container, Iterable, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
@@ -736,27 +737,29 @@ def orphaned_playbook_guide_message(
 # for its generic command surface).
 
 
-def authoring_owner(
+def authoring_owners(
     item_type: str,
     roster: Iterable[Mapping[str, Any] | RoleView] | None = None,
     playbook: PlaybookSpec | None = None,
     role_titles: Mapping[str, str] | None = None,
-) -> tuple[str, str] | None:
-    """The (slug, display title) of the single in-lane role that authors *item_type*.
+) -> list[tuple[str, str]]:
+    """The ``(slug, display title)`` of every in-lane role that authors *item_type*, in the
+    order the type's own playbook guides declare them (a capability guide expands to the
+    roster's holders in place).
 
     *item_type* is the plain type-name string (e.g. ``"feature"``, ``"task"`` — the
     same string keys ``spec.items`` and the template loop over them use).
 
-    Returns ``None`` when the type has no lane owner, more than one (ambiguous), the
-    owner has no resolvable display title (an as-yet-uncataloged slug), or — when *roster* is
-    given — the owner isn't actually on this squad's live roster. A guide addressed to a
-    capability names the roster's holders, so it needs the roster to name anyone. *roster* is
-    opt-in (``None`` skips the roster check): the playbook and the bundled catalog have no
-    notion of who's actually active, so a caller with no roster in hand (e.g. a bundled
-    reference render) gets the unfiltered answer; a caller that *does* have the live roster
-    (CLAUDE.md, the squads skill) should pass it, so the cheatsheet never assigns authorship
-    to a role that doesn't exist in this squad. A roster entry is a ``RoleView`` or a mapping
-    with ``slug`` and optionally ``capabilities``.
+    Empty when the type has no lane owner. An owner is left out when it has no resolvable
+    display title (an as-yet-uncataloged slug) or — when *roster* is given — when it isn't
+    actually on this squad's live roster. A guide addressed to a capability names the roster's
+    holders, so it needs the roster to name anyone. *roster* is opt-in (``None`` skips the
+    roster check): the playbook and the bundled catalog have no notion of who's actually
+    active, so a caller with no roster in hand (e.g. a bundled reference render) gets the
+    unfiltered answer; a caller that *does* have the live roster (CLAUDE.md, the squads skill)
+    should pass it, so the cheatsheet never assigns authorship to a role that doesn't exist in
+    this squad. A roster entry is a ``RoleView`` or a mapping with ``slug`` and optionally
+    ``capabilities``.
 
     *role_titles* is the live slug→title map and is consulted **first**, because it is the only
     one of the two sources that can see a project override. A roster entry's ``title`` is the
@@ -773,21 +776,30 @@ def authoring_owner(
     than naming a role by its slug.
     """
     roles = None if roster is None else [role_like(r) for r in roster]
-    owners = in_lane_owner(
-        item_type, playbook if playbook is not None else get_playbook_spec(), roles or ()
-    )
-    if len(owners) != 1:
-        return None
-    (slug,) = owners
-    if roles is not None and slug not in {r.slug for r in roles}:
-        return None
-    if role_titles is not None and slug in role_titles:
-        return slug, role_titles[slug]
-    try:
-        return slug, role_by_slug(slug).title
-    except RoleNotFoundError:
-        # Neither a live roster title nor a catalog entry: an as-yet-uncataloged slug.
-        return None
+    active_playbook = playbook if playbook is not None else get_playbook_spec()
+    owners = in_lane_owner(item_type, active_playbook, roles or ())
+    entry = active_playbook.types.get(item_type)
+    ordered: list[str] = []
+    for guide in entry.roles if entry is not None else ():
+        if not guide.authors:
+            continue
+        holders = [r.slug for r in roles or () if addresses(guide.slug, r)]
+        for slug in (
+            [guide.slug] if not guide.slug.startswith(CAPABILITY_SUBJECT_PREFIX) else holders
+        ):
+            if slug in owners and slug not in ordered:
+                ordered.append(slug)
+    titled: list[tuple[str, str]] = []
+    for slug in ordered:
+        if roles is not None and slug not in {r.slug for r in roles}:
+            continue
+        if role_titles is not None and slug in role_titles:
+            titled.append((slug, role_titles[slug]))
+            continue
+        with contextlib.suppress(RoleNotFoundError):
+            # Neither a live roster title nor a catalog entry: an as-yet-uncataloged slug.
+            titled.append((slug, role_by_slug(slug).title))
+    return titled
 
 
 def parent_chain(spec: WorkflowSpec, item_type: str) -> list[str]:

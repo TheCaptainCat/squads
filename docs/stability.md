@@ -63,10 +63,11 @@ other items are severed in the same transaction. No dangling refs survive; `sq c
 
 ### Sub-entity state lives in frontmatter
 
-User stories' and subtasks' status, assignee, severity, and mapped story live in the parent item's
-frontmatter (its `subentities:` list), not in the body. Only prose (the `:body` and `:discussion` regions)
-stays in the body markers. Frontmatter is the source of truth, and that is what
-makes the index rebuildable from files alone (see [internals.md](internals.md) § 4).
+A sub-entity's status, assignee, severity, mapped story and, for a sub-entity in a deferred
+status, the `deferred_to` id of the item that carries its work live in the parent item's
+frontmatter (its `subentities:` list), not in the body; `deferred_to` is written only when set.
+Only prose (the `:body` and `:discussion` regions) stays in the body markers. Frontmatter is the
+source of truth, and that is what makes the index rebuildable from files alone (see [internals.md](internals.md) § 4).
 
 ### Frontmatter is flat
 
@@ -745,7 +746,8 @@ The frozen surface includes:
   (`sq task <n> subtasks --json`, `sq feature <n> stories --json`, `sq review <n> findings --json`)
   and each single sub-entity (`sq feature <n> story <k> show --json`, and the same for a subtask or
   a finding), which emits that one sub-entity's object — the same shape the parent's `show --json`
-  nests under `subentities`, `body` / `badges` / `discussion` included
+  nests under `subentities`, `body` / `badges` / `discussion` included. Every sub-entity object
+  carries `deferred_to`: the id of the item that carries a deferred sub-entity's work, or `null`
 - **Search, tree and graph:** their fields, in emitted order, with each key's class:
 
   `sq search --json` emits a bare array, one object per matching item:
@@ -828,7 +830,7 @@ The frozen surface includes:
   | `sq workflow subentity-kinds --json` | sub-entity kind | `subentity_kind`, `lifecycle`, `plural`, `local_prefix`, `container_heading`, `completion`, `maps_parent_story`, `fields` |
   | `sq workflow collections --json` | badge collection | `collection`, `label`, `ordered`, `default`, `badges` |
   | `sq workflow statuses --json` | status | `status`, `role`, `badge` |
-  | `sq workflow roles --json` | status role | `role`, `settled`, `hidden`, `color`, `live`, `blocked` |
+  | `sq workflow roles --json` | status role | `role`, `settled`, `hidden`, `color`, `live`, `blocked`, `deferred` |
   | `sq workflow lifecycles --json` | lifecycle | `lifecycle`, `initial`, `states`, `transitions` |
   | `sq workflow views --json` | derived view | `view`, `source_kind`, `source_name`, `transform` |
   | `sq workflow ref-kinds --json` | ref kind | `kind` (vocabulary), `label` (display), `hint` (display), `role` (open set), `direction` |
@@ -838,7 +840,7 @@ The frozen surface includes:
   a reference always carries the identity key name of the row it points at: a type's or kind's
   `fields[].collection` keys into the collection catalog, a type's `subentity_kind` keys into the
   sub-entity kind catalog, and a status's `role` keys into the role catalog — that's where
-  `settled` / `hidden` / `color` / `live` / `blocked` live. `role` is always the *resolved* role name, never
+  `settled` / `hidden` / `color` / `live` / `blocked` / `deferred` live. `role` is always the *resolved* role name, never
   null, so `null` stays available to a client meaning "not loaded yet". `terminal` and `is_open`
   are deliberately not fields anywhere: they are `settled` / `not settled` on the role catalog.
   A ref kind's `role` is its semantic role (`null` on a navigational kind), and `direction` is its

@@ -45,6 +45,7 @@
         "assignee": null,
         "severity": null,
         "story": null,
+        "deferred_to": null,
         "extra": {}
       }
     ],
@@ -80,6 +81,7 @@
         "assignee": "manager",
         "severity": null,
         "story": "US1",
+        "deferred_to": null,
         "extra": {}
       }
     ],
@@ -102,7 +104,7 @@
     "author": "manager",
     "assignee": null,
     "priority": null,
-    "severity": null,
+    "severity": "medium",
     "labels": [],
     "refs": [],
     "subentities": [],
@@ -112,7 +114,9 @@
     "created_session": null,
     "modified_session": null,
     "id": "BUG-4",
-    "badges": {}
+    "badges": {
+      "severity": "medium"
+    }
   },
   {
     "sequence_id": 5,
@@ -159,6 +163,7 @@
         "assignee": null,
         "severity": "high",
         "story": null,
+        "deferred_to": null,
         "extra": {}
       }
     ],

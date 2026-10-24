@@ -20,6 +20,7 @@
       "assignee": null,
       "severity": null,
       "story": null,
+      "deferred_to": null,
       "extra": {},
       "body": "_Write the user story (e.g. \u201cAs an <role>, I want \u2026 so that \u2026\u201d) and its acceptance criteria here \u2014 free-form paragraphs or bullet lists._",
       "badges": {},

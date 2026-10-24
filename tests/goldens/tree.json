@@ -44,7 +44,9 @@
     "priority": null,
     "assignee": null,
     "blocked": false,
-    "badges": {},
+    "badges": {
+      "severity": "medium"
+    },
     "anchor": false,
     "children": []
   },

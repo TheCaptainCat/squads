@@ -3,7 +3,7 @@ managed region, not only the roster list.
 
 The region names a role's title twice from two different code paths: the roster list renders it
 off the ``RoleView`` (resolved through the role catalog + overrides), and each authoring bullet
-renders it through ``authoring_owner``. When only the first resolves, one compiled file states
+renders it through ``authoring_owners``. When only the first resolves, one compiled file states
 two different titles for one role — the roster line carrying the project's answer and the
 authoring bullet carrying the bundled one, both inside the same ``squads:start``/``squads:end``
 block an agent host reads as authoritative.

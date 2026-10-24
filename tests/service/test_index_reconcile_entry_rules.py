@@ -63,13 +63,18 @@ def entry(data: dict[str, Any], seq: int) -> dict[str, Any]:
 
 
 def stored_fields(data: dict[str, Any], seq: int) -> dict[str, Any]:
-    """The entry's fields without the attribute mapping and slug marker an entry of an older
-    schema does not carry (they default to empty)."""
-    return {
+    """The entry's fields without the attribute mapping, slug marker and empty sub-entity
+    pointer an entry of an older schema does not carry (they default to empty)."""
+    fields = {
         k: v
         for k, v in entry(data, seq).items()
         if k not in ("attributes", "slug_in_file", "extra")
     }
+    fields["subentities"] = [
+        {k: v for k, v in sub.items() if not (k == "deferred_to" and v is None)}
+        for sub in fields.get("subentities", [])
+    ]
+    return fields
 
 
 def set_entry(seq: int, **fields: Any) -> Callable[[dict[str, Any]], None]:

@@ -3,11 +3,11 @@ id: BUG-1120
 sequence_id: 1120
 type: bug
 title: init --force on an existing squad leaves skills out of the index
-status: Open
+status: Verified
 author: qa
 priority: medium
 created_at: '2026-10-24T18:52:57Z'
-updated_at: '2026-10-24T18:53:00Z'
+updated_at: '2026-10-24T20:59:27Z'
 ---
 <!-- sq:body -->
 ## Steps
@@ -56,4 +56,8 @@ Flagged: SKILL-9 to SKILL-20, i.e. every bundled skill (greeting, sq-bug, sq-con
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-24T20:57:57Z] `manager` Catherine Manager:
+  - Fixed by TASK-1103 ST8 (294089b4, hardened in 868d5e48 per REV-1122 F4). @qa please verify.
+- [2026-10-24T20:59:25Z] `qa` Mara Tester:
+  - Verified on dev build in scratch squads: fresh squad and one holding a task, init --force run 3 times each; sq check exit 0 after every run (bare exit codes). Skills 12 on disk, index 20 items; next created item got TASK-21 (fresh) and TASK-22 (after existing TASK-21), counter continues past highest.
 <!-- sq:discussion:end -->

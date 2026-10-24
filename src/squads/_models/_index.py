@@ -24,6 +24,7 @@ from squads._models._item import (
     Item,
     effective_prefix,
     format_item_id,
+    ref_id_matches,
     split_ref,
 )
 from squads._models._schema import SCHEMA_VERSION
@@ -163,6 +164,19 @@ class SquadsDB(BaseModel):
             )
 
         return sorted(i.id for i in self.items.values() if any(_ref_matches(r) for r in i.refs))
+
+    def deferral_holders(self, item_id: str) -> list[str]:
+        """Compute (never store) the items with a sub-entity whose ``deferred_to`` names
+        ``item_id``, compared by (prefix, sequence number) like :meth:`backrefs`."""
+        head, _, _ = item_id.rpartition("-")
+        prefix, seq = head.upper(), _seq(item_id)
+        return sorted(
+            i.id
+            for i in self.items.values()
+            if any(
+                s.deferred_to and ref_id_matches(s.deferred_to, prefix, seq) for s in i.subentities
+            )
+        )
 
     def to_json(self) -> str:
         return self.model_dump_json(indent=2, exclude_none=False)

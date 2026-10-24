@@ -10,7 +10,8 @@
 - **Product owner** → `sq create contract "…" --author product-owner`; link with `ref add <id> --kind supersedes`.
 - **Product owner** → `sq create milestone "…" --author product-owner`.
 - **Code reviewer** → `sq create review "…" --author reviewer`, then `add-finding "…"`.
-- **Sub-entities are tracked too:** `feature` → `story` (`Todo → InProgress → Done (+ Blocked, Cancelled)`); `task` → `subtask` (`Todo → InProgress → Done (+ Blocked, Cancelled)`); `review` → `finding` (`Open → Fixed → Verified (+ WontFix)`).
+- **Architect** or **Technical writer** → `sq create guide "…" --author architect|tech-writer`.
+- **Sub-entities are tracked too:** `feature` → `story` (`Todo → InProgress → Done (+ Blocked, Cancelled)`); `task` → `subtask` (`Todo → InProgress → Done (+ Blocked, Cancelled)`); `review` → `finding` (`Open → Fixed → Verified (+ WontFix, Noted, Deferred)`).
   `update` is the one metadata entry point for a sub-entity (`--title`/`--status`/`--assignee`,
   plus any declared field flag). Each parent shows an sq-managed summary table.
 - Hierarchy: epic → feature → task. `sq check` enforces the parent rules.
