@@ -27,12 +27,22 @@ async def test_render_resolved_source_or_raise_lets_a_missing_template_error_thr
 
     with pytest.raises(views.ViewTemplateMissingError) as direct:
         views.render_source_view(
-            "no_such_template_view", [], epic, svc.spec, svc.paths.config.squad_dir
+            "no_such_template_view",
+            [],
+            epic,
+            svc.spec,
+            svc.paths.config.squad_dir,
+            svc.working_language,
         )
 
     with pytest.raises(views.ViewTemplateMissingError) as via_expansion:
         views._render_resolved_source_or_raise(
-            "no_such_template_view", [], epic, svc.spec, svc.paths.config.squad_dir
+            "no_such_template_view",
+            [],
+            epic,
+            svc.spec,
+            svc.paths.config.squad_dir,
+            svc.working_language,
         )
 
     # Unwrapped: the same message render_source_view itself raises, verbatim -- not re-prefixed

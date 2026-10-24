@@ -74,7 +74,7 @@ async def _rendered_is_rich(svc: Service, item_type: str) -> bool:
     )
     assert isinstance(result, PlaybookSource)
     rendered = render_source_view(
-        "item_skill", result, probe_item, svc.spec, svc.paths.config.squad_dir
+        "item_skill", result, probe_item, svc.spec, svc.paths.config.squad_dir, svc.working_language
     )
     if "## For " in rendered:
         assert result.lane is not None, f"{item_type}: rendered role sections with no lane"

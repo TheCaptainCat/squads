@@ -5,6 +5,7 @@ following paragraph used to be. Present-default rendering (the pinned golden in
 ``test_managed_section_and_cheatsheet_goldens.py``) must stay byte-identical.
 """
 
+from squads._language import WorkingLanguage
 from squads._rendering._engine import render
 from squads._workflow import bundled_spec
 
@@ -15,6 +16,7 @@ def _render(default_role_full_name: str | None) -> str:
     return render(
         "claude/claude_section.md.j2",
         squad_dir="squads",
+        working_language=WorkingLanguage("en", "English"),
         roles=_ROLES,
         delegate_examples=[],
         operators=[],

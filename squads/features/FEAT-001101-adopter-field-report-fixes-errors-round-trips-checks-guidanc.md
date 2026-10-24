@@ -3,7 +3,7 @@ id: FEAT-1101
 sequence_id: 1101
 type: feature
 title: 'Adopter field-report fixes: errors, round-trips, checks, guidance'
-status: Draft
+status: InProgress
 author: product-owner
 refs:
 - MILE-1051:targets
@@ -39,62 +39,114 @@ subentities:
   title: sq list has a compact one-line form
   status: Todo
 created_at: '2026-10-24T09:39:06Z'
-updated_at: '2026-10-24T13:00:13Z'
+updated_at: '2026-10-24T19:44:05Z'
 ---
 <!-- sq:body -->
 ## Problem
 
-An adopter project upgraded to 0.15.0 and ran eight agents for a day, up to four writing to `sq` at once. Its field report (REV-1099) was net positive: no work data lost, concurrent writers never corrupted the index. It also surfaced real defects, missing checks and guidance gaps. The review triaged them and the operator ruled to fix every finding as recommended.
+An adopter project upgraded to 0.15.0 and ran eight agents for a day, up to four
+writing to `sq` at once. Its field report (REV-1099) was net positive: no work
+data lost, concurrent writers never corrupted the index. It also surfaced real
+defects, missing checks and guidance gaps. The review triaged them and the
+operator ruled to fix every finding as recommended.
 
 ## Scope
 
 ### Defects
-- **F4** Index-lock contention is silent, then ends in a raw traceback. A wait on the lock must say so, and a timeout must be a clean error that states the write did not happen and can be retried.
-- **F5** A milestone body does not round-trip: the refusal does not name the fix for a placed view tag, and feeding back the rendered roll-up duplicates it.
-- **F9** `sq create bug` cannot set severity; create should expose every field the type declares, and a declared default should be honoured.
-- **F16** A second author on a type silently drops its Team workflow line from CLAUDE.md; the line must render for any number of authors.
-- **F6** Closing an operator-assigned subtask (Todo to Done) must not need `--force`.
-- **F2** `sync` calls an older release's generated pointer "had drifted"; it should say it is outdated, and the post-migrate instruction should say what is left for sync to do.
+- **F4** Index-lock contention is silent, then ends in a raw traceback. A wait
+on the lock must say so (a notice after about 1 s), and a timeout (the existing
+10 s) must be a clean error that states the write did not happen and can be
+retried.
+- **F5** A milestone body does not round-trip: the refusal does not name the fix
+for a placed view tag, and feeding back the rendered roll-up duplicates it.
+- **F9** `sq create bug` cannot set severity; create should expose every field
+the type declares, and a declared default should be honoured.
+- **F16** A second author on a type silently drops its Team workflow line from
+CLAUDE.md; the line must render for any number of authors.
+- **F6** Closing an operator-assigned subtask (Todo to Done) must not need
+`--force`; stories get the same Todo to Done edge.
+- **F2** `sync` calls a regenerated pointer "had drifted", which reads as
+tampering. With the stored version gone, sync cannot tell an older release's
+output from a hand edit, so it words the case as "out of date or edited by
+hand", and the post-migrate line says sync regenerates the agent files.
+- **BUG-1120** A repeated `init --force` over an existing squad leaves skills out
+of the index and `sq check` fails. Carried by the same task as the defects above
+because it is the same kind of defect.
 
 ### New sq check rules
-- **F10** Warn on an Approved review that holds an Open finding.
-- **F3** Warn when a type holds items but no active role authors it, naming the catalog role to activate.
+- **F10** Warn on an Approved review that holds a finding that is not settled
+(Open, and also Fixed until verified). The rule is selected on the review type;
+the CHANGELOG notes it for adopters who override that type's validators. This
+repository's own reviews are cleaned up as part of the work.
+- **F3** Warn when a type holds open items but no active role authors it, naming
+the catalog role to activate.
 
 ### Docs, bundled guidance and ergonomics
-- **F1** Document the `sq import` event schema: every op with its required and optional fields and an example.
+- **F1** Document the `sq import` event schema: every op with its required and
+optional fields and an example. Import accepts `deferred_to` for Deferred
+findings.
 - **F12** Role-override docs show splat-refs on list fields.
 - **F13** `sq role show` says how to change a role's definition.
-- **F15** `override scaffold --role` writes every overridable field commented out with its bundled value, plus the append idiom.
-- **F17** Bundled handoffs address the review's author, not a hardcoded `@reviewer` or `@qa` (wording change only).
+- **F15** `override scaffold --role` writes every overridable field commented
+out with its bundled value, plus the append idiom.
+- **F17** Bundled handoffs, including the task-type handoff wording, address the
+item's author, not a hardcoded `@reviewer` or `@qa` (wording change only).
 - **F8** `sq list` gains a compact one-line form.
-- **F11** No bundled convention on when to open a review. The init interview checklist gains a question about it; each adopter decides.
-- **F14** The bundled tech-writer owns the narration sweep (orchestration loop step 5 names it), and its default model moves to sonnet.
+- **F11** No bundled convention on when to open a review. The init interview
+checklist gains a question about it; each adopter decides.
+- **F14** The bundled tech-writer owns the narration sweep (orchestration loop
+step 5 names it), and its default model moves to sonnet.
 
 ### Finding lifecycle
-- **F7** Findings gain Deferred (with a ref to the item that carries the work) and Noted (for an info finding). The design is governed by the finding-lifecycle decision record; this feature delivers it.
+- **F7** Findings gain Deferred (with a ref to the item that carries the work) and
+Noted (for an info finding). The design is governed by the finding-lifecycle
+decision record (ADR-1102); this feature delivers it.
 
 ## Out of scope
-- Findings already fixed or by design in REV-1099 (11.1, 11.2, 11.6, 14.5, 14.6, 14.7 arrow, 14.8).
-- Preferred IDs on import and a bundled designer role (closed WontFix in REV-565).
-- Enforced separation of duties (FEAT-124) and the daemon work (ADR-1052), beyond keeping the F4 guarantees in view for it.
+- Findings already fixed or by design in REV-1099 (11.1, 11.2, 11.6, 14.5, 14.6,
+14.7 arrow, 14.8).
+- Preferred IDs on import and a bundled designer role (closed WontFix in
+REV-565).
+- Enforced separation of duties (FEAT-124) and the daemon work (ADR-1052),
+beyond keeping the F4 guarantees in view for it.
+- Labelling a pointer as written by an older release: no stored version exists
+to tell it from a hand edit (ADR-1119).
 - Replacing a single playbook guide by slug (part of F17, set aside as heavier).
 - A bundled rule for when a review is warranted (F11 is a question, not a rule).
 
 ## Acceptance criteria
-- Holding the index lock from another process produces a waiting notice on stderr and, past the timeout, a one-line error naming the lock file, stating nothing was written and the command can be retried; no traceback.
-- Writing back a milestone body obtained from the read surface never duplicates the roll-up; refusing a placed view tag tells the user to leave the tag out.
-- `sq create bug --severity high` sets severity; any declared field of any type is settable at create; an omitted field with a declared default stores that default.
-- With two or more authors of a type, CLAUDE.md lists all of them in that type's Team workflow line.
-- A subtask assigned to an operator goes Todo to Done without `--force`.
-- After an upgrade, sync labels a pointer from an older release as outdated, not drifted, and the post-migrate message says what sync still does.
-- `sq check` warns on an Approved review with an Open finding and on a type with items but no active authoring role (naming the role to activate), and stays clean otherwise.
-- `sq docs adoption` (or `sq import --help`) lists every import op with its fields and an example.
-- Override docs show a splat-ref on a role list field; `sq role show` ends with how to change the role; `override scaffold --role` output lists every overridable field with its bundled value.
-- Bundled review and bug handoffs address the item's author instead of a hardcoded role.
+- Holding the index lock from another process produces a waiting notice on
+stderr and, past the 10 s timeout, a one-line error naming the lock file, stating
+nothing was written and the command can be retried; no traceback.
+- Writing back a milestone body obtained from the read surface never duplicates
+the roll-up; refusing a placed view tag tells the user to leave the tag out.
+- `sq create bug --severity high` sets severity; any declared field of any type
+is settable at create; an omitted field with a declared default stores that
+default.
+- With two or more authors of a type, CLAUDE.md lists all of them in that type's
+Team workflow line.
+- A subtask assigned to an operator, and a story, go Todo to Done without
+`--force`.
+- When a managed pointer differs from what sync would write, sync and `sq check`
+say it is "out of date or edited by hand"; the post-migrate message says sync
+regenerates the agent files; neither mentions a release version.
+- A second `sq init --force` over an existing squad leaves `sq check` at exit 0.
+- `sq check` warns on an Approved review holding any unsettled finding (Fixed
+included) and on a type with open items but no active authoring role (naming
+the role to activate), and stays clean otherwise.
+- `sq docs adoption` (or `sq import --help`) lists every import op with its
+fields and an example.
+- Override docs show a splat-ref on a role list field; `sq role show` ends with
+how to change the role; `override scaffold --role` output lists every
+overridable field with its bundled value.
+- Bundled review, bug and task handoffs address the item's author instead of a
+hardcoded role.
 - `sq list` has a compact one-line-per-item form.
 - The init interview asks how the repository decides when to open a review.
-- The tech-writer role lists the narration sweep, loop step 5 names it, and its default model is sonnet.
-- A finding can be marked Deferred (requiring a ref to the carrying item) or Noted, per the finding-lifecycle decision record.
+- The tech-writer role lists the narration sweep, loop step 5 names it, and its
+default model is sonnet.
+- A finding can be marked Deferred (requiring a ref to the carrying item) or
+Noted, per ADR-1102.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -107,7 +159,7 @@ _Add with `sq feature 1101 add-story "As a <role>, I want … so that …"`; tra
 ### US1 — Writes fail cleanly under index-lock contention
 
 <!-- sq:story:US1:body -->
-Covers F4. A write that waits on the index lock says so on stderr; past the timeout it ends in a one-line error naming the lock file, stating nothing was written and the command can be retried, with no traceback. The same guarantees hold for the daemon path.
+Covers F4. A write that waits on the index lock says so on stderr after about 1 s; past the 10 s timeout it ends in a one-line error naming the lock file, stating nothing was written and the command can be retried, with no traceback.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -120,7 +172,7 @@ Covers F4. A write that waits on the index lock says so on stderr; past the time
 ### US2 — Milestone bodies round-trip and create sets every declared field
 
 <!-- sq:story:US2:body -->
-Covers F5 and F9. Writing back a milestone body never duplicates the rendered roll-up, and the refusal for a placed view tag names the fix. Create accepts every field the type declares (severity on bugs), and a declared default is stored when the field is omitted.
+Covers F5, F9 and BUG-1120. Writing back a milestone body never duplicates the rendered roll-up, and the refusal for a placed view tag names the fix. Create accepts every field the type declares (severity on bugs), and a declared default is stored when the field is omitted. A repeated init --force leaves a squad that passes sq check.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -133,7 +185,7 @@ Covers F5 and F9. Writing back a milestone body never duplicates the rendered ro
 ### US3 — Generated files report the truth after a team or version change
 
 <!-- sq:story:US3:body -->
-Covers F16 and F2. CLAUDE.md lists every author of a type in its Team workflow line instead of dropping it when there are two or more. Sync labels a pointer from an older release as outdated rather than drifted, and the post-migrate message says what sync still has to do.
+Covers F16 and F2. CLAUDE.md lists every author of a type in its Team workflow line instead of dropping it when there are two or more. Sync and check word a pointer that differs from the generated content as out of date or edited by hand, and the post-migrate message says sync regenerates the agent files. No release version is named.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -146,7 +198,7 @@ Covers F16 and F2. CLAUDE.md lists every author of a type in its Team workflow l
 ### US4 — Operator subtasks close without --force
 
 <!-- sq:story:US4:body -->
-Covers F6. A subtask assigned to an operator for a manual step goes from Todo to Done on the normal path, so agents are not trained to reach for --force.
+Covers F6. A subtask assigned to an operator for a manual step, and a story, go from Todo to Done on the normal path, so agents are not trained to reach for --force.
 <!-- sq:story:US4:body:end -->
 
 #### Discussion
@@ -159,7 +211,7 @@ Covers F6. A subtask assigned to an operator for a manual step goes from Todo to
 ### US5 — sq check flags Approved reviews with Open findings and unowned types
 
 <!-- sq:story:US5:body -->
-Covers F10 and F3. check warns on an Approved review that still holds an Open finding, and on a type that holds items while no active role authors it, naming the catalog role to activate. Both stay silent when the squad is sound.
+Covers F10 and F3. check warns on an Approved review that still holds an unsettled finding (Fixed included), and on a type that holds open items while no active role authors it, naming the catalog role to activate. Both stay silent when the squad is sound.
 <!-- sq:story:US5:body:end -->
 
 #### Discussion
@@ -234,4 +286,10 @@ Covers F8. A compact option prints one line per item with a truncated title so l
   - Breakdown: keep the five tasks as they are.
 - [2026-10-24T13:00:13Z] `op-pierre` Pierre Chat:
   - Tech lead's remaining choices accepted: F10 selected on the review type with a CHANGELOG note for adopters overriding its validators; F3 counts open items only; F6 gives stories Todo to Done too; F4 keeps the 10 s timeout with a notice after about 1 s; import accepts deferred_to.
+- [2026-10-24T19:39:53Z] `tech-lead` Olivia Lead:
+  - @product-owner TASK-1103 is realigned to ADR-1119: with squads_version gone, F2 cannot label a pointer "outdated" by release. It now only rewords sync/check to "out of date or edited by hand" and has the post-migrate line say sync regenerates the agent files. The F2 scope bullet, its acceptance criterion and US3 still promise the outdated/drifted split; please reword them.
+  - TASK-1103 also carries BUG-1120 (a repeated init --force leaves skills out of the index) as ST8, outside this feature's stated scope. Add it to the scope or say where it belongs.
+  - FEAT-1101 is still Draft while TASK-1103 goes Ready; promote it once the F2 wording is settled.
+- [2026-10-24T19:42:17Z] `product-owner` Nina Product:
+  - @tech-lead F2 reworded to ADR-1119 (out of date or edited by hand, no version); BUG-1120 added to scope as carried by TASK-1103 ST8; F6 now covers stories; F10/F3/F4 follow op-pierre's rulings. Feature moved to Ready.
 <!-- sq:discussion:end -->

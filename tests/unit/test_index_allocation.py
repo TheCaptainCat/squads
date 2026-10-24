@@ -20,7 +20,7 @@ pytestmark = pytest.mark.anyio
 async def test_counter_is_single_and_monotonic_across_every_type(tmp_path):
     """One global counter serves every type — no per-type numbering."""
     store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
-    store.create_empty("0.1.0")
+    store.create_empty()
     async with store.transaction() as db:
         ids = [
             db.allocate_id("epic", prefix="EPIC"),
@@ -35,7 +35,7 @@ async def test_counter_is_single_and_monotonic_across_every_type(tmp_path):
 async def test_atomic_write_roundtrips_valid_json_and_leaves_no_temp_file(tmp_path):
     path = tmp_path / ".squads.json"
     store = IndexStore(path, tmp_path / ".squads.json.lock")
-    store.create_empty("0.1.0")
+    store.create_empty()
     async with store.transaction() as db:
         db.allocate_id("bug")
 
@@ -50,7 +50,7 @@ async def test_load_wraps_a_corrupt_index_in_squads_error(tmp_path):
     pydantic/JSON exception."""
     path = tmp_path / ".squads.json"
     store = IndexStore(path, tmp_path / ".squads.json.lock")
-    store.create_empty("0.1.0")
+    store.create_empty()
     path.write_text('{"counter": -1}', encoding="utf-8")  # violates ge=0
 
     with pytest.raises(SquadsError, match="corrupt index"):
@@ -74,7 +74,7 @@ async def test_allocate_id_raises_a_named_recovery_hint_at_capacity(tmp_path):
     """Exhausting the current padding's id space fails closed and names `sq migrate repad`
     rather than silently wrapping or corrupting the counter."""
     store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
-    store.create_empty("0.1.0")
+    store.create_empty()
     async with store.transaction() as db:
         db.counter = 10**6 - 1  # the last valid id at padding=6
 
@@ -91,7 +91,7 @@ def test_sync_bootstrap_write_roundtrips_and_leaves_no_temp_file(tmp_path):
     path = tmp_path / ".squads.json"
     store = IndexStore(path, tmp_path / ".squads.json.lock")
 
-    store.create_empty("0.1.0")
+    store.create_empty()
 
     SquadsDB.model_validate_json(path.read_text(encoding="utf-8"))  # validates cleanly
     assert list(tmp_path.glob("*.tmp")) == []
@@ -106,7 +106,7 @@ async def test_a_failure_between_the_temp_write_and_the_replace_leaves_the_index
     the same shared primitive, so one test doubles as coverage of that delegation."""
     path = tmp_path / ".squads.json"
     store = IndexStore(path, tmp_path / ".squads.json.lock")
-    store.create_empty("0.1.0")
+    store.create_empty()
     previous_bytes = path.read_text(encoding="utf-8")
 
     def _raise(self, target):
@@ -125,7 +125,7 @@ async def test_a_failure_between_the_temp_write_and_the_replace_leaves_the_index
 
     monkeypatch.setattr(pathlib.Path, "replace", _raise)
     with pytest.raises(OSError, match="simulated crash"):
-        store.create_empty("0.1.0")
+        store.create_empty()
     monkeypatch.undo()
 
     assert path.read_text(encoding="utf-8") == previous_bytes

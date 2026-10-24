@@ -50,6 +50,7 @@ from squads._itemfile import (
     write_new,
     write_text,
 )
+from squads._language import WorkingLanguage, resolve_working_language
 from squads._models import _markers as markers
 from squads._models._attributes import AttributeKey
 from squads._models._index import SquadsDB
@@ -539,6 +540,11 @@ class ServiceCore:
         # Activate the squad-aware template search path so render() picks up any project
         # overrides under <squad_dir>/.overrides/templates/ for this service's squad.
         set_active_squad_dir(paths.squad_dir)
+
+    @property
+    def working_language(self) -> WorkingLanguage:
+        """The squad's working language, English when the configured value is unusable."""
+        return resolve_working_language(self.paths.config.working_language)[0]
 
     # ------------------------------------------------------------------ sub-entity vocabulary
     # Resolved from THIS service's active spec (self.spec), not the bundled default — a

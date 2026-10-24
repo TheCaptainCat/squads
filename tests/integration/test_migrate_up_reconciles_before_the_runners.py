@@ -364,9 +364,7 @@ def _tree(root: Path) -> dict[str, str]:
     }
 
 
-async def _noop_reconcile(
-    squad_dir: Path, store: Any, schema: str, *, squads_version: str
-) -> tuple[Any, ReconcileResult]:
+async def _noop_reconcile(squad_dir: Path, store: Any, schema: str) -> tuple[Any, ReconcileResult]:
     return await store.load(validate_vocab=False), ReconcileResult()
 
 

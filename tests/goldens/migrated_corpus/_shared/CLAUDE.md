@@ -28,6 +28,15 @@ on their behalf — attribute it to them: `sq <type> <n> comment --as op-<slug> 
 `--author op-<slug>` when they author an item). Otherwise the human can run `sq` themselves. Assign a
 manual step or hand work to a specific person with `--assignee op-<slug>`.
 
+## Working language
+
+This squad's working language is **English** (`en`).
+Everything that goes through `sq` (item titles, bodies, sub-entity text, comments) and all
+communication between agents (briefs, handbacks, `@mention` comments) is written in
+English. When you talk to a human, reply in the language that human writes in,
+message by message. There is always exactly one of each: the working language, set in
+`.squads.toml`, and the conversation language, deduced from the human.
+
 ## Impersonation on greeting
 
 If the operator opens with a greeting to an agent by name (e.g. "Hi Robert", "Hey Mara") **or by

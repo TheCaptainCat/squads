@@ -105,6 +105,7 @@ from squads._interactions import (
     item_skill_name,
     managed_item_types,
 )
+from squads._language import WorkingLanguage
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._roles._projection import RoleView
@@ -207,6 +208,7 @@ def _generated_skill_bodies() -> dict[str, str]:
             item=_PROBE_SKILL_ITEM,
             spec=spec,
             squad_dir="squads",
+            working_language=WorkingLanguage("en", "English"),
         ),
         f"skill:{GREETING_SKILL}": render(
             "views/greeting_skill.md.j2",
@@ -214,6 +216,7 @@ def _generated_skill_bodies() -> dict[str, str]:
             item=_PROBE_SKILL_ITEM,
             spec=spec,
             squad_dir="squads",
+            working_language=WorkingLanguage("en", "English"),
         ),
         f"skill:{MEMORY_SKILL}": render(
             "views/memory_skill.md.j2",
@@ -221,6 +224,7 @@ def _generated_skill_bodies() -> dict[str, str]:
             item=_PROBE_SKILL_ITEM,
             spec=spec,
             squad_dir="squads",
+            working_language=WorkingLanguage("en", "English"),
         ),
     }
     for item_type in managed_item_types(playbook):
@@ -234,6 +238,7 @@ def _generated_skill_bodies() -> dict[str, str]:
             item=_PROBE_SKILL_ITEM,
             spec=spec,
             squad_dir="squads",
+            working_language=WorkingLanguage("en", "English"),
         )
     return bodies
 

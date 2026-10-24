@@ -26,6 +26,7 @@ import pytest
 
 from squads._backends._agents_md._backend import _also_creatable_types
 from squads._interactions import cheatsheet_anchor_context, get_playbook_spec
+from squads._language import WorkingLanguage
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._roles._projection import RoleView
@@ -186,6 +187,7 @@ def _probe_renders(roles: list[dict[str, Any]]) -> dict[str, str]:
             item=_PROBE_SKILL_ITEM,
             spec=spec,
             squad_dir="team",
+            working_language=WorkingLanguage("en", "English"),
         ),
         "views/memory_skill.md.j2": render(
             "views/memory_skill.md.j2",
@@ -193,10 +195,12 @@ def _probe_renders(roles: list[dict[str, Any]]) -> dict[str, str]:
             item=_PROBE_SKILL_ITEM,
             spec=spec,
             squad_dir="team",
+            working_language=WorkingLanguage("en", "English"),
         ),
         "claude/claude_section.md.j2": render(
             "claude/claude_section.md.j2",
             squad_dir="team",
+            working_language=WorkingLanguage("en", "English"),
             roles=roles,
             delegate_examples=[r["slug"] for r in roles[1:5]],
             operators=[],
@@ -207,6 +211,7 @@ def _probe_renders(roles: list[dict[str, Any]]) -> dict[str, str]:
         "agents_md/agents_section.md.j2": render(
             "agents_md/agents_section.md.j2",
             squad_dir="team",
+            working_language=WorkingLanguage("en", "English"),
             roles=[{**r, "mission": "", "responsibilities": []} for r in roles],
             developer_slugs=["rust-dev"],
             operators=[],

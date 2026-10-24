@@ -20,6 +20,7 @@ import pytest
 from _helpers import role_of
 from squads._interactions import _role_guidance as role_guidance
 from squads._interactions._loader import load_playbook
+from squads._language import WorkingLanguage
 from squads._overrides import _service as overrides
 from squads._roles._catalog import get_catalog
 from squads._roles._resolver import resolve_role
@@ -123,7 +124,9 @@ def test_the_workflow_scaffolds_worked_example_view_refuses_cleanly_without_a_te
         prefix="INC",
     )
     with pytest.raises(SquadsError, match=r"templates/views/related_incidents.md.j2"):
-        views.render_source_view("related_incidents", [], incident, spec, None)
+        views.render_source_view(
+            "related_incidents", [], incident, spec, None, WorkingLanguage("en", "English")
+        )
 
 
 def test_the_workflow_scaffolds_example_demonstrates_the_field_that_drives_status_behaviour(

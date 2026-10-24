@@ -49,6 +49,7 @@ from squads._interactions import (
 from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME
 from squads._interactions._models import ItemPlaybookSpec, PlaybookSpec
 from squads._interactions._role_guidance import developer_roles
+from squads._language import WorkingLanguage
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import (
@@ -530,30 +531,27 @@ def resolve_view_target(
     return _source_incompatibility(spec.views[name], name, item_type, spec, playbook)
 
 
-#: The four states an empty-or-disabled ``sq:body`` region naming a placement tag can be in,
+#: The three states an empty-or-disabled ``sq:body`` region naming a placement tag can be in,
 #: from the operator's point of view — see :func:`empty_body_hint_state`.
-type EmptyBodyHintState = Literal[
-    "view_undeclared", "declared_drift_outstanding", "declared_no_drift", "disabled"
-]
+type EmptyBodyHintState = Literal["view_undeclared", "declared", "disabled"]
 
 
 def empty_body_hint_state(
-    name: str, spec: WorkflowSpec, *, drift_outstanding: bool, disabled: bool = False
+    name: str, spec: WorkflowSpec, *, disabled: bool = False
 ) -> EmptyBodyHintState:
-    """Which of four states explains an empty-rendering ``sq:body`` region tagged for view
+    """Which of three states explains an empty-rendering ``sq:body`` region tagged for view
     *name* — the one predicate ``sq role show``/``sq skill show`` both read, so their empty-body
     hints can't disagree. Checks whether *name* is declared first (a tag of an undeclared view
-    cannot be re-enabled), then *disabled* (its own remedy), then whether
-    *drift_outstanding* is what ``sq sync`` would actually fix.
+    cannot be re-enabled), then *disabled* (its own remedy).
 
     Returns: ``"disabled"`` (``view add`` re-enables it); ``"view_undeclared"`` (no remedy
-    renders this); ``"declared_drift_outstanding"`` (``sq sync`` is the fix);
-    ``"declared_no_drift"`` (``sq sync`` is a no-op — ``view add`` is the real remedy)."""
+    renders this); ``"declared"`` (``sq sync`` populates it, else declare the definition or
+    ``view add``)."""
     if name not in spec.views:
         return "view_undeclared"
     if disabled:
         return "disabled"
-    return "declared_drift_outstanding" if drift_outstanding else "declared_no_drift"
+    return "declared"
 
 
 class ViewTemplateMissingError(SquadsError):
@@ -571,6 +569,7 @@ def render_source_view(
     item: Item,
     spec: WorkflowSpec,
     squad_dir_display: str | None,
+    working_language: WorkingLanguage,
     data: TransformData | None = None,
 ) -> str:
     """Render *view_name*'s already-resolved *result* through its presentation template —
@@ -606,7 +605,10 @@ def render_source_view(
 
     *data* is the view's transform output; the template receives it as ``data`` only when it is
     given, so a template of a view without a transform that reads ``data`` fails under
-    ``StrictUndefined``."""
+    ``StrictUndefined``.
+
+    *working_language* is the squad's resolved working language, handed to a template as
+    ``working_language``."""
     template_name = view_template_name(view_name)
     if not has_template(template_name):
         raise ViewTemplateMissingError(
@@ -620,6 +622,7 @@ def render_source_view(
         "item": item,
         "spec": spec,
         "squad_dir": squad_dir_display,
+        "working_language": working_language,
     }
     if data is not None:
         context["data"] = data
@@ -1106,7 +1109,7 @@ def _keep_unless_disabled_view_tag(raw: str) -> bool:
     return parts is None or not parts.disabled
 
 
-def expand_view_tags(
+def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole squad context
     text: str,
     item: Item,
     db: SquadsDB,
@@ -1115,6 +1118,7 @@ def expand_view_tags(
     roster: RosterProvider,
     squad_dir: Path | None,
     squad_dir_display: str | None,
+    working_language: WorkingLanguage,
 ) -> str:
     """*text* with every well-formed ``sq:view:<name>`` tag replaced by that view's rendered
     output, in place. A disabled tag is removed the way ``strip_marker_lines`` removes a
@@ -1146,7 +1150,7 @@ def expand_view_tags(
             else None
         )
         rendered = _render_resolved_source_or_raise(
-            name, result, item, spec, squad_dir_display, data
+            name, result, item, spec, squad_dir_display, working_language, data
         )
         pending += text[last:start]
         segments.append(("literal", pending))
@@ -1229,6 +1233,7 @@ def _render_resolved_source_or_raise(
     item: Item,
     spec: WorkflowSpec,
     squad_dir_display: str | None,
+    working_language: WorkingLanguage,
     data: TransformData | None = None,
 ) -> str:
     """:func:`render_source_view`, with a template failure under ``StrictUndefined``
@@ -1245,7 +1250,9 @@ def _render_resolved_source_or_raise(
     :class:`SquadsError` clause below — is let through unchanged on the rare race where the
     template disappears between the two checks."""
     try:
-        return render_source_view(view_name, result, item, spec, squad_dir_display, data)
+        return render_source_view(
+            view_name, result, item, spec, squad_dir_display, working_language, data
+        )
     except ViewTemplateMissingError:
         raise
     except SquadsError as exc:

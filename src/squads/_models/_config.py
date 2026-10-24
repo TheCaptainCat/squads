@@ -55,51 +55,7 @@ def parse_display(raw: Any) -> tuple[DisplaySettings, list[str]]:
     return DisplaySettings(**usable), problems
 
 
-_HEADER_RE = re.compile(r"^[ \t]*\[\[?[ \t]*([^\]]*?)[ \t]*\]\]?")
-_TOP_DISPLAY_RE = re.compile(r"^[ \t]*display[ \t]*[.=]")
-
-
-def _is_display_header(line: str) -> bool | None:
-    """Whether *line* is a table header of ``display`` (or below it); ``None`` for a non-header."""
-    m = _HEADER_RE.match(line)
-    if m is None:
-        return None
-    name = m.group(1).replace(" ", "")
-    return name == "display" or name.startswith("display.")
-
-
-def _display_source(text: str) -> tuple[str, str | None]:
-    """The text of *text*'s ``display`` declaration, verbatim: ``(top-level lines, table text)``.
-
-    The table text starts at the whitespace that separated it from the content above and ends
-    with its last line, so putting it back after the rest of the file restores its bytes.
-    """
-    lines = text.splitlines(keepends=True)
-    first_header = next((i for i, ln in enumerate(lines) if _HEADER_RE.match(ln)), len(lines))
-    top: list[str] = []
-    pending: list[str] = []
-    for ln in lines[:first_header]:
-        if _TOP_DISPLAY_RE.match(ln):
-            top += [*pending, ln if ln.endswith("\n") else ln + "\n"]
-            pending = []
-        elif not ln.strip():
-            pending.append(ln)
-        else:
-            pending = []
-    start = next((i for i, ln in enumerate(lines) if _is_display_header(ln)), None)
-    if start is None:
-        return "".join(top), None
-    end = start + 1
-    while end < len(lines) and _is_display_header(lines[end]) in (None, True):
-        end += 1
-    body = lines[start:end]
-    while len(body) > 1 and not body[-1].strip():
-        body.pop()
-    above = "".join(lines[:start]).rstrip()
-    lead = "".join(lines[:start])[len(above) :]
-    if not body[-1].endswith("\n") and end < len(lines):
-        body[-1] += "\n"
-    return "".join(top), lead + "".join(body)
+_BARE_KEY = re.compile(r"[A-Za-z0-9_-]+")
 
 
 def _toml_escape(value: str) -> str:
@@ -113,11 +69,12 @@ class SquadsConfig(BaseModel):
     squad_dir: NonEmpty = "squads"
     #: Active agent backends (ordered list; duplicates silently collapsed on read).
     active_backends: list[str] = Field(default_factory=lambda: ["claude_code"])
-    #: squads version that last generated the managed (tool-owned) files.
-    squads_version: NonEmpty = "0.0.0"
     #: Optional mapping of role slug → full name, seeded at ``sq init``.
     #: Written under ``[init.names]`` in the TOML.
     init_names: dict[str, str] = Field(default_factory=dict)
+    #: The ``working_language`` value as read: a language tag when usable, ``None`` when the key
+    #: is absent, any other TOML value kept as read so it reads as unusable.
+    working_language: Any = None
     #: Presentation preferences of sq's human renderers; written under ``[display]``.
     display: DisplaySettings = Field(default_factory=DisplaySettings)
     #: What was unusable in the ``[display]`` table that was read; never written back.
@@ -146,36 +103,29 @@ class SquadsConfig(BaseModel):
         return _dedup_preserving_order(v)
 
     def to_toml(self) -> str:
-        backends_toml = "[" + ", ".join(f'"{b}"' for b in self.active_backends) + "]"
+        backends_toml = "[" + ", ".join(f'"{_toml_escape(b)}"' for b in self.active_backends) + "]"
         lines = [
             "# squads project configuration",
             f'schema_version = "{self.schema_version}"',
             f'squad_dir = "{_toml_escape(self.squad_dir)}"',
             f"active_backends = {backends_toml}",
-            f'squads_version = "{self.squads_version}"',
-            "",
         ]
+        if isinstance(self.working_language, str):
+            lines.append(f'working_language = "{_toml_escape(self.working_language)}"')
+        lines.append("")
+        if self.display != DisplaySettings():
+            lines.append("[display]")
+            lines.extend(f"{k} = {str(v).lower()}" for k, v in self.display.model_dump().items())
+            lines.append("")
         if self.init_names:
             lines.append("[init.names]")
             for slug, name in sorted(self.init_names.items()):
                 # Escape backslashes and double-quotes for basic TOML string safety.
                 safe_name = _toml_escape(name)
-                lines.append(f'{slug} = "{safe_name}"')
+                key = slug if _BARE_KEY.fullmatch(slug) else f'"{_toml_escape(slug)}"'
+                lines.append(f'{key} = "{safe_name}"')
             lines.append("")
         return "\n".join(lines)
-
-    def to_toml_keeping(self, original: str) -> str:
-        """:meth:`to_toml`, with the ``display`` the *original* file text declares carried over
-        exactly as written: a stamp never changes what the user wrote there, whether it is a
-        default, an unusable value or an unknown key."""
-        base = self.to_toml().rstrip("\n")
-        top, section = _display_source(original)
-        if top:
-            marker = f'squads_version = "{self.squads_version}"'
-            base = base.replace(marker, marker + "\n" + top.removesuffix("\n"), 1)
-        if section is None:
-            return base + "\n"
-        return base + ("" if section.startswith("\n") else "\n\n") + section
 
     @classmethod
     def from_toml_dict(cls, data: dict[str, Any]) -> SquadsConfig:

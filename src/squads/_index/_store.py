@@ -388,19 +388,19 @@ class IndexStore:
             return self._loop_locks[loop_id]
 
     # ------------------------------------------------------------------ create / read
-    def create_empty(self, squads_version: str) -> SquadsDB:
+    def create_empty(self) -> SquadsDB:
         """Write a fresh empty index (sync; used by tests and one-shot bootstrap paths).
 
         Prefer :meth:`create_empty_threaded` on the async service path (``init``/``adopt``).
         """
-        db = SquadsDB(squads_version=squads_version, counter=0)
+        db = SquadsDB(counter=0)
         self.index_path.parent.mkdir(parents=True, exist_ok=True)
         self._atomic_write_sync(db)
         return db
 
-    async def create_empty_threaded(self, squads_version: str) -> SquadsDB:
+    async def create_empty_threaded(self) -> SquadsDB:
         """Write a fresh empty index on a worker thread (async; used by ``init``/``adopt``)."""
-        db = SquadsDB(squads_version=squads_version, counter=0)
+        db = SquadsDB(counter=0)
         await _aio.mkdir(self.index_path.parent, parents=True, exist_ok=True)
         await self._atomic_write(db)
         return db

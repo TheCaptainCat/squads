@@ -191,5 +191,11 @@ class ViewsMixin(ServiceCore):
             else None
         )
         return views.render_source_view(
-            view_name, result, item, self.spec, self.paths.config.squad_dir, data
+            view_name,
+            result,
+            item,
+            self.spec,
+            self.paths.config.squad_dir,
+            self.working_language,
+            data,
         )

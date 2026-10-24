@@ -215,7 +215,7 @@ def test_the_wired_guard_reddens_on_a_planted_unwrapped_error_site(tmp_path: Pat
 
 def test_the_wired_guard_reddens_on_a_planted_unwrapped_command_reference(tmp_path: Path) -> None:
     """The other marker family (an inline `sq` command reference), not just the error prefix --
-    covers the shape `version_notice` and the override-scaffold guidance sites are."""
+    covers the shape the override-scaffold guidance sites are."""
     planted_root = tmp_path / "_cli"
     planted_root.mkdir()
     (planted_root / "_leaky.py").write_text(

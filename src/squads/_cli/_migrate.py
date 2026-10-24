@@ -102,6 +102,12 @@ async def migrate_up():
                 "file by hand first, then place it with the same `view add`",
                 soft_wrap=True,
             )
+    if run.config_dropped:
+        console.print(
+            "  [yellow]dropped[/yellow] from .squads.toml (not read by squads): "
+            f"{', '.join(e(k) for k in run.config_dropped)}",
+            soft_wrap=True,
+        )
     console.print(
         f"[green]migrated[/green] to schema v{SCHEMA_VERSION}; index rebuilt — "
         "run `sq sync` to refresh managed files",
@@ -257,11 +263,8 @@ def _manual_chlog_span(applied: list[Migration]) -> str:
     """The release span guaranteed to hold every migration in ``applied`` under
     ``migrate_chlog``'s ``lo < version <= hi`` filter.
 
-    Derived from ``applied`` and the ordered :data:`MIGRATIONS` registry — never from
-    ``svc.paths.config.squads_version``, which answers a different question (when this squad
-    last synced its managed files) and can already equal the running package's version before
-    the schema catches up, degenerating a naive ``lo..hi`` span to ``lo == hi`` (structurally
-    empty, since the filter is open at ``lo``).
+    Derived from ``applied`` and the ordered :data:`MIGRATIONS` registry, so the span is never
+    structurally empty (the filter is open at ``lo``).
 
     ``hi`` is the last applied migration's own version — ``applied`` is a suffix of
     ``MIGRATIONS`` in registry (chronological) order, per ``run_pending_migrations``. ``lo``

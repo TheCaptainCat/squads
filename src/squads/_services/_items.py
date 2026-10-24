@@ -773,6 +773,7 @@ class ItemsMixin(ServiceCore):
             roster,
             self.paths.squad_dir,
             self.paths.config.squad_dir,
+            self.working_language,
         )
 
     async def _stored_body(self, item: Item) -> str:

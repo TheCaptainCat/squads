@@ -3,7 +3,7 @@ id: FEAT-1092
 sequence_id: 1092
 type: feature
 title: Structural cleanup of engine layering and cohesion
-status: Draft
+status: Ready
 author: product-owner
 priority: medium
 refs:
@@ -31,23 +31,58 @@ subentities:
   title: Apply the comment rule to source and tests (F18, F19)
   status: Todo
 created_at: '2026-10-17T03:49:43Z'
-updated_at: '2026-10-17T03:50:11Z'
+updated_at: '2026-10-24T19:43:22Z'
 ---
 <!-- sq:body -->
-The structural review of the engine layering and cohesion left thirteen findings open after the 0.16 disposition pass: F3, F5, F6, F7, F8, F9, F10, F11, F12, F14, F15, F18 and F19. The import guard, the role moves and the write-count guard shipped in 0.16. The rest is one coherent piece of structural work, not a set of leftovers to defer one by one, and it lands in 0.17.
+The structural review of the engine layering and cohesion (REV-956) held thirteen
+findings back from the 0.16 disposition pass, by the operator's 2026-10-09
+ruling: F3, F5, F6, F7, F8, F9, F10, F11, F12, F14, F15, F18 and F19. The import
+guard, the role moves and the write-count guard shipped in 0.16. The rest is one
+coherent piece of structural work, not a set of leftovers to defer one by one,
+and it lands in 0.17.
 
-**The problem.** The engine works, but its seams are in the wrong places. Role-roster logic sits inside `ServiceCore`, and `_interactions/__init__.py` is an undeclared policy hub. Forty-eight parameters silently fall back to the bundled spec when none is passed, and `Service` is built at eight sites, three of which omit the playbook. Three spec loaders repeat one load shape. Several files have grown past what one reader can hold: `_workflow/_models.py` is 3434 lines and `_maintenance.py` is 3769. `sq check` has eight finding sources and names none of them. The comment rule fails in most source and test files.
+**The problem.** The engine works, but its seams are in the wrong places.
+Role-roster logic sits inside `ServiceCore`, and `_interactions/__init__.py` is
+an undeclared policy hub. Dozens of parameters silently fall back to the bundled
+spec when none is passed, and `Service` is built at several sites, some of which
+omit the playbook. Three spec loaders repeat one load shape. Several files have
+grown past what one reader can hold: `_workflow/_models.py` is about 3,500 lines
+and `_maintenance.py` about 3,700. `sq check` has eight finding sources and names
+none of them. The comment rule fails in most source and test files.
 
-The review itself, with the per-finding evidence and sizes, is the reference for every story below.
+The review, with the per-finding evidence and sizes, is the reference for every
+story below. Counts in the stories are the review's; the first act of each story
+is to re-measure them.
 
-**Approach.** Each story is one coherent group of findings. Stories are sequenced so that spec threading comes before the splits that touch the same signatures, and the roster extraction informs the DI decision.
+**Approach.** Each story is one coherent group of findings. Stories are
+sequenced so that spec threading comes before the splits that touch the same
+signatures, and the roster extraction informs the DI decision.
 
 **Out of scope**
 
-- Findings already Fixed in 0.16 (F1, F2, F16, F17) and the two closed as WontFix (F4, F13).
-- The `-dev` retirement ADR, which takes this review's F1, F2, F3 and F5 as inputs but is its own decision.
-- Behaviour changes. Every story is a move, a split or a rule, with no change to what `sq` does for an adopter, except the additive rule key in `sq check --json`.
-- Rebuilding the test suite as a whole; the test-comment sweep rides that rebuild.
+- Findings already Fixed in 0.16 (F1, F2, F16, F17) and the two closed as
+WontFix (F4, F13).
+- The `-dev` retirement ADR, which takes this review's F1, F2, F3 and F5 as
+inputs but is its own decision.
+- Behaviour changes. Every story is a move, a split or a rule, with no change to
+what `sq` does for an adopter, except the additive rule key in `sq check
+--json`.
+- Rebuilding the test suite as a whole (FEAT-1096); the test-comment sweep rides
+that rebuild.
+
+**Acceptance criteria**
+
+- Each of the thirteen findings is closed on REV-956 as Fixed with the commit, or
+as WontFix with a recorded reason (F14 is a decision).
+- The full suite, pyright, ruff and `sq check` are clean after every story, with
+no test assertion changed to fit a move.
+- `sq check --json` output is unchanged except for the additive rule key (US4);
+generated files (CLAUDE.md, pointers, skills) are byte-identical before and after
+the structural stories, on a pinned roster.
+- The layering guard (the import-edge table) is updated in the same change as
+any new edge, and passes.
+- No module-level mutable state is added; the active-squad-dir and backend
+registry state named in US2 is threaded or removed.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -73,7 +108,7 @@ Extract the roster projection (about 400 lines, 19 methods in ServiceCore, used 
 ### US2 — Spec threading and loader unification (F6, F8, F15)
 
 <!-- sq:story:US2:body -->
-Make the spec and playbook required parameters instead of silently defaulting to the bundled one (48 parameters, 36 production bundled_spec() calls, 22 unused bundled shims). Fold the three hand-written spec loaders into one document descriptor plus one load function. Build Service at one site so no construction omits the playbook, and retire the module-global active-squad-dir and backend registry state. Findings F6, F8 and F15. Size: medium-large (F6), medium (F8), medium (F15); the renderer squad-dir step wants the architect.
+Make the spec and playbook required parameters instead of silently defaulting to the bundled one (48 parameters and about 39 production bundled_spec() calls at last count, plus unused bundled shims). Fold the three hand-written spec loaders into one document descriptor plus one load function. Build Service at one site so no construction omits the playbook, and retire the module-global active-squad-dir and backend registry state. Findings F6, F8 and F15. Size: medium-large (F6), medium (F8), medium (F15); the renderer squad-dir step wants the architect. Acceptance: no production call falls back to the bundled spec silently, Service has one construction site, and the suite passes unchanged.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -125,7 +160,7 @@ Decide whether to adopt a DI container, as op-pierre ruled on 2026-10-09. The re
 ### US6 — Apply the comment rule to source and tests (F18, F19)
 
 <!-- sq:story:US6:body -->
-Bring source and test docstrings and comments under the project comment rule: 95 of 137 source files carry a docstring over five non-blank lines (627 docstrings), and the test files carry 1431 docstrings that fail the check. One per-package sweep with the reviewer per-file tables as the worklist, not one item per file. Source sweep (F18): large. Test sweep (F19): large, riding the deferred test rebuild.
+Bring source and test docstrings and comments under the project comment rule: 95 of 137 source files carry a docstring over five non-blank lines (627 docstrings), and the test files carry 1431 docstrings that fail the check (counts to be re-measured). One per-package sweep with the reviewer per-file tables as the worklist, not one item per file. The source sweep (F18) is large. The test sweep (F19) is large and rides the test-suite rebuild (FEAT-1096). Acceptance: the mechanical check passes on every swept file, and no behaviour changes.
 <!-- sq:story:US6:body:end -->
 
 #### Discussion
@@ -138,4 +173,6 @@ Bring source and test docstrings and comments under the project comment rule: 95
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-24T19:43:22Z] `product-owner` Nina Product:
+  - @tech-lead needs a breakdown into tasks (no tasks yet). Premises re-measured 2026-10-24: file sizes and bundled_spec call count still close to the review; counts in stories are to be re-measured at the start of each. Acceptance criteria added.
 <!-- sq:discussion:end -->

@@ -278,7 +278,7 @@ def _print_summary(current_version: str, new_version: str, *, dry_run: bool) -> 
         print(f"  {label.ljust(width)}  {old} -> {new}")
     print(f"  {'template manifest'.ljust(width)}  new v{new_version} entry appended")
     print(f"  {'version-embedding goldens'.ljust(width)}  regenerated")
-    print(f"  {'.squads.toml squads_version'.ljust(width)}  re-stamped via sq sync")
+    print(f"  {'managed files'.ljust(width)}  refreshed via sq sync")
 
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:

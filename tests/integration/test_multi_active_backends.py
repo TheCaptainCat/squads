@@ -91,7 +91,6 @@ class TestEmptyActiveBackends:
             f'schema_version = "{cfg_data["schema_version"]}"',
             f'squad_dir = "{cfg_data["squad_dir"]}"',
             "active_backends = []",
-            f'squads_version = "{cfg_data["squads_version"]}"',
             "",
         ]
         cfg_path.write_text("\n".join(lines), encoding="utf-8")

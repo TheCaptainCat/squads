@@ -11,6 +11,7 @@
 .claude/skills/sq-review/SKILL.md
 .claude/skills/sq-task/SKILL.md
 .claude/skills/squads/SKILL.md
+.squads.toml
 CLAUDE.md
 adrs/ADR-000005-use-jwt-for-sessions.md
 agents/roles/ROLE-000001-dev-agent.md

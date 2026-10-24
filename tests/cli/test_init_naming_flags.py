@@ -222,7 +222,6 @@ class TestTtyAndDefaultNamesPrompting:
         cfg = SquadsConfig(
             squad_dir="squads",
             active_backends=["claude_code"],
-            squads_version="0.1.0",
             init_names={"manager": "Grace Hopper"},
         )
         (tmp_path / CONFIG_FILENAME).write_text(cfg.to_toml(), encoding="utf-8")
@@ -248,7 +247,6 @@ class TestTtyAndDefaultNamesPrompting:
         cfg = SquadsConfig(
             squad_dir="squads",
             active_backends=["claude_code"],
-            squads_version="0.1.0",
             init_names={"manager": "From Config"},
         )
         (tmp_path / CONFIG_FILENAME).write_text(cfg.to_toml(), encoding="utf-8")

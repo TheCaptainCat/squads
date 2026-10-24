@@ -3,7 +3,7 @@ id: FEAT-1096
 sequence_id: 1096
 type: feature
 title: Rebuild the test suite from the ground up
-status: Draft
+status: Ready
 author: product-owner
 priority: high
 refs:
@@ -42,7 +42,7 @@ subentities:
   title: Measure per-OS CI times and test count
   status: Todo
 created_at: '2026-10-17T07:56:25Z'
-updated_at: '2026-10-24T14:34:30Z'
+updated_at: '2026-10-24T19:42:24Z'
 ---
 <!-- sq:body -->
 ## Problem

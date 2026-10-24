@@ -61,15 +61,6 @@ def _region(path: Path) -> str:
     return (get_section(path.read_text(encoding="utf-8"), markers.BODY) or "").strip()
 
 
-async def _drift_the_stamp(paths) -> None:
-    cfg_path = paths.config_path
-    text = cfg_path.read_text(encoding="utf-8")
-    cfg_path.write_text(
-        text.replace(f'squads_version = "{__version__}"', 'squads_version = "0.1.0"'),
-        encoding="utf-8",
-    )
-
-
 async def test_a_permanently_system_skills_dropped_view_round_trip(svc) -> None:
     await svc.seed_bundled_skills()
     skill = await svc.roster_item("skill", "squads")
@@ -87,9 +78,8 @@ async def test_a_permanently_system_skills_dropped_view_round_trip(svc) -> None:
     await dropped.repair()
     assert _region(path) == before, "sq repair rewrote the authored body"
 
-    await _drift_the_stamp(dropped.paths)
     await service.Service(dropped.paths, spec=dropped.spec).sync()
-    assert _region(path) == before, "the version-drift backfill rewrote the authored body"
+    assert _region(path) == before, "the sync backfill rewrote the authored body"
 
     (svc.paths.squad_dir / ".overrides" / "workflow.toml").unlink()
     redeclared = service.Service(svc.paths)
@@ -116,9 +106,8 @@ async def test_a_stale_bundled_sq_bug_after_its_type_is_dropped_round_trip(svc) 
     await dropped.repair()
     assert _region(path) == before, "sq repair rewrote the authored body"
 
-    await _drift_the_stamp(dropped.paths)
     await service.Service(dropped.paths, spec=dropped.spec).sync()
-    assert _region(path) == before, "the version-drift backfill rewrote the authored body"
+    assert _region(path) == before, "the sync backfill rewrote the authored body"
 
     (svc.paths.squad_dir / ".overrides" / "workflow.toml").unlink()
     redeclared = service.Service(svc.paths)
@@ -144,9 +133,8 @@ async def test_a_project_declared_types_stale_sq_widget_round_trip(svc) -> None:
     await svc.repair()
     assert _region(path) == before, "sq repair rewrote an authored custom-skill body"
 
-    await _drift_the_stamp(svc.paths)
     await service.Service(svc.paths).sync()
-    assert _region(path) == before, "the version-drift backfill rewrote an authored body"
+    assert _region(path) == before, "the sync backfill rewrote an authored body"
 
     _write_override(svc.paths.squad_dir, _WIDGET_TYPE)
     declared = _reopen(svc.paths)

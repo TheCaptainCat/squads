@@ -20,7 +20,7 @@ def _make_store(tmp_path, name: str = "squad") -> IndexStore:
     squad_dir = tmp_path / name
     squad_dir.mkdir()
     store = IndexStore(squad_dir / ".squads.json", squad_dir / ".squads.json.lock")
-    store.create_empty("0.1.0")
+    store.create_empty()
     return store
 
 

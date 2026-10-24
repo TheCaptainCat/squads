@@ -267,7 +267,7 @@ async def test_migrate_up_stays_outside_the_partial_read_class(svc, invoke):
 
 
 async def test_the_omissions_report_is_the_one_json_line_with_a_prose_cotenant(svc, invoke):
-    """The `sq sync` version notice is a real prose co-tenant on stderr under `--json` --
+    """The working-language warning is a real prose co-tenant on stderr under `--json` --
     the consumer rule ("the one line of stderr that parses as a JSON object is the report")
     has to hold with that line present, not only on an otherwise-quiet stderr."""
     bad = (await create_item(svc, "task", "unreadable")).item
@@ -278,7 +278,7 @@ async def test_the_omissions_report_is_the_one_json_line_with_a_prose_cotenant(s
         f'schema_version = "{SCHEMA_VERSION}"\n'
         'squad_dir = "squads"\n'
         'active_backends = ["claude_code"]\n'
-        'squads_version = "0.0.1"\n',
+        'working_language = "fr_FR"\n',
         encoding="utf-8",
     )
 
@@ -286,7 +286,7 @@ async def test_the_omissions_report_is_the_one_json_line_with_a_prose_cotenant(s
 
     assert result.exit_code == 4, result.output
     stderr_lines = [ln for ln in result.stderr.splitlines() if ln.strip()]
-    assert any("sq sync" in ln for ln in stderr_lines), "the version notice must still fire"
+    assert any("working_language" in ln for ln in stderr_lines), "the warning must still fire"
     report = _omissions_report(result.stderr)
     assert list(report.keys()) == ["omitted"]
     assert report["omitted"][0]["source"] == bad.id

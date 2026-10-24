@@ -9,6 +9,7 @@ from squads._errors import SquadsError
 from squads._interactions import resolve_operator_invocable
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._role_guidance import skills_for_role
+from squads._language import WorkingLanguage, resolve_working_language
 from squads._models._item import Item
 from squads._paths import SquadPaths
 from squads._roles._catalog import RoleDef
@@ -94,6 +95,11 @@ class BackendContext:
     @property
     def squad_dir(self) -> Path:
         return self.paths.squad_dir
+
+    @property
+    def working_language(self) -> WorkingLanguage:
+        """The squad's working language, English when the configured value is unusable."""
+        return resolve_working_language(self.paths.config.working_language)[0]
 
     def rel(self, path: Path) -> str:
         """Root-relative forward-slash path (for Artifact paths and backend-owned references)."""

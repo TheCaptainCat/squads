@@ -124,6 +124,7 @@ class ClaudeCodeBackend(AgentBackend):
         section = render(
             "claude/claude_section.md.j2",
             squad_dir=squad_dir,
+            working_language=ctx.working_language,
             roles=[
                 {
                     "full_name": r.full_name,

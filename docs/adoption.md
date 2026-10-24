@@ -90,6 +90,42 @@ setup or a custom role you've since renamed. To clean it up:
 
 Squads never touches these files — you are always in control.
 
+### The working language
+
+A squad works in one language, set by `working_language` in `.squads.toml`:
+
+```toml
+working_language = "fr"
+```
+
+Agents then use two languages, and only one of them is configured:
+
+- **The working language** is for everything that goes through `sq` (item titles, bodies,
+  sub-entity text, comments) and for all communication between agents (briefs, handbacks,
+  `@mention` comments).
+- **The conversation language** is the one a human writes in. Agents reply to each person in that
+  person's language, message by message; it is never configured.
+
+The value is a BCP 47 tag, for example:
+
+| Tag | Rendered as |
+|-----|-------------|
+| `en` | English (`en`) |
+| `fr` | French (`fr`) |
+| `de` | German (`de`) |
+| `pt-BR` | Portuguese (Brazil) (`pt-BR`) |
+| `zh-Hant-TW` | Chinese (Traditional, Taiwan) (`zh-Hant-TW`) |
+
+`sq init`, and `sq adopt` when it creates `.squads.toml`, write `working_language = "en"`. An adopt
+over an existing `.squads.toml` leaves that file as it is, so a squad without the key works in
+English, silently, until you add it. Run `sq sync` after setting or changing the key: it refreshes
+the rule in the managed `CLAUDE.md` and `AGENTS.md` sections, and the `squads` skill shows it the
+next time it is read. A value squads does not recognise as a language tag (`fr_FR`, say) prints a
+warning on every command and in `sq check`, and English applies until you fix it. The full rule is
+in [stability.md § "Working language in `.squads.toml`"](stability.md#working-language-in-squadstoml).
+
+This setting is not the language of the `sq` CLI's own output, which is a separate matter.
+
 ## 2. Convert legacy documents (preserving history, one-by-one)
 
 For each legacy artifact (an old ticket, spec, ADR, …):

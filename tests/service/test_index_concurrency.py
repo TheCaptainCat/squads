@@ -19,7 +19,7 @@ async def test_concurrent_threads_allocate_distinct_ids(tmp_path):
     from concurrent.futures import ThreadPoolExecutor
 
     store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
-    store.create_empty("0.1.0")
+    store.create_empty()
 
     def alloc(_: int) -> str:
         async def _do() -> str:
@@ -39,7 +39,7 @@ async def test_concurrent_coroutines_on_one_loop_allocate_distinct_ids(tmp_path)
     implementation fail deterministically — every coroutine's acquire would land on the one
     reused worker thread and see the file lock as a reentrant no-op."""
     store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
-    store.create_empty("0.1.0")
+    store.create_empty()
 
     n = 8
     ids: list[str] = []

@@ -8,6 +8,7 @@ proving that participation is derived from the spec rather than hardcoded to the
 bundled hosts (feature/task/review).
 """
 
+from squads._language import WorkingLanguage
 from squads._rendering._engine import render
 from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
@@ -30,6 +31,7 @@ def test_dropping_task_from_the_spec_does_not_crash_the_claude_md_section() -> N
     rendered = render(
         "claude/claude_section.md.j2",
         squad_dir="squads",
+        working_language=WorkingLanguage("en", "English"),
         # epic/feature's owner (product-owner) must be on the roster for its authoring
         # bullet — the one this test asserts on — to render now that authoring_owner is
         # roster-aware.

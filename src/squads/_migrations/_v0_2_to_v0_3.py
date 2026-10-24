@@ -19,12 +19,9 @@ longer declares it (e.g. an override replaced the lifecycle after the file was w
 already caught downstream by ``sq check`` (``_services/_validators.py::_subentity_status_valid``,
 which runs against the same active/override-aware spec) — see ``MANUAL`` below.
 
-Note on ``.squads.toml`` canonicalization: after this runner returns,
-``run_pending_migrations`` calls ``_stamp_schema(SCHEMA_VERSION)``, which re-serializes the
-config via ``SquadsConfig.to_toml()``.  ``to_toml()`` only ever emits ``active_backends`` (never
-``default_backend``), and ``from_toml_dict()`` already translates the legacy ``default_backend``
-key on load — so the stamp path alone normalizes the toml key.  No explicit toml rewrite is
-needed in this runner.
+Note on ``.squads.toml``: ``run_pending_migrations`` regenerates the file when it carries the
+legacy ``default_backend`` or ``default_role`` key (``_config_text.plan_config_rewrite``), so no
+explicit toml rewrite is needed in this runner.
 """
 
 from pathlib import Path
