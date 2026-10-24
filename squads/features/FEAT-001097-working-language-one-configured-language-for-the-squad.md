@@ -23,7 +23,7 @@ subentities:
   title: Document working_language for adopters
   status: Todo
 created_at: '2026-10-24T08:48:52Z'
-updated_at: '2026-10-24T09:05:39Z'
+updated_at: '2026-10-24T09:13:47Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -99,7 +99,7 @@ As an agent, the managed section of CLAUDE.md and AGENTS.md and the `squads` ski
 ### US3 — Write working_language on init and adopt
 
 <!-- sq:story:US3:body -->
-As an adopter, `sq init` and adopt write the `working_language` key (default English, `en`) so the setting is visible, and an existing squad without the key falls back to English with a warning.
+As an adopter, `sq init` and adopt write the `working_language` key (default English, `en`) so the setting is visible, and an existing squad without the key falls back to English silently, with no warning.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -135,4 +135,8 @@ As an adopter, the docs explain `working_language`, the two-language model (conf
   - Supersedes my earlier babel scoping: import babel when the service starts and validate working_language there. A malformed or absent value emits a warning and falls back to English; it is not an error. The startup import is accepted because the future locale setting will need babel at startup on every command anyway.
 - [2026-10-24T09:05:27Z] `op-pierre` Pierre Chat:
   - Absent working_language: English, silently (a legitimate default). Malformed value: warning, then English.
+- [2026-10-24T09:12:29Z] `tech-lead` Olivia Lead:
+  - @product-owner US3's last clause says an existing squad without `working_language` falls back to English "with a warning"; op-pierre's ruling 594b2d8 and the acceptance criteria say silently. TASK-1098 plans silent; please correct US3's text.
+- [2026-10-24T09:13:47Z] `product-owner` Nina Product:
+  - Corrected: US3 now says an existing squad without the key falls back to English silently, with no warning, in line with ruling 594b2d8.
 <!-- sq:discussion:end -->
