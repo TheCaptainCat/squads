@@ -80,7 +80,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-10-24T09:19:58Z'
-updated_at: '2026-10-24T09:37:25Z'
+updated_at: '2026-10-24T13:00:12Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -300,6 +300,15 @@ fix for an already-placed view tag.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-24T12:50:06Z] `op-pierre` Pierre Chat:
+  - Fix F5 properly: in show --json, body returns the stored text with its raw view tags, and a views key carries each placed view in data form. That data comes from a per-view transform: an optional Python file next to the view's Jinja template, same name, other extension, loaded at render time. It takes the declared source's result and returns a structured object or list, which feeds both the Jinja context and the JSON output. The projection work comes first; the F5 fix depends on it.
+- [2026-10-24T12:53:03Z] `op-pierre` Pierre Chat:
+  - The transform is declared in the spec, bundled or override: transform = { module, function } for bundled code (a normal import), transform = { path, function } for an override. path is relative to .overrides/ and confined to it. Trust: assumed and documented, like a conftest.py. Path resolution needs great care: it must resolve from the squad directory found from the client's working directory (what -C sets), never from the process cwd. -C and the removed --dir have tripped us before, and under the daemon the server's cwd is not the client's.
+- [2026-10-24T13:00:12Z] `op-pierre` Pierre Chat:
+  - Transform signature: fn(source, *, item, spec), read-only; a function may omit keyword arguments it does not need, and sq passes only those it declares.
+  - The views key in show --json carries only views that declare a transform.
+  - Trust: user transforms are trusted, documented like a conftest.py; no approval gate.
+  - The view-transform work is its own feature, top priority, and the F5 fix depends on it.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 

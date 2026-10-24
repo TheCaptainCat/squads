@@ -39,7 +39,7 @@ subentities:
   title: sq list has a compact one-line form
   status: Todo
 created_at: '2026-10-24T09:39:06Z'
-updated_at: '2026-10-24T09:40:05Z'
+updated_at: '2026-10-24T13:00:13Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -224,4 +224,14 @@ Covers F8. A compact option prints one line per item with a truncated title so l
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-24T10:09:03Z] `tech-lead` Olivia Lead:
+  - Broke into five Draft tasks: TASK-1103 (defects F4, F5, F9, F16, F6, F2), TASK-1104 (check rules F10, F3, plus a reviewer subtask for this repo's corpus), TASK-1105 (finding lifecycle F7 per ADR-1102), TASK-1106 (role ergonomics, handoffs, compact list: F13, F15, F8, F17, F14), TASK-1107 (docs F1, F12, F11, tech-writer). Every story US1 to US9 has at least one subtask.
+  - TASK-1104 depends on TASK-1105. TASK-1103, TASK-1105 and TASK-1106 share workflow.toml, playbook.toml, the CLAUDE.md template, goldens and the manifest (as does TASK-1098), so run them one dev at a time: 1103, then 1105, then 1104 and 1106.
+  - @manager open design calls before dispatch are listed in my handback; the largest is that the F10 rule, keyed on settled roles as ADR-1102 requires, lights up 106 Approved reviews in this repo (69 of them only for Fixed, unverified findings).
+- [2026-10-24T12:34:32Z] `op-pierre` Pierre Chat:
+  - F10: every finding that is not settled counts, Fixed included: an Approved review holding a Fixed finding is reported. The cleanup of this repository's reviews (TASK-1104 ST3) is authorised.
+  - F17: the task-type handoff wording is in scope too, same fix.
+  - Breakdown: keep the five tasks as they are.
+- [2026-10-24T13:00:13Z] `op-pierre` Pierre Chat:
+  - Tech lead's remaining choices accepted: F10 selected on the review type with a CHANGELOG note for adopters overriding its validators; F3 counts open items only; F6 gives stories Todo to Done too; F4 keeps the 10 s timeout with a notice after about 1 s; import accepts deferred_to.
 <!-- sq:discussion:end -->

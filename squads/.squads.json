@@ -1,7 +1,7 @@
 {
   "schema_version": "0.16",
   "squads_version": "0.16.0",
-  "counter": 1102,
+  "counter": 1107,
   "padding": 6,
   "items": {
     "12": {
@@ -36085,7 +36085,7 @@
       "type": "milestone",
       "title": "squads 0.16 - one roster, flat files",
       "slug": "squads-0-16-one-roster-flat-files",
-      "status": "InProgress",
+      "status": "Done",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -36099,7 +36099,7 @@
       "subentities": [],
       "path": "milestones/MILE-000934-squads-0-16-one-roster-flat-files.md",
       "created_at": "2026-09-09T14:39:43Z",
-      "updated_at": "2026-10-17T05:33:55Z",
+      "updated_at": "2026-10-24T13:00:35Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52009,7 +52009,7 @@
       ],
       "path": "reviews/REV-001099-adopter-field-report-on-0-15-0-upgrade-and-a-day-of-work.md",
       "created_at": "2026-10-24T09:19:58Z",
-      "updated_at": "2026-10-24T09:37:25Z",
+      "updated_at": "2026-10-24T13:00:12Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52144,7 +52144,7 @@
       ],
       "path": "features/FEAT-001101-adopter-field-report-fixes-errors-round-trips-checks-guidanc.md",
       "created_at": "2026-10-24T09:39:06Z",
-      "updated_at": "2026-10-24T09:40:05Z",
+      "updated_at": "2026-10-24T13:00:13Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52176,6 +52176,395 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "ADR-1102"
+    },
+    "1103": {
+      "sequence_id": 1103,
+      "type": "task",
+      "title": "Fix lock contention, milestone round-trip, create fields, sync wording",
+      "slug": "fix-lock-contention-milestone-round-trip-create-fields-sync",
+      "status": "Draft",
+      "description": "Defects F4, F5, F9, F16, F6 and F2 from REV-1099.",
+      "parent": "FEAT-1101",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1099:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Report index-lock waits on stderr and fail a timeout as a clean SquadsError",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Stop a milestone body write-back from duplicating the roll-up, and name the fix for a view tag",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Expose every declared field as a create option and store a declared default",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Render a type's Team workflow line for any number of authoring roles",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Call an older release's pointer outdated, and say what sync still does after migrate",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Allow Todo to Done in the bundled sub-entity lifecycle",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Write the 0.17.0 CHANGELOG entries for this task's defect fixes",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001103-fix-lock-contention-milestone-round-trip-create-fields-sync.md",
+      "created_at": "2026-10-24T10:04:00Z",
+      "updated_at": "2026-10-24T10:07:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1103"
+    },
+    "1104": {
+      "sequence_id": 1104,
+      "type": "task",
+      "title": "Warn on settled reviews with open findings and on unowned types",
+      "slug": "warn-on-settled-reviews-with-open-findings-and-on-unowned-ty",
+      "status": "Draft",
+      "description": "New sq check rules for F10 and F3 from REV-1099.",
+      "parent": "FEAT-1101",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1099:addresses",
+        "TASK-1105:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add subentities_settled_with_parent and select it on the bundled review type",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Add type_has_live_author, naming the catalog role to activate",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Give every outstanding finding on this repo's settled reviews a real disposition",
+          "status": "Todo",
+          "assignee": "reviewer",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Write the 0.17.0 CHANGELOG entries for the two new check rules",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001104-warn-on-settled-reviews-with-open-findings-and-on-unowned-ty.md",
+      "created_at": "2026-10-24T10:04:02Z",
+      "updated_at": "2026-10-24T10:08:29Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1104"
+    },
+    "1105": {
+      "sequence_id": 1105,
+      "type": "task",
+      "title": "Add Noted and Deferred finding states with a carrier pointer",
+      "slug": "add-noted-and-deferred-finding-states-with-a-carrier-pointer",
+      "status": "Draft",
+      "description": "The finding lifecycle of ADR-1102 (REV-1099 F7).",
+      "parent": "FEAT-1101",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1099:addresses",
+        "ADR-1102:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Declare Noted, Deferred and the deferred role flag, and refuse the flag on item lifecycles",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Store deferred_to: update and add flags, refusals, head line, JSON row and import op",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Remap deferred_to on retype, type rename and renumber, and sever it on remove",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Add the subentity_deferral_resolved check, with the retired-carrier warning",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Add the Noted and Deferred line to the bundled reviewer guidance",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Refresh the stability and workflow docs for the finding lifecycle, and write the CHANGELOG entry",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001105-add-noted-and-deferred-finding-states-with-a-carrier-pointer.md",
+      "created_at": "2026-10-24T10:04:03Z",
+      "updated_at": "2026-10-24T10:08:04Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1105"
+    },
+    "1106": {
+      "sequence_id": 1106,
+      "type": "task",
+      "title": "Role ergonomics, bundled handoffs and a compact sq list",
+      "slug": "role-ergonomics-bundled-handoffs-and-a-compact-sq-list",
+      "status": "Draft",
+      "description": "F13, F15, F8, F17 and F14 from REV-1099.",
+      "parent": "FEAT-1101",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1099:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "End role show with how to change the role's definition",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Scaffold every overridable role field with its bundled value and the append idiom",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Add sq list --compact, one line per item with a truncated title",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US9",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Word the bundled review and bug handoffs by the item's author",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Give the tech writer the narration sweep, name it in loop step 5, and default it to sonnet",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Write the 0.17.0 CHANGELOG entries for the role, list and guidance changes",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001106-role-ergonomics-bundled-handoffs-and-a-compact-sq-list.md",
+      "created_at": "2026-10-24T10:04:05Z",
+      "updated_at": "2026-10-24T10:08:11Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1106"
+    },
+    "1107": {
+      "sequence_id": 1107,
+      "type": "task",
+      "title": "Document import events, role splat-refs and the review question",
+      "slug": "document-import-events-role-splat-refs-and-the-review-questi",
+      "status": "Draft",
+      "description": "Doc-only fixes F1, F12 and F11 from REV-1099.",
+      "parent": "FEAT-1101",
+      "author": "tech-lead",
+      "assignee": "tech-writer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1099:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Document every sq import op with its fields and an example line",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Guard the import op reference against the event model",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Show splat-refs on role list fields in the override docs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Add an interview question on when to open a review",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Write the 0.17.0 Documentation note for the import, override and interview docs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001107-document-import-events-role-splat-refs-and-the-review-questi.md",
+      "created_at": "2026-10-24T10:04:07Z",
+      "updated_at": "2026-10-24T10:08:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1107"
     }
   }
 }
