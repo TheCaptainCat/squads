@@ -80,7 +80,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-10-24T09:19:58Z'
-updated_at: '2026-10-24T09:23:59Z'
+updated_at: '2026-10-24T09:37:25Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -347,6 +347,8 @@ expecting a ref to the item that carries the work, so `sq check` can verify the 
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-10-24T09:37:22Z] `op-pierre` Pierre Chat:
+  - Agreed: add Deferred (with a ref to the item that carries the work) and Noted (for an info finding). It changes the lifecycle, so it goes through an ADR from the architect.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -438,6 +440,8 @@ review when it has findings; otherwise comment the verdict on the item".
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
+- [2026-10-24T09:37:23Z] `op-pierre` Pierre Chat:
+  - No bundled convention: when to open a review is part of the init interview on how to run the repository; each adopter decides. The fix is a question in the interview checklist, not a rule in the reviewer guidance.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -504,6 +508,8 @@ reconsider its default model for that work.
 #### Discussion
 
 <!-- sq:finding:F14:discussion -->
+- [2026-10-24T09:37:24Z] `op-pierre` Pierre Chat:
+  - Yes: the bundled tech-writer owns the narration sweep, step 5 names it, and its default model moves to sonnet.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 
@@ -584,4 +590,6 @@ tracking the bundle.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-24T09:37:25Z] `op-pierre` Pierre Chat:
+  - Triage (2026-10-24): fix every other finding as recommended. Defects F4, F5, F9, F16, F6, F2; sq check rules F10, F3; docs, bundled guidance and ergonomics F1, F12, F13, F15, F17, F8.
 <!-- sq:discussion:end -->
