@@ -3,14 +3,14 @@ id: BUG-993
 sequence_id: 993
 type: bug
 title: check after a number clash blames a missing subtasks section
-status: Open
+status: Verified
 author: qa
 priority: medium
 refs:
 - BUG-994
 - MILE-1051:targets
 created_at: '2026-10-11T20:18:02Z'
-updated_at: '2026-10-16T12:24:08Z'
+updated_at: '2026-10-25T17:52:36Z'
 ---
 <!-- sq:body -->
 ## Reproduction
@@ -37,4 +37,6 @@ Reproduced once, task plus bug sharing number 21, index not yet rebuilt. The cle
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-25T17:52:09Z] `qa` Mara Tester:
+  - Verified on release/0.17 HEAD 68e96aea (dev build, scratch squads). Task TASK-2 indexed plus a valid BUG-2 file copied in: check exits 3 with only "2 files carry number 2 under different ids (bugs/..., tasks/...); run sq repair --renumber"; no subtasks-container message. Reverse (BUG indexed, TASK file copied) gives the same single error. Control before the copy exits 0.
 <!-- sq:discussion:end -->

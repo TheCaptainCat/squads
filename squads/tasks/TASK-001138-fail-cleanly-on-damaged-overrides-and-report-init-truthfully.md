@@ -3,8 +3,9 @@ id: TASK-1138
 sequence_id: 1138
 type: task
 title: Fail cleanly on damaged overrides and report init truthfully
-status: Draft
+status: Done
 author: tech-lead
+assignee: python-dev
 priority: medium
 refs:
 - MILE-1051:targets
@@ -18,18 +19,18 @@ description: Non-UTF-8/unreadable override errors, lint collects all [selected] 
 subentities:
 - local_id: ST1
   title: Report unreadable and non-UTF-8 overrides as clean errors
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Collect every [selected] error in workflow lint
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Warn about AGENTS.md content only when squads did not write it
-  status: Todo
+  status: Done
 - local_id: ST4
   title: Log formatted ids for seeded skills in the reflog
-  status: Todo
+  status: Done
 created_at: '2026-10-25T05:39:20Z'
-updated_at: '2026-10-25T05:40:51Z'
+updated_at: '2026-10-25T19:49:58Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -83,6 +84,8 @@ _Add with `sq task 1138 add-subtask "<title>"`; track with `sq task 1138 subtask
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-25T18:11:32Z] `python-dev` Elias Python:
+  - Workflow and playbook descriptors carry a not_utf8 message (OverrideMessages.not_utf8 is now required, no raw re-raise); roles message drops the codec text. The shadow, stamp and override-list probes fail soft on OSError and UnicodeDecodeError, and sq check reports the loader refusal. Tests: tests/unit/test_spec_override_read_errors.py (non-UTF-8 per document), tests/cli/test_a_damaged_override_is_a_clean_error_cli.py (document x damage x command), and not-utf8 and unreadable shapes in the once-per-invocation load table. Falsified: 33 of the new rows fail without the source change. No reds.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -108,6 +111,8 @@ _Add with `sq task 1138 add-subtask "<title>"`; track with `sq task 1138 subtask
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-25T18:11:33Z] `python-dev` Elias Python:
+  - apply_selected now collects the shape, section and entry violations together over the well-formed sections; lint lists the squad refusal beside the merge-phase errors (selected.squad is stripped before the merge so it is not reported twice). Loading still raises the first. Tests: tests/unit/test_workflow_lint_selected_errors.py (10 shapes, lint and load). Falsified: 3 rows fail with the engine change reverted. No reds.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -132,6 +137,8 @@ _Add with `sq task 1138 add-subtask "<title>"`; track with `sq task 1138 subtask
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-10-25T18:11:35Z] `python-dev` Elias Python:
+  - AGENTS.md ensure_scaffold writes nothing (reports the file only when it exists); write_managed creates it with the header. Tests: table in tests/integration/test_backend_scaffold_warnings.py (absent, hand-written, managed, whitespace); the scaffold test in test_agents_md_backend.py updated. Falsified: the absent row fails on the old scaffold. No reds.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 
@@ -155,6 +162,8 @@ _Add with `sq task 1138 add-subtask "<title>"`; track with `sq task 1138 subtask
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-10-25T18:11:36Z] `python-dev` Elias Python:
+  - Both seeding loops log item.id. Test: tests/integration/test_reflog_targets_after_init.py (bundled, custom type, skill add control). Falsified: the init rows fail with the old padded id. No reds.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 <!-- sq:subtasks:end -->
@@ -164,4 +173,6 @@ _Add with `sq task 1138 add-subtask "<title>"`; track with `sq task 1138 subtask
 <!-- sq:discussion -->
 - [2026-10-25T05:40:51Z] `tech-lead` Olivia Lead:
   - Drafted from the MILE-1051 bug triage; each bug re-read against release/0.17 HEAD, subtask bodies carry defect, expected behaviour and the falsifying table. Ordering and composition-root dependencies are in the body and on MILE-1051. Promote to Ready at dispatch.
+- [2026-10-25T19:49:57Z] `manager` Catherine Manager:
+  - Done: REV-1145 Approved; delivered in 131d7420, 06de9a7d, e954687b, 58a37ca5. BUG-1134, 1084, 1039, 1041 ready for QA verification.
 <!-- sq:discussion:end -->

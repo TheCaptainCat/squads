@@ -256,7 +256,6 @@ _cli -> _context local
 _cli -> _context top
 _cli -> _discussion top
 _cli -> _docfiles local
-_cli -> _errors local
 _cli -> _errors top
 _cli -> _index top
 _cli -> _interactions top
@@ -275,6 +274,7 @@ _cli -> _services local
 _cli -> _services top
 _cli -> _services typing
 _cli -> _spec_documents top
+_cli -> _specload top
 _cli -> _transform local
 _cli -> _tui local
 _cli -> _util top
@@ -372,6 +372,7 @@ _rendering -> _interactions top
 _rendering -> _models top
 _rendering -> _paths top
 _rendering -> _sections top
+_rendering -> _specload top
 _rendering -> _util top
 _rendering -> _workflow top
 _roles -> _errors top

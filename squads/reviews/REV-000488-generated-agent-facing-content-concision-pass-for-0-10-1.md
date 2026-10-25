@@ -8,46 +8,46 @@ author: tech-writer
 subentities:
 - local_id: F1
   title: Redundant repetition of 'memory vs shared' distinction in memory_skill.md.j2
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: Overexplained 'One fact per memory' section with restatement in memory_skill.md.j2
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: Over-detailed preamble in 'Working directly with operator' section of squads_skill.md.j2
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Redundant preamble in 'Finding things across the board' section of squads_skill.md.j2
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: Redundant expanded greeting instructions in claude_section.md.j2
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F6
   title: Redundant explanation after orchestration loop steps in claude_section.md.j2
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F7
   title: Overexplained intro paragraph in memory_skill.md.j2
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F8
   title: Padding in 'Check it at the start of a run' section of memory_skill.md.j2
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F9
   title: Slightly redundant phrasing in 'Prune what's stale' section of memory_skill.md.j2
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F10
   title: Redundant final paragraph in squads_skill.md.j2 'Common commands' section
-  status: Fixed
+  status: Verified
   severity: medium
 created_at: '2026-07-20T07:35:13Z'
-updated_at: '2026-07-20T08:26:24Z'
+updated_at: '2026-10-25T19:39:24Z'
 ---
 <!-- sq:body -->
 Concision and verbosity review of generated agent-facing templates and content for 0.10.1 release. Scope: workflow cheatsheet, skill bodies, role/operator text, managed sections. Primary focus: eliminate rambling, over-explanation, padding, redundancy. Secondary: check for staleness and inconsistency across templates.
@@ -71,6 +71,8 @@ memory-vs-board boundary section consolidated from 180 words (~100 statements re
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:24Z] `reviewer` Paul Reviewer:
+  - Holds: views/memory_skill.md.j2 states the memory-vs-board boundary in one short paragraph.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -84,6 +86,8 @@ One fact per memory section tightened from 110 to 50 words: cut 'grab-bag', 'sel
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:39:24Z] `reviewer` Paul Reviewer:
+  - Holds: the One fact per memory section in views/memory_skill.md.j2 is three short sentences.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -97,6 +101,8 @@ Working directly with operator preamble tightened: 'not through the manager' (im
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:39:24Z] `reviewer` Paul Reviewer:
+  - Holds: the operator section of views/squads_skill.md.j2 opens with the short preamble.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -110,6 +116,8 @@ Finding things across the board section consolidated: eliminated redundant 'when
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:39:24Z] `reviewer` Paul Reviewer:
+  - Holds: Finding things across the board in views/squads_skill.md.j2 opens with the one-line rule.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -123,6 +131,8 @@ Greeting instructions in CLAUDE.md tightened: removed step-by-step expansion (de
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-25T19:39:24Z] `reviewer` Paul Reviewer:
+  - Holds: claude/claude_section.md.j2 points at the greeting skill once, with no step list.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -136,6 +146,8 @@ Orchestration loop epilogue trimmed: removed 'spawn is the handoff' + mentions-a
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-10-25T19:39:24Z] `reviewer` Paul Reviewer:
+  - Holds: the orchestration-loop epilogue no longer restates the spawn-is-the-handoff text (claude/claude_section.md.j2).
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -149,6 +161,8 @@ Memory intro paragraph cut from 90 to 40 words: removed examples of 'what to rem
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-10-25T19:39:24Z] `reviewer` Paul Reviewer:
+  - Holds: the views/memory_skill.md.j2 intro is two sentences.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -162,6 +176,8 @@ Check at start of run section: removed 'same way you'd skim' metaphor, jargony '
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
+- [2026-10-25T19:39:24Z] `reviewer` Paul Reviewer:
+  - Holds: the start-of-run section in views/memory_skill.md.j2 is the trimmed two-sentence form.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -175,6 +191,8 @@ Prune what's stale section: consolidated 'out of date, superseded, was simply wr
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
+- [2026-10-25T19:39:24Z] `reviewer` Paul Reviewer:
+  - Holds: Prune what's stale in views/memory_skill.md.j2 is the consolidated three-sentence form.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -188,6 +206,8 @@ Removed generic 'Coordinating a larger piece of work?' closing paragraph from sq
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
+- [2026-10-25T19:39:24Z] `reviewer` Paul Reviewer:
+  - Holds: the Coordinating a larger piece of work closing paragraph is gone from views/squads_skill.md.j2.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 <!-- sq:findings:end -->

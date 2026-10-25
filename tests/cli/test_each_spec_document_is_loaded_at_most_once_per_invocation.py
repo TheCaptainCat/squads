@@ -16,6 +16,7 @@ roles, the case where catalog reads would scale with the roster.
 
 import asyncio
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -119,6 +120,11 @@ _VALID = {
     "playbook": '[types.task]\noverview = "Overridden."\n',
 }
 _BROKEN = "[broken\nnot toml ==="
+#: Stand-ins for an override file holding undecodable bytes and one the process may not open.
+_NOT_UTF8 = "\0not-utf8"
+_UNREADABLE = "\0unreadable"
+_DIRECTORY = "\0directory"
+_CANNOT_CHMOD = sys.platform == "win32" or (hasattr(os, "geteuid") and os.geteuid() == 0)
 #: With all three present the playbook may name the type the workflow override declares.
 _ALL_VALID = {
     **_VALID,
@@ -143,6 +149,9 @@ def _shapes() -> dict[str, dict[str, str]]:
     for document in _DOCUMENTS:
         shapes[f"{document}-present"] = {document: _VALID[document]}
         shapes[f"{document}-broken"] = {document: _BROKEN}
+        shapes[f"{document}-not-utf8"] = {document: _NOT_UTF8}
+        shapes[f"{document}-unreadable"] = {document: _UNREADABLE}
+        shapes[f"{document}-directory"] = {document: _DIRECTORY}
     return shapes
 
 
@@ -212,16 +221,36 @@ def test_each_document_is_loaded_at_most_once_per_invocation(
     shape_name: str, command: str, template_squad: Path, tmp_path: Path
 ) -> None:
     shape = _SHAPES[shape_name]
+    if _UNREADABLE in shape.values() and _CANNOT_CHMOD:
+        pytest.skip("permission bits are not enforced for this user or platform")
     root = tmp_path / "squad"
     shutil.copytree(template_squad, root)
+    unreadable: list[Path] = []
     for document, body in shape.items():
         override = root / "squads" / ".overrides" / _FILES[document]
         override.parent.mkdir(parents=True, exist_ok=True)
-        override.write_text(_STAMP + body, encoding="utf-8")
+        if body == _NOT_UTF8:
+            override.write_bytes(b"\xff\xfe")
+        elif body == _DIRECTORY:
+            override.mkdir()
+        elif body == _UNREADABLE:
+            override.write_text("", encoding="utf-8")
+            override.chmod(0)
+            unreadable.append(override)
+        else:
+            override.write_text(_STAMP + body, encoding="utf-8")
     if command == "adopt":
         (root / ".squads.toml").unlink()
 
-    texts = {document: _STAMP + body for document, body in shape.items()}
-    seen = _run(root, _COMMANDS[command], texts)
+    texts = {
+        document: _STAMP + body
+        for document, body in shape.items()
+        if body not in (_NOT_UTF8, _UNREADABLE, _DIRECTORY)
+    }
+    try:
+        seen = _run(root, _COMMANDS[command], texts)
+    finally:
+        for override in unreadable:
+            override.chmod(0o600)
 
     _check(seen, shape)

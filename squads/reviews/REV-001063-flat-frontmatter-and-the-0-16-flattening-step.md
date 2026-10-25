@@ -15,46 +15,46 @@ description: 'Review of TASK-1059 ST1-ST8: flat frontmatter, the 0.16 flattening
 subentities:
 - local_id: F1
   title: A CRLF role file is corrupted, other CRLF items stay nested
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: An unquoted date attribute makes its item unwritable
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F3
   title: Config-sourced role names are marked chosen and frozen
-  status: Fixed
+  status: WontFix
   severity: medium
 - local_id: F4
   title: A refused run leaves an index 0.15.0 misreads
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: Hand-added path and prefix keys are dropped on write
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F6
   title: A declared role attribute named like a retired key is swept
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F7
   title: An unchosen developer keeps a removed per-slug name
-  status: Fixed
+  status: WontFix
   severity: low
 - local_id: F8
   title: The flattening guesses on core-key and nested extra shapes
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F9
   title: A differing skill description is dropped unlisted
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F10
   title: Pin table spells attribute keys as literals
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-10-16T15:11:18Z'
-updated_at: '2026-10-16T16:14:43Z'
+updated_at: '2026-10-25T19:36:09Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -106,6 +106,8 @@ _Add with `sq review 1063 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F1:discussion -->
 - [2026-10-16T15:38:14Z] `python-dev` Elias Python:
   - Fixed. Falsification: CRLF round-trip table (LF/CRLF x role, developer, operator, skill, guide); reverting the LF-only regex turns 6 tests red.
+- [2026-10-25T19:36:09Z] `reviewer` Paul Reviewer:
+  - Holds: tests/service/test_the_flat_frontmatter_step.py runs the step on LF and CRLF files and on a CRLF role.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -131,6 +133,8 @@ _Add with `sq review 1063 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F2:discussion -->
 - [2026-10-16T15:38:16Z] `python-dev` Elias Python:
   - Fixed. Falsification: YAML-typed scalars (date, timestamp, non-string key) rows; identity _json_form turns 45 tests red.
+- [2026-10-25T19:36:09Z] `reviewer` Paul Reviewer:
+  - Holds: _models/_item.py::_json_form normalises YAML-typed attribute values, so disk and index compare equal.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -157,6 +161,8 @@ The step's MANUAL covers only the opposite direction (keeping a name for a role 
 <!-- sq:finding:F3:discussion -->
 - [2026-10-16T15:38:18Z] `python-dev` Elias Python:
   - Fixed. Falsification: name is unchosen when it equals any configuration layer name (bundled, roles.toml, per-slug, pool); old bundled-only rule turns 5 tests red.
+- [2026-10-25T19:36:09Z] `reviewer` Paul Reviewer:
+  - Obsolete: name_chosen is gone (a343cfc4); `full_name` now names a role only at creation and sync never renames, so nothing is frozen (docs/overrides.md "Which name wins").
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -182,6 +188,8 @@ A 0.15 `sq repair` then a `sq sync` restore it, and the item files are untouched
 <!-- sq:finding:F4:discussion -->
 - [2026-10-16T15:38:20Z] `python-dev` Elias Python:
   - Fixed. Falsification: refused first step restores the index as 0.15 read it, later step says rebuild with earlier release; no restore turns 1 test red.
+- [2026-10-25T19:36:09Z] `reviewer` Paul Reviewer:
+  - Holds: test_a_refused_run_leaves_the_index_as_the_earlier_release_wrote_it in tests/service/test_the_flat_frontmatter_step.py.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -203,6 +211,8 @@ ADR-1007 refuses `path` and `prefix` as declared attribute names, but decision 7
 <!-- sq:finding:F5:discussion -->
 - [2026-10-16T15:38:23Z] `python-dev` Elias Python:
   - Fixed. Falsification: path and prefix are both kept as unknown attributes, left out of --json rows; re-excluding them turns 30 tests red.
+- [2026-10-25T19:36:09Z] `reviewer` Paul Reviewer:
+  - Holds: path and prefix stay in the file and are left out of the row (_models/_item.py::to_row, NON_FRONTMATTER_KEYS).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -224,6 +234,8 @@ Before this change those names were nested under `extra`, apart from adopter key
 <!-- sq:finding:F6:discussion -->
 - [2026-10-16T15:38:25Z] `python-dev` Elias Python:
   - Fixed. Falsification: retired-key sweep spares keys the spec declares on role; ignoring declarations turns 7 tests red.
+- [2026-10-25T19:36:09Z] `reviewer` Paul Reviewer:
+  - Holds: _services/_maintenance.py::_retired_role_keys subtracts the keys the spec declares.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -245,6 +257,8 @@ Before this change those names were nested under `extra`, apart from adopter key
 <!-- sq:finding:F7:discussion -->
 - [2026-10-16T15:38:27Z] `python-dev` Elias Python:
   - Fixed. Falsification: pool_name role attribute (pinned) restores unchosen developer names; ignoring it turns 1 test red.
+- [2026-10-25T19:36:09Z] `reviewer` Paul Reviewer:
+  - Obsolete: name_chosen and the per-slug rename on sync were removed (a343cfc4); a developer keeps the name stored when added.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -271,6 +285,8 @@ None of these is a shape the released tool writes, but the step is meant to refu
 <!-- sq:finding:F8:discussion -->
 - [2026-10-16T15:38:29Z] `python-dev` Elias Python:
   - Fixed. Falsification: flattening refuses core-key/extra/path/prefix in extra and non-roster slug mismatch; check off turns 7 tests red.
+- [2026-10-25T19:36:09Z] `reviewer` Paul Reviewer:
+  - Holds: the flattening refuses core keys, path/prefix and slug mismatches in extra (REFUSED table in tests/service/test_the_flat_frontmatter_step.py).
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -292,6 +308,8 @@ In this repository both skills that carry `extra.description` hold it byte-ident
 <!-- sq:finding:F9:discussion -->
 - [2026-10-16T15:38:31Z] `python-dev` Elias Python:
   - Fixed. Falsification: report lists files where a dropped skill description differed; flag off turns 2 tests red.
+- [2026-10-25T19:36:09Z] `reviewer` Paul Reviewer:
+  - Holds: test_a_dropped_skill_description_that_differed_is_listed_by_file.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -315,6 +333,8 @@ In this repository both skills that carry `extra.description` hold it byte-ident
 <!-- sq:finding:F10:discussion -->
 - [2026-10-16T15:38:34Z] `python-dev` Elias Python:
   - Fixed. Falsification: pin table keyed by AttributeKey, catalog/retired names moved out, comment rewritten; no behavioural mutation (pyright/ruff enforce key names).
+- [2026-10-25T19:36:09Z] `reviewer` Paul Reviewer:
+  - Holds: _workflow/_validity.py::PINNED_ROSTER_ATTRIBUTES is keyed by AttributeKey constants.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 <!-- sq:findings:end -->

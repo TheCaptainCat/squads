@@ -12,23 +12,23 @@ subentities:
 - local_id: F1
   title: repair --renumber help claims refs are rewritten; exit line misses one exit-1
     cause
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: dev add --model help lists a closed set the command does not enforce
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: repair exit-code line is 80 columns and renders with a one-word stub
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: Rewritten remove help hardcodes bundled status names Archived and Cancelled
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: CONTRIBUTING rule 6 drops R6's same-change clause for a new JSON shape
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F6
   title: skill epilog verb list breaks mid-word at 80 columns; guard does not read
@@ -48,7 +48,7 @@ subentities:
   status: Verified
   severity: low
 created_at: '2026-10-17T04:24:21Z'
-updated_at: '2026-10-17T05:11:47Z'
+updated_at: '2026-10-25T19:39:18Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -118,6 +118,8 @@ The wording was carried over, not introduced, but this pass rewrote both strings
   - Fixed: --renumber now says refs to an ID that two files carry are listed for checking by hand, not rewritten; the exit line names both exit-1 causes; faq row 1 adds the --renumber case.
 - [2026-10-17T05:03:28Z] `reviewer` Paul Reviewer:
   - Fixed in ea7977e7: --renumber now says refs to an ID two files carry are listed, not rewritten; the exit line names both causes; faq row 1 adds the --renumber case. Verified by reading the diff and rendering repair --help at 80 columns.
+- [2026-10-25T19:39:18Z] `reviewer` Paul Reviewer:
+  - Holds: `sq repair --help` says refs to a shared ID are listed, not rewritten, and the exit line names both exit-1 causes.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -141,6 +143,8 @@ The wording was carried over, not introduced, but this pass rewrote both strings
   - Fixed: --model reads "for example sonnet, opus, haiku or inherit". The missing validation is a separate bug for qa.
 - [2026-10-17T05:03:30Z] `reviewer` Paul Reviewer:
   - Help text fixed in ea7977e7 (for example sonnet, opus, haiku or inherit). The dev add validation gap is still open as behaviour, for @qa to file as a bug.
+- [2026-10-25T19:39:18Z] `reviewer` Paul Reviewer:
+  - Holds: `sq dev add --model` reads "for example `sonnet`, `opus`, `haiku` or `inherit`".
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -169,6 +173,8 @@ It is the only writer-authored body line over 78 in the walk. The other over-78 
   - Fixed: the repair exit line is now 75 columns after dedent.
 - [2026-10-17T05:03:32Z] `reviewer` Paul Reviewer:
   - Fixed in ea7977e7: the repair exit line is 69 columns and renders on one line.
+- [2026-10-25T19:39:18Z] `reviewer` Paul Reviewer:
+  - Holds: `sq repair --help` exit-code line renders on one line at 80 columns.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -193,6 +199,8 @@ Under an override where the roster's retired status or a type's cancelled status
   - Fixed: both remove bodies name the status by what it does (the type's cancelled status, its archived status) and point at sq workflow lifecycles.
 - [2026-10-17T05:03:34Z] `reviewer` Paul Reviewer:
   - Fixed in ea7977e7: both remove sentences now point at the archived or cancelled status via sq workflow lifecycles, with no literal name.
+- [2026-10-25T19:39:18Z] `reviewer` Paul Reviewer:
+  - Holds: `<type> remove` and roster `remove` help name the cancelled/archived status via `sq workflow lifecycles`, no literal.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -214,6 +222,8 @@ R6 (REV-958) and ADR-1025 §2 both say a `--json` field reference leaves help on
   - Fixed: CONTRIBUTING rule 6 now says a new --json shape lands its field reference in docs/stability.md in the same change.
 - [2026-10-17T05:03:36Z] `reviewer` Paul Reviewer:
   - Fixed in ea7977e7: rule 6 now says a new --json shape lands its field reference in docs/stability.md in the same change.
+- [2026-10-25T19:39:18Z] `reviewer` Paul Reviewer:
+  - Holds: CONTRIBUTING.md rule 6 says a new --json shape lands its field reference in docs/stability.md in the same change.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 

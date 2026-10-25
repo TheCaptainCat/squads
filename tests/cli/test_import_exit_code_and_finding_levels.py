@@ -108,9 +108,11 @@ async def test_the_json_payload_carries_the_level_and_still_says_it_applied(
     error_issue = next(i for i in payload["issues"] if i["level"] == "error")
     assert error_issue["item"] == task_id
     assert "worksteps" in error_issue["message"]
+    assert error_issue["rule"] == "subentity_container_marker"
     # `warnings` keeps the warn-level lines in the wording it has always used.
     warn_issue = next(i for i in payload["issues"] if i["level"] == "warn")
     assert payload["warnings"] == [f"{task_id}: {warn_issue['message']}"]
+    assert warn_issue["rule"] == "subentity_body_written"
 
 
 async def test_a_warn_level_only_import_still_exits_0(project, invoke, tmp_path):

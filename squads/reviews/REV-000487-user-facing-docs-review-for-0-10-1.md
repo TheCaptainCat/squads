@@ -9,28 +9,28 @@ subentities:
 - local_id: F1
   title: Tutorial shows padded IDs in CLI output when they should be unpadded (0.10.0
     display format)
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: Recipes doc shows padded IDs in copy-paste examples when they should be unpadded
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: Adoption guide shows padded IDs in migration examples when they should be
     unpadded
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Missing documentation for sq workflow collections and sq workflow statuses
     subcommands
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: README command reference lacks sq workflow subcommands added in 0.10.0
-  status: Fixed
+  status: Verified
   severity: medium
 created_at: '2026-07-20T07:30:55Z'
-updated_at: '2026-07-20T08:26:22Z'
+updated_at: '2026-10-25T19:39:23Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -70,6 +70,8 @@ Fixed: Updated all padded IDs (EPIC-000009, FEAT-000010, BUG-000012) to unpadded
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:23Z] `reviewer` Paul Reviewer:
+  - Holds: docs/tutorial.md shows no padded id outside filenames.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -83,6 +85,8 @@ Fixed: Updated all padded IDs in recipes.md to unpadded format: EPIC-000001→EP
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:39:23Z] `reviewer` Paul Reviewer:
+  - Holds: docs/recipes.md shows no padded id outside filenames.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -96,6 +100,8 @@ Fixed: Updated all padded IDs in adoption.md to unpadded format: TASK-000002→T
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:39:23Z] `reviewer` Paul Reviewer:
+  - Holds: docs/adoption.md shows no padded id outside filenames.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -109,6 +115,8 @@ Fixed: Added new section 'Inspecting the workflow spec' in docs/workflow.md (bef
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:39:23Z] `reviewer` Paul Reviewer:
+  - Holds: docs/workflow.md documents sq workflow collections and statuses.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -122,6 +130,8 @@ Fixed: Updated README.md command reference (line 166) from bare 'sq workflow' to
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-25T19:39:23Z] `reviewer` Paul Reviewer:
+  - Holds: the README command reference lists every sq workflow subcommand.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->

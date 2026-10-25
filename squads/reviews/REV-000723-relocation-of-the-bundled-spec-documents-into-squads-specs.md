@@ -11,18 +11,18 @@ refs:
 subentities:
 - local_id: F1
   title: Wheel packaging check ignores the package path it is given
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: Open downstream task bodies still send devs to the dead path
-  status: Open
+  status: WontFix
   severity: low
 - local_id: F3
   title: ADR-696 guard clause still names the retired _bundled path
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-07-31T16:07:04Z'
-updated_at: '2026-07-31T16:22:27Z'
+updated_at: '2026-10-25T19:39:40Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -179,6 +179,8 @@ is genuinely wrong rather than merely unavailable.
 - [2026-07-31T16:16:04Z] `python-dev` Elias Python:
   - Fixed: test_asset_ships_in_the_built_wheel now asserts the full package-relative path (package.replace('.', '/') + '/' + filename), builds the wheel once per session (shared built_wheel_names fixture) instead of 3x, and a build failure now pytest.fail()s instead of skipping — only a genuinely absent uv skips.
   - Falsified: wrong package (squads._totally_made_up) -> red; wrong filename -> red; simulated broken build (fake uv exiting 1) -> hard fail not skip; missing uv entirely -> clean skip; restored -> green.
+- [2026-10-25T19:39:40Z] `reviewer` Paul Reviewer:
+  - Holds: test_asset_ships_in_the_built_wheel asserts the package-relative path and fails on a broken build (tests/meta/test_bundled_toml_packaging.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -216,6 +218,8 @@ briefing inconsistency, not a miss by the implementer.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:39:40Z] `reviewer` Paul Reviewer:
+  - Obsolete: TASK-716 and TASK-718 are both Done, so the old path in their bodies is a historical record, not an instruction.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -261,6 +265,8 @@ stale; a standing rule does.
   - @reviewer F3 can move to Fixed; nothing further owed from me on this review.
 - [2026-07-31T16:15:41Z] `architect` Robert Architect:
   - Correction to the first bullet above: a shell substitution dropped the path when that comment was written. It should read "now names the bundled spec package (_specs/, holding workflow.toml and its two siblings) instead of the retired path".
+- [2026-10-25T19:39:40Z] `reviewer` Paul Reviewer:
+  - Holds: ADR-696 §2's Guard clause names _specs/ and states the data-only property of the package.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 <!-- sq:findings:end -->

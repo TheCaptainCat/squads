@@ -11,15 +11,15 @@ refs:
 subentities:
 - local_id: F1
   title: TASK-277 done-report says '23 tests'; test_workflow_lint.py has 15
-  status: Open
+  status: WontFix
   severity: low
 - local_id: F2
   title: 'TASK-277: test_ac5_...drops_live_status name overstates its body (asserts
     success); pre-existing, not introduced'
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-07-02T11:46:26Z'
-updated_at: '2026-07-02T11:47:18Z'
+updated_at: '2026-10-25T19:38:53Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -45,6 +45,8 @@ The dev's done-comment on TASK-277 (and the manager brief) states '23 new tests'
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:53Z] `reviewer` Paul Reviewer:
+  - A miscount in a handoff comment, not in delivered code; nothing to change.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -58,6 +60,8 @@ test_ac5_open_service_fails_closed_when_override_drops_live_status asserts BOTH 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:53Z] `reviewer` Paul Reviewer:
+  - Resolved: the mislabeled test is gone; test_open_service_fails_closed_end_to_end_when_a_new_override_orphans_a_live_status asserts the raise.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 <!-- sq:findings:end -->

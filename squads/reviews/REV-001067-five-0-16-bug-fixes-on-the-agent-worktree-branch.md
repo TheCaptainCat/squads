@@ -16,26 +16,26 @@ description: BUG-1000, BUG-994, BUG-1057, BUG-1060, BUG-1058 fixes
 subentities:
 - local_id: F1
   title: Removal gate skipped for a live entry with no direct retiring edge
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: 'Suite regression: catalog-lift test purges the last live role'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: Removal refusal describes an Archived status and a reactivate remedy
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: Gate meta guard keeps gated apps parallel to GATED_GROUPS
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: Pre-repair check adds a false subtasks-container error
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-10-16T18:41:28Z'
-updated_at: '2026-10-16T18:58:54Z'
+updated_at: '2026-10-25T19:37:48Z'
 ---
 <!-- sq:body -->
 Review of five bug fixes on branch `worktree-agent-a2f892de06784925e`, one commit each on top of release/0.16 at 2630bf5f:
@@ -102,6 +102,8 @@ Fix direction: when the entry is live, probe with a non-live status of the type'
 <!-- sq:finding:F1:discussion -->
 - [2026-10-16T18:58:42Z] `reviewer` Paul Reviewer:
   - Verified fb3e2251: on an Active-Warm-Standby-Archived lifecycle and on one with two non-live statuses (pending and retired), the last live role is refused for plain rm and --purge, also from an intermediate live status, with no reflog write; non-last and already-retired roles and a custom skill are removed; squads refused.
+- [2026-10-25T19:37:48Z] `reviewer` Paul Reviewer:
+  - Holds: _services/_items.py::remove_item probes `_non_live_status` (no lifecycle edge needed) before `_enforce_retirement`.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -124,6 +126,8 @@ The `svc` fixture has a single live role, and the test purges it. The commit fix
 <!-- sq:finding:F2:discussion -->
 - [2026-10-16T18:58:43Z] `reviewer` Paul Reviewer:
   - Verified fb3e2251: test_validator_catalog_lift passes; targeted selection 642 passed, 0 failed.
+- [2026-10-25T19:37:48Z] `reviewer` Paul Reviewer:
+  - Holds: tests/service/test_validator_catalog_lift.py activates a spare role before purging ROLE-1.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -161,6 +165,8 @@ Mechanically, store the dependency phrase on `ConfigIntegrityFinding` separately
 <!-- sq:finding:F3:discussion -->
 - [2026-10-16T18:58:44Z] `reviewer` Paul Reviewer:
   - Verified fb3e2251: removal reads "cannot remove X: other entries depend on it" with dependency-only lines for floor, type-implied and scoped skills; archive wording unchanged.
+- [2026-10-25T19:37:48Z] `reviewer` Paul Reviewer:
+  - Holds: `sq skill squads remove --purge` on 0.17 reads "other entries depend on it" with a dependency-only line (driven).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -178,6 +184,8 @@ Fix: assert `set(_GATED_APPS) == GATED_GROUPS` in `test_the_walk_sees_the_whole_
 <!-- sq:finding:F4:discussion -->
 - [2026-10-16T18:58:45Z] `reviewer` Paul Reviewer:
   - Verified 550cc116: gated apps derived from app.registered_groups filtered by GATED_GROUPS, with an equality assert.
+- [2026-10-25T19:37:48Z] `reviewer` Paul Reviewer:
+  - Holds: the gate meta guard derives gated apps from app.registered_groups filtered by GATED_GROUPS.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -201,6 +209,8 @@ Suggested disposition: suppress per-item file checks for numbers in a shared-num
 <!-- sq:finding:F5:discussion -->
 - [2026-10-16T18:58:45Z] `reviewer` Paul Reviewer:
   - Verified 312b018b: FEAT/TASK, BUG/FEAT, ADR/ROLE, TASK/SKILL pairs report only the shared-number error, before and after repair; the same-id duplicate error still fires alone and alongside a shared number.
+- [2026-10-25T19:37:48Z] `reviewer` Paul Reviewer:
+  - Holds: _services/_check.py reports a shared number once via shared_number_groups and skips per-item checks under it.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->

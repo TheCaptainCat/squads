@@ -37,15 +37,11 @@ class OverrideReadError(SquadsError):
 
 @dataclass(frozen=True)
 class OverrideMessages:
-    """The wording of a document's override read errors; ``{path}`` and ``{exc}`` are filled in.
-
-    ``not_utf8`` is ``None`` for a document whose override read does not catch an undecodable
-    file, which then propagates as it is.
-    """
+    """The wording of a document's override read errors; ``{path}`` and ``{exc}`` are filled in."""
 
     malformed: str
     unreadable: str
-    not_utf8: str | None = None
+    not_utf8: str
     malformed_hint: str | None = None
     unreadable_hint: str | None = None
 
@@ -120,26 +116,60 @@ def override_mapping(path: Path, files: OverrideFiles | None) -> RawMapping:
     return copy.deepcopy(files.parsed(path))
 
 
+def override_present(path: Path) -> bool:
+    """Whether anything sits at an override path, a directory or a dangling link included: such an
+    entry is read, and refused by :func:`read_override_text`, never taken for an absent file."""
+    return path.exists() or path.is_symlink()
+
+
+def _refusal(exc: Exception, messages: OverrideMessages, path: Path) -> OverrideReadError:
+    """The :class:`OverrideReadError` worded by *messages* for a failed read or parse of *path*."""
+    if isinstance(exc, tomllib.TOMLDecodeError):
+        return OverrideReadError(
+            messages.malformed.format(path=path, exc=exc), messages.malformed_hint
+        )
+    if isinstance(exc, UnicodeDecodeError):
+        return OverrideReadError(messages.not_utf8.format(path=path, exc=exc))
+    return OverrideReadError(
+        messages.unreadable.format(path=path, exc=exc), messages.unreadable_hint
+    )
+
+
+def read_override_text(
+    path: Path, messages: OverrideMessages, files: OverrideFiles | None = None
+) -> str:
+    """The UTF-8 text of the override at *path*; the one read every kind of override file goes
+    through. Raises :class:`OverrideReadError` worded by *messages* when it cannot be read,
+    decoded or is not a file."""
+    try:
+        return override_text(path, files)
+    except (OSError, UnicodeDecodeError) as exc:  # fmt: skip
+        raise _refusal(exc, messages, path) from exc
+
+
 def read_override(
     document: SpecDocument, path: Path, files: OverrideFiles | None = None
 ) -> RawMapping:
     """The project override at *path*, parsed; read through *files* when given. Raises
     :class:`OverrideReadError` worded by *document* when it cannot be read or parsed."""
-    messages = document.messages
     try:
         return override_mapping(path, files)
-    except tomllib.TOMLDecodeError as exc:
-        raise OverrideReadError(
-            messages.malformed.format(path=path, exc=exc), messages.malformed_hint
-        ) from exc
-    except UnicodeDecodeError as exc:
-        if messages.not_utf8 is None:
-            raise
-        raise OverrideReadError(messages.not_utf8.format(path=path, exc=exc)) from exc
-    except OSError as exc:
-        raise OverrideReadError(
-            messages.unreadable.format(path=path, exc=exc), messages.unreadable_hint
-        ) from exc
+    except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError) as exc:  # fmt: skip
+        raise _refusal(exc, document.messages, path) from exc
+
+
+#: The wording for a per-role override (``.overrides/roles/<slug>.toml``) and for a template
+#: override (``.overrides/templates/…``).
+ROLE_OVERRIDE_MESSAGES = OverrideMessages(
+    malformed="malformed role override {path}: {exc}",
+    unreadable="Cannot read role override {path}: {exc}",
+    not_utf8="Role override {path} is not valid UTF-8; save it as UTF-8 and re-run.",
+)
+TEMPLATE_OVERRIDE_MESSAGES = OverrideMessages(
+    malformed="Malformed template override {path}: {exc}",
+    unreadable="Cannot read template override {path}: {exc}",
+    not_utf8="Template override {path} is not valid UTF-8; save it as UTF-8 and re-run.",
+)
 
 
 def merge_collecting(
@@ -171,7 +201,7 @@ def load_override(
     if squad_dir is None:
         return None
     path = squad_dir / document.override_file
-    if not path.is_file():
+    if not override_present(path):
         return None
     raw_override = read_override(document, path, files)
     origin = str(path)

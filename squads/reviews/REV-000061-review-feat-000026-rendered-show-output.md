@@ -11,19 +11,19 @@ subentities:
 - local_id: F1
   title: 'Plain-output escaping leak: sub-entity pane titles double-escaped in piped/NO_COLOR/--raw
     path'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: 'Nit: badge/column duplication between _common.py and _discussion.py'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: 'Nit: test gap — no assertion for literal-bracket fidelity in plain pane
     titles'
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-06-12T09:32:57Z'
-updated_at: '2026-06-12T09:43:19Z'
+updated_at: '2026-10-25T19:39:32Z'
 ---
 <!-- sq:body -->
 Scope: FEAT-26 implementation (TASK-58 render core, 059 --full dossier, 060 US6 docs sweep). Reviewed the uncommitted working-tree diff.
@@ -63,6 +63,8 @@ Fix: the plain renderers should print the raw (un-e()'d) values. Either pass raw
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:32Z] `reviewer` Paul Reviewer:
+  - Holds: plain path prints _subentity_pane_title_raw unescaped (_cli/_common.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -78,6 +80,8 @@ Non-blocking. Consider reusing the _discussion helpers/constant to keep the badg
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:39:32Z] `reviewer` Paul Reviewer:
+  - Holds: badge lookup lives in _badges.py; the _common.py duplicates and _SUMMARY_COLS_BY_KIND are gone.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -93,6 +97,8 @@ That gap is why F1 slipped through. Add a plain-path test with a bracket-bearing
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:39:32Z] `reviewer` Paul Reviewer:
+  - Holds: tests/cli/test_show_command_renders_body_and_subentities.py asserts literal [red] brackets in piped output.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 <!-- sq:findings:end -->

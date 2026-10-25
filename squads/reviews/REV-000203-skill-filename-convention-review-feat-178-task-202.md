@@ -11,22 +11,22 @@ refs:
 subentities:
 - local_id: F1
   title: Backend swallows index-corruption errors with bare except
-  status: Open
+  status: Verified
   severity: low
 - local_id: F2
   title: Orphan slug.md beside a convention file is never detected or cleaned
-  status: Open
+  status: Noted
   severity: low
 - local_id: F3
   title: Backend reaches into IndexStore directly (layering smell)
-  status: Open
+  status: Verified
   severity: low
 - local_id: F4
   title: Freshly-migrated unstamped skills get an empty pointer description
-  status: Open
+  status: Verified
   severity: info
 created_at: '2026-06-25T08:43:18Z'
-updated_at: '2026-07-06T15:18:02Z'
+updated_at: '2026-10-25T19:38:38Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -88,6 +88,8 @@ Recommendation: narrow the catch to the expected lookup-miss case and let index-
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:38Z] `reviewer` Paul Reviewer:
+  - Holds: the Claude Code backend no longer reads the index; its only except is the settings.json JSONDecodeError (_backends/_claude_code/_backend.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -105,6 +107,8 @@ Recommendation: in the skip branch, detect and `unlink` an orphan slug-named sib
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:38Z] `reviewer` Paul Reviewer:
+  - Still true: the 0.4->0.5 runner's convention-file branch never unlinks a sibling slug.md (_migrations/_v0_4_to_v0_5.py); kept as a note on a frozen runner.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -122,6 +126,8 @@ Recommendation: have the service resolve the ID and hand the backend the value i
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:38:38Z] `reviewer` Paul Reviewer:
+  - Holds: nothing under _backends/ imports IndexStore.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -139,6 +145,8 @@ Recommendation: populate the description in the migration's unstamped branch fro
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:38:38Z] `reviewer` Paul Reviewer:
+  - Holds: the unstamped branch passes the registry description to _rewrite_pointer (_migrations/_v0_4_to_v0_5.py).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 <!-- sq:findings:end -->

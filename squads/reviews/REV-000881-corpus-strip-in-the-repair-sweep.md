@@ -12,34 +12,34 @@ refs:
 subentities:
 - local_id: F1
   title: Both adopter announcements deny the role half of the sweep
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: sq migrate up never announces the content it rewrote
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: A declared type shadowing an authored skill slug deletes its body
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Four of ten skill-body corpus params pass with the sweep disabled
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: The ADR gives a false reason for authored content being unreachable
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F6
   title: The frozen list's own prose miscounts it and documents the wrong constant
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: docs still describe sq repair as an index-only job
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-09-02T12:23:23Z'
-updated_at: '2026-09-02T15:34:20Z'
+updated_at: '2026-10-25T19:34:39Z'
 ---
 <!-- sq:body -->
 Review of the corpus strip on `release/0.14` at **b37cdc9d** ("Stripped the retired regions from
@@ -206,6 +206,8 @@ changelog prose is the tech-writer's to author, not a dev's or mine.
     So the announcement now covers two of the four routes, and the texts say exactly that: which two print it, which one records it in the reflog only, and which one records nothing, with `git diff` named as the fallback for the last two. `sq adopt` remains the route worth flagging — it is the first command an adopter runs over an existing folder of squads-native markdown, and it rewrites it silently.
     
     Re-verified after the rewrite on the current build: fresh squad `sq repair` writes no file (byte-identical), a second `sq repair` over a stripped corpus is byte-identical, and `sq migrate chlog` renders the new section correctly.
+- [2026-10-25T19:34:39Z] `reviewer` Paul Reviewer:
+  - Holds: the _v0_11_to_v0_14.py MANUAL and CHANGELOG.md now name the role body and mirrored keys the sweep removes.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -316,6 +318,8 @@ population that has no other announcement.
     `renumber` discarding `canonicalized` is left undocumented — it never had a sentence, and I did not give it one.
     
     Gates: 4603 passed, 12 skipped, 0 failed; ruff, ruff format, pyright 0 errors, `sq check` clean.
+- [2026-10-25T19:34:39Z] `reviewer` Paul Reviewer:
+  - Holds: run_pending_migrations returns a MigrationRun and sq migrate up prints RepairResult.strip_notice (_cli/_main.py).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -388,6 +392,8 @@ what the template would render. Any of them is a decision, not a dev's choice, p
     **Tests.** `test_a_system_skill_body_survives_the_sweep` and `test_declaring_an_item_type_does_not_delete_an_authored_skill_of_that_name` (your repro, supported commands, override written and spec reloaded). Falsified: restoring the skill half reddens both, and 5 of the 10 corpus params.
     
     **Two things for others.** @tech-writer the CHANGELOG and `MANUAL` claims that a template-owned skill's stored body is emptied are now false in the other direction — the F1 rewrite must drop them, not just add roles. @architect the reclassification itself is untouched: a shadowed slug still *renders* the generated definition over the authored one on `sq skill show`. Nothing is destroyed, but "should `sq skill add` refuse an `sq-` slug, or `sq check` report a class flip" is still your call.
+- [2026-10-25T19:34:39Z] `reviewer` Paul Reviewer:
+  - Holds: _converge_body_tag acts only on a genuinely empty region, so an authored skill body is never removed (_services/_maintenance.py).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -446,6 +452,8 @@ the sweep where the destruction risk lives.
     Confirmed with the mechanism switched back on: exactly 5 params redden (`v0_5`, `v0_7`, `v0_8`, `v0_10`, `v0_11`), and `v0_1`–`v0_4` skip. Ten parameters that read as ten proofs are now five proofs and four honest declarations.
     
     Suite count moves accordingly: 4 params leave `passed` for `skipped`, so 12 skipped rather than 8.
+- [2026-10-25T19:34:39Z] `reviewer` Paul Reviewer:
+  - Holds: tests/integration/test_migration_corpus.py skips a fixture with no stored skill body instead of passing vacuously.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -571,6 +579,8 @@ Correct the sentence in the amendment to cite `reject_markers`, and correct
     **The `_maintenance.py` pair**, from the earlier instruction, is also done: `_strip_retired_regions` and `_sweep_empties_body` no longer claim a removed region reads as "no item for this slug". The honest answer turned out to be that there is no load-bearing reason, and I said so rather than inventing one — driven on a scratch squad with the whole marker pair deleted from a role file, `show`, `check`, `sync`, `repair`, `regen`, `list`, `--json` and `search` all behave identically and nothing restores the pair. What the docstring now records instead is that the pair is the shape every item file carries, plus the one mechanical fact a future reader needs: `replace_section` raises `KeyError` on an absent region, so a writer that someday reaches a role's body would fault rather than refuse — none exists today, since `set_body` refuses a role first and the role addressing group has no `body` verb.
     
     One note on scope: `ServiceCore._create_core`'s inline comment makes the same emptied-not-removed choice and already justifies it honestly ("an absent one is a different fact about an item file"). It needed no correction, and I left it alone — `_services/_base.py` is in an active lane.
+- [2026-10-25T19:34:39Z] `reviewer` Paul Reviewer:
+  - Holds: ADR-776's fifth amendment corrects the backticks claim; _sections.find_markers' docstring now says backticks do not neutralise.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -637,6 +647,8 @@ artefact the next person will read before adding a name to it.
     **"Four keys" names five** — right, and the five are `slug`, `model`, `is_dev`, `tech`, `is_default`. Corrected to "Five keys", with `is_dev` and `tech` spelled out separately so the enumeration is its own checksum. That count I kept: the names are in the same sentence, so it cannot drift unnoticed.
     
     **A blank line does not fix the attribution.** `#:` binds a block to the symbol that *follows* it. Inserting a blank line detaches the block from `_RETIRED_ROLE_SKILLS_KEY` but attaches it to nothing — `RETIRED_ROLE_EXTRA_KEYS` is declared past another symbol. I moved the block to sit directly above its own declaration instead, and left a line saying why it sits there.
+- [2026-10-25T19:34:39Z] `reviewer` Paul Reviewer:
+  - Holds: RETIRED_ROLE_KEYS in _models/_metadata.py carries its own doc comment and no consuming docstring restates a count.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -714,6 +726,8 @@ repo process; it wants the tech-writer, not a dev.
     Both new anchors resolve: `docs/faq.md#does-sq-repair-change-my-files` and `docs/adoption.md#what-sq-repair-writes` are real headings, checked by slugifying every heading in each file rather than by eye, and every inbound link in `README.md`, `docs/faq.md` and `docs/adoption.md` points at one of them.
     
     One instance I looked at and deliberately did **not** change: `README.md`'s "a fast index that is fully rebuildable from the files (`sq repair`)" in the source-of-truth section. That claim is about the index and it is true; it does not characterise repair as index-only.
+- [2026-10-25T19:34:39Z] `reviewer` Paul Reviewer:
+  - Holds: docs/adoption.md has "What sq repair writes" and docs/faq.md "Does sq repair change my files?".
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 <!-- sq:findings:end -->

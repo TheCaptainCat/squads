@@ -12,7 +12,7 @@ subentities:
 - local_id: F1
   title: 'stability Tier 3: override diff --json is an array of one object, not an
     object'
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: 'stability reflog: skills seeded at init log a padded target (SKILL-000009),
@@ -21,78 +21,78 @@ subentities:
   severity: medium
 - local_id: F3
   title: stability L37 says the prefix stays fixed; the retype section says it changes
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: stability/internals override layout omits .overrides/playbook.toml (ADR-777)
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: internals §7 lists five ABC methods with pre-ADR-133 names; seven exist,
     agents_md backend missing
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F6
   title: internals layout names default_backend in .squads.toml; the file carries
     active_backends
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F7
   title: internals §9 template inventory names files that do not exist and misses
     four dirs
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F8
   title: internals §5 shows a :head region and sq:summary table that files no longer
     carry
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F9
   title: 'internals §4: repair does not set counter = max ID; it floors it (ADR-104)'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F10
   title: 'migration L137: sq repair does not bump squads_version in .squads.toml'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F11
   title: 'internals: stale module, helper and entry-point names (_service, _check_*,
     _cli:app)'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F12
   title: 'internals layout: missing contracts/, milestones/, operators/, AGENTS.md,
     padding, disallowedTools'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F13
   title: 'stability exit-code table: sq import also exits 3 after a committed write'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F14
   title: stability Tier 3 catalog table omits sq workflow ref-kinds --json
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F15
   title: stability ref-kind section follows ADR-775 while ADR-49 (closed vocabulary)
     is still Accepted
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F16
   title: stability vs README disagree on which shells have completion
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F17
   title: 'stability/migration: repo-internal names and paths in adopter docs'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F18
   title: 'migration L154: managed skill files are SKILL-NNNNNN-<slug>.md, and are
     items, not disposable'
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-10-16T08:48:45Z'
-updated_at: '2026-10-16T13:04:54Z'
+updated_at: '2026-10-25T19:31:38Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -144,6 +144,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F1:discussion -->
 - [2026-10-16T09:06:29Z] `tech-writer` Theo Writer:
   - Fixed in docs/stability.md (Override inspection): documented as an array, one row for the override named or one per drifted override; matches the command and its docstring, no ADR pins an object shape.
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: docs/stability.md documents `override diff --json` as an array of objects.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -192,6 +194,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F3:discussion -->
 - [2026-10-16T09:06:32Z] `tech-writer` Theo Writer:
   - Fixed in docs/stability.md (ID numbering): only the prefix moves, and only on a retype.
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: docs/stability.md ID section says only the prefix moves, and only on a retype.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -215,6 +219,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F4:discussion -->
 - [2026-10-16T09:06:35Z] `tech-writer` Theo Writer:
   - Fixed in docs/stability.md (Project-level overrides) and docs/internals.md tree: the three spec documents workflow.toml, roles.toml and playbook.toml (ADR-777 makes roles.toml a document too), shared grammar, [selected] scoped to workflow/roles.
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: docs/internals.md layout and §9 name `.overrides/playbook.toml`.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -238,6 +244,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F5:discussion -->
 - [2026-10-16T09:06:38Z] `tech-writer` Theo Writer:
   - Fixed in docs/internals.md section 7, retitled Backends: the seven abstract methods, claude_code and agents_md, active_backends, pointer to backends.md.
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: docs/internals.md §7 "Backends" lists the current ABC methods and the agents_md backend.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -261,6 +269,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F6:discussion -->
 - [2026-10-16T09:06:40Z] `tech-writer` Theo Writer:
   - Fixed in docs/internals.md layout tree: schema_version, squad_dir, active_backends, squads_version (driven on a fresh init).
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: docs/internals.md layout lists schema_version, squad_dir, active_backends; squads_version left with ADR-1119.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -284,6 +294,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F7:discussion -->
 - [2026-10-16T09:06:43Z] `tech-writer` Theo Writer:
   - Fixed in docs/internals.md section 9: the real 26-template tree, grouped, with the rule that an override uses the same relative path.
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: docs/internals.md §9 lists the real template tree (claude/pointer_agent, settings.json.j2 and the rest).
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -307,6 +319,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F8:discussion -->
 - [2026-10-16T09:06:46Z] `tech-writer` Theo Writer:
   - Fixed in docs/internals.md section 5: block shown as written today (driven), presentation computed on read, the :head/summary re-render sentence replaced by the heading re-render on a title change.
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: docs/internals.md §5 no longer shows a :head region or sq:summary table.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -330,6 +344,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F9:discussion -->
 - [2026-10-16T09:06:49Z] `tech-writer` Theo Writer:
   - Fixed in docs/internals.md section 4: counter raised to the highest number on disk, never lowered; padding carried as a floor too.
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: docs/internals.md says repair raises the counter to the highest number on disk, never lowering it.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -353,6 +369,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F10:discussion -->
 - [2026-10-16T09:06:52Z] `tech-writer` Theo Writer:
   - Fixed in docs/migration.md version table: driven, and migrate up does not bump the toml copy either (it stamps only schema_version and says run sq sync), so the toml copy is init/sync (adopt when it creates the file), the index copy every rebuild.
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: docs/migration.md says schema_version is the only version check; squads_version is ignored (ADR-1119).
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -378,6 +396,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F11:discussion -->
 - [2026-10-16T09:06:56Z] `tech-writer` Theo Writer:
   - Fixed in docs/internals.md: _services._service and the mixin facade, the two-tier check (scan + validator catalog), _services/_collab.py, squads._cli:main, migration.md vs adoption.md pairing.
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: docs/internals.md names none of `squads._service`, `_check_items` or `_cli:app`.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -403,6 +423,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F12:discussion -->
 - [2026-10-16T09:06:59Z] `tech-writer` Theo Writer:
   - Fixed in docs/internals.md: contracts/, milestones/, operators/, AGENTS.md, .reflog.jsonl, roles.toml/playbook.toml in the tree; padding in the index root; disallowedTools: Agent; greeting and sq-memory as managed skills.
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: docs/internals.md layout has contracts/, milestones/, operators/ and disallowedTools.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 
@@ -426,6 +448,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F13:discussion -->
 - [2026-10-16T09:07:02Z] `tech-writer` Theo Writer:
   - Fixed in docs/stability.md: exit 3 row names sq import, and the bulk-import paragraph says why it exits 3 after a committed write.
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: docs/stability.md exit-code row 3 names `sq import` after a committed write.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
 
@@ -449,6 +473,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F14:discussion -->
 - [2026-10-16T09:07:05Z] `tech-writer` Theo Writer:
   - Fixed in docs/stability.md catalog table: ref-kinds row plus the null rule for role and direction (driven, 10 rows).
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: docs/stability.md Tier 3 catalog table has a `sq workflow ref-kinds --json` row.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 
@@ -476,6 +502,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
   - ADR-775 already carries `ADR-49 (supersedes)` (added 2026-08-22), so no new edge was needed; it replaces ADR-49 in full, which under board notice 6 means retirement, not a dated amendment. Dated note posted on ADR-49 (2026-10-16). The Accepted to Superseded move (`sq decision 49 status Superseded`) is allowed by the adr lifecycle but waits on @op-pierre, so this finding stays Open until it lands. docs/stability.md needs no change.
 - [2026-10-16T13:04:35Z] `manager` Catherine Manager:
   - ADR-49 moved to Superseded by op-pierre's instruction (2026-10-16); ADR-775 supersedes it.
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: ADR-49 is Superseded by ADR-775, so the doc and the ADR set agree.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
 
@@ -499,6 +527,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F16:discussion -->
 - [2026-10-16T09:07:08Z] `tech-writer` Theo Writer:
   - Fixed in docs/stability.md (Shell completion): fish and PowerShell scripts are generated by the same flags, install steps unverified, so outside the supported surface. README left as is (not my file); it no longer contradicts.
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: docs/stability.md Shell completion says fish and PowerShell scripts are generated but unsupported.
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
 
@@ -524,6 +554,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F17:discussion -->
 - [2026-10-16T09:07:11Z] `tech-writer` Theo Writer:
   - Fixed: stability.md (numeric version compare, no Invariant 1, subentities: key), migration.md (no source paths, runner modules, store.load aside, or version_notice/require_current_schema/SCHEMA_VERSION names).
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: `schema_tuple` and "Invariant 1" are absent from docs/stability.md and docs/migration.md.
 <!-- sq:finding:F17:discussion:end -->
 <!-- sq:finding:F17:end -->
 
@@ -547,6 +579,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F18:discussion -->
 - [2026-10-16T09:07:14Z] `tech-writer` Theo Writer:
   - Fixed in docs/migration.md three-tiers table: skill files out of the tool-owned row, AGENTS.md section in, and a note that SKILL-NNNNNN-<slug>.md is a durable item whose body holds only a view tag.
+- [2026-10-25T19:31:38Z] `reviewer` Paul Reviewer:
+  - Holds: docs/migration.md describes `SKILL-NNNNNN-<slug>.md` as a durable item.
 <!-- sq:finding:F18:discussion:end -->
 <!-- sq:finding:F18:end -->
 <!-- sq:findings:end -->

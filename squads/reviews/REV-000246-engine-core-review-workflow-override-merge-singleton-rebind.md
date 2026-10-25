@@ -14,29 +14,29 @@ refs:
 subentities:
 - local_id: F1
   title: AC#5 not enforced at any runtime boundary in this core
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: Override source is .overrides/workflow.toml only; FEAT AC#1 wording says
     .squads.toml
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: open_service re-reads + re-validates the bundled TOML on every call, even
     with no override
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: 'Test gaps: claimed no-leak isolation, sub-entity cross-check branch, and
     e2e sq list are not asserted'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: Two minor robustness/clarity nits in the loader
-  status: Fixed
+  status: Verified
   severity: info
 created_at: '2026-06-30T08:23:56Z'
-updated_at: '2026-06-30T11:44:25Z'
+updated_at: '2026-10-25T19:38:47Z'
 ---
 <!-- sq:body -->
 Independent engine-core review of FEAT-209 (TASK-239 merge loader, TASK-240 singleton rebind + open_service threading, TASK-241 validate() parent-cycle + index cross-check). Reviewer: Paul Reviewer; I did not write this code.
@@ -74,6 +74,8 @@ Suggested fix: in TASK-243 (or a follow-up on 240), after use_spec(merged_spec) 
 <!-- sq:finding:F1:discussion -->
 - [2026-06-30T11:43:58Z] `manager` Catherine Manager:
   - Fixed: validate_against_index_fail_closed is now wired into open_service (TASK-243) — AC#5 fails closed at runtime listing offender IDs; verified live by QA on FEAT-209 and again on FEAT-250.
+- [2026-10-25T19:38:47Z] `reviewer` Paul Reviewer:
+  - Holds: open_service calls validate_against_index_fail_closed (_services/_service.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -93,6 +95,8 @@ Suggested fix: reconcile the wording. Either (a) @product-owner edits AC#1/US1 t
 <!-- sq:finding:F2:discussion -->
 - [2026-06-30T11:44:21Z] `manager` Catherine Manager:
   - Fixed: override location reconciled to .overrides/workflow.toml across AC#1/US1/scope (product-owner) and docs (TASK-245).
+- [2026-10-25T19:38:47Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md and docs/workflow.md name .overrides/workflow.toml as the override file.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -112,6 +116,8 @@ Suggested fix (optional): when no override file exists, return the cached single
 <!-- sq:finding:F3:discussion -->
 - [2026-06-30T11:44:22Z] `manager` Catherine Manager:
   - Fixed: open_service uses the bundled_spec() fast-path when no override is present — no TOML re-parse (TASK-243).
+- [2026-10-25T19:38:47Z] `reviewer` Paul Reviewer:
+  - Holds: the bundled document is parsed once per process (functools.cache in _specload.py); test_open_service_with_no_override_uses_the_bundled_singleton_fast_path pins it.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -133,6 +139,8 @@ Suggested fix: add (a) a two-test leak guard or an explicit assert that after a 
 <!-- sq:finding:F4:discussion -->
 - [2026-06-30T11:44:23Z] `manager` Catherine Manager:
   - Fixed: QA added the isolation, sub-entity cross-check, and override-merge assertions (FEAT-209 + FEAT-250 QA passes).
+- [2026-10-25T19:38:47Z] `reviewer` Paul Reviewer:
+  - Holds: tests/integration/test_workflow_override_service_integration.py covers the sub-entity status branch and the end-to-end override paths.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -152,6 +160,8 @@ Neither affects correctness or the gates; recording for the dev's awareness.
 <!-- sq:finding:F5:discussion -->
 - [2026-06-30T11:44:24Z] `manager` Catherine Manager:
   - Fixed: OSError on the override read surfaces as SquadsError with the lint pointer; loader nits addressed.
+- [2026-10-25T19:38:47Z] `reviewer` Paul Reviewer:
+  - Holds: _specload.py wraps OSError as well as TOMLDecodeError; _parse_lifecycle_str is gone.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->

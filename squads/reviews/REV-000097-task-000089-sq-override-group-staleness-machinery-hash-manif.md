@@ -11,26 +11,27 @@ refs:
 subentities:
 - local_id: F1
   title: Manifest-freshness unguarded — silent drift-miss at release
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: New override list/diff --json read commands not golden-pinned
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: gen_template_manifest.py docstring exit-code claim is wrong
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: Bare 'sq override diff' hides broken overrides (filters to drifted)
-  status: Open
+  status: Deferred
   severity: low
+  deferred_to: TASK-1146
 - local_id: F5
   title: 'Delta-upgrade blocked: base_version_template_content is hash-only'
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-06-12T22:00:54Z'
-updated_at: '2026-06-23T09:59:44Z'
+updated_at: '2026-10-25T19:58:22Z'
 ---
 <!-- sq:body -->
 Review of TASK-89 — the `sq override` command group, staleness stamps, per-release content-hash manifest, and `sq check` drift integration under FEAT-14, against accepted ADR-85 §3.
@@ -68,6 +69,8 @@ Manifest-freshness is unguarded — silent drift-miss at release. The whole feat
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:46Z] `reviewer` Paul Reviewer:
+  - Holds: tests/meta/test_override_manifest_and_stamp_freshness.py guards manifest freshness.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -81,6 +84,8 @@ New --json read commands (override list/diff) are not golden-pinned. FEAT-15/TAS
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:39:46Z] `reviewer` Paul Reviewer:
+  - Holds: tests/goldens/override_list.json and override_diff.json pin both shapes.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -94,6 +99,8 @@ gen_template_manifest.py docstring exit-code claim is wrong. Docstring says 'Exi
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:39:46Z] `reviewer` Paul Reviewer:
+  - Holds: the gen_template_manifest.py docstring now says a no-op write exits 0.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -107,6 +114,8 @@ diff with no name hides broken overrides. The bare 'sq override diff' path filte
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:39:46Z] `reviewer` Paul Reviewer:
+  - Still true: bare sq override diff prints only "no drifted overrides found" (_cli/_override.py); kept as a UX note.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -120,6 +129,8 @@ base_version_template_content is hash-only, so Δ-upgrade is unavailable for any
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-25T19:39:46Z] `reviewer` Paul Reviewer:
+  - Resolved: base_version_artifact_content reads the content store by hash (_overrides/_manifest.py, content_store.json).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->

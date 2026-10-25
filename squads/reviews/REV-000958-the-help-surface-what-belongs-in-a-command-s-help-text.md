@@ -14,23 +14,23 @@ description: A read of every rendered --help body and flag description, settling
 subentities:
 - local_id: F1
   title: Help bodies carry maintainer reasoning and private names
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: One in four option and argument descriptions is blank
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F3
   title: JSON field reference fills the help body of 13 commands
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Help is written for a layout the renderer does not produce
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: Exit-code prose in 11 commands, in three forms
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F6
   title: A per-item verb's help needs a real item to open
@@ -38,26 +38,26 @@ subentities:
   severity: medium
 - local_id: F7
   title: Five markup dialects, none rendered; brackets are consumed
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F8
   title: Same flag, different words; text that contradicts its screen
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F9
   title: Summaries name the mechanism or stay generic
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F10
   title: Flags described in the body and again in the panel
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F11
   title: Nothing holds a help change to the rule
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-09-15T10:12:29Z'
-updated_at: '2026-10-17T05:07:07Z'
+updated_at: '2026-10-25T19:23:23Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -265,6 +265,8 @@ Line numbers are lines of the help body as written; "r80" is the whole rendered 
 <!-- sq:finding:F1:discussion -->
 - [2026-10-17T05:06:48Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
+- [2026-10-25T19:23:23Z] `reviewer` Paul Reviewer:
+  - Holds: `sq check --help` is summary + exit line + two sentences; guarded by tests/meta/test_every_help_screen_follows_the_help_rule.py (68ec9671).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -305,6 +307,8 @@ Line numbers are lines of the help body as written; "r80" is the whole rendered 
 <!-- sq:finding:F2:discussion -->
 - [2026-10-17T05:06:50Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
+- [2026-10-25T19:23:23Z] `reviewer` Paul Reviewer:
+  - Holds: every flag on `sq list`/`sq search` now has a description; walk guard in tests/meta/test_every_help_screen_follows_the_help_rule.py.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -353,6 +357,8 @@ On that footing `sq graph` goes from 35 lines to about 8 and `sq search` from 28
 <!-- sq:finding:F3:discussion -->
 - [2026-10-17T05:06:52Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
+- [2026-10-25T19:23:23Z] `reviewer` Paul Reviewer:
+  - Holds: `sq graph`/`sq search` help keep one misuse sentence plus `Fields: sq docs stability` (TASK-1080).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -415,6 +421,8 @@ Variant 1 goes away by itself if the renderer is changed to one that re-flows pa
 <!-- sq:finding:F4:discussion -->
 - [2026-10-17T05:06:53Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
+- [2026-10-25T19:23:23Z] `reviewer` Paul Reviewer:
+  - Holds: tests/cli/test_help_layout_cli.py pins retype/reflog enumerations, example lines and address placeholders.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -462,6 +470,8 @@ Variant 1 goes away by itself if the renderer is changed to one that re-flows pa
 <!-- sq:finding:F5:discussion -->
 - [2026-10-17T05:06:55Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
+- [2026-10-25T19:23:23Z] `reviewer` Paul Reviewer:
+  - Holds: exit codes are one pointer line, e.g. `sq search --help` "Exit codes: 4 partial result ... See sq docs faq."
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -547,6 +557,8 @@ The dialect above is right under all three, so the text can be fixed before the 
   - 2026-10-09: the renderer stays on Rich markup. Bodies are re-wrapped at 78 columns with the rewrite, and the surface test fails on a bracket tag or an over-wide line. Markdown mode was ruled out because it deletes angle-bracket placeholders outside backticks and strips backticks in colour-off output.
 - [2026-10-17T05:06:56Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
+- [2026-10-25T19:23:23Z] `reviewer` Paul Reviewer:
+  - Holds: help-rule walk test rejects doubled backticks, roles and bracket tags; `sq check --help` renders plain.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -589,6 +601,8 @@ Whether `-m` repeats is stated on `create` and nowhere else, so a reader of `com
 <!-- sq:finding:F8:discussion -->
 - [2026-10-17T05:06:58Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
+- [2026-10-25T19:23:23Z] `reviewer` Paul Reviewer:
+  - Holds: shared flags declared once (tests/meta/test_shared_flags_are_declared_once.py); `--all` reads "Include closed items."
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -625,6 +639,8 @@ Whether `-m` repeats is stated on `create` and nowhere else, so a reader of `com
 <!-- sq:finding:F9:discussion -->
 - [2026-10-17T05:07:00Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
+- [2026-10-25T19:23:23Z] `reviewer` Paul Reviewer:
+  - Holds: tests/cli/test_generated_help_summaries_cli.py covers articles, kind labels and the 72-char summary limit.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -655,6 +671,8 @@ Whether `-m` repeats is stated on `create` and nowhere else, so a reader of `com
 <!-- sq:finding:F10:discussion -->
 - [2026-10-17T05:07:02Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
+- [2026-10-25T19:23:23Z] `reviewer` Paul Reviewer:
+  - Holds: `sq list`/`sq search` bodies no longer restate per-flag text; each flag carries its own help=.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -686,6 +704,8 @@ Each of those would fail today, so each lands with the fix for its finding, not 
 <!-- sq:finding:F11:discussion -->
 - [2026-10-17T05:07:03Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
+- [2026-10-25T19:23:23Z] `reviewer` Paul Reviewer:
+  - Holds: CONTRIBUTING.md "Writing --help text" section plus tests/meta/test_every_help_screen_follows_the_help_rule.py.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 <!-- sq:findings:end -->

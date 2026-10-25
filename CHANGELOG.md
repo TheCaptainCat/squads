@@ -42,6 +42,8 @@ All notable changes to this project are documented here. The format follows
 
 - **`sq role <slug> show` ends with how to change the role.** For a role of the bundled catalog the last line reads ``To change its mission, responsibilities or model: `sq override scaffold --role <slug>`, edit the file, then `sq sync`.``; for any other role, a developer included, ``To change it: edit `.overrides/roles/<slug>.toml`, then `sq sync`.`` `--json` is unchanged.
 
+- **Every finding in `sq check --json` names its rule.** Each finding carries a `rule` key beside `level`, `item` and `message`: the validator's name for a per-item or squad-wide validator (`"rule": "dangling_ref"`), or the name of a check outside every `validators` list (`"rule": "markers_balanced"`). The issues in `sq import --json` carry it too. Tools reading `--json` can match findings by rule instead of by message text. The human output is unchanged. The docs list the checks that are always on and cannot be deselected, each with why it cannot be turned off: the file, id, override and configuration checks, the validators every type or category runs, and the always-on squad-wide checks. See [docs/overrides.md § "Checks outside every list"](docs/overrides.md#checks-outside-every-list-files-ids-overrides-and-configuration).
+
 ### Changed
 
 - **Run `sq migrate up` once on each squad.** The schema moves from 0.16 to 0.17 because the new finding states `Noted` and `Deferred` cannot be read by an older release. The step changes no item file. Once a squad is at 0.17, squads 0.16 refuses it with `this squad is at schema v0.17, newer than squads 0.16.0 (v0.16). Upgrade the squads package.`, so upgrade every machine and CI job that runs `sq` on the squad.
@@ -74,6 +76,14 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- **An override file that is unreadable, not valid UTF-8 or a directory is a clean error, never a traceback.** This holds for every override (`workflow.toml`, `playbook.toml`, `roles.toml`, a role's `roles/<slug>.toml` and the templates): `sq check`, `sq override list`, `diff` and `update`, and the commands that load them name the file and the cause and exit non-zero, instead of ending in a Python traceback, quoting the raw codec text or treating the directory as absent. `sq override list` exits 1 when an override is broken, and a bare `sq override diff` or `sq override update` handles the healthy overrides, names each one it cannot read and exits 1, and a creation template that renders no body region is refused with a message.
+
+- **`sq workflow lint` lists every `[selected]` error in one run.** A `squad` entry or an unknown section no longer hides the unknown keys that follow it; loading the spec still refuses on the first error.
+
+- **A fresh `sq init --backend agents_md` no longer warns that `AGENTS.md` had hand-written content.** The warning now appears only for content that was in the file before `init` ran.
+
+- **The reflog records seeded skills by their formatted id.** After `sq init` the `create` entries for the bundled and custom skills read `SKILL-9`, not the zero-padded `SKILL-000009`, as every other creation does.
+
 - **A write that waits for the index lock says so, and a timeout is a clean error instead of a traceback.** When another `sq` command holds `.squads.json.lock`, a command that has waited about a second prints `waiting for the index lock <path>…` on stderr and keeps waiting. If the lock is still held after 10 seconds, it exits `1` with `error: the index lock <path> is held by another sq process; nothing was written, retry the command`, where it used to end in a Python traceback. Both lines go to stderr, so `--json` output on stdout is unaffected. `sq import` and `sq repair` wait the same way. See [docs/faq.md](docs/faq.md#waiting-for-the-index-lock---the-index-lock--is-held-by-another-sq-process).
 
 - **Writing back a milestone body read from `show --json` no longer duplicates its roll-up.** In 0.16 the rendered roll-up came back in `body`, and writing that text back stored it as prose above the live roll-up. `body` now holds the stored view tag (see **Changed**), and `body --force`, `body --append` and an `sq import` `body` event accept a view tag that is already placed on the item in the same state, keeping it at its declared position, so the milestone shows one roll-up. Any other view tag line, one not placed on the item or in the other state (enabled or disabled), is refused with exit `1`; the message names the line and says to leave it out of the body. See [docs/workflow.md § "Derived views"](docs/workflow.md#derived-views).
@@ -93,6 +103,16 @@ All notable changes to this project are documented here. The format follows
 - **`sq override diff --json` prints `[]` when nothing drifted.** It printed the line `no drifted overrides found`, which is not JSON.
 
 - **The refusal for a task whose parent is not a feature names a command that exists.** The hint read `sq ref add <task> <id> --kind fixes|addresses`; it now reads `sq task <n> ref add <id> --kind fixes|addresses`.
+
+- **A renamed, frontmatter-stripped copy of a managed skill file says to delete it.** `sq check` named only the missing `id`; it now says the file is a stray copy of a skill that is healthy in another file, names that file, and says to delete the stray one, or to delete it and run `sq sync` when no healthy copy exists.
+
+- **A write no longer fails on a file that lacks a region it needs.** `comment`, `body`, `body --append`, sub-entity `body` and `comment`, `add-<kind>` and the matching `sq import` events add an absent discussion, sub-entity container, sub-entity block, or block body or discussion region, empty, before writing. The item discussion is added with its heading at the end of the file, a block goes in id order, and a region is only ever added between existing regions, never inside one (a `## Discussion` heading in an authored body is left alone). `sq check` does not report these regions as missing.
+
+- **`sq check` no longer blames an override for a missing sub-entity container.** It reports the container only when the file carries a differently named one, as after renaming a kind's `plural`; a file with no container at all is clean, and `add-<kind>` writes it.
+
+- **An untouched scaffold stays replaceable after `update --set` or `retype`.** A body that is still the item's stored scaffold is re-rendered under the new fields or the new type, including a type that seeds a view, so `body -m` replaces it and `body_written` reports it. A written body is never rewritten.
+
+- **`sq import` prints an item's findings in the order `sq check` does.** The order followed the type's validator list; it no longer depends on it, in the warnings and in the `--json` `issues`. See [docs/faq.md](docs/faq.md#what-exit-codes-does-sq-use) for the order.
 
 ### Documentation
 

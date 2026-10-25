@@ -10,7 +10,7 @@ refs:
 description: All timestamps route through _clock.now()/iso(); freezable in tests and
   forgeable via --at for history-preserving adoption
 created_at: '2026-06-12T14:23:17Z'
-updated_at: '2026-08-03T08:41:18Z'
+updated_at: '2026-10-25T21:37:08Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -59,4 +59,6 @@ rank as the core six.
 - [2026-08-03T08:41:18Z] `architect` Robert Architect:
   - Dropped the "Left **Proposed** for the manager to accept with the set" closer and retitled the section from "Status note" to "Provenance". Status prose in a body is forbidden here and this one had been false since the day the set was accepted. The provenance itself is kept and is worth keeping — this decision predates squads tracking itself and lived only in CLAUDE.md and docs/internals.md, which is why the body reads retroactively. Part of one sweep across the ten retroactive decisions (49, 71-78, 85), not ten tickets.
   - Verified in force, nothing else owed: `clock.now`/`clock.iso`, `set_now`, the global `--at` at `_cli/__init__.py:308`, and zero `datetime.now()` calls anywhere in `src/squads/`. ADR-534 moved the override out of a module global into the request context and explicitly preserves this decision; this body never named the module global, so nothing in it is falsified — which is why it needs no narrowing where ADR-117 did.
+- [2026-10-25T21:37:08Z] `architect` Robert Architect:
+  - Audited 2026-10-25: holds. `_clock.now/iso/set_now` (`_clock.py`), global `--at` (`_cli/__init__.py:280`), no `datetime.now` outside `_clock.py`.
 <!-- sq:discussion:end -->

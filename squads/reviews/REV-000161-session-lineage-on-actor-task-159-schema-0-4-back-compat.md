@@ -11,10 +11,10 @@ refs:
 subentities:
 - local_id: F1
   title: 'v0_4 corpus fixture: .squads.json stuck at schema 0.3 (toml says 0.4)'
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-06-22T10:08:44Z'
-updated_at: '2026-06-22T10:09:50Z'
+updated_at: '2026-10-25T19:38:32Z'
 ---
 <!-- sq:body -->
 Independent review of TASK-159 (Record optional session lineage on the actor) — implements FEAT-125 US1 under ADR-158. Did not author this code.
@@ -64,6 +64,8 @@ Fix: re-stamp tests/fixtures/corpus/v0_4/.squads.json schema_version to "0.4" so
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:32Z] `reviewer` Paul Reviewer:
+  - Holds: tests/fixtures/corpus/v0_4/.squads.json carries schema_version 0.4.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 <!-- sq:findings:end -->

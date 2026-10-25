@@ -14,20 +14,20 @@ subentities:
 - local_id: F1
   title: 'Golden test docstring overstates coverage: a newly-added RoleSpec field
     would NOT fail the lock'
-  status: Open
+  status: Verified
   severity: low
 - local_id: F2
   title: Unknown TOML role keys silently ignored (pydantic extra=ignore + explicit
     key enum in _parse_role)
-  status: Open
+  status: Verified
   severity: low
 - local_id: F3
   title: 'Stale comment: lazy import of RoleSpec in _role_spec_to_def claims a circular-import
     risk that does not exist'
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-06-26T07:54:32Z'
-updated_at: '2026-06-26T07:58:41Z'
+updated_at: '2026-10-25T19:38:42Z'
 ---
 <!-- sq:body -->
 # FEAT-219 review — role catalog externalized to bundled `roles.toml`
@@ -77,6 +77,8 @@ tests/test_role_catalog.py:33-34 — the docstring 'adding a field to RoleSpec w
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:42Z] `reviewer` Paul Reviewer:
+  - Holds: tests/unit/test_role_catalog_artifact.py asserts the snapshot keys equal RoleSpec.model_fields.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -90,6 +92,8 @@ src/squads/_roles/_loader.py:68-85 (_parse_role) + _models.py (RoleSpec has no e
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:42Z] `reviewer` Paul Reviewer:
+  - Holds: _parse_role goes through RoleSpec.model_validate with extra="forbid" (_roles/_loader.py, _roles/_models.py).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -103,6 +107,8 @@ src/squads/_roles/_catalog.py:70-72 — the comment 'Import here to avoid a circ
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:38:42Z] `reviewer` Paul Reviewer:
+  - Holds: the circular-import comment and lazy RoleSpec import are gone from _roles/_catalog.py.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 <!-- sq:findings:end -->

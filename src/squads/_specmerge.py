@@ -823,7 +823,7 @@ def _selected_entry_violations(
             continue  # absent (inert no-op) or non-table (already collected)
         violations.extend(
             _unknown_key_violations(
-                cast(list[str], keep),
+                list(dict.fromkeys(cast(list[str], keep))),
                 frozenset(cast(RawMapping, raw_section_map)),
                 origin,
                 f"{_SELECTED_KEY}.{section}",
@@ -844,7 +844,8 @@ def apply_selected(
     *section_names* is the closed, caller-supplied set of section keys ``[selected]`` may
     name; any other key fails closed. Each named list is the surviving set for that section —
     replace-wholesale, keys not listed are dropped. Every entry of that list must name a key
-    the section actually holds (:func:`_selected_entry_violations`).
+    the section actually holds (:func:`_selected_entry_violations`). Every violation found is
+    returned together.
 
     On success (``violations`` empty): returns the merged mapping with ``selected`` removed
     and every deselected key dropped, in base order, plus the provenance of each drop.
@@ -868,21 +869,23 @@ def apply_selected(
         return merged, (), [violation]
     selected = cast(RawMapping, raw_selected)
 
-    shape_violations = _validate_selected_shape(
-        selected, section_names, origin, empty_selected_hint
-    )
-    if shape_violations:
-        return merged, (), shape_violations
+    violations = _validate_selected_shape(selected, section_names, origin, empty_selected_hint)
 
     result = {key: value for key, value in merged.items() if key != _SELECTED_KEY}
 
-    section_violations = _selected_section_shape_violations(selected, result, origin)
-    if section_violations:
-        return merged, (), section_violations
-
-    entry_violations = _selected_entry_violations(selected, result, origin)
-    if entry_violations:
-        return merged, (), entry_violations
+    # The deeper checks read only a section whose name and keep list are well formed, so a
+    # shape violation above neither repeats nor misleads them.
+    well_formed: RawMapping = {
+        section: keep
+        for section, keep in selected.items()
+        if section in section_names
+        and isinstance(keep, list)
+        and all(isinstance(entry, str) for entry in cast(list[Any], keep))
+    }
+    violations.extend(_selected_section_shape_violations(well_formed, result, origin))
+    violations.extend(_selected_entry_violations(well_formed, result, origin))
+    if violations:
+        return merged, (), violations
 
     deselections: list[Deselection] = []
     for section, keep in selected.items():

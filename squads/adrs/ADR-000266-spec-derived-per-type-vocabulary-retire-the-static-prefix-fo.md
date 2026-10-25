@@ -11,193 +11,67 @@ refs:
 - REV-265:addresses
 - ADR-322
 created_at: '2026-07-01T07:40:18Z'
-updated_at: '2026-08-03T08:43:02Z'
+updated_at: '2026-10-25T21:16:52Z'
 ---
 <!-- sq:body -->
 ## Context
 
-REV-265 F1 (High) found that a custom type declared with `prefix = "INC"` gets a malformed
-stored id — `INCIDENT-000019` instead of `INC-000019`. The root cause is `Item.id`
-(`_models/_item.py:162`):
+A custom type declared with `prefix = "INC"` must get ids and files named `INC-19`, not a guess
+derived from the type name. The `_models` layer is spec-unaware by convention: it never imports
+`_workflow` (the layering and acyclic-import invariants, ADR-249), so `Item` cannot look up a
+spec-declared prefix itself.
 
-```python
-prefix: str = _PREFIX_BY_TYPE.get(self.type, self.type.upper())
-```
-
-For a custom type the static `PREFIX_BY_TYPE` map has no entry, so the fallback stamps
-`self.type.upper()`. `Item` is **spec-unaware by convention** — `_models` has no dependency on the
-`_workflow` spec (CLAUDE.md layering + the acyclic-import invariant), so it cannot read the
-spec-declared prefix. F1 is one symptom of a broader class the operator wants gone: statically-defined
-per-type vocabulary tables that shadow what the spec already declares.
-
-### The id is formatted at THREE independent sites, all with the same buggy fallback
-
-F1 names `_item.py:162`, but the same `PREFIX_BY_TYPE.get(type, type.upper())` derivation is
-duplicated:
-
-- `_models/_item.py:162` — `Item.id` computed field (the REV site).
-- `_models/_index.py:74` — `SquadsDB.format_id`, called by `allocate_id`. This is what builds the
-  **filename** at create time (`_base.py:270-271`), so a custom item's file is *also* misnamed
-  `INCIDENT-000019-*.md` — independent of `Item.id`.
-- `_cli/_common.py:557` — a pre-callback display/parse path.
-
-And `_services/_refs.py:93,298,351` + `_services/_items.py:303` use **bracket** access
-`PREFIX_BY_TYPE[item.type]`, which does not fall back at all — it raises `KeyError` on a custom type.
-Any fix that only touches `_item.py:162` leaves the filename wrong and the ref paths crashing. F1 is
-a family, not a line.
-
-### What the codebase already established (ADR-249 / ADR-263)
-
-- **Models are decoupled from the spec** (ADR-249 Finding 1, proven): `Item`/`SubEntity` do no
-  vocabulary lookup at construction; vocab validation lives at the `IndexStore.load()` boundary
-  against `active_spec()`. This is the single most important fact — the fix must **not** re-couple
-  the model to the spec.
-- **The spec is resolved once per invocation** and threaded, not global: the root `--dir` callback
-  binds it via `common.set_active_spec()`, and downstream reads it via `common.get_active_spec()`
-  (ADR-263). The service already carries `self.spec`; `create` already resolves
-  `self.paths.squad_relative(item_type, filename, spec=self.spec)` and
-  `self.spec.initial_status(item_type)` — **the spec is in hand at every create/retype/load site.**
-- The `ItemSpec` already declares `prefix`, `folder`, `aliases`, `is_meta`, `subentity_kind`; the
-  `WorkflowSpec` already derives `prefix_to_type`. The forward `type -> prefix` is `spec.items[t].prefix`.
+The failure that prompted this decision (REV-265 F1) was a family, not a line: the id was
+formatted from a static type-keyed prefix table with a `type.upper()` fallback at three separate
+sites (the computed `Item.id`, `SquadsDB.format_id` building the create-time filename, and a CLI
+display path), and other ref and service paths indexed the same table directly and crashed on a
+custom type. Every static per-type table (prefix, reverse prefix, folder, aliases, roster
+membership) was a copy of what the spec already declares.
 
 ## Decision
 
-**Stamp the resolved prefix onto the `Item` as a stored-but-derived field; format `Item.id` from
-that field, never by looking up a type-keyed table.** The spec-unaware model receives its prefix from
-whoever constructs/loads it — every such site already holds a spec (or is a built-in, covered by the
-reserved map). Concretely:
+**The resolved prefix is handed to the `Item` as a value; `Item.id` formats from it and never
+looks anything up.**
 
-1. **`Item` gains a `prefix: str` field** (excluded from JSON like `id_padding`, but written to
-   frontmatter as part of the durable id). `Item.id` becomes `format_item_id(self.prefix,
-   self.sequence_id, self.id_padding)` — no map lookup, no `type.upper()`. This keeps the model
-   spec-decoupled: it stores a plain string handed to it, it does not *derive* vocabulary.
+1. **`Item.prefix` is a plain field** (`_models/_item.py`), excluded from the JSON dump. `Item.id`
+   is `format_item_id(prefix, sequence_id)` at display width: no map lookup and no `type.upper()`.
+   The model stores a string it was given; it does not derive vocabulary.
+2. **One resolver answers "what is this type's prefix".** `prefix_for(type_str, spec)` in
+   `_models/_vocab.py` is the single authority every call site uses (create, retype, the CLI, the
+   service base, maintenance and skill-file paths). It reads the spec for every type and raises
+   on an undeclared one (ADR-322 §1). `label_for` sits beside it on the same argument (ADR-646).
+3. **The prefix is set where a spec is in hand, and recovered where it is not.**
+   - Create resolves it with `prefix_for` before allocation and passes it to
+     `SquadsDB.allocate_id`/`format_id`, so the filename stem and `Item.id` agree.
+   - Retype re-stamps `item.prefix` from the target type.
+   - Every read path (`from_frontmatter`, the JSON index) re-derives it from the persisted `id`
+     (ADR-322 §3), so loading a file needs no spec.
+4. **No call site reads a type-keyed vocabulary table.** Ref and id paths that hold an `Item` use
+   `item.prefix`; everything else goes through the resolver, `spec.prefix_to_type`,
+   `SquadPaths.folder_for` or `ItemSpec.aliases`. A sub-entity kind's plural is answered by the
+   spec (`WorkflowSpec.subentity_plural`), not by this resolver.
 
-2. **A single reserved-vocab resolver for built-ins.** Keep exactly one authoritative map of the
-   built-in prefixes (the reserved-type invariant EPIC-206 already proves) as the default source. A
-   thin `_models`-local helper `prefix_for(type_str, spec=None)` returns the built-in prefix when the
-   type is reserved, else `spec.items[type].prefix`, else raises. The `spec` is optional so the pure
-   built-in path (and legacy callers) need no spec; custom types require one.
+## Alternatives considered
 
-   *Withdrawn by ADR-322: there is no built-in prefix map and no reserved default source. The
-   resolver survives as the single authority — `prefix_for` at `_models/_vocab.py:36` is the one
-   resolver every call site uses — but it reads the spec for **every** type and raises when no spec
-   is supplied. What this clause got right is the seam; what it got wrong is that the seam needed a
-   hardcoded floor behind it. See the amendment note.*
-
-3. **Stamp at the three construction/format boundaries where a spec is in hand:**
-   - **Create** (`_base.py:270-274`): `db.allocate_id` and the `Item(...)` build both take/receive the
-     resolved prefix from `self.spec` (via the resolver). `SquadsDB.format_id`/`allocate_id` grow a
-     `prefix`/`spec` parameter so the filename and the counter-formatted id agree.
-   - **Retype** (`_services/_retype.py`): already the only path that materialises a custom item today
-     (per REV F1's repro); it re-stamps `item.prefix` from the target type's spec.
-   - **Load / repair** (`from_frontmatter` + the `IndexStore.load()` boundary): `prefix` is read back
-     from frontmatter when present; when absent (legacy files / rebuild), the store — which already
-     reads `active_spec()` at the vocab-validation boundary (ADR-249) — resolves it via the resolver.
-     `SquadsDB._propagate_padding` is the established precedent for a post-load pass that fills a
-     derived field; prefix resolution rides the same seam.
-
-4. **Retire the type-keyed lookups in the ref/id paths** (`_index.py:74`, `_common.py:557`,
-   `_refs.py`, `_services/_items.py`) by routing them through the resolver or through `item.prefix`
-   (the ref paths already hold the `Item`, so `item.prefix` is the direct answer — no map at all).
-
-This resolves F1 concretely: retype a task to `incident` (spec prefix `INC`) → retype stamps
-`item.prefix = "INC"` from `spec.items["incident"].prefix` → `Item.id` renders `INC-000019`, the file
-is named `INC-000019-*.md`, and `sq incident INC-000019 show` round-trips. No `type.upper()` anywhere.
-
-### Alternatives weighed
-
-- **(b) Inject a spec/resolver into `Item.id` / `from_frontmatter`.** Rejected: it re-couples the
-  model layer to the spec (or to a resolver protocol), reversing ADR-249 Finding 1 and reintroducing
-  the layering pressure that decoupling bought. `Item.id` is a `@computed_field` (a pydantic property)
-  and cannot take an argument, so this forces a spec handle *onto the model* — the exact thing the
-  privacy/acyclic invariant resists.
-- **(c) A threaded/ambient contextvar the model reads (ADR-249-style active spec).** Rejected for the
-  model layer: making `Item.id` read an ambient contextvar makes a pure data model depend on
-  invocation-scoped global state — worse than a stored field, and it breaks the "frontmatter is truth"
-  invariant subtly (the same on-disk file renders a different id depending on ambient context). The
-  contextvar is right for the *CLI pre-callback* paths (already ADR-263), not for the model.
-- **(d) Keep a minimal reserved map for built-ins + require spec for custom.** This is *retained as a
-  component* of the chosen approach (item 2), but rejected as the *whole* answer: on its own it still
-  leaves `Item.id` deriving the prefix, so the custom case still needs a stored value. The chosen
-  design is "(d)'s reserved map feeds (a)'s stored field."
-- **(a) as stated (compute where spec is in hand, store the prefix).** This is the chosen approach.
-  Trade-off accepted: `Item` carries one more stored field and frontmatter gains a `prefix` line; in
-  exchange the model stays spec-decoupled, the three format sites converge on one value, and legacy
-  files migrate cleanly (prefix re-derived on load).
+- **Inject a spec or resolver into `Item.id` / `from_frontmatter`.** Rejected: it couples the
+  model to the spec, and a pydantic computed field cannot take an argument, so the spec handle
+  would have to live on the model.
+- **Have the model read an ambient, invocation-scoped spec.** Rejected: a pure data model would
+  depend on global state, and the same file could render a different id depending on context.
+  Context-bound spec resolution belongs to the CLI paths that run before the callback (ADR-263).
+- **A built-in prefix map as the resolver's default, with the spec required only for custom
+  types.** Rejected: an optional spec means a hardcoded answer for the names that skip it, which
+  is a reservation of the built-in vocabulary. A file's spec-free round-trip is met by deriving
+  the prefix from its own `id` instead.
 
 ## Consequences
 
-### Artifacts this pattern retires
-
-- `PREFIX_BY_TYPE` **as a call-site lookup** — the id/ref/display sites stop reading it; it collapses
-  into the single reserved-vocab resolver (built-in defaults only). `ItemType.prefix` property and the
-  reserved map survive **only** as the built-in source of truth behind the resolver.
-- `TYPE_BY_PREFIX` — `_paths.type_for_id` already prefers `spec.prefix_to_type`; the static reverse
-  map narrows to the built-in fallback inside the resolver (same reserved-map story).
-- `FOLDER_BY_TYPE` **as a standalone table at the id/path sites** — `_paths.folder_for`/`squad_relative`
-  already consult `spec.items[t].folder` for custom types; fold the built-in map into the resolver so
-  folder + prefix come from one place.
-- `TYPE_ALIASES` — already a documented non-authoritative shim (`_enums.py:75-83`); CLI registration
-  reads `ItemSpec.aliases`. Its remaining consumers (`_workflow_cmd._print_cheatsheet`, the backend
-  AGENTS/CLAUDE renderers) migrate to `spec.alias_to_type` / `ItemSpec.aliases`, then the dict is
-  deleted.
-- `_META_NAMES` (`_cli/_items.py:109`) — the pre-callback fallback resolves through the same reserved
-  resolver (`item_is_meta` for reserved types); once every path has a spec in hand it goes away.
-
-### Artifacts that STAY
-
-- **The reserved built-in vocab map** (one authoritative source for the 7 built-in work types +
-  role/skill/operator). It is the resolver's default and the EPIC-206 reserved-type invariant depends
-  on it; it is not user-editable and never shadows the spec for custom types.
-- **`_KIND_BY_TYPE` in `_migrations/_v0_2_to_v0_3.py`** — frozen migration code, keeps its static map
-  (out of scope, exempt by rule: migrations pin the vocabulary of their era).
-
-### Sequencing / feature-boundary recommendation (for @tech-lead + @manager + op-pierre)
-
-- **Land within the FEAT-210 corrective (this slice's follow-up task):** the `Item.prefix` field +
-  the resolver + the three format-site conversions + the ref-path fix + retiring `PREFIX_BY_TYPE`/
-  `TYPE_BY_PREFIX`/`FOLDER_BY_TYPE` call-site reads + the `TYPE_ALIASES` shim. These are exactly the
-  "prefix/folder/type-by-prefix/meta/alias-shim" retirements F1 blocks, and they are what makes a
-  custom `INC-000019` round-trip. This is the direct fix REV F1 (and the create-path F2) need.
-- **Defer / do NOT pull into FEAT-210:** `_SUBENTITY_PLURAL` (`_cli/_items.py:47`). The spec has no
-  sub-entity plural/singular vocabulary yet — that schema addition is FEAT-212's `subentity_kinds`,
-  and FEAT-210 explicitly scopes brand-new sub-entity kinds *out* (F6). Recommendation: **design the
-  resolver so FEAT-212 reuses it** (the resolver signature already returns per-type vocab; add a
-  `subentity_plural` accessor when `subentity_kinds` lands) rather than pulling the FEAT-212 vocab
-  forward. Keep `_SUBENTITY_PLURAL` as the built-in fallback until FEAT-212 supplies the spec field —
-  its `custom types would need to declare their own plural, but none do yet` comment is accurate and
-  should stay until then.
-
-This split keeps the FEAT-210 corrective behavior-preserving on built-ins (the reserved map still
-drives them byte-identically — AC#7/#8) while making every custom-type id, folder, and alias
-spec-derived. It is a recommendation, not a unilateral scope change.
-
-## Amendment note
-
-**2026-08-03 — §2's built-in floor is gone; §1 and the seam it created are what survived.** §1 is
-verified exactly as decided: `Item.prefix` is a field on the model, `Item.id` formats from it with no
-map lookup and no `type.upper()`, and the model stores a string handed to it rather than deriving
-vocabulary. §4 is verified too — the type-keyed lookups are retired and `prefix_for` is the single
-resolver, called from the CLI, retype, the service base and maintenance.
-
-§2 is reversed, and the code says so in its own words: `_models/_vocab.py`'s module docstring now reads
-that the loaded workflow spec is *the sole vocabulary authority — there is no reserved built-in
-prefix/folder map any more*, and `prefix_for` raises when no spec is supplied. ADR-322 did that, and
-names this decision.
-
-Two things are worth separating, because this decision was right about one and wrong about the other.
-The **resolver seam** was the durable contribution: one place that answers "what is this type's
-prefix", so no call site derives vocabulary for itself. That seam is what let the map behind it be
-deleted without touching a single caller — and it later grew `label_for` beside it (ADR-646) on the same
-argument. The **optional spec**, justified as letting the built-in path work without one, was the part
-that encoded the reservation this arc existed to remove: an optional spec means a hardcoded answer for
-the names it does not need the spec for.
-
-The one constraint §2's optional spec was protecting — that a file must round-trip its own id without a
-spec in hand — is met a different way, and better: ADR-322's own §3, as corrected on 2026-07-08,
-derives the prefix from the already-persisted `id`. So nothing was lost by making the spec mandatory.
-
-`related` edge added to ADR-322.
+- A custom type's id, filename and refs all carry its declared prefix and round-trip through
+  `sq <type> <id> show`.
+- The resolver seam let every static vocabulary table be deleted without touching a caller; the
+  spec is the only vocabulary (ADR-322).
+- Frozen migration runners keep their own literal vocabulary of their era; they are exempt by
+  design.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -216,4 +90,6 @@ derives the prefix from the already-persisted `id`. So nothing was lost by makin
   - The reversal is visible in the codes own words — `_vocab.py`s docstring now says the loaded spec is the sole vocabulary authority and there is no reserved prefix/folder map — so this was the easiest of the set to confirm and the least excusable to leave unrecorded.
   - Separated the two halves of section 2 in the note, because this decision was right about one and wrong about the other. The resolver seam was the durable contribution: one place answering "what is this types prefix", which is exactly what let the map behind it be deleted without touching a caller, and what `label_for` later joined (ADR-646). The optional spec was the part that encoded the reservation this arc existed to remove — an optional spec means a hardcoded answer for the names it does not need the spec for.
   - The constraint the optional spec was protecting — a file round-tripping its own id without a spec — is met better by ADR-322 section 3 as corrected, deriving the prefix from the persisted `id`. So nothing was lost by making the spec mandatory, which is the fact that makes this a clean narrowing rather than a trade.
+- [2026-10-25T21:16:52Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale, body rewritten in the present tense; the decision (stamp the resolved prefix on Item, format Item.id from it, one resolver) is unchanged. Removed the withdrawn §2 built-in prefix map and the amendment note, folding in ADR-322: prefix_for reads the spec for every type, and Item.prefix is not written to frontmatter but re-derived from the persisted id on read (the body still said a prefix line is written). Dropped the file:line citations, the retirement inventory of tables that no longer exist and the FEAT-210 sequencing section; noted that sub-entity plurals live on WorkflowSpec.subentity_plural.
 <!-- sq:discussion:end -->

@@ -80,6 +80,7 @@ from squads._specload import (
     bundled_text,
     load_override,
     override_mapping,
+    override_present,
 )
 from squads._specmerge import RawMapping, describe_spec_error
 from squads._workflow._loader import as_entry_list, as_table
@@ -111,18 +112,22 @@ PLAYBOOK_NO_SELECTED_HINT = (
 )
 
 
+PLAYBOOK_OVERRIDE_MESSAGES = OverrideMessages(
+    malformed="Malformed playbook override {path}: {exc}",
+    unreadable="Cannot read playbook override {path}: {exc}",
+    not_utf8="Playbook override {path} is not valid UTF-8; save it as UTF-8 and re-run.",
+    malformed_hint="Fix the TOML syntax and re-run `sq override diff playbook`.",
+    unreadable_hint="Check file permissions and re-run `sq override diff playbook`.",
+)
+
+
 _DOCUMENT = SpecDocument(
     bundled_file="playbook.toml",
     override_file=PLAYBOOK_OVERRIDE_FILENAME,
     override_name="playbook override",
     top_level_keys=PLAYBOOK_TOP_LEVEL_SECTIONS,
     selected_sections=PLAYBOOK_SELECTED_SECTIONS,
-    messages=OverrideMessages(
-        malformed="Malformed playbook override {path}: {exc}",
-        unreadable="Cannot read playbook override {path}: {exc}",
-        malformed_hint="Fix the TOML syntax and re-run `sq override diff playbook`.",
-        unreadable_hint="Check file permissions and re-run `sq override diff playbook`.",
-    ),
+    messages=PLAYBOOK_OVERRIDE_MESSAGES,
     empty_selected_hint=PLAYBOOK_NO_SELECTED_HINT,
 )
 
@@ -412,11 +417,11 @@ def playbook_override_shadows_bundled(squad_dir: Path, files: OverrideFiles | No
     stamp obligation is moot for a file that cannot even be parsed.
     """
     override_path = squad_dir / PLAYBOOK_OVERRIDE_FILENAME
-    if not override_path.is_file():
+    if not override_present(override_path):
         return False
     try:
         override_raw: RawMapping = override_mapping(override_path, files)
-    except (tomllib.TOMLDecodeError, OSError):  # fmt: skip
+    except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError):  # fmt: skip
         return False
     return _raw_shadows_bundled(_bundled_raw(), override_raw)
 
@@ -494,11 +499,11 @@ def _override_types(squad_dir: Path, files: OverrideFiles | None) -> dict[str, A
     """The raw ``[types]`` table of the playbook override, empty when the file is absent,
     unreadable, malformed TOML or has no such table."""
     override_path = squad_dir / PLAYBOOK_OVERRIDE_FILENAME
-    if not override_path.is_file():
+    if not override_present(override_path):
         return {}
     try:
         raw: RawMapping = override_mapping(override_path, files)
-    except (tomllib.TOMLDecodeError, OSError):  # fmt: skip
+    except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError):  # fmt: skip
         return {}
     types_raw = raw.get("types")
     return cast("dict[str, Any]", types_raw) if isinstance(types_raw, dict) else {}

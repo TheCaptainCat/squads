@@ -96,10 +96,11 @@ def _missing_timestamp_issues(name: str, data: dict[str, Any]) -> list[CheckIssu
         return []
     return [
         CheckIssue(
-            "warning",
+            "warn",
             name,
             f"frontmatter has no {', '.join(missing)} — a placeholder is invented on each read "
             "until any mutation writes the value the index holds back into the file",
+            "timestamps_present",
         )
     ]
 
@@ -412,7 +413,9 @@ def _value_skew_issue(
     diverging = frontmatter_skew(text, item, default_kind=default_kind)
     if not diverging:
         return None
-    return CheckIssue("warn", item.id, _drift_message(diverging, item, fdata))
+    return CheckIssue(
+        "warn", item.id, _drift_message(diverging, item, fdata), "frontmatter_matches_index"
+    )
 
 
 def _stem_seq(md: Path, item_type: str, spec: WorkflowSpec) -> int | None:
@@ -443,9 +446,9 @@ def _report_and_third_state(
     md: Path,
     item_type: str,
     spec: WorkflowSpec,
-    message: str,
+    issue: CheckIssue,
 ) -> bool:
-    """Report *message* as an error against *md* and third-state the file — the shared body of
+    """Report *issue* against *md* and third-state the file — the shared body of
     every "this file is present but cannot be evaluated" branch in
     :meth:`CheckMixin._scan_for_check`.
 
@@ -453,7 +456,7 @@ def _report_and_third_state(
     so there is no safe sequence number to subtract and the caller must set ``suppress_missing``;
     callers fold it in with ``|=`` so one branch can never clear another's decision.
     """
-    issues.append(CheckIssue("error", md.name, message))
+    issues.append(issue)
     return _unparseable_seq_or_suppress(md, item_type, spec, unparseable_seqs)
 
 
@@ -504,8 +507,8 @@ class CheckMixin(ServiceCore):
         # `sq sync` and `sq role <slug> show` do — see `role_base_from_item`.
         role_items_by_slug = {it.slug: it for it in index.items.values() if it.type == ROSTER_ROLE}
         issues += [
-            CheckIssue(level, item, msg)
-            for level, item, msg in check_override_issues(
+            CheckIssue(level, item, msg, rule)
+            for level, item, msg, rule in check_override_issues(
                 self.paths.squad_dir, role_items_by_slug, catalog=self.catalog, files=self.files
             )
         ]
@@ -513,12 +516,14 @@ class CheckMixin(ServiceCore):
         carriers = await self._id_carriers(ctx.carriers)
         dup_groups = duplicate_groups(carriers)
         issues += [
-            CheckIssue("error", key, self._duplicate_id_message(files))
+            CheckIssue("error", key, self._duplicate_id_message(files), "ids_unique")
             for key, files in dup_groups.items()
         ]
         shared = shared_number_groups(carriers)
         issues += [
-            CheckIssue("error", f"#{number}", self._shared_number_message(number, files))
+            CheckIssue(
+                "error", f"#{number}", self._shared_number_message(number, files), "numbers_unique"
+            )
             for number, files in shared.items()
         ]
         # The scan keys files by number, so under a shared number it holds only one of the
@@ -566,10 +571,7 @@ class CheckMixin(ServiceCore):
         issues = [
             i
             for i in issues
-            if not (
-                i.message.startswith("on disk but not in index")
-                and normalized_id(i.item) in dup_groups
-            )
+            if not (i.rule == "index_reconciled" and normalized_id(i.item) in dup_groups)
         ]
         return issues
 
@@ -599,6 +601,7 @@ class CheckMixin(ServiceCore):
                     f"{stale_type!r} is no longer declared — its generated files have "
                     "been withdrawn; restore the type to bring it back, or retire this "
                     "skill (update its status) to close it out",
+                    "skill_type_declared",
                 )
             )
         return issues
@@ -964,15 +967,12 @@ class CheckMixin(ServiceCore):
     ]:
         """Scan every item file for marker issues, frontmatter, and raw body text.
 
-        **The file checks of ``sq check``** — its other findings come from the per-item validator
-        catalog (``_services/_validators.py``'s ``CATALOG``/``VALIDATOR_NAMES``, dispatched by
-        ``ValidatorEngine``). The file checks run first, unconditionally, on raw file text before a
-        file's frontmatter even parses: :func:`_marker_issues`, :func:`_view_target_issues`,
-        :func:`_seeded_view_issues` and :func:`_absent_body_region_issues` below are its four
-        members, all error-level and none
-        ever selectable or a catalog member — see :mod:`~squads._services._validators`'s module
-        docstring for why a per-file, unconditional finding belongs here and not there, which is
-        the matching back-reference this paragraph completes.
+        **The file checks of ``sq check``** are the findings that do not come from the validator
+        catalog (``CATALOG`` in ``_services/_validators.py``, dispatched by ``ValidatorEngine``):
+        :func:`_marker_issues`, :func:`_view_target_issues`, :func:`_seeded_view_issues` and
+        :func:`_absent_body_region_issues`, all errors. Each applies per file, cannot be
+        selected, and is still reported when the frontmatter cannot be read; the module docstring
+        of ``_services/_validators.py`` says why they are not catalog members.
 
         Returns ``(issues, on_disk, bodies, unparseable_seqs, suppress_missing)``.
         ``on_disk``/``bodies`` are keyed by the item's **sequence number** (int) so
@@ -1026,24 +1026,34 @@ class CheckMixin(ServiceCore):
                 continue
             if isinstance(record, Unreadable):
                 suppress_missing |= _report_and_third_state(
-                    issues, unparseable_seqs, md, item_type, self.spec, record.message
+                    issues,
+                    unparseable_seqs,
+                    md,
+                    item_type,
+                    self.spec,
+                    CheckIssue("error", md.name, record.message, "file_readable"),
                 )
                 continue
             text = record.text
-            issues += [CheckIssue("error", md.name, msg) for msg in _marker_issues(text)]
             issues += [
-                CheckIssue("error", md.name, msg)
+                CheckIssue("error", md.name, msg, "markers_balanced")
+                for msg in _marker_issues(text)
+            ]
+            issues += [
+                CheckIssue("error", md.name, msg, "view_target_resolves")
                 for msg in _view_target_issues(
                     text, item_type, self.spec, self.playbook, from_squad=self.paths.squad_dir
                 )
             ]
             issues += [
-                CheckIssue("warn", md.name, view_tags.out_of_region_view_warning(tag))
+                CheckIssue(
+                    "warn", md.name, view_tags.out_of_region_view_warning(tag), "view_tag_in_region"
+                )
                 for tag in view_tags.out_of_region_view_tags(text)
             ]
             check_slug = _check_slug(md, item_type, text, self.spec)
             issues += [
-                CheckIssue("error", md.name, msg)
+                CheckIssue("error", md.name, msg, "seeded_view_resolves")
                 for msg in _seeded_view_issues(
                     text,
                     item_type,
@@ -1054,7 +1064,7 @@ class CheckMixin(ServiceCore):
                 )
             ]
             issues += [
-                CheckIssue("error", md.name, msg)
+                CheckIssue("error", md.name, msg, "body_regions_present")
                 for msg in _absent_body_region_issues(text, item_type, check_slug, self.spec)
             ]
             if isinstance(record, Unparseable):
@@ -1065,7 +1075,12 @@ class CheckMixin(ServiceCore):
                     md,
                     item_type,
                     self.spec,
-                    SelfRemedied(f"{record.message}; {remedy}") if remedy else record.message,
+                    CheckIssue(
+                        "error",
+                        md.name,
+                        SelfRemedied(f"{record.message}; {remedy}") if remedy else record.message,
+                        "frontmatter_parses",
+                    ),
                 )
                 continue
             fid = ctx.carriers.record(md, record.data.get("id"))
@@ -1074,7 +1089,10 @@ class CheckMixin(ServiceCore):
             if isinstance(record, MissingId):
                 issues.append(
                     CheckIssue(
-                        "error", md.name, await self._missing_id_message(md, item_type, ctx.skills)
+                        "error",
+                        md.name,
+                        await self._missing_id_message(md, item_type, ctx.skills),
+                        "id_present",
                     )
                 )
                 continue
@@ -1082,14 +1100,19 @@ class CheckMixin(ServiceCore):
             seq = seq_from_frontmatter_id(fid)
             if seq is None:
                 suppress_missing |= _report_and_third_state(
-                    issues, unparseable_seqs, md, item_type, self.spec, malformed_id_message(fid)
+                    issues,
+                    unparseable_seqs,
+                    md,
+                    item_type,
+                    self.spec,
+                    CheckIssue("error", md.name, malformed_id_message(fid), "id_well_formed"),
                 )
                 continue
             squad_rel = self.paths.squad_relative(item_type, md.name, spec=self.spec)
             try:
                 Item.from_frontmatter(data, path=squad_rel, default_kind=default_kind)
             except SquadsError as exc:
-                issues.append(CheckIssue("error", md.name, str(exc)))
+                issues.append(CheckIssue("error", md.name, str(exc), "fields_valid"))
                 unparseable_seqs.add(seq)
                 continue
             issues += _missing_timestamp_issues(md.name, data)

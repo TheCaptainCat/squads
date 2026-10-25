@@ -12,22 +12,22 @@ description: Independent review of TASK-452 (owned webview preview + navigable l
 subentities:
 - local_id: F1
   title: 'Security: escaping + CSP are solid — no XSS path found'
-  status: Open
+  status: Noted
   severity: low
 - local_id: F2
   title: 'Hardening: markdown link href has no scheme allowlist'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: Lifecycle (F9) + link interception (F10) verified correct
-  status: Open
+  status: Noted
   severity: low
 - local_id: F4
   title: Dead-code removal, renderer correctness, gate + canary all clean
-  status: Open
+  status: Noted
   severity: low
 created_at: '2026-07-17T14:26:29Z'
-updated_at: '2026-07-17T14:58:03Z'
+updated_at: '2026-10-25T19:39:15Z'
 ---
 <!-- sq:body -->
 Independent review of TASK-452 (Ada built it) — the owned WebviewPanel preview backbone replacing the hijacked markdown preview, with navigable item links. Covers REV-448 F9/F10.
@@ -63,6 +63,8 @@ CSP (previewDocument.ts): default-src 'none'; style-src 'nonce-<n>'; script-src 
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:15Z] `reviewer` Paul Reviewer:
+  - Confirmation of a passing security check, no action; kept as a note.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -82,6 +84,8 @@ Suggested (optional, non-blocking) hardening: allowlist the URL scheme in the li
 <!-- sq:finding:F2:discussion -->
 - [2026-07-17T14:57:58Z] `typescript-dev` Ada Typescript:
   - Fixed in TASK-453: markdown.ts's renderLink now allowlists http/https/mailto schemes; a bare item-id url routes through the internal sq-item-link mechanism instead; anything else (javascript:/data:/vbscript:/relative/protocol-relative) is dropped, keeping only the escaped visible text. See isSafeLinkUrl + renderLink.
+- [2026-10-25T19:39:15Z] `reviewer` Paul Reviewer:
+  - Holds: renderLink allowlists http/https/mailto through isSafeLinkUrl (clients/vscode/src/domain/markdown.ts).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -97,6 +101,8 @@ F10: item-id linkification is spec-agnostic (single generic regex, no hardcoded 
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:39:15Z] `reviewer` Paul Reviewer:
+  - Confirmation of a passing check, no action; kept as a note.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -116,6 +122,8 @@ Gate output: npm run check exit 0 (tsc strict + eslint --max-warnings 0 + pretti
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:39:15Z] `reviewer` Paul Reviewer:
+  - Confirmation of a passing check, no action; kept as a note.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 <!-- sq:findings:end -->

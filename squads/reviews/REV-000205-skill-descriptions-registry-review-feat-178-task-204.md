@@ -11,20 +11,20 @@ refs:
 subentities:
 - local_id: F1
   title: Migration reimplements pointer rendering instead of delegating to backend
-  status: Open
+  status: Noted
   severity: low
 - local_id: F2
   title: Registry sq-type comprehension and bundled_skill_slugs use two independent
     type filters
-  status: Open
+  status: Verified
   severity: low
 - local_id: F3
   title: Description write semantics inconsistent across the three migration paths
     (fill-if-empty vs overwrite)
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-06-25T09:53:57Z'
-updated_at: '2026-06-25T09:58:23Z'
+updated_at: '2026-10-25T19:38:39Z'
 ---
 <!-- sq:body -->
 Independent review of TASK-204 (single skill-description registry; carry descriptions onto SKILL items so .claude pointers and sq list -t skill keep rich text). I authored REV-191/201/203 on this feature; this review is scoped to TASK-204 only. Did not write the code.
@@ -62,6 +62,8 @@ src/squads/_migrations/_v0_4_to_v0_5.py:93-111 (_rewrite_pointer) hand-rolls the
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:39Z] `reviewer` Paul Reviewer:
+  - Still true and deliberate: _rewrite_pointer renders today's pointer template itself, as its docstring records; kept as a note.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -75,6 +77,8 @@ src/squads/_interactions.py SKILL_DESCRIPTIONS builds the sq-<type> entries by i
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:39Z] `reviewer` Paul Reviewer:
+  - Holds: SKILL_DESCRIPTIONS holds only the always-on skills; sq-<type> descriptions derive in skill_description (_interactions/_skills.py).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -88,6 +92,8 @@ The migration writes the description through three code paths with two different
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:38:39Z] `reviewer` Paul Reviewer:
+  - Holds: _rename_stamped_legacy now fills the description only when empty (_migrations/_v0_4_to_v0_5.py).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 <!-- sq:findings:end -->

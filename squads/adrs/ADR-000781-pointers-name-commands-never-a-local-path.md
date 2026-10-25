@@ -20,565 +20,281 @@ refs:
 - ADR-422
 - BUG-784
 created_at: '2026-08-22T09:44:15Z'
-updated_at: '2026-09-01T08:13:56Z'
+updated_at: '2026-10-25T21:49:21Z'
 ---
 <!-- sq:body -->
 ## Context
 
 A generated pointer is squads' projection of one roster entry into an agent host's own
-configuration. Both `.claude/` pointers instruct the agent with a **local file path**:
-`@{{ squad_path }}` at `_rendering/templates/claude/pointer_agent.md.j2:25` and
-`pointer_skill.md.j2:8` (read), resolved by the host's own file loader before squads is in the
-picture at all.
+configuration. When this was decided, both `.claude/` pointers instructed the agent with a **local
+file path** (`@{{ squad_path }}`), resolved by the host's own file loader, and the `agents_md`
+entry templates displayed the same path as `**Squad file:**`.
 
 That instruction is unsatisfiable when the CLI is a client to a squads server (FEAT-33, EPIC-29):
 there is no local squad directory for the path to name, so the pointer's one load-bearing line
 resolves to nothing and the agent starts with an identity and no definition.
 
 **And the path is only the visible half.** A pointer's *contents* are a copy of squad state, and
-`.claude/` is committed — so under remote mode a pointer is a tracked snapshot of state the
-repository does not hold, silently wrong from the moment the server moves. That is the same failure
-one layer up, and §1 alone does not reach it; §2a rules on contents for that reason.
-
-**The exposure is wider than the two `@` templates.** A grep for the `@` form finds exactly those
-two, but the `agents_md` backend carries the same local path in a different spelling:
-`**Squad file:** \`{{ squad_path }}\`` at `_rendering/templates/agents_md/role_entry.md.j2:11` and
-`agents_md/skill_entry.md.j2:5` (read). Four templates, two backends. The `agents_md` pair is
-weaker — it *displays* a path rather than instructing a load, so an unreachable path degrades to a
-useless line rather than to a missing definition — but it is the same class and it is the same
-`squad_path` context value, so it moves with them or the rule is only half true.
+`.claude/` is committed, so under remote mode a pointer is a tracked snapshot of state the
+repository does not hold, silently wrong from the moment the server moves. §2a rules on contents
+for that reason.
 
 **Who this is decided for.** squads is a tool other teams adopt; this repository's own use of it
-only tests that it works. So the case that governs is an adopter cloning a project they did not set
-up, with their own overrides and their own agent host — not what is already convenient here. Two
-consequences run through everything below: an adopter's *first* run is the one that must work, and an
-adopter has no baseline for what a correct pointer looks like, so anything wrong reads to them as
-squads being broken rather than as a command they never ran. The third-party hosts are the main case
-for the same reason (§2d): Codex, Copilot and Cursor users are adopters by definition, and nobody
-dogfooding this repository uses them.
-
-**Two facts change what the replacement has to carry.** Both are read, and both mean less new
-material than the problem suggests.
-
-- **The slug-bound startup command set already exists**, one hop too far away. The role *body*
-  template renders it with the slug substituted — `sq memory <slug> list`, `sq memory <slug> show
-  <slug>`, `sq board list`, `sq mine <slug>`, `sq inbox <slug>` (read: `agents/role.md.j2:30-36`) —
-  and the agent reaches it only *through* the `@` reference that is being removed.
-- **`CLAUDE.md`'s managed region already states the same protocol generically**, with a `<role>`
-  placeholder the agent must substitute for itself (read: `claude/claude_section.md.j2:53-61`). So
-  two renderings of one protocol already ship; the direction relocates one of them rather than
-  creating a duplicate.
+only tests that it works. The case that governs is an adopter cloning a project they did not set up,
+with their own overrides and their own agent host. An adopter's *first* run is the one that must
+work, and an adopter has no baseline for what a correct pointer looks like, so anything wrong reads
+to them as squads being broken. Third-party hosts (Codex, Copilot, Cursor) are the main case for the
+same reason (§2d).
 
 ## Decision
 
 ### 1. No materialised file squads generates may carry a local file path
 
 The rule is about the *path*, not the `@` sigil: a displayed path is unusable for the same reason an
-instructed one is unresolvable. All four templates lose `squad_path`, and the `squad_path` context
-value stops being computed for them.
+instructed one is unresolvable. No pointer or entry template receives a `squad_path`.
 
-The rule's boundary: this governs files squads writes **into another tool's configuration**. It does
-not govern `sq`'s own output, which may name a path freely because the caller has a working `sq` by
-construction — and it does not govern a path an adopter writes in their own prose.
+The rule governs files squads writes **into another tool's configuration**. It does not govern
+`sq`'s own output, which may name a path freely because the caller has a working `sq` by
+construction, nor a path an adopter writes in their own prose.
 
-### 2. A pointer names the command, and carries enough that a first turn needs no fetch
+### 2. A pointer names the command, and carries enough that a first turn needs no other fetch
 
-The pointer carries three things, in this order of priority when space is contested:
+An agent pointer carries three things, in this order of priority when space is contested (the
+order of what a pointer keeps, not the order an agent runs them: the definition fetch runs first,
+then the startup set):
 
-1. **Identity** — full name, slug, role title. Already present and unchanged.
-2. **The slug-bound startup command set**, moved from the role body: the memory, board, `mine` and
-   `inbox` commands with the slug already substituted.
-3. **One command that renders the full definition** — `sq role <slug> show` for an agent pointer,
-   `sq skill <slug> show` for a skill pointer. Both exist and both render the definition today
-   (driven: `sq role architect show` prints a computed card plus the stored body).
+1. **Identity**: full name, pronouns, slug, role title.
+2. **The slug-bound startup command set**, with the slug already substituted: `sq memory <slug>
+   list`, `sq memory <slug> show <slug>`, `sq board list`, `sq mine <slug>`, `sq inbox <slug>`.
+3. **One command that renders the full definition**: `sq role <slug> show` for an agent pointer,
+   `sq skill <slug> show` for a skill pointer.
 
-It **names** the definition command rather than embedding the definition. The trade, stated rather
-than implied:
+It **names** the definition command rather than embedding the definition. Embedding would make a
+first turn self-sufficient offline, and would be a second stored copy of the definition, in a file
+the backend regenerates and squads is not the only writer of, going stale between syncs. Naming
+costs one command on the first turn and is correct in both modes. What it loses is the offline case,
+and the loss is bounded: an agent whose `sq` cannot reach its squad has its identity and its startup
+commands and not its mission, which is the right failure, because every one of those startup
+commands would fail too.
 
-- **Embedding** would make a first turn self-sufficient offline, and would reintroduce the defect the
-  cache in the derived-views decision exists to remove: a second stored copy of the definition, in a
-  file the backend regenerates, going stale against the role item between syncs — and, unlike the
-  role body, stale in a file squads is not the only writer of.
-- **Naming** costs one command on the first turn and is correct in both modes. What it loses is the
-  offline case, and the loss is bounded precisely: an agent whose `sq` cannot reach its squad has its
-  identity and its startup commands and not its mission — which is the right failure, because every
-  one of those startup commands would fail too. An agent that cannot read its queue cannot work; the
-  pointer should not pretend otherwise by carrying a mission it can act on with no board.
+Substituting the slug in the pointer removes a step an agent would otherwise perform by
+reconstruction, which is the same failure class as acting on a summary instead of a literal
+command.
 
-Priority 2 is what makes this a real improvement rather than a lateral move. Substituting the slug
-in the pointer removes a step an agent otherwise performs by reconstruction, which is the same
-failure class as acting on a summary instead of a literal command.
+### 2a. What a pointer may contain: the containment rule
 
-### 2a. What a pointer may contain: the irreducible set, and the rule above it
-
-A path that does not resolve is only the visible half of the problem. `.claude/` is **committed**
-(driven: `git ls-files .claude/` lists 22 files; only `settings.local.json` is ignored), and each
-agent pointer materialises seven values of role state — slug, description, model, colour, spawn
-authority, the resolved skills list, and the full name in its body. Under remote mode that makes a
-pointer a committed snapshot of state the repository does not contain: the server moves and every
-clone is wrong until a person syncs and commits, with nothing reporting it. Removing the `@`
-reference does not touch that, so §1 is necessary and not sufficient.
-
-The host-reads-files argument establishes that a pointer **file** must exist — a host enumerates
+The host-reads-files argument establishes that a pointer **file** must exist: a host enumerates
 files to discover that an agent exists at all, and cannot run a command to find out. It establishes
-nothing about the file's contents. So the contents need their own rule.
-
-**The containment rule.** A pointer materialises a value only when both hold:
+nothing about the file's contents. A pointer materialises a value only when both hold:
 
 1. **the host consumes it at or before spawn**, and
-2. **a runtime fetch cannot substitute for its *effect*** — which is true exactly when the value
-   *restricts* or *configures* the session, and false when it merely *supplies* content the agent
-   could obtain for itself.
+2. **a runtime fetch cannot substitute for its *effect***: true exactly when the value *restricts*
+   or *configures* the session, false when it merely *supplies* content the agent could obtain for
+   itself.
 
-The second clause is what does the work, and the word *effect* is load-bearing rather than decorative:
-the test is never "can the agent get this information" but "can the agent obtain what setting this
+The test is never "can the agent get this information" but "can the agent obtain what setting this
 value did". A restriction cannot be re-imposed from inside the session it was meant to bound; a
 configuration has already taken hold before the agent's first turn; only plain content can be
-fetched later. Reading the clause as being about information is the misapplication it is worded
-against — see the skills list below, where this decision made exactly that error.
+fetched later.
 
-**Applied field by field.** The "cannot drift" and drift-consequence columns are why each ruling
-differs; they are not decoration.
+Applied to the Claude Code agent pointer:
 
 | Value | Host status | If it goes stale | Ruling |
 | --- | --- | --- | --- |
-| `name` (the slug) | **required** — the dispatch identifier; without it there is no agent to spawn | **cannot drift.** Slugs are canonical and not renamable, frozen by ADR-85 §4 — a team renames who the architect is called, never the slot | materialised |
-| `description` | **required** — the host's own selection text, read to decide whether to route here, before any agent exists to run anything | a routing hint is stale; the agent still spawns and still behaves correctly, because its definition is fetched | materialised |
-| `disallowedTools` | the capability boundary, expressed in the definition the harness loads and bound to the agent **type** at spawn (ADR-155 §1) | **a leaf keeps spawn authority the squad revoked** — a capability escalation against that decision's own threat model | materialised, and the one field whose drift is an error (§2c) |
-| `model` | optional; omitting the key silently runs the agent on the session default (read: `_backends/_claude_code/_frontmatter.py:14-22`) | the agent runs on the wrong model, silently — the same failure `model_drop_warning` already reports at write time | materialised: the host has chosen a model before the agent can speak |
-| `color` | optional, cosmetic | cosmetic | materialised, and explicitly not load-bearing |
-| the resolved `skills` list | the **preload** setting: it decides what is in context on turn one | a withdrawn skill is preloaded, or a newly scoped one is missing — and this is the most drift-prone value of the seven | materialised, and the reason §2c's comparison is load-bearing rather than optional |
-| `full_name` (body prose) | none; squads' own text | the agent calls itself by a name the squad no longer uses | **not materialised** — arrives with the definition (§2) |
+| `name` (the slug) | required: the dispatch identifier | cannot drift: slugs are permanent (ADR-979) | materialised |
+| `description` | required: the host's own selection text, read before any agent exists | a routing hint is stale; the agent still spawns and behaves correctly | materialised |
+| `disallowedTools` | the capability boundary, bound to the agent type at spawn (ADR-155 §1) | a leaf keeps spawn authority the squad revoked: a capability escalation | materialised, and the one field whose drift is an error (§2c) |
+| `model` | optional; omitting the key silently runs the agent on the session default | the agent runs on the wrong model, silently | materialised: the host has chosen a model before the agent can speak |
+| `color` | optional, cosmetic | cosmetic | materialised, not load-bearing |
+| the resolved `skills` list | the preload setting: what is in context on turn one | a withdrawn skill is preloaded, or a newly scoped one is missing | materialised: an agent can read a skill on turn three, but cannot make the host preload one or retroactively have had it on turn one |
+| the definition (mission, responsibilities, agreements) | none; squads' own text | the agent acts on text the squad no longer holds | **not materialised**: fetched with `sq role <slug> show` |
 
-**The skills list stays, and clause 2 is what says so — I had it on the wrong side.** This is the
-case the rule has to earn, so the correction is recorded rather than quietly applied.
+The skills list is the one entry that is not a field of the role but a *resolved projection over
+other items' edges* (system membership plus every skill carrying a preload edge to this role,
+recovered by inversion), so it drifts on edits to items the pointer never names. That is a claim
+about **drift risk**, not about classification: clause 2 decides whether a value is materialised,
+and the fan-out decides how much the drift check matters (§2c). ADR-422, which refused to persist a
+fan-out projection because an on-demand path reached the same reader, does not govern this case: no
+command an agent runs can put a skill into a turn that has already begun.
 
-My argument for removing it was that a preload *supplies* rather than *restricts*: the agent can
-read a skill later, so a fetch substitutes. That tested the wrong thing. Clause 2 does not ask
-whether the agent can obtain the **information**; it asks whether a runtime fetch can substitute for
-the **configuration effect** — which is why the clause reads "restricts *or configures*". A preload
-list configures the session before the agent exists. The agent can read a skill on turn three; it
-cannot make the host preload one, and it cannot retroactively have had that context on turn one. The
-effect is unobtainable from inside the session, exactly as `model`'s is.
-
-So the parallel with `model` is exact, and it is the one I should have noticed: I kept `model` on the
-reasoning that "the host has chosen a model before the agent can speak," and the host has chosen the
-preload set at precisely the same moment. Nothing about clause 2 needs to change; a misapplication of
-it does.
-
-**What survives of the fan-out argument, and where it belongs.** The observation itself holds and is
-worth keeping: the skills list is the only entry that is not a field of the role but a *resolved
-projection over other items' edges* — system membership plus every skill carrying a `scopes` edge to
-this role, recovered by inversion (read: `_services/_base.py:1156-1181`) — so it drifts on edits to
-items the pointer never names. That is a claim about **drift risk**, not about classification.
-Clause 2 decides whether a value is materialised; the fan-out decides how much the drift check
-matters. It therefore transfers to §2c, where it makes the comparison load-bearing.
-
-**And ADR-422 does not support the conclusion I cited it for.** That decision refused to persist a
-fan-out projection *because a computed alternative reached the same reader* — its option D, "serve
-the same need on demand" via `sq graph`. Here there is no such alternative: no command an agent runs
-can put a skill into the context of a turn that has already begun. ADR-422's reasoning turns on the
-availability of the on-demand path, and the availability is what differs. Citing it for removal was
-measuring against a clause that does not govern this case.
-
-**Skill pointers take the same rule with the same result.** A skill pointer's `name` and
-`description` are host-consumed before anything can run, so they stay; its body already becomes a
-fetch command under §2. Nothing else is in it.
+**Skill pointers take the same rule.** A skill pointer's `name` and `description` are
+host-consumed before anything can run, and so is `user-invocable: false` when the skill is not
+operator-invocable (ADR-983). Its body names `sq skill <slug> show`. Nothing else is in it.
 
 ### 2b. The generated pointers are committed, in every mode
 
-`.claude/` was never one kind of thing, and per-directory is the wrong granularity. `settings.json`
-is **user-owned, merged** config — the backend preserves whatever is already there and only adds
-missing permission rules (read: `_backends/_claude_code/_backend.py:47-62`). The pointers are the
-opposite: pure projections, regenerated wholesale. So the question is asked per artifact, and for the
-projections the answer is the same in every mode: **committed.**
+`.claude/` is not one kind of thing, so the question is asked per artifact. `settings.json` is
+**user-owned, merged** config: the backend preserves whatever is there and only adds missing
+permission rules. The pointers are pure projections, regenerated wholesale, and for them the answer
+is the same in every mode: **committed.**
 
-**The principle, not a preference: whether to ignore a generated file is the adopter's repository
-decision, never squads'.** The tool already draws that line and draws it narrowly.
-`ensure_root_tmp_ignored` appends exactly one temp-file pattern to a root `.gitignore` and its own
-docstring commits to doing so "without touching any of its other (adopter-owned) content" (read:
-`_services/_maintenance.py:68-84`). squads ignores its own crash detritus and nothing else.
-Committing generated pointers is that same line drawn on the other side of itself: we produce the
-artifact, we do not decide whether their repository tracks it. An adopter who gitignores `.claude/`
-is making a supported choice, and this decision does not make it for them.
+**Whether to ignore a generated file is the adopter's repository decision, never squads'.**
+`ensure_root_tmp_ignored` appends exactly one temp-file pattern to a root `.gitignore` without
+touching any of its other, adopter-owned content: squads ignores its own crash detritus and nothing
+else. An adopter who gitignores `.claude/` is making a supported choice.
 
-**And the onboarding case is a first-run failure, not an edge case.** squads is a tool other teams
-adopt; this repository's own use of it only tests that it works. An adopter clones a project, opens
-their agent host, and expects the ten agents the roster advertises to be there. If the pointers do
-not exist until somebody runs a command, the first thing they meet is a roster claiming ten agents
-and a host finding none — with nothing connecting the two facts. That is the failure the ruling
-exists to prevent, and it happens on run one, to a reader with no baseline for what correct looks
-like.
+**The onboarding case is a first-run failure, not an edge case.** An adopter clones a project, opens
+their agent host, and expects the agents the roster advertises to be there. Committed pointers mean
+the clone has them, with no command run first.
 
-**What this accepts rather than answers.** The objection against committing under remote mode was
-that a pointer would be a snapshot of state the repository does not contain, and *no commit could fix
-it for everyone*. That objection is not refuted by the ruling; it is **accepted as a cost**. So
-committed-and-possibly-stale is the sanctioned state, and **detection is the only remaining
-safeguard** — which is why §2c is load-bearing twice over: once because the most drift-prone value of
-the seven stays materialised (§2a), and again because a committed pointer under remote mode can be
-wrong for every clone at once. A decision that accepts a staleness cost owes a detection design, and
-that is the next section rather than an afterthought.
+**Accepted as a cost, not answered:** under remote mode a committed pointer can be a snapshot of
+state the repository does not contain, and no commit fixes it for everyone. Committed and possibly
+stale is the sanctioned state, and **detection is the remaining safeguard** (§2c).
 
-**One deferral this ruling closes.** The bootstrap question — what produces a clone's pointers before
-anyone thinks to run a command — is answered: the clone has them, because they are committed. What
-remains deferred is narrower and sits in §2c.
+### 2c. Detection: `sq check` compares, `sq sync` reports, and neither stamps
 
-### 2c. Detection reaches the operator unprompted; `sq check` compares, and never stamps
+The per-entry artifacts are **declared paths**: `AgentBackend.managed_entry_paths` returns one path
+per role or skill that is *currently live*, scoped by the same predicate that decides who gets an
+artifact at all (`is_live_roster_entry`), never by a fixed or historical slug list, so a
+retire/reactivate cycle never produces a false positive on either side. Two findings sit on that
+one widening, and presence comes first, because a content comparison against an absent file has
+nothing to compare:
 
-Nothing reports any of this today, in any mode, and the gap is wider than drift: `sq check` does not
-notice a **missing** per-entry pointer at all. BUG-784 drove it — deleting one pointer, one skill
-directory, one backend's whole set, or both backends' sets together leaves `sq check` at exit 0 with
-no mention, every time, while deleting `CLAUDE.md` is caught at exit 3. `_backend_reconciled` reports
-on exactly the paths a backend declares (read: `_services/_validators.py:509-525`), and both bundled
-backends declare only their compiled top-level document (read:
-`_backends/_claude_code/_backend.py:416-422`). No per-entry path is declared, so none is ever looked
-for.
+- **Presence**: does the declared path exist. `sq check`'s `backend_reconciled` reports a missing
+  per-entry pointer at **warn**, and a missing top-level managed file (`managed_paths`, the compiled
+  `CLAUDE.md`/`AGENTS.md` and the like) at **error**.
+- **Currency**: does the file's content match a fresh render. `sq check` compares each pointer on
+  disk with the backend's pure render of it (§2d question 5). A drifted **restriction** is an
+  **error**: a stale pointer still granting a leaf the spawn tool the squad revoked is a live
+  regression against ADR-155's threat model, not repairable from inside the session it governs.
+  Every other drift is a **warn**: `sq sync` fixes it and nothing unsafe happens meanwhile.
 
-**Presence and currency are two findings over one widening, and presence comes first.** They are not
-alternatives and not one piece of work:
+**`sq sync` is the fix, and it says what it changed**: it reports every per-entry pointer it had to
+regenerate because it was missing, so the operator learns both that there was a fault and that a
+commit is owed. The operator's recourse is plain: run `sq sync`, then commit what it rewrote.
 
-- **Presence** — does the declared path exist. A `stat` per live entry. It is the strictly weaker
-  question and the prerequisite: a content comparison against an absent file is a category error,
-  with nothing to compare and no useful message. This is BUG-784's fix.
-- **Currency** — does the file's content match a fresh render. A render per live entry.
+There is **no unprompted per-command notice** (op-pierre, 2026-10-25). Presence and currency are
+reported by `sq check`, the command a squad runs to ask whether it is healthy, and by `sq sync`'s
+report; an advisory on every command would be noise in a repository where `sq check` is the gate.
 
-Both need the same thing: the per-entry artifacts must become **declared paths**, which is the single
-widening both findings sit on. Sequencing presence first is not politeness about a filed bug; it is
-that currency has no meaning until presence holds.
+**By comparison, not by a stamp.** ADR-85's `override-base` stamp exists because an override is
+user-owned: a human authored the body, so squads cannot re-derive it and a version is the only
+provenance available. A pointer is tool-owned and re-renderable, so comparison answers the question
+that matters ("is this wrong") instead of "how old is this", and never flags a correct pointer for
+predating a release that changed nothing about it.
 
-**The hard constraint on that widening, which must not be discovered later.** Retirement
-*deliberately* removes a pointer, and today that behaves correctly and `sq check` stays clean on both
-sides of it (driven, BUG-784: retiring `qa` removes both backends' entries via `remove_artifacts` and
-check stays at exit 0; reactivating regenerates them and it stays clean). So the declared set must be
-scoped to the roster's **currently live** entries — the same predicate `_project_roster_item` already
-uses to decide who gets an artifact at all (read: `_services/_base.py:1387-1391`) — and never to a
-fixed or historical slug list. Anything else turns every retire/reactivate cycle into a false
-positive on the retired side.
+**This does not breach the never-read-back rule.** That guard forbids a backend *recovering a
+declaration* from its own output. A drift check reads output as the **subject under test**: every
+declaration comes from the item, the render is the expectation, and the checker reads the path the
+backend declares, so it never reaches into a host's directory on its own (invariant 6).
 
-**Detection must be unprompted, because the reader has never seen a correct pointer.** Our own team
-notices drift by living in this corpus; an adopter has no baseline, so a wrong pointer is simply how
-their tool behaves, and they attribute it to squads being broken rather than to a sync they never ran.
-"The recourse is `sq sync`" is only an answer if something tells them so without being asked. Three
-surfaces, split by cost:
+**Remote mode.** Presence is a filesystem question, answerable offline in every mode. Currency
+compares against squad state, so under remote mode it needs the server's; whether that check runs
+against a cache, requires connectivity, or degrades to "cannot verify" is remote mode's design
+(FEAT-33, EPIC-29). Presence gives every mode an offline floor.
 
-1. **The root-callback notice — unprompted, every invocation, presence only.** `version_notice`
-   already prints exactly this shape of advisory to stderr, non-fatal, on any `sq` command (read:
-   `_cli/_common.py:1128-1140`). Today it keys solely on `.squads.toml`'s recorded `squads_version`,
-   so a clone whose pointers are missing *at the current version* is told nothing — precisely the
-   adopter's first run. Presence joins that notice because it is a `stat` per live entry and can
-   afford to run on every invocation. Currency does not: a render per entry on every command is not
-   a cost an advisory may impose.
-2. **`sq check` — asked, presence and currency both**, with the detail and the exit code a CI gate
-   needs.
-3. **`sq sync` — the fix, and it must say what it changed.** Today it regenerates a missing file with
-   no message that anything had been missing (driven, BUG-784), which under committed artifacts is
-   the wrong silence twice: the operator learns neither that there was a fault nor that a commit is
-   now owed. `sync` already returns notices to its caller, so this is a report, not a mechanism.
+### 2d. The rule is universal; every answer is per host
 
-**The operator's recourse, stated plainly.** Run `sq sync`, then commit what it rewrote. Nothing
-beyond `sq check` plus `sq sync` is needed *as machinery* — the missing pieces are all reporting: the
-unprompted notice must see the filesystem, and `sync` must say what it fixed.
+Codex, Copilot and Cursor backends are planned, and their users are adopters by definition, so the
+per-host contract is what most users meet first, and Claude Code, the host this decision was derived
+from, is the least representative example. The frame generalises `_VALID_MODELS`, documented as "a
+backend-local set, not a shared one", and `model_drop_warning`, which reports a value that survives
+storage and fails to render rather than validating it twice.
 
-**By comparison, not by a stamp**, and the reason is ownership rather than convenience. ADR-85's
-`override-base` stamp exists because an override is **user-owned**: a human authored the body, so
-squads cannot re-derive it and a version is the only provenance available. A pointer is **tool-owned**
-and re-renderable, so comparison is available — and it answers the question that matters ("is this
-wrong") instead of the one a stamp answers ("how old is this"). Reaching for the stamp here would
-import a mechanism built for the opposite ownership, and would flag a correct pointer for predating a
-release that changed nothing about it.
+**Universal: the containment rule.** Both clauses are stated about a host and its configuration, not
+about a format. **Per backend: every answer, the irreducible set included.** `name` and
+`description` are Claude Code's irreducible set; another host may key an entry by filename, or do no
+host-side selection.
 
-**The seam already names this gap.** `AgentBackend.managed_paths`'s own docstring calls itself a
-"present-only check — not a currency/drift check" (read: `_backends/_base.py:192-202`). Currency is
-the verb that docstring says it is not, and it arrives as §2d's pure-render question, compared against
-the path the backend itself declares — so the checker never reaches into a host's directory on its
-own (invariant 6).
+**The backend answers five questions**, each phrased so an author who has read only their host's
+documentation can answer it:
 
-**This does not breach the never-read-back rule, and the difference has to be stated because it will
-be raised.** That guard forbids a backend *recovering a declaration* from its own output — the failure
-it was written for is `write_managed` recovering a mission by matching the `**Mission:**` prefix of a
-line it had just rendered, so relabelling a template emptied every mission with `sq check` clean
-(read: `tests/meta/test_a_backend_never_reads_back_its_own_generated_output.py`, and
-`_backends/_agents_md/_backend.py:66-79`). A drift check reads output as the **subject under test**;
-every declaration still comes from the item, and the render is the expectation, not the source. The
-direction of authority is the thing the guard protects, and it is preserved.
-
-**Two severities, keyed on §2a's own distinction** rather than a new judgement: a drifted or missing
-**restriction** is an **error** — a stale pointer granting a leaf the spawn tool the squad revoked is
-a live regression against ADR-155's threat model, and is not repairable from inside the session it
-governs. Everything else is a **warn**: `sq sync` fixes it and nothing unsafe happens meanwhile.
-
-**The deferral, named and now narrower.** Presence is answerable offline in every mode — it is a
-filesystem question. Currency compares against squad state, so under remote mode it needs the
-server's, and whether that check runs against a cache, requires connectivity, or degrades to "cannot
-verify" is remote mode's design (FEAT-33 / EPIC-29 are Draft). The offline half is fully decidable
-today and is what this clause commits to; the remote half inherits the mechanism and owes a
-reachability answer. Presence gives every mode an offline floor regardless.
-
-### 2d. The rule is universal; every answer is per host, and the ABC asks in the host's own terms
-
-Codex, Copilot and Cursor backends are planned, and their users are **adopters by definition** —
-nobody dogfooding this repository uses them. So the per-host contract is what most users meet first,
-and Claude Code, the one host whose contract this decision was derived from, is the least
-representative example available. A rule reasoned from what it happens to emit would be relitigated
-by every backend after it.
-
-The codebase already models the right frame and this section generalises it rather than inventing
-one: `_VALID_MODELS` is documented as "a backend-local set, not a shared one: it describes what *this
-host tool* can express, so a second backend is free to know a different vocabulary", and
-`model_drop_warning` exists because a value can survive storage and then silently fail to render —
-**reported rather than validated twice** (read: `_backends/_claude_code/_frontmatter.py:1-10`,
-`:24-48`). That is one field's worth of the shape a whole entry needs.
-
-**What is universal: the containment rule.** Both clauses are stated about a host and its
-configuration, not about any format — "the host consumes it at or before spawn" and "a runtime fetch
-cannot substitute for the effect". Any host can be asked both.
-
-**What is per-backend: every answer, the irreducible set included.** `name` and `description` are
-Claude Code's irreducible set, derived from *its* discovery contract. Asserting them universally would
-be the same overreach as a shared model vocabulary: another host may key an entry by filename and need
-no `name`, may do no host-side selection and need no `description`, or may require a field Claude Code
-has no concept of. The *notion* of an irreducible set is universal; its membership is local.
-
-**So the ABC asks five questions, each phrased so an author who has read only their host's
-documentation can answer it — and none of which requires reading squads' internals.** Each traces to a
-ruling above that cannot be evaluated without it.
-
-1. **Can an agent running under this host execute a command?** Whether the host gives an agent any
-   way to invoke `sq`. This is the question clause 2 turns on, and it is the one this decision most
-   needs asked rather than assumed: a host that cannot run commands can never satisfy "a fetch
-   substitutes", so for it the rule keeps everything it can express. A host that can — Claude Code
-   demonstrably does, which is §2's whole premise — fetches whatever only *supplies*.
+1. **Can an agent running under this host execute a command?** The question clause 2 turns on. A
+   host that cannot run commands can never satisfy "a fetch substitutes", so for it the rule keeps
+   everything it can express.
 2. **Which of the values squads projects does this host's configuration have a place for?** The
-   expressible set, generalising `_VALID_MODELS` from one field to all of them. Anything squads
-   declares and this host cannot express is **reported once, at write time, and dropped — never
-   silently**, on `model_drop_warning`'s precedent: report what this backend just failed to render,
-   refuse nothing, and do not validate a second time against a host-local vocabulary at storage time.
-   A host with no notion of preloading answers "no" here for the skills list and says so once.
+   expressible set. Anything squads declares and this host cannot express is **reported once, at
+   write time, and dropped, never silently**, on `model_drop_warning`'s precedent.
 3. **Which of those must be present for this host to find and dispatch an entry at all?** The
-   irreducible set, from the host's own discovery contract.
+   irreducible set.
 4. **Which of those constrain what the session may do, rather than configure how it runs?** The
-   capability boundary, however the host spells it. `disallowedTools` is Claude Code's spelling of
-   ADR-155's attenuation; another host will spell it differently, express it partially, or lack it.
-   §2c's error severity is defined over this answer.
-5. **What would you write for this entry, without writing it?** The pure render §2c compares against.
+   capability boundary, however the host spells it (`restriction_fragment`). §2c's error severity
+   is defined over this answer.
+5. **What would you write for this entry, without writing it?** The pure render §2c compares
+   against (`render_role_entry`, `render_skill_entry`).
 
-Questions 1, 2 and 4 together give a property worth naming: **a backend may be unable to honour a
-constraint squads declares, and that is reportable rather than forbidden.** A host with no way to deny
-a tool cannot enforce ADR-155's attenuation. The honest response is a warning that this host cannot
-express the boundary — not a refusal to support the host, and not silence.
+A backend may be unable to honour a constraint squads declares, and that is reportable rather than
+forbidden: a host with no way to deny a tool gets a warning that it cannot express the boundary, not
+a refusal to support the host and not silence. The documented `AgentBackend` surface stays at seven
+abstract methods; the per-entry methods are non-abstract with a default that expresses nothing, so a
+third-party backend written against the seven is unaffected. This extends ADR-133's
+de-Claude-ification from names and path ownership to **contents**. A future backend's configuration
+format, vocabulary and answers are its own decision; no backend has to reopen the rule to give them.
 
-This extends ADR-133's de-Claude-ification from names and path ownership to **contents**: that
-decision established that a Claude backend returns a pointer-file artifact while an `AGENTS.md`
-backend returns a section-update artifact, both through one neutral entry method. These five questions
-are the same move applied to what those artifacts may carry.
+### 3. Where the protocol lives
 
-**What each future backend's own decision keeps.** Deliberately not settled here, because it is not
-knowable without that host's documentation: its configuration format and field names, its model and
-capability vocabulary, whether it supports preloading, whether its agents can run commands — and
-therefore its irreducible set and its answers to all five. This decision fixes the questions and the
-rule that consumes the answers; a backend answers them when it is built, and no backend has to reopen
-the rule to do so.
+- **The agent pointer** carries the **slug-bound commands**, rendered from one declared list in
+  code (`_STARTUP_COMMAND_TEMPLATES` in the Claude Code backend); a command added there appears on
+  every generated agent pointer.
+- **The `CLAUDE.md` / `AGENTS.md` managed region** keeps the **protocol and its rationale**, stated
+  once for every agent with a `<role>` placeholder: why both queue surfaces are read and neither
+  subsumes the other, what memory is versus what the board is.
+- **The role definition carries no copy** of the slug-bound set: two slug-bound copies of one
+  command set, in two files with two regenerators, is the duplication this clause prevents.
 
-### 3. Where the protocol lives: one declaration, two renderings
-
-The split, so the two surfaces cannot drift:
-
-- **The pointer** carries the **slug-bound commands** — the concrete form, for the agent whose slug
-  it is.
-- **`CLAUDE.md` / `AGENTS.md`'s managed region** keeps the **protocol and its rationale** — why both
-  queue surfaces are read and neither subsumes the other, what memory is versus what the board is.
-  That reasoning is shared by every agent and belongs stated once, not repeated per pointer.
-- **Both render from one declared list in code**, never from two hand-maintained texts. This is the
-  same rule the derived-views decision states for a projection: one derivation, many renderings. A
-  command added to the startup set appears in both surfaces or in neither.
-
-The role body's copy (`agents/role.md.j2:30-36`) is **removed**, not left beside the pointer's. Two
-slug-bound copies of one command set, in two files with two regenerators, is the duplication this
-clause exists to prevent.
-
-### 4. Invariant 5 is reworded to state the containment rule
-
-`CLAUDE.md:107` reads: "**`.claude/` files are pointers**, not content. Real definitions live under
-`squads/`." Both clauses are true and both mislead, in different ways. "Real definitions live under
-`squads/`" locates the definition by **directory**, which is the assumption remote mode breaks. And
-"pointers, not content" reads as satisfied by any file that is merely *short* — which is how seven
-fields of role state came to sit in one without anybody judging that a violation.
-
-The rewording keeps the invariant's force, drops the locality, and states the containment rule so the
-next field has a test to fail:
+### 4. Invariant 5 states the containment rule
 
 > **`.claude/` files are pointers**, not content. A pointer carries only what the host must read
 > before an agent can run — its identity, the text the host selects it by, and the constraints
 > squads imposes on the session — plus the commands that fetch the rest. Anything `sq` can answer,
 > a pointer does not hold.
 
-That is a stronger statement of the same rule: it forbids carrying a value the agent could ask for,
-which the old wording permitted by only saying where the definition lived.
+It forbids carrying a value the agent could ask for, and it locates nothing by directory, the
+assumption remote mode breaks.
 
 ### 5. The two backends that exist, as worked answers to §2d
 
-- **`_claude_code`** answers "yes" to question 1 — its agents run `sq`, which is what §2 is built on.
-  So both pointer templates lose `@{{ squad_path }}` and gain the command set, and what remains in
-  frontmatter is the host-consumed set: `name`, `description`, `model`, `color`, the `disallowedTools`
-  attenuation, and the resolved `skills` preload (§2a). `full_name` and the definition are fetched.
-- **`_agents_md`** answers question 1 with **"not knowably"**, and that is the answer, not a gap. It
-  compiles a single `AGENTS.md` for tools whose command-execution capability is declared by whoever
-  builds the backend, not by us — so it takes the generic protocol form from the managed region rather
-  than a slug-bound set per entry, and both entry templates lose their `**Squad file:**` line.
-
-**Why the roster prose stays in the compiled documents, derived rather than exempted.** `AGENTS.md`
-keeps full name, slug, title, mission and responsibilities, and `CLAUDE.md`'s managed region keeps its
-three-field roster line (read: `agents_md/role_entry.md.j2`, `claude/claude_section.md.j2:8-12`). Those
-values drift exactly as a pointer's would, so §2a's challenge lands here too, and the outcome differs
-for one declared reason: **clause 2 asks whether a runtime fetch can substitute, and a host that
-cannot run a command has no fetch available.** That is question 1's answer doing the work.
-
-The earlier framing of this — "tools whose command-execution capability squads does not know" — was
-wrong, and worth correcting rather than rephrasing. Not knowing a host's capabilities is not a gap in
-our knowledge to be worked around; it is the **normal condition for every backend an adopter brings**,
-and a rule that only produces a defensible answer for the two hosts we happen to have built is not a
-rule. The fix is that the question is *declared* by the backend author, who has the host's
-documentation, instead of assumed by us, who never will. The compiled document keeps its prose because
-its backend answers question 1 in the negative — the same rule, a different answer.
-
-So a compiled document is not a privileged class. If a future backend targets a host that *can* run
-commands, it answers "yes" and inherits the containment rule in full; it does not inherit
-`AGENTS.md`'s outcome. The cost of the negative answer is named: it is materialised state, it drifts,
-and §2c's presence and currency checks cover it because both documents are declared paths already.
+- **`_claude_code`** answers "yes" to question 1: its agents run `sq`, which is what §2 is built on.
+  Its pointer frontmatter is the host-consumed set (`name`, `description`, `model`, `color`, the
+  `disallowedTools` attenuation, the resolved `skills` preload; for a skill, `user-invocable`), and
+  the definition is fetched.
+- **`_agents_md`** answers question 1 with "not knowably": it compiles a single `AGENTS.md` for tools
+  whose command-execution capability is declared by whoever builds the backend, not by squads. It
+  takes the generic protocol form from the managed region and writes no per-entry file. Its roster
+  prose (full name, slug, title, mission, responsibilities) stays in the compiled document, derived
+  rather than exempted: clause 2 asks whether a runtime fetch can substitute, and a host that cannot
+  run a command has none. A compiled document is not a privileged class; a future backend whose host
+  can run commands answers "yes" and inherits the containment rule in full. The cost is named:
+  materialised state that drifts, covered by §2c because the compiled documents are declared paths.
 
 Neither backend reads back its own output, and neither may start
-(`tests/meta/test_a_backend_never_reads_back_its_own_generated_output.py`; read:
-`_backends/_agents_md/_backend.py:66-79` for the recorded failure when that rule was broken). §2c's
-comparison is a checker reading a backend's output through question 5, never a backend reading its own.
+(`tests/meta/test_a_backend_never_reads_back_its_own_generated_output.py`).
 
 ### 6. The release ordering, stated once for every template-touching change
 
-A bundled-template edit forces a template-manifest regeneration, and the generator replaces one
-version's entry **wholesale**, keyed on `[project].version` (read:
-`scripts/gen_template_manifest.py:45-50`, `:121`). That version is still `0.13.0` (read:
-`pyproject.toml:3`), which is a shipped release. Regenerating before the version bump overwrites the
-shipped release's recorded hashes and corrupts the provenance `sq override diff` reads. **The bump
-comes first, then the regeneration** — the ordering TASK-768 already carries.
+A bundled-template edit forces a template-manifest regeneration, and the generator replaces the
+running version's index entry **wholesale**, keyed on `[project].version` (ADR-777). Regenerating
+before the version bump overwrites the shipped release's recorded hashes and corrupts the provenance
+`sq override diff` reads. **The bump comes first, then the regeneration.** This is the single
+statement of that ordering for every change that touches bundled templates; the managed-section
+golden and the generated-agent-text guards move with the templates in the same change.
 
-This section is the single statement of that ordering for the whole set of changes now touching
-bundled templates, so it is not repeated in three decisions and cannot drift between them: the four
-pointer/entry templates here; the retirement of the closed-vocabulary text from
-`workflow_static.md.j2`; and the removal of `role.md.j2`'s skills block and the item templates'
-summary regions. All of them regenerate the same manifest, so all of them queue behind the same bump.
-
-The managed-section golden and the generated-agent-text guards move with the templates in the same
-change.
-
-**Two frozen migration runners render these same pointer templates** — `_migrations/_v0_4_to_v0_5.py:118-128`
-and `_v0_8_to_v0_10.py:113` (read), each passing `squad_path` into `claude/pointer_skill.md.j2`. That
-is not a break to fix and must not be "fixed" by pinning a copy of the template inside the runner. A
-migration is frozen against the *corpus vocabulary* of the schema version it transforms, never against
-regenerable artifacts: a pointer is regenerated, never migrated, so a runner that rewrites one should
-emit today's pointer, not a historical one. What the change does owe is dropping the now-unused
-`squad_path` argument at both sites, since a template that no longer declares the variable makes the
-kwarg dead rather than wrong.
+A migration runner that rewrites a pointer emits today's pointer, not a historical one: a pointer is
+regenerated, never migrated, so a runner is never "fixed" by pinning a copy of a template inside it.
 
 ## Consequences
 
-- **A first turn costs one command per agent**, and gains an instruction that resolves in every mode.
-- **`sq role <slug> show` becomes an agent's primary definition read**, which promotes a
-  pre-existing duplication into the agent's context: it prints mission and responsibilities twice,
-  once from the computed card and once from the stored body beneath it (driven). The two can
-  disagree, because the card resolves a project override while the body carries whatever the last
-  `sq sync` wrote. Settling that is this decision's to own, and the honest options are to drop the
-  overlapping card rows or to render the body from the resolved definition on every show.
-- **The pointer stops being readable as a standalone document.** Today a person opening
-  `.claude/agents/architect.md` can follow the path by hand; afterwards they run a command. That is
-  the intended trade and the reason invariant 5's second sentence is reworded rather than deleted.
-- **`squad_path` has exactly seven producers and no surviving consumer.** Five backend render sites
-  (read: `_backends/_claude_code/_backend.py:223`, `:355`, `:377`;
-  `_backends/_agents_md/_backend.py:142`, `:160`) and two migration runners pass it into the four
-  templates that are dropping it, so it becomes a dead context value at every site rather than a
-  narrowed one. `ctx.root_relative` / `ctx.rel` may lose their last caller on this path too, which is
-  where the dead-code scan earns its keep rather than a guess here.
-- **The resolved skills list stays in the agent pointer**, so `ctx.resolved_skills_for` keeps its
-  call site (read: `_backends/_claude_code/_backend.py:356`). It is the setting that makes the host
-  preload the right things, and no command an agent runs can put a skill into a turn that has already
-  begun.
-- **Three surfaces gain work, and it is reporting rather than machinery** (§2c): the per-entry
-  artifacts become declared paths scoped to the live roster predicate; the unprompted root-callback
-  notice starts seeing the filesystem instead of only `.squads.toml`'s recorded version (read:
-  `_cli/_common.py:1128-1140`); and `sq sync` reports what it regenerated, so an operator learns both
-  that there was a fault and that a commit is owed.
-- **Presence ships before currency**, over one widening — a comparison against an absent file has
-  nothing to compare. BUG-784 is the presence half.
-- **Tracking is per-artifact, and the generated pointers are committed in every mode** (§2b).
-  `settings.json` is user-owned and stays committed for a different reason. An adopter who gitignores
-  `.claude/` themselves is making a supported choice this decision does not override — and hits the
-  same first-run gap presence detection now closes.
-- **Committed-and-possibly-stale is accepted as a cost, not argued away.** Under remote mode a
-  committed pointer can be wrong for every clone at once, and no commit fixes it for everyone. That
-  is what makes §2c a safeguard rather than a convenience.
-- **Nothing about item markdown changes here.** This decision removes a *reader* of role and skill
-  bodies; what those bodies contain is the derived-views decision's subject.
-- **One deferral remains, narrower than before** (§2c): whether a *remote* squad's currency check runs
-  against a cache, requires connectivity, or degrades to "cannot verify". Presence is answerable
-  offline in every mode, so every mode keeps a floor. The bootstrap deferral is closed by §2b — a
-  clone has its pointers because they are committed.
-
-## Amendment note — 2026-09-01: the double-print, settled by removal
-
-The Consequences left one thing open and named it this decision's to own: `sq role <slug> show`
-prints mission and responsibilities twice, once from the computed card and once from the stored body
-beneath it, and the two can disagree because the card resolves a project override while the body
-carries whatever the last `sq sync` wrote. Two options were named — drop the overlapping card rows,
-or render the body from the resolved definition on every show — and neither was chosen. Operator
-direction (recorded in this decision's discussion, in his own words) removes the thing both options
-were arbitrating: a file materialising what the CLI can compute is duplication and comes out. Ruled
-here. §1–§6 stand.
-
-### 1. Driven, on the surface this decision promoted
-
-On a scratch squad at 0.14.0 with `.overrides/roles.toml` declaring a new mission and
-responsibilities for `architect`, one `sq role architect show` printed the override in its card and
-the pre-override text in the body immediately beneath it — in the same output, with `sq check` at
-exit 0 and nothing marking which half was authoritative. Under §2 that command is an agent's primary
-definition read, and the stale half is the longer, more instruction-shaped one: the body carries the
-working agreements the agent then acts on. The rest of the evidence, including the case where the
-mirror does not merely go stale but reverts an operator's `sq role set-default`, is driven in
-ADR-776's 2026-09-01 amendment, which owns the mirror.
-
-### 2. Ruled: one derivation, two renderings — and the second is no longer stored
-
-The role body's catalog-derived content stops being materialised (ADR-776's 2026-09-01 amendment
-§2a). With no stored copy left, this decision's second option is what remains and it stops being an
-option: `sq role <slug> show` renders the definition from the resolved `RoleDef` on every call,
-through the same template `sq sync` renders today. Both halves of the output then come from one
-`resolve_role_with_base` on one call, so they cannot disagree — §3's own rule for a projection, one
-derivation and many renderings, applied to a command instead of a document.
-
-The overlap is then removed rather than tolerated, because printing one resolved value twice is
-still noise even when it cannot be wrong. **The card keeps the resolution facts the definition prose
-does not carry** — role title, model, spawn authority, the create lane, the resolved skills list —
-and **drops `mission` and `responsibilities`**, which the rendered definition prints once, in the
-form an agent is meant to read. That is this decision's first named option, now safe: it was unsafe
-before only because dropping the card's rows would have left the *stored* copy as the sole answer.
-
-This is a change of rendering, not of what an agent receives. The pointer still names
-`sq role <slug> show`, the command still returns identity, mission, responsibilities, skills and
-working agreements, and the first turn still costs one command. What changes is that the text is
-resolved rather than recalled.
-
-### 3. §4's boundary is untouched, and it is the distinction to hold onto under time pressure
-
-The generated files squads writes into another tool's configuration — the backend pointers and the
-compiled `CLAUDE.md` / `AGENTS.md` managed regions — **stay materialised**. Their reader is an agent
-host that discovers and configures an entry by reading a file before any agent exists to run a
-command, so no runtime fetch can substitute for the effect; that is §2a's containment rule and it is
-unchanged. The role and skill bodies go the other way for the opposite reason and no other: this
-decision put `sq` in their delivery path by making the pointer name a command instead of an `@`
-path, so their reader can compute.
-
-The two sit next to each other and the only thing separating them is **which reader can run a
-command**. That is exactly the distinction a hurried change collapses, so it is stated here rather
-than left to be inferred from §2a: the rule against materialising what the CLI can compute does not
-reach a file whose reader cannot call the CLI. Invariant 5's wording in §4 remains the test — a
-pointer carries what the host must read before an agent can run, and nothing else.
+- **A first turn costs one command per agent**, and every instruction a pointer carries resolves in
+  every mode.
+- **`sq role <slug> show` is an agent's primary definition read.** It renders the definition from
+  the resolved `RoleDef` on every call, through the same template a role body renders through, so its
+  two halves cannot disagree. The card keeps only the resolution facts the definition prose does not
+  carry (role title, origin, model, colour, spawn authority, capabilities, the create lane, the
+  resolved skills list), and the prose prints mission and responsibilities once.
+- **The pointer is not readable as a standalone document.** A person opening
+  `.claude/agents/architect.md` runs a command to see the definition. That is the intended trade.
+- **The resolved skills list stays in the agent pointer**: it is the setting that makes the host
+  preload the right things.
+- **The generated pointers are committed in every mode**; `settings.json` is user-owned and committed
+  for a different reason.
+- **Committed and possibly stale is accepted as a cost.** `sq check` and `sq sync`'s report are the
+  safeguard, and an adopter who never runs either sees a stale pointer until they do.
+- **Item markdown is not this decision's subject**: what role and skill bodies contain is ADR-776's
+  and ADR-880's. The generated files squads writes into another tool's configuration stay
+  materialised, because their reader configures an entry by reading a file before any agent exists to
+  run a command; role and skill bodies go the other way only because this decision put `sq` in their
+  delivery path. The one thing separating them is which reader can run a command.
+- **One deferral remains**: how a remote squad's currency check reaches squad state (§2c).
 <!-- sq:body:end -->
 
 ## Discussion
@@ -623,4 +339,10 @@ pointer carries what the host must read before an agent can run, and nothing els
     - Driven on this decision's own surface: one `sq role architect show` printed a catalog-override mission in the card and the pre-override text in the body beneath it, same output, `sq check` exit 0, nothing marking which half is authoritative — and the stale half is the longer, instruction-shaped one the agent then acts on.
     - Ruled: the stored copy goes (ADR-776's amendment owns the mirror), `show` renders the definition from the resolved RoleDef on every call, and the card then DROPS mission and responsibilities and keeps only the resolution facts the prose does not carry (title, model, spawn authority, create lane, resolved skills). Both halves come from one `resolve_role_with_base` on one call, so they cannot disagree. Option one, now safe — it was unsafe before only because dropping the card rows would have left the stored copy as the sole answer.
     - §4's boundary restated in the amendment rather than left to inference: the backend pointers and the compiled CLAUDE.md/AGENTS.md managed regions STAY materialised. Their reader configures an entry by reading a file before any agent exists to run a command. Role and skill bodies go the other way only because this decision put `sq` in their delivery path. The two sit next to each other and the only thing separating them is which reader can run a command — which is exactly what a hurried change collapses.
+- [2026-10-25T21:42:42Z] `architect` Robert Architect:
+  - 2026-10-25 audit: not rewritten; a code gap blocks it. Section 2c rules an unprompted root-callback presence notice for missing per-entry pointers; it was never built (version_notice keyed only on squads_version) and ADR-1119 removed that notice. sq check presence/currency and the sq sync regeneration report are built. Other stale passages (version_notice, the agents_md entry templates deleted by ADR-777 B3, section 6 version facts, the 2026-09-01 amendment) wait on the call. @manager for op-pierre: build the notice, or narrow 2c.
+- [2026-10-25T21:47:48Z] `op-pierre` Pierre Chat:
+  - Narrow 2c to the sq check presence/currency checks and the sq sync regeneration report; drop the unprompted per-command notice.
+- [2026-10-25T21:49:21Z] `architect` Robert Architect:
+  - 2026-10-25: body rewritten in present tense per the op-pierre ruling aa03f96. Section 2c narrowed to sq check presence/currency and the sq sync regeneration report, with no per-command notice; the 2026-09-01 amendment folded (show renders the resolved definition, the card drops mission and responsibilities); the deleted agents_md entry templates, squad_path producers, version_notice and the 0.13.0 version facts removed; the skill pointer user-invocable key (ADR-983) added. Decision otherwise unchanged.
 <!-- sq:discussion:end -->

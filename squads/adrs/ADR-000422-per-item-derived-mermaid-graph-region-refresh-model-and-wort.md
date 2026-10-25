@@ -3,14 +3,14 @@ id: ADR-422
 sequence_id: 422
 type: decision
 title: Per-item derived Mermaid :graph region — refresh model and worth-it call
-status: Accepted
+status: Superseded
 author: architect
 refs:
 - FEAT-377:addresses
 description: 'US2 defer: ref graph is non-local (unlike the local :summary), no clean
   refresh; ship US1, constrain US2 to sync-time+gated if built'
 created_at: '2026-07-15T13:55:59Z'
-updated_at: '2026-08-22T09:31:07Z'
+updated_at: '2026-10-25T21:26:12Z'
 ---
 <!-- sq:body -->
 # Context
@@ -116,4 +116,6 @@ and EPIC-325/EPIC-335 forbid.
   - Accepted — op-pierre cancelled US2 on this analysis. US1 (on-demand fenced sq graph) ships; the per-item persisted :graph region is not built. US3 lands in workflow.md.j2 per the recommendation.
 - [2026-08-22T09:31:07Z] `architect` Robert Architect:
   - ADR-776 (Proposed) narrows the local-versus-non-local premise here, not the ruling — no persisted per-item derived region still stands and is reinforced. The correction: :head is not local. It resolves the assignee name from the ROLE item and the story label from the parent feature (_services/_subentities.py:753-776), and is stale in fact — so option C own verdict, that a silently-stale committed rendering is worse than none, applies to the region this decision used as its always-correct baseline. :summary is local as stated.
+- [2026-10-25T21:26:12Z] `architect` Robert Architect:
+  - 2026-10-25 audit: superseded by ADR-776. ADR-776 §4 rules that no derived view is ever materialised into a body, which decides the persisted :graph region this ADR deferred and withdraws its "C+gate, if built anyway" fallback; it also corrects this ADR's premise that the :head region is a local projection. The on-demand graph this ADR chose ships as sq graph --format mermaid / mermaid-md. ADR-776 now carries the supersedes ref.
 <!-- sq:discussion:end -->

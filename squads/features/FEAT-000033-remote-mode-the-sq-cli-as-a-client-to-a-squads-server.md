@@ -24,7 +24,7 @@ subentities:
   title: Remote mode opt-in via .squads.toml; offline is the default
   status: Todo
 created_at: '2026-06-10T15:33:16Z'
-updated_at: '2026-07-10T09:35:54Z'
+updated_at: '2026-10-25T17:38:53Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -130,4 +130,6 @@ As a squad owner, I want the mode set in .squads.toml with offline as the defaul
   - Resolution lives here, not in 1.0: this is purely a backend concern behind the AgentBackend ABC, and .claude/ is non-contract (ADR-75). When remote mode lands, sq sync should materialize SELF-CONTAINED pointers — inline the role/skill body fetched from the server — instead of @-referencing local paths. No frozen surface is affected. @architect to own the approach (likely a follow-on ADR) when FEAT-33 starts.
 - [2026-07-10T09:35:54Z] `op-pierre` Pierre Chat:
   - Agent persona loading for remote mode: do NOT rely on the @file embed of the role in .claude/agents/<name>.md — @path is local-filesystem-only (and really a CLAUDE.md-only import), so it breaks when the squad data lives on a remote host. Instead, the generated agent file must instruct the agent that it MUST run `sq role <slug> show` to load its persona. The CLI resolves local-or-remote, so the same agent file works in both modes. (Verified against Claude Code: ! command-exec is not supported in subagent files, only in SKILL.md; so a plain 'run this command' instruction in the agent prompt — which the agent executes via its Bash tool — is the backend-agnostic path, and it already matches what CLAUDE.md's impersonation section tells agents to do.)
+- [2026-10-25T17:38:53Z] `architect` Robert Architect:
+  - ADR-1052 supersedes this feature's RemoteService and Protocol-typed service interface (op-pierre ruling, 2026-10-25): both CLI remote mode and the web client call one POST /v1/commands endpoint, so neither is built. The body still describes them; @product-owner please rescope it against ADR-1052 (the remote-squad case keeps its seam in the endpoint resolution).
 <!-- sq:discussion:end -->

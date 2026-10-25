@@ -14,67 +14,67 @@ description: Findings record from a driven sweep for hardcoded workflow vocabula
 subentities:
 - local_id: F1
   title: sq repair drops a type's items and regresses the global counter
-  status: Fixed
+  status: Verified
   severity: critical
 - local_id: F2
   title: Hyphenated prefix mangles filenames in renumber, repad and offset
-  status: Fixed
+  status: Verified
   severity: critical
 - local_id: F3
   title: Renamed sub-entity kinds lose the story-map refusal and validator
-  status: Fixed
+  status: Verified
   severity: critical
 - local_id: F4
   title: Hardcoded agents/skills path defeats a relocated skill folder
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F5
   title: The squads skill teaches task/feature/review commands that error
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F6
   title: AGENTS.md teaches the same dead task commands as the squads skill
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F7
   title: CLAUDE.md loop stops on types and statuses that may not exist
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F8
   title: CLAUDE.md names roster roles and subagents the squad lacks
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F9
   title: Role card create_lane comes from a hardcoded CREATE_LANES table
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F10
   title: _default.md.j2 has no sub-entity container, so add-block fails
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F11
   title: Dropping task deletes the priority vocabulary from the squads skill
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F12
   title: Custom-type skills always claim the type has no sub-entities
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F13
   title: Generated role and managed text hardcode the InProgress status
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F14
   title: Per-kind service wrappers raise a bare KeyError on a renamed kind
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F15
   title: Dedicated priority kwarg bypasses the declared-field gate
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F16
   title: A type name may shadow a built-in CLI verb and lint calls it clean
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F17
   title: Playbook prose in surviving skills names dropped or renamed types
@@ -82,58 +82,58 @@ subentities:
   severity: medium
 - local_id: F18
   title: The tech field is unreachable once the guide type is renamed
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F19
   title: sq mine uses a category-blind visibility predicate
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F20
   title: Item templates hardcode region tags, headings and a field code
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F21
   title: The squads skill hardcodes Done/Cancelled and the visibility rule
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F22
   title: retype help lists the bundled type set, not the active one
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F23
   title: Priority help on built-in create/update advertises rejected values
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F24
   title: sq create completion is bundled-blind while root completion is not
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F25
   title: item_is_roster and eleven sibling accessors raise a bare KeyError
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F26
   title: VS Code client mis-derives the role for a role-less status
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F27
   title: init and adopt never seed skill items for custom or renamed types
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F28
   title: The squads skill lists declared sub-entity kinds, not hosted ones
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F29
   title: workflow_static hardcodes a retype example and ref-kind types
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F30
   title: Root help epilog hardcodes the type-command alias set
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-08-01T21:16:51Z'
-updated_at: '2026-08-15T15:46:59Z'
+updated_at: '2026-10-25T19:24:33Z'
 ---
 <!-- sq:body -->
 Systematic sweep for **spec-blind consumers**: code and templates that hardcode workflow
@@ -406,6 +406,8 @@ disk correctly refuses, naming `GUIDE-21`). This is a different trigger reaching
 <!-- sq:finding:F1:discussion -->
 - [2026-08-01T21:27:05Z] `reviewer` Paul Reviewer:
   - Recorded as in-flight: a fix for this was already being implemented when the finding was filed (uncommitted changes present under src/squads/_services/ and src/squads/_index/). Verify against current code before starting work, and close this as Fixed citing the change rather than re-fixing it.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: repair loads the prior index with validate_vocab=False in _services/_maintenance.py, keeping counter and known_corpus.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -499,6 +501,8 @@ it is not revived as a landmine.
 <!-- sq:finding:F2:discussion -->
 - [2026-08-01T21:27:06Z] `reviewer` Paul Reviewer:
   - Recorded as in-flight: a fix for this was already being implemented when the finding was filed (uncommitted changes present under src/squads/_services/ and src/squads/_index/). Verify against current code before starting work, and close this as Fixed citing the change rather than re-fixing it.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: _services/_maintenance.py derives prefixes via prefix_from_id (rpartition); no split("-", 1) parsers remain.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -579,6 +583,8 @@ sibling, and every subsequent `sq check` says the squad is fine.
 <!-- sq:finding:F3:discussion -->
 - [2026-08-01T21:27:07Z] `reviewer` Paul Reviewer:
   - Recorded as in-flight: a fix for this was already being implemented when the finding was filed (uncommitted changes present under src/squads/_services/ and src/squads/_index/). Verify against current code before starting work, and close this as Fixed citing the change rather than re-fixing it.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: remove_block gates on _kind_is_story_target and _subtask_story_mapping on maps_parent_story, no kind literals.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -645,6 +651,8 @@ exist, and every downstream surface that resolves a skill by ID has nothing to r
 <!-- sq:finding:F4:discussion -->
 - [2026-08-01T21:54:48Z] `python-dev` Elias Python:
   - Fixed: _write_managed_skill's pre-seed fallback now reads spec.items[ROSTER_SKILL].folder (falling back to bundled_spec() when ctx.spec is None) instead of the hardcoded agents/skills constants. Falsified: relocated-folder squad now lands all 10 skill bodies + indexes them under the declared folder, .claude/ pointers resolve there, sq check clean, second sync stable; control (no override) unaffected.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: _backends/_claude_code/_backend.py reads spec.items[ROSTER_SKILL].folder for the skill body path.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -700,6 +708,8 @@ which is the sharpest possible demonstration that the derivation was available a
 <!-- sq:finding:F5:discussion -->
 - [2026-08-01T23:23:16Z] `python-dev` Elias Python:
   - Fixed: introduced interactions.cheatsheet_anchor_type/cheatsheet_anchor_context — a generically-scored (sub-entity kind + required parent + ordered field) anchor type, replacing every hardcoded 'task'/'feature'/'review' literal in squads_skill.md.j2 (the ID example, Golden rules examples, the operator scoped-question example, and the whole Common commands block). On the bundled spec the anchor resolves to task, so every derived line is byte-identical to before (verified by diffing the regenerated skill against a fresh un-patched baseline squad). Falsified by dropping task ([selected] without it): the anchor recalculates to feature and every command in the regenerated Common commands block is genuinely runnable (create/show/update/status/list/tree all driven and succeeded). workflow.md.j2's own sibling 'sq task 35 show' bullet (shared by the squads skill's include and sq workflow/AGENTS.md) had the identical defect and is fixed the same way.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: squads_skill.md.j2 and workflow.md.j2 derive commands from cheatsheet_anchor_context (_interactions/_cheatsheet.py).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -740,6 +750,8 @@ Fix them together; the `_also_creatable_types` anchor and the template literals 
 <!-- sq:finding:F6:discussion -->
 - [2026-08-01T23:23:18Z] `python-dev` Elias Python:
   - Fixed: _also_creatable_types now takes the anchor type (no longer hardcoded != 'task'); agents_section.md.j2's Common commands block rewired the same way as the squads skill, sharing cheatsheet_anchor_context so both backends derive identically. Falsified: dropping task regenerates AGENTS.md anchored on feature with every command runnable (create/update driven and succeeded); byte-identical for the bundled roster/spec (also corrected an existing high vs urgent priority-value inconsistency between the two backends' examples — now both derive the same value). Goldens (agents_md_section, claude_md_section, workflow_cheatsheet, workflow_cheatsheet_raw) and the template manifest (0.12.3 only; 0.12.2 diffed byte-identical) regenerated.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: _agents_md/_backend.py _also_creatable_types takes the anchor type from cheatsheet_anchor_type.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -790,6 +802,8 @@ spawning.
 <!-- sq:finding:F7:discussion -->
 - [2026-08-01T23:22:59Z] `python-dev` Elias Python:
   - Fixed: reworded to the concept ("the parent's own work is settled: every child item closed out, every linked review resolved") instead of naming task/review/Done/Approved literally. Falsified: a squad with review dropped and task renamed regenerates a CLAUDE.md with no dead type/status names in this sentence; byte-identical structure for the bundled squad modulo the intended wording change (golden regenerated).
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: claude_section.md.j2 step 4 reads "every child item closed out, every linked review resolved".
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -836,6 +850,8 @@ have. The roster is available in the render context; the bundled catalog is what
 <!-- sq:finding:F8:discussion -->
 - [2026-08-01T22:58:36Z] `python-dev` Elias Python:
   - Fixed both halves. (1) claude_section.md.j2's subagent_type example clause is now built from the live roster (curated order, filtered to slugs actually present; <tech>-dev shown only when a dev role exists), empty when the roster has none of the candidates. (2) authoring_owner() takes an optional roster_slugs filter; threaded through claude_section.md.j2's own authoring-bullet loop, the shared workflow.md.j2 cheatsheet (now also passed roles= from the squads-skill render and from sq workflow's CLI, which best-effort reads the live roster and degrades to unfiltered outside a squad). Falsified: a minimal (manager-only) squad's CLAUDE.md/squads skill/sq workflow no longer name tech-lead/architect/reviewer/qa/<tech>-dev anywhere; byte-identical for the standard full roster (diffed CLAUDE.md, AGENTS.md, the squads skill, and sq workflow --raw). Updated two unit tests that asserted authoring prose with an empty roles=[] fixture (now roster-aware) and regenerated the workflow_cheatsheet_raw golden (minimal-roster project fixture correctly loses its phantom authoring bullets).
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: claude_section.md.j2 builds the subagent_type examples from delegate_examples, roster-filtered.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -922,6 +938,8 @@ gates the out-of-lane advisory on `item_type in LANED_TYPES`, documented at
 <!-- sq:finding:F9:discussion -->
 - [2026-08-01T22:58:34Z] `python-dev` Elias Python:
   - Fixed: allowed_create_types(slug, spec=None) now filters CREATE_LANES by spec membership, mirroring item_types_for_role's own filter; updated the three _cli/_role.py call sites to pass svc.spec. Falsified: sq role architect show now drops guide from create_lane (and the --json key) in a squad dropping guide, byte-identical for a plain squad. workflow.md.j2's role bullets (the third consumer, shared root cause) are covered by the F8 fix below since both go through authoring_owner.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: allowed_create_types in _interactions/_role_guidance.py takes the spec and filters dropped types.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -1028,6 +1046,8 @@ error: no bundled template 'items/job.md.j2' — use a path like 'items/task.md.
   - Fixed: added ensure_subentity_container_text (_services/_base.py) — a template-agnostic primitive that appends a working container (correct tag+heading from the active spec) after create-rendering, reusing the exact retype primitive (_ensure_subentity_container now delegates to it, so the two paths can't drift). Also de-hardcoded the bundled task/feature/review templates' container tag+heading (spec.subentity_plural + new WorkflowSpec.subentity_container_heading) so a renamed kind on a surviving bundled type no longer emits a dead stale region beside a second correct one.
 - [2026-08-01T22:05:17Z] `python-dev` Elias Python:
   - Falsified: brand-new type (no template) + custom kind now hosts add-subtask end to end; feature renamed to capability + subentity_kind=story works via add-story; feature kept + subentity_kind renamed to scenario emits ONLY the scenario container (no orphaned sq:stories) and add_block succeeds via the service layer (CLI verb registration for a renamed kind is a separate, already-documented gap). Bundled/default squad output is byte-identical to pre-fix (verified feature/task/review). Golden fixture + template manifest regenerated for the 3 changed bundled templates; full targeted test slice (601 tests: template/golden/create/subentity/retype/override) green.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: ensure_subentity_container_text in _services/_base.py, used by create and retype.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -1073,6 +1093,8 @@ directly.
 <!-- sq:finding:F11:discussion -->
 - [2026-08-01T23:23:01Z] `python-dev` Elias Python:
   - Fixed: added _badges.first_ordered_field, scanning every non-roster type (declaration order) for the first ordered-collection field instead of probing 'task' alone; wired into cheatsheet_anchor_context, used by both squads_skill.md.j2 and AGENTS.md. Falsified: dropping task from a squad's selected list keeps --priority urgent|high|medium|low in the regenerated squads skill (now sourced from feature); byte-identical for a plain squad. Added tests/unit/test_generated_text_anchor_type_derivation.py.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: _badges.first_ordered_field feeds cheatsheet_anchor_context instead of probing task.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -1126,6 +1148,8 @@ both undocumented *and* non-functional, so nothing surfaces the breakage.
 - [2026-08-01T23:40:37Z] `python-dev` Elias Python:
   - Fixed: custom-type skill branch in _backend.py now derives subentity_kind/subentity_plural from ctx.spec.item_subentity_kind(ctype) instead of passing None/None unconditionally (mirrors the PLAYBOOK branch 15 lines up).
   - Falsified: custom incident type with subentity_kind=subtask now gets add-subtask/subtask guidance in its generated skill (was silent, stopped after the lifecycle line). Control (bundled minimal-roster squad, no custom types) diffed byte-identical before/after.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: views/item_skill.md.j2 derives spec.item_subentity_kind(item_type) for every type, custom ones included.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 
@@ -1174,6 +1198,8 @@ state" of the item's own lifecycle), since the role file is not written per-type
 <!-- sq:finding:F13:discussion -->
 - [2026-08-01T23:23:03Z] `python-dev` Elias Python:
   - Fixed: added WorkflowSpec.first_active_status/first_settled_status (walk the lifecycle's happy-path spine for the first live/settled role) plus a shared lifecycle_spine() extracted from linearize_lifecycle. role.md.j2/squads_skill.md.j2's generic 'keep status honest' advisory now describes the concept ('move to its lifecycle's first working state') since those files aren't per-type; claude_section.md.j2/agents_section.md.j2's per-type command examples now show the anchor type's own derived status instead of a literal InProgress. Falsified against a custom lifecycle (Triage→Mitigating→Resolved) and against decision/guide (whose happy path never reaches InProgress); byte-identical for the bundled squad modulo the intended reword (goldens regenerated). Added tests/unit/test_first_active_status_derivation.py.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: no InProgress literal left in any template; first_active_status lives in _workflow/_models.py.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
 
@@ -1233,6 +1259,8 @@ a `.get()` with a clean raise. Both halves want fixing; they are separable.
   - Fixed: added SubentitiesMixin._container_for(kind) (a clean .get()-with-raise wrapper) and replaced all three raw self.subentity_container[kind] indices (_add_block_core, remove_block, _write_block_file) with it. An unknown kind now raises SquadsError('<kind> is not a declared sub-entity kind') instead of a bare KeyError, regardless of call order relative to _check_type.
 - [2026-08-01T22:07:51Z] `python-dev` Elias Python:
   - Falsified: svc.add_block(FEAT, 'story', ...) on a squad hosting scenario/step now raises clean SquadsError (was traceback); the type-mismatch door (_check_type, e.g. get_block with a real-but-wrong kind) and the matching-kind door both still behave/succeed as before — no regression.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: SubentitiesMixin._container_for in _services/_subentities.py raises SquadsError on an unknown kind.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 
@@ -1301,6 +1329,8 @@ dropped the severity field it produces this same shape. Worth handling in the sa
   - Falsified: a task with fields=[] now refuses --priority urgent on both create and update identically to --set priority=... ('not a settable field on a task; valid: (none)'); control squad (priority declared normally) unaffected, both --priority and --set still work.
   - Guard added: tests/meta/test_priority_kwarg_goes_through_declared_field_gate.py — AST scan forbidding a raw priority kwarg/attribute passthrough into the model outside _check_priority.
   - Left as-is: _DEFAULT_FINDING_SEVERITY writing severity unconditionally on sub-entity add_block (_subentities.py) is the same shape one layer down (item-level vs sub-entity-level) but not in this finding's cited sites; flagging as a follow-up, not folding in given scope.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: _check_priority in _services/_base.py gates --priority on create and update.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
 
@@ -1361,6 +1391,8 @@ from the Typer app. This should be a lint error at declaration time, not a disco
   - Fixed: added RESERVED_CLI_VERBS (_workflow/_models.py) — the fixed non-item-type top-level command names (role/skill/operator excluded, since those ARE the roster types by design) — and a new _check_item_refs clause refusing a type name or alias that collides with one, at spec-validation time (runs on every WorkflowSpec construction, so it's a load-time refusal, not a first-use discovery).
   - Falsified: a custom type named check (alias list) now fails sq init / sq workflow lint / sq create with a clear 'shadows the built-in sq check command' message instead of silently succeeding; bundled spec and a non-colliding custom type (incident) both still lint/create clean.
   - Guard added: tests/meta/test_reserved_cli_verbs_matches_the_live_command_table.py pins the hand-maintained constant against the actual live Click command table (minus bundled item-type names/aliases) in both directions — it already caught one drift (tree was missing) before this landed.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: RESERVED_CLI_VERBS in _workflow/_models.py, checked by _workflow/_validity.py.
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
 
@@ -1532,6 +1564,8 @@ the extra flags from the type's declaration rather than from its name.
   - Fixed: added tech to guide's extra_fields in workflow.toml, and registered X.TECH in _models/_metadata.py's _GENERIC_FIELDS (it was declared as an ExtraKey but never wired into the settable-fields catalog, unlike tags/target_ref).
   - Falsified: sq guide N update --set tech=rust now works on the bundled type; on a guide renamed to handbook via [items.handbook] (+selected.items), --set tech=... and --set tags=... both work post-creation, and neither has a dedicated create-time flag — the same, now-consistent shape tags already had. Updated tests/unit/test_type_spec_capability_flags.py's stale assertion.
   - Guard added: tests/meta/test_dedicated_create_flags_stay_settable_via_generic_set.py scans _create.py for extra[X.<KEY>] assignments and asserts each is registered in _GENERIC_FIELDS, so a future dedicated flag can't reintroduce this shape.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: guide declares tech as a settable str attribute in _specs/workflow.toml.
 <!-- sq:finding:F18:discussion:end -->
 <!-- sq:finding:F18:end -->
 
@@ -1574,6 +1608,8 @@ The fix is a one-predicate swap to the category-aware helper the rest of the CLI
 - [2026-08-01T23:54:10Z] `python-dev` Elias Python:
   - Fixed: sq mine (_cli/_main.py) swapped its is_open(status) filter for the same category-aware spec.hidden_by_default(type, status) predicate sq list/tree already use.
   - Falsified on the stock spec (no override needed, per the finding): an Accepted decision assigned to an agent now shows in sq mine by default (was empty); a Done task still hides by default and appears with --all. Added tests/cli/test_slug_validation_surfaces.py::TestMine::test_a_terminal_records_category_item_still_shows_by_default and ::test_a_done_task_still_hides_by_default_and_surfaces_with_all as regression coverage.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: sq mine in _cli/_main.py filters with spec.hidden_by_default.
 <!-- sq:finding:F19:discussion:end -->
 <!-- sq:finding:F19:end -->
 
@@ -1642,6 +1678,8 @@ helper's behaviour when it receives one.
   - Falsified: rendering items/review.md.j2 against the bundled spec before/after the fix is byte-identical (diffed directly). Against the finding's exact Override B ([subentity_kinds.finding] fields = impact/severity/high), driven end to end via sq create review: the generated file now reads '_Impact:_ ...' and 'add-finding "…" --impact high' instead of Severity/--severity.
   - Guard added: tests/meta/test_item_templates_never_hardcode_a_field_code_literal.py scans items/*.md.j2 for a quoted field-code literal passed to field_label/field_default/resolve_collection.
   - Same class still outstanding, newly observed (not filed, out of this finding's scope): sq review N add-finding is a statically-registered command built from the bundled finding-kind fields at import time — overriding the kind's fields (as in Override B) doesn't change its --severity/--impact flag, only the generated file's prose. The dynamic-verb fallback added for F10's add-<kind> gap only fires when the verb NAME isn't statically registered, not when a same-named verb's field set changes underneath it.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: review.md.j2 uses primary_field_code; no severity literal remains in the template.
 <!-- sq:finding:F20:discussion:end -->
 <!-- sq:finding:F20:end -->
 
@@ -1692,6 +1730,8 @@ names and the visibility rule are derivable: the roles catalog carries `hidden` 
   - Fixed: reworded squads_skill.md.j2's closed-item-visibility sentence from the literal 'Closed items (Done/Cancelled/…)' to describe the concept (status hidden-by-default) instead — same reword-to-concept shape as the InProgress/task/review fixes earlier in this sweep.
   - Falsified: on the finding's exact override ([statuses.Done] role = in_force), a task moved to Done now shows in a bare sq list, and the generated squads skill no longer claims otherwise; bundled squad's generated text still correctly describes the default (Done items hidden without --all).
   - Template manifest (0.12.3 only) regenerated for agents/squads_skill.md.j2.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: squads_skill.md.j2 describes hidden-by-default statuses instead of naming Done/Cancelled.
 <!-- sq:finding:F21:discussion:end -->
 <!-- sq:finding:F21:end -->
 
@@ -1753,6 +1793,8 @@ They do. The comment should either become true or stop making the claim.
 <!-- sq:finding:F22:discussion -->
 - [2026-08-01T22:44:36Z] `python-dev` Elias Python:
   - Fixed: help now built via a spec-aware Click Command (common.spec_aware_command_cls) that re-derives retype's target list at --help render time from the live per-invocation spec, instead of the spec captured at import-time registration. Falsified: retype --help now lists incident/handbook, omits review, in a squad dropping review + adding incident; byte-identical for a plain squad (diffed against pre-fix output).
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: retype help is built through spec_aware_command_cls in _cli/_common.py.
 <!-- sq:finding:F22:discussion:end -->
 <!-- sq:finding:F22:end -->
 
@@ -1811,6 +1853,8 @@ byte-identical; it does not extend to printing values the parser refuses.
 <!-- sq:finding:F23:discussion -->
 - [2026-08-01T22:44:38Z] `python-dev` Elias Python:
   - Fixed: same spec_aware_command_cls mechanism applied to --priority help on create/update (both static built-ins and the lazy custom path). Falsified: sq create task --help / sq task N update --help now show the override's p0|p1|p2 in a squad replacing the priority collection, matching what the parser actually accepts; byte-identical for a plain squad.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: --priority help on create/update goes through spec_aware_command_cls (_cli/_create.py, _cli/_items.py).
 <!-- sq:finding:F23:discussion:end -->
 <!-- sq:finding:F23:end -->
 
@@ -1865,6 +1909,8 @@ strongest argument for the fix: the mechanism exists twenty lines away.
 <!-- sq:finding:F24:discussion -->
 - [2026-08-01T22:44:40Z] `python-dev` Elias Python:
   - Fixed: added common.resolve_spec_for_ctx (the _CustomTypeGroup._resolve_spec_for_ctx logic, now shared) and switched _CustomCreateGroup's list_commands/get_command to it. Falsified via _SQ_COMPLETE=complete_bash: sq create <TAB> now offers a custom incident type and omits a dropped guide/review, matching root completion; byte-identical for a plain squad.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: _CustomCreateGroup uses resolve_spec_for_ctx in _cli/_create.py.
 <!-- sq:finding:F24:discussion:end -->
 <!-- sq:finding:F24:end -->
 
@@ -1943,6 +1989,8 @@ that everything must degrade, it is that the contract must be stated and consist
   - Fixed: split the eleven siblings into two documented families. DEGRADE (mirrors item_subentity_kind's precedent): item_is_roster->False, item_parent_required->None, item_ref_rules->[], parent_allowed->False (fail-closed), parent_hint->generic message, live_statuses->frozenset(), role_for->fallback role for an undeclared status too (was already promised for the role-name half). RAISE, documented like collection() (vocabulary-by-code lookup, no sensible default): machine_for, subentity_completion, subentity_plural, subentity_container_heading. hidden_by_default needed no code change — it only ever goes through role_for, so it inherited the fix.
 - [2026-08-01T22:15:06Z] `python-dev` Elias Python:
   - Simplified _cli/_items.py:144's hand-rolled workaround to a direct spec.item_is_roster(item_type) call now that it degrades safely — removes the exact anti-pattern the finding cites as evidence of the gap. Added tests/unit/test_workflow_spec_accessor_degrade_contract.py asserting each accessor's contract (both directions) so a future accessor can't silently regress into a bare KeyError.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: item_is_roster and siblings in _workflow/_models.py degrade on an undeclared type.
 <!-- sq:finding:F25:discussion:end -->
 <!-- sq:finding:F25:end -->
 
@@ -2020,6 +2068,8 @@ explicit degrade-gracefully default.
   - Fixed on the server (preferred fix shape per the finding): _cli/_workflow_cmd.py's _status_catalog now emits the RESOLVED role name (st.role or FALLBACK_ROLE_NAME) instead of the bare, possibly-null declared field — so a role-less status now reads role: pending on the wire, same as one that names pending explicitly. Corrected statusRole.ts's docstring to match (null is now only a stale/partial-fetch signal, never 'this status has no role by design'); no client logic change was needed since resolveRole's existing degrade path was already correct given a resolved input.
   - Falsified on the finding's exact override ([roles.pending] hidden=true + a role-less [statuses.Parked]): sq workflow statuses --json now returns role: pending for Parked instead of null. Bundled spec unaffected (every bundled status already declares its own role) — tests/cli/test_workflow_statuses_cli.py passed unchanged.
   - Verification note (same caveat the finding itself carries): the CLI-side fix + the client-side pure-function unit tests (test/statusRole.test.ts, ran via vitest, added a regression case for this exact shape) are what I could run and did run; the extension itself was never launched, so the rendering claim (undimmed vs dimmed in an actual VS Code tree view) is still a static/unit-level check, not a driven one. That check belongs to the operator on their own machine.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: _status_catalog in _cli/_workflow_cmd.py emits st.role or FALLBACK_ROLE_NAME.
 <!-- sq:finding:F26:discussion:end -->
 <!-- sq:finding:F26:end -->
 
@@ -2071,6 +2121,8 @@ takes.
   - Fixed: init() now calls seed_custom_skills() right after seed_bundled_skills() (same _skip_skill_seed gate); adopt() previously called neither and now calls both. Updated seed_custom_skills' stale docstring rationale ('not at init, which only knows about bundled types') to reflect that _init_time_spec already resolves the merged spec at both entry points.
   - Falsified on the finding's exact override (custom handbook/spike types): sq init now indexes sq-handbook/sq-spike as SKILL items immediately (sq check clean, sq repair a stable no-op, no sq sync needed); sq adopt on the same override now seeds both bundled and custom skills (previously seeded nothing). Bundled-only squad unaffected (11 skill items either way, byte-for-byte same as before) — 84 existing init/adopt/seed tests passed unchanged.
   - Guard added: tests/meta/test_init_and_adopt_seed_both_bundled_and_custom_skills.py (AST scan asserting both functions call both seed_* methods); verified it flags the pre-fix code (init missing seed_custom_skills, adopt missing both) and passes on the fix. Also added two integration regression tests (test_init_itself_seeds_a_custom_type_skill_with_no_sync_needed, test_adopt_seeds_both_bundled_and_custom_type_skills) in tests/integration/test_custom_type_skill_generation.py.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: init and adopt in _services/_service.py call both seed_bundled_skills and seed_custom_skills.
 <!-- sq:finding:F27:discussion:end -->
 <!-- sq:finding:F27:end -->
 
@@ -2118,6 +2170,8 @@ declared catalog.
   - Falsified: reviews dropped ([selected] items without review) — the generated skill's table/hints no longer mention finding or the stray sq <type> <n> finding <k> comment row; bundled squad's generated skill is byte-identical (diffed, only the timestamp + the unrelated F21 wording differ).
   - Template manifest (0.12.3 only) regenerated for agents/squads_skill.md.j2.
   - Left alone, out of this finding's cited scope: the 'Finding things across the board' section's generic sentence ('story/subtask/finding blocks') still names all three kind words regardless of hosting — a separate, always-present static sentence, not the two sites this finding cited.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: squads_skill.md.j2 iterates _kind_to_type (hosted kinds only).
 <!-- sq:finding:F28:discussion:end -->
 <!-- sq:finding:F28:end -->
 
@@ -2165,6 +2219,8 @@ breakage and should be swept in the same pass.
   - Fixed: workflow_static.md.j2's retype example now derives its source/target pair from the already-computed non-roster retype_targets list (first two entries) instead of the literal 'sq task 7 retype bug'; the fixes/addresses ref-kind table rows reworded to describe the relationship generically instead of naming task/bug/review.
   - Falsified: dropping task ([selected] without it) regenerates the derived example as 'sq epic 7 retype feature' (no reference to the dropped type) and the ref-kind rows no longer name task/bug/review. Golden mismatch caught a trim_blocks newline bug on first pass (the inline {% if %}...{% endif %} ate the newline before the closing code-fence, gluing it onto the example line) — fixed with the project's {% endif +%} idiom (matches F5/F8's precedent) before landing.
   - Goldens (workflow_cheatsheet, agents_md_section) and the template manifest (0.12.3 only) regenerated for the intentional text changes.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: workflow_static.md.j2 derives the retype example from retype_targets.
 <!-- sq:finding:F29:discussion:end -->
 <!-- sq:finding:F29:end -->
 
@@ -2207,6 +2263,8 @@ list, on the most-read screen in the CLI, and the correct list is one call away.
 <!-- sq:finding:F30:discussion -->
 - [2026-08-01T22:44:42Z] `python-dev` Elias Python:
   - Fixed: root epilog's alias clause is now derived from the spec (_alias_summary/root_epilog) and refreshed at --help render time via _CustomTypeGroup.format_help, not a fixed literal. Falsified: sq --help now shows only live aliases (adds hb/inc, drops g/r/rev) under a drop+rename+custom-type squad; byte-identical for a plain squad.
+- [2026-10-25T19:24:33Z] `reviewer` Paul Reviewer:
+  - Holds: root epilog aliases come from _alias_summary in _cli/__init__.py.
 <!-- sq:finding:F30:discussion:end -->
 <!-- sq:finding:F30:end -->
 <!-- sq:findings:end -->

@@ -25,6 +25,14 @@ RESOLVE_CONFLICT_REMEDY = "resolve the merge conflict by hand; `sq sync` does no
 #: What the restamp reports when it declines to write over a duplicate.
 RESTAMP_BLOCKED_REMEDY = "remove or rename one of the two files"
 
+#: What a report line says about a stripped file that duplicates a managed skill healthy elsewhere.
+STRAY_COPY_REMEDY = "a stray copy of managed skill {slug!r}, healthy in {other}; delete this file"
+
+#: What a report line says about a stripped file that is the only copy of a managed skill.
+NO_HEALTHY_COPY_REMEDY = (
+    "no healthy file holds managed skill {slug!r}; delete this file and run `sq sync` to write it"
+)
+
 _CONFLICT_LINE = re.compile(r"^(<{7}|={7}|>{7})( .*)?$", re.MULTILINE)
 
 
@@ -118,6 +126,27 @@ class SkillFolder:
         except SquadsError:
             pass  # unreadable YAML: decided by the conflict check below
         return self._conflict(text) or self._claimed(name, *parts, spec) or Verdict("act")
+
+    def stray_remedy(self, name: str, spec: WorkflowSpec) -> str | None:
+        """The remedy for a stamped file whose slug is not a managed one but whose number is a
+        managed skill's: it names the healthy file that already holds the skill, or says to
+        delete the stray file and let `sync` write a fresh one. ``None`` when the number is not
+        a managed skill's."""
+        parts = stamped_skill_parts(Path(name), spec)
+        if parts is None:
+            return None
+        number = parts[0]
+        key = f"{prefix_for(ROSTER_SKILL, spec)}-{number}"
+        for other in self.ids.get(normalized_id(key) or key, []):
+            if other == name:
+                continue
+            slug = next((sl for sl, names in self.slugs.items() if other in names), None)
+            if slug in self.managed:
+                return STRAY_COPY_REMEDY.format(slug=slug, other=other)
+        held = self.known.get(number)
+        if held is not None and held.slug in self.managed:
+            return NO_HEALTHY_COPY_REMEDY.format(slug=held.slug)
+        return None
 
     @staticmethod
     def _conflict(text: str) -> Verdict | None:

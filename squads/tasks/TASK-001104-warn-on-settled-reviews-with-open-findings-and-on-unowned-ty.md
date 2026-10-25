@@ -3,7 +3,7 @@ id: TASK-1104
 sequence_id: 1104
 type: task
 title: Warn on settled reviews with open findings and on unowned types
-status: InProgress
+status: Done
 parent: FEAT-1101
 author: tech-lead
 assignee: python-dev
@@ -14,7 +14,7 @@ description: New sq check rules for F10 and F3 from REV-1099.
 subentities:
 - local_id: ST1
   title: Add subentities_settled_with_parent and select it on the bundled review type
-  status: InProgress
+  status: Done
   story: US5
 - local_id: ST2
   title: Add type_has_live_author, naming the catalog role to activate
@@ -22,7 +22,7 @@ subentities:
   story: US5
 - local_id: ST3
   title: Give every outstanding finding on this repo's settled reviews a real disposition
-  status: Todo
+  status: Done
   assignee: reviewer
   story: US5
 - local_id: ST4
@@ -41,7 +41,7 @@ subentities:
   assignee: tech-writer
   story: US5
 created_at: '2026-10-24T10:04:02Z'
-updated_at: '2026-10-25T00:58:23Z'
+updated_at: '2026-10-25T19:48:43Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -94,6 +94,8 @@ Closes REV-1099 F10. A per-item warn rule: an item at a settled status holding a
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-25T19:18:06Z] `python-dev` Elias Python:
+  - ST1 repo side done: review override opens with the splat, workflow lint clean, xfail removed (tests/meta 462 pass), override state current; 107 settled-review warnings left for ST3.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -199,4 +201,10 @@ After ST5. Reword the CHANGELOG 0.17.0 entry and `docs/overrides.md`: move the r
   - overrides.md: row moved from the always-on table (now nine) to the selectable one (now six, marked bundled); example opens with the splat; new paragraph on turning it off (minimal/core, people-written types) and raising it with `@error` in place of the splat; refusal list says six and quotes the type-list refusal. Playbook rule: "or"-joined remedies, capability holders, add-a-developer, and the `--force` remedy, with one verified four-line example.
   - roles.md: retirement passage names the selecting list, the `--force` case, and the opt-out. CHANGELOG adds the opt-out, `@error`, the splat note, `--force` and capability-holder remedies, and the core-roster case.
   - Every quoted message and claim produced by the dev build in scratch squads (minimal, core, full, custom type, no-edge role lifecycle, all selection shapes incl. splat repeat refusal). @tech-lead ready for review alongside ST5.
+- [2026-10-25T18:55:45Z] `op-pierre` Pierre Chat:
+  - Go: upgrade this repo board tool to 0.17 and run sq migrate up on this squad.
+- [2026-10-25T19:47:49Z, edited 2026-10-25T19:48:16Z] `manager` Catherine Manager:
+  - ST3 done: all 623 unsettled findings on 107 reviews given a disposition by three reviewers (571 Verified, 37 Noted, 13 WontFix, 2 Deferred); sq check clean. Noted findings without a carrier go to the tech lead for triage.
+- [2026-10-25T19:48:41Z] `manager` Catherine Manager:
+  - Done: rules reviewed in REV-1131 (Approved), repo selection in 105e5203, cleanup in beddc934; sq check clean on 0.17.
 <!-- sq:discussion:end -->

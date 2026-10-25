@@ -3,7 +3,7 @@ id: BUG-1022
 sequence_id: 1022
 type: bug
 title: Sub-entity body write raises KeyError; check silent
-status: Open
+status: Verified
 author: qa
 priority: low
 refs:
@@ -12,7 +12,7 @@ refs:
 description: 'Missing subtask body/block or discussion region: raw traceback on write,
   no check finding'
 created_at: '2026-10-15T20:51:12Z'
-updated_at: '2026-10-16T12:24:14Z'
+updated_at: '2026-10-25T17:52:50Z'
 ---
 <!-- sq:body -->
 ## Summary
@@ -47,4 +47,6 @@ Steps 3 and 4: one `error:` line (exit 1, no traceback) naming the missing regio
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-25T17:52:17Z] `qa` Mara Tester:
+  - Verified on HEAD 68e96aea under the manager ruling (write restores the region; check reports none). TASK with ST1: body pair removed, then subtask 1 body -m and --append both succeed (region re-created at the subtask body position, text stored), no traceback; whole ST1 block removed then body -m restores the block; item discussion pair removed then comment works; subtask discussion pair removed then comment works; check clean after each. Cosmetic only: removing just the item discussion markers leaves the old heading and a second "## Discussion" heading is added after the comment.
 <!-- sq:discussion:end -->

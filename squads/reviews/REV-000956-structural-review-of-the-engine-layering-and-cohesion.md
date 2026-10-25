@@ -13,11 +13,11 @@ description: Module boundaries, layering and cohesion across the sq engine, incl
 subentities:
 - local_id: F1
   title: Two disagreeing answers to whether a role is a developer
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: RoleView lives in _backends and forces protocol stand-ins
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: Roster projection is 400 lines of ServiceCore, used by six mixins
@@ -73,11 +73,11 @@ subentities:
   severity: medium
 - local_id: F16
   title: Layering is stated in three places and guarded by no test
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F17
   title: retype and import write one file several times per transaction
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F18
   title: 'Comment rule: 95 of 127 source files fail a mechanical check'
@@ -88,7 +88,7 @@ subentities:
   status: WontFix
   severity: low
 created_at: '2026-09-15T09:01:18Z'
-updated_at: '2026-10-25T10:53:43Z'
+updated_at: '2026-10-25T19:36:10Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -381,6 +381,8 @@ That is 6 marker reads and 12 spelling sites across 10 modules and one template 
 <!-- sq:finding:F1:discussion -->
 - [2026-10-17T03:47:52Z] `reviewer` Paul Reviewer:
   - Fixed at 7fd3bfd1 (commit 1100446f, TASK-990). A developer is now a declared capability: RoleDef/RoleView carry capabilities, [dev].capabilities holds it for templated developers, and the playbook *dev subject resolves through addresses() in _interactions/_role_guidance.py by capability, never slug spelling. is_dev_slug, both DEV constants, the -dev template check and the is_dev reads are gone from src (grep: only a migration and the retired-key name remain; the -dev suffix survives only as the slug sq dev add proposes, per ADR-984).
+- [2026-10-25T19:36:10Z] `reviewer` Paul Reviewer:
+  - Holds: is_dev_slug and the DEV constants are gone from src; developers resolve by capability in _interactions/_role_guidance.py.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -403,6 +405,8 @@ That is 6 marker reads and 12 spelling sites across 10 modules and one template 
 <!-- sq:finding:F2:discussion -->
 - [2026-10-17T03:47:54Z] `reviewer` Paul Reviewer:
   - Fixed at 7fd3bfd1 (commit 1fd45be5, TASK-989). RoleView and OperatorView live in src/squads/_roles/_projection.py; _RoleGuideBearing and _SlugBearing are deleted; _views.py imports nothing from _backends. The one remaining Protocol (RoleLike in _role_guidance.py) spans RoleDef and RoleView, not a stand-in for an unimportable type.
+- [2026-10-25T19:36:10Z] `reviewer` Paul Reviewer:
+  - Holds: RoleView and OperatorView live in _roles/_projection.py; the stand-in protocols are gone and _views imports nothing from _backends.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -808,6 +812,8 @@ No test guards any of it. `tests/meta` has 42 guard modules; none inspects the i
 <!-- sq:finding:F16:discussion -->
 - [2026-10-17T03:47:56Z] `reviewer` Paul Reviewer:
   - Fixed at 7fd3bfd1 (commit 1fd45be5, TASK-989). tests/meta/test_package_import_edges_match_the_recorded_table.py records every package edge with where it runs and pins the eight-package top-level set; it passes (driven). CLAUDE.md now names that table as the layering authority, states the non-strict stack and corrects the _models claim.
+- [2026-10-25T19:36:10Z] `reviewer` Paul Reviewer:
+  - Holds: tests/meta/test_package_import_edges_match_the_recorded_table.py records the package edges, cited by CLAUDE.md.
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
 
@@ -838,6 +844,8 @@ Not driven, from reading: `rename_type` runs the same `apply_type_change` per it
 <!-- sq:finding:F17:discussion -->
 - [2026-10-17T03:47:58Z] `reviewer` Paul Reviewer:
   - Fixed at 7fd3bfd1 (commits 22fa82b6, 4417bdee, 15b80785, dd20eef5, guard 4a8bdc9d; TASK-992). tests/_write_guard.py is installed autouse from tests/conftest.py and fails any unit (transaction or repair rebuild) that writes one item file twice; the allowlist was dropped, so retype, import, rename_type and repair are all held to it. The three per-method tests plus the import-edge guard: 129 passed (driven, -n0).
+- [2026-10-25T19:36:10Z] `reviewer` Paul Reviewer:
+  - Holds: tests/_write_guard.py, installed from tests/conftest.py, fails any unit writing one item file twice.
 <!-- sq:finding:F17:discussion:end -->
 <!-- sq:finding:F17:end -->
 

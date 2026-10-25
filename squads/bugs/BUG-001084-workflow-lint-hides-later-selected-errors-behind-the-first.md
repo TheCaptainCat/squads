@@ -3,14 +3,14 @@ id: BUG-1084
 sequence_id: 1084
 type: bug
 title: workflow lint hides later [selected] errors behind the first
-status: Open
+status: Verified
 parent: MILE-1051
 author: qa
 priority: low
 refs:
 - REV-1083
 created_at: '2026-10-16T22:04:16Z'
-updated_at: '2026-10-16T22:04:16Z'
+updated_at: '2026-10-25T19:52:06Z'
 ---
 <!-- sq:body -->
 `sq workflow lint` says it collects ALL errors, but inside the `[selected]` table the first error found hides the others in the same file. Seen on release/0.16 HEAD (clean `git archive` export, scratch squad); the behaviour is older than 0.16, the `[selected]` table having shipped long before.
@@ -67,4 +67,6 @@ Found while reviewing REV-1083 F5. The `squad` entry in the accepted-sections li
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-25T19:52:03Z] `qa` Mara Tester:
+  - Verified on sq 0.17.0. sq workflow lint with [selected]: squad+bogus gives 2 errors (either key order); bogus+items nonesuch gives 2; squad+items nonesuch gives 2; items nonesuch alone gives 1 (control). Neighbours: squad+bogus+items+bogus2 gives 4; top-level [bogus_a] plus squad plus items nonesuch gives 3. sq list still refuses on the first error (selected.squad), as intended.
 <!-- sq:discussion:end -->

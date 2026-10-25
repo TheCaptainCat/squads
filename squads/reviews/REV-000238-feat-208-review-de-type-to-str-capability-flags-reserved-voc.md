@@ -13,26 +13,26 @@ refs:
 subentities:
 - local_id: F1
   title: Load-boundary vocab validation (ADR-232 §1) not implemented
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: Reserved-status set is all of Status, not the accepted structural floor
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: parse_type/parse_status iterate enums, not the spec vocab (ADR-232 scope)
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: _coerce_str_fields/_coerce_status do str(v) with no type guard
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: Sub-entity status is an unguarded ingestion path (crashes show --full)
-  status: Open
+  status: Verified
   severity: medium
 created_at: '2026-06-26T14:32:39Z'
-updated_at: '2026-07-06T15:18:24Z'
+updated_at: '2026-10-25T19:38:46Z'
 ---
 <!-- sq:body -->
 Independent review of FEAT-208 (de-typing Item.type/status + SubEntity.status to str; reify ~22 is-ItemType/is-Status checks onto TypeSpec/StatusSpec capability flags; reserved-vocab subset check; extra=forbid hardening). Implemented across TASK-233/234/235 (uncommitted). Reviewed the full HEAD diff, the TOML flag values vs git show HEAD, the characterization gate (REV-236), and ran a live corrupt-frontmatter repro against both HEAD and the change.
@@ -88,6 +88,8 @@ Also crash surfaces on the same gap: _paths.folder_for / squad_relative do FOLDE
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:46Z] `reviewer` Paul Reviewer:
+  - Holds: IndexStore.load runs _validate_item_vocab and raises SquadsError naming the item (_index/_store.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -105,6 +107,8 @@ Impact: fail-closed and behaviour-neutral TODAY (F2 has no way to define a custo
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:46Z] `reviewer` Paul Reviewer:
+  - Holds: no status name is reserved any more; lifecycle semantics resolve through status roles (_workflow/_models.py).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -118,6 +122,8 @@ _cli/_common.py parse_type/parse_status iterate ItemType / Status enum members. 
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:38:46Z] `reviewer` Paul Reviewer:
+  - Holds: parse_type/parse_status read the active spec, not enums (_cli/_common.py).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -131,6 +137,8 @@ Item._coerce_str_fields (type/status) and SubEntity._coerce_status (mode=before)
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:38:46Z] `reviewer` Paul Reviewer:
+  - Holds: _coerce_str_fields and _coerce_status raise on a non-str value (_models/_item.py, _models/_subentity.py).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -148,6 +156,8 @@ So the primary corruption-reporting tool (check) works, and the crash is confine
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-25T19:38:46Z] `reviewer` Paul Reviewer:
+  - Holds: _validate_item_vocab also checks every sub-entity status against the spec (_index/_store.py).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->

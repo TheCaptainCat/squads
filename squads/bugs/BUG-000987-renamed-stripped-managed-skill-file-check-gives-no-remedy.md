@@ -3,13 +3,13 @@ id: BUG-987
 sequence_id: 987
 type: bug
 title: 'Renamed stripped managed skill file: check gives no remedy'
-status: Open
+status: Verified
 author: qa
 priority: low
 refs:
 - MILE-1051:targets
 created_at: '2026-10-09T20:19:45Z'
-updated_at: '2026-10-16T12:24:06Z'
+updated_at: '2026-10-25T17:52:43Z'
 ---
 <!-- sq:body -->
 ## Reproduction
@@ -42,4 +42,6 @@ Driven on the `sq-task` skill only, one pass, frontmatter stripped. With the fro
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-25T17:52:13Z] `qa` Mara Tester:
+  - Verified on release/0.17 HEAD 68e96aea. Renamed+stripped sq-task skill after sync: check says "stray copy of managed skill sq-task, healthy in SKILL-000019-sq-task.md; delete this file"; deleting it makes check exit 0. Renamed+stripped with no canonical file: "no healthy file holds managed skill sq-bug; delete this file and run sq sync to write it"; after both steps check is clean. User-authored stripped skill gets no managed-skill remedy.
 <!-- sq:discussion:end -->

@@ -13,43 +13,42 @@ refs:
 - ADR-696
 - ADR-320
 created_at: '2026-07-22T14:03:28Z'
-updated_at: '2026-08-26T13:50:59Z'
+updated_at: '2026-10-25T21:35:36Z'
 ---
 <!-- sq:body -->
 ## Context
 
-`squads` renders a work-item's status in three surfaces — the CLI list/tree, the TUI, and the
-VS Code extension tree — and each surface makes two decisions from a status: what **colour/
-emphasis** to draw it in, and whether to **show it by default** (versus only under `--all`). Today
-those decisions are driven by overlapping inputs — the per-status `badge` emoji, a `terminal` bool,
-`is_open` (`not terminal`, in the `--json` item contract), and a handful of `role` markers — doing
-three jobs (lifecycle end-state, workload open/closed, display dim/hide) between them, with each
-client re-blending them its own way.
+`squads` renders a status in three surfaces (the CLI list and tree, the TUI, the VS Code tree), and
+each surface decides two things from it: what **colour or emphasis** to draw it in, and whether to
+**show it by default** (versus only under `--all`). Overlapping inputs for those decisions (a
+per-status `terminal` flag, an `is_open` flag on item rows, a badge emoji, a few role markers) let
+each client re-blend them its own way.
 
-`StatusSpec.role` already exists as the "semantic role marker for engine rules that key on a
-specific status" (`active`/`superseded`/`retired`), and the records-hide-by-`retired` behaviour
-proves the pattern. This decision promotes `role` to the single status axis — and makes a role a
-first-class **object** that carries the behaviour, so the two overlapping flags can be retired and
-adopters can define their own roles.
+A status role, the semantic marker engine rules key on, already proves the pattern. This decision
+makes `role` the single status axis and a role a first-class **object** that carries the
+behaviour, so the overlapping flags have no reason to exist and adopters can define their own
+roles.
 
 ## Decision
 
-**`role` is the SOLE explicit status axis, and a role is a first-class OBJECT — not a string.** A
-status references one role by name; that role object carries the behaviour (`settled`, `hidden`,
-`color`). The per-status `terminal` field and the `is_open` field/concept are **both dropped**,
-derived instead from the referenced role's properties. The badge glyph stays its own independent
-explicit attribute (§3).
+**`role` is the sole explicit status axis, and a role is a first-class object, not a string.** A
+status references one role by name; the role object carries the behaviour. There is no per-status
+`terminal` field and no `is_open` field: both are derived from the referenced role. The badge glyph
+stays its own independent attribute (§3).
 
-### 1. A role is an object — the role catalog
+### 1. The role catalog
 
-A new spec construct `[roles.<name>]`, sibling to `[statuses.…]`, declares the role catalog. Each
-role carries:
+`[roles.<name>]`, sibling to `[statuses.…]`, declares the role catalog (`RoleSpec`,
+`WorkflowSpec.roles`). This decision gives a role three properties:
 
-- `settled: bool` — is this a resting/end state (the old `terminal`)?
-- `hidden: bool` — hidden from the default (non-`--all`) view?
-- `color: <intent>` — a semantic colour intent (not a concrete colour).
+- `settled: bool` — a resting or end state;
+- `hidden: bool` — hidden from the default (non-`--all`) view;
+- `color: <intent>` — a semantic colour intent, not a concrete colour.
 
-A status names one role; its settled/hidden/color come from that role object:
+Later decisions add behaviour flags to the same object: `live` (ADR-696 §2a: whether a status
+materialises a roster entry into backend config), `blocked` (ADR-864, as amended under ADR-696 §3:
+the role's statuses mean the item waits on something else) and `deferred` (ADR-1102: the work is
+carried by another item).
 
 ```toml
 [roles.in_force]
@@ -58,200 +57,84 @@ hidden  = false
 color   = "info"
 
 [statuses.Accepted]
-role  = "in_force"
-badge = "…"          # badge stays explicit and independent (§3)
+role = "in_force"
 ```
 
-**Roles are OPEN; colour intents are a CLOSED palette.** An adopter may define custom roles with
-their own `settled`/`hidden`/`color` (open vocabulary, discovered via `--json`). `color` must be
-one of a **closed semantic-intent vocabulary** — `positive` / `danger` / `warning` / `muted` /
-`neutral` / `info` — validated at load (Plane 1); an unknown intent fails closed. Each client maps
-the intent to its own theme (CLI `rich` ANSI, TUI Textual attribute, VS Code `ThemeColor`), with a
-**neutral fallback** for any intent it does not recognise.
+**Roles are open; colour intents are a closed palette.** An adopter may define roles with their
+own properties. `color` must be one of `positive` / `danger` / `warning` / `muted` / `neutral` /
+`info`, validated at load; an unknown intent fails closed. Each client maps the intent to its own
+theme (CLI `rich` style, TUI Textual attribute, VS Code `ThemeColor`), with a **neutral fallback**
+for any intent it does not recognise.
 
-`role` stays optional on a status; an absent role resolves to the bundled `pending` role (neutral /
-live / shown), so a custom status is fail-safe-visible until its author assigns one.
+`role` is optional on a status: an absent role resolves to the bundled `pending` role (neutral,
+shown), so a custom status is fail-safe-visible until its author assigns one. A role a status
+names must be declared in the catalog, checked at load.
 
-### 2. The default role catalog + status assignments
+### 2. The bundled roles and status assignments
 
-Eight bundled roles, one row per role (its object properties + the statuses that reference it):
-
-| role | statuses | settled | hidden | color-intent |
+| role | statuses | settled | hidden | color |
 |---|---|---|---|---|
 | `pending` | Draft, Ready, Proposed, Requested, Todo | false | false | `neutral` |
 | `active` | InProgress, InReview, ChangesRequested, Fixed, Active | false | false | `positive` |
 | `attention` | Open | false | false | `danger` |
 | `blocked` | Blocked | false | false | `danger` |
 | `in_force` | Accepted, Published | true | false | `info` |
-| `done` | Done, Verified, Approved | true | true | `positive` |
+| `done` | Done, Verified, Approved, Noted | true | true | `positive` |
+| `deferred` | Deferred | true | true | `info` |
 | `retired` | Cancelled, Rejected, Deprecated, WontFix, Archived | true | true | `muted` |
 | `superseded` | Superseded | true | true | `muted` |
 
-On the assignments:
+- `active` is "live and current": work in flight plus the live roster and contract `Active` state.
+  `in_force` is the positive settled record state that stays visible (an Accepted ADR, a Published
+  guide).
+- `done` versus `in_force` is the split that matters: both settled and positive, but completed
+  work drops off the board (`hidden`) while an in-force record stays. Category need not be
+  consulted; the role encodes the intended presence.
+- `attention` and `blocked` both read red: `attention` is the needs-action red (an `Open` bug or
+  finding), `blocked` the stuck red. `warning` is unused by the bundled roles and reserved for
+  adopters.
+- `Rejected` is `retired`: settled, hidden, muted.
+- `superseded` stays distinct from `retired` (same display) because the supersession validator
+  keys on it.
 
-- `active` is "live and current" — non-terminal work-in-flight plus the live roster/contract
-  `Active` state. `in_force` is the positive **settled** record state that must stay visible (an
-  Accepted ADR, a Published guide): `settled=true, hidden=false` — a resting end that still shows.
-- `done` vs `in_force` is the split that matters: both settled and positive, but completed **work**
-  drops off the board (`hidden=true`) while an in-force **record** stays (`hidden=false`). Category
-  need no longer be consulted — the role object encodes the intended presence.
-- `attention` and `blocked` are distinct roles that both resolve to the `danger` (red) intent:
-  `attention` is the fresh needs-action/triage red (a bug that is `Open`), `blocked` the
-  actively-stuck red. Distinct roles keep the semantic split (a surface may later map them to
-  different themes) while both read red today. `warning` is unused by the defaults — reserved in the
-  palette for adopters.
-- `Rejected` is in `retired` (settled, hidden, muted) — a deliberate change (today a Rejected record
-  carries no role and is shown).
-- `superseded` stays distinct from `retired` (same properties) because it carries the
-  incoming-`supersedes`-edge expectation the validator model keys on.
+### 3. Colour and badge are independent
 
-### 3. Colour and badge: two independent concerns
+- **Colour** comes from the role's `color` intent, mapped to a concrete colour per client; no
+  concrete colour lives in the spec, since one colour cannot serve three theme systems.
+- **Badge** stays its own explicit per-status field (`StatusSpec.badge`), never derived from the
+  role.
 
-- **Colour** comes from the role's `color` intent, mapped to a concrete colour **per client** in
-  each surface's own code (no concrete colour in the spec — one colour can't serve three theme
-  systems). Single-sourced semantic axis, per-client rendering, neutral fallback.
-- **Badge** stays its own explicit per-status field. `StatusSpec.badge` is NOT removed and NOT
-  derived from role — the glyph and the colour are independent, coexisting concerns; a status sets
-  whatever glyph it likes regardless of its role. No `badge` deprecation, no shim.
+### 4. Derived, never stored
 
-### 4. `terminal` and `is_open` dropped — derived from the role object
+- terminality = `role.settled`;
+- open-ness (`WorkflowSpec.is_open`) = `not role.settled`;
+- default visibility (`hidden_by_default`) = `role.hidden`, with no category branch.
 
-Both are removed as explicit fields/concepts and re-expressed as reads of the referenced role:
-
-- **terminal-ness** = `role.settled`.
-- **open-ness** (`is_open`) = `not role.settled`.
-- **default visibility** (`hidden_by_default`) = `role.hidden`.
-
-The earlier "`LIVE_ROLES` / `SETTLED_ROLES` / `HIDDEN_ROLES` code-sets" framing is superseded: those
-sets are now a **consequence of the role definitions** (the set of settled roles is just
-`{r | roles[r].settled}`), computed from the catalog, never a hardcoded list. The
-"a lifecycle must reach a terminal status" lint becomes "must reach a status whose role is
-`settled`". `terminal_set()` / the golden-lock `TERMINAL` frozenset are computed from role
-membership.
-
-**No expressiveness loss.** The one thing an independent `terminal` flag could express that a single
-role-set could not — "a settled end that still shows" vs "a settled end that hides" — is carried by
-two role properties (`settled` + `hidden`), e.g. `in_force` (`settled=true, hidden=false`) vs `done`
-(`settled=true, hidden=true`). So dropping the flag costs nothing.
+The sets of settled or hidden roles are computed from the catalog, never a hardcoded list. The
+"a lifecycle must reach a terminal status" lint is "must reach a status whose role is settled".
+Two properties (`settled`, `hidden`) express everything an independent `terminal` flag could, for
+example `in_force` (settled, shown) versus `done` (settled, hidden).
 
 ### 5. Discoverable via `--json`, never client-hardcoded
 
-The role catalog and each status→role reference are exposed on the machine surface, the same way
-`category` rides the types catalog and badge codes ride the collections catalog — clients fetch and
-consume, re-deriving no policy:
+- **`sq workflow roles --json`**: one row per role, `{role, settled, hidden, color}` plus the flags
+  later decisions add (`live`, `blocked`, `deferred`).
+- **`sq workflow statuses --json`**: `{status, role, badge}`; no `terminal`.
+- Item rows carry no `is_open`.
 
-- **`sq workflow roles --json`** (new): one row per role — `{role, settled, hidden, color}`.
-  *The live row carries a fifth key, `live`, added additively by ADR-696 §2a and declared at that
-  end. See the amendment note.*
-- **`sq workflow statuses --json`**: drops `terminal`; keeps `role` (the reference) and `badge`.
-
-A client joins an item's `status → role → {settled, hidden, color}`; the policy (which roles are
-settled/hidden, what colour intent each is) lives once, in the role objects. The separate
-`shown_by_default` field floated earlier is unnecessary — `role.hidden` in the roles catalog is the
-single source.
-
-### 6. Consumer / contract audit (role-object shape)
-
-**Core (`_workflow`):**
-- New `RoleSpec` model (`settled: bool`, `hidden: bool = false`, `color: str`) + `WorkflowSpec.roles:
-  dict[str, RoleSpec]`, loaded from `[roles.<name>]`.
-- `StatusSpec.terminal` field → **removed**; `StatusSpec.role` is the reference (kept, now
-  catalog-checked).
-- `WorkflowSpec.is_open(s)` → `not roles[statuses[s].role].settled`.
-- `WorkflowSpec.terminal_set()` → `{s | roles[statuses[s].role].settled}`.
-- `WorkflowSpec.hidden_by_default(type, s)` → `roles[statuses[s].role].hidden` (category branch
-  dropped).
-- `_check_reachable_terminal` lint → "reach a status whose role is `settled`".
-- `_validate` gains Plane-1 checks: every `status.role` names a declared role; every `role.color` is
-  in the closed intent palette. The old "terminal status not in status set" belt-check is removed.
-- `_workflow/__init__.TERMINAL` frozenset (golden-lock export) → recomputed via role-derived
-  `terminal_set()`.
-
-**Services:**
-- `_services/_roster.py` open/closed bucket, `_services/_refs.py` blocker traversal +
-  `RefContext.is_open` (5 sites), `_services/_collab.py` open-item guard → all read
-  `not role.settled` (via the `is_open`/`is_live` helper).
-- `_services/_base.py` default-list visibility → unchanged call site (`hidden_by_default`
-  re-derives).
-
-**CLI:**
-- `_cli/_main.py` `sq tree` / `sq list` `--json` emit of `"is_open"` (2) → **dropped**.
-- `_cli/_main.py` `sq mine` open filter + `"is_open"` emit → filter reads `not role.settled`; field
-  **dropped** from payload.
-- `_cli/_main.py` `sq workload` open/closed counts (roster) → `role.settled`.
-- `_cli/_main.py` `sq list` visible filter + hidden count → unchanged (`hidden_by_default`).
-- `_cli/_workflow_cmd.py` status catalog `"terminal"` → **dropped**; add the **`sq workflow roles
-  --json`** catalog; `role` + `badge` stay on the status catalog. Row colour now keyed on
-  `role.color`.
-- `_rendering/templates/workflow.md.j2` cheatsheet `.terminal` → a `role.settled` check via a spec
-  helper exposed to the template.
-
-**Tests / goldens (implementation task):**
-- `test_accepted_and_published_are_terminal`, `test_status_machine_transitions`,
-  `test_workflow_spec_artifact` → re-express against the role-derived settled set.
-- `test_no_unallowlisted_module_level_mutable_state` → `TERMINAL` stays allowlisted (derived CODE
-  constant).
-- `tests/goldens/workflow_statuses.json` → regenerate (drop `terminal`; `role` populated); add a
-  new `workflow_roles.json` golden.
-
-**VS Code extension (rides FEAT-570 US2/US3 records-view work):**
-- `types.ts` `is_open` (node + item) and `terminal` (status-catalog entry) → **removed**; add a
-  roles-catalog type `{role, settled, hidden, color}`.
-- `sqAdapter.ts` runtime guards for `is_open` (2) and `entry.terminal` → **removed**; add a roles
-  catalog fetch + guard.
-- `domain/treeMapping.ts` / `metaView.ts` / `listView.ts` `closed: !item.is_open` (3) → `closed`
-  from the item's `role.settled` (joined via the roles catalog); dim/hide keyed on `role.hidden`.
-- Colour: map `role.color` intent → `vscode.ThemeColor` with a neutral fallback; the
-  `emphasisForNode` precedence stays, fed from role.
-
-**TUI:**
-- `_tui/_reader.py` uses only `status_badge` (glyph) — nothing to remove; the TUI gains role-`color`-
-  keyed row colour (intent → Textual attribute, neutral fallback) as new behaviour.
+A client joins an item's `status → role → properties`; the policy lives once, in the role objects.
 
 ## Consequences
 
-- A role is now the single, self-describing status axis: `settled`/`hidden`/`color` live on the role
-  object, statuses reference it, and `terminal`/`is_open` are gone. Reviewers and consumers key
-  everything off the role.
-- Roles are adopter-extensible (open), while colour stays a closed semantic-intent palette so every
-  client can render any role safely (neutral fallback). This matches the project boundary: vocabulary
-  (roles, and which role a status takes) in the spec; behaviour (intent → concrete colour) in each
-  client's code.
-- `hidden_by_default` loses its category branch (`= role.hidden`) — records-hide-by-retired-role was
-  the first instance; this generalises it. Current default-list behaviour is preserved for
-  work/roster and for records (Accepted / Published stay shown; Superseded / Deprecated hide), with
-  one deliberate change: `Rejected` now hides.
-- The row/text colour is fully defined and consistent across all three surfaces (all key on
-  `role.color`); the badge glyph is unaffected.
-- `--json` contract change (client-facing): item rows drop `is_open`; the status catalog drops
-  `terminal`; a new `sq workflow roles --json` catalog carries `{role, settled, hidden, color}`.
-  Clients read `role` + the roles catalog and derive live-vs-settled / hidden / colour themselves.
-  The VS Code extension and TUI migrate to role; this rides the FEAT-570 US2/US3 records-view work.
-- **No frontmatter / `SCHEMA_VERSION` change.** Verified: `is_open` and `terminal` never appear in
-  item frontmatter or `.squads.json` (they are spec-derived / `--json`-only), and `role` / the new
-  `[roles.…]` catalog are workflow-spec vocabulary. This is a spec-format + `--json`-contract change
-  only — no schema bump, no `sq migrate` data migration, per the adopter back-compat policy. The
-  bundled spec is regenerated (the `[roles.…]` catalog is added, `terminal` lines removed, each
-  status gains its `role`); `badge` is untouched, so no read-compat shim is needed.
-
-## Amendment note
-
-**2026-08-03 — the roles catalog row has a fifth key.** Everything here is verified in force: the eight
-bundled roles, the closed colour-intent palette validated at load, `terminal` and `is_open` gone from
-the models and from the client-facing surfaces, and each surface keying on `role.color`.
-
-The one thing owed is a note rather than a narrowing. This decision enumerates the role object and its
-catalog row as exactly `{settled, hidden, color}` / `{role, settled, hidden, color}` in three places.
-ADR-696 §2a added `live` — the flag that says whether a status materialises a roster entry into a
-backend's config — and declared the addition at its own end ("`sq workflow roles --json` gains the field
-additively"). So no clause here was reversed; the enumerations simply under-report a shape this decision
-froze, and a reader auditing the freeze against the tree finds five keys where three decisions'
-enumerations say four.
-
-Same lesson as the type catalog's growth: the additive-superset rule makes the addition legitimate, and
-the enumeration at the frozen end is what has to move with it.
-
-`related` edge added to ADR-696.
+- One self-describing status axis: consumers key everything off the role.
+- Roles are adopter-extensible while colour stays a closed palette, so every client renders any
+  role safely. Vocabulary (roles, and which role a status takes) is in the spec; behaviour (intent →
+  concrete colour) is in each client's code.
+- Default-list behaviour follows `role.hidden` for every category: Accepted and Published stay
+  shown; Superseded, Deprecated and Rejected hide.
+- The row colour is consistent across all three surfaces; the badge glyph is unaffected.
+- This is a spec-format and `--json` change only: `is_open`, `terminal` and roles never appear in
+  item frontmatter or the index, so there is no schema bump and no data migration.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -268,4 +151,6 @@ the enumeration at the frozen end is what has to move with it.
 - [2026-08-03T08:46:23Z] `architect` Robert Architect:
   - Lowest-severity item in the audit and it gets a note rather than a narrowing: the roles catalog row carries a fifth key, `live`, added additively by ADR-696 section 2a and declared at that end. No clause here was reversed. Everything else verified in force — eight bundled roles, the closed colour-intent palette validated at load, `terminal` and `is_open` gone, every surface keying on `role.color`.
   - Marked the enumeration at the point it appears rather than in all three places, and recorded the same lesson the type catalog gave: additive-superset makes the addition legitimate, and the enumeration at the frozen end is what has to move with it. Otherwise the freeze cannot be audited against the tree — five keys live against three decisions saying four. Added `related` edge to ADR-696.
+- [2026-10-25T21:35:36Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale, body rewritten in the present tense; the decision (role is the sole status axis, a role is an object) is unchanged. The bundled catalog has nine roles, not eight: added deferred (ADR-1102) and Noted under done. The role object and roles --json row carry live (ADR-696), blocked (ADR-864 as amended) and deferred (ADR-1102) beside settled/hidden/color; folded the 2026-08-03 note. Removed the pre-implementation consumer/contract audit (§6) and the FEAT-570 rollout notes.
 <!-- sq:discussion:end -->

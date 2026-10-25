@@ -11,14 +11,15 @@ refs:
 subentities:
 - local_id: F1
   title: operator self-author bypass not characterized in spine tests
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F2
   title: workload exclusion of role/skill items not characterized
-  status: Open
+  status: Deferred
   severity: low
+  deferred_to: TASK-1149
 created_at: '2026-06-26T10:21:15Z'
-updated_at: '2026-06-26T10:26:17Z'
+updated_at: '2026-10-25T19:58:36Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -134,6 +135,8 @@ Fix: add a test to test_spine_characterization.py asserting that svc.add_operato
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:44Z] `reviewer` Paul Reviewer:
+  - Holds: tests/service/test_operator_lifecycle.py pins add_operator succeeding as a self-authored roster item.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -149,6 +152,8 @@ Under TASK-235 str-typing, `'role' in {ItemType.ROLE, ...}` is False — roles/s
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:44Z] `reviewer` Paul Reviewer:
+  - Still untested: only the operator leg of the workload exclusion is pinned (test_operator_lifecycle.py); kept as a test-gap note.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 <!-- sq:findings:end -->

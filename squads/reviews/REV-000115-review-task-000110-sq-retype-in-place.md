@@ -11,14 +11,14 @@ refs:
 subentities:
 - local_id: F1
   title: Avoidable type suppression in _carry_or_reset_status
-  status: Open
+  status: Verified
   severity: low
 - local_id: F2
   title: Duplicated subentity-kind reverse map
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-06-15T08:44:31Z'
-updated_at: '2026-06-15T08:45:19Z'
+updated_at: '2026-10-25T19:38:23Z'
 ---
 <!-- sq:body -->
 Review of TASK-110 (FEAT-20): sq <type> <n> retype <new-type>.
@@ -50,6 +50,8 @@ src/squads/_services/_retype.py: _carry_or_reset_status types current_status as 
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:23Z] `reviewer` Paul Reviewer:
+  - Holds: _carry_or_reset_status is typed str in and out with no type: ignore (_services/_retype.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -63,6 +65,8 @@ src/squads/_services/_retype.py line 32 defines _SUBENTITY_KIND_FOR = {parent: k
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:23Z] `reviewer` Paul Reviewer:
+  - Holds: _retype.py no longer builds its own reverse kind map.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 <!-- sq:findings:end -->

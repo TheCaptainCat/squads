@@ -14,245 +14,127 @@ refs:
 - ADR-323
 - ADR-696
 created_at: '2026-06-26T09:45:13Z'
-updated_at: '2026-08-03T08:33:03Z'
+updated_at: '2026-10-25T21:36:58Z'
 ---
 <!-- sq:body -->
 ## Context
 
-`FEAT-000207` / `ADR-000214` externalized the workflow into a loaded `WorkflowSpec` but kept the
-`ItemType` / `Status` enums as the **typed field backbone**, with a blunt `spec == enums` validation
-(the enums-intact constraint). That constraint is exactly what keeps the vocabulary closed:
-`Item.type: ItemType` means frontmatter with an unknown `type`/`status` raises at model
-construction, so custom vocabulary literally cannot be read.
+ADR-214 externalizes the workflow into a loaded `WorkflowSpec`. While the model fields were typed by
+the `ItemType` / `Status` enums, the vocabulary stayed closed: frontmatter with an unknown
+`type`/`status` raised at model construction, so custom vocabulary could not even be read.
 
-`FEAT-000208` (F2) is the **L1→L2 inflection** that relaxes that constraint. It is the highest-risk
-feature in `EPIC-000206`: the pyright/typing inversion is irreversible and pervasive. Pierre opted
-to go straight in with **no throwaway spike**, so this ADR makes the characterization suite + the
-three golden locks the standing guard (§6). This is the study's **Option C** (recommended): a typed
-*engine* over a runtime-defined *vocabulary*.
-
-Scope is de-typing + capability-flag reification + reserved-vocab core + the fail-closed hardening
-gap — and nothing downstream (no overrides F3, no custom-type/status end-to-end F4/F5, no
-renderer/CLI-app changes).
+`FEAT-000208` relaxes that: a typed *engine* over a runtime-defined *vocabulary*. It is the
+highest-risk step in `EPIC-000206` — the typing inversion is pervasive — so a characterization suite
+and the spec golden locks are its standing guard (§6). Its scope is de-typing, capability-flag
+reification, a protected core of reserved vocabulary, and fail-closed spec loading.
 
 ## Decision
 
-### 1. Widen the model fields to `str`, validate at the service boundary
+### 1. The model fields are `str`, validated at the load boundary
 
-- `Item.type: ItemType` → `Item.type: str`; `Item.status: Status` → `Item.status: str`;
-  `SubEntity.status: Status` → `str` (and any sub-entity severity stays as-is — `Severity` is not
-  workflow vocabulary and is **not** widened).
-- `from_frontmatter` stops calling `ItemType(...)` / `Status(...)` (which raise on unknown). The
-  string round-trips losslessly — **every existing item file is already a valid string**, so this is
-  a typing/validation change, **not a data migration**. Existing squads read unchanged; no file
-  rewrite, no schema-data change. (A schema-version bump still marks the capability boundary, since
-  an older `sq` must refuse a squad that *uses* custom vocab — but the default-vocab on-disk bytes
-  are identical.)
-- Validation **moves from Pydantic field construction to the service boundary**: `ItemStore.load` /
-  `open_service` checks each item's `type`/`status` against the loaded `WorkflowSpec`
-  (`spec.is_known_type(t)`, `spec.is_valid_status(t, s)`), raising `SquadsError` with the offending
-  item id on an unknown value. Pydantic still type-checks "is a str"; the *vocabulary* check is the
-  spec's job. (Rationale, from the study: a Pydantic validator can't see the loaded spec without
-  threading external state through construction — the service boundary is the natural seam.)
+- `Item.type`, `Item.status` and `SubEntity.status` are plain `str`.
+- Model construction does no vocabulary lookup. Every existing item file is already a valid string,
+  so this is a typing/validation change, **not a data migration**.
+- Vocabulary validation happens **at the load boundary**, against the active `WorkflowSpec`: loading
+  the index checks each item's type, status and sub-entity statuses, raising `SquadsError` with the
+  offending item id on an unknown value. Pydantic type-checks "is a str"; the *vocabulary* check is
+  the spec's job. A pydantic validator cannot see the loaded spec without threading external state
+  through construction, so the load boundary is the natural seam.
 
-### 2. Reify every hardcoded identity check as a declared `TypeSpec` capability
+### 2. Every hardcoded identity check is a declared capability on `ItemSpec`
 
-I grepped the codebase (`is ItemType.` / `is not ItemType.` / `in (ItemType…)` / `in WORK_TYPES` /
-`is Status.`). Every behavioral identity check below becomes a declared capability on `TypeSpec`
-(or `StatusSpec`); **no behavioral type-identity `is` check is left hardcoded in the engine.**
-
-New `TypeSpec` capability fields (additive to ADR-214's `prefix`/`folder`/`machine`/`parents`/
-`aliases`):
+No behavioral type-identity `is` check is left hardcoded in the engine. What a type *is* for the
+engine is declared on its `ItemSpec`:
 
 ```
-TypeSpec (additions)
-    is_meta:        bool = False    # role/skill/operator: outside WORK_TYPES, no work lifecycle,
-                                    #   slug-keyed identity, retype-ineligible
-    subentity_kind: str | None = None   # "story" | "subtask" | "finding" | None — the kind a
-                                    #   type's children are (drives _SUBENTITY maps + add-<kind>)
-    severity_field: bool = False    # type surfaces a severity badge (today: bug)
-    parent_required: ItemType-name | None  # the parent type rule expressed declaratively
-    ref_rules:      list[RefRule] = []  # e.g. task → fixes|addresses hint; decision → supersedes
+ItemSpec (capability fields)
+    category:        "roster" | "work" | "records"   # ADR-541: roster types are slug-keyed,
+                                                     #   outside the work lifecycle, retype-ineligible
+    subentity_kind:  str | None = None   # the kind a type's children are (drives add-<kind>), ADR-348
+    parent_required: str | None = None   # the parent type rule, declared
+    ref_rules:       list[RefRule] = []  # e.g. task → fixes|addresses; decision → supersedes
+    fields:          list[Field] = []    # badge-collection bindings such as priority/severity, ADR-323
 ```
 
-*Narrowed 2026-08-03, three of these five: `is_meta` is the closed `category` axis (ADR-541);
-`severity_field` is gone, replaced by the generic `fields` badge-collection binding (ADR-323); and
-`parent_required` is `str | None`. `subentity_kind` and `ref_rules` survive as declared. See the
-amendment note.*
+Each former identity check maps to one of these:
 
-Mapping of each found check → capability (the complete inventory):
-
-| Identity check (file:line) | Today | Reified as |
+| Former identity check | Behaviour | Declared as |
 |---|---|---|
-| `_service.py:152`, `_base.py:200-204,454,460,508-535`, `_items.py:180-183`, `_maintenance.py:284,613,652`, `_agents_md:143`, `_claude_code:275` — `is ItemType.ROLE/SKILL/OPERATOR` | meta-type branches (slug-keyed lookup, skill-prefix file rule, roster filtering, author-is-self) | **`is_meta`** (+ `subentity_kind is None`); the slug-keyed lookup table keys on `spec.meta_types()` |
-| `_items.py:85,237`, `_retype.py:35-43`, `__init__.py:111` — `in WORK_TYPES` | which types get a `sq <type>` app + are retype-eligible | **`not is_meta`** → `spec.work_types()` derived (replaces the `WORK_TYPES` tuple) |
-| `_subentities.py:455` (`is not ItemType.FEATURE`), `_items.py:45` + `_common.py:334` `_SUBENTITY` maps | parent→sub-entity-kind | **`subentity_kind`** (feature→story, task→subtask, review→finding) |
-| `_maintenance.py:694` (`is not ItemType.TASK`), `:700` (`is not ItemType.FEATURE`) — task→feature parent + fix/addresses rules | task spine | **`parent_required`** + **`ref_rules`** |
-| `_workflow/__init__.py:108` — `if child is ItemType.TASK` in `parent_hint` | task-specific hint text (`link a bug/review via ref add … --kind fixes\|addresses`) | **`ref_rules`** drive the hint string (the `parent_hint` text becomes spec-derived) |
-| `_maintenance.py:752` (`is not ItemType.DECISION`) + `:754` (`status is Status.SUPERSEDED`) | ADR supersede warning | **`ref_rules`** (a `supersedes` rule) keyed off a **`StatusSpec` role** (see below) |
-| `_common.py:142` (`is ItemType.BUG`) — show severity row | bug severity surfacing | **`severity_field`** |
-| `_v0_1_to_v0_2.py:93` (`is ItemType.REVIEW`) | migration scaffolding | **frozen — migrations are pinned to historical vocab; not reified** (see §6) |
+| `is ROLE/SKILL/OPERATOR` branches | slug-keyed lookup, skill-prefix file rule, roster filtering, author-is-self | **`category = "roster"`** |
+| `in WORK_TYPES` | which types get a `sq <type>` app and are retype-eligible | **non-roster category** (`spec.non_roster_types()`) |
+| parent → sub-entity-kind maps | feature→story, task→subtask, review→finding | **`subentity_kind`** |
+| task → feature parent + fixes/addresses rules | the task spine | **`parent_required`** + **`ref_rules`** |
+| the task-specific `parent_hint` text | link a bug/review via a ref | **`ref_rules`** drive the hint |
+| decision + `Superseded` supersede warning | ADR supersede rule | a **`supersedes` ref rule** keyed off a **status role** |
+| bug severity row | severity surfacing | a **`fields`** binding |
+| identity checks inside migration runners | historical scaffolding | **frozen — not reified** (§ Scope boundary) |
 
-`StatusSpec` gains the structural-role markers the engine needs without `is Status.X`:
-`terminal: bool` (already, ADR-214), plus the small set of **semantic status roles** the code keys
-on — at minimum a way to identify `Superseded` for the ADR rule. Recommend a single optional
-`role: str | None` (e.g. `"superseded"`) rather than a flag-per-status, so future rules add a role
-name not a column. *The recommendation won and then absorbed the flag beside it: `terminal` was
-removed and terminality derives from the declared role (ADR-696). See the amendment note.* The retype `_carry_or_reset_status` logic stays structural (it compares whole
-machines via `workflow_for(...).states`, no status `is` check) and needs no change.
+On the status axis, the engine binds to a **declared status role** (`StatusSpec.role`), never to a
+status name: one optional role name per status rather than a flag per behaviour, so a future rule
+adds a role, not a column. Terminality and openness derive from the role (ADR-696).
 
-### 3. The enums' new role: canonical reserved built-in vocabulary
+### 3. The spec is the sole vocabulary authority
 
-`ItemType` and `Status` **stop being the field types** but are **retained as the canonical source of
-the reserved built-in vocabulary** — `RESERVED_TYPES = frozenset(ItemType)` and the structural
-subset of `RESERVED_STATUSES` (see §4). Decided explicitly: we do **not** delete the enums in F2.
-They serve three durable jobs: (a) generate ADR-214's bundled default TOML (the golden source); (b)
-define the reserved sets the loader fails-closed against (§4); (c) give internal code readable
-string constants (`ItemType.TASK.value`) instead of bare `"task"` literals during the transition.
-What they lose: being the *runtime field type* and conferring compile-time exhaustiveness.
+There is no `ItemType` or `Status` enum (ADR-322). The reserved roster type keys are named constants
+(`ROSTER_ROLE`/`ROSTER_SKILL`/`ROSTER_OPERATOR`); everything else is vocabulary the spec declares.
 
-*Withdrawn by ADR-322, which names this decision: both enums are deleted and the spec is the sole
-vocabulary authority. Of the three durable jobs claimed here, the first two moved to the spec and
-the third survives only as the named roster constants. See the amendment note.*
+### 4. Reserved-vocabulary invariant — additive over a protected core, fail-closed
 
-### 4. Reserved-vocabulary invariant — replaces FEAT-207's `== enums` check
+> Loading the spec MUST raise `SquadsError` if the spec omits any reserved vocabulary. Custom
+> vocabulary is **additive over the reserved core**; it can extend, never remove.
 
-With `spec == enums` relaxed (a spec may now be a **superset**), the loader's old equality check is
-replaced by a **subset/coverage check that fails closed**:
+- **Reserved types:** the three roster types `role`, `skill` and `operator`, with their fixed
+  `roster` category — the engine's slug-keyed machinery depends on them existing (ADR-322,
+  ADR-541). The work-item types are ordinary vocabulary a project may drop, rename and re-prefix.
+- **No reserved statuses.** No status name is engine-bound; a roster lifecycle is held to a
+  structural floor instead (ADR-696 §2–§3).
+- **Location:** the check runs inside the spec loader, fail-closed.
 
-> `WorkflowSpec.validate()` MUST raise `SquadsError` if the spec **omits any reserved type or
-> reserved status**. Custom vocabulary is **additive over the reserved core**; it can extend, never
-> remove.
+### 5. Fail-closed spec loading: `extra="forbid"`
 
-- **Reserved types:** all of `ItemType` — crucially the meta-types `role`/`skill`/`operator` (the
-  engine's slug-keyed machinery depends on them existing) plus the seven work types. *Narrowed to
-  the three roster type keys and their fixed category (ADR-322, then ADR-541); the seven work types
-  are ordinary vocabulary a project may drop, rename and re-prefix.*
-- **Reserved statuses:** the **structural statuses the agent and sub-entity lifecycles require** —
-  the agent machine's `Draft/Active/Archived`, the sub-entity machines' `Todo/InProgress/Blocked/
-  Done/Cancelled`, and the finding machine's `Open/Fixed/Verified/WontFix`. (Work/ADR/review/guide
-  statuses are part of the bundled default but the *hard-reserved* floor is the structural set the
-  code cannot function without.) Pin the exact reserved-status set in the ADR-accept review.
-  *Withdrawn: there is no reserved-status floor. No status name is engine-bound; what the engine
-  binds is a declared status role, and a roster lifecycle is held to a structural floor instead
-  (ADR-696 §2–§3). The invariant's shape — additive over a protected core, checked fail-closed in
-  the loader — is what survived; the core shrank to the identity the engine binds by name.*
-- **Location:** this lives in `WorkflowSpec.validate()` (run inside the loader, fail-closed), and it
-  **supersedes** the FEAT-207 blunt-equality assertion. The F1 golden (default == today) still holds
-  because the default spec trivially satisfies a subset check.
+Every workflow spec model carries `extra="forbid"` and the loader builds them through
+`model_validate`, so an unknown TOML key fails closed instead of being silently ignored — the same
+hardening the roles and playbook loaders have.
 
-### 5. Fold in the fail-closed gap (FEAT-209 / ADR-214 follow-up): `extra="forbid"`
+### 6. Characterization gate (the standing guard)
 
-The workflow spec models today silently **ignore unknown TOML keys** (no `extra="forbid"`), unlike
-the now-hardened roles/playbook loaders, and the workflow loader does not route through
-`model_validate`. **Recommend folding this into F2, not deferring to F3/209:** F2 is already
-rewriting `WorkflowSpec` (adding the capability fields) and tightening its validation (§4), so
-adding `model_config = {"extra": "forbid"}` to every workflow spec model and routing the loader
-through `model_validate(...)` is cohesive here and avoids shipping a known fail-open loader through
-another release. It is a small, contained hardening that belongs with the validation overhaul. (If
-the team prefers to keep F2 minimal, it can move to FEAT-209 — but the recommendation is to fix it
-here, since F2 touches these exact models.)
-
-### 6. Characterization gate (the standing guard, in lieu of the spike)
-
-Because there is no throwaway spike, the regression guard is explicit and mandatory:
-
-- **The entire existing test suite + all three golden locks (workflow ADR-214, role-catalog
-  ADR-221, playbook ADR-226 incl. its byte-identical skill-output layer) MUST pass UNCHANGED** —
-  byte-identical behavior. No existing test may be edited to accommodate F2; if one needs editing,
-  that is a behavioral change and must be justified, not absorbed.
-- **Characterization-first** (per the FEAT-208 manager note): before reifying, add characterization
-  tests that pin the *current* behavior of each identity check (e.g. "a `decision` with no incoming
-  `supersedes` and status `Superseded` warns in `sq check`"; "a `skill` file not prefixed `SKILL-`
-  is flagged"), so the reification is proven equivalent rather than assumed.
-- **New surface gets new tests:** each `TypeSpec` capability flag and the reserved-vocab
-  fail-closed validation get direct unit tests (including the negative: a spec missing
-  `role`/`skill`/`operator` or a structural status must raise).
-- `uv run pyright && ruff check . && ruff format --check . && pytest` all green.
+- **The existing test suite and the spec golden locks** (workflow ADR-214, role catalog ADR-221,
+  playbook ADR-226 including its skill-output layer) pass **unchanged** across the de-typing: an
+  existing test that needs editing signals a behavioral change to justify, not absorb.
+- **Characterization tests pin each former identity check's behavior** (e.g. "a `decision` with no
+  incoming `supersedes` and a superseded status warns in `sq check`"; "a `skill` file not prefixed
+  `SKILL-` is flagged"), so the reification is proven equivalent rather than assumed.
+- **Each capability field and the reserved-vocab check get direct unit tests**, including the
+  negative: a spec missing `role`/`skill`/`operator` must raise.
 
 ### 7. The pyright-strict trade-off, on the record
 
 Widening to `str` trades **compile-time enum exhaustiveness** for **load-time spec validation**.
 What we lose: pyright can no longer prove a `match item.type` / status handling is exhaustive; a
-typo in a type/status string is a runtime (load-time) error, not a type error; autocomplete on
-`ItemType.X` at field sites goes away. What we keep: the **engine stays fully typed** — `WorkflowSpec`,
-`TypeSpec`, `StatusSpec` are pyright-strict models, the capability flags are typed booleans/enums,
-and every operation on vocabulary goes through typed spec methods (`spec.type_spec(t).is_meta`).
-Only the **vocabulary values** are runtime-defined strings. ruff/pyright strict mode stays green;
-the mitigations are the strong fail-closed `WorkflowSpec.validate()` (§4) and, later, `sq workflow
-lint` (F3).
+typo in a type/status string is a load-time error, not a type error; autocomplete on enum members at
+field sites goes away. What we keep: the **engine stays fully typed** — `WorkflowSpec`, `ItemSpec`,
+`StatusSpec` are pyright-strict models, the capability fields are typed, and every operation on
+vocabulary goes through typed spec methods. Only the **vocabulary values** are runtime-defined
+strings. The mitigations are the fail-closed spec loader (§4, §5) and `sq workflow lint`.
 
-## Scope boundary (what F2 does NOT do)
+## Scope boundary
 
-- **No project overrides** (F3/FEAT-209-area) — the spec is still bundled-only; F2 only makes the
-  *models* able to carry non-enum values and the *loader* able to validate a superset.
-- **No custom types/statuses end-to-end** (F4/F5) — no dynamic `sq <type>` app build, no
-  custom-prefix ID parsing, no custom badges, no folder auto-create. F2 proves the *foundation*
-  (str fields + reserved-core validation + capability flags); F4/F5 *consume* it.
-- **No renderer/CLI change** — `sq workflow` still renders the static template; `parse_type`/
-  `parse_status` switch to iterating `spec.managed_types()`/the spec's status set instead of the raw
-  enums, but that is the only CLI touch and it is behavior-identical for the default vocab.
-- **Migrations stay pinned to historical vocab** — `_v0_1_to_v0_2.py`'s `is ItemType.REVIEW` is not
-  reified; migration runners are frozen against the vocabulary of their era by design.
+- **Project overrides** and **custom vocabulary end-to-end** (dynamic `sq <type>` commands,
+  custom prefixes, custom badges, folder creation) build on this foundation and are decided
+  elsewhere (ADR-696, ADR-263, ADR-266, ADR-323).
+- **Migrations stay pinned to historical vocabulary** — identity checks inside migration runners are
+  not reified; each runner is frozen against the vocabulary of its era by design.
 
 ## Consequences
 
-- **Positive:** unblocks all of L2/L3 (custom vocabulary becomes *readable*); removes ~20 scattered
-  `is ItemType.X` checks in favor of one declared capability table on `TypeSpec` (more honest, more
-  testable); hardens the workflow loader to match the other two (`extra="forbid"`). The reserved-vocab
-  invariant makes "additive over a protected core" an enforced contract, not a convention.
-- **Cost / risk (stated plainly):** this is the irreversible typing inversion and the riskiest
-  change in the epic, done without a spike. The mitigation is entirely the characterization gate
-  (§6): byte-identical behavior under the full suite + three goldens is the only thing that proves
-  the reification is faithful. The subtle hazards are (a) a missed identity check that wasn't in the
-  grep (e.g. an implicit reliance on enum ordering or membership), and (b) the service-boundary
-  validation changing *when* an error is raised (construction-time → load-time) for malformed
-  frontmatter — the characterization tests must cover the bad-value path.
-
-## Amendment note
-
-**2026-08-03 — four of the declared capabilities generalised, and the enums did not survive after
-all.** The de-typing this decision made is in force and verified: `Item.type` and `Item.status` are
-`str`, `SubEntity.status` is `str`, and vocabulary validation happens at the load boundary against the
-active spec, failing closed with the offending item's id. What moved is §2's capability table and §3's
-prediction about the enums — every case in the same direction, a boolean widening into a declared
-axis, which is the direction §2 itself pointed in when it recommended a status *role* over a
-flag-per-status.
-
-- **`is_meta: bool` became `category` (ADR-541).** The closed `Literal["roster", "work", "records"]`
-  on `ItemSpec` replaces the boolean. This is the canonical case of the pattern: a two-valued flag was
-  hiding a three-valued axis, and the third value (`records`) had no way to exist while the flag did.
-  `spec.work_types()` survives, now derived from the category rather than from `not is_meta`.
-- **`severity_field: bool` is gone, replaced by the generic `fields` binding (ADR-323).** "Does this
-  type carry a severity badge" is now "is that field in `ItemSpec.fields`", with priority and severity
-  both expressed as reusable badge collections a type binds by code. A per-concept boolean column was
-  the thing that could not scale, which §2's own "so future rules add a role name not a column"
-  instinct anticipated one line later on the status axis.
-- **`StatusSpec.terminal: bool` — asserted here as already settled — was removed (ADR-696).**
-  Terminality and `is_open` derive from the status's declared role, and no status name is engine-bound.
-  Note what this means for §2's own recommendation: the single optional `role: str | None` it proposed
-  *instead of* a flag-per-status is what won, and then absorbed the flag it was proposed alongside.
-- **`parent_required` is `str | None`**, not an `ItemType` name. `subentity_kind` and `ref_rules`
-  survive exactly as declared, and `subentity_kind` later grew into a full `SubentityKindSpec`
-  (ADR-348).
-- **§3 is reversed outright by ADR-322**, which names this decision. "We do **not** delete the enums in
-  F2" was true of its own scope and false as a durable ruling: `ItemType` and `Status` are gone,
-  `_enums.py` with them, and the spec is the sole vocabulary authority. Of §3's three durable jobs,
-  the first two moved to the spec itself and the third — readable string constants for internal code —
-  survives as the named roster constants (`ROSTER_ROLE`/`ROSTER_SKILL`/`ROSTER_OPERATOR`) and nothing
-  more.
-- **§4's reserved core narrowed twice.** "All of `ItemType`" is now the three roster type keys plus
-  their fixed category (ADR-322, then ADR-541); the reserved *status* floor this section asked the
-  accept review to pin is gone entirely (ADR-696 §2). The structure of the invariant is what survived
-  and it was the right call: additive over a protected core, checked in the loader, fail-closed. Only
-  the core shrank — to the identity the engine genuinely binds by name.
-
-§5 is closed rather than stale: `extra="forbid"` is on the workflow spec models and the loader routes
-through `model_validate`, so an unknown TOML key fails closed. The migration carve-out in the table's
-last row and in the scope boundary is still correct and still honoured — the runners pin their own
-frozen literals.
-
-`related` edges added to ADR-322, ADR-541, ADR-323 and ADR-696.
+- **Positive:** custom vocabulary is *readable*; the scattered identity checks are one declared
+  capability table on `ItemSpec` (more honest, more testable); the workflow loader fails closed like
+  the other two. "Additive over a protected core" is an enforced contract, not a convention.
+- **Cost / risk:** the typing inversion is irreversible, and the characterization gate (§6) is what
+  proves the reification faithful. The subtle hazards are (a) an identity check missed by the
+  inventory (e.g. an implicit reliance on enum ordering or membership), and (b) validation moving
+  from construction time to load time for malformed frontmatter — the characterization tests cover
+  the bad-value path.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -265,4 +147,6 @@ frozen literals.
   - The three capability narrowings, marked at the table and detailed in the amendment note: `is_meta` to the closed `category` axis (ADR-541) — the two-valued flag was hiding a three-valued axis, and `records` could not exist while the flag did; `severity_field` to the generic `fields` badge-collection binding (ADR-323); `StatusSpec.terminal` removed with terminality derived from the declared role (ADR-696). Worth recording rather than just correcting: this decisions own recommendation of "a role name not a column" is what won, and it then absorbed the `terminal` flag it was proposed alongside.
   - Section 3 marked withdrawn by ADR-322, which names this decision. "We do not delete the enums" was true of its own scope and false as a durable ruling; of the three durable jobs it claimed for the enums, two moved into the spec and the third survives only as the named roster constants. Section 4s reserved core narrowed twice on the type axis and vanished on the status axis — its shape (additive over a protected core, fail-closed in the loader) is what survived, and only the core shrank.
   - Section 5 is closed rather than stale: `extra="forbid"` is on the workflow spec models and the loader routes through `model_validate`. The migration carve-out in the tables last row is still correct and still honoured. Added `related` edges to ADR-322, ADR-541, ADR-323 and ADR-696 — this decision was the one all four narrowed, and none linked back.
+- [2026-10-25T21:36:58Z] `architect` Robert Architect:
+  - 2026-10-25 audit: rewritten; the de-typing decision is unchanged. Folded in ADR-322 (no enums), ADR-541 (`category`), ADR-323 (`fields`) and ADR-696 (status roles, no reserved statuses). The capability table uses current names. Removed the dated notes.
 <!-- sq:discussion:end -->

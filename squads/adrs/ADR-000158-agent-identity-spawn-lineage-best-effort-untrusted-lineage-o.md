@@ -18,19 +18,16 @@ description: squads reads optional SQUADS_SESSION_ID/PARENT from its own invocat
   best-effort, untrusted, observability-only — not verified identity; lane enforcement
   on it is advisory.
 created_at: '2026-06-22T07:44:10Z'
-updated_at: '2026-08-03T08:51:19Z'
+updated_at: '2026-10-25T21:36:49Z'
 ---
 <!-- sq:body -->
 ## Context
 
-squads records an `actor` on every mutating operation, but that actor is a **self-declared slug**:
-`src/squads/_actor.py` holds one module-global string (since ADR-534, a value read from and rebound
-on the ambient `RequestContext`), set to `"system"` at the CLI root callback
-(`_cli/__init__.py::main_callback`) and overridden only by the `--as`/`--author` CLI options via
-`set_actor(slug)`. The reflog writer (`_index/_reflog.py::append_line`) faithfully records whatever
-that global says into a flat `actor: str` field; `ReflogLine`/`ReflogEntry` carry it as a bare
-string. There is **no env-var or config ingestion path** into the actor today — the only inputs are
-CLI flags.
+squads records an `actor` on every mutating operation, and that actor is a **self-declared slug**:
+`src/squads/_actor.py` reads and rebinds it on the ambient `RequestContext` (ADR-534); it is
+`"system"` at the CLI root callback and is overridden only by the `--as`/`--author` CLI options via
+`set_actor(slug)`. The reflog writer (`_index/_reflog.py::append_line`) faithfully records it into a
+flat `actor: str` field. Nothing about a slug says who actually ran the command.
 
 Two blind spots follow:
 
@@ -47,7 +44,7 @@ after the fact, on a best-effort basis. That lower bar is what keeps a 1.x mecha
 
 ### The hard constraint: squads is never in the spawn path
 
-This is the load-bearing fact that shapes everything below, and the correction to the earlier draft.
+This is the load-bearing fact that shapes everything below.
 
 - **squads is a passive CLI.** It runs only when an agent (or human) types `sq …`. It is a leaf the
   agent calls, not a process that launches other processes. There is **no point in squads where one
@@ -66,8 +63,8 @@ propagating it is the agent layer's job** — expressed in orchestrator (manager
 prompt/skill would arrange for that child's subsequent `sq` calls to carry the id (e.g. by having the
 child pass it on every invocation, or by the harness's environment-passing if/when one exists). **All
 of that is outside squads code** and is not specified or guaranteed by this ADR; squads neither
-requires it nor can verify it happened. In the common case today, **no such variable is set**, and
-the actor is simply the self-declared slug — exactly as it is now.
+requires it nor can verify it happened. In the common case **no such variable is set**, and the
+actor is simply the self-declared slug.
 
 ## Decision
 
@@ -88,17 +85,16 @@ squads does not generate or propagate identity. Its entire role is **read-and-re
   (it has no child), and does not depend on them existing. This is the same Task/Agent layer that
   ADR-155 already identified as the only place spawn policy can live; identity propagation, like
   spawn policy, lives there and **not in squads**.
-- **The absent case is the common, fully-supported case.** When neither variable is set (today's
-  reality, and the default whenever an orchestrator skill hasn't been written to propagate them),
-  the actor is just the slug — `system` at the root, or the `--as`/`--author` slug — **exactly as
-  now**. No behaviour changes, no migration, no degradation. The session fields are simply `None`.
-- **Where squads ingests it (single chokepoint).** `main_callback` already unconditionally calls
-  `actor.set_actor("system")`. Extend `_actor.py` to carry an optional session pair alongside the
-  slug, seeded **once** from the environment at that same callback **if the vars are present**. The
-  slug override path (`--as`/`--author` → `set_actor`) still sets the human-facing slug; the session
-  fields come only from the environment and are **not** settable by a later CLI flag. One
-  ambient-identity module (mirroring `_clock`), and every mutating op already routed through
-  `actor.current_actor()` picks up whatever session was read for free.
+- **The absent case is the common, fully-supported case.** When neither variable is set (the
+  default whenever an orchestrator skill hasn't been written to propagate them), the actor is just
+  the slug — `system` at the root, or the `--as`/`--author` slug. No migration, no degradation; the
+  session fields are simply `None`.
+- **Where squads ingests it (single chokepoint).** `_actor.py` carries an optional session pair
+  alongside the slug on the request context, read **once** from the environment
+  (`session_from_env()`) at the CLI root callback **if the vars are present**. The slug override
+  path (`--as`/`--author` → `set_actor`) sets the human-facing slug; the session fields come only
+  from the environment and are **not** settable by a CLI flag. Every mutating op routed through
+  `actor.current_actor()` picks up whatever session was read.
 
 ### 2. Honest guarantee — best-effort, untrusted, observability-only. Not verified identity.
 
@@ -123,31 +119,24 @@ field:
   until a platform capability exists; if one ever does, it would be a *new* primitive, not a
   re-interpretation of this field.
 
-### 3. Structured actor record — additive, dual-form, back-compatible *(survives the correction unchanged)*
+### 3. Structured actor record — additive, dual-form, back-compatible
 
-These are pure recording/rendering mechanics and are unaffected by who sets the env vars. Extend the
-recorded actor from a bare slug to an optional structured record:
-`{"slug": "reviewer", "session_id": "…", "parent_session_id": "…"}` — where the two session fields
-are present only when the environment carried them.
+These are pure recording/rendering mechanics and are unaffected by who sets the env vars. The
+recorded actor is a bare slug plus an optional session pair, present only when the environment
+carried it.
 
-- **Reflog (`_index/_reflog.py`).** Today the line is `{"actor": "python-dev", …}` (a string).
-  **Keep `actor` as the bare slug string for back-compat**, and **add two optional sibling
-  top-level fields** `session_id` and `parent_session_id` (both nullable). Purely additive: the
-  reader already does `data.get("actor", "")` and tolerates unknown fields; old lines (no session
-  fields) parse as `session_id=None, parent_session_id=None`. `ReflogLine`/`ReflogEntry` gain the
-  two optional fields. Preferred over nesting `actor` into an object because (a) it does not break
-  the documented flat-string `actor` (FEAT-13 stability), and (b) every existing golden-tested
-  `--json` shape stays valid.
-- **Item frontmatter.** Items today store only `author: str | None` (`_models/_item.py`). To surface
-  the creating/last-modifying *session*, add two optional frontmatter fields (e.g. `created_session`
-  / `modified_session`, each an optional `{session_id, parent_session_id}` sub-object, or just the
-  `session_id` for minimal footprint). `from_frontmatter` reads them as `None` when absent;
-  `to_frontmatter` omits them when unset — existing item files remain valid with no migration.
-  **Back-compat rule: absence == legacy slug-only origin; both forms valid forever.** If full
-  structured history is wanted, the reflog already holds it — frontmatter can stay minimal and
-  `show` can join against the reflog.
+- **Reflog (`_index/_reflog.py`).** **`actor` stays the bare slug string**, with **two optional
+  sibling top-level fields** `session_id` and `parent_session_id`, omitted when absent. Purely
+  additive: the reader tolerates unknown fields, and a line with no session fields parses with both
+  as `None`. Siblings are preferred over nesting `actor` into an object because the flat-string
+  `actor` is documented stability surface and every `--json` shape stays valid.
+- **Item frontmatter.** Beside `author`, an item carries two optional fields, `created_session` and
+  `modified_session` — each just the `session_id`, for minimal footprint. They read as `None` when
+  absent and are omitted from frontmatter when unset, so existing item files stay valid with no
+  migration. **Back-compat rule: absence == slug-only origin; both forms valid forever.** Full
+  structured history lives in the reflog.
 
-### 4. Propagation through indirect chains — immediate parent only *(unchanged, with the caveat that propagation is the agent layer's, not squads')*
+### 4. Propagation through indirect chains — immediate parent only
 
 When the env carries them, each op records **its own `session_id` and its immediate
 `parent_session_id`** — not the full ancestor chain.
@@ -161,19 +150,18 @@ When the env carries them, each op records **its own `session_id` and its immedi
   missing/absent intermediate session degrades gracefully to a forest (roots), never corrupting the
   chain. squads makes no promise that the chain is complete or accurate.
 
-### 5. Surfacing — both views feasible, and both are forensic-only *(survives the correction)*
+### 5. Surfacing — two views, both forensic-only
 
-- **`sq reflog --tree`.** Feasible directly from what is recorded: build a parent→children map from
-  each line's `session_id` + `parent_session_id`, treat lines with no/unknown parent as roots, and
-  render a nested tree over the existing time-window filter. A self-review surfaces as a *visibly
+- **`sq reflog --tree`.** Built directly from what is recorded: a parent→children map from each
+  line's `session_id` + `parent_session_id`, lines with no or unknown parent as roots, rendered as a
+  nested tree over the reflog's filters. A self-review surfaces as a *visibly
   non-independent* subtree — **but the reader must understand this reflects declared, untrusted
   lineage, not verified fact.** This is the core forensic win and the rendering must be labelled as
   observability, not proof.
-- **`sq <type> <n> show --full`.** Feasible: surface the creating and last-modifying actor's session
-  identity (when present), from the optional frontmatter session fields or by joining the item id
-  against the reflog. Show `slug @ session_id (parent parent_session_id)` so a self-authored item
-  reads differently from an independently-authored one — again as observability, not verification,
-  and gracefully showing just the slug when no session is recorded.
+- **`sq <type> <n> show`.** Surfaces the creating and last-modifying session (when present) from
+  the frontmatter session fields, as `author @ session_id`, labelled "(best-effort session,
+  untrusted)", so a self-authored item reads differently from an independently-authored one — as
+  observability, not verification — and shows just the slug when no session is recorded.
 
 ### 6. Feasibility verdict & scope boundary
 
@@ -207,26 +195,20 @@ actor (slug or session) is **inherently advisory**:
 
 ## Consequences
 
-- **Positive.** Spawn lineage becomes **observable** with zero platform dependency and zero squads
-  involvement in spawning — squads simply records optional env it is handed. All changes are
-  additive: one optional ambient field-set in `_actor.py`, two optional reflog fields, two optional
-  item frontmatter fields, one `--tree` rendering. No migration is forced (absence = legacy). The
-  forensic goal (a 2026-06-15-style self-review reads as non-independent *to a human reader*) is met.
+- **Positive.** Spawn lineage is **observable** with zero platform dependency and zero squads
+  involvement in spawning — squads simply records optional env it is handed. Everything is
+  additive: an optional ambient session pair in `_actor.py`, two optional reflog fields, two optional
+  item frontmatter fields, one `--tree` rendering. No migration is forced (absence = slug-only). A
+  2026-06-15-style self-review reads as non-independent *to a human reader*.
 - **Negative / limits.** **Best-effort and untrusted**: squads is never in the spawn path, cannot
   mint or inject, cannot verify, and is not tamper-evident. Whether any session id ever appears
   depends entirely on agent-layer skills/prompts that squads does not own and cannot enforce; in
   their absence the actor is just the slug. Honesty about this guarantee must live in the docs, in
   the 1.0 contract field definition, and in any check built on it.
-- **Correction note.** This ADR previously (mis)attributed minting + env injection to a squads
-  spawner role. That is retracted: squads is a passive tool, never in the spawn path, and does only
-  read-and-record. Identity propagation, like spawn policy (ADR-155), lives in the agent layer.
-- **Follow-ups for the tech-lead.** US1 = the read-and-record path (optional env read at the
-  callback into the `_actor.py` session pair, the two additive reflog fields, the optional item
-  frontmatter fields, schema bump). US2 = `sq reflog --tree` + `show --full` session surfacing,
-  **both labelled as untrusted observability**. Document the guarantee ("best-effort, untrusted
-  lineage for observability — not verified identity, not forge-proof, not an enforcement input") in
-  the reflog schema docs and the 1.0 contract (FEAT-13). Coordinate the additive schema bump with
-  the migration registry per CLAUDE.md. Frame any FEAT-122 Slice B lane check as advisory.
+- **Where the guarantee is stated.** Both surfaces are labelled as untrusted observability, and
+  the guarantee ("best-effort, untrusted lineage for observability — not verified identity, not
+  forge-proof, not an enforcement input") is stated in the reflog schema docs and the 1.0 contract.
+  Any lane check built on the actor is framed as advisory (ADR-163).
 <!-- sq:body:end -->
 
 ## Discussion
@@ -242,4 +224,6 @@ actor (slug or session) is **inherently advisory**:
   - Accepted on the reframed basis: squads records best-effort, untrusted lineage (reads env if present, never spawns/injects). Build FEAT-125 as observability, then Slice B as an explicitly-advisory guardrail.
 - [2026-08-03T08:51:19Z] `architect` Robert Architect:
   - One Context sentence annotated: `_actor.py` no longer holds a module-global string — since ADR-534 it reads and rebinds the ambient `RequestContext`. Everything decided here verified in force: `session_from_env()` off the two env vars read once at the root callback, flat `actor` kept with additive optional `session_id`/`parent_session_id` and legacy-line tolerance, optional `created_session`/`modified_session` omitted when unset, `sq reflog --tree`, and the show surface carrying the literal "(best-effort session, untrusted)" label this decision demanded.
+- [2026-10-25T21:36:49Z] `architect` Robert Architect:
+  - 2026-10-25 audit: rewritten; decision unchanged. Replaced the 'today there is no env path' and 'extend _actor.py' passages with what ships: `session_from_env()`, the optional reflog fields, and `created_session`/`modified_session` holding a session id string. Removed the correction note and the tech-lead follow-ups.
 <!-- sq:discussion:end -->

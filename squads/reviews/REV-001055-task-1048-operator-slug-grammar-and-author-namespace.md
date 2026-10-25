@@ -41,18 +41,18 @@ subentities:
   severity: low
 - local_id: F8
   title: A7 says verbs are read from the CLI; they are pinned constants
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F9
   title: Shared-slug remedy says 'which break' for a single culprit
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F10
   title: Operator with no stored slug is not a participant
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-10-16T11:49:46Z'
-updated_at: '2026-10-16T12:19:56Z'
+updated_at: '2026-10-25T19:35:15Z'
 ---
 <!-- sq:body -->
 Scope: TASK-1048 ST1 to ST4, uncommitted in the working tree (`git diff -- src tests` plus six untracked test files), against ADR-979 amendments A1 to A5.
@@ -284,6 +284,8 @@ The guard is sound. The ADR text describes a mechanism the code does not have, a
 <!-- sq:finding:F8:discussion -->
 - [2026-10-16T12:12:18Z] `architect` Robert Architect:
   - Fixed in ADR-979: dated note (2026-10-16) under A7 records that the verb set is held as ROLE_GROUP_VERBS / SKILL_GROUP_VERBS below the CLI (same arrangement as RESERVED_CLI_VERBS), pinned by equality to the live command table in tests/meta/test_roster_group_verbs_match_the_live_command_table.py, so drift in either direction fails CI; no released build can differ from a runtime read. The obligations line now says "held in step with the registered commands (A7 note)".
+- [2026-10-25T19:35:15Z] `reviewer` Paul Reviewer:
+  - Holds: ADR-979 carries the A7 note on ROLE_GROUP_VERBS/SKILL_GROUP_VERBS, pinned by tests/meta/test_roster_group_verbs_match_the_live_command_table.py.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -303,6 +305,8 @@ With one culprit, the verb should be "breaks" and the pronoun "its own". The tex
 <!-- sq:finding:F9:discussion -->
 - [2026-10-16T12:16:09Z] `python-dev` Elias Python:
   - Fixed. The shared-slug remedy now agrees with the count: "replace OP-98, which breaks a rule of its own" for one holder, "replace OP-1, OP-2, which break a rule of their own" for several. Falsified 1 mutant: the singular branch off (1 red; the multi-holder table row and the single-holder row both pin the wording).
+- [2026-10-25T19:35:15Z] `reviewer` Paul Reviewer:
+  - Holds: _services/_validators.py says "which breaks a rule of its own" for one holder.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -330,6 +334,8 @@ The refusal already happens on 0.15.0, so this is not a regression. Nothing trac
 - [2026-10-16T12:16:11Z] `python-dev` Elias Python:
   - Fixed, both ways. (a) registered_slugs, _is_participant and _author_of use the same stored-slug fallback as roster_item and the breach check (an operator's display name falls back to its title). (b) The 0.16 step has a second contribution, operator-identity, that fills in slug and full_name for operators lacking them: frontmatter of those operators only, planned with the rest and refused with them, reported as "N operator(s) given a stored slug or full name". Tables: operator shapes (importer shape, slug missing, name missing, complete) with body and complete-file bytes unchanged; participant for every reader after the run; beside the other files in one run; nothing written when another part refuses; POSTCONDITIONS row. Falsified 7 mutants, all red: is_participant fallback off (1), author name fallback off (1), registered fallback off (1), backfill write off (4), slug-only fill (2), complete operators rewritten (1), plus the F9 mutant above.
     Dry run on a fresh copy of this repo's squad (dev build, exit 0): 0 operators given a stored slug or full name (op-pierre has both); 4105 headers rewritten in 900 files; every changed md line is a header line (4105 out, 4105 in); sq check on the copy clean.
+- [2026-10-25T19:35:15Z] `reviewer` Paul Reviewer:
+  - Holds: the 0.16 flat-frontmatter step gives every roster file a top-level `slug` (_v0_15_to_v0_16.py), so every reader sees the operator.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 <!-- sq:findings:end -->

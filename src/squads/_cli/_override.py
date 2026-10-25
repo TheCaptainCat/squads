@@ -21,6 +21,7 @@ from squads._cli._common import (
     command,
     console,
     e,
+    err_console,
     gate_group_command,
     get_service,
     get_squad_paths,
@@ -33,6 +34,7 @@ from squads._overrides._service import (
     STATE_CURRENT,
     STATE_DRIFTED,
     DiffResult,
+    OverrideEntry,
     diff_override,
     scaffold_new_role,
     scaffold_playbook,
@@ -203,8 +205,8 @@ def list_overrides(
     """List every override with its kind, base version and drift state.
 
     `current` is up to date; `drifted` means the bundled default changed since the
-    base version; `broken` means required sq markers are missing, an error in
-    `sq check`.
+    base version; `broken` means required sq markers are missing or the file
+    cannot be read, an error in `sq check`; the command then exits 1.
     """
     entries = scan_overrides(get_squad_paths().squad_dir)
 
@@ -222,6 +224,8 @@ def list_overrides(
                 ]
             )
         )
+        if any(entry.state == STATE_BROKEN for entry in entries):
+            raise typer.Exit(1)
         return
 
     if not entries:
@@ -245,6 +249,12 @@ def list_overrides(
             f"[{state_color}]{entry.state}[/{state_color}]",
         )
     console.print(table)
+    broken = [entry for entry in entries if entry.state == STATE_BROKEN]
+    for entry in broken:
+        if entry.cause:
+            err_console.print(f"error: {e(entry.cause)}", soft_wrap=True)
+    if broken:
+        raise typer.Exit(1)
 
 
 def _state_color(state: str) -> str:
@@ -291,11 +301,13 @@ def diff(
 
     Merge what Δ-upgrade added into your override by hand, then run
     `sq override update <name>`. With no name or flag, every drifted override is
-    diffed.
+    diffed; one that cannot be read is named with its cause and the command
+    exits 1 after the rest.
     """
     squad_dir = get_squad_paths().squad_dir
 
     results: list[DiffResult] = []
+    entries: list[OverrideEntry] = []
 
     if role is not None:
         results.append(diff_override(squad_dir, name=role, kind="role"))
@@ -312,7 +324,9 @@ def diff(
         entries = scan_overrides(squad_dir)
         drifted = [e for e in entries if e.state == STATE_DRIFTED]
         if not drifted and not json_out:
-            console.print("[dim]no drifted overrides found[/dim]")
+            if not any(entry.cause for entry in entries):
+                console.print("[dim]no drifted overrides found[/dim]")
+            _fail_on_unreadable(entries)
             return
         results.extend(
             diff_override(squad_dir, name=entry.name, kind=entry.kind) for entry in drifted
@@ -334,10 +348,22 @@ def diff(
                 ]
             )
         )
+        _fail_on_unreadable(entries)
         return
 
     for result in results:
         _print_diff_result(result)
+    _fail_on_unreadable(entries)
+
+
+def _fail_on_unreadable(entries: list[OverrideEntry]) -> None:
+    """Name each override that cannot be read, with its cause, and exit 1 when there is one; the
+    readable overrides have already been handled."""
+    unreadable = [entry for entry in entries if entry.cause]
+    for entry in unreadable:
+        err_console.print(f"error: {e(entry.cause or '')}", soft_wrap=True)
+    if unreadable:
+        raise typer.Exit(1)
 
 
 def _print_diff_result(result: DiffResult) -> None:
@@ -399,9 +425,10 @@ def update(
 
     Only the base-version stamp is rewritten, never the override's content. With
     no name or flag, every valid override is re-stamped; a broken one is skipped
-    until it is fixed.
+    until it is fixed, which is named with its cause and exits 1.
     """
     squad_dir = get_squad_paths().squad_dir
+    entries: list[OverrideEntry] = []
 
     if role is not None:
         stamped = update_stamp(squad_dir, name=role, kind="role")
@@ -414,10 +441,13 @@ def update(
     elif name is not None:
         stamped = update_stamp(squad_dir, name=name, kind="template")
     else:
+        entries = scan_overrides(squad_dir)
         stamped = update_stamp(squad_dir, name=None, kind=None)
 
     if not stamped:
-        console.print("[dim]nothing to update (no overrides found, or all are current)[/dim]")
+        if not any(entry.cause for entry in entries):
+            console.print("[dim]nothing to update (no overrides found, or all are current)[/dim]")
+        _fail_on_unreadable(entries)
         return
 
     from squads import __version__
@@ -427,3 +457,4 @@ def update(
     console.print(
         "\nRun [cyan]sq check[/cyan] to confirm the drift warning is cleared.", soft_wrap=True
     )
+    _fail_on_unreadable(entries)

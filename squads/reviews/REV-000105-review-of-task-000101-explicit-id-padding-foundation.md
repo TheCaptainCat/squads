@@ -12,18 +12,19 @@ description: Padding stored in index, single formatter, exhaustion guard, repair
 subentities:
 - local_id: F1
   title: _renumber_plan emits DEFAULT-width IDs, ignoring db.padding (_maintenance.py:246)
-  status: Open
+  status: Verified
   severity: low
 - local_id: F2
   title: repair's filename-recompute arm (max stored_floor/filename_width) is untested
-  status: Open
+  status: Deferred
   severity: low
+  deferred_to: TASK-1149
 - local_id: F3
   title: Dead/redundant code in the repair padding computation
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-06-14T21:18:09Z'
-updated_at: '2026-06-15T08:03:07Z'
+updated_at: '2026-10-25T19:58:34Z'
 ---
 <!-- sq:body -->
 Review of TASK-101 (foundation of FEAT-27, explicit ID padding). Changes reviewed in the working tree (uncommitted).
@@ -55,6 +56,8 @@ _Add with `sq review 105 add-finding "…" --severity high`; track with `sq revi
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:22Z] `reviewer` Paul Reviewer:
+  - Holds: _renumber_plan takes padding and passes it to format_item_id (_services/_maintenance.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -70,6 +73,8 @@ No test exercises the filename-recompute arm of repair's `max(stored_floor, max_
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:22Z] `reviewer` Paul Reviewer:
+  - Still untested: no test puts a wider filename under a lower stored floor and asserts repair raises padding; kept as a test-gap note.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -85,6 +90,8 @@ Dead/redundant code in the repair padding computation. `src/squads/_services/_ma
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:38:22Z] `reviewer` Paul Reviewer:
+  - Holds: repair sets db.padding = max(previous_padding, max_filename_width) with no dead guard (_services/_maintenance.py).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 <!-- sq:findings:end -->

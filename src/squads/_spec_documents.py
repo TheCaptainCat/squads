@@ -15,7 +15,7 @@ from squads._interactions._playbook import get_playbook_spec
 from squads._roles._catalog import get_catalog
 from squads._roles._loader import ROLES_OVERRIDE_FILENAME, load_role_catalog
 from squads._roles._models import CatalogSource, RoleCatalogSpec
-from squads._specload import Lazy, OverrideFiles
+from squads._specload import Lazy, OverrideFiles, override_present
 from squads._workflow import _loader as workflow_loader
 from squads._workflow import bundled_spec
 from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
@@ -55,14 +55,14 @@ def spec_sources(squad_dir: Path) -> SpecSources:
 def resolve_workflow(squad_dir: Path, files: OverrideFiles | None = None) -> WorkflowSpec:
     """The squad's workflow spec, without the index check: the bundled one unless the project
     overrides it."""
-    if not (squad_dir / WORKFLOW_OVERRIDE_FILENAME).is_file():
+    if not override_present(squad_dir / WORKFLOW_OVERRIDE_FILENAME):
         return bundled_spec()
     return workflow_loader.load_workflow_spec(squad_dir, files)
 
 
 def resolve_catalog(squad_dir: Path, files: OverrideFiles | None = None) -> RoleCatalogSpec:
     """The squad's role catalog: the bundled one unless the project overrides it."""
-    if not (squad_dir / ROLES_OVERRIDE_FILENAME).is_file():
+    if not override_present(squad_dir / ROLES_OVERRIDE_FILENAME):
         return get_catalog()
     return load_role_catalog(squad_dir, files)
 
@@ -78,7 +78,7 @@ def resolve_playbook(
     The bundled playbook is returned as it is only when *spec* is the bundled spec and the
     squad has no playbook override, since coverage is checked against *spec*.
     """
-    if spec is bundled_spec() and not (squad_dir / PLAYBOOK_OVERRIDE_FILENAME).is_file():
+    if spec is bundled_spec() and not override_present(squad_dir / PLAYBOOK_OVERRIDE_FILENAME):
         return get_playbook_spec()
     try:
         return load_playbook(

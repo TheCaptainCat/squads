@@ -10,14 +10,14 @@ refs:
 subentities:
 - local_id: F1
   title: New-slug admission checks key presence only, not non-emptiness
-  status: Open
+  status: Verified
   severity: low
 - local_id: F2
   title: 'RoleDef frozen dataclass: scalar override values not type-validated'
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-06-12T21:32:57Z'
-updated_at: '2026-06-23T09:59:41Z'
+updated_at: '2026-10-25T19:39:45Z'
 ---
 <!-- sq:body -->
 Review of TASK-88 (role override resolver) under FEAT-14, against ADR-85 §2 (field-wise merge by slug, project→bundled) and §4 (slugs canonical, non-renamable).
@@ -49,6 +49,8 @@ New-slug admission checks key presence only, not non-emptiness. A TOML with requ
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:45Z] `reviewer` Paul Reviewer:
+  - Holds: _apply_override runs _refuse_blank_strings after validation (_roles/_resolver.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -62,6 +64,8 @@ RoleDef is a frozen dataclass, so scalar override values are not type-validated.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:39:45Z] `reviewer` Paul Reviewer:
+  - Holds: the merged override is validated with RoleSpec.model_validate (_roles/_resolver.py).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 <!-- sq:findings:end -->

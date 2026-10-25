@@ -10,10 +10,11 @@ refs:
 subentities:
 - local_id: F1
   title: Human table renders whole orders as floats (10.0)
-  status: Open
+  status: Deferred
   severity: low
+  deferred_to: TASK-1146
 created_at: '2026-07-17T15:46:31Z'
-updated_at: '2026-07-17T15:49:02Z'
+updated_at: '2026-10-25T19:58:28Z'
 ---
 <!-- sq:body -->
 Independent review of TASK-450 — the new frozen `sq workflow types` type-catalog surface, against Accepted ADR-459. Scope: src/squads/_cli/_workflow_cmd.py, tests/goldens/workflow_types.json, tests/cli/test_workflow_types_cli.py, tests/cli/test_json_output_shape.py, CHANGELOG.md. (_workflow/_models.py not touched — order/is_meta already existed.)
@@ -50,6 +51,8 @@ The human Rich table prints ItemSpec.order (a float) via str(), so whole values 
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:20Z] `reviewer` Paul Reviewer:
+  - Still true: the human types table prints str(order), so 10.0 (_cli/_workflow_cmd.py); kept as a cosmetic note.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 <!-- sq:findings:end -->

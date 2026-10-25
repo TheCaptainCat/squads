@@ -3,14 +3,14 @@ id: ADR-167
 sequence_id: 167
 type: decision
 title: Advisory 120-char threshold for sub-entity titles
-status: Accepted
+status: Superseded
 author: architect
 refs:
 - FEAT-166
 description: Warn-and-proceed above 120 chars on finding/subtask/story titles; no
   body gating
 created_at: '2026-06-23T08:26:01Z'
-updated_at: '2026-06-23T13:56:48Z'
+updated_at: '2026-10-25T21:36:52Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -80,4 +80,6 @@ Advisory register — names the fix with real IDs, does not scold:
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-25T21:36:52Z] `architect` Robert Architect:
+  - Superseded 2026-10-25 by ADR-864. It moved the sub-entity title check to an opt-in, per-type `subentity_title_max:<n>` validator with a declared threshold. This decision ruled a fixed constant on every squad. Body left as written.
 <!-- sq:discussion:end -->

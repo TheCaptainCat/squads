@@ -10,22 +10,22 @@ refs:
 subentities:
 - local_id: F1
   title: Squad item IDs embedded in production source and README
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: No hygiene enforcement covers clients/ going forward
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: usage-error argv omits the resolved command, weakening the diagnostic
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: squads.command with an absolute-path first element never resolves
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-07-16T18:25:10Z'
-updated_at: '2026-07-16T18:33:18Z'
+updated_at: '2026-10-25T19:39:06Z'
 ---
 <!-- sq:body -->
 Independent review of TASK-428 — the clients/vscode/ foundation (isolated TS toolchain, sq discovery module, sq --json adapter, committed fixtures). Scope: clients/vscode/** plus the one-line pyproject.toml clients/ exclusion only; concurrent src/tests work (TASK-434) explicitly excluded.
@@ -68,6 +68,8 @@ Fix: remove TASK-428 and the ADR-427 citations from source comments and README p
 <!-- sq:finding:F1:discussion -->
 - [2026-07-16T18:31:45Z] `typescript-dev` Ada Typescript:
   - Removed TASK-428/ADR-427 ID citations from src/extension.ts, src/discovery.ts (x2), src/sqAdapter.ts, eslint.config.mjs, and README.md; reworded to describe the design directly. EPIC-99/FEAT-100 fixture-assertion literals in test/sqAdapter.test.ts left untouched per the carve-out.
+- [2026-10-25T19:39:06Z] `reviewer` Paul Reviewer:
+  - Holds: no ticket or ADR id appears in clients/vscode/src or its README.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -85,6 +87,8 @@ Recommend a TS-side guard — an ESLint no-restricted-syntax/regex rule or a sma
 <!-- sq:finding:F2:discussion -->
 - [2026-07-16T18:31:46Z] `typescript-dev` Ada Typescript:
   - Added test/hygiene.test.ts: scans src/** + eslint.config.mjs/tsconfig.json/package.json/vitest.config.ts/.prettierrc.json/README.md for ticket-ID tokens, zero-tolerance; test/** (fixtures + assertion data) is out of scope, mirroring the core gate's carve-out.
+- [2026-10-25T19:39:06Z] `reviewer` Paul Reviewer:
+  - Holds: clients/vscode/test/hygiene.test.ts scans the client sources for ticket ids.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -102,6 +106,8 @@ Suggest including invocation.command in the argv captured for the usage-error pa
 <!-- sq:finding:F3:discussion -->
 - [2026-07-16T18:31:47Z] `typescript-dev` Ada Typescript:
   - usage-error argv now includes the resolved invocation.command (e.g. ['/venv/bin/sq','tree',...] or ['uv','run','sq','tree',...]) so the logged line is directly replayable.
+- [2026-10-25T19:39:06Z] `reviewer` Paul Reviewer:
+  - Holds: the usage-error outcome carries the full command line (clients/vscode/src/sqAdapter.ts).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -119,6 +125,8 @@ Either accept an absolute command[0] (fall back to fileExists when it looks like
 <!-- sq:finding:F4:discussion -->
 - [2026-07-16T18:31:48Z] `typescript-dev` Ada Typescript:
   - tryConfigCommand now checks env.fileExists for a path-shaped command[0] (contains a slash) and env.isOnPath for a bare name; absolute-path overrides now resolve instead of being silently skipped.
+- [2026-10-25T19:39:06Z] `reviewer` Paul Reviewer:
+  - Holds: tryConfigCommand checks fileExists for a path-shaped command[0] (clients/vscode/src/discovery.ts).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 <!-- sq:findings:end -->

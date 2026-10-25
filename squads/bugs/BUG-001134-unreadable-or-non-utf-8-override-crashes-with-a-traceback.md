@@ -3,14 +3,14 @@ id: BUG-1134
 sequence_id: 1134
 type: bug
 title: Unreadable or non-UTF-8 override crashes with a traceback
-status: Open
+status: Verified
 parent: MILE-1051
 author: qa
 priority: medium
 refs:
 - REV-1133
 created_at: '2026-10-25T05:10:06Z'
-updated_at: '2026-10-25T05:10:06Z'
+updated_at: '2026-10-25T19:52:02Z'
 ---
 <!-- sq:body -->
 Expected: an unreadable or non-UTF-8 override file is reported as a clean SquadsError (message plus exit 1, same wording family as the existing unreadable-override error that `sq role list` already gives), never a Rich traceback.
@@ -33,4 +33,6 @@ Severity: medium. Predates the module-split refactor (identical output before an
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-25T19:51:59Z] `qa` Mara Tester:
+  - Verified on sq 0.17.0 in scratch squads. roles.toml mode 0 and \xff\xfe: sq check gives an error line (cannot read / not valid UTF-8), no traceback; sq role list exit 1. workflow.toml \xff\xfe: sq workflow lint lists a not-UTF-8 row, sq list and sq check give one clean error naming the file, no codec dump; mode 0 gives a cannot-read error. playbook.toml \xff\xfe and mode 0: sq list exit 1 with a clean error, sq check reports it. Neighbours: invalid-UTF-8 bytes after a TOML header ([x then \xc3\x28) is clean; removing the file restores sq list (exit 0). Zero Tracebacks in every run.
 <!-- sq:discussion:end -->

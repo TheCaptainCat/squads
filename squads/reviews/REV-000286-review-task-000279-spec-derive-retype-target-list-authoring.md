@@ -10,14 +10,14 @@ refs:
 subentities:
 - local_id: F1
   title: Jinja capitalize lowercases acronym role titles (cosmetic)
-  status: Open
+  status: Verified
   severity: low
 - local_id: F2
   title: Jinja capitalize lowercases acronym role titles (cosmetic)
   status: WontFix
   severity: low
 created_at: '2026-07-02T12:54:27Z'
-updated_at: '2026-07-02T12:55:57Z'
+updated_at: '2026-10-25T19:38:54Z'
 ---
 <!-- sq:body -->
 Independent review of TASK-279 (final FEAT-211 task), read-only against the working tree diff vs `a4b4aa8` plus new `tests/test_workflow_authoring_prose.py`.
@@ -53,6 +53,8 @@ workflow.md.j2 renders the owner role title through Jinja's `| capitalize`, whic
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:54Z] `reviewer` Paul Reviewer:
+  - Resolved: no bundled template uses the capitalize filter any more (_rendering/templates/).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 

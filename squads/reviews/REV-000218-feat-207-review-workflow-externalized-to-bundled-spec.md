@@ -13,10 +13,10 @@ refs:
 subentities:
 - local_id: F1
   title: Loader does not enforce Status-enum completeness (ADR 5-6 partial)
-  status: Open
+  status: WontFix
   severity: low
 created_at: '2026-06-25T14:52:56Z'
-updated_at: '2026-06-25T15:17:07Z'
+updated_at: '2026-10-25T19:38:41Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -90,6 +90,8 @@ Why it still matters: F3 introduces project overrides that will run THIS validat
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:41Z] `reviewer` Paul Reviewer:
+  - Obsolete: the Status enum is gone and the spec is the sole status authority, so there is no enum to be complete against.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 <!-- sq:findings:end -->

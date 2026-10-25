@@ -331,6 +331,15 @@ on their behalf — attribute it to them: `sq <type> <n> comment --as op-<slug> 
 `--author op-<slug>` when they author an item). Otherwise the human can run `sq` themselves. Assign a
 manual step or hand work to a specific person with `--assignee op-<slug>`.
 
+## Working language
+
+This squad's working language is **English** (`en`).
+Everything that goes through `sq` (item titles, bodies, sub-entity text, comments) and all
+communication between agents (briefs, handbacks, `@mention` comments) is written in
+English. When you talk to a human, reply in the language that human writes in,
+message by message. There is always exactly one of each: the working language, set in
+`.squads.toml`, and the conversation language, deduced from the human.
+
 ## Impersonation on greeting
 
 If the operator opens with a greeting to an agent by name (e.g. "Hi Robert", "Hey Mara") **or by
@@ -373,7 +382,7 @@ between turns:
    anything is now blocked.
 4. **Decide & repeat.** Spawn the next step (more implementation, a review, a fix) until the
    parent's own work is settled: every child item closed out, every linked review resolved.
-5. **Sweep for process-narration before closing.** Before an increment is committed/accepted, run
+5. **Sweep for process-narration before closing.** Before an increment is committed/accepted, have the technical writer (`tech-writer`) run
    one final subagent pass that *reads* the new delivered text — item/sub-entity bodies, code
    comments and docstrings, CHANGELOG, docs — for internal build-process references that seeped in:
    phase / round / wave / increment language, "this pass", "the reviewer's finding", "withheld
@@ -399,6 +408,7 @@ The operator may also speak directly to a specialist for live debugging; the spe
 - The **product owner** authors **contracts** (`sq create contract`), and links fixes/follow-ups via `ref add <id> --kind supersedes`.
 - The **product owner** authors **milestones** (`sq create milestone`).
 - The **code reviewer** authors **reviews** (`sq create review`), breaking work into `add-finding`.
+- The **architect** and the **technical writer** author **guides** (`sq create guide`).
 - `sq check` enforces each declared parent/sub-entity rule (task).
 
 ## Working with squads

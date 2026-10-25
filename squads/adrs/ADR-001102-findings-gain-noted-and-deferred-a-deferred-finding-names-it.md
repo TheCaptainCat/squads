@@ -10,7 +10,7 @@ refs:
 description: Open gains terminal Noted (done role) and Deferred (new deferred role);
   Deferred stores a deferred_to item pointer that sq check verifies
 created_at: '2026-10-24T09:45:21Z'
-updated_at: '2026-10-25T11:30:51Z'
+updated_at: '2026-10-25T21:41:25Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -124,4 +124,6 @@ The loader refuses a spec in which an item lifecycle reaches a status whose role
   - 2026-10-25: amended for REV-1129 F1 on the op-pierre ruling (option b). The "No migration" clause is replaced by a schema bump to 0.17 with a no-op runner (`_v0_16_to_v0_17.py`, release 0.17.0, 0.16 to 0.17, stamp only), plus the general rule: a new stored state an older release would refuse ships behind a schema bump. The older-release consequence is corrected to the measured behaviour, and "a schema bump" moves from rejected options to the decision, with "no bump plus a CHANGELOG warning" now the rejected one.
 - [2026-10-25T11:30:51Z] `architect` Robert Architect:
   - 2026-10-25: amended the runner clause for REV-1129 F9. The 0.16 to 0.17 runner is a plain no-op function, since a step with nothing to write has no contributions; a later 0.17 change that needs to write turns it into the contribution list then.
+- [2026-10-25T21:41:25Z] `architect` Robert Architect:
+  - Audited 2026-10-25: holds. workflow.toml declares Noted and Deferred as targets of Open with the deferred role, SCHEMA_VERSION is 0.17 and _v0_16_to_v0_17.py is the no-op runner.
 <!-- sq:discussion:end -->

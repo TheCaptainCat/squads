@@ -142,6 +142,9 @@ ALLOWLIST: dict[str, frozenset[str]] = {
             # three always-on skills, shared between the two writers that seed/backfill it
         }
     ),
+    "src/squads/_services/_check_rules.py": frozenset(
+        {"BINDING_RULES"}  # fixed rule -> source table for the non-catalog check rules
+    ),
     "src/squads/_services/_validators.py": frozenset(
         {
             "CATALOG",  # closed per-item validator catalog — definition-time, empty in Phase A

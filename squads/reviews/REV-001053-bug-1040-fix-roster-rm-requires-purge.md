@@ -10,26 +10,26 @@ refs:
 subentities:
 - local_id: F1
   title: Docs and changelog still describe plain rm
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: Help epilogues still show plain rm examples
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: Refusal always suggests status Archived
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: New test misses pointer and service coverage
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: Purge skips the archive gate and reflog
   status: WontFix
   severity: low
 created_at: '2026-10-16T11:34:00Z'
-updated_at: '2026-10-16T12:35:05Z'
+updated_at: '2026-10-25T19:34:50Z'
 ---
 <!-- sq:body -->
 Scope: the roster `rm` guard on branch `worktree-agent-adaaa829aeaea66dd` (commit d3a7da9d) and the pytest `tmp_path_retention_count = 1` setting (commit 3f555de7), against the 2026-10-16 ruling that a plain `rm` refuses and says exactly what to run.
@@ -74,6 +74,8 @@ Fix: the writer updates those lines to `rm --purge` (delete) / `status Archived`
 <!-- sq:finding:F1:discussion -->
 - [2026-10-16T12:34:12Z] `tech-writer` Theo Writer:
   - Fixed, uncommitted. roles.md: the three command blocks now show rm --purge. The "rm drops the index entry but leaves the file" paragraph is gone. A new section, "Removing a roster entry", quotes the driven refusal and says the retire route is offered only while the entry is live. README: role/operator/skill lines show rm --purge, and the role line names the refusal. stability.md Tier 2: the example is now rm --purge, with a paragraph on the refusal. CHANGELOG [0.16.0] Changed has a BREAKING entry (exit 0 → exit 1, with the exact message).
+- [2026-10-25T19:34:50Z] `reviewer` Paul Reviewer:
+  - Holds: README.md, docs/roles.md and docs/stability.md show `remove --purge`; CHANGELOG 0.16 tells scripts to add `--purge`.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -93,6 +95,8 @@ Driven: `sq role --help` prints `sq role ROLE-1 rm`. Fix: add `--purge` to each 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:34:50Z] `reviewer` Paul Reviewer:
+  - Holds: `sq role --help` and `sq skill --help` examples read `remove --purge` (_cli/_role.py, _skill.py, _operator.py).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -112,6 +116,8 @@ Suggested: name the retire route only when the item is live, and resolve the tar
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:34:50Z] `reviewer` Paul Reviewer:
+  - Holds: tests/cli/test_roster_rm_requires_purge_cli.py::test_refusal_omits_the_archive_route_when_it_would_not_apply; the route comes from the lifecycle.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -131,6 +137,8 @@ Suggested: name the retire route only when the item is live, and resolve the tar
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:34:50Z] `reviewer` Paul Reviewer:
+  - Holds: the refusal test hashes the whole squad tree, and the purge test checks the pointer and roster line.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 

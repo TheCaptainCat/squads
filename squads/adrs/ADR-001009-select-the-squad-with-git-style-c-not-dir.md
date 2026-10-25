@@ -15,7 +15,7 @@ refs:
 description: -C runs sq as if started in PATH and walks up as ordinary use does; --dir
   is refused naming -C; the backwards inference goes away
 created_at: '2026-10-15T19:17:11Z'
-updated_at: '2026-10-15T20:17:28Z'
+updated_at: '2026-10-25T21:42:33Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -45,13 +45,12 @@ schema gate with a synthesised configuration stamped at the package's own schema
 - F27 and BUG-1008 (driven by the reviewer and QA): `sq init` never reads `--dir` and
   initialises the working directory.
 
-Each fix so far closed the shapes it was shown. The working tree now walks up from the `--dir`
-folder, accepts a configuration only when its root plus `squad_dir` resolves to that folder,
-refuses a folder that holds squad data with no configuration above it, and still synthesises a
-default configuration for a folder that holds none (`_paths.py:138-159`, read). That last
-branch means a mistyped `--dir` runs commands on a phantom squad (inferred from the code). The
-backwards inference is a second resolver beside the walk-up, and the gate is only as sound as
-the weaker of the two.
+Each fix closed the shapes it was shown. The last version walked up from the `--dir` folder,
+accepted a configuration only when its root plus `squad_dir` resolved to that folder, refused a
+folder that held squad data with no configuration above it, and still synthesised a default
+configuration for a folder that held none, so a mistyped `--dir` ran commands on a phantom squad
+(inferred from the code). The backwards inference was a second resolver beside the walk-up, and
+the gate is only as sound as the weaker of the two.
 
 **What the client does.** The VS Code extension never passes `--dir`. It spawns `sq` with the
 workspace root as the working directory (`processRunner.ts`, `execFile(..., { cwd })`) and
@@ -61,12 +60,11 @@ only `-C` in the client is the canary's `movesCwd`, which refuses a pinned `sq` 
 that moves the working directory (`test/canary/resolveSq.ts`, read). A pin of `sq -C <dir>` is
 refused there, which is correct under this decision.
 
-**What already exists to build on.** `resolve()` takes a `client_cwd`, the resolution base for
-the walk-up, documented as "the requesting client's working directory, not necessarily this
-process's", with a future server handler named as a caller (read). The root callback captures
-`Path.cwd()` into `RequestContext.client_cwd`, and every resolution site reads it from there:
-the gate (`apply_gate`), the version notice, `bind_active_spec`, `open_service`, and the
-`_role`, `_workflow_cmd` and `_main` call sites (read, by grep of `client_cwd`).
+**What it builds on.** `resolve()` takes a `client_cwd`, the resolution base for the walk-up,
+documented as "the requesting client's working directory, not necessarily this process's", with a
+server handler named as a caller. Every resolution site reads the base from
+`RequestContext.client_cwd`: the gate (`apply_gate`), `bind_active_spec`, `open_service`, and the
+`_role`, `_workflow_cmd` and `_main` call sites.
 
 ## Decision
 
@@ -102,8 +100,7 @@ the gate (`apply_gate`), the version notice, `bind_active_spec`, `open_service`,
   handler `client_cwd` was introduced for.
 - **Before the root callback.** Click resolves a subcommand name before it invokes the group
   callback, so the two pre-callback spec lookups (`resolve_spec_for_ctx` and
-  `_pending_spec_error`, which today read `ctx.params["dir"]`) call the same helper on
-  `ctx.params`. They must not read the bound context's `client_cwd` there: at that point it is
+  `_pending_spec_error`) call the same helper on `ctx.params`. They must not read the bound context's `client_cwd` there: at that point it is
   the previous invocation's (read). The root option's own callback runs while the root group's
   parameters are parsed, before `get_command` is called, and the parsed `-C` values are already
   in `ctx.params` inside `get_command` (driven, scratch Typer probe with a `TyperGroup`
@@ -112,8 +109,8 @@ the gate (`apply_gate`), the version notice, `bind_active_spec`, `open_service`,
   effective directory does not exist or is not a directory, naming the resolved path. Because
   it runs during parsing, the refusal comes before any command or custom-type lookup (driven,
   same probe: `-C /nonexistent widget` exits 2 on the `-C` message, not on "no such command").
-  A directory in no squad is what it is from that directory today: `NotInitializedError`, whose
-  message names the effective directory whenever `-C` was given.
+  A directory in no squad is what it is from that directory: `NotInitializedError`, whose message
+  names the effective directory whenever `-C` was given.
 - **`init` and `adopt`.** Both create at the effective directory: the root passed to the
   service is `client_cwd`, and the `[init.names]` read in `_cli/_main.py` uses the same root.
   `sq -C X init` creates `X/.squads.toml` and `X/squads/`, and `--squad-dir` names the folder
@@ -136,10 +133,7 @@ Removed from `_paths.py`: the `dir_override` parameter of `resolve()`, the confi
 check and its refusal, `_holds_squad_data` and its refusal, and the synthesised default
 configuration. `resolve()` is the walk-up from `client_cwd` and nothing else, with
 `client_cwd` defaulting to `Path.cwd()` for non-CLI callers. `open_service` loses
-`dir_override`; `RequestContext.active_dir` and `_common.set_active_dir` go. The F26 refusal
-TASK-954 lands is therefore temporary by design: it keeps 0.16 free of the bypass until this
-lands, and is deleted with the rest. Its CHANGELOG entry and the two docs/faq.md entries for its
-refusals are replaced, not amended, since neither was released.
+`dir_override`; there is no `RequestContext.active_dir` and no `_common.set_active_dir`.
 
 ### 5. Gate guarantee
 
@@ -147,8 +141,7 @@ The schema gate sees exactly the configuration it would see when run from the ef
 directory, because there is one resolver and one base: `apply_gate` resolves through
 `resolve(client_cwd=...)`, the same call as every command. No synthesised configuration exists
 any more, so no layout can produce a configuration stamped at the package's schema for a
-folder whose squad is behind (inferred from the code once section 4 lands; to be proven by the
-tests below).
+folder whose squad is behind.
 
 What proves it, beyond rows:
 
@@ -160,47 +153,19 @@ What proves it, beyond rows:
   The equality is the property; the rows in the gate table become its instances.
 - `-C` at the squad folder, at the project root and at a subfolder of the squad each gate a
   behind squad.
-- A guard (in `tests/meta`) that no squad-resolution call site reads `Path.cwd()`: the only
-  read is at the CLI edge, where the effective directory is computed.
+- A guard (in `tests/meta`) that the process directory is read at exactly two places and never
+  changed: the CLI's `effective_dir`, where the effective directory is computed, and
+  `_paths.process_dir`, the one default non-CLI callers share.
 - Falsify each: point the gate's `resolve` at the process directory and watch the
   differential test go red for every `-C` row.
 
-### 6. Docs, help text and other prose
+### 6. Help text
 
 Root help for `-C`: `Run as if sq was started in PATH (repeatable; relative to the previous
--C).`, metavar `PATH`. The 16 `--dir` mentions in adopter and contributor docs change (read,
-grep excluding `--direction`): README.md:168 and :287; docs/README.md:68; docs/faq.md:9, the
-two refusal entries at :12-19 (replaced by entries for the `-C` and `--dir` refusals), :99;
-docs/migration.md:63, plus a 0.16 upgrade note on the break; docs/internals.md:49, :62, :64,
-:380, :396; docs/overrides.md:2106. CHANGELOG: the unreleased `--dir` gate entry is replaced
-by a breaking-change entry for `-C`; released entries stay. Outside the docs: CLAUDE.md:37 and
-:102 (outside the managed region), GUIDE-79's CLI paragraph, the VS Code client's
-`squadDir.ts` doc comment, the `_errors.py` and `_index/_store.py` comments that name
-`--dir`, and the board notice on scratch squads that says "addressed with `--dir`". Six test
-files carry 16 `--dir` uses (read): the gate table, the hoist unit tests, and four others. No
-bundled template mentions `--dir` (read), so no bundled file needs to change.
-
-### 7. ADRs that need a dated note
-
-- **ADR-263**: its accepted option reads `--dir` from the Click context inside `get_command`;
-  the note says it reads the `-C` values through the shared helper, and that Option 2's
-  `--dir` pre-scan discussion is historical.
-- **ADR-622**: "`--dir` — the usual squad selector" becomes `-C`.
-- **ADR-534**: lists the resolved squad folder as a former global that became a context field;
-  the note says `active_dir` is removed and `client_cwd` carries the effective directory.
-- ADR-249, ADR-266 and ADR-153 name "the root `--dir` callback" only as a label for the root
-  callback. Its role is unchanged, so no note is needed.
-
-### 8. Build order
-
-This changes no bundled file and no schema, so the bump does not gate it. It must follow
-TASK-954, whose F26 refusal it deletes, and it touches `_paths.py`, `_cli/__init__.py`,
-`_cli/_common.py`, `_context.py`, `_services/_service.py`, `init` and `adopt` in
-`_cli/_main.py`, and the gate table, which FEAT-980 and the ADR-1007 flattening do not
-(inferred from their scope). It goes in the main stream right after TASK-954: TASK-954, this
-decision, FEAT-980, the bump, the ADR-1007 flattening, TASK-989, TASK-990, FEAT-976, FEAT-977,
-then FEAT-961 and FEAT-966. If the stream is busy, it can run in its own worktree beside
-FEAT-980 and merge before the bump. It has no feature or task yet.
+-C).`, metavar `PATH`. No bundled template mentions `--dir`. Where an older decision names "the
+root `--dir` callback", it means the root callback; ADR-263's lazy custom-type lookup reads the
+`-C` values through the shared helper, and `client_cwd` carries the effective directory
+(ADR-534).
 
 ## Consequences
 
@@ -223,8 +188,7 @@ FEAT-980 and merge before the bump. It has no feature or task yet.
   record: four review passes, each closing the shapes it was shown.
 - **Alias `--dir` to `-C`.** It would give the right squad for most in-tree layouts, but
   silently changes meaning where it does not: a folder outside its project tree, and a folder
-  that is not a squad, which today gets a synthesised squad and would then resolve an enclosing
-  one. Rejected, following ADR-1007.
+  that is not a squad, which got a synthesised squad and would then resolve an enclosing one. Rejected, following ADR-1007.
 - **Remove `--dir` with no refusal.** Click's "no such option" names neither `-C` nor why.
 - **`-C` names the project root, with no walk-up.** Considered and rejected, per the
   operator's correction of 2026-10-15T19:16:53Z on MILE-934. It would still be a resolver
@@ -255,4 +219,6 @@ FEAT-980 and merge before the bump. It has no feature or task yet.
   - @manager Dated notes are added for all three ADRs in section 7, each as "Note 2026-10-15 (ADR-1009)" at the affected passage, and each has a related ref back to this record: ADR-263 (after the Recommendation; get_command reads the parsed -C values through the shared helper, and the --dir discussion in Options 1 and 2 is historical), ADR-622 (the CLI surface's --dir bullet becomes -C before the command), ADR-534 (after the section 1 inventory; active_dir and set_active_dir are removed, and client_cwd carries the effective directory).
     None was skipped. ADR-249, ADR-266 and ADR-153 got nothing, as section 7 says.
     Every diff against HEAD is additions only, apart from the updated_at the body verb stamps. No status changed, no stray content tags, and sq check is clean.
+- [2026-10-25T21:42:33Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale passages fixed; decision unchanged. Removed the TASK-954 temporary-refusal clause and the docs/ADR-note/build-order sections (done); the guard is stated as built (two sanctioned process-directory reads).
 <!-- sq:discussion:end -->

@@ -12,19 +12,19 @@ description: 'Feature-level review of memory (TASK-402/379/380): committed .inde
 subentities:
 - local_id: F1
   title: 'US5.2 violated: two distinct memory adds conflict on the committed .index.jsonl'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: index GENERATED_STAMP promises 'sq sync' regeneration that does not exist
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: US5 merge/branch behavior has no test — only the off-counter/repair-neutral
     point is asserted
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-07-15T08:50:38Z'
-updated_at: '2026-07-15T10:20:49Z'
+updated_at: '2026-10-25T19:39:02Z'
 ---
 <!-- sq:body -->
 Feature-level review of agent memory (FEAT-315) across TASK-402 (storage/generator), TASK-403 (CLI), TASK-404 (boot-surfacing) as committed on release/0.9. Code is clean at the seam level — the sq memory CLI, the MemoryMixin service, and the backend-neutral boot-surfacing (invariant #6) are all sound. Two real defects found by ground-truth git/sync verification that the current tests do not exercise; findings below.
@@ -54,6 +54,8 @@ Options: (a) gitignore .index.jsonl and rebuild it on sync + read fresh from the
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:02Z] `reviewer` Paul Reviewer:
+  - Resolved: the committed .index.jsonl is gone from the memory store (src/squads/_memory/), so distinct adds touch only their own .md.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -73,6 +75,8 @@ Impact: this violates the invariant #7 spirit (a generated file must truthfully 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:39:02Z] `reviewer` Paul Reviewer:
+  - Resolved: the index and its GENERATED_STAMP no longer exist in src/.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -92,6 +96,8 @@ Rest of the feature is well-covered: US1 (add/slug/frontmatter/no-counter), US3 
 <!-- sq:finding:F3:discussion -->
 - [2026-07-15T10:12:08Z] `qa` Mara Tester:
   - Closed by TASK-406: git-backed test proves distinct-branch adds merge .md cleanly / conflict the committed index / sq repair regenerates and resolves it; a separate test proves same-memory edits surface an honest .md conflict. See tests/integration/test_memory_git_merge_behavior.py. Also found + filed BUG-414: sq sync (unlike repair) currently crashes on a real conflict-marked index instead of regenerating it.
+- [2026-10-25T19:39:02Z] `reviewer` Paul Reviewer:
+  - Holds: tests/integration/test_memory_git_merge_behavior.py covers committed files, distinct-branch merges and same-memory conflicts.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 <!-- sq:findings:end -->

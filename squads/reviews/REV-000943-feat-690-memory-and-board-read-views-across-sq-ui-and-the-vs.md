@@ -10,34 +10,34 @@ refs:
 subentities:
 - local_id: F1
   title: sq ui attaches memory by slug, not item type
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: Extension memory count silently under-reports a degraded pool
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: Extension board panel goes blank when one notice is unreadable
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Memory panel title drops the role once the fetch succeeds
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: 'sq ui: a zero-memory identity renders as an empty expandable branch'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F6
   title: New memory show --json surface is undocumented
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: Memory bracket-safety is correct but untested
-  status: Fixed
+  status: Verified
   severity: info
 created_at: '2026-09-14T13:29:22Z'
-updated_at: '2026-09-15T12:42:19Z'
+updated_at: '2026-10-25T19:35:28Z'
 ---
 <!-- sq:body -->
 One batch review across the whole of FEAT-690 — both delivered halves together: the Python
@@ -156,6 +156,8 @@ one. The shape to add is the colliding slug, mirroring the TS test that already 
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:35:28Z] `reviewer` Paul Reviewer:
+  - Holds: _attach in _tui/_tree.py gates memory on _memory_eligible(node.item.type), not a slug lookup.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -199,6 +201,8 @@ currently nothing for it to assert.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:35:28Z] `reviewer` Paul Reviewer:
+  - Holds: the exit-4 omissions report reaches the extension as the partial "omitted" array (clients/vscode/src/sqAdapter.ts).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -241,6 +245,8 @@ exit code, not whether the panel should go blank.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:35:28Z] `reviewer` Paul Reviewer:
+  - Holds: board list now exits 4 with readable notices on stdout, which the adapter reads as a partial result.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -277,6 +283,8 @@ tab title is the part that stays visible when the panel is not focused.)
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:35:28Z] `reviewer` Paul Reviewer:
+  - Holds: itemPreviewManager.ts keeps memoryEntryPanelTitle(roleSlug, ...) on success.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -317,6 +325,8 @@ nothing, which is the opposite of a glance-level signal. Guard the `add` on
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-25T19:35:28Z] `reviewer` Paul Reviewer:
+  - Holds: _tui/_tree.py only adds a branch when there are children, entries or unreadable files, else add_leaf.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -351,6 +361,8 @@ being rediscovered at release: the changelog prose belongs to the tech writer, a
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-10-25T19:35:28Z] `reviewer` Paul Reviewer:
+  - Holds: docs/stability.md lists memory show --json; README.md and CHANGELOG.md describe both clients' memory/board views.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -390,6 +402,8 @@ the same one-line addition.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-10-25T19:35:28Z] `reviewer` Paul Reviewer:
+  - Holds: tests/tui/test_memory_view.py carries the bracket cases for the memory surfaces.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 <!-- sq:findings:end -->

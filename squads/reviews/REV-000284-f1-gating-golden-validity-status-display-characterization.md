@@ -11,12 +11,12 @@ refs:
 subentities:
 - local_id: F1
   title: Working tree violates 'green against HEAD' — rewire + tests uncommitted together
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: Golden extended in-tree with post-rewire custom-status tests that FAIL against
     HEAD
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F3
   title: sq inbox terminal-suppression not pinned (transitively guarded via spec.is_open)
@@ -25,10 +25,10 @@ subentities:
 - local_id: F4
   title: After rewire STATUS_EMOJI is no longer the badge source; ensure a golden
     pins the toml badges
-  status: Fixed
+  status: Verified
   severity: medium
 created_at: '2026-07-02T09:52:33Z'
-updated_at: '2026-07-06T15:18:56Z'
+updated_at: '2026-10-25T19:38:52Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -87,6 +87,8 @@ Fix: commit the golden by itself (or confirm it already is — it is, at 495fc95
 <!-- sq:finding:F1:discussion -->
 - [2026-07-02T10:07:56Z] `reviewer` Paul Reviewer:
   - Fixed. Re-review of the TASK-276 working-tree change (git diff 495fc95) confirms the golden and the rewire are now cleanly separable: tests/test_status_display_characterization.py is byte-identical to HEAD (git diff 495fc95 on that path is empty) and the 5 forward-looking custom-status tests live in their own module tests/test_custom_status_badges.py. The gate is literally green-against-HEAD; the change under review is self-contained. F1's tree-contamination concern no longer applies.
+- [2026-10-25T19:38:52Z] `reviewer` Paul Reviewer:
+  - Holds: the baseline and the rewire landed apart, and the drift guard lives on its own in tests/unit/test_status_badge_glyphs.py.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -106,6 +108,8 @@ Fix: keep the 5 custom-status tests as part of TASK-276's deliverable, committed
 <!-- sq:finding:F2:discussion -->
 - [2026-07-02T10:07:57Z] `reviewer` Paul Reviewer:
   - Fixed. The 5 post-rewire assertions (TestCustomStatusBadgeResolvesThroughSpec) were moved out of the HEAD-pinned characterization golden into a standalone module tests/test_custom_status_badges.py, whose docstring explicitly states it holds the *new* behavior, not the built-in baseline. Baseline and acceptance are now distinct concerns as required.
+- [2026-10-25T19:38:52Z] `reviewer` Paul Reviewer:
+  - Holds: the custom-status assertions sit outside the baseline golden, which pins only the built-in glyphs (tests/unit/test_status_badge_glyphs.py).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -158,6 +162,8 @@ This keeps one source of truth for behaviour (the spec/toml) and moves the drift
   - Reopened (Open, not Fixed). op-pierre reviewed the mid-loop STATUS_EMOJI resolution and it does not hold. Two required changes now in the finding body: (1) remove the 'FEAT-211 / TASK-276' sq IDs from the src/squads/_models/_enums.py docstring — sq IDs must not appear in source; (2) delete STATUS_EMOJI from _enums.py entirely and move the 9-glyph golden into the test layer (shared test constant), repointing test_workflow_spec.py and test_status_display_characterization.py to import it. A dead production dict kept only as a test oracle should not ship. @python-dev @tech-lead
 - [2026-07-03T09:18:32Z] `reviewer` Paul Reviewer:
   - Fixed in commit 054af14. Independently verified in the current tree: (1) STATUS_EMOJI is deleted from src (the 054af14 diff removes the whole 9-glyph dict from _models/_enums.py; grep across src/ is clean) — the FEAT-211/TASK-276 IDs it carried are gone with it; (2) the 9-glyph golden is relocated to tests/_helpers.py::EXPECTED_BUILTIN_STATUS_BADGES (byte-identical glyphs) with both consumers repointed — test_workflow_spec.py::test_golden_status_badges asserts spec.badge against it, and test_status_display_characterization.py imports it for the domain guard + glyph checks. Behaviour source of truth stays the spec/TOML; the drift oracle now lives in the test layer.
+- [2026-10-25T19:38:52Z] `reviewer` Paul Reviewer:
+  - Holds: STATUS_EMOJI is gone from src/; the oracle is tests/_helpers.py EXPECTED_BUILTIN_STATUS_BADGES.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 <!-- sq:findings:end -->

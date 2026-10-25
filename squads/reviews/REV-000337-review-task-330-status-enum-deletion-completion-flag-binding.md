@@ -10,19 +10,19 @@ refs:
 subentities:
 - local_id: F1
   title: No automated test for the completion-count spec-load validation
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: completion decoupled from terminal deviates from Accepted ADR-322 §5 wording
     — needs architect sign-off
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: Global-per-status-name completion flag reuses terminal's shared-name coupling
   status: WontFix
   severity: low
 created_at: '2026-07-08T15:11:40Z'
-updated_at: '2026-07-13T09:25:40Z'
+updated_at: '2026-10-25T19:38:59Z'
 ---
 <!-- sq:body -->
 Independent review of the uncommitted TASK-330 working tree (Status-enum deletion + completion-flag machine binding) on release/0.8. READ-ONLY.
@@ -56,6 +56,8 @@ Fix: add negative tests (a spec with 0 and with 2+ completion statuses on a sub-
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:59Z] `reviewer` Paul Reviewer:
+  - Holds: tests/unit/test_subentity_kind_spec_fail_closed_validation.py drives the completion-status check.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -75,6 +77,8 @@ This is a contract-level divergence from an Accepted ADR that is part of the 1.0
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:59Z] `reviewer` Paul Reviewer:
+  - Settled by ADR-348 §2: completion is a per-kind field within the kind's machine, independent of settled (_workflow/_models.py).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 

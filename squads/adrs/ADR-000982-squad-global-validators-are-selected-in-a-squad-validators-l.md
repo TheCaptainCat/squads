@@ -15,7 +15,7 @@ refs:
 description: Where a squad names, levels and parameterises a squad-global validator,
   and which members stay always-on.
 created_at: '2026-10-09T18:25:28Z'
-updated_at: '2026-10-12T06:23:21Z'
+updated_at: '2026-10-25T21:42:29Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -32,7 +32,7 @@ ADR-864 then admitted five squad-global members that are policies rather than de
 that selection. Its one sentence on the shape of a selection ("a level suffix on the assignment
 ... or a per-type map") is about a type's list.
 
-What the code holds, all **read**:
+What the code held when this was decided, all **read**:
 
 - The workflow document's top-level key space is closed at eight sections
   (`WORKFLOW_TOP_LEVEL_SECTIONS`, `_workflow/_loader.py`), none of which is squad-scoped, and
@@ -78,19 +78,23 @@ An entry is `name`, `name:param`, `name@level` or `name:param@level`, split by t
 `parse_validator_entry` a type's list uses. There is no second spelling, no per-member table and
 no map form.
 
-### 3. Two tiers at squad scope, declared as a partition
+### 3. Two placements at squad scope, declared as a partition
 
-ADR-864's tiering test applies unchanged, with one tier fewer because no category exists at this
-scope:
+ADR-864's placement test applies unchanged, with one placement fewer because no category exists
+at this scope:
 
-- **Always-on.** A defect in every squad. The five members that exist today. Held in a code
-  constant, the squad-scope counterpart of `COMMON_CORE`, so no override reaches it and ADR-541's
-  "cannot deselect" clause keeps holding for exactly these.
-- **Selectable.** A policy. Effective only when `[squad].validators` names it. The five members
-  ADR-864 admits.
+- **Always on.** A defect in every squad. Held in a code constant
+  (`ALWAYS_ON_SQUAD_GLOBAL_NAMES`), the squad-scope counterpart of `COMMON_CORE`, so no override
+  reaches it and ADR-541's "cannot deselect" clause keeps holding for exactly these:
+  `index_reconciled`, `backend_reconciled`, `roster_config_integrity`,
+  `default_designation_duplicated`, `roster_slug_valid`, `playbook_guide_role_live`,
+  `display_config_valid`, `working_language_valid`, `view_transform_resolves`.
+- **Selectable.** A policy. Effective only when `[squad].validators` names it
+  (`SELECTABLE_SQUAD_GLOBAL_NAMES`): `children_settled_with_parent`, `dependency_acyclic`,
+  `wip_limit:<n>`, `unassigned_active:<n>`, `stale_active:<days>`, `type_has_live_author`.
 
 The two sets are disjoint, their union is the squad-global name catalog, and an import-time
-assert closes it, so a new member cannot be added without stating its tier. The squad-global and
+assert closes it, so a new member cannot be added without stating its placement. The squad-global and
 per-item catalogs are disjoint as well, asserted the same way: one name, one rule.
 
 A squad's effective set is the always-on members followed by its selection in declared order.
@@ -101,32 +105,24 @@ Each is a spec-load refusal naming the entry, reported by `sq workflow lint` wit
 
 1. The bare name must be a selectable squad-global member. A per-item name is refused with a
    message saying it belongs on a type's `validators` list, and a squad-global name on a type's
-   list is refused with the reciprocal message, in place of today's "unknown validator".
+   list is refused with the reciprocal message, never with a bare "unknown validator".
 2. An always-on member is refused: it runs regardless and has nothing to select. Naming one is
    an entry that would load clean and do nothing.
 3. A parameter is refused on a member that takes none and required on one that does:
    `wip_limit:<n>` and `stale_active:<days>` take a positive integer, `unassigned_active:<n>` a
    non-negative one.
-4. A level must be `error` or `warn`. None of the five selectable members holds a level floor.
+4. A level must be `error` or `warn`. No selectable member holds a level floor.
 5. A bare name appears at most once. Every parameterised member here resolves one value, so two
    entries of one name are refused whatever their parameters.
+6. A selection the spec's own declarations make unable to fire is refused: `wip_limit`,
+   `unassigned_active` or `stale_active` when no `work`-category type's lifecycle holds a live
+   status, and `dependency_acyclic` when no ref kind declares the dependency role.
 
-> **Amended 2026-10-12 (ADR-864, amendment of the same date):** two additions.
->
-> - **What the members count.** For `wip_limit`, `unassigned_active` and `stale_active` an
->   active item is an item of a `work`-category type whose status's role declares
->   `live = true`; for `children_settled_with_parent`, settled is the role's `settled` flag. No
->   role is matched by name. Roster and `records` types are not counted as active: the bundled
->   `Active` status is live and is where every role, skill, operator and contract rests.
-> - **A sixth check.** A selection the spec's own declarations make unable to fire is refused:
->   `wip_limit`, `unassigned_active` or `stale_active` when no `work`-category type's lifecycle
->   holds a live status, and `dependency_acyclic` when no ref kind declares the dependency
->   role.
-
-> **Confirmed 2026-10-12 (op-pierre, this decision's discussion):** both additions stand as
-> written. The amendment of ADR-864 they follow was corrected the same day on a point no member
-> at this scope reads: blocked is a `blocked` flag a role declares, not a role named by a
-> parameter.
+**What the members count.** For `wip_limit`, `unassigned_active` and `stale_active` an active item
+is an item of a `work`-category type whose status's role declares `live = true`; for
+`children_settled_with_parent`, settled is the role's `settled` flag. No role is matched by name.
+Roster and `records` types are not counted as active: the bundled `Active` status is live and is
+where every role, skill, operator and contract rests.
 
 ### 5. What a level means at this scope
 
@@ -164,11 +160,11 @@ arrives as an additive change.
 
 ### 8. Finding provenance
 
-- The new members are members of the existing squad-global catalog and are run by
-  `ValidatorEngine.report`. `sq check` gains no finding source.
+- The selectable members are members of the squad-global catalog and are run by
+  `ValidatorEngine.report`. They add no finding source to `sq check`.
 - Every finding a selected member emits belongs to exactly one catalog name, and that bare name
-  is the rule's identity: what a `rule` key on a check finding would carry if one is added. This
-  decision adds no such key and no member may be identified by matching message text.
+  is the rule's identity: the `rule` key a `sq check --json` finding carries. No member is
+  identified by matching message text.
 - The always-on/selectable partition of clause 3 is the declared answer to "can this finding be
   deselected" for this class.
 - A finding's `item` is an item id when it concerns exactly one item (the settled parent, the
@@ -177,10 +173,10 @@ arrives as an additive change.
 
 ## What this narrows
 
-- **ADR-541**, "they always run. An override cannot deselect them": true of the always-on tier,
+- **ADR-541**, "they always run. An override cannot deselect them": true of the always-on placement,
   no longer of the class.
 - **ADR-864**, the build order's fifth step: the members are unchanged; this supplies the
-  surface they are selected on and carries the tiering test to squad scope.
+  surface they are selected on and carries the placement test to squad scope.
 - **ADR-738**: `squad` is a typed record, not a declared map, so the one-catalog-per-map rule
   asks for no command. The selection stays unpublished on the same terms as a type's
   `validators` (its section 7).
@@ -224,4 +220,6 @@ arrives as an additive change.
     - It follows ADR-864's amendment of the same date; FEAT-902 has the story changes.
 - [2026-10-12T06:19:21Z] `op-pierre` Pierre Chat:
   - 2026-10-12: the note of this date stands for squad scope (an active item is a work-category item at a live status; a selection that cannot fire is refused at load), with one change from my ruling on ADR-864: blocked is a flag a role declares, not a role named by a parameter.
+- [2026-10-25T21:42:29Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale passages fixed; decision unchanged. Tier wording replaced by placement; the always-on and selectable sets listed as they stand (nine and six, with type_has_live_author); the 2026-10-12 amendment folded as check 6; section 8 now cites the rule key that sq check --json carries.
 <!-- sq:discussion:end -->

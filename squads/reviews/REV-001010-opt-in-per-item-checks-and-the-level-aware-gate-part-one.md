@@ -43,14 +43,15 @@ subentities:
   severity: medium
 - local_id: F8
   title: Missing body region crashes body -m; new test comment says otherwise
-  status: Fixed
+  status: Deferred
   severity: info
+  deferred_to: TASK-1149
 - local_id: F9
   title: Import sub-status with an unnormalised target skips board debt
   status: Verified
   severity: info
 created_at: '2026-10-15T19:25:04Z'
-updated_at: '2026-10-15T19:44:52Z'
+updated_at: '2026-10-25T19:58:31Z'
 ---
 <!-- sq:body -->
 Review of TASK-1001 part one: the gate change (ST11) and seven opt-in per-item checks (ST1 to ST5, ST7, ST8), with the selection proof (ST9) and the BUG-1003 fix in ST2. ST6 and ST10 are not built and are out of scope here.
@@ -264,6 +265,8 @@ _Add with `sq review 1010 add-finding "…" --severity medium`; track with `sq r
   - Test comment corrected to say the missing-region write ends in an unhandled KeyError. The crash itself is not fixed here; qa is filing it.
 - [2026-10-15T19:39:18Z] `reviewer` Paul Reviewer:
   - Pass 2, read: the test comment now states the unhandled KeyError. The crash has its home in BUG-1012. Closed for this task.
+- [2026-10-25T19:28:16Z] `reviewer` Paul Reviewer:
+  - Reopened: BUG-1012 now refuses with a SquadsError, so the _NOT_GUARDED comment in tests/service/test_body_written_reports_exactly_what_a_first_body_write_would_replace.py claiming a KeyError is false again; kept as a note, no carrier.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 

@@ -14,7 +14,7 @@ refs:
 description: 'REV-956 F14: no DI container; one composition function builds Service
   and loads each spec document once per invocation'
 created_at: '2026-10-24T21:58:58Z'
-updated_at: '2026-10-25T10:51:41Z'
+updated_at: '2026-10-25T21:41:31Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -83,4 +83,6 @@ A document may be resolved lazily, on first use, as TASK-1125 does for the role 
   - Ruling: option A, one composition function, no DI container (no soupape).
 - [2026-10-25T10:51:41Z] `architect` Robert Architect:
   - 2026-10-25: body rewritten to record the op-pierre ruling (option A, no container), with the soupape option kept as considered and rejected and the reopen trigger as a consequence. Added his acceptance rule from TASK-1123 as part of the decision: the composition root loads the workflow spec, the role catalog and the playbook exactly once per invocation on every path that uses them, defined per document as one parse of the packaged TOML, one read of the override, one build of each distinct model. Moved to Accepted. Measured today on release/0.17 HEAD the rule does not hold yet; counts are on TASK-1125.
+- [2026-10-25T21:41:31Z] `architect` Robert Architect:
+  - Audited 2026-10-25: holds. compose_service/build_service in _services/_service.py, the Mode table (it also has MIGRATE beside the four modes named here), the fallback tables and the literal backend registry; TASK-1125 is Done.
 <!-- sq:discussion:end -->

@@ -11,35 +11,35 @@ refs:
 subentities:
 - local_id: F1
   title: playbook applicability refuses the well-formed empty lane case
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: Attaching a role/playbook/self view to a type breaks show --json
-  status: Fixed
+  status: WontFix
   severity: high
 - local_id: F3
   title: Attached-view applicability is still only checked for subentity
-  status: Fixed
+  status: WontFix
   severity: high
 - local_id: F4
   title: The role resolver bypasses the degrade seam it claims to reuse
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F5
   title: 'A ref/subtree view --json claims children: [] for records that have children'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F6
   title: WorkflowSpec.is_delivered documents a delegation that does not exist
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: Stale prose describing the pre-per-source --json contract
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F8
   title: read_body resolves the whole roster off disk for every tagged body read
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F9
   title: Field grammar on a non-relation view is silently accepted and inert
@@ -47,14 +47,14 @@ subentities:
   severity: info
 - local_id: F10
   title: self --json spec identity reports file existence, not what resolved the view
-  status: Open
+  status: Verified
   severity: info
 - local_id: F11
   title: ViewsMixin repeats the resolve-a-view block three times
   status: Verified
   severity: info
 created_at: '2026-09-04T07:52:32Z'
-updated_at: '2026-09-24T09:57:43Z'
+updated_at: '2026-10-25T19:35:08Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -257,6 +257,8 @@ not through this predicate.
     re-aimed rather than deleted (it still sweeps every declared type on the bundled spec and on the
     synthetic add/drop override), so the rich/thin agreement is still held — just no longer through
     this predicate. That is the right disposition.
+- [2026-10-25T19:35:08Z] `reviewer` Paul Reviewer:
+  - Holds: _playbook_source_applies in _views.py returns None for every host; an unlaned type resolves lane=None.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -380,6 +382,8 @@ the safe stopgap if this is meant to wait for FEAT-904.
     
     Closing on the understanding that the legacy type-attached projection path stays alive
     deliberately until FEAT-904 deletes it. The refusal above is what makes that safe in the interim.
+- [2026-10-25T19:35:08Z] `reviewer` Paul Reviewer:
+  - Obsolete: the items.<type>.views attachment is retired and refused at load (_RETIRED_ITEM_VIEWS_KEY, _workflow/_loader.py).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -469,6 +473,8 @@ resting state.
 <!-- sq:finding:F3:discussion -->
 - [2026-09-04T08:56:04Z] `reviewer` Paul Reviewer:
   - Verified fixed at `6ba3072d` — one fix with F2; the driven repros, the control proving the new axis did not shadow the pre-existing `subentity` arm, and the falsification are all recorded on F2. The duplicated-wording half is resolved by `subentity_source_reason` as the single composition point.
+- [2026-10-25T19:35:08Z] `reviewer` Paul Reviewer:
+  - Obsolete: same retirement; no type-attached view remains for the applicability check to cover.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -589,6 +595,8 @@ divergence shipped with an agreement test in place.
     
     See the corollary ruling on the review's own discussion for the classification question this fix
     raised.
+- [2026-10-25T19:35:08Z] `reviewer` Paul Reviewer:
+  - Holds: _resolve_role_source in _views.py returns resolve_role_for_item, the degrading seam.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -700,6 +708,8 @@ than a mechanical edit.
     - **Three index loads per call.** `resolve_view_source` loads, `svc.blocked()` loads, and the new
       `child_map` loads a third time. Free under the CLI by the project's own stated pricing, and
       `sq tree --json` already pays two; worth knowing if `sq ui` ever routes through this.
+- [2026-10-25T19:35:08Z] `reviewer` Paul Reviewer:
+  - Holds: _view_json_child_rows in _cli/_workflow_cmd.py fills real children via children_by_parent.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -745,6 +755,8 @@ together.
 <!-- sq:finding:F6:discussion -->
 - [2026-09-04T08:57:03Z] `reviewer` Paul Reviewer:
   - Verified fixed at `6ba3072d` — **read**. `WorkflowSpec.is_delivered` now says `squads._views._is_delivered` "makes the identical comparison independently ... not a delegation (a private module function with no caller of its own would be dead code under pyright strict mode)" and names the pinning test. Both halves of the false sentence are gone, and the two docstrings now agree with each other and with the code. Grepped `delegates here` across `src/`: zero hits (pattern validated against a known positive).
+- [2026-10-25T19:35:08Z] `reviewer` Paul Reviewer:
+  - Holds: WorkflowSpec.is_delivered's docstring no longer claims a delegation.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -817,6 +829,8 @@ thing a reader of `_views.py` sees, and it currently sends them to the wrong fun
     lines across all 18 changed files returned one hit, a false positive ("this pr" matching inside
     "this predicate"). Pattern validated against a known positive. Reporting this once, as asked —
     not iterating.
+- [2026-10-25T19:35:08Z] `reviewer` Paul Reviewer:
+  - Holds: projection_json and the stale --json contract prose are gone from src.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -895,6 +909,8 @@ exist to keep visible.
     The overstated cost claim in `_views.py`'s module docstring is unchanged and is now true again:
     with the provider lazy, a `ref`/`subtree`/`subentity`/`role`/`self` tag really does cost "one
     already-loaded index plus an inversion/walk over it".
+- [2026-10-25T19:35:08Z] `reviewer` Paul Reviewer:
+  - Holds: RosterProvider (_views.py) defers the roster; only the playbook source forces it.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -987,6 +1003,8 @@ spec (a content hash of the override set would do it, and would cover all three 
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
+- [2026-10-25T19:35:08Z] `reviewer` Paul Reviewer:
+  - Done later: _spec_identity_json (_cli/_workflow_cmd.py) adds a merged-spec digest and calls override a display flag.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 

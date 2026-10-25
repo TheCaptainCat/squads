@@ -40,7 +40,7 @@ async def test_parent_in_flags_a_dangling_parent(svc):
     ctx = ValidatorContext(item=db.get(task.id), spec=svc.spec, index=db)
     issues = CATALOG["parent_in"](ctx)
     assert issues == [
-        type(issues[0])("error", task.id, "dangling parent FEAT-999999"),
+        type(issues[0])("error", task.id, "dangling parent FEAT-999999", "parent_in"),
     ]
 
 
@@ -93,7 +93,11 @@ async def test_item_status_valid_flags_an_unknown_status(svc):
     db.items[task.sequence_id].status = "NotAStatus"
     ctx = ValidatorContext(item=db.get(task.id), spec=svc.spec)
     issues = CATALOG["item_status_valid"](ctx)
-    assert issues == [type(issues[0])("error", task.id, "status 'NotAStatus' invalid for task")]
+    assert issues == [
+        type(issues[0])(
+            "error", task.id, "status 'NotAStatus' invalid for task", "item_status_valid"
+        )
+    ]
 
 
 # ------------------------------------------------------------------ dangling_ref / ref_kind_valid
@@ -105,7 +109,7 @@ async def test_dangling_ref_flags_an_unresolvable_target(svc):
     db.items[task.sequence_id].refs = ["BUG-999999"]
     ctx = ValidatorContext(item=db.get(task.id), spec=svc.spec, index=db)
     issues = CATALOG["dangling_ref"](ctx)
-    assert issues == [type(issues[0])("warn", task.id, "dangling ref BUG-999999")]
+    assert issues == [type(issues[0])("warn", task.id, "dangling ref BUG-999999", "dangling_ref")]
 
 
 async def test_ref_kind_valid_flags_an_unknown_kind(svc):

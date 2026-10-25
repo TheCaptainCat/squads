@@ -15,494 +15,116 @@ refs:
 - ADR-696
 - ADR-348
 created_at: '2026-07-07T09:37:31Z'
-updated_at: '2026-08-03T08:29:04Z'
+updated_at: '2026-10-25T21:16:20Z'
 ---
 <!-- sq:body -->
 ## Context
 
-The design intent for the config-driven workflow engine (EPIC-206) was **full vocabulary
-customization with no reserved names, except the three meta-types** `role`, `skill`, `operator` —
-which the engine depends on structurally because they model the team itself (agents and the humans
-who drive them). The seven **work-item** types (`epic`, `feature`, `task`, `bug`, `decision`,
-`review`, `guide`) were meant to be ordinary vocabulary a project could drop, rename, or re-prefix.
+The config-driven workflow engine (EPIC-206) promises full vocabulary customization with exactly
+one reserved surface: the three roster types `role`, `skill` and `operator`, which the engine
+depends on structurally because they model the team itself. The work-item types a squad ships
+with (`epic`, `feature`, `task`, `bug`, `decision`, `contract`, `milestone`, `review`, `guide`)
+are ordinary vocabulary a project may drop, rename or re-prefix.
 
-As shipped in 0.6.0 that intent is not met. Although `ADR-232`/`FEAT-208` already widened the model
-(`Item.type: str` and `Item.status: str` at `src/squads/_models/_item.py:100,105`,
-`WorkflowSpec.items: dict[str, ItemSpec]` at `_workflow/_models.py:415`), **both the `ItemType` and
-`Status` enums survived as the vocabulary backbone** — the closed sets the loader coerces spec keys
-into, the completeness floors spec validation checks against, the key type of the playbook, the
-source of the CLI's per-type command registration, and (for types) a duplicated hardcoded copy of
-every prefix/folder. All ten type members — the seven work types included — are therefore
-effectively reserved: a project spec can *add* custom types but can never **omit, rename, or
-re-prefix** a built-in. The `Status` enum is the same pattern on the status axis: the vocabulary is
-already fully declared in the spec's `[statuses.*]` / `StatusSpec`, yet a hardcoded `StrEnum` shadows
-it and is the closed set every status must belong to.
-
-**This ADR removes BOTH vocabulary enums** — `ItemType` and `Status` — so the loaded workflow spec is
-the sole vocabulary authority on both axes. The `Status` removal is the identical pattern designed
-below for `ItemType`; where a section is type-specific, the parallel status treatment is called out
-inline.
-
-### The vocabulary is already fully declared in the spec — and duplicated in code
-
-The bundled spec (then `src/squads/_workflow/default_workflow.toml`, now
-`src/squads/_specs/workflow.toml`) already declares `prefix`, `folder`, **and** the
-`is_meta` capability flag for **every** type — all ten `[items.*]` (lines 208–320), with
-`is_meta = false` for the seven work types and `is_meta = true` for `role`/`skill`/`operator`. The
-loader builds a `prefix → type` reverse index from `ts.prefix` (`_workflow/_loader.py`), and
-`WorkflowSpec` already exposes `work_types()` (`= {t for t,ts in items if not ts.is_meta}`) and
-`item_is_meta()`. The spec is already the complete source of truth for per-type vocabulary; every
-`ItemType`-based copy in code is duplication.
-
-### Where built-in vocabulary is still hardcoded today
-
-- **`src/squads/_models/_enums.py:13–23`** — the `ItemType` `StrEnum` enumerating all ten; its
-  `.prefix`/`.folder` properties (lines 26–33) read the maps below; `WORK_TYPES` (lines 37–45) and
-  `TYPE_ALIASES`.
-- **`src/squads/_models/_enums.py:48–78`** — the `Status` `StrEnum` enumerating all ~23 statuses
-  across every lifecycle (work, adr, review, guide, agent, sub-entity, finding). The spec already
-  declares each status in `[statuses.*]` (terminal flag + optional `badge`) and validates a
-  structural floor against it (`_workflow/_models.py:567` `_RESERVED_FLOOR`, already a
-  `frozenset[str]`), so the enum is a second, code-side copy of the same names.
-- **`src/squads/_models/_vocab.py`** — a **second, hardcoded copy** of the spec's data:
-  `RESERVED_PREFIX` (lines 37–48), `RESERVED_FOLDER` (lines 52–63), `RESERVED_TYPE_BY_PREFIX`
-  (line 67); `is_reserved()` (line 70) = "in `RESERVED_PREFIX`"; `prefix_for()`'s resolution order
-  (lines 78–79, 92–93) makes a reserved type **never overridable** — the map short-circuits before
-  the spec is read, so even a spec declaring `[items.task] prefix = "TCK"` still yields `"TASK"`.
-- **`src/squads/_workflow/_models.py:544–550`** — `WorkflowSpec._validate` requires the spec to
-  include **all** reserved `ItemType` members (`reserved_types = {t.value for t in ItemType}`, all
-  ten): *"may ADD but must never OMIT a reserved one."* Omitting `feature` fails load. The status
-  floor just below (lines 552–588) is already a narrower `frozenset[str]` rather than the full enum;
-  this ADR narrows it **further** — down to the agent lifecycle alone (Decision §5).
-- **`src/squads/_models/_item.py`** — the current `Item` design (ADR-266) *deliberately special-cases
-  built-ins*: `prefix` is written to frontmatter **only for custom types** (`to_frontmatter_dict`,
-  lines 193–196); built-ins re-derive from `RESERVED_PREFIX` in `Item.id` (line 181) and in
-  `from_frontmatter` (lines 224–227), which even **overwrites** any stored value. This exists so a
-  file round-trips **without a spec in hand** (`sq repair`, `from_frontmatter`, `_models` staying
-  spec-decoupled and acyclic — it must never import `_workflow`). That "spec-free round-trip via a
-  hardcoded map" is the one real constraint this ADR must *replace*, not merely delete.
-
-### Every consumer that still binds to the enums (grep `ItemType` — 192 refs / 27 files; `\bStatus\b` — 53 refs / 17 files)
-
-**`ItemType` consumers:**
-
-| Cluster (files · refs) | What it does today | Disposition |
-|---|---|---|
-| `_models/_enums.py` (9) | defines `ItemType`, `WORK_TYPES`, `TYPE_ALIASES`, `.prefix`/`.folder` | **deleted** — the enum and its maps go |
-| `_models/_vocab.py` (in `_item.py` import) | `RESERVED_*` maps, `prefix_for` reserved short-circuit | **deleted** — `prefix_for(t, spec)` = `spec.items[t].prefix`, unknown → error |
-| `_models/_item.py` (4) | re-exports `ItemType`; reserved-map id fallbacks | drop re-export; `Item.id`/`from_frontmatter` format from stored `prefix` (Decision §3) |
-| `_workflow/_loader.py` (9) · `_workflow/_models.py` (6) | coerce TOML keys via `ItemType(...)`; all-ten validation floor; `prefix_to_type` | keys stay `str`; floor → three `is_meta` names (Decision §2); reverse index from `ts.prefix` for all |
-| `_interactions/_loader.py` (17) · `__init__.py` (18) · `_models.py` (2) | `ItemType(name)` coercion; `_check_coverage` over the seven `_WORK_TYPES`; playbook keyed by `ItemType` | **the hard blocker** — key by `str`; coverage = "every `spec.work_types()` entry"; missing entry → thin auto-generated skill (F4) |
-| `_services/_maintenance.py` (27) | mostly `ItemType.SKILL.folder/.prefix`, skill-sync, `for item_type in ItemType`, `{t.value for t in ItemType}` "built-in" set | meta refs → meta-name constants + `spec.items["skill"]`; iterate `spec.items`, not the enum |
-| `_services/_roster.py` (7) · `_base.py` (9) · `_items.py` (6) · `_service.py` (2) · `_results.py` (2) | `ItemType.ROLE/SKILL/OPERATOR` roster/list calls; `SUBENTITY_*` maps; result-dataclass fields typed `ItemType` | meta refs → meta-name constants; `SUBENTITY_*` derive from spec `subentity_kind`; fields → `str` |
-| `_cli/__init__.py` (9) · `_create.py` (12) · `_items.py` (1) · `_common.py` (6) | static vs dynamic per-type command registration split on "is it a built-in enum member"; `_make(item_type: ItemType)`; hardcoded work-type tuple | **all** types register dynamically from `spec.items`; the static/dynamic bifurcation is removed |
-| `_cli/_role.py` (3) · `_skill.py` (2) · `_operator.py` (2) · `_dev.py` (2) | the three meta-type sub-commands + dev helper | reference meta-name constants, not enum members |
-| `_backends/_claude_code/_backend.py` (4) · `_agents_md/_backend.py` (2) | `item.type == ItemType.SKILL`; `{t.value for t in ItemType}` built-in set | `item.type == META_SKILL` (str const); iterate `spec.items` |
-| `_migrations/_v0_1_to_v0_2.py` (7) · `_v0_2_to_v0_3.py` (10) · `_v0_4_to_v0_5.py` (8) · `_v0_5_to_v0_7.py` (5) | frozen historical runners referencing `ItemType.TASK/FEATURE/REVIEW`, `for item_type in ItemType`, `_BODY_KIND` maps | **inline frozen local constants** — a migration is a point-in-time snapshot and must NOT track live vocabulary (see Consequences) |
-
-**`Status` consumers (identical pattern):**
-
-| Cluster (files · refs) | What it does today | Disposition |
-|---|---|---|
-| `_models/_enums.py` (1) | defines the `Status` `StrEnum` (~23 members) | **deleted** — the spec's `[statuses.*]` is the vocabulary |
-| `_workflow/_loader.py` (7) · `_workflow/_models.py` (9) | `Status(value)` coercion (`_loader.py:106`); `StatusSpec` keyed by `Status`; the `_RESERVED_FLOOR` floor check; reachability | keys stay `str`; coercion dropped; `_RESERVED_FLOOR` **narrows to the agent lifecycle** (`Draft`/`Active`/`Archived`) — sub-entity/finding statuses leave the floor (Decision §5); add a per-sub-entity-kind **completion-status** validation atop the `terminal` flag |
-| `_services/_maintenance.py` (6) · `_roster.py` (5) | `Status.ACTIVE` (role/skill/operator creation) | validated `STATUS_ACTIVE` constant — agent-lifecycle, **stays reserved** (the same by-name binding as the meta-type constants) |
-| `_services/_subentities.py` (3) | `Status.DONE`/`.TODO` (sub-entity create + done-toggle) | **no literal** — create sets the machine's start state; the done-toggle resolves the machine's designated completion status (Decision §5) |
-| `_models/_item.py` (3) · `_subentity.py` (1) · `_services/_results.py` (2) · `_retype.py` (1) · `_items.py` (1) | re-export; result/field annotations typed `Status` | drop re-export; fields → `str` (already stored as `str`) |
-| `_discussion.py` (3) · `_cli/_items.py` (3) · `_cli/_main.py` (1) | status-badge / status-filter rendering | already spec-resolved via `status_badge()`; annotations → `str` |
-| `_migrations/_meta_compat.py` (4) · `_v0_4_to_v0_5.py` (2) | frozen historical status handling | **inline frozen local constants** — same point-in-time caution |
-
-### Governing lineage
-
-- **ADR-214** kept the enums as the typed backbone and validates the spec == `set(ItemType)`
-  (rule #6). This ADR removes that floor for work types.
-- **ADR-232** opened the de-typing arc: it widened `Item.type`/`status` to `str` and reified
-  capability flags, but *deliberately kept both the `ItemType` and `Status` enums as the vocabulary
-  source*. **This ADR completes that arc** — removing both enums so the spec is the sole vocabulary
-  authority on the type and status axes alike.
-- **ADR-266** stamped `prefix` onto `Item` but kept `_vocab.py`'s `RESERVED_*` maps as the built-in
-  floor and the spec-free round-trip source. This ADR removes that residual hardcoding.
-- **ADR-274 / EPIC-280 / FEAT-281** own vocabulary **rename migrations** — the boundary is drawn
-  below.
+ADR-232 widened the model (`Item.type: str`, `Item.status: str`, `WorkflowSpec.items:
+dict[str, ItemSpec]`) but kept an `ItemType` and a `Status` enum as the vocabulary backbone: the
+closed sets the loader coerced spec keys into, the completeness floors validation checked, the
+playbook's key type, the source of per-type CLI registration, and a hardcoded copy of every
+prefix and folder (the `RESERVED_*` maps behind ADR-266's resolver). With them in place a project
+could add types but never omit, rename or re-prefix a built-in one, and every status had to belong
+to a code-side copy of what `[statuses.*]` already declared.
 
 ## Decision
 
-**The bundled/loaded workflow spec is the ONLY vocabulary. Remove BOTH the `ItemType` and `Status`
-enums from the code entirely; the engine becomes fully generic over spec-defined types and statuses.
-No hardcoded vocabulary survives in source — not the enums, not the `RESERVED_*` prefix/folder maps,
-not the enum-as-validation floors, not `TYPE_ALIASES`. `role`/`skill`/`operator` are distinguished
-from work types solely by the spec's `is_meta` flag, and the engine binds them plus their
-agent-lifecycle statuses (`Draft`/`Active`/`Archived`) by literal name as validated constants where
-structurally required (roster, backends, agent lifecycle).** The seven work-item types become
-ordinary vocabulary a spec may drop, rename, and re-prefix; every status — work, review, guide,
-sub-entity, and finding — resolves entirely from the spec. **The ONLY reserved surface is the three
-meta-types plus their agent-lifecycle statuses; nothing else is reserved — no work-type status, no
-sub-entity or finding status, no priority/severity.** Where the engine formerly set a sub-entity or
-finding status by literal name (`Todo` on create, `Done` on the done-toggle, `Open` on a new
-finding), it now binds it **by its role in the state machine** — the initial state on create, a
-spec-designated completion status on the done-toggle (Decision §5). This completes the arc ADR-232
-opened **and erases the type-vs-status asymmetry: every vocabulary axis is spec-driven.**
+**The loaded workflow spec is the only vocabulary, on every axis.** There is no `ItemType` or
+`Status` enum, no prefix/folder map, no enum-shaped validation floor and no type-alias table in
+source. The engine is generic over spec-declared types and statuses.
 
-*Narrowed 2026-08-03 on three clauses, none of them this decision's own contribution: `is_meta`
-is now `category` and the `META_*` constants are `ROSTER_*` (ADR-541); the status half of the
-reserved surface no longer exists at all, because ADR-696 §2 deletes `_RESERVED_FLOOR` and the
-`STATUS_*` constants and rules that no status name is engine-bound; and the completion mechanism
-is per sub-entity kind rather than a role layered on `terminal` (ADR-348 §2). What stays reserved
-is the three roster type **keys** plus their fixed category. See the amendment note.*
+### 1. Per-type vocabulary resolves from the spec
 
-### 1. All per-type vocabulary resolves from the spec
+`prefix_for(type_str, spec)` (`_models/_vocab.py`) returns `spec.items[type_str].prefix` for every
+type and raises `SquadsError` for an undeclared one; it never guesses `type.upper()`. Folders
+resolve through `SquadPaths.folder_for` from `spec.items[t].folder`, `prefix → type` from
+`spec.prefix_to_type`, and aliases from `ItemSpec.aliases`.
 
-Delete `RESERVED_PREFIX` / `RESERVED_FOLDER` / `RESERVED_TYPE_BY_PREFIX` / `is_reserved` from
-`_vocab.py`. `prefix_for(type_str, spec)` returns `spec.items[type_str].prefix` for **every** type;
-unknown → `SquadsError` (no `type.upper()` guess — ADR-266 banned that). Folder resolves from
-`spec.items[t].folder` (already so in `_paths`); `prefix → type` from `spec.prefix_to_type` for all
-types. `ItemType.prefix`/`.folder`/`TYPE_ALIASES` are removed with the enum.
+### 2. Reservation is three type keys and their category
 
-### 2. Reservation = the `is_meta` floor + three by-name constants, not a vocabulary set
+What the engine binds by name is exactly the three roster type keys, held as string constants
+(`ROSTER_ROLE`, `ROSTER_SKILL`, `ROSTER_OPERATOR`, `ROSTER_TYPES` in `_workflow/_models.py`),
+because the roster, the backends that write role and skill files, and the roster lifecycle
+reference them. The classification is `ItemSpec.category = "roster"` (ADR-541 owns the category
+axis). The loader refuses a spec that drops one of the three keys, moves one out of the roster
+category, or puts any other type in it. That is a structural minimum, not a vocabulary set: work
+types have no floor, and no status name is reserved (ADR-696 §2 binds declared status roles, not
+names).
 
-`WorkflowSpec._validate` (`_models.py:544–550`) drops the "all `ItemType` members" check and instead
-requires the spec to declare the three types the engine references **by name** — `role`, `skill`,
-`operator`, each with `is_meta = true` — and forbids dropping them. These three names survive in
-code as small **string constants** (e.g. a `META_TYPES = frozenset({"role","skill","operator"})` and
-`META_ROLE`/`META_SKILL`/`META_OPERATOR`), because the roster, the backends (which write role/skill
-files), and the agent lifecycle genuinely bind to them by name. That is the irreducible structural
-minimum — three names and a boolean flag — **not** a closed vocabulary enum and **not** a prefix/
-folder map. Work types have no floor (and no status floor beyond the agent lifecycle — §5).
+### 3. An item file renders its own id without a spec
 
-*Narrowed 2026-08-03: the flag is `category = "roster"`, not `is_meta = true`, and the three
-constants shipped as `ROSTER_ROLE`/`ROSTER_SKILL`/`ROSTER_OPERATOR` (ADR-541, itself narrowed by
-ADR-696 §4). The shape this section decided is intact — three type keys the engine binds by name
-plus a declared classification, never a vocabulary set or a prefix/folder map — and ADR-541 is now
-the authority on what the floor covers. The status half of the parenthetical has no referent: see
-§5's narrowing.*
+`Item.id` must format without a spec in hand, and `_models` never imports `_workflow`. The
+prefix is therefore derived from the already-persisted `id`: `Item.prefix` is set at create and
+retype from the active spec, and on every read path (`from_frontmatter`, the JSON index) it is
+re-derived from the stored `id` by a pure string parse on its last `-` (`prefix_from_id`), which is
+safe for multi-segment custom prefixes because the sequence number is always the final segment.
+No `prefix:` frontmatter line is written; a stray legacy one is overwritten by the value derived
+from `id`, never trusted. One source of truth means a file still round-trips after its type is
+dropped, renamed or re-prefixed, and invariant #1 holds.
 
-### 3. Spec-free round-trip: carry `prefix` on the `Item` for ALL types
+### 4. Consumers are generic over the spec
 
-`Item.id` is a `computed_field` that must render a file's own id **without a spec in hand** and
-`_models` must never import `_workflow` (acyclic invariant). Replace the removed `RESERVED_*`
-round-trip source by **persisting `prefix` in frontmatter for every type**: delete the
-`type not in _RESERVED_PREFIX` guard in `to_frontmatter_dict` so built-ins write a `prefix:` line
-too, and remove the reserved-map fallbacks in `Item.id` and `from_frontmatter` so the model formats
-purely from the stored string. This keeps **invariant #1** (frontmatter is the source of truth — a
-file always describes its own id) and keeps `_models` spec-decoupled and acyclic. Prefix is stamped
-at create/retype from the active spec (ADR-266); **legacy built-in files** that predate the line are
-backfilled at the `IndexStore.load()` boundary (which already reads the active spec, ADR-249/263) by
-the same post-load pass that fills `id_padding` (`_propagate_padding`, ADR-266's precedent). Reads
-tolerate a missing line; writes emit it uniformly.
+The playbook is keyed by type string; every bundled non-roster type the spec still declares needs
+an entry, no entry may name a type the spec lacks, and a custom type with no entry gets the thin
+auto-generated `sq-<type>` skill. CLI per-type commands register from
+the bundled spec at import and lazily from the squad's spec for types an override adds (ADR-263),
+ordered by `ItemSpec.order`, never by an enum. Sub-entity kinds, parent rules and the `sq check`
+rules read the spec's per-type declarations, so they follow a renamed type and fall silent for a
+dropped one. Backends and the roster reference the roster constants and read prefix and folder
+from `spec.items`.
 
-*Narrowed 2026-07-08 — the mechanism above is withdrawn and replaced by derive-from-id: no
-`prefix:` line is persisted, the `to_frontmatter_dict` guard is not deleted, and `from_frontmatter`
-recovers the prefix from the already-persisted `id` (`rsplit("-", 1)[0]`), so `_propagate_prefix`
-goes with it. Everything this section requires — spec-free round-trip, invariant #1, an acyclic
-`_models` — is unchanged and better served by one source of truth instead of two. See the amendment
-note.*
+### 5. Statuses are spec vocabulary, bound by their role in the machine
 
-### 4. Consumers become generic over `spec.items`
+`Item.status` and `SubEntity.status` are strings validated against the type's or kind's
+lifecycle at the load boundary. Where the engine sets a sub-entity or finding status, it binds it
+by its role in the state machine rather than by literal name: creation sets the lifecycle's
+initial state, and the done-toggle sets the kind's declared completion status,
+`SubentityKindSpec.completion`, read through `spec.subentity_completion(kind)`. ADR-348 §2 owns
+that field and its rule: it names a reachable, non-initial state of the kind's own lifecycle, so
+two kinds sharing a lifecycle may name different targets.
 
-The playbook keys by `str` and covers `spec.work_types()`; the CLI registers per-type commands
-dynamically from `spec.items` (removing the static/dynamic built-in split); the `SUBENTITY_*` maps
-derive kind↔type from the spec's per-type `subentity_kind`; `sq check`'s residual `"subtask"` literal
-routes through the spec; backends and roster reference the three meta-name constants and iterate
-`spec.items`.
+Status badges stay spec-declared (`StatusSpec.badge`); status is not folded into the badge
+collections of ADR-323, because a status is a badge plus a machine.
 
-### 5. Remove the `Status` enum — narrow the floor to the agent lifecycle, bind everything else by machine role
+## Consequences
 
-Delete the `Status` `StrEnum` from `_enums.py`. `Item.status` / `SubEntity.status` are already `str`
-and validated against `spec.workflow_for(type).states` at the load boundary (ADR-232); the
-`Status(value)` coercion in `_workflow/_loader.py:106` is dropped (keys stay `str`).
-
-**Narrow `_RESERVED_FLOOR` to the agent lifecycle only.** The floor shrinks to exactly the statuses
-the engine binds **by literal name** because they *are* a meta-type's own lifecycle: `Draft`,
-`Active`, `Archived` — including the `Active` that `role`/`skill`/`operator` creation sets. Those
-survive as **validated string constants** (`STATUS_ACTIVE = "Active"`, …), exactly like the three
-meta-type name constants in §2, and the floor still requires a spec to declare them (a meta-type must
-be creatable, activatable, and archivable — that is structural). **Everything else comes off the
-floor:** the sub-entity statuses (`Todo`/`InProgress`/`Blocked`/`Done`/`Cancelled`) and the finding
-statuses (`Open`/`Fixed`/`Verified`/`WontFix`) are now **ordinary spec vocabulary**, exactly like
-work-type statuses — a spec may rename, reorder, or replace them, and none of them is required or
-referenced by literal name in code.
-
-**Bind sub-entity/finding lifecycle by ROLE IN THE MACHINE, not by literal name.** The engine can no
-longer write `"Todo"` when it creates a subtask, `"Done"` when it toggles one complete, or `"Open"`
-when it opens a finding — those names are no longer guaranteed to exist. Two structural roles replace
-the literals, resolved from the sub-entity kind's own state machine:
-
-- **Initial state (create).** Creating a sub-entity/finding sets its status to the **machine's start
-  state** — the initial state each workflow already declares — instead of the `Todo`/`Open` literal.
-- **Completion target (done-toggle).** The "mark done" toggle resolves to the machine's **designated
-  completion status**. This *extends FEAT-211's existing per-status `terminal` capability flag rather
-  than inventing new machinery*: a machine flags exactly one of its terminal statuses as the
-  **completion** target — the success end-state, distinct from cancel-style terminals
-  (`Cancelled`/`WontFix`). The precise capability the toggle logic needs is therefore *"give me this
-  sub-entity kind's one completion status"*; it asks the spec for that status per sub-entity kind
-  (a `completion`/`done` role layered on the `terminal` flag already carried in `[statuses.*]`)
-  rather than hardcoding `"Done"`. A machine that declares more than one terminal must name exactly
-  one completion status.
-
-This binding lives behind the **same spec seam type/status already use**: `_models` stays
-spec-decoupled (a sub-entity still just carries a `str` status), while the start/completion
-resolution — and the "exactly one completion status per sub-entity machine" validation — happen at
-the `IndexStore.load()` / service boundary that already holds the active spec (ADR-249/263). Only the
-small set of **agent-lifecycle** names survives as `STATUS_*` code constants; the sub-entity and
-finding lifecycles carry **no** name literals in source.
-
-Status badges are unaffected — they are already spec-declared (`StatusSpec.badge`, resolved via
-`status_badge()` with a graceful fallback), which is why status is *not* folded into the flat
-badge-collection generalization (that is ADR-323's scope, and it explicitly leaves status alone: a
-status is a badge **plus a machine**).
-
-*Narrowed 2026-08-03 on two clauses. (1) There is no status floor and there are no `STATUS_*`
-constants: ADR-696 §2 deletes both and rules that no status name is engine-bound — what the engine
-binds is a declared status **role**, and a roster lifecycle is held to a structural floor (at least
-one live status, retirement reachable from it) rather than to any set of names. So the narrowing
-this section performed went one step further than it planned: the agent-lifecycle names came off
-the floor too. (2) Completion is declared per sub-entity **kind** on `SubentityKindSpec` and
-validated against that kind's own lifecycle (ADR-348 §2), not as a role layered on a per-status
-`terminal` flag — which no longer exists either. The rule this section actually needed, that a
-machine designates exactly one completion status and the toggle asks the spec for it instead of
-writing `Done`, holds unchanged. See the amendment note.*
-
-## Blast radius / consequences
-
-Every `ItemType` and `Status` site from the two tables is dispositioned above. The load-bearing ones
-(type axis unless noted):
-
-- **`_vocab.py`** — `RESERVED_PREFIX`/`RESERVED_FOLDER`/`RESERVED_TYPE_BY_PREFIX`/`is_reserved`
-  deleted; `prefix_for` is a thin spec lookup.
-- **`Item` / frontmatter** — built-in item files **gain a `prefix:` line** on next write; `Item.id`
-  and `from_frontmatter` lose the reserved-map fallback; reads stay backward-tolerant via the store's
-  spec-aware backfill.
-- **Playbook loader** (the hard blocker) — `_coerce_item_type`'s `ItemType(name)` deleted (key by
-  `str`); `_check_coverage` requires a playbook entry only for `spec.work_types()`. A custom or
-  renamed work type with no bundled entry falls back to F4's **thin auto-generated `sq-<type>`
-  skill** — the fallback whenever a built-in name no longer exists.
-- **CLI app-build** — today `_cli/__init__.py` registers built-in work types *statically* and custom
-  ones *dynamically* (`_builtin_work_type_names`, `_ORDERED_WORK_TYPES`). With no enum, **all** work
-  types register dynamically from `spec.items`; the bifurcation and the hardcoded `_create.py` tuple
-  are removed. Ordering must derive from a deterministic spec order, not enum declaration order.
-- **`sq check` task→feature / subtask→US** — parent and subtask→US rules already read
-  `spec.parent_allowed`/`item_parent_required`/`item_subentity_kind`, so they follow a renamed type
-  automatically; drop `task` and no type has `subentity_kind = "subtask"`, so the check no-ops. The
-  residual `"subtask"` literal and the `SUBENTITY_*` maps in `_services/_base.py` must rederive from
-  the spec, or a dropped/renamed type silently loses its sub-entity checks.
-- **Migrations** — frozen historical runners must **not** depend on the live vocabulary. Every
-  migration that named `ItemType.X` / `Status.X` or iterated `for item_type in ItemType` must inline
-  a **frozen local constant** (the literal type/status names as they existed at that schema version).
-  This is correct-by-design (a migration is a point-in-time transform) but is real, careful work: a
-  migration that iterated "all types" was iterating "all types that existed *then*", which must be
-  pinned as a literal, not left tracking whatever the current project spec happens to declare.
-- **Meta-type references** — `ItemType.ROLE/SKILL/OPERATOR` across `_roster.py`, `_maintenance.py`
-  (skill sync, `ItemType.SKILL.folder/.prefix`), the backends (`item.type == ItemType.SKILL`), and
-  the `_role.py`/`_skill.py`/`_operator.py` sub-commands become the three meta-name string constants;
-  their prefix/folder come from `spec.items["skill"]`, not `ItemType.SKILL.prefix`.
-- **Status floor narrows to the agent lifecycle; sub-entity/finding bind by machine role.**
-  `_RESERVED_FLOOR` shrinks to `Draft`/`Active`/`Archived` (plus the `Active` that roster/skill/
-  operator creation sets) — the only statuses still required by validation and still held as
-  `STATUS_*` code constants. The sub-entity statuses (`Todo`/`InProgress`/`Blocked`/`Done`/
-  `Cancelled`) and finding statuses (`Open`/`Fixed`/`Verified`/`WontFix`) leave the floor and become
-  ordinary spec vocabulary. `_services/_subentities.py` stops writing `Status.TODO`/`.DONE` literals:
-  create sets the machine's start state, and the done-toggle resolves the machine's designated
-  **completion status** (a `completion`/`done` role atop FEAT-211's `terminal` flag — one per
-  sub-entity machine, validated at spec load). `Status(value)` coercion in the loader is removed.
-  *Narrowed 2026-08-03: the floor and the `STATUS_*` constants are gone outright (ADR-696 §2) and
-  completion is per sub-entity kind (ADR-348 §2) — see §5's narrowing and the amendment note.*
-- **The type-vs-status asymmetry is erased.** After this ADR every vocabulary axis — types, statuses,
-  sub-entity kinds, and (via ADR-323) priority/severity — is spec-driven. The reserved surface is
-  exactly `{role, skill, operator}` **plus their agent-lifecycle statuses**; there is no work-type,
-  sub-entity, or finding status floor, and no hardcoded prefix/folder/badge vocabulary anywhere in
-  source. *Narrowed 2026-08-03: the reserved surface is the three roster type keys and their fixed
-  category — the status half is gone (ADR-696 §2), so no status name is reserved on any axis.*
-
-**Pyright-strict fallout (a headline risk).** Removing two `StrEnum`s that ~245 sites reference
-(`ItemType` 192, `Status` 53) flips every `item_type: ItemType` / `status: Status`, `dict[…, …]`,
-`frozenset[…]`, and result-field annotation to `str`. The engine already treats `Item.type`/`.status`
-as `str`, but the *checked comparisons* against enum members (e.g. `item.type == ItemType.SKILL`,
-`item.status == Status.ACTIVE`) lose their static guarantee: a `str == str` compare is always
-type-valid, so a name typo is no longer caught by pyright — it must be guarded by the validated
-`META_*` / `STATUS_*` constants and by tests. (The `STATUS_*` set is now small — only the agent
-lifecycle — because sub-entity/finding lifecycle is resolved by machine role rather than by name, so
-there are fewer such comparisons on the status axis.) This is the pervasive, irreversible typing
-inversion ADR-232 flagged, now carried to completion for both axes. `ruff`/`pyright` strict must stay
-clean across all affected files (≈30, the union of the two tables) in one change.
-
-**Fallback when a built-in name no longer exists:** no silent default. Prefix, folder, and type
-resolve **only** through the active spec; an undeclared name is an ordinary "unknown item type"
-`SquadsError`, never a `type.upper()` guess. Guidance for a custom/renamed type comes from the thin
-auto-generated skill.
-
-## Tests, migration & compatibility
-
-Two concerns must stay distinct:
-
-- **Test structure — not a constraint on this decision.** The operator has planned a complete,
-  generic-item-engine-first test-suite rework. The golden-lock / characterization tests currently
-  pinned to enum members (the enum-set goldens for types *and* statuses, per-type frontmatter
-  goldens) **dissolve** in that rework; they are rebuilt to assert behavior against the bundled
-  default spec. So enum-pinned goldens are **not** a blocker for removing either enum.
-- **Runtime backward-compat — the surviving invariant.** An existing on-disk squad with **no
-  override MUST behave identically.** That guarantee now rests **entirely on the bundled
-  spec** (then `default_workflow.toml`, now `src/squads/_specs/workflow.toml`) — which still
-  declares all ten types (prefixes/folders/machines/`is_meta`)
-  and all ~23 statuses (terminal flags/badges/lifecycles) exactly as today, and — new under this
-  ADR — flags the sub-entity/finding machines' completion status so the done-toggle resolves the same
-  `Done`/`Fixed` end-state it does today — and **not** on the `ItemType`/`Status` enums. The generic
-  engine loads that bundled default as its baseline vocabulary; the reworked suite asserts default
-  behavior against it. This is the single invariant that survives the enums' removal, and it is what
-  makes "do nothing" == "today".
-
-**Migration / schema:**
-- Built-in item files gain an (additive, now-canonical) `prefix:` frontmatter line. Reads tolerate
-  its absence (spec backfill at load), so **no forced migration is required for correctness**; a
-  `sq migrate` normalization pass (or natural rewrite on next mutation) stamps every file so the
-  legacy omit-branch can be deleted outright. Assess against `SCHEMA_VERSION`: a bump is not required
-  for readability but is reasonable to *normalize* every file; defer that call to the migration
-  owners.
-- The bundled spec gains a **completion-status capability** on each sub-entity/finding machine (a
-  flag atop the existing `terminal`); this is a spec-schema addition, not an item-file data change.
-- Removing the enum is a **code-shape** change, not a data-shape change — persisted frontmatter is
-  unaffected beyond the `prefix:` line above.
-
-### Boundary vs. EPIC-280 / FEAT-281
-
-- **This ADR decides the vocabulary *contract*** — the spec is *permitted* to omit, rename, and
-  re-prefix the seven work types (remove the enum, delete `RESERVED_*`, narrow the floor to the three
-  `is_meta` names, carry `prefix` on `Item`, make consumers generic), and to rename/reorder every
-  non-agent status. It is the **precondition** that unblocks FEAT-281: you cannot `rename-type task
-  ticket` while the enum, the floor, and `RESERVED_PREFIX` all pin `task`/`TASK`. FEAT-281's and
-  EPIC-280's meta-type non-goals already agree with this ADR's reserved set.
-- **EPIC-280 / FEAT-281 owns the migration *mechanics*** — the atomic ID/ref/folder/prose rewrite
-  when a rename happens, the audited `sq migrate` runbook, and its schema bump. This ADR builds none
-  of that (the `prefix:`-line normalization is a natural fit for the same migration surface).
-- **"Droppable" and "re-prefixable at setup"** are net-new here and not covered by EPIC-280 (scoped
-  to renames of populated squads).
+- A spec may drop, rename or re-prefix any work type and rename or reorder any status. An
+  undeclared name is an ordinary "unknown item type" `SquadsError`, never a silent default.
+- Backward compatibility rests entirely on the bundled spec (`src/squads/_specs/workflow.toml`):
+  a squad with no override behaves as the bundled vocabulary declares, and tests assert default
+  behaviour against that spec rather than against enum members.
+- Migration runners must not track live vocabulary. A runner that needs type or status names
+  inlines them as frozen local constants of its era (for example `_STATUS_ACTIVE` in the
+  `_v0_4_to_v0_5` and `_v0_8_to_v0_10` runners).
+- Comparisons that used to be checked against enum members are now `str == str`, which pyright
+  cannot catch on a typo; the roster constants and tests carry that guarantee instead.
+- The legacy `is_meta` key is read only to refuse `is_meta = true` on a non-roster type and to
+  point at `category`.
+- **Boundary against EPIC-280.** This decision sets the vocabulary contract (the spec *may* omit,
+  rename and re-prefix). The bulk rewrite of a populated squad when a type or status is renamed is
+  the `sq migrate rename-type` / `rename-status` surface EPIC-280 delivered.
 
 ## Options considered
 
-**Option A (recommended) — Full de-typing / generic item engine, both axes.** Remove the `ItemType`
-**and** `Status` enums entirely; the loaded spec is the sole vocabulary authority for types and
-statuses; the three meta-types survive only as `is_meta` + by-name constants, and the **agent
-lifecycle** statuses as validated `STATUS_*` constants (a narrowed `_RESERVED_FLOOR`); sub-entity/
-finding lifecycle binds by machine role (start state + a spec-designated completion status), so those
-statuses are ordinary spec vocabulary; `prefix` is carried on `Item` for all types; every consumer
-iterates `spec.items` / `spec.work_types()` / `spec.workflow_for(t).states`.
-*Pros:* fully delivers the operator's principle — no hardcoded type *or* status vocabulary anywhere
-in source beyond the three meta-types and their lifecycle, no duplicated spec data, the exact class of
-hardcoding that caused the reserved-names problem is gone; completes ADR-232's arc on both axes and
-erases the type-vs-status asymmetry; keeps invariant #1 and the acyclic `_models` constraint intact;
-leaves the bundled default as the single, clean backward-compat baseline.
-*Cons:* the widest, irreversible change in the codebase — ≈245 sites across ~30 files, a pervasive
-pyright-strict inversion on two axes, migrations must pin frozen local vocabularies, a new
-completion-status capability on each sub-entity machine, and the full enum-pinned golden suite is
-rebuilt (already planned).
-
-**Option B (rejected) — Keep the enums as demoted convenience enumerations; relax only the
-validation floors and the `RESERVED_*` maps.** The earlier, narrower stance.
-*Cons:* leaves hardcoded ten-member type and ~23-member status vocabularies in source that still
-shadow the spec, keeps the static/dynamic CLI split and the enum-keyed playbook, and preserves the
-conceptual footgun (enum membership read as reservation). It does not satisfy "the spec is the ONLY
-vocabulary," so it is rejected in favor of finishing the job.
-
-**Option C (rejected) — Always load the spec to render an id (no `prefix` on `Item`).** Threads a
-spec into `Item.id`/`from_frontmatter`.
-*Cons:* forces a `_models`→`_workflow` import — a direct violation of the acyclic / spec-decoupled
-invariant — and breaks invariant #1 in spirit (a file could not render its own id if the spec failed
-to load). Rejected; §3 (carry `prefix`) is used instead.
-
-**Option D (rejected) — Keep the full `_RESERVED_FLOOR` (agent + sub-entity + finding statuses).**
-The stance ADR-322 was originally drafted with: delete the `Status` enum but keep the whole floor and
-bind sub-entity/finding transitions by literal name via `STATUS_*` constants.
-*Cons:* leaves the sub-entity and finding status vocabularies effectively reserved — a spec could not
-rename or reorder them — which re-creates, on the status axis, exactly the reserved-names problem this
-arc exists to remove, and keeps a type-vs-status asymmetry (types fully free, most statuses pinned).
-Rejected in favor of narrowing the floor to the agent lifecycle and binding sub-entity/finding
-transitions by their role in the machine (§5).
-
-### Recommendation
-
-**Option A — full de-typing / generic item engine, both axes.** Remove the `ItemType` and `Status`
-enums; make the loaded spec the sole vocabulary authority for types and statuses; distinguish
-`role`/`skill`/`operator` only via `is_meta` plus their by-name constants; keep **only** the
-agent-lifecycle statuses in a narrowed `_RESERVED_FLOOR` (as `STATUS_*` constants) and bind
-sub-entity/finding lifecycle by machine role (start state + a spec-designated completion status atop
-the `terminal` flag); carry `prefix` on the `Item` for all types. Runtime backward-compat is
-guaranteed by the bundled spec alone (then `default_workflow.toml`, now
-`src/squads/_specs/workflow.toml`), and the (already planned) generic-first test
-rework replaces the enum-pinned goldens. This is the widest change in the codebase and its risk is
-concentrated in the playbook loader and the pyright-strict inversion — but it is the only option that
-fully realizes the operator's principle, completes the arc ADR-232 opened, and leaves the reserved
-surface at exactly `{role, skill, operator}` plus their agent-lifecycle statuses.
-
-## Amendment note
-
-**2026-07-08 — §3's mechanism changes from a stored `prefix:` line to derive-from-id.** This was ruled
-on the day it was found and recorded as a dated correction in the discussion; it is transcribed here
-because the body was left reading as the original instruction, which is the one thing an in-place
-narrowing exists to prevent.
-
-What is withdrawn is §3's **mechanism only**. Do not persist a `prefix:` frontmatter line, do not
-delete the `type not in _RESERVED_PREFIX` guard in `to_frontmatter_dict`, and do not add a store-side
-backfill. `from_frontmatter` recovers the prefix from the already-persisted `id` by `rsplit("-", 1)[0]`
-— dash-safe for multi-segment custom prefixes because the numeric sequence is always the final
-segment — and `_propagate_prefix` is deleted with the line it existed to stamp.
-
-Everything §3 was written to protect is unchanged and better served. One source of truth (the
-persisted `id`) instead of two that can drift. No spec required, so a file round-trips even when its
-type has been dropped, renamed, or re-prefixed — the case where the spec-aware backfill would have
-sentinelled or failed. And no `_workflow` import, since it is a pure string parse, so `_models` stays
-acyclic and spec-decoupled exactly as this section requires. The proof it was always derivable: the
-normalization migration §3 implied had to parse the stored `id` in order to stamp the redundant line
-onto legacy files, which removed the reason for that migration and its schema bump along with it.
-
-Worth stating plainly, because it generalises past this section: the original mechanism, and the whole
-review chain that approved its implementation, reasoned inside a "the prefix must be stored" framing
-and never asked whether the `id` already carried it. Stored data recoverable from data already stored
-is the smell, and it survived every correctness check because nothing in that framing was incorrect.
-
-**2026-08-03 — the reserved surface narrows on three clauses, each by a later Accepted decision.**
-This decision's own contribution is intact and verified: there is no `_enums.py`, no `ItemType` and no
-`Status`, `_vocab.py` carries no `RESERVED_*` map and hosts `prefix_for`/`label_for`, and the spec is
-the sole vocabulary authority on both axes. What moved is the vocabulary this decision used to
-describe the residue it deliberately left behind — and on the status axis, the residue itself.
-
-- **`is_meta` became `category` (ADR-541).** The boolean became an axis: `ItemSpec.category` is a
-  closed `Literal["roster", "work", "records"]`, and the three by-name constants §2 proposed shipped
-  as `ROSTER_ROLE`/`ROSTER_SKILL`/`ROSTER_OPERATOR`. The floor §2 decided keeps its shape — three type
-  keys the engine binds by name plus a declared classification, never a vocabulary set and never a
-  prefix/folder map — but it reads `category == "roster"`, and ADR-541 (as narrowed by ADR-696 §4) is
-  the authority on what it covers. `is_meta` survives one release as a deprecated key that refuses on
-  a non-roster type.
-- **The status floor and the `STATUS_*` constants are gone outright (ADR-696 §2).** §5 narrowed
-  `_RESERVED_FLOOR` to the agent lifecycle and kept `Draft`/`Active`/`Archived` as validated string
-  constants. ADR-696 deletes both the floor and the constants and rules that **no status name is
-  engine-bound at all**: what the engine binds is a declared status *role*, and a roster lifecycle is
-  held to a structural floor — at least one live status, with retirement reachable from it — rather
-  than to any set of names. So the narrowing §5 performed went one step further than it planned, and
-  this decision's "the ONLY reserved surface is the three types plus their agent-lifecycle statuses"
-  is now the three type keys and their category alone. The two `_STATUS_ACTIVE` literals still in the
-  tree are private and frozen inside migration runners, which is precisely the point-in-time carve-out
-  the Migrations consequence already demands.
-- **Completion is per sub-entity kind, not a role layered on `terminal` (ADR-348 §2).** §5 specified
-  completion as a `completion`/`done` role atop the per-status `terminal` flag. The dated 2026-07-08
-  clarification in the discussion had already decoupled the two — the finding lifecycle's completion
-  target `Fixed` is intrinsically non-terminal, since `Verified` is QA's call — and its own forward
-  note named the residual defect: `terminal`, and therefore a status-keyed `completion`, is per status
-  *name*, so two sub-entity kinds reusing a name with different completion semantics are
-  unrepresentable. ADR-348 §2 fixes exactly that by putting `completion` on `SubentityKindSpec`, per
-  kind, validated against that kind's own lifecycle; and `StatusSpec.terminal` no longer exists at all
-  (ADR-696/604 derive terminality from the status role). What §5 actually needed — a machine
-  designates exactly one completion status, and the toggle asks the spec for it instead of writing
-  `Done` — holds unchanged.
-
-None of the three is a whole replacement, so this decision and all three of them stand as they are;
-`related` edges to ADR-541, ADR-696 and ADR-348 make the narrowing reachable from either end. Nothing
-else in this decision moves: the spec-as-sole-vocabulary ruling, bind-by-machine-role, the
-droppability contract and its fail-at-load enforcement, the no-silent-fallback rule and the
-diagnosable-sentinel shape it permits in the acyclic formatters, and the boundary against EPIC-280's
-migration mechanics are all untouched.
-
-Also corrected in place, in three citations: the bundled spec is `src/squads/_specs/workflow.toml`.
-`default_workflow.toml` no longer exists at any path. The backward-compat invariant resting on it is
-unaffected — only the citation moved.
+- **A — Full de-typing on both axes (chosen).** Remove both enums and every hardcoded copy, keep
+  only the roster keys as constants, bind sub-entity transitions by machine role, derive the prefix
+  from the id. It is the only option that makes the spec the sole vocabulary, at the cost of the
+  widest typing change in the codebase.
+- **B — Keep the enums as convenience enumerations and relax only the floors.** Rejected: the
+  hardcoded vocabularies keep shadowing the spec, the enum-keyed playbook and the static CLI split
+  stay, and enum membership keeps reading as reservation.
+- **C — Load the spec to render an id.** Rejected: it forces a `_models → _workflow` import and
+  makes a file unable to render its own id when the spec fails to load.
+- **D — Keep a status floor and bind sub-entity transitions by literal name.** Rejected: it keeps
+  the sub-entity and finding vocabularies reserved, recreating on the status axis the problem this
+  decision removes on the type axis.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -559,4 +181,10 @@ unaffected — only the citation moved.
   - Three clause-level narrowings recorded, each named to its governing decision. `is_meta` to `category` and `META_*` to `ROSTER_*` (ADR-541, itself narrowed by ADR-696 section 4). The status floor and the `STATUS_*` constants deleted outright by ADR-696 section 2, which rules that no status name is engine-bound — so section 5s narrowing went a step further than it planned and the status half of "the ONLY reserved surface" now has no referent. And completion moved onto `SubentityKindSpec`, per kind, by ADR-348 section 2 — which is exactly the per-status-name defect my own 2026-07-08 forward note flagged, so the note now points at its fix rather than leaving it open.
   - Verified before writing each one rather than taking the audits word: `_pop_legacy_is_meta` at `_workflow/_loader.py:193` with the non-roster refusal; `ROSTER_ROLE`/`ROSTER_SKILL` at `_workflow/_models.py:39-40`; no `_RESERVED_FLOOR` and no `STATUS_*` anywhere in `src/` except the two private frozen `_STATUS_ACTIVE` literals in the migration runners, which is the carve-out this decisions own Migrations consequence demands; `SubentityKindSpec.completion` at `_models.py:305` with `_check_completion_status` at `:652`.
   - Added `related` edges to ADR-541, ADR-696 and ADR-348 so the narrowing is reachable from either end — none of the three linked back here, which is what let three reversals sit unrecorded. Also corrected three stale citations of `default_workflow.toml` to `src/squads/_specs/workflow.toml`, marked as a path move rather than a change of substance.
+- [2026-10-25T19:58:11Z] `tech-lead` Olivia Lead:
+  - @architect §5 still contradicts ADR-348 §2, which the code follows. §5 says a machine flags one of its terminal statuses as the completion target, distinct from cancel-style terminals, and its 2026-08-03 narrowing note says "a machine designates exactly one completion status ... holds unchanged". ADR-348 §2 retired that scan: `completion` is per sub-entity kind, so two kinds sharing a machine may name different targets, and the invariant is "a reachable, non-initial state of the kind's lifecycle", with no terminal requirement. `_workflow/_validity.py` `check_completion_status` enforces exactly that. Please amend §5's narrowing note so it no longer claims the per-machine rule holds. I have not edited the ADR.
+- [2026-10-25T20:04:56Z, edited 2026-10-25T20:05:21Z] `architect` Robert Architect:
+  - Amended in place. §5's 2026-08-03 narrowing note and the matching amendment-note bullet no longer say the per-machine "exactly one completion status" rule holds. They now state the ADR-348 §2 invariant: `completion` is per kind, names a non-initial state of the kind's own lifecycle, need not be terminal, and two kinds sharing a lifecycle may name different targets. Checked against `check_completion_status` in `_workflow/_validity.py`. A dated 2026-10-25 line at the end of the amendment note records the correction. No work follows. @tech-lead
+- [2026-10-25T21:16:20Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale, body rewritten in the present tense; the decision (spec is the sole vocabulary, no ItemType/Status enum) is unchanged. Folded the three dated narrowings and both amendment notes into the text: roster reservation is the three type keys plus category = roster (ROSTER_* constants, loader key lock), no status name is reserved (ADR-696), §3 is derive-from-id (prefix_from_id, no prefix: line), completion is SubentityKindSpec.completion per ADR-348. Corrected §4: CLI registration is static from the bundled spec plus lazy for override-added types (ADR-263), not all-dynamic. Dropped the pre-implementation consumer tables, file:line citations and the "Tests, migration" planning section. Work-type list now includes contract and milestone.
 <!-- sq:discussion:end -->

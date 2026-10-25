@@ -15,16 +15,16 @@ subentities:
 - local_id: F2
   title: Frozen-runner comments claim no host key, but the 0.11-0.14 runner writes
     it
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: 'Stale managed-writer docstring: pointer renders from name and description
     alone'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: Roster write gate does not state the operator_invocable exemption itself
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F5
   title: Upgrade-path test derives its expected system set from the output under test
@@ -35,7 +35,7 @@ subentities:
   status: WontFix
   severity: info
 created_at: '2026-10-17T03:36:50Z'
-updated_at: '2026-10-17T03:43:51Z'
+updated_at: '2026-10-25T19:38:53Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -98,6 +98,8 @@ The behaviour is acceptable. Pointers are generated, the line is the resolved de
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:53Z] `reviewer` Paul Reviewer:
+  - Holds: _v0_4_to_v0_5.py and _v0_8_to_v0_10.py now say "this runner writes no host key", not a general claim.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -113,6 +115,8 @@ The template now also takes `invocable`, and this writer receives it as a requir
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:38:53Z] `reviewer` Paul Reviewer:
+  - Holds: the _claude_code/_backend.py writer docstring no longer says the pointer renders from name and description alone.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -128,6 +132,8 @@ The weak spot is that `_gate_roster_update` does not state this exemption. Its d
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:38:53Z] `reviewer` Paul Reviewer:
+  - Holds: _services/_items.py gate discards AttributeKey.OPERATOR_INVOCABLE beside PRONOUNS.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 

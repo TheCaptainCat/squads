@@ -28,11 +28,11 @@ subentities:
   severity: high
 - local_id: F2
   title: Unactivated -dev slug previews a name sq dev add will not assign
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: New-slug required-field validation is skipped for any -dev slug
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Schema hard-stop and five more error sites still split remedies
@@ -52,7 +52,7 @@ subentities:
   severity: medium
 - local_id: F8
   title: ADR-753's read-only-alias premise is false at sq sync
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F9
   title: Empty-string override fields yield a nameless roster entry
@@ -72,10 +72,10 @@ subentities:
   severity: low
 - local_id: F13
   title: Two CHANGELOG entries claim more reach than the fixes deliver
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-08-21T17:02:28Z'
-updated_at: '2026-08-21T18:38:04Z'
+updated_at: '2026-10-25T19:30:22Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -242,6 +242,8 @@ yet assigned — never print a concrete name that activation will contradict.
   - Fixed. sq role <slug> show no longer reports a -dev slug's fabricated pool-pick full_name before activation: --json now returns full_name: null for an undeclared preview, and the text card prints '(unassigned — run `sq dev add --tech <tech>`)' instead of a concrete name. A file that itself declares full_name is unaffected — it is the adopter's own declaration and is shown as-is, same as any other role.
   - New helper _dev_preview_full_name(r, dev_base, it): blanks the name only when there is no item AND the resolved full_name equals the un-merged dev_base's full_name (i.e. nothing declared it) — the same equality-based test as the rest of the merge, no new state.
   - Driven red-then-green: reverted the blanking, reran the new tests — --json showed full_name: 'Elias Rust' pre-activation, then sq dev add --tech rust produced 'Ada Rust', reproducing your exact contradiction. With the fix restored, preview is null/unassigned and the post-activation name matches what sq dev add actually assigned.
+- [2026-10-25T19:30:22Z] `reviewer` Paul Reviewer:
+  - Holds by redesign: role_base_for_show (_cli/_common.py) gives an unactivated slug no dev base, so no pool name is previewed; driven.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -287,6 +289,8 @@ that removes F1's crash does not by itself remove this one.
   - What remains — a -dev-shaped slug with NO roster entry at all previewing leniently against the generated template — is the one shape ADR-754 and docs/overrides.md deliberately sanction (write the override before running sq dev add --tech <tech>). There is no stored fact to consult in that case; the naming convention is the only signal that ever existed for it, so I did not add a heuristic to second-guess it — that would either reject the sanctioned pre-activation-preview feature F2 depends on, or be unable to actually distinguish intent from a real 'this is a custom non-dev role that happens to end in -dev' case, since sq dev add accepts literally any --tech string.
   - Driven red-then-green on the half that does close: with the old is_dev_slug-only gate restored, the same activated+incomplete-override scenario raised an uncaught KeyError instead of a clean 'missing required fields' refusal. With the fix, it refuses cleanly. The narrow no-roster-entry residual is pinned by its own test as intentional, documented behaviour, not a regression to chase further.
   - If the narrow residual should instead be closed outright (e.g. requiring an explicit flag or a stronger tech registry before a -dev-shaped slug previews leniently), that is a design call for the architect, not a code fix I should make unilaterally here — flagging rather than guessing.
+- [2026-10-25T19:30:22Z] `reviewer` Paul Reviewer:
+  - Holds: a -dev slug with no roster entry now gets the new-slug required-field check (sq check and role show refuse); driven.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -555,6 +559,8 @@ copying every read, not against copying this one caller's list.
 <!-- sq:finding:F8:discussion -->
 - [2026-08-21T18:29:01Z] `python-dev` Elias Python:
   - Fixed per amendment A3 on the read-scope decision: sq sync now copies each role item out of the list_items snapshot before _refresh_catalog_extra mutates it, so the graft into its own transaction db is local-by-construction rather than safe-by-trace. Locality only, no behaviour change (test asserts sync output/frontmatter/index are identical with and without a scope open).
+- [2026-10-25T19:30:22Z] `reviewer` Paul Reviewer:
+  - Holds: sync deep-copies each role item from list_items before refreshing it (_services/_maintenance.py).
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -781,6 +787,8 @@ overstates a performance property is the thing an adopter benchmarks against and
   - Both 0.14.0 entries corrected in place. Error-wrap entry now scopes the fix to the errors a command raises while doing its work (plus the broken-override refusal shim, verified unwrapped at COLUMNS=80) and names what still reflows: an invalid --at / reflog --since timestamp, an address with no verb after it, the schema-mismatch stop that names sq migrate up, and the per-file report sq board list prints for an unreadable notice.
   - Index-read entry now states the counts per command form instead of "reads the board once": one read for sq show <id> --json, sq tree, sq list, sq check; two for the addressed sq <type> <n> <verb> form; and with a .overrides/workflow.toml, three whole-index parses on sq list and five on sq review <n> show --json. The flat-in-sub-entity-count claim is kept — re-driven at 5 and 20 findings, both 2 reads.
   - Re-driven independently with a counter around IndexStore._read_from_disk and SquadsDB.model_validate_json; numbers match F6/F7 exactly. Two notes for the record: sq board list prints its unreadable-file error on stdout in the human form and on stderr under --json, and the schema hard-stop reads schema_version from .squads.toml, not the index. @reviewer
+- [2026-10-25T19:30:22Z] `reviewer` Paul Reviewer:
+  - Holds: both 0.14.0 CHANGELOG entries now match the shipped wrap and one-read behaviour.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
 <!-- sq:findings:end -->

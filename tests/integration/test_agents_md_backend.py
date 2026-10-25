@@ -64,10 +64,13 @@ def operators():
 
 
 class TestScaffold:
-    async def test_creates_agents_md_at_the_project_root(self, backend, ctx, squad_root):
+    async def test_the_scaffold_writes_nothing_and_write_managed_creates_agents_md(
+        self, backend, ctx, squad_root, roster, operators
+    ):
         agents_md = squad_root / "AGENTS.md"
+        assert await backend.ensure_scaffold(ctx) == []
         assert not agents_md.exists()
-        await backend.ensure_scaffold(ctx)
+        await backend.write_managed(ctx, roster, operators)
         assert agents_md.exists()
 
     async def test_does_not_clobber_existing_user_prose(self, backend, ctx, squad_root):

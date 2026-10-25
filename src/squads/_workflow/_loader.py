@@ -55,7 +55,7 @@ which reports the same findings in collect mode without aborting.
 
 import tomllib
 from pathlib import Path, PurePosixPath
-from re import MULTILINE
+from re import DOTALL, MULTILINE
 from re import compile as re_compile
 from typing import Any, cast
 
@@ -81,6 +81,7 @@ from squads._specload import (
     load_override,
     merge_collecting,
     override_mapping,
+    override_present,
     override_text,
     read_override,
 )
@@ -292,6 +293,16 @@ def _selected_squad_violations(raw_override: RawMapping, origin: str) -> list[Me
     ]
 
 
+def _without_selected_squad(raw_override: RawMapping) -> RawMapping:
+    """*raw_override* without ``selected.squad``, which :func:`_selected_squad_violations` reports
+    in the merge's place."""
+    selected = raw_override.get("selected")
+    if not isinstance(selected, dict) or "squad" not in selected:
+        return raw_override
+    kept = {key: value for key, value in cast(RawMapping, selected).items() if key != "squad"}
+    return {**raw_override, "selected": kept}
+
+
 def spec_refusal(override_path: Path | str, cause: object) -> str:
     """The one refusal text every surface prints when the declared workflow override will not
     resolve — composed here, where the file and the loader's own cause are both in hand, so
@@ -316,6 +327,18 @@ def spec_refusal(override_path: Path | str, cause: object) -> str:
         f"  Fix the file, then re-run. `sq workflow lint` reports every problem at once with "
         f"a fix hint."
     )
+
+
+def refusal_cause(refusal: str) -> str:
+    """The cause of a :func:`spec_refusal` text, with the file it names; the whole text when it
+    has none. A cause that lists several problems is joined into one line."""
+    found = re_compile(r"file:\s+(.+)\n\s+cause:\s+(.+?)\n\s+Fix the file", DOTALL).search(refusal)
+    if found is None:
+        return " ".join(refusal.split())
+    file, cause = found.groups()
+    lines = [line.strip().removeprefix("- ") for line in cause.splitlines() if line.strip()]
+    cause = f"{lines[0]} {'; '.join(lines[1:])}" if len(lines) > 1 else lines[0]
+    return cause if file in cause else f"{cause} ({file})"
 
 
 def load_workflow_spec(
@@ -366,18 +389,22 @@ def _check_override_refusals(raw_override: RawMapping, origin: str) -> None:
         raise SquadsError("; ".join(str(v) for v in retired_violations))
 
 
+WORKFLOW_OVERRIDE_MESSAGES = OverrideMessages(
+    malformed="Malformed workflow override {path}: {exc}",
+    unreadable="Cannot read workflow override {path}: {exc}",
+    not_utf8="Workflow override {path} is not valid UTF-8; save it as UTF-8 and re-run.",
+    malformed_hint="Fix the TOML syntax and re-run `sq workflow lint`.",
+    unreadable_hint="Check file permissions and re-run `sq workflow lint`.",
+)
+
+
 _DOCUMENT = SpecDocument(
     bundled_file="workflow.toml",
     override_file=WORKFLOW_OVERRIDE_FILENAME,
     override_name="workflow override",
     top_level_keys=WORKFLOW_TOP_LEVEL_SECTIONS,
     selected_sections=WORKFLOW_SELECTABLE_SECTIONS,
-    messages=OverrideMessages(
-        malformed="Malformed workflow override {path}: {exc}",
-        unreadable="Cannot read workflow override {path}: {exc}",
-        malformed_hint="Fix the TOML syntax and re-run `sq workflow lint`.",
-        unreadable_hint="Check file permissions and re-run `sq workflow lint`.",
-    ),
+    messages=WORKFLOW_OVERRIDE_MESSAGES,
     check_override=_check_override_refusals,
 )
 
@@ -1374,11 +1401,11 @@ def workflow_override_shadows_bundled(squad_dir: Path, files: OverrideFiles | No
     load time instead, with its own message.
     """
     override_path = squad_dir / WORKFLOW_OVERRIDE_FILENAME
-    if not override_path.is_file():
+    if not override_present(override_path):
         return False
     try:
         override_raw: RawMapping = override_mapping(override_path, files)
-    except (tomllib.TOMLDecodeError, OSError):  # fmt: skip
+    except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError):  # fmt: skip
         return False
     return _raw_shadows_bundled(_bundled_raw(), override_raw)
 
@@ -1485,7 +1512,7 @@ def lint_workflow_spec(  # noqa: PLR0911 — one return per gate below
     findings: list[LintFinding] = []
 
     override_path = squad_dir / WORKFLOW_OVERRIDE_FILENAME
-    if not override_path.is_file():
+    if not override_present(override_path):
         # No override; bundled spec is always clean — nothing to report.
         return findings
 
@@ -1504,22 +1531,31 @@ def lint_workflow_spec(  # noqa: PLR0911 — one return per gate below
     retired_violations = [
         *_retired_view_grammar_violations(raw_override, str(override_path)),
         *_override_transform_violations(raw_override, str(override_path)),
-        *_selected_squad_violations(raw_override, str(override_path)),
     ]
+    squad_violations = _selected_squad_violations(raw_override, str(override_path))
+    origin = str(override_path)
+    # The `[selected]` table is checked in the same run as the retired keys: its errors do not
+    # depend on them, and the other merge violations would only follow from the retired keys.
+    result = merge_collecting(
+        _DOCUMENT, _bundled_raw(), _without_selected_squad(raw_override), origin
+    )
     if retired_violations:
+        selected_violations = [
+            v for v in result.violations if (v.path or "").split(".")[0] == "selected"
+        ]
         findings.extend(
             ("error", v.path or WORKFLOW_OVERRIDE_FILENAME, v.reason, v.hint)
-            for v in retired_violations
+            for v in [*retired_violations, *squad_violations, *selected_violations]
         )
         return findings
 
-    # Phase 3 — engine-level failures (collect-all): splat/merge/[selected] violations.
-    origin = str(override_path)
-    result = merge_collecting(_DOCUMENT, _bundled_raw(), raw_override, origin)
-    if result.violations:
+    # Phase 3 — engine-level failures (collect-all): splat/merge/[selected] violations, with the
+    # `[selected] squad` refusal listed beside them rather than ahead of them.
+    phase_violations = [*squad_violations, *result.violations]
+    if phase_violations:
         findings.extend(
             ("error", v.path or WORKFLOW_OVERRIDE_FILENAME, v.reason, v.hint)
-            for v in result.violations
+            for v in phase_violations
         )
         return findings
     merged = result.merged
@@ -1625,7 +1661,7 @@ def _read_toml_stamp(override_path: Path, files: OverrideFiles | None) -> str | 
     by this point, but the stamp itself is a plain-text comment, read independent of that."""
     try:
         text = override_text(override_path, files)
-    except OSError:
+    except (OSError, UnicodeDecodeError):  # fmt: skip
         return None
     m = _TOML_STAMP_RE.search(text)
     return m.group(1) if m else None

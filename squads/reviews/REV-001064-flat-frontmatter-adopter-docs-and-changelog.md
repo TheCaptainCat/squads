@@ -13,39 +13,39 @@ description: Claim-by-claim re-run of the flat-frontmatter, attributes and store
 subentities:
 - local_id: F1
   title: Unknown keys kept claim omits the retired role-key sweep
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: Hand-added key needs sq repair before the next write
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: Frozen item-row shape omits the path key every row carries
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: Role model set through import is ignored on a bundled role
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: Which name wins uses title for both job title and name
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F6
   title: Duplicate-name remedy for a role omits the final sq sync
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: Import rename route reports the pointer as drifted
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F8
   title: Every item has slug and refs overclaims the file shape
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F9
   title: Unselected-checks list omits blocked_has_blocker
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F10
   title: No-update-verb passages go stale when FEAT-977 lands
@@ -53,10 +53,10 @@ subentities:
   severity: info
 - local_id: F11
   title: Repo CLAUDE.md still names ExtraKey and _extras.py
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-10-16T17:05:08Z'
-updated_at: '2026-10-16T17:50:56Z'
+updated_at: '2026-10-25T19:37:13Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -123,6 +123,8 @@ So the sweep removes exactly the undeclared retired role keys. adoption.md and f
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:37:13Z] `reviewer` Paul Reviewer:
+  - Holds: docs/stability.md and docs/migration.md name the role-definition key sweep as the one exception to keeping unknown keys.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -146,6 +148,8 @@ Nothing is lost, but the documented flow skips a step the reader will hit.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:37:13Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md says a hand-added key needs `sq repair` before the next write to that item.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -163,6 +167,8 @@ Nothing is lost, but the documented flow skips a step the reader will hit.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:37:13Z] `reviewer` Paul Reviewer:
+  - Holds: docs/stability.md item-row contract describes the `path` key.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -189,6 +195,8 @@ The same import on a developer (`python-dev`) did take effect. For a bundled rol
 <!-- sq:finding:F4:discussion -->
 - [2026-10-16T17:50:56Z] `qa` Mara Tester:
   - Filed as BUG-1065 (low): the import should refuse model on a non-developer role.
+- [2026-10-25T19:37:13Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md says a role's model is set in its role overrides; the import-side refusal stays with BUG-1065.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -206,6 +214,8 @@ The same import on a developer (`python-dev`) did take effect. For a bundled rol
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-25T19:37:13Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md "Which name wins" separates the job title from the stored name.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -223,6 +233,8 @@ The same import on a developer (`python-dev`) did take effect. For a bundled rol
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-10-25T19:37:13Z] `reviewer` Paul Reviewer:
+  - Holds: docs/migration.md's duplicate-name remedy ends with `sq sync`.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -240,6 +252,8 @@ The same import on a developer (`python-dev`) did take effect. For a bundled rol
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-10-25T19:37:13Z] `reviewer` Paul Reviewer:
+  - Holds: renames now go through `sq role <slug> update --title`, which refreshes the pointer and roster at once (driven on 0.17, no drift).
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -257,6 +271,8 @@ The same import on a developer (`python-dev`) did take effect. For a bundled rol
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
+- [2026-10-25T19:37:13Z] `reviewer` Paul Reviewer:
+  - Holds: CHANGELOG and docs/migration.md say a file holds the core keys it has a value for.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -274,6 +290,8 @@ The same import on a developer (`python-dev`) did take effect. For a bundled rol
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
+- [2026-10-25T19:37:13Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md lists and documents `blocked_has_blocker`.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -310,6 +328,8 @@ The same import on a developer (`python-dev`) did take effect. For a bundled rol
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
+- [2026-10-25T19:37:13Z] `reviewer` Paul Reviewer:
+  - Holds: CLAUDE.md names `_attributes`/AttributeKey and no longer cites ExtraKey or _extras.py.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 <!-- sq:findings:end -->

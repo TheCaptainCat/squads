@@ -60,10 +60,12 @@ from squads._services._results import (
     ReflogEntry,
     TreeNode,
     UnreadableItems,
+    check_issue_sort_key,
 )
 from squads._services._service import Service
 from squads._services._service import adopt as svc_adopt
 from squads._services._service import init as svc_init
+from squads._workflow._loader import refusal_cause
 from squads._workflow._models import WorkflowSpec
 
 # ---------------------------------------------------------------------------
@@ -1482,27 +1484,6 @@ async def show_any(
     await print_item(svc, it, raw=raw, comments=comments, full=full)
 
 
-def _check_issue_sort_key(issue: Any) -> tuple[int, int, int, str]:
-    """Deterministic total order for `sq check` output (report mode only — `gate()`'s
-    abort-on-first-violation is unaffected). Squad-global/no-item issues (an unresolvable
-    `item` — a filename, ``""``, or ``"workflow"``) form a fixed leading block; item-attached
-    issues then sort by sequence number, error before warn, then message. Stable: any
-    remaining tie keeps its original relative order.
-    """
-    from squads._errors import InvalidIdError
-    from squads._paths import number_for_id
-
-    seq: int | None = None
-    if issue.item:
-        try:
-            seq = number_for_id(issue.item)
-        except InvalidIdError:
-            seq = None
-    has_item = 0 if seq is None else 1
-    level_rank = 0 if issue.level == "error" else 1
-    return (has_item, seq or 0, level_rank, issue.message)
-
-
 @app.command()
 @common.command
 async def check(
@@ -1545,11 +1526,16 @@ async def check(
     except SquadsError as exc:
         if isinstance(exc, PlaybookConfigError):
             workflow_issues.append(
-                CheckIssue("error", "playbook", f"playbook config invalid: {exc}")
+                CheckIssue("error", "playbook", f"playbook config invalid: {exc}", "playbook_loads")
             )
         else:
             workflow_issues.append(
-                CheckIssue("error", "workflow", "workflow config invalid — run `sq workflow lint`")
+                CheckIssue(
+                    "error",
+                    "workflow",
+                    f"workflow config invalid: {refusal_cause(str(exc))} — run `sq workflow lint`",
+                    "workflow_loads",
+                )
             )
         svc = compose_service(
             sp,
@@ -1570,12 +1556,19 @@ async def check(
     try:
         collected += await svc.check()
     except SquadsError as exc:
-        collected.append(CheckIssue("error", "corpus", f"could not scan the corpus: {exc}"))
-    issues: list[CheckIssue] = sorted(collected, key=_check_issue_sort_key)
+        collected.append(
+            CheckIssue("error", "corpus", f"could not scan the corpus: {exc}", "corpus_scans")
+        )
+    issues: list[CheckIssue] = sorted(collected, key=check_issue_sort_key)
 
     if json_out:
         print_json_clean(
-            json.dumps([{"level": i.level, "item": i.item, "message": i.message} for i in issues])
+            json.dumps(
+                [
+                    {"level": i.level, "item": i.item, "message": i.message, "rule": i.rule}
+                    for i in issues
+                ]
+            )
         )
         errors = sum(1 for i in issues if i.level == "error")
         if errors:

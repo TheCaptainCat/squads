@@ -14,23 +14,22 @@ description: Optional per-type labels table (four independent named forms, deriv
   fallback) + a label_for resolver so clients render pretty type names; acronym-safe,
   additive, no schema bump.
 created_at: '2026-07-24T11:41:24Z'
-updated_at: '2026-08-03T08:47:17Z'
+updated_at: '2026-10-25T21:37:18Z'
 ---
 <!-- sq:body -->
 # Context
 
 A client needs a human-readable name for each item type: "Decisions", not the raw
-`decision`; "ADRs", not `adr`. Today no single authority yields that string — clients
-derive one ad-hoc (`_backends/_claude_code/_backend.py` renders a section title via
-`item_type.capitalize()`) or fall back to the bare lowercase type key, and none of the
-ad-hoc paths can spell an acronym type correctly (`"ADR".lower()` → `"adr"` is wrong in
-running prose). `ItemSpec` carries per-type vocabulary already (`prefix`, `folder`,
+`decision`; "ADRs", not `adr`. Without a single authority, every client derives one ad hoc
+(`type.capitalize()`, or the bare lowercase type key), and no ad-hoc derivation can spell an
+acronym type correctly (`"ADR".lower()` → `"adr"` is wrong in running prose). `ItemSpec` carries per-type vocabulary already (`prefix`, `folder`,
 `aliases`); a display name is the missing piece of that same vocabulary.
 
 # Decision
 
-Add an OPTIONAL nested `labels` table to each item type in `.overrides/workflow.toml`,
-mirrored in the bundled spec (`src/squads/_specs/workflow.toml`) only where it improves a built-in:
+Each item type takes an OPTIONAL nested `labels` table, in a project's `.overrides/workflow.toml`
+or in the bundled spec (`src/squads/_specs/workflow.toml`), declared only where derivation would
+get a form wrong (no bundled type needs one):
 
 ```toml
 [items.decision.labels]
@@ -58,17 +57,16 @@ type-name string** (the dict key in `WorkflowSpec.items`):
 So a regular type needs zero config; an acronym or irregular type pins only the forms
 derivation would get wrong.
 
-**Schema binding.** A new frozen `LabelSpec` value object (`model_config` frozen +
+**Schema binding.** A frozen `LabelSpec` value object (`model_config` frozen +
 `extra="forbid"`, matching its siblings) with the four `str | None = None` fields, added as
-`ItemSpec.labels: LabelSpec | None = None`. Purely additive with a default; `ItemSpec`'s
+`ItemSpec.labels: LabelSpec | None = None`, optional with a default; `ItemSpec`'s
 `extra="forbid"` already rejects a misspelled sub-key. Direct precedent on the sibling axis:
 `SubentityKindSpec.plural` is a CLI/display-vocabulary field alongside its behavioural
 fields — a display name belongs in the same schema, not bolted on elsewhere.
 
 **Resolver seam.** Resolution needs the type name (it is the fallback source), so it cannot
-live on the value object alone. Add one authoritative resolver beside the existing
-`prefix_for(type_str, spec)` in `_models/_vocab.py` — that module's own docstring already
-anticipates a sibling accessor of exactly this shape:
+live on the value object alone. One authoritative resolver sits beside `prefix_for(type_str,
+spec)` in `_models/_vocab.py` (the seam ADR-266 established):
 
 ```
 label_for(type_str: str, form: str, spec) -> str
@@ -76,16 +74,14 @@ label_for(type_str: str, form: str, spec) -> str
 
 where `form` is one of `singular` / `plural` / `singular_lower` / `plural_lower`. It reads
 `spec.items[type_str].labels`, returns the pinned form when present, else the computed
-fallback for that form. (A small `labels_for(type_str, spec) -> LabelSpec`-shaped result may
-back it if a caller wants all four at once, but `label_for` is the single call site
-consumers use — the fallback logic lives in exactly one place.) Consumers route through it
-instead of calling `.capitalize()`/`.title()` themselves: the Claude Code backend's per-type
-section titles (`_backend.py`), the VS Code tree/list views, and any CLI per-type grouping
-header. Their internals are out of scope here; this ADR fixes only the vocabulary + the
-resolver they call.
+fallback for that form (`_fallback_label`, the one place the formula lives). An undeclared type
+or a missing spec is not an error: a display label is always derivable from the type name. Python
+consumers (templates, the TUI) route through `label_for` instead of calling `.capitalize()`
+themselves; machine clients read all four resolved forms from the `labels` key of each
+`sq workflow types --json` row, a key this decision adds to ADR-459's catalog.
 
-**No schema bump.** An additive optional field with defaults reconstructs identically from a
-spec that omits it, so `SCHEMA_VERSION` stays `"0.11"` — no migration.
+**No schema bump.** The table is workflow-spec vocabulary, never item data, so it carries no
+`SCHEMA_VERSION` change and no migration.
 
 # Rationale
 
@@ -101,32 +97,12 @@ spec that omits it, so `SCHEMA_VERSION` stays `"0.11"` — no migration.
 
 # Consequences
 
-- One resolver (`label_for`) becomes the single authority for an **item type's** display name; ad-hoc
-  `type.capitalize()`/`.title()` derivations of a *type* label are retired in favour of calling it.
-  *Scoped 2026-08-03: as first written this read as a blanket retirement of `.capitalize()` in display
-  code. It is not — a category label, for one, is not an item type and is still derived that way. The
-  claim is about type labels, which is the only thing this resolver knows how to answer.*
+- One resolver (`label_for`) is the single authority for an **item type's** display name; no
+  consumer derives a *type* label itself. Other labels (a category label, for one) are not item
+  types and are outside this resolver.
 - Acronym and irregular-plural types render correctly across every client.
 - No new reserved surface, no closed vocabulary, no migration — the field is optional and
   self-describing, and `extra="forbid"` guards typos.
-
-## Amendment note
-
-**2026-08-03 — refs added, and one consequence scoped to what it actually claims.** Mechanically verified
-in force: `LabelSpec`, `ItemSpec.labels`, and `label_for(type_str, form, spec)` sitting beside `prefix_for`
-in `_models/_vocab.py` exactly as the resolver-seam section specifies, with four independent forms and
-derivation fallback.
-
-This decision shipped with **no refs at all** — the only one in its generation to do so — which left it
-invisible from the reference graph in both directions despite standing on three neighbours: it parallels
-ADR-323's `Field.label` (the same "a code the engine keys on, a label the human reads" split, one axis
-over), it cites `SubentityKindSpec.plural` (ADR-348) in prose as its precedent for a declared plural, and
-it silently extended the frozen type-catalog row (ADR-459, as extended by ADR-474) with `labels`. Edges
-added to all four. The lesson generalises past this decision: an ADR with an empty ref set is
-unreviewable for exactly the overlaps this audit exists to find, because nothing leads a reader to it.
-
-The bundled spec path is corrected in two places, and the retire-ad-hoc-`.capitalize()` consequence is
-scoped to item-type labels, which is all the resolver can answer for.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -138,4 +114,6 @@ scoped to item-type labels, which is all the resolver can answer for.
   - Verified in force mechanically (`LabelSpec`, `ItemSpec.labels`, `label_for` beside `prefix_for` in `_models/_vocab.py`, four independent forms with derivation fallback). Two prose fixes and the structural one.
   - The structural finding: this decision shipped with no refs at all, the only one in its generation, so it was invisible from the reference graph in both directions while standing on three neighbours — it parallels ADR-323s `Field.label` one axis over, cites ADR-348s `SubentityKindSpec.plural` in prose as its precedent, and silently extended ADR-459/474s frozen type-catalog row with `labels`. Edges added to all four. Worth stating as a general point: an empty ref set makes an ADR unreviewable for exactly the overlaps this audit exists to find, because nothing leads a reader to it.
   - Scoped the retire-ad-hoc-`.capitalize()` consequence to item-type labels. As written it read as a blanket retirement of `.capitalize()` in display code, which the tree contradicts — a category label is not an item type and is still derived that way. Not a violation, an over-claim. Bundled spec path corrected in two places.
+- [2026-10-25T21:37:18Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale, targeted present-tense edits; the decision (optional four-form labels, label_for resolver) is unchanged. Removed the "today no authority" context and the consumer list naming _backend.py and VS Code calling label_for (the client reads the resolved labels from sq workflow types --json; label_for is used by templates and the TUI); recorded that the labels key extends ADR-459's catalog; no bundled type pins labels; dropped the SCHEMA_VERSION "0.11" snapshot. Folded the 2026-08-03 scoping and removed the amendment note (its refs stand).
 <!-- sq:discussion:end -->

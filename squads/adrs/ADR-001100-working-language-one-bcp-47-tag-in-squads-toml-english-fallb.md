@@ -10,7 +10,7 @@ refs:
 description: A top-level working_language key holds a Babel-known BCP 47 tag; absent
   means English silently, malformed warns and falls back to English
 created_at: '2026-10-24T09:20:18Z'
-updated_at: '2026-10-24T18:18:13Z'
+updated_at: '2026-10-25T21:41:24Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -48,4 +48,6 @@ A squad has no declared language, so item text, comments and agent briefs follow
   - ADR-1119 (Proposed) replaces the stamp clause of this record ("A version or schema stamp edits only the version lines sq owns..."): sync no longer writes .squads.toml, and the only in-place edit left is schema_version during sq migrate up. Clause-level overlap, so linked related rather than superseded; this clause gets narrowed in place when ADR-1119 is accepted.
 - [2026-10-24T18:18:13Z] `architect` Robert Architect:
   - 2026-10-24: amended after ADR-1119 was accepted. The stamp sentence in Writing the key is replaced by a pointer to ADR-1119, which governs every write to .squads.toml; init/adopt still write "en". Nothing else changed.
+- [2026-10-25T21:41:24Z] `architect` Robert Architect:
+  - Audited 2026-10-25: holds. _language.py validates with resolve_likely_subtags=False, falls back to English with a notice, init/adopt write working_language = "en", and working_language_valid reports a bad value.
 <!-- sq:discussion:end -->

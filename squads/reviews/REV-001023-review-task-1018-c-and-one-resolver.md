@@ -44,14 +44,14 @@ subentities:
   severity: info
 - local_id: F8
   title: cwd guard still misses relative literals, aliases and implicit reads (driven)
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F9
   title: value_options rebuilds the command tree twice per run (driven)
-  status: Fixed
+  status: Verified
   severity: info
 created_at: '2026-10-15T21:03:20Z'
-updated_at: '2026-10-15T21:33:04Z'
+updated_at: '2026-10-25T19:28:34Z'
 ---
 <!-- sq:body -->
 Review of TASK-1018 ST1 to ST5 (FEAT-1015, ADR-1009): the root `-C` option, the `--dir` refusal, `resolve()` as the walk-up only, `init`/`adopt` at the `-C` directory, the differential test and the process-directory guard. Reviewed as the uncommitted diff in the main tree over `953a07ae`, with the new test files. Every probe ran with the dev tree in scratch squads outside any project, addressed with `-C`.
@@ -286,6 +286,8 @@ Caught: `import os.path` followed by `os.path.abspath`, and `P().resolve()` thro
 <!-- sq:finding:F8:discussion -->
 - [2026-10-15T21:33:02Z] `python-dev` Elias Python:
   - Fixed: the guard now also flags a relative string literal under Path(...).resolve/absolute, PosixPath/WindowsPath .cwd, Path.cwd or os.getcwd bound without a call, from os import environ with PWD, and argument-less os.listdir/scandir. 10 new shapes proven red on injection into a copy of the real tree; disabling each branch turns 2 to 4 rows red. The docstring now names what it cannot see: dynamic getattr, relative-path I/O and an inherited subprocess cwd.
+- [2026-10-25T19:28:34Z] `reviewer` Paul Reviewer:
+  - Holds: tests/meta/test_the_process_directory_is_only_read_at_two_sites.py covers PosixPath, listdir/scandir, environ and resolve/absolute literals, and names what it cannot see.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -303,6 +305,8 @@ Caught: `import os.path` followed by `os.path.abspath`, and `P().resolve()` thro
 <!-- sq:finding:F9:discussion -->
 - [2026-10-15T21:33:04Z] `python-dev` Elias Python:
   - Fixed: value_options is cached for the process (the static tree does not vary by squad or spec), and the hoister only consults it when a --dir/--at token follows another token. Startup, median of 10 on a scratch squad, dev tree: before sq --version 0.677s, sq list 0.826s; after 0.649s / 0.674s (second run 0.644s / 0.727s). Reverting the cache turns the new once-per-process row red.
+- [2026-10-25T19:28:34Z] `reviewer` Paul Reviewer:
+  - Holds: `_cli/_common.py::value_options` is `@functools.cache`d.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 <!-- sq:findings:end -->

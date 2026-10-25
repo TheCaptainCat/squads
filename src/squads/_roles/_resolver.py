@@ -73,6 +73,7 @@ from squads._roles._models import (
     RoleSpec,
     malformed_capability_names,
 )
+from squads._specload import ROLE_OVERRIDE_MESSAGES, override_present, read_override_text
 from squads._specmerge import RawMapping, describe_spec_error, merge_override
 
 _PREDEFINED_BY_SLUG: dict[str, RoleDef] = {r.slug: r for r in PREDEFINED}
@@ -150,12 +151,12 @@ def project_role_slugs(squad_dir: Path, catalog: CatalogSource) -> frozenset[str
 
 
 def _read_toml(path: Path) -> dict[str, Any]:
-    """Read *path* as TOML; surface a :class:`SquadsError` on parse failure."""
+    """Read *path* as TOML; surface a :class:`SquadsError` when it cannot be read or parsed."""
+    text = read_override_text(path, ROLE_OVERRIDE_MESSAGES)
     try:
-        with path.open("rb") as fh:
-            return tomllib.load(fh)
+        return tomllib.loads(text)
     except tomllib.TOMLDecodeError as exc:
-        raise SquadsError(f"malformed role override {path}: {exc}") from exc
+        raise SquadsError(ROLE_OVERRIDE_MESSAGES.malformed.format(path=path, exc=exc)) from exc
 
 
 def _base_raw(base: RoleDef | None) -> RawMapping:
@@ -323,7 +324,7 @@ def resolve_role_with_base(
 
     if squad_dir is not None:
         toml_path = _overrides_dir(squad_dir) / f"{slug}.toml"
-        if toml_path.is_file():
+        if override_present(toml_path):
             data = _read_toml(toml_path)
             applied = _apply_override(effective_base, data, slug, str(toml_path))
             return _pin_name(applied, pinned_name)
@@ -505,7 +506,7 @@ def resolve_dev_role(
 
     if squad_dir is not None:
         toml_path = _overrides_dir(squad_dir) / f"{slug}.toml"
-        if toml_path.is_file():
+        if override_present(toml_path):
             data = _read_toml(toml_path)
             # If caller passed an explicit name, honour it — don't let TOML override it.
             if name and "full_name" in data:

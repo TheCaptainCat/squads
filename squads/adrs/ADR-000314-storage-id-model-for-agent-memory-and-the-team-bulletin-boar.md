@@ -11,16 +11,16 @@ refs:
 description: Slug-file-per-memory + own lighter board store, both off the global counter
   and outside .squads.json
 created_at: '2026-07-06T16:03:50Z'
-updated_at: '2026-08-03T08:47:34Z'
+updated_at: '2026-10-25T21:20:34Z'
 ---
 <!-- sq:body -->
 # Context
 
-Two complementary, lighter-than-item artifacts are being added to a squad:
+A squad carries two complementary, lighter-than-item artifacts:
 
 - **Agent memory** — a per-role, committed notebook of small, agent-authored, *descriptive*
   facts ("what I learned"). Each role owns its own pool (scoped by ownership, not tagging).
-  Being committed to the repo is the whole point: a fresh checkout or a new teammate's agent
+  An operator can keep a notebook the same way. Being committed to the repo is the whole point: a fresh checkout or a new teammate's agent
   inherits the accumulated per-role memory — so it must merge cleanly across branches and
   across multiple concurrent devs. Retrieval is **pull, direct from the `.md` files**: an agent
   lists its own pool at the start of a run and fetches full content on demand.
@@ -29,10 +29,10 @@ Two complementary, lighter-than-item artifacts are being added to a squad:
   down via an `--until` expiry). Cross-cutting facts live here once, not duplicated into every
   role's memory. The boundary: personal-learned -> memory; cross-cutting/announcement -> board.
 
-This ADR fixes the **storage format and id model** for both. It does not design the CLI shape
-(owned by product) beyond checking it for architectural implications.
+This ADR fixes the **storage format and id model** for both. The CLI shape is product's, checked
+here only for its architectural implications.
 
-# Decision drivers (settled at product level — recorded, not relitigated)
+# Decision drivers
 
 1. **These are a lighter tier than items and must NOT draw from the global sequence counter.**
    The counter is the crux of the pain we are avoiding: a counter-allocated id created on two
@@ -41,7 +41,8 @@ This ADR fixes the **storage format and id model** for both. It does not design 
    that collision would be near-constant. Ids must be human-meaningful (slug or short hash),
    never sequence numbers.
 2. **Placement follows the existing layout.** `squads/agents/` already holds agent-scoped state
-   (`roles/`, `skills/`), so memory nests there: `squads/agents/memory/<role-slug>/`. The board
+   (`roles/`, `skills/`), so memory nests there: `squads/agents/memory/<slug>/`, one folder per
+   role or operator slug. The board
    is team-scoped, so it is its own top-level folder, sibling to the item-type folders:
    `squads/board/`.
 3. **The index invariant must stay clean.** `.squads.json` is a rebuildable index of
@@ -85,23 +86,25 @@ high-frequency artifact and drag in lifecycle that does not fit an ephemeral not
 Its id semantics also differ from memory. A memory is referenced by a stable, meaningful slug
 (`show scale-tests-slow`). A board notice is referenced by a small ordinal for a quick clear —
 but a persisted monotonic board counter would collide across branches just like the global one.
-So the board stores each notice under a **stable content id** (short hash) in its `.md` file, and
+So the board names each notice's `.md` file by a **stable content id** (a short hash), and
 presents an **ephemeral positional ordinal** at list time. That ordinal is the notice's position
 in the **freshly-computed live listing** — `list_notices` globs the board's `.md` files, drops
-the expired ones, and sorts what remains, and `<n>` is the n-th entry in that live listing.
+the expired ones, and sorts what remains by posted-at (hash breaking ties), and `<n>` is the n-th
+entry in that live listing.
 `clear <n>` resolves the n-th entry back to that notice's stable hash id and file. The ordinal is
 a display affordance computed at list time, not persisted meaning.
 
 # Decision
 
 **Memory: Option A** — one slug-named markdown file per memory under
-`squads/agents/memory/<role-slug>/`, light frontmatter + freeform body. Memory is **addressed by
+`squads/agents/memory/<slug>/`, light frontmatter (`summary`, `created_at`, optional `tags`) +
+freeform body. Memory is **addressed by
 its stable slug** (`show <slug>`); `list`/`search` read the `.md` files directly (glob +
 frontmatter / content grep).
 
 **Board: its own lighter store, not the item model** — one file per notice under
-`squads/board/` (short-hash id in frontmatter alongside author / posted-at / `until` / body),
-with expiry applied as a read-time filter. The board is **addressed by an ephemeral positional
+`squads/board/`, named by its short-hash id, with light frontmatter (`author`, `posted_at`,
+optional `until`) over the notice text, and expiry applied as a read-time filter. The board is **addressed by an ephemeral positional
 ordinal** that is the entry's position in the freshly-computed live listing (`list_notices`,
 sorted and unexpired, read straight from the `.md` files); `clear <n>` resolves the n-th entry to
 the notice's stable hash.
@@ -114,7 +117,8 @@ are not items; `sq repair` ignores them; there is nothing about them for `.squad
 reconstruct — the cleanest possible answer to driver 3 (rather than indexing them in `.squads.json`,
 we keep them out of it altogether). Both use lightweight models of their own (a memory-entry /
 board-notice type), *not* the `Item` model, so the "lighter tier" stays honest and no
-schema-version / status machinery leaks in.
+schema-version / status machinery leaks in. Neither stores its own id in frontmatter: the slug or
+hash is the filename stem, and storing it again would be redundant.
 
 **The slug/hash-named `.md` files are the sole store — no committed derived index.** There is no
 per-folder `.index.jsonl` roll-up, no generator, and nothing to regenerate on add / forget /
@@ -122,9 +126,7 @@ per-folder `.index.jsonl` roll-up, no generator, and nothing to regenerate on ad
 it needs live from the `.md` files. This is "don't store what you can derive" followed to its
 conclusion: a committed roll-up would be derived data kept in sync for readers that can just as
 well read the source, and deriving it on read instead eliminates the index's entire merge-conflict
-class at the root rather than handling it. (This reverses an earlier revision of this decision,
-which committed a `.index.jsonl` roll-up and accepted a residual merge conflict on it — see the
-discussion history.)
+class at the root rather than handling it.
 
 Rationale for A over B: A already satisfies driver 1 (slug filenames, no counter) exactly as B
 does, but its merge behavior is both simpler and *more correct* — file-per-fact lets git resolve
@@ -145,17 +147,17 @@ the same file-per-entry idiom for one storage mental model across both lighter t
   The `.md` content files remain the source of truth and stay greppable/hand-editable. There is
   no generated artifact alongside them — the folder holds only the `.md` files.
 
-- **Surfacing is pull-at-startup, not push-into-managed-files.** The role sheet instructs every
-  agent, at the start of a run, to run `sq memory <its-slug> list` and `sq board list` and apply
-  anything relevant. Nothing is injected into the pointer / managed `CLAUDE.md` / `AGENTS.md`
-  regions. The instruction is always valid — an empty pool or board simply lists nothing — so it
+- **Surfacing is pull-at-startup, not push-into-managed-files.** The agent guidance instructs
+  every agent, at the start of a run, to run `sq memory <its-slug> list` and `sq board list` and
+  apply anything relevant. No memory or notice content is injected into the pointer / managed
+  `CLAUDE.md` / `AGENTS.md` regions; only that instruction is. The instruction is always valid — an empty pool or board simply lists nothing — so it
   never dangles on a fresh install, and the agent always sees live content rather than a
   `sq sync`-time snapshot. Memory/board content therefore stays out of the managed files entirely:
   nothing is duplicated and nothing can go stale. Consistent with pull-with-a-nudge — the role
   sheet is the nudge, and the `sq` list is the live pull.
 
-- **Expiry hides; clear/prune deletes.** Expired notices are filtered out of listings at read
-  time; physical removal happens on an explicit `clear`/prune, never as a side effect of a read
+- **Expiry hides; clear deletes.** Expired notices are filtered out of listings at read
+  time; physical removal happens on an explicit `sq board clear`, never as a side effect of a read
   (a read must not mutate git-tracked files and manufacture spurious diffs).
 
 # Consequences & trade-offs
@@ -172,10 +174,8 @@ the same file-per-entry idiom for one storage mental model across both lighter t
 - **No derived-index merge surface.** Because nothing derived is committed, there is nothing
   derived to conflict on. The `.md` content files carry the whole merge story and merge cleanly:
   adds are independent files, deletes are file removals, and only a genuine concurrent same-fact
-  edit conflicts — the one case a human should resolve. An earlier revision of this decision
-  committed a `.index.jsonl` roll-up and accepted a residual conflict on it whenever two branches
-  each added a distinct memory; dropping the index removes that surface entirely, along with the
-  merge-handling it required.
+  edit conflicts — the one case a human should resolve. A committed roll-up would have conflicted
+  whenever two branches each added a distinct memory; not having one removes that surface.
 - **Driver 1 fully satisfied.** Driver 1 built this lighter tier to escape the counter-collision
   merge pain of items, and that pain is gone: ids are human-meaningful slugs/hashes with no shared
   global counter, so the content files never collide on filename or counter and no `renumber`
@@ -222,4 +222,6 @@ the same file-per-entry idiom for one storage mental model across both lighter t
 - [2026-08-03T08:47:34Z] `architect` Robert Architect:
   - Verified in force with nothing owed on substance: both tiers exist as their own stores outside the item machinery (`_memory/`, `_board/`), memory as one file per fact under `squads/agents/memory/<role-slug>/`, the board as a top-level sibling with notices under short content hashes, neither in `.squads.json`, neither drawing a sequence number, `sq board post --as <slug>` keying on a slug.
   - Fixed the one hygiene finding: this decision carried no refs at all, so nothing connected it to the work it governs. Added `addresses` edges to FEAT-315 (memory) and FEAT-317 (board), which are the two features it was written for.
+- [2026-10-25T21:20:33Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale, targeted present-tense edits; the decision is unchanged. Corrected the board id: it is the filename stem, not a frontmatter key (BoardNotice.to_frontmatter_dict omits it, as memory omits its slug); named the frontmatter keys both stores write; memory folders are per role or operator slug; the listing sorts by posted_at; removal is sq board clear (there is no prune). Removed the two references to the reversed .index.jsonl revision and the "being added" framing.
 <!-- sq:discussion:end -->

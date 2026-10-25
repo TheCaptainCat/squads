@@ -63,3 +63,17 @@ def test_a_role_catalog_override_that_is_not_utf8_is_refused(tmp_path: Path) -> 
     override.write_bytes(b"\xff\xfe")
     with pytest.raises(SquadsError, match="is not valid UTF-8"):
         load_role_catalog(tmp_path)
+
+
+@pytest.mark.parametrize("document", sorted(_LOADERS))
+def test_an_override_that_is_not_utf8_is_refused_without_the_codec_text(
+    tmp_path: Path, document: str
+) -> None:
+    load, filename, _ = _LOADERS[document]
+    override = tmp_path / ".overrides" / filename
+    override.parent.mkdir()
+    override.write_bytes(b"\xff\xfe")
+    with pytest.raises(SquadsError, match="is not valid UTF-8") as refused:
+        load(tmp_path)
+    assert filename in str(refused.value)
+    assert "codec" not in str(refused.value)

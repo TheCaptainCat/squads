@@ -14,43 +14,44 @@ description: 'Batch review of TASK-718 / FEAT-713 at commit 3b59e52: the 12 rewr
 subentities:
 - local_id: F1
   title: sq create on a dropped type raises a raw KeyError traceback
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: Shrinking a badge collection bricks a live squad; lint reports it clean
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F3
   title: 'Corpus alignment compares folders unnormalised: ''guides/'' is a false refusal'
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F4
   title: sq check falsely reports 'workflow config invalid' for a missing stamp
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: Role pointers keep preloading a dropped or renamed type's sq- skill
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F6
   title: CLAUDE.md managed region hardcodes 'feature'; audit recorded it clean
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F7
   title: 'Lint half of the stamp obligation has no test: neutering it stays green'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F8
   title: sq workflow lint reports only the first per-entry shape violation
-  status: Open
+  status: Deferred
   severity: low
+  deferred_to: TASK-1146
 - local_id: F9
   title: One creatable-type list, two derivations with different orderings
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F10
   title: Corpus-alignment folder half is only covered against a mock spec
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F11
   title: A key omitted from a [selected] keep list vanishes silently
@@ -58,7 +59,7 @@ subentities:
   severity: info
 - local_id: F12
   title: Build-process narration left in delivered source and test prose
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F13
   title: A bare 'assert errors' lint test can now pass on the wrong finding
@@ -66,27 +67,27 @@ subentities:
   severity: info
 - local_id: F14
   title: Badge cross-check asserts override causation it cannot establish
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F15
   title: Lint's badge-alignment fix hint names the wrong remedy and command
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F16
   title: sq --help still advertises a dropped type; only sq create hides it
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F17
   title: Read path's dropped-type refusal gives advice that cannot work
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F18
   title: Dropped type's sq-<type> skill and SKILL item survive as orphans
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F19
   title: claude_section genericisation is inconsistent within edited lines
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F20
   title: Folder normalisation leaves case and the unconstrained folder open
@@ -94,22 +95,22 @@ subentities:
   severity: info
 - local_id: F21
   title: sq repair and sq adopt discard a re-foldered type's corpus
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F22
   title: A bad pre-placed override wedges sq init half-created
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F23
   title: Orphan sweep withdraws any author-created skill slugged sq-*
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F24
   title: Additive-only collection change reopens the false attribution
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-07-31T19:53:04Z'
-updated_at: '2026-08-03T07:45:53Z'
+updated_at: '2026-10-25T19:58:25Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -313,6 +314,8 @@ one place; hiding the subcommand for a type absent from the active spec is the c
   - Added [selected]-provenance to the refusal itself (_create_model's membership gate, _services/_base.py): the merge engine has exactly one way to remove a bundled key (selected — deep-merge only adds/overwrites, never deletes), so a name that WAS bundled and is now absent from the active spec was, by construction, dropped via [selected] — the message now says so and points at selected.items, mirroring the loader's existing deselection-provenance annotation. A type that was never bundled and never declared gets the plain generic message, no false provenance claim (added a dedicated test for that branch).
 - [2026-07-31T20:52:10Z] `python-dev` Elias Python:
   - Falsified both changes independently: (1) reintroduced the old get_command hiding, watched the 'no such command'/did-you-mean contradiction return and the corresponding tests go red; removed it, watched green. (2) neutered the bundled-type provenance branch, watched the [selected]-assertions go red while the negative (never-existed-type) test stayed green; restored, watched all green. Rewrote tests/cli/test_create_refuses_a_dropped_built_in_type.py to assert the actual right message (no 'no such command', names [selected]/selected.items, an alias test, and a distinct never-existed-type test asserting no false provenance) instead of pinning the old contradictory behaviour.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: sq create refuses a dropped built-in type cleanly, pinned by tests/cli/test_create_refuses_a_dropped_built_in_type.py.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -387,6 +390,8 @@ field values, so closing it needs a ruling first.
   - Follow-up on the message wording, prompted by a full-suite regression: split the reasoning explicitly rather than leaving it implicit. _check_field_codes (_index/_store.py, the load-boundary backstop that runs on EVERY load, override or not) structurally cannot tell 'valid until an override shrank the collection' apart from 'never valid at all' — it has no visibility into whether an override is even present. So its message stays deliberately override-agnostic: names the fact (code not declared) plus the one remedy that's true either way (fix the frontmatter value), with sq repair scoped to genuine staleness only. The three-remedy, override-aware message (add the code back / revert the override / update the items) stays where it already was — the loader's live-index cross-check (_collect_badge_alignment_errors), which only ever runs when an override is present and so can say so accurately.
 - [2026-07-31T20:52:22Z] `python-dev` Elias Python:
   - Updated the 3 tests in tests/integration/test_load_boundary_vocab.py that matched the old 'has unknown code' wording (a genuinely-never-valid-code scenario, no override involved) to assert the new override-agnostic message, plus an explicit 'override' not in message assertion pinning that it never presupposes a cause it can't see. Falsified: neutered the check, watched exactly those 3 go red (9 others in the file unaffected); restored, watched green. Grepped the repo for any other test matching the old wording — none.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: the badge cross-check refuses a shrunk collection with the override-agnostic message (_workflow/_loader.py, tests/integration/test_load_boundary_vocab.py).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -449,6 +454,8 @@ spelling can ever be declared.
 <!-- sq:finding:F3:discussion -->
 - [2026-07-31T20:08:20Z] `python-dev` Elias Python:
   - Normalised both sides of the folder comparison in _collect_corpus_alignment_errors (_workflow/_loader.py) via PurePosixPath(...).as_posix() — collapses trailing slash, leading ./, and doubled separators. Deliberately left case unnormalised (filesystem-dependent, not path-syntax). Falsified: reverted the normalisation, watched the trailing-slash repro hard-refuse; restored, watched it load clean while a genuine folder change still refuses. New tests in tests/integration/test_workflow_override_service_integration.py.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: both sides of the folder comparison go through PurePosixPath (_workflow/_loader.py).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -506,6 +513,8 @@ at any `error` level, or tag findings with a category the gate can filter on.
 <!-- sq:finding:F4:discussion -->
 - [2026-07-31T20:20:23Z] `python-dev` Elias Python:
   - sq check's workflow-invalid gate (_cli/_main.py::check) now bases 'workflow config invalid' purely on whether open_service (get_service) actually raises — the ground truth for 'does the config load' — instead of scanning sq workflow lint's findings for any error level. The stamp obligation is error-level in lint by design (ADR-696) but never a load refusal, so it no longer double-reports as a false 'invalid' on top of its own accurate error-level finding. Falsified: reverted, watched the double-error return on a stamp-only override; restored, watched a single accurate error while a genuinely broken spec still reports invalid. New test in tests/integration/test_workflow_override_service_integration.py.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: sq check reports workflow config invalid only when get_service raises (_cli/_main.py check).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -572,6 +581,8 @@ thin-custom-skill path the loop already has.
   - Falsified both scenarios end-to-end on real synced squads: drop (guide dropped via [selected] -> stale sq-guide gone from tech-writer/architect/tech-lead pointers) and rename (feature->story via [selected]+splat -> stale sq-feature gone from product-owner/qa/tech-lead, sq-story generated but correctly not auto-preloaded, matching the custom-type degradation). Reverted the fix, watched both regressions reappear on a fresh sq sync; restored, watched them disappear. New/updated tests: tests/unit/test_skills_for_role_mapping.py (2 new), tests/unit/test_roster_config_integrity_predicates.py, tests/service/test_retirement_refuses_a_config_breaking_transition.py (remedy-text updates, not behavior changes).
 - [2026-07-31T20:31:24Z] `python-dev` Elias Python:
   - On the fourth-site question: agree with the reviewer's assessment. CREATE_LANES is documented in place (_interactions/__init__.py) as a deliberate, undeclared gap with no override mechanism for custom roles/types, and it degrades correctly — a renamed type simply has no lane owner and sq create proceeds with no advisory warning, never a crash or a stale reference to a dropped type. That is a real difference from F5/the AGENTS.md/Claude-Code-backend instances, which all pointed at a type that no longer exists; CREATE_LANES never points at anything invalid, it just stops being informative. Leaving it as-is.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: skills_for_role takes the active spec and playbook (_interactions/_role_guidance.py).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -619,6 +630,8 @@ Worth separating two kinds of literal when this is fixed:
   - Fixed in the template (never the rendered file): replaced the three type-specific illustrative examples in claude_section.md.j2 with generic placeholders, matching the convention already used elsewhere in the same file (sq <type> <n> ...) — 'sq tree FEAT-... for a feature's whole subtree' -> 'sq tree <parent-id> --json for a parent's whole subtree'; 'feature's tasks are Done' -> 'parent's tasks are Done'; 'sq feature 12 story 1 update' -> 'sq <type> <n> <kind> <k> update'. Regenerated the golden (tests/goldens/claude_md_section.txt), this repo's own CLAUDE.md via sq sync (only those 3 lines changed), and the template manifest's 0.12.3 entry via scripts/gen_template_manifest.py (--check now passes; earlier release entries untouched).
 - [2026-07-31T20:34:58Z] `python-dev` Elias Python:
   - Falsified: reverted the template edit, watched test_the_claude_md_managed_section_body_matches_its_pinned_golden go red on the exact 3 lines; restored, watched green. Flagging proactively: the same class of literal (sq feature 12 story 1, FEAT-<n>, a feature's whole subtree) also exists in agents_section.md.j2 and squads_skill.md.j2 per the finding's own note — out of F6's stated scope (claude_section.md.j2 only), left untouched here; worth a follow-up finding/task if the team wants the same ruling applied there.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: claude/claude_section.md.j2 carries no feature literal.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -659,6 +672,8 @@ return the same level for the same file.
   - Added the missing lint-level coverage in tests/unit/test_workflow_lint_merge_errors.py: one test per stamp level driven through lint_workflow_spec directly (shadowing+unstamped -> error, stale stamp -> warn, add-only+unstamped -> nothing), plus a cross-surface test asserting lint_workflow_spec and check_override_issues report the same level for the same file.
 - [2026-07-31T20:36:41Z] `python-dev` Elias Python:
   - Falsified with the reviewer's own method: session monkeypatch-equivalent (a temporary early-return neutering workflow_stamp_finding, no lasting src/ edit), watched all 3 new tests go red while the other 13 in the file stayed green; removed the neuter, watched all 16 green again.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: the lint half of the stamp obligation is under test alongside the check half (tests/integration/test_workflow_override_service_integration.py).
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -716,6 +731,8 @@ right fix is translating one into per-field findings rather than privileging one
 <!-- sq:finding:F8:discussion -->
 - [2026-08-03T07:45:40Z] `manager` Catherine Manager:
   - Left Open deliberately with its disposition named: per-entry translation of a validation error into per-field lint findings is a real gap and is the loader-side work the architect parked. It is not scheduled for this release; carrying it into 0.14 rather than closing it as done or pretending it has a home here.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Still true: lint wraps _build_spec in one try, so only the first per-entry shape error shows (_workflow/_loader.py); no item carries it, kept as a note.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -747,6 +764,8 @@ has to be made twice and will drift.
 <!-- sq:finding:F9:discussion -->
 - [2026-08-03T07:44:58Z] `manager` Catherine Manager:
   - Closed as collateral of the spec-blindness sweep: allowed_create_types now takes a spec and filters against it, so the two derivations agree.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: allowed_create_types takes the spec, so both derivations filter against it (_services/_base.py).
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -783,6 +802,8 @@ type is that.
 <!-- sq:finding:F10:discussion -->
 - [2026-08-03T07:45:02Z] `manager` Catherine Manager:
   - Closed: the folder half now has real integration coverage through a parsed override (trailing-slash non-mismatch and the live-corpus re-folder refusal), which is the coverage this asked for.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: the folder half runs through a parsed override in tests/integration/test_workflow_override_service_integration.py.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -847,6 +868,8 @@ stripped of its justification.
 <!-- sq:finding:F12:discussion -->
 - [2026-07-31T20:37:23Z] `python-dev` Elias Python:
   - Both survivors fixed. _workflow/_loader.py:36's 'this task adds' phrasing was already rewritten incidentally while extending the module docstring for the badge-alignment check (F2) — confirmed clean, no remaining 'this task'/'new' framing. tests/unit/test_workflow_lint_merge_errors.py's module docstring had 'out of this chunk's range' — dropped, the sentence reads fine without it. Broader grep for 'this chunk'/'this task adds'/'this task removes'/'this task implements' across src/ and tests/ returns nothing else. Took the ~2-minute path as suggested; not a full hygiene sweep.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: no "this task adds" or "this chunk" narration remains in _workflow/_loader.py or the lint tests.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 
@@ -989,6 +1012,8 @@ stale index.
   - Falsified all three pieces independently: (1) reverted the collection-scoping condition, watched the crossed-case test go red (message wrongly blames the override) while the repair-still-works test stayed green (repair heals the index regardless); (2) reverted repair's fallback to plain get_service(), watched the true-positive repair test go red while the crossed-case one stayed green (since the scoping fix alone already keeps open_service from refusing in that case). Restored both, all green. Added the crossed-case test the finding asked for (override present, never touches [collections], stale index) plus its true-positive contrast test, in tests/integration/test_workflow_override_service_integration.py.
 - [2026-08-01T20:17:39Z] `reviewer` Paul Reviewer:
   - Verified closed. Re-drove the original repro (unrelated override + stale index): now yields the accurate override-agnostic load-boundary message and sq repair fixes it. True-positive contrast holds: a genuine collection shrink still refuses on every command with the override-aware message, while sq repair runs. One narrow residue filed as F24 — attribution is per-collection ("differs from bundled at all") rather than per-value, so an additive-only collection change still mis-attributes. Low, because repair is no longer gated.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: attribution goes through _code_removed_by_override, and a non-override mismatch gets the override-agnostic message (_workflow/_loader.py).
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 
@@ -1046,6 +1071,8 @@ produced each string — or, at minimum, widen it to name the badge remedy and d
   - Extracted the type/status walk into its own _collect_type_status_errors (matching the corpus/badge collectors already split out), and lint_workflow_spec's phase 5 now calls all three collectors separately with a per-family fix hint: type/status keeps the 'add it back / update to a currently declared type-status' hint, corpus alignment gets its own revert-prefix-folder hint, and badge alignment gets 'add the code back to the collection, revert the override, or update the affected item(s) with sq <type> <n> update --<field> <code>' -- never the nonsensical status-transition advice. validate_against_index's own combined contract (used by the fail-closed raise and every pre-existing test) is unchanged.
 - [2026-08-01T19:22:35Z] `python-dev` Elias Python:
   - Falsified: swapped the badge branch's fix hint back to the shared type/status one, watched the new fix-hint test go red; restored, watched green. New test in tests/integration/test_workflow_override_service_integration.py.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: the badge-alignment family has its own fix hint, pinned in tests/integration/test_workflow_override_service_integration.py.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
 
@@ -1100,6 +1127,8 @@ than a second copy of the alias-expansion loop.
   - Mirrored _CustomCreateGroup's fix onto _CustomTypeGroup (_cli/__init__.py): added _dropped_static_names_for_ctx (same reasoning, resolves the spec via the class's existing _resolve_spec_for_ctx) and wired it into list_commands only -- get_command is deliberately untouched, same reasoning as F1 (hiding there would let Click's unknown-command handler answer with a self-referential did-you-mean). sq --help no longer lists a dropped type; sq guide --help (typed explicitly) still renders its own usage text -- harmless, no action taken, consistent with the create-path's same design choice for sq create guide --help. Flagging this equivalence explicitly in case you'd rather it be hidden too.
 - [2026-08-01T19:22:49Z] `python-dev` Elias Python:
   - Falsified: reverted list_commands to the un-filtered super() call, watched the new --help test go red (guide reappears); restored, watched green. New tests in tests/cli/test_read_path_refuses_a_dropped_built_in_type.py.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: the root list_commands hides a dropped type (_cli/__init__.py), pinned by tests/cli/test_read_path_refuses_a_dropped_built_in_type.py.
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
 
@@ -1158,6 +1187,8 @@ Lift the provenance branch into one helper both paths call, so the message is wr
   - Factored the create-path's provenance check into a shared squads._workflow.dropped_via_selected(item_type, spec) (the merge-engine reasoning: [selected] is the only way to remove a bundled key, so absence-from-active-plus-presence-in-bundled implies dropped, never merely undeclared) and used it from both _services/_base.py (refactored the existing F1 code onto it, no behaviour change -- re-ran its tests, all 6 still green) and the read path's resolve_item_id_typed (_cli/_common.py), which now raises the same [selected]-provenance message before ever reaching prefix_for's generic one.
 - [2026-08-01T19:23:03Z] `python-dev` Elias Python:
   - Falsified: neutered the new read-path branch, watched the two provenance-specific tests go red (message reverts to 'declare it or check for a typo') while the never-existed-type negative test stayed green; restored, watched green. New tests in tests/cli/test_read_path_refuses_a_dropped_built_in_type.py, including the alias case and the negative (never-declared-type) case.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: the read path names [selected] provenance, pinned by tests/cli/test_read_path_refuses_a_dropped_built_in_type.py.
 <!-- sq:finding:F17:discussion:end -->
 <!-- sq:finding:F17:end -->
 
@@ -1216,6 +1247,8 @@ temporarily may want the skill kept.
   - Falsified: reverted the three changes, watched 3 of 4 new tests go red (the 4th, the negative case, correctly stayed green); restored, all green. New tests: tests/service/test_dropped_type_skill_orphan_is_withdrawn_and_flagged.py.
 - [2026-08-01T20:17:41Z] `reviewer` Paul Reviewer:
   - Verified closed, including the reversibility claim: after restoring the dropped type and running sq sync, .claude/ is byte-identical to a pristine init (diff -r clean), role pointers name the skill again and sq check is clean — nothing stored, as claimed. Rename and no-backend shapes both behave (a --backend none squad seeds no SKILL items, so the sweep correctly has nothing to act on). The withdraw does over-reach on one shape: any author-created skill slugged sq-* is swept. Filed as F23.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: the orphan sweep withdraws a dropped type's skill (tests/service/test_dropped_type_skill_orphan_is_withdrawn_and_flagged.py).
 <!-- sq:finding:F18:discussion:end -->
 <!-- sq:finding:F18:end -->
 
@@ -1262,6 +1295,8 @@ released manifest entry moved.
 <!-- sq:finding:F19:discussion -->
 - [2026-08-03T07:45:05Z] `manager` Catherine Manager:
   - Closed: the named literals are gone from claude_section, which is now derived from the active spec and live roster. Verified by grep against the template.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: claude/claude_section.md.j2 derives its type and status names from the active spec.
 <!-- sq:finding:F19:discussion:end -->
 <!-- sq:finding:F19:end -->
 
@@ -1412,6 +1447,8 @@ rather than reporting those items as deleted.
   - Both exposures are new in this change and each traces to a separately-sound fix: sq repair lost the corpus-alignment gate when F14 swapped get_service for get_service_bypassing_index_cross_check, and sq adopt gained the merged spec from _init_time_spec (it previously scanned bundled folders, which matched the corpus). Neither fix is wrong on its own; together they removed the only thing keeping a folder/prefix-realigning spec away from the rebuild scan.
 - [2026-08-01T20:46:19Z] `python-dev` Elias Python:
   - Fixed: repair()/adopt() (via svc.repair()) now refuse rather than silently rebuild, when a previously-indexed item goes missing from a fresh disk scan AND its recorded path is still a real file (never a prefix/id field comparison, so a hand-reconstructed Item's metadata can't false-positive it). A disk-level bundled-vs-active fallback covers the no-prior-index adopt case. Falsified both directions (repair folder/prefix rename, adopt fresh-tree variant): tests/integration/test_workflow_override_service_integration.py.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: test_repair_refuses_rather_than_discard_a_re_foldered_types_corpus and its re-prefix sibling pin the refusal (tests/integration/test_workflow_override_service_integration.py).
 <!-- sq:finding:F21:discussion:end -->
 <!-- sq:finding:F21:end -->
 
@@ -1494,6 +1531,8 @@ guard tolerate a config with no index beside it, so a retry after the fix just c
 <!-- sq:finding:F22:discussion -->
 - [2026-08-01T20:46:34Z] `python-dev` Elias Python:
   - Fixed: init()/adopt() now call _init_time_spec (validate the override) before any state is written — right after the AlreadyInitializedError guard for init, before the config write in adopt's fresh-config branch. A bad pre-placed override now means the command never starts: no .squads.toml, no scaffolding, retry after fixing it just works, no --force needed. Falsified both directions (malformed TOML, floor-violating override): tests/integration/test_workflow_override_service_integration.py.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: init calls _init_time_spec before writing .squads.toml (_services/_service.py).
 <!-- sq:finding:F22:discussion:end -->
 <!-- sq:finding:F22:end -->
 
@@ -1576,6 +1615,8 @@ predicate can ask history instead of guessing from the prefix.
 <!-- sq:finding:F23:discussion -->
 - [2026-08-01T20:46:27Z] `python-dev` Elias Python:
   - Fixed: orphaned_skill_item_type now gates on is_system_skill(slug, spec) before deriving a type name from the sq- prefix, so an author-created sq-* skill is never mistaken for generated residue. Kept is_system_skill bundled-blind (a dropped/renamed built-in's stale skill is still swept, matching F18); accepted trade-off: a dropped CUSTOM type's skill no longer self-identifies here (smaller harm, as you suggested). Falsified both directions: tests/service/test_dropped_type_skill_orphan_is_withdrawn_and_flagged.py::test_an_author_created_skill_named_sq_something_is_never_swept.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: orphaned_skill_item_type gates on is_system_skill (_interactions/_skills.py).
 <!-- sq:finding:F23:discussion:end -->
 <!-- sq:finding:F23:end -->
 
@@ -1626,6 +1667,8 @@ approximations.
 <!-- sq:finding:F24:discussion -->
 - [2026-08-01T20:46:40Z] `python-dev` Elias Python:
   - Fixed: attribution moved to per-value (_code_removed_by_override): a code is only blamed on the override when it was valid under bundled AND is missing from the merged collection. An additive-only override no longer re-opens the false attribution. Falsified both directions: tests/integration/test_workflow_override_service_integration.py::test_a_stale_badge_code_is_unflagged_when_the_override_only_added_codes.
+- [2026-10-25T19:39:41Z] `reviewer` Paul Reviewer:
+  - Holds: attribution is per value through _code_removed_by_override (_workflow/_loader.py).
 <!-- sq:finding:F24:discussion:end -->
 <!-- sq:finding:F24:end -->
 <!-- sq:findings:end -->

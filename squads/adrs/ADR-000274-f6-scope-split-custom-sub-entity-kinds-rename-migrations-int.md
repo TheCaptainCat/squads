@@ -9,38 +9,48 @@ refs:
 - FEAT-212
 - EPIC-206
 created_at: '2026-07-02T09:20:16Z'
-updated_at: '2026-08-03T08:51:21Z'
+updated_at: '2026-10-25T21:17:17Z'
 ---
 <!-- sq:body -->
 ## Context
 
-EPIC-206 makes the workflow engine config-driven. Its committed workflow axis (F1–F5) delivers a coherent, shippable unit: a project can declare a custom **type** (prefix/folder/machine/parents/aliases/badges), custom **statuses/badges** with auto-linearized lifecycles, an additive-only override with load-time validation, and thin auto-generated `sq-<type>` skills — while the bundled default spec stays byte-identical to today (golden-locked). F4 is Done and F5 is InProgress; after F5 the epic satisfies its stated success criteria for the custom-vocabulary axis.
+EPIC-206 makes the workflow engine config-driven. Its workflow axis (F1–F5) is a coherent,
+shippable unit: a project can declare a custom type (prefix, folder, lifecycle, parents, aliases,
+badges), custom statuses and badges, an additive override validated at load, and thin
+auto-generated `sq-<type>` skills, while the bundled default spec stays golden-locked.
 
-FEAT-212 (F6) bundles two features that EPIC-206 itself already flags as second deep coupling surfaces, each comparable in blast radius to F1+F2:
+FEAT-212 (F6) bundled two further features, each a deep coupling surface comparable in blast
+radius to F1+F2:
 
-1. **Custom sub-entity kinds.** Today a type's `subentity_kind` is a single string selecting one of three built-in kinds (story/subtask/finding). Letting a custom type declare a *new* kind with its own machine + summary columns + CLI verb is structurally a second de-typing, mirroring F2 on a different axis. The coupling is real and un-retired: the three `add-<kind>` verbs in `_cli/_items.py` are hand-written closures with kind-specific fields (story: none; subtask: `--story`; finding: `--severity`), each dispatching to a distinct `svc.add_story/add_subtask/add_finding` method; `_SUBENTITY_PLURAL` is still a static map (the last per-type vocabulary artifact); and there is no `SubentityKind` schema on `WorkflowSpec` carrying a machine + column definitions. Making this spec-driven touches the CLI app-build, `_common._print_subentity_summary`, `_discussion.py` column rendering, the service `add_*` methods, and the spec schema — a fresh, wide surface.
+1. **Custom sub-entity kinds.** Letting a type declare a new kind with its own lifecycle, summary
+   columns and CLI verb is a second de-typing on a different axis. It touches the CLI app build,
+   the sub-entity summary rendering, `_discussion.py`, the service `add_*` surface and the spec
+   schema.
+2. **Vocabulary rename migrations.** `sq migrate rename-type` / `rename-status` are data-rewrite
+   events built on the retype primitive (atomic id, ref, parent and prose rewrite), with a
+   `sq migrate` runbook and fail-closed validation. That is migration engineering over the
+   vocabulary, not an extension of it.
 
-2. **Vocabulary rename migrations.** `sq migrate rename-type` / `rename-status` are *data-rewrite* events built on the existing `_services/_retype.py` primitive (atomic ID/ref/parent/prose rewrite), requiring a schema bump, a `sq migrate` runbook + `manual` string, and fail-closed validation. This is migration/tooling engineering, not vocabulary-schema engineering.
-
-These two halves share almost no code. (1) is a spec-schema + CLI-dispatch feature that extends the L3 vocabulary story; (2) is an audited migration built on `retype` that operates *over* the vocabulary rather than extending it. They were bundled into one F6 for roadmap convenience, not because they cohere technically. F6 depends on both FEAT-210 (Done) and FEAT-211 (InProgress); neither dependency binds it to EPIC-206's ship boundary.
+The two halves share almost no code; they were bundled for roadmap convenience.
 
 ## Decision
 
-**Split F6 out of EPIC-206 into a new epic (recommended: EPIC-000213), and further separate its two halves into distinct features within that epic.**
+**F6 leaves EPIC-206 for its own epic, and its two halves become separate features within it.**
 
-EPIC-206 closes as a clean, coherent shippable unit at F1–F5 + the config axis (FR/FP): "config-driven workflow with custom types, statuses, and playbook, default==today." The two F6 surfaces are each net-new deep coupling of blast radius ≈ F1+F2, and belong in their own epic where they can be sequenced, spiked, and reviewed independently rather than as a "stretch" tail that would inflate EPIC-206's scope and delay its close.
-
-Within the new epic, the custom-sub-entity-kinds feature owns retiring `_SUBENTITY_PLURAL` (per Catherine's ownership note) by adding a `subentity_plural` accessor to the reserved-vocab resolver established in ADR-266. *It landed as `WorkflowSpec.subentity_plural(kind)` instead — `_models/_vocab.py` explicitly declined to host it, since a sub-entity kind's plural is spec data the spec object can answer directly, and the kind schema it belongs to was specified by ADR-348. `_SUBENTITY_PLURAL` is gone as this scoping required.* The rename-migrations feature is independent of it and could ship first or in parallel.
-
-This ADR does not create EPIC-000213 or re-parent FEAT-212 — that is a product-owner/manager action. It records the scope line required by EPIC-206 success criterion #8 and FEAT-212 acceptance criterion #5.
+EPIC-206 closes at F1–F5 plus its config axis. The split landed as **EPIC-280**: FEAT-212 is the
+custom sub-entity kinds feature, and FEAT-281 is the vocabulary rename migrations feature, each
+keeping its depends-on edges to FEAT-210 and FEAT-211. The sub-entity kinds feature owns
+retiring the last static per-kind vocabulary table: a kind's plural is answered by the spec
+(`WorkflowSpec.subentity_plural(kind)`), and the kind schema itself is specified by ADR-348.
 
 ## Consequences
 
-- EPIC-206 becomes closable at F1–F5 + FR/FP without a dangling High-risk stretch feature; its "done" is honest and self-contained.
-- The two F6 surfaces get independent sequencing and their own spike/review scrutiny proportional to their blast radius, instead of inheriting EPIC-206's momentum as an afterthought.
-- Splitting the sub-entity-kinds and rename-migration halves into separate features prevents a schema bump (rename migrations) from blocking the vocabulary-schema work, and lets either land first.
-- Cost: one more epic to track, and FEAT-212 must be re-parented (product-owner/manager). The dependency edges (depends-on FEAT-210/211) are preserved regardless of parent.
-- If the team instead kept F6 in EPIC-206, the epic's ship date would couple to two High-risk features that deliver value orthogonal to "custom vocabulary works end-to-end" — the opposite of the minimum-viable scope-control lever EPIC-206 deliberately chose.
+- EPIC-206's "done" is self-contained, without a high-risk stretch feature attached to it.
+- The two surfaces get independent sequencing and their own review scrutiny, proportional to
+  their blast radius.
+- Separating the features keeps a migration surface from blocking the vocabulary-schema work and
+  lets either land first.
+- Cost: one more epic to track.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -53,4 +63,6 @@ This ADR does not create EPIC-000213 or re-parent FEAT-212 — that is a product
 - [2026-08-03T08:51:21Z] `architect` Robert Architect:
   - One scoping detail corrected: the `subentity_plural` accessor landed as `WorkflowSpec.subentity_plural(kind)`, not on the ADR-266 resolver this decision pointed at — `_models/_vocab.py` explicitly declined to host it, and rightly, since a kinds plural is spec data the spec object can answer directly. `_SUBENTITY_PLURAL` is gone as required, and the kind schema itself was specified by ADR-348, which this decision only scoped.
   - Worth recording that the scoping executed exactly as the DISCUSSION records rather than the body: EPIC-280 with FEAT-212 re-parented under it and FEAT-281 beside it, and the bodys "recommended EPIC-000213" was corrected in a comment because 213 was already claimed via the global counter. A live demonstration of why the discussion has to be read alongside the body.
+- [2026-10-25T21:17:17Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale, body rewritten in the present tense; the scope split is unchanged. Named the epic as executed (EPIC-280 with FEAT-212 and FEAT-281, not the recommended EPIC-213 number, which is a bug), folded the italic subentity_plural note into the Decision, and removed the then-current status of F4/F5 and the re-parenting to-do.
 <!-- sq:discussion:end -->

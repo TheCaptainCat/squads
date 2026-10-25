@@ -33,7 +33,7 @@ from squads._services._roster import RosterMixin
 from squads._services._subentities import SubentitiesMixin
 from squads._services._views import ViewsMixin
 from squads._spec_documents import SpecDocuments, SpecSources, resolve_documents, spec_sources
-from squads._specload import Lazy
+from squads._specload import Lazy, override_present
 from squads._workflow import ROSTER_ROLE, bundled_spec
 from squads._workflow._loader import (
     WORKFLOW_OVERRIDE_FILENAME,
@@ -113,7 +113,7 @@ def _checked_workflow_spec(
     if resolved_spec is not None:
         return resolved_spec
     override_path = paths.squad_dir / WORKFLOW_OVERRIDE_FILENAME
-    if not override_path.is_file():
+    if not override_present(override_path):
         return bundled_spec()
     try:
         merged = sources.workflow()
@@ -236,7 +236,7 @@ def _init_time_spec(squad_dir: Path) -> WorkflowSpec:
     parsing — byte-identical to the pre-existing behaviour.
     """
     override_path = squad_dir / WORKFLOW_OVERRIDE_FILENAME
-    if not override_path.is_file():
+    if not override_present(override_path):
         return bundled_spec()
     try:
         return load_workflow_spec(squad_dir=squad_dir)

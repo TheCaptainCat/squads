@@ -72,22 +72,22 @@ subentities:
   severity: medium
 - local_id: F16
   title: One unparseable item file aborts sq check and sq repair board-wide
-  status: Open
+  status: Verified
   severity: low
 - local_id: F17
   title: Permitted-skew set over-exempts dev-role and skill extra fields
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F18
   title: Bulk rename's board-wide snapshot read still crashes raw
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F19
   title: Throwaway RoleDef instance at import time to enumerate keys
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-07-27T16:00:06Z'
-updated_at: '2026-07-28T07:25:22Z'
+updated_at: '2026-10-25T19:39:33Z'
 ---
 <!-- sq:body -->
 Independent review of the atomic write primitive and the write-path ordering rule as committed in
@@ -1014,6 +1014,8 @@ a release blocker.
   - Left open deliberately, not deferred-and-forgotten: the behaviour is unchanged from before this round (one unparseable item file still aborts sq check and sq repair board-wide), it is not a regression, and it is being ticketed for 0.13. Not blocking 0.12.2. The part worth carrying into that ticket is that the remedy, not just the gate, is what goes unavailable — repair rebuilding from every file it can read and reporting the ones it cannot is the shape I would want.
 - [2026-07-28T00:27:48Z] `manager` Catherine Manager:
   - Deferred to 0.13 by design, not overlooked: folded into TASK-674, which was amended and retitled to cover it. That ticket resolves the tension between this finding and its own original 'repair must abort' criterion — repair carries the unreadable item's existing index entry forward rather than dropping it, so nothing disappears and the remedy stays available.
+- [2026-10-25T19:39:33Z] `reviewer` Paul Reviewer:
+  - Resolved by TASK-674: check and repair degrade per file (tests/service/test_unreadable_files_degrade_per_file.py).
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
 
@@ -1069,6 +1071,8 @@ The conditional fix removes that as well.
 #### Discussion
 
 <!-- sq:finding:F17:discussion -->
+- [2026-10-25T19:39:33Z] `reviewer` Paul Reviewer:
+  - Holds: _exempt_attribute_keys applies the exemption to non-templated roles only (_itemfile.py).
 <!-- sq:finding:F17:discussion:end -->
 <!-- sq:finding:F17:end -->
 
@@ -1110,6 +1114,8 @@ to the `_items.py` site, which it isn't — that one has an existence check, thi
 #### Discussion
 
 <!-- sq:finding:F18:discussion -->
+- [2026-10-25T19:39:33Z] `reviewer` Paul Reviewer:
+  - Holds: _snapshot_files reads each item through read_item_text (_services/_rename.py).
 <!-- sq:finding:F18:discussion:end -->
 <!-- sq:finding:F18:end -->
 
@@ -1153,6 +1159,8 @@ model rests on, which is the last place a latent import-time failure should live
 #### Discussion
 
 <!-- sq:finding:F19:discussion -->
+- [2026-10-25T19:39:33Z] `reviewer` Paul Reviewer:
+  - Holds: the key set comes from the RoleDef.attribute_keys() classmethod, pinned by tests/unit/test_role_def_extra_keys.py.
 <!-- sq:finding:F19:discussion:end -->
 <!-- sq:finding:F19:end -->
 <!-- sq:findings:end -->

@@ -12,22 +12,22 @@ description: Behaviour-neutral move confirmed and the guard falsified; four low 
 subentities:
 - local_id: F1
   title: CLAUDE.md calls _clock a leaf; it imports _context
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F2
   title: Guard's blind-spot statement is incomplete and partly false
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: Two doc references name a moved function's old home
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: Moved docstrings carry history prose into the new module
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-10-16T18:11:15Z'
-updated_at: '2026-10-16T18:14:02Z'
+updated_at: '2026-10-25T19:37:30Z'
 ---
 <!-- sq:body -->
 Review of the commit "Guarded the package import graph and moved the roster views and role derivations to named modules" (1fd45be5 on release/0.16), against TASK-989 and ADR-984.
@@ -66,6 +66,8 @@ Fix: drop "leaf", e.g. "imports only `_clock`, `_errors` and `_util` (and, throu
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:37:30Z] `reviewer` Paul Reviewer:
+  - Holds: CLAUDE.md says _models imports only _clock, _errors and _util "(and, through _clock, _context)".
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -86,6 +88,8 @@ No current source uses `__import__` or a relative `import_module` (checked with 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:37:30Z] `reviewer` Paul Reviewer:
+  - Holds: the guard docstring lists `__import__`, importlib.util and runpy as unseen, refuses relative import_module and makes `__main__` its own node.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -104,6 +108,8 @@ Found with `rg "_interactions\.(…moved names…)"`. The other `role_guidance.s
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:37:30Z] `reviewer` Paul Reviewer:
+  - Holds: no `_interactions.catalog_default_slug` or `_interactions.laned_types` reference remains in src or tests.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -123,6 +129,8 @@ The move copied docstrings verbatim. As a result, the new module `_interactions/
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:37:30Z] `reviewer` Paul Reviewer:
+  - Holds: _interactions/_role_guidance.py carries none of the quoted history phrases.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 <!-- sq:findings:end -->

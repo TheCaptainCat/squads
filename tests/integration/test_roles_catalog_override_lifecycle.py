@@ -161,7 +161,7 @@ class TestCheckDrift:
 
         issues = check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir))
         assert len(issues) == 1
-        level, display, message = issues[0]
+        level, display, message, _rule = issues[0]
         assert level == "error"
         assert display == ROLES_OVERRIDE_FILENAME
         assert "no squads:override-base stamp" in message
@@ -221,7 +221,7 @@ class TestCheckDrift:
 
         issues = check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir))
         assert len(issues) == 1
-        level, display, message = issues[0]
+        level, display, message, _rule = issues[0]
         assert level == "warn"
         assert display == ROLES_OVERRIDE_FILENAME
         assert "role catalog override may be stale" in message

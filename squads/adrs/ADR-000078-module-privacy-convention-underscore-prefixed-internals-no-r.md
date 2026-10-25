@@ -11,7 +11,7 @@ refs:
 description: Every implementation module is private with leading underscores and non-re-exporting
   inits, so 1.0 freezes no accidental public API
 created_at: '2026-06-12T14:23:20Z'
-updated_at: '2026-08-03T08:41:22Z'
+updated_at: '2026-10-25T21:37:09Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -28,22 +28,19 @@ ambiguity about what is internal and no accidental API to freeze.
 
 **Every implementation module and subpackage is private — leading-underscore names — and package
 `__init__`s do not re-export across the package boundary.** Internal code imports straight from the
-underscore modules (`from squads._models._item import Item`). An init carries content only where it
-has a structural reason to: `squads/__init__` (`__version__`), `_cli/__init__` (the Typer `app` and
-entry point), each backend package's init (a registration side-effect), and the packages whose init
-*is* the module — `_interactions/` and `_workflow/`, promoted from single modules, whose inits hold
-the implementation their former module held.
-*Corrected 2026-08-03: the original three-item enumeration is stale. Two package promotions and a
-second backend have joined it, and `_workflow/__init__` does re-export a block it calls a public API
-— readable as internal because the package itself is underscore-private, which is the rule that was
-load-bearing all along. Stated as a property rather than a list, so it stops going stale.* Namespace-style imports use an alias to stay readable
-(`from squads import _clock as clock`). The import graph is kept **acyclic**, and forward refs work
-unquoted (no `from __future__ import annotations`, targeting Python 3.14 / PEP 649); a would-be cycle
-uses `if TYPE_CHECKING:` plus a string annotation rather than a runtime import.
+underscore modules (`from squads._models._item import Item`). An init carries code only where it has
+a structural reason to: `squads/__init__` (`__version__`), `_cli/__init__` (the Typer `app` and entry
+point), and `_workflow/__init__` (the bundled-spec accessor and the names its package exports, which
+stay internal because the package itself is underscore-private). The set of inits holding code is
+pinned by the package import-edge guard in `tests/meta`. Namespace-style imports use an alias to stay
+readable (`from squads import _clock as clock`).
+
+The module import graph is kept **acyclic**, and forward refs work unquoted (no
+`from __future__ import annotations`, targeting Python 3.14 / PEP 649); a would-be cycle uses
+`if TYPE_CHECKING:` plus an annotation rather than a runtime import. Every package-to-package import
+edge is a recorded row in the same guard, so a new edge is a reviewed diff.
 
 ## Consequences
-
-What this binds today:
 
 - **There is no public API surface to freeze.** Until squads deliberately exposes a library API, the
   underscore convention keeps everything internal, so 1.0 is not accidentally bound to support
@@ -51,8 +48,7 @@ What this binds today:
 - **Imports name the underscore module directly** rather than relying on `__init__` re-exports;
   adding a re-export is a deliberate act of making something public, not a default.
 - **The import graph must stay acyclic** — a new edge that would form a cycle is resolved with a
-  type-checking-only import and a string annotation, never a runtime import; this is enforced by the
-  gate.
+  type-checking-only import, never a runtime import.
 - **The cost is verbosity** at call sites (long underscore paths, occasional aliases), accepted as the
   price of an unambiguous internal/external boundary.
 
@@ -72,4 +68,6 @@ core six.
   - Dropped the "Left **Proposed** for the manager to accept with the set" closer and retitled the section from "Status note" to "Provenance". Status prose in a body is forbidden here and this one had been false since the day the set was accepted. The provenance itself is kept and is worth keeping — this decision predates squads tracking itself and lived only in CLAUDE.md and docs/internals.md, which is why the body reads retroactively. Part of one sweep across the ten retroactive decisions (49, 71-78, 85), not ten tickets.
   - Rewrote the non-empty-init enumeration as a property instead of a list, because a list of three was always going to go stale and had: `_interactions/` and `_workflow/` were promoted from single modules and their inits hold what those modules held, `_overrides/` and `_specs/` carry content, and there is a second backend init. Two of them re-export, which the original sentence forbade.
   - The principle survives and is what was load-bearing all along — no public surface, every package underscore-private — so the rule is now stated as "no init re-exports across the package boundary" plus the structural reasons an init may carry content. `_workflow/__init__` calling its own re-export block a public API is readable as internal precisely because the package is private.
+- [2026-10-25T21:37:09Z] `architect` Robert Architect:
+  - 2026-10-25 audit: rewritten; decision unchanged. Only `squads`, `_cli` and `_workflow` inits hold code, as pinned by `INITS_WITH_CODE` in the tests/meta import-edge guard. Backend inits have no registration side effect and `_interactions/__init__` is empty. The edge table is cited as the enforcement point.
 <!-- sq:discussion:end -->

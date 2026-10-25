@@ -10,305 +10,219 @@ refs:
 - FEAT-14
 - ADR-1007
 created_at: '2026-06-12T15:29:52Z'
-updated_at: '2026-10-15T20:16:48Z'
+updated_at: '2026-10-25T21:37:10Z'
 ---
 <!-- sq:body -->
 ## Context
 
-FEAT-14 is the last explicitly-deferred item from the original plan, and it is a 1.0 blocker
-for a structural reason: the moment we ship project-level overrides, the **override lookup path and
-precedence rules become part of the durable on-disk contract** (FEAT-13). Shipping them in 0.x
-lets us get the layout right while we still can; bolting them on after 1.0 would mean either
-breaking the contract or living with a mistake forever. This ADR settles the design so
-implementation can proceed against a fixed shape.
+Project-level overrides are part of the durable on-disk contract: the moment a squad can override
+what squads bundles, the **override lookup path and precedence rules** are something adopters build
+on, and changing them later means breaking the contract or living with a mistake. This decision fixes
+that shape.
 
-Today the relevant mechanics are:
+What squads bundles, and so what a project may want to override:
 
-- **Templates** are bundled package data. `_rendering/_engine.py` builds one cached Jinja2
-  `Environment` with `PackageLoader("squads._rendering", "templates")` and a single public
-  `render(template_name, /, **ctx)` entry point. Resolution is strictly literal against the
-  installed package — there is **no search path or fallback**. Item bodies render from
-  `templates/items/<type>.md.j2`; role bodies from `templates/agents/role.md.j2`; sub-entity blocks
-  from `templates/subentities/*`; backend artifacts (CLAUDE.md section, pointers, skills) from
-  `templates/claude/*` and `templates/agents/*`.
-- **Roles** come from `_roles/_catalog.py` (`RoleDef` dataclass: `slug`, `full_name`, `title`,
-  `description`, `mission`, `responsibilities`, `agreements`, `model`, `color`, `is_default`). The 8
-  bundled roles live in `PREDEFINED`; developer roles draw names from `DEV_NAME_POOL` via
-  `dev_role(tech, name=None, seq, model)`. A role's definition is materialised as a ROLE **item**
-  under `squads/agents/roles/ROLE-*.md` at `sq init` / `activate_role`, with its state in
-  frontmatter `extra` (Invariant 1). The roster is **derived from active ROLE items**, not stored
-  separately.
-- **Naming today is fixed:** bundled roles carry hardcoded names; `sq dev add --name` is the only
-  custom-name surface; there is no way to name roles at `sq init`.
-- **Staleness precedent:** managed skills already carry `<!-- squads:managed -->` +
-  `<!-- squads:version:{{ version }} -->` stamps, and `.squads.toml` records `squads_version` (last
-  generator) and `schema_version`. `sq check` (`_services/_maintenance.py::check`) already emits
-  `CheckIssue("warn"|"error", item, message)` for drift — the natural home for a staleness warning.
+- **Templates** — package data under `_rendering/templates/`. Item bodies render from
+  `items/<type>.md.j2`, role bodies from `agents/role.md.j2`, sub-entity blocks from
+  `subentities/*`, derived views from `views/*`, and backend artifacts (the `CLAUDE.md` section,
+  pointers, the `AGENTS.md` section) from `claude/*` and `agents_md/*`.
+- **Roles** — the bundled role catalog (`_specs/roles.toml`, ADR-221). A role's definition is
+  materialised as a ROLE item under `squads/agents/roles/` when it is activated, and the roster is
+  derived from active ROLE items, not stored separately.
+- **Spec documents** — the workflow spec (`_specs/workflow.toml`) and the playbook
+  (`_specs/playbook.toml`), beside the role catalog.
 
-The questions this ADR must answer: **where** overrides live on disk, the **precedence** rule and
+The questions this decision answers: **where** overrides live on disk, the **precedence** rule and
 partial-override behaviour, how **staleness** across upgrades is detected and surfaced rather than
 silently breaking, the **naming surface** at init and role creation, and **what joins the 1.0
-durable contract**.
+durable contract**. How the three spec documents merge is ADR-696's; how uniformly every override kind
+honours this decision's promises is ADR-777's.
 
 ## Decision
 
 ### 1. Override locations — one umbrella directory under the squad folder
 
-All project overrides live under a single umbrella directory, **`<squad-dir>/.overrides/`**, mirroring
-the bundled `_rendering/templates/` tree exactly:
+All project overrides live under a single umbrella directory, **`<squad-dir>/.overrides/`**:
 
 ```
 <squad-dir>/.overrides/
-  templates/
-    items/<type>.md.j2          # item body overrides
+  templates/                    # mirrors the bundled _rendering/templates/ tree 1:1
+    items/<type>.md.j2
     subentities/*.md.j2
-    agents/role.md.j2           # role body shape
-    claude/*.md.j2              # backend artifact shapes
+    agents/role.md.j2
+    views/*.md.j2
+    claude/*.md.j2
   roles/
-    <slug>.toml                 # role definition overrides / additions
+    <slug>.toml                 # one role's definition: a bundled role overridden, or a new role
+  roles.toml                    # the whole role catalog document (ADR-777)
+  workflow.toml                 # the workflow spec document (ADR-696)
+  playbook.toml                 # the playbook document (ADR-696)
 ```
 
-Rationale for the choices, deliberately:
-
-- **`.overrides/`, not `.templates/`.** The body proposed `squads/.templates/`, but the scope is
-  broader than templates (roles, and room for more later). One discoverable umbrella beats two
-  sibling conventions and gives the contract a single named root. The leading dot keeps it out of
-  the way and signals "configuration, not work items" — and crucially keeps it from colliding with
-  the item-type folders the squad-folder scanner walks. **Confirmed by the operator (2026-06-12).**
+- **`.overrides/`, not `.templates/`.** The scope is broader than templates, so one discoverable
+  umbrella beats sibling conventions and gives the contract a single named root. The leading dot
+  keeps it out of the way, signals "configuration, not work items", and keeps it from colliding with
+  the item-type folders the squad-folder scanner walks. Confirmed by the operator.
 - **Under the squad folder, not the project root.** It travels with `.squads.json` and the role
-  items, is found by the same `_paths.resolve()` walk-up, and is guarded by the existing
-  `abspath()` traversal check. The squad folder is already the unit of "this team's data."
-- **`templates/` sub-tree mirrors the package tree 1:1.** An override is named by the **same
-  relative path** the code already passes to `render()` (`items/task.md.j2`,
-  `agents/role.md.j2`). No new naming scheme to learn or to freeze into the contract — the override
-  key *is* the existing template name.
-- **Roles as `roles/<slug>.toml`, not as `.md` bodies.** A role's durable state is structured
-  (`RoleDef` fields), and Invariant 1 already keeps role state in frontmatter `extra`, not prose. A
-  TOML file overriding/adding a role is a clean structured surface that feeds `RoleDef`; the role's
-  rendered *body shape* is governed by overriding `templates/agents/role.md.j2`. This separates
-  "what the role is" (data) from "how its file reads" (template) — the same split squads already
-  makes everywhere.
+  items, is found by the same squad resolution, and is guarded by the same `abspath()` traversal
+  check. The squad folder is the unit of "this team's data."
+- **`templates/` mirrors the package tree 1:1.** An override is named by the **same relative path**
+  the code passes to `render()` (`items/task.md.j2`, `agents/role.md.j2`). The override key *is* the
+  existing template name.
+- **Roles as TOML, not as `.md` bodies.** A role's definition is structured data, so a TOML file is
+  the clean surface that feeds it; the role's rendered *body shape* is governed by overriding
+  `templates/agents/role.md.j2`. This separates "what the role is" (data) from "how its file reads"
+  (template).
 
-### 2. Lookup order and precedence — project override → bundled default, per file
+### 2. Lookup order and precedence — project override, then bundled default, per name
 
-Resolution is a **two-entry search path, checked per template/role name**:
-
-1. `<squad-dir>/.overrides/templates/<name>` (project) — if present, use it;
-2. else the bundled `templates/<name>` (package default).
-
-Implemented for templates by replacing the single `PackageLoader` with a Jinja2 `ChoiceLoader([
-FileSystemLoader(<squad-dir>/.overrides/templates), PackageLoader(...) ])`. `render(name, ...)` and
-every call site stay byte-for-byte identical — the search path is internal to the engine. (The
-engine's `lru_cache(maxsize=1)` on the `Environment` must become keyed on the squad dir, or be
-built per-resolve, so two squads in one process don't cross-contaminate.)
-
-- **Partial override is the default and requires no ceremony.** Precedence is **per-file**, not
+- **Templates resolve per file.** The engine's loader checks `<squad-dir>/.overrides/templates/<name>`
+  first and falls back to the bundled `templates/<name>`. The squad directory is an argument to every
+  render entry point and the template environment cache is keyed on it, so two squads in one process
+  never cross-contaminate. `render()`'s call sites are unchanged; the search path is internal to the
+  engine.
+- **Partial override is the default and requires no ceremony.** Precedence is **per name**, not
   all-or-nothing: drop `items/task.md.j2` and only task bodies change; every other template still
-  resolves to the bundle. There is no "override everything or nothing" mode and no manifest listing
-  what is overridden — presence of the file *is* the override.
-- **No deep-merge of template contents.** A template file is overridden **whole** or not at all;
-  we do not attempt block-level merging of Jinja2. (Markers still apply: an overridden item template
-  must keep the required `<!-- sq:* -->` regions, enforced below.)
-- **Roles merge by slug, field-wise.** `roles/<slug>.toml` for a **bundled** slug overrides only the
-  fields it sets, inheriting the rest from `PREDEFINED` (so a team can rename `architect` or change
-  its model without restating the mission). A **new** slug defines a wholly new role. This field-wise
-  merge is the one place merging is allowed, because `RoleDef` is structured data, not free prose.
+  resolves to the bundle. There is no "override everything" mode and no manifest of what is
+  overridden — presence of the file *is* the override.
+- **A template is overridden whole.** No block-level merging of Jinja2. An overridden item or role
+  template must keep the required sq marker regions, enforced below.
+- **Structured documents merge.** A role file, the catalog document and the two spec documents merge
+  over their bundled base through the shared engine (ADR-696 §4): leaf-granular deep merge,
+  splat-refs against the bundled base, a closed top-level key space. A role file for a **bundled**
+  slug overrides only the fields it sets, so a team can change a role's model without restating its
+  mission; a file for a **new** slug defines a wholly new role. A role's definition resolves bundled
+  catalog, then the catalog document, then its per-slug file, most specific last (ADR-777).
 
-### 3. Staleness across upgrades — stamp, compare, warn, and the update loop (never silently break)
+### 3. Staleness across upgrades — stamp, compare, warn, and the update loop
 
-An override is authored against the bundled template/role of some squads version. A later upgrade
-may change the bundled original (new required marker, new context variable, new `RoleDef` field).
-We **detect and surface** this; we never silently break and never auto-rewrite a hand-authored
-override. Overrides are **user-owned** content — the inverse of the tool-owned managed files — so
-the team always merges upgrades by hand and then tells us they're done.
+An override is authored against the bundled original of some squads version, and a later upgrade may
+change that original (a new required marker, a new context variable, a new role field). We **detect
+and surface** this; we never silently break and never auto-rewrite a hand-authored override.
+Overrides are **user-owned** content — the inverse of the tool-owned managed files — so the team
+merges upgrades by hand and then says it has done so.
 
-**Provenance stamp.** When a team scaffolds an override (via `sq override scaffold`, below), the
-copied file carries `<!-- squads:override-base:<squads_version> -->` — the bundled version it was
-branched from. This reuses the existing managed-file stamping convention; it is a comment, inert
-to rendering. The stamp is the override's "I was last reconciled against vX" marker, and the whole
-update loop turns on it.
+**Provenance stamp.** `sq override scaffold` writes the bundled version an override was branched from
+into the file as a `squads:override-base:<version>` stamp — an inert comment in the file's own syntax.
+The stamp is the override's "last reconciled against vX" marker, and the update loop turns on it.
 
-**Drift detection in `sq check`, at two levels:**
+**Drift detection in `sq check`:**
 
-- **Version drift (warn).** If an override's `override-base` is older than the running
-  `squads_version`, and the *bundled* counterpart changed between those versions, emit
-  `CheckIssue("warn", "<.overrides path>", "override may be stale: bundled <name> changed since
-  v<base>; run `sq override diff <name>`, merge, then `sq override update <name>`")`. "Changed
-  between versions" is determined by shipping a content hash of each bundled template per release (a
-  generated manifest in package data) — cheap, exact, and needs no network. An override whose
-  bundled counterpart did **not** change between `override-base` and current is silent: an old stamp
-  alone is never a warning.
-- **Structural breakage (error).** Independent of version: an overridden **item/role template that
-  is missing a required marker region** (the `<!-- sq:* -->` anchors the section logic depends on)
-  is an `error` — that genuinely breaks marker-safe editing (Invariant 3). An override that renders
-  cleanly and keeps its markers is **never** downgraded to an error just for being old.
+- **Version drift (warn).** An override whose stamp is older than the running squads version **and**
+  whose bundled counterpart actually changed since that version is reported as possibly stale, naming
+  `sq override diff` and `sq override update`. "Changed" is decided by the per-release manifest
+  shipped as package data, which records a content hash of every overridable bundled artifact per
+  release and carries the content of every revision it names (ADR-777). An override whose bundled
+  counterpart did **not** change is silent: an old stamp alone is never a warning.
+- **Structural breakage (error).** An overridden **item or role template missing a required marker
+  region** is an error, because it breaks marker-safe editing (ADR-74). An override that renders
+  cleanly and keeps its markers is never an error just for being old.
+- **Missing provenance (error).** A shadowing override with no stamp is an error for every kind; an
+  add-only override with no bundled counterpart needs none (ADR-777 §6).
 
-**Behaviour on render:** a stale-but-structurally-valid override **still renders** (the warning is
-advisory; we do not block the team's chosen format). A structurally-broken override fails the
-`StrictUndefined`/marker contract loudly at use, and `sq check` flags it ahead of time. There is no
-silent fallback to the bundle when an override is present — falling back silently would be its own
-invisible breakage.
+**Behaviour on render:** a stale but structurally valid override **still renders** — the warning is
+advisory and the team's chosen format is not blocked. There is no silent fallback to the bundle when
+an override is present; falling back silently would be its own invisible breakage.
 
-**The end-to-end stale-override update workflow.** This is the full loop a maintainer runs after a
-`squads` upgrade. `sq migrate` never touches `.overrides/`; this command group is the entire upgrade
-path for user-owned overrides:
+**The update loop.** `sq migrate` never touches `.overrides/`; this loop is the entire upgrade path
+for user-owned overrides:
 
-1. **`sq check` warns.** After upgrading, the next `sq check` compares each override's
-   `override-base` stamp against the running `squads_version` and the shipped per-release hash
-   manifest, and emits the **version-drift warning** above for every override whose bundled
-   counterpart actually changed. This is the signal that an override has fallen behind.
-2. **`sq override diff <name>` shows BOTH deltas.** The maintainer inspects the drift with a diff
-   that surfaces **two** comparisons side by side, so they can see their own customisation *and*
-   what the upgrade changed underneath it:
-   - **Δ-mine:** the user's override vs the **current** bundled template — what the team customised
-     away from today's default (so a hand-merge preserves their intent).
-   - **Δ-upgrade:** the **base-version** bundled template (the one recorded by `override-base`) vs
-     the **current** bundled template — what the upgrade itself changed in the default since the
-     override was branched. Both bundled revisions are recoverable: the current one is package data,
-     and the base one is reconstructed from the per-release hash manifest plus the bundled archive
-     it indexes. Seeing Δ-upgrade is what lets the maintainer fold new required markers / context
-     variables / fields into their override deliberately rather than guessing.
-3. **The maintainer merges by hand.** Overrides are user-owned; we **never** auto-rewrite them. The
-   team edits `.overrides/templates/<name>` (or `roles/<slug>.toml`) to reconcile Δ-upgrade into
-   their version while keeping Δ-mine. They keep whatever they want and adopt whatever the upgrade
-   requires (notably any new required marker, or the warning will re-fire as a structural error).
-4. **`sq override update <name>` re-stamps.** Once the merge is done, this rewrites the
-   `squads:override-base:` stamp to the current `squads_version` — and nothing else; it does **not**
-   touch the body the maintainer just merged. Re-stamping is the maintainer's assertion "I have
-   reconciled this against the current default." The next `sq check` recomputes drift against the
-   new base and the warning clears. (`sq override update` with no name re-stamps every override that
-   currently has a clean, structurally-valid body — a bulk acknowledge after a review pass.)
+1. **`sq check` warns** for every override whose bundled counterpart changed since its stamp.
+2. **`sq override diff <name>` shows both deltas**: **Δ-mine**, the override against the current
+   bundled original (what the team customised), and **Δ-upgrade**, the stamped-base bundled original
+   against the current one (what the upgrade changed underneath), recovered from the manifest.
+3. **The maintainer merges by hand**, folding Δ-upgrade in while keeping Δ-mine.
+4. **`sq override update <name>` re-stamps** the override to the running version and touches nothing
+   else, asserting "reconciled against the current default"; the next `sq check` clears the warning.
+   With no name it re-stamps every structurally valid override at once.
 
-**`sq override` command group — the authoring + upgrade UX, and part of the durable contract:**
+**The `sq override` command group:**
 
-- **`sq override scaffold <name>`** — copy the named bundled template (`items/task.md.j2`,
-  `agents/role.md.j2`, …) or a role (`--role <slug>`) into `.overrides/`, stamped with the current
-  `override-base`, as the starting point for editing. Refuses to clobber an existing override unless
-  `--force`. This is the only command that *writes override bodies*, and it does so only on first
-  scaffold.
-- **`sq override diff [<name>]`** — show the two-delta comparison (Δ-mine and Δ-upgrade) described
-  above for one override, or for every drifted override when no name is given. Read-only.
-- **`sq override update [<name>]`** — re-stamp the override's `override-base` to the current
-  `squads_version` after a hand-merge, clearing the drift warning. Body untouched. With no name,
-  re-stamps every structurally-valid override.
-- **`sq override list`** — list every present override, its kind (template / role), its
-  `override-base`, and its current state (`current` / `drifted` / `broken`), so a maintainer sees
-  the whole override surface and what still needs reconciling at a glance.
-
-This four-command set (`scaffold` / `diff` / `update` / `list`) is the complete override-management
-surface and joins the durable 1.0 contract; the warning text and stamp format are part of it.
+- **`sq override scaffold`** — copy a bundled default into `.overrides/`, stamped: a template by
+  name, one role (`--role <slug>`), a new role (`--new <slug>`), or a whole document (`workflow`,
+  `playbook`, `roles`). Refuses to clobber an existing override unless `--force`. It is the only
+  command that writes override bodies.
+- **`sq override diff [<name>]`** — the two-delta comparison, for one override or every drifted one.
+  Read-only.
+- **`sq override update [<name>]`** — re-stamp after a hand-merge. Body untouched.
+- **`sq override list`** — every present override with its kind, base version and state (`current`,
+  `drifted`, `broken`).
 
 ### 4. Agent naming at creation time
 
-Naming becomes a first-class input at both creation surfaces, with the bundled pool as fallback.
-There are three layered ways to supply a name — declarative flags, the config table, and (at a
-terminal) an interactive prompt — and they compose:
+Naming is a first-class input at both creation surfaces, with the bundled pool as fallback. There
+are three layered ways to supply a name, and they compose:
 
 - **At `sq init`:**
-  - **Declarative flags.** Repeatable `--name <slug>=<Full Name>` flags
-    (e.g. `--name architect="Ada Lovelace" --name manager="Grace Hopper"`).
-  - **Config table.** An optional `[init.names]` table in `.squads.toml` for the declarative,
-    checked-in path.
-  - **Interactive prompt (TTY only).** When the terminal **is a TTY**, `sq init` **prompts
-    interactively** for each role whose name was not already supplied by a flag or `[init.names]` —
-    **unless `--default-names` is passed**, which skips all prompting. When the terminal is **not a
-    TTY** (CI, pipes, scripts), `sq init` behaves exactly as if `--default-names` were given: it
-    **never** blocks on a prompt. The declarative flags and `[init.names]` **pre-answer** prompts —
-    any role named there is not asked about — so the prompt only ever covers the gaps, and a fully
-    declarative invocation is never interactive even at a TTY.
-  - **Fallback.** Any role still un-named after flags, config, and (where applicable) prompting falls
-    through to its bundled `RoleDef.full_name` (bundled roles) or the `DEV_NAME_POOL` (developers) —
-    **unnamed roles still get a pool/bundled name**, never blank. `--default-names` and the non-TTY
-    path simply take this fallback for every otherwise-unnamed role.
-- **At role creation later:** `sq role activate <slug> --name "…"` and the existing
-  `sq dev add --name "…"` accept a name; absent it, the same fallback applies. A `roles/<slug>.toml`
-  override may also carry `full_name`, which seeds the name when that role is activated.
-- **Flow to all surfaces.** The chosen name is written to the ROLE item's frontmatter
-  `extra.full_name` (the single source of truth). Everything downstream already reads from there:
-  `roster()` → `RoleView.full_name` → the CLAUDE.md **Agent roster** section
-  (`claude/claude_section.md.j2`), the agent **pointer** files (`claude/pointer_agent.md.j2`), and
-  the rendered **role body** (`agents/role.md.j2`). No new plumbing — the name rides the existing
-  `extra` channel, so renaming is just a frontmatter update + `sq sync`.
-- **Slugs are not renamable.** Names (`full_name`) are free; **slugs stay canonical** (`architect`,
-  `tech-lead`, `<tech>-dev`) because they are the addressing key for skills, interactions, pointer
-  filenames and `@mentions`. A team renames *who the architect is called*, not *the architect slot*.
-  **Confirmed frozen by the operator (2026-06-12).**
+  - **Declarative flags.** Repeatable `--name <slug>=<Full Name>`.
+  - **Config table.** An optional `[init.names]` table in `.squads.toml`, the checked-in path.
+  - **Interactive prompt (TTY only).** At a terminal, `sq init` prompts for each role not already
+    named by a flag or `[init.names]`, **unless `--default-names` is passed**. Off a terminal (CI,
+    pipes, scripts) it behaves exactly as if `--default-names` were given and **never** blocks. The
+    flags and the table pre-answer prompts, so a fully declarative invocation is never interactive.
+  - **Fallback.** A role still unnamed gets its catalog name (bundled roles) or a name from the
+    developer pool — never blank.
+- **At role creation later:** `sq role activate <slug> --name "…"` and `sq dev add --name "…"`
+  accept a name; absent it, a role override's name and then the same fallback apply.
+- **Where the name lives.** The chosen name is written to the ROLE item's `title` (ADR-766,
+  ADR-1007), and every downstream surface — the roster, the `CLAUDE.md` agent roster, the agent
+  pointer, the rendered role body — reads it from there. The catalog and an override supply a name
+  only when the role is created; after that the stored name is the role's name, and a rename goes
+  through `sq role <slug> update --title` followed by `sq sync`.
+- **Slugs are not renamable.** Names are free; **a stored slug is identity** (ADR-971), because it is
+  the addressing key for skills, interactions, pointer filenames and `@mentions`. A team renames
+  *who the architect is called*, not *the architect slot*. Confirmed frozen by the operator.
 
 ### 5. What joins the durable 1.0 contract
 
-These surfaces are frozen by FEAT-13 the moment this ships, and must be listed verbatim in the
-contract doc:
+- **The override root and tree:** `<squad-dir>/.overrides/`, with `templates/` mirroring the bundled
+  template names 1:1, roles as `roles/<slug>.toml`, and the three spec documents beside them.
+- **The precedence rule:** per name, project override then bundled default; presence is the
+  override; no whole-squad override mode; templates override whole-file, structured documents merge.
+- **The staleness and update contract:** the `squads:override-base:<version>` stamp; that `sq check`
+  warns on version drift only when the bundled counterpart changed, and errors on a missing required
+  marker; that a valid override always renders; that `sq migrate` never rewrites overrides; and the
+  **`sq override` group — `scaffold` / `diff` / `update` / `list`** — as the entire user-owned
+  upgrade path, with `diff` showing both deltas and `update` re-stamping without touching the body.
+- **The naming contract:** names live in the ROLE item's `title`; slugs are canonical and not
+  renamable; an unnamed role falls back to the catalog or the pool. The init surface — `--name
+  slug=…` flags and `[init.names]`, plus TTY prompting for the gaps, suppressed by
+  `--default-names` and off when not a TTY — is the contracted entry path.
 
-- **The override root and tree:** `<squad-dir>/.overrides/{templates,roles}/`, with the
-  `templates/` sub-tree mirroring the bundled template names 1:1, and roles as `<slug>.toml`.
-- **The precedence rule:** per-file, project override → bundled default; presence is the override;
-  no whole-squad override mode; templates override whole-file, roles merge field-wise by slug.
-- **The staleness + update contract:** the `squads:override-base:<version>` stamp; that `sq check`
-  warns on version drift (bundled counterpart changed since the stamped base) and errors on missing
-  required markers; that a valid override always renders; that `sq migrate` never rewrites overrides;
-  and the **`sq override` command group — `scaffold` / `diff` / `update` / `list`** — as the entire
-  user-owned upgrade path, including that `diff` shows both Δ-mine and Δ-upgrade and that `update`
-  re-stamps the base (body untouched) to clear the warning.
-- **The naming contract:** names live in ROLE-item `extra.full_name`; slugs are canonical and not
-  renamable; unnamed roles fall back to the bundled pool. The init naming surface — declarative
-  `--name slug=…` flags and `[init.names]`, plus interactive prompting at a TTY for the gaps
-  (suppressed by `--default-names`, implied off when non-TTY) — is the contracted entry path.
-
-> **Note 2026-10-15 (ADR-1007):** frontmatter has no nested `extra` mapping. A role's name is stored
-> in its top-level `title` (ADR-766), and `full_name` is stored on no item, so the naming contract
-> reads: names live in the ROLE item's `title`. Slugs stay canonical and not renamable; `slug` is a
-> core frontmatter key. The same reading applies to section 4's "Flow to all surfaces" bullet and to
-> the consequence "because they already read `extra`". See ADR-1007 decisions 2 and 8.
-
-What is **deliberately not** frozen (room to grow without a major bump): additional override
-*categories* under `.overrides/` (the umbrella is extensible), and the exact wording/layout of the
-interactive init prompts (the *presence* of prompting and the `--default-names`/TTY rule are
-contracted; the prompt copy is not) — both are additive.
+Deliberately **not** frozen: additional override categories under `.overrides/` (the umbrella is
+extensible), and the wording and layout of the interactive init prompts (their *presence* and the
+`--default-names`/TTY rule are contracted, the copy is not).
 
 ## Consequences
 
-- **Engine change is contained.** Swap `PackageLoader` for a squad-aware `ChoiceLoader`; fix the
-  `Environment` cache key. `render()`'s signature and all ~13 call sites are untouched. This is the
-  only change to the rendering hot path.
-- **Roles gain a merge step.** `_roles/_catalog.py` (or a thin resolver beside it) must layer
-  `roles/<slug>.toml` over `PREDEFINED` field-wise and admit new slugs; `activate_role`/`add_dev`
-  read through that resolver. The roster derivation, pointers and CLAUDE.md section are unchanged
-  because they already read `extra`.
-- **`sq check` gains two override checks** (version-drift warn, missing-marker error) and the build
-  must ship a per-release content-hash manifest as package data — used both for drift detection and
-  to recover the base-version bundled template for the `sq override diff` Δ-upgrade view.
-- **New `sq override` command group** (`scaffold` / `diff` / `update` / `list`) is the authoring +
-  upgrade UX. `scaffold` writes a stamped copy; `diff` is read-only and renders both Δ-mine
-  (override vs current bundled) and Δ-upgrade (base-version bundled vs current bundled); `update`
-  re-stamps `override-base` to clear the drift warning **without touching the body** (overrides are
-  never auto-rewritten); `list` reports each override's kind, base and state. The group joins the
-  durable contract.
-- **`sq init` gains interactive prompting** for missing role names, gated on TTY and suppressible
-  with `--default-names`; non-TTY implies `--default-names`. The declarative `--name slug=…` flags
-  and `[init.names]` table pre-answer prompts, so scripted/CI init stays non-interactive and
-  reproducible.
-- **New `.squads.toml` keys** (`[init.names]`; nothing else needs persisting — overrides are
-  discovered on disk, not registered). Round-trips through `to_toml()`.
-- **Invariants preserved.** Frontmatter stays the source of truth (names in `extra`); markers stay
-  enforced (the missing-marker error guards them); backends stay the only writers of `.claude/`
-  (overrides live under the squad folder, consumed before the backend renders). `.overrides/` is the
-  one explicitly **user-owned** tree, the mirror image of the tool-owned managed files — which is
-  why `sq override update` re-stamps but never rewrites, and why the merge step is always manual.
-- **Tests** must cover: a partial template override (one file shadows, rest bundled); a field-wise
-  role override + a brand-new role slug; the full staleness loop — a drift warning from `sq check`,
-  `sq override diff` rendering both deltas, a hand-merge, `sq override update` re-stamping and the
-  warning clearing — vs a missing-marker override (error); `sq override list`/`scaffold` behaviour;
-  and names supplied at `sq init` (flag, `[init.names]`, interactive prompt at a faked TTY,
-  `--default-names`, and the non-TTY-implies-default path) and at `sq role activate` flowing to
-  roster + pointer + CLAUDE.md.
+- **The rendering hot path changes in one place.** The template loader searches the squad's
+  overrides before the package; `render()`'s call sites are untouched.
+- **Roles resolve through a merge.** Activation and `sq dev add` read a role's definition through
+  the catalog-then-override resolution rather than the bundled catalog alone.
+- **`sq check` carries the override checks** (version drift warn, missing marker error, missing
+  provenance error), and the build ships the per-release manifest as package data, used both for
+  drift detection and for the Δ-upgrade view.
+- **`sq init` prompts for missing role names** only at a TTY and never without one, so scripted and
+  CI init stays non-interactive and reproducible.
+- **One new `.squads.toml` key**, `[init.names]`. Nothing else needs persisting: overrides are
+  discovered on disk, not registered.
+- **Invariants preserved.** Frontmatter stays the source of truth (names in the ROLE item's
+  `title`); markers stay enforced (the missing-marker error guards them); backends stay the only
+  writers of `.claude/` (overrides live under the squad folder and are consumed before the backend
+  renders). `.overrides/` is the one explicitly **user-owned** tree, the mirror image of the
+  tool-owned managed files — which is why `sq override update` re-stamps but never rewrites, and why
+  the merge step is always manual.
+- **Tests cover:** a partial template override; a field-wise role override and a new role; the full
+  staleness loop (a drift warning, both deltas in `diff`, a hand-merge, `update` clearing the
+  warning) against a missing-marker override (error); `list` and `scaffold`; and names supplied at
+  `sq init` (flag, `[init.names]`, a prompt at a faked TTY, `--default-names`, the non-TTY path) and
+  at `sq role activate`, flowing to the roster, the pointer and `CLAUDE.md`.
 
 ## Provenance
 
-Revised 2026-06-12 per the operator's two requested revisions — the stale-override update workflow
-spelled out end to end with the named `sq override` command set, and the init naming UX with TTY
-prompting plus `--default-names`. The `.overrides/` location and the frozen slugs were confirmed in
-the same review. If the post-1.0 custom ref-kind facility (ADR-49) is ever designed, `.overrides/` is
-its reserved home — consistent with this umbrella.
+The stale-override update loop with its named `sq override` command set, and the init naming UX with
+TTY prompting plus `--default-names`, were revisions the operator asked for before acceptance. The
+`.overrides/` location and the frozen slugs were confirmed in the same review.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -330,4 +244,6 @@ its reserved home — consistent with this umbrella.
   - Dropped the "Recorded as Proposed. Acceptance is the operators call" opener and retitled the section to Provenance, as part of the sweep across the ten retroactive decisions. The revision history it also carried is genuinely useful and is kept intact.
   - Verified in force end to end while in there, and it needs nothing else: `.overrides/templates|roles` resolution, the `ChoiceLoader` template precedence, field-wise role merge, the `override-base` stamp, the per-release content-hash manifest shipping as package data, all four `sq override` verbs including the two-delta diff, and `[init.names]`/`--name`/`--default-names`. `.overrides/workflow.toml` is a third category sanctioned by this decisions own "additional override categories are not frozen" clause.
   - One watch item rather than a defect, recorded so it is not rediscovered: when the shared deep-merge engine ADR-696 section 4 describes lands, the clause to reconcile is "templates override whole-file, roles merge field-wise" — a uniform merge model touches exactly that sentence.
+- [2026-10-25T21:37:10Z] `architect` Robert Architect:
+  - 2026-10-25 audit: rewritten in present tense; the decision and its frozen surface are unchanged. Folded in the five override kinds (`.overrides/roles.toml`, `workflow.toml`, `playbook.toml` beside templates and roles), merging through ADR-696, drift gated on the content manifest for every kind (ADR-777), and the unstamped-shadowing error. Names now live in ROLE `title` (ADR-766/1007), are set only at creation, and change through `sq role <slug> update --title`. Removed the pre-implementation Context and the ADR-1007 note.
 <!-- sq:discussion:end -->

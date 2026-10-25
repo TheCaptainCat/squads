@@ -6,13 +6,14 @@ from pathlib import Path
 from typing import Any
 
 from squads._discussion import Comment
+from squads._errors import InvalidIdError
 from squads._index._reconcile import ReconcileResult
 from squads._migrations._registry import Migration
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._omission import Omission
 from squads._models._subentity import SubEntity
-from squads._paths import SquadPaths
+from squads._paths import SquadPaths, number_for_id
 from squads._services._retirement import Severance
 
 #: What a tree surface prints beside a root it invented to reveal a parent cycle (see
@@ -146,6 +147,23 @@ class CheckIssue:
     level: str  # "error" | "warn"
     item: str  # item id or filename ("" if global)
     message: str
+    rule: str  # the check that produced it: a validator name or a binding rule
+
+
+def check_issue_sort_key(issue: CheckIssue) -> tuple[int, int, int, str]:
+    """The total order every list of findings is printed in. Squad-global and no-item issues (an
+    unresolvable ``item``: a filename, ``""``, ``"workflow"``) form a leading block; item-attached
+    issues then sort by sequence number, error before warn, then message. Any remaining tie
+    keeps its original relative order."""
+    seq: int | None = None
+    if issue.item:
+        try:
+            seq = number_for_id(issue.item)
+        except InvalidIdError:
+            seq = None
+    has_item = 0 if seq is None else 1
+    level_rank = 0 if issue.level == "error" else 1
+    return (has_item, seq or 0, level_rank, issue.message)
 
 
 @dataclass

@@ -10,10 +10,11 @@ refs:
 subentities:
 - local_id: F1
   title: FORCE_COLOR clause not exercised by an automated test
-  status: Open
+  status: Deferred
   severity: low
+  deferred_to: TASK-1149
 created_at: '2026-07-17T14:11:43Z'
-updated_at: '2026-07-17T14:29:35Z'
+updated_at: '2026-10-25T19:58:41Z'
 ---
 <!-- sq:body -->
 Independent review of TASK-451 — the `sq workflow --raw` / `sq workflow show --raw` clean-markdown mode. Scope: src/squads/_cli/_workflow_cmd.py, CHANGELOG.md, tests/goldens/workflow_cheatsheet_raw.txt, tests/cli/test_workflow_raw_markdown_golden.py.
@@ -41,6 +42,8 @@ Not blocking: the guarantee is structural — markup=False + highlight=False on 
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:13Z] `reviewer` Paul Reviewer:
+  - Still true: no test runs sq workflow --raw under a forced colour; kept as a note, the guarantee is structural.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 <!-- sq:findings:end -->

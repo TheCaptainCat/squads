@@ -17,101 +17,60 @@ description: 'New frozen --json type catalog on a dedicated subcommand (sq workf
   types): bare array of {type, order|null, prefix, reserved} in resolved order; additive-superset
   + golden-frozen; unblocks TASK-450 (REV-448 F1).'
 created_at: '2026-07-17T14:04:05Z'
-updated_at: '2026-08-03T15:36:22Z'
+updated_at: '2026-10-25T21:28:43Z'
 ---
 <!-- sq:body -->
 ## Context
 
-REV-448 F1 (and its core half, TASK-450) needs the workflow spec's per-type `order`
-(`ItemSpec.order`) reachable by the VS Code client so it can sort type groups spec-driven
-instead of alphabetically. Per ADR-427 the client is a **pure consumer of `sq … --json`** —
-it must not read `.squads.json` or the spec files — so "expose `order`" means a `--json` CLI
-surface, not a model-dump artifact like `playbook_spec.json` (which is a golden-frozen
-`model_dump`, not a CLI surface, so a client cannot reach it).
+A machine client needs the workflow spec's per-type facts, starting with `ItemSpec.order`, so it can
+sort type groups by the spec instead of alphabetically (REV-448 F1). Per ADR-427 the VS Code client
+is a pure consumer of `sq … --json`, so exposing them means a CLI surface, not a model dump.
 
-`order` is a per-**type** property. Repeating it on every `sq tree`/`sq list` node would be
-redundant — the same value copied onto every node of a type, derivable from the node's `type`
-plus a one-time catalog lookup. The right shape is a **type catalog**: the declared types
-listed once, each with its per-type metadata.
+`order` is a per-**type** property. Repeating it on every `sq tree`/`sq list` node would copy one
+value onto every node of a type, derivable from the node's `type` and a one-time lookup. The right
+shape is a **type catalog**: each declared type listed once with its per-type metadata.
 
-Two adjacent design points constrain where it lives:
-- `sq workflow` (its `show`/default callback) is the **human cheatsheet**, and REV-448 F8 will
-  add `--raw` to emit that cheatsheet as clean markdown. Overloading a `--json` onto the same
-  callback would make one command emit two unrelated payloads (cheatsheet-as-markdown vs. a
-  type catalog that is not the cheatsheet at all) — a conflation to avoid.
-- Existing `--json` read surfaces (`tree`/`list`/`show`, frozen by FEAT-15) are all **bare JSON
-  arrays** of flat objects; a new surface should match that convention.
+Two adjacent points constrain where it lives. `sq workflow` (`show`) is the human cheatsheet, with
+its own `--raw` markdown output; a `--json` on the same callback would make one command emit two
+unrelated payloads. And the item `--json` read surfaces are bare JSON arrays of flat objects, a
+convention a new surface should match.
 
 ## Decision
 
-**1. Surface — a new subcommand, `sq workflow types`.** Not a flag on the cheatsheet callback.
-It joins the existing `sq workflow` group (`show`, `lint`, + `types`) with clean single-purpose
-grammar, and leaves `sq workflow`/`show` free for F8's `--raw`. Default (no `--json`) prints a
-human Rich table; `--json` emits the frozen machine shape below. This mirrors the `list`
-table-plus-`--json` pattern and `lint`'s dual human/exit-code nature.
+**1. Surface — a subcommand, `sq workflow types`.** Not a flag on the cheatsheet. Without `--json`
+it prints a human table; with `--json` it emits the machine shape below.
 
-**2. Shape — a bare JSON array, one object per declared type**, emitted in ascending resolved
-`order` (type-name string breaks ties) — the same ordering the CLI uses to register per-type
-commands. Every declared type is included, work and reserved alike, so the client can spec-drive
-the work-vs-reserved split (e.g. REV-448 F12's meta view) without a hardcoded
-role/skill/operator list. Field set per object:
+**2. Shape — a bare JSON array, one object per declared type**, in ascending resolved `order` (type
+name breaking ties), the order the CLI registers per-type commands in. Every declared type is
+listed, roster types included, so a client derives the roster/work split from the catalog rather
+than a hardcoded role/skill/operator list. This decision fixes four keys:
 
-- `type` — the type key (e.g. `"task"`); matches the `type` field already on `tree`/`list` nodes.
-- `order` — the resolved `ItemSpec.order` as a JSON number, or `null` when it is `+inf`
-  (an un-ordered/custom type). `null` is present-but-empty (not omitted) so the key set is stable
-  across every object and the golden; a consumer sorts `null` last, type-name tiebreak.
-- `prefix` — the id prefix (e.g. `"TASK"`).
-- `reserved` — boolean, `= ItemSpec.is_meta`; `true` for the reserved meta-types
-  (role/skill/operator). Named for the operator-facing "reserved types" vocabulary.
-  *Same verdict, different derivation since ADR-541: it is `ItemSpec.category == "roster"`.
-  `is_meta` no longer exists. The field name and its meaning are unchanged, which is why this is a
-  citation fix rather than a contract change — but the row it sits in has grown; see the amendment
-  note.*
+- `type` — the type key; matches the `type` field on item rows.
+- `order` — the resolved `ItemSpec.order` as a JSON number, or `null` for a type that declares
+  none (`+inf`). The key is always present; a consumer sorts `null` last.
+- `prefix` — the id prefix.
+- `reserved` — `true` for the roster types, computed as `category == "roster"` (ADR-541).
 
-Spec-driven throughout: read from the active `WorkflowSpec` (`.types` / `work_types()` + the meta
-types), never a hardcoded type list. No `title` field — item types have no distinct label in
-`ItemSpec`; the type key is the label (a Title-cased form is client-derivable, so storing it here
-would be redundant). No `folder` — an on-disk internal the consumer contract forbids the client
-from using. No lifecycle/status catalog — a separate, larger surface, out of scope here; this
-catalog is type-identity only.
+The row carries further keys added by later decisions, each under the additive rule of §3:
+`category` (ADR-541), `subentity_kind` and `lifecycle` (ADR-738), `fields` (ADR-474 A3),
+`attributes` (ADR-1007) and `labels` (ADR-646). `TYPE_CATALOG_FIELDS` in `_cli/_workflow_cmd.py` is
+the declared key set. The catalog reads the active spec throughout. It carries no `folder`, an
+on-disk internal the consumer contract keeps clients away from. The type catalog is one of the
+`sq workflow` catalog family; ADR-738 owns the family's completeness rule.
 
-**3. Semantics — additive-superset + golden-frozen, same discipline as FEAT-15.** No existing
-`--json` shape changes. A new golden under `tests/goldens/` (e.g. `workflow_types.json`) pins the
-byte-identical shape, with a test asserting it and that the field set matches the model. Future
-additions to this surface are additive-only (new keys), never removals or renames.
+**3. Evolution — additive only, pinned by a golden.** The JSON shape is pinned by a golden fixture
+and a test that the emitted key set equals the declared constant. Changes are additive: a key may
+be added, never removed or renamed. A decision that adds a key to this catalog says so in its own
+body and names the catalog it extends; ADR-1025 sets what a listed key freezes.
 
 ## Consequences
 
-- The client sorts type groups by a real spec value via one `sq workflow types --json` call and
-  derives the work-vs-reserved split from `reserved` — no hardcoded type list, satisfying
-  REV-448 F1/F12's spec-driven requirement.
-- `order` stays a single per-type fact exposed once, not duplicated onto every tree/list node.
-- One coherent type-identity catalog now (`order`+`prefix`+`reserved`) rather than piecemeal
-  surfaces later; genuinely separate concerns (the workflow machine's statuses/transitions,
-  the cheatsheet's `--raw`) stay their own surfaces.
-- Adds one more frozen shape to keep under the golden-freeze discipline — the intended cost of a
-  frozen contract.
-
-## Amendment note
-
-**2026-08-03 — the derivation moved and the frozen row grew from four keys to seven.** The catalog
-itself is verified in force: a dedicated `--json` subcommand, bare-array shape, spec-driven with no
-hardcoded type list, under the golden-freeze discipline this decision imported from the earlier
-read-surface freeze.
-
-`reserved` is computed as `category == "roster"` (ADR-541) rather than from `is_meta` — the same verdict
-by a different route, since the category is exactly the axis the boolean was standing in for.
-
-The part worth recording rather than merely correcting is the row's growth. This decision froze four
-keys. The live row carries seven: `+fields` (ADR-474 A3), `+category` (ADR-541) and `+labels` (ADR-646).
-Only the first is declared at its own end as an extension of *this* catalog; the other two extended a
-frozen contract without saying so anywhere. Under the additive-superset rule §3 states, all three are
-legitimate — adding a key is permitted, removing or repurposing one is not — so nothing here is a
-breach. But a frozen shape whose growth is undocumented cannot be audited against its own freeze, which
-is the whole point of freezing it. The rule to carry forward: a decision that adds a key to a frozen
-catalog says so in its own body, and names the catalog it is extending.
-
-`related` edges added to ADR-541, ADR-474 and ADR-646.
+- A client sorts type groups by a real spec value in one call and derives the roster/work split
+  from `reserved`, with no hardcoded type list.
+- `order` stays a single per-type fact exposed once.
+- Separate concerns keep their own surfaces: statuses, collections and roles have sibling catalogs
+  (ADR-474, ADR-604), and the cheatsheet keeps `--raw`.
+- One more pinned shape to keep under the golden discipline, the intended cost of a contract.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -125,4 +84,6 @@ catalog says so in its own body, and names the catalog it is extending.
   - Corrected the `reserved` derivation in place: it is `ItemSpec.category == "roster"` (ADR-541), not `is_meta`. Same verdict, different route — the category is exactly the axis the boolean stood in for — so this is a citation fix, not a contract change. The catalog itself is verified in force.
   - The finding worth keeping is not the citation but the rows growth. This decision froze four keys; the live row carries seven — `+fields` (ADR-474 A3), `+category` (ADR-541), `+labels` (ADR-646) — and only the first is declared at its own end as an extension of this catalog. All three are legitimate under the additive-superset rule, so nothing is a breach; but a frozen shape whose growth is undocumented cannot be audited against its own freeze, which is the point of freezing it. Recorded the forward rule: a decision adding a key to a frozen catalog says so in its own body and names the catalog.
   - Added `related` edges to ADR-541, ADR-474 and ADR-646.
+- [2026-10-25T21:28:43Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale, body rewritten in the present tense; the catalog decision is unchanged. The row has ten keys, not four or seven: added subentity_kind and lifecycle (ADR-738) and attributes (ADR-1007) to the list of later additions, pointing at TYPE_CATALOG_FIELDS as the declared set. Folded the is_meta citation fix and the "a decision adding a key says so" rule from the 2026-08-03 amendment into §2 and §3, and replaced "no status catalog, out of scope" with the sibling catalogs that exist.
 <!-- sq:discussion:end -->

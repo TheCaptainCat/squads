@@ -18,10 +18,10 @@ subentities:
 - local_id: F2
   title: 'Confirmed correct: round-trip preserves all config keys + schema stamp stays
     0.3'
-  status: Open
+  status: Noted
   severity: info
 created_at: '2026-06-16T14:35:57Z'
-updated_at: '2026-06-16T14:58:51Z'
+updated_at: '2026-10-25T19:38:31Z'
 ---
 <!-- sq:body -->
 Independent review of TASK-147: making _v0_2_to_v0_3 emit canonical active_backends in .squads.toml. Verified the migrated on-disk shape, schema stamp, idempotency, back-compat reader, and the full gate. Behavior is correct; one test-coverage finding on non-vacuousness.
@@ -74,6 +74,8 @@ Gate: pyright 0 errors; ruff check passed; ruff format clean (112 files); sq che
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:31Z] `reviewer` Paul Reviewer:
+  - Confirmation of a passing check, no action; kept as a note.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 <!-- sq:findings:end -->

@@ -13,10 +13,10 @@ description: Engine ChoiceLoader + squad-aware cache + ContextVar; verdict for t
 subentities:
 - local_id: F1
   title: No autouse fixture resets engine ContextVar/cache between tests
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-06-12T21:10:56Z'
-updated_at: '2026-06-23T09:59:39Z'
+updated_at: '2026-10-25T19:39:43Z'
 ---
 <!-- sq:body -->
 Scope: the override loader + precedence plumbing for TASK-87 (FEAT-14, ADR-85 §1/§2) — _rendering/_engine.py (ChoiceLoader + per-squad-dir Environment cache + ContextVar), _services/_base.py (ServiceCore activates the squad dir), tests/test_override_loader.py (6 tests). Unrelated working-tree changes (golden-file / TASK-83 / _cli/_main.py / docs) were out of scope and ignored.
@@ -42,6 +42,8 @@ No autouse fixture resets engine module-state between tests (_active_squad_dir C
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:43Z] `reviewer` Paul Reviewer:
+  - Holds: the ambient ContextVar is gone; the Environment cache is keyed on the from_squad argument (_rendering/_engine.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 <!-- sq:findings:end -->

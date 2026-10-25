@@ -16,19 +16,19 @@ description: Cross-file consistency of the five parallel docs-audit fixes, check
 subentities:
 - local_id: F1
   title: roles.md says a role item stores only its slug; the name is stored
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F2
   title: overrides layout presents head/summary templates as live presentation
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: stability stamp rules cover workflow only; overrides adds templates, roles.toml
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: 'Non-abstract backend methods: three in backends.md, two in stability'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: roles.toml full_name does not rename an active role despite stated precedence
@@ -36,18 +36,18 @@ subentities:
   severity: medium
 - local_id: F6
   title: tutorial says every item is authored by a role; operators author too
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: 'Role definition: rendered on read vs stored under squads/'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F8
   title: 'Prose role body: faq says show prints it; it does not, and sq check errors'
-  status: Fixed
+  status: Verified
   severity: medium
 created_at: '2026-10-16T11:15:14Z'
-updated_at: '2026-10-16T11:34:06Z'
+updated_at: '2026-10-25T19:33:58Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -96,6 +96,8 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F1:discussion -->
 - [2026-10-16T11:20:11Z] `tech-writer` Theo Writer:
   - Fixed in docs/roles.md (How roles, skills, and items connect): a role item stores its slug and name.
+- [2026-10-25T19:33:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/roles.md says a role item stores its slug and name.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -117,6 +119,8 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F2:discussion -->
 - [2026-10-16T11:20:22Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md (override layout tree): head.md.j2 and summary.md.j2 are marked as used only by migrations, with no effect on show.
+- [2026-10-25T19:33:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md layout marks head.md.j2 and summary.md.j2 as used only by migrations.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -138,6 +142,8 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F3:discussion -->
 - [2026-10-16T11:20:24Z] `tech-writer` Theo Writer:
   - Fixed in docs/stability.md (Staleness & drift bullet): stamp format covers per-role files and all three spec documents; templates always need it, shadowing per-role files and spec documents need it, add-only ones do not. Driven: unstamped roles.toml shadow and per-role file error, a new-role per-slug file is clean.
+- [2026-10-25T19:33:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/stability.md Staleness & drift covers templates, per-role files and all three spec documents.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -159,6 +165,8 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F4:discussion -->
 - [2026-10-16T11:20:27Z] `tech-writer` Theo Writer:
   - Fixed in docs/backends.md and docs/stability.md: both now say four non-abstract methods and name managed_entry_paths, restriction_fragment, render_role_entry, render_skill_entry (counted in AgentBackend: 7 abstract, 4 with defaults).
+- [2026-10-25T19:33:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/backends.md and docs/stability.md both say four non-abstract methods.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -203,6 +211,8 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F6:discussion -->
 - [2026-10-16T11:20:29Z] `tech-writer` Theo Writer:
   - Fixed in docs/tutorial.md: every item has an author, a role slug or op-<slug> for a human operator. Driven: sq create epic --author op-alice succeeds.
+- [2026-10-25T19:33:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/tutorial.md says the author is a role slug or `op-<slug>` for a human operator.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -224,6 +234,8 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F7:discussion -->
 - [2026-10-16T11:20:31Z] `tech-writer` Theo Writer:
   - Fixed in docs/README.md and docs/internals.md diagrams (definition rendered on read), docs/internals.md folder tree and role-pointer bullet, docs/backends.md (pointers, not copies), and docs/overrides.md (the role body bullet now names the sq role show heading).
+- [2026-10-25T19:33:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/README.md, docs/internals.md and docs/backends.md say the definition is rendered on read.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -245,6 +257,8 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F8:discussion -->
 - [2026-10-16T11:20:33Z] `tech-writer` Theo Writer:
   - Fixed in docs/faq.md and docs/adoption.md. Re-driven: a role or generated-skill body holding prose is left alone by sq repair, show prints that prose in place of the definition, and sq check errors (missing seeded view tag, exit 3) with a remedy. The faq clause about show was true and is kept; the check error is added to both.
+- [2026-10-25T19:33:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/faq.md says show prints a prose role body and check accepts it, matching op-pierre's 2026-10-16 ruling.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 <!-- sq:findings:end -->

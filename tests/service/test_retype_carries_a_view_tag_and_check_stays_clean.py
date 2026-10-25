@@ -67,7 +67,12 @@ async def test_sq_check_stays_clean_after_a_retype_carrying_a_view_tag(svc) -> N
     assert not any(_BUNDLED_VIEW in i.message for i in issues), [i.message for i in issues]
     assert res.item.type == "bug"
     body_after = await svc.read_body(res.item.id)
-    assert body_after == body_before
+    assert "## Delivered" in body_before
+    assert "## Delivered" in body_after
+    stored = get_section(svc.paths.abspath(res.item.path).read_text(encoding="utf-8"), markers.BODY)
+    assert stored is not None
+    assert "_TODO: describe the bug._" in stored
+    assert stored.count(f"<!-- sq:{markers.view_tag(_BUNDLED_VIEW)} -->") == 1
 
 
 async def test_a_dangling_view_tag_still_reports_after_retype_the_check_is_not_suppressed(

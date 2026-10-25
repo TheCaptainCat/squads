@@ -11,7 +11,7 @@ refs:
 description: A handoff names a capability (@*review) and renders as the @-mentions
   of its live holders.
 created_at: '2026-10-24T20:03:12Z'
-updated_at: '2026-10-24T21:20:49Z'
+updated_at: '2026-10-25T21:41:28Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -76,4 +76,6 @@ The manager and the architect hold none of these, because no bundled line hands 
 <!-- sq:discussion -->
 - [2026-10-24T21:20:49Z] `op-pierre` Pierre Chat:
   - Accepted as written: capability names plan, review, verify, product, edit (plus dev) and the rendering rule.
+- [2026-10-25T21:41:28Z] `architect` Robert Architect:
+  - Audited 2026-10-25: holds. roles.toml declares plan/review/verify/product/edit, the playbook uses @*<capability> tokens, live_roster_text renders them, and unheld override tokens are reported by sq check and sq sync.
 <!-- sq:discussion:end -->

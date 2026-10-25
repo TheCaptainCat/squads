@@ -15,39 +15,40 @@ description: Narrow durability/threading correctness review of the reflog core +
 subentities:
 - local_id: F1
   title: 'Check 1 — Write ordering (ADR-117 §1): PASS'
-  status: Open
+  status: Noted
   severity: info
 - local_id: F2
   title: 'Check 2 — Append atomicity (ADR-117 §2): PASS'
-  status: Open
+  status: Noted
   severity: info
 - local_id: F3
   title: 'Check 3 — Actor threading (ADR-117 §3): PASS'
-  status: Open
+  status: Noted
   severity: info
 - local_id: F4
   title: 'Check 4 — Invariant 1 / not-source-of-truth (ADR-114): PASS'
-  status: Open
+  status: Noted
   severity: info
 - local_id: F5
   title: 'Check 5 — Schema + version field + golden (ADR-117 §4): PASS'
-  status: Open
+  status: Noted
   severity: info
 - local_id: F6
   title: json.dumps outside append_line swallow could break committed write
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: 'Dead test: test_failed_reflog_append_does_not_rollback_mutation asserts
     nothing meaningful'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F8
   title: Stale doc comments + minor op-naming nit (non-blocking)
-  status: Open
+  status: Deferred
   severity: info
+  deferred_to: ADR-117
 created_at: '2026-06-15T09:57:14Z'
-updated_at: '2026-06-23T10:00:09Z'
+updated_at: '2026-10-25T19:58:52Z'
 ---
 <!-- sq:body -->
 Narrow durability/threading correctness review of the reflog implementation for FEAT-24 (TASK-112 reflog core, TASK-113 read command), reviewed against ADR-117 (durability/append-atomicity/actor-threading) and ADR-114 (removal trace / NOT-source-of-truth).
@@ -75,6 +76,8 @@ _store.py transaction(): reflog ops are buffered on _TransactionCtx during the b
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:24Z] `reviewer` Paul Reviewer:
+  - Confirmation of a passing check, no action; kept as a note.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -88,6 +91,8 @@ _reflog.py append_line(): one compact json.dumps line (separators (',',':'), no 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:24Z] `reviewer` Paul Reviewer:
+  - Confirmation of a passing check, no action; kept as a note.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -103,6 +108,8 @@ CRITICAL actor-leak check (the subtlety the architect flagged): VERIFIED CLEAN. 
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:38:24Z] `reviewer` Paul Reviewer:
+  - Confirmation of a passing check, no action; kept as a note.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -116,6 +123,8 @@ Nothing makes the index depend on the reflog. repair() (_maintenance.py:182-252)
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:38:24Z] `reviewer` Paul Reviewer:
+  - Confirmation of a passing check, no action; kept as a note.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -129,6 +138,8 @@ Every line carries v=SCHEMA_VERSION ('0.3'), present from line one (_reflog.py:8
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-25T19:38:24Z] `reviewer` Paul Reviewer:
+  - Confirmation of a passing check, no action; kept as a note.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -144,6 +155,8 @@ Severity LOW, not blocking: every current call site builds deltas from JSON-safe
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-10-25T19:38:24Z] `reviewer` Paul Reviewer:
+  - Holds: append_line swallows OSError, TypeError and ValueError inside its closure (_index/_reflog.py).
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -157,6 +170,8 @@ tests/test_reflog_core.py:306 sets up a _boom monkeypatch that raises OSError (l
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-10-25T19:38:24Z] `reviewer` Paul Reviewer:
+  - Holds: tests/unit/test_reflog_line_persistence.py forces a failing append and asserts the warning.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -174,6 +189,10 @@ tests/test_reflog_core.py:306 sets up a _boom monkeypatch that raises OSError (l
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
+- [2026-10-25T19:38:24Z] `reviewer` Paul Reviewer:
+  - (a) and (b) are gone from the source; (c) the nested delta op remains, kept as a note alongside REV-119 F3.
+- [2026-10-25T19:58:52Z] `tech-lead` Olivia Lead:
+  - Deferred to ADR-117 for part (c) only, with REV-119 F3: renaming the nested delta op is a frozen reflog-format decision for the architect.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 <!-- sq:findings:end -->

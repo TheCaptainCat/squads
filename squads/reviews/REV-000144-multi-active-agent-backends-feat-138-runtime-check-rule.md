@@ -13,10 +13,10 @@ refs:
 subentities:
 - local_id: F1
   title: Stale schema_version="0.4" in test_agent_naming.py config-parsing tests
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-06-16T12:58:05Z'
-updated_at: '2026-06-16T12:59:17Z'
+updated_at: '2026-10-25T19:38:29Z'
 ---
 <!-- sq:body -->
 Independent review of FEAT-138 multi-active agent backends, delivered in TASK-140 (InReview). Reviewed against ADR-141 as amended by the op-pierre override (Elias's comment + manager directive): NO 0.4 schema bump and NO migration — active_backends is part of the in-development 0.3 schema, config reads legacy default_backend tolerantly. All other ADR-141 rulings stand and were verified.
@@ -42,6 +42,8 @@ tests/test_agent_naming.py:186 and :198 pass schema_version="0.4" to SquadsConfi
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:29Z] `reviewer` Paul Reviewer:
+  - Holds: no schema_version="0.4" literal remains in tests/ (the naming tests moved to tests/unit/test_init_names_config.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 <!-- sq:findings:end -->

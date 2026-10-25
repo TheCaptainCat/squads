@@ -141,7 +141,7 @@ def test_a_raising_member_at_warn_does_not_abort_a_write_and_at_error_does() -> 
 
 def test_a_finding_at_error_still_refuses_with_its_own_message() -> None:
     def flags(ctx: ValidatorContext) -> list[CheckIssue]:
-        return [CheckIssue("error", ctx.item.id, "stub refusal")]
+        return [CheckIssue("error", ctx.item.id, "stub refusal", "dangling_ref")]
 
     engine = ValidatorEngine(
         spec=_spec_selecting("dangling_ref", "error"),

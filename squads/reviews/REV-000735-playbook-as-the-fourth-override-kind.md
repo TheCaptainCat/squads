@@ -12,62 +12,62 @@ refs:
 subentities:
 - local_id: F1
   title: A custom role cannot be given playbook guidance
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: high
 - local_id: F2
   title: check drops the valid workflow spec when the playbook is broken
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: high
 - local_id: F3
   title: The append idiom duplicates a role section, as the scaffold shows
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: medium
 - local_id: F4
   title: The context half of the playbook seam has no production consumer
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: medium
 - local_id: F5
   title: The scaffold's field-merge rule is false for the roles array
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F6
   title: The [selected] refusal offers an empty menu of sections
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F7
   title: The bundled playbook is immutable by convention, not by type
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: info
 - local_id: F8
   title: Each playbook load reparses the bundled TOML two or three times
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: info
 - local_id: F9
   title: A guide for a non-roster project role validates then vanishes
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F10
   title: check still masks both findings when both overrides are broken
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F11
   title: The scaffold does not say a project role slug is now accepted
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F12
   title: The new guide warning fires on a stock squad and cannot be cleared
-  status: Fixed
+  status: Verified
   severity: medium
 created_at: '2026-08-03T11:01:46Z'
-updated_at: '2026-08-06T20:26:21Z'
+updated_at: '2026-10-25T19:26:47Z'
 ---
 <!-- sq:body -->
 Independent review of the playbook override (TASK-720, commits `9ee3ea7` / `35430f8`), against
@@ -178,6 +178,8 @@ Whatever the fix, ADR-696 §4a should not be left asserting a mechanism that doe
   - Fixed. Threaded a project-role slug authority into the per-request playbook load: _check_slugs now validates against the bundled catalog UNION the slugs with a live .overrides/roles/*.toml on disk (new squads/_roles/_resolver.py::project_role_slugs()), only on the squad_dir-bearing path — the module-level bundled singleton load is untouched, exactly as you scoped it.
   - Falsified both directions with a new test file (tests/integration/test_playbook_guide_for_a_project_defined_role.py): scaffold --new sre -> fill stub -> activate_role -> append sre to types.task.roles via $(*self) -> reopen -> sq check accepts it AND the generated sq-task skill body actually renders Sam Reliability's section with the guide text (proves the roster-driven render path, not just _check_slugs). Reverting the fix reproduces exactly your 'not in role catalog' refusal on 3 of 4 new tests.
   - Also covers the *dev breadth you noted: an explicit python-dev slug is accepted once a .overrides/roles/python-dev.toml exists (even a trivial one), and still correctly refused with no such file -- the override-file-is-the-authority boundary you called out, not a roster-based ruling.
+- [2026-10-25T19:26:47Z] `reviewer` Paul Reviewer:
+  - Holds: _interactions/_loader.py accepts slugs from project_role_slugs (_roles/_resolver.py) beside the bundled catalog.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -239,6 +241,8 @@ no workflow override worth losing.
   - Fixed. The PlaybookConfigError branch in sq check no longer falls back to bundled_spec() -- it re-resolves the merged workflow spec via load_workflow_spec(squad_dir=...) (falling back to bundled only if THAT itself fails, mirroring get_service_bypassing_index_cross_check's ladder as you suggested), so the workflow spec that already loaded fine is kept and every other check runs against it.
   - Falsified both directions with tests/integration/test_check_keeps_the_merged_spec_when_only_the_playbook_breaks.py: custom incident type + one filed item + a playbook-only break (overview = ""). After the fix: sq check reports 'playbook config invalid ... overview is empty', exit 3, no 'no longer declares' text anywhere (text or --json). Reverting the fix reproduces your exact repro -- the phantom 'INC-2 has type incident, which the active spec no longer declares' error, exit 1 not 3, and the real finding never printed.
   - Pinned per your request; the existing attribution test is unaffected (its squad has no workflow override worth losing, so it never exercised this branch).
+- [2026-10-25T19:26:47Z] `reviewer` Paul Reviewer:
+  - Holds: sq check (_cli/_main.py) composes its fallback through check_fallback, which keeps the merged spec on a PlaybookConfigError.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -302,6 +306,8 @@ may be out of scope for this task, but it should be named rather than left for a
   - Fixed, both halves. (1) Scaffold's worked example now spreads a role the bundled task entry does not already carry (architect, not qa). (2) Added a duplicate-slug refusal to the loader's fail-closed validation: a slug appearing twice in one type's roles array (spread-and-re-add, or two hand-written guides for the same slug) is now rejected at load time, naming both positions -- your read that this should be refused, not silently rendered twice, matches the renderer's own one-section-per-slug behavior.
   - Falsified: tests/integration/test_playbook_roles_array_rejects_duplicate_slugs.py -- spreading qa onto task raises 'appears twice'; two hand-written architect guides in one array also raise; and uncommenting the shipped scaffold example verbatim now merges clean with no duplicate slug. Reverting the guard makes the two refusal tests fail with DID NOT RAISE, confirming they test the new check and not something else. Also caught and fixed a second, adjacent bug while editing the scaffold text: the original example's inline table spanned two physical lines, which is invalid TOML (tomllib rejects newlines inside {}) -- would have made the example itself unparseable even without the duplicate slug.
   - Existing tests test_appending_to_one_type_leaves_every_other_types_entry_untouched and test_the_dev_sentinel_role_slug_is_exempt_from_catalog_validation were exercising this exact defect shape (spreading qa/*dev back onto a type that already has it) as their fixture; retargeted both to a slug/type without the collision so they test what they say they test.
+- [2026-10-25T19:26:47Z] `reviewer` Paul Reviewer:
+  - Holds: _check_duplicate_slugs in _interactions/_loader.py refuses a repeated slug; the scaffold example uses architect.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -359,6 +365,8 @@ class of thing, which is why it is worth deciding now.
   - Dropped the dead half, per your own recommendation. Deleted RequestContext.active_playbook, _interactions.get_active_playbook_spec(), and _cli._bind_active_playbook() + its call site; Service.playbook stays the single carrier (every real consumer already threaded that). This routes through @tech-lead in the normal author-by-role sense (an architectural removal), but the operator's directive on this review was to disposition all eight myself -- I made the call because the evidence left no real ambiguity: zero production call sites, a documented failure-semantics disagreement with the hard-stop path (soft-fail-to-bundled vs PlaybookConfigError), and a real per-invocation cost for a value nobody read. Flagging the call here for visibility rather than silently taking it.
   - Removed tests/service/test_context_playbook_isolation.py (tested the deleted field/accessor directly; the general RequestContext-isolation pattern stays covered by test_context_spec_and_dir_isolation.py, which was never about this field). Added tests/service/test_service_playbook_is_the_only_active_playbook_carrier.py as a pin: asserts RequestContext carries no active_playbook field and _interactions exposes no ambient accessor, so a re-introduction of the parallel carrier fails a test immediately instead of silently drifting again.
   - F8's second, cheaper half (caching the coverage key set) still stands on its own regardless of this call -- see that finding.
+- [2026-10-25T19:26:47Z] `reviewer` Paul Reviewer:
+  - Holds: no active_playbook or get_active_playbook_spec left in src; Service.playbook is the one carrier.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -399,6 +407,8 @@ spread the bundled one with `$(*self)`, in which case you are appending, not edi
 - [2026-08-03T12:05:30Z] `python-dev` Elias Python:
   - Fixed, in the same edit as F3 (same file, same rules block). Replaced the false parenthetical with the actual rule: a type entry's SCALAR fields (overview/lifecycle/commands) merge field-by-field; 'roles' is a LIST and is replaced wholesale -- spreading $(*self) appends, it does not edit an existing guide's fields -- and shadowing/editing one bundled guide's field is not expressible without restating the whole array by hand. Added a fourth bullet stating the new duplicate-slug refusal (F3) so the two land together as one coherent, honest rule set instead of the prior single false sentence.
   - No separate test needed beyond F3's: the corrected prose is asserted indirectly by test_the_shipped_scaffold_example_no_longer_duplicates_a_bundled_guide, which parses the file's own worked example and proves it behaves the way the rules now describe.
+- [2026-10-25T19:26:47Z] `reviewer` Paul Reviewer:
+  - Holds: the playbook scaffold in _overrides/_service.py states roles is a list replaced wholesale.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -435,6 +445,8 @@ is a fail-closed hard stop on every command, so the message is the entire user e
 - [2026-08-03T12:09:10Z] `python-dev` Elias Python:
   - Fixed, at the shared engine (squads/_specmerge.py), not with a playbook-special-case hack: merge_override/apply_selected/_validate_selected_shape/_unknown_key_violations now take an optional empty_selected_hint -- used only when the accepted set is empty, ignored otherwise, so the workflow loader's populated section_names is unaffected. The playbook loader supplies its own reason (coverage is derived from the workflow spec, not declared here) via PLAYBOOK_NO_SELECTED_HINT.
   - Falsified: extended the existing test_a_selected_table_on_the_playbook_override_is_refused + added test_the_selected_refusal_names_the_real_reason_not_an_empty_menu -- asserts the empty-menu string is gone and the real reason ('no [selected] sections to deselect ... coverage') is present. Temporarily un-wired the hint at the call site: the new test failed on the exact old empty-menu string, the plain refusal test still passed (still refused, just the worse message) -- confirms the test targets the message, not the refusal.
+- [2026-10-25T19:26:47Z] `reviewer` Paul Reviewer:
+  - Holds: empty_selected_hint in _specmerge.py, fed PLAYBOOK_NO_SELECTED_HINT by _interactions/_loader.py.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -475,6 +487,8 @@ writes to it.
   - Assessed properly per the standing rule, not dismissed on the summary line -- and fixed. Made the property real where it can be made real: PLAYBOOK (a plain module dict, never validated through pydantic) is now wrapped in a real MappingProxyType -- a mutation attempt raises TypeError at the call site, at RUNTIME, not just by convention. PlaybookSpec.types is now typed Mapping[str, ItemPlaybookSpec] instead of dict[...]; pydantic keeps the actual runtime value a plain dict regardless (confirmed empirically, not assumed), so that half of the fix is a STATIC guarantee only -- pyright rejects spec.types['x'] = ... because Mapping has no __setitem__. Both are strictly better than the prior all-convention state, and I said which is which rather than overclaiming.
   - On the tests/meta guard question: didn't add a new guard -- the MappingProxyType wrap makes PLAYBOOK invisible to the existing module-level-mutable-state AST guard (MappingProxyType isn't in its mutable-factory list), which is correct, not a gap: that guard exists to catch a bare dict/list/set global; this dict is now genuinely immutable, a stronger property than anything a static grep-shaped guard could assert. Verified tests/meta stays green (the PLAYBOOK allowlist entry is now unnecessary-but-harmless, not stale -- it's still a real module-scope binding, just no longer flagged).
   - Falsified in both directions with tests/unit/test_playbook_singleton_mutation_is_refused_at_runtime.py: reverting PLAYBOOK to a plain dict comprehension makes the isinstance/TypeError assertions fail exactly as expected (DID NOT RAISE); reverting the types field to dict[...] makes the annotation assertion fail, confirming it pins something real, not decorative.
+- [2026-10-25T19:26:47Z] `reviewer` Paul Reviewer:
+  - Holds: the bundled playbook is a MappingProxyType (_interactions/_playbook.py) and PlaybookSpec.types is a Mapping.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -513,6 +527,8 @@ until a squad is large.
   - Fixed the cheap half, judged the other half correctly fine. _check_coverage's bundled_type_names = set(_bundled_raw().get('types', {})) -- a second full reparse purely to recover a release-constant key set -- is now a functools.cache-wrapped _bundled_type_names(), read from disk at most once per process. Left _base_raw_for's own reparse alone: that one is load-bearing for the isolation guarantee (a fresh, unshared mapping per call), so caching it would trade a real safety property for a cost that's invisible below thousands of items -- not worth it, and I said why rather than just leaving it.
   - Falsified with tests/unit/test_playbook_bundled_coverage_key_set_is_cached.py: monkeypatches the actual byte-read, clears the cache, calls load_playbook three times, asserts exactly 4 reads (3 from the still-uncached _base_raw_for + 1 for the now-cached key set). Reverting the fix reproduces exactly the old cost: 6 reads (2 per call).
   - With F4 dropped, the compounding per-invocation cost this finding flagged (paid twice per CLI command for an override-using squad) is already gone at the source -- this fix is the remainder that stands on its own regardless.
+- [2026-10-25T19:26:47Z] `reviewer` Paul Reviewer:
+  - Holds: _specload.py caches the bundled parse once per process (functools.cache), which covers the coverage key set.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -560,6 +576,8 @@ same test as the warning.
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
+- [2026-10-25T19:26:47Z] `reviewer` Paul Reviewer:
+  - Holds: orphaned_playbook_guides feeds the playbook_guide_role_live validator and the sync skip notice.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -623,6 +641,8 @@ most needed" argument TASK-674 already won for the per-file case.
   - All three of your configurations driven, before and after. Before: one unrelated `item INC-19 has type 'incident'...` line and exit 1, with neither config finding printed. After: `error corpus: could not scan the corpus: <the real reason>` plus `error workflow: workflow config invalid` and exit 3. One correction to your (b): with both overrides broken it takes the general `SquadsError` branch, not the PlaybookConfigError one — the workflow is what `get_service` fails on first, so the playbook finding is not separately printed. The masking is gone either way; I did not want to claim "both findings print" when I only drove one surviving.
   - Deliberately not done, because it is the pre-existing wording and outside this finding: the two `bundled_spec()` fallbacks are still two, and in configuration (c) the surviving finding is `workflow config invalid — run `sq workflow lint`` while lint reports clean (the spec loads; it is the live-corpus cross-check that refuses). That pointer is a false remedy of the same family as REV-733 F13 — @manager, worth its own ticket.
   - Pinned in the new `tests/integration/test_check_reports_its_config_findings_when_the_corpus_cannot_load.py`: both halves parametrized over the three configurations, plus a clean-squad negative (no new error on a healthy board) and a broken-config-but-readable-board case so the fix cannot read as "any config error means the corpus failed". Falsified: reverting reddens 6 of 8.
+- [2026-10-25T19:26:47Z] `reviewer` Paul Reviewer:
+  - Holds: sq check in _cli/_main.py turns a failed corpus scan into its own "could not scan the corpus" finding.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -658,6 +678,8 @@ coordinator for the tech-writer.
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
+- [2026-10-25T19:26:47Z] `reviewer` Paul Reviewer:
+  - Holds: the scaffold slug rule in _overrides/_service.py names .overrides/roles/<slug>.toml and the activation step.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -736,6 +758,8 @@ worst kind: the adopter's only options are to live with it or undo their change.
   - One thing your finding named that I found also broken, and fixed here rather than leaving it: the message's `sq role activate <slug>` remedy is a no-op for a retired role. Driven — `activate_role` returns an existing roster entry untouched, so it prints "activated Theo Writer (ROLE-8)" and leaves the status `Archived`. You had noted only `status Active` clears it; that is now what the message says. `orphaned_playbook_guide_message` takes `retired`/`live_status` and prints `sq role <slug> status <live-initial>` for a slug with an entry, `sq role activate <slug>` for one without — reusing the spelling `_retired_participant_hint` already uses, and reading `spec.live_initial(ROSTER_ROLE)` rather than hard-coding Active.
   - Pinned in `tests/integration/test_playbook_guide_dropped_for_a_non_live_role_is_reported.py`: the retired-bundled case asserts silence AND that no override file exists (so the test cannot stop covering the case it exists for); the restated case asserts it warns; the splat case asserts the override is in force and still silent; a remedy test drives `activate_role` being a no-op on a retired role and then drives the named transition clearing the report. Plus a CLI smoke, since the report came in at the CLI. Falsified: removing the exemption reddens 7.
   - Two existing tests encoded the old keying and were rewritten, flagging for @reviewer: `test_a_guide_for_a_retired_bundled_role_is_warned_about_too` asserted the defect, and `test_a_guide_on_a_type_the_spec_has_dropped_is_not_reported_per_role` relied on a retired bundled role producing warnings with no override. On the second — an override declaring a guide on a dropped type is now refused at load (driven: the splat has no bundled counterpart, or coverage rejects the type), so the per-role pile is unreachable by two independent mechanisms and the test drives both.
+- [2026-10-25T19:26:47Z] `reviewer` Paul Reviewer:
+  - Holds: playbook_override_guide_pairs scopes the warning to guides the adopter wrote (_interactions/_loader.py).
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 <!-- sq:findings:end -->

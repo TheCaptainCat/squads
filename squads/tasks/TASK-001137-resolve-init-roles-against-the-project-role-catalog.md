@@ -2,53 +2,49 @@
 id: TASK-1137
 sequence_id: 1137
 type: task
-title: Resolve roles from stored values and the project catalog
-status: Draft
+title: Resolve init --roles against the project role catalog
+status: Ready
 author: tech-lead
 priority: low
 refs:
 - MILE-1051:targets
-- BUG-1075:fixes
-- BUG-1065:fixes
 - BUG-1045:fixes
-- BUG-1030:fixes
 - TASK-1125
-description: Stored default and model on any role, init --roles over overrides, scaffold
-  --new reserved slugs
+- ADR-1151
+- TASK-1153
+description: 'BUG-1045: sq init --roles accepts bundles and roles declared in .overrides/roles.toml'
 subentities:
 - local_id: ST1
   title: Keep a stored default designation on a catalog-less role
-  status: Todo
+  status: Cancelled
 - local_id: ST2
   title: Apply a stored model on any role
-  status: Todo
+  status: Cancelled
 - local_id: ST3
   title: Resolve init --roles against the project role catalog
   status: Todo
 - local_id: ST4
   title: Refuse reserved slugs in override scaffold --new
-  status: Todo
+  status: Cancelled
 created_at: '2026-10-25T05:39:18Z'
-updated_at: '2026-10-25T05:40:50Z'
+updated_at: '2026-10-25T22:06:39Z'
 ---
 <!-- sq:body -->
 ## Goal
 
-A role resolves from what its item stores and what the squad's own role documents declare: a designation or model set on any role takes effect, `sq init --roles` sees the project catalog, and a scaffold never writes a role file that activation refuses. Four defects in `src/squads/_roles/` and the override scaffold.
+`sq init --roles` resolves bundles and role slugs against the squad's own role catalog, so a bundle or role declared in `.overrides/roles.toml` is accepted. One defect (BUG-1045), carried by ST3.
+
+## Scope
+
+ST1, ST2 and ST4 moved to TASK-1153, which implements ADR-1151: the stored default and model are its "stored values win" step (TASK-1153 ST2), and the reserved-slug refusal lands on `sq role add` (TASK-1153 ST3) as `sq override scaffold --new` is retired. They are Cancelled here.
 
 ## Read on release/0.17 HEAD (2026-10-25)
 
-- `role_base_from_item` (`_roles/_resolver.py`) returns `None` for a role with no catalog entry (a per-slug override file only), so `resolve_role_with_base` builds it from the file and the stored `is_default` is dropped. For a bundled role it swaps in the stored `is_default` but never the stored `model`; only `dev_base_from_item` reads `attrs.model(item)`.
-- `resolve_roles` / `role_by_slug` (`_roles/_catalog.py`) read the module-level bundled `BUNDLES` / `_BY_SLUG`; `init` and `adopt` (`_services/_service.py`) and `_cli/_main.py` call them.
-- `scaffold_new_role` (`_overrides/_service.py`) checks path safety and bundled slugs, not `reserved_role_slug_problem` (`_models/_participants.py`), which `sq role activate` uses.
-
-## Ruling in force
-
-BUG-1065, op-pierre 2026-10-16: every role needs its model, not only developers; a model set on any role must take effect. ST2 implements that, not the refusal the bug body suggests.
+`resolve_roles` / `role_by_slug` (`_roles/_catalog.py`) read the module-level bundled `BUNDLES` / `_BY_SLUG`; `init` and `adopt` (`_services/_service.py`) and `_cli/_main.py` call them. TASK-1125 (Done) folded the two constructions into one composition function; ST3 builds on it.
 
 ## Ordering
 
-ST3 changes what `init` and `adopt` resolve, the two constructions TASK-1125 folds into one composition function. Run ST3 after TASK-1125 lands, on its composition function. ST1, ST2 and ST4 do not touch the composition root and can run first.
+Independent of TASK-1153. If TASK-1153 ST1 lands first, the project catalog ST3 resolves against also carries `[templates]`; `--roles` names bundles and catalog slugs only, so no template enters it.
 
 ## Gates
 
@@ -82,6 +78,8 @@ _Add with `sq task 1137 add-subtask "<title>"`; track with `sq task 1137 subtask
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-25T22:04:35Z] `tech-lead` Olivia Lead:
+  - Moved to TASK-1153 ST2 (stored values win, ADR-1151 decision 1); its test table is carried there.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -107,6 +105,8 @@ _Add with `sq task 1137 add-subtask "<title>"`; track with `sq task 1137 subtask
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-25T22:04:36Z] `tech-lead` Olivia Lead:
+  - Moved to TASK-1153 ST2 (stored values win, ADR-1151 decision 1); its test table is carried there.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -159,6 +159,8 @@ _Add with `sq task 1137 add-subtask "<title>"`; track with `sq task 1137 subtask
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-10-25T22:04:37Z] `tech-lead` Olivia Lead:
+  - Moved to TASK-1153 ST3: ADR-1151 retires sq override scaffold --new, and the reserved-slug refusal lands on sq role add, which shares activate's check.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 <!-- sq:subtasks:end -->
@@ -168,4 +170,6 @@ _Add with `sq task 1137 add-subtask "<title>"`; track with `sq task 1137 subtask
 <!-- sq:discussion -->
 - [2026-10-25T05:40:50Z] `tech-lead` Olivia Lead:
   - Drafted from the MILE-1051 bug triage; each bug re-read against release/0.17 HEAD, subtask bodies carry defect, expected behaviour and the falsifying table. Ordering and composition-root dependencies are in the body and on MILE-1051. Promote to Ready at dispatch.
+- [2026-10-25T22:06:39Z] `tech-lead` Olivia Lead:
+  - Narrowed to ST3 (BUG-1045). ST1, ST2 and ST4 moved to TASK-1153, which implements ADR-1151; their bug refs moved with them. TASK-1125 is Done, so ST3 is unblocked.
 <!-- sq:discussion:end -->

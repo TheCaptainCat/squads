@@ -13,14 +13,14 @@ description: A JSONL event-import command that replays a project's history in on
   process, with per-event timestamps and attribution, to replace hundreds of per-mutation
   sq calls.
 created_at: '2026-07-23T07:56:31Z'
-updated_at: '2026-10-15T20:17:05Z'
+updated_at: '2026-10-25T21:36:45Z'
 ---
 <!-- sq:body -->
 ## Context
 
 Replaying an existing project's revision history into a squad — dated item creations, status
-moves, attributed discussion handoffs, refs, and sub-entity states — is today one `sq` call per
-mutation. `--at` forges one timestamp per invocation and does its job well, but a faithful
+moves, attributed discussion handoffs, refs, and sub-entity states — one `sq` call per mutation
+does not scale. `--at` forges one timestamp per invocation and does its job well, but a faithful
 migration of a mature corpus (dozens of items, hundreds of dated comments) becomes hundreds of
 separate process spawns, each paying full interpreter + spec-load startup, and forces every
 migrator to hand-roll a subprocess driver. Adopting squads into a pre-existing project is the
@@ -31,12 +31,11 @@ The primitive that dissolves this is a single-process **bulk event import**: the
 one file describing every mutation with its own timestamp and actor, and one command replays it.
 The dominant cost — per-mutation process startup — collapses to one process; per-event time and
 attribution stay faithful because a single process can rebind the ambient clock/actor per event
-(the request-scoped `RequestContext` seam already supports this in-process; only the CLI edge
-previously exercised it, once per invocation).
+(the request-scoped `RequestContext` seam supports this in-process, ADR-534).
 
 ## Decision
 
-Add `sq import <file>`: a JSONL event stream where each line is one mutation
+`sq import <file>` reads a JSONL event stream where each line is one mutation
 `{"op": …, "at": …, "as": …, …}`, replayed in a single process against the active squad. Item
 files remain the source of truth; the index is written once at the end as its derived commit.
 
@@ -47,16 +46,15 @@ format streams). Fields common to every event:
 
 - `op` (required) — the mutation verb (enumerated below).
 - `at` (optional, ISO-8601 UTC) — the forged timestamp for this event. When omitted, the event
-  inherits the previous event's `at` (or a file/CLI-level default), so a burst at one moment need
-  not repeat it. `at` drives `clock` for that event only — the per-event equivalent of `--at`.
+  inherits the previous event's `at` (or the global `--at`, else the time of the run), so a burst
+  at one moment need not repeat it. `at` drives `clock` for that event only — the per-event equivalent of `--at`.
 - `as` (optional) — the acting slug (a registered role or operator). Drives attribution
   (comment author, `updated_at` session) and, for `create`, the default author. Inherits the
-  prior event's value or the CLI default.
+  prior event's value or the command's `--as`; an event with neither is refused.
 
 **Application order is file order, authoritatively.** A `create` must precede any event that
 targets it; the importer does not reorder by `at`. `at` values are data recorded onto the items,
-not a sort key — real history legitimately contains out-of-order dated backfills. A
-`--check-monotonic` flag can advise on non-decreasing `at`, but never reorders.
+not a sort key — real history legitimately contains out-of-order dated backfills.
 
 ### Addressing: client-supplied handles
 
@@ -80,7 +78,7 @@ collide with the counter) and keeps allocation where the invariant requires it �
 transaction. Preserving a *source* project's original IDs (migrating between squads instances) is
 a distinct, harder problem and is out of scope here.
 
-### The v1 op set
+### The op set
 
 Every op carries the common `op`/`at`/`as` fields above; per-op fields:
 
@@ -92,9 +90,9 @@ Every op carries the common `op`/`at`/`as` fields above; per-op fields:
 - **`body`** — `target`, `body` (markdown); optional `append`. Marker-safe.
 - **`comment`** — `target`, `messages` (list) or `message`; optional sub-entity selector
   (`story`/`subtask`/`finding`, or the generic `sub: [kind, local-or-handle]`). `as` is the author.
-- **`ref`** — `target` (source), `to` (target ID/handle), `kind` (one of the valid ref kinds).
-  Forward edge only; a later `"remove": true` variant is possible but a `create`-time `refs` list
-  covers the migration path.
+- **`ref`** — `target` (source), `to` (target ID/handle), optional `kind` (a declared ref kind;
+  omitted, the spec's default kind, ADR-775). Forward edge only; there is no removal variant, since
+  a `create`-time `refs` list covers the migration path.
 - **`add-story` / `add-subtask` / `add-finding`** — `target` (the parent feature/task/review
   ID/handle), `title`; optional `assignee`, `status`, `body`, `handle`; `add-subtask` also takes
   `story` (map to a parent story by handle/local), `add-finding` also takes `severity`. These are
@@ -125,33 +123,30 @@ apply.
 it mutates the loaded `db` in memory, allocates IDs from its counter, and writes each item's `.md`
 through the marker-safe section/frontmatter helpers, committing the index once at the end. Because
 the pre-pass already caught every logical/authoring error, an apply-time failure can only be I/O.
-The safe-failure direction is preserved (files-then-index, as elsewhere): if the process dies
+The safe-failure direction is preserved (markdown ahead, index last, ADR-663): if the process dies
 mid-flush, the index simply isn't committed and `sq repair` reconciles the index to whatever files
-exist. Net contract: **all-or-nothing for the common (validation) failures — nothing is written
-unless the whole file validates; crash-safe-and-repairable for I/O failures.**
-
-> **Narrowed 2026-10-11 (ADR-955):** `sq repair` reconciles the index on a squad at the package's
-> schema. While a squad's schema is behind the package the gate refuses `sq repair`, and the
-> recovery path there is the reconcile that `sq migrate up` runs before its first runner. That
-> covers an import interrupted before the package moved ahead of the squad. See ADR-955 and its
-> amendments of 2026-10-09.
+exist. On a squad whose schema is behind the package, where the gate refuses `sq repair`, the
+recovery is the reconcile `sq migrate up` runs before its first runner (ADR-955). Net contract:
+**all-or-nothing for the common (validation) failures — nothing is written unless the whole file
+validates; crash-safe-and-repairable for I/O failures.**
 
 Every applied event still emits its reflog op (`create`/`status`/`comment`/`ref`/…) with the
 event's own actor/session, so the imported history is captured in the reflog exactly as
 interactive work is.
 
-**Idempotency is not automatic in v1.** Re-running a file allocates fresh IDs and duplicates its
+**Idempotency is not automatic.** Re-running a file allocates fresh IDs and duplicates its
 items — handle addressing makes a file internally self-consistent, not self-deduplicating.
 `--dry-run` is the guard against an accidental second run. Deterministic, resumable re-import
 (honoring a client `key`/`import_id` for dedup/resume) needs durable applied-import state; the
 index cannot hold it (it must stay rebuildable from the `.md` files, invariant #1), so it is
-deferred to a later revision and flagged below as carrying a schema implication.
+out of scope, as carrying a schema implication (see below).
 
 **Interaction with `sq check`.** Import does not bypass the catalog gate: every created/updated
-item passes the same `ValidatorEngine.gate()` the interactive commands run, so a clean import
-leaves `sq check` clean. Board-debt conditions `sq check` reports (unwritten sub-entity bodies,
-over-long finding/story titles) surface as import warnings so a migration does not silently import
-debt.
+item passes the same validator gate the interactive commands run. Warn-level findings on the
+imported items (unwritten sub-entity bodies, over-long titles, and so on) surface as import
+warnings so a migration does not silently import debt. An error-level finding reported after the
+apply exits 3: the events are on disk, so a caller reads `applied` from `--json` rather than
+retrying.
 
 ### CLI surface
 
@@ -161,12 +156,11 @@ debt.
   per-op counts.
 - `--json` — structured result: per-op counts, the resolved `handle → id` map, and the ordered
   error list on failure.
-- `--at` / `--as` — supply the file-level defaults events inherit when they omit their own.
-- `--dir` — the usual squad selector.
+- `--as` — the file-level actor default events inherit when they omit their own.
 
-> **Note 2026-10-15 (ADR-1009):** the squad is selected with the root option `-C <path>`, placed
-> before the command (`sq -C <path> import <file>`); `--dir` is refused. A relative `<file>` is read
-> against the `-C` directory. See ADR-1009 sections 1 and 3.
+The file-level time default is the global `--at` (`sq --at <when> import file.jsonl`), the same
+clock-forging option every command shares, and the squad is selected with the root `-C <path>`
+(ADR-1009); a relative `<file>` is read against the `-C` directory.
 
 On any validation error: exit non-zero, write nothing, list every error with its line number.
 
@@ -183,16 +177,16 @@ On any validation error: exit non-zero, write nothing, list every error with its
 
 ### Scope
 
-**v1:** the op set above; JSONL; file-order application; per-event `at`/`as`; validate-first with
+**In scope:** the op set above; JSONL; file-order application; per-event `at`/`as`; validate-first with
 `--dry-run`; fresh-ID allocation with handle addressing; single-transaction apply with the
 all-or-nothing-for-validation contract; `--json`.
 
-**Deferred:** idempotent/resumable re-import via client keys (carries a schema implication — see
+**Out of scope:** idempotent/resumable re-import via client keys (carries a schema implication — see
 below); preserving a source squad's original IDs; delete/`rm` ops (deliberately excluded — bulk
 deletion by file is high-risk and out of the migration use case); reordering by `at`; a companion
 `sq export` that emits a JSONL stream from an existing squad (the natural round-trip, worth its own
-scoping); streaming apply for files beyond in-memory scale (v1 buffers, which is ample for the
-thousands-of-events corpus this targets).
+scoping); streaming apply for files beyond in-memory scale (the importer buffers, which is ample for the
+thousands-of-events corpus this targets). Each would be its own decision.
 
 ### Schema and migration
 
@@ -201,13 +195,12 @@ This is additive — a new command and a new *input* file format. It does **not*
 *would* carry a schema implication is durable applied-import state for idempotent re-import; that
 is not assumed here and must be decided explicitly if and when idempotency is taken up.
 
-### Implementation note (for scoping, not contract)
+### Implementation shape
 
-The interactive service methods each open their own `transaction()`, so they cannot be called
-inside the import's single open transaction (the lock is not reentrant). The clean shape is to
-factor each op's mutation core into a `db`-taking apply-helper that both the existing single-op
-method and the import loop call — keeping one code path per mutation rather than a parallel
-importer that could drift from the interactive behavior.
+The interactive service methods each open their own `transaction()`, and the lock is not
+reentrant, so each op's mutation core is a `db`-taking helper that both the single-op method and
+the import loop call: one code path per mutation, never a parallel importer that could drift from
+the interactive behaviour.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -221,4 +214,6 @@ importer that could drift from the interactive behavior.
   - Accepted: bulk event import (sq import) design is sound — validate-first pre-pass narrows apply failures to I/O only, per-event at/as via the RequestContext seam, client-handle addressing, file-order-authoritative, fresh IDs from the global counter in one transaction, import gated through ValidatorEngine + board-debt surfaced as warnings. Deferrals (idempotent/resumable re-import, source-ID preservation, sq export) accepted for v1 with their schema flags. One v1 rough edge accepted: a rare mid-flush I/O crash leaves partial .md that repair folds in and can't be safely re-run without idempotency — FEAT-576 to ship a short post-failure recovery note in the adopt docs.
 - [2026-10-11T20:19:04Z] `architect` Robert Architect:
   - 2026-10-11: narrowed in place, on the operator's ruling of this date recorded on MILE-934. One dated note, under "Atomicity, validation, idempotency", after the paragraph stating that `sq repair` reconciles the index when an apply dies mid-flush. It says the claim holds at the package's schema, and that while a squad's schema is behind the package the gate refuses `sq repair` and the reconcile inside `sq migrate up` is the recovery path (ADR-955 and its amendments of 2026-10-09). Nothing else in the body changed; `related` ref to ADR-955 added.
+- [2026-10-25T21:36:45Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale, targeted present-tense edits; the import design is unchanged. CLI surface corrected to the shipped flags: --dry-run, --json, --as (an event with no actor to inherit is refused); the time default is the global --at, the squad is -C (folded the ADR-1009 note); there is no --check-monotonic flag and no ref removal variant. Folded the ADR-955 recovery note into the apply contract, stated the exit-3 applied-with-error-findings case from sq import --help, and replaced the v1/deferred framing with in/out of scope.
 <!-- sq:discussion:end -->

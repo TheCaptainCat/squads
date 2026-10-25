@@ -9,24 +9,24 @@ subentities:
 - local_id: F1
   title: 'Worked example fails as written: python-dev role does not exist after sq
     init --roles all'
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: Marketplace page omits the pre-1.0/schema-instability disclosure PyPI states
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: PyPI page states its present-tense limits without the directional pairing
     the Marketplace page already has
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Manifest positioning, audience split, and all checkable factual claims verified
     clean
-  status: Open
+  status: Noted
   severity: low
 created_at: '2026-07-28T15:06:17Z'
-updated_at: '2026-07-29T08:26:21Z'
+updated_at: '2026-10-25T19:39:36Z'
 ---
 <!-- sq:body -->
 Independent read of `clients/vscode/MARKETPLACE.md` (VS Code Marketplace listing) and `PYPI.md`
@@ -82,6 +82,8 @@ example, e.g. `tech-lead`).
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:36Z] `reviewer` Paul Reviewer:
+  - Holds: PYPI.md and clients/vscode/MARKETPLACE.md run sq dev add --tech python before assigning python-dev.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -114,6 +116,8 @@ bloating the page.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:39:36Z] `reviewer` Paul Reviewer:
+  - Holds: clients/vscode/MARKETPLACE.md states the pre-1.0 format and points at sq migrate up.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -152,6 +156,8 @@ only tells its reader this is early.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:39:36Z] `reviewer` Paul Reviewer:
+  - Holds: PYPI.md pairs the read-only clients with the stated direction.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -195,6 +201,8 @@ drifted from the "read-only, planned direction for editing" framing settled here
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:39:36Z] `reviewer` Paul Reviewer:
+  - Confirmation of passing checks, no action; kept as a note.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 <!-- sq:findings:end -->

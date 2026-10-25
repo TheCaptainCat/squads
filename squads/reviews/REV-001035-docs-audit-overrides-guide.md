@@ -11,75 +11,75 @@ subentities:
 - local_id: F1
   title: Troubleshooting claims unknown role TOML fields are kept in extra; they are
     refused at load
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: Grammar rule 5 says a [selected] name that does not exist is not an error;
     it is a hard stop
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F3
   title: The [selected].items example also drops contract and milestone, not only
     guide
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Layout tree and scaffold example name templates that do not exist and omit
     ones that do
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: The role catalog override (.overrides/roles.toml, scaffold/diff/update roles)
     is undocumented
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F6
   title: Validators section says four checks ship unselected; eleven do, seven documented
     nowhere
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F7
   title: Records types do appear in sq inbox; the doc says they never do
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F8
   title: Role name is stored as the ROLE item title, not extra.full_name
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F9
   title: Broken internal anchor to the workflow-overrides section at line 1682
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F10
   title: Statuses reference lists role as required, then says it defaults to pending
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F11
   title: An unstamped template override is an error and drifted; the doc only covers
     old stamps
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F12
   title: Records example uses PM-1 and sq postmortem 1; the global counter makes that
     a role
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F13
   title: Playbook guide fields handoff, watch and authors (the create-lane flag) are
     undocumented
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F14
   title: Task-template example drops the required sq:discussion marker, so the override
     is broken
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F15
   title: Quoted sq check and lifecycle messages are stale
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-10-16T08:50:43Z'
-updated_at: '2026-10-16T11:26:17Z'
+updated_at: '2026-10-25T19:32:58Z'
 ---
 <!-- sq:body -->
 Audit of `docs/overrides.md` (2,112 lines) against the dev build on `release/0.16`. Every concrete claim was either driven in a scratch squad (`sq -C <scratch>` with the dev build: scaffold/list/diff/update, each TOML example loaded through `sq workflow lint`, each quoted error provoked) or read in the source (`_specmerge.py`, `_workflow/_loader.py`, `_workflow/_models.py`, `_overrides/_service.py`, `_cli/_override.py`).
@@ -117,6 +117,8 @@ _Add with `sq review 1035 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F1:discussion -->
 - [2026-10-16T09:11:07Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md Troubleshooting (last Q): unknown role keys are refused at load; quotes the accepted-keys refusal (driven).
+- [2026-10-25T19:32:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md Troubleshooting says an unknown role key is refused by name and quotes the refusal.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -140,6 +142,8 @@ _Add with `sq review 1035 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F2:discussion -->
 - [2026-10-16T09:11:11Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md grammar rule 5: every [selected] name must exist; quotes the unknown items key refusal (driven).
+- [2026-10-25T19:32:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md `[selected]` rules say every name in the list must exist in the merged spec.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -163,6 +167,8 @@ _Add with `sq review 1035 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F3:discussion -->
 - [2026-10-16T09:11:14Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md grammar rule 5: example now keeps contract and milestone, drops only guide (driven: sq workflow types).
+- [2026-10-25T19:32:58Z] `reviewer` Paul Reviewer:
+  - Holds: the docs/overrides.md `[selected].items` example keeps contract and milestone.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -186,6 +192,8 @@ _Add with `sq review 1035 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F4:discussion -->
 - [2026-10-16T09:11:17Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md Override layout: tree regenerated from the bundled templates dir, roles.toml added; scaffold example now subentities/block.md.j2 (driven).
+- [2026-10-25T19:32:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md scaffolds `subentities/block.md.j2`; no `subentities/story.md.j2` remains.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -207,6 +215,8 @@ _Add with `sq review 1035 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F5:discussion -->
 - [2026-10-16T09:11:20Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md: new subsection "The role catalog override: roles.toml" ([[roles]], [dev], [bundles], precedence, drop, stamp), plus roles forms in scaffold/diff/update/list (all driven).
+- [2026-10-25T19:32:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md has "The role catalog override: `roles.toml`" section.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -230,6 +240,8 @@ _Add with `sq review 1035 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F6:discussion -->
 - [2026-10-16T09:11:23Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md Validators: eleven unselected checks listed; new "work-policy checks" table with params, gate participation and example (driven).
+- [2026-10-25T19:32:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md documents the unselected and work-policy checks with a table; "four checks ship unselected" is gone.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -251,6 +263,8 @@ _Add with `sq review 1035 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F7:discussion -->
 - [2026-10-16T09:11:26Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md records section: both false inbox sentences replaced; records appear in sq inbox while not settled, like any item (driven).
+- [2026-10-25T19:32:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md no longer says records never appear in sq inbox.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -272,6 +286,8 @@ _Add with `sq review 1035 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F8:discussion -->
 - [2026-10-16T09:11:29Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md "How names flow into your squad": name is stored as the ROLE item title (read from a scratch role file).
+- [2026-10-25T19:32:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md no longer cites `extra.full_name`.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -295,6 +311,8 @@ _Add with `sq review 1035 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F9:discussion -->
 - [2026-10-16T09:11:33Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md sq override scaffold section: anchor now ...-ref-kinds-and-views; all doc anchors checked.
+- [2026-10-25T19:32:58Z] `reviewer` Paul Reviewer:
+  - Holds: no link to the old `...-and-ref-kinds` anchor remains in docs/overrides.md.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -318,6 +336,8 @@ _Add with `sq review 1035 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F10:discussion -->
 - [2026-10-16T09:11:36Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md Statuses: role moved under optional fields, defaults to pending (driven).
+- [2026-10-25T19:32:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md lists status `role` under optional fields, defaulting to pending.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -339,6 +359,8 @@ _Add with `sq review 1035 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F11:discussion -->
 - [2026-10-16T09:11:39Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md "How staleness is detected": unstamped template override is an error and drifted, sq override update stamps it; list legend adjusted (driven).
+- [2026-10-25T19:32:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md says an unstamped template override is an error and lists as `(unstamped)` and `drifted`.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -362,6 +384,8 @@ _Add with `sq review 1035 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F12:discussion -->
 - [2026-10-16T09:11:42Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md records example: PM-<n> / sq postmortem <n> with the squad-wide sequence sentence; "shown at all times" replaced by the hidden-flag rule (driven).
+- [2026-10-25T19:32:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md records example no longer uses PM-1 or `sq postmortem 1`.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 
@@ -383,6 +407,8 @@ _Add with `sq review 1035 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F13:discussion -->
 - [2026-10-16T09:11:45Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md Playbook Format: guide field table (slug/enter/do/handoff/watch/authors) and an authors = true example (driven).
+- [2026-10-25T19:32:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md playbook format tabulates handoff, watch and authors.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
 
@@ -406,6 +432,8 @@ _Add with `sq review 1035 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F14:discussion -->
 - [2026-10-16T09:11:48Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md Examples "Customize the task template": example keeps sq:body, the subtask container and sq:discussion; also the precedence-rule marker sentence names them (driven verbatim).
+- [2026-10-25T19:32:58Z] `reviewer` Paul Reviewer:
+  - Holds: the docs/overrides.md task-template example keeps sq:discussion.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 
@@ -429,6 +457,8 @@ _Add with `sq review 1035 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F15:discussion -->
 - [2026-10-16T09:11:51Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md Staleness: current wording for the stale and missing-marker lines. The lifecycle quote in "When an override is wrong" holds: the shadowed initial=Draft case still prints it (driven), kept as e.g.
+- [2026-10-25T19:32:58Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md quotes the current "override may be stale: bundled items/task.md.j2 changed" wording.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
 <!-- sq:findings:end -->

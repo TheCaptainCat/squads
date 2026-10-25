@@ -140,6 +140,37 @@ async def test_agents_md_backend_shares_the_same_warn_and_lead_behaviour(
     assert handwritten in text
 
 
+_MANAGED = "<!-- squads:start -->\nstale\n<!-- squads:end -->\n"
+#: AGENTS.md before init -> (text or None for no file, whether the warning fires)
+_AGENTS_MD_BEFORE = {
+    "absent": (None, False),
+    "hand-written": ("# Ours\n\nReal notes.\n", True),
+    "managed": (f"# Ours\n\n{_MANAGED}", False),
+    "whitespace only": ("\n  \n", False),
+}
+
+
+@pytest.mark.parametrize("before", list(_AGENTS_MD_BEFORE))
+async def test_agents_md_warns_only_of_content_present_before_init(
+    tmp_path, monkeypatch, frozen_time, before: str
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    text, warns = _AGENTS_MD_BEFORE[before]
+    if text is not None:
+        (tmp_path / "AGENTS.md").write_text(text, encoding="utf-8")
+
+    result = await service.init(
+        root=tmp_path, roles_spec="minimal", backend=["agents_md"], _skip_skill_seed=True
+    )
+
+    assert any("AGENTS.md" in w for w in result.warnings) is warns, result.warnings
+    written = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+    assert written.count("<!-- squads:start -->") == 1
+    assert "stale" not in written
+    if before == "absent":
+        assert written.startswith("# AGENTS.md — Project AI agent guidance\n\n<!-- squads:start")
+
+
 # ------------------------------------------------------------------ CLI smoke
 
 

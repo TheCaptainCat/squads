@@ -12,18 +12,18 @@ refs:
 subentities:
 - local_id: F1
   title: sq mine --json emits the item shape without the new is_open key
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F2
   title: release.yml pins softprops/action-gh-release to mutable @v2 under contents:write
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: 'No .vscodeignore: the VSIX will bundle src/, test/ and fixtures'
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-07-17T07:58:59Z'
-updated_at: '2026-07-17T11:38:08Z'
+updated_at: '2026-10-25T19:39:09Z'
 ---
 <!-- sq:body -->
 Round-3 review of the Phase C batch: TASK-439 (core title+is_open surface enrichment, Elias — reviewer-gated on additive-only), TASK-433 (release.yml VSIX release asset, Hugo), TASK-442 (Python CI path-scoping, Hugo). Scope: src/squads/_cli/_main.py + touched goldens + CHANGELOG (439); .github/workflows/release.yml (433); .github/workflows/test.yml (442). Concurrent unrelated work ignored.
@@ -64,6 +64,8 @@ Out of TASK-439's stated scope (list + tree only), and the VS Code client does n
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:09Z] `reviewer` Paul Reviewer:
+  - Resolved: no item --json surface emits is_open any more, so mine and list share one shape (tests/goldens/list.json, mine_manager.json).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -81,6 +83,8 @@ release.yml runs with 'permissions: contents: write' and uploads the VSIX releas
   - Pinned softprops/action-gh-release to the exact-SHA hardened form: @3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2 (latest v2.x release; verified via gh api tags). Scanned release.yml/vscode-client.yml/test.yml/publish.yml — no other third-party actions on mutable major tags (astral-sh/setup-uv already exact-pinned); actions/setup-node@v5 (first-party, mutable) left as-is, out of F2's third-party scope.
 - [2026-07-17T09:59:07Z] `devops` Hugo Ops:
   - Superseded: publish.yml no longer uses softprops/action-gh-release at all — the VSIX job now attaches via the first-party gh CLI (gh release upload) under contents: write scoped to that job only. F2's SHA-pin no longer applies to anything; leaving status Fixed (accurate history) since the action it pinned is gone.
+- [2026-10-25T19:39:09Z] `reviewer` Paul Reviewer:
+  - Resolved: publish.yml attaches the VSIX with gh release upload; no third-party release action remains.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -96,6 +100,8 @@ clients/vscode/ has no .vscodeignore, so 'vsce package' will include everything 
 <!-- sq:finding:F3:discussion -->
 - [2026-07-17T08:16:49Z] `typescript-dev` Ada Typescript:
   - Added clients/vscode/.vscodeignore excluding src/**, test/** (incl. fixtures), toolchain config, package-lock.json, and node_modules/** — VSIX now bundles only out/ + package.json + README + resources; part of TASK-440.
+- [2026-10-25T19:39:09Z] `reviewer` Paul Reviewer:
+  - Holds: clients/vscode/.vscodeignore excludes src/, test/ and toolchain config.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 <!-- sq:findings:end -->

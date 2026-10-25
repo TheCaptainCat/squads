@@ -26,6 +26,7 @@ from squads._models._item import Item
 from squads._models._subentity import SubEntity
 from squads._services._base import (
     ServiceCore,
+    ensure_subentity_container_text,
     reject_body_overwrite,
     reject_markers,
     subentity_title,
@@ -237,7 +238,9 @@ class SubentitiesMixin(ServiceCore):
         path = item_file(self.paths, item)
         text = await self._read_item_file(item, path)
         if not sections.has_section(text, container):
-            raise SquadsError(f"no {container} section in {item_id}")
+            if discussion.stale_container_tags(text, container):
+                raise SquadsError(f"no {container} section in {item_id}")
+            text = ensure_subentity_container_text(self.spec, item.type, text)
         block = discussion.build_block(
             kind, local_id, title, body=body, spec=self.spec, from_squad=self.paths.squad_dir
         )
@@ -713,6 +716,16 @@ class SubentitiesMixin(ServiceCore):
         def mutate(text: str, item: Item) -> tuple[str, bool]:
             self._check_type(item, kind)
             self._find(item, kind, local_id)  # ensure it exists
+            if sections.get_section(text, btag) is None:
+                missing = (
+                    btag
+                    if sections.has_section(text, f"{kind}:{local_id}")
+                    else (f"{kind}:{local_id}")
+                )
+                raise SquadsError(
+                    f"{item.id} {local_id} has no {markers.PREFIX}{missing} region in its file; "
+                    "restore the marker pair, for example from git. Nothing was written"
+                )
             current = (sections.get_section(text, btag) or "").strip("\n")
             authored = bool(current) and current.strip() != discussion.body_placeholder(
                 kind, self.spec

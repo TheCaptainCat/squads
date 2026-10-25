@@ -3,7 +3,7 @@ id: BUG-1014
 sequence_id: 1014
 type: bug
 title: Untouched scaffold reads as written once target_ref is set
-status: Open
+status: Verified
 author: qa
 refs:
 - REV-1010
@@ -12,7 +12,7 @@ refs:
 description: Body guard and body_written compare against a re-render, so a changed
   scaffold input hides the stub
 created_at: '2026-10-15T19:36:06Z'
-updated_at: '2026-10-16T12:24:13Z'
+updated_at: '2026-10-25T17:52:57Z'
 ---
 <!-- sq:body -->
 ## Reproduction
@@ -45,4 +45,6 @@ Nothing records the scaffold inputs at creation (target_ref, or the type for the
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-25T17:52:21Z] `qa` Mara Tester:
+  - Verified on HEAD 68e96aea. Review with body_written selected: untouched scaffold after set target_ref, change, and unset target_ref still reports "body is unwritten" in check, and body -m replaces it with no refusal. Retype task->bug and decision->task: body -m replaces, check reports the stub. Authored body then set target_ref: check silent and body -m refuses without --force (authored text intact).
 <!-- sq:discussion:end -->

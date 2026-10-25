@@ -13,18 +13,18 @@ refs:
 subentities:
 - local_id: F1
   title: Missing-extra guard is too broad — masks nested import errors
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: tui extra floor pin is unverified and too low for the APIs used
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: Glance line hardcodes the priority axis, not spec-generic
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-07-21T11:46:06Z'
-updated_at: '2026-07-21T12:05:04Z'
+updated_at: '2026-10-25T19:39:28Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -126,6 +126,8 @@ not exercise — and would not catch — the nested-failure misreport.
 - [2026-07-21T12:00:44Z] `python-dev` Elias Python:
   - Narrowed the guard to a bare 'import textual' only; _tui._app now imports outside the try, so a nested first-party ModuleNotFoundError propagates with its real message instead of being rewritten to the install hint.
   - Added a test that fakes a first-party import failure inside _tui._app's chain and asserts it is NOT masked (real exception/message surfaces).
+- [2026-10-25T19:39:28Z] `reviewer` Paul Reviewer:
+  - Holds: _cli/_ui.py guards only a bare import textual.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -160,6 +162,8 @@ use, verified against Textual's changelog.
 <!-- sq:finding:F2:discussion -->
 - [2026-07-21T12:00:50Z] `python-dev` Elias Python:
   - Verified against Textual's CHANGELOG: our code awaits Markdown.update(...), which only became awaitable at 0.29.0 ('Make Markdown.update optionally awaitable') -- newer than Tree (0.6.0), Markdown's existence (0.11.0), TabbedContent (0.16.0), and VerticalScroll (0.20.0). Bumped the floor from 0.16.0 to 0.29.0.
+- [2026-10-25T19:39:28Z] `reviewer` Paul Reviewer:
+  - Holds: pyproject.toml pins tui = textual>=0.29.0.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -187,6 +191,8 @@ recording so it is a deliberate choice rather than an oversight.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:39:28Z] `reviewer` Paul Reviewer:
+  - Resolved: the reader's _glance_line iterates fields_for(item.type), no hardcoded priority (_tui/_reader.py).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 <!-- sq:findings:end -->

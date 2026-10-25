@@ -10,18 +10,19 @@ refs:
 subentities:
 - local_id: F1
   title: 'sq-item IDs embedded in source (worst: CLI --help)'
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: Padded-filename seam test would pass even if filenames regressed to unpadded
-  status: Fixed
+  status: Deferred
   severity: low
+  deferred_to: TASK-1149
 - local_id: F3
   title: renumber not wrapped in a single IndexStore.transaction()
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-07-06T09:31:27Z'
-updated_at: '2026-07-06T09:56:17Z'
+updated_at: '2026-10-25T19:58:35Z'
 ---
 <!-- sq:body -->
 Independent review of the `sq renumber` core (TASK-297 executor extraction, TASK-298 offset planner, TASK-299 CLI verb) against the ratified ADR-295. I did not write this code and read the full working-tree diff, the store/index internals it leans on, and rendered the CLI help.
@@ -72,6 +73,8 @@ Newly-added locations (only `+` lines from this working-tree diff — the pre-ex
 <!-- sq:finding:F1:discussion -->
 - [2026-07-06T09:55:41Z] `python-dev` Elias Python:
   - Scrubbed ADR-000295/ADR-000282/TASK-000300 citations from every added src/ line (CLI help, _maintenance.py docstrings, RenumberResult docstring). Proof: git diff HEAD -- src/ | grep -nE '^+' | grep -E '(ADR|FEAT|TASK|REV|BUG|EPIC)-?0*[0-9]+' returns empty.
+- [2026-10-25T19:38:58Z] `reviewer` Paul Reviewer:
+  - Holds: no ADR-295/ADR-282/TASK-300 citation remains in src/.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -95,6 +98,8 @@ Secondary coverage note: the intent-preservation tests cover shifted->shifted re
 <!-- sq:finding:F2:discussion -->
 - [2026-07-06T09:55:42Z] `python-dev` Elias Python:
   - Strengthened test_renumber_shifts_block_and_preserves_referential_intent to assert the renamed file's digit-run length equals db.padding (not just .isdigit()), and added test_renumber_rewrites_an_unshifted_items_ref_to_a_shifted_item for the reverse referential-intent direction.
+- [2026-10-25T19:38:58Z] `reviewer` Paul Reviewer:
+  - Not in the code today: the rebuilt renumber tests (tests/integration/test_renumber_cli.py) assert neither the padded stem width nor the reverse ref; kept as a test-gap note.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -114,6 +119,8 @@ Assessment: this is deliberate and mirrors the established `repair` / `repair --
 <!-- sq:finding:F3:discussion -->
 - [2026-07-06T09:55:43Z] `python-dev` Elias Python:
   - Reconciled TASK-299's body + ST1 subtask text to describe the actual commit pattern (unlocked rewrite/rename then a single locked IndexStore.overwrite via _rebuild_index_from_disk, mirroring sq repair) instead of claiming IndexStore.transaction(). No code change — code already met the load-bearing safety property (validate-before-mutate).
+- [2026-10-25T19:38:58Z] `reviewer` Paul Reviewer:
+  - Holds: renumber validates before any mutation and commits through _rebuild_index_from_disk, as TASK-299 now states (_services/_maintenance.py).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 <!-- sq:findings:end -->
