@@ -12,23 +12,22 @@ refs:
 description: Item state lives in .md frontmatter; .squads.json is a derived index
   that sq repair reconstructs
 created_at: '2026-06-12T14:22:53Z'
-updated_at: '2026-10-11T20:18:45Z'
+updated_at: '2026-10-25T21:37:00Z'
 ---
 <!-- sq:body -->
 ## Context
 
 squads stores every tracked thing — epic, feature, task, bug, ADR, review, guide, role, skill — as
 one markdown file under the squad folder, and also keeps a single JSON index at
-`<squad>/.squads.json`. From the start there were two plausible homes for an item's durable state
-(status, parent, refs, sub-entity state): the file, or the index. We chose the file.
+`<squad>/.squads.json`. There are two plausible homes for an item's durable state (status, parent,
+refs, sub-entity state): the file, or the index. We chose the file.
 
-The reasoning at the time, recorded honestly: this is a tracker for a team of AI agents working in a
-git repo. Markdown diffs cleanly, merges with human judgement, and is readable without the tool.
-A JSON blob as the system of record would turn every status change into an opaque line in a large
-shared file, make merge conflicts hostile, and couple "can I read my work" to "is the tool
-installed and uncorrupted." Putting the truth in per-item frontmatter keeps each change local to one
-file, keeps the work legible, and means a damaged or stale index is never a data-loss event — only a
-cache miss.
+The reasoning: this is a tracker for a team of AI agents working in a git repo. Markdown diffs
+cleanly, merges with human judgement, and is readable without the tool. A JSON blob as the system of
+record would turn every status change into an opaque line in a large shared file, make merge
+conflicts hostile, and couple "can I read my work" to "is the tool installed and uncorrupted."
+Putting the truth in per-item frontmatter keeps each change local to one file, keeps the work
+legible, and means a damaged or stale index is never a data-loss event — only a cache miss.
 
 ## Decision
 
@@ -37,35 +36,33 @@ item's durable state lives in its `.md` file's YAML frontmatter — `id`, `seque
 `title`, `status`, `parent`, `refs` (with kind inline), timestamps — and so does sub-entity state:
 the typed `subentities:` list carrying each story/subtask/finding's status, assignee, severity,
 mapped story, and title. The index caches all of this plus the global counter for fast queries and
-atomic ID allocation, but stores **nothing that cannot be reconstructed from the files**.
+atomic ID allocation, and stores **nothing that a full rescan of the corpus cannot recover**.
 
-*Narrowed 2026-08-03: one second class exists, and it is declared rather than accidental. ADR-104
-admits squad-wide, corpus-derived format parameters carried in the index with a monotonic floor —
-the filename padding, reconstructed as `max(previous, widest filename found)` rather than derived
-from any one file. The invariant it narrows is "reconstructable from the corpus", not
-"reconstructable from a file": a rebuild still recovers it, and a rebuild may never lower it. See
-the amendment note.*
+That invariant has two classes, and only two:
+
+- **Per-item durable state admits no exception.** It lives in the item's own frontmatter, and any
+  index field holding it is a cache of that frontmatter.
+- **Squad-wide, corpus-derived format parameters** (ADR-104) are reconstructable from the corpus as
+  a whole rather than from any one file, and carry the stored value as a monotonic floor: the global
+  counter and the filename padding, each rebuilt as `max(previous, corpus recompute)`. A rescan may
+  raise such a floor and never lower it, because a rebuild over a partial corpus could otherwise
+  narrow the padding and break ids already on disk.
 
 `sq repair` is the proof and the enforcement: it rescans every item file, rebuilds the index from
-their frontmatter, and resets the counter to the maximum ID number found. `sq check` lints the two
-against each other and reports any drift. A `.squads.json` merge conflict is therefore a non-event —
-take either side and run `sq repair`.
-
-> **Narrowed 2026-10-11 (ADR-955):** "run `sq repair`" holds on a squad at the package's schema.
-> While a squad's schema is behind the package the gate refuses `sq repair`, and the recovery path
-> there is the reconcile that `sq migrate up` runs before its first runner. A conflicted index is
-> one of the states that reconcile rebuilds from the files. See ADR-955 and its amendments of
-> 2026-10-09.
+their frontmatter, and rebuilds the corpus-derived parameters over their floors. `sq check` lints the
+two against each other and reports any drift. A `.squads.json` merge conflict is therefore a
+non-event on a squad at the package's schema — take either side and run `sq repair`. While a squad's
+schema is behind the package, the schema gate refuses `sq repair`, and the recovery path is the
+reconcile that `sq migrate up` runs before its first runner, which rebuilds a conflicted index from
+the files the same way (ADR-955).
 
 ## Consequences
 
-What this binds today:
-
 - **Nothing may be added to the index that is not derivable from the files.** Any new piece of
   durable state must land in frontmatter first; the index field is a cache of it. This is the single
-  hardest constraint on every feature that adds item state. *One declared class of exception:
-  corpus-derived squad-wide format parameters with a monotonic floor (ADR-104). Per-**item** state
-  admits no exception.*
+  hardest constraint on every feature that adds item state. The one declared class beside it is a
+  corpus-derived squad-wide parameter with a monotonic floor (ADR-104); per-item state admits no
+  exception.
 - **Sub-entity state stays in the parent's frontmatter**, never only in the body. The body markers
   hold prose; the machine state is single-sourced in the `subentities:` list and re-rendered into
   the human-readable head and summary on every mutation.
@@ -82,24 +79,6 @@ What this binds today:
 Recorded retroactively. This decision was made before squads tracked itself and lived only in
 `CLAUDE.md` (invariant 1) and `docs/internals.md` (§4). It is documented here as a decision already
 **in force** across the codebase, not one newly debated in-tool.
-
-## Amendment note
-
-**2026-08-03 — the reciprocal note for ADR-104's second class of index state.** ADR-104 declares that
-the index may hold squad-wide format parameters derived from the whole corpus rather than from any one
-item's frontmatter, and carried with a monotonic floor: `db.padding = max(previous_padding,
-max_filename_width)`, with the counter floor beside it. ADR-104 states this from its own end, names the
-narrowing, and leaves its point-in-time prose as history — it is the model this pass copied elsewhere.
-What was missing was this end: this decision still read as an unqualified "nothing".
-
-The distinction that makes both true, and the one a reader needs: *per-item* durable state admits no
-exception at all — it lives in frontmatter, and a field in the index is a cache of it. A *corpus-derived
-squad-wide* parameter is still reconstructable, just not from one file, and the floor exists because a
-rebuild over a partial corpus could otherwise narrow it and break ids that are already on disk. So the
-honest form of the invariant is "the index holds nothing that a full rescan cannot recover", plus "a
-rescan may raise a floor and never lower it". `sq repair` remains the proof of both.
-
-`related` edge added to ADR-104.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -111,4 +90,6 @@ rescan may raise a floor and never lower it". `sq repair` remains the proof of b
   - `related` edge added to ADR-104. Also dropped the "Left Proposed for the manager to accept" sentence — see the sweep comment on the retroactive set.
 - [2026-10-11T20:18:45Z] `architect` Robert Architect:
   - 2026-10-11: narrowed in place, on the operator's ruling of this date recorded on MILE-934. One dated note, after the paragraph of the Decision section that ends by calling a `.squads.json` merge conflict a non-event to be cleared with `sq repair`. It says the claim holds at the package's schema, and that while a squad's schema is behind the package the gate refuses `sq repair` and the reconcile inside `sq migrate up` is the recovery path (ADR-955 and its amendments of 2026-10-09). Nothing else in the body changed; `related` ref to ADR-955 added.
+- [2026-10-25T21:37:00Z] `architect` Robert Architect:
+  - 2026-10-25 audit: rewritten in present tense; decision unchanged. Folded the ADR-104 floor class and the ADR-955 recovery path into the Decision text and dropped the dated notes and the amendment section.
 <!-- sq:discussion:end -->

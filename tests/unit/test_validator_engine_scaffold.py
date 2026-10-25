@@ -289,7 +289,7 @@ def test_engine_calls_a_members_catalog_function_once_across_two_param_selection
 
     def _count_and_flag(ctx: ValidatorContext) -> list[CheckIssue]:
         calls.append(None)
-        return [CheckIssue("warn", ctx.item.id, "stub violation")]
+        return [CheckIssue("warn", ctx.item.id, "stub violation", "dangling_ref")]
 
     item_spec = spec.items["task"].model_copy(
         update={
@@ -316,7 +316,7 @@ def test_engine_calls_a_members_catalog_function_once_across_two_param_selection
         raw_text=None,
     )
     assert len(calls) == 1
-    assert issues == [CheckIssue("warn", "TASK-1", "stub violation")]
+    assert issues == [CheckIssue("warn", "TASK-1", "stub violation", "dangling_ref")]
 
 
 def test_engine_uses_a_stub_catalog_to_prove_dispatch_runs_a_named_validator() -> None:
@@ -325,7 +325,7 @@ def test_engine_uses_a_stub_catalog_to_prove_dispatch_runs_a_named_validator() -
     spec = bundled_spec()
 
     def _always_flags(ctx: ValidatorContext) -> list[CheckIssue]:
-        return [CheckIssue("warn", ctx.item.id, "stub violation")]
+        return [CheckIssue("warn", ctx.item.id, "stub violation", "dangling_ref")]
 
     engine = ValidatorEngine(
         spec=spec, catalog={"stub": _always_flags}, playbook=get_playbook_spec()
@@ -333,7 +333,7 @@ def test_engine_uses_a_stub_catalog_to_prove_dispatch_runs_a_named_validator() -
     names = effective_validator_names("work", common_core=(), category_bundles={"work": ("stub",)})
     ctx = ValidatorContext(item=_make_item(1, "task"), spec=spec)
     issues = [issue for name in names for issue in engine.catalog[name](ctx)]
-    assert issues == [CheckIssue("warn", "TASK-1", "stub violation")]
+    assert issues == [CheckIssue("warn", "TASK-1", "stub violation", "dangling_ref")]
 
 
 def test_squad_global_validators_run_once_in_report_never_in_gate(tmp_path) -> None:
@@ -345,7 +345,7 @@ def test_squad_global_validators_run_once_in_report_never_in_gate(tmp_path) -> N
 
     def _global_check(ctx: SquadGlobalContext) -> list[CheckIssue]:
         calls.append("ran")
-        return [CheckIssue("error", "", "squad-global stub issue")]
+        return [CheckIssue("error", "", "squad-global stub issue", "index_reconciled")]
 
     spec = bundled_spec()
     db = SquadsDB(counter=1)
@@ -361,7 +361,7 @@ def test_squad_global_validators_run_once_in_report_never_in_gate(tmp_path) -> N
     )
 
     issues = engine.report(db, {})
-    assert issues == [CheckIssue("error", "", "squad-global stub issue")]
+    assert issues == [CheckIssue("error", "", "squad-global stub issue", "index_reconciled")]
     assert calls == ["ran"]
 
     engine.gate(_make_item(1, "task"), db)

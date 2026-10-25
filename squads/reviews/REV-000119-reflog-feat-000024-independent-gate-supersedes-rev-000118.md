@@ -16,26 +16,28 @@ description: Independent re-review of TASK-112 (core) + TASK-113 (read) against 
 subentities:
 - local_id: F1
   title: Stale 'no-op until TASK-112' docstrings now factually wrong (two sites)
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F2
   title: Inaccurate actor-reset comment in _cli/__init__.py
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: 'op/delta double-key: outer op=''subentity''/''migrate'' with inner delta[''op'']'
-  status: Open
+  status: Deferred
   severity: low
+  deferred_to: ADR-117
 - local_id: F4
   title: No autouse actor-reset fixture in conftest (test hygiene)
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: Reflog 'v' reuses index SCHEMA_VERSION (coupled bumps)
-  status: Open
+  status: Deferred
   severity: low
+  deferred_to: ADR-117
 created_at: '2026-06-15T10:13:51Z'
-updated_at: '2026-06-15T10:21:30Z'
+updated_at: '2026-10-25T19:58:44Z'
 ---
 <!-- sq:body -->
 Independent verification of the FEAT-24 reflog (TASK-112 core + TASK-113 read) against ADR-117 and ADR-114. Every claim of REV-118 was re-checked against the actual code and verified empirically; 118 is not treated as authoritative because the same agent lineage designed, implemented, and reviewed it.
@@ -87,6 +89,8 @@ Impact: documentation only; misleads the next reader into thinking removal is un
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:26Z] `reviewer` Paul Reviewer:
+  - Holds: no "no-op until" reflog docstrings remain in src/.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -104,6 +108,8 @@ Impact: misleading comment; the behaviour is correct (verified: no leak across C
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:26Z] `reviewer` Paul Reviewer:
+  - Holds: the actor now rides the RequestContext (actor_override="system" in _cli/__init__.py); the comment is gone.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -119,6 +125,8 @@ Impact: a reader scanning for 'the op' must know to read the outer key for the c
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:38:26Z] `reviewer` Paul Reviewer:
+  - Still true: subentity lines nest delta op under op=subentity (_services/_subentities.py); kept as a naming note.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -134,6 +142,8 @@ Impact: the global actor override is left at 'system' (not None) after that test
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:38:26Z] `reviewer` Paul Reviewer:
+  - Holds: the actor is RequestContext state (_actor.py), no module global left to reset.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -149,6 +159,8 @@ Impact: none today; a defensible reading of the ADR. Flagging for the FEAT-13 fr
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-25T19:38:26Z] `reviewer` Paul Reviewer:
+  - Still true: reflog v is SCHEMA_VERSION (_index/_reflog.py); kept as a note on the coupled versions.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->

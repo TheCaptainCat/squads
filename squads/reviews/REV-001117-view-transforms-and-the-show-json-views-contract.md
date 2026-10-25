@@ -36,7 +36,7 @@ subentities:
 - local_id: F6
   title: 'Call-time lookups of the transform module fail once it leaves sys.modules:
     document it'
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F7
   title: 'Test economy: an unfailable sort claim, duplicated shape rows, a decorative
@@ -44,7 +44,7 @@ subentities:
   status: Verified
   severity: info
 created_at: '2026-10-24T14:14:37Z'
-updated_at: '2026-10-24T14:38:31Z'
+updated_at: '2026-10-25T19:39:36Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -222,6 +222,8 @@ Each comes out as a clean `ViewTransformError` with the line, so nothing breaks 
 <!-- sq:finding:F6:discussion -->
 - [2026-10-24T14:38:30Z] `tech-writer` Theo Writer:
   - Documented in docs/overrides.md section "Giving a view a transform" (paragraph "The file is not a registered module when the function runs": get_type_hints with a forward ref, a pydantic forward ref and pickle each named with the error the dev build gives), and in the 0.17.0 CHANGELOG Added entry for view transforms. Driven in a scratch squad: all three fail as stated; plain dataclasses work.
+- [2026-10-25T19:39:36Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md "The file is not a registered module when the function runs" and the 0.17 CHANGELOG transform entry state the constraint.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 

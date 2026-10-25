@@ -11,15 +11,15 @@ description: Review of the sq check role catalog validation fix
 subentities:
 - local_id: F1
   title: Wrong-typed sections and non-UTF-8 crash check
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: Per-slug test variant uses an off-roster slug
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: Skip hides catalog-independent per-slug findings
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: Playbook loader shares the crash class
@@ -27,10 +27,10 @@ subentities:
   severity: low
 - local_id: F5
   title: Catalog validated twice; stale docstring
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-10-16T11:22:25Z'
-updated_at: '2026-10-16T12:21:52Z'
+updated_at: '2026-10-25T19:34:26Z'
 ---
 <!-- sq:body -->
 Review of commit 8797c128 on branch `worktree-agent-adb998e0d11286bfb`: `sq check` now loads the merged role catalog whenever `.overrides/roles.toml` exists and reports a `SquadsError` refusal as an error on that file, skipping the per-slug role checks while the catalog is invalid.
@@ -75,6 +75,8 @@ Fix: make the loader turn these into `SquadsError`. That means rejecting a non-t
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:34:26Z] `reviewer` Paul Reviewer:
+  - Holds: on 0.17 a roles.toml with `bundles = ["all"]`, `roles = 3` or a non-UTF-8 byte is a check error on the file, exit 3 (driven).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -92,6 +94,8 @@ Fix: write the per-slug file for a slug that is on the roster (`manager.toml` un
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:34:26Z] `reviewer` Paul Reviewer:
+  - Holds: tests/cli/test_check_reports_an_invalid_role_catalog_override.py writes the per-slug file as manager.toml, an on-roster slug.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -109,6 +113,8 @@ Suggested: keep the stamp checks running and gate only the `_check_role_override
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:34:26Z] `reviewer` Paul Reviewer:
+  - Holds: _overrides/_service.py::check_override_issues gates only the resolve step (`resolve=catalog_invalid is None`).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -141,6 +147,8 @@ Two small points in `src/squads/_overrides/_service.py`:
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-25T19:34:26Z] `reviewer` Paul Reviewer:
+  - Holds: _roles_catalog_invalid_issue is called once per check; the "exactly" docstring claim is gone.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->

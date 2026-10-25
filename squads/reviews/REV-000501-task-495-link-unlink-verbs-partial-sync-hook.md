@@ -10,10 +10,10 @@ refs:
 subentities:
 - local_id: F1
   title: 'Test gap: multi-role scoping + unlink selectivity unproven'
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-07-20T10:16:06Z'
-updated_at: '2026-07-20T10:22:18Z'
+updated_at: '2026-10-25T19:39:26Z'
 ---
 <!-- sq:body -->
 Independent review of the UNSTAGED src/squads Python changes for TASK-495 (link-role/unlink-role verbs + partial-sync hook). Staged TASK-493/494 and clients/vscode excluded per scope.
@@ -47,6 +47,8 @@ Implementation is correct by inspection, but two acceptance-named cases lack a d
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:26Z] `reviewer` Paul Reviewer:
+  - Holds: tests/service/test_skill_role_scope_link_unlink_hook.py covers several roles at once and both unlink-selectivity cases.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 <!-- sq:findings:end -->

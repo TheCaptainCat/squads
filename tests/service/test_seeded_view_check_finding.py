@@ -215,23 +215,34 @@ async def test_a_host_carrying_its_tag_disabled_is_reported_nowhere(svc) -> None
     assert not any("duplicate sq:view:" in i.message for i in issues)
 
 
-async def test_a_retype_into_a_seeded_host_is_not_refused_and_not_rewritten(svc) -> None:
-    """A retype into a seeded host stays readable and reported, never refused or rewritten."""
+async def test_a_retype_into_a_seeded_host_re_renders_an_untouched_scaffold_with_its_view(
+    svc,
+) -> None:
+    """An untouched scaffold retyped into a seeded host becomes its scaffold, tag in place."""
     task = (await create_item(svc, "task", "A task")).item
-    before_body = await svc.read_body(task.id)
 
     res = await svc.retype(task.id, "milestone")
 
     assert res.item.type == "milestone"
-    assert await svc.read_body(res.item.id) == before_body
     stored = get_section(item_file(svc.paths, res.item).read_text(encoding="utf-8"), markers.BODY)
     assert stored is not None
-    assert "sq:view:milestone_rollup" not in stored
+    assert "## Objective" in stored
+    assert "<!-- sq:view:milestone_rollup -->" in stored
+    assert not [i for i in await svc.check() if "missing seeded view tag" in i.message]
+    await svc.set_body(res.item.id, "Real objective.")
 
-    issues = await svc.check()
-    matches = [i for i in issues if "missing seeded view tag" in i.message]
-    assert matches, [i.message for i in issues]
-    assert any("milestone_rollup" in i.message for i in matches)
+
+async def test_a_retype_into_a_seeded_host_keeps_an_authored_body(svc) -> None:
+    """An authored body is carried verbatim; the check reports the missing tag."""
+    task = (await create_item(svc, "task", "A task")).item
+    await svc.set_body(task.id, "Authored prose.")
+
+    res = await svc.retype(task.id, "milestone")
+
+    stored = get_section(item_file(svc.paths, res.item).read_text(encoding="utf-8"), markers.BODY)
+    assert stored is not None
+    assert stored.strip() == "Authored prose."
+    assert any("missing seeded view tag" in i.message for i in await svc.check())
 
 
 async def test_the_next_body_write_after_a_retype_inserts_the_new_types_seeded_view(svc) -> None:

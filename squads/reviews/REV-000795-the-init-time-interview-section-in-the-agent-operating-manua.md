@@ -11,22 +11,22 @@ description: Docs review of the new interview section in agents.md and its three
 subentities:
 - local_id: F1
   title: Skill scoped to one role does not load in every session
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: Named hard floor contradicts the overrides documentation
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: Pointers name an init-time interview the section never calls that
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: Custom-skill command block duplicates the roles.md sequence
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-08-25T13:57:05Z'
-updated_at: '2026-08-25T14:04:21Z'
+updated_at: '2026-10-25T19:30:56Z'
 ---
 <!-- sq:body -->
 # Scope
@@ -149,6 +149,8 @@ one role — `link-role` takes one role per call and can be run repeatedly for t
   - Fixed, claim and advice both. The false claim is gone — the sentence now reads "durable, discoverable guidance" with no "every later session", because that was never true of a skill linked to one role.
   - The advice gained a paragraph of its own: a role preloads only the skills linked to it, so a skill scoped to the manager alone is loaded by manager sessions and by no others — and the quality bar, the commit and release conventions, and what needs confirming before something destructive all govern what a developer or a reviewer does, so those agents need the answers in their own sessions. The heading sentence now says to scope it "to the roles the answers apply to", not "to its own role".
   - The command block shows the repetition rather than only describing it: a second `link-role reviewer` line with the comment "one role per call — repeat for each". Driven verbatim in a throwaway squad — both calls exit 0, both pointers preload the skill, the other six do not, `sq check` clean.
+- [2026-10-25T19:30:56Z] `reviewer` Paul Reviewer:
+  - Holds: docs/agents.md drops "every later session" and shows link-role repeated per role.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -188,6 +190,8 @@ item shape as immutable is the part that misfires.
   - Fixed as suggested — the naming was the part that misfired, and calling the status lifecycle and item shape immutable is the opposite of what ships. The sentence now names the structural guarantees instead: "What `sq` guarantees is structure, not method: every item carries a stable identifier, has a declared status and a lifecycle that governs how it may move, and keeps its state in frontmatter rather than in prose."
   - The contrast the paragraph needed is now explicit rather than implied by omission: "*Which* types, statuses and lifecycles a squad declares is the squad's own call (see overrides.md), and so is how the team runs day to day". A reader who has seen the overrides documentation now finds this page agreeing with it and linking to it.
   - Checked the three guarantees against the overrides documentation before writing them: a declared item type must name a lifecycle, so "a declared status and a lifecycle that governs it" holds for a custom type as well as a bundled one.
+- [2026-10-25T19:30:56Z] `reviewer` Paul Reviewer:
+  - Holds: docs/agents.md names the guarantees as "structure, not method" and links overrides.md.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -227,6 +231,8 @@ same meaning without contradicting its own first clause.
 - [2026-08-25T14:02:03Z] `tech-writer` Theo Writer:
   - Fixed by taking both halves of the suggestion rather than picking one. The term now appears on the page — the opening sentence reads "it can open with a short init-time interview about how this team wants work run" — so the two pointers that use it land on a page that uses it too, and a reader searching for it finds it. The heading and its anchor are unchanged, so no inbound link moved.
   - The adoption pointer loses "init-time" outright, since that was the half that contradicted its own first clause: it now reads "Once the squad exists, consider opening it with the optional interview". Same meaning, no self-contradiction, and it still calls the thing what the heading calls it.
+- [2026-10-25T19:30:56Z] `reviewer` Paul Reviewer:
+  - Holds: docs/agents.md uses "init-time interview"; docs/adoption.md says "opening it with the optional interview".
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -263,6 +269,8 @@ two blocks as a pair to update together.
   - Judged worth keeping the block, and the duplication is now labelled rather than silent. Sending a reader off the page for three commands would cost more than the copy does, and F1's fix makes the block carry something roles.md does not — the repeated `link-role`, which is the whole point of scoping the interview's answers wider than one role.
   - What changed is that the pair is now named as a pair, in the prose immediately under the block: "roles.md is the home for the skill surface itself; the sequence above is that surface with the interview's own slug in it." The link that was four lines later is now on the sentence that says roles.md owns the surface, so anyone editing either copy is told where the other lives.
   - Deliberately not carried over: the mechanics roles.md owns and this page does not need — the refuses-once-written behaviour of `body`, `unlink-role`, `regen`, `status`, `rm`. The copy here is three verbs plus a repeat, not the contract.
+- [2026-10-25T19:30:56Z] `reviewer` Paul Reviewer:
+  - Holds: docs/agents.md names roles.md as the home of the skill surface under the block.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 <!-- sq:findings:end -->

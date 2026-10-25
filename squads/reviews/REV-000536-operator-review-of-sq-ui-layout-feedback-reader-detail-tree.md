@@ -14,26 +14,26 @@ description: Pierre's hands-on review of the sq ui browse + filter + search work
 subentities:
 - local_id: F1
   title: Search results panel only fills half the screen
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: No running indicator while a search is in flight
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: Reader sub-entities tab shows no sub-entity body
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Discussion tab should render markdown (bullet lists etc.)
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: Split the tree into Work and Roster top-level nodes
-  status: Fixed
+  status: Verified
   severity: medium
 created_at: '2026-07-21T14:12:09Z'
-updated_at: '2026-07-21T14:37:55Z'
+updated_at: '2026-10-25T19:39:30Z'
 ---
 <!-- sq:body -->
 Live review of `sq ui` on the branch. Findings below span the browse/reader (FEAT-513/514) and the filter/search increment (FEAT-525/526).
@@ -60,6 +60,8 @@ The search results ListView leaves a large empty gap between the type/status sel
 - [2026-07-21T14:28:04Z] `python-dev` Elias Python:
   - Fixed: the selects row (a Horizontal) defaults to height:1fr like every Horizontal -- pinned it to height:auto via id (#search-filters) and gave the results ListView height:1fr explicitly, so it now fills the remaining screen.
   - Verified: new Pilot test asserts results height > 2x the filters row height.
+- [2026-10-25T19:39:30Z] `reviewer` Paul Reviewer:
+  - Holds: the search results list takes height 1fr (_tui/_search.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -76,6 +78,8 @@ The @work search gives no feedback — the UI looks frozen. Show a 'Searching…
 - [2026-07-21T14:28:05Z] `python-dev` Elias Python:
   - Fixed: SearchScreen sets the status line to 'Searching...' and ListView.loading=True right before dispatching the @work search, clearing both (loading=False, status cleared/set) once results or the empty state land.
   - Verified: new Pilot test gates svc.search behind an anyio.Event, asserts loading+status mid-flight, then releases the gate and asserts both clear.
+- [2026-10-25T19:39:30Z] `reviewer` Paul Reviewer:
+  - Holds: the search screen shows Searching… and sets loading while the worker runs (_tui/_search.py).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -92,6 +96,8 @@ The sub-entities tab renders only the summary row (status/assignee/title), not e
 - [2026-07-21T14:28:20Z] `python-dev` Elias Python:
   - Fixed: sub-entities tab now renders each story/subtask/finding as its own block (head line -- status/assignee/declared-field badges/mapped story, spec-generic, same derivation as the CLI's pane-title line -- plus its rendered body), not just the summary table. Read path: svc.get_block(parent_id, kind, local_id) -> SubentityDetail.body (read-only, already existed for 'sq <kind> show'). Widget changed Static->Markdown so the body actually renders as markdown; empty body per-block shows '(no body yet)', no sub-entities shows '(none)'.
   - Verified: extended test_subentities_tab_... in test_browse_screen.py to assert the head line, assignee and body prose all appear in the rendered markdown source; empty states for a story-less feature and a role (no kind) still pass. Plus a bracket-content regression test for the new body-rendering surface.
+- [2026-10-25T19:39:30Z] `reviewer` Paul Reviewer:
+  - Holds: the Sub-entities tab renders each block's head line and body as markdown (_tui/_reader.py).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -108,6 +114,8 @@ Comments render as plain text; bullet lists and other markdown aren't rendered. 
 - [2026-07-21T14:28:21Z] `python-dev` Elias Python:
   - Fixed: discussion tab widget changed Static->Markdown; each comment renders as '**timestamp** _author_' + its body rendered as markdown (bullet lists etc. now actually render as list blocks), separated by a rule. Bracket-safe by construction, not by escaping: Markdown parses commonmark, not Textual's Content markup, so the BUG-535 class of bug doesn't apply to this widget at all (same reasoning as the existing body tab).
   - Verified: extended the discussion test to assert a bullet-containing comment mounts a MarkdownParagraph child (not raw text) and ordering/author still hold; empty state ('(none)') still passes.
+- [2026-10-25T19:39:30Z] `reviewer` Paul Reviewer:
+  - Holds: the Discussion tab is a Markdown widget (_tui/_reader.py).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -124,6 +132,8 @@ Mirror the VS Code extension: two top-level groups — Work (epics/features/task
 - [2026-07-21T14:28:30Z] `python-dev` Elias Python:
   - Fixed: populate_tree now takes the active WorkflowSpec and adds two synthetic top-level nodes (Work, Roster; data=None, so selecting the group header itself is a no-op, not a reader load) before attaching each tree_view() root under whichever group matches spec.item_is_meta(root.item.type). Filter/sort untouched -- both already operate on the flat tree_view()-returned forest before grouping, so narrowing/sorting still work identically within each group (partition-after-sort preserves each group's relative order).
   - Verified: new Pilot test asserts the top-level labels are exactly ['Work','Roster'], work items land under Work, ROLE-1 lands under Roster, and the two sets are disjoint. Migrated every existing test that walked tree.root.children directly (structure is now one level deeper).
+- [2026-10-25T19:39:30Z] `reviewer` Paul Reviewer:
+  - Holds: the tree groups roots under Work and Roster nodes (_tui/_tree.py).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->

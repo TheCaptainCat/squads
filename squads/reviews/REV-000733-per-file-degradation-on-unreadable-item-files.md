@@ -11,27 +11,27 @@ refs:
 subentities:
 - local_id: F1
   title: repair loses the counter high-water mark of an unreadable file
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: repair aborts board-wide on valid YAML with no id, misdiagnosed
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F3
   title: Type-invalid frontmatter crashes repair with a pydantic traceback
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F4
   title: FileNotFoundError on a present dirent still crashes every command
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: The --json listings silently drop the unreadable-file messages
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F6
   title: board list and repair exit 0 while reporting an error
-  status: Fixed
+  status: Verified
   assignee: tech-writer
   severity: low
 - local_id: F7
@@ -40,38 +40,38 @@ subentities:
   severity: info
 - local_id: F8
   title: The widened load boundary misses TypeError and ValueError
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F9
   title: A malformed frontmatter id still aborts the whole check scan
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F10
   title: repad diagnoses a broken symlink differently from check
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F11
   title: The boundary catches KeyError wider than its three required reads
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F12
   title: Two of four empty-string list fields lost their compatibility
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F13
   title: check and repair contradict each other on a malformed id
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F14
   title: The per-file message for a bad field is a raw pydantic dump
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F15
   title: The (got type) suffix misdescribes an absent field
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-08-03T11:01:43Z'
-updated_at: '2026-08-03T15:47:23Z'
+updated_at: '2026-10-25T19:25:45Z'
 ---
 <!-- sq:body -->
 Independent review of the per-file degradation work (TASK-674, commits `d3d41c1` / `29cb656`).
@@ -152,6 +152,8 @@ lower than that file's own sequence number.
 <!-- sq:finding:F1:discussion -->
 - [2026-08-03T11:46:16Z] `python-dev` Elias Python:
   - Fixed: _rebuild_index_from_disk now folds the unreadable file's filename-derived seq/digit-run into max_n/max_filename_width on every third-state branch (_report_third_state), not just the read/parse one -- so the counter/padding floor accounts for it even with no previous index entry to carry from. Falsified both halves (counter value AND no reissue) with known_corpus removed entirely, matching the repro.
+- [2026-10-25T19:25:45Z] `reviewer` Paul Reviewer:
+  - Holds: _report_third_state in _services/_maintenance.py folds the stem seq into max_n via fold_stem_into_floor.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -200,6 +202,8 @@ prefix/folder change when it has not observed one.
 <!-- sq:finding:F2:discussion -->
 - [2026-08-03T11:46:24Z] `python-dev` Elias Python:
   - Fixed: a valid-YAML-no-id file now gets the same third-state carry-forward/report treatment as an unreadable file in _rebuild_index_from_disk, instead of a silent 'continue' that dropped it from db and made _corpus_alignment_refusals misdiagnose a re-foldered corpus. The misdiagnosis disappears as a side effect -- the item is no longer missing from the rebuilt db to compare against. Kept the pre-migration legacy-skill-body exemption (no id ever, not an error) via a shared _is_legacy_skill_body helper so I didn't regress that case while fixing this one.
+- [2026-10-25T19:25:45Z] `reviewer` Paul Reviewer:
+  - Holds: a no-id file is third-stated by repair, with is_legacy_skill_body (_services/_corpus_files.py) as the one exemption.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -246,6 +250,8 @@ call site.
 <!-- sq:finding:F3:discussion -->
 - [2026-08-03T11:46:32Z] `python-dev` Elias Python:
   - Fixed at the load boundary you named: Item.from_frontmatter now catches pydantic ValidationError/KeyError and raises SquadsError naming the path, so both repair's rebuild loop and check's scan (which now also calls from_frontmatter to validate) catch it with the same except SquadsError already in place -- no second except clause needed. check now reports the type-invalid file instead of 'no issues'; repair carries its previous entry forward instead of a raw traceback.
+- [2026-10-25T19:25:45Z] `reviewer` Paul Reviewer:
+  - Holds: Item.from_frontmatter (_models/_item.py) turns ValidationError into SquadsError naming the path.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -291,6 +297,8 @@ way stop emitting a traceback.
 <!-- sq:finding:F4:discussion -->
 - [2026-08-03T11:46:45Z] `python-dev` Elias Python:
   - Fixed, with the ruling you asked for: a FileNotFoundError on a dirent the scan's own glob just saw is decided by Path.is_symlink() (lstat, doesn't follow the link) -- present-but-broken (is_symlink() true) gets the same third-state report+carry-forward as any other unreadable file; genuinely vanished (is_symlink() false, truly gone) is skipped with nothing reported, on the theory that a real deletion is the missing-direction reconciliation's claim to make (from the previous index), not a second, competing claim invented by the scan that raced it. Applied at all four sites you drove: check's scan, repair's rebuild, board list, memory list -- plus repad/renumber's _scan_records preflight, which previously would have propagated a raw FileNotFoundError instead of refusing cleanly. New tests cover both branches, including a simulated glob-then-read race (monkeypatched delete) for the genuinely-vanished half, which isn't otherwise reproducible on demand.
+- [2026-10-25T19:25:45Z] `reviewer` Paul Reviewer:
+  - Holds: missing_dirent_message in _services/_corpus_files.py splits broken symlink from vanished, used by check, repair and board.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -332,6 +340,8 @@ than the human one about a data-integrity failure is the wrong default.
 <!-- sq:finding:F5:discussion -->
 - [2026-08-03T11:46:53Z] `python-dev` Elias Python:
   - Fixed via the additive-safe option you weighed: board list/memory list/memory search's --json branches now print each unreadable-file message to stderr before returning, leaving the JSON array shape untouched (no envelope, no new key -- the Tier-3 contract stays frozen). A machine consumer that only reads stdout still gets a bare array, but the exit code (see F6) plus stderr now say the read was degraded rather than genuinely empty/short.
+- [2026-10-25T19:25:45Z] `reviewer` Paul Reviewer:
+  - Holds: --json listings route omissions through report_omissions (_cli/_common.py), which reports them on stderr.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -373,6 +383,8 @@ Not a defect on its own — recorded so the contract is decided rather than inhe
   - Inconsistency left standing, not written into the notes: `sq memory list` degrades and names the unreadable file but still exits 0, in both output modes — the ruling on this finding covered board list and repair only. @manager worth a ruling so the three degrade-and-report surfaces agree.
 - [2026-08-03T13:12:52Z] `manager` Catherine Manager:
   - Ruling on the memory list inconsistency raised by the writer: sq memory list should exit 1 on a degraded read too. The condition is identical and the published table treats a non-zero status as the signal, so leaving one of three commands at 0 makes the contract depend on which command you happened to run. Queued as code work, not a docs change — the release notes correctly name only the two commands that behave that way today.
+- [2026-10-25T19:25:45Z] `reviewer` Paul Reviewer:
+  - Holds: repair exits 1 on an unreadable file (_cli/_main.py); board list now exits 4 under the report_omissions partial-read contract.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -447,6 +459,8 @@ where the old `else: return now()` made a corrupt timestamp indistinguishable fr
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
+- [2026-10-25T19:25:45Z] `reviewer` Paul Reviewer:
+  - Holds: _frontmatter_payload in _models/_item.py is non-raising, so model_validate is the only failure channel.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -485,6 +499,8 @@ is what that function's own `FileNotFoundError` branch already promises in prose
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
+- [2026-10-25T19:25:45Z] `reviewer` Paul Reviewer:
+  - Holds: check reports a malformed frontmatter id per file via the message in _services/_corpus_files.py and keeps scanning.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -533,6 +549,8 @@ call sites would keep them from drifting again.
   - Fixed as you suggested, including the shared helper: `_missing_dirent_message(md, *, is_symlink)` in `_services/_maintenance.py` is now the single wording for a FileNotFoundError on a dirent the caller's own glob just saw, used by check, repair and the repad/renumber preflight.
   - All three of your points, driven on one broken-symlink dirent: repad and renumber now say `<path> is a broken symlink (its target does not exist) — refusing to rewrite ids while a file in the corpus cannot be read` — same sentence as check and repair, the path named once, no errno text. The refusal itself is unchanged (both still refuse before any rename).
   - Pinned in `tests/service/test_unreadable_files_degrade_per_file.py::test_every_command_gives_a_broken_symlink_the_same_diagnosis`: one dirent through all four commands, asserting the shared sentence in each and — for the two refusals — no "No such file or directory", no "Errno", and `message.count(path) == 1`. Falsified: restoring the errno wrapper reddens it alone.
+- [2026-10-25T19:25:45Z] `reviewer` Paul Reviewer:
+  - Holds: repad/renumber use the shared missing_dirent_message (_services/_maintenance.py), same sentence as check.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -565,6 +583,8 @@ Also a better message for free: a missing `status` now reads `missing required f
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
+- [2026-10-25T19:25:45Z] `reviewer` Paul Reviewer:
+  - Holds: REQUIRED_FRONTMATTER_KEYS is checked up front in _models/_item.py; only except ValidationError remains.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -624,6 +644,8 @@ correctly limited to the empty string.
   - Fixed as you suggested: all four container keys now route through one of two helpers — `_empty_list_if_unset` for `labels`/`refs`/`subentities`, a new `_empty_dict_if_unset` sibling for `extra`. Driven over 4 keys x {absent, null, empty string}: all twelve load as the right empty container.
   - Pinned in both directions and over the whole scope, not a subset: `_CONTAINER_FIELDS` in `tests/service/test_type_invalid_frontmatter_load_boundary.py` carries all four keys with their empty value, and the bare-string rejection is parametrized over the same four. Added a coverage guard that derives the container-field set from `Item.model_fields` annotations, so a fifth container field cannot be added behind the table the way the fourth slipped past.
   - Falsified: reverting `subentities`/`extra` to the pre-fix expressions reddens the compat test for exactly those two keys and nothing else.
+- [2026-10-25T19:25:45Z] `reviewer` Paul Reviewer:
+  - Holds: _empty_list_if_unset covers labels, refs and subentities; extra is gone, replaced by flat attributes.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 
@@ -690,6 +712,8 @@ worth treating as a pattern rather than three separate wordings.
   - The neighbouring clause had the same fault and you did not name it: "Fix the `id:` line (or delete it) to clear this". Driven — deleting the line yields `error <file>: file has no `id` in frontmatter` from check (exit 3) and an error plus carry-forward from repair (exit 1). It swapped one error for another. The message now says removing the line is reported too, and the one action it names is verified to clear both check and repair.
   - Also flagged as its own defect, not fixed here (out of this finding scope): repair accepting a hyphen-less string `id` and indexing an `UNRESOLVED-<n>` entry silently is exactly the outcome `_derive_prefix_from_id`s docstring says it raises to prevent. Routing to @manager to ticket — `prefix_from_id` returns "" for a hyphen-less value and the boundary does not treat that as corrupt.
   - Pinned: `_malformed_id_message` in `_services/_maintenance.py`; tests in `tests/service/test_malformed_frontmatter_id_is_reported_per_file.py` — the wording assertion is now structural (check names no other command at all) over the whole shape family, plus a driven test that the offered remedy clears it and a driven test that deleting the line does not. Falsified: restoring the old sentence reddens 12 of them.
+- [2026-10-25T19:25:45Z] `reviewer` Paul Reviewer:
+  - Holds: the malformed-id message in _services/_corpus_files.py names no other command and drops the delete remedy.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
 
@@ -736,6 +760,8 @@ misleads.
   - Fixed at `Item.from_frontmatter` as you scoped it: a new `_validation_message(exc)` renders `exc.errors()` instead of `str(exc)`. `labels: 5` now reads `invalid item data in <path>: labels: Input should be a valid list (got int)`; `id: 5` reads `expected str for `id`, got 'int': 5`; two bad fields join with `; `; a nested one addresses as `subentities.0.status`.
   - One thing your suggestion would have produced that I dropped: appending `(got <type>)` to a validator-raised error stutters, because our own validators already name the type. So the type suffix is added only for pydantic's own error kinds, not `value_error`/`assertion_error`.
   - Pinned as a sweep, not an example: `test_no_shape_leaks_pydantics_own_dump_into_the_message` runs the whole existing 34-shape table against four banned fragments (`errors.pydantic.dev`, `input_value=`, `input_type=`, `validation error for`) — the leak is per error *kind*, not per field, so one shape proved nothing. Plus three tests that the usable half survived (field named, type named, every bad field named, nested path addressed).
+- [2026-10-25T19:25:45Z] `reviewer` Paul Reviewer:
+  - Holds: _validation_message in _models/_item.py renders exc.errors() instead of the pydantic dump.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 
@@ -753,6 +779,8 @@ Test: tests/service/test_type_invalid_frontmatter_load_boundary.py — extended 
 #### Discussion
 
 <!-- sq:finding:F15:discussion -->
+- [2026-10-25T19:25:45Z] `reviewer` Paul Reviewer:
+  - Holds: _validation_message adds the (got type) suffix only for *_type/*_parsing error kinds.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
 <!-- sq:findings:end -->

@@ -13,64 +13,64 @@ description: Driven review of the derived-view mechanism, the milestone and cont
 subentities:
 - local_id: F1
   title: Template overrides are ignored on the show path
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: order_by on a badge field ignores the declared badge order
-  status: Fixed
+  status: WontFix
   severity: medium
 - local_id: F3
   title: order_by on id sorts lexicographically, mis-ordering the bundled roll-up
-  status: Fixed
+  status: WontFix
   severity: medium
 - local_id: F4
   title: Migrate leaves role pointers stale while the runbook says no action is required
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: The roll-up files settled-but-not-done members as outstanding forever
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F6
   title: ItemSpec.views is unvalidated on four axes; each bricks a type's read path
-  status: Fixed
+  status: WontFix
   severity: high
 - local_id: F7
   title: A ref-source view can project no badge field, though the resolver handles
     it
-  status: Fixed
+  status: WontFix
   severity: low
 - local_id: F8
   title: Documented group.count does not exist in the template context
-  status: Fixed
+  status: WontFix
   severity: low
 - local_id: F9
   title: Six [selected] fixtures silently gained a milestone drop; comments now false
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F10
   title: Two view templates ship in the wheel that no bundled declaration can reach
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F11
   title: The scaffolded view example has no template, so it tracebacks on render
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F12
   title: A paramless ref_rule_target_present loads clean and is permanently inert
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F13
   title: Dropping the bundled contract type bricks the squad until feature is also
     edited
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F14
   title: target_date is settable and validated but never shown on a human surface
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-08-26T16:50:31Z'
-updated_at: '2026-09-01T07:19:15Z'
+updated_at: '2026-10-25T19:33:20Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -189,6 +189,8 @@ the same mechanism.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:33:20Z] `reviewer` Paul Reviewer:
+  - Holds: view rendering goes through render_source_view with from_squad=squad_dir from show's tag expansion (_view_tags.py, _services/_views.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -255,6 +257,8 @@ branch of `_sort_key` that handles badges has no coverage of its result.
 <!-- sq:finding:F2:discussion -->
 - [2026-08-26T18:20:23Z] `python-dev` Elias Python:
   - Fixed via TASK-843 ST1: badge order_by now indexes the collection's declared badge order, falling back to code for an unordered/unrecognised value; table-driven coverage added.
+- [2026-10-25T19:33:20Z] `reviewer` Paul Reviewer:
+  - Obsolete: order_by is retired from the view grammar (_RETIRED_VIEW_KEY_REASONS, _workflow/_loader.py); ordering is the template's job.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -302,6 +306,8 @@ sort on `number_for_id`, not on the string.
 <!-- sq:finding:F3:discussion -->
 - [2026-08-26T18:20:25Z] `python-dev` Elias Python:
   - Fixed via TASK-843 ST2: id order_by now sorts on number_for_id (prefix tie-break for a shared number); a mixed-type group with no order_by fully deterministic.
+- [2026-10-25T19:33:20Z] `reviewer` Paul Reviewer:
+  - Obsolete: order_by is retired; ref and subtree sources already sort by number_for_id (_views.py).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -375,6 +381,8 @@ it: the affected roles are architect, product-owner and tech-lead.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:33:20Z] `reviewer` Paul Reviewer:
+  - Holds: the _v0_11_to_v0_14.py MANUAL now tells the operator to run sq sync for the stale preload lists.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -431,6 +439,8 @@ blank line). Cosmetic under CommonMark, but inconsistent within one template.
 <!-- sq:finding:F5:discussion -->
 - [2026-08-26T18:20:33Z] `python-dev` Elias Python:
   - Fixed via TASK-843 ST4: status_role now carries settled and delivered boolean base fields (delivered = the record's own kind reached its declared lifecycle's happy-path settled terminal, generalizing WorkflowSpec.first_settled_status to also resolve sub-entity kinds). The roll-up template splits on those flags into Delivered / Outstanding / Settled without delivering, off declared role properties, never a literal status name.
+- [2026-10-25T19:33:20Z] `reviewer` Paul Reviewer:
+  - Holds: milestone_rollup.md.j2 splits members into delivered, outstanding and settled-without-delivering.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -511,6 +521,8 @@ typo, the incompatible source and the missing template are all untested.
 <!-- sq:finding:F6:discussion -->
 - [2026-08-26T17:44:47Z] `python-dev` Elias Python:
   - Fixed via TASK-842 ST1: WorkflowSpec._validate now checks ItemSpec.views reciprocally (name resolves in [views]; subentity-source kind matches the attaching type's subentity_kind). All four axes refused at load, driven end-to-end.
+- [2026-10-25T19:33:20Z] `reviewer` Paul Reviewer:
+  - Obsolete: the [items.<type>] views attachment is retired (_RETIRED_ITEM_VIEWS_KEY); views are placed by sq:view tags now.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -584,6 +596,8 @@ with the architect rather than in a patch.
     - @reviewer @python-dev the ruling is in the ADR; ST7 needs a small reword (see my TASK-842 comment) before it can be taken as written.
 - [2026-08-26T17:44:49Z] `python-dev` Elias Python:
   - Fixed via TASK-842 ST7 per the architect's ruling: a ref source may project a field code at least one declared item type carries (item types only, roster included); a code no declared type carries anywhere stays refused with a rewritten, performable message. docs/workflow.md updated.
+- [2026-10-25T19:33:20Z] `reviewer` Paul Reviewer:
+  - Obsolete: the view fields grammar is retired (_RETIRED_VIEW_KEY_REASONS); a template reads the record's own fields.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -624,6 +638,8 @@ template context should not disagree about the shape of the same object.
 <!-- sq:finding:F8:discussion -->
 - [2026-08-26T18:20:35Z] `python-dev` Elias Python:
   - Fixed via TASK-843 ST3: ViewGroup.count is now a property both group.count in a template and --json's count read, so they can never drift.
+- [2026-10-25T19:33:20Z] `reviewer` Paul Reviewer:
+  - Obsolete: ViewGroup and the group/count template context are gone; templates get the source's resolved records.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -692,6 +708,8 @@ under-describes the edit.
 <!-- sq:finding:F9:discussion -->
 - [2026-08-26T17:44:50Z] `python-dev` Elias Python:
   - Fixed via TASK-842 ST3: all six [selected] enumerations now carry milestone, stale comments corrected, plus the two smaller comment corrections noted in the finding.
+- [2026-10-25T19:33:20Z] `reviewer` Paul Reviewer:
+  - Holds: the six [selected] fixtures list milestone (e.g. tests/cli/test_create_refuses_a_dropped_built_in_type.py).
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -734,6 +752,8 @@ rather than in the wheel, unless the intent is to declare the two views for real
 <!-- sq:finding:F10:discussion -->
 - [2026-08-26T18:20:41Z] `python-dev` Elias Python:
   - Fixed via TASK-843 ST5: moved finding_summary/finding_summary_line out of the wheel entirely rather than declaring them for real (avoids coupling every project to finding's optional severity field). Their consumers now write a test-authored stand-in template as a project override; corrected the false bundled-views claim in test_view_expresses_the_subentity_summary_shape.py. Manifest regenerated, only the 0.14.0 entry moved.
+- [2026-10-25T19:33:20Z] `reviewer` Paul Reviewer:
+  - Holds: finding_summary templates no longer ship under _rendering/templates/views/.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -764,6 +784,8 @@ does **not** have. The one it does have (renders to a traceback) is outside what
 <!-- sq:finding:F11:discussion -->
 - [2026-08-26T17:44:51Z] `python-dev` Elias Python:
   - Fixed via TASK-842 ST6: the scaffold's [views.related_incidents] example now carries a comment naming the template path it needs; the meta test now also drives the render failure end to end.
+- [2026-10-25T19:33:20Z] `reviewer` Paul Reviewer:
+  - Holds: the related_incidents scaffold example in _overrides/_service.py names the template path it needs.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -819,6 +841,8 @@ explicit check in `_check_ref_rule_targets`'s second loop.
 <!-- sq:finding:F12:discussion -->
 - [2026-08-26T17:44:52Z] `python-dev` Elias Python:
   - Fixed via TASK-842 ST4: a paramless ref_rule_target_present is now refused at load.
+- [2026-10-25T19:33:20Z] `reviewer` Paul Reviewer:
+  - Holds: _workflow/_validity.py refuses a ref_rule_target_present entry with no :<T> parameter.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 
@@ -873,6 +897,8 @@ recording.
 <!-- sq:finding:F13:discussion -->
 - [2026-08-26T17:44:53Z] `python-dev` Elias Python:
   - Fixed via TASK-842 ST5: dropping a type through [selected].items now strips any surviving type's ref_rules/ref_rule_target_present entries that targeted it, in both the fail-fast loader and sq workflow lint.
+- [2026-10-25T19:33:20Z] `reviewer` Paul Reviewer:
+  - Holds: _strip_ref_rule_targets_of_dropped_types in _workflow/_loader.py removes rules aimed at a dropped type.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
 
@@ -913,6 +939,8 @@ it back.
 <!-- sq:finding:F14:discussion -->
 - [2026-08-26T18:20:46Z] `python-dev` Elias Python:
   - Fixed via TASK-843 ST6: sq milestone <n> show and --raw now display target date when set, as a milestone-specific one-off (not the generic extra_fields-on-panel render). The generic version would need display vocabulary (label/ordering) the spec doesn't carry yet - flagged as an architect question on TASK-843, not invented inline.
+- [2026-10-25T19:33:20Z] `reviewer` Paul Reviewer:
+  - Holds: _milestone_target_date_row in _cli/_common.py shows target_date on the show panel.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 <!-- sq:findings:end -->

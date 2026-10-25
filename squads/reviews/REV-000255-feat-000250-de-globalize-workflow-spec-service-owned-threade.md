@@ -15,12 +15,12 @@ refs:
 subentities:
 - local_id: F1
   title: Parse-ordering test under-proves its docstring claim
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F2
   title: test_rendering._template_for is a hand-copy of ServiceCore._template_for
     (drift risk)
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: _meta_compat uses bundled_spec() inline rather than a threaded-in spec param
@@ -43,7 +43,7 @@ subentities:
   status: WontFix
   severity: low
 created_at: '2026-06-30T10:43:46Z'
-updated_at: '2026-06-30T11:51:39Z'
+updated_at: '2026-10-25T19:38:50Z'
 ---
 <!-- sq:body -->
 ## Verdict: APPROVE
@@ -102,6 +102,8 @@ tests/test_cli.py:1764 `test_spec_bound_before_parse_type_runs` documents that p
 <!-- sq:finding:F1:discussion -->
 - [2026-06-30T11:51:37Z] `manager` Catherine Manager:
   - Fixed: test now invokes 'list --type task --status InProgress' so parse_type/parse_status actually fire — exit 0 proves the spec was bound in the root callback before parse. Docstring corrected to match.
+- [2026-10-25T19:38:50Z] `reviewer` Paul Reviewer:
+  - Holds: tests/cli/test_spec_context_binding_order.py runs list --type task --status InProgress so both parsers fire.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -117,6 +119,8 @@ tests/test_rendering.py defines a module-local `_template_for` that hand-copies 
 <!-- sq:finding:F2:discussion -->
 - [2026-06-30T11:51:38Z] `manager` Catherine Manager:
   - Fixed: hand-copied _template_for removed; test now calls the real bundled_spec().item_is_meta(), single source of truth, no suppression.
+- [2026-10-25T19:38:50Z] `reviewer` Paul Reviewer:
+  - Holds: no test hand-copies _template_for any more.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 

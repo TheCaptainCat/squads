@@ -21,7 +21,7 @@ subentities:
   severity: medium
 - local_id: F2
   title: 'open_service: vestigial F5 comment block + redundant SquadsError re-wrap'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: Two new reportPrivateUsage suppressions on _common._active_dir
@@ -30,7 +30,7 @@ subentities:
 - local_id: F4
   title: 'docs/workflow.md: lint sample shows a line number never emitted + wrong
     hard-stop message'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: No e2e test for override-type round-trip; is_open now returns True on unknown
@@ -38,7 +38,7 @@ subentities:
   status: WontFix
   severity: low
 created_at: '2026-06-30T09:11:44Z'
-updated_at: '2026-07-06T15:18:42Z'
+updated_at: '2026-10-25T19:38:49Z'
 ---
 <!-- sq:body -->
 Independent review of FEAT-209 Wave 2-4 (I did not write this code). Scope: TASK-242 (sq workflow lint), TASK-243 (sq check integration + AC#5 fail-closed wiring), TASK-244 (workflow as the 3rd sq override artifact), TASK-245 (docs/workflow.md). Builds on REV-246 (Wave-1 engine core, Approved). Gates re-run: pyright 0/0, ruff check clean, ruff format clean, targeted pytest green (see verdict comment). Verdict: APPROVE — no blocking defects in the Wave 2-4 deliverables. The one cross-feature caveat (custom-type create CLI is FEAT-210 scope, AC#1 only half-met here) is a feature-signoff note for the manager, not a defect in this code.
@@ -97,6 +97,8 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:finding:F2:discussion -->
 - [2026-06-30T11:44:26Z] `manager` Catherine Manager:
   - Fixed: vestigial F5 comment block and the no-op try/except re-wrap around validate_against_index_fail_closed removed from open_service.
+- [2026-10-25T19:38:49Z] `reviewer` Paul Reviewer:
+  - Holds: open_service carries no F5 comment block and no re-wrap around validate_against_index_fail_closed (_services/_service.py).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -145,6 +147,8 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:finding:F4:discussion -->
 - [2026-06-30T11:44:27Z] `manager` Catherine Manager:
   - Fixed: docs/workflow.md lint sample output corrected to real linter output (TASK-245 doc-fix pass).
+- [2026-10-25T19:38:49Z] `reviewer` Paul Reviewer:
+  - Holds: docs/workflow.md shows no line-numbered lint location, and its hard-stop section names the lint pointer only.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 

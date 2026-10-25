@@ -16,7 +16,7 @@ refs:
 description: How comments are addressed by a derived short hash, edited and removed
   by their author only
 created_at: '2026-10-15T19:31:21Z'
-updated_at: '2026-10-17T02:01:33Z'
+updated_at: '2026-10-25T21:42:35Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -62,9 +62,8 @@ an author writes can sit at column 0. `split_discussion` parses a region into `C
 and any text before the first header is dropped from the parse (driven, a direct call on a region
 with a stray preamble line).
 
-ADR-979 replaces the header with ``- [<ts>] `<slug>` <name>:`` and one shared column-0 pattern.
-FEAT-980 builds that, and it is not built yet: the tree still carries the legacy
-`- [<ts>] <name>:` pattern (read). Timestamps are whole seconds: `clock.now()` drops
+ADR-979 sets the header to ``- [<ts>] `<slug>` <name>:`` with one shared column-0 pattern,
+replacing the legacy `- [<ts>] <name>:`. Timestamps are whole seconds: `clock.now()` drops
 microseconds, and `clock.iso` writes `YYYY-MM-DDTHH:MM:SSZ` (read, `_clock.py`).
 
 **No duplicate exists in this corpus** (driven). A scan of every discussion header in this squad
@@ -85,7 +84,7 @@ lock, and appends through `sections.append_to_section`. The reflog line is `op: 
 `delta: {"author": <slug>}`, with no content (read, `.reflog.jsonl` tail). The reflog is
 gitignored and advisory (read, `.gitignore`, `docs/stability.md`).
 
-**Verbs today** (driven, `--help` on a task and on a subtask).
+**The verbs this extends** (driven, `--help` on a task and on a subtask, when this was decided).
 
 - The item level has `comment` (`-m` repeatable, or `--file`, mutually exclusive, from TASK-826)
   and `comments` (read-back, `--json`, from TASK-625).
@@ -172,10 +171,16 @@ A comment with no bullet lines has the empty string as its text.
 **Roster entities** are items with a sequence number and one discussion. Their scope is always the
 empty string.
 
-**Legacy headers.** The hash needs the slug, and a header written before FEAT-980 has only a
-display name. ADR-979 §4 rules out a dual-read parser, so FEAT-980 must come first, which is
-already the build order. The schema gate keeps a 0.16 build off a 0.15 squad until the migration
-runs (read, ADR-979 §4). §8 covers a stray legacy line.
+**Legacy headers.** The hash needs the slug, and a legacy header has only a display name.
+ADR-979 §4 rules out a dual-read parser: the 0.16 migration rewrites every legacy header once,
+and the schema gate keeps a current build off a 0.15 squad until it runs. §8 covers a stray
+legacy line.
+
+**One line rule.** The CR/LF normalisation above, and every split of discussion text into lines,
+use `sections.split_lines`, which breaks at CR, LF and CRLF only, never at U+2028, form feed, VT
+or NEL (which `str.splitlines` also breaks at). It is the one rule for the discussion layer,
+`region_lines`, the search and inbox region scan and the header migration, so a separator inside a
+line never makes a header of the text after it.
 
 ### 2. Scope, short form, prefixes and stale hashes
 
@@ -345,6 +350,8 @@ say that. The help text is a deliverable, under the help-surface rules of REV-95
   - [2026-10-15T10:00:00Z, edited 2026-10-15T11:20:05Z] `architect` Robert Architect:
   ```
 
+  - A second edit replaces the mark, never stacks it: an edit re-renders the header through
+    `format_comment` with the original timestamp, slug and name and one fresh `edited <ts>`.
   - The new hash does not replace the mark. A hash changes, but a reader cannot tell from it that
     an edit happened, or when.
   - The mark cannot be derived from the `.md` file, and the reflog is local and gitignored.
@@ -429,7 +436,9 @@ A 0.16 build meets a slug-less header only after a hand edit or a merge from a 0
 - The match is on the slug, never the name (ADR-979 §3).
 - System entries (`squads`) cannot be matched by any `--as`, so they are immutable.
 - A retired author's comments are frozen until that author is reactivated, because a write takes
-  only a live slug.
+  only a live slug. The author match and the freeze are enforced in the service
+  (`edit_comment`, `remove_comment`), so a caller other than the CLI cannot edit or remove a
+  retired author's comment. The anonymous `operator` slug passes; an unknown slug is refused.
 - `--as operator` matches the legacy anonymous comments.
 - The slug reuse after `rm --purge` that ADR-979 accepted extends to editing.
 - `--as` is unauthenticated. The match stops mistakes but does not control access, and the docs
@@ -437,12 +446,13 @@ A 0.16 build meets a slug-less header only after a hand edit or a merge from a 0
 
 ### 10. Reflog
 
-- Two new ops join the closed `REFLOG_OPS` vocabulary: `comment_edit` and `comment_remove`.
-- Each delta holds one entry per comment touched:
-  `{"author": <slug>, "hash": <full, before>, "region": <tag>, "ts": <ts>, "before": <body>}`.
-  - `comment_edit` adds `"after_hash"`.
+- The closed `REFLOG_OPS` vocabulary holds `comment_edit` and `comment_remove`.
+- The delta is `{"comments": [entry, ...]}`, one entry per member of the group touched:
+  `{"author": <slug>, "hash": <full, before>, "region": <tag>, "ts": <ts>, "before": <body>}`,
+  with `region` the discussion marker tag.
+  - Each entry of a `comment_edit` adds `"after_hash"`.
   - `before` follows ADR-114's gone-item snapshot.
-- `docs/stability.md`'s op table gains both rows. The field set is unchanged.
+- Both ops are rows of the op tables in `docs/stability.md` and `docs/workflow.md`.
 
 ### 11. Mentions, inbox, search, JSON and renders
 
@@ -477,12 +487,12 @@ A 0.16 build meets a slug-less header only after a hand edit or a merge from a 0
     edit-mark group, `format_comment`, the line-span splice, and the legacy-line check.
   - `_services/_collab.py`: the duplicate check in `_comment_core`, plus the edit and remove
     cores.
-  - `_cli/_items.py` (item level and `_register_sub_verbs`) and the roster `_addr` groups: `comment` becomes the group of §3, with `show`, `edit` and `remove`.
+  - `_cli/_items.py` (item level and `_register_sub_verbs`) and the roster `_addr` groups:
+    `comment` is the group of §3, with `show`, `edit` and `remove`.
   - `_index/_reflog.py`: the two ops.
   - The JSON builders and the renders.
-- **Schema.** `hash` is derived. The header grammar gains one optional part, the edit mark,
-  alongside ADR-979's grammar in 0.16. Nothing is migrated, and the 0.16 migration step is
-  untouched.
+- **Schema.** `hash` is derived. The header grammar has one optional part, the edit mark, beside
+  ADR-979's grammar. Nothing is migrated for it, and the header migration writes no edit mark.
 - **Tests.**
   - **Canonicalisation, table-driven:**
     - CRLF against LF;
@@ -524,77 +534,22 @@ A 0.16 build meets a slug-less header only after a hand edit or a merge from a 0
     - a `squads` entry;
     - a legacy-shaped line;
     - a marker in the new text.
-- **Bundled guidance.** The comment lines in these files gain `comment <hash> show|edit|remove` and the "read again
-  after a refusal" rule:
-  - `workflow.md.j2`;
-  - `views/squads_skill.md.j2`;
-  - `claude/claude_section.md.j2`;
-  - `agents_md/agents_section.md.j2`;
-  - `agents/operator.md.j2`;
-  - `views/role_definition.md.j2`;
-  - `_specs/playbook.toml`.
-
-  (Read, from a grep for comment examples.) These are bundled files, so this work comes after the
-  0.16.0 bump.
-- **Docs** (tech writer):
-  - `docs/stability.md`: the extended Tier 1 header, the Tier 3 `hash` and `edited_ts`, the hash
-    definition, and the two reflog ops;
-  - `docs/internals.md`: the comment-format line, around line 288;
-  - the README command list, around line 299;
-  - `docs/recipes.md`: inbox hits carry a hash.
+- **Bundled guidance.** The comment guidance in the bundled templates and the playbook names
+  `comment <hash> show|edit|remove` and the "read again after a refusal" rule.
+- **Docs.** `docs/stability.md` carries the extended Tier 1 header, the Tier 3 `hash` and
+  `edited_ts`, the hash definition, and the two reflog ops.
 - **Out of scope:**
   - per-bullet addressing;
   - import events that edit or remove;
   - access control beyond the author match.
 
-## The append-only statement: dated notes owed
+## The discussion is not append-only
 
-The discussion stops being append-only. What those lines rely on still holds: a dated comment
-records state at a point in time, only its author can change it, and it keeps its timestamp. The
-wording does not.
-
-- **CLAUDE.md line 160** (Conventions, "No status/lifecycle prose in bodies") says "the discussion
-  is an append-only history". The line is hand-authored, so it is reworded in place: the
-  discussion is a timestamped history that only each comment's author can correct.
-- **CLAUDE.md line 340** (the managed region, orchestration loop step 5) says "the discussion is
-  an append-only log".
-  - It is changed in `templates/claude/claude_section.md.j2` line 116, and the managed-section
-    golden is regenerated. The rendered file is never edited.
-  - `agents_md/agents_section.md.j2` has no such line (driven, grep).
-- **ADR-979** gets dated notes in two places:
-  - the first sentence of its Context: "Discussion comments are append-only history: there is no
-    verb that edits or deletes one";
-  - §2, for the optional edit mark.
-- **ADR-981 §1**, the "No denormalisation" bullet: "Discussion text is append-only history". It
-  gets a dated note: the conclusion stands, because an edit keeps the name snapshot and never
-  writes a pronoun into a header.
-- ADR-114, ADR-117, ADR-295, ADR-314 and ADR-663 use "append-only" of the reflog or the board, not
-  of discussions, and are unaffected (read). ADR-263's use sits in a discussion comment, which is
-  exempt.
-
-## Build order
-
-The 0.16 main stream as of 2026-10-15:
-
-1. TASK-954
-2. ADR-1009
-3. FEAT-980
-4. the 0.16.0 bump
-5. the ADR-1007 flattening
-6. TASK-989
-7. TASK-990
-8. FEAT-976
-9. FEAT-977
-10. FEAT-961 and FEAT-966
-
-This work goes **after FEAT-977 and before FEAT-961**:
-
-- it needs FEAT-980's slug header, because the hash takes the slug;
-- it changes bundled guidance, so it comes after the bump;
-- FEAT-977 creates the roster comment verbs it extends.
-
-It adds nothing to FEAT-980 and touches neither the schema nor the migration runner. It has no
-feature or task yet.
+A comment can be edited and removed. What earlier rules built on append-only history relied on
+still holds: a dated comment records state at a point in time, only its author can change it, and
+it keeps its timestamp. The project guidance therefore calls the discussion a timestamped history
+that only each comment's author can correct. ADR-114, ADR-117, ADR-295, ADR-314 and ADR-663 use
+"append-only" of the reflog or the board, not of discussions.
 
 ## Alternatives
 
@@ -735,4 +690,6 @@ feature or task yet.
     - **The retired-author freeze lives in the service.** §9 states the author match and the freeze as one rule; both are enforced in `Service.edit_comment` and `remove_comment` (the live-author check next to the slug match), so a caller other than the CLI cannot edit or remove a retired author's comment (REV-1088 F6). The anonymous `operator` slug passes it; an unknown slug is refused.
     - **The edit mark is replaced, not stacked.** §4's "a second edit replaces it" holds as built: an edit re-renders the header through `format_comment` with the original timestamp, slug and name and one fresh `edited <ts>`, whatever mark was there before.
     - No migration step changed except the line rule above; the header migration writes no edit mark.
+- [2026-10-25T21:42:34Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale passages fixed; decision unchanged. Folded my 2026-10-17 comment (split_lines rule, reflog delta container, service-side author freeze, edit mark replaced); removed the not-built-yet context, the build order and the dated-notes-owed section.
 <!-- sq:discussion:end -->

@@ -63,8 +63,9 @@ subentities:
   severity: low
 - local_id: F13
   title: 'Improvements: duplication, dead parameter, docs, attribution'
-  status: Open
+  status: Deferred
   severity: info
+  deferred_to: TASK-1146
 - local_id: F14
   title: Delta compares whole findings, so a shrinking violation reads as new
   status: Verified
@@ -91,19 +92,21 @@ subentities:
   severity: info
 - local_id: F20
   title: Validator docstring records the rationale the ADR withdrew
-  status: Open
+  status: Deferred
   severity: low
+  deferred_to: TASK-717
 - local_id: F21
   title: This repo's own squads skill still says eight ref kinds
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F22
   title: 'Simplification: the stored scoped-edge remedy is the exception, not the
     rule'
-  status: Open
+  status: Deferred
   severity: info
+  deferred_to: TASK-717
 created_at: '2026-07-31T08:59:33Z'
-updated_at: '2026-07-31T13:21:45Z'
+updated_at: '2026-10-25T20:15:05Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -857,6 +860,12 @@ deliberately rather than inheriting, given `--unlink` mutates entities the opera
   - TASK-717 carries I2 only in intent — checked the code first and the callerless with_remedy parameter is already gone, so nothing is left to do there and the task does not include it. I2 needs no fix-task; Paul's note above is confirmed against src.
   - F13 stays Open on I3 and I5, neither of which TASK-717 touches. I3 has a ruling on ADR-697 (identical condition text for gate and reporter, so the fix is to the shared text, never a per-caller fork) plus dropping the C1-C3 and tier labels from user-facing output; I5 is the --unlink severance reflogging as actor=system, which the architect flagged as worth deciding rather than inheriting. Both want a decision before an implementation, which is why they are not folded into a docstring-and-remedy cleanup.
   - I1 and I4 are recorded fixed above (the shared _project_roster_item helper; skill status plus the workflow.md diagram row) — no open work there.
+- [2026-10-25T19:39:37Z] `reviewer` Paul Reviewer:
+  - I1, I2 and I4 hold in src and docs; I3 (status twice in gate text) and I5 (--unlink logs actor=system, no --as on roster status) still need a decision; kept as a note.
+- [2026-10-25T19:58:51Z] `tech-lead` Olivia Lead:
+  - Deferred to TASK-1146: ST3 carries I3 under the ADR-697 shared-text ruling. I5 (--unlink logs actor=system) is a question for the architect on ADR-697; a yes becomes a subtask on TASK-1146.
+- [2026-10-25T20:14:45Z, edited 2026-10-25T20:15:05Z] `tech-lead` Olivia Lead:
+  - I5 is now carried by TASK-1146 ST7 (optional `--as` on status, `--unlink` included, and the other mutating verbs, per ADR-117 §3). I3 stays on ST3. Both parts of the deferral now have a subtask.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
 
@@ -1319,6 +1328,8 @@ sentence entirely rather than qualifying it.
 #### Discussion
 
 <!-- sq:finding:F20:discussion -->
+- [2026-10-25T19:39:37Z] `reviewer` Paul Reviewer:
+  - Still true in _services/_validators.py; TASK-717 section 1 carries the docstring correction.
 <!-- sq:finding:F20:discussion:end -->
 <!-- sq:finding:F20:end -->
 
@@ -1380,6 +1391,8 @@ this batch touched.
 #### Discussion
 
 <!-- sq:finding:F21:discussion -->
+- [2026-10-25T19:39:37Z] `reviewer` Paul Reviewer:
+  - Holds: this repo's squads skill (sq skill squads show) lists the scopes kind and states no stale count.
 <!-- sq:finding:F21:discussion:end -->
 <!-- sq:finding:F21:end -->
 
@@ -1445,6 +1458,8 @@ violation on another skill during a `--unlink` retirement — and it held in all
 #### Discussion
 
 <!-- sq:finding:F22:discussion -->
+- [2026-10-25T19:39:37Z] `reviewer` Paul Reviewer:
+  - Still true: render_finding swaps in _SCOPED_EDGE_NO_UNLINK_REMEDY (_services/_config_integrity.py); TASK-717 carries the fix.
 <!-- sq:finding:F22:discussion:end -->
 <!-- sq:finding:F22:end -->
 <!-- sq:findings:end -->

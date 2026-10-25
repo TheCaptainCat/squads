@@ -458,7 +458,7 @@ class ItemsMixin(ServiceCore):
         await self._update_item_frontmatter(
             item,
             base,
-            rescaffold=self.spec.item_is_roster(item.type),
+            rescaffold=True,
         )
         self.store.log("update", item.id, delta)
         return item

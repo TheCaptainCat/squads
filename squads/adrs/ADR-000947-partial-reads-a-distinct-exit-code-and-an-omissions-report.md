@@ -13,7 +13,7 @@ refs:
 description: A usable-but-short --json result exits its own code 4 and names what
   it omitted in one JSON line on stderr; payload shapes unchanged.
 created_at: '2026-09-14T14:08:49Z'
-updated_at: '2026-09-15T07:55:07Z'
+updated_at: '2026-10-25T21:42:23Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -69,8 +69,8 @@ A **partial result** is what a command produces when its payload is valid and in
 but entries are missing because the corpus could not be fully read.
 
 The membership test is objective: *does the command emit a result payload that a caller is meant to
-consume, and can that payload come back short?* Today that is `sq inbox`, `sq search`,
-`sq board list`, `sq memory <role> list`, `sq memory <role> search`, and it binds every listing
+consume, and can that payload come back short?* The class holds `sq inbox`, `sq search`,
+`sq board list`, `sq memory <role> list` and `sq memory <role> search`, and it binds every listing
 added later with the same property — this is a contract for the class, not a patch for two members.
 
 Outside the class, and staying as they are:
@@ -93,7 +93,7 @@ valid payload in its documented shape, and entries are missing.**
   indefensible; human mode returns `4` on the same condition.
 - Consumer rule, and the reason for a new code rather than a reused one: `4` is the one bit that
   says *stdout is worth parsing*, available to a shell with nothing to parse. Every existing
-  consumer that branches `0/1/2/3` and treats anything else as an error degrades to today's
+  consumer that branches `0/1/2/3` and treats anything else as an error degrades to the
   conservative behaviour — loudly, never with a wrong answer. ADR-427 §2's mapping rule needs a
   new row, not an exception.
 
@@ -112,14 +112,12 @@ object:
   "`omitted` is non-empty", and the exit code already carries that bit for callers that cannot
   parse.
 - **`code`** — the machine class of the omission. `unreadable` is the only value the bundled
-  producers emit today. The set is open and grows additively, and the binding rule is what keeps it
+  producers emit. The set is open and grows additively, and the binding rule is what keeps it
   growable: *a consumer that does not recognise a code still treats the entry as "part of the
   result is missing"*. Nothing branches on the value to decide whether the result is partial.
 - **`source`** — the thing that could not be read, as squads identifies it: an item ID where one is
   known, otherwise a squad-relative path. It is a display token; a consumer must not parse it.
-  Producers must supply it **separately** from `message` rather than embedding it in the sentence,
-  which is a change from today (`_memory/_store.py` and `_board/_store.py` both hand back a single
-  pre-composed string).
+  Producers supply it **separately** from `message` rather than embedding it in the sentence.
 - **`message`** — the human sentence, the same text human mode prints.
 - Every key is present on every entry, `null` for absent, matching the convention the workflow
   catalogs already set.
@@ -129,13 +127,13 @@ object:
 - It never goes to stdout. `print_json_clean` stays the only stdout writer, and stdout stays exactly
   one JSON document.
 - Consumer rule: **the one line of stderr that parses as a JSON object is the report.** Stderr has
-  other, prose-only tenants under `--json` — notably the `sq sync` version notice
-  (`_cli/_common.py::version_notice`) — so "stderr is JSON" would be false; "at most one line of
+  other, prose-only tenants under `--json` — for example the working-language notice
+  (`_cli/_common.py::working_language_notice`) — so "stderr is JSON" would be false; "at most one line of
   stderr is JSON" is true and testable.
 
 ### 4. Stderr stays the report channel; its form follows the output mode
 
-Human mode keeps today's `error: <message>` prose, one line per omission. `--json` mode emits the
+Human mode prints `error: <message>` prose, one line per omission. `--json` mode emits the
 report object **instead of** the prose, not alongside it — the same fact twice on the same stream
 is duplication with two things to keep in agreement. A person who wants sentences drops `--json`.
 
@@ -207,13 +205,6 @@ the flag exists is precisely today's extension.
   not the redundancy the house rule forbids: the code is the only form reachable without parsing,
   and it is the only form that exists in human mode. Neither can be derived from the other by the
   consumer that needs it.
-
-## Follow-on work
-
-The producing half (the code, the report, the `source`/`message` split in the memory and board
-stores, and the same treatment for `inbox`/`search`) is TASK-944; the consuming half in the
-extension is TASK-945; the `docs/stability.md`, `docs/faq.md`, changelog and README pass is
-TASK-946.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -223,4 +214,6 @@ TASK-946.
   - Accepted. The partial-read contract stands as ruled: exit code 4 for a usable-but-short result,
     the omissions report on stderr under --json, payload shapes untouched. The memory commands moving
     from 0 to 4 is the intended fix, not a regression to soften.
+- [2026-10-25T21:42:23Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale passages fixed; decision unchanged. version_notice (removed by ADR-1119) replaced by the working-language notice as the stderr co-tenant example; "today" phrasing and the Follow-on work section removed.
 <!-- sq:discussion:end -->

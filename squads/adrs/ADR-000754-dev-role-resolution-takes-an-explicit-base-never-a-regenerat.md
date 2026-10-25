@@ -13,277 +13,140 @@ refs:
 - ADR-971
 - ADR-984
 - ADR-1007
+- ADR-1151
+- ADR-766
+- ADR-777
 description: Dev-role overrides merge onto a base supplied by the caller, built from
   the live role's stored identity
 created_at: '2026-08-21T12:47:51Z'
-updated_at: '2026-10-15T20:16:55Z'
+updated_at: '2026-10-25T21:49:49Z'
 ---
 <!-- sq:body -->
 ## Context
 
-A `.overrides/roles/<slug>.toml` merges field-wise over a base: bundled slug, merge over the
-catalog entry; unknown slug, no base, so every required field must be present
-(`_roles/_resolver.py:169-193`, `:120-133`). A developer role has a third shape — its base is
-*generated*, not catalogued — and `resolve_dev_role` is the only function that knows this
-(`_roles/_resolver.py:196-225`). Every other consumer calls `resolve_role`, which treats a
-`<tech>-dev` slug as an unknown slug with no base.
+A `.overrides/roles/<slug>.toml` merges field-wise over a base. For a bundled slug the base is
+the catalog entry; for an unknown slug there is no base, so every required field must be present.
+A developer role is a third shape: its base is *generated* from the `[dev]` template, not
+catalogued, and a resolver that knows only the slug treats a `<tech>-dev` slug as an unknown slug
+with no base, refusing a partial override the docs invite (`sq sync`, `sq role <slug> show` and
+`sq check` alike).
 
-Driven on a fresh squad (`sq init --default-names`, `sq dev add --tech python`, then a
-`python-dev.toml` whose only line sets `title`): `sq role python-dev show` exits 1,
-`sq sync` exits 1, both with `role override for new slug 'python-dev' is missing required
-fields: full_name, description, mission`. `sq check` exits 3 reporting the same load failure.
-The file is valid — `sq dev add` honours exactly this shape — and the docs promise it
-(`docs/overrides.md:78` lists `python-dev.toml`; `docs/overrides.md:126-135` promises
-field-wise merge for any `roles/<slug>.toml`).
+Two facts make widening a slug-only resolver wrong.
 
-Two things make this not a widening of `resolve_role`.
+**The generated base is not a function of the slug.** The developer pool synthesises a name from a
+pool position that is the *count of existing developer roles at creation time*, derived, consumed
+and never stored. The pool is a name **generator**, correct exactly once, at creation; calling it
+again for a role that exists is a fresh roll of a lossy derivation (a squad whose second developer
+is `Ada Typescript` would get `Elias Typescript` back).
 
-**The generated base is not a function of the slug.** `dev_role(tech, name=None, seq=0)`
-synthesises `DEV_NAME_POOL[seq % len(pool)] + " " + Tech`
-(`_roles/_catalog.py:151-183`), and `seq` is the *count of existing dev roles at creation
-time* (`_services/_roster.py:73`) — derived, consumed, and never stored. Driven: a squad whose
-second developer is `Ada Typescript` (pool index 1) gets `Elias Typescript` from
-`dev_role("typescript")` with the default `seq=0`. `dev_role` is a name **generator**,
-correct exactly once, at creation; calling it again for a role that already exists is a fresh
-roll of a lossy derivation.
-
-**That regenerated name would be persisted.** `_refresh_catalog_extra`
-(`_services/_maintenance.py:585-646`) merges `resolve_role(...).to_extra()` onto the live item
-and mirrors it into the index in the same transaction, and `to_extra()` includes `full_name`
-(`_roles/_catalog.py:42-56`). So a naive widening does not merely display a wrong name, it
-writes one to frontmatter and index.
-
-The same function carries a second defect. Its docstring says developer roles are skipped, and
-it implements that by catching `RoleNotFoundError` — which `resolve_role` raises only when
-**no** override file exists. A partial `<tech>-dev.toml` makes `resolve_role` raise a plain
-`SquadsError` instead, which nothing catches, so the documented skip is not a skip at all: it
-is a path that happens to be unreachable until an adopter writes the file the docs invite.
+**That regenerated name would be persisted.** The sync writer that reconciles a role item with its
+resolved definition mirrors what it resolves into frontmatter and index in one transaction, so a
+regenerated base does not merely display a wrong name, it writes one.
 
 ## Decision
 
-**1. Resolution takes the dev base as an explicit input. It never derives one from a slug.**
+**1. Resolution takes the base as an explicit input. It never derives one from a slug.**
 
-`resolve_role(slug, squad_dir)` is unchanged — same signature, same behaviour, same bundled
-and new-slug paths. Alongside it, one entry point that accepts the base:
+`resolve_role(slug, squad_dir, *, catalog)` is the `base=None` case of one entry point that
+accepts the base:
 
-    resolve_role_with_base(slug, squad_dir, *, base: RoleDef | None) -> RoleDef
+    resolve_role_with_base(slug, squad_dir, *, base, catalog, pinned_name=None) -> RoleDef
 
-`base=None` is exactly today's `resolve_role`. A supplied `base` is used as the merge base
-whenever `slug` is not in `PREDEFINED`, which is precisely the case that has no base today.
-Nothing infers a dev base inside the resolver, because the resolver does not hold the
+`base=None` falls back to the slug's catalog entry, or no base. A supplied base always wins over
+the catalog entry, for a bundled slug as for a developer one, and the per-slug file merges over
+it. Nothing infers a developer base inside the resolver, because the resolver does not hold the
 information a correct one needs.
 
-**2. Two base builders, because there are two different questions.**
+**2. The base is built from the live item, and only from stored facts.**
 
-- `dev_base_from_item(item)` — for a role that exists. Reads the item's own stored facts:
-  `dev_role(item.extra[X.TECH], name=item.extra[X.FULL_NAME], model=item.extra[X.MODEL])`.
-  The live name is passed in, so it is inherited rather than regenerated, and `seq` is never
-  consulted. `X.IS_DEV`/`X.TECH` are outside `RoleDef.to_extra()`, so no merge can erase the
-  marker this branch reads.
-- `dev_base_for_slug(slug)` — for a `<tech>-dev` file with no roster entry. Falls back to the
-  generated pool name, which is safe here for the reason it is unsafe above: there is no live
-  identity to overwrite, and the caller only asks whether the document loads.
+`role_base_from_item(item, catalog)` is the one seam every consumer that resolves against a live
+role item (the sync writer, `sq role <slug> show`, `sq check`, and `resolve_role_for_item` behind
+the roster projection and the backends) builds its base through:
 
-The precedence is a stored fact first, a naming convention only where no stored fact exists:
-`extra.is_dev` when an item is in hand, and `_interactions.is_dev_slug` (the existing
-`slug.endswith("-dev")` predicate, `_interactions/__init__.py:181-182`) only when none is.
+- **A developer role** (a templated role, one whose item stores `tech`): `dev_base_from_item`
+  builds the `[dev]` template base from the item's own stored facts: `tech`, its name (`title`),
+  `model`, its default designation, and its `slug` (ADR-971: the stored slug is identity; the
+  `<tech>-dev` derivation runs only when a developer is created). The pool position is never
+  consulted.
+- **A bundled role**: the slug's current catalog entry (the bundled catalog with any
+  `.overrides/roles.toml` merged in), with the stored default designation.
+- **Anything else**: no base.
 
-> **Note 2026-10-15 (ADR-1007):** the item's stored facts are top-level keys, not `extra` entries.
-> `dev_base_from_item` reads `slug` (core), and the declared role attributes `tech` and `model`
-> through the item's attribute accessor; the role's name is its `title` (ADR-766), since `full_name`
-> is stored on no item. The same reading applies to A2's tier 2, A3's report, and the `extra.*`
-> names in the two narrowings below. See ADR-1007 decisions 2, 3 and 8.
+The precedence is a stored fact, never a naming convention: whether a role is a developer is read
+from the stored `tech` attribute (ADR-984), not from a `-dev` suffix, and a slug that names no
+roster item has no item to build a base from.
 
-**3. What a partial dev override may and may not change.**
+**The item is authoritative for exactly those fields an operator can set on it, and for no
+others.** `sq role activate` sets a name; `sq dev add` sets a name and a model and carries a tech.
+Every other field (title, mission, responsibilities, agreements, colour, spawn authority,
+capabilities) comes from the current catalog or template on every call, which is how a new
+definition field reaches items created before it existed.
 
-Absent fields inherit the live role's current values, so a file that sets only `title`
-changes only the title. A file that *declares* `full_name` renames the role, because that is
-what a declaration means and it is exactly what a bundled-slug override already does — but a
-name the adopter never wrote is never invented. The distinction is between a name declared
-and a name regenerated, and only the second is forbidden.
+**3. A role's name is pinned; a partial override changes only what it declares.**
 
-This replaces `resolve_dev_role`'s current rule that an explicit `name` argument suppresses
-the file's `full_name`. That rule is right where `name` is an *assignment* (`sq dev add
---name` is more specific than a file) and wrong where `name` is the role's *existing
-identity* (a file that says `full_name` should win over a value it is overriding). The two
-uses must be distinguishable at the call site rather than share one parameter.
+The role's name is stored at creation and pinned over every layer (`pinned_name`, read from the
+item's `title`, ADR-766): a `full_name` in an override, the catalog or the pool names a role only
+when it is created, and a rename goes through the role's update verb (ADR-777 §3). Every other
+absent field inherits the live role's resolved value, so a file that sets only `title` changes
+only the title.
 
-**4. The three consumers.**
+**4. An override for a slug with no role is a new role.**
 
-- **`sq sync`** (`_refresh_catalog_extra`) branches on `item.extra.get(X.IS_DEV)` and passes
-  `dev_base_from_item(item)`. The `RoleNotFoundError` catch narrows to the case it is honest
-  about: a slug with neither a catalog entry nor an override, i.e. an orphaned custom role
-  item. With no override file present the merged definition equals the base equals the item's
-  own values, so the diff loop finds nothing and returns `None` — **the skip becomes a no-op
-  rather than an exception catch**, and "no file" and "a file that changes nothing" reach the
-  same answer by the same path.
-- **`sq role <slug> show`** passes `dev_base_from_item(it)` when the item exists
-  (`_cli/_role.py:227-229` already resolves it) and `dev_base_for_slug(slug)` when it does
-  not.
-- **`sq check`** (`check_override_issues`, `_overrides/_service.py:996-1010`) passes
-  `dev_base_for_slug(slug)` for a dev-shaped slug with no roster entry, and
-  `dev_base_from_item` when there is one. Its report for the partial-dev shape must be
-  retired in the same change that makes the shape load; leaving it would flag a file that
-  now works.
+An override for a developer slug not on the roster has no base and is resolved like any other
+unknown slug: it must carry every required field (`full_name`, `description`, `mission`), or
+`sq check` reports a role override that does not load and `sq role <slug> show` refuses it. No pool
+name is ever previewed for a developer that has not been added, because the pool pick depends on
+how many developers exist when it is added (op-pierre, 2026-10-25). The supported order is
+`sq dev add --tech <tech>` first (it takes `--name`, `--model`, `--slug`, `--pronouns`), then a
+per-slug file only to customise beyond those flags; or a complete override written first, from
+which `sq dev add --tech <tech>` then builds the developer. Whether a per-slug file may precede its
+role at all is ADR-1151's subject.
 
-**5. The skew-guard exemption set does not change, but its stated reason does.**
+**5. `[init.names]` is outside the resolution order.**
 
-`_itemfile._exempt_extra_keys` grants a dev role only `{X.SKILLS}`, reasoning that "a dev role
-never goes through `_refresh_catalog_extra`" (`_itemfile.py:92-133`). The premise becomes
-false. The conclusion stays correct and must stay: `_refresh_catalog_extra` writes markdown
-first and mirrors into the index inside one transaction, so no permanent index lag is
-introduced for dev roles and nothing needs exempting. Widening the set for dev roles would
-reopen the exact loss class that comment names — an interrupted `--set model=haiku` on a dev
-role, followed by an edit through another seam, silently overwritten by a stale index value.
-Correct the comment; do not touch the set.
+`sq init` records the chosen names in `.squads.toml` under `[init.names]`; its only reader is
+`sq init` re-run over an existing config. It is the **input that produced** the item's stored
+name, never consulted at resolve time: reading it would consult a stale copy of something whose
+result already exists, and it is empty for a name set by `sq role activate --name`. The name order
+for any role is therefore the stored name for an existing role, and the creation inputs (`--name`,
+the catalog, the per-slug file, the developer pool) only when the role is created. There is no
+automatic heal from `[init.names]`, which would make an init input retroactively authoritative over
+a deliberately changed name.
+
+**6. The skew-guard exemption follows the writer, not the role kind's history.**
+
+`_itemfile._exempt_attribute_keys` grants a developer role no exempt keys: its attributes are
+written by the sync writer inside one transaction, markdown first and index last, so there is no
+permanent index lag to tolerate, and an operator's `model` is compared like any other field.
+Exempting more for developer roles would reopen the loss class the guard exists for: an
+interrupted `--set model=haiku` followed by an edit through another seam, silently overwritten by
+a stale index value.
 
 ## Consequences
 
-- A partial `<tech>-dev.toml` becomes what the docs already say it is. `sq sync` applies the
-  declared fields; `sq role <slug> show` renders; `sq check` stops reporting a refusal that
-  no longer happens.
-- A live developer role's `show` card stops degrading. Driven today: `sq role python-dev show`
-  renders the three-line item fallback (name, id, status) because `resolve_role` raises for
-  every dev slug, override or not. With a base it renders the full card — title, model,
-  spawn, create lane, mission, responsibilities — like every other role.
-- Every path that materialises a dev role now runs its definition through the typed
-  `RoleSpec` validation and the shared merge engine, so the four loose-value classes that
-  validation exists to catch (a truthy `can_spawn = "false"`, an off-whitelist `model`, a
-  non-string `color`, a silently dropped typo'd key) are caught for dev overrides too.
-- `resolve_dev_role` keeps its `sq dev add` call site and its assignment semantics for
-  `name`. It is not the general seam and does not become one.
-- `docs/overrides.md` owes a paragraph: what a `<tech>-dev.toml` merges onto, and that
-  omitting `full_name` preserves the live name while declaring it renames the role.
+- A partial `<tech>-dev.toml` merges onto the live developer: `sq sync` applies the declared
+  fields, `sq role <slug> show` renders the full card, and `sq check` reports nothing.
+- An operator-set name survives every sync, for bundled and developer roles alike.
+- The sync writer is not silent: a change moves `updated_at`, sets `modified_session` and appends
+  one `update` reflog entry.
+- Every path that materialises a role runs its definition through the typed `RoleSpec` validation
+  and the shared merge engine, so a truthy `can_spawn = "false"`, an off-whitelist `model`, a
+  non-string `color` or a silently dropped key is caught for developer overrides too.
+- `resolve_dev_role` keeps its `sq dev add` call site, where an explicit `--name` is an
+  assignment. It is not the general seam.
 
-## Falsification the implementation owes
+## Falsification the tests owe
 
-- The rename is the risk, so it is the first test: a squad with two developers, a partial
-  override on the *second* one, then `sq sync` — the second developer's `full_name` must be
-  unchanged in **both** frontmatter and index. Make the base regenerate instead of inherit
-  and that test must go red naming the pool name.
-- A partial override that omits `full_name` and one that declares it are separate tests with
-  opposite expectations. A single test covers whichever branch was written and neither of the
-  two rules.
-- Cover the file shapes, not just the fields: a partial dev override, a complete one, one for
-  a tech with no roster entry, one whose `slug` key disagrees with its filename, and one with
-  an invalid value (an off-whitelist `model`) — the last must still refuse, at all three
-  consumers, for all three of `sync`, `role show`, and `check`.
-- Assert the no-override case takes the no-op path in `_refresh_catalog_extra` rather than
-  raising: remove the narrowed `RoleNotFoundError` catch and the orphaned-custom-role test
-  must go red.
-- `sq check` must be clean on a squad carrying a partial dev override, and must still exit
-  non-zero on one carrying a broken dev override.
-
-## Amendments
-
-Recorded against the implementation this decision governs. The original text above is unedited;
-these state what it left unsaid.
-
-### A1 (2026-08-21) — §2's precedence is universal; it was implemented only where it was forced to be
-
-§2 states the precedence generally — "a stored fact first, a naming convention only where no
-stored fact exists" — and the wording is deliberately not dev-specific. The implementation
-applies it only to slugs outside `PREDEFINED`, and one line is the whole reason
-(`_roles/_resolver.py:255-256`):
-
-    predefined = _PREDEFINED_BY_SLUG.get(slug)
-    effective_base = predefined if predefined is not None else base
-
-For a bundled slug the caller's base is **discarded outright**, so no caller can make the live
-item the merge base for `architect` however correct its base is. A developer slug works only
-because `PREDEFINED` happens to hold no entry for it. That is an artifact of where the bundled
-catalog has rows, not a property of the two role kinds, and there is no reason bundled roles
-should differ: an operator names a bundled role by exactly the same documented inputs
-(`sq init --name`, the interactive init prompt, `sq role activate --name`, whose own help reads
-"overrides bundled default").
-
-Driven, on a fresh squad with no override files: `sq init --default-names --name
-architect='Ada Lovelace'` then a single `sq sync` reverts `title`, `extra.full_name`, and the
-generated `CLAUDE.md` roster line to `Robert Architect`, with `sq sync` exit 0 and `sq check`
-exit 0. Same result for `sq role activate architect --name 'Grace Hopper'`.
-
-**The precedence is universal. Extending it is conformance to this decision, not a new one**, so
-no separate decision governs it — this amendment is the record.
-
-**The extension is narrower than "make the item the base", and must stay narrow.** Refreshing the
-catalog's own prose and vocabulary (`title`, `mission`, `responsibilities`, `agreements`,
-`color`, `is_default`, `can_spawn`) is what `_refresh_catalog_extra` exists for — it is how a new
-`RoleDef` field reaches items created before it existed. Freezing all of it to the item would
-break that. The rule instead:
-
-> **The item is authoritative for exactly those fields an operator can set on it, and for no
-> others.** Every other field comes from the resolved definition as it does today.
-
-Driven from the CLI surface: `sq role activate` offers `--name` alone, so for a bundled role that
-set is `{full_name}`. `sq dev add` offers `--name` and `--model`, and carries `tech`, so for a
-developer role it is `{full_name, model, tech}` — which is exactly what `dev_base_from_item`
-already reads. The asymmetry between the two is therefore not a special case; it falls out of the
-one rule.
-
-### A2 (2026-08-21) — `[init.names]` sits outside the resolution order and must not be read at resolve time
-
-`sq init` persists the chosen names to `.squads.toml` under `[init.names]`
-(`_services/_service.py:152`). Read: the only consumer is `sq init` itself, when re-run over an
-existing config (`_cli/_main.py:311`); no resolver, no sync path, and no backend ever reads it.
-
-It stays that way. `[init.names]` is the **input that produced** the item's stored name, and the
-item's `extra.full_name` is the **result**. Reading the input at resolve time would consult a
-stale copy of something whose output already exists, and would be actively wrong the moment the
-name changes legitimately through any other sanctioned route — an override's `full_name`, or any
-future rename verb. Driven that the two genuinely diverge in normal use: after
-`sq role activate architect --name 'Grace Hopper'`, `[init.names]` is empty while the item
-carries the name, so a resolver reading the table would find nothing for the very case the table
-is supposed to cover.
-
-So `[init.names]` is not tier 0, not a tie-breaker, and not consulted on any resolve. It keeps
-its two existing jobs: an input to `sq init`, and (see A3) a forensic record.
-
-**The resolution order for any role's `full_name`, in full:**
-
-1. `.overrides/roles/<slug>.toml` `full_name`, when the file declares it. Unchanged from rule 3
-   above: a declared name renames, an omitted one inherits.
-2. The item's stored `extra.full_name`, when a roster item exists for the slug.
-3. The bundled `PREDEFINED` entry's `full_name` — or, for a developer slug with no item, the
-   generated pool name (`dev_base_for_slug`).
-
-`[init.names]` is deliberately absent from that list. It participates only at activation, where
-it is one of the inputs that decides what tier 2 is *first set to*.
-
-### A3 (2026-08-21) — a damaged squad is recoverable; the fix is to stop the loss, not to heal automatically
-
-Driven on a squad after the loss: the operator's name survives in two places on disk.
-
-- `.squads.toml` still carries `[init.names] architect = "Ada Lovelace"` verbatim. Only `sq init`
-  ever writes that table, so no later sync can overwrite it.
-- `squads/.reflog.jsonl` carries the role's `create` entry with
-  `{"title":"Ada Lovelace","type":"role","status":"Active"}` — and covers the
-  `sq role activate --name` case too, which `[init.names]` does not.
-
-Driven that neither is clobbered: the projection writes no reflog entry at all (zero `update`
-ops after a reverting sync), so the `create` entry stays intact. That is the one benefit of a
-gap worth fixing on its own account — this writer changes an agent's identity without bumping
-`updated_at`, setting `modified_session`, or logging, so the rename is invisible to every recency
-surface.
-
-Consequently **the fix is to stop the loss, and a heal path is not part of it.** Once tier 2 is in
-the order no further sync can revert a name, and the value for an already-damaged squad is
-readable by hand from either source above, so this is not unrecoverable data.
-
-An automatic heal is refused, for a reason A2 already fixes: restoring from `[init.names]` on
-sync would make an init-input table retroactively authoritative over the item, resurrecting a
-name in every squad whose adopter has since changed it deliberately. What is warranted instead is
-a **report**, not a repair: `sq check` should say so when a role item's `extra.full_name` differs
-from that slug's `[init.names]` entry, so a squad that has already lost a name is told rather
-than left silently pinned to the bundled default. That reads only data already on disk, makes
-nothing authoritative, and is its own small item — not a precondition for this fix.
-
-## Narrowing (2026-09-29, ADR-971)
-
-`dev_base_from_item` also takes `slug` from the item (`item.extra.get(X.SLUG, item.slug)`), beside name, model and tech. The `<tech>-dev` derivation runs only when a developer is created; `extra.tech` is a template input, never a source of identity. See ADR-971.
-
-## Narrowing (2026-10-09, ADR-984)
-
-Decision 2's precedence was "a stored fact first, a naming convention only where no stored fact exists". The first half stands and the second is withdrawn: a slug that names no roster item resolves to nothing, whatever its spelling, so the `dev_base_for_slug` case and the `is_dev_slug` fallback no longer apply (ADR-984 decision 6). The stored fact the first half reads is `extra.tech`, since `extra.is_dev` is removed (ADR-984 decision 4). See ADR-984.
+- A squad with two developers, a partial override on the *second*, then `sq sync`: the second
+  developer's name is unchanged in **both** frontmatter and index. A base that regenerates instead
+  of inherits must go red naming the pool name.
+- An operator-set bundled role name (`sq init --name`, `sq role activate --name`) survives `sq sync`.
+- File shapes, not just fields: a partial developer override, a complete one, one for a slug with
+  no roster entry (refused unless complete), one whose `slug` key disagrees with its filename, and
+  one with an invalid value (an off-whitelist `model`), which refuses at `sync`, `role show` and
+  `check`.
+- With no override file the sync writer takes the no-op path; only an orphaned custom role item
+  (no catalog entry, no template, no file) is skipped through the `RoleNotFoundError` catch.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -298,4 +161,26 @@ Decision 2's precedence was "a stored fact first, a naming convention only where
   - A3: recoverable — the name survives in .squads.toml [init.names] and in the reflog create entry (both driven; the projection logs nothing, so the create entry is never clobbered). So the fix is to stop the loss; an automatic heal is refused because it would make an init-input table retroactively authoritative. A sq check report on the mismatch is the right follow-up, as its own small item.
 - [2026-09-29T13:44:31Z] `architect` Robert Architect:
   - ADR-971 (Proposed) extends this decision: dev_base_from_item would take slug from the item too, beside name/model/tech. If ADR-971 is accepted, a dated narrowing note goes into this body.
+- [2026-10-25T20:15:39Z] `op-pierre` Pierre Chat:
+  - Keep: an override for a dev slug not on the roster is a new role and must be complete; add the developer with sq dev add first, and write an override only to customise beyond its flags.
+- [2026-10-25T20:15:40Z, edited 2026-10-25T20:16:00Z] `architect` Robert Architect:
+  - @tech-writer amended ADR-754 (2026-10-25): the override-first flow is retired. Doc mismatches to fold into your current edit (not touched by me):
+    - `docs/overrides.md` "A developer's override merges onto the developer you already have": the paragraph "You can write the file before the developer exists and run `sq dev add` afterwards: the new developer is built from it. … Add the developer, or remove the file, to clear it." still presents a partial file written first as a path that works once you add the developer. State the two supported flows instead: `sq dev add --tech <tech>` first (`--name`, `--model`, `--slug`, `--pronouns`), then an override only to customise beyond those flags; or a complete override (every required field) written first, which `sq dev add` then builds from. Keep the exit-3 example as what a partial file for an unadded slug gets.
+    - Same section, the rule "A name you never wrote is never invented. Omit `full_name` and a new developer takes a name from the pool." reads as guidance for writing the file before the developer exists; under the ruled flow a file without `full_name` only applies to a developer already added. Reword or drop.
+    - Same section and `docs/roles.md` (the "A developer's fields are overridable" paragraph): "Its `full_name` names a developer added after the file was written" implies the override-first flow. True only for a complete override; say so.
+    - `docs/overrides.md` "Which name wins", tier 2: same point, a per-slug `full_name` names a developer at `sq dev add` only when that file is complete.
+    - `docs/overrides.md` scaffold notes: `sq override scaffold --role python-dev` is described for a developer already on the roster, which matches; worth one line that for a dev slug not yet added the scaffolded stub does not load until it is complete (or point at `--new`).
+- [2026-10-25T20:19:08Z] `tech-writer` Theo Writer:
+  - Docs aligned with the 2026-10-25 amendment. All five mismatches fixed:
+    - `docs/overrides.md`, "A developer's override merges onto the developer you already have": rewritten around the two flows. First, `sq dev add` (with `--name`, `--model`, `--slug`, `--pronouns`) and then an override for the rest. Second, a complete override written first (`full_name`, `title`, `description`, `mission`) that `sq dev add` builds from. The "write the file before the developer exists" paragraph is gone. The exit-3 example stays, as what a partial file for a slug not on the roster gets. The "name you never wrote is never invented" rule is dropped, and the `full_name` rule no longer implies writing the override first.
+    - New note: a complete file written first needs the `squads:override-base` stamp. Without it, once the developer is added, `sq check` reports `role override has no squads:override-base stamp` at error until `sq override update --role <slug>`.
+    - "Which name wins", tier 2: a per-slug `full_name` names a developer only from a complete file written before `sq dev add`.
+    - `docs/roles.md`, the "A developer's fields are overridable" paragraph, and the "Retitle a developer" worked example: same correction.
+    - Scaffold notes: a dev already on the roster now gets every field commented out with its current values, not just the stamp. The old text was wrong and is fixed in both places. For a slug not on the roster yet, the stub does not load until it is complete, and `--new` is the pointer.
+    - Ran with the dev build on a scratch squad, now deleted. Quoted output comes from three runs: `dev add --tech go --name "Gina Go" --model sonnet`, then a title override and `sync`; a complete stamped `zig-dev.toml`, then `dev add --tech zig --model haiku`; and a title-only `rust-dev.toml` with no developer, which gives the exit-3 message. Doc guards pass.
+    - Gap, not documented: `sq override scaffold --new elixir-dev` followed straight away by `sq dev add --tech elixir` stores `TODO: full name (e.g. "Sam Security")` as the developer's name. `sq check` stays clean, and the stored name then never changes.
+- [2026-10-25T21:06:46Z] `architect` Robert Architect:
+  - Dated narrowing added 2026-10-25 for ADR-1151 (role bases and templates). The original text is unedited.
+- [2026-10-25T21:49:49Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale, body rewritten clean in the present tense; the decision (resolution takes an explicit base, never a regenerated one) is unchanged. Folded A1–A3, the ADR-971 and ADR-984 narrowings, the ADR-1007 note and the 2026-10-25 amendment (op-pierre: a dev-slug override not on the roster is a new role and must be complete). Now matches the resolver: role_base_from_item for bundled and developer roles, a supplied base always wins, the stored name pinned over every layer (ADR-766/777, so rule 3's "a declared full_name renames" is gone), dev_base_for_slug and is_dev_slug retired, the developer skew exemption empty, the sync writer reflogged. The ADR-1151 narrowing is a one-line pointer in §4; related refs added to ADR-766 and ADR-777.
 <!-- sq:discussion:end -->

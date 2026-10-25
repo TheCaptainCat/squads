@@ -17,44 +17,38 @@ description: 'Closes the sq workflow --json catalog family at one command per de
   WorkflowSpec map: adds subentity-kinds and lifecycles under a single row grammar,
   plus two reference keys on ADR-459''s type row.'
 created_at: '2026-08-03T15:34:51Z'
-updated_at: '2026-10-16T11:18:11Z'
+updated_at: '2026-10-25T21:46:29Z'
 ---
 <!-- sq:body -->
 ## Context
 
-Two gaps in the `sq workflow` catalog family arrived independently, and both answer one question:
-which part of the workflow spec is machine-readable, and in what shape.
+Two gaps in the `sq workflow` catalog family answer one question: which part of the workflow spec
+is machine-readable, and in what shape.
 
-- **BUG-732** — no `--json` surface exposes a type's lifecycle: not its initial state, not its state
-  set, not its edges. The data exists (`WorkflowSpec.machine_for`, `lifecycle_states_in_order`,
-  `lifecycle_edges`) and is rendered — as a mermaid diagram inside `sq workflow show`. A client that
-  wants a status quick-pick has to scrape markdown, or drive an invalid transition and parse the
-  refusal string.
-- **REV-736 F23 / TASK-737 ST3+ST6** — the VS Code preview's sub-entity head prints a literal
-  `Severity:` from a modelled `severity` property. The field *code* half is fixable against shipped
-  payloads (`sq show --json` already carries a spec-resolved `badges` map per sub-entity). The
-  declared *label* is unreachable: `spec.subentity_kinds` has no machine surface at all, so
-  `SubentityKindSpec.fields`, `plural` and `local_prefix` are invisible, and the type catalog's
-  `fields` are the item's, not the kind's.
+- **BUG-732** — a type's lifecycle (initial state, state set, edges) needs a `--json` surface; the
+  data (`WorkflowSpec.machine_for`, `lifecycle_states_in_order`, `lifecycle_edges`) is otherwise
+  reachable only as a mermaid diagram inside `sq workflow show`, so a client wanting a status
+  quick-pick would scrape markdown or parse a refusal string.
+- **REV-736 F23** — a client rendering a sub-entity's field needs the field's declared *label*. The
+  value is on `sq show --json`'s per-sub-entity `badges` map, but the label lives on
+  `SubentityKindSpec.fields`, which needs its own surface (the type catalog's `fields` are the
+  item's, not the kind's), as do `plural` and `local_prefix`.
 
-The family they belong to already has four members and a settled grammar — established by ADR-459
-(`types`), generalized by ADR-474 (`collections`, `statuses`), extended by ADR-604 (`roles`): a
+The family's grammar was established by ADR-459 (`types`), generalized by ADR-474 (`collections`,
+`statuses`) and extended by ADR-604 (`roles`): a
 dedicated sub-command per catalog, a human Rich table by default and a bare JSON array under
 `--json`, one row per declared entry in a deterministic order, a module-level frozen field-set
 constant, every key present on every row, and cross-references carried **by name** so a client joins
 catalogs rather than receiving denormalized copies.
 
-Two facts make these one question rather than two adjacent ones. `WorkflowSpec` declares six
-vocabulary maps — `items`, `statuses`, `collections`, `roles`, `lifecycles`, `subentity_kinds` — and
-the family publishes exactly four; the two gaps are the two unpublished maps. And both gaps bind the
-*same* value: `ItemSpec.lifecycle` and `SubentityKindSpec.lifecycle` name entries in the one
+Two facts make these one question rather than two adjacent ones. Both gaps are declared
+`WorkflowSpec` maps without a catalog. And both bind the *same* value: `ItemSpec.lifecycle` and `SubentityKindSpec.lifecycle` name entries in the one
 `lifecycles` map, so any design that inlines a machine into type rows must inline it a second time,
 in a second shape, for kinds — which is precisely the divergence two separately-designed surfaces
 would produce.
 
-ADR-459 scoped a lifecycle catalog out explicitly, as "a separate, larger surface" for a later
-decision. ADR-474 discharged the status half of that deferral and recorded that the resulting three
-surfaces "project the whole spec vocabulary" — an overclaim at the time and a wrong one now.
+ADR-459 scoped a lifecycle catalog out, as a separate surface for a later decision; this is that
+decision.
 
 ## Decision
 
@@ -66,9 +60,10 @@ catalog command**. Derived reverse indexes (`prefix_to_type`, `alias_to_type`) a
 inversions any client can compute, and invariant 4 forbids publishing an inversion as though it were
 declared.
 
-That closes the family at six commands — `types`, `collections`, `statuses`, `roles` (shipped), plus
-`subentity-kinds` (§3) and `lifecycles` (§4). A spec map added later arrives with an obligation to
-publish a catalog in this grammar; it does not get to invent a shape.
+The family is `types`, `collections`, `statuses`, `roles`, `subentity-kinds` (§3) and
+`lifecycles` (§4), plus the catalogs later spec maps brought under the same rule: `ref-kinds`
+(ADR-775) and `views` (ADR-1109). A spec map added later arrives with an obligation to publish a
+catalog in this grammar; it does not get to invent a shape.
 
 ### 2. The row grammar every catalog follows
 
@@ -79,12 +74,10 @@ publish a catalog in this grammar; it does not get to invent a shape.
 5. **The identity key is the spec's own name for the thing, and every reference to it from another
    row uses that identical key name** (`status.role` joins `role.role`; `field.collection` joins
    `collection.collection`).
-6. A reference carries a name, never an inlined copy of the target row. It may name a target catalog
-   that has not shipped yet: it names the identity key of the row it *will* join, and until that
-   catalog lands it reads as a grouping key — equal values mean the same target. What it may not do
-   is name a target unresolvable in principle. The target must be a declared spec map already owed a
-   catalog under rule 1, so a forward reference is a claim against a debt the family has already
-   taken on, resolving on a scheduled landing rather than on a maybe.
+6. A reference carries a name, never an inlined copy of the target row. It names the identity key
+   of the row it joins, and the target must be a declared spec map owed a catalog under rule 1, so a
+   reference never names a target unresolvable in principle. Until its catalog exists a reference
+   reads as a grouping key: equal values mean the same target.
 7. Nested structure is an **array of fixed-key objects** — never a positional tuple, never a map
    keyed on adopter-declared vocabulary. A per-item payload may key on declared codes (the `badges`
    map does, legitimately); a catalog row may not, because a frozen key set is what makes it a
@@ -112,15 +105,15 @@ One row per entry of `spec.subentity_kinds`, ascending kind name:
 
 - **`subentity_kind`** is the identity key — the map key, named as the spec names it, so the type
   row's reference (§5) is the same key name per rule 5. Not `kind`: `kind` already means ref-kind
-  wherever a client sees `refs` (`"ID:kind"`), and a ref-kind catalog is a live possibility.
+  wherever a client sees `refs` (`"ID:kind"`), and in the `ref-kinds` catalog.
 - **`fields`** reuses the type row's entry shape verbatim (`{code, label, collection}` — the same
   frozen entry tuple, not a parallel one). ADR-323 and ADR-348 both require that the sub-entity field
   mechanism is the item one unforked; the published shape is part of that requirement, and this is
-  the field that closes F23's label half.
+  the field that carries the label a client renders.
 - **`plural`** is the CLI list verb and the persisted container-marker name (ADR-348). A client that
   invokes the list verb or reads the marker must read it rather than guess a pluralization.
 - **`local_prefix`** is the local-id prefix (`US`/`ST`/`F`). A client that renders or parses a local
-  id needs it; the item-level analogue of hardcoding this grammar is F22.
+  id needs it rather than hardcoding the grammar.
 - **`container_heading`** is the resolved `## <heading>` above the kind's container block
   (`subentity_container_heading`): a bundled special-case table — "User Stories", which
   `"stories".title()` does not produce — falling back to title-cased `plural`. Published because a
@@ -130,8 +123,7 @@ One row per entry of `spec.subentity_kinds`, ascending kind name:
   action targets instead of hardcoding `Done`/`Fixed`. ADR-348 rules it declared, not derivable.
 - **`maps_parent_story`** completes the column derivation. ADR-348 derives a kind's roll-up columns
   as a fixed base, plus one column per declared field, plus a story column iff this flag. A client
-  handed `fields` but not the flag can build every column but the last, and will hardcode that one —
-  the same defect F23 removes.
+  handed `fields` but not the flag can build every column but the last, and would hardcode that one.
 - **`placeholder` is not published.** Scaffold prose is content the engine writes into a file, not
   vocabulary a client resolves.
 
@@ -168,20 +160,17 @@ One row per entry of `spec.lifecycles`, ascending lifecycle name:
 
 ### 5. Two reference fields on the type catalog
 
-ADR-459 carries the rule that a decision adding a key to a frozen catalog says so in its own body and
-names the catalog it extends. Doing that: this decision adds two keys to **ADR-459's
-`sq workflow types --json` row**, additively — renaming nothing, removing nothing, retyping nothing.
+A decision adding a key to a catalog says so in its own body and names the catalog it extends
+(ADR-459): this decision adds two keys to **ADR-459's `sq workflow types --json` row**, additively.
 
 - **`subentity_kind`** — the declared kind this type hosts, or `null`. Without it the kind catalog is
   unjoinable: a sub-entity object in `sq show --json` carries no kind of its own, and the client is
-  handed the item's `type`, so type→kind is the missing link in F23's own resolution chain
+  handed the item's `type`, so type→kind is the link in the resolution chain
   (`item.type` → type row → `subentity_kind` → kind row → `fields[].label`, keyed by the code the
-  sub-entity's `badges` map already carries). Forward edge per invariant 4; the kind row carries no
+  sub-entity's `badges` map carries). Forward edge per invariant 4; the kind row carries no
   reciprocal `parents` in return.
 - **`lifecycle`** — the machine this type binds, joining §4's catalog. A declared binding choice, not
-  derivable from anything else on the row. It lands with `subentity_kind` rather than with §4 (§9),
-  so for one release it is rule 6's forward reference: a grouping key naming a catalog not yet
-  published.
+  derivable from anything else on the row.
 
 ### 6. When a derivable-looking field is legitimate
 
@@ -200,8 +189,9 @@ redundancy grounds.
 
 ### 7. What stays unpublished
 
-`ItemSpec.folder`, `aliases`, `parents`, `parent_required`, `ref_rules`, `extra_fields`, `validators`,
-and `SubentityKindSpec.placeholder` are declared vocabulary with no published field. Because the
+`ItemSpec.folder`, `aliases`, `parents`, `parent_required`, `ref_rules`, `validators`, and
+`SubentityKindSpec.placeholder` are declared vocabulary with no published field (a type's declared
+`attributes` are published on its row, ADR-1007). Because the
 family is additive-only, publishing any of them is a decision under §2's grammar and §6's test — not
 a free extension. A frozen row that grows on convenience stops being a contract and becomes a spec
 dump, and each key is permanent once shipped.
@@ -209,71 +199,43 @@ dump, and each key is permanent once shipped.
 ### 8. Stability tier
 
 **Tier 2** for the grammar: one new `sq workflow` sub-command each, additive to the CLI surface. The
-exit-code table is untouched — 0 on success, 1 when the spec refuses to load, exactly as the four
-siblings behave.
+exit-code table is the family's — 0 on success, 1 when the spec refuses to load.
 
 **Tier 3** for the payloads: additive-only. At 1.0 that commits us, per catalog, to: the command keeps
-existing; every key keeps its name and its type; every row keeps every key, `null` rather than
-omitted; the documented row order and the `states`/`transitions` orders hold; and a reference field
-keeps naming the identity key of the row it points at. Growth is new keys only, each one justified
-under §6. `docs/stability.md`'s Tier 3 catalog table gains a row per catalog, and the joins belong in
-`docs/workflow.md`.
+existing; every key keeps its name, type, presence and meaning; every row keeps every key, `null`
+rather than omitted; the documented row order and the `states`/`transitions` orders hold; and a
+reference field keeps naming the identity key of the row it points at. Growth is new keys only, each
+one justified under §6. ADR-1025 qualifies what a key freezes: a key whose value is not a fixed
+squads format is marked vocabulary, open set or display (in `ref-kinds`, `kind` is vocabulary,
+`role` an open set, `label` and `hint` display), and moving a key to a looser class takes a decision
+that names the shape. `docs/stability.md`'s Tier 3 table carries a row per catalog, and the joins
+are documented in `docs/workflow.md`.
 
-> **Note 2026-10-16 (ADR-1025):** the catalog table this section requires was missing its
-> `sq workflow ref-kinds --json` row; ADR-1025 decision 1 records that row as discharging this
-> section for that catalog, not as a new freeze. ADR-1025 decision 3 also qualifies the Tier 3
-> promise above: it freezes a key's name, type, presence and meaning, and a key whose value is not
-> a fixed squads format is marked vocabulary, open set or display. In `ref-kinds`, `kind` is
-> vocabulary, `role` is an open set, and `label` and `hint` are display. Moving a key to a looser
-> class takes a decision that names the shape (ADR-1025 decision 4).
+### 9. Delivery: by consumer for commands, by row for keys
 
-### 9. Delivery split
-
-The two **catalogs** land separately, and that split follows the consumer rather than the design:
-`subentity-kinds` is what F23's label half requires, and it is 0.13; `lifecycles` has no shipped
-consumer waiting on it and is 0.14, the release BUG-732 assigns itself. Each arrives with its own
-golden, drift test and adopter-facing entry.
-
-**The type row's two keys are not split with them.** `subentity_kind` and `lifecycle` both land in
-0.13, and the frozen row is touched once. The split follows the consumer for *commands* and the row
-for *keys*: a waiting consumer justifies when a catalog is worth building, but an adopter reading
-ADR-459's row experiences a key set rather than a delivery plan, and §8 makes every touch of that row
-a permanent Tier-3 event. Splitting the pair costs two of everything Tier 3 requires on the family's
-oldest and most-consumed row, and shows an adopter one row growing keys twice for a single design —
-which is the reason given just below for shipping the kind row whole, applied where it counts for
-more. Deferring would buy optionality only if the key might still change: §5 settles its name, type
-and semantics, and the engine already computes the value, so waiting learns nothing.
-
-The kind row likewise ships whole in the first landing, including its own `lifecycle` value.
-Splitting one row's key set across two landings has the same cost there, and the value is usable
-immediately. Both rows therefore carry a `lifecycle` name for one release before §4's catalog
-exists — which rule 6 permits and bounds: equal values mean the same machine, and the name resolves
-to a row once `lifecycles` lands. The obligation that makes that safe sits on the adopter-facing
-side. Nothing else in the 0.13 surface exposes lifecycle membership — the status catalog is a flat
-vocabulary keyed on `status`, with no lifecycle field — so 0.13's adopter-facing entry and
-`docs/workflow.md`'s join table must say plainly that this reference has no catalog to join yet.
-An adopter then reads a documented forward reference instead of hunting for a command that does not
-exist.
+Catalog **commands** may land separately, following the consumer that needs them. A row's **keys**
+do not: a row ships whole, and a design that adds several keys to one existing row adds them in one
+landing. An adopter reading a row experiences a key set, not a delivery plan, and every touch of a
+row is a permanent Tier-3 event, so splitting one design's keys across landings costs two of
+everything Tier 3 requires and shows the row growing twice for one design. Deferring a key buys
+optionality only if it might still change. A key that references a catalog not yet published is
+permitted under rule 6, and the adopter-facing docs say plainly that it has no catalog to join yet.
 
 ## Consequences
 
-- REV-736 F23 closes against shipped payloads plus §3 and §5: the preview resolves the label from the
-  kind row and the value from the `badges` map the payload already carries — no client-side label map,
-  no field-code literal.
-- BUG-732 closes against §4: initial state, state set, ordering, and edges are all machine-readable,
-  and each machine is published once rather than copied onto every type that binds it. The bundled
-  spec has 8 lifecycles for 10 types and 3 kinds — `work` is bound by three types, `subentity` by two
-  kinds — so the denormalized alternative would repeat identical machines five times.
-- The family becomes closed and auditable: six declared maps, six commands, one grammar. A reviewer
-  checks completeness by listing `WorkflowSpec`'s fields.
-- Two more frozen shapes under the golden-freeze and drift-test discipline, and one more key on an
-  existing golden per landing. That is the intended cost of a frozen contract.
-- `SubentityKindSpec.plural` acquires a third consumer — CLI list verb, persisted container marker,
-  and now a published catalog value. ADR-348 flagged the first coupling as an accepted risk; the note
-  there is widened in place to name the third.
-- A client can resolve, for the first time, which kind a type hosts, what its local-id prefix is,
-  what its declared axes are called, and what its done-target status is. F22 and F23 are two instances
-  of hardcoding exactly those.
+- A client resolves a sub-entity field's label from the kind row and its value from the `badges`
+  map the payload carries: no client-side label map, no field-code literal.
+- A lifecycle's initial state, state set, ordering and edges are machine-readable, and each machine is
+  published once rather than copied onto every type that binds it (`work` is bound by three types,
+  `subentity` by two kinds).
+- The family is closed and auditable: one catalog per declared map, one grammar. A reviewer checks
+  completeness by listing `WorkflowSpec`'s map fields.
+- Each catalog is a pinned shape under the golden and drift-test discipline, the intended cost of a
+  contract.
+- `SubentityKindSpec.plural` has three consumers: CLI list verb, persisted container marker, and a
+  published catalog value (ADR-348 records the coupling).
+- A client can resolve which kind a type hosts, its local-id prefix, what its declared axes are
+  called and its done-target status, instead of hardcoding them.
 
 ## Alternatives considered
 
@@ -282,17 +244,17 @@ exist.
   cannot serve sub-entity kinds, which bind lifecycles too and have no type row — so the machine ends
   up published twice in two shapes. That is the divergence this decision exists to prevent.
 - **One combined `sq workflow spec --json`, or a `--json` on `show`.** Rejected: ADR-459 rejected
-  overloading the cheatsheet callback for the reason that still holds — one command emitting two
-  unrelated payloads — and a single nested document abandons the one-row-per-declared-entry grammar
-  four shipped catalogs already teach a client to expect.
+  overloading the cheatsheet callback — one command emitting two unrelated payloads — and a single
+  nested document abandons the one-row-per-declared-entry grammar the catalogs teach a client to
+  expect.
 - **`transitions` as `{status: [status, …]}`**, mirroring `Lifecycle.transitions`. Rejected per
   rule 7: keyed on adopter-declared status names, it has no frozen key set, forces index signatures on
   a strictly-typed client, and cannot carry a future per-edge attribute.
 - **Publish `states` and let clients derive the edges.** Rejected: the edges are the question BUG-732
   asks — "from Draft, what next?" — and no derivation over a state list produces them.
-- **Publish the kind row's `fields` only**, the minimum F23 names. Rejected under §9: one design that
-  makes an adopter watch one row grow keys twice is the additive promise being used as a substitute
-  for deciding the row.
+- **Publish the kind row's `fields` only**, the minimum a label needs. Rejected under §9: one design
+  that makes an adopter watch one row grow keys twice is the additive promise being used as a
+  substitute for deciding the row.
 - **Hand-maintain a label map in the client as a stopgap.** Rejected: it is the same class of defect
   as the literal being removed.
 <!-- sq:body:end -->
@@ -322,4 +284,6 @@ exist.
   - Two things I extended beyond the two files I was asked for, both because an exhaustive-looking list would otherwise have been wrong. `docs/stability.md`s Tier-3 catalog table listed four catalogs and a types row missing `subentity_kind`/`lifecycle` — a reader building against it would conclude the keys do not exist. It now carries the subentity-kinds row and the corrected types row, every field list checked key-for-key and in order against the live payload, plus §2 rule 4 (every key on every row, null not omitted) and rule 5 (a reference carries the target identity key name) stated where a client will look for them. @architect flagging in case §8s "gains a row per catalog" was meant to wait for the second landing — the row is accurate for what ships now either way.
 - [2026-10-16T11:18:11Z] `architect` Robert Architect:
   - 2026-10-16: one dated note added after section 8 for ADR-1025 (ref-kinds row discharged; value classes); nothing else in the body changed.
+- [2026-10-25T21:46:29Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale, targeted present-tense edits; the rule, row grammar and the two catalogs are unchanged. §1 now lists the family as it stands, including ref-kinds (ADR-775) and views (ADR-1109) added under the same rule; §7 no longer lists extra_fields as unpublished (attributes is on the type row, ADR-1007); folded the ADR-1025 note into §8; §9 states the by-consumer/by-row delivery rule without the 0.13/0.14 plan; Consequences drop the F22/F23 closure narrative and the stale 8-lifecycles/10-types count.
 <!-- sq:discussion:end -->

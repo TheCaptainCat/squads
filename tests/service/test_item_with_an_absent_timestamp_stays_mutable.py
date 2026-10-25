@@ -95,7 +95,7 @@ async def test_check_warns_about_the_absent_timestamp_before_anything_heals_it(s
     task = (await create_item(svc, "task", "hand authored")).item
     await _strip(svc, task.id, "created_at")
 
-    warnings = [i for i in await svc.check() if i.level == "warning" and "created_at" in i.message]
+    warnings = [i for i in await svc.check() if i.level == "warn" and "created_at" in i.message]
     assert len(warnings) == 1, [i.message for i in await svc.check()]
 
     await svc.comment(task.id, ["heals it"], as_slug="manager")

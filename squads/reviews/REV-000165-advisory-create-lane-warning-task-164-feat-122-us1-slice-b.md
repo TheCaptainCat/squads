@@ -10,14 +10,14 @@ refs:
 subentities:
 - local_id: F1
   title: Inline duplicate json imports in _cli/_create.py
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F2
   title: Internal artifact create writes advisory lane_warning reflog noise
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-06-22T13:31:03Z'
-updated_at: '2026-06-23T09:59:45Z'
+updated_at: '2026-10-25T19:38:34Z'
 ---
 <!-- sq:body -->
 Independent review of TASK-164 — advisory create-lane warning (FEAT-122 US1 / Slice B, under ADR-163 Option A). Reviewed the uncommitted diff on `feat/async-core`.
@@ -67,6 +67,8 @@ Inline duplicate json imports in _cli/_create.py (import json in _make, import j
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:34Z] `reviewer` Paul Reviewer:
+  - Holds: _cli/_create.py has one top-level import json.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -80,6 +82,8 @@ Internal artifact commands (sq dev add, role activate) routed through ServiceCor
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:34Z] `reviewer` Paul Reviewer:
+  - Holds: the lane warning only fires for laned_types (_services/_base.py _create_model), so role/skill creates log none.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 <!-- sq:findings:end -->

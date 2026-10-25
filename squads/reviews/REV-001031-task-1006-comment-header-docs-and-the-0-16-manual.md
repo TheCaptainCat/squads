@@ -14,38 +14,38 @@ description: Claim-by-claim check of the slug-header docs, CHANGELOG and MANUAL 
 subentities:
 - local_id: F1
   title: Reserved-slug rule worded wider than the build enforces
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: CHANGELOG keeps the corrected stamped-release remedy
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: MANUAL example omits a per-name line
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: Slug origin stated as derived from the name
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: Tier 3 bullet uses release-delta wording
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F6
   title: CHANGELOG omits the VS Code preview slug
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: Tutorial --as developer claim is false
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F8
   title: Remedy text depends on pending decisions
   status: WontFix
   severity: info
 created_at: '2026-10-16T08:33:42Z'
-updated_at: '2026-10-16T08:39:06Z'
+updated_at: '2026-10-25T19:30:34Z'
 ---
 <!-- sq:body -->
 Review of the adopter docs for slug-bearing comment headers: `docs/stability.md` (Tier 1 "Comment headers", "A roster slug never changes", Tier 3 "Discussion entries"), `docs/internals.md`, `docs/migration.md` § "Upgrading to 0.16: the schema step", the 0.16.0 CHANGELOG entries, and the reworded `_HEADER_MANUAL` / `_MANUAL_PREAMBLE` in `src/squads/_migrations/_v0_15_to_v0_16.py` (uncommitted, on top of 45ea351e and 8c51ae24).
@@ -108,6 +108,8 @@ _Add with `sq review 1031 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F1:discussion -->
 - [2026-10-16T08:38:07Z] `tech-writer` Theo Writer:
   - Fixed in docs/stability.md Tier 1 and the CHANGELOG Added entry: the reserved slugs and op- are stated as a role-creation refusal only; a role an earlier release created keeps its slug and the migration neither reports nor refuses it; operator slugs are not checked (driven: 0.15.0 op-dev role migrates clean, dev operator add --slug squads and --slug zed succeed). Nothing from the pending amendment.
+- [2026-10-25T19:30:34Z] `reviewer` Paul Reviewer:
+  - Holds: docs/stability.md now states the slug grammar ADR-979 A1-A5 enforces, operator `op-` included, matching the build.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -129,6 +131,8 @@ _Add with `sq review 1031 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F2:discussion -->
 - [2026-10-16T08:38:09Z] `tech-writer` Theo Writer:
   - Fixed: the CHANGELOG entry now says the step writes nothing and the fix uses a squads release that reads the squad schema (the refusal names one), with 0.15.0 migrate up first below 0.15, matching migration.md and the MANUAL.
+- [2026-10-25T19:30:34Z] `reviewer` Paul Reviewer:
+  - Holds: CHANGELOG 0.16 "When it refuses" says the step writes nothing and to run 0.15.0 `sq migrate up` first below 0.15.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -148,6 +152,8 @@ _Add with `sq review 1031 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F3:discussion -->
 - [2026-10-16T08:36:18Z] `python-dev` Elias Python:
   - Fixed: the MANUAL example now prints the 'Sam Lee' per-name line after the 'Hugo Ops' one, as the real report does.
+- [2026-10-25T19:30:34Z] `reviewer` Paul Reviewer:
+  - Holds: _HEADER_MANUAL in _v0_15_to_v0_16.py prints the 'Sam Lee' per-name line.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -167,6 +173,8 @@ _Add with `sq review 1031 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F4:discussion -->
 - [2026-10-16T08:38:11Z] `tech-writer` Theo Writer:
   - Fixed: slug origin per type in stability.md (role: catalog key or project role file whatever --name; developer: --tech; skill: catalog entry or sq skill add name; operator: op- plus first name or --slug). Driven: activate qa --name, dev add --tech python, skill add.
+- [2026-10-25T19:30:34Z] `reviewer` Paul Reviewer:
+  - Holds: docs/stability.md "A roster slug never changes" gives each roster type's slug origin.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -186,6 +194,8 @@ _Add with `sq review 1031 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F5:discussion -->
 - [2026-10-16T08:38:13Z] `tech-writer` Theo Writer:
   - Fixed: Tier 3 bullet now says search --json and inbox --json carry no author_slug, then the factual clause; no release comparison.
+- [2026-10-25T19:30:34Z] `reviewer` Paul Reviewer:
+  - Holds: docs/stability.md Tier 3 says `search --json` and `inbox --json` carry no `author_slug`, no release comparison.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -205,6 +215,8 @@ _Add with `sq review 1031 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F6:discussion -->
 - [2026-10-16T08:38:15Z] `tech-writer` Theo Writer:
   - Fixed: the BREAKING entry adds the VS Code preview: slug after the name, left out when equal or when sq gives no author_slug (read from previewDocument.ts, not driven).
+- [2026-10-25T19:30:34Z] `reviewer` Paul Reviewer:
+  - Holds: the CHANGELOG comment-header entry covers the VS Code preview's slug display.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -224,6 +236,8 @@ _Add with `sq review 1031 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F7:discussion -->
 - [2026-10-16T08:38:16Z] `tech-writer` Theo Writer:
   - Fixed: only the tutorial section 4 parenthetical: --as takes a roster slug (python-dev after sq dev add --tech python, architect, operator), the header records it with the name, and --as developer is refused as unknown (driven on the dev build). No other tutorial change.
+- [2026-10-25T19:30:34Z] `reviewer` Paul Reviewer:
+  - Holds: docs/tutorial.md section 4 says `--as` must be a registered slug; the `--as developer` claim is gone.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 

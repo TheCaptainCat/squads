@@ -14,11 +14,12 @@ The Environment is cached per squad directory, LRU-bounded so a long-lived proce
 distinct squads doesn't retain one per squad forever; :func:`invalidate_squad_dir` evicts one.
 """
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
 from typing import Any, cast
 
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, PackageLoader, StrictUndefined
+from jinja2.loaders import split_template_path
 
 from squads import _badges as badges
 from squads._errors import SquadsError
@@ -36,6 +37,7 @@ from squads._models._item import Item
 from squads._models._vocab import label_for
 from squads._paths import number_for_id
 from squads._sections import get_section
+from squads._specload import TEMPLATE_OVERRIDE_MESSAGES, override_present, read_override_text
 from squads._util import slugify
 from squads._workflow import bundled_spec
 from squads._workflow._lifecycle_order import linearize_lifecycle
@@ -66,13 +68,27 @@ _ENV_CACHE_MAX_SIZE = 16
 _env_cache: dict[Path | None, Environment] = {}
 
 
+class _OverrideLoader(FileSystemLoader):
+    """The project's template overrides; a file at an override path that cannot be read or
+    decoded, a directory included, is refused with :class:`OverrideReadError`, not skipped."""
+
+    def get_source(
+        self, environment: Environment, template: str
+    ) -> tuple[str, str, Callable[[], bool]]:
+        for base in self.searchpath:
+            path = Path(base, *split_template_path(template))
+            if override_present(path):
+                read_override_text(path, TEMPLATE_OVERRIDE_MESSAGES)
+        return super().get_source(environment, template)
+
+
 def _make_env(squad_dir: Path | None) -> Environment:
     """Build a Jinja2 Environment for *squad_dir* (or bundled-only when ``None``)."""
     bundled = PackageLoader("squads._rendering", "templates")
     if squad_dir is not None:
         overrides_dir = squad_dir / TEMPLATES_OVERRIDE_DIR
         if overrides_dir.is_dir():
-            loader = ChoiceLoader([FileSystemLoader(str(overrides_dir)), bundled])
+            loader = ChoiceLoader([_OverrideLoader(str(overrides_dir)), bundled])
         else:
             loader = bundled
     else:

@@ -11,65 +11,65 @@ subentities:
 - local_id: F1
   title: Review lifecycle omits the ChangesRequested -> Approved edge (lines 203,
     223)
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: Work-item diagram shows Blocked -> InReview, which the machine refuses (line
     195)
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: 'parents is not ignored on a records type: declaring it refuses the spec
     at load (lines 969-970)'
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F4
   title: Records do appear in sq inbox, and retired records are hidden from sq list
     (lines 942-950, 971)
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: 'Quoted sq workflow lint error table is stale: message and fix hint changed
     (lines 1332-1341)'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F6
   title: Statuses section says role is mandatory and that it defaults to pending (lines
     838-839, 877-878)
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: Example IDs INC-1 / PM-1 ignore the squad-wide counter; a fresh squad starts
     at 21 (lines 969, 1390)
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F8
   title: 'Dropping implements or targets is a hard stop even with no edges: bundled
     rule/view name them (1298-1304)'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F9
   title: '''The result'' block shows the custom template''s output, not what sq milestone
     show renders (443-452)'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F10
   title: A self view's --json carries a spec {schema_version, override, digest} block
     beyond show --json (318-321)
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F11
   title: Team-workflow section never introduces sq blocked, sq mine or sq workload
     (lines 10-73)
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F12
   title: The --author option also accepts a registered operator slug, not only a role
     (line 55)
-  status: Fixed
+  status: Verified
   severity: medium
 created_at: '2026-10-16T08:50:45Z'
-updated_at: '2026-10-16T11:26:19Z'
+updated_at: '2026-10-25T19:33:35Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -113,6 +113,8 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F1:discussion -->
 - [2026-10-16T09:02:46Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Status lifecycles: review diagram line and table row now carry ChangesRequested→Approved (driven).
+- [2026-10-25T19:33:35Z] `reviewer` Paul Reviewer:
+  - Holds: docs/workflow.md review diagram and table carry ChangesRequested→Approved.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -136,6 +138,8 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F2:discussion -->
 - [2026-10-16T09:02:49Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Status lifecycles: work diagram redrawn as Ready/InProgress/InReview → Blocked → Ready/InProgress, plus Cancelled → Draft (driven).
+- [2026-10-25T19:33:35Z] `reviewer` Paul Reviewer:
+  - Holds: docs/workflow.md work diagram reads Ready/InProgress/InReview ──▶ Blocked ──▶ Ready/InProgress.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -159,6 +163,8 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F3:discussion -->
 - [2026-10-16T09:02:52Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Records-category item types: a records type must not declare parents; the spec is refused at load (driven).
+- [2026-10-25T19:33:35Z] `reviewer` Paul Reviewer:
+  - Holds: docs/workflow.md says a records type must not declare `parents` and is refused at load.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -182,6 +188,8 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F4:discussion -->
 - [2026-10-16T09:02:56Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Records-category item types: inbox claim and "tracked as effort" dropped from the category text; list hiding rule stated (settled-but-shown vs retired, --all) (driven).
+- [2026-10-25T19:33:35Z] `reviewer` Paul Reviewer:
+  - Holds: docs/workflow.md no longer says records never appear in sq inbox or are shown at all times.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -205,6 +213,8 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F5:discussion -->
 - [2026-10-16T09:02:59Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Authoring and validation: lint error table replaced with current output, including the count line (driven).
+- [2026-10-25T19:33:35Z] `reviewer` Paul Reviewer:
+  - Holds: the docs/workflow.md lint table quotes "not declared in lifecycles" and the current fix hint.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -228,6 +238,8 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F6:discussion -->
 - [2026-10-16T09:03:02Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Statuses and § Status roles: role stated once as optional, defaulting to pending (driven).
+- [2026-10-25T19:33:35Z] `reviewer` Paul Reviewer:
+  - Holds: docs/workflow.md states status `role` once, as optional with a `pending` default.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -251,6 +263,8 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F7:discussion -->
 - [2026-10-16T09:03:05Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md: PM-<n> in § Records-category item types and INC-<n> in § Worked example, both naming the squad-wide counter (driven: INC-21, PM-21).
+- [2026-10-25T19:33:35Z] `reviewer` Paul Reviewer:
+  - Holds: docs/workflow.md names the squad-wide counter; INC-1 and PM-1 examples are gone.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -274,6 +288,8 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F8:discussion -->
 - [2026-10-16T09:03:08Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § What the override may and may not change (implements/targets exception) and § Ref kinds (pointer to it) (driven).
+- [2026-10-25T19:33:35Z] `reviewer` Paul Reviewer:
+  - Holds: docs/workflow.md says dropping `implements` or `targets` is refused at load, edges or not.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -297,6 +313,8 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F9:discussion -->
 - [2026-10-16T09:03:11Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md: § The result now says it shows the step-2 minimal template; § Milestones shows the bundled three-bucket rendering (driven).
+- [2026-10-25T19:33:35Z] `reviewer` Paul Reviewer:
+  - Holds: docs/workflow.md § Milestones shows the bundled Delivered/Outstanding rendering; the custom-template output is no longer presented as it.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -320,6 +338,8 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F10:discussion -->
 - [2026-10-16T09:03:14Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Derived views: self matches sq show <id> --json plus the spec key, with a pointer to stability.md (driven; note the host is sq show <id>, not sq skill <slug> show).
+- [2026-10-25T19:33:35Z] `reviewer` Paul Reviewer:
+  - Holds: docs/workflow.md says a `self` view's JSON is `sq show <id> --json` plus a `spec` key.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -341,6 +361,8 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F11:discussion -->
 - [2026-10-16T09:03:17Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Commands at a glance: depends-on example, sq mine / sq blocked / sq workload lines, and a sentence on inbox vs mine.
+- [2026-10-25T19:33:35Z] `reviewer` Paul Reviewer:
+  - Holds: docs/workflow.md Commands at a glance shows sq mine, sq blocked and sq workload.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -364,6 +386,8 @@ _Add with `sq review 1036 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F12:discussion -->
 - [2026-10-16T09:03:20Z] `tech-writer` Theo Writer:
   - Fixed in docs/workflow.md § Commands at a glance: --author accepts a role or operator, plus an op-alice create example (driven). The create --help understatement is code and is not touched.
+- [2026-10-25T19:33:35Z] `reviewer` Paul Reviewer:
+  - Holds: docs/workflow.md shows `sq create ... --author op-alice`.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 <!-- sq:findings:end -->

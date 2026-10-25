@@ -10,10 +10,10 @@ refs:
 subentities:
 - local_id: F1
   title: Resolver re-loads the index O(roles) times per sync
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-07-20T09:51:08Z'
-updated_at: '2026-07-20T12:30:05Z'
+updated_at: '2026-10-25T19:39:25Z'
 ---
 <!-- sq:body -->
 Independent review of TASK-494 (unstaged working tree): the `scopes` ref kind + the service-layer role->skill preload resolver. Scope: _models/_item.py (VALID_REF_KINDS += scopes), _services/_base.py (resolved_skills_for_role, _role_skills_map, refresh_managed wiring), _services/_maintenance.py (sync computes the map, persists extra.skills, role-scoped ctx), _backends/_base.py (BackendContext.role_skills + resolved_skills_for), both backends' generate_role_entry, agents_md/role_entry.md.j2, and the two new tests. TASK-493 code (skill-body authoring) and the templates_manifest regen were out of scope and not reviewed.
@@ -41,6 +41,8 @@ Why it matters: the sibling helper this one names as its 'Companion', _skill_pat
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:25Z] `reviewer` Paul Reviewer:
+  - Holds: the roster map loads the index once for the whole roster; only the standalone resolved_skills_for_role loads its own (_services/_roster_projection.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 <!-- sq:findings:end -->

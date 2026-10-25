@@ -11,7 +11,7 @@ refs:
 description: Spec-declared Python transforms feed a view's template and a views key
   in show --json; body returns the stored text
 created_at: '2026-10-24T13:07:46Z'
-updated_at: '2026-10-24T14:40:30Z'
+updated_at: '2026-10-25T21:41:26Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -144,4 +144,6 @@ Grounding: `src/squads/_views.py` (`resolve_source`, `render_source_view`, `expa
   - Amended 2026-10-24 after REV-1117 F1 and F4: spec is deep-copied per call like source and item (frozen=True does not protect its dicts), and a transform raising Exception or SystemExit, at import or call, becomes a ViewTransformError; every other BaseException propagates. Options rejected: a read-only spec proxy, catching all of BaseException.
 - [2026-10-24T14:40:30Z] `architect` Robert Architect:
   - 2026-10-24: Loading bullet restated to the implemented rule (compile the bytes and `exec()` them, no bytecode under `.overrides/`, in `sys.modules` only while executing); `spec_from_file_location` + `exec_module` added to Options rejected (stale bytecode within one second). Per the accepted deviation on REV-1117.
+- [2026-10-25T21:41:26Z] `architect` Robert Architect:
+  - Audited 2026-10-25: holds. _transform.py (ViewTransformError, exec of compiled bytes), read_stored_body, the views key in show --json and the milestone_rollup transform match the record.
 <!-- sq:discussion:end -->

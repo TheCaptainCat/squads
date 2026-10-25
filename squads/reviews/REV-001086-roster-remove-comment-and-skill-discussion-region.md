@@ -12,15 +12,15 @@ description: 'Review of TASK-1070 ST1-ST3: remove/rm, the skill discussion regio
 subentities:
 - local_id: F1
   title: Roster comments help names show --comments, which roster show lacks
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: Remedy and refusal texts still name the hidden rm alias
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: Addressed-verb lists are hand-copied per group and drift
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F4
   title: Update with only --when-to-use leaves the scaffold stale, so the skill body
@@ -42,7 +42,7 @@ subentities:
   status: Verified
   severity: low
 created_at: '2026-10-16T23:20:09Z'
-updated_at: '2026-10-17T00:17:36Z'
+updated_at: '2026-10-25T19:38:38Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -90,6 +90,8 @@ Recommendation: add `--comments` to the three roster `show` commands, which give
   - Added --comments to the three roster show commands (text output); pinned in the comment table. Reverting the skill one: 8 tests red.
 - [2026-10-16T23:54:26Z] `reviewer` Paul Reviewer:
   - Verified: role, skill and operator show take --comments and print the discussion.
+- [2026-10-25T19:38:38Z] `reviewer` Paul Reviewer:
+  - Holds: `sq role qa show --comments` exits 0 and prints the discussion on 0.17; the option is on role, skill and operator show.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -114,6 +116,8 @@ The alias still works, so nothing breaks, but every remedy names a command that 
   - remove is named in the purge message, the three sq check remedies, the 0.16 MANUAL steps and the dispatch-group docstring/default (the default is gone, see F3); pinned tests updated. Reverting the purge message: 24 tests red.
 - [2026-10-16T23:54:27Z] `reviewer` Paul Reviewer:
   - Verified: no rm --purge is left under src, including the 0.16 MANUAL; refusal and check remedies name remove --purge.
+- [2026-10-25T19:38:38Z] `reviewer` Paul Reviewer:
+  - Holds: refusals and check remedies name `remove --purge`; the 0.16 MANUAL keeps `rm --purge` on purpose, as the 0.15 tool runs it (565c39fa).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -133,6 +137,8 @@ Suggestion: derive `_ADDR_VERBS`, and the epilog's verb list, from the `_addr` s
   - The missing-verb error and each group help epilog now come from the registered non-hidden commands of the addressed subgroup (the three _ADDR_VERBS lists are deleted; epilogs take a {verbs} slot filled after registration). Hand list restored: 3 red; rm unhidden: 6 red. The module grammar docstrings stay hand-written.
 - [2026-10-16T23:54:28Z] `reviewer` Paul Reviewer:
   - Verified: the epilog and the missing-verb error derive their verb list from the registered non-hidden commands, and update appears without a hand edit.
+- [2026-10-25T19:38:38Z] `reviewer` Paul Reviewer:
+  - Holds: `sq operator --help` builds its VERB list from the registered commands; `_ADDR_VERBS` is gone from src.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 

@@ -11,54 +11,54 @@ refs:
 subentities:
 - local_id: F1
   title: Milestone body replace always refused; TODO scaffold unfillable
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: 'Per-type skill legacy bodies: premise false, every pre-0.14 squad'
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F3
   title: Reclaim skipped by the migration chain's own mid-chain skew
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Role-authoring remedy not moved to sq role show (ST9 unmet)
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: Repair skip corridor is dead code; delete it
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F6
   title: Skip-report test file no longer tests its subject
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: Append refusal rationale also describes the admitted milestone case
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F8
   title: Refusal, hint and warning messages name wrong or no-op remedies
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F9
   title: Docs overclaim append and the shadowed-warning remedy
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F10
   title: Build-process narration in standing docstrings and tests
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F11
   title: Single derivation holds; slug input and side lists diverge
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F12
   title: Narrowing shape table (ST10) not written; only role case
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-09-24T19:53:36Z'
-updated_at: '2026-09-29T00:38:19Z'
+updated_at: '2026-10-25T19:25:27Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -112,6 +112,8 @@ So every milestone created from now on keeps an unfillable TODO scaffold, unless
 <!-- sq:finding:F1:discussion -->
 - [2026-09-28T18:32:30Z] `reviewer` Paul Reviewer:
   - Fixed, driven on a fresh scratch squad: `sq milestone 21 body -m "hello"` over the untouched scaffold exits 0 with no `--force`, `--append` lands above the roll-up tag, and a later replace is refused only by the ordinary authored-body guard. Matches op-pierre's ruling (tags re-placed, never typed). Code: `_services/_items.py::_body_mutate` through `_views.place_view_tags` (1e317941, guard edge-blank fix 798ae789).
+- [2026-10-25T19:25:27Z] `reviewer` Paul Reviewer:
+  - Holds: on a fresh 0.17 squad `sq milestone 21 body -m` over the scaffold exits 0 and `--append` lands above the roll-up tag.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -137,6 +139,8 @@ op-pierre's ruling ("keep ST12's narrow scope … per-item-type skill with legac
 <!-- sq:finding:F2:discussion -->
 - [2026-09-28T18:32:34Z] `reviewer` Paul Reviewer:
   - Fixed, driven: a real squad initialised with released v0.13.1 (`uvx --from git+file://…@v0.13.1`), migrated, synced: `sq check` clean, `sq-bug` body is tag-only, `sq skill sq-bug show` renders the guidance once. Matches op-pierre's ruling: the reclaim set is `roster_body_view_name` itself (`_migrations/_v0_14_to_v0_15.py::_reclaim_legacy_roster_bodies`, 1e317941/4d9837fe). A new consequence of the widened reclaim (authored prose on a later-declared type's skill is wiped) is filed on the follow-up review.
+- [2026-10-25T19:25:27Z] `reviewer` Paul Reviewer:
+  - Holds: legacy per-type skill bodies are reclaimed by _migrations/_v0_14_to_v0_15.py; tests/integration/test_migration_corpus.py covers the fixtures.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -161,6 +165,8 @@ Three problems follow:
 <!-- sq:finding:F3:discussion -->
 - [2026-09-28T18:32:37Z] `reviewer` Paul Reviewer:
   - Fixed, driven: copies of v0_1, v0_5, v0_7, v0_11 and v0_14 migrate with no skip rows and no seeded-view errors; skip ids print resolvable (`ROLE-1`). The step reads each file's own frontmatter at write time (`_v0_14_to_v0_15.py::_write_body_change`, 4d9837fe).
+- [2026-10-25T19:25:27Z] `reviewer` Paul Reviewer:
+  - Holds: _v0_14_to_v0_15._write_body_change reads each file's own frontmatter, so mid-chain skew no longer skips the reclaim.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -180,6 +186,8 @@ ST9 is marked Done. **Recommendation:** add the pointer to the role show hint, a
 <!-- sq:finding:F4:discussion -->
 - [2026-09-28T18:32:42Z] `reviewer` Paul Reviewer:
   - Fixed, driven: an empty-bodied role's `sq role qa show` hint names `.overrides/roles.toml` / `.overrides/roles/<slug>.toml` (`_cli/_role.py::_role_empty_body_hint`), and the §8 refusal carries the same surface on the write path (`_services/_items.py::_reject_unwritable_body`).
+- [2026-10-25T19:25:27Z] `reviewer` Paul Reviewer:
+  - Holds: _cli/_role.py::_role_empty_body_hint names the roles override files.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -201,6 +209,8 @@ Verified by tracing the code, as the dev claims. `_repair_body_tag` returns only
 <!-- sq:finding:F5:discussion -->
 - [2026-09-28T18:32:48Z] `reviewer` Paul Reviewer:
   - Fixed, read and grep-checked: `strict_empty`, `_strict_body_convergence`, `RepairResult.skipped`, `backfill_skipped` and the CLI skip rows are gone from src; the monkeypatched tests were deleted (4d9837fe). Matches op-pierre's ruling. A stale docstring that still cites the deleted symbol is listed under F10.
+- [2026-10-25T19:25:27Z] `reviewer` Paul Reviewer:
+  - Holds: strict_empty, _strict_body_convergence and backfill_skipped are absent from src.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -220,6 +230,8 @@ A second problem: `test_migrate_up_prints_the_skip_and_exits_non_zero` asserts `
 <!-- sq:finding:F6:discussion -->
 - [2026-09-28T18:32:53Z] `reviewer` Paul Reviewer:
   - Fixed: the module is now `tests/cli/test_migrate_up_bare_subprocess_exit_parity.py`, built around the surviving `unreadable` exit parity, and the `SKILL-8` assertion is gone (4d9837fe).
+- [2026-10-25T19:25:27Z] `reviewer` Paul Reviewer:
+  - Holds: tests/cli/test_migrate_up_bare_subprocess_exit_parity.py tests the surviving exit parity.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -243,6 +255,8 @@ Either way the current text should not ship: its reason also describes a case th
 <!-- sq:finding:F7:discussion -->
 - [2026-09-28T18:32:57Z] `reviewer` Paul Reviewer:
   - Fixed per op-pierre's option A ruling (ADR-880 seventh amendment §8): replace and append are both refused on a roster-classified body, and the message names the real authoring surface instead of the spliced-render rationale. Driven for a role (via `sq import`), `squads`, `greeting`, `sq-memory` and `sq-bug`, with and without `--force`.
+- [2026-10-25T19:25:27Z] `reviewer` Paul Reviewer:
+  - Holds: _services/_items.py::_reject_unwritable_body refuses replace and append alike on a roster body and names the authoring surface.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -266,6 +280,8 @@ The messages this change added or made stale, each measured on a scratch squad o
 <!-- sq:finding:F8:discussion -->
 - [2026-09-28T18:33:02Z] `reviewer` Paul Reviewer:
   - Fixed, item by item: (1) `view rm` is retired, so its message is gone; (2) the replace refusal is gone; (3) migrate skip text drops the repair remedy, prints resolvable ids and names the `sq role|skill <slug>` form (`_cli/_migrate.py`); (4) the role and skill hints no longer name `sq repair … plain-legacy`; (5) `item_skill_shadowed` has a tag-present message and a single remedy (45c3b2a2). Problems in the new messages are filed on the follow-up review.
+- [2026-10-25T19:25:27Z] `reviewer` Paul Reviewer:
+  - Holds: `view` offers only add and disable, so the `view rm` message is gone; the other remedies were rewritten with it.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -289,6 +305,8 @@ No ticket IDs or process narration in docs/ or the CHANGELOG entry: checked, fin
 <!-- sq:finding:F9:discussion -->
 - [2026-09-28T18:33:07Z] `reviewer` Paul Reviewer:
   - Fixed, read against docs/overrides.md, docs/workflow.md and CHANGELOG.md in the range: the append overclaims and the required-flag prose are gone, the upgrade subsection lists the migration's real exceptions, the `set_body` docstring no longer claims repair erases appended prose, and the CHANGELOG says a role takes a `sq import` body event (19631075). One new sample-output mismatch is filed on the follow-up review.
+- [2026-10-25T19:25:27Z] `reviewer` Paul Reviewer:
+  - Holds: docs/overrides.md and docs/workflow.md no longer claim `--append` is unaffected.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -389,6 +407,8 @@ Migration-module prose ("Before this release, …") passes, because a migration 
     nothing behavioural moved.
 - [2026-09-29T00:38:13Z] `reviewer` Paul Reviewer:
   - Verified at HEAD bafd1bed. Both named docstrings (`test_absent_body_region_recovery.py:1-8`, `test_repair_body_tag_convergence_pure_function.py:100-104`) now state behaviour in the present tense, and the 19-file sweep reads clean. A re-grep of the range for used to / no longer / any more / now / earlier version / finding references finds only spec-state wording ("a view the spec no longer declares"), the migration's release-delta prose, and "this finding" meaning the check finding itself.
+- [2026-10-25T19:25:27Z] `reviewer` Paul Reviewer:
+  - Holds: grep of src and tests finds none of the named narration phrases.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -412,6 +432,8 @@ Migration-module prose ("Before this release, …") passes, because a migration 
   - Fixed: added views.roster_slug(item_type, slug, extra) as the one derivation (a skill's extra.slug when set, else the plain slug), replacing 8 duplicated inline ternaries across 4 files. The check tier's own _check_slug now reads frontmatter early (falling back to the filename-only _stem_slug only when frontmatter can't parse at all), so it agrees with the write path even on a hand-renamed sq-<type> skill file. Reproduced the exact repro (rename SKILL-...-sq-bug.md to ...-bugnotes.md, empty its tag) red-then-green.
 - [2026-09-28T22:51:59Z] `reviewer` Paul Reviewer:
   - Verified against HEAD (cddec435). I hand-renamed `SKILL-000010-sq-bug.md` to `SKILL-000010-bugnotes.md`, removed its tag and ran `sq repair`. `sq check` now classifies it by `extra.slug` (it names `sq skill sq-bug …`), and the write path refuses the same file as `sq-bug`. The two agree through `views.roster_slug`/`_check_slug`, and the filename is only a fallback for unparseable frontmatter.
+- [2026-10-25T19:25:27Z] `reviewer` Paul Reviewer:
+  - Holds: check classifies by frontmatter slug (_services/_check.py::_check_slug), the same as the write path, since the attribute flatten (a343cfc4).
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -431,6 +453,8 @@ Only the role case exists (`test_role_definition_view_narrowing_round_trip.py`, 
 <!-- sq:finding:F12:discussion -->
 - [2026-09-28T18:33:12Z] `reviewer` Paul Reviewer:
   - Fixed: `tests/service/test_admitted_roster_shapes_survive_convergence.py` (cb8c9a53) drives the dropped system-skill view, the stale `sq-bug`, and the project-declared `sq-widget` through write, repair, version-drift sync and re-declaration. The role row stays in `test_role_definition_view_narrowing_round_trip.py`. The targeted run passed.
+- [2026-10-25T19:25:27Z] `reviewer` Paul Reviewer:
+  - Holds: tests/service/test_admitted_roster_shapes_survive_convergence.py drives the admitted shapes.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 <!-- sq:findings:end -->

@@ -10,10 +10,10 @@ refs:
 subentities:
 - local_id: F1
   title: sortTypesByOrder exported but used only by tests, not production source
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-07-17T16:18:20Z'
-updated_at: '2026-07-17T16:29:05Z'
+updated_at: '2026-10-25T19:39:21Z'
 ---
 <!-- sq:body -->
 Independent review of TASK-457 (order the tree's type groups + type-filter quick-pick by the spec's per-type `order`, consuming `sq workflow types --json`; US5, REV-448 F1 client half).
@@ -60,6 +60,8 @@ domain/typeOrder.ts exports sortTypesByOrder(types, orderMap), but production so
 <!-- sq:finding:F1:discussion -->
 - [2026-07-17T16:29:05Z] `typescript-dev` Ada Typescript:
   - Fixed: routed listView.ts's distinctTypes and treeMapping.ts's distinctTypesInTree through sortTypesByOrder, folded into TASK-464.
+- [2026-10-25T19:39:21Z] `reviewer` Paul Reviewer:
+  - Holds: distinctTypes (listView.ts) and distinctTypesInTree (treeMapping.ts) sort through sortTypesByOrder.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 <!-- sq:findings:end -->

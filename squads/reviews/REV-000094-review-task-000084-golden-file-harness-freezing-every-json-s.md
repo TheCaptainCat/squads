@@ -8,10 +8,11 @@ author: reviewer
 subentities:
 - local_id: F1
   title: print_block --json uses 'file' key vs show --json 'path' for same path
-  status: Open
+  status: Deferred
   severity: low
+  deferred_to: TASK-1146
 created_at: '2026-06-12T21:23:52Z'
-updated_at: '2026-06-23T09:59:40Z'
+updated_at: '2026-10-25T19:58:21Z'
 ---
 <!-- sq:body -->
 Scope: golden-file test harness for TASK-84 (US3 of FEAT-15) — tests/test_golden_json.py + tests/goldens/ (24 snapshots, 25 tests). Read surface only; write-side print_block out of scope by design.
@@ -37,6 +38,8 @@ print_block (add-story/add-subtask/add-finding --json) emits the .md file locati
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:44Z] `reviewer` Paul Reviewer:
+  - Still true: print_block --json keys the path as file (_cli/_common.py); kept as a note on the write-surface key asymmetry.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 <!-- sq:findings:end -->

@@ -3,21 +3,21 @@ id: ADR-1052
 sequence_id: 1052
 type: decision
 title: 'The daemon: one command API, its transports, lifecycle and requests'
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - MILE-868
-- MILE-1051
 - EPIC-29
 - FEAT-33
 - FEAT-916
 - ADR-1128
 - FEAT-1140
+- MILE-1152
 description: One HTTP command endpoint the CLI forwards to and the browser shares;
   Unix socket on POSIX, loopback ports on Windows and for the browser; serial commands
   in a fresh scope; edited configuration retires the daemon
 created_at: '2026-10-16T11:27:26Z'
-updated_at: '2026-10-25T11:05:26Z'
+updated_at: '2026-10-25T21:41:29Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -33,9 +33,15 @@ The 0.17 line (MILE-1051, FEAT-1140) adds a squads daemon: a long-lived local pr
 - **Native Windows is supported in 0.17, remote mode included.**
 - The browser port **accepts writes**. It ships in 0.17 **disabled by default**, and an authentication mode is designed when the web app is built (MILE-868). There is no per-launch token before then.
 
+The operator ruled on three further points in this ADR's discussion (2026-10-25):
+
+- **One command endpoint for both clients.** The CLI and the web client both call `POST /v1/commands`; FEAT-33's Protocol-typed `RemoteService` is dropped.
+- **An environment override,** `SQUADS_DAEMON=on|off`, beside the configuration file's switch.
+- **Ctrl-C in remote mode stops only the client's wait,** and the documentation says so.
+
 ADR-1128 decides how the service is built: one composition function, the workflow spec, role catalog and playbook loaded once per invocation, and in the daemon the service built once at startup with a per-request scope. It leaves two points to this decision: how an edited override, or a file changed outside the daemon, reaches a running daemon, and what the request scope is.
 
-What is open is the API's shape, the transport, discovery, the lifecycle and the request model. The facts that bear on them, read from release/0.17 on 2026-10-25 unless stated otherwise:
+This decision sets the API's shape, the transport, discovery, the lifecycle and the request model. The facts that bear on them, read from release/0.17 on 2026-10-25 unless stated otherwise:
 
 1. **The integrity core already supports more than one writer.** `IndexStore.transaction()` (`src/squads/_index/_store.py`) takes a per-loop `anyio.Lock`, a per-process mutex, then a cross-process `filelock.FileLock` on `<squad-dir>/.squads.json.lock` (10-second timeout, a waiting notice after 1 second). Inside the lock it re-reads the index from disk, writes the markdown first and commits the index last with `os.replace`. The per-invocation read scope (`_ReadScope`, a `ContextVar`) is opened by the CLI's `command` bridge and never wired to that commit path. A daemon that writes through `transaction()` is one more process under the same lock.
 2. **Nothing about the squad survives an invocation today.** The index is read from disk at most once per invocation (the read scope), item files are read from disk, and the spec documents are loaded per invocation. Module-level state is limited to CODE caches by `tests/meta/test_no_unallowlisted_module_level_mutable_state.py`; per-request values live on `RequestContext` (`src/squads/_context.py`). Two caches sit outside that guard and depend on squad files: the custom-type command caches (`SpecKeyedCache`, keyed on the spec object) and the Jinja environment cache (`_rendering/_engine.py`, keyed on the squad directory, which decides at build time whether `.overrides/templates` exists).
@@ -62,6 +68,8 @@ What is open is the API's shape, the transport, discovery, the lifecycle and the
 ## Decision
 
 Adopt **option I** for the API and **option C with C1** for the transport.
+
+Option II is rejected, and with it FEAT-33's `RemoteService`: no Protocol-typed service interface and no second service implementation are built. The browser reads the CLI's `--json` output through the same endpoint, so there are no resource routes to keep in step with the renderers.
 
 ### The API
 
@@ -113,7 +121,7 @@ Adopt **option I** for the API and **option C with C1** for the transport.
    ```
 
    - The keys are `SquadsConfig` fields. `to_toml()` writes the table only when a value differs from its default, as it does for `[display]`, so every rewrite keeps it and an untouched project gains no lines.
-   - `SQUADS_DAEMON=off` forces local mode for every command in that environment; `SQUADS_DAEMON=on` uses the daemon even where `enabled = false`. Unset, the table decides. The test suite sets `off` for every test that does not exercise the daemon.
+   - `SQUADS_DAEMON=off` forces local mode for every command in that environment; `SQUADS_DAEMON=on` uses the daemon even where `enabled = false`. Unset, the table decides. The variable is an adopter-visible surface and is documented with the `[daemon]` table. It lets a test suite or CI job that runs `sq` in temporary squads keep every squad in local mode, and lets this repository try the daemon without committing `enabled = true`. The test suite sets `off` for every test that does not exercise the daemon.
    - A setting takes effect at the next command, because changing `.squads.toml` retires the running daemon (point 13).
    - **Validation.** An unknown key in `[daemon]` is reported by `sq check` and otherwise ignored, so a table written by a newer squads version does not break an older one. A known key with an unusable value (not a boolean, a negative or non-integer timeout), or an unusable `SQUADS_DAEMON` value, puts every command in local mode with one line on stderr naming the problem; `sq check` reports it too. Local mode is always correct, so a broken setting can only cost speed.
    - This repository sets `enabled = false` and documents the switch-on step.
@@ -132,7 +140,7 @@ Adopt **option I** for the API and **option C with C1** for the transport.
 10. **What reaches the user.** The forwarder writes `stdout` and `stderr` as received and exits with `exit_code`.
     - A `not_executed` answer runs the command in local mode, with no line on stderr.
     - **No replay after sending.** A connection lost after the request left the client is an error, never retried locally, because a write may already have committed.
-    - **Ctrl-C** stops the client waiting, not the command: a command the daemon has started runs to completion, as it would once its transaction had begun in local mode.
+    - **Ctrl-C** stops the client waiting, not the command: a command the daemon has started runs to completion, as it would once its transaction had begun in local mode. There is no mid-command cancel. In local mode Ctrl-C kills the process, so the two modes differ here; the user documentation for remote mode states the difference.
     - Output is returned when the command ends; a long command's progress lines arrive together at the end.
 
 ### Lifecycle
@@ -177,7 +185,9 @@ Adopt **option I** for the API and **option C with C1** for the transport.
 - **Commands queue.** A long command, a migration above all, delays every other command sent to that daemon until it ends; local-mode commands still wait only for the file lock, as today.
 - **Old daemons are reaped by idle exit.** A squad that sets `idle_timeout_minutes = 0` keeps them until logout, a stop, or the next configuration change.
 - **The caches outside the mutable-state guard are safe in the daemon:** the custom-type command caches are keyed on the spec object, which lives as long as the daemon, and an override template appearing or changing retires the daemon, so the Jinja environment cache keyed on the squad directory never outlives the overrides it was built from.
-- **Room for a squad hosted elsewhere** (FEAT-33). The endpoint-resolution function is the one seam: later its input can be a configured remote address with no local directory. Routes never carry a client filesystem path, and client files travel as attachments, so a remote daemon needs nothing from the client's disk. "Local mode exists" is decided by whether that resolution found a local squad. No Protocol-typed service interface is built; the command endpoint is the shared seam. The `.claude/` pointer gap noted on FEAT-33 returns with that case.
+- **Room for a squad hosted elsewhere** (FEAT-33). The endpoint-resolution function is the one seam: later its input can be a configured remote address with no local directory. Routes never carry a client filesystem path, and client files travel as attachments, so a remote daemon needs nothing from the client's disk. "Local mode exists" is decided by whether that resolution found a local squad. FEAT-33's `RemoteService` is not built; the command endpoint is the shared seam. The `.claude/` pointer gap noted on FEAT-33 returns with that case.
+- **`SQUADS_DAEMON` is part of the adopter surface,** documented beside `[daemon]` and covered by `sq check`'s validation (point 7).
+- **Ctrl-C behaves differently in the two modes,** and the documentation states it: remote mode abandons the wait, local mode kills the command.
 - **Remote access beyond localhost, and the authentication mode, are a later decision.** No listener binds a non-loopback address. The MILE-868 authentication mode applies to every TCP listener, the Windows CLI port included.
 
 ### What would change this decision
@@ -231,4 +241,10 @@ Adopt **option I** for the API and **option C with C1** for the transport.
     1. **API shape.** Option I reads "one API, same endpoints" as both clients calling the one command endpoint: the browser gets the CLI's `--json`, not resource routes, and FEAT-33's Protocol-typed `RemoteService` is not built. Option II (resource routes behind a service interface) makes remote mode slower than local mode and needs a wire form for every service type. I recommend I.
     2. **`SQUADS_DAEMON=on|off`**, an environment override of `[daemon] enabled`: a new adopter-visible surface. Without it, any test suite or CI job that runs `sq` in temporary squads spawns a daemon per squad, and this repository cannot trial the daemon without committing `enabled = true`. I recommend keeping it.
     3. **Ctrl-C in remote mode** stops the client waiting; a command the daemon has started runs to completion (no replay, no mid-command cancel). In local mode Ctrl-C kills the process. I recommend accepting the difference, documented.
+- [2026-10-25T17:37:20Z] `op-pierre` Pierre Chat:
+  - Yes to all three: one command endpoint shared by the CLI and the web client (FEAT-33 RemoteService dropped); a SQUADS_DAEMON=on|off environment override; Ctrl-C in remote mode stops only the client wait, documented as such.
+- [2026-10-25T17:39:29Z] `manager` Catherine Manager:
+  - Accepted: the three operator rulings are folded into the body as decisions.
+- [2026-10-25T21:41:29Z] `architect` Robert Architect:
+  - Audited 2026-10-25: holds as a decision; the daemon is not built yet. One fact in its Context is dated: since ADR-1119, .squads.toml is rewritten only at init/adopt and by migrate up, so point 7 reads as "to_toml writes the table only when non-default" at those writes.
 <!-- sq:discussion:end -->

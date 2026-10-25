@@ -14,39 +14,39 @@ refs:
 subentities:
 - local_id: F1
   title: Retired sub-entity regions go wrong on the next mutation and never converge
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: The planned corpus strip cannot reach a corpus already stamped 0.14
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F3
   title: Compiled managed regions contradict themselves under any role override
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Ambient-reset guard re-derives one syntax shape; five leak shapes evade it
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: Migrate and sync write different managed regions on an override-carrying
     squad
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F6
   title: Nested unknown-key refusal leaks a raw pydantic error and omits the version
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: The carry-set rationale cites a command that does not exist
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F8
   title: PERMITTED_EXTRA_SKEW outlived the writer that justified it
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-09-01T10:23:47Z'
-updated_at: '2026-09-02T14:03:15Z'
+updated_at: '2026-10-25T19:33:56Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -249,6 +249,8 @@ F2, which is the reason the strip as currently planned will not reach this corpu
   - Staleness verified on the file the finding named: TASK-000847's ST1 is Cancelled in frontmatter and its stored head still reads Status: Todo. The strip must cover both halves — :summary and :head. Ruling on :summary alone would have stranded 436 files.
 - [2026-09-02T13:03:22Z] `manager` Catherine Manager:
   - Fixed by the corpus strip, committed as b37cdc9 and verified: 632 summary regions and 436 head regions to zero across 654 files, 851 items preserved, second repair a no-op. The writers were retired first, so the regions cannot return.
+- [2026-10-25T19:33:56Z] `reviewer` Paul Reviewer:
+  - Holds: repair strips retired :summary and :head regions via _retired_region_tags (_services/_maintenance.py), per ADR-776.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -317,6 +319,8 @@ currently declared vehicle does not reach the affected corpus.
     The accepted cost is stated in the amendment rather than argued away: repair's advertised job is the index and it now rewrites content, so an operator gets a diff they did not ask for, announced through the result and the reflog rather than prevented.
 - [2026-09-02T13:03:30Z] `manager` Catherine Manager:
   - Fixed by the architect's ruling moving the strip onto Service.repair()'s corpus walk instead of a migration runner. That reaches a corpus already stamped at the current schema, which the runner structurally could not.
+- [2026-10-25T19:33:56Z] `reviewer` Paul Reviewer:
+  - Holds: the strip runs in sq repair's corpus walk, off the schema stamp, so an already-0.14 corpus is reached.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -395,6 +399,8 @@ takes. The first is the smaller change and matches the rest of the stage's direc
 - [2026-09-01T12:14:02Z] `manager` Catherine Manager:
   - Fixed and verified independently: authoring_owner now consults the live resolved title map first and falls back to the bundled catalog. Fresh init + role activate reviewer + sync with [roles.reviewer] title = OVERRIDE-TITLE renders it on both line 17 and line 107, and the bundled title occurs zero times in CLAUDE.md.
   - Worth recording why this hid so long: the old docstring claimed a live roster entry carries the display-cased form. That is false — RoleView.title is the catalog's own casing, full_name is the display-cased one. Two test fixtures were built to match the false claim and the goldens froze that casing as expected output. It stayed invisible only because the authoring bullet ignored the roster entirely. Fixtures corrected to catalog-true values, goldens regenerated, no assertion loosened.
+- [2026-10-25T19:33:56Z] `reviewer` Paul Reviewer:
+  - Holds: authoring_owner in _interactions/_playbook.py consults the live role_titles map first.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -475,6 +481,8 @@ in the docstring either way.
     - One clause added beyond your fix shape, because widening a derivation is the kind of change that quietly acquires new candidates: the reset set the guard derives over current source must be **unchanged** after the widening. If the wider walk finds something new in the tree today, that is a leak to report, not a list to extend silently.
 - [2026-09-02T07:49:35Z] `python-dev` Elias Python:
   - Fixed on TASK-856. Alias, nested-in-try, nested-in-if and tuple-target now detected (one plant each, each falsified against a reverted half); the two remaining shapes and the companion-cache judgment plus its residual gap are stated in the guard docstring. Derived set over current source unchanged, with and without exemptions applied. Full detail on the task's discussion.
+- [2026-10-25T19:33:56Z] `reviewer` Paul Reviewer:
+  - Holds: tests/meta/test_ambient_render_state_reset_is_exhaustive.py resolves import aliases and tuple targets, and states its limits.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -550,6 +558,8 @@ override-carrying squad, and that `MANUAL`'s `sq sync` line is what closes it.
     - One instruction added: the developer drives the divergence on a scratch squad before writing the sentence. The whole point of the subtask is a comment that is true, so it gets checked rather than copied from this finding.
 - [2026-09-02T13:03:45Z] `manager` Catherine Manager:
   - Fixed as prose: the runner's projection deliberately stays local and still reads the mirror, and the docstring now states which halves match Service.operators and _skill_paths and which half diverges, rather than claiming the whole projection is the same.
+- [2026-10-25T19:33:56Z] `reviewer` Paul Reviewer:
+  - Holds: _live_roster's docstring in _migrations/_v0_11_to_v0_14.py states it reads the mirror and that sq sync closes the gap.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -623,6 +633,8 @@ correct. Worth folding pydantic's `extra_forbidden` errors into the same
     ```
     
     Two precedents were available and they disagree: the top-level-key and ref-kind refusals both name the offending name and list the accepted set; the unknown-validator refusal names the entry alone. Matched the first — a menu is what turns "not accepted" into a next action — and the version-qualified sentence is now written in one place, shared by both depths, so the deep half cannot drift from the shallow one again.
+- [2026-10-25T19:33:56Z] `reviewer` Paul Reviewer:
+  - Holds: _specmerge.py folds a nested extra_forbidden error into the unknown-key-and-version message.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -682,6 +694,8 @@ wherever the `--set` escape hatch is documented.
     - Your closing note is carried into the same subtask: a `set_extra` write on a role field lands in `extra`, reports success, and reaches no generated artifact, silently. Agreed it is a consequence of the rule rather than a defect — but a silent one, so it belongs written down wherever the escape hatch is described.
 - [2026-09-02T13:03:36Z] `manager` Catherine Manager:
   - Fixed: the passage now names the role group's real verbs (show/regen/rm/status/set-default) and says the wider set is reachable programmatically only, instead of citing an update --set the role group does not offer.
+- [2026-10-25T19:33:56Z] `reviewer` Paul Reviewer:
+  - Holds: _roles/_resolver.py no longer cites a role update --set command.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -799,6 +813,8 @@ stamp rather than granted unconditionally.
     asked for. Nothing here wants a task.
     
     @reviewer ruled and closed.
+- [2026-10-25T19:33:56Z] `reviewer` Paul Reviewer:
+  - Holds: per the 6bd1a0e ruling, the mirror retirement narrowed it to PERMITTED_ATTRIBUTE_SKEW in _itemfile.py.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 <!-- sq:findings:end -->

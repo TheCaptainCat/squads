@@ -17,14 +17,14 @@ refs:
 description: Where a skill's operator-invocable attribute is declared and stored,
   how it resolves, and what each backend does with it.
 created_at: '2026-10-09T18:27:22Z'
-updated_at: '2026-10-17T03:39:14Z'
+updated_at: '2026-10-25T21:42:30Z'
 ---
 <!-- sq:body -->
 ## Context
 
 Every skill the Claude Code backend writes is offered to the person at the keyboard as a command
 they can run by name. Most of those skills are agent reference material that roles preload and no
-person runs. op-pierre's rule for today: no bundled skill is offered that way, every
+person runs. op-pierre's rule for now: no bundled skill is offered that way, every
 author-defined skill is. His rule for the property itself: it is an attribute of the skill, a
 bundled skill's answer may change in a later release, and a squad can change it with the CLI.
 
@@ -38,15 +38,14 @@ and a project-declared one alike. The playbook's closed top level is `{types}`. 
 already asks that definition for a system skill's description, behind `is_system_skill`
 (`_skill_pointer_description`).
 
-**A role already stores one operator choice that no catalog answers** (read, `_models/_metadata.py`):
-`extra.is_default` is written by `sq role set-default` and by nothing else, so no sync reasserts
-it.
+**A role already stores one operator choice that no catalog answers**: `is_default` is written by
+`sq role set-default` and by nothing else, so no sync reasserts it.
 
 **The backend has two pointer writers and one comparison** (read, `_backends/_claude_code`):
 `_write_managed_skill` writes system skills from a slug and a description with no item in hand,
 `generate_skill_entry` writes an item-scoped entry, and `sq check` compares each pointer on disk
 byte for byte with `render_skill_entry`'s fresh render (`backend_entry_drift`). All three render
-`pointer_skill.md.j2`, which today holds `name` and `description` only.
+`pointer_skill.md.j2`.
 
 The host's own key, checked against Claude Code's skill documentation: `user-invocable`, default
 `true`. Set to `false` it hides the skill from the `/` menu and stops `/name` from running it,
@@ -67,10 +66,10 @@ CLI or any `--json` output.
 ### 2. A bundled skill's default is declared in its bundled definition
 
 - "The bundled definition" is the engine's own declaration of a bundled skill in `_interactions`,
-  where its description and its view name are declared today. The default is declared beside
+  where its description and its view name are declared. The default is declared beside
   them: one value for each of the three always-on skills, and one for the per-type family, which
   every `sq-<type>` skill shares as it shares one description template and one view.
-- Every one of those values is `false` today.
+- Every one of those values is `false`.
 - The declaration is closed: a guard holds it against the always-on set, so a bundled skill
   cannot be added without stating its default.
 - It is code, not a spec document, and no override reaches it. A squad's surface is clause 3 and
@@ -84,12 +83,11 @@ CLI or any `--json` output.
 
 ### 3. A squad's own value is stored on the skill, and only a verb writes it
 
-- **Key.** `extra.operator_invocable`, a boolean, optional, in the skill's frontmatter. `sq
-  repair` rebuilds it like any other `extra` key.
+- **Key.** `operator_invocable`, a top-level frontmatter key declared as a `bool` attribute on the
+  `skill` type (ADR-1007), optional. `sq repair` rebuilds it like any other attribute.
 - **Writers.** `sq skill add` and `sq skill <addr> update` take `--operator-invocable
   <yes|no|default>`. `yes` and `no` store the value. Nothing else writes the key: not `sq init`,
-  not `sq sync`, not seeding, not a migration. It stands where `extra.is_default` stands on a
-  role.
+  not `sq sync`, not seeding, not a migration. It stands where `is_default` stands on a role.
 - **A set is always stored, including when it equals the current default.** The stored key means
   "this squad chose", not "this differs". A squad that deliberately keeps a bundled skill hidden
   keeps it hidden when a later release changes that skill's default. Dropping a value because it
@@ -99,16 +97,12 @@ CLI or any `--json` output.
   nothing.
 - **Allowed on a system skill.** The value is an operator's choice about how the entity is
   exposed, not generated content, so it sits outside the system-skill write refusal on the same
-  footing as a comment. It is the only `update` option a system skill accepts.
-- **Read strictly.** Only a YAML boolean counts. Any other stored value resolves as absent. No
-  validator is added for it: the worst outcome of a bad hand edit is the declared default.
+  footing as a comment. On a system skill, `update` refuses the title, the description and every
+  attribute the bundled spec supplies; this option is outside that refusal.
+- **Read strictly.** Only a YAML boolean counts. Any other stored value resolves as absent, and
+  `sq check`'s attribute-kind check (`attribute_valid`) reports it, as it does for every declared
+  attribute. The worst outcome of a bad hand edit is the declared default.
 - A change through either verb regenerates that skill's entry on every active backend.
-
-> **Note 2026-10-15 (ADR-1007):** the key is the top-level `operator_invocable`, a declared `bool`
-> attribute on `skill`, not `extra.operator_invocable`; FEAT-966 declares it. It stands where
-> `is_default` stands on a role, now a top-level attribute too. A non-boolean value still resolves
-> as absent, and `sq check`'s attribute-kind check reports it, since every declared attribute is
-> checked for its kind. See ADR-1007 decisions 3 and 5.
 
 ### 4. Resolution
 
@@ -125,11 +119,13 @@ for a sync to reassert or overwrite.
 
 - `sq skill <addr> show` prints the resolved value and whether it is the squad's own or the
   declared default.
-- Every `--json` surface that publishes a skill's own fields (today `sq skill <addr> show
-  --json`) carries two keys, present on every row: `operator_invocable`, the resolved boolean,
-  and `operator_invocable_set`, true when the skill stores the squad's own value. The second is
+- The skill surfaces (`sq skill <slug> show`, its `--json`, and the skill listing) publish the
+  resolved pair, present on every row: `operator_invocable`, the resolved boolean, and
+  `operator_invocable_set`, true when the skill stores the squad's own value. The second is
   published because nothing else on the row gives it: a stored value equal to the default
   resolves the same as no stored value, and only one of them follows the next release.
+- The generic item rows (`sq show`, `sq list -t skill --json`) carry the stored attribute like any
+  other attribute, absent when nothing is stored, as they do for `pronouns`.
 
 ### 6. Backends receive the resolved value and spell it themselves
 
@@ -166,9 +162,8 @@ warned, and the compiled file is byte-identical.
 
 ## Consequences
 
-- No schema bump and no migration: nothing is stamped on any skill, an absent key means the
-  declared default, and an older package ignores an unknown `extra` key (inferred from `extra`
-  being a free mapping; not driven).
+- No schema bump and no migration: nothing is stamped on any skill, and an absent key means the
+  declared default.
 - After an upgrade and before the next `sq sync`, `sq check` warns that every system skill's
   pointer has drifted, because the fresh render now carries a line the file lacks (inferred from
   the byte comparison in `backend_entry_drift`). That is the existing prompt to sync and it clears
@@ -181,8 +176,8 @@ warned, and the compiled file is byte-identical.
   case each skill is in.
 - The choice belongs to the skill item. A per-type skill created again after its type was dropped
   or renamed is a new item and starts from the declared default.
-- Setting the value on a system skill needs the exemption of clause 3 wherever the system-skill
-  write refusal is enforced, and `sq skill <addr> update` has to exist.
+- The exemption of clause 3 holds wherever the system-skill write refusal is enforced, through
+  `sq skill <addr> update`.
 - The preload claim rests on documentation. A hidden skill still arriving in a subagent that
   lists it has to be seen once on a real host before the default ships.
 
@@ -237,4 +232,6 @@ warned, and the compiled file is byte-identical.
   - @architect 2026-10-17: please add a dated note narrowing clause 5. The resolved operator_invocable pair is shown on the skill surfaces (skill show/list); generic item rows (sq show / sq list --json) carry the stored attribute like any other, matching pronouns. See REV-1091 F1.
 - [2026-10-17T03:39:14Z] `architect` Robert Architect:
   - 2026-10-17: clause 5 narrowed (REV-1091 F1). The resolved pair, `operator_invocable` plus `operator_invocable_set`, is published on the skill surfaces: `sq skill <slug> show`, its `--json`, and the skill listing. The generic item rows (`sq show`, `sq list -t skill --json`) carry the stored attribute like any other attribute, absent when nothing is stored, as `pronouns` does. For @manager.
+- [2026-10-25T21:42:30Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale passages fixed; decision unchanged. extra.operator_invocable is the top-level attribute (ADR-1007 note folded), the 2026-10-17 clause-5 narrowing folded (resolved pair on skill surfaces, stored attribute on generic rows), and the system-skill update refusal described as it is built.
 <!-- sq:discussion:end -->

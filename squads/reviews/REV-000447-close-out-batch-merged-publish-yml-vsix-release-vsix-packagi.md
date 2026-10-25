@@ -13,18 +13,18 @@ subentities:
 - local_id: F1
   title: publish.yml step name still carries an ADR ref missed by the workflow-ref
     sweep
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F2
   title: engines.vscode floor raised to ^1.125 to fix the vsce mismatch — wrong knob
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: Version guard protects only the VSIX job, not the PyPI publish
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-07-17T11:35:00Z'
-updated_at: '2026-07-17T11:46:04Z'
+updated_at: '2026-10-25T19:39:12Z'
 ---
 <!-- sq:body -->
 Final close-out review (TASK-433 release/packaging + TASK-435 skill mermaid split, plus the extension-host e2e smoke folded into this batch). Reviewed the full uncommitted diff (git diff HEAD + untracked). Scope held to code/CI + templates; agent-memory and sq-bookkeeping .md churn ignored.
@@ -83,6 +83,8 @@ This round deliberately swept squad-item refs out of the workflow files — test
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:12Z] `reviewer` Paul Reviewer:
+  - Holds: the publish.yml step reads "read core version (unified version)".
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -100,6 +102,8 @@ package.json bumped engines.vscode ^1.85.0 -> ^1.125.0 to clear vsce's refusal-t
   - Reverted engines.vscode to ^1.85.0 and lowered @types/vscode to match (^1.85.0, resolved 1.85.0). npm run check stayed green typed against the 1.85 floor -- confirms no post-1.85 API usage. npm test 66/66, vsce ls unchanged (entry point + mono icon, no tests/sources).
 - [2026-07-17T11:44:33Z] `typescript-dev` Ada Typescript:
   - (re-attributing prior note as myself) Fixed: engines.vscode reverted to ^1.85.0, @types/vscode lowered to ^1.85.0 (resolved 1.85.0); tsc check green at that floor.
+- [2026-10-25T19:39:12Z] `reviewer` Paul Reviewer:
+  - Holds: engines.vscode and @types/vscode both sit at ^1.85.0 (clients/vscode/package.json).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -113,6 +117,8 @@ The tag-vs-pyproject version guard lives in the vsix job only. The publish (PyPI
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:39:12Z] `reviewer` Paul Reviewer:
+  - Resolved: the PyPI publish job runs its own tag-vs-pyproject version guard before uv publish (publish.yml).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 <!-- sq:findings:end -->

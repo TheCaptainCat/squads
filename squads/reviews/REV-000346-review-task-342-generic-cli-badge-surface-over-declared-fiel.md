@@ -11,7 +11,7 @@ subentities:
 - local_id: F1
   title: 'ordered flag never enforced: --min-badge/--sort rank by declaration order
     on any collection'
-  status: Fixed
+  status: Verified
   assignee: tech-lead
   severity: medium
 - local_id: F2
@@ -28,14 +28,14 @@ subentities:
 - local_id: F4
   title: Badge-rendering helpers misplaced in _discussion.py; relocate to a _badges
     module (deferred)
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: tests/test_custom_badge_axis.py docstring leads with a real ticket ID (no-ticket-IDs-in-code)
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-07-09T12:38:59Z'
-updated_at: '2026-07-09T19:23:21Z'
+updated_at: '2026-10-25T19:39:00Z'
 ---
 <!-- sq:body -->
 Independent review of the uncommitted TASK-342 diff on release/0.8: the CLI badge surface is made generic over spec-declared fields and the per-axis parse/render pairs (F1) are collapsed into one path.
@@ -69,6 +69,8 @@ Fix: enforce ordered in _meets_min/_badge_rank (skip or raise for unordered fiel
 <!-- sq:finding:F1:discussion -->
 - [2026-07-09T12:51:07Z] `python-dev` Elias Python:
   - Fixed: spec load now fails closed on an unordered collection (WorkflowSpec._validate -> _check_field_collections, src/squads/_workflow/_models.py) — 'collection <code>: unordered collections are not supported yet'; ordered stays reserved in the schema per ADR-323 §3 but is no longer silently ignored. Tests: test_unordered_collection_fails_closed + test_unordered_collection_override_fails_closed (tests/test_workflow_badges.py).
+- [2026-10-25T19:39:00Z] `reviewer` Paul Reviewer:
+  - Holds: spec validation refuses an unordered collection (_workflow/_validity.py), and _badges.py ranks only ordered ones.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -122,6 +124,8 @@ Disposition: LOW / deferred. A clean byte-identical relocation to a top-level _b
   - Fixed by TASK-347: _status_badge/resolve_collection/badge_render (+ _DEFAULT_BADGE) relocated verbatim from _discussion.py to a new src/squads/_badges.py; callers repointed (_discussion, _cli/_common, _cli/_main, _cli/_items). Byte-identical, no golden change.
 - [2026-07-09T19:23:21Z] `reviewer` Paul Reviewer:
   - Reviewer verification (independent): the relocation is sound. status_badge / resolve_collection / badge_render / _DEFAULT_BADGE now live in src/squads/_badges.py with byte-identical bodies (diffed vs 53e651c:_discussion.py — only the _status_badge→status_badge rename + the two docstring cross-refs differ). _discussion.py is left cohesive (comments/story/subtask prose + @mention) and delegates via 'from squads import _badges as badges'. All callers repointed (_discussion, _cli/_common, _cli/_main, _cli/_items); grep shows zero lingering _discussion._status_badge / discussion.badge_render refs in src. No import cycle: _badges only pulls WorkflowSpec/bundled_spec from _workflow (which imports neither _badges nor _discussion); _models stays spec-decoupled; runtime import of both modules confirmed clean. Sub-entity head/summary still reach the badges through the delegation; targeted render suites green. Gates green (pyright/ruff/format), 215 targeted tests pass. Nit (dev comment): the move was NOT strictly 'verbatim' — _status_badge was promoted to public status_badge; correct, and every reference is updated. Confirmed Fixed.
+- [2026-10-25T19:39:00Z] `reviewer` Paul Reviewer:
+  - Holds: status_badge, resolve_collection and badge_render live in src/squads/_badges.py.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -137,6 +141,8 @@ The new test file is well-named by behavior (test_custom_badge_axis.py) but its 
 <!-- sq:finding:F5:discussion -->
 - [2026-07-09T12:51:08Z] `python-dev` Elias Python:
   - Fixed: dropped the 'TASK-000342:' ticket-ID prefix from tests/test_custom_badge_axis.py's module docstring (now leads with the behavior description); also fixed the stale priority_badge() reference in tests/test_graph.py:675's docstring to say badge_render().
+- [2026-10-25T19:39:00Z] `reviewer` Paul Reviewer:
+  - Holds: no TASK-342 reference remains in tests/; tests/meta/test_source_and_new_test_tree_have_no_stray_ticket_references.py guards it.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->

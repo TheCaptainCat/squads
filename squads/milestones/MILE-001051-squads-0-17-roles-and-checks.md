@@ -2,30 +2,29 @@
 id: MILE-1051
 sequence_id: 1051
 type: milestone
-title: squads 0.17 - the daemon
+title: squads 0.17 - roles and checks
 status: InProgress
 author: product-owner
 created_at: '2026-10-16T11:23:46Z'
-updated_at: '2026-10-25T10:45:55Z'
+updated_at: '2026-10-25T21:16:52Z'
 ---
 <!-- sq:body -->
-The daemon release: a local process that serves squad state over an API on localhost, and a CLI that can talk to it. This milestone holds the work that makes that line usable on one machine, for one person. The web epic carries the larger outcome and the framing; the browser frontend builds on this milestone.
+The roles and checks release: a squad whose configuration is loaded once and whose checks and role resolution say plainly what is wrong. This milestone holds the engine and check work that makes that so.
 
 **Belongs here**
 
-- The local API. It serves and listens on localhost with no authentication. The transport (an HTTP port versus a Unix socket) is open and goes to an ADR before the API is built; this milestone does not presuppose the answer.
-- The CLI's two modes: remote mode, where a command is answered by a running daemon, and local mode, which is today's behaviour of reading the squad directly.
-- The daemon logic: its lifecycle (start, stop, discovery, staleness) and what it keeps warm between calls.
-- Writes through the daemon. The CLI's remote mode needs them, so mutation reaches the API. They are local and single-user: the actor is the person at that machine, and nothing here opens a write path to a shared URL.
-- This repo dogfooding the line, with daemon mode disabled at first and enabled once it has earned trust.
+- The composition root and load-once: each spec document is read once per invocation, at the root.
+- Named check rules: every `sq check` finding comes from a registered rule, and a damaged override or a check cause is reported as what it is.
+- Roles resolved from a catalog entry, a template or the item itself (ADR-1151).
+- Finding states and the settled-review rule.
+- The import reference docs.
+- The test-suite rebuild (FEAT-1096).
+- The bug fixes that harden the CLI's help, flags, JSON output and error messages.
 
 **Does not belong here**
 
-- The browser frontend, which has its own milestone and consumes this API.
-- Remote or multi-user access, and anything that needs the daemon reachable beyond localhost.
-- Authentication and authorization. The API assumes a trusted local caller.
-- Cutting the fixed startup cost of every invocation unless it is chosen to ride this release; it is useful with or without a daemon.
-- Engine or vocabulary changes the API merely consumes.
+- Work that serves squad state to other clients, which has its own milestone.
+- New backends and the browser frontend, which follow in later releases.
 
 Membership works through incoming `targets` refs; the roll-up below inverts them.
 
@@ -52,4 +51,6 @@ Membership works through incoming `targets` refs; the roll-up below inverts them
   - All four are python-dev work; one dev per task.
 - [2026-10-25T10:45:55Z] `op-pierre` Pierre Chat:
   - Go for the daemon: product owner opens the feature, architect writes the transport ADR.
+- [2026-10-25T21:15:38Z] `op-pierre` Pierre Chat:
+  - The daemon leaves 0.17. New milestone squads 0.18 - the daemon takes FEAT-1140 and ADR-1052; more backends moves to 0.19 and the web frontend to 0.20. This milestone is retitled squads 0.17 - roles and checks.
 <!-- sq:discussion:end -->

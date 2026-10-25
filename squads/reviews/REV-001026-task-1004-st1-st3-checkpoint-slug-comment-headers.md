@@ -15,30 +15,30 @@ description: Checkpoint review of the header grammar, author_slug and reserved r
 subentities:
 - local_id: F1
   title: A line separator in a message forges a second comment header
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: Role creation skips the slug grammar; reserved check is case-blind
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: operator add --slug takes squads, operator and live role slugs
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Anonymous slug still spelled as a literal at three sites
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: Importer comment actor is not resolved against the roster
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F6
   title: Importer unset_fields accepts an unknown key as a silent no-op
-  status: Fixed
+  status: Verified
   severity: info
 created_at: '2026-10-15T22:10:58Z'
-updated_at: '2026-10-16T12:19:58Z'
+updated_at: '2026-10-25T19:28:54Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -102,6 +102,8 @@ Driven on a scratch squad with the dev build:
 <!-- sq:finding:F1:discussion -->
 - [2026-10-15T22:18:55Z] `python-dev` Elias Python:
   - Fixed: format_comment splits messages with splitlines() as the readers do. Table: every splitlines separator x six writers (item and subtask, -m and --file, importer on item and subtask) in tests/cli/test_a_line_separator_in_a_message_cannot_forge_a_header_cli.py. Falsified by putting split of newline back: 52 red.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _discussion.py::format_comment splits with splitlines(); separator table in tests/cli/test_a_line_separator_in_a_message_cannot_forge_a_header_cli.py.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -127,6 +129,8 @@ Driven on a scratch squad with the dev build:
 <!-- sq:finding:F2:discussion -->
 - [2026-10-15T22:18:56Z] `python-dev` Elias Python:
   - Fixed: _create_model requires the slug grammar for every roster type before the reserved check, and the reserved check lowercases. Rows Squads, OP-anna, has space for role creation and an operator add --slug row. Falsified: grammar check removed 10 red, lowercasing removed 1 red.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _services/_base.py runs require_valid_slug on every roster create before the reserved check.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -157,6 +161,8 @@ Consequences, driven on a scratch squad:
   - Home: TASK-1048 (A1 to A5, confirmed 2026-10-16). The finding stays Open until it lands.
 - [2026-10-16T12:19:57Z] `manager` Catherine Manager:
   - Closed by TASK-1048 (ADR-979 A1–A7), commits e9aa76cd and bc25f720.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: on 0.17 `sq operator add --slug squads` and `--slug qa` are refused (must start with op-), per ADR-979 A1-A5.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -179,6 +185,8 @@ The reserved display name `Operator` is a literal in `_services/_base.py:1278` (
 <!-- sq:finding:F4:discussion -->
 - [2026-10-15T22:18:57Z] `python-dev` Elias Python:
   - Fixed: ANONYMOUS_SLUG and ANONYMOUS_NAME live in _models/_participants.py; resolve_slug_or_raise, the two comment defaults and _author_of read them.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: ANONYMOUS_SLUG/ANONYMOUS_NAME from _models/_participants.py are read in _cli/_common.py, _services/_collab.py and _roster_projection.py.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -198,6 +206,8 @@ The dev reported `ghost` as unchanged behaviour (inferred in the hand-back). Tha
 <!-- sq:finding:F5:discussion -->
 - [2026-10-15T22:18:58Z] `python-dev` Elias Python:
   - Fixed: the importer refuses squads and operator as a comment actor (line-numbered issue, nothing written); unregistered grammatical actors like ghost still import. Falsified: 2 red.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: an import comment `as: squads` is refused, "that slug is reserved for system entries" (driven on 0.17).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -215,6 +225,8 @@ The dev reported `ghost` as unchanged behaviour (inferred in the hand-back). Tha
 <!-- sq:finding:F6:discussion -->
 - [2026-10-15T22:18:59Z] `python-dev` Elias Python:
   - Fixed: unset (importer and update path) validates keys with the same require_settable as set, so an unknown key or a slug is refused with the valid list. Falsified: 12 red. This replaces the earlier slug-only unset guard.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: import `unset_fields: ["SLUG"]` is refused, "not a settable field on a role" (driven on 0.17).
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 <!-- sq:findings:end -->

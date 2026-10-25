@@ -3,7 +3,7 @@ id: TASK-1135
 sequence_id: 1135
 type: task
 title: Make sq check name the real cause of a damaged file
-status: InProgress
+status: Done
 author: tech-lead
 assignee: python-dev
 priority: medium
@@ -20,21 +20,26 @@ description: Number clash, stray skill file, missing sub-entity regions, scaffol
 subentities:
 - local_id: ST1
   title: Check each indexed item against its own file's text
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST2
   title: Name the remedy for a stray stripped skill file
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST3
   title: Refuse and report missing sub-entity and discussion regions
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST4
   title: Read an untouched scaffold as unwritten after a field change
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST5
   title: Order import findings the way sq check does
-  status: Todo
+  status: Done
+  assignee: python-dev
 created_at: '2026-10-25T05:39:16Z'
-updated_at: '2026-10-25T16:02:39Z'
+updated_at: '2026-10-25T17:45:08Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -202,4 +207,24 @@ _Add with `sq task 1135 add-subtask "<title>"`; track with `sq task 1135 subtask
 <!-- sq:discussion -->
 - [2026-10-25T05:40:47Z] `tech-lead` Olivia Lead:
   - Drafted from the MILE-1051 bug triage; each bug re-read against release/0.17 HEAD, subtask bodies carry defect, expected behaviour and the falsifying table. Ordering and composition-root dependencies are in the body and on MILE-1051. Promote to Ready at dispatch.
+- [2026-10-25T16:20:26Z] `python-dev` Elias Python:
+  - Implemented ST1-ST5. Gates: pyright 0 errors, ruff check and format clean, tests/meta green, and 4787 targeted service/cli tests green (-k check/import/body/skill/sync/repair/scaffold/subtask/story/finding/discussion/comment).
+    
+    ST1: no code change needed. `_check.py` already drops the clashing number from `on_disk`/`bodies` once `shared_number_groups` finds it, so the indexed item is never checked against the other file (reproduced in a scratch squad: shared-number error only). Added rows to test_check_on_a_shared_number_reads_each_item_from_its_own_file.py (banner claimant, real container rename without clash, container rename with a bug claimant). Red seen with the two pops removed: task-and-bug and the container-rename claimant rows fail. The banner row stays green when the pops are removed (the banner is on the claimant type, which does not leak here); kept as a regression row. No CHANGELOG entry since nothing user-visible changed.
+    
+    ST2: `SkillFolder.stray_remedy` (`_skill_files.py`) plus `_base._skill_remedy` now handle a stamped file whose slug is not managed: healthy file with the same number -> "a stray copy of managed skill 'x', healthy in FILE; delete this file"; none but the index holds a managed skill at that number -> "no healthy file holds managed skill 'x'; delete this file and run `sq sync` to write it" (probed: sync does restore it); user-authored -> no managed remedy. Canonical stripped keeps `run sq sync`. Test: tests/service/test_check_names_the_remedy_for_a_skill_file_with_no_id.py (4 rows); with `stray_remedy` disabled both renamed rows go red.
+    
+    ST3: `_block_body_mutate` raises SquadsError naming the missing region before `replace_section` (covers the importer's sub-body op). `sq check` gets a new always-on file check `_absent_region_issues` in `_check.py` (error): missing discussion pair on a non-roster item, missing block pair or body pair per declared sub-entity, wording of the sq:body finding. Deviation: placed as a file check (the validators docstring says per-file unconditional invariants belong there) rather than a catalog validator, which would have touched the name registry, bundles, floors, docs and the effective-set tests; TASK-1126 should register it with the other file checks. Test: tests/cli/test_a_missing_sub_entity_or_discussion_region_is_refused_and_reported_cli.py (4 write rows with file and index bytes unchanged, 3 check rows, control). Reds: 7 of 8 fail with both fixes removed (control passes).
+    
+    ST4: derived, no stored fingerprint. `scaffold_matcher` (`_rendering/_engine.py`) renders the creation scaffold without and with the type's declared attributes marked, under every type sharing the creation template; lines only the marked render holds, or that carry a mark, are variable, and the body must equal the shared lines once its variable lines are gone. `view_tags.body_is_unwritten` takes it as an optional third argument; the body overwrite guard (`_items.py`) and `body_written` pass it. Test: tests/service/test_an_untouched_scaffold_reads_as_unwritten_after_a_field_change.py (review set/change/unset/control, authored rows, default-template retype via two custom types, four look-alike authored shapes). Reds: with the matcher returning False, 4 of the 14 rows fail (set, changed, unset, retype).
+    
+    ST5: `check_issue_sort_key` moved to `_services/_results.py` (CLI imports it; the `_cli -> _errors local` row removed from the import-edge table); `_board_debt_findings` sorts with it, so warnings and the --json issues follow it. Note check order is by message within level, so the banner warning now prints after "US1 ... unwritten". Tests: tests/service/test_import_findings_follow_the_order_check_prints.py (3 selections) and tests/cli/test_import_json_issues_follow_the_order_check_prints_cli.py (2). Red with the sort removed: 3 of 5 fail.
+    
+    CHANGELOG: four Fixed entries under 0.17.0 (ST2-ST5). Not run: full suite.
+- [2026-10-25T16:44:32Z] `reviewer` Paul Reviewer:
+  - Reviewed in REV-1143 (InReview, changes requested): 2 high, 3 medium, 3 low, 2 info. Details in the findings.
+- [2026-10-25T16:56:56Z] `python-dev` Elias Python:
+  - Fix round for REV-1143 done: regions are restored by writes (no missing-region error in check), scaffold_matcher replaced by re-scaffold on update/retype, container remedy and docs/changelog fixed. Targeted suites, gates and falsification rows green.
+- [2026-10-25T17:45:07Z] `manager` Catherine Manager:
+  - Done: REV-1143 Approved; delivered in f64955ab, df3109d2, 2b4ec713, 680c18b2. BUG-993, 987, 1022, 1014, 999 ready for QA verification.
 <!-- sq:discussion:end -->

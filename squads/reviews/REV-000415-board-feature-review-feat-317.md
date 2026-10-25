@@ -12,14 +12,14 @@ description: 'Feature-level review of the bulletin board: correct + well-tested;
 subentities:
 - local_id: F1
   title: Redundant frontmatter id on board notices
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F2
   title: Anti-clobber _unique_id path is untested
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-07-15T11:03:49Z'
-updated_at: '2026-07-15T11:09:18Z'
+updated_at: '2026-10-25T19:39:03Z'
 ---
 <!-- sq:body -->
 Feature-level review of the team bulletin board (FEAT-317: TASK-407..387), board-specific code only. Verdict: APPROVE. Behaviour is correct and meets US1-US5; gates clean (ruff/pyright/format, sq check, 44 board tests pass). Two low-severity follow-ups filed as findings below.
@@ -43,6 +43,8 @@ BoardNotice.to_frontmatter_dict writes an 'id' field, but from_frontmatter takes
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:03Z] `reviewer` Paul Reviewer:
+  - Holds: BoardNotice.to_frontmatter_dict omits id (_board/_model.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -56,6 +58,8 @@ _store._unique_id appends -2/-3 to avoid clobbering when a post hashes to an id 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:39:03Z] `reviewer` Paul Reviewer:
+  - Holds: tests/service/test_board_storage.py pins the disambiguating suffix on a repeated post.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 <!-- sq:findings:end -->

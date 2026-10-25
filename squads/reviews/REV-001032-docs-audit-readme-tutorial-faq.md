@@ -11,77 +11,77 @@ subentities:
 - local_id: F1
   title: 'Tutorial: every sq create lacks the required --author, so step 1 fails with
     exit 2'
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: 'Tutorial step 4: --as developer is refused as an unknown slug, not downgraded
     as the note claims'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: Tutorial promises a clean sq check but leaves two unwritten-body warnings
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: 'README omits the contract and milestone types: count, prefixes, lifecycles,
     layout, aliases, create'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: 'README: sq renumber shown without the required --from option; contradicts
     the FAQ'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F6
   title: 'README: claude_code pointers do not @-include the definition; contradicts
     Concepts'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F7
   title: 'README: agents_md backend no longer writes a .agents_md/ staging folder'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F8
   title: 'README: per-role preloaded skill lists are stale (manager, product owner,
     developer)'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F9
   title: 'README layout: .squads.toml does not hold the default role'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F10
   title: 'README: sq workflow subcommand list omits views and view'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F11
   title: 'README: sq graph --format omits mermaid-md'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F12
   title: 'README: generic sq create flag list does not apply to guides'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F13
   title: 'docs/README: migration.md index entry describes transformers and LLM runbooks
     that are not in the doc'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F14
   title: 'Tutorial: sample output path and ''IDs spent on roles'' understate what
     init allocates'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F15
   title: 'Tutorial: bare sq tree lists the 20 roster items before the hierarchy'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F16
   title: 'FAQ gap: no entry for Missing option --author or unknown slug errors'
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-10-16T08:44:34Z'
-updated_at: '2026-10-16T11:26:14Z'
+updated_at: '2026-10-25T19:31:04Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -121,6 +121,8 @@ _Add with `sq review 1032 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F1:discussion -->
 - [2026-10-16T09:02:15Z] `tech-writer` Theo Writer:
   - Fixed in docs/tutorial.md: every create carries --author (product-owner, tech-lead, qa, architect), plus a sentence in step 1 that every item is authored by a registered role.
+- [2026-10-25T19:31:04Z] `reviewer` Paul Reviewer:
+  - Holds: every `sq create` in docs/tutorial.md carries `--author`.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -144,6 +146,8 @@ _Add with `sq review 1032 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F2:discussion -->
 - [2026-10-16T09:02:18Z] `tech-writer` Theo Writer:
   - Fixed in docs/tutorial.md step 4: the comment uses --as tech-lead; the note says --as takes a registered slug (role, <tech>-dev after sq dev add, op-<slug>) and an unknown one is refused.
+- [2026-10-25T19:31:04Z] `reviewer` Paul Reviewer:
+  - Holds: docs/tutorial.md step 4 comments `--as tech-lead`; no `--as developer` remains.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -167,6 +171,8 @@ _Add with `sq review 1032 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F3:discussion -->
 - [2026-10-16T09:02:21Z] `tech-writer` Theo Writer:
   - Fixed in docs/tutorial.md: story 2 gets a body in step 2 and the second add-subtask passes -m; the tutorial run end to end on a fresh squad ends with sq check printing the clean result.
+- [2026-10-25T19:31:04Z] `reviewer` Paul Reviewer:
+  - Holds: docs/tutorial.md gives story 2 a body and both add-subtask lines a `-m`.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -190,6 +196,8 @@ _Add with `sq review 1032 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F4:discussion -->
 - [2026-10-16T09:02:24Z] `tech-writer` Theo Writer:
   - Fixed in README.md (twelve types, records bullet, PRD/MILE prefixes, two lifecycle rows, contracts/ milestones/ in layout with board/ and memory/ noted as appearing on first use, c/m/prd/mile aliases, create line) and docs/README.md layout.
+- [2026-10-25T19:31:04Z] `reviewer` Paul Reviewer:
+  - Holds: README.md says twelve types and lists the PRD and MILE prefixes.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -213,6 +221,8 @@ _Add with `sq review 1032 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F5:discussion -->
 - [2026-10-16T09:02:27Z] `tech-writer` Theo Writer:
   - Fixed in README.md Maintenance: sq renumber --from N (--onto M | --by K), with --from explained.
+- [2026-10-25T19:31:04Z] `reviewer` Paul Reviewer:
+  - Holds: README.md shows `sq renumber --from N (--onto M 
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -236,6 +246,8 @@ _Add with `sq review 1032 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F6:discussion -->
 - [2026-10-16T09:02:30Z] `tech-writer` Theo Writer:
   - Fixed in README.md Backends > claude_code: pointers name the sq command producing the definition.
+- [2026-10-25T19:31:04Z] `reviewer` Paul Reviewer:
+  - Holds: README.md Backends > claude_code says each pointer names the `sq` command producing the definition.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -261,6 +273,8 @@ Aside for the dev team, not a doc defect: on a brand-new empty directory the sam
 <!-- sq:finding:F7:discussion -->
 - [2026-10-16T09:02:33Z] `tech-writer` Theo Writer:
   - Fixed in README.md Backends > agents_md: the .agents_md/ sentence is replaced with "No staging files are written" and what to commit.
+- [2026-10-25T19:31:04Z] `reviewer` Paul Reviewer:
+  - Holds: README.md agents_md section says "No staging files are written".
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -284,6 +298,8 @@ Aside for the dev team, not a doc defect: on a brand-new empty directory the sam
 <!-- sq:finding:F8:discussion -->
 - [2026-10-16T09:02:36Z] `tech-writer` Theo Writer:
   - Fixed in README.md Working with agents: states the rule (squads, greeting, sq-memory plus one sq-<type> per playbook part) with current product-owner/developer/manager examples, re-read from generated pointers.
+- [2026-10-25T19:31:04Z] `reviewer` Paul Reviewer:
+  - Holds: README.md states the preload rule (squads, greeting, sq-memory plus one sq-<type> per lane).
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -307,6 +323,8 @@ Aside for the dev team, not a doc defect: on a brand-new empty directory the sam
 <!-- sq:finding:F9:discussion -->
 - [2026-10-16T09:02:39Z] `tech-writer` Theo Writer:
   - Fixed in README.md on-disk layout: .squads.toml holds squad dir, active backends, schema + package version.
+- [2026-10-25T19:31:04Z] `reviewer` Paul Reviewer:
+  - Holds: README.md layout describes .squads.toml with no default-role key.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -330,6 +348,8 @@ Aside for the dev team, not a doc defect: on a brand-new empty directory the sam
 <!-- sq:finding:F10:discussion -->
 - [2026-10-16T09:02:42Z] `tech-writer` Theo Writer:
   - Fixed in README.md command reference: views|view added to sq workflow with a clause.
+- [2026-10-25T19:31:04Z] `reviewer` Paul Reviewer:
+  - Holds: README.md `sq workflow [...]` line includes views and view.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -353,6 +373,8 @@ Aside for the dev team, not a doc defect: on a brand-new empty directory the sam
 <!-- sq:finding:F11:discussion -->
 - [2026-10-16T09:02:46Z] `tech-writer` Theo Writer:
   - Fixed in README.md command reference: sq graph --format dot|mermaid|mermaid-md.
+- [2026-10-25T19:31:04Z] `reviewer` Paul Reviewer:
+  - Holds: README.md `sq graph` line lists `--format dot
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -376,6 +398,8 @@ Aside for the dev team, not a doc defect: on a brand-new empty directory the sam
 <!-- sq:finding:F12:discussion -->
 - [2026-10-16T09:02:49Z] `tech-writer` Theo Writer:
   - Fixed in README.md command reference: create line notes guides take --tech/--tag in place of --label/--ref/--priority.
+- [2026-10-25T19:31:04Z] `reviewer` Paul Reviewer:
+  - Holds: README.md create line says guides take `--tech`/`--tag` in place of `--label`/`--ref`/`--priority`.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 
@@ -399,6 +423,8 @@ Aside for the dev team, not a doc defect: on a brand-new empty directory the sam
 <!-- sq:finding:F13:discussion -->
 - [2026-10-16T09:02:52Z] `tech-writer` Theo Writer:
   - Fixed in docs/README.md index: migration.md entry now describes sq migrate up, help/chlog, breaking changes and per-release manual steps.
+- [2026-10-25T19:31:04Z] `reviewer` Paul Reviewer:
+  - Holds: docs/README.md migration.md entry describes migrate up, help/chlog and per-release steps.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
 
@@ -422,6 +448,8 @@ Aside for the dev team, not a doc defect: on a brand-new empty directory the sam
 <!-- sq:finding:F14:discussion -->
 - [2026-10-16T09:02:55Z] `tech-writer` Theo Writer:
   - Fixed in docs/tutorial.md: IDs are the real ones from a fresh sq init --roles all (EPIC-21 onward), credited to roles and their generated skills, and the printed path shown as absolute.
+- [2026-10-25T19:31:04Z] `reviewer` Paul Reviewer:
+  - Holds: docs/tutorial.md starts at EPIC-21 with an absolute path and credits roles and skills.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 
@@ -445,6 +473,8 @@ Aside for the dev team, not a doc defect: on a brand-new empty directory the sam
 <!-- sq:finding:F15:discussion -->
 - [2026-10-16T09:02:58Z] `tech-writer` Theo Writer:
   - Fixed in docs/tutorial.md step 7: sq tree EPIC-21, with a note that the bare form lists every root including the roster.
+- [2026-10-25T19:31:04Z] `reviewer` Paul Reviewer:
+  - Holds: docs/tutorial.md uses `sq tree EPIC-21` and explains the bare form.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
 
@@ -468,6 +498,8 @@ Aside for the dev team, not a doc defect: on a brand-new empty directory the sam
 <!-- sq:finding:F16:discussion -->
 - [2026-10-16T09:03:01Z] `tech-writer` Theo Writer:
   - Fixed in docs/faq.md: two new entries, "Missing option --author" and "unknown slug", both reproduced on the dev build.
+- [2026-10-25T19:31:04Z] `reviewer` Paul Reviewer:
+  - Holds: docs/faq.md has "Missing option '--author'" and "unknown slug" entries.
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
 <!-- sq:findings:end -->

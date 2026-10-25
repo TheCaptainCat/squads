@@ -17,7 +17,7 @@ description: Engine behaviour keys off declared status roles, never literal stat
   names; the loader enforces a per-capability floor and overrides may shadow built-ins
   under validation
 created_at: '2026-07-29T15:18:18Z'
-updated_at: '2026-08-15T14:19:46Z'
+updated_at: '2026-10-25T21:42:42Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -27,47 +27,37 @@ reads is *vocabulary* — type names, status names, prefixes, labels — and tha
 fully adopter-owned: `Item.type` and `Item.status` are plain `str`, the spec is the sole
 vocabulary authority, and every non-roster type may be dropped, renamed, or re-prefixed. The
 rest is *semantics* — "is this item still open", "is this status hidden from the default
-list", "is this roster entry live" — and semantics is where the engine still cheats in two
-opposite directions at once.
+list", "is this roster entry live" — and an engine can get semantics wrong in two opposite
+directions.
 
-**It binds some semantics to literal names.** `_workflow/_models.py::_RESERVED_FLOOR` requires
-every spec, bundled or overridden, to declare the literal statuses `Draft`, `Active`, and
-`Archived`; the module docstring calls them "the agent-lifecycle statuses the engine binds by
-literal name". The bindings themselves are few and enumerable — four create sites in
-`_services/_roster.py`, four skill-seed sites in `_services/_maintenance.py`, and the
-active-column tick in `_cli/_role.py` — but they are the reason those three names cannot move.
+**It can bind semantics to literal names.** Requiring every spec to declare particular status
+names (an agent lifecycle of `Draft`, `Active`, `Archived`, say) because a handful of create,
+seed and display sites name them freezes those names for every project, whatever its own
+vocabulary.
 
-**And it trusts the spec for the rest.** A lifecycle can be declared that no engine behaviour
-can actually drive, and nothing at load says so. One such hole was already closed —
-`_check_reachable_settled` refuses a machine that can never reach a settled status, because
-items stuck on it would break `sq blocked`, the default closed-item filter, and inbox
-suppression. That check is the template this decision generalises: the engine states what it
-needs, and the loader refuses a spec that does not supply it.
+**Or it can trust the spec for the rest.** A lifecycle can be declared that no engine behaviour
+can drive. `_check_reachable_settled`, which refuses a machine that can never reach a settled
+status (items stuck on it would break `sq blocked`, the default closed-item filter and inbox
+suppression), is the template this decision generalises: the engine states what it needs, and the
+loader refuses a spec that does not supply it.
 
-The semantic seam the engine should be reading is already in the spec and already exposed to
-clients. `StatusSpec.role` names an entry in the `RoleSpec` catalog carrying
-`settled`/`hidden`/`color`; `sq workflow statuses --json` and `sq workflow roles --json` publish
-both halves; the bundled roster machine maps `Draft → pending`, `Active → active`,
-`Archived → retired`; and `is_open`, `terminal_set`, and `hidden_by_default` are already
-derived from the role, never from the name. The VS Code Roster view's hide-archived filter
-already runs off `isHiddenByDefault(item, statusRoles, roleCatalog)` — role-derived, no status
-literal. So the seam works; the engine is simply not using it everywhere.
+The semantic seam the engine reads is in the spec and exposed to clients: `StatusSpec.role`
+names an entry in the `RoleSpec` catalog (ADR-604); `sq workflow statuses --json` and
+`sq workflow roles --json` publish both halves; the bundled roster machine maps
+`Draft → pending`, `Active → active`, `Archived → retired`; and `is_open`, `terminal_set` and
+`hidden_by_default` are derived from the role, never from the name.
 
-One more fact makes this urgent rather than cosmetic. `_loader.py::_collect_additive_conflicts`
-refuses **any** override key that names a built-in lifecycle, status, item type, collection,
-sub-entity kind, or status role. A project therefore cannot rebind `role`, `skill`, or
-`operator` to a renamed lifecycle at all — not even to one that declares the same three
-semantics under different names. Any promise that a project's roster lifecycle is
-customisable is unreachable while that restriction stands.
+An additive-only override policy (refusing any override key that names a built-in lifecycle,
+status, type, collection, sub-entity kind or status role) would leave a project unable to rebind
+`role`, `skill` or `operator` to a renamed lifecycle at all, so a customisable roster lifecycle
+needs a real override engine.
 
-**The replacement for that restriction is already designed.** EPIC-538 settled a single shared
-override engine — deep recursive merge at leaf granularity, an `active`-keyed deselect (renamed
-`selected` in §4b), and eval-free splat-refs — reused by the workflow, playbook, and roles loaders, and explicitly framed as
-replacing the additive-only policy. It also names the playbook as the fourth override kind and the
-consolidation of the three bundled TOMLs into one directory. That design is settled input to this
-decision, not something to re-derive: §4 and its sub-sections adopt it, and the parts of this
-decision that are genuinely new are the semantic floor (§3), the role-keyed lookups that make the
-floor expressible (§2), and the ordering that makes deselect safe without its own rulebook (§4b).
+**That engine's design is EPIC-538's**: one shared override engine, deep recursive merge at leaf
+granularity, a deselect (`selected`, §4b) and eval-free splat-refs, reused by the workflow,
+playbook and roles loaders, with the playbook as the fourth override kind and the three bundled
+documents in one directory (`_specs/`). §4 and its sub-sections adopt it; what this decision adds
+is the semantic floor (§3), the role-keyed lookups that make the floor expressible (§2), and the
+ordering that makes deselect safe without its own rulebook (§4b).
 
 ## Decision
 
@@ -106,18 +96,17 @@ role_name)` pair has no caller left once the sites below convert, so the two acc
 **reshaped into the two above rather than kept alongside them** — accumulating a public accessor
 with no caller is how the dead-code scan earns its keep.
 
-`_RESERVED_FLOOR` and the `STATUS_DRAFT` / `STATUS_ACTIVE` / `STATUS_ARCHIVED` constants leave
-`_workflow`'s surface. The nine converted call sites resolve into three groups, and the group a
-site belongs to is a design question, not a mechanical substitution:
+There is no reserved status floor and there are no `STATUS_*` constants. The sites that need
+lifecycle semantics fall into three groups, and the group a site belongs to is a design question,
+not a mechanical substitution:
 
-| Site | What it actually needs | After |
+| Site | What it actually needs | Resolves through |
 | --- | --- | --- |
-| `_services/_roster.py` — `activate_role`, `add_dev`, `add_skill`, `add_operator` (4 sites) | the lifecycle's own `initial` — and `create()` already defaults to it | **drop the `status=` argument** |
-| `_services/_maintenance.py` — the four system-skill seed sites (2 `Item(...)` constructions + their 2 matching reflog payloads) | created **live**, not merely created | `status=spec.live_initial(ROSTER_SKILL)` |
-| `_cli/_role.py` — the roster table's tick column | the live predicate | `r.status in spec.live_statuses(ROSTER_ROLE)`, and the column header renamed off `Active` to match the flag |
+| roster creation — `activate_role`, `add_dev`, `add_skill`, `add_operator` (`_services/_roster.py`) | the lifecycle's own `initial` | no `status=` argument: `create()` defaults to `initial` |
+| system-skill seeding (`_services/_maintenance.py`, the `Item(...)` constructions and their reflog payloads) | created **live**, not merely created | `status=spec.live_initial(ROSTER_SKILL)` |
+| the roster table's tick column (`_cli/_role.py`) | the live predicate | `r.status in spec.live_statuses(ROSTER_ROLE)`, under a column header named for the flag |
 
-The middle row is the one that does not follow the general rule, and it is worth stating why
-rather than leaving an implementer to discover it. Those four sites are squads scaffolding its
+The middle row is the one that does not follow the general rule, and the reason is worth stating. Those four sites are squads scaffolding its
 own system skills, and a generated role entry preloads a skill **by slug**, independently of that
 skill item's status. Seeding a system skill at a non-live `initial` would therefore leave a
 freshly initialised squad with every role entry preloading three skills that were never
@@ -129,10 +118,9 @@ skill, the roster `add`/`activate` verbs) honours whatever `initial` the project
 and `_v0_8_to_v0_10.py` each hold a private `_STATUS_ACTIVE = "Active"`. That is correct and
 must not be "fixed": a migration transforms a corpus written at a pinned schema version, so it
 must read the vocabulary that version actually used, never the live spec. The two are already
-private module constants, not imports of the shared name, so the retirement in this section
-does not touch them.
+private module constants, not imports of a shared name.
 
-**Guard.** A `tests/meta` scan keeps the rule true after this lands: no bundled roster status
+**Guard.** A `tests/meta` scan keeps the rule true: no bundled roster status
 name may appear as a literal in `src/squads/` outside the bundled spec package (`_specs/`, which
 holds `workflow.toml` and its two siblings) and `_migrations/`. This is the same shape as the
 existing meta guards (stray ticket references, module-level mutable state) — a cheap, readable
@@ -146,12 +134,10 @@ it means the exemption's safety rests on the directory containing no engine code
 standing property of the layout, not an accident of it: **`_specs/` holds the bundled documents and
 a docstring-only package marker, and no logic ever moves there.** Anything that reads or interprets
 those documents belongs to the loader that owns it (`_workflow`, `_roles`, `_interactions`), which
-is where the scan can still see it. The directory's own name is a weaker guarantee than it used to
-be: a package named for specs reads more like a code layer than the data-sounding name this package
-carried earlier, which is precisely why the property is written down here rather than left to the
-name to imply.
+is where the scan can still see it. A package named for specs reads like a code layer, which is
+why the property is written down here rather than left to the name to imply.
 
-### 2a. The `live` flag: a fourth field on the status role
+### 2a. The `live` flag on the status role
 
 The materialisation axis gets **its own boolean on the status-role object**, alongside `settled`,
 `hidden`, and `color`:
@@ -189,10 +175,10 @@ for the mirrored reason: wrongly offering an entry writes an agent into a host's
 worse than wrongly withholding one. A custom role is therefore not live until its author says
 so.
 
-Adding the field is a **spec-format change and nothing more** — no schema bump and no migration
-runner. Neither the role name nor the role's flags ever appear in item frontmatter or the index;
-they are workflow-spec vocabulary. The bundled spec gains `live = true` on one role and the
-default everywhere else, and `sq workflow roles --json` gains the field additively.
+The field is **spec-format vocabulary and nothing more** — no schema bump and no migration
+runner. Neither the role name nor the role's flags ever appear in item frontmatter or the index.
+The bundled spec sets `live = true` on the `active` role alone, and `sq workflow roles --json`
+publishes the field (an additive key on ADR-604's catalog).
 
 ### 3. The floor: what a lifecycle must declare to be usable
 
@@ -221,12 +207,10 @@ an `sq` view odd:
   `Suspended`) satisfies the spirit of "stop being live" but not R2 — a lifecycle needs a real
   end as well as a pause, and may have both.
 
-**R1 was `exactly one` in this decision as first written, and that rationale is withdrawn, not
-qualified.** The uniqueness was justified solely by giving the create path an unambiguous write
-target. The lifecycle already declares one — `initial` — and the existing lifecycle checks already
-validate it, so uniqueness was buying something the spec had all along. R1′ keeps exactly the
-sliver of uniqueness that `initial` cannot cover, and nothing more. What this relaxation *gains*
-is stated in the consequences: a project may declare a non-live `initial` and get a
+**R1 asks for at least one live status, not exactly one.** Uniqueness would only give the create
+path an unambiguous write target, and the lifecycle already declares one, `initial`, validated by
+the existing checks. R1′ keeps exactly the sliver of uniqueness `initial` cannot cover. What that
+buys is stated in the consequences: a project may declare a non-live `initial` and get a
 parked-then-activated roster entry with no special casing anywhere in the engine.
 
 All three clauses are derived from the role assignment and the `initial` the spec already carries.
@@ -243,15 +227,12 @@ because they read well; a project may declare others.
 
 ### 4. Overrides: shadowing is allowed and validated, not refused
 
-The additive-only rule is replaced by **declared-override**. An override key that names a
-built-in overrides it; the guardrail is the floor above plus the checks already in
-`WorkflowSpec._validate`, not a blanket refusal.
+Overrides are **declared-override**, not additive-only. An override key that names a built-in
+overrides it; the guardrail is the floor above plus the checks in `WorkflowSpec._validate`, not a
+blanket refusal.
 
-The engine that performs the merge is **not new here**. EPIC-538 settled its design — one shared
-override engine reused by the workflow, playbook, and roles loaders, built from deep recursive
-merge, `selected`-based deselect, and splat-refs — and this section is that design, restated as a
-decision with the floor rules it did not have. What follows says where the two agree, where this
-extends the design, and the one place it contradicts it.
+The merge engine is EPIC-538's design (`_specmerge.py`, shared by the three loaders through
+`_specload.py`), restated here as a decision with the floor rules it did not have.
 
 - **Merge granularity: deep recursive merge at leaf granularity.** An override supplies only the
   fields it changes; everything else inherits from the bundled built-in. Tables recurse per key;
@@ -259,8 +240,7 @@ extends the design, and the one place it contradicts it.
   "per-field merge" phrasing that stood here before — per-field is what recursion looks like one
   level down from a section, and the recursive statement is the correct general one because the
   spec nests (an `ItemSpec` holds a `LabelSpec`; a `Collection` holds `Badge`s). It also matches
-  the precedent already frozen for role overrides ("roles merge field-wise by slug",
-  `docs/stability.md`).
+  role overrides, which merge field-wise by slug.
 - **Plain arrays are leaves — replaced wholesale, never element-merged — unless a splat-ref is
   used.** A `transitions` map recurses because it is a table; a `badges` list, a `fields` list, a
   `parents` list, a `validators` list is replaced whole. Silently unioning list elements would
@@ -268,38 +248,28 @@ extends the design, and the one place it contradicts it.
   appending without restating.
 - **Deselect via `selected`** — §4b.
 - **Splat-refs** — §4a.
-- **What survives as prohibition.** The reserved-vocab core stands: the three roster type
-  *keys* (`role`, `skill`, `operator`) must exist, and `category` may not move into or out of
-  `roster`. **This contradicts, deliberately, both ADR-541's type-axis floor and EPIC-538's
-  roster-locked invariant**, each of which forbids an override to "add, deactivate, field-merge,
-  or rename/re-prefix" a `category = roster` type. Roster *membership* stays closed in both
-  directions and a roster type key can never be dropped; but a roster type's other fields —
-  its `lifecycle` above all, and its prefix, folder, labels, and order — become ordinary
-  validated customisation, subject to the same uniqueness and live-item checks every other type
-  faces. The reason is the constrain-don't-lock direction, which postdates both statements: a
-  locked roster lifecycle makes the roster's declared states unnameable by the project whose
-  agents they describe, and the safety a lock bought is bought instead by §3's floor. It is also
-  the narrower claim on the evidence — the engine binds the roster by type **key**
-  (`ROSTER_ROLE`/`ROSTER_SKILL`/`ROSTER_OPERATOR`) and by the fixed `category`, and binds nothing
-  to a roster type's prefix or folder; no such literal exists in `src/` outside the migration
-  runners, which read the vocabulary of the schema version they transform and are correctly frozen.
-  A lock over a field no call site reads is a prohibition standing in for a check, which is what §1
-  exists to retire. **This overrides that one clause and nothing else in either statement**, and the
-  override is recorded at both ends: ADR-541's floor section and its category bullet are narrowed in
-  place with a dated amendment note pointing here, so neither decision is left asserting the other's
-  reverse. ADR-541 is not superseded as a whole — it remains the authority on the category taxonomy
-  and the validator model; only its field-axis clause is overridden.
-- **Failure shape.** `_collect_additive_conflicts` becomes `_collect_floor_violations`, keeping
-  its two calling modes: fail-fast for `open_service` (raise on a non-empty collected list) and
+- **What survives as prohibition.** The three roster type *keys* (`role`, `skill`, `operator`)
+  must exist, may not be added to, dropped (including via `selected`) or renamed, and `category`
+  may not move a type into or out of `roster` (ADR-541's floor). A roster type's other fields — its
+  `lifecycle` above all, and its prefix, folder, labels and order — are ordinary validated
+  customisation, subject to the same uniqueness and live-item checks every other type faces. A
+  locked roster lifecycle would make the roster's states unnameable by the project whose agents
+  they describe, and the safety a lock would buy is bought by §3's floor instead. The engine binds
+  the roster by type **key** (`ROSTER_ROLE`/`ROSTER_SKILL`/`ROSTER_OPERATOR`) and the fixed
+  `category`, and nothing to a roster type's prefix or folder; no such literal exists in `src/`
+  outside the frozen migration runners. A lock over a field no call site reads would be a
+  prohibition standing in for a check, which is what §1 retires. ADR-541 remains the authority on
+  the category taxonomy and the validator model; this decision is the governing statement on the
+  roster's field axis.
+- **Failure shape.** `_collect_floor_violations` (`_workflow/_loader.py`) has two calling modes: fail-fast for `open_service` (raise on a non-empty collected list) and
   collect-all for `sq workflow lint` (one finding per violation, each carrying the override
   path and a fix hint). Refusal is a clean `SquadsError`, never a traceback.
-- **Drift.** Under ADR-85, template and role overrides carry an `override-base` version stamp so `sq check`
-  can warn when the bundled counterpart moves; a workflow override could not drift before,
-  because it could only *add*. Now that it can shadow, it inherits the obligation: an override
-  file that shadows at least one built-in key must carry an `override-base` stamp, read by the
-  loader and fed to the existing drift warning. An override that only adds new keys needs no
-  stamp, exactly as today. The playbook override, as the fourth override kind, inherits the same
-  stamp and the same `sq override` verbs.
+- **Drift.** Under ADR-85, overrides carry an `override-base` version stamp so `sq check` can warn
+  when the bundled counterpart moves. Because a workflow override can shadow, it carries the same
+  obligation: an override file that shadows at least one built-in key must carry an
+  `override-base` stamp, read by the loader and fed to the drift warning. An override that only
+  adds new keys needs no stamp. The playbook override carries the same stamp and the same
+  `sq override` verbs (ADR-777).
 
   **The stamp is the comment marker, not a spec key** — `# squads:override-base:<version>` on the
   file's first line, the same grammar the role TOML overrides already carry (and the HTML-comment
@@ -327,18 +297,17 @@ extends the design, and the one place it contradicts it.
 
   **What "must carry" means, and where it is enforced.** The obligation is reported, not a load-time
   refusal: a shadowing override with no stamp is an **error**-level finding from `sq workflow lint`
-  and `sq check`; a stamp older than the running version keeps today's drift **warning**; an add-only
+  and `sq check`; a stamp older than the running version gets the drift **warning**; an add-only
   override with no stamp reports nothing. Absent provenance is not a semantic hazard — the merged
   spec either satisfies the floor or it does not, and that verdict is unchanged by whether the file
   says what it was branched from — so refusing to run `sq` over a missing comment would be a hard
   stop the floor itself does not need. The floor's fail-fast refusals (above) stay hard stops; this
   one is not one of them.
 
-  Two surfaces move with this and are part of the same obligation: the drift classifier keeps its
-  three states, with an unstamped file classified not-current (a file with no base has by definition
-  not been reconciled), and the workflow `sq override diff`'s Δ-mine — which today diffs against an
-  empty reference on the grounds that the override is additive-only — must diff against the bundled
-  spec once shadowing is possible, or it stops describing what the adopter actually changed.
+  Two surfaces belong to the same obligation: the drift classifier keeps its three states, with an
+  unstamped file classified not-current (a file with no base has by definition not been
+  reconciled), and `sq override diff`'s Δ-mine diffs the workflow override against the current
+  bundled spec, so it describes what the adopter actually changed.
 
 ### 4a. Splat-refs: composing onto a bundled list without restating it
 
@@ -450,9 +419,8 @@ weakening a stated invariant to match code that could cheaply satisfy it is how 
 meaning anything. A bounded refusal also lands on the same violation channel as everything else, so
 it collects in lint mode instead of aborting the pass.
 
-**A splice is never checked against the shape of the key it lands on**, and the earlier wording "a
-table where a scalar is due" is withdrawn rather than reinterpreted. Two reasons, the second
-decisive. First, "where a scalar is due" is schema knowledge, which the engine deliberately does not
+**A splice is never checked against the shape of the key it lands on.** Two reasons, the second
+decisive. First, "a table where a scalar is due" is schema knowledge, which the engine deliberately does not
 have; the only schema-free reading is a comparison against the *base's* shape at the destination.
 Second, that reading would make a splice stricter than the literal it abbreviates: `deep_merge`
 knowingly lets a hand-written leaf replace its counterpart with a different shape, so an adopter
@@ -480,18 +448,16 @@ territory means the string must be a well-formed whole-value token or it fails c
 value that merely *contains* `$(` somewhere after its first character is data: it is left verbatim,
 no violation, no escape required. `$$(` at the start escapes a string that must literally begin `$(`.
 
-This narrows a detection predicate that was wider than the recognition rule it enforces. The
-recognition rule — stated three times — is that a token is recognised only when it is the **entire**
-string value; a check that fires on `$(` *anywhere* therefore rejects strings the grammar was never
-going to interpret. It has to be narrowed rather than papered over, because **the splat sigil is
-POSIX command-substitution syntax**, and one of the three documents this engine serves carries shell
+The detection predicate matches the recognition rule it enforces: a token is recognised only when
+it is the **entire** string value, so a check firing on `$(` *anywhere* would reject strings the
+grammar was never going to interpret. That matters because **the splat sigil is POSIX
+command-substitution syntax**, and one of the three documents this engine serves carries shell
 content: a playbook entry's `commands` are command lines, and its guidance arrays quote them. Under
 the wide predicate `git commit -m "$(cat msg)"` is a load failure explained in terms of a grammar the
-author never used, and every tool that ever writes a bundled string into an override file inherits a
-standing duty to escape on the way out — a duty that also makes the written file differ from its
-bundled source on every such line, so `sq override diff`'s Δ-mine would show differences the adopter
-did not make. Narrowing the predicate removes the duty instead of distributing it; it is not a change
-of sigil, and the token syntax is untouched.
+author never used, and every tool that ever writes a bundled string into an override file would
+inherit a standing duty to escape on the way out — a duty that also makes the written file differ
+from its bundled source on every such line, so `sq override diff`'s Δ-mine would show differences
+the adopter did not make. The leading-`$(` predicate removes the duty instead of distributing it.
 
 Two consequences, both accepted deliberately:
 
@@ -593,8 +559,8 @@ by a deselect must say so: "lifecycle `agent` has no live status" is unactionabl
 if the adopter cannot see that their own `selected` line removed it. The collected report notes,
 per violation, when a missing key was *dropped from a `selected` list* rather than never declared.
 
-**The mechanism is spelled `selected`, in one top-level table.** EPIC-538 put a per-section
-top-level `active` key inside each section, and that shape has two problems. It **does not parse**:
+**The mechanism is spelled `selected`, in one top-level table.** A per-section `active` key inside
+each section (the shape EPIC-538 sketched) has two problems. It **does not parse**:
 a top-level key inside a section table collides with a sub-table of the same name, and the bundled
 spec has exactly that collision — `[roles.active]` is a declared status role, so `[roles]` cannot
 also carry an `active` key, and `tomllib` rejects the file outright with `Cannot declare ('roles',
@@ -628,8 +594,8 @@ implemented at the raw-mapping layer rather than left to `extra="forbid"`, becau
 sees such a key: the loader builds each spec model from an explicit payload of named sections, so a
 stray top-level key is **dropped in the gap between the parsed document and the model** and reaches no
 validator at all. That is the same fail-open class as a deselect that silently does nothing — the
-resulting spec is valid, it is simply not the spec the adopter wrote — and it is why a mistyped section
-name (`[item.task]` for `[items.task]`) currently produces no error and no effect.
+resulting spec is valid, it is simply not the spec the adopter wrote — which is what a mistyped
+section name (`[item.task]` for `[items.task]`) would do without this rule.
 
 Two things depend on this being explicit rather than assumed. A mistyped or misplaced section is the
 most likely large-scale override mistake there is, and it should say so instead of quietly doing
@@ -658,8 +624,7 @@ harmonisation debt:
   lifecycle which references statuses; a playbook entry references role slugs and a type name.
   Splitting a referentially coupled graph across per-key files would scatter it and make a single
   base stamp meaningless.
-- **Roles: a per-slug delta file** (`.overrides/roles/<slug>.toml`), which is what ships today and
-  what stays. The role catalog is a flat registry of independent entities with no cross-entity
+- **Roles: a per-slug delta file** (`.overrides/roles/<slug>.toml`). The role catalog is a flat registry of independent entities with no cross-entity
   structure, so the filename *is* the key. One file per role is what lets `sq override
   scaffold`/`diff`/`update` work per role and each role carry its own base stamp — a project can
   be current on one role and stale on another, which a single fused file could not express.
@@ -667,11 +632,10 @@ harmonisation debt:
 **Deselect lives only in the workflow spec; the other two derive theirs.** This is the reason the
 asymmetry costs nothing:
 
-- The **playbook's** active type set is not independently declarable — the coverage rule already
-  requires a playbook entry for exactly the spec's non-roster types, so dropping a type from the
-  workflow spec drops its playbook entry as a consequence. (That consequence is not yet real:
-  the playbook resolves against the bundled spec at import rather than against the active one,
-  which is the same statelessness seam this depends on.)
+- The **playbook's** active type set is not independently declarable — the playbook resolves
+  against the squad's merged workflow spec (`resolve_documents`), and its coverage rule follows
+  that spec's non-roster types, so dropping a type from the workflow spec drops its playbook entry
+  as a consequence.
 - The **roles catalog** needs no deselect because a bundled role is a menu entry, not a roster
   member: nothing is materialised until `sq role activate`, so declining a role is simply not
   activating it. A project cannot hide an unwanted role from `sq role catalog`, which is a
@@ -691,9 +655,9 @@ already satisfied everything the engine will assume about it.
 
 ### 5a. The live-corpus cross-check compares a type's prefix and folder, not only its name
 
-The cross-check as it stands compares each live item's **`type` and `status` names** against the
-merged spec. Two more of a type's fields are load-bearing for items already written under them, and
-changing either against a non-empty corpus is unsafe:
+Besides each live item's **`type` and `status` names**, the cross-check compares two more of a
+type's fields, which are load-bearing for items already written under them; changing either
+against a non-empty corpus is unsafe:
 
 - **`prefix`** — an item's prefix is durable, carried in its frontmatter `id` and re-derived from
   that id on every read, never resolved from the spec. Re-prefixing a type therefore does not
@@ -742,8 +706,8 @@ the message says plainly that the change cannot be applied to items already writ
 
 ## Alternatives considered
 
-**Lock the roster lifecycle: keep `_RESERVED_FLOOR` and refuse any roster override.** The
-strongest argument for it is real: it is free, it is already implemented, and it makes every
+**Lock the roster lifecycle: a reserved status floor, and refuse any roster override.** The
+strongest argument for it is real: it is cheap, and it makes every
 roster-facing binding trivially correct — the engine can say `Active` because `Active` is
 guaranteed to exist and to mean what it means. It loses on two counts. First, it is a
 prohibition standing in for a check the engine needs anyway: the roster is not the only place
@@ -755,7 +719,7 @@ cheaper to ship and more expensive to keep: every future capability inherits the
 name a literal, because the floor tells it a name is safe.
 
 **Require the role names `active`, `retired`, and `pending` in every spec.** Simple, and it
-matches how the roster reads today. Rejected: it moves the lock from the status axis to the
+matches how the bundled roster reads. Rejected: it moves the lock from the status axis to the
 role axis without reducing it, and no role name is needed at all — being-on-offer comes through
 §2a's `live` flag, retirement and default-hiding through `settled`/`hidden`, and the create-at
 target through the lifecycle's `initial`. All four are properties, not names.
@@ -819,51 +783,40 @@ fail-safe-*visible*, and even that requires the fallback role to be declared.
 - Every capability that needs lifecycle semantics now has one place to say so and one place to
   be checked. The next such capability adds a clause to §3's floor rather than a literal to a
   call site.
-- **A parked-then-activated roster entry becomes declarable, with no special casing anywhere.**
+- **A parked-then-activated roster entry is declarable, with no special casing anywhere.**
   A project that declares its roster lifecycle's `initial` status *non-live* gets exactly that:
   `sq role activate <slug>` (or `skill add`, or `operator add`) creates the entry at `initial`,
   nothing is materialised, and a later transition to a live status is what puts the agent in
   front of the host. The engine needs no branch for it — the create path reads `initial` and the
   projection reads the flag, and the two simply disagree for a while. This is the capability the
-  bundled two-state lifecycle no longer has, now available to anyone who wants it without the
-  bundled spec carrying a state it never used.
+  bundled two-state lifecycle does not carry, available to anyone who wants it.
 - **One verb reads oddly under that choice.** `sq role activate` means "add this bundled role to
-  my roster", and with a non-live `initial` it adds without activating. The wart is pre-existing
-  and this decision does not rename anything; it is worth knowing before an adopter reads it as a
-  bug.
+  my roster", and with a non-live `initial` it adds without activating; worth knowing before an
+  adopter reads it as a bug.
 - **Cost to adopters: a workflow override can now be wrong in a new way.** Shadowing a
   built-in lifecycle can violate R1/R2 or strand live items, and the failure is a hard stop at
   load — `sq` refuses to run until the override is fixed. `sq workflow lint` reports every
   violation at once with a fix hint, and the failure is at load rather than mid-command, but
   the sharp edge is real and is the direct price of the freedom.
-- **Cost to adopters: shadowing creates upgrade work that adding never did.** A shadowed
+- **Cost to adopters: shadowing creates upgrade work that adding does not.** A shadowed
   built-in stops tracking the bundled spec. The `override-base` stamp makes the drift visible
   instead of silent, which is the most that can be done — `sq override diff` and the manual
   merge become part of the adopter's upgrade path for the workflow spec too.
-- No existing squad breaks. Every squad on disk carries either no workflow override or an
-  additive one, and both remain valid: the floor's universal clauses are already satisfied by
-  the bundled machines, and R1/R2 hold for the bundled roster lifecycle
-  (its `Active` status is live and is the lifecycle's `initial`, satisfying R1 and vacating R1′;
-  its retired status is settled, non-live, and reachable from the live one, satisfying R2). No schema bump and no migration runner is owed.
-- `docs/stability.md` currently freezes "workflow overrides are **additive-only**" and lists
-  the three reserved statuses as part of the override contract. Both statements become wrong
-  when this lands and need a rewrite before 1.0, alongside the roster-lifecycle grammar.
-- **Splat-refs add a resolution pass every load must run, and a new class of override error.**
-  Three failure modes an adopter did not have before — a dangling path, a type mismatch, a
-  surviving unparsed token — each of which fails the whole load. The mitigation is that all three
-  are load-time and collected, and the last one exists precisely so a typo cannot become silent
-  data. The cost is real: the override file is no longer purely declarative, and reading one now
+- An additive override stays valid: the floor's universal clauses are satisfied by the bundled
+  machines, and R1/R2 hold for the bundled roster lifecycle (its `Active` status is live and is the
+  lifecycle's `initial`, satisfying R1 and vacating R1′; its retired status is settled, non-live,
+  and reachable from the live one, satisfying R2). None of this is item data: no schema bump, no
+  migration runner.
+- **Splat-refs add a resolution pass every load must run, and a new class of override error**:
+  the five refusals of §4a, each of which fails the whole load. The mitigation is that they are
+  load-time and collected, and the malformed-token refusal exists precisely so a typo cannot
+  become silent data. The cost is real: the override file is no longer purely declarative, and reading one now
   requires knowing the bundled base it composes against.
 - **Deselect makes a spec harder to read in exchange for making it possible to shrink.** What a
   project's vocabulary actually *is* becomes a function of the bundled set, the override's
   declarations, and the `selected` lists together. `sq workflow lint` and the type catalog surface
   are the only honest answer to "what types do I have"; hand-reading the override file is not.
-- **The playbook cannot honour its half of this until it resolves per-request.** It is an
-  import-time singleton over the bundled spec, so a `.overrides/playbook.toml` merged by the
-  shared engine would still be composed against, and validated for coverage against, the bundled
-  type set rather than the project's. The engine and the fourth override kind are separable work,
-  but the playbook override is not correct without the statelessness change beneath it.
-- **The `live` flag is a fourth thing a spec author must understand about a status role**, and
+- **The `live` flag is one more thing a spec author must understand about a status role**, and
   the one whose default they are most likely to get wrong by omission — a project that declares a
   custom roster role and forgets `live = true` gets a spec that fails R1 at load rather than a
   squad that quietly offers nothing, which is the right failure but still a failure they have to
@@ -895,300 +848,6 @@ fail-safe-*visible*, and even that requires the fallback role to be declared.
 - The forward door this leaves open: the same floor mechanism can carry per-capability
   requirements for future non-roster capabilities (a velocity capability needing a declared
   in-progress role, say) without another decision on the mechanism itself.
-
-## Amendment note
-
-**2026-07-30 — reconciled with EPIC-538's settled override-engine design.** As first written,
-this decision replaced the additive-only rule with a merge of its own devising ("per-field, with
-collection-valued fields replaced wholesale") and cited no prior design. EPIC-538 had already
-settled one: a single shared override engine — deep recursive merge at leaf granularity,
-`selected`-based deselect, eval-free splat-refs — reused by the workflow, playbook, and roles
-loaders, plus the playbook as a fourth override kind. An implementer following the earlier text
-alone would have built a narrower engine than the one already designed.
-
-What changed: §4's merge is restated in EPIC-538's terms (recursive at leaf granularity, arrays as
-leaves) and now cites it as settled input; §4a absorbs splat-refs, including `$(self)`/`$(*self)`,
-the bundled-base-only resolution that keeps the merge order-independent, and the fail-closed rules;
-§4b absorbs `selected`-based deselect and resolves it against this decision's floor as a single
-ordering rule rather than a second rulebook; §4c rules on the per-loader addressing split and on
-where deselect belongs. Two corrections to the absorbed design are recorded in place: the deselect
-lists are lifted into one top-level table because a per-section `active` key does not parse against
-the bundled `[roles.active]`, and a splatted array of tables must use TOML's inline-array
-form. The one deliberate contradiction — a roster type's non-`category` fields are field-mergeable,
-against both ADR-541's floor and EPIC-538's roster-locked invariant — is stated in §4 with its
-reason.
-
-What did not change: §1's rule, §2's role-keyed lookups and the retirement of the status literals,
-§3's universal and roster floors including R1/R2, and §5's enforcement plane. Those are this
-decision's own contribution and EPIC-538 does not speak to them.
-
-**2026-07-30 — the materialisation axis becomes a flag, `initial` becomes the create-at target,
-and the deselect mechanism is renamed.** Three rulings, each of which retires something this
-decision previously asserted rather than sitting beside it.
-
-- **§2a is new: `live`, a fourth boolean on the status role.** The materialisation axis was
-  keyed off the role literally named `active`, which is the name-locking §1 exists to forbid, one
-  layer up. Non-settled was checked as a substitute and rejected on the evidence (four bundled
-  roles are non-settled, so a `blocked`-role `Suspended` would read as live). §2's accessors are
-  reshaped onto the flag: `role_statuses`/`sole_role_status` become
-  `live_statuses`/`live_initial`, and **no role-name-keyed status accessor survives**,
-  because after this nothing needs one.
-- **§3's R1 relaxes from `exactly one` live status to `at least one`, and the uniqueness
-  rationale is withdrawn rather than qualified.** As first written, R1 required exactly one because
-  the create path needed an unambiguous write target. The lifecycle already declares one —
-  `initial` — and the existing checks already validate it. R1′ keeps only the sliver `initial`
-  cannot cover: when `initial` is itself non-live, exactly one status must be live, so
-  scaffolding can still create an entry already on offer. R2 is restated against the flag rather
-  than the role name.
-- **§4b's deselect mechanism is `selected`, in one top-level table.** The placement fix recorded in
-  the previous amendment stands on the parse collision; the word changes because `active` as a
-  deselect key beside `active` as a status-role name was confusing independently of that, and
-  because the list is the surviving set, which is what `selected` says.
-
-The call-site table in §2 is rewritten accordingly, and it is no longer a substitution table: the
-nine sites split three ways, and one of the three does not follow the general rule. Squads'
-own system-skill seeding must create *live*, not merely create at `initial`, because a generated
-role entry preloads a skill by slug regardless of that skill's status — seeding at a non-live
-`initial` would leave a clean `sq init` with role entries preloading skills that were never
-materialised.
-
-**2026-07-30 — the flag is renamed `offered` → `live`.** `offered` named the flag correctly but
-too narrowly: it reads as roster-projection vocabulary specifically, when the flag actually sits
-on the status-role object every item type's statuses resolve through. `live` generalises — a
-status declares that entities resting there are the current, in-force instance of themselves,
-and each capability (the roster projection today, a future one tomorrow) decides what that
-licenses.
-
-The rename is disambiguation, not just substitution, because "live" already had a looser,
-established meaning in this codebase: not-settled, or simply "in use"/"currently the real one"
-(a live squad, a live index, a live spec). §2a's flag is deliberately **narrower** than
-not-settled — three bundled roles (`pending`, `attention`, `blocked`) are themselves non-settled
-without being live, exactly the evidence this decision already used once to reject non-settled
-as a substitute (§"Use non-settled as the materialisation axis instead of adding a flag"). That
-rejection reads, if anything, more pointed now that the rejected alternative and the adopted flag
-share a name: rejecting "non-settled" as the axis was never about the word, it was about the
-four-non-settled-roles evidence, and that evidence is restated unchanged. Every other loose
-"live" in this document and in `src/` was checked against the same test — does it mean "not
-settled", or could a reader mistake it for this flag — and left alone where it means the plain
-verb or "in use" (e.g. "the live spec", "live items", "the live-index cross-check": all mean
-"the currently-active one", never this flag) and reworded the one place it did not (§3's R2 note,
-which used "live" for "not at rest" beside "unoffered" for the flag — now "non-live but
-non-settled").
-
-§2's accessors are renamed `offered_statuses`/`offered_initial` → `live_statuses`/`live_initial`;
-§2a's field is renamed `offered` → `live`; every derived wording (R1/R1′/R2, the call-site table,
-the bundled TOML) restates against `live`/`non-live` in place of `offered`/`unoffered`. No
-semantics move: the flag's meaning, its default, R1/R1′/R2, and the nine call-site verdicts in §2
-are exactly as decided above, under a new name.
-
-**2026-07-31 — the roster field axis is settled at both ends, and the provenance carrier is the
-comment stamp.** Two clarifications to §4, neither changing a position this decision took.
-
-- **The roster field-merge override is now recorded reciprocally, and the type axis is drawn
-  exactly.** §4's prohibition bullet already ruled that a roster type's non-`category` fields are
-  field-mergeable; what it lacked was the other end of the override, so the earlier statement it
-  overrides was still readable as live. §4 now states the evidence for the narrower claim (the engine
-  binds the roster by type key and by `category`; it binds nothing to a roster type's prefix or
-  folder), and ADR-541 carries a matching dated note narrowing its floor section, category bullet,
-  Plane-1 rule list, and `meta_kind` consequence in place. The line, spelled once for the
-  implementer: **locked** — the three type keys must exist, may not be added to, dropped (including
-  via `selected`), or renamed, and `category` may not move a type into or out of `roster`;
-  **mergeable under the full floor** — `lifecycle`, prefix, folder, labels, order, and every other
-  non-identity field. This settles the one open check in the loader's roster floor.
-
-  ADR-541 is not retired by this: only one of its clauses is overridden, and it remains the sole
-  authority on the category taxonomy and the validator model. Retiring a whole decision for a
-  clause-level reversal would falsely retire everything else it says. **The general shape, since this
-  is the first recorded instance:** a whole-decision replacement gets a `supersedes` edge and moves
-  the replaced decision to `Superseded`, whose body then stands as history; a clause-level reversal
-  leaves both decisions Accepted, states the override and its exact scope in the newer, narrows the
-  reversed clause **in place** in the older with a dated note pointing forward, and links them with a
-  `related` edge. What must never survive either shape is a body that still asserts what a later
-  Accepted decision reversed.
-
-- **One provenance carrier: the `# squads:override-base:<version>` comment.** §4's Drift bullet as
-  first written named a top-level `override_base` spec key, which would have been a second carrier
-  beside the comment stamp the role and template overrides already use and `sq override` already
-  writes, reads, and re-stamps. The key is not introduced. The reasons are recorded in place in §4:
-  re-stamping must not rewrite the adopter's document (a comment substitution preserves every other
-  byte; rewriting a key needs a round-tripping serializer that reformats and drops comments); one
-  stamp grammar across every override kind, which this decision already asserted for the playbook;
-  the loader gains nothing from a key, since it holds the file text before it parses it, and a key
-  would need stripping before model validation exactly as `[selected]` does; and two carriers for one
-  fact disagree. An override that writes `override_base` as a key is refused as an unknown top-level
-  key — the right outcome, since a mistyped provenance declaration must not read as silently absent.
-  `[selected]` stays the only top-level table the loader consumes and strips. (What makes that refusal
-  actually happen is stated in §4b: see the 2026-07-31 note on the closed top-level key space, without
-  which the key is dropped before any validator sees it.)
-
-  §4 also pins what "must carry" means, which was not stated: unstamped **and** shadowing is an
-  error-level `sq check` / `sq workflow lint` finding, an older stamp keeps the drift warning, an
-  add-only override needs nothing — and none of the three is a load-time refusal, because absent
-  provenance does not change whether the merged spec satisfies the floor.
-
-**2026-07-31 — the live-corpus cross-check gains `prefix` and `folder` (new §5a).** This decision
-made every non-roster type's prefix and folder mergeable, and then made the roster's mergeable too,
-without saying what happens when the type already has items. The answer was not "nothing": an item's
-prefix is durable in its frontmatter id while its directory is resolved from the spec, and the single
-on-disk scan behind repair and index-reconciliation resolves the directory from the spec *and* globs
-the declared prefix — so changing either field silently blinds the scan to that type's whole corpus,
-after which a routine repair drops every one of its items from the index. §5a adds the missing
-clause: for any type with at least one live item, the declared prefix and folder must match what its
-items were written under, checked on the cross-check plane, listing the offending IDs, storing
-nothing new (both expected values are recoverable from the items). An empty corpus is unaffected, so
-the capability survives for the case it was asked for — choosing vocabulary at adoption, or for a
-type not yet in use.
-
-Two things are recorded rather than smoothed over. The refusal names only the two performable ways
-forward (revert the field, or change it while the type has no items) and deliberately names no
-migration, because none is shipped; asserting one would breach the standing rule against remedies no
-command performs. And the resulting limit is stated in the consequences as a limit: re-prefixing and
-re-foldering are adoption-time freedoms, which bites the roster hardest, since a squad has roster
-items from initialisation. The alignment verb that would lift the limit is a composition of shipped
-mechanics, not an unknown, which is why the gap can be named precisely while staying a gap.
-
-This is an addition to the enforcement plane, not a reversal of anything above: §3's floor, §4's
-merge, and the roster ruling all stand exactly as decided.
-
-**2026-07-31 — §4a's failure set is stated exactly, token detection narrows to a leading `$(`, and
-§4b closes the document's top-level key space.** Three corrections, each closing a place where this
-decision asserted something the engine either could not do or would not reach.
-
-- **The type-mismatch criterion loses its second half.** §4a said a splat-ref fails closed on "a type
-  mismatch (a spread into a non-list, **a table where a scalar is due**)". The first clause is a
-  property of the spread operator and stands; the second is schema knowledge the engine deliberately
-  does not hold, and its only schema-free reading — compare against the base's shape at the
-  destination — would make a splice **stricter than the literal it abbreviates**, since a hand-written
-  leaf may replace its counterpart with a different shape. §4a now states the governing rule (a
-  splat-ref is an abbreviation held to the same standard as its expansion), enumerates the four
-  failures that follow from it, and withdraws the second clause rather than reinterpreting it. Shape
-  stays with the models, which reject exactly this with a per-field error. The one real cost — a shape
-  error is not a collected violation, so `sq workflow lint` reports it alone — is recorded as belonging
-  to a separate question, whether the loader translates a `ValidationError` into per-field findings;
-  that fixes the whole class rather than privileging the splice-caused sliver, and it is not folded
-  into the grammar.
-- **A value is in token territory only if it *begins* with an unescaped `$(`.** The detection
-  predicate was wider than the recognition rule it enforces — a token has always had to be the entire
-  string value, while the check fired on `$(` anywhere. The narrowing matters because the sigil *is*
-  POSIX command substitution and one of the three documents this engine serves carries command lines:
-  under the wide predicate an ordinary shell snippet is a load failure explained in terms of a grammar
-  its author never used, and every tool that writes a bundled string into an override file would owe a
-  standing escape duty that also makes the written file differ from its bundled source. Narrowing
-  removes the duty rather than distributing it, with no change to the token syntax. Two accepted
-  consequences are recorded in place: an interpolation attempt stays literal, and since only a leading
-  `$(` needs escaping the writers' duty is vacuous while no bundled string value begins `$(` — which
-  is worth a cheap standing guard over the bundled documents rather than a rule to remember. §4a also
-  states that the grammar and the escape are value-only, keys being vocabulary that is never resolved.
-- **The override document's top level is a closed key space, enforced at the raw-mapping layer.** The
-  claim that a retired `override_base` key "fails closed as an unknown key" rested on `extra="forbid"`
-  being reached, and it is not: each loader builds its spec model from an explicit payload of named
-  sections, so an unrecognised top-level key is dropped in the gap between the parsed document and the
-  model and reaches no validator — as does a mistyped section name, silently and with no effect. §4b
-  now closes that key space explicitly, on the same terms it already closed `[selected]`'s. A role
-  override's top level stays deliberately open, because its keys are a role's fields and that set grows
-  between releases, so forward-compatible leniency is right there and a closed section-name set is
-  right here; the consequence, that the retired key is ignored rather than refused in a role override
-  and surfaces as an unstamped file, is stated rather than smoothed.
-
-None of the three changes a position: §1's rule, §3's floor, §4's merge and roster ruling, §4b's
-deselect and §5/§5a's enforcement planes all stand as decided.
-
-**2026-07-31 — §4a's path grammar anchors on TOML bare keys, `self` is defined through list nesting,
-and the walk carries a declared depth bound.** Three clauses §4a left undefined, each of which had a
-task body either silent or stating a contract the grammar did not meet.
-
-- **A path segment is a TOML bare key** (`A-Za-z0-9_-`), replacing an identifier-shaped path that
-  excluded hyphens and leading digits while accepting non-ASCII everywhere except the first character.
-  Anchoring on TOML's own key definition settles all three at once — hyphenated and digit-leading keys
-  become addressable, and a non-ASCII key becomes *correctly* unaddressable as a quoted key rather
-  than by accident of a character class. The reason it must be widened rather than documented as a
-  restriction is the abbreviation rule: a value the adopter may write literally has to stay
-  expressible as a reference, and a grammar narrower than the vocabulary the spec may declare
-  silently withdraws that for a class of legal names.
-
-  A key needing TOML quotes stays unaddressable — `.` is the path delimiter, so a dotted key is
-  irreducibly ambiguous, and a quoted-segment sub-grammar would be a second nested syntax for a case
-  no document has. What makes that cost nothing is a fact worth recording plainly, because two
-  readings of this exposure had it the wrong way round: **resolution is base-only, so a path can only
-  ever address a key of the bundled document.** An adopter's own vocabulary is never a path target —
-  a brand-new key dangles by design however it is spelled, and a hyphenated custom type addresses
-  bundled paths from inside itself perfectly well, because the hyphen sits in the destination, not in
-  the path. The constraint therefore binds squads' own documents, discharged by a standing guard that
-  every bundled key is a TOML bare key, folded into the same scan that keeps a bundled string value
-  from beginning `$(`. There is nothing here for an adopter to learn because there is nothing they can
-  reach.
-
-- **`self` means the nearest enclosing keyed path, at any list depth**, since a list index has no
-  dotted name to contribute. Definitional rather than a new rule — it is what "the key currently
-  being written" already meant — and stated because nesting invites the other reading. The three
-  behaviours that follow are intended: two `self` tokens at different list depths under one key
-  resolve alike; a nested `$(*self)` spreads the key's list into the sub-list, permitted because the
-  destination's shape is the models' plane and not the engine's, exactly as the abbreviation rule
-  decides everywhere else; and spreading an *empty* base list adds nothing, which is a value the base
-  holds and so is distinct from a missing key, which dangles. Compose-only also permits one base list
-  to be spread twice.
-
-- **The walk carries a declared depth bound**, exceeded → a refusal naming the dotted path. The
-  alternative was to qualify the no-traceback contract, and that is the wrong direction: the promise
-  is about what an invocation does to the person running it, a wall of Python satisfies neither
-  branch, the inputs are adopter-authored by design, and the TOML parser accepts documents far deeper
-  than the walk survives — a single legal line of dotted keys reaches it — so no upstream layer can
-  guard it. Weakening a stated invariant to match code that could cheaply satisfy it is how
-  invariants stop meaning anything. The bound is specified by its two properties rather than as a
-  number (far above any hand-authored document, far below the interpreter's headroom with room for
-  the per-level copy), binds both the resolution and merge walks, and is checked before recursing or
-  copying, since a deep untouched base fails inside the copy rather than in the engine's own frame.
-
-No position above changes; all three fill gaps rather than revising rulings.
-
-**2026-07-31 — a token-shaped key is refused, and the sentence that said otherwise is replaced.**
-The earlier wording, *"the token grammar and the escape apply to values, not keys… a key is never
-resolved, scanned, or unescaped"*, was not merely ambiguous: it bundled one correct claim with one
-wrong one and left the operative case unstated. "Never resolved" is right — there is no
-splice-into-a-key operation, because a path addresses a value and a value is not a key. "Never
-unescaped" was wrong. And "refused" — which is neither of those — was the case the sentence needed to
-settle and did not, so it could be and was read both ways.
-
-The rule now reads in one place, symmetrically. **The sigil is reserved in every string position,
-keys as well as values, and token territory is one predicate in both: a string begins with an
-unescaped `$(`.** In a value, territory means resolve-or-refuse-as-malformed. In a key, territory
-means **refuse** — never pass through, never substitute. `$$(` unescapes in *both* positions, and a
-string that merely contains the sigil after its first character is data in both.
-
-The escape is what keeps this from being the engine legislating vocabulary, which it must not do: a
-project wanting a key spelled `$(items.task)` writes `$$(items.task)` and gets it, so the requirement
-is unambiguous spelling in a document where the sigil is reserved, not a restriction on which names
-exist. That is also the line between this refusal and the one refused for splices — there, holding a
-splat-ref to the base's shape would have left a value expressible literally but inexpressible as a
-reference, with no escape to recover it. **Whether the adopter retains a way to say the thing** is the
-test, and it separates the two cases cleanly.
-
-The other half of the reasoning is why "leave it to the models" is not available here, as it is for
-shape. For a value the models are a genuine backstop — typed fields, extras forbidden. For a key they
-are deliberately not, because a section's keys *are* the open vocabulary: a spec declaring an item type
-literally named `$(items.task)` loads clean, takes a prefix-map entry, and resolves a folder. Nothing
-downstream is positioned to notice, so the engine's refusal is the only thing between a typo and a
-minted vocabulary entry — the surviving-token rationale at its strongest rather than its weakest. It
-is also what keeps the verdict from depending on depth, since an unrecognised key at the document's top
-level already fails closed under §4b.
-
-**2026-07-31 — §2's Guard names the bundled spec package by its current path, and the exemption's
-premise is written down.** The scan's exempt location is the package holding the bundled documents,
-now `_specs/`; the clause named the path it carried when this decision was written, which left an
-Accepted decision and its own enforcement disagreeing about where the exemption applies. One path
-string — the rule, the migration carve-out, and everything §2 decides are untouched, and both
-migration runners still hold their frozen `_STATUS_ACTIVE` exactly as the carve-out requires.
-
-The clause also now states what the exemption rests on. The scan exempts that package **by
-directory**, which is the right shape — its sibling guards do the same, and a filename list would go
-stale the moment a fourth document lands — but it means any `.py` placed there is silently outside
-the guard. Under the older name that read as self-evidently harmless; a package named for specs reads
-more like a code layer, so the premise is now carried by convention alone. Written down, it is a
-standing property instead: the package holds the bundled documents and a docstring-only marker, and
-no logic moves there — anything that reads or interprets those documents belongs to the loader that
-owns it, where the scan can still see it. Not a defect and not worth a second guard; worth a sentence,
-because an exemption whose justification is only implied is one an unrelated change can quietly
-invalidate.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -1265,4 +924,6 @@ invalidate.
 - [2026-08-15T14:19:46Z] `architect` Robert Architect:
   - **Key-space extension recorded against this decision (2026-08-06).** The playbook override document (`.overrides/playbook.toml`), whose grammar, merge, stamp and validation this decision owns, gains one key on its role-guide entries: `authors`, boolean, defaulting `false`, additive — renaming nothing, removing nothing, retyping nothing. The guide model forbids extras, so its field set is that key space and this widens it; an adopter may now declare a guide as the in-lane author of the type it hangs under.
   - The key's semantics belong to ADR-163's create-lane and are specified there, in its §2, which also names this document as the surface it extends. `related` refs run both ways so the extension is reachable from the end that owns the key space — the freeze is only auditable if every addition is recorded here, not just where it is used.
+- [2026-10-25T21:42:42Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale, targeted present-tense edits; §1–§5a are unchanged. Removed the dated amendment note (its eight entries were already folded into the sections) and the history it left behind: Context no longer describes _RESERVED_FLOOR and _collect_additive_conflicts as current code, the §2 call-site table states what each site resolves through, §4 states the roster field-axis rule without the both-ends narrative, R1 and the splice/token clauses drop their "as first written / withdrawn" framing. Corrected two stale consequences: the playbook resolves per squad against the merged spec (resolve_documents), so the import-time-singleton caveat and its §4c parenthetical are gone; docs/stability.md no longer says additive-only, so that to-do is gone; splat-refs have the five refusals of §4a, not three with a type mismatch.
 <!-- sq:discussion:end -->

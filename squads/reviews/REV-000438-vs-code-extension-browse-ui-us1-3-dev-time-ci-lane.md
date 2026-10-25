@@ -13,20 +13,20 @@ refs:
 subentities:
 - local_id: F1
   title: Hierarchy refresh fires a redundant open-only sq list invocation
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F2
   title: CI covers only the unit test layer; integration skew-canary + host smoke
     absent
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: Python test.yml runs on TS-only changes (no paths filter) despite the stated
     isolation
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-07-16T19:34:39Z'
-updated_at: '2026-07-17T09:07:03Z'
+updated_at: '2026-10-25T19:39:08Z'
 ---
 <!-- sq:body -->
 Round-2 review of the VS Code extension's browse UI (TASK-429 US1 tree, TASK-430 US2 preview, TASK-431 US3 filter/group/refresh — all Ada) and the dev-time CI lane (TASK-432 — Hugo). Foundation (TASK-428, REV-436) has landed. Scope: clients/vscode/** + .github/workflows/vscode-client.yml only; concurrent src/tests (TASK-434) excluded.
@@ -66,6 +66,8 @@ getListSnapshot is the right call for the flat/grouped view (which needs openIds
   - Fixed: hierarchy refresh path now calls getList(--all) instead of getListSnapshot — one sq list spawn (plus sq tree) instead of two; getListSnapshot's double-fetch stays reserved for the flat/grouped view that needs openIds.
 - [2026-07-17T07:33:56Z] `typescript-dev` Ada Typescript:
   - Fixed: hierarchy refresh path now calls getList(--all) instead of getListSnapshot — one sq list spawn (plus sq tree) instead of two; getListSnapshot's double-fetch stays reserved for the flat/grouped view that needs openIds.
+- [2026-10-25T19:39:08Z] `reviewer` Paul Reviewer:
+  - Holds: the hierarchy refresh calls getList (clients/vscode/src/treeDataProvider.ts).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -81,6 +83,8 @@ Ruling: acceptable to ship 0.10 without them (the unit layer is the bulk of the 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:39:08Z] `reviewer` Paul Reviewer:
+  - Holds: vscode-client.yml runs the canary and e2e layers (clients/vscode/test/canary, test/extensionHost).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -96,6 +100,8 @@ Impact is low: the Python jobs pass on a clients-excluded tree (ruff/pyright exc
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:39:08Z] `reviewer` Paul Reviewer:
+  - Holds: test.yml sets paths-ignore clients/vscode/** on push and pull_request.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 <!-- sq:findings:end -->

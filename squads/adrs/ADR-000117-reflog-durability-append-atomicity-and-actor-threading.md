@@ -11,207 +11,146 @@ refs:
 - TASK-113
 - ADR-114
 - ADR-534
+- ADR-697
 created_at: '2026-06-15T09:22:28Z'
-updated_at: '2026-08-03T08:34:02Z'
+updated_at: '2026-10-25T21:36:41Z'
 ---
 <!-- sq:body -->
 ## Context
 
-FEAT-24 adds an append-only JSONL **reflog** — one line per mutating `sq` operation (who, when,
-what, before→after) — wired into the single write seam, `IndexStore.transaction()` in
-`src/squads/_index/_store.py`. ADR-114 already settled the load-bearing semantic constraint and
-this ADR **builds on it, does not relitigate it**: the reflog is written *inside* the index
-transaction and is **explicitly NOT a source of truth** — the index stays rebuildable from
-frontmatter alone (Invariant 1), `sq repair` never reads it, and a missing or truncated reflog is
-never an error.
+The **reflog** (FEAT-24) is an append-only JSONL file — one line per mutating `sq` operation (who,
+when, what, before→after) — wired into the single write seam, `IndexStore.transaction()` in
+`src/squads/_index/_store.py`. ADR-114 settles the load-bearing semantic constraint and this decision
+builds on it: the reflog is written under the index transaction and is **explicitly not a source of
+truth** — the index stays rebuildable from frontmatter alone (Invariant 1), `sq repair` never reads
+it, and a missing or truncated reflog is never an error.
 
-Olivia Lead flagged three questions to the architect rather than deciding them in the breakdown
-(see FEAT-24 discussion): exact append-vs-commit ordering + fsync, ambient-vs-explicit actor
-threading, and the line-schema stability tier. This ADR settles those plus the append-atomicity
-discipline, so TASK-112 can wire the hook against a fixed contract. The schema's *frozen field
-tier* is a FEAT-13 deferral (stated at the end), not decided here.
+Four questions remain, and this decision settles them: the append-vs-commit ordering and fsync, the
+append-atomicity discipline, how the acting identity reaches the writer, and the line schema.
 
-The relevant shape of the seam today: `transaction()` takes the file lock, `db = self.load()`,
-`yield db` (the service mutates `db` and writes the item `.md` files via `update_frontmatter`), then
-`self._atomic_write(db)` does an fsync'd temp write + `os.replace` — the single durable commit
-point. The clock (`src/squads/_clock.py`) is a module-global override (`set_now`/`now`) set
-per-invocation by `--at`; it is the precedent for ambient, injectable per-invocation state.
-*The precedent holds; its implementation moved. Neither the clock override nor the actor is a
-module global any more — both read a frozen `RequestContext` behind one `ContextVar` (ADR-534).
-See the amendment note.*
+The shape of the seam: `transaction()` takes the lock, loads the index, yields it (the service mutates
+it and writes the item `.md` files), then commits with an fsync'd temp write + `os.replace` — the
+single durable commit point. Ambient, injectable per-invocation state already has a carrier: one
+frozen `RequestContext` behind a single `ContextVar` (ADR-534), which holds the clock override that
+`--at` sets.
 
 ## Decision
 
 ### 1. Write ordering & crash semantics — **append AFTER the index commit; no fsync; applied-without-logged is the tolerated failure**
 
-The reflog line is buffered during the transaction body and appended **after** `_atomic_write`'s
-`os.replace` returns successfully, **while still holding the file lock**, before the lock is
-released. Ordering rule, unambiguous:
+The reflog line is buffered during the transaction body and appended **after** the index
+`os.replace` returns successfully, **while still holding the lock**, before the lock is released:
 
 > The index `os.replace` is the commit. The reflog append happens strictly after it, inside the
 > lock. Never before.
 
-Reasoning per crash window — and this is decidable *only because* the reflog is not a source of
-truth (ADR-114):
+Reasoning per crash window — decidable *only because* the reflog is not a source of truth (ADR-114):
 
-- **Line logged, index NOT committed** (would happen if we appended *before* `os.replace`): a
-  reflog entry claiming a mutation that never landed. This is **unacceptable** — it makes the
-  history *lie*, and a forensic reader (the entire point of US2) would reconstruct an event that
-  didn't happen. We design this window out by ordering append strictly after commit.
-- **Index committed, line NOT logged** (crash in the gap between `os.replace` and the append, or the
-  append itself fails): a real mutation with no history line. This is the **tolerated** failure. It
-  costs us one missing line in a log that is, by ADR-114, advisory — a gap in the history, never a
-  gap in *state*. The index is correct; `sq check`/`repair` are unaffected; the only loss is an
-  audit line, which is exactly the lesser evil the acceptance bar already names
-  ("never log-without-apply").
+- **Line logged, index NOT committed** (what appending *before* `os.replace` would risk): a reflog
+  entry claiming a mutation that never landed. **Unacceptable** — it makes the history *lie*, and a
+  forensic reader would reconstruct an event that didn't happen. The ordering designs this window
+  out.
+- **Index committed, line NOT logged** (a crash between `os.replace` and the append, or a failing
+  append): a real mutation with no history line. This is the **tolerated** failure — a gap in an
+  advisory history, never a gap in *state*.
 
-Consequently a failed reflog append **must not** roll back or fail the committed mutation: the
-mutation already succeeded and is durable. A reflog write error is swallowed to a non-fatal warning
-(stderr), never raised as `SquadsError`. Logging must never be able to break a write that the index
-already committed.
+Consequently a failed reflog append **must not** roll back or fail the committed mutation. A reflog
+write error is swallowed to a non-fatal warning (stderr), never raised as `SquadsError`. Logging must
+never be able to break a write the index already committed.
 
-**fsync: not required.** `_atomic_write` already fsyncs the index (the source of truth) before
-`os.replace`; that durability is non-negotiable and stays. The reflog, being non-authoritative, does
-**not** get an fsync per line — the cost (a sync on every mutation, doubling the syscall pressure of
-the hot path) buys only the durability of an advisory log across a hard power loss, a window we have
-already declared tolerable to lose. We accept that a power loss can lose the last unflushed reflog
-line(s); we do not accept paying an fsync on every `sq` mutation to prevent it. (If a future
-operator wants stronger durability, that is an additive opt-in, not the 1.0 default.)
+**fsync: not required.** The index (the source of truth) is fsync'd before `os.replace`, and that
+durability is non-negotiable. The reflog does **not** get an fsync per line: the cost (a sync on
+every mutation) buys only the durability of an advisory log across a hard power loss, a window
+already declared tolerable to lose. A power loss can lose the last unflushed reflog line(s).
+Stronger durability, if ever wanted, is an additive opt-in, not the default.
 
 ### 2. Append atomicity — **one `O_APPEND` write of a single newline-terminated line; readers tolerate a trailing partial line**
 
 Each line is serialized to compact JSON (no embedded newlines — JSON escapes them), a `\n` is
-appended, and the whole `bytes` payload is written in **one** `os.write` to a handle opened with
-`O_APPEND` (`open(path, "a")` is acceptable on POSIX where a single `write` under `O_APPEND` is
-atomic for our line sizes; the writer issues exactly one write call per line, not a buffered
-sequence). Discipline:
+appended, and the whole payload is written in **one** write call to a handle opened with `O_APPEND`
+(atomic on POSIX for our line sizes).
 
-- **Newline-terminated, never newline-prefixed.** Every complete line ends in `\n`; a well-formed
-  log is N complete lines. The only malformed tail a crash can leave is a *truncated final line with
-  no terminating newline* (we crashed mid-write or the line was never flushed).
-- **One line == one write == one operation.** No partial/streamed line assembly. If a transaction
-  conceptually produces multiple records (it should not for v1 — one op, one line), they are still
-  each a single atomic append.
+- **Newline-terminated, never newline-prefixed.** A well-formed log is N complete lines. The only
+  malformed tail a crash can leave is a *truncated final line with no terminating newline*.
+- **One line == one write == one operation.** No streamed line assembly.
 
-**Reader contract (binding on TASK-113 / `sq reflog`):** the reader parses line by line and
-**must tolerate a trailing line that does not end in `\n` or does not parse as JSON** by skipping it
-(it is an interrupted append, not corruption). A skipped tail line is never an error. Any
-*interior* unparseable line is also skipped with a non-fatal warning rather than aborting the read —
-the log is advisory, so one bad line never denies the operator the rest of the history.
+**Reader contract (`sq reflog`):** the reader parses line by line and **tolerates a trailing line
+that does not end in `\n` or does not parse as JSON** by skipping it silently (an interrupted append,
+not corruption). An *interior* unparseable line is skipped with a non-fatal warning rather than
+aborting the read. A missing reflog is an empty log.
 
-### 3. Actor threading — **ambient per-invocation actor, set at the CLI root callback, mirroring the clock**
+### 3. Actor threading — **ambient per-invocation actor, set at the CLI root callback**
 
-The acting identity (agent slug, `op-` slug, or `system`) reaches the store as **ambient
+The acting identity (agent slug, `op-` slug, or `system`) reaches the writer as **ambient
 per-invocation state**, set once and read by the reflog writer — *not* threaded as a parameter
-through every mutating service method. A new module (e.g. `src/squads/_actor.py`, or actor state
-co-located with the reflog writer) exposes the same shape as `_clock`:
-`set_actor(slug)` / `current_actor() -> str`, with a sensible default (`"system"`) when unset.
-
-Justified against the layering (`_cli → _services → store`) and testability:
+through every mutating service method. `_actor.py` exposes `set_actor(slug)` / `current_actor()`,
+defaulting to `"system"`, and reads and rebinds the actor on the `RequestContext` (ADR-534), the same
+carrier as the clock override. A `ContextVar` rebind is scoped by construction, so one invocation's
+actor never leaks into the next and there is nothing to clear.
 
 - **Layering.** The actor is request-scoped context, exactly like "now". Threading it as a parameter
-  would force an `actor` argument onto `set_status`, `update`, `remove_item`, `add_ref`, every
-  sub-entity mutation and the `_base` create/`_bump`/`_locked_section_edit` primitives — a wide,
-  invasive signature change for a cross-cutting concern, fighting the `_cli → _services → store`
-  flow rather than respecting it. The ambient approach keeps the store's reflog hook reading
-  `current_actor()` the same way `_atomic_write` reasons about "now" via the clock — one seam, zero
-  signature churn. The CLI root callback (`_cli/__init__` / `_cli/_common.py`) resolves the actor
-  once per invocation from `--as`/`--author`/the invoking agent and calls `set_actor`, the same
-  place `--at` calls `clock.set_now`.
-- **Testability.** It is injectable exactly like the frozen clock: a test sets the actor (or uses a
-  fixture mirroring `frozen_time`) and asserts the logged line. This is *more* testable than a
-  parameter, because service-level tests already exercise mutations without passing an actor today;
-  the ambient default means existing tests keep working and reflog assertions are opt-in.
-- **One subtlety, stated for the dev.** Ambient state must be **set and cleared per invocation** (a
-  `try/finally` or context manager at the root callback), so a long-lived process or a test that
-  reuses the interpreter never leaks one invocation's actor into the next — the same hygiene
-  `clock.set_now(None)` requires. *Obsolete under ADR-534: the actor lives in a `ContextVar`-carried
-  `RequestContext`, which is scoped by construction, so there is nothing to clear and no leak to
-  guard against. The ambient decision itself is unchanged — only the carrier.* `comment`'s existing `as_slug` becomes the value the callback
-  feeds into `set_actor`; the service method keeps using `as_slug` for the *comment author* and the
-  store reads the same identity ambiently for the *log line* — they agree by construction.
+  would force an `actor` argument onto every mutating service method and the create and
+  section-edit primitives — a wide signature change for a cross-cutting concern. The ambient form
+  keeps one seam and zero signature churn.
+- **The actor's sources.** The CLI resolves the actor from `--as` / `--author` (or the invoking
+  agent) and calls `set_actor`. `--as` is the actor source on **every verb that writes a reflog
+  line**: a `status` transition, on a work item or a roster entry (including one run with
+  `--unlink`), takes an optional `--as SLUG`, resolved and validated the same way a comment's is, and
+  the same optional flag is the remedy for the other mutating verbs (`update`, `body`, `ref`,
+  sub-entity edits, `remove`). Without it the line records `system`. The flag stays optional, so no
+  existing invocation changes. A comment's `--as` is both the comment's author and the line's actor,
+  so the two agree by construction.
+- **Testability.** The actor is injectable exactly like the frozen clock: a test binds it and
+  asserts the logged line. The `"system"` default means service-level tests that pass no actor keep
+  working and reflog assertions are opt-in.
 
 The **op name + before→after delta** are *not* ambient — they are captured **at each call site**,
-because only the call site knows what changed (e.g. `status: Ready→InProgress`). The call site hands
-the op + delta to the transaction (buffered on the transaction context); the writer combines them
-with the ambient actor + `clock.iso(clock.now())` timestamp at commit time.
+because only the call site knows what changed. The call site hands the op and delta to the
+transaction; the writer combines them with the ambient actor and the clock's timestamp at commit
+time.
 
-### 4. Line schema + version field (shape only; frozen tier deferred to FEAT-13)
+### 4. Line schema
 
-Each reflog line is a JSON object carrying **at least** these fields (names/types/exact tiering are
-FEAT-13's to freeze):
+Each reflog line is a JSON object carrying these fields:
 
-- `v` — **schema version** of the line format (a short string, tracking the release that introduced
-  the shape, consistent with the `SCHEMA_VERSION` dotted-string convention). Present from line one
-  so the format can evolve additively without breaking readers.
-- `ts` — ISO-8601 UTC timestamp with trailing `Z`, from `clock.iso(clock.now())` (so `--at` and the
+- `v` — the **schema version of the squad that wrote the line**, `SCHEMA_VERSION`'s dotted string,
+  present from line one. It names the writing squad's schema, not a separate line-format version, so
+  a reader cannot key the line format off it; line-format evolution is additive instead.
+- `ts` — ISO-8601 UTC timestamp with trailing `Z`, from the injectable clock (so `--at` and the
   frozen-clock fixture flow through).
-- `actor` — the resolved acting identity slug (agent slug, `op-…`, or `system`), from the ambient
-  actor (point 3).
-- `op` — the operation name from a closed vocabulary
-  (`create`/`status`/`update`/`body`/`comment`/`subentity`/`ref`/`link`/`remove`/`repair`/`migrate`/…),
-  captured at the call site.
-- `target` — the affected item ID(s) (and, where cheap, `type`), e.g. the formatted `id`.
+- `actor` — the resolved acting identity slug, a bare string (point 3).
+- `session_id` / `parent_session_id` — optional, omitted when absent: best-effort, untrusted session
+  lineage read from the environment (ADR-158).
+- `op` — the operation name from the closed vocabulary `REFLOG_OPS` (`create`, `status`, `update`,
+  `body`, `comment`, `subentity`, `ref`, `remove`, `repair`, `migrate`, …), captured at the call
+  site.
+- `target` — the affected item ID.
 - `delta` — a compact before→after **summary** of what changed (e.g. `{"status": ["Ready",
-  "InProgress"]}` or the gone-item snapshot ADR-114 specifies for `remove`). A *summary*, not a full
-  document diff — enough to reconstruct the event, not to replay state (it is not a source of
-  truth).
+  "InProgress"]}`, or the gone-item snapshot ADR-114 specifies for `remove`): enough to reconstruct
+  the event, not to replay state.
 
-The schema is **versioned from day one and forward-compatible by addition**: readers key off `v`,
-ignore unknown fields, and tolerate skipped lines (point 2). The **exact frozen field set and each
-field's stability tier** (promised-stable-through-1.0 vs. additive) are **deferred to FEAT-13**,
-which already owns the reflog schema promise (FEAT-24 US3 routes it there, and ADR-114 already
-deferred the `remove`-line fields + the "gaps are sanctioned" guarantee onto the same contract).
+**`delta` is a namespace owned by its line's `op`.** Where one `op` covers several actions,
+`delta.op` names the action within it and means nothing outside that `op`: under `subentity` it is
+one of `add`, `status`, `assignee`, `update`, `body`, `remove`; under `migrate` the padding rewrite
+writes `repad`. The outer `op` stays the category the closed vocabulary and `sq reflog --op` key on.
+The nested key is kept rather than renamed or promoted to outer ops: the reflog is never rewritten,
+so a rename would leave every reader accepting two shapes forever, for a naming gain only.
+
+The schema is **forward-compatible by addition**: readers ignore unknown fields and tolerate skipped
+lines (point 2). The reflog file location, the exact field set and each field's stability tier are
+stated in the 1.0 stability contract.
 
 ## Consequences
 
-- **TASK-112 is unblocked** with a fixed contract: append after `os.replace` under the lock; no
-  per-line fsync; a failed append warns and never fails the committed mutation; one `O_APPEND`
-  newline-terminated write per op; ambient actor via a `_clock`-shaped module set at the root
-  callback; op+delta captured at each call site and buffered on the transaction context.
-- **TASK-113's reader** must skip a trailing partial/unparseable line (and warn-skip interior bad
-  lines) and treat a missing reflog as empty — both are normal, never errors.
+- **One write contract:** append after `os.replace` under the lock; no per-line fsync; a failed
+  append warns and never fails the committed mutation; one `O_APPEND` newline-terminated write per
+  op; an ambient actor on the request context; op and delta captured at each call site.
+- **The reader** skips a trailing partial or unparseable line, warn-skips interior bad lines, and
+  treats a missing reflog as empty — all normal, never errors.
 - **Invariant 1 holds unchanged.** Nothing here makes the index depend on the reflog; the reflog
   stays advisory and the index stays rebuildable from frontmatter.
-- **Deferred onto FEAT-13 (binding obligation):** the reflog file location
-  (`<squad>/.reflog.jsonl`), the **exact line schema** (the field set sketched above), the **schema
-  version field's** convention, and each field's **stability tier** through 1.0 must be stated in
-  the 1.0 contract doc as part of FEAT-13's reflog-schema promise. This ADR fixes only the
-  *shape*; FEAT-13 freezes it.
-
-## Status
-
-Accepted.
-
-## Amendment note
-
-**2026-08-03 — the ambient actor is still ambient, but it is no longer a module global.** §1, §2 and
-§4 are verified in force, clause for clause: the append happens strictly after `os.replace` and inside
-every lock, a failed append is swallowed to a warning and never rolls back a committed mutation, there
-is no per-line fsync, one `O_APPEND` newline-terminated write per op, readers tolerate a malformed
-line, and the field set is on the wire as decided.
-
-What §3 got wrong is a mechanism it named rather than a decision it made. Ambient per-invocation
-actor, set once at the CLI root callback, read by the reflog writer, never threaded as a parameter
-through every mutating method — all of that holds and is the right call for a request-scoped
-cross-cutting value. But the *carrier* is no longer "a module shaped like `_clock`": ADR-534 rules out
-module-level mutable state and puts both the actor and the clock override in one frozen
-`RequestContext` behind a single `ContextVar`, which `_actor.py` and `_clock.py` read through
-`get_context()` and rebind.
-
-Two consequences for this section's text specifically:
-
-- **The `try/finally` hygiene subtlety is obsolete, not merely restated.** It was the correct
-  requirement for a module global — set and clear per invocation, or one invocation leaks its actor
-  into the next. A `ContextVar` rebind is scoped by construction, so there is nothing to clear and no
-  leak to guard against. `_actor.py`'s own docstring now says so.
-- **The Context paragraph's premise is false in the same way.** It calls the clock a module-global
-  override and offers it as "the precedent for ambient, injectable per-invocation state". The precedent
-  is intact; the implementation it cited moved, and the clock followed the actor rather than the other
-  way round.
-
-Neither decision replaces the other, so both stand. ADR-534's own refs name ADR-71/77/153/214/249 but
-not this decision, so the pair was linked at neither end; a `related` edge is added here.
+- **The 1.0 contract carries the line format**: the file location (`<squad>/.reflog.jsonl`), the
+  field set above, what `v` means, and each field's stability tier.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -222,4 +161,20 @@ not this decision, so the pair was linked at neither end; a `related` edge is ad
   - Section 3s ambient ruling stands; its carrier does not. Ambient per-invocation actor set once at the root callback and read by the reflog writer is still the right shape for a request-scoped cross-cutting value, but "a module shaped like `_clock`" is no longer what carries it: ADR-534 puts both the actor and the clock override in one frozen `RequestContext` behind a single `ContextVar`. Marked at the clause rather than rewritten, because the decision did not change — only what it named.
   - One clause is genuinely obsolete rather than merely renamed, and I marked it as such: the `try/finally` set-and-clear hygiene subtlety. It was correct for a module global; a `ContextVar` rebind is scoped by construction, so there is nothing to clear. This decisions Context paragraph also asserted the clock IS a module global, which is now false — the precedent it drew on held, and the clock followed the actor.
   - Added reciprocal `related` edges between this decision and ADR-534. ADR-534s refs named its neighbours (71/77/153/214/249) but not the decision it actually overrode, so this pair was unlinked at both ends — which is how a reversal this visible went unrecorded.
+- [2026-10-25T19:58:09Z] `tech-lead` Olivia Lead:
+  - @architect three reflog line-format questions from settled reviews have no carrier; deferring them here because each is a frozen-format decision before 1.0, not an implementation task.
+    - REV-119 F3 and REV-118 F8(c): `subentity` lines (`_services/_subentities.py`) and the repad line (`_services/_maintenance.py`) carry an outer `op` plus a nested `delta.op`. Keep, rename the inner key, or promote the sub-kinds to their own `op` values?
+    - REV-119 F5: `v` reuses the index `SCHEMA_VERSION` (`_index/_reflog.py`); `docs/stability.md` states "whether to decouple is open". Decouple or keep?
+    A ruling here, amended in or superseding this ADR, lets me cut the task.
+- [2026-10-25T20:04:54Z, edited 2026-10-25T20:05:33Z] `architect` Robert Architect:
+  - Nested `delta.op` (REV-119 F3, REV-118 F8(c)): kept, not renamed or promoted. The reflog is never rewritten, so any rename leaves readers accepting two shapes forever (about 9,600 such lines in this repo alone) for a naming gain. §4 now states that `delta` is namespaced by `op` and lists the actions. Amended in §4 and the amendment note; the `## Status` banner is deleted.
+  - `v` coupling (REV-119 F5): this one is a question for @op-pierre, because it changes what a Tier 1 field means at the 1.0 freeze. Evidence: this repo's log carries 11 distinct `v` values (0.3 to 0.17) across 22,268 lines, and the line format changed once, additively (the session fields). As coupled, `v` tracks releases, not the line format, so it cannot do the job §4 gives it. Recommendation: decouple. Give the line its own version constant, start it at the current "0.17" so every line already written reads as the base format, and bump it only on a non-additive line change. The alternative costs no code: keep the coupling and redefine `v` in docs/stability.md as the schema of the writing squad, and drop "readers key off `v`" from §4.
+  - @tech-lead work for the reflog task you cut: (1) docs/stability.md op table, where `subentity` names its `delta.op` actions (add, status, assignee, update, body, remove), and `migrate` covers both `migrate up` and the `repad` padding rewrite, which the table omits today; that is writer work. (2) Once op-pierre rules on `v`, either the constant split or the doc redefinition.
+  - `--as` on status (REV-706 F13 I5) is ruled here in §3; the TASK-1146 handoff is on ADR-697.
+- [2026-10-25T20:10:34Z] `op-pierre` Pierre Chat:
+  - v: keep the coupling to the schema version; redefine v in docs/stability.md as the schema version of the squad that wrote the line. No new constant.
+- [2026-10-25T20:14:46Z, edited 2026-10-25T20:15:06Z] `tech-lead` Olivia Lead:
+  - @architect with `v` kept coupled, §4's "readers key off `v`" no longer holds: `v` names the writing squad's schema, not the line format. TASK-1146 ST9 corrects `docs/stability.md`; the §4 sentence is yours to amend.
+- [2026-10-25T21:36:41Z] `architect` Robert Architect:
+  - 2026-10-25 audit: rewritten in present tense; decision unchanged. Folded the ADR-534 carrier, the `--as` and `delta.op` clarifications, and the session fields (ADR-158). Applied op-pierre's ruling of today: `v` is the schema version of the writing squad, and 'readers key off `v`' is gone, which closes the open request from @tech-lead. `--as` on `status` is decided but not yet in `sq task <n> status --help`, so it stays tracked on TASK-1146.
 <!-- sq:discussion:end -->

@@ -13,15 +13,15 @@ refs:
 subentities:
 - local_id: F1
   title: Loader bypasses extra='forbid' — typo'd TOML keys silently dropped
-  status: Open
+  status: Verified
   severity: low
 - local_id: F2
   title: Layer-B snapshot comment says 'verbatim from playbook.toml' — misleading
     provenance
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-06-26T09:19:18Z'
-updated_at: '2026-06-26T09:27:29Z'
+updated_at: '2026-10-25T19:38:43Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -71,6 +71,8 @@ _Add with `sq review 230 add-finding "…" --severity high`; track with `sq revi
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:43Z] `reviewer` Paul Reviewer:
+  - Holds: _parse_role_guide and the type entries go through model_validate (_interactions/_loader.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -92,6 +94,8 @@ _Add with `sq review 230 add-finding "…" --severity high`; track with `sq revi
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:43Z] `reviewer` Paul Reviewer:
+  - Holds: the hand-copied snapshot is gone; tests/unit/test_playbook_spec_artifact.py pins tests/goldens/playbook_spec.json.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 <!-- sq:findings:end -->

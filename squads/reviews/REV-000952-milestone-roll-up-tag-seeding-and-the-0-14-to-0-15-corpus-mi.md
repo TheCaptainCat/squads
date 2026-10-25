@@ -10,23 +10,23 @@ refs:
 subentities:
 - local_id: F1
   title: Deselecting milestone_rollup makes the squad unupgradable
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: Every abort path names sq repair, which the schema gate refuses
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F3
   title: MANUAL claims a body with no sq:body region is left alone; it aborts
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Tests cover no failure shape and no corpus fixture holds a milestone
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: Migration duplicates a moved tag; the render claim was wrong
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F6
   title: ADR condition to run through the placement verb is not met
@@ -34,18 +34,18 @@ subentities:
   severity: low
 - local_id: F7
   title: unconditional-seed classification understates the migration case
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F8
   title: ST4 whole-file idempotence rests on a false premise and regresses view add
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F9
   title: 'An out-of-region view tag is invisible: inert, unreported, unremovable'
   status: WontFix
   severity: low
 created_at: '2026-09-15T08:32:27Z'
-updated_at: '2026-09-15T09:35:48Z'
+updated_at: '2026-10-25T19:35:56Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -197,6 +197,8 @@ schema gate permits.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:35:56Z] `reviewer` Paul Reviewer:
+  - Holds: _migrations/_v0_14_to_v0_15.py skips an unresolvable view pair; pinned by test_a_deselected_view_over_zero_milestones_still_reaches_current.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -279,6 +281,8 @@ runs — and the docstring's claim must be corrected either way.
     Preference order in the finding was (1) exempt repair, (2) skip-and-report, (3) fix the message.
     Taking (2) first is deliberate: it is the disposition that needs no ruling, and it makes the
     deadlock unreachable from this runner whatever (1) turns out to be.
+- [2026-10-25T19:35:56Z] `reviewer` Paul Reviewer:
+  - Holds: every abort path in _v0_14_to_v0_15.py is now a per-item skip, so the run always reaches current.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -329,6 +333,8 @@ gate. Whichever way F2 is resolved should decide this one; they are the same dec
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:35:56Z] `reviewer` Paul Reviewer:
+  - Holds: a milestone with no sq:body region is skipped, matching the runner's MANUAL.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -373,6 +379,8 @@ and an eligible type with items but no resolvable template. And put a milestone 
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:35:56Z] `reviewer` Paul Reviewer:
+  - Holds: tests/service/test_milestone_roll_up_tag_migration.py covers the skip shapes; corpus fixtures v0_14+ hold a MILE item.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -438,6 +446,8 @@ project template override placing the tag outside the region can.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-25T19:35:56Z] `reviewer` Paul Reviewer:
+  - Holds: the runner skips a milestone whose tag sits outside sq:body instead of seeding a second copy.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -535,6 +545,8 @@ fix turns out to be.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-10-25T19:35:56Z] `reviewer` Paul Reviewer:
+  - Holds: items/milestone.md.j2 is now classified neutralized-by-overwrite with an accurate reason.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -607,6 +619,8 @@ shape must assert a render count, not a byte count.
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
+- [2026-10-25T19:35:56Z] `reviewer` Paul Reviewer:
+  - Holds: insert_unpaired_marker is gone; place_view_tags (_view_tags.py) works inside the sq:body region only.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 

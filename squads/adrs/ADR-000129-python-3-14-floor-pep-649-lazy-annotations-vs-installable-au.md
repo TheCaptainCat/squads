@@ -9,7 +9,7 @@ refs:
 - FEAT-13
 - FEAT-17
 created_at: '2026-06-15T12:10:13Z'
-updated_at: '2026-07-22T11:53:23Z'
+updated_at: '2026-10-25T21:36:43Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -19,23 +19,22 @@ squads deliberately omits `from __future__ import annotations`. The codebase rel
 became the default annotation behaviour in CPython 3.14. Two properties fall out of this:
 
 - **Unquoted forward references work everywhere.** Annotations are not evaluated at definition
-  time, so a name used in an annotation before it is defined needs no string quoting and no
-  `if TYPE_CHECKING:` dance.
-- **The import graph stays acyclic without ceremony.** Because annotations don't force a runtime
-  import of the annotated type, we avoid the usual pattern of pulling a module in only to satisfy a
-  type hint — a frequent source of import cycles. Keeping the graph acyclic is a standing project
-  invariant (verified), and lazy annotations are what let us hold it cheaply.
+  time, so a name used in an annotation before it is defined needs no string quoting.
+- **The import graph stays acyclic cheaply.** Because annotations don't force a runtime import of the
+  annotated type, a module that needs a type only for its annotations imports it under
+  `if TYPE_CHECKING:` and names it unquoted, rather than pulling the module in at runtime — a
+  frequent source of import cycles. Keeping the graph acyclic is a standing project invariant
+  (ADR-78), and lazy annotations are what let us hold it cheaply.
 
 This is a documented convention in `CLAUDE.md`:
 
 > No `from __future__ import annotations` — we target Python 3.14 (PEP 649 lazy annotations), so
 > forward refs work unquoted.
 
-The toolchain is already pinned to match: `pyright` runs with `pythonVersion = "3.14"` in strict
-mode, and `ruff` uses `target-version = "py314"`. The package metadata declares
-`requires-python = ">=3.14"` and carries the `Programming Language :: Python :: 3.14` trove
-classifier. The floor therefore exists in practice — it has simply never been written down as a
-decision.
+The toolchain is pinned to match: `pyright` runs with `pythonVersion = "3.14"` in strict mode, and
+`ruff` uses `target-version = "py314"`. The package metadata declares `requires-python = ">=3.14"`
+and carries the `Programming Language :: Python :: 3.14` trove classifier. This decision is the
+written record of that floor.
 
 ## Decision
 
@@ -44,8 +43,7 @@ annotations as a first-class part of the codebase's style, rather than reintrodu
 `from __future__ import annotations` or quoted/`TYPE_CHECKING` annotations to support older
 interpreters.
 
-The settings that encode this are already in place and are ratified by this ADR (not modified by
-it):
+The settings that encode this:
 
 - `pyproject.toml` → `[project] requires-python = ">=3.14"`
 - `pyproject.toml` → `[tool.ruff] target-version = "py314"`
@@ -56,9 +54,9 @@ it):
 ## Trade-off considered
 
 **For the 3.14 floor (PEP 649 lazy annotations).**
-The annotation model gives us clean, readable code: unquoted forward refs, no `TYPE_CHECKING`
-guards inserted solely to break import cycles, and one consistent style with no `__future__`
-preamble on every module. It keeps the import graph acyclic as a natural consequence rather than
+The annotation model gives us clean, readable code: unquoted forward refs, unquoted names from a
+type-checking-only import where one breaks an import cycle, and one consistent style with no
+`__future__` preamble on every module. It keeps the import graph acyclic as a natural consequence rather than
 something we police by hand. Walking the floor back would mean reintroducing `__future__` imports
 and/or quoting annotations across the codebase and re-policing cycles manually — a real, ongoing
 cost paid on every module for the life of the project.
@@ -81,22 +79,19 @@ one-time "install 3.14" cost on the consumer side is the better trade.
 - **Who this excludes.** Anyone whose available interpreter is older than 3.14 cannot install or
   run squads until they upgrade. There is no compatibility shim and we are not maintaining one;
   that is the explicit, accepted cost.
-- **The codebase stays free of annotation ceremony.** No `from __future__ import annotations`, no
-  routinely-quoted forward refs, no `TYPE_CHECKING`-only imports added just to dodge cycles. New
-  code should follow the same convention.
+- **The codebase stays free of annotation ceremony.** No `from __future__ import annotations` and
+  no quoted forward refs; a type-checking-only import is used only where a runtime import would form
+  a cycle. New code follows the same convention.
 - **The toolchain is the enforcement point.** `requires-python`, ruff's `target-version`, and
-  pyright's `pythonVersion` already gate this; no further change is required by this ADR.
+  pyright's `pythonVersion` gate this.
 - **This is revisitable.** The floor is a deliberate trade, not a permanent law. If the
   audience cost outweighs the style benefit later (e.g. 3.14 adoption stalls and demand for older
   support is real), this ADR can be **superseded** by a new one that lowers the floor and pays the
-  reintroduction cost. Per project convention, supersede rather than edit an accepted ADR.
+  reintroduction cost.
 
 ## Links
 
 This ADR is the recorded "Python floor" decision called for by **FEAT-17** (1.0 hardening).
-Its acceptance bar additionally requires it to be **linked from the stability contract
-(FEAT-13)** — that linkage is a FEAT-13 deferral obligation tracked by the manager/tech lead,
-not filed from this ADR.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -104,4 +99,6 @@ not filed from this ADR.
 <!-- sq:discussion -->
 - [2026-06-15T12:30:16Z] `reviewer` Paul Reviewer:
   - REV-130: APPROVED. ADR-129 is doc-only — it edits no pyproject.toml and no code (confirmed: only the ADR .md is new). Sound decision: requires Python >=3.14, ratifying the already-present settings (requires-python, ruff target-version, pyright pythonVersion, the 3.14 classifier) and the CLAUDE.md 'no from __future__ import annotations' convention. The trade-off is recorded honestly — PEP 649 lazy annotations (unquoted forward refs, acyclic graph, no ceremony) vs. a smaller installable audience (3.14 is recent), resolved toward >=3.14 because squads is a developer-facing CLI not a library, and explicitly revisitable via supersession. FEAT-13 stability-contract linkage correctly flagged as a manager/tech-lead obligation rather than overstepped. @tech-lead
+- [2026-10-25T21:36:43Z] `architect` Robert Architect:
+  - 2026-10-25 audit: rewritten; decision unchanged. Corrected the claim that the codebase needs no `TYPE_CHECKING` imports: seven modules use them to break cycles, as ADR-78 sanctions. Removed the FEAT-13 deferral prose and the 'supersede rather than edit' line.
 <!-- sq:discussion:end -->

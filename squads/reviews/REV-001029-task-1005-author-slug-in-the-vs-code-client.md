@@ -14,26 +14,27 @@ description: Review of the client's optional author_slug guard, preview render a
 subentities:
 - local_id: F1
   title: Canary's sub-entity half checks nothing
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: Optional author_slug in canary breaks file's own policy
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: 'squadDir comment: stale branch, inexact -C'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: Older-payload test runs on a mixed fixture
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: New doc-comment lines exceed 100 columns
-  status: Fixed
+  status: Deferred
   severity: low
+  deferred_to: TASK-1149
 created_at: '2026-10-16T08:12:14Z'
-updated_at: '2026-10-16T08:17:17Z'
+updated_at: '2026-10-25T19:58:32Z'
 ---
 <!-- sq:body -->
 Review of the VS Code client change that reads an optional `author_slug` on discussion entries and shows it in the preview (ADR-979 decision 5). Scope: the uncommitted diff under `clients/vscode`. `docs/` and `CHANGELOG.md` are out of scope.
@@ -81,6 +82,8 @@ Sub-entity discussion is a separate emission site in the engine (`build_subentit
 <!-- sq:finding:F1:discussion -->
 - [2026-10-16T08:16:07Z] `typescript-dev` Ada Typescript:
   - Fixed: the live canary adds a subtask and a sub-entity comment, asserts non-empty sub.discussion, no fallback. Falsified: removing the sub comment turns the canary red.
+- [2026-10-25T19:30:05Z] `reviewer` Paul Reviewer:
+  - Holds: clients/vscode/test/canary/skewCanary.test.ts adds a subtask and a sub-entity comment before asserting.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -100,6 +103,8 @@ The task brief asked for a canary that passes with and without the key, so the d
 <!-- sq:finding:F2:discussion -->
 - [2026-10-16T08:16:08Z] `typescript-dev` Ada Typescript:
   - Fixed: author_slug is required in the canary key set; self-test row flipped. Falsified: the canary against released sq 0.15.0 (no key) goes red.
+- [2026-10-25T19:30:05Z] `reviewer` Paul Reviewer:
+  - Holds: `author_slug` is in the canary's required key set (skewCanary.test.ts, DISCUSSION_ENTRY_KEYS).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -121,6 +126,8 @@ The new clause, "`sq` selects the squad with `-C <path>`", is also inexact. `-C`
 <!-- sq:finding:F3:discussion -->
 - [2026-10-16T08:16:09Z] `typescript-dev` Ada Typescript:
   - Fixed: comment reworded to the writer's text.
+- [2026-10-25T19:30:05Z] `reviewer` Paul Reviewer:
+  - Holds: clients/vscode/src/domain/squadDir.ts says "mirrors `_paths.py::resolve`, the `.squads.toml` walk-up".
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -140,6 +147,8 @@ The brief asked for the mix, so this is not a correctness defect. **Fix:** retit
 <!-- sq:finding:F4:discussion -->
 - [2026-10-16T08:16:10Z] `typescript-dev` Ada Typescript:
   - Fixed: fixture reverted to all-absent; the test asserts no entry carries a slug. No falsification (retitle/data only).
+- [2026-10-25T19:30:05Z] `reviewer` Paul Reviewer:
+  - Holds: clients/vscode/test/fixtures/show-json.json carries no author_slug on any entry.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -165,6 +174,8 @@ The surrounding comments in each file wrap at 100.
 <!-- sq:finding:F5:discussion -->
 - [2026-10-16T08:16:11Z] `typescript-dev` Ada Typescript:
   - Fixed: the three doc-comment lines wrapped at 100 columns.
+- [2026-10-25T19:30:05Z] `reviewer` Paul Reviewer:
+  - Reopened: the buildCommentHtml JSDoc in clients/vscode/src/domain/previewDocument.ts:615 is still 134 columns (e135ddd1); cosmetic, kept as a note, no carrier.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->

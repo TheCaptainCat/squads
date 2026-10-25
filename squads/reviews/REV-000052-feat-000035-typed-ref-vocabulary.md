@@ -10,10 +10,10 @@ refs:
 subentities:
 - local_id: F1
   title: Function-local Status import in _check_decisions; hoist to module top
-  status: Open
+  status: WontFix
   severity: low
 created_at: '2026-06-11T20:41:00Z'
-updated_at: '2026-06-23T09:59:39Z'
+updated_at: '2026-10-25T19:39:29Z'
 ---
 <!-- sq:body -->
 Formal review of FEAT-35 (typed ref vocabulary) — TASK-50 (VALID_REF_KINDS constant + validation at add_ref and ServiceCore.create) and TASK-51 (depends-on≡blocks in sq blocked, sq check unknown-kind + Superseded-without-supersedes warnings, eight-row kinds table in workflow.md.j2, refreshed --kind help). Reviewed the full working-tree diff against acceptance criteria, ADR-49 conformance, CLAUDE.md invariants, and quality. Gates green; live spot-checks pass.
@@ -37,6 +37,8 @@ Style: _check_decisions() in _maintenance.py uses a function-local 'from squads.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:29Z] `reviewer` Paul Reviewer:
+  - Obsolete: the Status enum and _models/_enums are gone; the check lives in _services/_validators.py.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 <!-- sq:findings:end -->

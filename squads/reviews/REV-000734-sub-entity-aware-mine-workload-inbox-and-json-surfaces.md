@@ -12,7 +12,7 @@ refs:
 subentities:
 - local_id: F1
   title: The visibility matrix never crosses sub-entity kind with status
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: mine reads 'open' as not-hidden while workload reads it as not-settled
@@ -20,15 +20,15 @@ subentities:
   severity: medium
 - local_id: F3
   title: inbox --json pairs lines to regions by index and drops item locators
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: inbox attributes sub-entity-derived lines to the item level
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: No CHANGELOG entry and no docs update, both task constraints
-  status: Fixed
+  status: Verified
   assignee: tech-writer
   severity: info
 - local_id: F6
@@ -37,14 +37,14 @@ subentities:
   severity: info
 - local_id: F7
   title: mine does not exclude roster-category items while workload does
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F8
   title: An @mention only in title or description yields an empty hit
-  status: Fixed
+  status: Verified
   severity: medium
 created_at: '2026-08-03T11:01:44Z'
-updated_at: '2026-08-03T14:36:57Z'
+updated_at: '2026-10-25T19:26:17Z'
 ---
 <!-- sq:body -->
 Independent review of the sub-entity read surfaces (TASK-729, commit `e9d8fcc`), against
@@ -138,6 +138,8 @@ That is the shape that catches an input nobody thought of, which is what this ax
   - Fixed. Crossed sub-entity kind x status: parametrized _KIND_MATRIX (subtask/Todo/Done, story/Todo/Done, finding/Fixed/Verified, finding/Fixed/WontFix) against the existing 10-row visibility shape via stacked pytest.mark.parametrize -- 40 rows total in tests/service/test_subentity_aware_assignment_views.py.
   - finding/WontFix added beyond the ask: different role object (retired vs done) at the same settled+hidden values, since the axis this release keeps getting bitten on is a role assumption, not a status literal.
   - Falsified: hardcoding sub_open to a Todo-literal check breaks exactly the 7 new finding-kind rows (Fixed treated as closed) while leaving all subtask/story rows green, proving the extension catches the class of bug described. Reverted after confirming.
+- [2026-10-25T19:26:17Z] `reviewer` Paul Reviewer:
+  - Holds: _KIND_MATRIX in tests/service/test_subentity_aware_assignment_views.py crosses kind with status.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -231,6 +233,8 @@ punctuation two functions later, removes the coupling entirely.
   - Fixed the brittle discriminator too: _Region gained an explicit is_subentity bool set at construction (true only for regions added in the sub-entity loop), and inbox now reads that instead of testing hit.region for a colon -- no longer relying on the accident that no item-level region name contains one.
   - Corrected the false vocabulary claim: InboxLine's docstring and the inbox() docstring both said region 'reuses the same locator vocabulary search publishes' unqualified; reworded to state plainly that every item-level region search distinguishes collapses to null here, sub-entity-vs-item being the only distinction this surface makes.
   - Did not add a paired hits key (list of {text, region} objects) alongside lines/regions -- the existing pair already can't desync in practice (one loop, one append) and the new test now pins that it doesn't; a second key would add a maintained surface for a low-severity, non-blocking finding without fixing anything the test doesn't already catch.
+- [2026-10-25T19:26:17Z] `reviewer` Paul Reviewer:
+  - Holds: _Region.is_subentity in _services/_collab.py; alignment pinned by test_inbox_json_lines_and_regions_stay_index_aligned.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -270,6 +274,8 @@ local id it names. The first is the smaller change and removes duplicate hits as
   - Fixed. inbox() now skips the frontmatter block (starts its scan after _frontmatter_end_line, matching search's own behaviour) and skips any line classified into the :summary roll-up region -- both are sq-managed, never authored, so a mention there is never a real call-to-action and was only ever a duplicate of the sub-entity's own heading hit.
   - Took your first candidate fix (suppress derived-text hits), not the second (resolve the summary row back to its sub-entity) -- it's the smaller change and removes the duplicate as a side effect, exactly as you called out.
   - Falsified: reverting the fix reproduces your exact repro -- a story titled '@reviewer in the title' yields 3 hits (2 mis-attributed null, 1 duplicate) pre-fix, 1 correctly-attributed hit post-fix. New test: test_inbox_a_mention_in_a_sub_entitys_title_reports_once_at_its_own_region.
+- [2026-10-25T19:26:17Z] `reviewer` Paul Reviewer:
+  - Holds: inbox scans from _frontmatter_end_line (_services/_collab.py), and the roll-up table is no longer stored in item files.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -329,6 +335,8 @@ adopter terms — no item ids, no build-process references.
   - Three MORE false claims in the same CLAUDE.md map, found by the widened check and fixed. (1) `_status_badge` exists nowhere in the tree — not in src/, not in clients/; the real resolvers are in `_badges.py` (`status_badge`/`badge_render`/`resolve_collection`/`field_label`), a module the map never named. (2) `allocate_id` was attributed to `_index/_store.py`; it is `SquadsDB.allocate_id` at `_models/_index.py:85` — same misfiling as `_discussion.py`. Invariant 2 further down ("allocate only inside `IndexStore.transaction()`") stays true, since that is about the call site, so I kept both facts. (3) The `_services/` mixin list named six mixins and read as complete; `Service` composes eleven. Listed all eleven in MRO order and named the four non-mixin helpers alongside.
   - Responsibilities rot with no path change, the thing a path check cannot see: `_workflow/__init__` exposes `TERMINAL`/`is_open`/`WORKFLOWS`/`ALLOWED_PARENTS` as views over the BUNDLED spec, loaded once at import and explicitly not override-aware — the capabilities live as methods on `WorkflowSpec` and the active spec is threaded (`Service.spec`, `_cli._common.get_active_spec()`). CLAUDE.md and internals.md both presented those constants as the workflow layer with no such caveat, which in the release whose headline is overrides is the trap most likely to cost someone a bug. Flagged in both files.
   - Answering the coordinator's two open questions. (a) `_vocab.py` belongs in the `_models/` slot and that placement is deliberate, not incidental: its own docstring says the resolver lives in `_models` so model- and service-layer code can both import it without a cycle, and I confirmed no module under `_models/` imports `_workflow` at all. The SPEC MODELS are the opposite case — `WorkflowSpec` and friends stay in `_workflow/_models.py`, and that separation is what keeps the import graph acyclic, so they get their own bullet rather than joining `_models/`. The top-of-file layering diagram is not falsified by any of this. (b) Not "nothing else": `_specs/`, `_overrides/` and `_specmerge.py` — the entire subsystem that replaced the enums — appeared NOWHERE in CLAUDE.md, in the map or outside it. The dead `_enums` path was the visible half of exactly that. Added a `_specs/` bullet covering all three. Still absent from the map and left for a ruling, since naming them is a judgement about the map's intended scope rather than a correction: `_board/`, `_memory/`, `_context.py`, `_actor.py`, `_badges.py` (now named in passing), `_aio.py`, `_docfiles.py`, `_util.py`, `_tui/`.
+- [2026-10-25T19:26:17Z] `reviewer` Paul Reviewer:
+  - Holds: CHANGELOG.md carries the sub-entity mine/workload/inbox entry and docs/recipes.md the corrected lines.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -401,6 +409,8 @@ it from `workload` and say why roster items cannot carry an assignee.
   - Fixed. mine now opens with the same 'if self.spec.item_is_roster(it.type): continue' guard workload already has, so the two adjacent functions agree on the same question rather than one stating the exclusion and the other omitting it.
   - Confirmed reachable at the service layer even though no CLI verb exposes it: svc.create('role', ..., assignee='manager') succeeds today (create() has no roster-vs-assignee guard), so this was latent-but-real, not purely hypothetical.
   - Falsified: new test test_mine_excludes_a_roster_category_item_matching_workloads_own_guard fails without the guard (a role item with assignee set surfaces in mine) and passes with it.
+- [2026-10-25T19:26:17Z] `reviewer` Paul Reviewer:
+  - Holds: RosterMixin.mine in _services/_roster.py skips item_is_roster types like workload.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -441,6 +451,8 @@ service and CLI layers, since the disagreement is the property that broke.
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
+- [2026-10-25T19:26:17Z] `reviewer` Paul Reviewer:
+  - Holds: _authored_field_lines plus the "if not matched" emit gate in _services/_collab.py inbox.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 <!-- sq:findings:end -->

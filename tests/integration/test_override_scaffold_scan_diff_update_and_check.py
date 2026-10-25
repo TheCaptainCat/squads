@@ -309,7 +309,7 @@ class TestWorkflowOverride:
         stamp_toml_file(path, "0.13.1")
         issues = check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir))
         assert len(issues) == 1
-        level, display, message = issues[0]
+        level, display, message, _rule = issues[0]
         assert level == "warn"
         assert display == WORKFLOW_OVERRIDE_FILENAME
         assert "workflow override may be stale" in message
@@ -327,7 +327,7 @@ class TestWorkflowOverride:
 
         issues = check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir))
         assert len(issues) == 1
-        level, display, message = issues[0]
+        level, display, message, _rule = issues[0]
         assert level == "error"
         assert display == WORKFLOW_OVERRIDE_FILENAME
         assert "no squads:override-base stamp" in message
@@ -453,7 +453,7 @@ class TestPlaybookOverride:
 
         issues = check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir))
         assert len(issues) == 1
-        level, display, message = issues[0]
+        level, display, message, _rule = issues[0]
         assert level == "warn"
         assert display == PLAYBOOK_OVERRIDE_FILENAME
         assert "playbook override may be stale" in message
@@ -471,7 +471,7 @@ class TestPlaybookOverride:
 
         issues = check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir))
         assert len(issues) == 1
-        level, display, message = issues[0]
+        level, display, message, _rule = issues[0]
         assert level == "error"
         assert display == PLAYBOOK_OVERRIDE_FILENAME
         assert "no squads:override-base stamp" in message
@@ -691,7 +691,7 @@ class TestCheckDrift:
         _place_role(squad_dir, "architect", 'full_name = "Ada"\n')
         issues = check_override_issues(squad_dir, catalog=catalog_of(squad_dir))
         assert len(issues) == 1
-        level, display, message = issues[0]
+        level, display, message, _rule = issues[0]
         assert level == "error"
         assert display == ".overrides/roles/architect.toml"
         assert "no squads:override-base stamp" in message

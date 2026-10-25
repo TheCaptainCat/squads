@@ -14,149 +14,103 @@ description: 'In-repo VS Code extension at clients/vscode/: isolated dev-time TS
   browse-only for 0.10; one release bundle — client built/shipped with the core at
   the unified version (VSIX as a release asset)'
 created_at: '2026-07-16T13:40:12Z'
-updated_at: '2026-10-16T11:18:12Z'
+updated_at: '2026-10-25T21:27:16Z'
 ---
 <!-- sq:body -->
 ## Context
 
 EPIC-99 brings a second language into this repo: a VS Code extension (TypeScript/Node) that lets
-operators browse the squad from the editor. FEAT-100 is the first, browse-only increment — an
-activity-bar tree plus a rendered item preview. Mutations (transition/comment/assign from context
-menus) are a later increment, not a non-goal.
+operators browse the squad from the editor, through trees in the activity bar, a rendered item
+preview, search, the board and the workflow.
 
 The core is Python/uv with a strict gate (`pyright` strict, `ruff`, `pytest`, `sq check`) and a
-frozen machine surface: FEAT-15 (Done) closed the `--json` gaps, documented the exit-code table,
-and pinned every read shape with golden-file tests. The extension is a **pure consumer** of that
-surface. The architectural question is not *how to write TypeScript* but *how a second toolchain
-lives in this repo without contaminating the core's gates, and how the client couples to the CLI
-so the frozen contract — not our internals — is the only thing it depends on.*
+frozen machine surface: the `--json` read shapes and the documented exit-code table. The extension
+is a **pure consumer** of that surface. The architectural question is how a second toolchain lives
+in this repo without contaminating the core's gates, and how the client couples to the CLI so the
+frozen contract, not the core's internals, is the only thing it depends on.
 
 ## Decision
 
-**1. Placement & isolation.** The extension lives at `clients/vscode/` as a self-contained
-TypeScript/Node package (`clients/` reserved for future non-Python clients). It has its own
-toolchain (npm/tsc/ESLint/its own test runner) and its own lockfile, entirely disjoint from the
-Python core. The Python gate (`pyright`/`ruff`/`pytest`/`sq check`) never looks at `clients/`, and
-the TS gate never touches Python. No shared build, no shared config inheritance, no shared virtual
-env. `clients/` is added to the Python tooling's ignore set so a stray `.ts`/`node_modules` can
-never fail a Python run, and vice versa.
+**1. Placement and isolation.** The extension lives at `clients/vscode/` as a self-contained
+TypeScript/Node package (`clients/` is reserved for non-Python clients), with its own toolchain
+(npm, tsc, ESLint, vitest) and lockfile, disjoint from the Python core. The Python tooling excludes
+`clients/` (ruff `extend-exclude`, pyright `exclude`), and the TS gate never touches Python. No
+shared build, config inheritance or virtual environment.
 
-**2. Consumer contract (the coupling rule).** The extension talks to the squad **only** by shelling
-out to the `sq` binary with `--json`, treating stdout as the frozen 1.0 shapes and the exit code as
-the documented contract. It MUST NOT read `.claude/` and MUST NOT parse `.squads.json` — the index
-is a rebuildable internal, not a frozen surface (invariant #1). Concretely, FEAT-100 depends on
-exactly three surfaces:
-  - `sq tree <root> --json` — drives the sidebar tree (id/type/status/assignee/blocked/children).
-  - `sq list --json` — feeds the flat/filtered/grouped views (US3).
-  - `sq show <id> --raw` — its clean-markdown dossier (H1 title + metadata block + body markdown,
-    no Rich chrome) piped into a **read-only `squads:` virtual document** opened in VS Code's
-    markdown preview (US2): clean prose, no frontmatter or `<!-- sq:* -->` marker noise. This
-    depends on two core surface changes landing first — `sq show --raw` emitting genuinely clean
-    markdown (dropping its box-panel header) and `sq show --json` growing the item `body`
-    (+ discussion) — specified as a prerequisite core task.
+**2. Consumer contract (the coupling rule).** The extension reads the squad **only** by running the
+`sq` binary, treating `--json` stdout as the frozen shapes and the exit code as the documented
+contract. It never reads `.claude/` and never parses `.squads.json`, a rebuildable internal
+(invariant #1); it only watches that file's modification to know when to refresh. The surfaces it
+runs are read commands: `sq tree --json`, `sq list --json`, `sq show <id> --json` and `--raw` (the
+clean-markdown dossier rendered in a read-only `squads:` virtual document), `sq search --json`,
+`sq graph --json`, `sq board list --json`, `sq memory <slug> list --json`, `sq role list --json`,
+`sq operator list --json`, and the `sq workflow` catalogs.
 
-> **Note 2026-10-15 (ADR-1007):** the generic item rows of `sq list --json` and `sq show --json`
-> change shape in 0.16: the `extra` key is removed and each stored attribute appears flat at the top
-> level, present only when stored. This is a breaking change to a frozen shape, made for this
-> release and called out in the 0.16 upgrade notes; it narrows the additive-only rule for these
-> rows. The client reads no `extra` key; its skew canary drops `extra` from `LIST_ROW_KEYS` and
-> checks each non-core key against the type's `attributes` in `sq workflow --json`. See ADR-1007
-> decision 10.
+The frozen shapes freeze each key's name, type, presence and meaning, not every key's value set.
+The client tolerates an unknown value in an open-set key (`edge_semantic` in `sq graph --json`,
+`region` in `sq search --json`, `role` in `sq workflow ref-kinds --json`) and reads vocabulary
+values (type, status, priority, ref kind, assignee) from the catalogs rather than hardcoding them
+(ADR-1025). An item row is flat, each stored attribute at the top level (ADR-1007); the client reads
+no nested `extra` key, and its skew canary checks each non-core key against the type's declared
+attributes.
 
-> **Note 2026-10-16 (ADR-1025):** "the frozen 1.0 shapes" freezes each key's name, type, presence
-> and meaning, not the set of values every key may carry. Three keys carry an open set that may grow
-> between majors: `edge_semantic` in `sq graph --json`, `region` in `sq search --json`, and `role`
-> in `sq workflow ref-kinds --json`. A consumer under this section tolerates a value it does not
-> recognise in any of them and treats it as unknown, never as an error, and reads vocabulary values
-> (type, status, priority, ref kind, assignee) from the catalogs instead of hardcoding them. See
-> ADR-1025 decision 3.
+**`sq` discovery.** The extension resolves how to invoke `sq` from the workspace toolchain, never
+PATH-only; first match wins, against the workspace root:
 
-  **`sq` discovery.** The extension resolves how to invoke `sq` by auto-detecting the workspace
-  toolchain — never PATH-only. Resolution order (first that works wins), against the workspace root:
-  1. explicit config override (`squads.sqPath`, or a `squads.command` array);
-  2. a workspace virtualenv — `.venv/bin/sq` (`.venv/Scripts/sq.exe` on Windows);
-  3. `uv` present + a project → `uv run sq`;
-  4. `poetry` present + a project → `poetry run sq`;
-  5. bare `sq` on PATH (fallback).
+1. explicit config (`squads.sqPath`, or a `squads.command` array);
+2. a workspace virtualenv, `.venv/bin/sq` (`.venv/Scripts/sq.exe` on Windows);
+3. `uv` present and a project → `uv run sq`;
+4. `poetry` present and a project → `poetry run sq`;
+5. bare `sq` on PATH.
 
-  The resolved invocation is cached and re-probed on failure. Failure modes, all surfaced as VS Code
-  notifications (never a crash, never a partial silent tree):
-  - **No `sq` found by any strategy** → actionable error naming the order tried and the
-    `squads.sqPath` override, tree shows an error node, no throw.
-  - **Non-zero exit** → map by the frozen table: `2` usage (our bug — log the argv), `3` check
-    failure (irrelevant to read paths but surfaced verbatim), `1`/other runtime (show stderr).
-  - **Version/schema skew** → the CLI already hard-stops with exit `1` and a "run `sq migrate up`"
-    message when the on-disk schema mismatches the installed `sq`; the extension surfaces that
-    message rather than trying to reason about schema itself. It pins **no** schema knowledge.
+The resolved invocation is cached and re-probed on failure. Failures surface as VS Code
+notifications or an error node, never a crash or a silently partial tree:
 
-**3. Testing strategy + quality parity.** TypeScript is held to the **same strict bar as the Python
-core** — no laxer gate for the new language. Parity: `tsc` strict + strict-plus flags
-(`noUncheckedIndexedAccess`, `noImplicitReturns`, `noImplicitOverride`, `noFallthroughCasesInSwitch`,
-`noUnusedLocals`, `noUnusedParameters`, `exactOptionalPropertyTypes`, `isolatedModules`) ≈ pyright
-strict; `typescript-eslint` strict-type-checked + stylistic-type-checked with complexity ≤12 and
-max-params ≤8 (mirroring ruff C901/PLR), import ordering, bugbear/simplify rules, **zero warnings**;
-Prettier `--check` (≈ `ruff format --check`). A single `npm run check` mirrors
-`pyright && ruff check && ruff format --check`. **Enforcement nuance (consistent with #1):**
-within TypeScript this gate is strict and **blocking** — must-pass for any change touching
-`clients/vscode/`; **cross-language it stays isolated** — a TS failure never blocks a Python-only
-change, and vice versa.
+- **No `sq` found** → an actionable error naming the order tried and the `squads.sqPath` override.
+- **Non-zero exit** → mapped by the documented exit-code table, stderr shown.
+- **Schema skew** → the CLI hard-stops with a "run `sq migrate up`" message when the on-disk schema
+  does not match the installed `sq`; the extension surfaces it and pins no schema knowledge.
 
-Tested inside `clients/vscode/` with its own runner, three layers:
-  - **Unit** — parse/adapt logic (JSON → TreeItem, error/exit-code mapping) against **committed
-    fixture JSON captured from real `sq … --json` output**. This is the bulk of the value and runs
-    with no `sq` binary present.
-  - **Integration (thin)** — a small suite that runs a real `sq` against a scratch squad to confirm
-    the fixtures still match the live shapes (skew canary); skippable when `sq` is absent.
-  - **Extension host** — a minimal `@vscode/test-electron` smoke test that the tree loads and a
-    preview opens.
+**3. Testing and quality parity.** TypeScript is held to the same strict bar as the core: `tsc`
+strict plus `noUncheckedIndexedAccess`, `noImplicitReturns`, `noImplicitOverride`,
+`noFallthroughCasesInSwitch`, `noUnusedLocals`, `noUnusedParameters`,
+`exactOptionalPropertyTypes` and `isolatedModules`; `typescript-eslint` strict-type-checked and
+stylistic-type-checked with complexity ≤ 12 and max-params ≤ 8, zero warnings; Prettier `--check`.
+`npm run check` mirrors the Python gate. Within TypeScript the gate is blocking for any change to
+`clients/vscode/`; across languages it stays isolated.
 
-  **Dev-time** CI: a **separate workflow/job keyed on `clients/vscode/**`** paths, running the TS
-  gate. It is **independent of and non-gating for the Python core** — a red TS job never blocks a
-  Python-only change and vice versa. Cross-language coupling is caught only by the integration skew
-  canary, by design. (This dev-time isolation is distinct from the release pipeline, which unifies
-  the two — see #4/#5.)
+Three test layers, all inside `clients/vscode/`:
 
-**4. Packaging / distribution (one bundle).** A release is a **single bundle**: the release pipeline
-builds AND ships the client alongside the core, in the same chain, at the same version. It builds the
-VSIX (`vsce package`) as a **release artifact** — not a local-only, not-deferred thing — and attaches
-it to the tagged release (a downloadable, installable VSIX per release). "Deploy the client" for 0.10
-means **the VSIX is a published release asset**; **marketplace publishing** (VS Code Marketplace /
-Open VSX) is the open item — it needs a publisher account and credentials in CI that aren't settled
-here (see Open Questions). The pipeline is structured so marketplace publish is a later add-on step,
-not a re-architecture.
+- **Unit** — parse and adapt logic against committed fixture JSON captured from real `sq` output;
+  runs with no `sq` binary.
+- **Skew canary** — runs a real `sq` against a scratch squad to confirm the fixtures still match the
+  live shapes; skippable when `sq` is absent.
+- **Extension host** — a `@vscode/test-electron` smoke test that the trees load and a preview opens.
 
-**5. Versioning (unified).** The extension does **not** carry an independent semver. Its version
-**is** the core's version, sourced the same way and bumped by the same single release bump — one
-version for the whole bundle. The client therefore always ships matched to the core it was built
-against, so no `--json`-contract skew can exist between a release's client and its CLI. (The
-CLI's own on-disk-schema hard-stop from #2 still guards an operator running a bundle against a
-squad written by a *different* version.)
+The dev-time CI workflow (`vscode-client.yml`) is path-filtered to `clients/vscode/**` and
+independent of the Python jobs; cross-language coupling is caught by the skew canary.
+
+**4. Packaging and distribution (one bundle).** A release ships core and client together: the
+release pipeline packages the VSIX (`vsce package`), publishes it to the VS Code Marketplace when
+the `VSCE_PAT` secret is configured, and attaches it to the tagged GitHub release either way.
+
+**5. Versioning (unified).** The extension carries no independent version: its version is the
+core's, bumped by the same release bump, and the pipeline refuses a tag that does not match the
+core version. A release's client and CLI are always matched, so the only version question left is
+bundle against on-disk schema, which the CLI's hard-stop guards.
 
 ## Consequences
 
-- A clean second-toolchain boundary: TS churn can never redden the Python gate, and the client can
-  only break if the *frozen* surface breaks — which the golden tests already forbid silently.
-- The client is thin and mockable: nearly everything is unit-tested against captured fixtures, so it
-  builds and tests without a live `sq`.
-- The mutation increment is a clean additive layer — same shell-out pattern, adding *write* verbs
-  (`sq <type> <n> transition|comment|assign`) behind command palette / context menus, reusing the
-  exit-code mapping. Nothing here needs revisiting to add it.
-- Cost: two dev-time CI lanes and a fixture-refresh discipline (the skew canary is what catches a
-  drifted shape between the two languages).
-- Two boundaries that must not be confused: **dev-time gates stay isolated** (a TS-only failure
-  won't block a Python-only change), while the **release pipeline is unified** (one build, one
-  version, one bundled deploy). The isolation is about fast, non-cross-blocking iteration; the
-  unification is about shipping a matched set.
-- The unified version removes a whole class of skew: a release's client and CLI are always the same
-  version, so the only version story to reason about is bundle-vs-on-disk-schema, not client-vs-CLI.
-
-## Deferred (out of scope for this ADR / 0.10)
-
-- **Marketplace / Open VSX publishing** — the pipeline attaches the VSIX to the release now;
-  publishing to a marketplace is a later, additive pipeline step pending the credentials decision.
-- All mutation flows (write verbs from the editor).
-- Bundling the `sq` binary itself inside the VSIX — the extension discovers an operator/workspace
-  `sq` (decision #2); shipping a vendored `sq` is not in scope.
+- TS churn never reddens the Python gate, and the client can only break if the frozen surface
+  breaks.
+- The client is thin and mockable: nearly everything is unit-tested against captured fixtures.
+- Write verbs from the editor, if added, are an additive layer over the same shell-out pattern and
+  exit-code mapping. The extension is read-only, and its marketplace page says so.
+- Cost: two dev-time CI lanes and a fixture-refresh discipline, with the skew canary catching drift.
+- Dev-time gates are isolated; the release pipeline is unified. Isolation is about non-blocking
+  iteration, unification about shipping a matched set.
+- Bundling a `sq` binary inside the VSIX is out of scope: the extension discovers the workspace's
+  `sq`.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -191,4 +145,6 @@ squad written by a *different* version.)
   - (D) Golden-freeze: --raw currently has NO golden — ADD new raw-text goldens (e.g. item_show_raw.txt covering an item with body + sub-entities + a comment, deterministic under frozen clock). The --json additions change bytes of the existing per-type goldens — UPDATE feature_show.json / task_show.json (+ any show --json golden that now carries body/discussion) in the same PR. Both surfaces then carry FEAT-15-style golden coverage.
 - [2026-10-16T11:18:12Z] `architect` Robert Architect:
   - 2026-10-16: one dated note added in section 2 for ADR-1025 (consumers tolerate unknown open-set values); nothing else in the body changed.
+- [2026-10-25T21:27:16Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale, body rewritten in the present tense; the five decisions are unchanged. Marketplace publishing is no longer deferred: publish.yml runs vsce publish when VSCE_PAT is set and always attaches the VSIX. Replaced the three FEAT-100 surfaces with the read commands the client runs (sqAdapter.ts), noted it watches but never parses .squads.json, folded the dated ADR-1007 and ADR-1025 notes into §2, and removed the 0.10 framing, the prerequisite core task and the Deferred section.
 <!-- sq:discussion:end -->

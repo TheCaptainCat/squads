@@ -1,7 +1,7 @@
 ---
 name: tech-writer
 description: "Documentation and guides."
-model: haiku
+model: sonnet
 color: pink
 disallowedTools: Agent
 skills:

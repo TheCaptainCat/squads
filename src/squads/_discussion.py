@@ -23,10 +23,17 @@ from typing import NamedTuple
 from squads import _badges as badges
 from squads._errors import SquadsError
 from squads._models import _markers as markers
+from squads._models._item import Item
 from squads._models._participants import SLUG_PATTERN, require_valid_slug
 from squads._models._subentity import SubEntity
 from squads._rendering._engine import render
-from squads._sections import get_section, replace_section, split_lines
+from squads._sections import (
+    append_to_section,
+    find_markers,
+    get_section,
+    replace_section,
+    split_lines,
+)
 from squads._workflow import WorkflowSpec
 
 _MENTION_RE = re.compile(r"(?<![A-Za-z0-9_])@([a-z0-9][a-z0-9-]*)")
@@ -577,6 +584,130 @@ def ensure_container(text: str, heading: str, container: str) -> str:
         f"\n\n## {heading}\n\n{markers.open_marker(container)}\n{markers.close_marker(container)}\n"
     )
     return text + block
+
+
+def _pair_absent(text: str, tag: str) -> bool:
+    return markers.open_marker(tag) not in text and markers.close_marker(tag) not in text
+
+
+def stale_container_tags(text: str, plural: str) -> list[str]:
+    """The top-level container-like tags *text* carries other than the declared *plural* and the
+    fixed structural ones: the container a renamed plural left behind."""
+    structural = {markers.BODY, markers.SUMMARY, markers.DISCUSSION, plural}
+    tags = {tag.removeprefix(markers.PREFIX).removesuffix(":end") for tag in find_markers(text)}
+    return sorted(tag for tag in tags if ":" not in tag and tag not in structural)
+
+
+def _pair(tag: str, inner: str = "") -> str:
+    body = f"{inner}\n" if inner else ""
+    return f"{markers.open_marker(tag)}\n{body}{markers.close_marker(tag)}\n"
+
+
+def _insert_at_line_start(text: str, at: int, chunk: str) -> str:
+    """*text* with *chunk* (its own lines) inserted at line start *at*, set off by blank lines."""
+    lead = "" if at == 0 or text[:at].endswith("\n\n") else "\n"
+    tail = "" if text[at : at + 1] in ("", "\n") else "\n"
+    return text[:at] + lead + chunk + tail + text[at:]
+
+
+def _before_region(text: str, tag: str, heading: str) -> int:
+    """The line start to insert before the *tag* region: its open marker, or the *heading* line
+    that sits directly above it when the template put one there."""
+    at = text.find(markers.open_marker(tag))
+    above = text[:at].rstrip("\n")
+    line_start = above.rfind("\n") + 1
+    return line_start if above[line_start:].strip() == heading else at
+
+
+def _local_number(local_id: str) -> int:
+    digits = re.search(r"\d+$", local_id)
+    return int(digits.group()) if digits else 0
+
+
+def restore_regions(
+    text: str, item: Item, kind: str | None, spec: WorkflowSpec, *, from_squad: Path | None
+) -> str:
+    """*text* with every region a write may need, and that the file lacks outright, added empty:
+    a non-roster item's discussion (with its heading, at the end of the file), and for each
+    declared sub-entity of *kind* its container (before the discussion), its block in id order,
+    and the block's body (before its discussion) and discussion (after its body). A region goes
+    only between existing regions, never inside one, and a heading that survived is not looked
+    for; a half-present pair is left to the marker check."""
+    if not spec.item_is_roster(item.type) and _pair_absent(text, markers.DISCUSSION):
+        text = text.rstrip("\n") + f"\n\n## Discussion\n\n{_pair(markers.DISCUSSION)}"
+    if kind is None or not item.subentities:
+        return text
+    container = spec.subentity_plural(kind)
+    if get_section(text, container) is None:
+        if stale_container_tags(text, container):
+            return text
+        text = _restore_container(text, spec.subentity_container_heading(kind), container)
+    for sub in item.subentities:
+        tag = f"{kind}:{sub.local_id}"
+        if _pair_absent(text, tag):
+            text = _restore_block(text, item, kind, sub.local_id, sub.title, spec, from_squad)
+        else:
+            text = _restore_block_regions(text, kind, sub.local_id, spec)
+    return text
+
+
+def _restore_container(text: str, heading: str, container: str) -> str:
+    """*text* with an empty container added before the item discussion, else at the end."""
+    if markers.open_marker(markers.DISCUSSION) not in text:
+        return ensure_container(text, heading, container)
+    at = _before_region(text, markers.DISCUSSION, "## Discussion")
+    return _insert_at_line_start(text, at, f"## {heading}\n\n{_pair(container)}")
+
+
+def _restore_block(
+    text: str,
+    item: Item,
+    kind: str,
+    local_id: str,
+    title: str,
+    spec: WorkflowSpec,
+    from_squad: Path | None,
+) -> str:
+    """*text* with the absent block for *local_id* added inside its container, before the first
+    present block with a higher number, else at the end."""
+    block = build_block(kind, local_id, title, spec=spec, from_squad=from_squad)
+    number = _local_number(local_id)
+    for other in item.subentities:
+        if _local_number(other.local_id) > number:
+            marker = markers.open_marker(f"{kind}:{other.local_id}")
+            if (at := text.find(marker)) != -1:
+                return text[:at] + block.rstrip("\n") + "\n\n" + text[at:]
+    return append_to_section(text, spec.subentity_plural(kind), block)
+
+
+def _restore_block_regions(text: str, kind: str, local_id: str, spec: WorkflowSpec) -> str:
+    """*text* with the block's absent body and discussion regions added empty: the body before
+    the block's discussion (or at its end), the discussion, under a heading of its own, right
+    after the body."""
+    tag = f"{kind}:{local_id}"
+    open_at = text.find(markers.open_marker(tag))
+    if open_at == -1 or text.find(markers.close_marker(tag), open_at) == -1:
+        return text
+    body_name, disc_tag = body_tag(kind, local_id), markers.discussion_tag(tag)
+
+    def span() -> tuple[int, int]:
+        start = text.find(markers.open_marker(tag))
+        return start, text.find(markers.close_marker(tag), start)
+
+    start, end = span()
+    if _pair_absent(text[start:end], body_name):
+        pair = _pair(body_name, body_placeholder(kind, spec))
+        if markers.open_marker(disc_tag) in text[start:end]:
+            at = _before_region(text, disc_tag, "#### Discussion")
+        else:
+            at = end
+        text = _insert_at_line_start(text, at, pair)
+        start, end = span()
+    if _pair_absent(text[start:end], disc_tag):
+        close = text.find(markers.close_marker(body_name), start)
+        at = text.find("\n", close) + 1 if close != -1 and close < end else end
+        text = _insert_at_line_start(text, at, f"#### Discussion\n\n{_pair(disc_tag)}")
+    return text
 
 
 def ensure_summary(

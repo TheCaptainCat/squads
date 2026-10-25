@@ -21,6 +21,12 @@ import re
 from pathlib import Path
 
 from squads._aio import atomic_replace_sync
+from squads._specload import (
+    ROLE_OVERRIDE_MESSAGES,
+    TEMPLATE_OVERRIDE_MESSAGES,
+    OverrideMessages,
+    read_override_text,
+)
 
 # Both stamp writers below rewrite a *whole* override file the adopter hand-authored — a
 # template or a role TOML — so a kill mid-write must not cost that content. This module is sync
@@ -55,7 +61,7 @@ def write_template_stamp(text: str, version: str) -> str:
 
 def stamp_template_file(path: Path, version: str) -> None:
     """Read *path*, update (or insert) the override-base stamp, and write it back atomically."""
-    text = path.read_text(encoding="utf-8")
+    text = read_override_text(path, TEMPLATE_OVERRIDE_MESSAGES)
     updated = write_template_stamp(text, version)
     atomic_replace_sync(path, updated)
 
@@ -80,8 +86,11 @@ def write_toml_stamp(text: str, version: str) -> str:
     return new_stamp + "\n" + text
 
 
-def stamp_toml_file(path: Path, version: str) -> None:
-    """Read *path*, update (or insert) the TOML stamp comment, and write it back atomically."""
-    text = path.read_text(encoding="utf-8")
+def stamp_toml_file(
+    path: Path, version: str, messages: OverrideMessages = ROLE_OVERRIDE_MESSAGES
+) -> None:
+    """Read *path*, update (or insert) the TOML stamp comment, and write it back atomically.
+    A file that cannot be read is refused in *messages*' wording."""
+    text = read_override_text(path, messages)
     updated = write_toml_stamp(text, version)
     atomic_replace_sync(path, updated)

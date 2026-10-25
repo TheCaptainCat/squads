@@ -11,147 +11,147 @@ description: Seven read-only shards over the CLI, services, models/index, backen
 subentities:
 - local_id: F1
   title: sq workflow serves the bundled spec at exit 0 on a broken override
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: find_markers is blind to every sub-entity marker
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F3
   title: An absent timestamp invents now and wedges the item permanently
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F4
   title: A role override bypasses every validator, and can grant spawn rights
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F5
   title: A declared type whose name matches a bundled alias runs the wrong command
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F6
   title: Generated agent text instructs --assignee qa on a minimal roster
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F7
   title: The operator personal name and this repo ship in bundled templates
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F8
   title: Generated text instructs status Cancelled and --story US1 under an override
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F9
   title: A role override title never reaches the index, so the roster renders stale
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F10
   title: sq sync never seeds bundled skills, leaving an unindexed skill file
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F11
   title: A malformed override escapes as a raw traceback out of workflow lint
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F12
   title: Renaming a sub-entity plural bricks add-kind on the existing corpus
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F13
   title: A misspelled [selected] keep-entry silently drops the key it meant to keep
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F14
   title: The create-lane advisory contradicts the tools own generated instructions
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F15
   title: Sub-entity field flags are baked from the bundled spec on registration
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F16
   title: The load boundary skips every adopter-declared badge field
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F17
   title: A migration writes legacy sub-entity statuses with no mapping to the spec
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F18
   title: Migrations persist a derivable path key that then goes stale
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F19
   title: The scaffolded workflow override example fails on a retired key
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F20
   title: Priority flag validates against the wrong collection, both ways
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F21
   title: Priority flag is advertised on types declaring no priority field
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F22
   title: The client id regex breaks any hyphenated declared prefix
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F23
   title: The preview sub-entity head hardcodes the severity field code and label
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F24
   title: sq sync silently drops an unrecognised model from a role override
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F25
   title: The AGENTS.md backend parses mission back out of its own generated text
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F26
   title: The memory skill hardcodes the squads path and ignores squad_dir
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F27
   title: search and inbox abort whole-corpus on one unreadable file
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F28
   title: The TUI glance line hardcodes the priority field code
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F29
   title: Declared ref_rules are inert and the kind vocabulary is unvalidated
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F30
   title: The Records view goes silently blank on a type-catalog failure
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F31
   title: The client squad_dir regex misses valid single-quoted TOML
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F32
   title: The graph node-click round trip is lossy for an underscored prefix
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F33
   title: Derived pointer target uses the OS separator, breaking Windows
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F34
   title: The runner duplicates a check sq check already makes
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F35
   title: A runner docstring now denies that any runner threads the spec
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F36
   title: A stale path key on an already-migrated squad is never stripped
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F37
   title: The spec-load swallow is unreachable and hides a check regression
@@ -159,15 +159,15 @@ subentities:
   severity: low
 - local_id: F38
   title: search and inbox still abort whole-corpus on an out-of-squad path
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F39
   title: repair invents created_at and the heal makes the loss permanent
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F40
   title: The marker single-definition guard misses a wrapped regex
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F41
   title: Every scale test has failed in setup since the actor guard landed
@@ -175,46 +175,46 @@ subentities:
   severity: low
 - local_id: F42
   title: ADR-663 does not name the absent-timestamp skew exclusion
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F43
   title: The marker guard body label omits the remediation guidance
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F44
   title: sq graph mermaid merges two ids differing only by hyphen or underscore
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F45
   title: The preview stamps a clickable item id on every mermaid node
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F46
   title: A category reassignment that contradicts itself loads clean
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F47
   title: parent_required is read for hints but never enforced at create
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F48
   title: Category consistency has no clause for a declared ref_rule
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F49
   title: A broken role override is invisible to sq check
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F50
   title: A declared type dispatches to No such command under a broken override
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F51
   title: lifecycle_edges is orphaned by the diagram removal
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-08-03T14:44:44Z'
-updated_at: '2026-08-15T15:46:56Z'
+updated_at: '2026-10-25T19:28:54Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -268,6 +268,8 @@ Driven after: all of them exit non-zero with the same named cause.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: RequestContext spec_error plus spec_refusal (_workflow/_loader.py) make get_active_spec refuse a broken override.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -292,6 +294,8 @@ Driven, and independently verified by the manager. The regex at _sections.py:68 
   - Corpus scan re-run independently over all 767 files with three passes (a marker sharing a line with prose, a standalone tag whose shape the renderer cannot produce, and marker balance). Zero at the reviewed commit; exactly one at the tree before the de-wrap, BUG-727 line 17, which the balance pass also reports as an unclosed marker. The one-instance claim holds, and the de-wrap is the right call rather than softening the regex, because accepting that line leaves a structurally broken file.
   - Scale of the blind spot, driven: the fix makes 10080 of the corpus's 15156 well-formed markers visible that were not before. Override surface unaffected - old and new tag classes give an identical required-marker set on all 27 bundled templates.
   - Two follow-ups filed rather than reopening this: F43 (the body seam prints the terse message, so the judgement this rests on is argued from text that seam never shows) and F40 (two driven holes in the new meta guard).
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: MARKER_RE in _sections.py uses \w, so uppercase sub-entity tags match.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -317,6 +321,8 @@ Driven. _parse_dt (_models/_item.py:557) returns datetime.now(UTC) for a missing
   - Matrix driven independently through frontmatter_skew, both fields against absent, null, YAML tilde-null, empty string, unparseable, present-equal, present-different and an unquoted PyYAML datetime. Absence-only holds in every cell, an absent timestamp does not mask a divergence on another field, and the result is stable across three reads at three forged instants. End to end: the check warning names the field, the mutation succeeds, and the healed value is the index's original.
   - The exemption does not over-widen ADR-663's clause - it withholds a comparison whose premise was never satisfied rather than permitting a skew on a mirrored key, and it is conditioned on observed disk state per read, which is narrower than the key-name condition beside it. But the ADR is the authority and does not say so: F42.
   - One case the fix does not cover: a repair between the strip and the heal replaces the index's real created_at with a placeholder, and the heal then makes that permanent in the markdown. F39.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _models/_item.py has no datetime.now call; INVENTED_WHEN_ABSENT keeps absent timestamps out of the skew guard.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -365,6 +371,8 @@ declared field so a field added later must gain a row.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _roles/_resolver.py merges role overrides through merge_override over RoleSpec.model_fields.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -388,6 +396,8 @@ Tests: tests/cli/test_bundled_type_aliases_route_by_the_active_spec.py (all ten 
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: RESERVED_CLI_ALIASES in _workflow/_models.py and static_alias_is_stale in _cli/_common.py.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -426,6 +436,8 @@ reverted by exact reverse substitution and re-verified green.
 <!-- sq:finding:F6:discussion -->
 - [2026-08-15T14:07:34Z] `python-dev` Elias Python:
   - Fixed: `_interactions.example_assignee_slug(roles)` as a Jinja global, called from `agents/squads_skill.md.j2` and `agents_md/agents_section.md.j2`; guarded by `tests/meta/test_generated_agent_text_names_no_bundled_vocabulary.py`.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: example_assignee_slug (_interactions/_role_guidance.py), guarded by tests/meta/test_generated_agent_text_names_no_bundled_vocabulary.py.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -471,6 +483,8 @@ byte-identical, green again.
 <!-- sq:finding:F7:discussion -->
 - [2026-08-15T14:07:40Z] `python-dev` Elias Python:
   - Verified already fixed at 8473abf (read, not assumed) across templates and all six CLI-help sites; closed with the guard that keeps it closed — `tests/meta/test_bundled_templates_carry_no_operator_identity.py`, which derives the forbidden identities from this squad own operator roster.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: tests/meta/test_bundled_templates_carry_no_operator_identity.py guards the templates.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -521,6 +535,8 @@ substitution and re-verified green.
 <!-- sq:finding:F8:discussion -->
 - [2026-08-15T14:07:35Z] `python-dev` Elias Python:
   - Fixed: `WorkflowSpec.first_dropped_status`/`statuses_with_role` behind `workflow_static.md.j2`, and the `--story` prefix read off the PARENT type sub-entity kind in `claude_section.md.j2`/`workflow.md.j2`/`squads_skill.md.j2`. Narrative prose untouched per the FEAT-211 ruling — only the vocabulary token moves.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: workflow_static.md.j2 reads first_dropped_status and statuses_with_role from _workflow/_models.py.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -568,6 +584,8 @@ the next sync must converge rather than skip-report.
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _refresh_catalog_attributes in _services/_maintenance.py mirrors the merge into the index in one transaction.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -628,6 +646,8 @@ init/adopt guard widened to `sync` rather than a second guard beside it (renamed
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: sync calls seed_bundled_skills (_services/_maintenance.py) and reports _unindexed_skill_bodies.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -663,6 +683,8 @@ The finding names the offending path (`items.task`, not `items`).
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _workflow/_loader.py refuses non-table and non-array shapes with "must be a table" findings.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -705,6 +727,8 @@ heading following reddens rather than silently re-opening the gap for every squa
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: the subentity_container_marker validator in _services/_validators.py.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 
@@ -735,6 +759,8 @@ with the ten real keys in the fix hint, at exit 1. The add-and-keep control stil
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _selected_entry_violations in _specmerge.py refuses a keep-entry naming no key.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
 
@@ -802,6 +828,8 @@ designation-follows case. All four went red, all four restored green.
 <!-- sq:finding:F14:discussion -->
 - [2026-08-15T14:07:38Z] `python-dev` Elias Python:
   - Fixed: the create-lane is now a declared `authors` flag on a playbook role guide, derived per call from the ACTIVE merged playbook. `CREATE_LANES` and `LANED_TYPES` deleted; `is_lane_exempt` follows the squad default-role designation. End-to-end guard: `tests/integration/test_an_override_declared_authoring_role_is_in_lane.py`.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: RoleGuideSpec.authors (_interactions/_models.py) is the create-lane source; CREATE_LANES and LANED_TYPES are gone.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 
@@ -823,6 +851,8 @@ Tests: tests/cli/test_subentity_field_flags_follow_the_active_spec.py, including
 #### Discussion
 
 <!-- sq:finding:F15:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _kind_signature in _cli/_items.py and _checked_field_values in _services/_subentities.py.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
 
@@ -880,6 +910,8 @@ worth guessing at.
 #### Discussion
 
 <!-- sq:finding:F16:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: the load-boundary field check reads badge_value (_index/_store.py, _workflow/_loader.py).
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
 
@@ -920,6 +952,8 @@ non-zero exit, naming the item and the bad status.
 - [2026-08-06T19:42:20Z] `reviewer` Paul Reviewer:
   - Reviewed at b870482. The fix works as built: drove sq migrate up end-to-end on a 0.2-stamped squad with a stamped lifecycle override — status carried forward unchanged, dated migration: comment landed in the item discussion, chlog renders the new MANUAL. Falsified (disabled the report block, test red on the discussion assert).
   - But the premise is wrong and this should not ship as built — see F34: sq check already reports the same thing with the same predicate against the same active spec (validators._subentity_status_valid), and it predates the finding. Recommend reverting the runner spec read, keeping the MANUAL entry repointed at sq check. F35 and F37 are consequences of keeping it.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _migrations/_v0_2_to_v0_3.py reads no active spec; the reverted shape described in the body is current.
 <!-- sq:finding:F17:discussion:end -->
 <!-- sq:finding:F17:end -->
 
@@ -963,6 +997,8 @@ pre-fix, green post-fix.
   - Reviewed at b870482 — both halves verified driven. Premise confirmed: a fresh build writes no path frontmatter key anywhere, and injecting one then running sq migrate repad 8 renames the file while the key still names the old filename, with sq check exiting 0.
   - Falsified both: restoring the write reddens the path-absence assert on both runners; restoring the path-keyed pointer target reddens the new backfill test on STALE still present, confirming the pointer rewrite now actually fires.
   - Two follow-ups before this closes: F33 (the derived pointer target uses the OS separator — certain Windows CI failure) and F36 (the strip never reaches an already-migrated corpus, so the "actively strips" claim overstates the reach).
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _v0_4_to_v0_5.py and _v0_8_to_v0_10.py pop the path key instead of writing it.
 <!-- sq:finding:F18:discussion:end -->
 <!-- sq:finding:F18:end -->
 
@@ -993,6 +1029,8 @@ file also has to be reachable through the verbs and the type it declares has to 
 #### Discussion
 
 <!-- sq:finding:F19:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: the workflow scaffold in _overrides/_service.py declares role = pending/active/done, no terminal key.
 <!-- sq:finding:F19:discussion:end -->
 <!-- sq:finding:F19:end -->
 
@@ -1014,6 +1052,8 @@ Tests: tests/cli/test_priority_flag_follows_the_types_declared_field.py. Falsifi
 #### Discussion
 
 <!-- sq:finding:F20:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: badges.declared_collection and field_badge_codes back --priority on create/update and list filters.
 <!-- sq:finding:F20:discussion:end -->
 <!-- sq:finding:F20:end -->
 
@@ -1035,6 +1075,8 @@ Tests: same module as F20. Guard: the widened tests/meta field-code scan now cov
 #### Discussion
 
 <!-- sq:finding:F21:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: declared_collection returns None for an undeclared field, so --priority help is hidden there.
 <!-- sq:finding:F21:discussion:end -->
 <!-- sq:finding:F21:end -->
 
@@ -1082,6 +1124,8 @@ alone as a markdown link's url), plus the not-an-id cases and the degenerate cat
 #### Discussion
 
 <!-- sq:finding:F22:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: ItemIdMatcher in clients/vscode/src/domain/itemIdPattern.ts builds the id grammar from declared prefixes.
 <!-- sq:finding:F22:discussion:end -->
 <!-- sq:finding:F22:end -->
 
@@ -1143,6 +1187,8 @@ later reader does not "complete" it by accident.
 <!-- sq:finding:F23:discussion -->
 - [2026-08-03T15:37:31Z] `architect` Robert Architect:
   - The label half's surface is decided: ADR-738 §3 (`sq workflow subentity-kinds --json`, carrying `fields` as `[{code,label,collection}]` — the type row's entry shape verbatim) plus §5 (`subentity_kind` on the type row, without which the kind catalog has no join key from the item's `type`). Both are 0.13, so this finding has no residue — the code half and the label half land together.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: buildSubEntityHeadLine in clients/vscode/src/domain/previewDocument.ts; no Severity literal remains in the client.
 <!-- sq:finding:F23:discussion:end -->
 <!-- sq:finding:F23:end -->
 
@@ -1200,6 +1246,8 @@ surface the finding named.
 #### Discussion
 
 <!-- sq:finding:F24:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: model_drop_warning in _backends/_claude_code/_frontmatter.py surfaces through sync.
 <!-- sq:finding:F24:discussion:end -->
 <!-- sq:finding:F24:end -->
 
@@ -1250,6 +1298,8 @@ cannot send anyone off to fetch it again.
 #### Discussion
 
 <!-- sq:finding:F25:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _read_staging_role is gone; RoleView carries mission and responsibilities (_roles/_projection.py).
 <!-- sq:finding:F25:discussion:end -->
 <!-- sq:finding:F25:end -->
 
@@ -1285,6 +1335,8 @@ by exact reverse substitution and re-verified green.
 <!-- sq:finding:F26:discussion -->
 - [2026-08-15T14:07:37Z] `python-dev` Elias Python:
   - Fixed: `agents/memory_skill.md.j2` now renders `{{ squad_dir }}/agents/memory/<role>/`. Byte-identical on the default layout; correct under `sq init --squad-dir team`.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: views/memory_skill.md.j2 renders {{ squad_dir }}/agents/memory/<role>/.
 <!-- sq:finding:F26:discussion:end -->
 <!-- sq:finding:F26:end -->
 
@@ -1312,6 +1364,8 @@ Driven independently by two reviewers and the manager. _services/_collab.py -- b
   - Driven as the five causes on both commands with and without --json: permission denied, undecodable, broken symlink, genuinely-missing and a clean corpus all behave as described, stdout stays valid parseable JSON on a degraded corpus, and a genuinely missing file is correctly not reported.
   - Exit 1 is the right contract. The three commands already in this posture exit non-zero, memory list is the documented exception, and under --json the payload must stay a bare array so the exit code is the only out-of-band channel left. Exiting 0 would make an incomplete search indistinguishable from a complete one to every script. Not acted on, inherited: exit 1 is also the code for outright failure here, so a script cannot separate degraded from failed - true of repair and board list too.
   - One shape is still open: an item whose path resolves outside the squad folder loses the whole answer, because item_file is evaluated outside the guard. F38.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: search and inbox read through _read_or_report in _services/_collab.py.
 <!-- sq:finding:F27:discussion:end -->
 <!-- sq:finding:F27:end -->
 
@@ -1331,6 +1385,8 @@ Tests: tests/tui/test_glance_line_shows_every_declared_field.py. Falsified: filt
 #### Discussion
 
 <!-- sq:finding:F28:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _tui/_reader.py glance line iterates spec.fields_for.
 <!-- sq:finding:F28:discussion:end -->
 <!-- sq:finding:F28:end -->
 
@@ -1378,6 +1434,8 @@ tests so the boundary cannot be re-litigated from memory. @architect @tech-lead
 #### Discussion
 
 <!-- sq:finding:F29:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _parse_ref_rules in _workflow/_loader.py refuses a rule kind outside the declared ref kinds.
 <!-- sq:finding:F29:discussion:end -->
 <!-- sq:finding:F29:end -->
 
@@ -1391,6 +1449,8 @@ Driven by the sweep. recordsTreeDataProvider.ts:133-134 falls back to NO_CATEGOR
 #### Discussion
 
 <!-- sq:finding:F30:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: recordsTreeDataProvider.ts reports "Records unavailable" on a failed type catalog.
 <!-- sq:finding:F30:discussion:end -->
 <!-- sq:finding:F30:end -->
 
@@ -1404,6 +1464,8 @@ Driven by the sweep. squadDir.ts:22,28 hand-rolls squad_dir out of .squads.toml 
 #### Discussion
 
 <!-- sq:finding:F31:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: clients/vscode/src/domain/squadDir.ts accepts bare, double- and single-quoted keys at top level.
 <!-- sq:finding:F31:discussion:end -->
 <!-- sq:finding:F31:end -->
 
@@ -1452,6 +1514,8 @@ of a string. Falsified: restoring the fold turns 26 tests red across the two fil
 #### Discussion
 
 <!-- sq:finding:F32:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: mermaidNodeId escape in clients/vscode/src/domain/graphDiagrams.ts shares MERMAID_NODE_ID_ESCAPE_SOURCE with the decoder.
 <!-- sq:finding:F32:discussion:end -->
 <!-- sq:finding:F32:end -->
 
@@ -1477,6 +1541,8 @@ is separator-stable). Falsified: reverted to plain `str()`, watched it redden, r
 #### Discussion
 
 <!-- sq:finding:F33:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _posix_rel in _migrations/_v0_4_to_v0_5.py renders the pointer target with as_posix.
 <!-- sq:finding:F33:discussion:end -->
 <!-- sq:finding:F33:end -->
 
@@ -1502,6 +1568,8 @@ F35 and F37 addressed alongside this (see their own findings).
 #### Discussion
 
 <!-- sq:finding:F34:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _migrations/_v0_2_to_v0_3.py carries legacy statuses forward with no spec read; sq check reports them.
 <!-- sq:finding:F34:discussion:end -->
 <!-- sq:finding:F34:end -->
 
@@ -1519,6 +1587,8 @@ and with each other. No sentence needed correcting once the revert landed.
 #### Discussion
 
 <!-- sq:finding:F35:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: with the revert in place no runner threads the active spec, matching the docstrings.
 <!-- sq:finding:F35:discussion:end -->
 <!-- sq:finding:F35:end -->
 
@@ -1553,6 +1623,8 @@ migration pass. Falsified: reverted to the description-only early return, watche
 #### Discussion
 
 <!-- sq:finding:F36:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _backfill_description in _v0_4_to_v0_5.py strips a stale path key unconditionally.
 <!-- sq:finding:F36:discussion:end -->
 <!-- sq:finding:F36:end -->
 
@@ -1626,6 +1698,8 @@ path helper.
   - You asked what else sits outside a try that should be inside one. I read both walks call by call rather than assuming. Nothing else can raise: is_open goes through role_for, which is documented total and degrades an undeclared status to a fallback role; item_subentity_kind returns None rather than raising for a type the spec does not declare; _build_regions, _classify_line, _hit_for_line, _authored_field_lines and extract_mentions are pure text operations; list_items reads the index once, outside the loop. item_file was the only one, and it is now inside.
   - The meta guard was wrong in the way you named, so I fixed the rule rather than adding a case. It now flags a corpus walk that calls read_text OR item_file OR abspath inline - the operation, not one of its steps - with a planted test for the exact defeating shape (delegated read, inline path resolution in the argument list). Broadening it surfaced one genuine hit outside search/inbox: ServiceCore._skill_paths, which walks skill items and calls paths.abspath inline. Exempted with a reason rather than changed: it builds the slug-to-body-path map the backends consume to regenerate managed files, so it is a build input rather than an answer, and a squad synced from a silently short map would write managed files with a skill body quietly missing. Loud refusal is correct there. The exemption is function-granular and has a liveness test.
   - Tests: two new causes in the existing family (symlink-outside-squad, broken-symlink-outside-squad) across search and inbox, plus a separate no-symlink test driving a traversal path written into the index, plus the assertion that an out-of-squad victim is named by item id. Falsified: reverting the guard to resolve outside reddens 6; reverting only the caller to pre-resolve (guard intact, the exact shape that was green before) reddens the meta guard. Both restored and green.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _read_or_report takes (paths, item) and resolves the path inside its guard (_services/_collab.py).
 <!-- sq:finding:F38:discussion:end -->
 <!-- sq:finding:F38:end -->
 
@@ -1682,6 +1756,8 @@ Fix direction (either, or both):
   - Gated on known_corpus, which is also what makes it safe rather than merely convenient. repair supplies the previous snapshot; renumber deliberately does not, and must not - a renumber shifts sequence numbers on purpose, so a lookup into the pre-renumber index would match a different item's entry and carry the wrong timestamp. Carrying nothing there is correct. The residue: a renumber over a corpus that is already missing a timestamp still invents one. I left that rather than thread a second snapshot, because the safe fix there is not the same fix, and renumber's own _scan_records already reads every file unguarded so it never runs over a damaged corpus. Flagging it rather than hiding it.
   - Fix 2, the warning. It no longer says "the real value". It now says the placeholder stands "until any mutation writes the value the index holds back into the file" - which is what actually happens, and is true whether or not the index still has the original. Your second suggested direction also asked it to say that running repair first replaces it with now; that is no longer true after fix 1, so saying it would be wrong. The docstring records why the wording must not over-promise.
   - Tests: repair preserves the indexed value per field combination (created / updated / both); the full repair-then-heal round trip restores the real instant; a never-indexed item still gets a placeholder and repair still succeeds (the carry-forward narrows the damage, it does not pretend to recover what was never recorded); and the warning asserts the new wording and asserts "the real value" is absent. Falsified: removing the carry-forward call reddens 4; restoring the old warning wording reddens 1. Both restored and green.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: carry_forward_indexed_timestamps in _services/_maintenance.py keeps the indexed created_at on repair.
 <!-- sq:finding:F39:discussion:end -->
 <!-- sq:finding:F39:end -->
 
@@ -1734,6 +1810,8 @@ or to the specific line contents so a seventh pattern in `_meta_compat.py` fails
   - Rewritten on the AST, matching the wall-clock guard in the same batch: a Call whose callee name is a regex API (compile/findall/search/match/fullmatch/finditer/sub/subn/split) and whose first argument carries marker-shaped literal text. Formatting is now irrelevant, because a wrapped call and a one-line call are the same node. Went one step past the filed direction on the argument: an f-string is read too, with each interpolation collapsed to a {} placeholder, and so is a + concatenation of literals - "not a plain constant" was the other cheap way past a constant-only check, and _meta_compat's own patterns are f-strings, so I needed it regardless.
   - The exemption is now pinned to (module, pattern text), not the module. Both frozen _meta_compat readers are listed by their exact normalised pattern, and the liveness test asserts each PAIR is still produced rather than that the module still yields something - which is what made the old liveness test structurally unable to notice. A seventh pattern in that file fails.
   - Tests, one per hole plus the shapes that motivated the rewrite: the original single-line planted duplicate; the formatter-wrapped one; an f-string and a concatenated one; a general recogniser appended to an exempt module with only the frozen pattern exempted; and a negative case covering prose, a non-marker regex, and a marker CONSTRUCTOR (_markers.open_marker's f-string), which must never be flagged - restricting to regex-API calls is what keeps the constructor out, and that is now pinned rather than incidental.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: tests/meta/test_sq_marker_recognition_has_one_case_blind_definition.py scans the AST.
 <!-- sq:finding:F40:discussion:end -->
 <!-- sq:finding:F40:end -->
 
@@ -1852,6 +1930,8 @@ in another decision was narrowed.
 <!-- sq:finding:F42:discussion -->
 - [2026-08-06T20:46:12Z] `architect` Robert Architect:
   - Ruled within ADR-663, under **What the guard compares** rather than §1's exempt list — your two-part test governs ordering, and the registration clause you did not cite ("a future correction that does *not* collapse through the round-trip is registered explicitly … otherwise it becomes a false refusal") already covered this and predicted the exact defect. Your permitting-vs-withholding distinction is the right one and is now in the ADR as a general rule with four bounds, not a ruling on one case. No code change; ADR-663 §1 amended in place, dated comment on the ADR. @reviewer for verification of the amendment against the mechanism.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: ADR-663 now names the invented-when-absent exclusion under what the guard compares.
 <!-- sq:finding:F42:discussion:end -->
 <!-- sq:finding:F42:end -->
 
@@ -1899,6 +1979,8 @@ Fix: give the `body` label the extended message and update whatever asserts the 
   - Fixed. reject_markers now emits the extended message for every label, including the default body one. The special case is gone, not widened.
   - Agreed on the reasoning, and it is the part I got wrong the first time: the judgement that the refusal is correct rather than the regex too strict rests entirely on the guard telling the author what to write instead, and I made that argument in a comment while leaving the seam where it actually fires unable to make it. The docstring now says every label carries the guidance and why - the old test-compatibility rationale is deleted rather than reworded.
   - Tests: the "message unchanged" regression test was the thing pinning the wrong contract, so it is replaced rather than patched. In its place, a table-driven test that every prose seam carries the remediation sentence - item body, sub-entity body, comment, sub-entity title - plus one asserting the per-input label survives (with four seams sharing one sentence, the label is the only thing locating the problem). Falsified: restoring the terse body branch reddens the two body seams and leaves the other two green, which is exactly the asymmetry that was shipped. Restored and green.
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: reject_markers in _services/_base.py gives the remediation text for every label.
 <!-- sq:finding:F43:discussion:end -->
 <!-- sq:finding:F43:end -->
 
@@ -1947,6 +2029,8 @@ sentence is now stale. It is in the typescript-dev's tree and I stayed out of it
 #### Discussion
 
 <!-- sq:finding:F44:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _mermaid_node_id in _services/_refs.py escapes non-alphanumerics as _xxxx.
 <!-- sq:finding:F44:discussion:end -->
 <!-- sq:finding:F44:end -->
 
@@ -2008,6 +2092,8 @@ here. The gate function is executed, and its wiring into the loop is asserted st
 #### Discussion
 
 <!-- sq:finding:F45:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: previewDocument.ts stamps data-item-id only on sources declaring item node ids.
 <!-- sq:finding:F45:discussion:end -->
 <!-- sq:finding:F45:end -->
 
@@ -2117,6 +2203,8 @@ refresh allowed to raise. All five reddened the intended tests.
 #### Discussion
 
 <!-- sq:finding:F46:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: check_category_consistency runs from WorkflowSpec._validate (_workflow/_models.py).
 <!-- sq:finding:F46:discussion:end -->
 <!-- sq:finding:F46:end -->
 
@@ -2202,6 +2290,8 @@ loaded before is now refused: `parent_required` pointing outside a non-empty `pa
 #### Discussion
 
 <!-- sq:finding:F47:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: the opt-in parent_present validator in _services/_validators.py enforces parent_required.
 <!-- sq:finding:F47:discussion:end -->
 <!-- sq:finding:F47:end -->
 
@@ -2293,6 +2383,8 @@ type — it was asserting the wrong thing, not failing.
 #### Discussion
 
 <!-- sq:finding:F48:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: _clause_supersedes_checked in _workflow/_validity.py, closed by the CLAUSE_GUARDED coverage assert.
 <!-- sq:finding:F48:discussion:end -->
 <!-- sq:finding:F48:end -->
 
@@ -2378,6 +2470,8 @@ live dev roles. That is its own analysis, not a quiet adjacent change here.
 #### Discussion
 
 <!-- sq:finding:F49:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: check_override_issues (_overrides/_service.py) resolves each role override and reports a broken one.
 <!-- sq:finding:F49:discussion:end -->
 <!-- sq:finding:F49:end -->
 
@@ -2453,6 +2547,8 @@ that exists precisely to stop this fix from swallowing every typo).
 #### Discussion
 
 <!-- sq:finding:F50:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: spec_error_command in _cli/_common.py, hooked into the root and create groups.
 <!-- sq:finding:F50:discussion:end -->
 <!-- sq:finding:F50:end -->
 
@@ -2509,6 +2605,8 @@ load-bearing rather than a second orphan.
 #### Discussion
 
 <!-- sq:finding:F51:discussion -->
+- [2026-10-25T19:28:54Z] `reviewer` Paul Reviewer:
+  - Holds: lifecycle_edges is gone from _workflow/_models.py and no template uses it.
 <!-- sq:finding:F51:discussion:end -->
 <!-- sq:finding:F51:end -->
 <!-- sq:findings:end -->

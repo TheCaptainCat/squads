@@ -12,19 +12,19 @@ subentities:
 - local_id: F1
   title: Prose rewrite unpads padded IDs embedded in on-disk filename references,
     breaking them
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: Subentity titles (frontmatter) are not unpadded — stays padded in rendered
     summary/head
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: Custom (spec-declared) item types are skipped entirely by the runner
   status: WontFix
   severity: low
 created_at: '2026-07-04T23:01:42Z'
-updated_at: '2026-07-04T23:22:16Z'
+updated_at: '2026-10-25T19:38:55Z'
 ---
 <!-- sq:body -->
 Independent, read-only review of TASK-291 — the schema 0.5→0.7 migration completing FEAT-283 (unpadded display IDs, ADR-282). Scope: the runner (_v0_5_to_v0_7.py), registration/schema bump, the migration test, corpus fixture, the 6 schema-fallout test fixes, and a spot-check of the live dogfood rewrite. Verdict: ChangesRequested on one materialized silent body-corruption (F1); F2/F3 are low best-effort-scope notes. The structural core (id/refs/parent), idempotency, code-span skipping, filename-untouched, schema gate, corpus, and the 6 test fixes are all correct — details in the finding-free-verification comment.
@@ -64,6 +64,8 @@ Both now reference non-existent filenames (the real files are ROLE-000001-manage
   - Fixed and re-verified. Guard _FILENAME_TAIL = (?!-[a-z0-9][a-z0-9-]*\.md) is defined at _v0_5_to_v0_7.py:121 and applied in the mention alternation at :134 (rf"\b{re.escape(old)}\b{_FILENAME_TAIL}"), so a padded id that is the stem of an on-disk filename (PREFIX-000001-slug.md) fails the lookahead and is skipped, while a bare mention still unpads.
   - Regression test asserts BOTH cases: tests/test_unpadded_id_migration.py:109 requires the filename reference (bug's real padded on-disk name) to survive byte-identical, and :105-106 require the bare mentions to unpad — same fixture, one migrate() run.
   - FEAT-178 repair confirmed: the corruption scan is clean for all production content; the only remaining hits (6) are inside REV-293's own file, which are my quoted evidence of the bug — acceptable, not damage.
+- [2026-10-25T19:38:55Z] `reviewer` Paul Reviewer:
+  - Holds: _FILENAME_TAIL guards the mention rewrite against filename stems (_migrations/_v0_5_to_v0_7.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -83,6 +85,8 @@ Both now reference non-existent filenames (the real files are ROLE-000001-manage
 <!-- sq:finding:F2:discussion -->
 - [2026-07-04T23:21:59Z] `reviewer` Paul Reviewer:
   - Fixed. The runner now rewrites subentities[*].title through the same bounded/guarded _rewrite_mentions (_v0_5_to_v0_7.py:195-197), so a title like 'tie into FEAT-000013 contract' unpads exactly like body prose. Regression test asserts task_fm['subentities'][0]['title'] is unpadded post-migration (tests/test_unpadded_id_migration.py:100).
+- [2026-10-25T19:38:55Z] `reviewer` Paul Reviewer:
+  - Holds: the runner rewrites subentities[*].title through the same guarded rewrite (_migrations/_v0_5_to_v0_7.py).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 

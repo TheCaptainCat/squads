@@ -3,14 +3,14 @@ id: BUG-999
 sequence_id: 999
 type: bug
 title: sq import orders one item's warnings differently than 0.15.0
-status: Open
+status: Verified
 author: qa
 priority: low
 refs:
 - FEAT-899
 - MILE-1051:targets
 created_at: '2026-10-12T05:33:56Z'
-updated_at: '2026-10-16T12:24:10Z'
+updated_at: '2026-10-25T17:53:03Z'
 ---
 <!-- sq:body -->
 ## Reproduction
@@ -71,4 +71,6 @@ Sorting the import warnings the way `sq check` sorts its findings would make the
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-25T17:52:25Z] `qa` Mara Tester:
+  - Verified on HEAD 68e96aea. Same import file and override as the report: import warnings now print unwritten-body, story title advisory, banner per item, identical to the sorted sq check order for FEAT/TASK/BUG; the --json issues array is in the same order.
 <!-- sq:discussion:end -->

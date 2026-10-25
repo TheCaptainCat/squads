@@ -76,14 +76,11 @@ class AgentsMdBackend(AgentBackend):
     # ------------------------------------------------------------------ scaffold
 
     async def ensure_scaffold(self, ctx: BackendContext) -> list[Artifact]:
-        """Ensure AGENTS.md exists at the project root (never clobber user content)."""
+        """Report AGENTS.md when it exists; it is created by :meth:`write_managed`, so a missing
+        file is never mistaken for hand-written content."""
         agents_md = ctx.root / _AGENTS_MD
         if not await _aio.path_exists(agents_md):
-            await _aio.write_text(
-                agents_md,
-                "# AGENTS.md — Project AI agent guidance\n\n"
-                "_Run `sq sync` to populate this file with your squad's roster and workflow._\n",
-            )
+            return []
         return [Artifact(ctx.rel(agents_md), "config", self.name)]
 
     # ------------------------------------------------------------------ managed files

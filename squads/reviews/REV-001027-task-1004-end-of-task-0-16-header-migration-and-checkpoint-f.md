@@ -16,40 +16,40 @@ subentities:
 - local_id: F1
   title: A refusal below schema 0.15 names the stamped release and says nothing was
     written after earlier runners wrote
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: An operator without full_name had headers written as its slug; the migration
     matches by title and refuses
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: The importer now refuses as operator on comment events, unlike 0.15.0 and
     --as operator
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Line-based scan diverges from _sections when a marker shares a line with
     content
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: Template-owned-skill guard now skips on post-migration state, so dropping
     those skills passes
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F6
   title: Deferred import cycle and a third copy of the release-that-reads-schema sentence
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: ADR-979 says the rewrite goes through _sections.py; the runner replaces lines
     in bytes
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F8
   title: Report and docstring wording that goes stale
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F9
   title: 'CRLF preservation holds on POSIX only: the atomic writer translates newlines
@@ -59,19 +59,19 @@ subentities:
 - local_id: F10
   title: With 0.16 as the first runner, the refusal no longer names the release that
     can change the roster
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F11
   title: A lone marker with non-canonical spacing is refused as sharing its line with
     text
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F12
   title: Fixture README and legacy-squad docstring say this build
-  status: Fixed
+  status: Verified
   severity: info
 created_at: '2026-10-16T07:38:49Z'
-updated_at: '2026-10-16T08:04:48Z'
+updated_at: '2026-10-25T19:29:24Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -142,6 +142,8 @@ The squad is still at schema v0.11: ...
 <!-- sq:finding:F1:discussion -->
 - [2026-10-16T07:49:19Z] `python-dev` Elias Python:
   - Fixed: the step no longer claims the whole run wrote nothing or names a release; run_pending_migrations adds, for a step that is not the run's first, 'Earlier steps of this run have already been applied ... change the roster with a squads release that reads schema v0.15 (v0.15.0 is one)'. The step says 'This step wrote nothing and the schema stamp is unchanged.' Test pins both. Falsified (note dropped): 1 red.
+- [2026-10-25T19:29:24Z] `reviewer` Paul Reviewer:
+  - Holds: _v0_15_to_v0_16.py says "This step wrote nothing"; _services/_maintenance.py::_earlier_steps_note names the release reading v0.15.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -171,6 +173,8 @@ The "a legacy name that is only a slug matches no entry" rule was argued for unr
 <!-- sq:finding:F2:discussion -->
 - [2026-10-16T07:49:21Z] `python-dev` Elias Python:
   - Fixed: an operator is known by extra.full_name, else its slug, as the released writer wrote it. Test now imports an operator without full_name and migrates the header '- [ts] op-ann:'. MANUAL says so. Falsified (title fallback back): 1 red.
+- [2026-10-25T19:29:24Z] `reviewer` Paul Reviewer:
+  - Holds: _v0_15_to_v0_16.py names an operator by `full_name or slug`, as the released writer did.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -197,6 +201,8 @@ The released 0.15.0 importer wrote any actor verbatim (the dev's own ST1 note), 
 <!-- sq:finding:F3:discussion -->
 - [2026-10-16T07:49:23Z] `python-dev` Elias Python:
   - Fixed: the importer refuses only squads as a comment actor; operator imports again (table row). Falsified (operator refused again): 1 red.
+- [2026-10-25T19:29:24Z] `reviewer` Paul Reviewer:
+  - Holds: the importer refuses only `squads` as a comment actor (refuse_system_actor), `operator` imports.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -220,6 +226,8 @@ The released 0.15.0 importer wrote any actor verbatim (the dev's own ST1 note), 
 <!-- sq:finding:F4:discussion -->
 - [2026-10-16T07:49:26Z] `python-dev` Elias Python:
   - Fixed: the scan refuses a discussion marker that shares its line with text (open and close on one line, header after the open marker, text before the close marker) with 'the marker of discussion region ... shares its line with text'; MANUAL lists it. Three shape rows. Falsified: 3 red. Not changed: failure line numbers still count splitlines lines.
+- [2026-10-25T19:29:24Z] `reviewer` Paul Reviewer:
+  - Holds: _v0_15_to_v0_16.py refuses a discussion marker that "shares its line with text"; MANUAL lists it.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -239,6 +247,8 @@ The released 0.15.0 importer wrote any actor verbatim (the dev's own ST1 note), 
 <!-- sq:finding:F5:discussion -->
 - [2026-10-16T07:49:28Z] `python-dev` Elias Python:
   - Fixed: the template-owned-skill test decides its skip from the corpus before the migration and asserts after. Falsified (migration deletes the skill files): the test fails among 7 red.
+- [2026-10-25T19:29:24Z] `reviewer` Paul Reviewer:
+  - Holds: tests/integration/test_migration_corpus.py decides the template-owned skip from the corpus before the run (owned_before).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -256,6 +266,8 @@ The released 0.15.0 importer wrote any actor verbatim (the dev's own ST1 note), 
 <!-- sq:finding:F6:discussion -->
 - [2026-10-16T07:49:30Z] `python-dev` Elias Python:
   - Fixed: the runner has no registry import; the remedy sentence is gone from the step. The reader phrase 'a squads release that reads schema vX (vY is one)' now exists once (_reader_phrase in _maintenance.py), used by the pre-runner refusal, the index-full refusal and the earlier-steps note. Structural, no falsification.
+- [2026-10-25T19:29:24Z] `reviewer` Paul Reviewer:
+  - Holds: the runner imports no registry; the reader sentence lives once in _services/_maintenance.py::_reader_phrase.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -273,6 +285,8 @@ The released 0.15.0 importer wrote any actor verbatim (the dev's own ST1 note), 
 <!-- sq:finding:F7:discussion -->
 - [2026-10-16T07:43:52Z] `architect` Robert Architect:
   - Recorded on ADR-979 as a 2026-10-16 note under decision 4: the rewrite replaces whole header lines in the raw bytes, keeping each line terminator, with _sections markers used only to find regions (byte preservation, header-line-only edits). No code change.
+- [2026-10-25T19:29:24Z] `reviewer` Paul Reviewer:
+  - Holds: ADR-979 carries the 2026-10-16 note that header lines are replaced in raw bytes.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -292,6 +306,8 @@ The released 0.15.0 importer wrote any actor verbatim (the dev's own ST1 note), 
 <!-- sq:finding:F8:discussion -->
 - [2026-10-16T07:49:32Z] `python-dev` Elias Python:
   - Fixed: completed-run report reads 'N comment header(s) rewritten in M file(s)'; module and registry docstrings no longer say 'the one contribution today' or point at this step as the example. Falsified (old wording): 2 red.
+- [2026-10-25T19:29:24Z] `reviewer` Paul Reviewer:
+  - Holds: the report reads "comment header(s) rewritten in"; "one contribution today" is gone.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -336,6 +352,8 @@ The F1/F6 fix moved the release name into `_earlier_steps_note`, which only fire
 <!-- sq:finding:F10:discussion -->
 - [2026-10-16T08:01:17Z] `python-dev` Elias Python:
   - Fixed: a step that is the run's first refusal now adds 'Change the roster with a squads release that reads schema v0.15 (v0.15.0 is one).' through _reader_phrase; pinned in the first-step test. Falsified: 1 red.
+- [2026-10-25T19:29:24Z] `reviewer` Paul Reviewer:
+  - Holds: _earlier_steps_note adds "Change the roster with" the reader phrase when the step is the first runner.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -355,6 +373,8 @@ Refusing is right: the live `get_section` does a literal find on the canonical f
 <!-- sq:finding:F11:discussion -->
 - [2026-10-16T08:01:19Z] `python-dev` Elias Python:
   - Fixed: a lone marker not spelled as sq writes it reads 'is not a well-formed sq marker (one space on each side of the tag)'; shared-line stays for text beside a marker. Two shape rows. Falsified: 2 red.
+- [2026-10-25T19:29:24Z] `reviewer` Paul Reviewer:
+  - Holds: a lone non-canonical marker reads "is not a well-formed sq marker" in _v0_15_to_v0_16.py.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -375,6 +395,8 @@ The rest of the sweep came back clean. I read the added docstrings, comments, `M
 <!-- sq:finding:F12:discussion -->
 - [2026-10-16T08:01:21Z] `python-dev` Elias Python:
   - Fixed: 'this build' removed from the v0_16 README row (now 'the real 0.15→0.16 sq migrate up') and the _legacy_squad docstring. Prose only.
+- [2026-10-25T19:29:24Z] `reviewer` Paul Reviewer:
+  - Holds: "this build" is absent from tests/fixtures/corpus/README.md and tests/_legacy_squad.py.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 <!-- sq:findings:end -->

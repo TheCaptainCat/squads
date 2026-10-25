@@ -18,48 +18,35 @@ description: Markdown is always ahead or equal and the index commits last; every
   .md write is an atomic replace; sq check stays lock-free and confirms cross-source
   claims; the active transaction is task-local and store-scoped.
 created_at: '2026-07-27T14:02:48Z'
-updated_at: '2026-10-15T20:16:54Z'
+updated_at: '2026-10-25T21:38:47Z'
 ---
 <!-- sq:body -->
 # Context
 
 Every squad mutation touches **two** durable artifacts: the item's `.md` (the source of truth,
-invariant #1) and `.squads.json` (a rebuildable index, invariant #2's counter included). They are
+invariant #1) and `.squads.json` (a rebuildable index, the global counter included). They are
 written as two separate events inside one `IndexStore.transaction()`: the mutation cores in
-`_services/` write the `.md` inside the transaction body; the store commits the index with
+`_services/` write the `.md` inside the transaction body, and the store commits the index with
 `_atomic_write` (tmp + fsync + `os.replace`) after the body returns. One lock (the three-layer
 scheme in `_index/_store.py`) serialises *writers*. Readers take no lock at all.
 
-Four consequences of that shape are unresolved, and they are one seam, not four:
+That shape raises four questions, which are one seam, not four:
 
 - **Ordering.** Between the `.md` write and the index `os.replace` there is a window in which the
-  two disagree. `remove_work_item` already states the correct rule in a local comment ("unlink
-  BEFORE the index commit so the safe failure direction is preserved"), but the rule is written
-  down at exactly one call site out of ~a dozen mutation cores, and one site contradicts it:
-  `remove_item(purge=True)` unlinks the `.md` *after* the transaction closes.
-- **Write atomicity.** Every `.md` write goes through `_aio.write_text` → `Path.write_text`, which
-  truncates in place. There is no tmp-and-rename and no fsync anywhere on the markdown side. So the
-  hazard in that window is not only "two files disagree" — a process killed inside `write_text`
-  leaves a **truncated or empty `.md`**, and that loss is silent and terminal. `sq repair` rebuilds
-  the index *from* the markdown, so a destroyed file leaves it nothing to rebuild from; repair does
-  not fail loudly, it drops the item from the index as missing. The item is then unreachable by
-  `show` and absent from `sq list -a`, with a corrupted orphan file on disk that no `sq` command can
-  recover — data loss, not a drift warning. The same partial state is observable by a concurrent
-  reader with no crash at all: a cut inside the frontmatter block leaves it with no closing
-  delimiter, so `_scan_for_check` reports the file as having no `id` (error level); a cut inside the
-  body leaves an sq marker straddling the cut unclosed. A cut cannot instead produce
-  malformed-but-closed frontmatter: the block is serialized in full before any byte is written, and
-  its closing `---` line cannot appear in a prefix that does not already contain the whole block.
+  two disagree. Which side may be ahead decides whether `sq repair` heals an interrupted mutation
+  or silently reverts it, and a rule stated at one call site out of a dozen is not a rule.
+- **Write atomicity.** A markdown write that truncates in place lets a process killed mid-write
+  leave a **truncated or empty `.md`**, and that loss is silent and terminal: `sq repair` rebuilds
+  the index *from* the markdown, so it drops the destroyed item as missing and leaves a corrupt
+  orphan no `sq` command can recover. A concurrent reader can observe the same partial state with
+  no crash at all (a frontmatter block with no closing delimiter, or a marker straddling the cut).
 - **Read atomicity.** `check()` loads the index and then walks every `.md` (0.5–2s on a few hundred
-  items), and compares one against the other. Any mutation committing during the walk makes that
-  comparison cross two different points in time. This is not a corner case produced by unusual
-  timing: because the safe write order puts the `.md` first, an in-flight `create` is *guaranteed*
-  to present a file the older index snapshot does not know, and an in-flight remove the reverse.
-  Both are reported by `_index_reconciled` at **error** level, so `sq check` exits 3 — the same
-  race that yields a cosmetic "status drift" warning also yields a false hard gate failure.
-- **Active-transaction handle.** `transaction()` publishes the live transaction context on a shared
-  instance attribute, assigned before any lock is held, so the only thing that keeps reflog entries
-  attributed to the right transaction is the absence of concurrent transactions in one process.
+  items) and compares them. A mutation committing during the walk makes the comparison cross two
+  points in time, and because the safe write order puts the `.md` first, an in-flight `create` is
+  *guaranteed* to present a file the older snapshot does not know (and a remove the reverse): a
+  false error-level reconciliation finding and exit 3.
+- **Active-transaction handle.** Reflog entries must be attributed to the transaction that made
+  them, including when one process serves more than one squad.
 
 ## Crash model
 
@@ -102,11 +89,9 @@ markdown-ahead skew is not a special case it has to detect — it is simply the 
 raising the counter in memory when it trails the max sequence on disk closes the one remaining hole
 (a lost counter bump cannot cause ID reuse even before repair runs).
 
-> **Narrowed 2026-10-09 (ADR-955):** this holds on a squad at the package's schema. While a squad's
-> schema is behind the package the gate refuses `sq repair`, and the recovery path there is the
-> reconcile that `sq migrate up` runs before its first runner. The same narrowing applies wherever
-> this record names `sq repair` as the recovery path, the out-of-model sentence under "Crash model"
-> included. See ADR-955 and its amendments of 2026-10-09.
+This holds on a squad at the package's schema. While a squad's schema is behind the package the
+gate refuses `sq repair`, and the recovery is the reconcile `sq migrate up` runs before its first
+runner (ADR-955); the same applies wherever this record names `sq repair` as the recovery path.
 
 The inverse skew is the lossy one, which is why it is forbidden rather than merely discouraged: an
 index ahead of the markdown makes `sq repair` **silently revert** a committed mutation, or resurrect
@@ -126,16 +111,10 @@ the whole pass and cannot compose with a rebuild that replaces the index wholesa
   mirrors them, so there is no skew to direct — §2 still governs how each one is written.
 - **The reflog** — an append-only observability log, deliberately appended after `os.replace` under
   a never-raise contract. It is not source of truth and must stay where it is.
-- **Re-derivable regions of an item `.md` the committing transaction did not mirror into the index** —
-  the resolved-skill cache in a role's frontmatter and the generated `## Skills` region of its body,
-  refreshed after the commit that changed a *skill*'s refs. This is the permitted skew, not the
-  absence of one: the transaction never wrote these derived values to the index, so neither crash
-  direction is index-ahead, and `sq sync` re-derives them from the ref graph, so the worst case is a
-  stale cache. A post-commit item-`.md` write must meet both halves — a derived value the transaction
-  did not mirror, and reproducible by `sq sync`. Both halves are a test of *ordering*: what a writer
-  may put on disk after the commit. Which keys the guard then compares is the separate question
-  settled under **What the guard compares** below — a comparison withheld there is governed by that
-  clause, and is not this exemption being widened by a second writer.
+
+No item `.md` is written after the commit. A derived projection of an item (a role's `## Skills`
+section among them) is computed at read time, never materialised into the file (ADR-776), so there
+is no post-commit item write to exempt.
 
 **The healing has a condition, and the condition is enforced rather than assumed.** Repair must run
 before anything next rewrites that item's frontmatter from index-derived state — a mutation core loads
@@ -180,18 +159,15 @@ relocation, the counter and width fixups), and the file side corrects at parse (
 field is a permanent blind spot, a normalized one still catches a real skew — and normalize once,
 structurally, by putting both sides through the same serializer: compare
 `Item.from_frontmatter(disk).to_frontmatter_dict()` against the base's `to_frontmatter_dict()`.
-Measured against the model, that collapses all three named divergences — legacy `extra.severity`,
-`extra.ref_kinds`, and a padded id, which is recomputed from prefix and sequence number — along with
-key order and absent-versus-`None`. A future correction that does *not* collapse through the
+That collapses the by-design divergences — a padded id, recomputed from prefix and sequence number,
+among them — along with key order and absent-versus-`None`. A future correction that does *not* collapse through the
 round-trip is registered explicitly, on whichever side it lives, in the same change that introduces
 it; otherwise it becomes a false refusal.
 
-> **Note 2026-10-15 (ADR-1007):** from 0.16 the model reads no `extra`, so the legacy
-> `extra.severity` and `extra.ref_kinds` folds leave the round trip: they move under `_migrations/`
-> as a compat reader used by the runners that need it, and the 0.16 runner applies them as it
-> flattens. The normalisation rule stands. Unknown top-level keys take part on both sides of the
-> comparison, and the retired-key exemptions are re-pointed from nested to top-level names. See
-> ADR-1007 decisions 7 and 9.
+The model reads no nested `extra` (ADR-1007), so the legacy `extra.severity` and `extra.ref_kinds`
+folds are not part of the round trip: they live in a compat reader under `_migrations/`, used by
+the runners that need it. The normalisation rule stands; unknown top-level keys take part on both
+sides of the comparison, and the retired-key exemptions name top-level keys.
 
 **A fabricated operand is not a value, and withholding its comparison is not a permitted skew.**
 Registration under the clause above normally means normalizing. One shape cannot be normalized: a
@@ -265,8 +241,8 @@ false-refuse on precisely the id-width divergence `repad` creates.
 Every write to squad **data** (item `.md` files, board notices, memory entries, `.squads.toml`) goes
 through one
 atomic-replace primitive: write a temp file in the same directory, flush, fsync, `os.replace`, all
-in a single thread hop with no `await` between fsync and rename — the shape `_atomic_write` already
-uses for the index. Consequences: a killed process can no longer truncate the source of truth, and
+in a single thread hop with no `await` between fsync and rename (`_aio.write_text`, the same shape
+`_atomic_write` uses for the index). Consequences: a killed process can no longer truncate the source of truth, and
 no reader can ever observe a partially written item file. Regenerable artifacts stay on the plain
 write, but the exemption reaches only what sq can **wholly** reproduce, where losing the file costs a
 `sq sync` and nothing else. A whole-file rewrite of a file sq only partly owns does not qualify — a
@@ -353,42 +329,38 @@ The live transaction context is published in a task-local binding (a `ContextVar
 context, and released with the `set` token in the `finally` so the previous value is restored rather
 than clobbered. The context carries its owning store's identity, and the logging entry point ignores
 an ambient context belonging to a different store — required because a task-local binding is
-process-wide where the old instance attribute was per-instance, and one process may serve two squads
-(the observable-equivalence rule of ADR-534 §3) — a scenario a long-lived server or daemon process
-makes routine rather than hypothetical.
+process-wide rather than per-instance, and one process may serve two squads (the
+observable-equivalence rule of ADR-534 §3), which a long-lived server or daemon process makes
+routine.
 
 Identity here is the `IndexStore` **instance**, not the resolved index path. The two differ observably,
 because one process does hold two stores over the same squad directory (`repair`, tests), and the
-instance is the fail-closed choice: a log call against a store with no open transaction stays the
-silent no-op it is today, instead of being routed into an unrelated store's buffer and committed by
-that store.
+instance is the fail-closed choice: a log call against a store with no open transaction is a silent
+no-op, never routed into an unrelated store's buffer and committed by that store.
 
-One case is a genuine behaviour change rather than a translation of the attribute being replaced, and
-should not be described as one. That attribute was per-store by construction, so with store A's
-transaction open and store B's nested inside it, A's log call still found A's own buffer. A single
-task-local slot cannot: while B's binding occupies it, A's log call is discarded silently. Identity is
-not what costs that — path identity would misattribute A's entries into B's buffer and commit them
+One limit follows from the single slot. With store A's transaction open and store B's nested inside
+it, A's log call is discarded silently while B's binding occupies the slot. Identity is not what
+costs that — path identity would misattribute A's entries into B's buffer and commit them
 there, which is worse — the single slot is, and it fails closed by losing a reflog line rather than
 open by committing a wrong one. No live call path opens one store's transaction inside another's, so
-this is unreachable today; what would make it reachable is exactly what the promotion trigger below
+this is unreachable; what would make it reachable is exactly what the promotion trigger below
 names — a second store in flight on one task, through fan-out, batch, or the server — and a per-store
 mapping is the answer on that day, not this one.
 
-The context is built from the load taken **inside** the lock. The pre-lock load that exists only to
-construct the context and is then discarded goes away, which removes both the unlocked window that
-made misattribution possible and a full index read per transaction.
+The context is built from the load taken **inside** the lock. No pre-lock load exists to construct
+it, so there is no unlocked window in which misattribution is possible and no extra index read per
+transaction.
 
 Derived rule: this is the **only** ambient value the store may carry, its lifetime is exactly the
 lock hold, and no per-transaction state may live on `IndexStore` instance attributes.
 
 **Why task-local rather than an explicitly yielded handle.** ADR-534 §1 prefers explicit threading
-below the CLI edge and sanctions a `ContextVar` at the ambient boundary; both readings forbid what
-exists today, a shared mutable attribute with no isolation at all. Explicit threading means changing
-what `transaction()` yields, and with it ~20 logging sites, ~30 transaction sites and the bulk
-importer's direct-core calls — churn concentrated in the one module where churn is least welcome,
-for a defect that is currently unreachable. The task-local binding satisfies the binding content of
+below the CLI edge and sanctions a `ContextVar` at the ambient boundary; both forbid a shared mutable
+instance attribute with no isolation. The task-local binding satisfies the binding content of
 ADR-249 and ADR-534: task-local value, no shared module name, no cross-request or cross-squad
-leakage, one long-lived process observably identical to N fresh ones. **Promotion trigger:** the
+leakage, one long-lived process observably identical to N fresh ones. Explicitly threading the
+handle instead would change what `transaction()` yields and every logging and transaction site,
+churn concentrated in the module where it is least welcome, for a case no live path reaches. **Promotion trigger:** the
 first time the transaction API is revised for fan-out/batch mutation or for the server, the handle
 becomes an explicit parameter and the ambient binding is deleted.
 
@@ -398,14 +370,12 @@ engine-internal, and mutated by appending to its reflog buffer.
 
 # Consequences
 
-**Contract.** No frontmatter or index field is added, therefore no schema bump and no migration; no
-new CLI flag. Three observable behaviour changes worth a changelog line: `sq check` no longer reports
-phantom drift or reconciliation errors (and no longer exits 3) while another process is mutating the
-board; an interrupted mutation leaves the repairable skew rather than, in the worst case, a truncated
-item file, and the surviving values are then preserved until `sq repair` runs rather than being
-overwritten by the next write; and — the cost of that, user-visible and therefore stated plainly — a
-mutation over an unrepaired skew refuses with a `sq repair` pointer, while `sq sync` reports a skipped
-roster item instead of overwriting it. The adopter-facing line claims exactly those and nothing wider.
+**Contract.** No frontmatter or index field, no schema bump, no CLI flag. The observable behaviour:
+`sq check` reports no phantom drift or reconciliation error (and does not exit 3 for one) while
+another process is mutating the board; an interrupted mutation leaves the repairable skew, never a
+truncated item file, and the surviving values are preserved until `sq repair` runs; and, the cost of
+that, a mutation over an unrepaired skew refuses with a `sq repair` pointer, while `sq sync` reports
+a skipped roster item instead of overwriting it.
 
 **Audit obligation.** The ordering rule is worth what its weakest call site is, so every mutation core
 is checked against it, not only the status path — including the cores that unlink rather than write,
@@ -447,8 +417,7 @@ truth and needs its own recovery, replay, and crash reasoning — plus a startup
 always-repairable skew.
 
 **Document the crash window and change nothing.** Rejected because the window's worst outcome is not
-a drift but a truncated source-of-truth file — and an item silently dropped off the board with it —
-and because a rule stated at one call site out of a dozen is not a rule.
+a drift but a truncated source-of-truth file, and an item silently dropped off the board with it.
 
 **A shared/reader lock around load + scan in `check`.** Rejected: see §3. It serialises the board's
 writers behind its longest and most frequent read, and buys snapshot isolation for a claim whose
@@ -459,10 +428,10 @@ scan".** Rejected: it cannot be reconstructed from the markdown files, so it can
 index (invariant #1). Using the index file's mtime instead is legal but redundant — the confirm pass
 already runs only when candidates exist.
 
-**Move the pre-lock context assignment to just after Layer 1.** Narrows the window rather than
-closing it: Layer 1 is per-event-loop, so two loops or two threads in one process still share the
-attribute, and a shared attribute stays wrong on its own terms once a process serves more than one
-squad.
+**Publish the context on an instance attribute, assigned just after Layer 1.** Narrows the window
+rather than closing it: Layer 1 is per-event-loop, so two loops or two threads in one process still
+share the attribute, and a shared attribute stays wrong on its own terms once a process serves more
+than one squad.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -528,4 +497,6 @@ squad.
   - No `supersedes` and no `related` edge: this narrows no other decision, it clarifies this one in place, so the record is the amended §1 plus this comment. **No code change** — the mechanism as it stands, together with `_carry_forward_indexed_timestamps` on the rebuild and the `sq check` warning, satisfies all four bounds and both obligations. F42 marked Fixed against the clarification.
 - [2026-10-09T20:20:32Z] `architect` Robert Architect:
   - 2026-10-09: narrowed in place, with the operator's approval. One dated note under section 1, after the paragraph stating that each interrupted state is healed losslessly by `sq repair`: that holds at the package's schema; while a squad's schema is behind the package the gate refuses `sq repair`, and the reconcile inside `sq migrate up` is the recovery path (ADR-955 and its amendments of this date). The note covers every place this record names `sq repair` as the recovery path. Nothing else in the body changed; `related` ref to ADR-955 added, the reciprocal of the one ADR-955 already carries.
+- [2026-10-25T21:38:47Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale, targeted present-tense edits; §1–§4 are unchanged. Context now states the four questions instead of the pre-fix code (plain write_text with no fsync, the post-transaction purge unlink, the pre-lock attribute). Removed the third ordering exemption (a role's resolved-skill cache and generated ## Skills region): no item .md is written after the commit, since a role's skills section is a rendered view (ADR-776) and _index/_store.py lists only regenerable artifacts and the reflog. Folded the ADR-955 and ADR-1007 notes, named _aio.write_text as the primitive, and dropped changelog framing.
 <!-- sq:discussion:end -->

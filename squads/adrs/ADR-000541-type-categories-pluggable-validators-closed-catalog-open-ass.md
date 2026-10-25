@@ -12,433 +12,192 @@ refs:
 - ADR-320
 - ADR-982
 created_at: '2026-07-21T16:26:15Z'
-updated_at: '2026-10-09T18:47:44Z'
+updated_at: '2026-10-25T21:34:33Z'
 ---
 <!-- sq:body -->
 ## Context
 
-The generic-vocabulary rewrite freed the *models* — every work-item type can be dropped, renamed,
-or re-prefixed — but two structural questions were left open and are now blocking two sibling epics
-(EPIC-538 spec-driven customization, EPIC-540 pluggable validators):
+The generic-vocabulary engine lets every work-item type be dropped, renamed or re-prefixed, which
+leaves two structural questions for spec-driven customization (EPIC-538) and pluggable validators
+(EPIC-540):
 
-1. The single boolean `is_meta` conflates two distinct meanings of "not roster": *creatable and
-   trackable* (work items **and** durable records) versus *burn-down work only*. ~15 consumer sites
-   (TUI/extension tree grouping, `sq create`, retype/rename, roster service, playbook coverage,
-   backend pointer generation) overload `not is_meta` for both meanings, so behaviour that should
-   differ between records and work is smeared together — e.g. `parents = []` is declared on
-   `decision`/`guide` today but silently unenforced, and 5 ADRs currently hold a parent while
-   `sq check` reports clean.
+1. A single "roster or not" boolean conflates two meanings of "not roster": *creatable and
+   trackable* (work items **and** durable records) versus *burn-down work only*. Behaviour that
+   should differ between records and work (a record takes no parent; work is driven to Done) has
+   nowhere to attach.
+2. The constraints `sq check` and the create/update gate enforce need a home that a type can opt
+   into and an adopter can compose for a custom type, instead of hardcoded check methods reading
+   half-declarative parent fields.
 
-2. The constraint set that `sq check` and create/update gating enforce lives as ~10 hardcoded
-   `_check_*` methods in `_services/_maintenance.py`. A type cannot opt in or out of a rule, an
-   adopter cannot compose a rule set for a custom type, and parent rules are only half-declarative
-   (structured `parents`/`parent_required` fields read by hardcoded logic).
-
-Both epics key off the same two design axes and the way they compose. This decision pins those axes
-so the features can be cut against a stable foundation. It records design intent; it does not
-implement anything.
+This decision pins the two axes and how they compose.
 
 ## Decision
 
-### Axis A — the type `category` (replaces the `is_meta` boolean)
+### Axis A — the type `category`
 
-Replace `ItemSpec.is_meta: bool` with a `category` field naming one of a **hard-coded, closed
-catalog** of three categories. The category catalog is defined in code, carries fixed behaviour, and
-is **not part of the override surface**: an adopter cannot create, rename, or redefine a category.
-This is the project's standing boundary — vocabulary lives in the spec, behaviour lives in code, and
-a category *is* behaviour. A type *declares* which category it belongs to; a custom type picks one of
-the three fixed categories to inherit that category's behaviour.
+`ItemSpec.category` names one of a **hard-coded, closed catalog** of three categories
+(`Literal["roster", "work", "records"]`, default `work`). The catalog is defined in code, carries
+fixed behaviour, and is **not part of the override surface**: an adopter cannot create, rename or
+redefine a category. Vocabulary lives in the spec, behaviour lives in code, and a category *is*
+behaviour. A type declares its category; a custom type picks one of the three to inherit its
+behaviour.
 
-The three categories and their behavioural contracts:
-
-- `roster` — `role`, `skill`, `operator`. Registry entities: slug identity (not sequence-id
-  identity), backend pointer files written on sync, their own group in both UI trees. Roster
-  **membership is closed in both directions** and the three type keys are **internal-only and
-  locked**: an override may not add a roster type, drop one, or rename one, and no type may move
-  into or out of `roster` (see the floor below). This is today's `is_meta = true` set.
+- `roster` — `role`, `skill`, `operator`. Registry entities: slug identity, backend pointer files
+  written on sync, their own group in the UI trees. Membership is closed in both directions (the
+  floor below).
 - `work` — `epic`, `feature`, `task`, `bug`, `review`. Burn-down items: assigned, driven to a
-  terminal Done-like status, a parent constraint per type, counted in `blocked`/`mine`/velocity,
-  the work group in the trees.
-- `records` — `decision` (ADR), `guide`, and `contract` (PRD) once it exists. Durable references:
-  their own lifecycles
-  (Proposed→…→Superseded, Published→Deprecated), never a "Done" burn-down state, not assigned and
-  not burned down, their own group in the trees, and they **take no parent** — a record relates to
-  work through refs, never through hierarchy.
+  Done-like status, a parent constraint per type, counted in `blocked`/`mine`/workload, the work
+  group in the trees.
+- `records` — `decision` (ADR), `contract` (PRD), `milestone` and `guide`. Durable references with
+  their own lifecycles, never burned down to Done, not assigned, their own group in the trees, and
+  they **take no parent**: a record relates to work through refs, never hierarchy.
 
-Settled assignments (operator directive): `guide` is a `records` type; `review` is a `work` type.
-`contract` (PRD) is a `records` type — durable, no parent, related to work through refs. This
-refines the pre-category phrasing in ADR-320 (which introduces `contract` and there calls it a
-"non-meta work-item type", written before the records/work split existed) and in EPIC-538 (which
-still speaks of an "architecture category"); both should be reworded to "`records` category" when
-next touched. ADR-541 is the current source of truth for the taxonomy; ADR-320's `contract`
-mechanics (prefix `PRD`, `Draft→Active→Superseded` lifecycle, no `subentity_kind`, `supersedes` ref
-rule) stand unchanged — only the category label is reconciled here. See the `related` ref to ADR-320.
-
-Rationale for a category axis over the boolean: `category` disambiguates the two meanings the boolean
-conflated, so the consumer audit can reclassify each of the ~15 sites precisely (does this site care
-about *roster vs not*, or *burn-down vs not*?) instead of inheriting a lossy split. Orthogonal
-capability flags (`parent_required`, `subentity_kind`, `fields`) stay their own fields; `category`
-replaces only the roster/work/records axis and supplies per-category behavioural defaults. The field
-is named `category` deliberately — `type` would collide with the item type's own name.
+`guide` is a `records` type and `review` a `work` type (operator directive). `contract` is a
+`records` type; ADR-320 owns the type itself. Orthogonal capability fields (`parent_required`,
+`subentity_kind`, `fields`) stay their own fields. The field is named `category` because `type`
+would collide with the item type's own name.
 
 #### The type-axis floor: the roster type keys are locked
 
-sq structurally requires a role, a skill, and an operator type to exist and binds each one by its
-literal **type key**, so the floor is drawn on key identity and category membership: an override
-may not add a roster type, drop one, or rename one, and `category` may not move a type into or out
-of `roster`. Any override that breaches that identity is refused (clean `SquadsError`, never a
-traceback). Every non-roster type is droppable/renamable/re-prefixable as ordinary spec vocabulary.
-This is the one type-axis floor; the earlier "meta-types frozen absolutely" framing lands here,
-narrowed to identity.
+sq binds the three roster types by their literal **type key** (`ROSTER_ROLE`, `ROSTER_SKILL`,
+`ROSTER_OPERATOR`). The floor is drawn on key identity and category membership: an override may not
+add a roster type, drop one (including through `selected`), or rename one, and `category` may not
+move a type into or out of `roster`. Any breach is refused at load with a clean `SquadsError`.
+Every non-roster type is ordinary, droppable, renamable, re-prefixable vocabulary.
 
-A roster type's **other fields are ordinary, validated customisation** — its `lifecycle` above all,
-and its prefix, folder, labels, and order — subject to the same uniqueness, referential-integrity
-and live-item checks every other type faces, plus the lifecycle floor a roster-bound machine owes
-(at least one live status; a single live status when the lifecycle's `initial` is not itself live;
-a reachable settled non-live status). This narrows the wider "no field-merge" reading this section
-first carried: field-merging is not itself unsafe, and the safety a blanket lock bought is bought
-instead by validating the merged spec. See the amendment note at the end of this decision, and
-ADR-696 §3–§4, which is the governing statement on the field axis.
+A roster type's **other fields are ordinary, validated customisation**: its `lifecycle` above all,
+and its prefix, folder, labels and order, subject to the same uniqueness, referential-integrity and
+live-item checks every type faces, plus the lifecycle floor a roster-bound machine owes (ADR-696
+§3–§4, the governing statement on the field axis). The engine binds the roster by key, never by a
+roster type's prefix or folder, so the lock covers exactly the identity the engine depends on.
 
-#### `meta_kind` is moot
+Because no roster key rename is ever permitted, the literal-key bindings are correct as they are,
+and no separate name-independent identity marker for roster types exists or is needed.
 
-Because the roster type keys are locked, the roster-rename problem no longer exists to solve. The
-engine binds the three roster types by literal key (`ROSTER_ROLE == "role"`, `ROSTER_SKILL`,
-`ROSTER_OPERATOR`, dispatched across ~15 sites — the roster service, backends that write role/skill
-pointer files, the agent lifecycle, `sq create` self-author bypass), and since no *key* rename is
-ever permitted, those literal-name bindings are correct as-is. A separate name-independent identity
-marker (a `meta_kind`) would only be needed to *follow* a key rename; with that off the table there
-is nothing for it to track. `meta_kind` is therefore not introduced — consistent with the earlier
-defer, now closed as moot rather than deferred. Note that this reasoning turns on the type *key*
-alone: a roster type's prefix and folder are mergeable (above) precisely because nothing in the
-engine binds to them.
+#### Category reassignment of a built-in
 
-#### Category reassignment of a built-in (operator-resolved)
-
-An override **may** reassign a built-in type to a different category — but only among the
-non-roster categories (`work` ↔ `records`): an adopter may move `review` from `work` to `records`,
-or `guide` from `records` to `work`. Roster membership is fixed and closed in both directions — no
-type can be reassigned *into* `roster`, and roster types cannot leave it (roster is locked, per the
-floor above). Reassignment is not blocked by policy; the guardrail is validation, not prohibition. A
-reassignment that yields an internally inconsistent spec — e.g. a type moved to `records` while it
-still declares a parent, which the records contract forbids — fails Plane 1 load validation and
-hard-stops. Merely-unusual-but-valid reassignments are the adopter's call.
+An override **may** reassign a built-in type among the non-roster categories (`work` ↔ `records`),
+for example `review` to `records` or `guide` to `work`. The guardrail is validation, not
+prohibition: a reassignment that yields an inconsistent spec (a type moved to `records` while it
+still declares a parent) fails load validation. Merely unusual but valid reassignments are the
+adopter's call.
 
 ### Axis B — the validator model
 
-`sq check` and create/update gating become a **declarative, pluggable validator framework** with the
-same closed-catalog / open-assignment boundary as categories:
+`sq check` and the create/update gate run a **declarative, pluggable validator framework** with
+the same closed-catalog / open-assignment boundary as categories:
 
-- **Closed catalog, open assignment.** Validator *logic* is hard-coded in squads. There is no
-  adopter-supplied validator code and no `eval` — the same no-eval line drawn for splat-refs in
-  EPIC-538 applies here. What is spec-declared is *which* validators a type runs, plus their params.
-  A `validators` entry naming a validator not in the closed catalog fails closed.
-- **Rule data stays structured; validators read it.** The rule *data* stays in structured spec
-  fields (`parents`, `parent_required`, a title-max, the ref rules). A validator is the *check* that
-  reads those fields — it does not re-encode a rule as both a typed field and a string param. One
-  home per rule, no drift. Params on a validator carry only what is not already a structured field.
-- **One engine, two call sites.** A single validator engine runs the catalog. `sq check` runs it in
-  *report* mode (collect every issue, warn/error levels preserved); create/update runs it in *abort*
-  mode (fail-closed on the first violation). This mirrors the existing workflow-lint report-vs-abort
-  split — the rule logic is written once and never duplicated between the gate and the report.
+- **Closed catalog, open assignment.** Validator logic is hard-coded in squads; there is no
+  adopter-supplied validator code and no `eval`. What is spec-declared is *which* validators a type
+  runs and their parameters. The name catalogs live in `_workflow/_validator_names.py`
+  (`VALIDATOR_NAMES`, `SQUAD_GLOBAL_VALIDATOR_NAMES`) and the checks in
+  `_services/_validators.py`, which asserts at import that the two agree. A `validators` entry
+  naming a validator outside the catalog fails closed at load.
+- **Rule data stays structured; validators read it.** Rule data stays in structured spec fields
+  (`parents`, `parent_required`, ref rules, declared thresholds). A validator is the check that
+  reads them; a parameter carries only what no structured field holds.
+- **One engine, two call sites.** `sq check` runs it in *report* mode (every issue, levels
+  preserved); create/update runs it in *abort* mode, refusing on an error-level issue. The rule
+  logic is written once.
+
+ADR-864 owns where each member is placed (always on, on by default for a category, or opt-in),
+the level a selection carries (`name@level`, with a declared floor where the level is
+load-bearing) and the declared thresholds; ADR-982 owns how a squad selects squad-global members.
 
 #### Two validator classes: per-item and squad-global
 
-The per-type-`category` bundle model below describes **per-item validators** — a validator the engine
-runs once per item, given that item and the spec. But three of today's `_check_*` methods are
-**whole-squad** checks that attach to no single type and cannot be expressed as a per-type bundle
-entry. They form a second, small class:
-
-- **Per-item validators** — evaluated once per item (parent eligibility, title length, sub-entity
-  bodies, status banners, ref resolution, item status validity, agent registration). These are what
-  a type's `category` bundle + its own `validators` additions select. A per-item validator may read
-  squad-global *inputs* (e.g. `agent_registered` reads the registered-slug set, `supersedes_incoming`
-  scans every item's incoming edges) but it still produces a verdict *per item*, so it stays in this
-  class.
-- **Squad-global validators** — run **once per `sq check` / gate invocation**, independent of the
-  per-type set, because their subject is the squad as a whole, not any one item. The seed members
-  are `index_reconciled` (`_check_reconciliation` — index and on-disk files agree) and
-  `backend_reconciled` (`_check_backends` — backend pointer files match the roster). No `category`
-  turns these on or off; they always run. An override cannot deselect them (they are not on any
-  type's `validators` list to remove).
-
-**Narrowed 2026-10-09 (ADR-982).** "They always run" and "an override cannot deselect them" now
-hold for the always-on tier only: the squad-global members that are a defect in every squad, held
-in code. ADR-982 adds a selectable tier, effective only when a squad names a member under
-`[squad].validators` in the workflow document. Neither tier runs at the create/update gate.
-
-This resolves the "no home for a whole-squad check" gap: the category → bundle mechanism owns the
-per-item plane; the squad-global class owns the once-per-run plane. Both share the one engine and
-both honour the report/abort split (the squad-global checks run in `sq check`'s report mode; they
-are not create/update gates).
-
-#### Seed catalog
-
-The initial named validators are exactly today's hardcoded checks, lifted verbatim (no behaviour
-change for the bundled spec, other than the two deliberate new enforcements called out under
-*Consequences*: records-`no_parent` and epic-`no_parent`). Per-item validators:
-
-- `parent_in:<types>` / `no_parent` — parent eligibility (from `_check_items` parent-allowed +
-  dangling-parent logic and the structured `parents` field). `parent_in:<types>` requires the
-  parent to be one of a **non-empty** allowlist; `no_parent` forbids a parent entirely. Empty-list
-  semantics are pinned below under *How the two axes compose*.
-- `item_status_valid` — an item's `status` is a state of its type's own lifecycle (from the
-  `_check_items` "status invalid for type" check — this was an unnamed inline check in the hardcoded
-  set, named here so the seed catalog is genuinely 1:1 with today's behaviour).
-- `subtask_story_mapping` — a subtask maps to one of its parent's stories (`_check_subtask_stories`).
-- `subentity_status_valid` — a sub-entity's status is reachable in its kind's lifecycle
-  (`_check_subentity_status`).
-- `subentity_body_written` — no unwritten placeholder sub-entity bodies
-  (`_check_unwritten_subentity_bodies`).
-- `subentity_title_max:<n>` — no over-long finding/story titles (`_check_subentity_title_lengths`).
-- `no_status_banner` — no lifecycle/status prose in item bodies (`_check_status_banners`).
-- `dangling_ref` / `ref_kind_valid` — refs resolve and carry a known kind (`_check_items` ref loop).
-- `agent_registered` — author/assignee resolve to a registered roster slug (`_check_items`).
-- `supersedes_incoming` — a Superseded record has an incoming `supersedes` edge (`_check_decisions`).
-
-Squad-global validators (per the class above):
-
-- `backend_reconciled` — backend pointer files match the roster (`_check_backends`).
-- `index_reconciled` — index and on-disk files agree (`_check_reconciliation`).
-
-Naming these does not change what they check; it makes the set data-driven and per-type composable.
+- **Per-item validators** run once per item, given the item and the spec (parent eligibility,
+  status validity, ref resolution, sub-entity rules, and so on). A type's category bundle plus its
+  own `validators` additions select them. A per-item validator may read squad-wide inputs (the
+  registered-slug set, every item's incoming edges) and still produces a verdict per item.
+- **Squad-global validators** run once per `sq check`, because their subject is the squad as a
+  whole (`index_reconciled`, `backend_reconciled`, …). No category turns them on or off. They come
+  in two tiers: always on, the defects in every squad, held in code; and selectable, effective only
+  when a squad names a member under `[squad].validators` (ADR-982). Neither tier runs at the
+  create/update gate.
 
 ### How the two axes compose
 
-A category supplies a **default validator bundle**; a type's own `validators` list *extends* that
-bundle. Category behavioural defaults are **implemented as validator bundles, not a parallel
-mechanism** — there is one way a per-item rule attaches to a type. Validators **AND-compose**: an
-item passes only if every validator in its effective set passes.
+A category supplies a **default validator bundle**; a type's own `validators` list *extends* it.
+Category behaviour is implemented as validator bundles, not as a parallel mechanism. Validators
+**AND-compose**: an item passes only if every validator in its effective set passes.
 
-Every category's bundle opens with a shared **common core** of per-item validators that apply
-regardless of category — `item_status_valid`, `dangling_ref`, `ref_kind_valid`, `no_status_banner`,
-`agent_registered`. These are cross-cutting item hygiene, not category-specific; they live in the
-core rather than in the squad-global class precisely because they are evaluated per item, not once
-per run. On top of the common core each category adds:
+Every type runs a **common core** of cross-cutting item hygiene (`COMMON_CORE`:
+`item_status_valid`, `dangling_ref`, `ref_kind_valid`, `agent_registered`, `parent_acyclic`,
+`attribute_valid`). On top of it (`CATEGORY_BUNDLES`):
 
-- **`records`** = common core + `no_parent` + `supersedes_incoming` (the latter gated on the type
-  declaring a `supersedes` ref rule — `decision` and `contract` do, `guide` does not). So
-  `decision`/`contract`/`guide` reject a parent at create/update *and* `sq check` flags any existing
-  parented record. This closes the live gap (5 parented ADRs pass `sq check` clean today) and is
-  EPIC-540's first customer: the "records take no parent" behaviour promised by EPIC-538 is *built
-  as* the `no_parent` validator, not as a second hardcoded check.
-- **`work`** = common core + the parent validator (see the empty-list rule below) + the sub-entity
-  validators `subentity_status_valid` / `subentity_body_written` / `subentity_title_max` (each a
-  no-op for a type with no `subentity_kind`) + `subtask_story_mapping` (active only for the
-  `subtask` kind).
-- **`roster`** = common core only — no parent validator, no sub-entity validators. Roster types run
-  the minimal registry hygiene and none of the work/record parent or sub-entity rules.
+- **`records`** add `no_parent` and `supersedes_incoming` (the latter effective only for a type
+  declaring a supersession ref rule, as `decision` and `contract` do). A record is refused a parent
+  at create/update and `sq check` reports any parented record.
+- **`work`** add the parent validator and the sub-entity validators (`subentity_status_valid`,
+  `subentity_container_marker`, `subentity_body_written`, `subentity_deferral_resolved`,
+  `subtask_story_mapping`), each a no-op for a type that hosts no matching kind.
+- **`roster`** add only `pronouns_valid`: no parent or sub-entity rules.
+
+Everything else in the catalog is opt-in, selected per type (for example `no_status_banner` and
+`subentity_title_max:<n>`, which this repository selects in its own override).
 
 #### Empty-`parents` semantics, and epic as the work root
 
-Today `parent_allowed` short-circuits `parents == []` to "**any** parent (or none) is allowed" — so
-`epic`/`bug`/`review`, which all declare `parents = []`, accept *any* parent unchecked, and an
-epic's root-of-hierarchy constraint is unenforced. The validator model pins this explicitly:
+- `parent_in:<types>` requires the parent to be one of a **non-empty** allowlist; a type with a
+  non-empty `parents` runs it (`feature` → `epic`, `task` → `feature`).
+- A type with **empty** `parents` and no `no_parent` accepts any parent or none (`bug`, `review`).
+- `no_parent` is how a type declares it takes no parent. Records get it from their bundle; `epic`
+  selects it explicitly, so the work root is enforced.
+- An empty `parent_in` allowlist is never written: it fails load validation, pointing the author at
+  `no_parent`.
 
-- `parent_in:<types>` names a **non-empty** allowlist; the parent must be one of those types.
-- A type that declares a **non-empty** `parents` field runs `parent_in:<its parents>` (e.g.
-  `feature` → `parent_in:[epic]`, `task` → `parent_in:[feature]`).
-- A type with **empty** `parents` and **no** `no_parent` keeps today's lenient "any parent or none"
-  behaviour — byte-identical, so `bug`/`review` are unchanged (they may legitimately stand alone or
-  hang off work).
-- `no_parent` is how a type declares it takes **no** parent at all. `records` get it from their
-  category bundle. **`epic` adds `no_parent` explicitly** as a per-type addition, turning its
-  root-of-hierarchy constraint into an enforced rule for the first time (a deliberate new
-  enforcement, called out under *Consequences*).
+#### The bundle is a floor: extend-only
 
-Because `epic`'s `parents` is empty, its `work`-bundle parent validator is vacuous, and the added
-`no_parent` narrows that to "no parent" with no contradiction — this is a pure AND-compose
-tightening, not a conflict. `parent_in:[]` (an empty allowlist) is therefore never written: an empty
-`parents` field means "unconstrained", and "no parent" is spelled `no_parent`. A spec that writes an
-empty `parent_in` is ill-formed and fails Plane 1 load validation, with the diagnostic pointing the
-author at `no_parent`.
-
-#### Bundle is a floor: extend-only, no per-validator deselect
-
-A type's effective per-item validator set is `category default bundle + its own validators
-additions`, all drawn from the one closed catalog, all sharing the one engine across both call
-sites. The type-level `validators` list is **extend-only** — the category bundle is a **floor** a
-type may add to but never subtract from. There is deliberately **no** `active`-style deselect for an
-individual category-default validator: a type cannot drop `no_parent` from the `records` bundle or
-`no_status_banner` from the common core. (Contrast the `active` mechanism, which *does* let an
-override deselect whole types and statuses — that operates on the vocabulary axis, not on a
-category's behavioural floor.) If an adopter wants a records-like type without `no_parent`, the
-lever is category reassignment (`records` → `work`), not per-validator deselection. This keeps the
-two axes from drifting apart — the category's *behaviour* is literally the validators it turns on,
-and that floor cannot be quietly hollowed out one validator at a time.
+A type's effective set is common core + category bundle + its own additions, all from the one
+catalog. The type-level list is **extend-only**: a type may add to its bundle but never subtract
+from it. An adopter who wants a records-like type without `no_parent` reassigns its category
+instead. This keeps a category's behaviour equal to the validators it turns on.
 
 ## Invariant: fail-closed validation across two planes
 
-Every rule in this decision is enforced fail-closed, but on one of two distinct planes. The
-distinction is deliberate: spec validity is a load-time contract, item conformance is not.
+**Plane 1 — spec validity, at load, hard-stop.** Every spec-level rule here is checked when the
+spec loads, and an invalid spec raises `SquadsError` (exit 1), with `sq workflow lint` as the
+diagnostic: category-catalog membership; the roster key lock; validator-catalog membership and
+selection grammar; a well-formed parent validator; and referential safety of a `selected`
+deselection (a dropped status or lifecycle still referenced by a selected type, or a roster key).
 
-**Plane 1 — spec validity: validated at load, hard-stop.** Every *spec-level* rule introduced here
-is validated when the spec loads, and an invalid spec raises `SquadsError` → exit 1 with
-`sq workflow lint` as the diagnostic. These rules are:
+**Plane 2 — item conformance, at the gate and in `sq check`.** Whether an individual item obeys a
+well-formed spec is enforced at create/update and reported by `sq check`, the two call sites of the
+one engine. A pre-existing violation surfaces for repair rather than preventing sq from starting.
+The one load-time exception is a live item whose type or status the spec dropped, which can no
+longer be represented at all.
 
-- category-catalog membership — a type's `category` names one of the three hard-coded categories;
-- roster identity locked — no override adds, drops, or renames a `roster` type key, and no type
-  moves into or out of `roster` (a roster type's other fields merge and are validated like any
-  other type's);
-- records-no-parent as a category default — the `records` bundle attaches `no_parent`;
-- validator-catalog membership — every name in a type's `validators` list is a catalog validator;
-- well-formed parent validator — an empty `parent_in` allowlist is rejected (use `no_parent`);
-- `active`-deselect referential safety — a deselected status/lifecycle is not still referenced by an
-  active type, and the roster floor is not violated.
-
-This is not new machinery: it is where `load_workflow_spec` (the `WorkflowSpec._validate`
-fail-closed pass) and `validate_against_index_fail_closed` already live. The point of recording it is
-that the *new* rules join Plane 1 — they are load-time spec-validity checks, not runtime surprises
-discovered mid-command.
-
-**Plane 2 — item conformance: create/update gate + `sq check` report.** Whether an individual
-*item* obeys the rules (parent eligibility, title length, written sub-entity bodies, no status
-banner) is enforced fail-closed at create/update and reported by `sq check` — the two call sites of
-the one validator engine. This is deliberately **not** a load-time brick: a pre-existing violation
-(e.g. the 5 parented ADRs that predate records-no-parent enforcement) must surface for migration, not
-prevent sq from starting. The single load-time exception is the structural case
-`validate_against_index_fail_closed` already covers — a live item whose type or status the spec
-dropped — because there the item can no longer be represented at all.
-
-The rule of thumb: *is the spec itself well-formed?* is Plane 1 (load, hard-stop); *does this item
-obey a well-formed spec?* is Plane 2 (gate + report).
+The rule of thumb: *is the spec well-formed?* is Plane 1; *does this item obey a well-formed spec?*
+is Plane 2.
 
 ## Consequences
 
-- The consumer audit for `is_meta` → `category` becomes a precise reclassification, not a mechanical
-  rename: each of the ~15 sites is re-pointed at either "roster vs not" or "burn-down vs not".
-- `records`-take-no-parent stops being aspirational and gets enforced through the same engine that
-  powers `sq check`. The migration of the 5 currently-parented ADRs to `related` refs (owned by
-  EPIC-538, not here) **lands with-or-before the `records` `no_parent` category default** — the two
-  must not be split across releases, or the new default would flag the 5 ADRs as violations before
-  the migration has re-homed their parent edges. Sequencing them together keeps `sq check` clean
-  across the change.
-- The roster type keys are locked, so `meta_kind` is moot rather than deferred — no key rename means
-  nothing for a name-independent identity marker to track.
-- The validator framework is additive over today's behaviour, but "byte-identical" is scoped
-  precisely: with the bundled spec and no override, the **renamed seed checks** report
-  byte-identical issues (the seed catalog *is* today's check set, renamed), **excluding** the two
-  deliberate new enforcements this decision adds — the `records` category-default `no_parent` (which
-  will flag the 5 parented ADRs until the EPIC-538 migration re-homes them, per the bullet above)
-  and `epic`'s explicit `no_parent` (which enforces the previously-unenforced work-root constraint).
-  Everything else — every per-item hygiene check, every sub-entity check, both squad-global checks —
-  is unchanged in output.
-- `epic` gains an enforced no-parent constraint. Any pre-existing parented epic (none expected in
-  this repo) would surface on the Plane-2 `sq check` report the same way the parented ADRs do —
-  for migration, not as a load brick.
-- The new spec-level rules join the existing load-time fail-closed pass (Plane 1); item conformance
-  stays on the create/update gate and `sq check` report (Plane 2), so pre-existing violations surface
-  for migration instead of bricking load.
-- Category reassignment of a built-in is allowed among the non-roster categories (`work` ↔
-  `records`); roster membership is fixed both directions. It is guarded by Plane 1 validation — an
-  inconsistent reassignment hard-stops — rather than by policy, so no operator decisions remain open.
-- Two downstream wording fixes fall out of the `contract` ∈ `records` reconciliation (the ADR-320
-  rewording was applied on 2026-08-03; tracked as
-  follow-ups on their owners, not edited here): ADR-320 calls `contract` a "non-meta work-item type"
-  and EPIC-538 speaks of an "architecture category" — both predate the records/work split and should
-  be reworded to "`records` category" when next touched. ADR-541 is the authority for the taxonomy;
-  the `related` ref to ADR-320 records the link.
+- Each consumer asks a precise question, "roster or not" or "burn-down or not", instead of
+  inheriting a lossy split.
+- "Records take no parent" and "epic is the work root" are enforced through the same engine that
+  powers `sq check`.
+- Category reassignment among the non-roster categories is guarded by Plane 1 validation, not by
+  policy.
 
 ## Adopter back-compat: spec-vocab renames
 
-Renaming or removing a spec-vocabulary key — the first instance being `is_meta` → `category` on
-`ItemSpec` — is a **spec-format change, not a frontmatter-schema change**. Such a key is a
-type-level property read from the workflow spec at load time; it is never written to item
-frontmatter, the rebuildable index, or `.squads.toml`. A spec-vocab rename therefore carries **no
-`SCHEMA_VERSION` bump and no `sq migrate` data migration** — nothing in item data derives from it to
-migrate. `SCHEMA_VERSION` governs the on-disk frontmatter/index shape; spec-format provenance is
-tracked on its own axis by the `squads:override-base:<version>` stamp.
+Renaming or removing a spec-vocabulary key (the first instance being `is_meta` → `category` on
+`ItemSpec`) is a **spec-format change, not a frontmatter-schema change**: the key is read from the
+workflow spec at load and never written to item frontmatter, the index or `.squads.toml`. It carries
+no `SCHEMA_VERSION` bump and no data migration; spec-format provenance is tracked by the
+`squads:override-base:<version>` stamp.
 
-The adopter-facing cost is confined to a project override that still writes the old key (the bundled
-spec is regenerated). The standing policy for any such rename:
+The cost is confined to a project override still writing the old key. The policy for any such
+rename:
 
-- **One-release read-compat shim in the loader.** The spec loader accepts the deprecated key for one
-  release and translates it to the new field before model validation, so the `extra="forbid"`
-  contract stays intact. For `is_meta`: a value of `false`, or the key absent, resolves to the
-  `category` default (`work`); `is_meta = true` on a non-roster type is refused with a clean
-  `SquadsError` naming `category` and the roster identity floor, since roster *membership* is never
-  adopter-declarable.
-- **The deprecation is documented in the CHANGELOG / upgrade notes** for the release that introduces
-  the rename, so an adopter carrying the old key in an override gets the one-line migration.
-- **The shim is dropped at 1.0.** Past that, a deprecated spec-vocab key is an unknown key and fails
-  closed via `extra="forbid"`, the same as any other malformed override.
-
-This keeps a vocabulary rename a soft, one-release deprecation for adopters rather than a hard break,
-while holding the line that behaviour and vocabulary each live on their own versioning axis.
-
-## Amendment note
-
-**2026-07-31 — the type-axis floor narrows from "the roster category is locked" to "the roster type
-keys and their category are locked".** As first written, this decision's floor forbade an override to
-"add, deactivate, field-merge, or rename/re-prefix" a `category = roster` type. ADR-696 §4 reverses
-the field half of that on purpose and says so; this note is the other end of that reversal, recorded
-here so no reader of this decision absorbs a rule a later Accepted decision retired.
-
-What the floor is now: the three roster type **keys** (`role`, `skill`, `operator`) must exist, may
-not be added to, may not be dropped (including via `selected`), and may not be renamed; and
-`category` may not move a type into or out of `roster`. What it no longer covers: a roster type's
-`lifecycle`, prefix, folder, labels, and order, which merge and are validated like any other type's.
-
-Why the narrowing is right rather than merely later. A lock is only justified where the engine cannot
-verify, and the engine binds the roster by **key** — `ROSTER_ROLE`/`ROSTER_SKILL`/`ROSTER_OPERATOR`
-and the fixed `category` — never by a roster type's prefix or folder; no such literal exists in
-`src/` outside the migration runners, which are correctly frozen at their pinned schema versions. The
-lifecycle safety the blanket lock bought is bought instead by ADR-696 §3's floor, which is stated in
-code and checked on the merged spec. So the surviving prohibition is exactly the identity the engine
-binds by name, and the field axis becomes ordinary validated customisation — the constrain-don't-lock
-direction, applied to the one clause that predated it.
-
-Scope: this narrows the floor section, the `roster` category bullet, the Plane-1 rule list, and the
-`meta_kind` consequence, and nothing else. `meta_kind` stays moot for an unchanged reason — a key
-rename is still never permitted, so there is still nothing for a name-independent identity marker to
-follow. Axis B (the validator model), the category taxonomy, the work↔records reassignment ruling,
-and the spec-vocab back-compat policy are untouched. ADR-696 §3–§4 is the governing statement on the
-field axis; this decision remains the authority on the taxonomy and the validator model.
-
-**Why the narrowing is legitimate rather than a reversal of the operator's own call**, which a future
-reader is entitled to check before re-litigating it. The lock arrived as an operator directive, and
-that directive is on this decision's discussion, dated: *"role/skill/operator are entirely off the
-customization surface — no add, no deactivate, no field-merge, no rename"*, given in the same breath
-as the ruling that **the guardrail is validation, not prohibition** and that an inconsistent spec
-should fail load validation rather than be forbidden by policy. What the directive was answering was
-the roster-*extensibility* question — is the roster capped at three or extensible — and the thing it
-was protecting was the roster lifecycle, at a point when the engine still bound roster semantics to
-three literal status names and had no way to check a project's own lifecycle instead. The status-role
-object, the `live` flag, and the lifecycle floor that make such a check expressible were all decided
-afterwards, on ADR-696, on the operator's own direction. So the narrowing applies the operator's
-stated principle to the clause that predated the means of satisfying it: the roster's *membership*
-stays closed exactly as directed, and the field axis moves from prohibition to validation, which is
-the direction the same operator set. Nothing here relaxes a boundary anyone asked to keep — it
-retires a prohibition that was standing in for a check that now exists.
-
-## Note on the `contract` clauses
-
-**2026-08-03 — they stand as forward design, and are deliberately not scoped to the type's return.**
-`contract` is not declared in the bundled spec — the type was moved out of release scope — so every
-clause here that rules on it currently has no live referent. Two of them read in the present tense: the
-`records` membership list, and the ref-rule sentence that "`decision` and `contract` do" declare a
-`supersedes` rule.
-
-The clauses are kept, for a reason worth stating rather than assuming. What they rule on is the
-**taxonomy** — which category the type belongs to and what that category obliges — and a taxonomy ruling
-is about the shape of the vocabulary, not about a shipped artifact. It costs nothing while the type is
-absent, it is exactly what an implementer needs on the day it returns, and it was decided by the
-operator on the merits rather than as a consequence of the type's schedule.
-
-The alternative — conditioning them on the type's return — would be worse in a specific way: it creates
-a clause whose activation nobody owns, and it re-opens a settled taxonomy question at the moment someone
-is busy building the type. The rule is that a decision is retired when it is *wrong*, not when its
-subject is absent.
-
-What is owed, and is done here, is marking them **forward** rather than descriptive, so that a
-conformance sweep does not go looking for a referent in `src/` and report a gap. The membership list now
-says "once it exists". ADR-320 is the owning decision for the type itself and carries the reciprocal
-edge.
-
-For the same sweep's benefit, and not an amendment: the squad-global validator catalog holds four
-validators rather than the two named here, `roster_config_integrity` and
-`default_designation_duplicated` having been added by ADR-697. This decision says "seed members", so
-nothing is owed — flagged only so the difference is not misread as drift.
+- **A one-release read-compat shim in the loader** translates the deprecated key before model
+  validation, so `extra="forbid"` stays intact. For `is_meta`: `false` or absent resolves to the
+  `category` default (`work`); `is_meta = true` on a non-roster type is refused with a message
+  naming `category` and the roster key lock.
+- **The deprecation is documented** in the CHANGELOG and upgrade notes of the release that
+  introduces it.
+- **The shim is dropped at 1.0**; past that, a deprecated key is an unknown key and fails closed.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -475,4 +234,6 @@ nothing is owed — flagged only so the difference is not misread as drift.
   - The reasoning, stated rather than assumed. What these clauses rule on is the taxonomy — which category the type belongs to and what that category obliges — and a taxonomy ruling is about the shape of the vocabulary, not about a shipped artifact. It costs nothing while the type is absent, it is exactly what an implementer needs the day it returns, and the operator decided it on the merits, not as a consequence of the types schedule.
   - Conditioning them on the types return would be worse in a specific way: it creates a clause whose activation nobody owns, and it re-opens a settled taxonomy question at the moment someone is busy building the type. The rule I am applying is that a decision is retired when it is wrong, not when its subject is absent.
   - What was genuinely owed is done: the two present-tense readings are marked forward, so a conformance sweep does not hunt for a referent in `src/` and report a gap. The `records` membership list now reads "and `contract` (PRD) once it exists". Applied ADR-320s rewording at that end too and added the reciprocal edge, so the pair is linked. Also flagged for the sweep, not as an amendment: the squad-global validator catalog holds four rather than the two named here — this decision says "seed members", so nothing is owed.
+- [2026-10-25T21:34:33Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale, body rewritten in the present tense; Axis A, Axis B, the composition rules and the two planes are unchanged. The seed catalog and bundles were stale: the common core is COMMON_CORE (no no_status_banner; adds parent_acyclic and attribute_valid), work adds subentity_container_marker and subentity_deferral_resolved but not subentity_title_max, roster runs pronouns_valid, and no_status_banner and subentity_title_max are opt-in per ADR-864. Replaced the seed list with the catalog modules and ADR-864/ADR-982 as owners of placement, levels and squad-global selection. Folded the 2026-07-31 floor narrowing and the 2026-10-09 ADR-982 note; contract and milestone exist, so the forward-design note is gone. Removed the 5-parented-ADRs migration sequencing.
 <!-- sq:discussion:end -->

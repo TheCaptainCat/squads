@@ -13,30 +13,31 @@ subentities:
 - local_id: F1
   title: migrate chlog hint points at the wrong release range — 0.5 manual steps are
     unreachable
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F2
   title: Interrupted migration can mint duplicate SKILL ids (counter persisted once
     at end, not per-allocation)
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F3
   title: Dead/misleading manual .squads.json write in the runner — clobbered by the
     following repair()
-  status: Open
+  status: Verified
   severity: low
 - local_id: F4
   title: v0_5 corpus fixture is mislabeled — schema_version=0.4 on disk under a dir
     registered as 0.5
-  status: Open
+  status: Verified
   severity: low
 - local_id: F5
   title: _skip_skill_seed test hook is now load-bearing suite-wide; seeded state under-covered
     by default
-  status: Open
+  status: Deferred
   severity: low
+  deferred_to: TASK-1149
 created_at: '2026-06-24T20:32:56Z'
-updated_at: '2026-06-24T21:09:52Z'
+updated_at: '2026-10-25T19:58:39Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -81,6 +82,8 @@ The runner DID author a useful MANUAL (the 'missing skill body file -> run sq sy
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:37Z] `reviewer` Paul Reviewer:
+  - Holds: _manual_chlog_span derives the span from the applied migrations' own versions (_cli/_migrate.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -98,6 +101,8 @@ The parallel path seed_bundled_skills (_services/_maintenance.py:212) does this 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:37Z] `reviewer` Paul Reviewer:
+  - Holds: the 0.4->0.5 runner allocates each SKILL id inside store.transaction() (_migrations/_v0_4_to_v0_5.py).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -115,6 +120,8 @@ Beyond being dead, it's a second, non-locked, non-atomic index writer duplicatin
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:38:37Z] `reviewer` Paul Reviewer:
+  - Holds: the hand-rolled .squads.json read/write is gone from _migrations/_v0_4_to_v0_5.py.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -132,6 +139,8 @@ Functionally this is the lucky case — because it's at 0.4, run_pending_migrati
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:38:37Z] `reviewer` Paul Reviewer:
+  - Holds: tests/fixtures/corpus/v0_5/.squads.toml carries schema_version 0.5.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -147,6 +156,8 @@ The internal _skip_skill_seed hook is now used by the default 'project' fixture,
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-25T19:38:37Z] `reviewer` Paul Reviewer:
+  - Still true: the default project fixture skips skill seeding (tests/conftest.py); kept as a coverage note with REV-191 F3.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->

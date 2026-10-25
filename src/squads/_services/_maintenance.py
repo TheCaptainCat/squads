@@ -1314,7 +1314,7 @@ class MaintenanceMixin(ServiceCore):
                 db.add(item)
                 self.store.log(
                     "create",
-                    item_id,
+                    item.id,
                     {
                         "title": slug,
                         "type": ROSTER_SKILL,
@@ -1404,7 +1404,7 @@ class MaintenanceMixin(ServiceCore):
                 db.add(item)
                 self.store.log(
                     "create",
-                    item_id,
+                    item.id,
                     {
                         "title": slug,
                         "type": ROSTER_SKILL,

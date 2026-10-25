@@ -12,28 +12,30 @@ refs:
 subentities:
 - local_id: F1
   title: Regen else-branch wipes frontmatter when body region is missing/partial
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F2
   title: 'sq check: skills added to registered-authors set is an out-of-scope semantic
     change'
-  status: Open
+  status: Deferred
   severity: low
+  deferred_to: TASK-1146
 - local_id: F3
   title: Existing test suite runs the non-default no-seed path; default seed-on-init
     under-tested
-  status: Open
+  status: Deferred
   severity: low
+  deferred_to: TASK-1149
 - local_id: F4
   title: sq adopt does not seed bundled skills; init/adopt asymmetry
-  status: Open
+  status: Verified
   severity: low
 - local_id: F5
   title: Counter bump before file write can leak an id on stamp failure
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-06-24T19:49:42Z'
-updated_at: '2026-06-24T20:00:55Z'
+updated_at: '2026-10-25T19:58:38Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -77,6 +79,8 @@ Recommended fix: when frontmatter is present, never blunt-overwrite. Re-emit pre
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:35Z] `reviewer` Paul Reviewer:
+  - Holds: a file missing its body region is rewritten with join_frontmatter(fm, seed_body) (_backends/_claude_code/_backend.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -96,6 +100,8 @@ The concern is scope/transparency: it is a behavior change to sq check semantics
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:35Z] `reviewer` Paul Reviewer:
+  - Still true: the registered-author warnings still say "agent or operator" (_services/_validators.py, _base.py); kept as a wording note.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -115,6 +121,8 @@ Recommendation (non-blocking): keep the flag, but flip at least one or two repre
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:38:35Z] `reviewer` Paul Reviewer:
+  - Still true: the conftest project fixture inits with _skip_skill_seed=True; kept as a coverage note.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -132,6 +140,8 @@ This is likely intentional given the migration (TASK-189) is the seam that stamp
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:38:35Z] `reviewer` Paul Reviewer:
+  - Holds: adopt() calls seed_bundled_skills and seed_custom_skills (_services/_service.py).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -149,6 +159,8 @@ Minor: consider building+validating the Item and rendering the frontmatter strin
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-25T19:38:35Z] `reviewer` Paul Reviewer:
+  - Holds: seed_bundled_skills allocates and writes inside one store.transaction(), so a failed write commits no counter bump (_services/_maintenance.py).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->

@@ -14,38 +14,38 @@ description: 'Driven review of 2a81c06 (TASK-822): the rebuild reproduces the wi
 subentities:
 - local_id: F1
   title: Rebuild destroys a shipped release's blobs once its tag exists
-  status: Fixed
+  status: Verified
   severity: critical
 - local_id: F2
   title: 'Rebuild has no floor: an unreadable or artifact-less tag empties an entry'
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F3
   title: Store-coverage failure names a remedy that cannot fix it
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Runbook's rebuild and release-gate steps contradict each other on order
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: A mistyped flag silently runs write mode; --check --rebuild writes
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F6
   title: Rebuild reports a net size delta as a drop count; restorations invisible
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: Rebuild's two writes are neither atomic nor rolled back
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F8
   title: Release-gate success line is identical to --check's
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-08-25T23:50:01Z'
-updated_at: '2026-08-26T09:21:56Z'
+updated_at: '2026-10-25T19:32:18Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -186,6 +186,8 @@ wrong.
 <!-- sq:finding:F1:discussion -->
 - [2026-08-26T00:06:25Z] `python-dev` Elias Python:
   - Fixed: discriminator is now publication (tag exists), not running-version equality. _resolve_version() sources any tagged version from its own tag, always; the working tree is only used for a version with no tag. Driven: v0.14.0 tagged + still running, a post-tag edit written by the generator, then --rebuild — the entry corrected back to the tag-derived hash, the shipped blob survives (git show v0.14.0:... matches). Coverage: test_seed_content_store_rebuild_prefers_the_tag_even_when_it_is_also_the_running_version.
+- [2026-10-25T19:32:18Z] `reviewer` Paul Reviewer:
+  - Holds: _resolve_version in scripts/seed_content_store.py sources any tagged version from its tag first.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -248,6 +250,8 @@ is the thing to fix, since it promises a refusal the tool does not perform.
 <!-- sq:finding:F2:discussion -->
 - [2026-08-26T00:06:27Z] `python-dev` Elias Python:
   - Fixed: _git_ls_tree now returns None (not []) on a non-zero git exit, propagated as a refusal; _collect_tree_at_tag also refuses when a tag's listing comes back empty while the old entry recorded templates. Driven both shapes: a git-ls-tree shim forcing exit 128, and v0.4.0's tag moved onto the root commit — both now refuse, exit 1, nothing written. Coverage: test_seed_content_store_rebuild_refuses_when_a_tag_resolves_but_lacks_an_artifact.
+- [2026-10-25T19:32:18Z] `reviewer` Paul Reviewer:
+  - Holds: _git_ls_tree returns None on a git failure and _collect_tree_at_tag refuses an empty listing (scripts/seed_content_store.py).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -304,6 +308,8 @@ name both. And SKILL-000508 §1 should distinguish the two failures rather than 
 <!-- sq:finding:F3:discussion -->
 - [2026-08-26T00:06:29Z] `python-dev` Elias Python:
   - Fixed: _check_mode splits freshness_problems (running version only) from store_problems (whole-index unresolved + orphan-under-gate) and prints the remedy for whichever fired, both if both fired. Driven: a hash missing from a historic entry now prints 'run: seed_content_store.py --rebuild', which actually clears it (verified the old remedy exited 0 and healed nothing, the new one clears the check).
+- [2026-10-25T19:32:18Z] `reviewer` Paul Reviewer:
+  - Holds: _check_mode in scripts/gen_template_manifest.py splits freshness_problems from store_problems, each with its remedy.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -349,6 +355,8 @@ finding.
 <!-- sq:finding:F4:discussion -->
 - [2026-08-26T00:06:31Z] `python-dev` Elias Python:
   - Fixed: SKILL-508 rewritten to one ordered sequence in Prep -- fetch tags, changelog, bump, THEN fetch tags again + rebuild + release-gate (with the 'why the bump comes first' stated explicitly), then commit both documents. Gates section now only points at that sequence instead of carrying its own contradictory standalone bullet. Both failure classes (unresolved hash vs orphan) are named with their distinct remedies.
+- [2026-10-25T19:32:18Z] `reviewer` Paul Reviewer:
+  - Holds: the releasing-squads skill runs bump, then rebuild, then --release-gate, as one ordered sequence.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -391,6 +399,8 @@ four lines and removes the whole class.
 <!-- sq:finding:F5:discussion -->
 - [2026-08-26T00:06:32Z] `python-dev` Elias Python:
   - Fixed: both scripts reject any argv entry outside their small allow-list with exit 2 and a usage line. seed_content_store.py also refuses --check + --rebuild together (exit 2, writes nothing) rather than letting --rebuild's write win silently. Driven: --relase-gate and --rebiuld (typos) both now exit 2 instead of running write mode.
+- [2026-10-25T19:32:18Z] `reviewer` Paul Reviewer:
+  - Holds: both scripts exit 2 with a usage line on an unknown flag; --check with --rebuild is refused.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -430,6 +440,8 @@ each reported on its own.
   - Tracked on TASK-824 (Ready, low, python-dev, FEAT-791 US1) — "Rebuild reporting and durability: honest counts, atomic writes", subtask ST1. Re-verified against the tree after 3fb7c38, not against the reviewed 2a81c06.
 - [2026-08-26T00:13:16Z] `tech-lead` Olivia Lead:
   - Confirmed at seed_content_store.py:360 (dropped = store_before_size - len(new_store)) reported at :363-366. Acceptance asks for two set computations plus an explicit no-negative-count assertion, since a negative count is the deltas signature.
+- [2026-10-25T19:32:18Z] `reviewer` Paul Reviewer:
+  - Holds: seed_content_store.py counts restored and dropped as separate sets.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -474,6 +486,8 @@ entirely and narrows the window to two adjacent renames.
   - One does not hold. "The store is a superset of the closure, not a subset, and no blob is lost" is true of the drop half only. The rebuild also restores: a corrected entry names hashes present in new_store and absent from the old one. Interrupt between :361 and :362 on a recovery run and the index is rewritten to the corrected hashes while the store still lacks the blobs behind them — nothing lost from git, but the tree is left in the state the operator ran the rebuild to leave.
   - So the genuinely undiagnosed state is narrower than a half-written pair: a truncated JSON document. write_text truncates before writing and _load_json parses with no error handling, so a partial content_store.json surfaces as an unhandled JSONDecodeError traceback rather than a diagnosis. That is the piece I added scope for beyond the atomic write.
   - Low stands on the mitigants, and the label should not gate the fix — the os.replace pattern is already in _index/_store.py, it is a few lines, and it removes truncation entirely. Recorded on the task that the residual is a two-rename window, not a transaction, and that the docstring should claim exactly that.
+- [2026-10-25T19:32:18Z] `reviewer` Paul Reviewer:
+  - Holds: both scripts write through a temp file plus os.replace.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -516,6 +530,8 @@ blobs — and word the count as references, e.g. "416 index reference(s) over 85
   - Tracked on TASK-824 (Ready, low, python-dev, FEAT-791 US1) — "Rebuild reporting and durability: honest counts, atomic writes", subtask ST3. Re-verified against the tree after 3fb7c38, not against the reviewed 2a81c06.
 - [2026-08-26T00:13:19Z] `tech-lead` Olivia Lead:
   - Confirmed by driving both modes on the current tree — the two success lines are byte-identical, release_gate reaches :206-207 and never the success path at :222-228, and 416 vs 85 checks out (416 index references, 85 stored blobs). Added one thing the finding did not name: SKILL-000508 section 2 tells the operator what each gate failure means and never what a clean gate line looks like, so the runbook half is in scope too.
+- [2026-10-25T19:32:18Z] `reviewer` Paul Reviewer:
+  - Holds: the --release-gate success line says "orphan-free" and counts index references over stored blobs.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 <!-- sq:findings:end -->

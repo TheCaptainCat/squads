@@ -229,6 +229,12 @@ The documented, stable contract:
 Code `3` is the useful one for CI gates — scripts can use `sq check || exit 1` or test the code
 directly. Codes `1` and `2` indicate a broken invocation or squad state, not a lint failure.
 
+**Findings come out in one order.** `sq check` and the findings `sq import` prints for the items it
+touched list squad-wide findings first, then item findings by item number, `error` before `warn`
+within an item, and finally by message text (compared code point by code point, so an uppercase
+first letter sorts before a lowercase one). The order does not depend on which validators a type
+selects; it can change when a message's wording changes.
+
 **A degraded read is a non-zero exit, and it has a code of its own.** When one of the five listings
 on code `4` cannot read part of the corpus, it prints everything it *could* read, names what it
 skipped on stderr, and exits `4` — "the answer is short", which is a different sentence from `1`'s

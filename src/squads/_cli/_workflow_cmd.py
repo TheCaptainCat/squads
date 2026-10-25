@@ -46,6 +46,7 @@ from squads._interactions._playbook import get_playbook_spec
 from squads._models._schema import SCHEMA_VERSION
 from squads._models._vocab import labels_for
 from squads._paths import number_for_id
+from squads._specload import override_present
 from squads._workflow._lifecycle_order import lifecycle_edges_in_order, lifecycle_states_in_order
 from squads._workflow._models import FALLBACK_ROLE_NAME
 
@@ -823,7 +824,7 @@ def _spec_identity_json(svc: Service) -> dict[str, object]:
     into it, never a change detector."""
     from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
 
-    override = (svc.paths.squad_dir / WORKFLOW_OVERRIDE_FILENAME).is_file()
+    override = override_present(svc.paths.squad_dir / WORKFLOW_OVERRIDE_FILENAME)
     canonical = json.dumps(
         svc.spec.model_dump(mode="json"), ensure_ascii=False, separators=(",", ":")
     )
@@ -1018,7 +1019,7 @@ def workflow_lint() -> None:
     squad_dir = sp.squad_dir
     override_path = squad_dir / WORKFLOW_OVERRIDE_FILENAME
 
-    if not override_path.is_file():
+    if not override_present(override_path):
         console.print(
             "[green]workflow spec OK[/green] — no override file found; using the bundled default."
         )

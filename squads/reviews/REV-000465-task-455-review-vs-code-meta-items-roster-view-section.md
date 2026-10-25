@@ -10,10 +10,11 @@ refs:
 subentities:
 - local_id: F1
   title: Roster leaf-builder duplicates listView's itemToLeaf/sortedLeaves
-  status: Open
+  status: Deferred
   severity: low
+  deferred_to: TASK-1148
 created_at: '2026-07-17T15:41:30Z'
-updated_at: '2026-07-17T15:43:25Z'
+updated_at: '2026-10-25T19:58:30Z'
 ---
 <!-- sq:body -->
 Independent review of TASK-455 (US3/F12, meta-items 'Roster' view section; Ada implemented). Scope: clients/vscode/** diff.
@@ -39,6 +40,8 @@ domain/metaView.ts's private itemToLeaf and sortedLeaves are near-verbatim copie
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:19Z] `reviewer` Paul Reviewer:
+  - Still true: metaView.ts and listView.ts each keep a private itemToLeaf/sortedLeaves, now diverged; kept as a duplication note.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 <!-- sq:findings:end -->

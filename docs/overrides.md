@@ -183,31 +183,68 @@ Developers aren't in the bundled catalog — they're created on demand by `sq de
 definition that developer already carries rather than over a bundled entry. Everything that reads a role resolves it that way — `sq dev add`, `sq sync`,
 `sq role <slug> show`, `sq check`.
 
-```toml
-# .overrides/roles/python-dev.toml
-title = "Senior Python developer"
-# full_name, mission, responsibilities, model, etc. inherit from the live python-dev role
+Add the developer first. `sq dev add --tech <tech>` takes `--name`, `--model`, `--slug` and
+`--pronouns`, and that is all most developers need. Write an override only for what those flags
+do not set:
+
+```bash
+sq dev add --tech go --name "Gina Go" --model sonnet
+sq override scaffold --role go-dev
 ```
 
-Three rules follow from that base:
+```toml
+# .overrides/roles/go-dev.toml
+# squads:override-base:<version>
+title = "Senior Go developer"
+# full_name, mission, responsibilities, model, etc. inherit from the live go-dev role
+```
+
+After `sq sync`, `sq role go-dev show` opens with:
+
+```
+│ Gina Go (`go-dev`)                                                           │
+│ title: Senior Go developer                                                   │
+```
+
+Two rules follow from that base:
 
 - **Fields you omit keep the role's current values.** A file that sets only `title` changes only
   the title.
 - **A field you declare wins, except `full_name`.** The developer's name is the one stored when
-  they were added. A `full_name` declared in the file names a developer added after it was
-  written, when `sq dev add` is given no `--name`; it never renames one you already have.
-- **A name you never wrote is never invented.** Omit `full_name` and a new developer takes a name
-  from the pool.
+  they were added, and a `full_name` in the file never renames one you already have.
 
-You can write the file before the developer exists and run `sq dev add` afterwards: the new
-developer is built from it. Until then the file is a role file for a slug that is not on the
-roster, so `sq check` reads it as a new role and reports the fields a new role requires (exit `3`):
+**An override for a slug that is not on the roster is a new role, so it must be complete.** It
+has no developer to merge onto, so it must declare every field a new role requires: `full_name`,
+`title`, `description` and `mission`. A complete file written first is the other way to add a
+developer. `sq dev add` builds the new developer from it, and its `full_name` names them unless
+`--name` is given:
+
+```toml
+# .overrides/roles/zig-dev.toml
+# squads:override-base:<version>
+full_name = "Zoe Zig"
+title = "Zig developer"
+description = "Implements Zig code for the runtime."
+mission = "Implement assigned tasks in Zig, with tests."
+```
 
 ```
-error .overrides/roles/go-dev.toml: role override does not load: role override for new slug 'go-dev' is missing required fields: full_name, description, mission — …
+$ sq dev add --tech zig --model haiku
+added Zoe Zig (`zig-dev`) ROLE-<n>
 ```
 
-Add the developer, or remove the file, to clear it.
+Write the stamp line in such a file. Once the developer is added, the file is an override of a
+live role, and `sq check` reports an unstamped one at `error` until `sq override update --role
+<slug>` stamps it.
+
+A file that is not complete, for a slug that is not on the roster, does not load. `sq check`
+reports the fields it lacks (exit `3`):
+
+```
+error .overrides/roles/rust-dev.toml: role override does not load: role override for new slug 'rust-dev' is missing required fields: full_name, description, mission — `sq role rust-dev show` refuses now, and `sq sync` does too once rust-dev is on the roster
+```
+
+Complete the file, or remove it and add the developer with `sq dev add` first.
 
 **The workflow override merges by field too, and can also drop:**
 `workflow.toml` composes over the bundled vocabulary the same way — write the fields you want
@@ -1311,6 +1348,105 @@ To raise it, name it with the level in place of the splat, `"type_has_live_autho
   `stale_active` when no `work` type's lifecycle holds a status of a live role, and
   `dependency_acyclic` when no ref kind declares the dependency role. Only the spec is read; the
   items are not.
+
+#### Checks outside every list: files, ids, overrides and configuration
+
+`sq check` also runs checks that belong to no `validators` list, neither a type's nor `[squad]`'s.
+They run in every squad, at the level shown, and no override can select, drop or relevel them.
+Each one reports damage, not a policy: content that `sq` cannot read or edit safely, or a
+configuration it cannot load. Leaving one out would hide a broken squad, not tune a convention.
+
+The file checks run once per item file and read the raw text, so they still report when the
+frontmatter cannot be read:
+
+| Rule | Reports | Level | Why it cannot be turned off |
+|---|---|---|---|
+| `markers_balanced` | an `sq:` marker with no end, an end with no start, an end before its start, or a marker repeated | `error` | every write `sq` makes edits between markers; with a broken pair it cannot tell where a region ends |
+| `view_target_resolves` | an enabled view tag naming a view that is not declared, has no template, or cannot apply to the type | `error` | the tag can never render |
+| `view_tag_in_region` | a view tag outside `sq:body` | `warn` | the tag can never render |
+| `seeded_view_resolves` | a view the type seeds whose tag is missing, or a view tag repeated | `error` | the body no longer shows what the type generates there |
+| `body_regions_present` | a file with no `sq:body` marker pair at all | `error` | there is no region left for `sq` to write the body into |
+| `file_readable` | a file that cannot be read | `error` | nothing else can be checked on it |
+| `frontmatter_parses` | frontmatter that is missing or is not valid YAML | `error` | the frontmatter is the item's record |
+| `id_present` | frontmatter with no `id` | `error` | the id is how every command, ref and the index address the item |
+| `id_well_formed` | an `id` that `sq` cannot read a prefix and number from | `error` | the same |
+| `fields_valid` | a frontmatter value of the wrong shape | `error` | the item cannot be loaded |
+| `timestamps_present` | frontmatter missing `created_at` or `updated_at` | `warn` | a placeholder is invented on each read until a write fills it in |
+
+The squad checks run once per `sq check`:
+
+| Rule | Reports | Level | Why it cannot be turned off |
+|---|---|---|---|
+| `ids_unique` | two files carrying the same id | `error` | an id must address one item |
+| `numbers_unique` | files carrying one number under different ids | `error` | one counter numbers every type, so a number is unique across the squad |
+| `frontmatter_matches_index` | a field whose value in the file differs from the index | `warn` | the file is the source of truth; the next mutation would write the index's value back, so `sq repair` must run first |
+| `override_stamped` | an override under `.overrides/` that shadows a bundled file and carries no `squads:override-base` stamp | `error` | without the stamp, `sq` cannot tell whether the bundled file changed under it |
+| `override_current` | an override whose bundled base changed since the version it is stamped with | `warn` | the override may hide an upgrade's change; `sq override diff` shows it |
+| `override_loads` | a template, role or role catalog override that cannot be read, lacks the markers a template needs, or does not load | `error` | the overrides are the configuration every selection is read from |
+| `skill_type_declared` | a live skill generated for an item type the workflow no longer declares | `warn` | its generated files have been withdrawn, so the skill points at nothing |
+
+The configuration checks are reported by `sq check` itself when a document will not load. No
+selection can reach them, since the selections live in the document that failed:
+
+| Rule | Reports | Level |
+|---|---|---|
+| `workflow_loads` | the workflow spec, with its override, will not load; the message names the cause | `error` |
+| `playbook_loads` | the playbook, with its override, will not load; the message names the cause | `error` |
+| `corpus_scans` | the item files could not be scanned | `error` |
+
+A workflow or playbook override that will not load is reported by these two rules, not by
+`override_loads`. For an unknown validator name in `.overrides/workflow.toml`:
+
+```json
+{
+  "level": "error",
+  "item": "workflow",
+  "message": "workflow config invalid: Invalid workflow spec: item 'task': validators entry 'nonesuch' names an unknown validator (<squad>/.overrides/workflow.toml) \u2014 run `sq workflow lint`",
+  "rule": "workflow_loads"
+}
+```
+
+Some validators are always on as well. Every type runs the common core (`item_status_valid`,
+`dangling_ref`, `ref_kind_valid`, `agent_registered`, `parent_acyclic` and `attribute_valid`) and
+the checks its `category` turns on: `parent_in`, `subentity_status_valid`,
+`subentity_container_marker`, `subentity_body_written`, `subentity_deferral_resolved` and
+`subtask_story_mapping` for `work`; `no_parent` and `supersedes_incoming` for `records`;
+`pronouns_valid` for `roster`. A type's `validators` list can change their level, within each
+check's floor, but cannot drop them. Only the checks a type adds beyond them are selectable. The
+nine always-on squad-wide checks in the table above (`index_reconciled` and the others) cannot be
+selected, dropped or relevelled at all.
+
+**Every finding names its rule.** In `sq check --json`, each finding carries `rule`: the name of
+the check that produced it. For a validator, per-item or squad-wide, it is the validator's name,
+such as `dangling_ref`; for the checks above, it is the rule shown in their tables. On a squad with
+a broken marker pair, two files carrying one id, and a ref to an item that does not exist:
+
+```json
+[
+  {
+    "level": "error",
+    "item": "TASK-NNNNNN-write-the-exporter.md",
+    "message": "unclosed marker <!-- sq:discussion -->",
+    "rule": "markers_balanced"
+  },
+  {
+    "level": "error",
+    "item": "FEAT-<k>",
+    "message": "2 files carry this id (features/FEAT-NNNNNN-export-reports-copy.md, features/FEAT-NNNNNN-export-reports.md); merge the content you want into one file, delete the other by hand, then run `sq repair`",
+    "rule": "ids_unique"
+  },
+  {
+    "level": "warn",
+    "item": "TASK-<m>",
+    "message": "dangling ref TASK-<x>",
+    "rule": "dangling_ref"
+  }
+]
+```
+
+A file check names the file in `item`; the other checks name the item, or the source they read.
+A tool that reads this output should match a finding by `rule`, never by `message`: the message
+is written for people to read. The human output of `sq check` does not show the rule.
 
 #### Statuses: custom state labels
 
@@ -2637,7 +2773,7 @@ sq override scaffold subentities/block.md.j2
 # Copy a role TOML override (a bundled role, to change its title/model/etc.)
 sq override scaffold --role architect
 
-# A developer already on your roster (the file starts with the stamp only)
+# A developer already on your roster (every field commented out with its current value)
 sq override scaffold --role python-dev
 
 # Start a wholly custom role that isn't in the bundled catalog
@@ -2663,8 +2799,11 @@ sq override scaffold items/task.md.j2 --force
   `title`, `description`, `mission`, `responsibilities`, `agreements`, `model`, `color`,
   `can_spawn` and `capabilities`. A commented `responsibilities = ["$(*self)", "…"]` line shows how
   to append to the bundled list instead of replacing it. Uncomment the lines you want to change and
-  run `sq sync`; a field left commented keeps its bundled value. For a developer slug
-  (`python-dev`) the file holds only the stamp and a comment line, ready for the fields you add.
+  run `sq sync`; a field left commented keeps its bundled value. For a developer already on the
+  roster (`python-dev`) the same fields follow, commented out with that developer's current
+  values. For a developer slug not on the roster yet, the file holds only the stamp and a comment
+  line, and it does not load until it declares every field a new role requires (see
+  [Precedence rule](#precedence-rule)); `--new <slug>` stubs those fields for you to fill in.
 - `--new <slug>` starts a **brand-new, non-bundled** role: the essential fields (`full_name`,
   `title`, `description`, `mission`) are stubbed as active keys, the advanced fields
   (`responsibilities`, `agreements`, `model`, `color`, `capabilities`, `can_spawn`) are included
@@ -2875,7 +3014,8 @@ these that applies wins:
 
 1. **A name you give:** `--name` on `sq role activate` or `sq dev add`, or at `sq init` a `--name`
    flag, the `[init.names]` table or the prompt.
-2. **`full_name` in `.overrides/roles/<slug>.toml`.**
+2. **`full_name` in `.overrides/roles/<slug>.toml`.** For a developer, this names them only when
+   the file is complete and written before `sq dev add`.
 3. **`full_name` in `.overrides/roles.toml`.**
 4. **The bundled catalog's name**, or for a developer a name picked from the pool (a first name
    followed by the tech).
@@ -3004,7 +3144,8 @@ title = "Senior Python developer"
 Run `sq sync`. The new title reaches the role's definition under `squads/agents/roles/`, its
 pointer in `.claude/`, and the agent roster in `CLAUDE.md`; the developer's name, model, mission
 and responsibilities are untouched, because the file didn't mention them. A `full_name` in the
-same file would not rename them either: it names a developer only when one is added.
+same file would not rename them either: a `full_name` names a developer only from a complete file
+written before `sq dev add`.
 
 ### Define a custom role
 

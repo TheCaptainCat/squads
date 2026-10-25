@@ -137,7 +137,7 @@ def test_lint_and_check_agree_on_the_workflow_stamp_finding(tmp_path: Path, cont
     lint_findings = {(level, msg) for level, _loc, msg, _hint in lint_workflow_spec(tmp_path)}
     check_findings = {
         (level, msg)
-        for level, _loc, msg in check_override_issues(tmp_path, catalog=catalog_of(tmp_path))
+        for level, _loc, msg, _rule in check_override_issues(tmp_path, catalog=catalog_of(tmp_path))
     }
     assert lint_findings == check_findings
 

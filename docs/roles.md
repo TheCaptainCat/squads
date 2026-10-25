@@ -95,8 +95,10 @@ declared alike, with the `tech` of the templated ones.
 
 A developer's fields are overridable like any other role's, and the override merges onto the
 developer you already have: a `.overrides/roles/<slug>.toml` that sets only `title` changes only
-the title. Its `full_name` names a developer added after the file was written (when `sq dev add`
-gets no `--name`), and never renames one you already have. Worked example:
+the title. Add the developer with `sq dev add` first and write the override for what its flags do
+not set. A file for a slug not on the roster yet is a new role and must be complete; its
+`full_name` then names the developer `sq dev add` builds from it (when it gets no `--name`). A
+`full_name` never renames a developer you already have. Worked example:
 [overrides.md § "Retitle a developer without renaming them"](overrides.md#retitle-a-developer-without-renaming-them).
 
 ## Capabilities

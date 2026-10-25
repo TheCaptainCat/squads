@@ -178,6 +178,7 @@ class RetypeMixin(ServiceCore):
                 carry_status=not status_reset,
                 text=current_text,
             )
+            text = self._rescaffolded_body(text, item, base)
             new_id = item.id  # @computed_field formats from item.prefix (now correct); unpadded
 
             # Rewrite all incoming edges (refs, parent links, prose mentions). A single-pair

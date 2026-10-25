@@ -73,6 +73,7 @@ from squads._services._results import (
     ImportOpCount,
     ImportPlan,
     ImportResult,
+    check_issue_sort_key,
 )
 from squads._services._subentities import SubentitiesMixin
 from squads._services._validators import ValidatorEngine
@@ -559,6 +560,9 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         the files now exist on disk. Squad-global validators (index/backend reconciliation)
         are irrelevant to one import run, so they're excluded from this engine entirely.
 
+        The findings come back in the order ``sq check`` prints them, whatever order the type's
+        validators run in.
+
         The ``CheckIssue`` objects are returned whole, level and all. Flattening them to
         strings here would make an error-level finding indistinguishable from an
         advisory one at every surface above: the caller cannot restore a level this function
@@ -579,7 +583,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             spec=self.spec, playbook=self.playbook, squad_global={}, paths=self.paths
         )
         issues = engine.report(final_db, {}, bodies=bodies, only=frozenset(touched_ids))
-        return [i for i in issues if i.item in touched_ids]
+        return sorted((i for i in issues if i.item in touched_ids), key=check_issue_sort_key)
 
     async def _apply_one(  # noqa: PLR0911 — one per-op dispatch, mirrors _simulate_one's shape
         self, db: SquadsDB, handles: HandleMap, ev: ResolvedEvent, warnings: list[str]

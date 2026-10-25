@@ -14,7 +14,7 @@ refs:
 description: extra.pronouns on role and operator items; one declared roster default;
   a typed display table in .squads.toml; free text, checked shape
 created_at: '2026-10-09T15:35:21Z'
-updated_at: '2026-10-17T02:01:32Z'
+updated_at: '2026-10-25T21:42:28Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -29,7 +29,7 @@ the display setting governs human UIs only.
 Each claim below is marked **read** (the source was read), **driven** (a command was run) or
 **inferred**.
 
-**Where identity lives today.**
+**Where identity lived in 0.15**, when this was decided.
 
 - A role's definition is resolved from the role catalog on every read and is not stored on the
   item. The item is authoritative only for what a dedicated verb writes: the name, in the item's
@@ -58,7 +58,7 @@ Each claim below is marked **read** (the source was read), **driven** (a command
 verbatim (driven). The roster viewers are named in the `--json` tier of `docs/stability.md`;
 `extra`'s inner keys are not (read).
 
-**Config today.** `SquadsConfig` carries `schema_version`, `squad_dir`, `active_backends`,
+**Config in 0.15.** `SquadsConfig` carries `schema_version`, `squad_dir`, `active_backends`,
 `squads_version` and `init_names`, with `extra: ignore`. `to_toml` is a hand-written emitter that
 rebuilds the file from the model, and it runs on every version or schema stamp (read,
 `_models/_config.py`, `_services/_maintenance.py`: `_stamp_version`, `_stamp_schema`). So a key
@@ -84,41 +84,37 @@ hand (read, `_roles/_loader.py`, `_roles/_models.py`, `_roles/_resolver.py`:
 
 ## Decision
 
-### 1. Pronouns are stored on the roster item, in `extra.pronouns`
+### 1. Pronouns are stored on the roster item, in `pronouns`
 
-One key, `ExtraKey.PRONOUNS = "pronouns"`, on role items and operator items. Unset is the key
+One top-level frontmatter key, `pronouns` (`AttributeKey.PRONOUNS`), declared as a `str`
+attribute with `settable = false` on the `role` and `operator` types (ADR-1007). Unset is the key
 being absent; a blank is never stored.
 
 ```yaml
-extra:
-  slug: op-alex
-  full_name: Alex Rivera
-  pronouns: they/them
+slug: op-alex
+title: Alex Rivera
+pronouns: they/them
 ```
 
 - It is written only by a verb that names it, on creation (`sq role activate`, `sq dev add`,
   `sq operator add`) and afterwards. The verb must work on a bundled role: pronouns are identity
   the operator sets, like the name and the default-role designation, not generated content.
 - On a role it follows the `is_default` pattern exactly: not a member of `RoleDef`'s stored-key
-  tables, never reasserted by sync, and read through `resolve_role_for_item`, never off `extra`.
+  tables, never reasserted by sync, and read through `resolve_role_for_item`, never raw off the
+  item.
 - It is not a `RoleSpec` field. A `pronouns` key in a `[[roles]]` entry or a per-slug role file
   stays refused, and the refusal names the verb.
 - **`--json`.** `sq role list`, `sq role <addr> show`, `sq operator list` and
   `sq operator <addr> show` gain a top-level `pronouns` key beside `full_name`: the resolved
   value (section 3), a string, or `null` when unset, always present. It joins the `--json` tier on
-  the same terms as `full_name`. `extra.pronouns` in the generic item JSON is the stored layer
-  only and is not the contract surface: for a role it can be absent while the resolved value is
-  set.
-- **No denormalisation.** Pronouns are not added to item rows, to `discussion[]` entries, or to
-  comment headers. A client joins a slug (`assignee`, `author`, and the `author_slug` ADR-979
-  adds) to the roster viewers. Discussion text is append-only history; a pronoun written into it
-  would go stale the way names did.
-
-> **Note 2026-10-15 (ADR-1007):** the key is the top-level `pronouns`, a declared attribute on role
-> and operator, not `extra.pronouns`; FEAT-961 declares it. The generic item JSON carries it flat,
-> present only when stored, and still is not the contract surface. Unknown keys on any item are kept
-> in the same flat mapping, so the preservation stated in the context no longer depends on the
-> reconciler's closed sweep alone. See ADR-1007 decisions 3, 6 and 10.
+  the same terms as `full_name`. The generic item JSON carries the stored attribute flat, present
+  only when stored, and is not the contract surface: for a role it can be absent while the
+  resolved value is set.
+- **No denormalisation.** Pronouns are not added to item rows' resolved fields, to `discussion[]`
+  entries, or to comment headers. A client joins a slug (`assignee`, `author`, `author_slug`) to
+  the roster viewers. A comment header records a name snapshot at write time; an edit keeps it
+  and replaces only the bullets (ADR-1013), so no pronoun is ever written into discussion text,
+  where it would go stale the way names did.
 
 ### 2. A typed `[display]` table in `.squads.toml`, and nothing more general than that
 
@@ -128,15 +124,15 @@ pronouns = false
 ```
 
 - `[display]` holds presentation preferences for the renderers that run inside `sq`: CLI human
-  output and `sq ui`. One key today: `pronouns`, a boolean, **default `true`**. When true, a
+  output and `sq ui`. Its one key is `pronouns`, a boolean, **default `true`**. When true, a
   name with pronouns renders as `Name (pronouns)` with the parenthesis dimmed; a name without
   pronouns renders as it does now.
 - **Admission rule.** A key belongs in `[display]` only if changing it alters nothing but what
   those renderers print. It never changes stored data, `--json`, exit codes or generated files.
   That rule is what makes the table reusable; the next preference is one more typed field.
 - **Typed and closed.** `[display]` is a nested model on `SquadsConfig` with a declared type and
-  default per key, emitted by `to_toml` only when a value differs from its default, so an
-  existing file is rewritten byte-identically.
+  default per key. `to_toml`, used at `sq init` and adopt, emits it only when a value differs from
+  its default. The adopter owns `.squads.toml` otherwise (ADR-1119).
 - **Threaded.** Renderers receive the settings as an argument, from `SquadPaths.config`. No
   module-level cache, no singleton. One pure formatter produces `Name (pronouns)` for every human
   surface.
@@ -155,7 +151,7 @@ The role catalog document gains one top-level table:
 pronouns = "they/them"
 ```
 
-- **Resolution.** A role's pronouns are its own `extra.pronouns`, else `[defaults].pronouns`,
+- **Resolution.** A role's pronouns are its own `pronouns`, else `[defaults].pronouns`,
   else unset. An operator's are its own value, else unset: a default never applies to a person.
 - The resolved value is computed in the role-resolution seam, so every surface agrees, and it is
   never written back to an item.
@@ -205,34 +201,30 @@ renderers and reported by `sq check`. Console output escapes it like any other c
 ## Consequences
 
 - **Schema and migration.** No migration step and no `SCHEMA_VERSION` bump come from this
-  decision. All three additions are optional with a default: an absent `extra.pronouns` is unset,
-  an absent `[display]` is all defaults, an absent `[defaults]` is no default.
-- **Mixed package versions.** An older package preserves `extra.pronouns` and no `sq check`
-  validator reads a role's `extra` beyond its slug (read). It ignores
-  `[display]` and drops the table when it next rewrites `.squads.toml` (inferred). It refuses a
-  role catalog document that carries `[defaults]`, because that key space is closed (read), so a
-  squad that declares a default needs this release for everyone sharing it.
-- **Durable surfaces added:** the frontmatter key `extra.pronouns` on role and operator items;
-  the `[display]` table and its `pronouns` key; `defaults` in the role catalog document's
-  top-level key space; `pronouns` on four roster `--json` shapes. `docs/stability.md` needs a
-  refresh for each when this ships, along with `docs/roles.md` and `docs/overrides.md`.
+  decision. All three additions are optional with a default: an absent `pronouns` is unset, an
+  absent `[display]` is all defaults, an absent `[defaults]` is no default.
+- **Mixed package versions.** A package older than this decision refuses a role catalog document
+  that carries `[defaults]`, because that key space is closed, so a squad that declares a default
+  needs this release for everyone sharing it.
+- **Durable surfaces:** the frontmatter key `pronouns` on role and operator items; the
+  `[display]` table and its `pronouns` key; `defaults` in the role catalog document's top-level
+  key space; `pronouns` on four roster `--json` shapes. `docs/stability.md` names each.
 - **Not expressible:** an agent with no pronouns under a declared default. An agent's own value
   replaces the default; nothing erases it.
 - **Backends.** `RoleView` and `OperatorView` gain `pronouns`, and the roster section and pointer
   templates render it. A verb that changes pronouns refreshes the managed region and that role's
   entry; a changed default is picked up by `sq sync`, like any override edit.
-- **Bundled `roles.toml` should not change bytes.** The table is added to the key space and the
-  model, not to the bundled document, so existing catalog overrides report no drift (inferred;
-  the drift path for this document was not traced).
-- **Verb parity (FEAT-977).** Its refusal of content-changing verbs on a system role must not
-  cover pronouns, or the bundled agents could never have any. Editing after creation needs an
-  `update` surface on roles and operators, which that feature introduces.
+- **The bundled `roles.toml` declares no `[defaults]`.** The table is in the key space and the
+  model, not in the bundled document.
+- **Verb parity.** The refusal of content-changing verbs on a system role does not cover
+  pronouns, or the bundled agents could never have any. Roles and operators take `--pronouns` on
+  their `update` verb.
 - **The developer pseudo-role's retirement** does not interact: `[defaults]` applies to every
   agent role and does not depend on how a developer is identified.
-- **VS Code client.** It starts calling the roster viewers to join slugs to pronouns, gains its
-  own setting, and its skew canary floor takes the new key on those shapes.
-- **Human output only shows pronouns after a name.** Surfaces that print a slug (assignee columns
-  today) are unchanged.
+- **VS Code client.** It joins slugs to pronouns through the roster viewers, decides with its own
+  setting, and its skew canary covers the key on those shapes.
+- **Human output only shows pronouns after a name.** Surfaces that print a slug (assignee columns)
+  are unchanged.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -253,4 +245,6 @@ renderers and reported by `sq check`. Console output escapes it like any other c
 - [2026-10-17T02:01:32Z] `architect` Robert Architect:
   - 2026-10-17: dated note owed under ADR-1013 (The append-only statement), from TASK-1079 ST14, on §1's "No denormalisation" bullet; body and status untouched.
     - Discussion text is no longer append-only: ADR-1013 lets a comment's author edit or remove it. The conclusion stands. An edit keeps the header's timestamp, slug and display-name snapshot, replaces only the bullets, and never writes a pronoun into a header, so no pronoun enters discussion text and the slug join to the roster viewers is unchanged (read, `_services/_collab.py` `edit_comment`).
+- [2026-10-25T21:42:28Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale passages fixed; decision unchanged. extra.pronouns is the top-level pronouns attribute (ADR-1007 note folded), the append-only bullet restated against ADR-1013, display-table rewrite claims aligned with ADR-1119, roles/operators update --pronouns recorded.
 <!-- sq:discussion:end -->

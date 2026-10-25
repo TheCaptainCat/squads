@@ -12,10 +12,11 @@ refs:
 - ADR-141
 - ADR-114
 - ADR-622
+- ADR-117
 description: Active means materialised, non-active means withdrawn through the existing
   AgentBackend methods; config integrity is a derived transition-time invariant
 created_at: '2026-07-29T15:18:23Z'
-updated_at: '2026-08-03T08:25:28Z'
+updated_at: '2026-10-25T22:06:42Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -29,24 +30,15 @@ role, and the per-item-type skills; the AGENTS.md backend writes per-entry stagi
 are the stated next consumers. A role entry is therefore what makes an agent *spawnable by the
 host*, and a skill entry is what makes a skill *loadable*.
 
-Nothing connects that to the entry's status.
-
-- `grep -rn "status" src/squads/_backends/` returns nothing. The `AgentBackend` ABC's seven
-  methods — `ensure_scaffold`, `write_managed`, `generate_role_entry`, `generate_skill_entry`,
-  `remove_artifacts`, `candidate_orphans`, `managed_paths` — are status-blind, by construction.
-- `Service.roster()` and `Service.operators()` list every entry of the type regardless of
-  status, and those two lists are exactly what `write_managed` compiles from.
-- Demonstrated on a throwaway squad on the current build: after retiring the `qa` role,
-  `.claude/agents/qa.md` is still on disk and `sq create bug --author qa` still succeeds. A
-  retired role stays spawnable by Claude Code and stays valid as an author.
-- `remove_artifacts` — the one method that withdraws an entry's files — already exists, is
-  already what `rm` uses, and is already required to be idempotent and missing-tolerant by the
-  backend lifecycle-contract suite. It is simply not wired to status.
-
-So the roster's lifecycle is currently decorative on the surface where it matters most: the one
-place a loose or unenforced roster state corrupts another tool's config rather than merely
-making an `sq` view odd. This decision fixes what the roster's declared status roles oblige a
-backend to do. It builds on ADR-696, which supplies the role-keyed lookups and the roster
+If nothing connects that to the entry's status, the roster lifecycle is decorative on the surface
+where it matters most: a retired role keeps its pointer on disk, stays spawnable by the host and
+stays valid as an author, and a loose roster state corrupts another tool's config rather than
+merely making an `sq` view odd. The `AgentBackend` ABC's methods (`ensure_scaffold`,
+`write_managed`, `generate_role_entry`, `generate_skill_entry`, `remove_artifacts`,
+`candidate_orphans`, `managed_paths`) are status-blind by construction, and `remove_artifacts`,
+the one method that withdraws an entry's files, is what `rm` uses and is required by the backend
+lifecycle-contract suite to be idempotent and missing-tolerant. This decision fixes what the
+roster's declared status roles oblige a backend to do. It builds on ADR-696, which supplies the role-keyed lookups and the roster
 lifecycle floor (at least one live status; retirement reachable from it) that let everything below
 be written without naming a status literal.
 
@@ -71,8 +63,8 @@ non-live status is unmaterialised, whatever its role is called and whether or no
 settled. There is no third state and no per-role table of behaviours: one predicate, read through
 the spec off a single declared flag.
 
-This is what finally gives a non-live roster state meaning: an entry being written but not yet
-live to the agent host has no files, so it cannot be spawned and cannot be loaded. A project
+This is what gives a non-live roster state meaning: an entry being written but not yet live to
+the agent host has no files, so it cannot be spawned and cannot be loaded. A project
 that declares its roster lifecycle's `initial` status non-live gets exactly that on creation,
 with no branch anywhere in the engine — the create path reads `initial`, the projection reads the
 flag, and for a while they disagree.
@@ -111,19 +103,19 @@ does not merely avoid Claude-Code vocabulary, it avoids growing at all.
 
 The filter therefore belongs in the service, in the accessors that feed the backends:
 
-- `Service.roster()` and `Service.operators()` return **live-only** entries. They exist to
-  feed `write_managed`, and after this they mean "the entries this squad currently offers".
-- `Service.roster_all()` and `Service.operators_all()` are added for the callers that need the
-  full set.
+- `Service.roster()` and `Service.operators()` return **live-only** entries: "the entries this
+  squad currently offers", which is what `write_managed` compiles from.
+- `Service.roster_all()` and `Service.operators_all()` serve the callers that need the full set.
+  Both pairs delegate to the `RosterProjection` collaborator.
 
 Which projection each caller takes is a correctness question, not a preference:
 
 | Caller | Projection | Why |
 | --- | --- | --- |
 | `write_managed`'s roster/operator lists | live | it compiles the host's config |
-| `_skill_paths`, `_role_skills_map` / `resolved_skills_for` | live | they name skills the generated entries preload |
+| the skill paths and role→skills map handed to backends (`skill_paths`, `role_skills_map` / `resolved_skills_for`) | live | they name skills the generated entries preload |
 | `candidate_orphans` | **all** | see §5 |
-| `_author_of` (display-name resolution) | **all** | a retired role's name must still render on the comments it wrote |
+| display-name resolution | **all** | a retired role's name must still render on the comments it wrote |
 | `registered_slugs` (the `agent_registered` check) | **all** | see §10 |
 | `sq role list`, `sq operator list`, `sq list -t skill` | **all** | they are the roster's own views, and already carry a status column |
 
@@ -154,22 +146,15 @@ file, and would do so most loudly on exactly the squads that have retired an ent
 
 ### 6. `sq sync` is the convergence point, and the upgrade path
 
-`sync` already sweeps every roster item and regenerates. It gains the §1 predicate: materialise
-the entry when its status is live, withdraw it otherwise. That single rule keeps `sync`
-idempotent and makes it the total convergence point for the projection.
+`sync` sweeps every roster item and applies the §1 predicate: materialise the entry when its
+status is live, withdraw it otherwise. That single rule keeps `sync` idempotent and makes it the
+total convergence point for the projection, including for a squad whose retired entries still have
+files from before a retirement withdrew them: no migration runner and no schema bump is owed, the
+next `sq sync` converges it.
 
-It is also the whole story for **squads already on disk whose entries are retired today**. No
-migration runner and no schema bump is owed: the first `sq sync` after this lands withdraws the
-leftover files. Between landing and that sync nothing misbehaves — `sq check`'s backend
-reconciliation probes only the always-present top-level files (`managed_paths`), never per-entry
-files, so a lingering pointer is not reported and nothing fails.
-
-**No currency check is added to `sq check`.** ADR-141 §4 deliberately scoped backend checking to
-present-only, on the grounds that currency would require each backend to re-render and diff its
-managed content. A projection mismatch — an active entry with no file, a retired entry with one
-— is exactly that class of drift, so it stays out for the same reason, and `sq sync` remains the
-tool that fixes it. The door stays open: a currency check can be added later without changing
-anything decided here.
+`sq check` reports a projection mismatch as drift and never fixes it: ADR-781 §2c makes the
+per-entry artifacts declared paths scoped to the live roster, so `sq check` reports their presence
+and currency, and `sq sync` remains the tool that converges them.
 
 ### 7. Config integrity: retirement must not break generated config
 
@@ -215,49 +200,34 @@ the whole convention.
   true: if what a clause checks changes, its identifier changes with it, and that is a feature — a
   name that no longer describes its predicate is a defect a positional label could never surface.
 
-An ordering is still owed and no longer comes free: with positional labels, the order findings are
-reported in was implied by the labels themselves. It is now declared explicitly wherever more than
-one finding can be rendered together, so output stays deterministic and testable.
+Because identifiers carry no order, the order findings are reported in is declared explicitly
+wherever more than one finding can be rendered together, so output stays deterministic and
+testable. Since the identifier is internal, there is nothing for an adopter to remember and nothing
+to keep stable on their behalf.
 
-*Withdrawn: the previous rule that clause labels are stable and must never be renumbered.* It was
-argued here on the grounds that a label appears in every refusal an operator has already read, so
-churning it would invalidate their memory of the message. The premise was the defect. The labels
-were stable enough as identifiers, but they were doing double duty as user-facing vocabulary, and
-that is what made their stability seem to matter — the observed output confirms it, with the gate
-printing a label and the reporter printing the same condition without one, so the identifier was
-never a reliable handle for an adopter in the first place. Withdrawing a clause then proved
-positional labels do not survive the set changing at all: it left a hole where the second clause had
-been, readable only by reconstructing the history. Once the identifier is internal there is nothing
-for an adopter to remember and nothing to keep stable on their behalf.
-
-The concrete clauses, each derived from what the generated config actually needs. The
-default-designation clause is kept in the list under its own heading, as the record of a clause that
-was decided and then withdrawn.
+The concrete clauses, each derived from what the generated config actually needs:
 
 - **`no_live_role` — the last live role.** A transition that would leave no `role` entry in a live
-  status is refused: the generated config would present no agent at all. This is a cardinality
-  property of the projection, not a reference — nothing to sever, and the only remedy is to put
-  another role in a live status.
-- **`no_default_role` — the default role: withdrawn, not a clause. The projection is fixed
-  instead.** Retiring the role carrying `is_default` is **not** refused. What is structurally
+  status is refused: the generated config would present no agent at all. This is a cardinality property of the projection, not a reference — nothing to sever, and the only
+  remedy is to put another role in a live status.
+- **The default role is not a clause; the projection omits what it lacks.** Retiring the role
+  carrying `is_default` is **not** refused. What is structurally
   invalid is not "no live role carries the designation" — that is a legitimate, expressible state,
-  and one of the two shipped
-  backends has no default-role concept at all — it is the Claude backend fabricating a hardcoded
-  `manager` slug when it finds no designated role, which writes into the managed region a slug that
-  need not exist. **The projection omits what it does not have**: no live role carries the
+  and one of the two shipped backends has no default-role concept at all — but a backend
+  fabricating a hardcoded slug when it finds no designated role, which would write into the managed
+  region a slug that need not exist. **The projection omits what it does not have**: no live role carries the
   designation, no default-role line, and no default-role name in the surrounding orchestration
   prose that reads off the same value. That is the degradation the developer-gated skill text
   already performs when the last `<tech>-dev` role retires (§2), and it is the right shape for
   generated prose conditioned on a roster class emptying.
 
-  A refusal could not have held this invariant in any case. `rm` hard-deletes a role without
-  consulting a clause (§11), and a role catalog that designates nobody reaches the same state with
-  no roster mutation at all — so the fabricated fallback is reachable with no status transition in
-  play, and a clause on the status axis guarded one door of several into a state whose cause sits on
-  the other side of the projection. Fixing the fallback closes every door at once.
+  A refusal could not hold this invariant in any case. `rm` hard-deletes a role without consulting
+  a clause (§11), and a role catalog that designates nobody reaches the same state with no roster
+  mutation at all, so a clause on the status axis would guard one door of several into a state
+  whose cause sits on the other side of the projection. Omitting the line closes every door at once.
 
-  What replaces the clause is a **warning on the transition that takes the last live designation
-  out of a live status** — same shape as the open-assigned-work warning below, and for the same
+  What the transition gets instead is a **warning when it takes the last live designation out of a
+  live status** — same shape as the open-assigned-work warning below, and for the same
   reason: the adopter loses a line of routing guidance from their generated config and should hear
   about it, but nothing another tool reads is left dangling.
 - **`preloaded_skill` — a skill something still preloads.** Retiring a skill still named by a live
@@ -300,16 +270,14 @@ That has a real cost, stated in the consequences.
 **Open assigned work is a warning, not a refusal.** Retiring a role that still holds open
 assigned items warns and proceeds. The board is not generated config; conflating board hygiene
 with config integrity would make a routine retirement fail for a reason that has nothing to do
-with what this rule protects. The lost-default-designation warning under `no_default_role` above is
-the same
-shape, and the two together mark the boundary: a refusal is owed when the projection would name
+with what this rule protects. The lost-default-designation warning above is the same shape, and the two together mark the boundary: a refusal is owed when the projection would name
 something that is not there, a warning when the projection merely says less than it did.
 
 **The projection write happens after the transaction commits**, not inside it. Generated files
 are regenerable cache, not markdown items, so they sit outside the markdown-ahead-of-index
 durability rule; a crash between the commit and the projection leaves files that the next
-`sq sync` converges. This is the ordering the roster create verbs already use today
-(`create(...)` then `generate_role_entry`).
+`sq sync` converges. The roster create verbs use the same ordering (`create(...)` then
+`generate_role_entry`).
 
 ### 8. `--unlink`: remove the cause, never bypass the check
 
@@ -344,9 +312,7 @@ that is the truth. Anything else is a message that sends the operator after a fi
 exist.
 
 The three are **ordered by the remedy available**, from severable to none: `scoped_edge`,
-`type_implied`, `always_on_floor`. That ordering is now declared here rather than implied by a
-number, and it is what statements below appeal to when they say one kind *degrades to* another. It
-orders remedies, nothing else — it is not a severity, not an evaluation order, and never a reason to
+`type_implied`, `always_on_floor`. The ordering orders remedies, nothing else — it is not a severity, not an evaluation order, and never a reason to
 report only the worst kind a skill happens to be caught by: a skill can be caught by several at once
 and each is a separate finding, because each names different specifics the operator has to act on.
 
@@ -373,7 +339,7 @@ entry, and with no backend there is no entry to break.
 unconditionally — they are
 not per-type, not playbook-mapped to particular roles, and not spec-declared, so nothing an adopter
 can write changes the implication. **This is a deliberate rule of the roster contract, not an
-artifact of how the preload list happens to be built today: the skills that every role preloads
+artifact of how the preload list happens to be built: the skills that every role preloads
 are a permanent floor and can never be retired.** The refusal says exactly that and offers no
 remedy, because offering one would be a lie.
 
@@ -381,9 +347,9 @@ State the floor as a property, not as a list of three names: **whatever `skills_
 for every role is un-retirable.** That formulation survives a rename, and survives the set growing
 or shrinking, without a blocklist to maintain. No new mechanism is introduced for it — the playbook
 already implies the trio for every role and the clause already refuses on that basis; this names the
-consequence and fixes a message that previously offered a spec change that cannot be made. Note the
-identifier names the *condition* — every role preloads it — not the three slugs that satisfy it
-today, which is the same reason the floor is stated as a property.
+consequence, and the message offers no spec change because none can be made. The identifier names
+the *condition* — every role preloads it — not the three slugs that satisfy it, for the same reason
+the floor is stated as a property.
 
 **`always_on_floor` is the one part of the family that does not inherit §7's backend condition, and
 the asymmetry is deliberate.** Every other clause is *derived*: it computes what some generated
@@ -399,24 +365,16 @@ backends: a property quantified over every live role is vacuous when there are n
 no live role has no floor to enforce (`no_live_role` is what makes that state unreachable while a
 backend is active).
 
-**`type_implied` does not yet honour its own promise for bundled types, and the message must not
-pretend
-otherwise.** The `sq-<type>` implication reaches a role through `item_types_for_role`, which reads
-the `PLAYBOOK` singleton — built once at import from the **bundled** workflow spec, with no
-squad-directory parameter and no per-request rebuild. So dropping `task` from a project's workflow
-override does not remove `task` from the playbook, and `sq-task` stays implied: the `type_implied`
-remedy works for a project-declared custom type (whose `sq-<type>` implication is a pure function of
-the active spec) and does **not** work for a bundled one. Until the playbook resolves against the
-active spec rather than the bundled one — the same per-request-context direction the workflow spec
-already took — a bundled `sq-<type>` skill behaves as `always_on_floor`, and the refusal must say so
-instead of naming a remedy that will not take effect.
+**`type_implied` holds for bundled and custom types alike.** The `sq-<type>` implication reaches
+a role through `item_types_for_role`, which reads the squad's merged playbook and filters out any
+type the active spec has dropped, so dropping or renaming a type (bundled or project-declared)
+genuinely un-implies its skill.
 
 The net reach: `--unlink` helps with adopter-authored custom skills, which is also the only
 category an adopter realistically retires. The skills whose retirement would do the most damage are
 precisely the ones it cannot touch.
 
-**Direction.** In the one case that exists today the edges are **outgoing from the retiring
-entry**: the skill holds the `scopes` refs and the roles are the referents. The mechanism must
+**Direction.** In the one case that exists the edges are **outgoing from the retiring entry**: the skill holds the `scopes` refs and the roles are the referents. The mechanism must
 still handle the incoming direction, since a future clause may refuse retiring an entry that
 others point at — that is what the `backrefs` inversion is for — but nobody should implement the
 incoming direction first and conclude the flag does nothing.
@@ -469,12 +427,12 @@ they are the reason to keep the flags apart:
    every entity whose projection depended on a severed edge — for a `scopes` severance, one
    partial resync per affected role. Fan-out over `active_backends` per §4.
 
-**What `--unlink` on a skill touches today**, enumerated:
+**What `--unlink` on a skill touches**, enumerated:
 
 - the retiring skill item — its `status`, and one `refs` entry removed per scoped role;
-- each previously-scoped role — its `extra.skills` cache (a re-derivable cache, never
-  hand-authored), the `## Skills` region of its body, and its generated entry in every active
-  backend;
+- each previously-scoped role — its generated entry in every active backend (its rendered
+  `## Skills` section is computed from the ref graph at read time, so nothing in the role's file
+  changes);
 - the retiring skill's own backend files, withdrawn, and every managed region that listed it,
   recompiled;
 - the reflog — one line per severance, plus the status line.
@@ -504,11 +462,10 @@ worded:
   implicate many types, so the enumeration caps and summarises the tail the way a collected
   conflict report does, rather than printing an unbounded list.
 
-**Engine-hygiene note.** The existing sanctioned sever path, `unlink_role`, is skill-to-role
-shaped: it guards its target's type and hardcodes the `scopes` kind. `--unlink` must instead call a
-kind-aware generic removal — today's `rm_ref` drops every edge to a target regardless of kind and
-needs widening with an optional kind — plus the projection refresh, leaving `unlink_role` as a
-convenience wrapper. Otherwise the flag inherits the very special case it exists to avoid.
+**Engine hygiene.** The sanctioned sever path, `unlink_role`, is skill-to-role shaped. `--unlink`
+instead calls the kind-aware generic removal (`rm_ref(..., kind=…)`; with no kind it drops every
+edge to the target) plus the projection refresh, leaving `unlink_role` as a convenience wrapper, so
+the flag does not inherit the special case it exists to avoid.
 
 ### 9. `no_live_role` gains no analogue, and the default designation has its own verb
 
@@ -520,8 +477,8 @@ severable formulation it inherits the flag with no code change. The same holds f
 clause.
 
 **The default designation has its own verb, and not a flag on the status verb.** `is_default` is a
-designation on the role item, not an edge; the projection reads it and, per §7's `no_default_role`,
-omits the default-role line when no live role carries it. Moving a designation and retiring an entry
+designation on the role item, not an edge; the projection reads it and, per §7, omits the
+default-role line when no live role carries it. Moving a designation and retiring an entry
 are two unrelated acts, so the designation gets a verb of its own — `sq role <addr> set-default` —
 rather than a companion flag on `status`. A status flag doing both would be the kind of overloading
 §8 keeps `--force` and `--unlink` apart to avoid, and it would make one command answer to two
@@ -533,8 +490,7 @@ that the projection resolves the designation by first match over the roster, so 
 an error the projection reports — it is an arbitrary winner it presents silently. Clearing every
 holder rather than the one the caller knows about is also what converges a squad that already
 carries two, in one call, with no separate repair path: refusing on a pre-existing two-holder state
-would strand the squad in it, which is the mistake `no_default_role` made when it billed an
-inherited condition to whoever moved next.
+would strand the squad in it and bill an inherited condition to whoever moved next.
 
 **Designating a non-live role is refused rather than stored.** A designation the projection cannot
 present is not a designation, and the generated default-role line already omits itself when no live
@@ -546,8 +502,8 @@ the clause family exists for a projection that would name something *not there*,
 holders names something that is there — real, live, and merely under-determined. That is a
 state-validity question about the items' own data, which is the reporter's plane. Gating it would
 also bill the wrong action: the condition is created by whatever wrote the second designation, while
-a clause on the status axis would refuse the next reactivation instead — again `no_default_role`'s
-error. Note that the remedy *would* have been performable, so this is not the unperformable-remedy
+a clause on the status axis would refuse the next reactivation instead. The remedy *would* be
+performable, so this is not the unperformable-remedy
 rule of §7 doing the work: designating either existing holder clears the other. Report rather than
 gate is a proportionality call about a state with no dangling reference in it, not a forced move.
 
@@ -555,13 +511,6 @@ The importer's `update` event can also write the key, and it is history replay r
 designation verb — it neither converges a second holder nor refuses a non-live target, so it must
 never be named as the remedy for anything.
 
-*Withdrawn: this section's second half as an answer to "why does the default-role clause gain no
-`--unlink` analogue".* That was the question it was written to answer, and the clause it asked about
-no longer exists. Nothing in the reasoning depended on the clause — the argument that the
-designation needs a *replacement chosen*, which did depend on it, went with it — so there are no two
-positions left standing here, only a heading that had stopped naming its subject. The standing
-question is where the designation lives and what shape its verb takes, which outlived the clause and
-is what the text above answers.
 
 ### 10. Participation: what a retired entry stops being
 
@@ -587,8 +536,7 @@ file-level effect is identical, and only the record's fate differs.
 ## Alternatives considered
 
 **Lock the roster lifecycle instead: keep role/skill/operator on a fixed, non-overridable
-lifecycle and hard-code the three states.** This is the strongest alternative and it was the
-standing position. It is genuinely cheaper: every binding is trivially correct, no floor needs
+lifecycle and hard-code the three states.** This is the strongest alternative. It is genuinely cheaper: every binding is trivially correct, no floor needs
 enforcing, and the projection predicate can be a literal comparison. It loses because the
 roster is the *most* projected surface, not the least — its entries become another tool's
 config, so a squad whose vocabulary does not match ours is pushed into either abandoning its
@@ -616,22 +564,17 @@ makes every item it authored dangle. Retirement exists so that history survives.
 **Refuse retirement only when the entry is flagged `required`.** Covered in §7 — it stores a
 derivable fact and cannot express the last-live-role case.
 
-**Keep the default-role clause as a refusal, and add the designation verb first.** The
-conservative option: leave the refusal standing, build a verb that moves `is_default`, and the
-remedy the message names becomes performable. Rejected on three counts. It defends the wrong thing —
-"no live role carries the designation" is a valid state for one of the two shipped backends and a
-perfectly coherent one for the other, so refusing it declares invalid something that is not.
-It cannot hold the line it claims: `rm` and a catalog that designates nobody reach the fabricated
-fallback with no status transition involved, so the clause covers one door of several while the
-fallback stays. And it sequences a whole verb ahead of a release to keep a bundled role retirable,
-where fixing the projection closes every door at once and removes the clause instead of feeding it.
-The verb is still owed (§9) — it just stops being a prerequisite for retiring anything.
+**Refuse retiring the role carrying the default designation, with the designation verb as the
+remedy.** Rejected: "no live role carries the designation" is a valid state for one of the two
+shipped backends and a coherent one for the other, so refusing it declares invalid something that
+is not. And it cannot hold the line it claims: `rm` and a catalog that designates nobody reach the
+same state with no status transition involved, while omitting the line closes every door at once.
+The designation verb (§9) exists in its own right, not as a prerequisite for retiring anything.
 
-**Condition only `no_live_role` on an active backend, and leave the rest unconditional.** What was
-in fact built, and what the clause-by-clause wording invited. Rejected: the clauses are defined over
+**Condition only `no_live_role` on an active backend, and leave the rest unconditional.** Rejected: the clauses are defined over
 the projection, so a clause that fires with no projection in existence is refusing to protect
 anything. The concrete cost is that an sq-only squad — the shape ADR-141 blessed — could not retire
-a scoped skill or its default role, which is precisely the un-blessing that rule forbids.
+a scoped skill, which is precisely the un-blessing that rule forbids.
 `always_on_floor` is the single exception and it is exempted by name rather than by omission (§8).
 
 **Let `--force` override the clauses as well, instead of adding `--unlink`.** The simplest possible
@@ -659,18 +602,15 @@ edit, deliberately.
 
 ## Consequences
 
-- The roster lifecycle becomes load-bearing. Retiring an entry is a real operation with a real
-  effect on the agent host: the agent stops being spawnable and the skill stops being loadable.
-  A pre-active state becomes meaningful for the first time.
+- The roster lifecycle is load-bearing. Retiring an entry is a real operation with a real effect
+  on the agent host: the agent stops being spawnable and the skill stops being loadable, and a
+  pre-active state is meaningful.
 - The `AgentBackend` ABC does not grow, and no backend gains a status branch. A future backend
   gets withdrawal for free.
-- **Retirement now deletes generated files.** It is reversible — reactivate and sync — but an
+- **Retirement deletes generated files.** It is reversible — reactivate and sync — but an
   adopter who had come to rely on a generated file being there will find it gone. The mitigation
   is the one already stamped in every generated file: it is regenerated by `sq sync` and must not
   be hand-edited.
-- **Squads already on disk with retired entries converge on their next `sq sync`**, silently and
-  with no migration. Their leftover pointers disappear at that point, not at upgrade time, and
-  nothing fails in between.
 - **Cost: the config-integrity refusal can block a legitimate-looking action.** "Retire this
   role" can fail because it is the last live one, or because a skill still points at it. Where a
   remedy exists the refusal names it and it can be performed, but the operator has to do two steps
@@ -683,10 +623,9 @@ edit, deliberately.
   itself — the adopter learns it from the transition, or from a diff.
 - **Cost: two live roles can carry the designation, and the projection picks by roster order.** The
   state is reachable (a history import is enough) and its resolution is arbitrary rather than wrong.
-  Withdrawing the default-role clause does not create this — the clause never checked it either.
-  `sq check` reports it and the §9 verb converges it in one call; what nothing does is refuse a
-  transition over it, deliberately, per §9.
-- **Cost: deactivating every backend is now an escape hatch from the whole clause family,
+  `sq check` reports it (`default_designation_duplicated`) and the §9 verb converges it in one
+  call; nothing refuses a transition over it, deliberately, per §9.
+- **Cost: deactivating every backend is an escape hatch from the whole clause family,
   `always_on_floor` aside.** An adopter who empties `active_backends`, retires what a clause was
   refusing, and reactivates the backend has bypassed the guard — and per ADR-141 §5 the deactivated
   backend's files were never deleted, so its stale config still names the retired entry until the
@@ -699,7 +638,7 @@ edit, deliberately.
   adds a replacement in the next. The remedy is to order the import so the replacement lands
   first. This is the price of holding the importer to the same rule as the interactive path, and
   the alternative — an importer that can write a state the CLI refuses — is worse.
-- **Cost: two roster projections now exist, and picking the wrong one is a silent bug.** An
+- **Cost: two roster projections exist, and picking the wrong one is a silent bug.** A
   live-only list where the full list belongs makes a retired entry look like an orphan or its
   authorship look unregistered. §3's table is the contract, and it is the part of this decision
   most in need of tests that assert the *wrong* projection fails.
@@ -723,172 +662,23 @@ edit, deliberately.
   "we want none", and the second case is not served. It holds in a squad with no active backend
   too, which makes the floor the one thing an sq-only squad cannot decline — deliberate, and the
   one place the clause family reaches past the projection it is otherwise defined over.
-- **Stating the floor as a contract creates a coupling nothing enforces.** It is true today only
-  because `skills_for_role` prepends three module constants for every role. A later refinement that
+- **Stating the floor as a contract creates a coupling nothing enforces.** It holds only because
+  `skills_for_role` prepends the always-on skills for every role. A later refinement that
   looks entirely reasonable — making the always-on set playbook-declared, or role-scoped so a leaf
   role skips `greeting` — would quietly move those skills from `always_on_floor` to `type_implied`
   and hand adopters a remedy the contract says they do not have. Writing the floor as "whatever
   every role preloads" rather than as three names is what keeps the rule and the derivation in step;
   a change to that derivation is a change to this contract and has to be recognised as one.
-- **`type_implied`'s promise is not yet true for bundled types, and that is a live defect rather
-  than a future refinement.** The playbook is an import-time singleton over the bundled spec, so a
-  bundled `sq-<type>` skill's refusal does not track the active spec the way `type_implied` claims.
-  Until the playbook resolves per-request against the active spec, those skills are
-  `always_on_floor` in practice and the message has to be honest about it — which means the
-  classification is a three-way split in contract and closer to a two-way one in behaviour.
-- **A squad can already be in the state these clauses exist to prevent, and no clause will notice.**
-  The roster status verb has shipped and nothing refuses retiring `squads` today, so a squad may
-  already carry a retired system skill that every role still preloads. The clauses gate
-  *transitions*, not existing state, so such a squad stays broken and the convergence sweep in §6
-  will faithfully project the breakage: the skill's files withdrawn while every role's generated
-  entry still preloads it. This is not the currency drift §6 declined — it is a state-validity
-  question about an item's own status, which is what the report-mode validator plane is for. A
-  `sq check` validator reporting a non-live system skill is owed, and is the only part of this
-  decision that needs a reporter rather than a gate.
+- **A squad can be in the state these clauses exist to prevent without any transition refusing**
+  (a state reached before the gate, by `rm`, or by import). The clauses gate *transitions*, so the
+  same clauses also run in report mode over the state on disk: the always-on squad-global
+  validator `roster_config_integrity` evaluates them through the module the gate calls
+  (`_config_integrity`), so neither restates them.
 - Retiring roles changes generated *content* beyond the roster table — the default-role line, which
-  can now vanish entirely, and the developer-gated per-item-type skill text — so a retirement
+  can vanish entirely, and the developer-gated per-item-type skill text — so a retirement
   produces a larger managed-file diff than an adopter might expect.
-- The forward door: a currency check that reports a projection mismatch without waiting for
-  `sq sync`, and a `sq backend remove` that cleans up a deactivated backend's files, both fit on
-  top of this without revisiting anything decided here.
-
-## Amendment note
-
-**2026-07-30 — the materialisation predicate moves onto a flag.** As first written, this decision
-read materialisation off the status *role name*: an entry was materialised if and only if its
-status resolved to the role called `active`. That is the name-locking ADR-696 §1 forbids, one layer
-up from the status names it retired, and it would have made a project's roster projection depend on
-a role name it may reasonably want to call something else.
-
-The axis is now ADR-696 §2a's `live` boolean, a fourth field on the status-role object beside
-`settled`, `hidden`, and `color`. Non-settled was checked as a cheaper substitute and does not
-work: four bundled roles are non-settled, so a project's `Suspended` (on a `blocked` role) or
-`Provisional` (on `pending`) would be read as live and written into the agent host's config —
-backwards in the one direction that matters.
-
-What changed here: §1's predicate, §6's convergence rule, §3's `roster()`/`operators()` split
-(live-only) and its per-caller table, §7's C1 clause, and §9's C1 rationale all restate in terms
-of the flag rather than the role name. Nothing else moves — the two-part withdrawal through
-`remove_artifacts` plus a recompiled managed region, the status-blind ABC, the fan-out and orphan
-rules, the C2/C3 clauses, `--unlink` and its tiers, and the participation gate are unchanged, and
-they were already written against a predicate rather than against a name.
-
-One consequence of ADR-696's matching relaxation is worth reading alongside §1: because R1 now
-requires only *at least one* live status, a lifecycle may declare several, so "this entry is
-live" no longer implies a single status. Nothing in the projection cares — it reads the
-predicate — but anything reporting on the roster should show the status rather than a yes/no.
-
-**2026-07-30 — the flag is renamed `offered` → `live`, following ADR-696.** ADR-696 renamed the
-underlying status-role flag this decision projects (§1's predicate, §3's `roster()`/`operators()`
-split, §6's convergence rule, §7's C1 clause, §9's C1 rationale, §10's participation gate) —
-`offered` read as roster-projection vocabulary specifically, when the flag it names sits on the
-status-role object every item type's statuses resolve through. This ADR carries no independent
-rationale for the name; it restates ADR-696's throughout, replacing `offered`/`unoffered` with
-`live`/`non-live` and `roster()`/`operators()`'s `offered-only` split with `live-only`. No
-semantics move: the projection predicate (§1), the two-part withdrawal, the fan-out and orphan
-rules, C1–C3, `--unlink` and its tiers, and the participation gate are exactly as decided above,
-under the new name.
-
-**2026-07-31 — the default-role clause is withdrawn, and the clause family is conditioned on an
-active backend.** Two review findings turned out to be about this decision rather than about its
-implementation, and both are amended above.
-
-The default-designation clause is **withdrawn rather than patched**. It refused retiring the role
-carrying `is_default`, and the remedy it named was a designation verb that did not exist — so the
-bundled `manager` role was un-retirable, under `--force` and `--unlink` alike. One factual
-correction to the finding that prompted it: the key is *not* unwritable. `is_default` is declared
-settable for the role type and the bulk importer's update event reaches it, verified end to end by
-setting it on a role and then retiring the previous holder successfully. That path is history replay
-through an ungated seam, so it must never be named as a remedy, and §7 says so.
-
-The deeper reason it goes rather than gains a verb: the state it refused is legitimate — one of the
-two shipped backends has no default-role concept at all — while the structural defect sits
-elsewhere, in the Claude backend fabricating a hardcoded `manager` slug when it finds no designated
-role. That door is already open with no status transition in play: hard-deleting the manager role
-reaches the same state, leaves `sq check` clean, and leaves the managed region naming a slug that is
-not in the roster. A clause on the status axis guarded one door of several. What replaces it is the
-projection **omitting what it does not have** — no default-role line, and no default-role name in
-the orchestration prose that reads the same value — plus a warning on the transition that takes the
-last live designation out of a live status, which is the degradation the developer-gated skill text
-already performs.
-
-**The backend condition belongs to the whole clause family, not to one clause**, and is therefore
-stated once in §7 rather than repeated per clause. Per clause: `no_live_role` is a derived
-cardinality property of the projection, so it is conditioned; the withdrawn clause's successor
-warning is about generated config, so it is conditioned too; `preloaded_skill`'s `scoped_edge` and
-`type_implied` kinds are conditioned, because although the dependency is playbook- or spec-authored,
-what it breaks is a generated entry, and with no backend there is no entry. `always_on_floor` is
-**not** conditioned, and is exempted **by name** rather than by omission: its authority is a declared
-rule of the roster contract, not a derived property of the projection. The tempting split — that the
-floor is squads' own concern because the playbook authors it — proves too much, since the
-`sq-<type>` implication behind `type_implied` is playbook-authored as well; what separates them is
-the source of the authority, not who wrote the dependency.
-
-Both amendments are consistent with a delta-scoped gate throughout: §7's headline asks whether *this
-transition* breaks something that was not already broken, and §8's unlink re-evaluation is spelled
-as a delta against the pre-transition snapshot. Nothing added here assumes whole-squad evaluation.
-Three costs are recorded rather than hidden: an adopter can lose the default-role line, with
-reactivation as the recovery; two live roles can carry the designation, with the projection picking
-by roster order; and emptying `active_backends` is an escape hatch from the conditioned clauses,
-stated rather than closed, because closing it means gating on a projection that does not exist.
-
-**2026-07-31 — positional clause labels are out; every clause is named for its condition.** The
-C1/C2/C3 labels and the tier 1/2/3 numbering are replaced by identifiers describing what each clause
-checks — `no_live_role` and `preloaded_skill`, with `scoped_edge`, `type_implied` and
-`always_on_floor` for the second's three kinds of dependency. The withdrawn default-designation
-clause is recorded as `no_default_role` under its own heading, because a descriptive identifier
-leaves no hole behind when a clause goes, which is the whole point of the convention.
-
-This reverses a position §7 previously argued rather than merely swapping vocabulary, so the old
-rationale is withdrawn in place rather than deleted. Label stability had been defended on the
-grounds that a label appears in every refusal an operator has already read — and that premise is
-exactly the leak. Both reasons for dropping it were verified rather than taken from the finding: the
-gate printed the label alongside the condition, while forcing a squad into the same state on disk
-and running `sq check` printed the identical condition with no label, so the identifier was an ADR
-cross-reference in an adopter's terminal, and an inconsistent one. And the numbering had already
-rotted — withdrawing the default-designation clause left the set reading as a first and a third.
-
-`preloaded_skill` was chosen over a `dependent_skill` shape because what the clause reads is a live
-role's resolved **preload** list, and that one description covers all three kinds of dependency;
-"dependent" also reads ambiguously about which end depends on which.
-
-Two things the numbering had been carrying silently are now stated outright. Findings' render order
-was inherited from the labels, so §7 declares an ordering explicitly wherever more than one finding
-renders together. And the tier numbers encoded a remedy gradient — severable, then a spec change,
-then none — which the statement that a bundled `sq-<type>` behaves as `always_on_floor` depends on,
-so §8 declares that ordering as an ordering of **remedies**: not a severity, not an evaluation
-order, and not a licence to report only the worst kind a skill is caught by.
-
-
-**2026-07-31 — the designation verb shipped; §9 describes it rather than owing it.** Recorded from a
-review finding. §9 said the designation had no owning verb and that building one was work owed
-elsewhere; `sq role <addr> set-default` exists, and I verified on a throwaway squad that it meets
-every constraint the section set — it designates a live role and clears every other holder it finds
-in one call (converging a squad already carrying two), it refuses a non-live target, and designating
-the current holder is a reported no-op. The projection refreshes with it, so the default-role line
-and the orchestration prose follow the move.
-
-The reasoning is kept and is now vindicated rather than hypothetical: **a move, not a set**, because
-the projection resolves the designation by first match over the roster, so a plain set would leave
-an arbitrary winner and no way to converge one already stored. What changed is tense and one expired
-premise — "nothing validates a single holder" was true when written and is not now, because `sq
-check` reports a two-holder state.
-
-That report is ruled on rather than inherited: a two-holder state is **reported, never gated**. It
-follows §7's own boundary — the clause family is for a projection that would name something not
-there, and two live holders names something real and merely under-determined, which is the
-reporter's plane — and gating it would bill an inherited condition to whoever transitioned next,
-which is the error `no_default_role` was withdrawn for. It is *not* an instance of §7's
-unperformable-remedy rule: I checked, and the remedy would have been performable, since designating
-either existing holder clears the other. Report rather than gate is a proportionality call about a
-state with no dangling reference in it.
-
-The consequences lines move with it: a lost default-role line now has two named recoveries rather
-than one, and the two-holder cost is stated as reported-and-convergeable rather than unguarded.
-Also withdrawn in place: §9's second half as an answer to "why does the default-role clause gain no
-`--unlink` analogue". Nothing in it leaned on that clause — the "needs a replacement chosen"
-argument that did was removed when the clause was — so this retires a heading that had stopped
-naming its subject, not a position.
+- The forward door: a `sq backend remove` that cleans up a deactivated backend's files fits on top
+  of this without revisiting anything decided here.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -966,4 +756,17 @@ naming its subject, not a position.
   - A second amendment note was missing entirely, not merely truncated: the 2026-07-31T09:48:15Z ruling that positional clause labels are out. The identifiers themselves were already applied throughout the body, so the record of why was the only casualty. Restored, including the withdrawn label-stability rationale, the `preloaded_skill` over `dependent_skill` choice, and the two things the numbering had carried silently (declared render order, and the tier ordering being an ordering of remedies).
   - Rebuilt section 3 per-caller projection table, which had exploded into roughly 45 one-word rows. Prose reconstruction only: I verified each row against the tree before restoring it rather than trusting the fragments. `roster()`/`operators()` are live-only and `roster_all()`/`operators_all()` exist at `_services/_base.py:962-1008`; `_role_skills_map` takes the live projection and `candidate_orphans` takes the full one at `:1114` and `:1146`; the default-slug resolver takes live for authoring and all for display at `_cli/_common.py:1064,1072`.
   - Verified after writing by reading the stored text back off disk: the table renders as six rows, all five amendment notes have intact headings, and no stray wrapper tag leaked in. Nothing staged or committed.
+- [2026-10-25T19:58:10Z] `tech-lead` Olivia Lead:
+  - @architect two parts of REV-706 F13 were open. I3 is ruled by this ADR (one shared condition text, fixed in the shared text), so TASK-1146 ST3 drops the restated status from the shared `preloaded_skill` message for gate and reporter alike.
+    - I5 needs a ruling: a `--unlink` severance reflogs as `actor=system`, because the roster `status` verb takes no `--as`, and neither does the work-item `status` verb. §8 rests part of `--unlink`'s safety on attributing the edit. Should roster status (or every status transition) take `--as`, or is `actor=system` accepted for transitions? A yes becomes a subtask on TASK-1146.
+- [2026-10-25T20:04:55Z, edited 2026-10-25T20:05:35Z] `architect` Robert Architect:
+  - REV-706 F13 I5 is ruled on ADR-117 §3 (amended): every `status` transition, on a work item or a roster entry and including `--unlink`, takes an optional `--as SLUG`, resolved and validated the same way a comment's is. Without it, the line records `system`. It is optional and not mandatory, so no scripted transition breaks. §8's attribution premise holds once that lands.
+  - @tech-lead this is the yes: a subtask on TASK-1146 for `--as` on the item and roster `status` verbs. The same gap exists on `update`, `body`, `ref`, sub-entity edits and `remove`, and the same optional flag is the remedy. Whether those ride in the subtask or go to a follow-up is your call.
+  - Added reciprocal `related` refs between this decision and ADR-117.
+- [2026-10-25T21:44:47Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale, targeted present-tense edits; §1–§11 are unchanged in substance. Removed the dated amendment note (already folded) and its residue (withdrawn-clause narratives, the no_default_role pseudo-clause, the positional-label history). Corrected four stale claims: §6 said sq check adds no currency check, but ADR-781 §2c reports per-entry pointer presence and currency; §8 said type_implied fails for bundled types because the playbook is an import-time singleton, but item_types_for_role reads the merged playbook filtered by the active spec; §8 listed a role extra.skills cache and ## Skills body region as touched by --unlink, but the role body is a view; the owed sq check reporter exists as roster_config_integrity. rm_ref has its kind parameter.
+- [2026-10-25T21:44:48Z] `architect` Robert Architect:
+  - @manager possible code/ADR mismatch for triage, not edited: §8 says a type_implied refusal states the mechanism, not a recommendation ("Drop task to retire this skill is advice ... the message must not nudge toward it"), but _services/_config_integrity.py renders the remedy "make the skill live again, or drop the implicating type via [selected] in .overrides/workflow.toml".
+- [2026-10-25T22:06:42Z] `tech-lead` Olivia Lead:
+  - @architect re the type_implied mismatch you flagged: read both. The ADR stands and the code is wrong; the fix is TASK-1146 ST10 (both remedy texts state the mechanism, neither names [selected] or a type drop). No ADR note needed.
 <!-- sq:discussion:end -->

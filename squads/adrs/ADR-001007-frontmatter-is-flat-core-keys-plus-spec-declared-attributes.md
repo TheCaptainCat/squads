@@ -20,7 +20,7 @@ refs:
 description: No extra block; slug is core; roster keys are pinned spec attributes;
   unknown keys kept; writes remove only targeted keys; flattened by the 0.16 runner
 created_at: '2026-10-15T18:49:27Z'
-updated_at: '2026-10-16T16:15:34Z'
+updated_at: '2026-10-25T21:42:32Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -39,7 +39,7 @@ The five points it then left open were ruled by the operator on 2026-10-15 (op-p
 record): `extra_fields` refused with no alias, the build order in decision 9, `tech` kept on roles,
 the operator's `full_name` folded into `title`, and the opt-in check of decision 11.
 
-**Where the keys live today.**
+**Where the keys lived in 0.15** (the state this record measured).
 
 - `Item.extra: dict[str, Any]` (`_models/_item.py:185`) is written as a nested `extra:` mapping
   (`:635`). `Item.model_config` sets no pydantic `extra=` policy, so the default (ignore)
@@ -100,10 +100,9 @@ reads no `extra` key (read: `src/` has one comment mentioning it). Its skew cana
 overrides guide tells adopters an unknown key "is preserved in `extra` and available to your
 own templates" (`docs/overrides.md`, read).
 
-**Schema.** `SCHEMA_VERSION` is still `"0.15"` on this branch and no 0.15 to 0.16 runner exists
-yet; FEAT-980 creates both (read; MILE-934, 2026-10-12). The root gate refuses every command on
-a squad whose schema differs from the package in either direction (read,
-`require_current_schema`), so an older package never writes a flattened file.
+**Schema.** The root gate refuses every command on a squad whose schema differs from the package
+in either direction (`require_current_schema`), so an older package never writes a flattened
+file.
 
 ## Decision
 
@@ -132,7 +131,7 @@ which the file name spells.
 
 - It is written to frontmatter for every item whose type has `category = "roster"`, where it is
   identity (ADR-971) and FEAT-980 builds on it. It is read from frontmatter when present and from
-  the file name otherwise, exactly as today.
+  the file name otherwise.
 - On any other item it is written when the file being rewritten carried it, so a hand-added
   `slug:` is never dropped (decision 7).
 - `ExtraKey.SLUG` and every `extra.get(X.SLUG, item.slug)` site collapse into `item.slug`.
@@ -141,8 +140,8 @@ which the file name spells.
 
 `is_default`, `model`, `tech` (role), `when_to_use`, `allowed_tools`, `model` (skill) exist on
 only some types, so they are attributes, declared in the bundled `workflow.toml` on `role` and
-`skill` like any other type's attributes. Keys the open 0.16 work adds (`origin`, `pronouns`,
-`operator_invocable`) are declared the same way by the features that add them.
+`skill` like any other type's attributes. `origin`, `pronouns` and `operator_invocable` are
+declared the same way.
 
 Because the engine materialises these into agent-host files (ADR-696), the loader **pins** them:
 an override may add attributes to a roster type, but a resolved spec whose `role` or `skill`
@@ -182,11 +181,11 @@ tech = { kind = "str", settable = false }
   dedicated verb owns (`is_default` by `sq role set-default`, `tech` by `sq dev add`).
 - **Badge attributes stay in `fields`.** A custom badge field (`fields = [{ code, label,
   collection }]`) is stored top-level under its code, like `priority`. Its validation is
-  collection membership (FEAT-900's field-value check).
+  collection membership, checked where the index loads.
 - **Names the loader refuses** for an attribute or a badge code: any core key; any other
   attribute or badge code on the same type; the names `--json` adds to an item row (`badges`,
-  `body`, `discussion`, `matched_subentities`); `path` and `prefix` (model fields that are not frontmatter); and
-  `extra`.
+  `body`, `discussion`, `matched_subentities`, `views`); `path` and `prefix` (model fields that
+  are not frontmatter); and `extra`.
 - An override that still carries `extra_fields` is refused at load with a message naming
   `attributes` and the equivalent table. There is no alias: the old key is never read.
 
@@ -197,25 +196,26 @@ reported.
 
 | check | where | on failure |
 |---|---|---|
-| core key type (as today) | load boundary, `Item.from_frontmatter` | item refused, `SquadsError` naming the file |
-| attribute kind | `sq check`, the default validator bundle, `error` | reported; the value stays as written; typed accessors read it as unset |
+| core key type | load boundary, `Item.from_frontmatter` | item refused, `SquadsError` naming the file |
+| attribute kind | `sq check`, the always-on `attribute_valid` validator, `error` | reported; the value stays as written; typed accessors read it as unset |
 | required attribute present | `sq check`, same validator | reported |
-| badge code in its collection | FEAT-900's field-value check | reported; value kept |
+| badge code in its collection | the index load boundary (`_validate_badge_codes`) and the override cross-check | load refused, naming the item and the field; the file keeps the value and `sq repair` rebuilds the index without vocabulary validation |
 | input to `sq update --set`, `sq import` | the command, before writing | refused; nothing written |
 
 A declared attribute whose stored value fails validation is therefore **kept on read and on
 write**: an unrelated write carries it through verbatim, and only a command that targets that key
-can replace it, with a value that passes. The core-key row is unchanged from today because the
-engine cannot build an item without those.
+can replace it, with a value that passes. The core-key row refuses because the engine cannot
+build an item without those; the badge-code row refuses at load because a code outside its
+collection cannot be rendered or filtered.
 
-**Note 2026-10-16.** "Verbatim" means the same JSON-representable value, not the same YAML
-type. An attribute value is kept in its JSON form: on load, a YAML-only type is normalized
-(`_json_form` in `_models/_item.py`), and the next write of the item stores that form. An
-unquoted date or timestamp becomes the string of the same value, in ISO form
-(`2026-10-20` becomes `'2026-10-20'`), and a non-string mapping key becomes a string key. The
-reason: the index and `--json` carry JSON, and a YAML-typed value made an item unwritable
-(REV-1063 F2). The one visible change of value is a key type: `{1: a}` is written back as
-`{'1': a}`. Core keys keep their own handling, as above.
+"Verbatim" means the same JSON-representable value, not the same YAML type. An attribute value
+is kept in its JSON form: on load, a YAML-only type is normalized (`_json_form` in
+`_models/_item.py`), and the next write of the item stores that form. An unquoted date or
+timestamp becomes the string of the same value, in ISO form (`2026-10-20` becomes
+`'2026-10-20'`), and a non-string mapping key becomes a string key, because the index and
+`--json` carry JSON and a YAML-typed value would make an item unwritable. The one visible change
+of value is a key type: `{1: a}` is written back as `{'1': a}`. Core keys keep their own
+handling, as above.
 
 ### 6. Unknown keys are kept, in the same mapping as declared ones
 
@@ -255,22 +255,21 @@ is held:
   check never coerce an attribute; coercion happens only on a command's own input
   (decision 5). The existing read folds apply to core keys only.
 - **Retype to a type that does not declare the key.** Retype carries the attribute mapping over
-  unchanged (it mutates the loaded item in place today, read). Keys the target does not declare
+  unchanged (it mutates the loaded item in place). Keys the target does not declare
   become unknown and stay.
 - **Type rename, renumber, import.** Rename reuses retype's primitive; renumber rewrites ids as
   text; import's `unset_fields` is a targeted removal and its `fields` a targeted set.
 - **`sq sync` reconciliation.** Its sweep removes a closed, named set of retired role keys
-  (`RETIRED_ROLE_EXTRA_KEYS`, ADR-981), never "every key this build does not know". It is
-  re-pointed at top-level names and stays named.
+  (`RETIRED_ROLE_KEYS`), never "every key this build does not know".
 - **`sq repair`.** It rebuilds the index from the files and does not rewrite frontmatter (read,
   `_models/_item.py`, `INVENTED_WHEN_ABSENT`). The index it builds carries unknown keys
   (decision 6).
 - **Migrations.** A runner removes only the keys it names (decision 9). Runners for earlier
   schemas keep their own legacy readers.
 - **The skew guard.** `ensure_no_skew` compares round-tripped frontmatter; unknown keys take part
-  on both sides, and its retired-key exemptions (`PERMITTED_EXTRA_SKEW`, `_exempt_extra_keys`)
-  are re-pointed from nested to top-level names. A hand-added key makes the file ahead of the
-  index and is reported as skew, as any hand edit is today; that refusal removes nothing.
+  on both sides, and its exemptions (`PERMITTED_ATTRIBUTE_SKEW`, `_exempt_attribute_keys`) name
+  top-level keys. A hand-added key makes the file ahead of the index and is reported as skew, as
+  any hand edit is; that refusal removes nothing.
 
 **Tests this owes** (pipeline-level invariant tests, table-driven, not one per branch). One
 table, rows = write paths, columns = key shapes; each cell sets up the key, applies the change in
@@ -301,68 +300,58 @@ value, and in `--json` and the rebuilt index.
   carries it: a guide's subject on `guide`, the template parameter on `role` (ADR-984). Same
   name, same kind, two declarations; nothing shares meaning across types.
 
-### 9. Migration: rides the 0.16 runner
+### 9. Migration: one step of the 0.15 to 0.16 runner
 
-There is no second schema bump. The flattening is one step of FEAT-980's 0.15 to 0.16 runner
-(the rule of 2026-09-24 and the single-runner rule of 2026-10-09), and it is the **first** step
-that touches frontmatter, so every later contributor (FEAT-986's `is_dev` removal, FEAT-976's
-`origin`, FEAT-961's `pronouns`, FEAT-966's `operator_invocable`) operates on flat keys.
-
-It is built after the 0.16.0 version bump, because it changes bundled files, and before TASK-990,
-FEAT-976, FEAT-961 and FEAT-966, so each of those writes top-level keys from its first commit.
-This adds one step to MILE-934's main stream of 2026-10-12: TASK-954, FEAT-980, the bump, this
-change, TASK-989, TASK-990, FEAT-976, FEAT-977, then FEAT-961 and FEAT-966.
+The flattening is a step of the 0.15 to 0.16 runner, with no schema bump of its own, and it is the
+**first** step of that runner that touches frontmatter, so every later step of it (the `is_dev`
+removal, `origin`, `pronouns`, `operator_invocable`) operates on flat keys.
 
 Per item file:
 
 - Each `extra` key is lifted to the top level with its value unchanged, declared or not, except:
   - `ref_kinds`: folded into inline refs (the existing fold);
   - `severity`: becomes top-level `severity` when that is absent; when both are present the
-    top-level value wins, as the read path does today;
+    top-level value wins, as the 0.15 read path did;
   - `slug`: becomes top-level `slug`;
   - `description` on a skill: dropped when the top-level `description` is non-empty; otherwise
     it becomes `description` unless it equals the title;
   - `full_name` on an operator: dropped; when it differs from `title`, `title` takes its value
     (what every operator surface showed) and the runner reports the file;
-  - the retired role keys (`RETIRED_ROLE_EXTRA_KEYS`): dropped, as the existing sweep does.
+  - the retired role keys (`RETIRED_ROLE_KEYS`): dropped, as the sync sweep does.
 - The top-level `path:` written by the 0.5 runner on system skills is removed. It is a key this
   tool wrote, not an adopter's.
-- `is_dev` is lifted like any key and then removed by FEAT-986's contribution (ADR-984 decision
-  4 adds it to the retired set). `tech` is lifted and kept, on roles and on guides.
+- `is_dev` is lifted like any key and then removed, as a retired role key (ADR-984 decision 4).
+  `tech` is lifted and kept, on roles and on guides.
 - The `extra` key is removed. A file with no `extra` is left as it is; a second run changes
   nothing.
 
 Pre-flight, before any file is written (the same shape as the vocabulary pre-check that now runs
 before any runner): the runner refuses, naming each file and key, when `extra` is not a mapping;
 when an `extra` key other than the folds above collides with a top-level key holding a different
-value; or when a roster item's `extra.slug` differs from its file name's slug (none in this
-corpus, driven).
+value; or when a roster item's `extra.slug` differs from its file name's slug.
 
-After 0.16 the model reads no `extra`: `_read_extra`, `_extra_mapping` and the two legacy folds
-move under `_migrations/` as a compat reader, used by the runners that need it, the way
-`_meta_compat.py` is. A 0.16 file that still carries an `extra:` key (hand-pasted from an old
-file) has an unknown key named `extra`, kept like any other.
+The model reads no `extra`: the legacy reader and its two folds live under `_migrations/` as a
+compat reader (`_legacy_extra.py`), used by the runners that need it, the way `_meta_compat.py`
+is. A current file that still carries an `extra:` key (hand-pasted from an old file) has an
+unknown key named `extra`, kept like any other.
 
 ### 10. The `--json` and client contract
 
-- A generic item row (`list`, `show`, `create`, `mine` with `--json`) is: the core keys exactly as
-  today, without `extra`; plus each attribute the file carries, flat, at the top level, present
-  only when stored; plus the keys the command already adds (`badges`, `body`, `discussion`,
-  `matched_subentities`). An
-  unknown key whose name is one of those added keys is kept in the file and left out of the row,
-  so the added key keeps its meaning.
-- `sq workflow --json` type entries gain `attributes`: name to `{kind, required, settable}`. A
+- A generic item row (`list`, `show`, `create`, `mine` with `--json`) is: the core keys, with no
+  `extra`; plus each attribute the file carries, flat, at the top level, present only when
+  stored; plus the keys the command adds (`badges`, `body`, `discussion`, `matched_subentities`,
+  `views`). An unknown key whose name is one of those added keys is kept in the file and left out
+  of the row, so the added key keeps its meaning.
+- `sq workflow --json` type entries carry `attributes`: name to `{kind, required, settable}`. A
   client learns a type's keys there.
-- Roster card payloads are unchanged.
-- This is a breaking change to the generic rows and is called out in the 0.16 upgrade notes. It
-  narrows ADR-427's additive-only rule for `show --json` for this release.
-- The VS Code client reads no `extra` key, so no client code changes. Its canary changes:
-  `LIST_ROW_KEYS` drops `extra`, and the row assertion becomes the exact core set plus, for each
-  other key, membership in that type's `attributes` from `sq workflow --json`; `TYPE_ENTRY_KEYS`
-  gains `attributes`. This lands with FEAT-980's canary keys, in the same release.
-- Render contexts expose the flat item; the `extra` template variable is removed. An adopter
-  template that reads `extra.<key>` reads `<key>` from the item instead; the upgrade notes say
-  so.
+- Roster card payloads carry no `extra`.
+- The removal of `extra` from the generic rows was a breaking change in 0.16, stated in that
+  release's upgrade notes, and narrowed ADR-427's additive-only rule for `show --json` for that
+  release.
+- The VS Code client reads no `extra` key. Its canary asserts the exact core set plus, for each
+  other key, membership in that type's `attributes` from `sq workflow --json`.
+- Render contexts expose the flat item; there is no `extra` template variable. An adopter
+  template reads `<key>` from the item.
 
 ### 11. An opt-in report of undeclared keys
 
@@ -376,7 +365,7 @@ silently, which is the default.
 - **Keeping a nested container under another name.** It is the thing the ruling removes.
 - **Refusing an unknown key at load.** One stray key would make an item unreadable, and the nine
   `path:` keys in this corpus would have done so.
-- **Dropping unknown keys on write** (today's behaviour, driven). It loses data silently and
+- **Dropping unknown keys on write** (the 0.15 behaviour, driven). It loses data silently and
   breaks the guarantee in decision 7.
 - **Validating declared attributes at the load boundary.** A spec change (a kind changed, a key
   made required) would make existing items unreadable. Load refuses only what the engine cannot
@@ -394,32 +383,15 @@ silently, which is the default.
 
 ## Consequences
 
-- Every `item.extra` reader moves to `item.slug`, a declared accessor or a typed roster accessor
-  (about 150 sites in about 33 modules, read). `ExtraKey` becomes `AttributeKey`;
-  `_models/_metadata.py`'s per-type tables give way to the spec declaration.
+- Internals read an attribute through `AttributeKey` and the accessors in
+  `_models/_attributes.py`, never through a per-type Python table.
 - Bundled `workflow.toml` declares `attributes` on `guide`, `milestone`, `review`, `role` and
-  `skill`; the role and skill templates read flat keys (built after the 0.16.0 version bump,
-  decision 9).
-- The override grammar changes: `extra_fields` becomes `attributes`, and an override using the
-  old key is refused at load with the remedy. The 0.16 upgrade notes say so.
-- The validator catalog gains `frontmatter_key_undeclared` (catalog-only, `warn`).
-- Adopter docs to refresh (tech writer): `docs/overrides.md` (the `extra` passage and the full
-  name passage), `docs/roles.md`, `docs/internals.md`, `docs/migration.md`, `docs/adoption.md`,
-  `docs/faq.md`, and `docs/stability.md`, which should name the flat frontmatter and the
-  `attributes` grammar as contract.
-- **ADRs that need a dated note**, each narrowed in place with a `related` ref back: ADR-085
-  (names stored in `extra.full_name`), ADR-221 (`RoleSpec` mapped onto `extra` keys), ADR-323 and
-  ADR-348 (custom badge values in `extra`), ADR-427 (additive-only `show --json`), ADR-474
-  (custom axes ride in `extra` in `--json`), ADR-663 and ADR-775 (the `extra.ref_kinds` and
-  `extra.severity` normalisation moves into the migration compat reader), ADR-754 and ADR-971
-  (`extra.slug`, `extra.tech`, `extra.full_name`), ADR-766 (decision 6, "the `extra` copies
-  stay") and ADR-776 (section 2d), ADR-979 (operator name from `extra.full_name`; repair from
-  `extra.slug`), ADR-981 (`extra.pronouns`, `extra` in the generic JSON, unknown `extra` keys
-  preserved), ADR-983 (`extra.operator_invocable`), ADR-984 (decision 4's `extra.is_dev` and
-  `extra.tech` become top-level `is_dev` and `tech`). ADR-492, ADR-697 and ADR-753 mention only
-  the retired `extra.skills` cache and need nothing.
-- FEAT-961, FEAT-966, FEAT-976, FEAT-980 and FEAT-986 describe their keys as `extra.<key>`; their
-  acceptance text reads as the top-level key once this lands.
+  `skill`; the role and skill templates read flat keys.
+- An override that uses `extra_fields` is refused at load with the remedy.
+- The validator catalog holds `frontmatter_key_undeclared` (opt-in, `warn`).
+- `docs/stability.md` names the flat frontmatter and the `attributes` grammar as contract.
+- Every decision that once named an `extra.<key>` reads it as the top-level key of the same
+  name.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -456,4 +428,6 @@ silently, which is the default.
     One reading to confirm: the ADR-979 note says a lookup of an operator by title after the flattening gives the name extra.full_name held. That is inferred from decision 9 and holds only if the comment-header rewrite runs after the flattening step in the 0.16 runner.
 - [2026-10-16T16:14:44Z] `op-pierre` Pierre Chat:
   - 2026-10-16: accepted that frontmatter values are kept as JSON-representable values: YAML-only types are normalized on write (an unquoted date becomes a string of the same value; a non-string mapping key becomes a string key). Record it as a dated note on decision 5.
+- [2026-10-25T21:42:32Z] `architect` Robert Architect:
+  - 2026-10-25 audit: partly stale passages fixed; decision unchanged. The 2026-10-16 note folded into decision 5; the badge-code row corrected to the index load refusal (FEAT-900 was cancelled); RETIRED_ROLE_KEYS and PERMITTED_ATTRIBUTE_SKEW named; views added to row-added keys; build-order and dated-note bookkeeping removed.
 <!-- sq:discussion:end -->

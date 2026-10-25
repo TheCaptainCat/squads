@@ -12,38 +12,38 @@ description: 'Review of 958974c: TASK-796, TASK-806 (FEAT-790) and TASK-799 (FEA
 subentities:
 - local_id: F1
   title: The 0.5-to-0.7 runner's on-disk output also changed retroactively
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: Manifest-freshness guard lost its stale-hash assertion
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: Pre-0.14 spelled-default refs become a false skew refusal on upgrade
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: README carries a third, untracked closed-nine-kinds claim
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: Width-tolerant ref severing lost its bare-ref coverage
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F6
   title: sq workflow lint passes a spec every mutation then refuses
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: Never-prune plus no-orphans deadlocks a same-release delete
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F8
   title: The VS Code client binds edge labels to a literal kind name
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-08-25T17:43:57Z'
-updated_at: '2026-08-25T23:39:03Z'
+updated_at: '2026-10-25T19:31:27Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -201,6 +201,8 @@ can change its collapse behaviour is not frozen.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:31:27Z] `reviewer` Paul Reviewer:
+  - Holds: _migrations/_v0_5_to_v0_7.py uses frozen private _split_ref/_make_ref copies, not the live primitives.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -251,6 +253,8 @@ scripts (**read**). The two surviving content checks reach exactly four of the 2
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:31:27Z] `reviewer` Paul Reviewer:
+  - Holds: tests/meta/test_override_manifest_and_stamp_freshness.py asserts the stale-hash mismatched set again.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -308,6 +312,8 @@ differs, and record the upgrade behaviour where an adopter will meet it.
   - No manual runbook clause and no release note: both would describe a state the upgrade path does not let an adopter reach. The message is the notification, which is why it has to be true. @tech-lead A4 wants a task under FEAT-790 - skew_message plus the matching sq check finding wording, one state and one explanation on both surfaces. Leaving this finding Open until that lands.
 - [2026-08-25T18:14:29Z] `tech-lead` Olivia Lead:
   - Tracked as TASK-811 under FEAT-790 (medium, python-dev, US1): "Report a stale index encoding as one, never as a divergence" - skew_message plus the sq check finding, one state and one explanation on both surfaces, no manual clause and no release note. One correction to A4 stated test, driven: the legacy extra.ref_kinds case does NOT differ raw, because the round trip pops ref_kinds out of extra so only refs reaches the diverging list and its raw value equals the index. Raw-equality alone would classify it as normalisation; the task makes that row load-bearing. A4 mechanism half is also recorded on TASK-813, the 0.14 runner the no-sweep conclusion rests on.
+- [2026-10-25T19:31:27Z] `reviewer` Paul Reviewer:
+  - Holds: _itemfile.py words the raw-equal case as "a non-canonical encoding ..., not a divergence" (ADR-775 A4).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -343,6 +349,8 @@ covers all of it rather than leaving the front page asserting the retired policy
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:31:27Z] `reviewer` Paul Reviewer:
+  - Holds: README.md ref add line now says --kind takes any declared kind, no closed list.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -376,6 +384,8 @@ F3 describes. Swapping the kind was a reasonable way to unblock; keeping only on
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-25T19:31:27Z] `reviewer` Paul Reviewer:
+  - Holds: test_remove_width_tolerant_ref_severing in tests/service/test_remove.py is parametrized over bare and spelled legs.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -410,6 +420,8 @@ still leaves lint silent.
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-10-25T19:31:27Z] `reviewer` Paul Reviewer:
+  - Holds: the exactly-one default ref kind floor runs at spec validation (_workflow/_validity.py), so lint reports it.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -453,6 +465,8 @@ as requiring the deletion to ride a release in which it is otherwise unchanged. 
   - Rejected the sequencing alternative - making a deletion ride a release in which the artifact is otherwise unchanged. It is unenforceable, silent when violated, answers only the deletion instance, and B3 already sanctions deleting bundled artifacts, so it would be a trap laid for a decision already taken. Confirmed your B3 check independently: each template current content is referenced by nine and sixteen index entries, so neither is orphaned by its removal. @tech-lead C1 wants a task under FEAT-791 - the generator sweep plus the guard restated as an invariant. Leaving this finding Open.
 - [2026-08-25T18:14:31Z] `tech-lead` Olivia Lead:
   - Tracked as TASK-812 under FEAT-791 (high, python-dev, US1): "Sweep unreferenced blobs in the generator steady state" - the reachability sweep plus the orphan guard restated as a maintained invariant, with never-prune narrowed to no revision an index entry names is ever removed. Priority is high rather than the finding low severity because I measured it: six artifact keys already carry content named only by the 0.14.0 entry, so the next edit to any of them reds tests/meta. TASK-813 carries a depends-on for exactly that reason.
+- [2026-10-25T19:31:27Z] `reviewer` Paul Reviewer:
+  - Holds by redesign: seed_content_store.py --rebuild drops orphans and --release-gate enforces it (scripts/gen_template_manifest.py).
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -483,6 +497,8 @@ line in that task's scope (or one added scan root) is all it needs.
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
+- [2026-10-25T19:31:27Z] `reviewer` Paul Reviewer:
+  - Holds: edgeLabel in clients/vscode/src/domain/graphDiagrams.ts keys on edge_semantic, not a kind literal.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 <!-- sq:findings:end -->

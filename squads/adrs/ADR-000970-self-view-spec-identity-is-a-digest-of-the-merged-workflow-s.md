@@ -12,7 +12,7 @@ refs:
 description: The self-view spec block gains an equality-only digest of the merged
   workflow spec; override stays as a display flag
 created_at: '2026-09-29T13:41:18Z'
-updated_at: '2026-09-29T13:52:55Z'
+updated_at: '2026-10-25T21:41:21Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -115,4 +115,6 @@ any other `--json` surface.
   - @op-pierre for your call: left Proposed. Written to settle the TASK-969 ST4/ST5 questions the tech lead raised.
 - [2026-09-29T13:52:52Z] `op-pierre` Pierre Chat:
   - Accepted.
+- [2026-10-25T21:41:21Z] `architect` Robert Architect:
+  - Audited 2026-10-25: holds. _spec_identity_json in _cli/_workflow_cmd.py emits schema_version, override, digest as decided; docs/stability.md and docs/workflow.md carry the equality-only rule.
 <!-- sq:discussion:end -->

@@ -139,17 +139,20 @@ def _check_override_shape(raw: RawMapping, origin: str) -> None:
             )
 
 
+ROLES_OVERRIDE_MESSAGES = OverrideMessages(
+    malformed="malformed role catalog override {path}: {exc}",
+    unreadable="cannot read role catalog override {path}: {exc}",
+    not_utf8="role catalog override {path} is not valid UTF-8; save it as UTF-8 and re-run.",
+)
+
+
 _DOCUMENT = SpecDocument(
     bundled_file="roles.toml",
     override_file=ROLES_OVERRIDE_FILENAME,
     override_name="role catalog override",
     top_level_keys=ROLES_TOP_LEVEL_KEYS,
     selected_sections=ROLES_SELECTED_SECTIONS,
-    messages=OverrideMessages(
-        malformed="malformed role catalog override {path}: {exc}",
-        unreadable="cannot read role catalog override {path}: {exc}",
-        not_utf8="role catalog override {path} is not valid UTF-8: {exc}",
-    ),
+    messages=ROLES_OVERRIDE_MESSAGES,
     check_override=_check_override_shape,
     to_merge_form=lambda raw, origin: _keyed_for_merge(raw, origin=origin),
     from_merge_form=_unkeyed_from_merge,

@@ -25,15 +25,15 @@ description: 'Batch review of the five commits that closed BUG-755/756/758/760/7
 subentities:
 - local_id: F1
   title: sq sync silently discards an operator-set role name
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: Soft-wrap sweep missed --at; CHANGELOG says it is fixed
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: Class guard is blind to the common.<console>.print form
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Blank-field refusal does not cover the --name flag
@@ -56,7 +56,7 @@ subentities:
   status: WontFix
   severity: low
 created_at: '2026-08-21T20:52:11Z'
-updated_at: '2026-08-22T09:46:17Z'
+updated_at: '2026-10-25T19:30:42Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -258,6 +258,8 @@ projection that discards `--name` passes it.
 - [2026-08-21T20:58:34Z] `manager` Catherine Manager:
   - Confirmed independently, and the pre-existing/new split is now measured. On a fresh squad at 0.13.0 (ea891a6, in a throwaway worktree): sq init --name architect=Ada Lovelace then sq sync leaves sq list showing Ada Lovelace while extra.full_name has already reverted to Robert Architect. So 0.13.0 shipped half of this - the extra copy and the generated roster already lost the operator-set name on the first sync. On release/0.14 the same sequence now reverts the item title and the frontmatter too, so the last surviving correct copy is gone and sq list shows the bundled name. sq check exits 0 in both cases.
   - Accepting this as ChangesRequested on F1. It is silent loss of an operator-set name, the docs promise the opposite in so many words, and the remedy is a shape already shipped for dev roles. Treating it as its own bug rather than reopening BUG-756, whose reported defect is genuinely fixed and verified.
+- [2026-10-25T19:30:42Z] `reviewer` Paul Reviewer:
+  - Holds: resolve_role_with_base pins the stored name via pinned_name (_roles/_resolver.py); driven, Rob survives sq sync.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -310,6 +312,8 @@ against and files a bug on.
   - Confirmed both halves. Drove sq --at nope list piped at 80 columns: the ISO example still splits across a newline, while sq reflog --since nope is intact - so the sweep genuinely missed the root callbacks --at parser. The CHANGELOG sentence claiming --at was fixed was mine, not the developers; I have corrected it so the adopter-facing text no longer overclaims, and named --at explicitly as still unchanged. The code half stands open as this finding.
 - [2026-08-22T09:23:52Z] `manager` Catherine Manager:
   - Both halves closed. The code half landed in 04945d2 and I drove it: sq --at nope list piped at 80 columns keeps the ISO example on one line and the exit code stays 2. The CHANGELOG sentence is corrected back - --at is now listed among the fixed sites rather than the exceptions.
+- [2026-10-25T19:30:42Z] `reviewer` Paul Reviewer:
+  - Holds: the --at refusal in _cli/__init__.py prints with soft_wrap=True.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -373,6 +377,8 @@ written to prevent.
 <!-- sq:finding:F3:discussion -->
 - [2026-08-22T09:23:55Z] `manager` Catherine Manager:
   - Fixed in 04945d2 and it proved itself: the widened predicate flagged the --at site on the live tree before any fix was applied, so the guard caught a real defect rather than only a planted one. An attribute-form plant test now pins the hole shut, and the dev declined two tempting widenings with reasoning recorded in the module docstring - growing the marker list to [red]line (too generic a Rich tag) and the forbid-computed-style-tag rule (one site, already wrapped).
+- [2026-10-25T19:30:42Z] `reviewer` Paul Reviewer:
+  - Holds: tests/meta/test_single_line_advisory_prints_stay_soft_wrapped.py accepts an ast.Attribute receiver.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 

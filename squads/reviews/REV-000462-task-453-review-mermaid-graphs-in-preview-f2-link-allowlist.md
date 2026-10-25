@@ -10,22 +10,23 @@ refs:
 subentities:
 - local_id: F1
   title: CSP/mermaid render path is sound but unverified in a live webview host
-  status: Open
+  status: Deferred
   severity: medium
+  deferred_to: TASK-1148
 - local_id: F2
   title: 'F2 link-scheme allowlist: no bypass found, well-tested'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: Graph builders are mermaid-injection-safe and match the core CLI convention
-  status: Open
+  status: Noted
   severity: low
 - local_id: F4
   title: Packaging clean; vsce large-file warning benign
-  status: Open
+  status: Noted
   severity: low
 created_at: '2026-07-17T15:07:13Z'
-updated_at: '2026-07-17T15:10:04Z'
+updated_at: '2026-10-25T19:58:29Z'
 ---
 <!-- sq:body -->
 Independent review of TASK-453 (Ada built it): two collapsible mermaid graphs in the owned WebviewPanel preview (children/subtree from sq tree --json, ref graph from sq graph --json), the locally-vendored CSP-nonce'd mermaid renderer, and the REV-461 F2 markdown link-scheme allowlist. Covers REV-448 F11.
@@ -59,6 +60,8 @@ My call on nonce-injection vs. the documented fallback (narrow style-src 'unsafe
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:16Z] `reviewer` Paul Reviewer:
+  - Still true: the extension-host smoke opens a preview but renders no graph under the CSP (test/extensionHost/suite); kept as a note.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -79,6 +82,8 @@ Well-tested (test/markdown.test.ts: safe/unsafe/case-insensitive/relative/protoc
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:39:16Z] `reviewer` Paul Reviewer:
+  - Holds: isSafeLinkUrl and its tests in clients/vscode/test/markdown.test.ts are in place.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -100,6 +105,8 @@ Tested against literal cases (incl. <script>, a|b) + the committed tree.json/gra
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:39:16Z] `reviewer` Paul Reviewer:
+  - Confirmation of a passing check, no action; kept as a note.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -122,6 +129,8 @@ Out-of-scope observation (NOT a TASK-453 finding): resources/squads-icon-vscode.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:39:16Z] `reviewer` Paul Reviewer:
+  - Confirmation of a passing check, no action; kept as a note.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 <!-- sq:findings:end -->

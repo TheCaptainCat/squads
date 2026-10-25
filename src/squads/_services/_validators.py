@@ -22,28 +22,17 @@ aborts on their first finding; a warn-level member (``agent_registered``, ``no_s
 …) is advisory everywhere, mirroring ``sq check``'s own error-only exit code, and is never
 evaluated on a write.
 
-**An always-on set of file checks sits beside this catalog and is not part of it.**
-``CheckMixin._scan_for_check`` (``_services/_check.py``) runs a raw-text file-level
-scan *before* this catalog is ever reached — before a file's frontmatter parses, keyed on the
-type folder and filename alone — and produces four of its own error-level findings:
-``_marker_issues`` (unbalanced/duplicated sq markers), ``_view_target_issues`` (a
-``sq:view:<name>`` tag that cannot resolve when read against its host: undeclared, an
-unresolvable template, or a declared source that cannot apply to the host's own type — the name
-covers all three reasons, not only one of them),
-``_seeded_view_issues`` (a host missing the placement tag a seeded view derives it must
-carry — every seeded view is unconditional, with no ``required`` flag to filter on), and
-``_absent_body_region_issues`` (a
-role or skill file whose ``sq:body`` marker pair is missing outright). None is a member of
-``CATALOG``/``VALIDATOR_NAMES``, and none ever will be: the
-catalog is per-item (a member takes a resolved ``Item`` from a ``ValidatorContext``) while every
-file-check finding is per-*file*, running before a file becomes an item — so a file too broken to
-parse still gets its marker/view findings reported, where catalog membership would lose them;
-and the catalog is *selectable* per type while every file-check finding is unconditional across
-every type, which is the whole point of a binding invariant a document must satisfy regardless
-of which validators a project has chosen. A caller that needs ``sq check``'s complete finding
-surface — every future consumer that closes a correspondence over ``CATALOG`` and its declared
-context — must read both the file checks and the catalog, not mistake the catalog for the whole;
-see ``_scan_for_check``'s own docstring for the matching back-reference into this module.
+**The file checks sit beside the validator catalog and are not part of it.**
+``CheckMixin._scan_for_check`` (``_services/_check.py``) reads each file's raw text and reports
+four kinds of finding, all errors: unbalanced or duplicated sq markers, a ``sq:view:<name>`` tag
+that cannot resolve against its host (undeclared, an unresolvable template, or a source that
+cannot apply to the host's type), a host missing the placement tag a seeded view requires, and a
+role or skill file whose ``sq:body`` marker pair is absent. None is a catalog member and none
+will be. A file check applies per file, cannot be selected or deselected, and is still reported
+when the file's frontmatter cannot be read, so a file too broken to become an item keeps its
+findings. A catalog member takes a resolved ``Item`` and is selected per type. A consumer that
+needs every ``sq check`` finding reads both; the rules that are not catalog members are
+registered in ``_services/_check_rules.py``.
 
 ``ItemSpec`` carries only the bare ``category`` name — the effective per-item validator set
 (common core + category default bundle + the type's own additions) is resolved here, at call
@@ -332,10 +321,10 @@ def _parent_in(ctx: ValidatorContext) -> list[CheckIssue]:
     level = _resolved_level(ctx, "parent_in")
     parent = ctx.index.get(item.parent) if ctx.index is not None else None
     if parent is None:
-        return [CheckIssue(level, item.id, f"dangling parent {item.parent}")]
+        return [CheckIssue(level, item.id, f"dangling parent {item.parent}", rule="parent_in")]
     if not ctx.spec.parent_allowed(item.type, parent.type):
         msg = f"{ctx.spec.parent_hint(item.type)} (got {parent.type})"
-        return [CheckIssue(level, item.id, msg)]
+        return [CheckIssue(level, item.id, msg, rule="parent_in")]
     return []
 
 
@@ -345,7 +334,11 @@ def _no_parent(ctx: ValidatorContext) -> list[CheckIssue]:
     item = ctx.item
     if item.parent:
         level = _resolved_level(ctx, "no_parent")
-        return [CheckIssue(level, item.id, f"{item.type} takes no parent (got {item.parent})")]
+        return [
+            CheckIssue(
+                level, item.id, f"{item.type} takes no parent (got {item.parent})", rule="no_parent"
+            )
+        ]
     return []
 
 
@@ -375,7 +368,9 @@ def _parent_present(ctx: ValidatorContext) -> list[CheckIssue]:
     required = ctx.spec.item_parent_required(item.type)
     of_type = f" of type {required}" if required else ""
     level = _resolved_level(ctx, "parent_present")
-    return [CheckIssue(level, item.id, f"{item.type} requires a parent{of_type}")]
+    return [
+        CheckIssue(level, item.id, f"{item.type} requires a parent{of_type}", rule="parent_present")
+    ]
 
 
 def _parent_acyclic(ctx: ValidatorContext) -> list[CheckIssue]:
@@ -428,7 +423,12 @@ def _parent_acyclic(ctx: ValidatorContext) -> list[CheckIssue]:
             restyled = node.sequence_id == item.sequence_id and node.id != item.id
             level = _resolved_level(ctx, "parent_acyclic")
             return [
-                CheckIssue(level, item.id, _parent_cycle_message(chain, ctx, restyled=restyled))
+                CheckIssue(
+                    level,
+                    item.id,
+                    _parent_cycle_message(chain, ctx, restyled=restyled),
+                    rule="parent_acyclic",
+                )
             ]
         seen.add(node.sequence_id)
         parent_id = node.parent
@@ -469,7 +469,14 @@ def _item_status_valid(ctx: ValidatorContext) -> list[CheckIssue]:
     item = ctx.item
     if item.status not in ctx.spec.workflow_for(item.type).states:
         level = _resolved_level(ctx, "item_status_valid")
-        return [CheckIssue(level, item.id, f"status {item.status!r} invalid for {item.type}")]
+        return [
+            CheckIssue(
+                level,
+                item.id,
+                f"status {item.status!r} invalid for {item.type}",
+                rule="item_status_valid",
+            )
+        ]
     return []
 
 
@@ -482,7 +489,9 @@ def _dangling_ref(ctx: ValidatorContext) -> list[CheckIssue]:
     for r in ctx.item.refs:
         rid, _kind = split_ref(r)
         if ctx.index.get(rid) is None:
-            issues.append(CheckIssue(level, ctx.item.id, f"dangling ref {rid}"))
+            issues.append(
+                CheckIssue(level, ctx.item.id, f"dangling ref {rid}", rule="dangling_ref")
+            )
     return issues
 
 
@@ -498,7 +507,12 @@ def _ref_kind_valid(ctx: ValidatorContext) -> list[CheckIssue]:
         rid, kind = split_ref(r)
         if kind and kind not in ctx.spec.ref_kinds:
             issues.append(
-                CheckIssue(level, ctx.item.id, f"unknown ref kind {kind!r} on edge → {rid}")
+                CheckIssue(
+                    level,
+                    ctx.item.id,
+                    f"unknown ref kind {kind!r} on edge → {rid}",
+                    rule="ref_kind_valid",
+                )
             )
     return issues
 
@@ -516,7 +530,10 @@ def _agent_registered(ctx: ValidatorContext) -> list[CheckIssue]:
         if slug and slug not in ctx.registered_slugs:
             issues.append(
                 CheckIssue(
-                    level, ctx.item.id, f"{attr} {slug!r} is not a registered agent or operator"
+                    level,
+                    ctx.item.id,
+                    f"{attr} {slug!r} is not a registered agent or operator",
+                    rule="agent_registered",
                 )
             )
     return issues
@@ -543,11 +560,17 @@ def _subtask_story_mapping(ctx: ValidatorContext) -> list[CheckIssue]:
                 level,
                 item.id,
                 f"{kind} maps to a {story_kind} but the {item.type} has no {host} parent",
+                rule="subtask_story_mapping",
             )
         ]
     known = {s.local_id for s in parent.subentities}
     return [
-        CheckIssue(level, item.id, f"{kind} {stn} → {us} missing from {parent.id}")
+        CheckIssue(
+            level,
+            item.id,
+            f"{kind} {stn} → {us} missing from {parent.id}",
+            rule="subtask_story_mapping",
+        )
         for stn, us in refs
         if us not in known
     ]
@@ -562,7 +585,12 @@ def _subentity_status_valid(ctx: ValidatorContext) -> list[CheckIssue]:
     valid = ctx.spec.subentity_workflow(kind).states
     level = _resolved_level(ctx, "subentity_status_valid")
     return [
-        CheckIssue(level, item.id, f"{kind} {s.local_id} has invalid status {s.status!r}")
+        CheckIssue(
+            level,
+            item.id,
+            f"{kind} {s.local_id} has invalid status {s.status!r}",
+            rule="subentity_status_valid",
+        )
         for s in item.subentities
         if s.status not in valid
     ]
@@ -591,23 +619,37 @@ def _subentity_deferral_resolved(ctx: ValidatorContext) -> list[CheckIssue]:
                         item.id,
                         f"{what} is {s.status} yet names {s.deferred_to} as its carrier; "
                         "only a deferred status carries one",
+                        rule="subentity_deferral_resolved",
                     )
                 )
             continue
         if not s.deferred_to:
             issues.append(
-                CheckIssue(level, item.id, f"{what} is {s.status} but names no carrying item")
+                CheckIssue(
+                    level,
+                    item.id,
+                    f"{what} is {s.status} but names no carrying item",
+                    rule="subentity_deferral_resolved",
+                )
             )
             continue
         carrier = ctx.index.get(s.deferred_to)
         if carrier is None:
             issues.append(
-                CheckIssue(level, item.id, f"{what} is {s.status} to {s.deferred_to}, not found")
+                CheckIssue(
+                    level,
+                    item.id,
+                    f"{what} is {s.status} to {s.deferred_to}, not found",
+                    rule="subentity_deferral_resolved",
+                )
             )
         elif carrier.id == item.id:
             issues.append(
                 CheckIssue(
-                    level, item.id, f"{what} is {s.status} to its own item, which is no carrier"
+                    level,
+                    item.id,
+                    f"{what} is {s.status} to its own item, which is no carrier",
+                    rule="subentity_deferral_resolved",
                 )
             )
         elif ctx.spec.status_role(carrier.status) == "retired":
@@ -617,6 +659,7 @@ def _subentity_deferral_resolved(ctx: ValidatorContext) -> list[CheckIssue]:
                     item.id,
                     f"{what} is {s.status} to {carrier.id}, which is {carrier.status} "
                     "and will not carry the work",
+                    rule="subentity_deferral_resolved",
                 )
             )
     return issues
@@ -641,6 +684,7 @@ def _subentities_settled_with_parent(ctx: ValidatorContext) -> list[CheckIssue]:
             item.id,
             f"status is {item.status} with {len(outstanding)} unsettled "
             f"{_plural(len(outstanding), kind)}: {ids}",
+            rule="subentities_settled_with_parent",
         )
     ]
 
@@ -659,7 +703,8 @@ def _subentity_container_marker(ctx: ValidatorContext) -> list[CheckIssue]:
     files do not carry — while sub-entity *body* writes keep succeeding, because those address
     their own per-block markers. So the corpus stays usable enough to look fine, and both
     gates said clean. Both directions are covered, because the plural can move either way:
-    declaring one over an existing corpus, and removing the declaration afterwards.
+    declaring one over an existing corpus, and removing the declaration afterwards. A file with
+    no container at all is not reported: the first ``add-<kind>`` writes one.
     """
     item = ctx.item
     kind = ctx.spec.item_subentity_kind(item.type)
@@ -675,13 +720,10 @@ def _subentity_container_marker(ctx: ValidatorContext) -> list[CheckIssue]:
     # so they carry a colon) — derived that way rather than matched against the *declared*
     # plurals, because the whole point is that the file carries an UNdeclared one, and the old
     # name it carries need not be declared anywhere any more.
-    structural = {markers.BODY, markers.SUMMARY, markers.DISCUSSION, plural}
-    tags = {
-        tag.removeprefix(markers.PREFIX).removesuffix(":end")
-        for tag in sections.find_markers(ctx.raw_text)
-    }
-    stale = sorted(tag for tag in tags if ":" not in tag and tag not in structural)
-    found = f"; the file carries {stale[0]!r}" if stale else ""
+    stale = discussion.stale_container_tags(ctx.raw_text, plural)
+    if not stale:
+        return []  # no container at all: `add-<kind>` writes one
+    found = f"; the file carries {stale[0]!r}"
     level = _resolved_level(ctx, "subentity_container_marker")
     return [
         CheckIssue(
@@ -691,6 +733,7 @@ def _subentity_container_marker(ctx: ValidatorContext) -> list[CheckIssue]:
             f"so `sq {item.type} {item.sequence_id} add-{kind}` cannot write here. Revert "
             f"subentity_kinds.{kind}.plural in the workflow override, or change it only "
             f"while no {item.type} items exist",
+            rule="subentity_container_marker",
         )
     ]
 
@@ -713,6 +756,7 @@ def _subentity_body_written(ctx: ValidatorContext) -> list[CheckIssue]:
                     level,
                     item.id,
                     f"{sub.local_id} body is unwritten (still the placeholder stub)",
+                    rule="subentity_body_written",
                 )
             )
     return issues
@@ -739,6 +783,7 @@ def _subentity_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
             f" (threshold: {threshold})"
             " — a sub-entity title is a one-line handle;"
             " put the detail in the body",
+            rule="subentity_title_max",
         )
         for sub in item.subentities
         if len(sub.title) > threshold
@@ -763,6 +808,7 @@ def _item_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
             item.id,
             f"title is {length} chars (threshold: {threshold})"
             " — an item title is a one-line handle; put the detail in the body",
+            rule="item_title_max",
         )
     ]
 
@@ -785,6 +831,7 @@ def _body_written(ctx: ValidatorContext) -> list[CheckIssue]:
             item.id,
             "body is unwritten (still the template scaffold)"
             f' — write it with `sq {item.type} {item.sequence_id} body -m "..."`',
+            rule="body_written",
         )
     ]
 
@@ -801,6 +848,7 @@ def _description_present(ctx: ValidatorContext) -> list[CheckIssue]:
             level,
             item.id,
             "description is empty — set a summary: `--desc` on create, `update --desc` after",
+            rule="description_present",
         )
     ]
 
@@ -814,7 +862,14 @@ def _assignee_present(ctx: ValidatorContext) -> list[CheckIssue]:
     if item.assignee or not ctx.spec.role_for(item.status).live:
         return []
     level = _resolved_level(ctx, "assignee_present")
-    return [CheckIssue(level, item.id, f"status is {item.status} but nobody is assigned")]
+    return [
+        CheckIssue(
+            level,
+            item.id,
+            f"status is {item.status} but nobody is assigned",
+            rule="assignee_present",
+        )
+    ]
 
 
 def _blocked_has_blocker(ctx: ValidatorContext) -> list[CheckIssue]:
@@ -838,6 +893,7 @@ def _blocked_has_blocker(ctx: ValidatorContext) -> list[CheckIssue]:
             f"status is {item.status} but no dependency edge is recorded "
             f"(kinds: {', '.join(sorted(kinds))}) "
             "— record a dependency edge (`--ref <id>:<kind>` on create, `ref add` after)",
+            rule="blocked_has_blocker",
         )
     ]
 
@@ -855,7 +911,12 @@ def _settled_requires_discussion(ctx: ValidatorContext) -> list[CheckIssue]:
         return []
     level = _resolved_level(ctx, "settled_requires_discussion")
     return [
-        CheckIssue(level, item.id, f"status is {item.status} but its discussion holds no comment")
+        CheckIssue(
+            level,
+            item.id,
+            f"status is {item.status} but its discussion holds no comment",
+            rule="settled_requires_discussion",
+        )
     ]
 
 
@@ -879,6 +940,7 @@ def _external_id_not_in_title(ctx: ValidatorContext) -> list[CheckIssue]:
             item.id,
             f"title holds `{found.group(0)}` (matches the external-id pattern `{pattern}`)"
             " — keep tracker ids out of the title",
+            rule="external_id_not_in_title",
         )
     ]
 
@@ -897,6 +959,7 @@ def _no_status_banner(ctx: ValidatorContext) -> list[CheckIssue]:
                 item.id,
                 "body opens with a status/lifecycle banner"
                 " — move state to frontmatter or a dated discussion comment",
+                rule="no_status_banner",
             )
         ]
     if _opens_with_status_banner(item.description):
@@ -906,6 +969,7 @@ def _no_status_banner(ctx: ValidatorContext) -> list[CheckIssue]:
                 item.id,
                 "description opens with a status/lifecycle banner"
                 " — move state to frontmatter or a dated discussion comment",
+                rule="no_status_banner",
             )
         ]
     return []
@@ -927,7 +991,10 @@ def _supersedes_incoming(ctx: ValidatorContext) -> list[CheckIssue]:
         level = _resolved_level(ctx, "supersedes_incoming")
         return [
             CheckIssue(
-                level, item.id, f"status is {item.status} but no incoming supersedes edge found"
+                level,
+                item.id,
+                f"status is {item.status} but no incoming supersedes edge found",
+                rule="supersedes_incoming",
             )
         ]
     return []
@@ -989,6 +1056,7 @@ def _ref_rule_target_present(ctx: ValidatorContext) -> list[CheckIssue]:
             item.id,
             f"settled with no {'/'.join(kinds)} ref to a {'/'.join(sorted(active))} — its "
             "functional contract slice may be stale",
+            rule="ref_rule_target_present",
         )
     ]
 
@@ -1020,6 +1088,7 @@ def _ref_rule_target_typed(ctx: ValidatorContext) -> list[CheckIssue]:
                 item.id,
                 f"{kind} edge to {rid} points at a {target_item.type}, but a {item.type}'s "
                 f"{kind} refs must point at a {'/'.join(sorted(targets))}",
+                rule="ref_rule_target_typed",
             )
         )
     return issues
@@ -1065,7 +1134,7 @@ def _item_skill_shadowed(ctx: ValidatorContext) -> list[CheckIssue]:
             f"with no item_skill tag — {doc_type}'s generated skill guidance has nowhere to "
             f"render; {remedy}"
         )
-    return [CheckIssue(level, item.id, detail)]
+    return [CheckIssue(level, item.id, detail, rule="item_skill_shadowed")]
 
 
 def _attribute_valid(ctx: ValidatorContext) -> list[CheckIssue]:
@@ -1088,14 +1157,23 @@ def _attribute_valid(ctx: ValidatorContext) -> list[CheckIssue]:
         if value is None:
             if spec.required:
                 issues.append(
-                    CheckIssue(level, ctx.item.id, f"missing required attribute {name!r}")
+                    CheckIssue(
+                        level,
+                        ctx.item.id,
+                        f"missing required attribute {name!r}",
+                        rule="attribute_valid",
+                    )
                 )
             continue
         problem = value_problem(spec, value)
         if problem is None and name == AttributeKey.ORIGIN and value not in ORIGIN_VALUES:
             problem = f"expected one of {', '.join(ORIGIN_VALUES)}, got {value!r}"
         if problem is not None:
-            issues.append(CheckIssue(level, ctx.item.id, f"attribute {name!r}: {problem}"))
+            issues.append(
+                CheckIssue(
+                    level, ctx.item.id, f"attribute {name!r}: {problem}", rule="attribute_valid"
+                )
+            )
     return issues
 
 
@@ -1122,6 +1200,7 @@ def _pronouns_valid(ctx: ValidatorContext) -> list[CheckIssue]:
             item.id,
             f"pronouns {problem} — replace it with "
             f"`sq {item.type} {item.slug} update --pronouns <text>`",
+            rule="pronouns_valid",
         )
     ]
 
@@ -1135,7 +1214,10 @@ def _frontmatter_key_undeclared(ctx: ValidatorContext) -> list[CheckIssue]:
     level = _resolved_level(ctx, "frontmatter_key_undeclared")
     return [
         CheckIssue(
-            level, ctx.item.id, f"frontmatter key {key!r} is not declared on {ctx.item.type}"
+            level,
+            ctx.item.id,
+            f"frontmatter key {key!r} is not declared on {ctx.item.type}",
+            rule="frontmatter_key_undeclared",
         )
         for key in ctx.item.attributes
         if key not in declared
@@ -1224,7 +1306,7 @@ def on_disk_not_indexed(seq: int, fid: str, *, indexed: bool, level: str) -> Che
     a freshly loaded index's membership for just this candidate — never a second copy."""
     if indexed:
         return None
-    return CheckIssue(level, fid, "on disk but not in index (run `sq repair`)")
+    return CheckIssue(level, fid, "on disk but not in index (run `sq repair`)", "index_reconciled")
 
 
 def not_on_disk(item: Item, *, on_disk: bool, level: str) -> CheckIssue | None:
@@ -1232,7 +1314,7 @@ def not_on_disk(item: Item, *, on_disk: bool, level: str) -> CheckIssue | None:
     ``on_disk_not_indexed``."""
     if on_disk:
         return None
-    return CheckIssue(level, item.id, "in index but no markdown file found")
+    return CheckIssue(level, item.id, "in index but no markdown file found", "index_reconciled")
 
 
 def _index_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
@@ -1310,6 +1392,7 @@ def _backend_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
                 level,
                 rel_path,
                 f"managed file missing — run `sq sync` (backend: {backend.name})",
+                rule="backend_reconciled",
             )
             for rel_path in backend.managed_paths(bctx)
             if not (bctx.root / rel_path).exists()
@@ -1376,7 +1459,10 @@ def backend_entry_missing(
     if (root / rel_path).exists():
         return None
     return CheckIssue(
-        "warn", rel_path, f"managed pointer missing — run `sq sync` (backend: {backend_name})"
+        "warn",
+        rel_path,
+        f"managed pointer missing — run `sq sync` (backend: {backend_name})",
+        "backend_reconciled",
     )
 
 
@@ -1505,7 +1591,10 @@ def backend_entry_drift(  # noqa: PLR0913 — one keyword per input of the re-re
         else "is out of date or edited by hand"
     )
     return CheckIssue(
-        level, rel_path, f"managed pointer {verb} — run `sq sync` (backend: {backend.name})"
+        level,
+        rel_path,
+        f"managed pointer {verb} — run `sq sync` (backend: {backend.name})",
+        "backend_reconciled",
     )
 
 
@@ -1533,7 +1622,12 @@ def _roster_config_integrity(ctx: SquadGlobalContext) -> list[CheckIssue]:
     )
     level = squad_global_level(ctx.spec, "roster_config_integrity")
     return [
-        CheckIssue(level, f.entry, f"config integrity: {config_integrity.render_finding(f)}")
+        CheckIssue(
+            level,
+            f.entry,
+            f"config integrity: {config_integrity.render_finding(f)}",
+            rule="roster_config_integrity",
+        )
         for f in findings
     ]
 
@@ -1574,6 +1668,7 @@ def _default_designation_duplicated(ctx: SquadGlobalContext) -> list[CheckIssue]
             "",
             "more than one live role carries the default-role designation: "
             f"{', '.join(holders)} — remedy: `sq role <addr> set-default`",
+            rule="default_designation_duplicated",
         )
     ]
 
@@ -1632,6 +1727,7 @@ def _roster_slug_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
             level,
             b.item.id,
             f"{b.text('it is also held by')} — remedy: {_slug_breach_remedy(b, breaching, live)}",
+            rule="roster_slug_valid",
         )
         for b in breaches
     ]
@@ -1645,7 +1741,9 @@ def _display_config_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
     """
     level = squad_global_level(ctx.spec, "display_config_valid")
     return [
-        CheckIssue(level, CONFIG_FILENAME, f"{problem}; the default applies")
+        CheckIssue(
+            level, CONFIG_FILENAME, f"{problem}; the default applies", rule="display_config_valid"
+        )
         for problem in ctx.paths.config.display_problems
     ]
 
@@ -1655,7 +1753,11 @@ def _working_language_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
     applies. An absent key is valid. The finding names the config file."""
     level = squad_global_level(ctx.spec, "working_language_valid")
     _, problem = resolve_working_language(ctx.paths.config.working_language)
-    return [] if problem is None else [CheckIssue(level, CONFIG_FILENAME, problem)]
+    return (
+        []
+        if problem is None
+        else [CheckIssue(level, CONFIG_FILENAME, problem, rule="working_language_valid")]
+    )
 
 
 def _view_transform_resolves(ctx: SquadGlobalContext) -> list[CheckIssue]:
@@ -1664,7 +1766,7 @@ def _view_transform_resolves(ctx: SquadGlobalContext) -> list[CheckIssue]:
     top-level code runs; the function is never called."""
     level = squad_global_level(ctx.spec, "view_transform_resolves")
     return [
-        CheckIssue(level, f"views.{name}.transform", message)
+        CheckIssue(level, f"views.{name}.transform", message, rule="view_transform_resolves")
         for name, message in check_view_transforms(ctx.spec, ctx.paths.squad_dir)
     ]
 
@@ -1724,7 +1826,7 @@ def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
             override_commands=playbook_override_command_lines(ctx.paths.squad_dir, ctx.files),
         )
     ]
-    return [CheckIssue(level, "", message) for message in messages]
+    return [CheckIssue(level, "", message, rule="playbook_guide_role_live") for message in messages]
 
 
 @dataclass(frozen=True)
@@ -1829,6 +1931,7 @@ def _type_has_live_author(ctx: SquadGlobalContext) -> list[CheckIssue]:
                 "",
                 f"type {item_type!r} has {open_count} open {_plural(open_count, 'item')} but no "
                 "live role authors it" + (f" — {' or '.join(remedies)}" if remedies else ""),
+                rule="type_has_live_author",
             )
         )
     return issues
@@ -1887,6 +1990,7 @@ def _children_settled_with_parent(ctx: SquadGlobalContext) -> list[CheckIssue]:
                 parent.id,
                 f"{parent.id} is {parent.status} with {len(kids)} open "
                 f"{'child' if len(kids) == 1 else 'children'}: {_ids(kids)}",
+                rule="children_settled_with_parent",
             )
         )
     return issues
@@ -2009,7 +2113,7 @@ def _dependency_acyclic(ctx: SquadGlobalContext) -> list[CheckIssue]:
         rest = [seq for seq in component if seq not in path]
         if rest:
             text += " (also involving " + ", ".join(ctx.index.items[s].id for s in rest) + ")"
-        issues.append(CheckIssue(level, "", text))
+        issues.append(CheckIssue(level, "", text, rule="dependency_acyclic"))
     return issues
 
 
@@ -2029,6 +2133,7 @@ def _wip_limit(ctx: SquadGlobalContext) -> list[CheckIssue]:
             "",
             f"{slug} holds {len(items)} active {_plural(len(items), 'item')} "
             f"(limit {limit}): {_ids(items)}",
+            rule="wip_limit",
         )
         for slug, items in sorted(held.items())
         if len(items) > limit
@@ -2050,6 +2155,7 @@ def _unassigned_active(ctx: SquadGlobalContext) -> list[CheckIssue]:
             f"{len(unassigned)} active {_plural(len(unassigned), 'item')} "
             f"{'has' if len(unassigned) == 1 else 'have'} no assignee (limit {limit}): "
             f"{_ids(unassigned)}",
+            rule="unassigned_active",
         )
     ]
 
@@ -2068,6 +2174,7 @@ def _stale_active(ctx: SquadGlobalContext) -> list[CheckIssue]:
             it.id,
             f"{it.id} is {it.status} and untouched since {clock.iso(it.updated_at)} "
             f"(more than {days} {_plural(days, 'day')})",
+            rule="stale_active",
         )
         for it in active_items(ctx.index, ctx.spec)
         if it.updated_at < cutoff

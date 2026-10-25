@@ -10,14 +10,14 @@ refs:
 subentities:
 - local_id: F1
   title: Type-filter picker omits closed-only types when show-closed is off
-  status: Open
+  status: Noted
   severity: low
 - local_id: F2
   title: clearFiltersAndGrouping intentionally leaves show-closed on
-  status: Open
+  status: Noted
   severity: low
 created_at: '2026-07-17T15:28:30Z'
-updated_at: '2026-07-17T15:30:55Z'
+updated_at: '2026-10-25T19:39:18Z'
 ---
 <!-- sq:body -->
 Independent review of TASK-454 (Ada built it) — the toolbar & display-controls changes under `clients/vscode/**` implementing REV-448 F2–F7. Verified against the working-tree diff (uncommitted); the `resources/*.svg` churn is unrelated concurrent TASK-458 icon work and out of scope here.
@@ -47,6 +47,8 @@ Low / arguably-correct: filtering to a type whose items are all hidden would sho
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:18Z] `reviewer` Paul Reviewer:
+  - Still true and deliberate: knownItemTypes comes from the active fetch (clients/vscode/src/treeDataProvider.ts); kept as a note.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -60,6 +62,8 @@ Low / arguably-correct: filtering to a type whose items are all hidden would sho
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:39:18Z] `reviewer` Paul Reviewer:
+  - Still true and deliberate: clearFilterAndGrouping keeps showClosed (clients/vscode/src/treeDataProvider.ts); kept as a note.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 <!-- sq:findings:end -->

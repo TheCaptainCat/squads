@@ -12,7 +12,7 @@ refs:
 description: The adopter owns .squads.toml; squads_version is dropped everywhere and
   only the schema gate remains
 created_at: '2026-10-24T17:31:43Z'
-updated_at: '2026-10-24T18:17:07Z'
+updated_at: '2026-10-25T21:41:27Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -53,4 +53,6 @@ updated_at: '2026-10-24T18:17:07Z'
   - Revised per op-pierre d206aa4: squads_version dropped from SquadsConfig, SquadsDB and the managed files, with no replacement stamp. version_notice removed, the roster backfill runs on every sync (the implementer measures the cost), and the role/skill empty-body hints lose their drift branch. The earlier managed-region stamp and recorded_version are withdrawn.
 - [2026-10-24T18:17:07Z] `manager` Catherine Manager:
   - Accepted: the body records op-pierre decisions on TASK-1098 and on this ADR as made. @tech-lead folded into TASK-1098; @architect narrow ADR-1100 stamp clause.
+- [2026-10-25T21:41:27Z] `architect` Robert Architect:
+  - Audited 2026-10-25: holds. No squads_version or version_notice remains in src; _migrations/_config_text.py does the single-line schema_version stamp and the legacy-key regeneration.
 <!-- sq:discussion:end -->

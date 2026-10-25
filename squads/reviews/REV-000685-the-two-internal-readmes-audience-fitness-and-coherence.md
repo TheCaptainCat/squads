@@ -11,42 +11,42 @@ description: Root README and the VS Code extension README reviewed for audience 
 subentities:
 - local_id: F1
   title: Root README has no contributor onboarding
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: Ordering serves neither arrival
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: Extension README serves neither of its audiences
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Extension README describes two views; there are three
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: Ref-kind list is five of nine valid kinds
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F6
   title: Extension README omits search and display labels
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F7
   title: Review-finding id leaked into the extension README
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F8
   title: Dropped 'meta' terminology still in the extension README
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F9
   title: Neither README acknowledges its sibling documents
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-07-28T15:03:55Z'
-updated_at: '2026-07-29T08:39:06Z'
+updated_at: '2026-10-25T19:39:34Z'
 ---
 <!-- sq:body -->
 Independent review of the two internal READMEs — `README.md` (repo root, what GitHub shows) and
@@ -204,6 +204,8 @@ thin onboarding leaves open from the other side.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:34Z] `reviewer` Paul Reviewer:
+  - Holds: the root README has a Contributing section with both toolchains' gates, and CONTRIBUTING.md covers clients/.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -240,6 +242,8 @@ agents" up above the command reference.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:39:34Z] `reviewer` Paul Reviewer:
+  - Holds: the README order is Install, Quickstart, Working with agents, then reference, with Shell completion near the end.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -279,6 +283,8 @@ contributor, and would be structurally resistant to going stale.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:39:34Z] `reviewer` Paul Reviewer:
+  - Holds: clients/vscode/README.md is a layers map plus conventions and development sections, pointing at MARKETPLACE.md for features.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -317,6 +323,8 @@ Verified via `package.json`'s `views` block, not by comparing the two documents.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:39:34Z] `reviewer` Paul Reviewer:
+  - Holds: clients/vscode/README.md names all three trees, Work Items, Records and Roster.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -354,6 +362,8 @@ Verified against `VALID_REF_KINDS`, not against another document.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-25T19:39:34Z] `reviewer` Paul Reviewer:
+  - Holds: the README ref add line defers to sq workflow ref-kinds instead of listing kinds.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -389,6 +399,8 @@ Verified against `package.json`'s contributed commands and keybindings, the pres
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-10-25T19:39:34Z] `reviewer` Paul Reviewer:
+  - Holds: search and spec-driven labels appear in clients/vscode/README.md, with the feature prose in MARKETPLACE.md.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -422,6 +434,8 @@ that becomes convention if it stays.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-10-25T19:39:34Z] `reviewer` Paul Reviewer:
+  - Holds: no finding id remains in clients/vscode/README.md.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -456,6 +470,8 @@ edited anyway for the view-count error, so the cost of fixing it is zero.
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
+- [2026-10-25T19:39:34Z] `reviewer` Paul Reviewer:
+  - Holds: clients/vscode/README.md calls the category Roster; meta appears only in symbol names.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -499,6 +515,8 @@ rest.
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
+- [2026-10-25T19:39:34Z] `reviewer` Paul Reviewer:
+  - Holds: the README names PYPI.md and clients/vscode/MARKETPLACE.md as its siblings.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 <!-- sq:findings:end -->

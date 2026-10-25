@@ -13,17 +13,17 @@ refs:
 description: Spawn authority reserved to manager+tech-lead via per-role tool lists;
   identity-aware profiles gated on FEAT-000125
 created_at: '2026-06-21T21:40:15Z'
-updated_at: '2026-07-22T11:53:20Z'
+updated_at: '2026-10-25T21:36:48Z'
 ---
 <!-- sq:body -->
 ## Context
 
-squads roles are **prose constraints**: a role's skill file describes what the role *should* do,
-but every squads-managed agent session boots with the same full toolset regardless of role. A
-developer spawned to write Python holds the same spawn authority as the manager coordinating the
-team. Role limits are advisory, not structural.
+A squads role is, by default, a **prose constraint**: its skill file describes what the role
+*should* do, while every agent session boots with the same full toolset regardless of role. A
+developer spawned to write Python then holds the same spawn authority as the manager coordinating
+the team, and role limits are advisory, not structural.
 
-This flat-capability model caused a concrete incident. **BUG-152** (motivating incident): a
+That flat-capability model caused a concrete incident. **BUG-152** (motivating incident): a
 `python-dev` subagent spawned by the manager, instead of doing its task, re-delegated to another
 `python-dev` subagent ("big task, better call a subagent"); the child inherited the identical
 scope + toolset and repeated the decision, cascading ~6 levels deep with no forward progress. The
@@ -56,11 +56,11 @@ live in sq.
 1. **Enforcement lives at the Claude Code backend, via per-role tool lists — not an sq-runtime
    check.** The capability boundary is expressed in the subagent definition the harness loads,
    bound to the agent **type** at spawn time. The seam:
-   - add a capability field to `RoleDef` in `src/squads/_roles/_catalog.py` (e.g.
-     `can_spawn: bool`, default `False`);
-   - `generate_role_entry` in `src/squads/_backends/_claude_code/_backend.py` renders the agent
-     pointer via `templates/claude/pointer_agent.md.j2`, which already emits the agent frontmatter;
-   - emit `disallowedTools: Agent` from that template for non-spawner roles
+   - a role declares `can_spawn: bool` (default `false`) in its catalog entry (`roles.toml`, or a
+     role override), carried on the role's resolved definition;
+   - `generate_role_entry` in the Claude Code backend renders the agent pointer via
+     `templates/claude/pointer_agent.md.j2`, which emits the agent frontmatter;
+   - that template emits `disallowedTools: Agent` for non-spawner roles
      (`{% if not can_spawn %}disallowedTools: Agent{% endif %}`).
 
    sq stays the CLI; the backend owns the session contract. (A global `settings.json` deny rule is
@@ -79,13 +79,13 @@ live in sq.
    that cannot spawn. Concretely: `can_spawn = True` for `manager` and `tech-lead`, `False` for all
    others; non-spawners' rendered agent files deny `Agent`. This is the structural fix for
    BUG-152: a leaf that does not hold the tool cannot self-spawn, regardless of how it reasons
-   about its task. It is independent of FEAT-125 and unblocks the bug immediately.
+   about its task. It needs no identity work (FEAT-125).
 
 3. **Identity-aware capability profiles are gated on FEAT-125.** The richer per-role capability
    profile — lane enforcement ("a developer cannot mutate items outside its assigned lane"),
    separation-of-duties, and any check that must verify *who* an actor really is — requires
-   trustworthy identity to enforce against, and is explicitly **out of this slice**. FEAT-125
-   can, in 1.x, offer only **recorded-but-not-tamper-evident** lineage: there is no Claude Code
+   trustworthy identity to enforce against, and is explicitly **out of scope here**. FEAT-125
+   offers, in 1.x, only **recorded-but-not-tamper-evident** lineage (ADR-158): there is no Claude Code
    surface that injects a platform session handle (`{session_id, parent_session_id}`) into a
    subagent's environment for sq to read, so the strongest feasible mechanism is a spawner-minted
    nonce the child echoes — readable and copyable, i.e. it moves the self-declaration problem one
@@ -96,21 +96,19 @@ live in sq.
 
 ## Consequences
 
-- **Positive.** BUG-152's recursive-spawn cascade is closed structurally and immediately, with
-  no identity work and no sq-runtime machinery. Role constraints on spawn authority become
+- **Positive.** BUG-152's recursive-spawn cascade is closed structurally, with no identity work
+  and no sq-runtime machinery. Role constraints on spawn authority are
   structural rather than advisory. The boundary is small, testable (assert a rendered dev agent
   file denies `Agent`), and visible via `sq role <slug> show`.
-- **Scoping.** FEAT-122's leaf-no-spawn slice (its US2) ships on type-bound tool lists alone and
-  does **not** depend on FEAT-125; its existing `depends-on FEAT-000125` ref is too strong for
-  the whole feature and should be re-pointed at the narrower lane-enforcement slice (flagged to
-  Catherine; not changed here per scope).
+- **Scoping.** FEAT-122's leaf-no-spawn slice rests on type-bound tool lists alone and does
+  **not** depend on FEAT-125; only the lane-enforcement slice (ADR-163) does.
 - **Negative / limits.** Enforcement does not cover human-driven `--as <role>` main-thread
   sessions, only type-launched subagents. Lane enforcement and separation-of-duties remain
-  advisory until FEAT-125 lands a trustworthy identity primitive. The first cut is coarse
+  advisory, because the recorded identity is untrusted (ADR-158, ADR-163). The first cut is coarse
   ("minus spawn"); finer per-tool attenuation is left for the richer profile work.
-- **Follow-ups.** `tech-lead`'s legitimate need to spawn a dev when breaking down a task is
-  preserved (it keeps `can_spawn`). When/if a richer profile is built, it extends the same
-  `RoleDef`→`pointer_agent.md.j2` seam rather than introducing an sq-side check.
+- **Extension.** `tech-lead`'s legitimate need to spawn a dev when breaking down a task is
+  preserved (it keeps `can_spawn`). A richer profile extends the same role-definition →
+  `pointer_agent.md.j2` seam rather than introducing an sq-side check.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -120,4 +118,6 @@ live in sq.
   - Accepted. Proceed: build Slice A (leaf-no-spawn) first as a full loop, then Slice B.
 - [2026-06-22T09:58:26Z] `manager` Catherine Manager:
   - Verification probe: confirming session lineage records on the reflog (Catherine).
+- [2026-10-25T21:36:48Z] `architect` Robert Architect:
+  - 2026-10-25 audit: light rewrite; decision unchanged. `can_spawn` lives in the role catalog (`roles.toml`) and its overrides, not as a field to add to `RoleDef`. Removed the follow-up about re-pointing FEAT-122's ref.
 <!-- sq:discussion:end -->

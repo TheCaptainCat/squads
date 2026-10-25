@@ -2,13 +2,13 @@
 id: MILE-1061
 sequence_id: 1061
 type: milestone
-title: squads 0.18 - more backends
+title: squads 0.19 - more backends
 status: Draft
 author: product-owner
 description: Codex, Cursor and other agent backends, with a role's model held per
   backend
 created_at: '2026-10-16T13:39:05Z'
-updated_at: '2026-10-16T13:42:10Z'
+updated_at: '2026-10-25T21:16:23Z'
 ---
 <!-- sq:body -->
 The backends release: squads stops being a Claude Code tool with a second, generic option, and gains the agent hosts people actually use next (Codex and Cursor first, others as they are asked for). This milestone holds the work that makes adding a backend routine and gives each backend its own model vocabulary, since a model name belongs to one provider: "opus" and "sonnet" mean nothing at OpenAI.

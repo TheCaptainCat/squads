@@ -16,14 +16,16 @@ description: Independent review of the four FEAT-17 deliverables; gate run clean
 subentities:
 - local_id: F1
   title: Corpus does not exercise the 0.1->0.2 review findings-skeleton path
-  status: Open
+  status: Deferred
   severity: low
+  deferred_to: TASK-1149
 - local_id: F2
   title: README completion claim about 'uv run sq' is slightly overstated
-  status: Open
+  status: Deferred
   severity: info
+  deferred_to: TASK-1149
 created_at: '2026-06-15T12:29:05Z'
-updated_at: '2026-06-15T12:29:56Z'
+updated_at: '2026-10-25T19:58:40Z'
 ---
 <!-- sq:body -->
 Independent review of FEAT-17 (1.0 hardening) across TASK-126 (migration fixture corpus), TASK-127 (scale test), TASK-128 (shell completion), and ADR-129 (Python >=3.14 floor). Built in parallel by separate agents; this is the independent gate.
@@ -53,6 +55,8 @@ The 0.1->0.2 runner has a review-specific branch (_insert_findings_skeleton + en
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:38:28Z] `reviewer` Paul Reviewer:
+  - Still true: tests/fixtures/corpus/v0_1 has no reviews/ folder; kept as a corpus-coverage note.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -66,6 +70,8 @@ README's Shell completion note says completion 'will not work through uv run sq 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:38:28Z] `reviewer` Paul Reviewer:
+  - Still true: the README completion note keeps the "wraps the entry point" wording; kept as a wording note.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 <!-- sq:findings:end -->

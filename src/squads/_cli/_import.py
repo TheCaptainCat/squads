@@ -74,7 +74,8 @@ def _result_json(result: ImportResult, *, dry_run: bool) -> dict[str, Any]:
         payload["handle_to_id"] = dict(applied.handle_to_id)
         payload["handle_to_sub"] = {h: list(v) for h, v in applied.handle_to_sub.items()}
         payload["issues"] = [
-            {"level": f.level, "item": f.item, "message": f.message} for f in applied.findings
+            {"level": f.level, "item": f.item, "message": f.message, "rule": f.rule}
+            for f in applied.findings
         ]
         payload["ok"] = not applied.error_findings
     return payload

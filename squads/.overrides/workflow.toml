@@ -46,6 +46,7 @@ validators = [
 
 [items.review]
 validators = [
+  "$(*items.review.validators)",
   "no_status_banner",
   "subentity_title_max:120",
 ]

@@ -1058,6 +1058,11 @@ class ServiceCore:
             item_type=item_type,
             addr=addr,
         )
+        if sections.get_section(rendered, markers.BODY) is None:
+            raise SquadsError(
+                f"the {item_type} creation template renders no body region; "
+                "check its project override under .overrides/templates/"
+            )
         rendered = sections.replace_section(rendered, markers.BODY, new_inner)
         squad_rel = item.path
         await self._write_new_item_file(self.paths.abspath(squad_rel), item, rendered)
@@ -1217,9 +1222,9 @@ class ServiceCore:
         await self._write_item_file(path, new_text)
 
     def _rescaffolded_body(self, text: str, item: Item, base: Item) -> str:
-        """A roster entry's *text* with its ``sq:body`` region re-rendered for *item*'s new
+        """An item's *text* with its ``sq:body`` region re-rendered for *item*'s new type,
         title, description and fields when the region is still *base*'s unwritten scaffold, so
-        an edit never makes the seeded template count as written. View tags keep their places;
+        an edit never makes the scaffold read as written. View tags keep their places;
         a written body is untouched."""
         if self._classified_view(item) is not None:
             return text  # the body comes from a view
@@ -1520,7 +1525,9 @@ class ServiceCore:
     async def _section_edit_core(
         self, db: SquadsDB, item_id: str, mutate: Callable[[str, Item], tuple[str, bool]]
     ) -> tuple[Item, bool]:
-        """The section-edit mutation core: takes an already-open transaction's ``db``.
+        """The section-edit mutation core: takes an already-open transaction's ``db``. A region
+        the file lacks outright (the discussion, a sub-entity's block, body or discussion) is
+        added empty before ``mutate`` runs, so a write never fails on a file written by hand.
 
         ``mutate(text, item)`` returns ``(new_text, changed)`` (sync callable — may raise to
         abort before any write). When ``changed`` is ``False`` the file is never rewritten and
@@ -1548,6 +1555,13 @@ class ServiceCore:
         path = item_file(self.paths, it)
         text = await self._read_item_file(it, path)
         ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
+        text = discussion.restore_regions(
+            text,
+            it,
+            self.spec.item_subentity_kind(it.type),
+            self.spec,
+            from_squad=self.paths.squad_dir,
+        )
         new_text, changed = mutate(text, it)
         if not changed:
             return it, False
@@ -1643,10 +1657,13 @@ class ServiceCore:
 
     async def _skill_remedy(self, md: Path, item_type: str, scan: SkillScan) -> str | None:
         """The remedy a report line gives for a stamped managed-skill file, else ``None``."""
-        if item_type != ROSTER_SKILL or stamped_skill_slug(md, self.spec) not in (
-            managed_skill_slugs(self.spec)
-        ):
+        if item_type != ROSTER_SKILL or stamped_skill_slug(md, self.spec) is None:
             return None
+        if stamped_skill_slug(md, self.spec) not in managed_skill_slugs(self.spec):
+            state = await self._skill_folder_state(scan)
+            if not state.known:
+                state = state.with_index(await self._indexed_skills(scan))
+            return state.stray_remedy(md.name, self.spec)
         return remedy_text((await self._skill_folder_state(scan)).verdict(md.name, self.spec))
 
     async def _id_carriers(self, log: CarrierLog | None = None) -> list[tuple[object, Path]]:

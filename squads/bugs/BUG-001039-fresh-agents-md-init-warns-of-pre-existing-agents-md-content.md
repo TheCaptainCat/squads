@@ -3,14 +3,14 @@ id: BUG-1039
 sequence_id: 1039
 type: bug
 title: Fresh agents_md init warns of pre-existing AGENTS.md content
-status: Open
+status: Verified
 author: qa
 priority: low
 refs:
 - REV-1032
 - MILE-1051:targets
 created_at: '2026-10-16T09:01:11Z'
-updated_at: '2026-10-16T12:24:18Z'
+updated_at: '2026-10-25T19:52:11Z'
 ---
 <!-- sq:body -->
 ## Repro
@@ -40,4 +40,6 @@ Found in the docs audit (REV-1032 aside, REV-1034).
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-25T19:52:07Z] `qa` Mara Tester:
+  - Verified on sq 0.17.0 (git init only inside the scratch dir). Fresh sq init --backend agents_md in an empty dir: no warning, AGENTS.md holds header + managed section, sq check clean. Neighbours: pre-existing hand-written AGENTS.md still warns and the text is preserved; sq sync afterwards warns nothing; existing file with markers, and an empty existing file: no warning; claude_code init: no warning.
 <!-- sq:discussion:end -->

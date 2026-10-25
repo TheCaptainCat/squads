@@ -16,31 +16,31 @@ subentities:
 - local_id: F1
   title: Push boot-surfacing + unconditional directive vs conditional sections = dangling
     reference on fresh installs
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: The .index.jsonl becomes readerless once surfacing is removed — derived data
     stored for no consumer
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F3
   title: 'Resolution (Full): role-sheet pull-at-startup; rip out boot-surfacing and
     drop the .index.jsonl machinery'
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F4
   title: sq-memory skill still teaches push-at-boot surfacing — contradicts the pull
     directive (F1 relapse)
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: high
 - local_id: F5
   title: Stale .index.jsonl references survive in the two content-model docstrings
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 created_at: '2026-07-15T12:22:49Z'
-updated_at: '2026-07-15T13:14:40Z'
+updated_at: '2026-10-25T19:39:05Z'
 ---
 <!-- sq:body -->
 Design review of how EPIC-316 shared team knowledge (agent memory + the bulletin board) reaches an agent at the start of a run.
@@ -84,6 +84,8 @@ But the sections it names are conditional. `## Your memory` renders only under `
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T19:39:05Z] `reviewer` Paul Reviewer:
+  - Holds: no template renders a Your memory or Board block; the role pointer tells agents to run sq memory list and sq board list.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -110,6 +112,8 @@ This is stored/derived data kept in sync for no reader — the "don't store what
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-25T19:39:05Z] `reviewer` Paul Reviewer:
+  - Holds: _content_index.py and every .index.jsonl reference are gone from src/.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -147,6 +151,8 @@ Replace push-into-managed-files with a **pull-at-startup** model, and drop the n
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T19:39:05Z] `reviewer` Paul Reviewer:
+  - Holds: _memory_surface.py and _board_surface.py are gone from _backends/, and storage is plain .md files.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -160,6 +166,8 @@ Rewrote both passages in memory_skill.md.j2 to pull form (sq memory <role> list 
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-25T19:39:05Z] `reviewer` Paul Reviewer:
+  - Holds: views/memory_skill.md.j2 teaches the pull form (sq memory <role> list, sq board list).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -173,6 +181,8 @@ Dropped the .index.jsonl clause from _memory/_model.py and _board/_model.py docs
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-25T19:39:05Z] `reviewer` Paul Reviewer:
+  - Holds: no .index.jsonl mention remains in _memory/_model.py or _board/_model.py.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->

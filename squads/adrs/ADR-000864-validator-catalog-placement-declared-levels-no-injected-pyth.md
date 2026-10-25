@@ -11,70 +11,50 @@ refs:
 - ADR-777
 - ADR-696
 - ADR-955
+- ADR-167:supersedes
+- ADR-982
+- ADR-1109
 description: What a complete validator catalog looks like, which members are always
   on vs opt-in, and why adopter-supplied Python is not built.
 created_at: '2026-09-01T15:26:04Z'
-updated_at: '2026-10-24T23:46:53Z'
+updated_at: '2026-10-25T21:42:21Z'
 ---
 <!-- sq:body -->
 ## Context
 
-`sq check` and the create/update gate share one engine over one closed catalog. The catalog
-was assembled by lifting the hardcoded `_check_*` methods that existed at the time into named
-members, then adding a member whenever a new rule was wanted. Nobody has since asked what the
-*complete* set looks like, or on what principle a member belongs always on rather
-than sitting available and unselected.
+`sq check` and the create/update gate share one engine over one closed catalog. The catalog was
+assembled by lifting hardcoded checks into named members, then adding a member whenever a new rule
+was wanted, without asking what the *complete* set looks like or on what principle a member
+belongs always on rather than available and unselected.
 
-The question became concrete when the currency rule for contract refs met real data for the
-first time and produced 92 warnings in a repository where a clean `sq check` is a must-pass
-gate. Every one of those warnings was correct against the rule and useless to the reader: the
-rule had no way to record "this delivered work implements no adopter promise, deliberately",
-because plenty of delivered work genuinely does not. The resolution — take it out of the category defaults, leave the
-edge typing in place, let a project opt in — is being applied separately and is not reopened
-here. What that case exposed, and what this record is about, is that **"is this a defect in
-any squad?" and "is this a defect in some squad?" are different questions, and the catalog has
-been answering the second one while filing the answers under the first.**
+The question became concrete when the currency rule for contract refs met real data and produced
+92 warnings in a repository where a clean `sq check` is a must-pass gate. Every one was correct
+against the rule and useless to the reader: plenty of delivered work implements no adopter promise,
+deliberately. That case exposed that **"is this a defect in any squad?" and "is this a defect in
+some squad?" are different questions**, and the catalog had been answering the second while
+filing the answers under the first.
 
-Three things are in scope: the catalog as a designed set; checks that should exist for
-adopters this squad would never run; and whether an adopter should be able to supply their own
-Python as a validator.
+Three things are in scope: the catalog as a designed set; checks that should exist for adopters
+this squad would never run; and whether an adopter should be able to supply their own Python as a
+validator. The rulings are op-pierre's (2026-09-03): build the catalog out, with the declaration
+surface that makes it dialable, and no adopter-supplied Python.
 
-Every claim below about current behaviour is labelled **(read)** where it comes from the source,
-**(driven)** where it comes from running the shipped CLI against a throwaway squad, and
-**(speculative)** where it describes a design that does not exist. The throwaway squad was a
-fresh `sq init` in a scratch directory, removed afterwards.
+A per-item type's effective set is `COMMON_CORE` (always on) + the members on by default for its
+category (`CATEGORY_BUNDLES`) + the type's own `validators` list. The composition is extend-only:
+a type's list never subtracts from the always-on set or its category's defaults. The name catalog
+lives in the spec layer (`_workflow/_validator_names.py`) and the behaviour in the service layer,
+joined by an import-time assert that the two sets are equal, and `CONSISTENCY_CLAUSES` pairs each
+validator with the clause that guards its reachability, with `UNGUARDED_VALIDATOR_NAMES` naming the
+ones argued to need none, so a new member cannot be added without someone deciding which bucket it
+is in.
 
----
+Claims about behaviour below are labelled **(read)** where they come from the source,
+**(driven)** where they come from running the CLI against a throwaway squad, and
+**(speculative)** where they describe a design that does not exist.
 
-## Part 1 — the catalog as a designed set
+## Decision
 
-### What is there (read)
-
-Fifteen per-item validators and five squad-global ones. A per-item type's effective set is
-`COMMON_CORE` (always on) + the members on by default for its category + the type's own
-`validators` list. Five are always on:
-item status validity, dangling ref, ref-kind validity, no status banner, agent registered. The
-`work` category turns on parent eligibility and the four sub-entity checks plus story mapping; the
-`records` category turns on no-parent and the supersession check; `roster` adds nothing. Two members
-are on by default for no category and are reachable only by a type naming them: the requires-a-parent
-check and the ref-rule currency check.
-
-The composition is **extend-only, with no subtraction surface anywhere**. `effective_validator_names`
-takes the always-on set and the per-category defaults table as parameters, but both production call sites pass the
-module defaults; the only test that substitutes a stub is exercising the composition itself.
-The `[selected]` deselection mechanism in the override merge drops *keys from a spec document
-section* — an item type, a status — and the always-on and per-category tables are Python constants, not
-document sections, so no override reaches them. An adopter cannot turn an always-on member off.
-
-Two structural properties are worth keeping and are easy to lose. First, the name catalog lives
-in the spec layer and the behaviour lives in the service layer, joined by an import-time assert
-that the two sets are equal, so a spec's declared name can be checked for membership without the
-spec layer importing upward. Second, `CONSISTENCY_CLAUSES` pairs each validator with the clause
-that guards its reachability, `UNGUARDED_VALIDATOR_NAMES` names the ones argued to need none,
-and an assert closes the union against the whole catalog — so a new member cannot be added
-without someone deciding which bucket it is in.
-
-### The placement test
+### 1. The placement test
 
 The distinction the contract rule proved should be stated as a rule rather than rediscovered.
 Three placements, with a test for each:
@@ -98,222 +78,118 @@ required deciding, per feature, which promise the feature shaped.
 An opt-in validator is not dead code. Opt-in is the placement that makes the catalog a design
 rather than an accumulation, and the one the current set is thinnest in — two members.
 
-### Two always-on members fail their own test
+### 2. A selection declares its level and parameter
 
-**The status-banner check is a house convention that is always on.** It reports a body or summary
-whose first line opens with `STATUS:` or a `## Status` heading. This project has a strong,
-stated reason to want that: status lives in frontmatter and prose copies of it go stale. That
-reason is not universal. A team whose ADR template has carried a `## Status` heading for a
-decade gets a warning on every record they own, on an always-on member with no subtraction surface,
-and their only remedy is to restructure their documents to suit a tool. Making it on by default for the
-`records` and `work` categories would not help — a category default cannot be subtracted
-either. The honest placement is opt-in, selected by the types that want it, and selected by this
-project's own spec.
+- An entry on a type's `validators` list is `name`, `name:param`, `name@level` or
+  `name:param@level`, parsed by one function (`parse_validator_entry`) and validated at spec load.
+  An adopter selects a validator and says how much they mean it.
+- Every member has one declared default level (`DEFAULT_VALIDATOR_LEVEL`). A selection's `@level`
+  overrides it, within a declared floor (`VALIDATOR_LEVEL_FLOOR`) that a selection may raise but
+  never lower, for the members whose level is load-bearing: `parent_acyclic` and
+  `subentity_container_marker` stay `error`.
+- A threshold lives in the spec, as the member's parameter, never in a module constant:
+  `subentity_title_max:<n>` and `item_title_max:<n>` take a length, `ref_rule_target_present:<type>`
+  the type it selects an obligation for, `external_id_not_in_title:<pattern>` a regular expression.
+  The pattern is compiled at load and refused if it does not compile; `@` cannot appear in it,
+  since an entry is cut at its first `@` to read the level, and `\x40` spells a literal one. The
+  pattern runs unbounded, which is the adopter's own configuration risk, and the adopter
+  documentation says that a backtracking pattern can hang `sq check` and a gated write.
+- A member never binds to a status role by name. An *active* status is one whose role declares
+  `live = true`; a *settled* one is one whose role declares `settled = true`; a *blocked* one is one
+  whose role declares `blocked = true`, a boolean on the status role (default `false`; the bundled
+  `blocked` role declares it). `sq workflow roles --json` rows carry `blocked`.
+- A selection that the spec's own declarations make unable to fire, or unable to be cleared, is
+  refused at load: `assignee_present` on a type whose lifecycle holds no status of a live role;
+  `blocked_has_blocker` on a type whose lifecycle holds no status of a role declaring `blocked`, or
+  in a spec that declares no dependency-role ref kind; `ref_rule_target_typed` on a type that
+  declares no ref rule with a target; a work-policy member on a `roster` type. Whether the corpus
+  currently holds an offender is never part of that test.
 
-**The sub-entity title threshold is a constant, not a declaration.** The advisory fires above
-120 characters, and 120 is a module constant with no spec field behind it (read). Every squad
-gets our number. This is a smaller version of the same defect: a policy shipped as always on.
+### 3. The gate runs a member only where it can refuse, and only with the context it needs
 
-Neither is urgent and neither is broken. Both are the same mistake the contract rule made, and
-both are still standing.
+`ValidatorEngine.gate()` aborts a create or update on the first finding of an effective per-item
+member whose resolved level for the item's type is `error`; a member at `warn` is not evaluated at
+the gate at all, and `sq check` still runs it. Each member declares the context it requires (the
+item's on-disk text, a full-index scan), the gate builds its runnable set from the context it
+holds, and an assertion over the catalog enforces the correspondence, so no member falls out of the
+gate by the accident of a sentinel.
 
-### The dimension the catalog does not have: declared level and threshold
+The gate is not widened to the item's on-disk text. A create builds the `Item` in memory and gates
+it before the markdown exists, so a text-reading member could act on some gated doors and not
+others. `subentity_container_marker` therefore runs in `sq check` only, and keeps `error`: the
+condition it reports (a sub-entity kind's `plural` renamed over existing items) half-bricks a
+corpus, no create or update causes or cures it, and gating on it would refuse every item of the
+type at once for a defect none of them has. Report severity and gate participation are two
+declared properties, not one field doing two jobs.
 
-Each validator hardcodes its own level. Error-level findings fail the gate and abort a create
-or update; warn-level ones are advisory everywhere (read). An adopter can select a validator
-but cannot say *how much they mean it*.
+### 4. The catalog
 
-That single missing dimension explains most of the pressure toward injected code. The
-requires-a-parent check is opt-in because turning it on would error on every parentless item
-already on disk (its own docstring says so) — but as a *warning* it would be immediately
-useful to a project that wants the convention without the cliff. The contract-currency rule
-could have shipped on by default at warn if a project could have dialled it, and it is warn
-already; what it lacked was a parameter for "and here is the class of work that is exempt by
-construction". A threshold expressed in the spec rather than in a module constant covers the
-title case.
+**Always on (`COMMON_CORE`):** `item_status_valid`, `dangling_ref`, `ref_kind_valid`,
+`agent_registered`, `parent_acyclic`, `attribute_valid`. `parent_acyclic` is the clearest case: a
+parent cycle is a silent corpus state that made `sq tree` non-terminating.
 
-The likely shape (speculative): a level suffix on the assignment (`name:param@warn`) or a
-per-type map, validated at spec load the same way the parameter suffix already is, with a
-declared floor a selection may raise but not lower for the members whose level is load-bearing.
-This is a smaller change than injection and covers a large share of what injection would be
-used for.
+**On by default for a category (`CATEGORY_BUNDLES`):** `work` turns on `parent_in`,
+`subentity_status_valid`, `subentity_container_marker`, `subentity_body_written`,
+`subentity_deferral_resolved` and `subtask_story_mapping`; `records` turns on `no_parent` and
+`supersedes_incoming`; `roster` turns on `pronouns_valid`.
 
----
+**Opt-in, selected by the types that want them:**
 
-## Part 2 — checks that should exist, including ones this squad would not run
+- `no_status_banner` and `subentity_title_max:<n>`: house conventions, not universal defects. Both
+  fail the placement test as always-on members, so they are opt-in, and this project's own spec
+  selects them on every type it wants them on (`squads/.overrides/workflow.toml`).
+- `parent_present`: requires a parent. Its rule was always right; its cliff was its level, so it is
+  opt-in and selectable at `warn`.
+- `ref_rule_target_present:<type>`, the contract-currency rule that started this record.
+- The policy members: `item_title_max:<n>`, `ref_rule_target_typed`, `body_written`,
+  `description_present`, `assignee_present`, `blocked_has_blocker`,
+  `settled_requires_discussion`, `external_id_not_in_title:<pattern>`,
+  `frontmatter_key_undeclared`, `item_skill_shadowed`.
 
-Each is named with the placement it belongs in and who it is for. Levels are the proposed default.
-None of these exist (read: none appear in either name catalog).
+**Squad-global members** are selected in `[squad] validators` (ADR-982), with the same placement
+test: `children_settled_with_parent`, `dependency_acyclic`, `wip_limit:<n>`,
+`unassigned_active:<n>`, `stale_active:<days>` and `type_has_live_author` are selectable, never on by
+default. `stale_active` reads time through the injectable clock, once per run, so `sq check`
+stays deterministic over an unchanged corpus for every squad that has not selected it.
 
-**Defects — these belong always on or on by default for a category, for everyone:**
+**Not catalog members:**
 
-- **`parent_acyclic`** (error, always on). A parent chain that closes on itself. Driven: two bugs
-  made each other's parent under the *bundled* spec, with no override involved; `sq check`
-  reported no issue and exited 0, `sq list`, `sq <type> <n> show` and `sq repair` all behaved
-  normally, and both `sq tree <id>` and bare `sq tree` had to be killed after twenty seconds.
-  Read, for the mechanism: the ancestor walk that builds the keep set has no visited set, and
-  the downward walk recurses without one either. Read, for reachability: two bundled types
-  declare an empty parent list with no no-parent member, which the parent-eligibility validator
-  documents as "any parent or none" — so this is not an adopter-only shape. This is the
-  clearest case in the whole list: a silent corpus state that every gate calls clean and that
-  makes one command non-terminating. For everyone.
+- A badge or field value outside its declared collection is refused where the index loads, for
+  items and sub-entities alike, so no `field_value_declared` member exists: a member could never
+  report, because the load refuses first.
+- `label_declared` presupposes a declared label vocabulary, and labels are free strings with no
+  spec vocabulary behind them. It becomes buildable when that vocabulary exists.
 
-- **`field_value_declared`** (error, on by default for work + records). A badge or field value in
-  frontmatter that is not a member of the collection its field declares. Values set through the
-  CLI are parsed against the collection, but a hand-edited file, a bulk import, or a collection
-  narrowed in an override after the fact can all leave one behind, and nothing reads it back.
-  For every adopter who customises collections — which is to say, for adopters rather than for
-  us, since we ship the collections we use.
+### 5. Adopter-supplied Python is not built
 
-**Policies — opt-in, selected by the squads that want them:**
+Validator logic is hardcoded, a spec declares only *which* validators run and how loud, and there
+is no injected code and no `eval`. Two costs decide it: it would make six private model types a
+public API before the compatibility promise that would govern them exists, and it would turn every
+mutation verb, the create/update gate included, into an execution vector for code that arrives
+with the corpus rather than by a deliberate install. Two things are ruled alongside it so they are
+not re-litigated as loopholes:
 
-- **`item_title_max:<n>`** (warn). Sub-entity titles are length-checked; item titles are not.
-  Driven: a 200-character bug title was created with no advisory and `sq check` stayed clean.
-  For any team whose items are authored by agents — ours emphatically included, which makes
-  this one this project would select.
+- If injection is ever revisited, only the **entry-point** shape is admissible (an installed,
+  versioned, resolvable package), not a dropped file under `.overrides/`, which would sit inside
+  the override contract without participating in it. The compatibility promise for the exposed
+  surface is answered *first*.
+- The override-templates asymmetry (adopter Jinja renders in-process in an environment that is not
+  a security boundary) is **not** settled here and is **not** a reason to admit validators. It is a
+  question about templates, owned by whoever writes the stability promise. View transforms
+  (ADR-1109) are a separately decided, trusted adopter surface; they are not validators.
 
-- **`ref_rule_target_typed`** (warn). An edge carrying a declared rule's kind but pointing at a
-  type the rule does not target. Read: kind validity checks membership in the declared kind set
-  and nothing else; the currency check returns early on a *satisfying* edge and otherwise
-  reports an absence. Driven, with the currency rule opted in through an override: a feature
-  holding an `implements` edge to a task, with a contract present in the corpus, produced
-  "settled with no implements ref to a contract" — an accurate message about an absence, and
-  no message at all about the edge that was pointing at the wrong thing. For adopters who
-  declare typed ref rules, which is the whole point of declaring them.
+### 6. What the placement test binds
 
-- **`body_written`** (warn). An item body still sitting at the rendered placeholder. The
-  sub-entity equivalent already exists and is on by default for its category; the item-level one does not. For teams
-  that create items in batches ahead of writing them.
+The three placements are the admission rule for any future member: always on is a defect in every
+squad that no competent team can sit in on purpose; on by default for a category follows from what
+the category *means*, not from what its bundled types happen to want; and a finding whose
+clearing is a judgement call about the work is a policy, which sits behind an opt-in. A new member
+also states which bucket of the consistency-clause closure it is in, and which context it requires.
+An opt-in validator is not dead code; opt-in is the placement that makes the catalog a design.
 
-- **`description_present`** (warn). An item with no summary line, which is what every list
-  view shows. For large boards; irrelevant on a small one.
+## Why adopter-supplied Python is not built
 
-- **`assignee_present`** (warn). An item at an `active`-role status with nobody on it. For
-  teams mixing human and agent assignment; noise for a squad where one agent picks up
-  everything.
-
-- **`blocked_has_blocker`** (warn). An item at a `blocked`-role status with no dependency edge
-  in either direction — the blocker exists only in somebody's head. For teams that use the
-  blocked status as a real signal rather than a parking space.
-
-> **Amended 2026-10-12 (ADR-696 §3):** "`active`-role" and "`blocked`-role", here and in the
-> squad-global candidates below, do not name roles the engine knows. Role names are a project's
-> to rename, and no role name is engine-bound except the fallback role. A member binds in one
-> of two ways:
->
-> - **To a property the role declares.** An *active* status is one whose role declares
->   `live = true`, the reading `first_active_status` already uses; a *settled* one is one whose
->   role declares `settled = true`. `assignee_present` reads the first.
-> - **To a role its own selection names**, where no property carries the meaning. The entry is
->   `blocked_has_blocker:<role>`: the parameter is required and names the role this squad gives
->   its blocked statuses.
->
-> A selection that the spec's own declarations make unable to fire, or unable to be cleared, is
-> refused at load, as `ref_rule_target_present` already is: `assignee_present` on a type whose
-> lifecycle holds no live status; `blocked_has_blocker` with no role, with an undeclared role,
-> with a role no status of the type's lifecycle carries, or in a spec that declares no
-> dependency-role ref kind; `ref_rule_target_typed` on a type that declares no ref rule with a
-> target. Whether the corpus currently holds an offender is never part of that test.
-
-> **Corrected 2026-10-12 (op-pierre, this decision's discussion):** the second way of binding was
-> not confirmed, and the `:<role>` parameter goes with it. A role declares what it means with a
-> flag, so the status-role object gains one: `blocked`, a boolean that defaults to false, beside
-> `settled`, `hidden`, `color` and `live`. The bundled `blocked` role declares `blocked = true`.
-> `blocked_has_blocker` takes no parameter and reads the flag off the status's role. The first
-> way of binding, `live` for active, and the refusal rule stand as written.
->
-> - **Frozen surface.** The `sq workflow roles --json` row gains `blocked` as its sixth key
->   (ADR-474, ADR-738). The change is additive.
-> - **The refusals, restated.** `assignee_present` on a type whose lifecycle holds no status of a
->   live role; `blocked_has_blocker` on a type whose lifecycle holds no status of a role
->   declaring `blocked`, or in a spec that declares no dependency-role ref kind;
->   `ref_rule_target_typed` on a type that declares no ref rule with a target.
-> - **A squad that declares its own roles** has no blocked role until one of them declares the
->   flag. Nothing changes for it on upgrade; selecting the check is refused, naming the flag,
->   until it does.
-> - No other consumer reads the flag. `sq blocked` and the `blocked` key of `sq tree --json` are
->   computed from dependency edges and are unrelated to it.
-
-- **`settled_requires_discussion`** (warn). An item reaching a settled status with an empty
-  discussion. For teams using the corpus as an audit record, where "why did this close" has to
-  be answerable later. Not for a squad that closes routine work silently.
-
-- **`external_id_not_in_title:<pattern>`** (warn). A title carrying a foreign tracker's
-  identifier. For teams mirroring another system, who want the identifier in a ref and not
-  baked into a title that outlives the mirror.
-
-> **Amended 2026-10-12:** the pattern is a template, not a regular expression. Python's `re` has
-> no timeout, and an adopter's expression that backtracks would hang `sq check`, and at `@error`
-> a gated write with the index lock held: the failure "Failure modes" below names for injected
-> code. A template is literal text plus two placeholders, `{d}` (one or more ASCII digits) and
-> `{A}` (one or more ASCII upper-case letters); `{A}-{d}` is a typical tracker key. It is matched
-> anywhere in the title, never starting or ending inside a run of letters and digits, in time
-> proportional to title length times template length. Refused at load: an empty template, any
-> other use of a brace, and a placeholder directly followed by itself or by a literal of its own
-> class, which could never match. Several trackers are several entries, each its own template.
-
-> **Not confirmed 2026-10-12 (op-pierre, this decision's discussion):** the template grammar is
-> not adopted. The parameter is a regular expression, as the bullet above first said, and the
-> cost of a bad pattern is the adopter's own configuration risk. What stands:
->
-> - The pattern is required and is compiled at load. One that does not compile is refused,
->   naming the entry. It is searched for in the title with no flags, one pattern per type.
-> - `@` cannot appear in a pattern, because an entry is cut at its first `@` to read the level.
->   The refusal says so, in place of the generic unknown-level message, and gives `\x40` as the
->   spelling of a literal one.
-> - Nothing bounds a match. The adopter documentation states that the pattern runs on every
->   `sq check` and on every gated write of an item of a selecting type, that a write holds the
->   index lock while it runs, and that a pattern which backtracks can therefore hang both.
-
-> **Corrected 2026-10-12 (the gate runs only a member that can refuse):** the last point is
-> narrowed. The create/update gate evaluates a per-item member only where its resolved level for
-> the item's type is `error`, besides holding the context the member requires. The gate already
-> discarded every `warn` finding, so no gate decision changes. The pattern therefore runs on
-> every `sq check`, and on a gated write only for a type that selects the check at `@error`;
-> that is where a write holds the index lock while it runs. One outcome differs for every
-> member: one selected at `warn` that raises no longer aborts a write, and `sq check` still
-> runs it.
-
-- **`label_declared`** (warn). A label outside a declared vocabulary. Read: labels are free
-  strings with no spec vocabulary behind them, so this member presupposes new spec vocabulary
-  and is not shippable on its own. For organisations that want a controlled taxonomy. Named
-  here as a catalog member with a prerequisite, not as a candidate ready to build.
-
-**Squad-global candidates:**
-
-- **`children_settled_with_parent`** (warn). A parent at a settled status with open children.
-  For everyone, and specifically for the failure this team has already hit more than once —
-  a parent closed against its children rather than against its outcomes.
-
-- **`dependency_acyclic`** (warn). A cycle among dependency-semantic edges, which the blocked
-  view would render as a permanent mutual block. For adopters who use dependencies heavily.
-
-- **`wip_limit:<n>`** (warn). More than *n* items at an `active`-role status for one assignee.
-  For teams running a kanban discipline. Explicitly not for this squad, and a good example of
-  opt-in: it is a real check, it is nobody's defect, and it would be wrong to turn on by default.
-
-- **`unassigned_active:<n>`** (warn). The roll-up of the per-item version, for a board owner
-  who wants one line rather than fifty.
-
-- **`stale_active:<days>`** (warn). An item at an active status untouched for *n* days. For
-  adopters running long-lived boards. Worth naming for a second reason: neither context object
-  carries a clock (read), and a check whose output changes with wall-clock time makes `sq check`
-  non-deterministic between two runs over an unchanged corpus. That is a real cost, and it is
-  the kind of cost that should be argued once in the catalog rather than per adopter.
-
----
-
-## Part 3 — adopter-supplied Python
-
-The accepted decision that created this framework states the boundary in those words: validator
-logic is hardcoded, there is no adopter-supplied validator code and no `eval`, and what a spec
-declares is only *which* validators run (read). So this is not a green field. Anything here is
-an amendment to a standing ruling, and the burden is on the amendment.
-
-Below, the hard questions, with what is actually true today rather than what would be
-convenient.
-
-### Trust and execution
+#### Trust and execution
 
 Today no adopter-named Python is imported anywhere. The backend registry imports a hardcoded
 tuple of two built-in module paths and nothing else; there is no `eval`, no `exec`, and no
@@ -340,7 +216,7 @@ forbids injected validators, the same threat model has something to say about ov
 templates, and the two should be answered together rather than one being used to wave the
 other through.
 
-### Discovery and declaration
+#### Discovery and declaration
 
 Two shapes, and they differ on precisely the consent question above (speculative — neither
 exists).
@@ -363,7 +239,7 @@ adopters would reasonably expect `sq override` to know about it. (Read, for the 
 override missing its base stamp is an error-level check finding — driven, incidentally, while
 opting into the currency rule.)
 
-### API surface and stability — the real cost
+#### API surface and stability — the real cost
 
 The two context objects are frozen dataclasses in a private service module, in a package whose
 `__init__` re-exports nothing. Handing them to adopter code makes public API of the contexts
@@ -386,7 +262,7 @@ gap in the contract set. Injecting validators means answering that question firs
 surface, in isolation from the rest of it. That ordering is backwards, and it is the strongest
 non-security argument against building this now.
 
-### Failure modes
+#### Failure modes
 
 Better than expected in one direction and worse in another.
 
@@ -394,14 +270,10 @@ Better than expected in one direction and worse in another.
 before the markdown render and write (read: the model is built and gated, then the file is
 rendered and written). An exception escaping the transaction body releases all three lock layers
 and reaches `os.replace` never having been called, leaving markdown ahead of the index — the one
-skew direction `sq repair` heals losslessly, by design. So an injected validator that raises
-produces an ugly traceback instead of a clean error message, and does not corrupt anything. The
-durability model already covers this case.
-
-> **Narrowed 2026-10-11 (ADR-955):** `sq repair` heals it on a squad at the package's schema. While
-> a squad's schema is behind the package the gate refuses `sq repair`, and the recovery path there
-> is the reconcile that `sq migrate up` runs before its first runner. The conclusion of this
-> paragraph is unaffected: raising corrupts nothing. See ADR-955 and its amendments of 2026-10-09.
+skew direction the reconcile heals losslessly, by design: `sq repair` on a squad at the package's
+schema, and the reconcile `sq migrate up` runs before its first runner on a squad behind it
+(ADR-955). So an injected validator that raises produces an ugly traceback instead of a clean
+error message, and does not corrupt anything. The durability model already covers this case.
 
 **Hanging is not.** Validators are synchronous callables and `sq check` is an async method
 (read), so a validator that loops blocks the event loop for the whole process, and there is no
@@ -426,7 +298,7 @@ quadratic validator over ten thousand items is their problem, provided the tool 
 misattribute it. It would need attribution — per-validator timing in the report — which is cheap
 and worth having regardless.
 
-### Layering
+#### Layering
 
 The least hard of the five, and the one most likely to be mistaken for a blocker.
 
@@ -451,30 +323,10 @@ adopter too. So the closure either stops covering the whole effective set, or in
 validators sit outside a property the catalog currently has end to end. That is a smaller cost
 than the API surface, and it is a real one.
 
-### The recommendation
-
-**Do not build injected validators.** Not because the engineering is impossible — the layering
-question has a clean answer and the durability model already survives a raising validator — but
-because the two costs that remain are ones this project cannot pay right now. It would freeze
-six private model types into a public API before the compatibility promise that would govern
-them has been written, and it would turn every mutation verb into an execution vector for code
-that arrives with the corpus rather than by a deliberate install.
-
-**Build the catalog out instead, and build the declaration surface that makes it dialable.**
-Concretely, in the order the evidence supports: the parent-cycle check, because it is a live
-non-terminating command that every gate calls clean; declared level and threshold on the
-assignment, because that is the dimension whose absence is generating the pressure; then the
-opt-in members above, chosen by whoever wants them.
-
-**If injection is wanted anyway, the entry-point shape is the one to take**, not a dropped file
-under `.overrides/`. It puts the trust decision at an install, it is versionable, and it does not
-pretend to participate in an override contract that has no base document to diff against. And it
-would still need the public-API question answered first.
-
-### The strongest argument against this recommendation
+#### The strongest argument against this recommendation
 
 It is this. A closed catalog means every rule an adopter wants has to come through us, and the
-list in Part 2 is evidence that we are not good at guessing which rules adopters want — it took
+catalog's own history is evidence that we are not good at guessing which rules adopters want — it took
 one contact with real data to discover that a rule we had turned on by default was wrong for its own author.
 An adopter with a twenty-line check that encodes their own team's convention has no route at all
 today, and telling them to open an issue and wait for a release is a worse experience than
@@ -489,217 +341,15 @@ The counter to the counter, stated so the next reader can weigh both: the templa
 precedent that cuts the other way. They are open, and they are also the one place an adopter's
 content already executes in-process without anyone having decided that on purpose.
 
-## Correction — 2026-09-02: the gate clause was labelled (read) and is not a reading
+## Consequences
 
-Part 1's "the dimension the catalog does not have" opens:
-
-> Each validator hardcodes its own level. Error-level findings fail the gate and abort a create
-> or update; warn-level ones are advisory everywhere (read).
-
-The `(read)` label claims I checked this against the code. The second half is true. The first half
-is not, and this section replaces it and rules the question it left open.
-
-### 1. What is actually true
-
-`ValidatorEngine.gate()` aborts on the first error-level finding produced by **the subset of the
-catalog it can run** — and that subset is bounded by the context the gate holds, which is not the
-context `sq check` holds. Two fields are deliberately withheld on the gate path: `type_present` is
-empty, and `raw_text` is `None`.
-
-The withholding is documented on the premise that "every catalog validator that reads it is
-warn-level, so its absence cannot change a gate decision". For `type_present` that premise holds —
-`ref_rule_target_present` is warn-level, checked. For `raw_text` it does not: three catalog members
-read `ctx.raw_text`, and while `subentity_body_written` and `no_status_banner` are warn,
-`subentity_container_marker` returns an **error**. It therefore fails no gate on any door, and it
-does not fail it by decision — it fails it because a `None` sentinel makes the member return `[]`
-before it can look at anything.
-
-So the corrected clause is:
-
-> Each validator hardcodes one `level`, and that single field is doing two jobs: how loud `sq check`
-> is, and whether the finding can abort a write. The gate aborts on the first error-level finding
-> among the members it can run, which is not the whole catalog — a member needing context the gate
-> does not hold (the item's on-disk text; a full-index scan) does not participate there. An adopter
-> can select a validator but cannot say how much they mean it, and cannot see which plane it acts on.
-
-### 2. Ruled: the gate is not widened
-
-Refused: handing `gate()` the real raw text so the member runs on the gated doors. Three reasons,
-the first of which is structural and on its own decisive.
-
-**The create door has no text to hand it.** A create builds the `Item` in memory and gates it
-*before* the markdown is rendered and written (read: `_services/_base.py:812-821` — `db.add(item)`,
-then `gate`, with the file written after). There is no on-disk text for a file that does not exist,
-and a freshly rendered file carries the currently-declared plural by construction, so there is
-nothing for the member to find. A widened gate would therefore be an *update-door* gate: one
-catalog member acting on some gated doors and not others. That is a weaker and less inspectable
-invariant than the one it replaces, and it is exactly the shape this record's own acceptance
-forbids — a catalog-wide property with no mechanism behind it.
-
-**The condition is not a property of the mutation.** `subentity_container_marker` reports the
-corpus disagreeing with the spec after `subentity_kinds.<kind>.plural` was renamed over existing
-items. No create or update causes it and none can cure it; the remedy the message itself names is a
-spec action — revert the plural in the workflow override, or change it only while no items of that
-type exist. Gating on it refuses an operator on a path where the remedy does not lie, and refuses
-them on *every* item of the type at once, for a defect none of those items has.
-
-**It strands a corpus.** Items already on disk in that condition would begin failing ordinary
-updates — the same cliff this record names as the reason `requires_parent` stays opt-in ("turning
-it on would error on every parentless item already on disk"), and the same stranding shape the
-sub-entity force defect had to be fixed to avoid. An alignment report is the least urgent thing in
-the tool to block a title edit on.
-
-### 3. Ruled: the member keeps `error`, and the correction is not a demotion
-
-Refused equally: demoting `subentity_container_marker` to `warn` so the withheld-context premise
-becomes true. That is repairing a false statement by weakening a correct one. The condition it
-reports half-bricks a corpus — `add-<kind>` fails while sub-entity body writes keep succeeding, so
-both surfaces look fine — and `sq check` exiting 3 on it is the right volume. Its own docstring
-already establishes that `sq check` is the only plane that can see it at all: the field leaves no
-witness in the index, so neither the loader's cross-check nor `sq workflow lint` can reach it.
-
-What is wrong is not the level. It is that one field carries report severity *and* gate
-participation, so the only way to express "loud in the report, not a write-blocker" is to lie in one
-of the two places. This is the same missing dimension Part 1 already identifies, seen from its other
-side: that section asked for a level an adopter can dial, and this asks for the plane a member acts
-on to be declared rather than inferred from which context the caller happened to pass.
-
-### 4. What this obliges
-
-Non-participation must stop being an accident of a sentinel and become a declared, checked property:
-the catalog states the context each member requires, the gate builds its set from the context it
-actually holds, and an assertion over the catalog enforces the correspondence — so a future
-error-level member that reads the item's text cannot fall into this same blind spot silently, and no
-comment asserts a catalog-wide property that nothing verifies. The engine's own docstring loses the
-false premise in the same change.
-
-The `type_present` half needs nothing. It is sound today and its soundness becomes checked rather
-than asserted by the same mechanism.
-
-## The ruling — 2026-09-03
-
-op-pierre confirmed the recommendation and widened its scope. This section states what was
-decided, so the record no longer ends in advice.
-
-### Decided
-
-**Adopter-supplied Python is not built** — not now, and not as a later increment of this work.
-The standing boundary holds unamended: validator logic is hardcoded, a spec declares only
-*which* validators run, and there is no injected code and no `eval`. The two costs argued above
-are the ones that decide it — it would make six private model types a public API before the
-compatibility promise that would govern them exists, and it would turn every mutation verb,
-the create/update gate included, into an execution vector for code that arrives with the corpus
-rather than by a deliberate install. The counter-argument in "the strongest argument against
-this recommendation" is not answered away by this ruling; it is weighed and outvoted, and it
-stays in the record so the next reader can reweigh it if the compatibility promise changes what
-is payable.
-
-Two things are ruled alongside it so they are not re-litigated as loopholes:
-
-- If injection is ever revisited, only the **entry-point** shape is admissible — an installed,
-  versioned, resolvable package — and not a dropped file under `.overrides/`, which would sit
-  inside the override contract without participating in it. The compatibility promise for the
-  surface being exposed is answered *first*, not concurrently.
-- The override-templates asymmetry — adopter Jinja already renders in-process in an environment
-  that is not a security boundary — is **not** settled here and is **not** a reason to admit
-  validators. It is a real question about templates, owned by whoever writes the stability
-  promise, and answered as a question about templates.
-
-**The catalog is built out instead, and the declaration surface that makes it dialable is built
-with it.** Scope is the *full* build-out, taken in 0.15: every Part 2 member that is buildable
-today, plus the moves to opt-in Part 1 argues for — not the two-member first step the recommendation
-led with. Secondary to the view work (ADR-880) in priority, not in completeness.
-
-### Correction to Part 2: `parent_acyclic` shipped
-
-Part 2 opens "None of these exist (read: none appear in either name catalog)" and puts
-`parent_acyclic` first as the clearest case in the list. That `(read)` label asserts a reading
-that no longer holds — the same class of error as the gate clause corrected above, and
-corrected the same way rather than quietly tidied.
-
-What is true now, checked against the source: `parent_acyclic` is implemented at
-`_services/_validators.py:267`, registered in the behaviour catalog at `:646`, declared in
-`VALIDATOR_NAMES` and seated **always on** at `_workflow/_models.py:148,212` — the placement this
-record's own placement test argues for it. The two non-terminating walks it was found through now
-carry visited sets (`_services/_base.py:215-247` and `:250-300`), and the defect was filed,
-fixed and verified as a bug on its own ticket rather than as a clause of this record. It landed
-on 2026-09-02, after the comment that reported it here and before the 0.14 tag.
-
-So the corrected clause reads: **of Part 2's sixteen named members, `parent_acyclic` is the one
-that exists; the other fifteen do not.** Everything else Part 2 says about it stands, including
-why it belongs always on.
-
-### The accepted build order
-
-Because the parent-cycle check is delivered, the order can no longer open on it. It opens on the
-missing dimension instead. What follows is sequenced by what unblocks what.
-
-1. **The assignment grammar: declared level, declared parameter and threshold, declared
-   required context.** First, because everything below depends on it.
-   - A selection carries its level, so an adopter can say how much they mean it — with a
-     declared floor a selection may raise but not lower, for the members whose level is
-     load-bearing.
-   - A threshold lives in the spec rather than in a module constant.
-   - The context a member requires is **declared**, the gate builds its runnable set from the
-     context it actually holds, and an assertion over the catalog enforces the correspondence.
-     This is what the gate correction above obliges: non-participation stops being an accident
-     of a sentinel, and no docstring asserts a catalog-wide property that nothing verifies.
-
-   The gate correction's two rulings carry into this unchanged — the gate is **not** widened to the
-   item's on-disk text, and `subentity_container_marker` keeps `error`. One consequence worth
-   naming: with a level on the assignment, `parent_present` — Part 1's requires-a-parent
-   check, deliberately on by default for no category — becomes selectable at warn. The cliff that kept
-   it opt-in was its level, not its rule.
-
-2. **Move the two always-on members that fail this record's own placement test to opt-in.** Both are in
-   scope under this ruling, and both need step 1 first.
-   - **`no_status_banner`** — this project's house convention shipped as a universal defect.
-     It moves to opt-in, selected by the types that want it, and **selected by this
-     project's own spec**, where the rule is emphatic policy and stays fully enforced.
-     Making it on by default for a category would not help, since a category default cannot be
-     subtracted either.
-   - **The sub-entity title threshold** — a module constant every squad inherits. The
-     member's `:<param>` suffix is documentary today and is never read back at runtime, which
-     is the shape step 1 replaces: the number moves into the spec as a declared threshold, and
-     the member moves to opt-in, again selected here.
-
-   Moving them to opt-in demotes neither rule *for this squad*. It is the difference between a policy we
-   hold and a defect we assert on every adopter's behalf.
-
-3. **`field_value_declared`** — error, on by default for `work` + `records`. A badge or field value in
-   frontmatter that is not a member of the collection its field declares. It is a defect
-   wherever it occurs, and it is invisible to us only because we ship the collections we use.
-
-4. **The Part 2 opt-in members**, each declared with its default level and parameter:
-   `item_title_max:<n>`, `ref_rule_target_typed`, `body_written`, `description_present`,
-   `assignee_present`, `blocked_has_blocker`, `settled_requires_discussion`,
-   `external_id_not_in_title:<pattern>`. This project selects `item_title_max` and
-   `body_written` at minimum: our items are agent-authored, and a 200-character title passes
-   clean today.
-
-5. **The squad-global members**: `children_settled_with_parent` (warn — the failure this team
-   has hit more than once, a parent closed against its children rather than against its
-   outcomes), `dependency_acyclic`, `wip_limit:<n>`, `unassigned_active:<n>`, and
-   `stale_active:<days>`. `stale_active` is admitted with one condition attached, because its
-   cost is argued once here rather than per adopter: the clock reaches it through the
-   injectable clock the rest of the codebase uses, and it is **never on by default** — so `sq check`
-   stays deterministic over an unchanged corpus for every squad that has not selected it, and
-   a squad that selects it accepts the non-determinism knowingly.
-
-**One member is excluded on a prerequisite, not on scope.** `label_declared` presupposes a
-declared label vocabulary, and labels are free strings with no spec vocabulary behind them. It
-stays a named catalog member with its prerequisite recorded; it becomes buildable when that
-vocabulary exists, and it holds up nothing above it.
-
-### What the placement test now binds
-
-The three placements in Part 1 are the admission rule for any future member, not a description of
-the set that happens to exist: always on is a defect in every squad that no competent team can sit
-in on purpose; on by default for a category follows from what the category *means*, not from what its
-bundled types happen to want; and a finding whose clearing is a judgement call about the work is
-a policy, which sits behind an opt-in. A new member also states which bucket of
-the consistency-clause closure it is in, and — from step 1 — which context it requires. A
-validator that is opt-in is not dead code; opt-in is the placement that makes the catalog a design.
+- An adopter selects, levels and parameterises every policy check from the spec, and cannot turn
+  an always-on member off.
+- This project's own house rules (`no_status_banner`, `subentity_title_max:120`) live in its
+  override, not in the bundled defaults.
+- A customisation story for validators stops at selection rather than authorship. The argument
+  above against that is weighed and outvoted, and stays in the record to be reweighed if the
+  compatibility promise changes what is payable.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -745,4 +395,6 @@ validator that is opt-in is not dead code; opt-in is the placement that makes th
   - 2026-10-16: the validator 'tiers' are not understandable. Drop the word for validators everywhere (this ADR's title and tiering-test heading, code docstrings, docs) and use plain terms: always on, on by default for a category, opt-in, and file checks for the raw scan. Wording only, no behaviour change. Recorded as a task for later, not 0.16.
 - [2026-10-24T23:46:53Z] `architect` Robert Architect:
   - 2026-10-25: renamed for plain terms (TASK-1077 ST1). Title "three tiers" -> "placement"; heading "The tiering test" -> "The placement test"; body: Floor -> always on, Category bundle -> on by default for a category, Catalog-only -> opt-in, tier -> placement. Wording only, the decision is unchanged. The level floor (a selection may raise a level, never lower it) keeps its name: it is a different concept.
+- [2026-10-25T21:42:21Z] `architect` Robert Architect:
+  - 2026-10-25 audit: body rewritten in present tense; decision unchanged. Parts 1-2, the 2026-09-02 gate correction and the 2026-09-03 ruling folded into sections 1-6; the catalog is listed as built (validator_names.py). field_value_declared is recorded as not a member (the index load refuses the value; FEAT-900 cancelled), the ADR-864/982 amendment notes folded (blocked flag, regex pattern). Part 3 reasoning kept.
 <!-- sq:discussion:end -->

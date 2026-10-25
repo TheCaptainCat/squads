@@ -9,7 +9,7 @@ refs:
 - ADR-516
 - EPIC-28
 created_at: '2026-07-21T12:16:25Z'
-updated_at: '2026-07-22T11:53:19Z'
+updated_at: '2026-10-25T21:32:13Z'
 ---
 <!-- sq:body -->
 # Context
@@ -156,4 +156,6 @@ this model, not a change to it.
 <!-- sq:discussion -->
 - [2026-07-21T12:18:36Z] `manager` Catherine Manager:
   - Accepted after a full read. Build rules stand: App is a thin shell pushing BrowseScreen; FilterScreen (ModalScreen) + SearchScreen (full Screen) + ReaderScreen (wraps existing ReaderPanel) on the stack; frozen BrowseState (ItemFilter + include_closed + SortKey) owned by BrowseScreen, popup seeded from it and returns a new state via dismiss; sort is presentation-only sibling reorder; search hits open in a pushed ReaderScreen (not tree nav). Import direction acyclic per the ADR; async awaited on Textual's loop, optional @work(exclusive) for search. Note for the tech-lead: this refactors the current single-screen _app.py into BrowseScreen and updates the tests/tui suite accordingly.
+- [2026-10-25T21:32:13Z] `architect` Robert Architect:
+  - 2026-10-25 audit: holds. _tui/ has App shell, BrowseScreen + BrowseState + SortKey (_browse.py), FilterScreen modal returning a BrowseState via dismiss, SearchScreen pushing ReaderScreen (_search.py, _reader.py); the later BoardScreen and memory reader follow the same screen model.
 <!-- sq:discussion:end -->

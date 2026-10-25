@@ -65,6 +65,7 @@ from squads._services._service import (
     open_service,
 )
 from squads._spec_documents import SpecSources, spec_sources
+from squads._specload import override_present
 from squads._workflow import CATEGORIES, ROSTER_OPERATOR, ROSTER_ROLE, bundled_spec
 from squads._workflow._models import RESERVED_CLI_ALIASES, WorkflowSpec, reserved_alias_owner
 
@@ -328,7 +329,7 @@ def _read_spec_from_disk(ctx: Any) -> WorkflowSpec:
 
         sp = resolve(client_cwd=root_effective_dir(ctx))
         override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
-        if not override_path.is_file():
+        if not override_present(override_path):
             return bundled_spec()
         merged = load_workflow_spec(squad_dir=sp.squad_dir)
         validate_against_index_fail_closed(merged, sp.squad_dir, bundled=bundled_spec())
@@ -474,7 +475,7 @@ def bind_active_spec(client_cwd: Path | None) -> tuple[WorkflowSpec | None, str 
     try:
         sp = resolve(client_cwd=client_cwd)
         override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
-        has_override = override_path.is_file()
+        has_override = override_present(override_path)
     except Exception:  # pylint: disable=broad-except
         # Outside a squad, unreadable config, … — nothing was declared here to honour.
         return None, None
