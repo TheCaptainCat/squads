@@ -1,7 +1,7 @@
 {
   "schema_version": "0.16",
   "squads_version": "0.16.0",
-  "counter": 1129,
+  "counter": 1132,
   "padding": 6,
   "items": {
     "12": {
@@ -7127,7 +7127,7 @@
       "type": "feature",
       "title": "Cut sq's fixed pre-dispatch startup cost",
       "slug": "cut-sq-s-fixed-pre-dispatch-startup-cost",
-      "status": "Ready",
+      "status": "Done",
       "description": "",
       "parent": "EPIC-31",
       "author": "product-owner",
@@ -7143,7 +7143,7 @@
         {
           "local_id": "US1",
           "title": "Attribute the fixed startup cost by phase",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -7152,7 +7152,7 @@
         {
           "local_id": "US2",
           "title": "Defer work no command needs at startup",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -7161,7 +7161,7 @@
         {
           "local_id": "US3",
           "title": "Record the before and after timings",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -7170,7 +7170,7 @@
       ],
       "path": "features/FEAT-000916-cut-sq-s-fixed-pre-dispatch-startup-cost.md",
       "created_at": "2026-09-03T13:06:26Z",
-      "updated_at": "2026-10-24T21:56:17Z",
+      "updated_at": "2026-10-25T02:17:36Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -29279,7 +29279,7 @@
       "type": "task",
       "title": "Replace the validator tier wording with plain terms",
       "slug": "replace-the-validator-tier-wording-with-plain-terms",
-      "status": "Ready",
+      "status": "Done",
       "description": "Wording only: always on, on by default for a category, opt-in, file checks",
       "parent": null,
       "author": "tech-lead",
@@ -29295,7 +29295,7 @@
         {
           "local_id": "ST1",
           "title": "Rename ADR-864's title and tiering-test heading, and use the plain terms in its body",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "architect",
           "severity": null,
           "story": null,
@@ -29304,7 +29304,7 @@
         {
           "local_id": "ST2",
           "title": "Use the plain terms in validator docstrings, comments and the assertion message",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": null,
@@ -29313,7 +29313,7 @@
         {
           "local_id": "ST3",
           "title": "Use the plain terms in the adopter docs",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "severity": null,
           "story": null,
@@ -29322,7 +29322,7 @@
       ],
       "path": "tasks/TASK-001077-replace-the-validator-tier-wording-with-plain-terms.md",
       "created_at": "2026-10-16T20:59:53Z",
-      "updated_at": "2026-10-24T19:46:27Z",
+      "updated_at": "2026-10-24T23:47:25Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -35383,10 +35383,10 @@
     "864": {
       "sequence_id": 864,
       "type": "decision",
-      "title": "Validator catalog: three tiers, declared levels, no injected Python",
-      "slug": "validator-catalog-three-tiers-declared-levels-no-injected-py",
+      "title": "Validator catalog: placement, declared levels, no injected Python",
+      "slug": "validator-catalog-placement-declared-levels-no-injected-pyth",
       "status": "Accepted",
-      "description": "What a complete validator catalog looks like, which members are floor vs opt-in, and why adopter-supplied Python is not built.",
+      "description": "What a complete validator catalog looks like, which members are always on vs opt-in, and why adopter-supplied Python is not built.",
       "parent": null,
       "author": "architect",
       "assignee": null,
@@ -35401,9 +35401,9 @@
         "ADR-955"
       ],
       "subentities": [],
-      "path": "adrs/ADR-000864-validator-catalog-three-tiers-declared-levels-no-injected-py.md",
+      "path": "adrs/ADR-000864-validator-catalog-placement-declared-levels-no-injected-pyth.md",
       "created_at": "2026-09-01T15:26:04Z",
-      "updated_at": "2026-10-16T20:58:39Z",
+      "updated_at": "2026-10-24T23:46:53Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -51903,7 +51903,7 @@
         {
           "local_id": "F3",
           "title": "No warning when a type holds items but no active role authors it",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -51948,7 +51948,7 @@
         {
           "local_id": "F8",
           "title": "sq list has no compact form; long titles wrap over several lines",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -51966,7 +51966,7 @@
         {
           "local_id": "F10",
           "title": "A review can be Approved with Open findings and sq check stays silent",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -51993,7 +51993,7 @@
         {
           "local_id": "F13",
           "title": "sq role show does not say how to change a role's definition",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -52002,7 +52002,7 @@
         {
           "local_id": "F14",
           "title": "Loop step 5 narration sweep names no owner role",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -52011,7 +52011,7 @@
         {
           "local_id": "F15",
           "title": "override scaffold --role writes a near-empty file",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -52029,7 +52029,7 @@
         {
           "local_id": "F17",
           "title": "Bundled handoffs hardcode @reviewer instead of the review's author",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -52038,7 +52038,7 @@
       ],
       "path": "reviews/REV-001099-adopter-field-report-on-0-15-0-upgrade-and-a-day-of-work.md",
       "created_at": "2026-10-24T09:19:58Z",
-      "updated_at": "2026-10-24T20:57:52Z",
+      "updated_at": "2026-10-25T00:54:27Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52312,7 +52312,7 @@
       "type": "task",
       "title": "Warn on settled reviews with open findings and on unowned types",
       "slug": "warn-on-settled-reviews-with-open-findings-and-on-unowned-ty",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "New sq check rules for F10 and F3 from REV-1099.",
       "parent": "FEAT-1101",
       "author": "tech-lead",
@@ -52328,7 +52328,7 @@
         {
           "local_id": "ST1",
           "title": "Add subentities_settled_with_parent and select it on the bundled review type",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -52337,7 +52337,7 @@
         {
           "local_id": "ST2",
           "title": "Add type_has_live_author, naming the catalog role to activate",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -52355,7 +52355,25 @@
         {
           "local_id": "ST4",
           "title": "Write the 0.17.0 CHANGELOG entries for the two new check rules",
-          "status": "Todo",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Make type_has_live_author selectable and selected by default",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Document type_has_live_author as on by default and deselectable",
+          "status": "Done",
           "assignee": "tech-writer",
           "severity": null,
           "story": "US5",
@@ -52364,7 +52382,7 @@
       ],
       "path": "tasks/TASK-001104-warn-on-settled-reviews-with-open-findings-and-on-unowned-ty.md",
       "created_at": "2026-10-24T10:04:02Z",
-      "updated_at": "2026-10-24T19:46:22Z",
+      "updated_at": "2026-10-25T00:58:23Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -52458,7 +52476,7 @@
       "type": "task",
       "title": "Role ergonomics, bundled handoffs and a compact sq list",
       "slug": "role-ergonomics-bundled-handoffs-and-a-compact-sq-list",
-      "status": "Ready",
+      "status": "Done",
       "description": "F13, F15, F8, F17 and F14 from REV-1099.",
       "parent": "FEAT-1101",
       "author": "tech-lead",
@@ -52474,7 +52492,7 @@
         {
           "local_id": "ST1",
           "title": "End role show with how to change the role's definition",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US7",
@@ -52483,7 +52501,7 @@
         {
           "local_id": "ST2",
           "title": "Scaffold every overridable role field with its bundled value and the append idiom",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US7",
@@ -52492,7 +52510,7 @@
         {
           "local_id": "ST3",
           "title": "Add sq list --compact, one line per item with a truncated title",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US9",
@@ -52501,7 +52519,7 @@
         {
           "local_id": "ST4",
           "title": "Declare bundled capabilities and resolve @*name tokens in skills",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US8",
@@ -52510,7 +52528,7 @@
         {
           "local_id": "ST5",
           "title": "Give the tech writer the narration sweep, name it in loop step 5, and default it to sonnet",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US8",
@@ -52519,7 +52537,7 @@
         {
           "local_id": "ST6",
           "title": "Write the 0.17.0 CHANGELOG entries for the role, list and guidance changes",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "severity": null,
           "story": "US7",
@@ -52528,7 +52546,7 @@
         {
           "local_id": "ST7",
           "title": "Convert every bundled hand-off to capability tokens",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US8",
@@ -52537,7 +52555,7 @@
         {
           "local_id": "ST8",
           "title": "Report unheld capability tokens in override guides",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US8",
@@ -52546,7 +52564,7 @@
       ],
       "path": "tasks/TASK-001106-role-ergonomics-bundled-handoffs-and-a-compact-sq-list.md",
       "created_at": "2026-10-24T10:04:05Z",
-      "updated_at": "2026-10-24T21:23:27Z",
+      "updated_at": "2026-10-24T23:41:53Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -53617,7 +53635,7 @@
       "type": "task",
       "title": "Cut sq's fixed startup cost, measured before and after",
       "slug": "cut-sq-s-fixed-startup-cost-measured-before-and-after",
-      "status": "Draft",
+      "status": "Done",
       "description": "Attribute the fixed cost by phase, defer what no command needs, record timings.",
       "parent": "FEAT-916",
       "author": "tech-lead",
@@ -53634,7 +53652,7 @@
         {
           "local_id": "ST1",
           "title": "Attribute the fixed startup cost by phase",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -53643,7 +53661,7 @@
         {
           "local_id": "ST2",
           "title": "Defer startup work the invoked command does not need",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -53652,7 +53670,7 @@
         {
           "local_id": "ST3",
           "title": "Record before and after timings on FEAT-916",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -53661,7 +53679,7 @@
       ],
       "path": "tasks/TASK-001123-cut-sq-s-fixed-startup-cost-measured-before-and-after.md",
       "created_at": "2026-10-24T21:53:14Z",
-      "updated_at": "2026-10-24T21:56:14Z",
+      "updated_at": "2026-10-25T02:17:18Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -54066,6 +54084,195 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "REV-1129"
+    },
+    "1130": {
+      "sequence_id": 1130,
+      "type": "review",
+      "title": "Review of TASK-1106: capability hand-offs, compact list, role scaffold",
+      "slug": "review-of-task-1106-capability-hand-offs-compact-list-role-s",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1106"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Templated developers get a role-show hint to a missing file and an empty role scaffold",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Unheld capability tokens in override-declared commands are never reported",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Role scaffold CLI message still says to add fields instead of uncommenting them",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Scaffold placeholder teal for an unset color misstates the bundled value",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Duplicate test coverage across layers and hand-copied pinned capabilities",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001130-review-of-task-1106-capability-hand-offs-compact-list-role-s.md",
+      "created_at": "2026-10-24T23:13:14Z",
+      "updated_at": "2026-10-24T23:41:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1130"
+    },
+    "1131": {
+      "sequence_id": 1131,
+      "type": "review",
+      "title": "Review TASK-1104 ST1-ST2: two new check rules",
+      "slug": "review-task-1104-st1-st2-two-new-check-rules",
+      "status": "Approved",
+      "description": "Review of commit 7d538630: subentities_settled_with_parent and type_has_live_author.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1104"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "type_has_live_author cannot be silenced, so the core and minimal init presets never check clean",
+          "status": "Verified",
+          "assignee": "python-dev",
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Reactivate remedy names a transition the roster lifecycle may refuse",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Capability-lane remedies ignore the catalog and roster roles that hold the capability",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001131-review-task-1104-st1-st2-two-new-check-rules.md",
+      "created_at": "2026-10-25T00:32:32Z",
+      "updated_at": "2026-10-25T00:54:23Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1131"
+    },
+    "1132": {
+      "sequence_id": 1132,
+      "type": "review",
+      "title": "Review TASK-1123: startup cost cut",
+      "slug": "review-task-1123-startup-cost-cut",
+      "status": "Approved",
+      "description": "Spec memo, tree reuse, --version fast path, startup-work tests.",
+      "parent": "FEAT-916",
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1123"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Invocations with --at or --dir still build the command tree twice via _hoist_global_options",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "The fast-path --version line duplicates _version_cb and no test ties the two",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Startup-work tests are four functions, not one table, and lack the read-failure row",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Startup-work table rows ignore the exit code, so a failing command passes a count row",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001132-review-task-1123-startup-cost-cut.md",
+      "created_at": "2026-10-25T01:42:26Z",
+      "updated_at": "2026-10-25T02:17:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1132"
     }
   }
 }

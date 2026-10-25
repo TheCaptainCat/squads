@@ -3,7 +3,7 @@ id: TASK-1123
 sequence_id: 1123
 type: task
 title: Cut sq's fixed startup cost, measured before and after
-status: Draft
+status: Done
 parent: FEAT-916
 author: tech-lead
 priority: medium
@@ -16,18 +16,18 @@ description: Attribute the fixed cost by phase, defer what no command needs, rec
 subentities:
 - local_id: ST1
   title: Attribute the fixed startup cost by phase
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: Defer startup work the invoked command does not need
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST3
   title: Record before and after timings on FEAT-916
-  status: Todo
+  status: Done
   story: US3
 created_at: '2026-10-24T21:53:14Z'
-updated_at: '2026-10-24T21:56:14Z'
+updated_at: '2026-10-25T02:17:18Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -141,4 +141,26 @@ Post the before and after timings of `sq --version`, `sq task <n> show` and one 
 <!-- sq:discussion -->
 - [2026-10-24T21:56:14Z] `tech-lead` Olivia Lead:
   - @op-pierre one ruling needed before this goes Ready. FEAT-916's acceptance says `sq --help` "loads no spec". In a squad with a workflow override, root help shows that squad's dropped types, renamed aliases and custom types, so help has to read the override, or its output changes for every customised squad. That collides with "output unchanged". Recommendation: reword it to "`sq --version` loads no spec; `sq --help` resolves it at most once per invocation". Driven today on this repo: 17 resolutions per `sq --help`, each re-reading the override and the index, 1.47 to 1.57 s. Keep the 0.3 s bar for `--version`: it is reachable if `--version` imports no command module (0.53 to 0.60 s today, of which about 0.3 s is the `_cli` import).
+- [2026-10-24T23:45:22Z] `manager` Catherine Manager:
+  - Taking the tech-lead recommendation to keep the loop moving overnight (reversible, acceptance wording only): "--version loads no spec; --help resolves it at most once per invocation", with the 0.3 s bar on --version. A customised squad must read its override for help, so "loads no spec" cannot hold for --help. @op-pierre to confirm or change in the morning. @product-owner amend FEAT-916 acceptance accordingly.
+- [2026-10-25T01:17:10Z] `python-dev` Elias Python:
+  - Handoff. Timings are in the two FEAT-916 comments (ST1 attribution, ST3 table); the machine was shared (load average 6 to 11), so figures carry about 0.1 s of noise. Summary, three runs each, before to after: bare `sq --version` 0.7 s to 0.1 s; `sq --help` on this repo 1.5 s to 0.7 s, in a customised scratch squad 0.8 s to 0.75 s, outside a squad unchanged at 0.7 s; `sq task <n> show` and a write command within noise (0.74 to 0.69 and 0.78 to 0.74 in the scratch squad). Help output is byte-identical before and after in three corpora.
+    
+    ST1: attribution posted on FEAT-916. Command modules cost under 0.01 s; the fixed cost is the `_common` import chain (about 0.15 to 0.2 s), the bundled spec and playbook loads (about 0.1 s), third-party imports, and two Click tree builds (0.065 s each).
+    
+    ST2, what changed:
+    - `resolve_spec_for_ctx` (`_cli/_common.py`) memoises its disk read on the root Click context (`squads.resolved_spec_memo`), split into `_read_spec_from_disk`. `sq --help` now reads the override once, down from 17 times. No module-level state; `_custom_cmd_cache` is untouched.
+    - `help_requested` takes an optional root command and `apply_gate` passes the invocation's own tree, so `value_options()` no longer builds a second tree. `value_options()` itself keeps its signature and its once-per-process cache.
+    - `squads.__main__:main` is now the console-script entry point (pyproject, docs/internals.md). A command line that is exactly `--version` prints the version without importing `squads._cli`; everything else delegates to `squads._cli.main`. The edge table in the tests/meta guard has the two new rows.
+    - Not done, with numbers in the FEAT-916 comment: lazy command modules (nothing to gain), lazy bundled spec and playbook (every command but `--version` needs them), registering aliases once (about 0.03 s for output risk).
+    - Tests: `tests/cli/test_startup_work_per_command.py`, one table of four rows (bare `--version`, `--help` in a customised squad, `--help` outside a squad, `task <n> show`), counting override reads and tree builds with spies. Falsified: without the memo the customised-squad row reads 17 against 1; with the second tree build restored the `show` row reads (1, 2) against (1, 1); with the fast path removed the `--version` row loses its empty module list. The outside-a-squad row went red only through the missing helper, not through a count. No lazy command table, so no new meta guard.
+    - Gates: pyright, ruff check and format clean; `tests/meta`, `tests/integration`, `tests/cli` and the two targeted unit files: 5124 passed, 11 skipped, 1 xfailed. No full suite run.
+    
+    Deviations: `sq -C <dir> --version` and `sq --version` after other options still take the full path (about 0.6 s); only the bare form is fast. `uv sync` regenerates the venv script for the new entry point; an installed tool needs a reinstall to pick it up.
+    
+    CHANGELOG substance for the writer: `sq --version` answers in about 0.1 s instead of 0.7 s when it is the whole command line. `sq --help` reads a workflow override once instead of once per listed command, taking this repo's help from 1.5 s to 0.7 s. Every other command skips one redundant build of the command tree, a few hundredths of a second. Nothing an adopter sees changes apart from speed. Packaging note: the `sq` and `squads` console scripts now point at `squads.__main__:main`.
+- [2026-10-25T01:26:30Z] `tech-writer` Theo Writer:
+  - CHANGELOG 0.17.0 entry written under Changed, from the ST3 numbers and the dev handoff: bare --version about 0.1 s (was about 0.7 s), --help with a workflow override about 1.5 s to 0.7 s on the measured squad, one redundant command-tree build removed for other commands. Timings are labelled approximate, one shared machine, three runs each, noise about 0.1 s. Caveats kept in: -C or options before --version still take the full path (about 0.6 s). No packaging note: an upgrade reinstalls the console scripts, so it does not reach adopters; the contributor uv sync reinstall note stays out of the CHANGELOG. docs/internals.md already names squads.__main__:main at HEAD, so no docs edit. sq check clean. @tech-lead for a read of the entry against the measured figures.
+- [2026-10-25T01:43:06Z] `reviewer` Paul Reviewer:
+  - Reviewed in REV-1132: three low findings, no behaviour defect found. @python-dev see the review.
 <!-- sq:discussion:end -->

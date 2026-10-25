@@ -60,7 +60,11 @@ from squads._interactions._models import (
     PlaybookSpec,
     RoleGuideSpec,
 )
-from squads._interactions._role_guidance import CAPABILITY_SUBJECT_PREFIX
+from squads._interactions._role_guidance import (
+    CAPABILITY_SUBJECT_PREFIX,
+    CAPABILITY_TOKEN_CANDIDATE,
+    guide_text_lines,
+)
 from squads._overrides._manifest import PLAYBOOK_KEY, artifact_changed_since
 from squads._roles._models import (
     CAPABILITY_NAME_PATTERN,
@@ -400,6 +404,19 @@ def _check_text(types: dict[str, ItemPlaybookSpec], errors: list[str]) -> None:
             errors.append(f"types.{item_type}: lifecycle is empty")
 
 
+def _check_capability_tokens(types: dict[str, ItemPlaybookSpec], errors: list[str]) -> None:
+    """Refuse an ``@*`` in command or guide text whose name is not a well-formed capability."""
+    for item_type, entry in types.items():
+        texts = [*entry.commands, *(line for g in entry.roles for line in guide_text_lines(g))]
+        names = (n for line in texts for n in CAPABILITY_TOKEN_CANDIDATE.findall(line))
+        errors.extend(
+            f"types.{item_type}: capability token '@*{name}' must be "
+            f"@{CAPABILITY_SUBJECT_PREFIX}<name>, with a name matching {CAPABILITY_NAME_PATTERN}"
+            for name in names
+            if malformed_capability_names([name])
+        )
+
+
 def _validate(
     types: dict[str, ItemPlaybookSpec], catalog_slugs: set[str], spec: WorkflowSpec
 ) -> None:
@@ -408,6 +425,7 @@ def _validate(
     _check_duplicate_slugs(types, errors)
     _check_coverage(types, spec, errors)
     _check_text(types, errors)
+    _check_capability_tokens(types, errors)
     if errors:
         raise SquadsError("Invalid playbook:\n" + "\n".join(f"  - {e}" for e in errors))
 
@@ -485,21 +503,44 @@ def playbook_override_guide_pairs(squad_dir: Path) -> frozenset[tuple[str, str]]
     are ``sq check``/``sq sync``, neither of which may fail over this question, and a file that
     cannot be parsed has declared nothing.
     """
+    return frozenset(
+        (item_type, slug)
+        for item_type, entry in _override_types(squad_dir).items()
+        for slug in _declared_guide_slugs(entry)
+    )
+
+
+def playbook_override_command_lines(squad_dir: Path) -> frozenset[tuple[str, str]]:
+    """Every ``(item_type, line)`` command line ``<squad_dir>/.overrides/playbook.toml`` declares
+    in a type's ``commands`` (a splat-ref entry carries no token).
+
+    Read from the raw override mapping for the same reason as
+    :func:`playbook_override_guide_pairs`: only the adopter can clear a report about these lines.
+    """
+    lines: set[tuple[str, str]] = set()
+    for item_type, entry in _override_types(squad_dir).items():
+        commands = (
+            cast("dict[str, Any]", entry).get("commands") if isinstance(entry, dict) else None
+        )
+        if isinstance(commands, list):
+            lines.update(
+                (item_type, line) for line in cast("list[Any]", commands) if isinstance(line, str)
+            )
+    return frozenset(lines)
+
+
+def _override_types(squad_dir: Path) -> dict[str, Any]:
+    """The raw ``[types]`` table of the playbook override, empty when the file is absent,
+    unreadable, malformed TOML or has no such table."""
     override_path = squad_dir / PLAYBOOK_OVERRIDE_FILENAME
     if not override_path.is_file():
-        return frozenset()
+        return {}
     try:
         raw: RawMapping = tomllib.loads(override_path.read_text(encoding="utf-8"))
     except (tomllib.TOMLDecodeError, OSError):  # fmt: skip
-        return frozenset()
+        return {}
     types_raw = raw.get("types")
-    if not isinstance(types_raw, dict):
-        return frozenset()
-    return frozenset(
-        (item_type, slug)
-        for item_type, entry in cast("dict[str, Any]", types_raw).items()
-        for slug in _declared_guide_slugs(entry)
-    )
+    return cast("dict[str, Any]", types_raw) if isinstance(types_raw, dict) else {}
 
 
 def playbook_stamp_finding(squad_dir: Path, stamp: str | None) -> tuple[str, str] | None:

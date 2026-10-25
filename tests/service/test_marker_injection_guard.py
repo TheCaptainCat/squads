@@ -46,6 +46,7 @@ async def test_comment_marker_in_any_message_position_rejects_and_leaves_file_un
             task.id, ["safe first line", f"bad {_MARKER_TAG} line"], as_slug="manager"
         )
     assert path.read_text(encoding="utf-8") == text_before  # no partial write
+    await svc.activate_role("tech-lead")
     assert await svc.check() == []
 
 
@@ -201,6 +202,7 @@ async def test_rejecting_a_forged_sub_entity_marker_leaves_the_file_and_the_real
     after = path.read_text(encoding="utf-8")
     assert "scope prose worth keeping" in after
     assert (await svc.get_block(review.id, "finding", "F1")).body.strip() == "rewritten body"
+    await svc.activate_role("reviewer")
     assert await svc.check() == []
 
 

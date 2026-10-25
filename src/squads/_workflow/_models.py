@@ -162,6 +162,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "subentity_body_written",
         "subentity_title_max",
         "subentity_deferral_resolved",
+        "subentities_settled_with_parent",
         "no_status_banner",
         "supersedes_incoming",
         "ref_rule_target_present",
@@ -194,6 +195,7 @@ SQUAD_GLOBAL_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "display_config_valid",
         "working_language_valid",
         "view_transform_resolves",
+        "type_has_live_author",
         "children_settled_with_parent",
         "dependency_acyclic",
         "wip_limit",
@@ -221,6 +223,7 @@ ALWAYS_ON_SQUAD_GLOBAL_NAMES: frozenset[str] = frozenset(
 #: The squad-global members a squad selects in ``[squad] validators``.
 SELECTABLE_SQUAD_GLOBAL_NAMES: frozenset[str] = frozenset(
     {
+        "type_has_live_author",
         "children_settled_with_parent",
         "dependency_acyclic",
         "wip_limit",
@@ -234,7 +237,7 @@ assert ALWAYS_ON_SQUAD_GLOBAL_NAMES.isdisjoint(SELECTABLE_SQUAD_GLOBAL_NAMES), (
 )
 assert (
     ALWAYS_ON_SQUAD_GLOBAL_NAMES | SELECTABLE_SQUAD_GLOBAL_NAMES == SQUAD_GLOBAL_VALIDATOR_NAMES
-), "every squad-global member must be placed in exactly one tier"
+), "every squad-global member must be placed in exactly one of always on or opt-in"
 assert SQUAD_GLOBAL_VALIDATOR_NAMES.isdisjoint(VALIDATOR_NAMES), (
     "a name cannot be both a per-item and a squad-global validator"
 )
@@ -252,6 +255,7 @@ DEFAULT_SQUAD_GLOBAL_LEVEL: dict[str, str] = {
     "display_config_valid": "warn",
     "working_language_valid": "warn",
     "view_transform_resolves": "error",
+    "type_has_live_author": "warn",
     "children_settled_with_parent": "warn",
     "dependency_acyclic": "warn",
     "wip_limit": "warn",
@@ -477,6 +481,7 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "subentity_body_written": "warn",
     "subentity_title_max": "warn",
     "subentity_deferral_resolved": "warn",
+    "subentities_settled_with_parent": "warn",
     "no_status_banner": "warn",
     "supersedes_incoming": "warn",
     "ref_rule_target_present": "warn",
@@ -502,7 +507,7 @@ assert set(DEFAULT_VALIDATOR_LEVEL.values()) <= VALIDATOR_LEVELS, (
 
 #: The declared floor: a selection may raise a member's level but never lower it below this,
 #: for the members whose level is load-bearing for the *engine's own correctness* rather than a
-#: policy preference a project may reasonably decline. Applied with the same tiering test that
+#: policy preference a project may reasonably decline. Applied with the same placement test that
 #: decides catalog placement, one level down: can a competent squad sit in this state on
 #: purpose, indefinitely, with nothing else in the engine misbehaving because of it? A "yes"
 #: means the member is not floor, however undesirable the state is.
@@ -2267,6 +2272,10 @@ CONSISTENCY_CLAUSES: tuple[tuple[frozenset[str], ConsistencyClause], ...] = (
 #:   each sits in no category bundle and in no floor, so it is only ever effective when a type
 #:   names it, and no category reassignment can take it away. ``subentity_title_max`` is still
 #:   one of the :data:`SUBENTITY_VALIDATOR_NAMES` that satisfy :func:`_clause_subentity_checked`.
+#: - ``subentities_settled_with_parent`` is the same shape: in no bundle, effective only on a type
+#:   that names it. It is deliberately not one of the :data:`SUBENTITY_VALIDATOR_NAMES`: it judges
+#:   a policy about settled parents, not the sub-entities' own validity, so a type naming it must
+#:   not stand in for the checks :func:`_clause_subentity_checked` guards.
 #: - ``pronouns_valid`` is the roster category's whole bundle and judges one attribute no capability
 #:   depends on, so there is nothing for a clause to protect.
 #: - The members of :data:`WORK_POLICY_VALIDATOR_NAMES` are the same shape again: in no bundle
@@ -2280,6 +2289,7 @@ UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "item_skill_shadowed",
         "no_status_banner",
         "subentity_title_max",
+        "subentities_settled_with_parent",
         "item_title_max",
         "ref_rule_target_typed",
         "body_written",

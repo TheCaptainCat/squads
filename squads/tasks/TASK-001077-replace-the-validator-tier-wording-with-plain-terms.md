@@ -3,7 +3,7 @@ id: TASK-1077
 sequence_id: 1077
 type: task
 title: Replace the validator tier wording with plain terms
-status: Ready
+status: Done
 author: tech-lead
 priority: low
 refs:
@@ -15,18 +15,18 @@ subentities:
 - local_id: ST1
   title: Rename ADR-864's title and tiering-test heading, and use the plain terms
     in its body
-  status: Todo
+  status: Done
   assignee: architect
 - local_id: ST2
   title: Use the plain terms in validator docstrings, comments and the assertion message
-  status: Todo
+  status: Done
   assignee: python-dev
 - local_id: ST3
   title: Use the plain terms in the adopter docs
-  status: Todo
+  status: Done
   assignee: tech-writer
 created_at: '2026-10-16T20:59:53Z'
-updated_at: '2026-10-24T19:46:27Z'
+updated_at: '2026-10-24T23:47:25Z'
 ---
 <!-- sq:body -->
 Drop the word "tier" for validators and use plain terms. Wording only: no behaviour, name, or output change.
@@ -130,4 +130,12 @@ docs/internals.md line 150 ("It runs in two tiers"): call the two parts file che
   - Left unparented. EPIC-540 has two open features: FEAT-901 (opt-in per-item checks) and FEAT-902 (squad-global checks). Each covers one set of validators and both target 0.16 (MILE-934). This wording pass runs across the whole catalog and is planned for 0.17 (MILE-1051). Putting it under either feature would keep a 0.16 feature open for 0.17 work. Asked for by op-pierre on ADR-864, 2026-10-16.
 - [2026-10-24T19:46:27Z] `tech-lead` Olivia Lead:
   - Refreshed the occurrence list (line numbers had moved, one test docstring added) and added a Tests line: no new tests, the rg gate is the check. Moved to Ready.
+- [2026-10-24T23:44:23Z] `python-dev` Elias Python:
+  - ST2 done. Validator docstrings, comments, assertion message and the one test docstring now use file checks / validator catalog / always on or opt-in; no identifier or behaviour change. Gates: pyright 0 errors, ruff check and format clean, tests/meta + the touched CLI test 595 passed. rg -n -i "\btier" src tests leaves only out-of-scope hits (stability tiers, memory/board, operator_named Tier 3). Still open: ST1 (architect, ADR-864) and ST3 (tech-writer, docs/internals.md line 150; docs/overrides.md has no tier wording). No CHANGELOG entry needed (wording only).
+- [2026-10-24T23:46:02Z] `tech-writer` Theo Writer:
+  - ST3 done. docs/internals.md (sq check section) now says the check runs in two parts: the file checks, then the validator catalog. docs/overrides.md: 'cross-cutting core' and 'category bundle' rewritten as always-on checks and checks on by default for a category; the opt-in checks are on by default for no category. Only the two docs changed. docs/ and README.md have no other validator 'tier' wording; the stability tiers (stability.md, workflow.md, faq.md) and the on-disk tiers (migration.md) are untouched. rg for tier, category bundle, catalog-only and cross-cutting core in docs/ and README.md has no validator hits. No commit, no pytest run.
+- [2026-10-24T23:47:02Z] `architect` Robert Architect:
+  - ST1 done: ADR-864 renamed (file now ADR-000864-validator-catalog-placement-declared-levels-no-injected-pyth.md), placement-test heading, plain terms in the body; level floor kept. No links to the old filename in docs/, CHANGELOG, src or squads/.
+- [2026-10-24T23:47:25Z] `manager` Catherine Manager:
+  - Done: wording-only pass across source, ADR-864 and docs; tests/meta and the rg gate clean.
 <!-- sq:discussion:end -->

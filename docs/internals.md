@@ -147,8 +147,8 @@ The frontmatter is durable; the index is derived. Two commands make that concret
   every result type a sweep-reaching command returns, so no route can drift out of it.
 - **`sq check`** lints the two against each other: unbalanced/duplicated markers, dangling
   parent/ref IDs, one ID carried by several files, invalid status-for-type, on-disk-vs-index reconciliation, and frontmatter↔index
-  drift. It runs in two tiers: a raw-text scan of every file (`_scan_for_check`, for findings that
-  must survive a file too broken to parse), then the named validator catalog in
+  drift. It runs in two parts: the file checks, a raw-text scan of every file (`_scan_for_check`, for
+  findings that must survive a file too broken to parse), then the validator catalog in
   `_services/_validators.py` — per-item rules such as `parent_in`, `item_status_valid`,
   `dangling_ref` and `subentity_body_written`, selected per type by the spec, plus squad-wide ones:
   always-on checks such as `index_reconciled` and `backend_reconciled`, and the opt-in checks the
@@ -430,7 +430,7 @@ invocation (parsed by `parse_iso`), which is how a migration preserves historica
 
 ## 11. The CLI (`_cli/`)
 
-Typer app, exposed twice as `squads`/`sq` (entry point `squads._cli:main`, which runs the `app`). The root callback takes
+Typer app, exposed twice as `squads`/`sq` (entry point `squads.__main__:main`, which answers a bare `--version` itself and otherwise runs `squads._cli:main`, which runs the `app`). The root callback takes
 the effective directory computed from the global `-C` options as `RequestContext.client_cwd` (it
 never calls `os.chdir`), reads `--at`, warns on an unrecognised `working_language`, and dispatches. Conventions:
 

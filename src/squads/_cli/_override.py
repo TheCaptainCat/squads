@@ -18,6 +18,7 @@ from rich.table import Table
 
 from squads._cli._common import (
     Ground,
+    command,
     console,
     e,
     gate_group_command,
@@ -42,6 +43,9 @@ from squads._overrides._service import (
     scan_overrides,
     update_stamp,
 )
+from squads._roles._catalog import PREDEFINED
+from squads._roles._resolver import role_base_from_item
+from squads._workflow import ROSTER_ROLE
 
 override_app = typer.Typer(
     no_args_is_help=True,
@@ -59,8 +63,8 @@ def override_gate(ctx: typer.Context) -> None:
 
 
 @override_app.command("scaffold")
-@handle_errors
-def scaffold(
+@command
+async def scaffold(
     name: str | None = typer.Argument(
         None,
         help="Template name, such as `items/<type>.md.j2`, or `workflow`, `playbook`, `roles`.",
@@ -117,11 +121,18 @@ def scaffold(
         return
 
     if role is not None:
-        dest = scaffold_role(squad_dir, slug=role, force=force)
+        item = await svc.roster_item(ROSTER_ROLE, role)
+        base = role_base_from_item(item, squad_dir) if item is not None else None
+        dest = scaffold_role(squad_dir, slug=role, force=force, base=base)
+        scaffolded = base is not None or role in {r.slug for r in PREDEFINED}
+        action = (
+            "uncomment the fields to override"
+            if scaffolded
+            else "add fields to override (e.g. full_name, model)"
+        )
         console.print(
             f"[green]scaffolded[/green] role override: [bold]{e(str(dest))}[/bold]\n"
-            f"Edit [cyan]{e(str(dest))}[/cyan] to add fields to override "
-            f"(e.g. full_name, model), then verify with "
+            f"Edit [cyan]{e(str(dest))}[/cyan] to {action}, then verify with "
             f"[cyan]sq override diff --role {e(role)}[/cyan].",
             soft_wrap=True,
         )

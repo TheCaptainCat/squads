@@ -97,6 +97,7 @@ responsibilities = [
 ]
 model = "opus"
 color = "purple"
+capabilities = ["plan"]
 can_spawn = true
 
 [[roles]]
@@ -115,6 +116,7 @@ agreements = [
 ]
 model = "opus"
 color = "red"
+capabilities = ["review"]
 
 [[roles]]
 slug = "qa"
@@ -129,6 +131,7 @@ responsibilities = [
 ]
 model = "sonnet"
 color = "green"
+capabilities = ["verify"]
 
 [[roles]]
 slug = "devops"
@@ -157,6 +160,7 @@ responsibilities = [
 ]
 model = "sonnet"
 color = "yellow"
+capabilities = ["product"]
 
 [[roles]]
 slug = "tech-writer"
@@ -167,6 +171,8 @@ mission = "Make the work understandable: write and maintain clear documentation 
 responsibilities = [
   "Write user- and developer-facing docs",
   "Keep guides current",
+  "Sweep delivered text for build-process narration before an increment closes",
 ]
-model = "haiku"
+model = "sonnet"
 color = "pink"
+capabilities = ["edit"]

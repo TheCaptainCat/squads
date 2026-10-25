@@ -3,7 +3,7 @@ id: TASK-1106
 sequence_id: 1106
 type: task
 title: Role ergonomics, bundled handoffs and a compact sq list
-status: Ready
+status: Done
 parent: FEAT-1101
 author: tech-lead
 assignee: python-dev
@@ -14,41 +14,41 @@ description: F13, F15, F8, F17 and F14 from REV-1099.
 subentities:
 - local_id: ST1
   title: End role show with how to change the role's definition
-  status: Todo
+  status: Done
   story: US7
 - local_id: ST2
   title: Scaffold every overridable role field with its bundled value and the append
     idiom
-  status: Todo
+  status: Done
   story: US7
 - local_id: ST3
   title: Add sq list --compact, one line per item with a truncated title
-  status: Todo
+  status: Done
   story: US9
 - local_id: ST4
   title: Declare bundled capabilities and resolve @*name tokens in skills
-  status: Todo
+  status: Done
   story: US8
 - local_id: ST5
   title: Give the tech writer the narration sweep, name it in loop step 5, and default
     it to sonnet
-  status: Todo
+  status: Done
   story: US8
 - local_id: ST6
   title: Write the 0.17.0 CHANGELOG entries for the role, list and guidance changes
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US7
 - local_id: ST7
   title: Convert every bundled hand-off to capability tokens
-  status: Todo
+  status: Done
   story: US8
 - local_id: ST8
   title: Report unheld capability tokens in override guides
-  status: Todo
+  status: Done
   story: US8
 created_at: '2026-10-24T10:04:05Z'
-updated_at: '2026-10-24T21:23:27Z'
+updated_at: '2026-10-24T23:41:53Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -223,4 +223,27 @@ Part of REV-1099 F17, per ADR-1121. A well-formed `@*<name>` token that no live 
     - @tech-lead re-plan ST4 against ADR-1121 once it is Accepted.
 - [2026-10-24T21:23:26Z] `tech-lead` Olivia Lead:
   - Re-planned F17 to ADR-1121 (Accepted): ST4 is now capabilities plus the @*name resolver, ST7 converts the bundled hand-offs and regenerates, ST8 reports unheld tokens in override guides. Approach, Tests, Generated output and CHANGELOG substance updated; F13, F15, F8 and F14 unchanged. Stays Ready.
+- [2026-10-24T22:53:15Z] `python-dev` Elias Python:
+  - Handoff, ST1-ST5, ST7, ST8 done (ST6 CHANGELOG left to the tech writer).
+    
+    **Per subtask**
+    - ST1: `role show` text ends with the scaffold line for a bundled role (activated or not) and with the `.overrides/roles/<slug>.toml` pointer for a non-bundled one; `--json` unchanged (`_cli/_role.py`).
+    - ST2: `scaffold_role` writes every `RoleSpec` field except `slug` and `is_default` commented out with its bundled value, plus the commented `responsibilities = ["$(*self)", "…"]` append line; an unset `model`/`color` is written as `inherit`/`teal`. `--new` untouched. The placeholder dict is allowlisted in the tests/meta mutable-state guard.
+    - ST3: `sq list --compact` (ID, status, title on one line, ellipsis at the console width, refused with `--json`, empty-view footer kept).
+    - ST4: `roles.toml` capabilities (tech-lead plan, reviewer review, qa verify, product-owner product, tech-writer edit). `live_roster_text` resolves `@*<name>` in the same pass. The playbook loader refuses a malformed `@*` token in commands and guide text.
+    - ST5: tech-writer gains the narration-sweep responsibility and `model = "sonnet"`; loop step 5 in `claude_section.md.j2` names the live `edit` holder(s) from the roster, neutral wording when none.
+    - ST7: every bundled `@`-mention converted; the review `*dev` hand-off now reads "`@`-mention the review's author (shown on `sq review <n> show`) once all findings are Fixed, for re-review"; `--assignee <developer>` kept. New meta guard on bundled slug and `@<developer>` mentions.
+    - ST8: `unheld_capability_tokens` + `unheld_capability_token_message` in `_interactions`, wired into `sq check` (`_playbook_guide_role_live`) and `sq sync`; only guides declared in `.overrides/playbook.toml`, deduped per type and capability. Token in a type's `commands` is not reported (it is not a guide).
+    
+    **Regenerated**: template manifest and content store (`gen_template_manifest.py`, `seed_content_store.py --rebuild`), `UPDATE_GOLDENS=1` goldens (claude/agents sections, role catalog and `role_qa_show`), skill-body goldens and the two spec JSON goldens (scratch script over the tests' own render functions). The pinned rosters in two unit tests now carry the bundled capabilities so tokens resolve. The repo CLAUDE.md is not regenerated (next `sq sync`). The CLAUDE.md golden pins the live-writer wording; the AGENTS.md section changed only through the responsibility line.
+    
+    **Tests** (each row mutated and seen red): CLI role-show footer, CLI list --compact, service scaffold, unit resolver, service unheld token, service malformed token, unit step-5 rows, meta bundled-text guard. Gates: ruff, format, pyright clean; tests/meta, unit, integration, cli, service: 13978 passed (tui and full suite not run). `sq check` clean.
+    
+    **CHANGELOG substance**: as in the task body, plus: a `@*<name>` token in an override guide that no live role holds is reported by `sq check` and `sq sync`; a malformed `@*` token in playbook text is a load error; the bundled tech-writer's responsibilities gain the narration sweep.
+- [2026-10-24T23:12:00Z] `tech-writer` Theo Writer:
+  - ST6 done. CHANGELOG 0.17.0: Added the @*<name> token (with the malformed-token load error), the unheld-token report, sq list --compact and the role show hint; Changed the bundled capabilities and hand-offs, the full role scaffold, and the tech writer (narration sweep, sonnet, loop step 5).
+  - Docs: roles.md (roster model, bundled capability table, moving or dropping a capability, new section "Mentioning a capability in hand-offs", role show hint), overrides.md (scaffold --role, playbook Rules bullet with the warning text, example uses @*plan), workflow.md and README (list --compact), agents.md (tech writer duty). Every quoted message and rendering checked on the dev build in a scratch squad.
+  - For src (not edited): the scaffold --role confirmation still prints "to add fields to override (e.g. full_name, model)", which no longer describes the file it just wrote. @manager for the guards and the merge.
+- [2026-10-24T23:27:42Z] `python-dev` Elias Python:
+  - REV-1130 F1-F5 fixed; targeted gates and tests/meta, unit, integration, cli, service pass (13982). @reviewer for re-review.
 <!-- sq:discussion:end -->

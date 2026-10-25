@@ -30,7 +30,7 @@ sq <type> <n> ref add REV-… --kind addresses   # from the item that addresses 
 - use `sq review <n> finding <k> comment` for finding-scoped notes (rationale, verification notes, 'agreed — closing this one') — cross-cutting notes and the final verdict go on the review (see the `squads` skill's comment-scoping convention)
 
 **Hand off:**
-- on ChangesRequested, `@<developer>` with the findings
+- on ChangesRequested, `@python-dev` with the findings
 - on Approved, comment the verdict
 
 **Watch for:**
@@ -50,7 +50,7 @@ sq <type> <n> ref add REV-… --kind addresses   # from the item that addresses 
 - use `sq review <n> finding <k> comment` when closing a finding with fix rationale — keep the review's main discussion for handoff @mentions (see the `squads` skill's comment-scoping convention)
 
 **Hand off:**
-- `@reviewer` once all findings are Fixed, for re-review
+- `@`-mention the review's author (shown on `sq review <n> show`) once all findings are Fixed, for re-review
 
 **Watch for:**
 - don't close findings you didn't actually address

@@ -99,6 +99,7 @@ async def test_check_warns_about_the_absent_timestamp_before_anything_heals_it(s
     assert len(warnings) == 1, [i.message for i in await svc.check()]
 
     await svc.comment(task.id, ["heals it"], as_slug="manager")
+    await svc.activate_role("tech-lead")
     assert await svc.check() == []
 
 
@@ -158,6 +159,7 @@ async def test_a_repair_then_heal_round_trip_restores_the_real_instant(svc, froz
 
     data, _ = split_frontmatter(path.read_text(encoding="utf-8"))
     assert data["created_at"] == clock.iso(created_at)
+    await svc.activate_role("tech-lead")
     assert await svc.check() == []
 
 

@@ -14,6 +14,7 @@ the literal string ``"squads"`` so path references are stable across machines.
 """
 
 import os
+from dataclasses import replace
 from pathlib import Path
 
 from _helpers import dev_role
@@ -22,7 +23,7 @@ from squads._interactions import cheatsheet_anchor_context
 from squads._interactions._role_guidance import delegate_example_slugs
 from squads._language import WorkingLanguage
 from squads._rendering._engine import render
-from squads._roles._catalog import get_catalog
+from squads._roles._catalog import PREDEFINED, get_catalog
 from squads._roles._projection import OperatorView, RoleView
 from squads._workflow import bundled_spec
 
@@ -37,18 +38,39 @@ _UPDATE = os.getenv("UPDATE_GOLDENS") == "1"
 #: ``title`` is the role title and ``full_name`` is the person's name, so a fixture that
 #: title-cases the former pins bytes no squad ever renders. The shipped ``CLAUDE.md`` in this
 #: repository is the check — its roster line reads ``— code reviewer (`reviewer`)``.
-_PINNED_ROSTER: list[RoleView] = [
+_BASE_ROSTER: list[RoleView] = [
     RoleView(slug="manager", full_name="Catherine Manager", title="manager", is_default=True),
     RoleView(slug="architect", full_name="Robert Architect", title="architect", is_default=False),
-    RoleView(slug="tech-lead", full_name="Olivia Lead", title="tech lead", is_default=False),
-    RoleView(slug="reviewer", full_name="Paul Reviewer", title="code reviewer", is_default=False),
-    RoleView(slug="qa", full_name="Mara Tester", title="QA engineer", is_default=False),
-    RoleView(slug="devops", full_name="Hugo Ops", title="DevOps engineer", is_default=False),
     RoleView(
-        slug="product-owner", full_name="Nina Product", title="product owner", is_default=False
+        slug="tech-lead",
+        full_name="Olivia Lead",
+        title="tech lead",
+        is_default=False,
     ),
     RoleView(
-        slug="tech-writer", full_name="Theo Writer", title="technical writer", is_default=False
+        slug="reviewer",
+        full_name="Paul Reviewer",
+        title="code reviewer",
+        is_default=False,
+    ),
+    RoleView(
+        slug="qa",
+        full_name="Mara Tester",
+        title="QA engineer",
+        is_default=False,
+    ),
+    RoleView(slug="devops", full_name="Hugo Ops", title="DevOps engineer", is_default=False),
+    RoleView(
+        slug="product-owner",
+        full_name="Nina Product",
+        title="product owner",
+        is_default=False,
+    ),
+    RoleView(
+        slug="tech-writer",
+        full_name="Theo Writer",
+        title="technical writer",
+        is_default=False,
     ),
     RoleView(
         slug="python-dev",
@@ -57,6 +79,12 @@ _PINNED_ROSTER: list[RoleView] = [
         is_default=False,
         capabilities=("dev",),
     ),
+]
+
+#: The bundled roles hold their catalog's capabilities, whatever they are.
+_BUNDLED_CAPABILITIES = {r.slug: r.capabilities for r in PREDEFINED}
+_PINNED_ROSTER: list[RoleView] = [
+    replace(r, capabilities=_BUNDLED_CAPABILITIES.get(r.slug, r.capabilities)) for r in _BASE_ROSTER
 ]
 _PINNED_OPERATORS: list[OperatorView] = [OperatorView(slug="op-alice", full_name="Alice Tester")]
 _DEFAULT_ROLE = next(r for r in _PINNED_ROSTER if r.is_default)

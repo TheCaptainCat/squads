@@ -30,6 +30,8 @@ async def test_check_exits_0_and_names_both_offenders(project, invoke) -> None:
     svc = service.open_service()
     long_title = (await create_item(svc, "task", "T" * 121, body=BODY_WRITTEN)).item
     unwritten = (await create_item(svc, "feature", "short")).item
+    await svc.activate_role("tech-lead")
+    await svc.activate_role("product-owner")
 
     checked = await invoke(["check"])
     assert checked.exit_code == 0, checked.output

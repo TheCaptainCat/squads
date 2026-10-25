@@ -19,7 +19,7 @@
             "set the body to the goal + the outcomes it groups (`sq epic <n> body -m …`)"
           ],
           "handoff": [
-            "when the epic is ready, create the features under it and `@tech-lead` to break them down"
+            "when the epic is ready, create the features under it and `@*plan` to break them down"
           ],
           "watch": [
             "an epic is an outcome, not a task list — keep it about the why"
@@ -35,7 +35,7 @@
             "shape it technically; spin off ADRs (`sq create decision`) for cross-cutting calls and link them (`sq epic <n> ref add ADR-… --kind related`)"
           ],
           "handoff": [
-            "when the technical shape is settled, `@tech-lead` to break it down into features"
+            "when the technical shape is settled, `@*plan` to break it down into features"
           ],
           "watch": [],
           "authors": false
@@ -79,7 +79,7 @@
             "use `sq feature <n> story <k> comment` for story-scoped acceptance clarifications or questions — cross-cutting notes go on the feature (see the `squads` skill's comment-scoping convention)"
           ],
           "handoff": [
-            "when stories and acceptance criteria are complete and the feature is greenlit, `@tech-lead` to break it into tasks"
+            "when stories and acceptance criteria are complete and the feature is greenlit, `@*plan` to break it into tasks"
           ],
           "watch": [
             "stories describe user value + acceptance criteria — not implementation steps",
@@ -98,10 +98,10 @@
             "use `sq feature <n> story <k> comment` for story-scoped questions (see the `squads` skill's comment-scoping convention)"
           ],
           "handoff": [
-            "when tasks are created, assigned, and sequenced, `@<developer>` (or spawn the developer) to begin implementation"
+            "when tasks are created, assigned, and sequenced, `@*dev` (or spawn the developer) to begin implementation"
           ],
           "watch": [
-            "if a story is ambiguous, ask the product-owner (`@product-owner`) first"
+            "if a story is ambiguous, ask the product owner (`@*product`) first"
           ],
           "authors": false
         },
@@ -115,7 +115,7 @@
             "verify the feature against its acceptance criteria once the implementation lands"
           ],
           "handoff": [
-            "when acceptance criteria all pass, confirm in a comment so the feature can close; when one fails, file a bug and `@tech-lead`"
+            "when acceptance criteria all pass, confirm in a comment so the feature can close; when one fails, file a bug and `@*plan`"
           ],
           "watch": [],
           "authors": false
@@ -144,7 +144,7 @@
             "set `--priority`/`--assignee`; sequence with `ref add … --kind blocks`"
           ],
           "handoff": [
-            "once the task is fully defined, assign the developer (`sq task <n> update --assignee <developer>`) — spawn or `@<developer>` to start implementation"
+            "once the task is fully defined, assign the developer (`sq task <n> update --assignee <developer>`) — spawn or `@*dev` to start implementation"
           ],
           "watch": [
             "a task's parent must be a feature; link bugs/reviews via refs, never as parent"
@@ -164,7 +164,7 @@
           ],
           "handoff": [
             "when implementation is complete, `sq task <n> status InReview`",
-            "comment a summary of what changed + `@reviewer`/`@qa`",
+            "comment a summary of what changed + `@*review`/`@*verify`",
             "for a review follow-up, link it (`ref add REV-… --kind addresses`)"
           ],
           "watch": [
@@ -183,7 +183,7 @@
             "log findings with `--severity`; drive Requested → InReview → verdict"
           ],
           "handoff": [
-            "on ChangesRequested, `@<developer>` with the findings",
+            "on ChangesRequested, `@*dev` with the findings",
             "on Approved, comment the verdict so the task can close"
           ],
           "watch": [
@@ -201,7 +201,7 @@
           ],
           "handoff": [
             "on pass, comment confirmation so the task can reach Done",
-            "on fail, file a bug (`sq create bug …`) and `@<developer>`"
+            "on fail, file a bug (`sq create bug …`) and `@*dev`"
           ],
           "watch": [
             "verify against acceptance criteria, not just that it runs"
@@ -230,7 +230,7 @@
             "set `--severity`/`--priority`"
           ],
           "handoff": [
-            "once filed, `@tech-lead` to triage; once the fix lands, verify it and confirm in a comment so the bug can close"
+            "once filed, `@*plan` to triage; once the fix lands, verify it and confirm in a comment so the bug can close"
           ],
           "watch": [],
           "authors": true
@@ -245,7 +245,7 @@
             "add a regression test"
           ],
           "handoff": [
-            "when the fix is ready, move the task to InReview and `@reviewer`/`@qa`; the bug closes when the fix is verified"
+            "when the fix is ready, move the task to InReview and `@*review`/`@*verify`; the bug closes when the fix is verified"
           ],
           "watch": [
             "track the fix on a task — don't implement straight off the bug"
@@ -261,7 +261,7 @@
             "triage and prioritise; create the fix task and assign a developer"
           ],
           "handoff": [
-            "once the fix task is created and assigned, `@<developer>` to start the fix"
+            "once the fix task is created and assigned, `@*dev` to start the fix"
           ],
           "watch": [],
           "authors": false
@@ -301,7 +301,7 @@
             "link what it affects (`sq decision <n> ref add … --kind related`)"
           ],
           "handoff": [
-            "once the decision is agreed, `sq decision <n> status Accepted` and `@tech-lead` to apply it in the work it affects"
+            "once the decision is agreed, `sq decision <n> status Accepted` and `@*plan` to apply it in the work it affects"
           ],
           "watch": [
             "supersede an old ADR rather than editing its decision after acceptance"
@@ -411,7 +411,7 @@
             "`sq milestone <n> status InProgress` once work is being aimed at it"
           ],
           "handoff": [
-            "`@tech-lead` once the milestone exists, so incoming work can join it"
+            "`@*plan` once the milestone exists, so incoming work can join it"
           ],
           "watch": [
             "membership is never edited here — `sq milestone <n> show` reads the live roll-up, it isn't set"
@@ -427,7 +427,7 @@
             "join a task to it as it's scoped (`sq task <n> ref add MILE-… --kind targets`)"
           ],
           "handoff": [
-            "`@product-owner` if the roll-up shows the target slipping"
+            "`@*product` if the roll-up shows the target slipping"
           ],
           "watch": [],
           "authors": false
@@ -458,7 +458,7 @@
             "use `sq review <n> finding <k> comment` for finding-scoped notes (rationale, verification notes, 'agreed — closing this one') — cross-cutting notes and the final verdict go on the review (see the `squads` skill's comment-scoping convention)"
           ],
           "handoff": [
-            "on ChangesRequested, `@<developer>` with the findings",
+            "on ChangesRequested, `@*dev` with the findings",
             "on Approved, comment the verdict"
           ],
           "watch": [
@@ -477,7 +477,7 @@
             "use `sq review <n> finding <k> comment` when closing a finding with fix rationale — keep the review's main discussion for handoff @mentions (see the `squads` skill's comment-scoping convention)"
           ],
           "handoff": [
-            "`@reviewer` once all findings are Fixed, for re-review"
+            "`@`-mention the review's author (shown on `sq review <n> show`) once all findings are Fixed, for re-review"
           ],
           "watch": [
             "don't close findings you didn't actually address"
@@ -504,7 +504,7 @@
             "write good practice + anti-patterns in the body"
           ],
           "handoff": [
-            "when the first draft is complete, `@tech-writer` to polish; set `sq guide <n> status Published` once it's clean"
+            "when the first draft is complete, `@*edit` to polish; set `sq guide <n> status Published` once it's clean"
           ],
           "watch": [],
           "authors": true

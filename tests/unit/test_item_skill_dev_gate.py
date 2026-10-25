@@ -10,12 +10,14 @@ whatever `sq init` happens to default to — see the "pin roster when diffing ge
 skills" hazard).
 """
 
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
 from squads._interactions import PLAYBOOK, get_playbook_spec
 from squads._models._item import Item
 from squads._rendering._engine import render
+from squads._roles._catalog import PREDEFINED
 from squads._roles._projection import RoleView
 from squads._views import PlaybookSource
 from squads._workflow import bundled_spec
@@ -29,18 +31,39 @@ _DEV_GUIDE_TYPES: frozenset[str] = frozenset({"task", "bug", "review", "contract
 #: Same fixed roster the existing skill-body goldens were pinned against (all 8 bundled
 #: roles + one python-dev) — reused read-only so this test's byte-identity check targets
 #: the same reviewed reference render, not a second copy of it.
-_ROSTER_WITH_DEV: list[RoleView] = [
+_BASE_ROSTER: list[RoleView] = [
     RoleView(slug="manager", full_name="Catherine Manager", title="manager", is_default=True),
     RoleView(slug="architect", full_name="Robert Architect", title="architect", is_default=False),
-    RoleView(slug="tech-lead", full_name="Olivia Lead", title="tech lead", is_default=False),
-    RoleView(slug="reviewer", full_name="Paul Reviewer", title="code reviewer", is_default=False),
-    RoleView(slug="qa", full_name="Mara Tester", title="QA engineer", is_default=False),
-    RoleView(slug="devops", full_name="Hugo Ops", title="DevOps engineer", is_default=False),
     RoleView(
-        slug="product-owner", full_name="Nina Product", title="product owner", is_default=False
+        slug="tech-lead",
+        full_name="Olivia Lead",
+        title="tech lead",
+        is_default=False,
     ),
     RoleView(
-        slug="tech-writer", full_name="Theo Writer", title="technical writer", is_default=False
+        slug="reviewer",
+        full_name="Paul Reviewer",
+        title="code reviewer",
+        is_default=False,
+    ),
+    RoleView(
+        slug="qa",
+        full_name="Mara Tester",
+        title="QA engineer",
+        is_default=False,
+    ),
+    RoleView(slug="devops", full_name="Hugo Ops", title="DevOps engineer", is_default=False),
+    RoleView(
+        slug="product-owner",
+        full_name="Nina Product",
+        title="product owner",
+        is_default=False,
+    ),
+    RoleView(
+        slug="tech-writer",
+        full_name="Theo Writer",
+        title="technical writer",
+        is_default=False,
     ),
     RoleView(
         slug="python-dev",
@@ -51,7 +74,13 @@ _ROSTER_WITH_DEV: list[RoleView] = [
     ),
 ]
 
-_ROSTER_NO_DEV: list[RoleView] = [r for r in _ROSTER_WITH_DEV if not r.capabilities]
+#: The bundled roles hold their catalog's capabilities, whatever they are.
+_BUNDLED_CAPABILITIES = {r.slug: r.capabilities for r in PREDEFINED}
+_ROSTER_WITH_DEV: list[RoleView] = [
+    replace(r, capabilities=_BUNDLED_CAPABILITIES.get(r.slug, r.capabilities)) for r in _BASE_ROSTER
+]
+
+_ROSTER_NO_DEV: list[RoleView] = [r for r in _ROSTER_WITH_DEV if "dev" not in r.capabilities]
 
 
 def _probe_skill_item(item_type: str) -> Item:

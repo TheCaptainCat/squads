@@ -10,7 +10,9 @@
   "model": "sonnet",
   "is_default": false,
   "can_spawn": false,
-  "capabilities": [],
+  "capabilities": [
+    "verify"
+  ],
   "create_lane": [
     "bug"
   ],

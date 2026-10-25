@@ -58,7 +58,9 @@
       "color": "purple",
       "is_default": false,
       "can_spawn": true,
-      "capabilities": []
+      "capabilities": [
+        "plan"
+      ]
     },
     {
       "slug": "reviewer",
@@ -78,7 +80,9 @@
       "color": "red",
       "is_default": false,
       "can_spawn": false,
-      "capabilities": []
+      "capabilities": [
+        "review"
+      ]
     },
     {
       "slug": "qa",
@@ -96,7 +100,9 @@
       "color": "green",
       "is_default": false,
       "can_spawn": false,
-      "capabilities": []
+      "capabilities": [
+        "verify"
+      ]
     },
     {
       "slug": "devops",
@@ -132,7 +138,9 @@
       "color": "yellow",
       "is_default": false,
       "can_spawn": false,
-      "capabilities": []
+      "capabilities": [
+        "product"
+      ]
     },
     {
       "slug": "tech-writer",
@@ -142,14 +150,17 @@
       "mission": "Make the work understandable: write and maintain clear documentation and guides.",
       "responsibilities": [
         "Write user- and developer-facing docs",
-        "Keep guides current"
+        "Keep guides current",
+        "Sweep delivered text for build-process narration before an increment closes"
       ],
       "agreements": [],
-      "model": "haiku",
+      "model": "sonnet",
       "color": "pink",
       "is_default": false,
       "can_spawn": false,
-      "capabilities": []
+      "capabilities": [
+        "edit"
+      ]
     }
   ],
   "bundles": {

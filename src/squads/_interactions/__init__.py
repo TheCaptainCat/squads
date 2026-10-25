@@ -33,8 +33,10 @@ from squads._interactions._models import (
 )
 from squads._interactions._role_guidance import (
     CAPABILITY_SUBJECT_PREFIX,
+    CAPABILITY_TOKEN,
     RoleLike,
     addresses,
+    guide_text_lines,
     in_lane_owner,
     role_like,
 )
@@ -726,6 +728,51 @@ def orphaned_playbook_guide_message(
         f"playbook guide for role {slug!r} on type {item_type!r} names no live role, so its "
         f"guidance is dropped from the generated `sq-{item_type}` skill — {revive}, or remove "
         f"the guide from `.overrides/playbook.toml` under `[types.{item_type}]`"
+    )
+
+
+def unheld_capability_tokens(
+    playbook: PlaybookSpec,
+    spec: WorkflowSpec,
+    *,
+    live_roles: Iterable[RoleLike],
+    override_guides: Container[tuple[str, str]],
+    override_commands: Container[tuple[str, str]] = (),
+) -> list[tuple[str, str]]:
+    """Every ``(item_type, capability)`` pair for which a guide or command line the adopter
+    declared uses an ``@*<capability>`` token that no live role holds, so the generated skill
+    renders it as ``*<capability>`` and mentions nobody.
+
+    Only a guide *override_guides* carries, and a command line *override_commands* carries, is
+    read: the same token in the bundled playbook degrades silently, as no adopter can edit it. A
+    type *spec* no longer declares is skipped. Pure, and returns sorted, unique pairs.
+    """
+    held = {c for r in live_roles for c in r.capabilities}
+    out: set[tuple[str, str]] = set()
+    for item_type in managed_item_types(playbook):
+        if item_type not in spec.items:
+            continue
+        entry = playbook.types[item_type]
+        lines = [ln for ln in entry.commands if (item_type, ln) in override_commands]
+        for guide in entry.roles:
+            if (item_type, guide.slug) in override_guides:
+                lines.extend(guide_text_lines(guide))
+        out.update(
+            (item_type, name)
+            for line in lines
+            for name in CAPABILITY_TOKEN.findall(line)
+            if name not in held
+        )
+    return sorted(out)
+
+
+def unheld_capability_token_message(item_type: str, capability: str) -> str:
+    """The one wording for an unheld capability token, shared by ``sq check`` and ``sq sync``."""
+    return (
+        f"playbook text on type {item_type!r} mentions `@*{capability}`, but no live role holds "
+        f"the capability, so the generated `sq-{item_type}` skill renders it as `*{capability}` "
+        f'and mentions nobody — declare `capabilities = ["{capability}"]` on a live role, or edit '
+        f"the line in `.overrides/playbook.toml` under `[types.{item_type}]`"
     )
 
 

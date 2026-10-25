@@ -3,7 +3,7 @@ id: FEAT-916
 sequence_id: 916
 type: feature
 title: Cut sq's fixed pre-dispatch startup cost
-status: Ready
+status: Done
 parent: EPIC-31
 author: product-owner
 priority: medium
@@ -13,15 +13,15 @@ refs:
 subentities:
 - local_id: US1
   title: Attribute the fixed startup cost by phase
-  status: Todo
+  status: Done
 - local_id: US2
   title: Defer work no command needs at startup
-  status: Todo
+  status: Done
 - local_id: US3
   title: Record the before and after timings
-  status: Todo
+  status: Done
 created_at: '2026-09-03T13:06:26Z'
-updated_at: '2026-10-24T21:56:17Z'
+updated_at: '2026-10-25T02:17:36Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -88,9 +88,11 @@ its own attribution pass.
 
 - A recorded attribution of the fixed cost, by phase (import, app construction,
 spec load, sub-app construction), measured with the command and corpus named.
-- `sq --version` and `sq --help` load no spec and build no sub-app they do not
-list, and `sq --version` is under 0.3 s on the machine of the baseline
-measurement; the bar is revisited if the attribution shows it unreachable.
+- `sq --version` loads no spec and builds no sub-app, and is under 0.3 s on the
+machine of the baseline measurement; the bar is revisited if the attribution
+shows it unreachable. `sq --help` resolves the spec at most once per invocation
+and builds no sub-app it does not list: a customised squad's help shows its
+workflow override, so help cannot skip the spec.
 - A command that needs the spec (`sq task <n> show`) loads it once and is no
 slower than before.
 - Output, exit codes and generated files of every command are unchanged: the
@@ -121,7 +123,7 @@ As a maintainer, I want the 0.6 to 0.7 s fixed cost attributed across import, Ty
 ### US2 — Defer work no command needs at startup
 
 <!-- sq:story:US2:body -->
-As an agent making hundreds of calls, I want sq to do only the work the invoked command needs, so that each call is cheap. Acceptance: --version and --help build no unlisted sub-app and load no spec; a command that needs the spec loads it once; output and exit codes are unchanged and the suite passes with no assertion edited.
+As an agent making hundreds of calls, I want sq to do only the work the invoked command needs, so that each call is cheap. Acceptance: --version loads no spec and --help resolves it at most once per invocation, and neither builds an unlisted sub-app; a command that needs the spec loads it once; output and exit codes are unchanged and the suite passes with no assertion edited.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -157,4 +159,45 @@ As the operator, I want measured results, so that the daemon is judged against a
   - Broken down into TASK-1123, one task with three subtasks mapped to US1-US3. It stays Draft on one acceptance question for @op-pierre: `--help` has to read a workflow override to keep its output, see the task.
     Order: after the FEAT-1101 tasks editing `_cli/` (TASK-1104, TASK-1105, TASK-1106). Then before FEAT-1092's structural task (TASK-1124 depends on it) and before the test-rebuild inventory (TASK-1111 depends on it). Why: the startup work and the structural moves both edit `_cli/_common.py` and the import-time loads in `_workflow`/`_interactions`, so this small one goes first, and the rebuild then ports the startup path as it will stay. There are no daemon tasks yet (FEAT-33 is Draft). When it is broken down, its first task should depend on TASK-1123, so the daemon is measured against this baseline.
     Re-measured 2026-10-24 on 0.16.0: `--version` 0.53 to 0.60 s, `--help` 1.47 to 1.57 s, `task <n> show` 0.94 to 0.98 s. The figures and the two profiler leads are in the task body.
+- [2026-10-24T23:45:54Z] `product-owner` Nina Product:
+  - 2026-10-25: acceptance amended per the manager ruling on TASK-1123: --version loads no spec (0.3 s bar kept); --help resolves the spec at most once per invocation, since a customised squad needs its override for help. US2 reworded to match. @op-pierre confirms or changes this in the morning.
+- [2026-10-25T01:16:55Z] `python-dev` Elias Python:
+  - ST1 attribution, driven on 2026-10-25 with the dev build, three runs each, wall time. The machine is shared (load average 6 to 11 during these runs), so every figure carries noise of about 0.1 s.
+    
+    Phases of `sq --version` before the change (perf_counter and `-X importtime`, this repo's squad):
+    
+    | phase | time |
+    |---|---|
+    | interpreter start and `import squads` | 0.04 to 0.06 s |
+    | third-party (typer, rich, pydantic) | 0.06 to 0.09 s |
+    | `_workflow` package import plus bundled spec load | 0.06 to 0.10 s |
+    | `_interactions` plus bundled playbook load | 0.02 to 0.04 s |
+    | rest of the `squads._cli` import (`_common` pulls in `_services`, `_index`, `_models`, `_rendering`, `_discussion`) | 0.15 to 0.20 s |
+    | the eleven command modules themselves | under 0.01 s in total |
+    | Click tree build (`typer.main.get_command(app)`, 33 registered groups, 538 commands) | 0.065 s |
+    | second Click tree build in `value_options()` | 0.062 s |
+    
+    - `sq --help`, 17 `resolve_spec_for_ctx` calls (52 `get_command` calls through `static_alias_is_stale`, three more from `format_help` and `list_commands`), each re-reading the override and validating it against the index: 1.5 s on this repo, 0.8 s in a small squad.
+    - Not deferrable: the `_common` import chain (every command except `--version` uses services and models), the bundled spec (the item apps are built from it) and one Click tree build.
+    - Deferrable: the second tree build, the 16 repeat spec resolutions, and for a bare `sq --version` the whole `squads._cli` import.
+    - Measured and not worth doing: lazy command modules (the eleven modules cost under 0.01 s; their import cost is `_common`); registering the nine hidden aliases once rather than as 14 extra groups (the tree build would drop from 0.069 to 0.039 s, but Typer's did-you-mean reads the raw registered table, so the change risks output for about 0.03 s).
+- [2026-10-25T01:16:57Z] `python-dev` Elias Python:
+  - ST3 before and after, same machine, same corpus (this repo's squad, a scratch squad copying its workflow override, and an empty directory), interleaved before/after runs, three runs each, wall seconds including interpreter start. The machine is shared (load average 6 to 11), so the numbers carry noise of about 0.1 s.
+    
+    | command | before | after |
+    |---|---|---|
+    | `sq --version` (scratch squad) | 0.68 0.69 0.70 | 0.12 0.09 0.09 |
+    | `sq --version` (outside a squad) | 0.67 0.72 0.73 | 0.08 0.11 0.09 |
+    | `sq --help` (this repo) | 1.53 1.48 1.57 | 0.69 0.71 0.70 |
+    | `sq --help` (scratch squad with override) | 0.84 0.79 1.03 | 0.75 0.81 0.71 |
+    | `sq --help` (outside a squad) | 0.72 0.70 0.69 | 0.71 0.70 0.63 |
+    | `sq task <n> show` (scratch squad) | 0.74 0.81 0.71 | 0.69 0.73 0.65 |
+    | `sq task 1111 show` (this repo) | 0.86 0.87 0.82 | 0.94 0.82 0.87 |
+    | `sq task <n> comment` write (scratch squad) | 0.78 0.78 0.78 | 0.74 0.77 0.68 |
+    
+    - `sq --version` is under the 0.3 s bar by a wide margin when it is the whole command line. With a `-C` before it, it still goes through the full CLI at about 0.6 s.
+    - `sq task <n> show` and the write command are within noise of before, a few hundredths of a second faster in the scratch squad; the second tree build removed there is about 0.06 s. Their floor is the `_common` import chain.
+    - Help output (`--help`, `task --help`, `create --help`) is byte-identical before and after in all three corpora.
+- [2026-10-25T02:17:36Z] `manager` Catherine Manager:
+  - Done: TASK-1123 delivered all three stories; review REV-1132 Approved. The --help acceptance wording awaits op-pierre confirmation (see TASK-1123).
 <!-- sq:discussion:end -->

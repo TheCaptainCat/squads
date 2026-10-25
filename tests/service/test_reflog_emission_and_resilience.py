@@ -109,6 +109,7 @@ async def test_repair_and_check_never_read_the_reflog_a_corrupt_reflog_does_not_
     rpath.write_text("this is not json at all\n", encoding="utf-8")
     result = await svc.repair()
     assert len(result.db.items) > 0
+    await svc.activate_role("tech-lead")
     assert await svc.check() == []  # a corrupt reflog raises no check issue either
 
 

@@ -25,7 +25,9 @@
     "title": "tech lead",
     "is_default": false,
     "origin": "system",
-    "capabilities": [],
+    "capabilities": [
+      "plan"
+    ],
     "default_role": "manager",
     "default_role_source": "roster"
   },
@@ -35,7 +37,9 @@
     "title": "code reviewer",
     "is_default": false,
     "origin": "system",
-    "capabilities": [],
+    "capabilities": [
+      "review"
+    ],
     "default_role": "manager",
     "default_role_source": "roster"
   },
@@ -45,7 +49,9 @@
     "title": "QA engineer",
     "is_default": false,
     "origin": "system",
-    "capabilities": [],
+    "capabilities": [
+      "verify"
+    ],
     "default_role": "manager",
     "default_role_source": "roster"
   },
@@ -65,7 +71,9 @@
     "title": "product owner",
     "is_default": false,
     "origin": "system",
-    "capabilities": [],
+    "capabilities": [
+      "product"
+    ],
     "default_role": "manager",
     "default_role_source": "roster"
   },
@@ -75,7 +83,9 @@
     "title": "technical writer",
     "is_default": false,
     "origin": "system",
-    "capabilities": [],
+    "capabilities": [
+      "edit"
+    ],
     "default_role": "manager",
     "default_role_source": "roster"
   }

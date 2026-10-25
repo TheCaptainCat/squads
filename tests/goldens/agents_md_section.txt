@@ -406,6 +406,7 @@ sq blocked                           # open items waiting on an open blocker
 **Responsibilities:**
 - Write user- and developer-facing docs
 - Keep guides current
+- Sweep delivered text for build-process narration before an increment closes
 
 ### Elias Python (`python-dev`)
 

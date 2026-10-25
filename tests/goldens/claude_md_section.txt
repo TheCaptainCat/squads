@@ -85,7 +85,7 @@ between turns:
    anything is now blocked.
 4. **Decide & repeat.** Spawn the next step (more implementation, a review, a fix) until the
    parent's own work is settled: every child item closed out, every linked review resolved.
-5. **Sweep for process-narration before closing.** Before an increment is committed/accepted, run
+5. **Sweep for process-narration before closing.** Before an increment is committed/accepted, have the technical writer (`tech-writer`) run
    one final subagent pass that *reads* the new delivered text — item/sub-entity bodies, code
    comments and docstrings, CHANGELOG, docs — for internal build-process references that seeped in:
    phase / round / wave / increment language, "this pass", "the reviewer's finding", "withheld

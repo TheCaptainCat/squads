@@ -178,6 +178,7 @@ async def test_a_squad_that_selects_nothing_gets_exactly_the_recorded_issues(
     gone = (await create_item(svc, "task", "Vanished")).item
     svc.paths.abspath(gone.path).unlink()
     (project.root / "CLAUDE.md").unlink()
+    await svc.activate_role("tech-lead")
 
     issues = await svc.check()
 

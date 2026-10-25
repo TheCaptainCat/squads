@@ -10,8 +10,8 @@ import typer._click as _click  # underscore is upstream's own private module pat
 import typer.core
 import typer.main
 
-from squads import __version__
 from squads import _actor as actor
+from squads import version_line
 from squads._cli import _common as common
 from squads._context import RequestContext
 from squads._workflow import bundled_spec
@@ -240,7 +240,7 @@ app = typer.Typer(
 
 def _version_cb(value: bool):
     if value:
-        common.console.print(f"squads {__version__}")
+        common.console.print(version_line())
         raise typer.Exit()
 
 
@@ -421,7 +421,7 @@ def _hoist_global_options(args: list[str]) -> list[str]:
             rest += args[i:]
             break
         candidate = tok in _GLOBAL_VALUE_OPTS or tok.startswith(("--at=", "--dir="))
-        if candidate and previous in common.value_options():
+        if candidate and previous.startswith("-") and previous in common.value_options():
             rest.append(tok)
             previous = ""
             i += 1
