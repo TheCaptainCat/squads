@@ -58,7 +58,7 @@ sq bug <n> status InProgress
 - triage and prioritise; create the fix task and assign a developer
 
 **Hand off:**
-- once the fix task is created and assigned, `@<developer>` to start the fix
+- once the fix task is created and assigned, `@python-dev` to start the fix
 
 ## For Paul Reviewer (`reviewer`)
 

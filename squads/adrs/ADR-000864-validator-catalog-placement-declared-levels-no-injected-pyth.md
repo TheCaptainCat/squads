@@ -2,7 +2,7 @@
 id: ADR-864
 sequence_id: 864
 type: decision
-title: 'Validator catalog: three tiers, declared levels, no injected Python'
+title: 'Validator catalog: placement, declared levels, no injected Python'
 status: Accepted
 author: architect
 refs:
@@ -11,10 +11,10 @@ refs:
 - ADR-777
 - ADR-696
 - ADR-955
-description: What a complete validator catalog looks like, which members are floor
-  vs opt-in, and why adopter-supplied Python is not built.
+description: What a complete validator catalog looks like, which members are always
+  on vs opt-in, and why adopter-supplied Python is not built.
 created_at: '2026-09-01T15:26:04Z'
-updated_at: '2026-10-16T20:58:39Z'
+updated_at: '2026-10-24T23:46:53Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -22,14 +22,14 @@ updated_at: '2026-10-16T20:58:39Z'
 `sq check` and the create/update gate share one engine over one closed catalog. The catalog
 was assembled by lifting the hardcoded `_check_*` methods that existed at the time into named
 members, then adding a member whenever a new rule was wanted. Nobody has since asked what the
-*complete* set looks like, or on what principle a member belongs in the always-on floor rather
+*complete* set looks like, or on what principle a member belongs always on rather
 than sitting available and unselected.
 
 The question became concrete when the currency rule for contract refs met real data for the
 first time and produced 92 warnings in a repository where a clean `sq check` is a must-pass
 gate. Every one of those warnings was correct against the rule and useless to the reader: the
 rule had no way to record "this delivered work implements no adopter promise, deliberately",
-because plenty of delivered work genuinely does not. The resolution — unbundle it, leave the
+because plenty of delivered work genuinely does not. The resolution — take it out of the category defaults, leave the
 edge typing in place, let a project opt in — is being applied separately and is not reopened
 here. What that case exposed, and what this record is about, is that **"is this a defect in
 any squad?" and "is this a defect in some squad?" are different questions, and the catalog has
@@ -51,19 +51,20 @@ fresh `sq init` in a scratch directory, removed afterwards.
 ### What is there (read)
 
 Fifteen per-item validators and five squad-global ones. A per-item type's effective set is
-`COMMON_CORE` + its category's bundle + the type's own `validators` list. The floor is five:
+`COMMON_CORE` (always on) + the members on by default for its category + the type's own
+`validators` list. Five are always on:
 item status validity, dangling ref, ref-kind validity, no status banner, agent registered. The
-`work` bundle adds parent eligibility and the four sub-entity checks plus story mapping; the
-`records` bundle adds no-parent and the supersession check; `roster` adds nothing. Two members
-sit in no bundle at all and are reachable only by a type naming them: the requires-a-parent
+`work` category turns on parent eligibility and the four sub-entity checks plus story mapping; the
+`records` category turns on no-parent and the supersession check; `roster` adds nothing. Two members
+are on by default for no category and are reachable only by a type naming them: the requires-a-parent
 check and the ref-rule currency check.
 
 The composition is **extend-only, with no subtraction surface anywhere**. `effective_validator_names`
-takes the floor and the bundle table as parameters, but both production call sites pass the
+takes the always-on set and the per-category defaults table as parameters, but both production call sites pass the
 module defaults; the only test that substitutes a stub is exercising the composition itself.
 The `[selected]` deselection mechanism in the override merge drops *keys from a spec document
-section* — an item type, a status — and the floor and bundle tables are Python constants, not
-document sections, so no override reaches them. An adopter cannot turn a floor member off.
+section* — an item type, a status — and the always-on and per-category tables are Python constants, not
+document sections, so no override reaches them. An adopter cannot turn an always-on member off.
 
 Two structural properties are worth keeping and are easy to lose. First, the name catalog lives
 in the spec layer and the behaviour lives in the service layer, joined by an import-time assert
@@ -73,45 +74,45 @@ that guards its reachability, `UNGUARDED_VALIDATOR_NAMES` names the ones argued 
 and an assert closes the union against the whole catalog — so a new member cannot be added
 without someone deciding which bucket it is in.
 
-### The tiering test
+### The placement test
 
 The distinction the contract rule proved should be stated as a rule rather than rediscovered.
-Three tiers, with a test for each:
+Three placements, with a test for each:
 
-**Floor.** A finding that is a defect in *every* squad, whose subject exists whenever an item
+**Always on.** A finding that is a defect in *every* squad, whose subject exists whenever an item
 exists, and that a well-run team can never legitimately sit in permanently. Test: *can a
-competent squad be in this state on purpose, indefinitely?* If yes, it is not floor.
+competent squad be in this state on purpose, indefinitely?* If yes, it is not always on.
 
-**Category bundle.** A finding whose subject is a capability the *category* implies — a `work`
+**On by default for a category.** A finding whose subject is a capability the *category* implies — a `work`
 type burns down and hangs off a parent, a `records` type is a root document that can be
 superseded. Test: *does this check follow from what the category means, or from what the
 bundled types happen to want?* A check that follows only from the bundled vocabulary belongs
 on the type, not in the category.
 
-**Catalog-only.** A finding that encodes a *policy* — a team's convention about how work should
+**Opt-in.** A finding that encodes a *policy* — a team's convention about how work should
 be described or linked — rather than a defect. Test: *is clearing the finding a mechanical fix,
 or a judgement call about the work?* A judgement call means the check is a policy, and a policy
 belongs behind an opt-in. The contract-currency rule failed exactly this test: clearing it
 required deciding, per feature, which promise the feature shaped.
 
-A validator nobody bundles is not dead code. It is the tier that makes the catalog a design
-rather than an accumulation, and the tier the current set is thinnest in — two members.
+An opt-in validator is not dead code. Opt-in is the placement that makes the catalog a design
+rather than an accumulation, and the one the current set is thinnest in — two members.
 
-### Two floor members fail their own test
+### Two always-on members fail their own test
 
-**The status-banner check is a house convention in the floor.** It reports a body or summary
+**The status-banner check is a house convention that is always on.** It reports a body or summary
 whose first line opens with `STATUS:` or a `## Status` heading. This project has a strong,
 stated reason to want that: status lives in frontmatter and prose copies of it go stale. That
 reason is not universal. A team whose ADR template has carried a `## Status` heading for a
-decade gets a warning on every record they own, on a floor member with no subtraction surface,
-and their only remedy is to restructure their documents to suit a tool. Relocating it to the
-`records` and `work` bundles would not help — a bundle cannot be subtracted from either. The
-honest placement is catalog-only, selected by the types that want it, and selected by this
+decade gets a warning on every record they own, on an always-on member with no subtraction surface,
+and their only remedy is to restructure their documents to suit a tool. Making it on by default for the
+`records` and `work` categories would not help — a category default cannot be subtracted
+either. The honest placement is opt-in, selected by the types that want it, and selected by this
 project's own spec.
 
 **The sub-entity title threshold is a constant, not a declaration.** The advisory fires above
 120 characters, and 120 is a module constant with no spec field behind it (read). Every squad
-gets our number. This is a smaller version of the same defect: a policy shipped as a floor.
+gets our number. This is a smaller version of the same defect: a policy shipped as always on.
 
 Neither is urgent and neither is broken. Both are the same mistake the contract rule made, and
 both are still standing.
@@ -123,10 +124,10 @@ or update; warn-level ones are advisory everywhere (read). An adopter can select
 but cannot say *how much they mean it*.
 
 That single missing dimension explains most of the pressure toward injected code. The
-requires-a-parent check is unbundled because turning it on would error on every parentless item
+requires-a-parent check is opt-in because turning it on would error on every parentless item
 already on disk (its own docstring says so) — but as a *warning* it would be immediately
 useful to a project that wants the convention without the cliff. The contract-currency rule
-would have been shippable-bundled at warn if a project could have dialled it, and it is warn
+could have shipped on by default at warn if a project could have dialled it, and it is warn
 already; what it lacked was a parameter for "and here is the class of work that is exempt by
 construction". A threshold expressed in the spec rather than in a module constant covers the
 title case.
@@ -141,12 +142,12 @@ used for.
 
 ## Part 2 — checks that should exist, including ones this squad would not run
 
-Each is named with the tier it belongs in and who it is for. Levels are the proposed default.
+Each is named with the placement it belongs in and who it is for. Levels are the proposed default.
 None of these exist (read: none appear in either name catalog).
 
-**Defects — these belong in the floor or a bundle, for everyone:**
+**Defects — these belong always on or on by default for a category, for everyone:**
 
-- **`parent_acyclic`** (error, floor). A parent chain that closes on itself. Driven: two bugs
+- **`parent_acyclic`** (error, always on). A parent chain that closes on itself. Driven: two bugs
   made each other's parent under the *bundled* spec, with no override involved; `sq check`
   reported no issue and exited 0, `sq list`, `sq <type> <n> show` and `sq repair` all behaved
   normally, and both `sq tree <id>` and bare `sq tree` had to be killed after twenty seconds.
@@ -157,14 +158,14 @@ None of these exist (read: none appear in either name catalog).
   clearest case in the whole list: a silent corpus state that every gate calls clean and that
   makes one command non-terminating. For everyone.
 
-- **`field_value_declared`** (error, work + records bundles). A badge or field value in
+- **`field_value_declared`** (error, on by default for work + records). A badge or field value in
   frontmatter that is not a member of the collection its field declares. Values set through the
   CLI are parsed against the collection, but a hand-edited file, a bulk import, or a collection
   narrowed in an override after the fact can all leave one behind, and nothing reads it back.
   For every adopter who customises collections — which is to say, for adopters rather than for
   us, since we ship the collections we use.
 
-**Policies — catalog-only, selected by the squads that want them:**
+**Policies — opt-in, selected by the squads that want them:**
 
 - **`item_title_max:<n>`** (warn). Sub-entity titles are length-checked; item titles are not.
   Driven: a 200-character bug title was created with no advisory and `sq check` stayed clean.
@@ -181,7 +182,7 @@ None of these exist (read: none appear in either name catalog).
   declare typed ref rules, which is the whole point of declaring them.
 
 - **`body_written`** (warn). An item body still sitting at the rendered placeholder. The
-  sub-entity equivalent already exists and is bundled; the item-level one does not. For teams
+  sub-entity equivalent already exists and is on by default for its category; the item-level one does not. For teams
   that create items in batches ahead of writing them.
 
 - **`description_present`** (warn). An item with no summary line, which is what every list
@@ -289,7 +290,7 @@ None of these exist (read: none appear in either name catalog).
 
 - **`wip_limit:<n>`** (warn). More than *n* items at an `active`-role status for one assignee.
   For teams running a kanban discipline. Explicitly not for this squad, and a good example of
-  the tier: it is a real check, it is nobody's defect, and it would be wrong to bundle.
+  opt-in: it is a real check, it is nobody's defect, and it would be wrong to turn on by default.
 
 - **`unassigned_active:<n>`** (warn). The roll-up of the per-item version, for a board owner
   who wants one line rather than fifty.
@@ -443,7 +444,7 @@ edge, no global, and the fail-closed check survives intact. The rendering layer'
 the interaction and spec layers is not disturbed, because nothing about this touches rendering.
 
 What the layering *cannot* be parameterised out of is the consistency-clause closure. Every
-catalog member is either guarded by a reachability clause, in the floor, or explicitly argued to
+catalog member is either guarded by a reachability clause, always on, or explicitly argued to
 need no guard, and an import-time assert closes the union. An injected name is in none of those
 buckets and cannot be, because the clause that would guard it would have to be written by the
 adopter too. So the closure either stops covering the whole effective set, or injected
@@ -463,7 +464,7 @@ that arrives with the corpus rather than by a deliberate install.
 Concretely, in the order the evidence supports: the parent-cycle check, because it is a live
 non-terminating command that every gate calls clean; declared level and threshold on the
 assignment, because that is the dimension whose absence is generating the pressure; then the
-catalog-only members above, chosen by whoever wants them.
+opt-in members above, chosen by whoever wants them.
 
 **If injection is wanted anyway, the entry-point shape is the one to take**, not a dropped file
 under `.overrides/`. It puts the trust decision at an install, it is versionable, and it does not
@@ -474,10 +475,10 @@ would still need the public-API question answered first.
 
 It is this. A closed catalog means every rule an adopter wants has to come through us, and the
 list in Part 2 is evidence that we are not good at guessing which rules adopters want — it took
-one contact with real data to discover that a rule we had bundled was wrong for its own author.
+one contact with real data to discover that a rule we had turned on by default was wrong for its own author.
 An adopter with a twenty-line check that encodes their own team's convention has no route at all
 today, and telling them to open an issue and wait for a release is a worse experience than
-telling them to write a function. The tiering and the level declaration make the catalog better
+telling them to write a function. The placement test and the level declaration make the catalog better
 without making it *theirs*, and a customisation story that stops at "choose from our list" is a
 weaker promise than this project makes elsewhere: item types, statuses, roles, ref kinds,
 templates and the playbook are all genuinely open. Validators would be the one axis where
@@ -543,7 +544,7 @@ type exist. Gating on it refuses an operator on a path where the remedy does not
 them on *every* item of the type at once, for a defect none of those items has.
 
 **It strands a corpus.** Items already on disk in that condition would begin failing ordinary
-updates — the same cliff this record names as the reason `requires_parent` stays unbundled ("turning
+updates — the same cliff this record names as the reason `requires_parent` stays opt-in ("turning
 it on would error on every parentless item already on disk"), and the same stranding shape the
 sub-entity force defect had to be fixed to avoid. An alignment report is the least urgent thing in
 the tool to block a title edit on.
@@ -606,7 +607,7 @@ Two things are ruled alongside it so they are not re-litigated as loopholes:
 
 **The catalog is built out instead, and the declaration surface that makes it dialable is built
 with it.** Scope is the *full* build-out, taken in 0.15: every Part 2 member that is buildable
-today, plus the re-tiering Part 1 argues for — not the two-member first step the recommendation
+today, plus the moves to opt-in Part 1 argues for — not the two-member first step the recommendation
 led with. Secondary to the view work (ADR-880) in priority, not in completeness.
 
 ### Correction to Part 2: `parent_acyclic` shipped
@@ -618,15 +619,15 @@ corrected the same way rather than quietly tidied.
 
 What is true now, checked against the source: `parent_acyclic` is implemented at
 `_services/_validators.py:267`, registered in the behaviour catalog at `:646`, declared in
-`VALIDATOR_NAMES` and seated in the **floor** at `_workflow/_models.py:148,212` — the tier this
-record's own tiering test argues for it. The two non-terminating walks it was found through now
+`VALIDATOR_NAMES` and seated **always on** at `_workflow/_models.py:148,212` — the placement this
+record's own placement test argues for it. The two non-terminating walks it was found through now
 carry visited sets (`_services/_base.py:215-247` and `:250-300`), and the defect was filed,
 fixed and verified as a bug on its own ticket rather than as a clause of this record. It landed
 on 2026-09-02, after the comment that reported it here and before the 0.14 tag.
 
 So the corrected clause reads: **of Part 2's sixteen named members, `parent_acyclic` is the one
 that exists; the other fifteen do not.** Everything else Part 2 says about it stands, including
-why it belongs in the floor.
+why it belongs always on.
 
 ### The accepted build order
 
@@ -647,29 +648,29 @@ missing dimension instead. What follows is sequenced by what unblocks what.
    The gate correction's two rulings carry into this unchanged — the gate is **not** widened to the
    item's on-disk text, and `subentity_container_marker` keeps `error`. One consequence worth
    naming: with a level on the assignment, `parent_present` — Part 1's requires-a-parent
-   check, in no category bundle deliberately — becomes selectable at warn. The cliff that kept
-   it unbundled was its level, not its rule.
+   check, deliberately on by default for no category — becomes selectable at warn. The cliff that kept
+   it opt-in was its level, not its rule.
 
-2. **Re-tier the two floor members that fail this record's own tiering test.** Both are in
+2. **Move the two always-on members that fail this record's own placement test to opt-in.** Both are in
    scope under this ruling, and both need step 1 first.
    - **`no_status_banner`** — this project's house convention shipped as a universal defect.
-     It moves to catalog-only, selected by the types that want it, and **selected by this
+     It moves to opt-in, selected by the types that want it, and **selected by this
      project's own spec**, where the rule is emphatic policy and stays fully enforced.
-     Relocating it into a category bundle would not help, since a bundle cannot be subtracted
-     from either.
+     Making it on by default for a category would not help, since a category default cannot be
+     subtracted either.
    - **The sub-entity title threshold** — a module constant every squad inherits. The
      member's `:<param>` suffix is documentary today and is never read back at runtime, which
      is the shape step 1 replaces: the number moves into the spec as a declared threshold, and
-     the member moves to catalog-only, again selected here.
+     the member moves to opt-in, again selected here.
 
-   Re-tiering demotes neither rule *for this squad*. It is the difference between a policy we
+   Moving them to opt-in demotes neither rule *for this squad*. It is the difference between a policy we
    hold and a defect we assert on every adopter's behalf.
 
-3. **`field_value_declared`** — error, `work` + `records` bundles. A badge or field value in
+3. **`field_value_declared`** — error, on by default for `work` + `records`. A badge or field value in
    frontmatter that is not a member of the collection its field declares. It is a defect
    wherever it occurs, and it is invisible to us only because we ship the collections we use.
 
-4. **The Part 2 catalog-only members**, each declared with its default level and parameter:
+4. **The Part 2 opt-in members**, each declared with its default level and parameter:
    `item_title_max:<n>`, `ref_rule_target_typed`, `body_written`, `description_present`,
    `assignee_present`, `blocked_has_blocker`, `settled_requires_discussion`,
    `external_id_not_in_title:<pattern>`. This project selects `item_title_max` and
@@ -681,7 +682,7 @@ missing dimension instead. What follows is sequenced by what unblocks what.
    outcomes), `dependency_acyclic`, `wip_limit:<n>`, `unassigned_active:<n>`, and
    `stale_active:<days>`. `stale_active` is admitted with one condition attached, because its
    cost is argued once here rather than per adopter: the clock reaches it through the
-   injectable clock the rest of the codebase uses, and it is **never bundled** — so `sq check`
+   injectable clock the rest of the codebase uses, and it is **never on by default** — so `sq check`
    stays deterministic over an unchanged corpus for every squad that has not selected it, and
    a squad that selects it accepts the non-determinism knowingly.
 
@@ -690,15 +691,15 @@ declared label vocabulary, and labels are free strings with no spec vocabulary b
 stays a named catalog member with its prerequisite recorded; it becomes buildable when that
 vocabulary exists, and it holds up nothing above it.
 
-### What the tiering test now binds
+### What the placement test now binds
 
-The three tiers in Part 1 are the admission rule for any future member, not a description of
-the set that happens to exist: floor is a defect in every squad that no competent team can sit
-in on purpose; a category bundle follows from what the category *means*, not from what its
+The three placements in Part 1 are the admission rule for any future member, not a description of
+the set that happens to exist: always on is a defect in every squad that no competent team can sit
+in on purpose; on by default for a category follows from what the category *means*, not from what its
 bundled types happen to want; and a finding whose clearing is a judgement call about the work is
-a policy, which sits catalog-only behind an opt-in. A new member also states which bucket of
+a policy, which sits behind an opt-in. A new member also states which bucket of
 the consistency-clause closure it is in, and — from step 1 — which context it requires. A
-validator nobody bundles is not dead code; it is the tier that makes the catalog a design.
+validator that is opt-in is not dead code; opt-in is the placement that makes the catalog a design.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -742,4 +743,6 @@ validator nobody bundles is not dead code; it is the tier that makes the catalog
     - `external_id_not_in_title` takes a regular expression, as this decision first said. The template grammar of the note is not adopted; the cost of a bad pattern is the adopter's own configuration risk.
 - [2026-10-16T20:58:39Z] `op-pierre` Pierre Chat:
   - 2026-10-16: the validator 'tiers' are not understandable. Drop the word for validators everywhere (this ADR's title and tiering-test heading, code docstrings, docs) and use plain terms: always on, on by default for a category, opt-in, and file checks for the raw scan. Wording only, no behaviour change. Recorded as a task for later, not 0.16.
+- [2026-10-24T23:46:53Z] `architect` Robert Architect:
+  - 2026-10-25: renamed for plain terms (TASK-1077 ST1). Title "three tiers" -> "placement"; heading "The tiering test" -> "The placement test"; body: Floor -> always on, Category bundle -> on by default for a category, Catalog-only -> opt-in, tier -> placement. Wording only, the decision is unchanged. The level floor (a selection may raise a level, never lower it) keeps its name: it is a different concept.
 <!-- sq:discussion:end -->

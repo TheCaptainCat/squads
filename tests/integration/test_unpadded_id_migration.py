@@ -110,6 +110,8 @@ async def test_migration_unpads_frontmatter_and_prose_but_skips_code_spans_and_f
     # ("Runs `sq repair` to rebuild the index"). Do that before asserting a clean check, same
     # as a real `sq migrate up` would.
     await svc.repair()
+    for slug in ("product-owner", "qa", "tech-lead"):
+        await svc.activate_role(slug)
     issues = await svc.check()
     assert not issues
 

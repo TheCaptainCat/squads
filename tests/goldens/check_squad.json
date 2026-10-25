@@ -1,6 +1,36 @@
 [
   {
     "level": "warn",
+    "item": "",
+    "message": "type 'bug' has 1 open item but no live role authors it \u2014 activate `qa` (`sq role activate qa`)"
+  },
+  {
+    "level": "warn",
+    "item": "",
+    "message": "type 'decision' has 1 open item but no live role authors it \u2014 activate `architect` (`sq role activate architect`)"
+  },
+  {
+    "level": "warn",
+    "item": "",
+    "message": "type 'feature' has 1 open item but no live role authors it \u2014 activate `product-owner` (`sq role activate product-owner`)"
+  },
+  {
+    "level": "warn",
+    "item": "",
+    "message": "type 'guide' has 1 open item but no live role authors it \u2014 activate `architect` (`sq role activate architect`) or activate `tech-writer` (`sq role activate tech-writer`)"
+  },
+  {
+    "level": "warn",
+    "item": "",
+    "message": "type 'review' has 1 open item but no live role authors it \u2014 activate `reviewer` (`sq role activate reviewer`)"
+  },
+  {
+    "level": "warn",
+    "item": "",
+    "message": "type 'task' has 2 open items but no live role authors it \u2014 activate `tech-lead` (`sq role activate tech-lead`)"
+  },
+  {
+    "level": "warn",
     "item": "FEAT-2",
     "message": "US1 body is unwritten (still the placeholder stub)"
   },

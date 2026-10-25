@@ -21,7 +21,7 @@ subentities:
   severity: low
 - local_id: F3
   title: No warning when a type holds items but no active role authors it
-  status: Open
+  status: Verified
   severity: low
 - local_id: F4
   title: Index-lock contention is silent, and a 10 s wait ends in a raw Timeout traceback
@@ -41,7 +41,7 @@ subentities:
   severity: medium
 - local_id: F8
   title: sq list has no compact form; long titles wrap over several lines
-  status: Open
+  status: Verified
   severity: low
 - local_id: F9
   title: sq create bug has no --severity; only priority is exposed at create
@@ -49,7 +49,7 @@ subentities:
   severity: medium
 - local_id: F10
   title: A review can be Approved with Open findings and sq check stays silent
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F11
   title: Bundled reviewer guidance does not say when a review is warranted
@@ -61,15 +61,15 @@ subentities:
   severity: low
 - local_id: F13
   title: sq role show does not say how to change a role's definition
-  status: Open
+  status: Verified
   severity: low
 - local_id: F14
   title: Loop step 5 narration sweep names no owner role
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F15
   title: override scaffold --role writes a near-empty file
-  status: Open
+  status: Verified
   severity: low
 - local_id: F16
   title: A second author on a type silently drops its CLAUDE.md workflow bullet
@@ -77,10 +77,10 @@ subentities:
   severity: medium
 - local_id: F17
   title: Bundled handoffs hardcode @reviewer instead of the review's author
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-10-24T09:19:58Z'
-updated_at: '2026-10-24T20:57:52Z'
+updated_at: '2026-10-25T00:54:27Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -240,6 +240,8 @@ and no active role authors it, naming the catalog role that would (`sq role acti
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-25T00:54:26Z] `manager` Catherine Manager:
+  - Fixed by TASK-1104 ST2/ST5 (7d538630, 2a7c7ca3); verified in REV-1131 (Approved).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -384,6 +386,8 @@ truncated title), or truncate by default when stdout is a terminal narrower than
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
+- [2026-10-24T23:41:38Z] `manager` Catherine Manager:
+  - Fixed by TASK-1106 (f88a0abb, 9bed669a); verified in review REV-1130 (Approved).
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -437,6 +441,8 @@ no outgoing transition, so reopening a review under a stricter rule needs `--for
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
+- [2026-10-25T00:54:27Z] `manager` Catherine Manager:
+  - Rule shipped by TASK-1104 ST1 (7d538630), verified in REV-1131. Verification waits on ST3, the cleanup of this repo reviews, which needs the board tool upgrade.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -504,6 +510,8 @@ model: sq override scaffold --role <slug>, then sq sync".
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
+- [2026-10-24T23:41:41Z] `manager` Catherine Manager:
+  - Fixed by TASK-1106 (f88a0abb, 9bed669a); verified in review REV-1130 (Approved).
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
 
@@ -529,6 +537,8 @@ reconsider its default model for that work.
 <!-- sq:finding:F14:discussion -->
 - [2026-10-24T09:37:24Z] `op-pierre` Pierre Chat:
   - Yes: the bundled tech-writer owns the narration sweep, step 5 names it, and its default model moves to sonnet.
+- [2026-10-24T23:41:45Z] `manager` Catherine Manager:
+  - Fixed by TASK-1106 (f88a0abb, 9bed669a); verified in review REV-1130 (Approved).
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 
@@ -550,6 +560,8 @@ value (`# model = "haiku"`, `# responsibilities = [ … ]`), plus a commented
 #### Discussion
 
 <!-- sq:finding:F15:discussion -->
+- [2026-10-24T23:41:48Z] `manager` Catherine Manager:
+  - Fixed by TASK-1106 (f88a0abb, 9bed669a); verified in review REV-1130 (Approved).
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
 
@@ -604,6 +616,8 @@ tracking the bundle.
 #### Discussion
 
 <!-- sq:finding:F17:discussion -->
+- [2026-10-24T23:41:51Z] `manager` Catherine Manager:
+  - Fixed by TASK-1106 (f88a0abb, 9bed669a); verified in review REV-1130 (Approved).
 <!-- sq:finding:F17:discussion:end -->
 <!-- sq:finding:F17:end -->
 <!-- sq:findings:end -->

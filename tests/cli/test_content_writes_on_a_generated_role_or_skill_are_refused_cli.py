@@ -238,7 +238,7 @@ def test_the_exempt_fields_are_the_declared_set_and_nothing_broader() -> None:
 
 def test_only_the_gate_asks_the_classification_for_a_write() -> None:
     """No verb carries its own membership test: the classification is asked in the shared gate
-    and in the places that read it for the check tier, the view mechanics and the migration."""
+    and in the places that read it for the file checks, the view mechanics and the migration."""
     root = Path(__file__).parents[2] / "src" / "squads"
     callers: dict[str, int] = {}
     for path in sorted(root.rglob("*.py")):

@@ -186,6 +186,6 @@ parallel, or would you rather they were sequenced?
 - **Reviewer (Paul Reviewer)** — drive review items to a verdict; request changes or approve.
 - **QA (Mara Tester)** — derive tests from user stories; verify fixes; file bugs.
 - **Architect (Robert Architect)** — record ADRs; author guides; review designs.
-- **Tech writer (Theo Writer)** — keep guides and docs current.
+- **Tech writer (Theo Writer)** — keep guides and docs current; sweep delivered text for build-process narration before an increment closes.
 
 Lost? Run **`sq workflow`** for the cheatsheet, or `sq <command> --help`.

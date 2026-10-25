@@ -36,8 +36,13 @@ from squads._interactions import (
     orphaned_skill_item_type,
     skill_description,
     skill_origin,
+    unheld_capability_token_message,
+    unheld_capability_tokens,
 )
-from squads._interactions._loader import playbook_override_guide_pairs
+from squads._interactions._loader import (
+    playbook_override_command_lines,
+    playbook_override_guide_pairs,
+)
 from squads._interactions._models import PlaybookSpec
 from squads._itemfile import (
     SkewKey,
@@ -1169,6 +1174,7 @@ class MaintenanceMixin(ServiceCore):
         # so the two can never disagree about which guides were dropped.
         known_slugs = {r.slug for r in await self.roster_all()}
         live_initial = self.spec.live_initial(ROSTER_ROLE)
+        override_guides = playbook_override_guide_pairs(self.paths.squad_dir)
         skipped += [
             orphaned_playbook_guide_message(
                 item_type, slug, retired=slug in known_slugs, live_status=live_initial
@@ -1177,7 +1183,17 @@ class MaintenanceMixin(ServiceCore):
                 self.playbook,
                 self.spec,
                 live_roles=roster,
-                override_guides=playbook_override_guide_pairs(self.paths.squad_dir),
+                override_guides=override_guides,
+            )
+        ]
+        skipped += [
+            unheld_capability_token_message(item_type, capability)
+            for item_type, capability in unheld_capability_tokens(
+                self.playbook,
+                self.spec,
+                live_roles=roster,
+                override_guides=override_guides,
+                override_commands=playbook_override_command_lines(self.paths.squad_dir),
             )
         ]
         # Seed SKILL ids for every managed skill file ``write_managed`` just ensured, bundled
@@ -3582,9 +3598,9 @@ class MaintenanceMixin(ServiceCore):
     ]:
         """Scan every item file for marker issues, frontmatter, and raw body text.
 
-        **Tier 1 of ``sq check``'s two finding tiers** — the other is the per-item validator
+        **The file checks of ``sq check``** — its other findings come from the per-item validator
         catalog (``_services/_validators.py``'s ``CATALOG``/``VALIDATOR_NAMES``, dispatched by
-        ``ValidatorEngine``). This tier runs first, unconditionally, on raw file text before a
+        ``ValidatorEngine``). The file checks run first, unconditionally, on raw file text before a
         file's frontmatter even parses: :func:`_marker_issues`, :func:`_view_target_issues`,
         :func:`_seeded_view_issues` and :func:`_absent_body_region_issues` below are its four
         members, all error-level and none

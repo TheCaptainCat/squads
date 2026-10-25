@@ -15,6 +15,7 @@ import pytest
 from squads import __version__
 from squads._cli._common import console
 from squads._rendering._engine import invalidate_squad_dir
+from squads._roles._catalog import PREDEFINED
 
 pytestmark = pytest.mark.anyio
 
@@ -145,7 +146,9 @@ async def test_the_catalog_json_outside_any_squad_carries_capabilities_for_a_bun
     monkeypatch.chdir(tmp_path)
     rows = await _json(invoke, ["role", "catalog"])
     assert rows
-    assert all(r["capabilities"] == [] for r in rows)
+    assert {r["slug"]: r["capabilities"] for r in rows} == {
+        r.slug: list(r.capabilities) for r in PREDEFINED
+    }
 
 
 async def test_a_role_with_no_definition_left_answers_an_empty_list_in_the_show_fallback(
@@ -192,6 +195,6 @@ async def test_the_catalog_lists_the_document_value_and_the_roster_surfaces_the_
     await svc.activate_role("reviewer")
     _write_role_file(project.squad_dir, "reviewer", ["rev-work"])
     # The file is a partial override of a bundled role, so only the key under test is checked.
-    assert (await _catalog_row(invoke, "reviewer"))["capabilities"] == []  # type: ignore[index]
+    assert (await _catalog_row(invoke, "reviewer"))["capabilities"] == ["review"]  # type: ignore[index]
     assert (await _list_row(invoke, "reviewer"))["capabilities"] == ["rev-work"]  # type: ignore[index]
     assert (await _show(invoke, "reviewer"))["capabilities"] == ["rev-work"]  # type: ignore[index]

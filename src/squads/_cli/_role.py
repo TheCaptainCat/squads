@@ -49,7 +49,7 @@ from squads._interactions._role_guidance import allowed_create_types
 from squads._models import _attributes as attrs
 from squads._models._item import Item
 from squads._paths import resolve as resolve_squad_paths
-from squads._roles._catalog import RoleDef
+from squads._roles._catalog import PREDEFINED, RoleDef
 from squads._roles._loader import ROLES_OVERRIDE_FILENAME, load_role_catalog
 from squads._roles._resolver import (
     pinned_name_of,
@@ -101,6 +101,17 @@ def _catalog_squad_dir() -> Path | None:
         return resolve_squad_paths(client_cwd=ctx.client_cwd).squad_dir
     except SquadsError:
         return None
+
+
+def _change_role_hint(slug: str, base: RoleDef | None) -> str:
+    """How to change a role's definition: scaffold an override for a role with a bundled or
+    templated base, edit the project's own file for any other."""
+    if base is not None or any(r.slug == slug for r in PREDEFINED):
+        return (
+            "To change its mission, responsibilities or model: "
+            f"`sq override scaffold --role {slug}`, edit the file, then `sq sync`."
+        )
+    return f"To change it: edit `.overrides/roles/{slug}.toml`, then `sq sync`."
 
 
 @role_app.command("catalog")
@@ -488,6 +499,8 @@ async def show_role(
             " then `sq sync` to populate the full definition)[/dim]",
             soft_wrap=True,
         )
+    console.print()
+    console.print(f"[dim]{e(_change_role_hint(slug, base_role))}[/dim]", soft_wrap=True)
 
 
 @_addr.command("regen")

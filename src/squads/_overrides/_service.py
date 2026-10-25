@@ -66,6 +66,7 @@ from squads._roles._loader import (
     bundled_roles_toml_text,
     load_role_catalog,
 )
+from squads._roles._models import RoleSpec
 from squads._roles._resolver import role_base_from_item
 from squads._sections import find_markers
 from squads._util import version_tuple
@@ -412,20 +413,55 @@ def _validate_role_slug(squad_dir: Path, slug: str) -> Path:
 # ─── scaffold_role ─────────────────────────────────────────────────────────────
 
 
-def scaffold_role(squad_dir: Path, slug: str, *, force: bool = False) -> Path:
+#: Fields a role override file cannot meaningfully set: the filename is the slug, and the default
+#: role is designated with ``sq role set-default``.
+_ROLE_SCAFFOLD_SKIPPED_FIELDS = frozenset({"slug", "is_default"})
+
+_ROLE_APPEND_IDIOM = (
+    "# Append to the bundled list instead of replacing it:\n"
+    '# responsibilities = ["$(*self)", "…"]\n'
+)
+
+
+def _role_scaffold_lines(role: RoleDef) -> str:
+    """Every overridable field *role* sets, commented out with its value; a field it leaves
+    unset has no line."""
+    lines: list[str] = []
+    for field in RoleSpec.model_fields:
+        value = getattr(role, field)
+        if field in _ROLE_SCAFFOLD_SKIPPED_FIELDS or value is None:
+            continue
+        lines.append(f"# {field} = {json.dumps(value, ensure_ascii=False)}\n")
+        if field == "responsibilities":
+            lines.append(_ROLE_APPEND_IDIOM)
+    return "".join(lines)
+
+
+def scaffold_role(
+    squad_dir: Path, slug: str, *, force: bool = False, base: RoleDef | None = None
+) -> Path:
     """Create ``.overrides/roles/<slug>.toml`` with the stamp comment.
 
-    The TOML starts empty (only the stamp) — teams add fields they want to override.
-    Raises :class:`SquadsError` if *slug* is unsafe, or the file exists and ``--force`` is not set.
+    For a bundled role, or a role whose resolved *base* the caller supplies (a templated
+    developer), every overridable field follows, commented out with its value; uncomment and
+    edit the ones to change. Raises :class:`SquadsError` if *slug* is unsafe, or the file exists
+    and ``--force`` is not set.
     """
     dest = _validate_role_slug(squad_dir, slug)
     if dest.exists() and not force:
         raise SquadsError(f".overrides/roles/{slug}.toml already exists; use --force to overwrite")
 
+    if base is None and slug in _BUNDLED_ROLE_SLUGS:
+        base = role_by_slug(slug)
     dest.parent.mkdir(parents=True, exist_ok=True)
     stamp_line = f"# squads:override-base:{__version__}\n"
-    desc = f"# Role override for '{slug}'. Add fields to override (e.g. full_name, model).\n"
-    dest.write_text(stamp_line + desc, encoding="utf-8", newline="")
+    if base is None:
+        desc = f"# Role override for '{slug}'. Add fields to override (e.g. full_name, model).\n"
+        fields = ""
+    else:
+        desc = f"# Role override for '{slug}'. Uncomment a field to override it.\n"
+        fields = _role_scaffold_lines(base)
+    dest.write_text(stamp_line + desc + fields, encoding="utf-8", newline="")
     return dest
 
 

@@ -64,6 +64,7 @@ sq task 3 ref add BUG-<n> --kind fixes        # or REV-… --kind addresses
 sq task 3 ref add TASK-<n> --kind depends-on  # sq blocked lists task 3 while TASK-<n> is open
 
 # everyone
+sq list --compact                              # one line per open item: ID, status, title
 sq task 3 status InProgress
 sq task 3 comment --as reviewer -m "@qa please verify the redirect"
 sq inbox qa                                    # open items whose discussion @mentions qa
@@ -386,6 +387,11 @@ a deferred finding that names no carrier or one that is not found, a carrier res
 of the `retired` role (bundled `Cancelled`, or a bug's `WontFix`), and a `deferred_to` on a finding
 that is not deferred. A carrier at a status of the `superseded` role is not reported: its work
 continues in the item that supersedes it.
+
+A review that reaches `Approved` or `Rejected` while a finding is still `Open` or `Fixed` is
+reported by the `subentities_settled_with_parent` check, at `warn`; `Noted` and `Deferred` count as
+settled there (see
+[overrides.md § "Validators"](overrides.md#validators-the-checks-a-type-runs-and-how-loud-they-are)).
 
 **If your override redeclares the finding's `Open` list**, your lifecycle stays as you wrote it,
 without `Noted` or `Deferred`. Add both to the list to adopt them:

@@ -226,7 +226,8 @@ def inits_with_code(src: Path) -> frozenset[str]:
 
 #: ``importer -> imported kind``, one row per edge, sorted.
 EDGES = textwrap.dedent("""\
-__main__ -> _cli top
+__main__ -> _cli local
+__main__ -> squads top
 _actor -> _context top
 _aio -> _errors top
 _backends -> _aio top

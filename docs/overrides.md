@@ -566,7 +566,7 @@ its code (`impact: high`).
 
 Every item type runs a set of checks. `sq check` reports what they find, and the create/update
 gate refuses a write on the `error`-level ones. You do not compose that set from scratch: each
-type gets a cross-cutting core plus a bundle its `category` implies, and a type's own
+type gets the checks that are always on plus the checks on by default for its `category`, and a type's own
 `validators` list is where you **add** to it and say how much you mean each addition. A check that
 looks at the squad as a whole sits outside every type's list: some always run, and the others are
 selected in the `[squad]` table (see "Squad-wide checks" below).
@@ -589,6 +589,9 @@ list is the only way it ever runs on that type:
 - Eight policy checks about the work an item tracks: `item_title_max`, `external_id_not_in_title`,
   `description_present`, `assignee_present`, `body_written`, `settled_requires_discussion`,
   `ref_rule_target_typed` and `blocked_has_blocker`. See "The work-policy checks" below.
+
+One more sits in no category's defaults but is selected on one bundled type:
+`subentities_settled_with_parent`, on `review`. See "The settled-parent check" below.
 
 The set of names is fixed by the version you are running, and one it does not hold is refused at
 load, naming your entry:
@@ -643,6 +646,40 @@ Title is 121 chars — a sub-entity title is a one-line handle, not the descript
 A title of exactly 120 characters triggers neither. Take the line out and none of the three is
 printed. Either name takes a level; what `@error` changes for each, and what it leaves alone, is
 under "Levels" below.
+
+**The settled-parent check.** `subentities_settled_with_parent` reports an item resting at a
+status whose role declares `settled = true` while any of its sub-entities rests at a status whose
+role does not. It names the count and the local ids, once per item:
+
+```
+warn REV-<n>: status is Approved with 2 unsettled findings: <k>, <k>
+```
+
+Both sides are read from the status role, never from a status name. With the bundled vocabulary,
+an `Approved` or `Rejected` review is reported while a finding is `Open` or `Fixed`: a fixed
+finding still waits for its verification. A `Verified`, `WontFix`, `Noted` or `Deferred` finding
+is settled. A review that is not settled yet, `InReview` for one, is never reported. The check
+takes no parameter.
+
+At its bundled `warn` level it refuses no move: approving a review with an open finding goes
+through, and `sq check` reports it afterwards. Selected at `@error`, it gates the move instead,
+`--force` included, so the sub-entities have to settle first:
+
+```
+error: status is Done with 1 unsettled story: <k>
+```
+
+The bundled spec selects it on `review` and nowhere else, so an override that writes
+`[items.review] validators` must open with `"$(*items.review.validators)"` to keep it (see "a
+type's own list is an ordinary array" below). Any type that hosts sub-entities can name it too,
+a feature whose stories should be closed before it is, for one:
+
+```toml
+[items.feature]
+validators = ["subentities_settled_with_parent"]
+```
+
+A type that hosts no sub-entity kind may name it and reports nothing.
 
 **The work-policy checks.** Eight more checks hold an item to a team's habits about the work it
 tracks. The bundled spec selects none of them, so a squad that names none sees no finding from
@@ -890,8 +927,8 @@ on the items an import wrote.
 **Selection is per type.** A line under `[items.feature]` changes nothing for a task, a decision
 or any other type: a squad that wants one of these checks everywhere names it on each type. (The
 `[squad]` table selects the squad-wide checks only; a per-item check named there is refused.)
-Two bundled types, `epic` and `skill`, ship a `validators` list of their own, and there the entry
-has to be added to the bundled list, not written over it — see "a type's own list is an ordinary
+Three bundled types, `epic`, `review` and `skill`, ship a `validators` list of their own, and there
+the entry has to be added to the bundled list, not written over it — see "a type's own list is an ordinary
 array" below before you write either.
 
 **The four shapes of an entry** — a parameter, a level, both, or neither:
@@ -1101,15 +1138,15 @@ tighten to `parent_present` — bare, or `@error`, which mean the same thing —
 clean.
 
 **What the list cannot do — there is no deselection surface.** `[selected]` has no `validators`
-section, and neither the cross-cutting core nor a category bundle can be subtracted from. The
-quietest a bundled check can be made is `warn`, which still reports. The checks nothing
-bundled selects are in neither the core nor a bundle, so a type that does not name one does not
-run it.
+section, and neither the always-on checks nor the checks on by default for a category can be subtracted from. The
+quietest a bundled check can be made is `warn`, which still reports. The opt-in checks
+are on by default for no category, so a type that does not name one does not run it.
 
 **But a type's own list is an ordinary array, and arrays are leaves** (see § "Plain arrays are
-leaves — replaced whole"). Two bundled types ship a `validators` entry of their own, `epic`
-(`["no_parent"]`) and `skill` (`["item_skill_shadowed"]`), and writing the key in your override
-replaces the whole list rather than adding to it. This turns the status-banner check on for epics
+leaves — replaced whole"). Three bundled types ship a `validators` entry of their own, `epic`
+(`["no_parent"]`), `review` (`["subentities_settled_with_parent"]`) and `skill`
+(`["item_skill_shadowed"]`), and writing the key in your override replaces the whole list rather
+than adding to it. This turns the status-banner check on for epics
 and drops `no_parent`, with no warning, so epics start accepting a parent:
 
 ```toml
@@ -1122,6 +1159,15 @@ Splat the bundled list to keep it:
 ```toml
 [items.epic]
 validators = ["$(*items.epic.validators)", "no_status_banner"]
+```
+
+The same goes for `review`. Written plain, `validators = ["no_status_banner"]` under
+`[items.review]` drops `subentities_settled_with_parent`, and an approved review holding an open
+finding stops being reported. Open the list with the splat:
+
+```toml
+[items.review]
+validators = ["$(*items.review.validators)", "no_status_banner"]
 ```
 
 The splat needs a bundled list to copy. A type that ships none, `task` for one, refuses the same
@@ -1167,13 +1213,15 @@ dropped or given another level:
 | `working_language_valid` | a `working_language` in `.squads.toml` that is not a language tag squads recognises; English applies | `warn` |
 | `view_transform_resolves` | an override view transform whose file is missing, leaves `.overrides/`, fails to import, or lacks a function sq can call; it imports the file, which runs its top-level code (see [Giving a view a transform](#giving-a-view-a-transform)) | `error` |
 
-**Opt-in.** Five state a policy a team may or may not hold. A squad selects them in the `[squad]`
-table of `.overrides/workflow.toml`, whose one key, `validators`, takes the entry grammar a type's
-list takes (`name`, `name:param`, `name@level`, `name:param@level`). The bundled list is empty, so
-none of the five runs until you name it, and each reports at `warn` unless you name a level:
+**Selectable.** Six run only when the `[squad]` table selects them. Its one key, `validators`,
+takes the entry grammar a type's list takes (`name`, `name:param`, `name@level`,
+`name:param@level`). The bundled list selects `type_has_live_author`, so it runs in every squad
+whose override leaves the list alone. The other five state a policy a team may or may not hold,
+and none of them runs until you name it. Each reports at `warn` unless you name a level:
 
 | Check | Reports | Parameter |
 |---|---|---|
+| `type_has_live_author` (bundled) | a type outside the roster holding an item at a status that is not settled, with no live role that has an `authors = true` playbook guide on it, once per type; it names the role to activate or reactivate, or says to add a developer (see [Playbook overrides](#playbook-overrides-role-guidance-per-item-type)) | none |
 | `children_settled_with_parent` | a parent at a settled status with a child at a status that is not settled, once per parent | none |
 | `dependency_acyclic` | each cycle of dependency edges, once, with a path around it | none |
 | `wip_limit:<n>` | each assignee holding more than `n` active items | required, at least `1` |
@@ -1183,6 +1231,7 @@ none of the five runs until you name it, and each reports at `warn` unless you n
 ```toml
 [squad]
 validators = [
+  "$(*squad.validators)",
   "children_settled_with_parent",
   "dependency_acyclic@error",
   "wip_limit:3",
@@ -1219,15 +1268,25 @@ finding makes `sq check` exit `3` and refuses no write: the `ref add` that close
 went through.
 
 **The list merges like any array.** An override's `validators` replaces the bundled list whole;
-`"$(*squad.validators)"` keeps it and adds to it. `[selected]` has no `squad` key: the table's one
-key is a list, so you replace the list instead.
+`"$(*squad.validators)"` keeps it and adds to it, which is why the example opens with it. Naming
+`type_has_live_author` after the splat as well is refused as a repeat. `[selected]` has no `squad`
+key: the table's one key is a list, so you replace the list instead.
+
+**Turning `type_has_live_author` off** is a list that leaves it out. A squad whose types are
+written by people rather than agents, or a squad started with `sq init --roles minimal` or
+`core` that leaves some types to its default role, writes `validators = []`, or the checks it
+wants without the splat, such as `validators = ["dependency_acyclic"]`.
+To raise it, name it with the level in place of the splat, `"type_has_live_author@error"`:
+`sq check` then exits `3` on a type with no live author, and no write is refused.
 
 **What is refused at load**, each naming the entry, by every command and by `sq workflow lint`:
 
-- a name that is not one of the five: an unknown name, an always-on one
+- a name that is not one of the six: an unknown name, an always-on one
   (`index_reconciled always runs and cannot be selected — drop the entry`), or a per-item check
   (`body_written is a per-item validator — name it on a type's validators list`). The reverse is
-  refused too: a type's `validators` list naming one of the five is told to use `[squad]`;
+  refused too: a type's `validators` list naming one of the six is told to use `[squad]`
+  (``type_has_live_author is a squad-global validator — select it in the `[squad]` table's
+  `validators` list``);
 - a parameter on a check that takes none, and a missing, non-integer or too-small one on a check
   that requires it (`wip_limit needs its parameter — write 'wip_limit:<n>'`,
   `wip_limit needs a positive integer parameter (got '0')`);
@@ -2242,7 +2301,7 @@ through. A role meant to file bugs claims the lane like this:
 [types.bug]
 roles = [
   "$(*self)",
-  { slug = "security-analyst", authors = true, enter = ["Read the threat model"], do = ["Record any exposure found"], handoff = ["Exposure confirmed → @tech-lead to plan the fix"], watch = ["Don't file a bug for a policy question"] },
+  { slug = "security-analyst", authors = true, enter = ["Read the threat model"], do = ["Record any exposure found"], handoff = ["Exposure confirmed → @*plan to plan the fix"], watch = ["Don't file a bug for a policy question"] },
 ]
 ```
 
@@ -2290,6 +2349,45 @@ the **security analyst** author **bugs** …").
 
   A bundled capability guide nobody holds stays silent. These are warnings, not refusals: both
   commands still exit `0`.
+- **A type with open work needs a live author.** `sq check` warns, through the
+  `type_has_live_author` check the bundled `[squad] validators` list selects, about each type
+  outside the roster that holds an item at a status that is not settled while no live role has an
+  `authors = true` guide on it, bundled or yours. The remedy names each author the playbook gives
+  the type, joined with "or": a catalog role never activated, a role retired from the roster, and
+  for a guide addressed to a capability, every catalog or roster role holding it. A developer
+  capability no role holds reads "add a developer". In a squad started with
+  `sq init --roles minimal`, with a `qa` guide and a `*review` guide authoring `bug`, a `*dev`
+  guide authoring `contract`, and `reviewer` activated then retired, `sq check` reports, beside
+  the guide warnings above:
+
+  ```
+  warn: type 'bug' has 1 open item but no live role authors it — activate `qa` (`sq role activate qa`) or reactivate `reviewer` (`sq role reviewer status Active`)
+  warn: type 'contract' has 1 open item but no live role authors it — add a developer (`sq dev add --tech <tech>`)
+  warn: type 'review' has 1 open item but no live role authors it — reactivate `reviewer` (`sq role reviewer status Active`)
+  warn: type 'task' has 1 open item but no live role authors it — activate `tech-lead` (`sq role activate tech-lead`)
+  ```
+
+  When the role lifecycle has no edge from the retired status back to the live one, the reactivate
+  remedy carries `--force` and says why:
+  ``reactivate `reviewer` (`sq role reviewer status Active --force`; Archived has no edge to Active)``.
+  A type no guide authors at all is reported with no remedy. A type whose items are all settled is
+  not reported, so retiring a role on purpose leaves its finished items without a warning. To turn
+  the check off or raise it, see [Squad-wide checks](#squad-wide-checks-the-squad-table).
+- **A hand-off names a capability with `@*<name>`.** In guide lines and in a type's `commands`,
+  `@*<name>` renders in the generated skill as the `@<slug>` of every live holder, `/`-joined in
+  roster order, or as `*<name>` when nobody holds it; the bundled guides use it for every hand-off,
+  and the security-analyst example above uses `@*plan` (see
+  [roles.md § "Mentioning a capability in hand-offs"](roles.md#mentioning-a-capability-in-hand-offs)).
+  A literal `@<slug>` names one fixed role. A token whose name is malformed (`@*Sec`) makes
+  the playbook fail to load, naming the type. A well-formed token in one of your guides that no live
+  role holds is warned about once per type and capability by `sq check` and `sq sync`:
+
+  ```
+  warn: playbook guide on type 'bug' mentions `@*security`, but no live role holds the capability, so the generated `sq-bug` skill renders it as `*security` and mentions nobody — declare `capabilities = ["security"]` on a live role, or edit the line in `.overrides/playbook.toml` under `[types.bug]`
+  ```
+
+  The same token in a bundled guide renders as `*<name>` without a warning, and a token in a type's
+  `commands` is not checked.
 - **Unknown top-level keys are refused by name**, the same fail-closed rule the workflow override
   follows. The accepted keys are listed in the message.
 
@@ -2519,7 +2617,7 @@ sq override scaffold subentities/block.md.j2
 # Copy a role TOML override (a bundled role, to change its title/model/etc.)
 sq override scaffold --role architect
 
-# Same for a developer already on your roster
+# A developer already on your roster (the file starts with the stamp only)
 sq override scaffold --role python-dev
 
 # Start a wholly custom role that isn't in the bundled catalog
@@ -2540,9 +2638,13 @@ sq override scaffold items/task.md.j2 --force
 ```
 
 **What it does:**
-- `--role <slug>` writes an (initially empty) TOML stub for the named role into
-  `.overrides/roles/`, ready for the fields you want to override. A developer slug
-  (`python-dev`) works the same as a bundled one.
+- `--role <slug>` writes `.overrides/roles/<slug>.toml`. For a role of the bundled catalog, every
+  field an override can set follows the stamp, commented out with its bundled value: `full_name`,
+  `title`, `description`, `mission`, `responsibilities`, `agreements`, `model`, `color`,
+  `can_spawn` and `capabilities`. A commented `responsibilities = ["$(*self)", "…"]` line shows how
+  to append to the bundled list instead of replacing it. Uncomment the lines you want to change and
+  run `sq sync`; a field left commented keeps its bundled value. For a developer slug
+  (`python-dev`) the file holds only the stamp and a comment line, ready for the fields you add.
 - `--new <slug>` starts a **brand-new, non-bundled** role: the essential fields (`full_name`,
   `title`, `description`, `mission`) are stubbed as active keys, the advanced fields
   (`responsibilities`, `agreements`, `model`, `color`, `capabilities`, `can_spawn`) are included

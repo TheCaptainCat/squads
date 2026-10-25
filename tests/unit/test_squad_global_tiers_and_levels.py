@@ -38,8 +38,9 @@ def test_the_two_tiers_are_disjoint_and_their_union_is_the_squad_global_catalog(
     assert SQUAD_GLOBAL_VALIDATOR_NAMES.isdisjoint(VALIDATOR_NAMES)
 
 
-def test_the_selectable_tier_is_exactly_the_five_opt_in_members() -> None:
+def test_the_selectable_tier_is_exactly_the_six_opt_in_members() -> None:
     assert {
+        "type_has_live_author",
         "children_settled_with_parent",
         "dependency_acyclic",
         "wip_limit",
@@ -60,8 +61,8 @@ def test_always_on_members_keep_their_levels_and_the_selectable_ones_default_to_
     assert {DEFAULT_SQUAD_GLOBAL_LEVEL[k] for k in SELECTABLE_SQUAD_GLOBAL_NAMES} == {"warn"}
 
 
-def test_the_bundled_document_selects_nothing() -> None:
-    assert bundled_spec().squad.validators == []
+def test_the_bundled_document_selects_only_the_live_author_check() -> None:
+    assert bundled_spec().squad.validators == ["type_has_live_author"]
 
 
 def _level_literals(func: object) -> list[str]:

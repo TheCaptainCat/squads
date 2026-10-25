@@ -687,7 +687,7 @@ def roster_body_view_name(item_type: str, slug: str, spec: WorkflowSpec) -> str 
     """The view name a role's or skill's own ``sq:body`` region is classified as carrying, from
     *item_type* and *slug* alone — ``None`` for every other item type, and ``None`` when the
     classified view is dropped from ``[selected]`` or the slug matches no known role/system
-    skill/declared type. The one derivation the write path and the check tier both read."""
+    skill/declared type. The one derivation the write path and the file checks both read."""
     if item_type == ROSTER_ROLE:
         return ROLE_DEFINITION_VIEW_NAME if ROLE_DEFINITION_VIEW_NAME in spec.views else None
     if item_type == ROSTER_SKILL:
@@ -724,7 +724,7 @@ def seeded_view_names(item_type: str, slug: str, spec: WorkflowSpec) -> frozense
     """The view name(s) a document of *item_type* named *slug* is seeded with, gated on the
     view still being declared — :func:`roster_body_view_name` for a role or skill,
     :func:`template_seeded_view_names` for every other type. Type and slug only, never the
-    host's content, so the check tier can call this before frontmatter ever parses."""
+    host's content, so the file checks can call this before frontmatter ever parses."""
     if item_type in (ROSTER_ROLE, ROSTER_SKILL):
         return frozenset(
             n for n in (roster_body_view_name(item_type, slug, spec),) if n is not None

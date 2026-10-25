@@ -9,7 +9,7 @@ checks that read them.
 
 This engine is the sole source of both ``sq check``'s **per-item and squad-global** issues and
 the create/update fail-closed gate — never of ``sq check``'s issues as a whole (the always-on
-file-level tier described below sits outside it). A type's effective set is ``COMMON_CORE`` plus
+file checks described below sits outside it). A type's effective set is ``COMMON_CORE`` plus
 its category's
 ``CATEGORY_BUNDLES`` entry plus its own ``validators`` list — both tables live in
 ``_workflow/_models.py``, so the Plane-1 spec-validity pass resolves the same effective set this
@@ -22,7 +22,7 @@ aborts on their first finding; a warn-level member (``agent_registered``, ``no_s
 …) is advisory everywhere, mirroring ``sq check``'s own error-only exit code, and is never
 evaluated on a write.
 
-**A second, always-on tier sits below this catalog and is not part of it.**
+**An always-on set of file checks sits beside this catalog and is not part of it.**
 ``MaintenanceMixin._scan_for_check`` (``_services/_maintenance.py``) runs a raw-text file-level
 scan *before* this catalog is ever reached — before a file's frontmatter parses, keyed on the
 type folder and filename alone — and produces four of its own error-level findings:
@@ -36,14 +36,14 @@ carry — every seeded view is unconditional, with no ``required`` flag to filte
 role or skill file whose ``sq:body`` marker pair is missing outright). None is a member of
 ``CATALOG``/``VALIDATOR_NAMES``, and none ever will be: the
 catalog is per-item (a member takes a resolved ``Item`` from a ``ValidatorContext``) while every
-tier-1 finding is per-*file*, running before a file becomes an item — so a file too broken to
+file-check finding is per-*file*, running before a file becomes an item — so a file too broken to
 parse still gets its marker/view findings reported, where catalog membership would lose them;
-and the catalog is *selectable* per type while every tier-1 finding is unconditional across
+and the catalog is *selectable* per type while every file-check finding is unconditional across
 every type, which is the whole point of a binding invariant a document must satisfy regardless
 of which validators a project has chosen. A caller that needs ``sq check``'s complete finding
 surface — every future consumer that closes a correspondence over ``CATALOG`` and its declared
-context — must read both tiers, not mistake this one for the whole; see ``_scan_for_check``'s
-own docstring for the matching back-reference into this module.
+context — must read both the file checks and the catalog, not mistake the catalog for the whole;
+see ``_scan_for_check``'s own docstring for the matching back-reference into this module.
 
 ``ItemSpec`` carries only the bare ``category`` name — the effective per-item validator set
 (common core + category default bundle + the type's own additions) is resolved here, at call
@@ -69,13 +69,20 @@ from squads._errors import InvalidIdError, SquadsError
 from squads._interactions import (
     ITEM_SKILL_VIEW_NAME,
     get_playbook_spec,
+    in_lane_owner,
     is_live_roster_entry,
     item_type_for_skill_slug,
     orphaned_playbook_guide_message,
     orphaned_playbook_guides,
+    unheld_capability_token_message,
+    unheld_capability_tokens,
 )
-from squads._interactions._loader import playbook_override_guide_pairs
+from squads._interactions._loader import (
+    playbook_override_command_lines,
+    playbook_override_guide_pairs,
+)
 from squads._interactions._models import PlaybookSpec
+from squads._interactions._role_guidance import CAPABILITY_SUBJECT_PREFIX, create_lanes
 from squads._language import resolve_working_language
 from squads._models import _markers as markers
 from squads._models._attributes import ORIGIN_VALUES, AttributeKey
@@ -87,6 +94,7 @@ from squads._models._participants import SlugBreach, roster_slug_breaches
 from squads._paths import SquadPaths, number_for_id
 from squads._pronouns import pronouns_problem
 from squads._rendering._engine import scaffold_body
+from squads._roles._loader import load_role_catalog
 from squads._roles._resolver import (
     holds_default_designation,
     resolve_role_for_item,
@@ -607,6 +615,29 @@ def _subentity_deferral_resolved(ctx: ValidatorContext) -> list[CheckIssue]:
     return issues
 
 
+def _subentities_settled_with_parent(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An item resting in a status whose role is ``settled`` while a sub-entity rests in a
+    status whose role is not. Both sides are read by role, never by status name, so a deferred
+    or noted sub-entity is settled and one awaiting verification is not."""
+    item = ctx.item
+    kind = ctx.spec.item_subentity_kind(item.type)
+    if kind is None or not ctx.spec.role_for(item.status).settled:
+        return []
+    outstanding = [s for s in item.subentities if not ctx.spec.role_for(s.status).settled]
+    if not outstanding:
+        return []
+    level = _resolved_level(ctx, "subentities_settled_with_parent")
+    ids = ", ".join(s.local_id for s in outstanding)
+    return [
+        CheckIssue(
+            level,
+            item.id,
+            f"status is {item.status} with {len(outstanding)} unsettled "
+            f"{_plural(len(outstanding), kind)}: {ids}",
+        )
+    ]
+
+
 def _subentity_container_marker(ctx: ValidatorContext) -> list[CheckIssue]:
     """The item's on-disk container marker still matches the plural its kind declares.
 
@@ -1120,6 +1151,7 @@ CATALOG: dict[str, Validator] = {
     "subentity_body_written": _subentity_body_written,
     "subentity_title_max": _subentity_title_max,
     "subentity_deferral_resolved": _subentity_deferral_resolved,
+    "subentities_settled_with_parent": _subentities_settled_with_parent,
     "no_status_banner": _no_status_banner,
     "supersedes_incoming": _supersedes_incoming,
     "ref_rule_target_present": _ref_rule_target_present,
@@ -1634,25 +1666,137 @@ def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
     known = frozenset(slug for it in roles if (slug := it.slug))
     live_initial = ctx.spec.live_initial(ROSTER_ROLE)
     level = squad_global_level(ctx.spec, "playbook_guide_role_live")
-    return [
-        CheckIssue(
-            level,
-            "",
-            orphaned_playbook_guide_message(
-                item_type, slug, retired=slug in known, live_status=live_initial
-            ),
+    live_roles = [
+        resolve_role_tolerantly(it, ctx.paths.squad_dir)
+        for it in roles
+        if it.status in live and it.slug
+    ]
+    override_guides = playbook_override_guide_pairs(ctx.paths.squad_dir)
+    messages = [
+        orphaned_playbook_guide_message(
+            item_type, slug, retired=slug in known, live_status=live_initial
         )
         for item_type, slug in orphaned_playbook_guides(
             ctx.playbook,
             ctx.spec,
-            live_roles=[
-                resolve_role_tolerantly(it, ctx.paths.squad_dir)
-                for it in roles
-                if it.status in live and it.slug
-            ],
-            override_guides=playbook_override_guide_pairs(ctx.paths.squad_dir),
+            live_roles=live_roles,
+            override_guides=override_guides,
         )
     ]
+    messages += [
+        unheld_capability_token_message(item_type, capability)
+        for item_type, capability in unheld_capability_tokens(
+            ctx.playbook,
+            ctx.spec,
+            live_roles=live_roles,
+            override_guides=override_guides,
+            override_commands=playbook_override_command_lines(ctx.paths.squad_dir),
+        )
+    ]
+    return [CheckIssue(level, "", message) for message in messages]
+
+
+@dataclass(frozen=True)
+class _AuthorPool:
+    """The roles that could author a type: every catalog role, every roster entry (with the
+    status it rests in), and the capabilities each holds."""
+
+    spec: WorkflowSpec
+    statuses: dict[str, str]
+    capabilities: dict[str, frozenset[str]]
+    developer_capabilities: frozenset[str]
+
+    def remedy(self, slug: str) -> str | None:
+        """The command that brings role *slug* back, or ``None`` for a slug the catalog does not
+        carry and the roster has no entry for. A roster entry whose status has no edge to the
+        live status is revived with ``--force``, which the remedy says."""
+        status = self.statuses.get(slug)
+        if status is None:
+            return (
+                f"activate `{slug}` (`sq role activate {slug}`)"
+                if slug in self.capabilities
+                else None
+            )
+        live = self.spec.live_initial(ROSTER_ROLE)
+        command = f"sq role {slug} status {live}"
+        if self.spec.can_transition(ROSTER_ROLE, status, live):
+            return f"reactivate `{slug}` (`{command}`)"
+        return f"reactivate `{slug}` (`{command} --force`; {status} has no edge to {live})"
+
+    def remedies(self, subjects: set[str]) -> list[str]:
+        """What brings an author of the lane back: for a slug its own remedy, for a capability
+        each role holding it, or a developer to add when a developer lane has no holder."""
+        slugs: set[str] = set()
+        add_developer = False
+        for subject in subjects:
+            if not subject.startswith(CAPABILITY_SUBJECT_PREFIX):
+                slugs.add(subject)
+                continue
+            name = subject[len(CAPABILITY_SUBJECT_PREFIX) :]
+            holders = {slug for slug, caps in self.capabilities.items() if name in caps}
+            slugs |= holders
+            add_developer |= not holders and name in self.developer_capabilities
+        found = [self.remedy(slug) for slug in sorted(slugs)]
+        remedies = [r for r in found if r is not None]
+        return (
+            [*remedies, "add a developer (`sq dev add --tech <tech>`)"]
+            if add_developer
+            else remedies
+        )
+
+
+def _type_has_live_author(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """A non-roster type holding an item at a status that is not settled while no live role is
+    an in-lane author of it, naming the catalog roles whose activation would fix it. A type
+    whose items are all settled is not reported: a role retired on purpose leaves history, not
+    debt."""
+    if ctx.playbook is None:
+        return []
+    roles = [it for it in ctx.index.items.values() if it.type == ROSTER_ROLE and it.slug]
+    live = ctx.spec.live_statuses(ROSTER_ROLE)
+    live_roles = [
+        resolve_role_tolerantly(it, ctx.paths.squad_dir) for it in roles if it.status in live
+    ]
+    live_slugs = {role.slug for role in live_roles}
+    try:
+        catalog = load_role_catalog(ctx.paths.squad_dir)
+    except SquadsError:  # the broken catalog override is its own finding
+        catalog = load_role_catalog()
+    pool = _AuthorPool(
+        spec=ctx.spec,
+        statuses={it.slug: it.status for it in roles if it.slug},
+        capabilities={
+            **{r.slug: frozenset(r.capabilities) for r in catalog.roles},
+            **{
+                it.slug: frozenset(resolve_role_tolerantly(it, ctx.paths.squad_dir).capabilities)
+                for it in roles
+                if it.slug
+            },
+        },
+        developer_capabilities=frozenset(catalog.dev.capabilities),
+    )
+    level = squad_global_level(ctx.spec, "type_has_live_author")
+    issues: list[CheckIssue] = []
+    for item_type in sorted(ctx.spec.non_roster_types()):
+        open_count = sum(
+            1
+            for it in ctx.index.items.values()
+            if it.type == item_type and not ctx.spec.role_for(it.status).settled
+        )
+        if not open_count or in_lane_owner(item_type, ctx.playbook, live_roles) & live_slugs:
+            continue
+        remedies = pool.remedies(
+            {subject for subject, types in create_lanes(ctx.playbook).items() if item_type in types}
+        )
+        issues.append(
+            CheckIssue(
+                level,
+                "",
+                f"type {item_type!r} has {open_count} open {_plural(open_count, 'item')} but no "
+                "live role authors it" + (f" — {' or '.join(remedies)}" if remedies else ""),
+            )
+        )
+    return issues
 
 
 def active_items(index: SquadsDB, spec: WorkflowSpec) -> list[Item]:
@@ -1906,6 +2050,7 @@ SQUAD_GLOBAL_CATALOG: dict[str, SquadGlobalValidator] = {
     "display_config_valid": _display_config_valid,
     "working_language_valid": _working_language_valid,
     "view_transform_resolves": _view_transform_resolves,
+    "type_has_live_author": _type_has_live_author,
     "children_settled_with_parent": _children_settled_with_parent,
     "dependency_acyclic": _dependency_acyclic,
     "wip_limit": _wip_limit,

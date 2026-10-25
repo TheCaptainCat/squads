@@ -643,7 +643,7 @@ def _slug_from_path(path: str, item_id: str | None) -> str:
     missing or the stem doesn't actually start with its prefix (a legacy/hand-edited file).
 
     **Which source wins on a hand-renamed skill file.** This function's prefix
-    comes from *item_id* — the frontmatter's own declared identity. The file-level check tier
+    comes from *item_id* — the frontmatter's own declared identity. The file checks
     (``_services._maintenance._stem_slug``) cannot read frontmatter yet when it asks the same
     question (it runs before ``read_frontmatter``), so its prefix comes from the file's type
     *folder* instead. The two agree on every file ``sq`` itself writes.

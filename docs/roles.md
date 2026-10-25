@@ -19,7 +19,7 @@ it, and `sq role <slug> update --title` does.
 | Mara Tester | `qa` | QA engineer | sonnet | green | `sq-feature`, `sq-task`, `sq-bug` |
 | Hugo Ops | `devops` | DevOps engineer | sonnet | orange | — |
 | Nina Product | `product-owner` | product owner | sonnet | yellow | `sq-epic`, `sq-feature`, `sq-contract`, `sq-milestone` |
-| Theo Writer | `tech-writer` | technical writer | haiku | pink | `sq-guide` |
+| Theo Writer | `tech-writer` | technical writer | sonnet | pink | `sq-guide` |
 
 Every role also gets three general skills: **`squads`** (how to use the CLI), **`greeting`** (the
 start-of-session ritual) and **`sq-memory`** (its memory notebook and the team board). A role that
@@ -119,7 +119,31 @@ counts once. A malformed name is refused naming the file, by `sq check` (exit `3
 error: invalid role override …/.overrides/roles/reviewer.toml: capabilities entry 'Rev' must match [a-z0-9][a-z0-9-]*
 ```
 
-The eight bundled roles declare none; the bundled `[dev]` table declares `dev`.
+Five bundled roles declare one each, and the bundled `[dev]` table declares `dev`:
+
+| Capability | Held by | What the bundled hand-offs ask of it |
+|---|---|---|
+| `plan` | `tech-lead` | break an epic or feature down, triage a bug, apply an accepted decision, take in a milestone's work |
+| `review` | `reviewer` | review a change |
+| `verify` | `qa` | verify a change against the acceptance criteria |
+| `product` | `product-owner` | answer a scope question, act on a slipping milestone |
+| `edit` | `tech-writer` | polish a draft guide |
+| `dev` | every developer | implement or fix |
+
+The manager, the architect and devops hold none. To move a bundled ask to another role, give that
+role the capability, and take it off the bundled holder if it should stop receiving it:
+
+```toml
+# .overrides/roles/tech-lead.toml — the tech lead reviews too
+capabilities = ["$(*self)", "review"]
+```
+
+```toml
+# .overrides/roles/reviewer.toml — and the reviewer stops receiving review hand-offs
+capabilities = []
+```
+
+Run `sq sync` after either change to regenerate the skills.
 
 **Addressing a capability in the playbook.** A guide whose `slug` is `*<capability>` applies to
 every live role holding that capability (see
@@ -136,6 +160,43 @@ card a `capabilities:` row. `--json` carries a `capabilities` array (empty when 
 beside it, it is read before any per-slug role file, so a capability a per-slug file declares shows
 in `sq role list` and `sq role <slug> show` but not in the catalog.
 
+### Mentioning a capability in hand-offs
+
+In playbook text, the guide lines (`enter`, `do`, `handoff`, `watch`) and a type's `commands`,
+`@*<name>` mentions every live role holding the capability `<name>`. The bundled hand-offs are
+written this way, for example "comment a summary of what changed + `@*review`/`@*verify`".
+`sq sync` resolves the token when it generates the `sq-<type>` skill, against the live roster:
+
+- each holder renders as its `@<slug>`, in roster order (the order of `sq role list`) and joined
+  with `/`: with the tech lead holding `review` as above, `@*review` renders as
+  `@tech-lead/@reviewer`;
+- with no live holder, the token renders as `*<name>`, without the `@`. The line is kept and nobody
+  is mentioned: in a squad without `qa`, `@*review`/`@*verify` renders as `@reviewer`/`*verify`;
+- a retired role holds nothing, and an operator holds no capability, so a token never expands to an
+  `op-` slug. To hand off to a person, write the literal `@op-<slug>`.
+
+Each token resolves on its own, so a role holding two capabilities named on one line appears once
+per token. A literal `@<slug>` is not a token and names that one role; write one when a hand-off should
+always go to one particular role. The token belongs to playbook text only: typed in a comment, `@*review`
+mentions nobody, so a comment names its recipients by slug.
+
+The item's author is not a capability: a skill is rendered once per type, and the author differs on
+every item. So the review guide's developer hand-off says it in words, "`@`-mention the review's
+author (shown on `sq review <n> show`) once all findings are Fixed, for re-review".
+
+A token whose name does not match `[a-z0-9][a-z0-9-]*` is a playbook load error, and every command
+stops until the line is fixed:
+
+```
+error: …/.overrides/playbook.toml: Invalid playbook:
+  - types.bug: capability token '@*Sec' must be @*<name>, with a name matching [a-z0-9][a-z0-9-]*
+```
+
+A well-formed token that no live role holds, in a guide of your `.overrides/playbook.toml`, is a
+warning from `sq check` and `sq sync` (see
+[overrides.md § "Rules"](overrides.md#rules)); the same token in a bundled guide renders as
+`*<name>` without one.
+
 ## Managing roles
 
 ```bash
@@ -150,6 +211,12 @@ sq role architect update --title "Ada Archer"   # rename the role; the slug stay
 sq role architect comment -m "…" --as manager   # comment on it (comments, show --comments to read)
 sq role ROLE-000002 remove --purge              # delete the role and its file
 ```
+
+`sq role <slug> show` ends with how to change the role. For a role of the bundled catalog it reads
+``To change its mission, responsibilities or model: `sq override scaffold --role <slug>`, edit the
+file, then `sq sync`.`` (see [overrides.md § "`sq override scaffold`"](overrides.md#sq-override-scaffold));
+for any other role, a developer or a project role, ``To change it: edit
+`.overrides/roles/<slug>.toml`, then `sq sync`.`` The line is not part of `--json`.
 
 `sq role list` shows every activated role with a **Live** marker — a retired role stays on the
 roster and simply stops being live. See ["Retiring a roster entry"](#retiring-a-roster-entry) for
@@ -559,6 +626,20 @@ change — that's the durable copy, and the generated files are a projection of 
 Retiring the role that carries the **default-role designation** is allowed. Your generated config then
 stops naming a default rather than naming a role the host can't spawn, and `sq` warns as it happens.
 Designate another live role with `sq role <addr> set-default`, or reactivate the one you retired.
+
+Retiring the only live author of a type is allowed too. While the type still holds an item at a
+status that is not settled, `sq check` warns and names the way back, through the
+`type_has_live_author` check the bundled `[squad] validators` list selects:
+
+```
+warn: type 'review' has 1 open item but no live role authors it — reactivate `reviewer` (`sq role reviewer status Active`)
+```
+
+When your role lifecycle has no edge from the retired status back to the live one, the command it
+names ends in `--force`. Once every item of the type is settled, the warning goes away (see
+[overrides.md § "Playbook overrides"](overrides.md#playbook-overrides-role-guidance-per-item-type)).
+A squad that does not want the check leaves it out of its own `[squad] validators` list (see
+[overrides.md § "Squad-wide checks"](overrides.md#squad-wide-checks-the-squad-table)).
 
 ### A retirement can be refused
 

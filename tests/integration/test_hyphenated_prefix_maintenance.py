@@ -66,6 +66,7 @@ async def test_repad_preserves_a_hyphenated_prefix(project):
     assert slug == "deploy-runbook"
     assert new_files[0].read_bytes() == original_bytes
 
+    await svc.activate_role("tech-lead")
     issues = await svc.check()
     assert issues == []
 
@@ -87,6 +88,7 @@ async def test_renumber_block_shift_preserves_a_hyphenated_prefix(project):
     # prefix "RUN" + digit-run "BOOK-000019" would fail `.isdigit()` and the whole rename
     # silently no-ops, or (post-repad) produces a doubled-number filename — either way `sq
     # check`/`sq list` stop seeing the item. Assert the corpus stays fully resolvable.
+    await svc.activate_role("tech-lead")
     assert (await svc.check()) == []
 
 
@@ -119,5 +121,6 @@ async def test_repair_renumber_collision_path_preserves_a_hyphenated_prefix(proj
         slugs.add(slug)
     assert slugs == {"first", "second"}
 
+    await svc.activate_role("tech-lead")
     issues = await svc.check()
     assert issues == []

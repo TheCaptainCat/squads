@@ -63,14 +63,14 @@ class Shape:
 
 
 SHAPES = [
-    Shape("no-override", None, []),
-    Shape("no-squad-table", "[items.task]\nvalidators = []\n", []),
+    Shape("no-override", None, ["type_has_live_author"]),
+    Shape("no-squad-table", "[items.task]\nvalidators = []\n", ["type_has_live_author"]),
     Shape("empty-list", "[squad]\nvalidators = []\n", []),
     Shape("plain-list", _squad(["children_settled_with_parent"]), ["children_settled_with_parent"]),
     Shape(
         "splat-plus-one",
         '[squad]\nvalidators = ["$(*squad.validators)", "dependency_acyclic"]\n',
-        ["dependency_acyclic"],
+        ["type_has_live_author", "dependency_acyclic"],
     ),
     Shape("unknown-key", "[squad]\nextra = 1\n", None, "extra"),
     Shape("not-a-table", "squad = 3\n", None, "with one key, validators"),

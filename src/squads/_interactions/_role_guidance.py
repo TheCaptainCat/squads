@@ -12,8 +12,8 @@ from collections.abc import Iterable, Mapping
 from dataclasses import replace
 from typing import Any, Protocol
 
-from squads._interactions._models import ItemPlaybookSpec, PlaybookSpec
-from squads._roles._models import RoleCatalogSpec
+from squads._interactions._models import ItemPlaybookSpec, PlaybookSpec, RoleGuideSpec
+from squads._roles._models import CAPABILITY_NAME_PATTERN, RoleCatalogSpec
 from squads._roles._projection import RoleView
 from squads._workflow._models import WorkflowSpec
 
@@ -181,15 +181,32 @@ _ROLE_REFERENCE = re.compile(r"(?<![\w-])(--author |--assignee |--as |@)([a-z0-9
 #: What a reference to a role the squad does not have is written as.
 ABSENT_ROLE_PLACEHOLDER = "<slug>"
 
+#: Every ``@*`` in playbook text, with whatever word follows it: a token to resolve, or a
+#: malformed one the playbook loader refuses.
+CAPABILITY_TOKEN_CANDIDATE = re.compile(r"(?<![\w-])@\*([\w-]*)")
+
+#: A well-formed ``@*<name>`` token: it mentions every live role holding capability ``<name>``.
+CAPABILITY_TOKEN = re.compile(rf"(?<![\w-])@\*({CAPABILITY_NAME_PATTERN})")
+
+
+def guide_text_lines(guide: RoleGuideSpec) -> list[str]:
+    """Every line of prose a guide carries: ``enter``, ``do``, ``handoff`` and ``watch``."""
+    return [*guide.enter, *guide.do, *guide.handoff, *guide.watch]
+
 
 def live_roster_text(
     lines: Iterable[str], roster: Iterable[RoleView], playbook: PlaybookSpec
 ) -> list[str]:
-    """*lines* of playbook text with every reference to a role the live *roster* lacks written as
-    :data:`ABSENT_ROLE_PLACEHOLDER`, so a generated command or hand-off never names a slug the
-    squad cannot use. Only roles the *playbook* itself names as a guide subject are rewritten.
+    """*lines* of playbook text written for the live *roster*.
+
+    A reference to a role the roster lacks becomes :data:`ABSENT_ROLE_PLACEHOLDER`, so a
+    generated command or hand-off never names a slug the squad cannot use; only roles the
+    *playbook* itself names as a guide subject are rewritten. An ``@*<name>`` token becomes the
+    ``@<slug>`` of every live holder of capability ``<name>``, in roster order and joined with
+    ``/``, or ``*<name>`` when none holds it.
     """
-    live = {r.slug for r in roster}
+    roles = list(roster)
+    live = {r.slug for r in roles}
     named = {g.slug for e in playbook.types.values() for g in e.roles}
 
     def replace_reference(m: re.Match[str]) -> str:
@@ -198,7 +215,15 @@ def live_roster_text(
             return m.group(0)
         return f"{m.group(1)}{ABSENT_ROLE_PLACEHOLDER}"
 
-    return [_ROLE_REFERENCE.sub(replace_reference, line) for line in lines]
+    def replace_token(m: re.Match[str]) -> str:
+        name = m.group(1)
+        holders = [f"@{r.slug}" for r in roles if name in r.capabilities]
+        return "/".join(holders) if holders else f"{CAPABILITY_SUBJECT_PREFIX}{name}"
+
+    return [
+        CAPABILITY_TOKEN.sub(replace_token, _ROLE_REFERENCE.sub(replace_reference, line))
+        for line in lines
+    ]
 
 
 def item_skill_role_sections(

@@ -254,6 +254,15 @@ def _item_table(
     return table
 
 
+def _compact_lines(items: list[Item], spec: WorkflowSpec) -> list[Text]:
+    """One borderless line per item: ID, status, title. The caller prints each unwrapped, cut
+    with an ellipsis at the terminal width."""
+    return [
+        Text.assemble((it.id, "bold"), "  ", status_text(it.status, spec), "  ", it.title)
+        for it in items
+    ]
+
+
 def _parse_backend_option(raw: list[str]) -> list[str]:
     """Parse the repeatable ``--backend`` values into an ``active_backends`` list.
 
@@ -509,6 +518,11 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
     ),
     all_: bool = common.closed_option(),
     json_out: bool = typer.Option(False, "--json", help="Print a JSON array, one object per item."),
+    compact: bool = typer.Option(
+        False,
+        "--compact",
+        help="One line per item (ID, status, title cut to the terminal width); not with --json.",
+    ),
 ):
     """List items in a table.
 
@@ -519,6 +533,8 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
     `Cancelled`). Filters combine: an item is listed only when it matches every
     one given.
     """
+    if compact and json_out:
+        raise typer.BadParameter("--compact and --json are mutually exclusive")
     svc = get_service()
     spec = get_active_spec()
     # --assignee is a filter, not authorship: a retired role's already-assigned items must
@@ -559,6 +575,10 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
         return
     if not items:
         _print_empty_or_hidden_hint(hidden_count)
+        return
+    if compact:
+        for line in _compact_lines(items, spec):
+            console.print(line, no_wrap=True, overflow="ellipsis")
         return
     console.print(_item_table(items, spec))
 

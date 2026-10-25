@@ -242,6 +242,11 @@ def get_active_spec() -> WorkflowSpec:
     return active if active is not None else bundled_spec()
 
 
+#: ``click.Context.meta`` key for the spec :func:`resolve_spec_for_ctx` read from disk, so the
+#: help and completion path resolves the squad's override once per invocation.
+_RESOLVED_SPEC_META_KEY = "squads.resolved_spec_memo"
+
+
 def resolve_spec_for_ctx(ctx: Any) -> WorkflowSpec:
     """Resolve the ``WorkflowSpec`` for the current Click context, on the completion/help
     path where the root callback hasn't necessarily run yet.
@@ -257,6 +262,8 @@ def resolve_spec_for_ctx(ctx: Any) -> WorkflowSpec:
     3. The bundled spec, so a non-customized squad's ``--help``/completion stays
        byte-identical to before this existed.
 
+    The disk read is memoised on the root context: one invocation reads it at most once.
+
     Never raises — every resolution step is fail-soft, matching the two call sites this
     consolidates (``_cli/__init__.py``'s ``_CustomTypeGroup`` and ``_cli/_create.py``'s
     ``_CustomCreateGroup``). That stays true under a broken override: this function only ever
@@ -270,7 +277,22 @@ def resolve_spec_for_ctx(ctx: Any) -> WorkflowSpec:
             active = get_context().active_spec
             if active is not None:
                 return active
+    except Exception:  # pylint: disable=broad-except
+        return bundled_spec()
+    root = ctx.find_root() if ctx is not None and hasattr(ctx, "find_root") else None
+    if root is not None and _RESOLVED_SPEC_META_KEY in root.meta:
+        memo: WorkflowSpec = root.meta[_RESOLVED_SPEC_META_KEY]
+        return memo
+    resolved = _read_spec_from_disk(ctx)
+    if root is not None:
+        root.meta[_RESOLVED_SPEC_META_KEY] = resolved
+    return resolved
 
+
+def _read_spec_from_disk(ctx: Any) -> WorkflowSpec:
+    """The squad's merged spec read from disk, or the bundled spec when it has no override
+    or the override does not resolve."""
+    try:
         from squads._paths import resolve
         from squads._workflow._loader import (
             WORKFLOW_OVERRIDE_FILENAME,
@@ -286,7 +308,7 @@ def resolve_spec_for_ctx(ctx: Any) -> WorkflowSpec:
         validate_against_index_fail_closed(merged, sp.squad_dir)
     except Exception:  # pylint: disable=broad-except
         # Deliberately the bundled spec, not get_active_spec() — that one refuses under a
-        # broken override, and this path must not raise (see the docstring).
+        # broken override, and this path must not raise (see resolve_spec_for_ctx).
         return bundled_spec()
     else:
         return merged
@@ -1765,18 +1787,13 @@ def gate_grant(fn: Callable[..., Any]) -> GateGrant | None:
     return grant if isinstance(grant, GateGrant) else None
 
 
-@functools.cache
-def value_options() -> frozenset[str]:
-    """Every option spelling, across the whole static command tree, that consumes the next
-    token. The tree is built from the bundled spec and does not vary by squad, so the result
-    is computed once per process."""
-    import typer.main
+def _value_options_of(root: _click.Command) -> frozenset[str]:
+    """Every option spelling, across *root* and all its subcommands, that consumes the next
+    token."""
     from typer.core import TyperGroup, TyperOption
 
-    from squads._cli import app
-
     names: set[str] = set()
-    pending: list[_click.Command] = [typer.main.get_command(app)]
+    pending: list[_click.Command] = [root]
     while pending:
         command = pending.pop()
         for param in command.params:
@@ -1787,10 +1804,23 @@ def value_options() -> frozenset[str]:
     return frozenset(names)
 
 
-def help_requested(argv: list[str]) -> bool:
+@functools.cache
+def value_options() -> frozenset[str]:
+    """Every option spelling, across the whole static command tree, that consumes the next
+    token. The tree is built from the bundled spec and does not vary by squad, so the result
+    is computed once per process."""
+    import typer.main
+
+    from squads._cli import app
+
+    return _value_options_of(typer.main.get_command(app))
+
+
+def help_requested(argv: list[str], root: _click.Command | None = None) -> bool:
     """Whether *argv* carries ``--help`` as an option of its own: before any ``--`` and not the
-    value of an option that takes one. ``-h`` is not a help option of this CLI."""
-    values = value_options()
+    value of an option that takes one. ``-h`` is not a help option of this CLI. Pass the
+    invocation's *root* command to read its value options off the tree Click already built."""
+    values = value_options() if root is None else _value_options_of(root)
     consumed = False
     for token in argv:
         if consumed:
@@ -1807,7 +1837,8 @@ def help_requested(argv: list[str]) -> bool:
 def apply_gate(grant: GateGrant | None) -> None:
     """Hard-stop when the squad's on-disk schema mismatches this build, unless *grant* covers the
     direction. Behind: tell the user to run ``sq migrate up``; ahead: tell them to upgrade."""
-    if help_requested(sys.argv[1:]):
+    root = _click_root_context()
+    if help_requested(sys.argv[1:], root.command if root is not None else None):
         return
     try:
         sp = resolve(client_cwd=get_context().client_cwd)

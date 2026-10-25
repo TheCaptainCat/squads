@@ -41,13 +41,16 @@ def _spec_dict(base: WorkflowSpec, items: dict[str, ItemSpec]) -> dict[str, obje
     }
 
 
-def test_bundled_spec_declares_only_epics_and_skills_validators_additions() -> None:
-    """Exactly two built-in types carry a ``validators`` addition, each for its own reason:
+def test_bundled_spec_declares_only_the_epic_skill_and_review_validators_additions() -> None:
+    """Exactly three built-in types carry a ``validators`` addition, each for its own reason:
     ``epic``'s own ``no_parent`` (enforcing the work-root constraint — ``records``' own
     ``no_parent`` comes from the category bundle instead, not a per-type addition), and
     ``skill``'s own ``item_skill_shadowed`` (the ``roster`` category bundle is empty, so a
     declared type's skill losing its generated guidance to authored content has to be reported
-    from the one type that can name the check itself).
+    from the one type that can name the check itself), and ``review``'s own
+    ``subentities_settled_with_parent`` (an approved review still holding a finding is the one
+    place a settled parent with unsettled sub-entities is a defect; on a feature or task it would
+    report every delivered item whose stories or subtasks were left in Todo).
 
     ``feature`` is the near miss, and the reason this is asserted over the whole item table
     rather than for ``epic``/``skill`` alone: it declares a ``ref_rules`` entry targeting
@@ -59,7 +62,10 @@ def test_bundled_spec_declares_only_epics_and_skills_validators_additions() -> N
     assert spec.items["skill"].validators == ["item_skill_shadowed"]
     assert spec.items["feature"].validators == []
     assert any(rr.target == "contract" for rr in spec.items["feature"].ref_rules)
-    assert all(ts.validators == [] for t, ts in spec.items.items() if t not in ("epic", "skill"))
+    assert spec.items["review"].validators == ["subentities_settled_with_parent"]
+    assert all(
+        ts.validators == [] for t, ts in spec.items.items() if t not in ("epic", "skill", "review")
+    )
 
 
 def test_an_unknown_validator_name_fails_closed_at_load() -> None:

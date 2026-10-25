@@ -37,8 +37,8 @@ dependencies = [
 tui = ["textual>=0.29.0"]
 
 [project.scripts]
-squads = "squads._cli:main"
-sq = "squads._cli:main"
+squads = "squads.__main__:main"
+sq = "squads.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/TheCaptainCat/squads"

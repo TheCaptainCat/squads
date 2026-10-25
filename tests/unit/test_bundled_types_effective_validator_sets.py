@@ -47,7 +47,7 @@ EXPECTED: dict[str, tuple[str, ...]] = {
     "feature": _WORK,
     "task": _WORK,
     "bug": _WORK,
-    "review": _WORK,
+    "review": (*_WORK, "subentities_settled_with_parent"),
     "decision": _RECORDS,
     "contract": _RECORDS,
     "milestone": _RECORDS,
