@@ -26,9 +26,9 @@ Every hit must be on ``ALLOWLIST`` below — the sanctioned CODE-cache/definitio
 enumerated exactly and exhaustively so the guard is green on the current tree, not aspirational.
 ``ALLOWLIST`` also carries a few names the two constructs above don't
 actually flag — immutable spec/catalog singletons built via a plain (non-mutable-factory)
-function call (``_BUNDLED_SPEC``, ``_spec``, ``_create_spec``, ``_CATALOG``, ``_PLAYBOOK_SPEC``,
-``TERMINAL``, …) — included here anyway because they're the same sanctioned-CODE surface named
-in the triage audit; the "no stale entry" test below only requires that every allowlisted name
+function call (``_BUNDLED_SPEC``, ``_spec``, ``_create_spec``, ``_CATALOG``, …) — included here
+anyway because they're the same sanctioned-CODE surface named in the triage audit; the
+"no stale entry" test below only requires that every allowlisted name
 refers to a real module-level binding, not that the mutable-binding check specifically flags it.
 
 Adding a convenient module global later fails the "matches the allowlist exactly" test below
@@ -41,14 +41,6 @@ from pathlib import Path
 #: module-scope target -> reason, one entry per sanctioned CODE cache/definition. Keyed by the
 #: module's path relative to the repo root (posix form).
 ALLOWLIST: dict[str, frozenset[str]] = {
-    "src/squads/_backends/_registry.py": frozenset(
-        {
-            "_REGISTRY",  # backend-class registry — classes, instantiated fresh per get_backend()
-            "_loaded",  # idempotent-import guard for the registry above
-        }
-    ),
-    "src/squads/_backends/_claude_code/__init__.py": frozenset({"__all__"}),
-    "src/squads/_backends/_agents_md/__init__.py": frozenset({"__all__"}),
     "src/squads/_backends/_claude_code/_frontmatter.py": frozenset(
         {"_VALID_MODELS"}  # fixed vocab of valid model names
     ),
@@ -60,10 +52,6 @@ ALLOWLIST: dict[str, frozenset[str]] = {
         {
             "__all__",
             "_BUNDLED_SPEC",  # immutable bundled default spec, loaded once
-            "WORKFLOWS",  # derived from _BUNDLED_SPEC — read-only view, golden-lock surface
-            "SUBENTITY_WORKFLOWS",
-            "ALLOWED_PARENTS",
-            "TERMINAL",
         }
     ),
     "src/squads/_workflow/_loader.py": frozenset(
@@ -72,16 +60,24 @@ ALLOWLIST: dict[str, frozenset[str]] = {
         {"_RETIRED_VIEW_KEY_REASONS"}
     ),
     "src/squads/_workflow/_models.py": frozenset(
+        {"_BUNDLED_CONTAINER_HEADINGS"}  # fixed bundled sub-entity container heading table
+    ),
+    "src/squads/_workflow/_lifecycle_order.py": frozenset(
+        {"_SIDE_PRIORITY"}  # fixed side-status sort-priority lookup table
+    ),
+    "src/squads/_workflow/_validator_names.py": frozenset(
         {
-            "_SIDE_PRIORITY",  # fixed side-status sort-priority lookup table
-            "_BUNDLED_CONTAINER_HEADINGS",  # fixed bundled sub-entity container heading table
-            "CATEGORY_BUNDLES",  # fixed category -> default-bundle table; the Plane-1 pass
-            # resolves the same effective set the validator engine runs, so it is defined here
+            "CATEGORY_BUNDLES",  # fixed category -> default-bundle table; the load-time checks
+            # resolve the same effective set the validator engine runs, so it is defined here
             "DEFAULT_VALIDATOR_LEVEL",  # fixed catalog-member -> bundled default level table
             "DEFAULT_SQUAD_GLOBAL_LEVEL",  # fixed squad-global member -> default level table
             "SQUAD_GLOBAL_PARAM_MINIMUM",  # fixed selectable member -> least parameter value
             "VALIDATOR_LEVEL_FLOOR",  # fixed catalog-member -> floor level table
-            "_LEVEL_RANK",  # fixed level -> rank lookup (warn < error) for the floor comparison
+            "LEVEL_RANK",  # fixed level -> rank lookup (warn < error) for the floor comparison
+        }
+    ),
+    "src/squads/_workflow/_validity.py": frozenset(
+        {
             "PINNED_ROSTER_ATTRIBUTES",  # fixed roster type -> attributes the engine
             # materialises into agent-host files; the loader refuses a spec that lacks one
         }
@@ -102,14 +98,8 @@ ALLOWLIST: dict[str, frozenset[str]] = {
     "src/squads/_roles/_resolver.py": frozenset(
         {"_PREDEFINED_BY_SLUG"}  # derived from the bundled catalog, not _catalog.py itself
     ),
-    "src/squads/_interactions/__init__.py": frozenset(
-        {
-            "_PLAYBOOK_SPEC",  # loaded playbook singleton
-            "PLAYBOOK",  # derived from _PLAYBOOK_SPEC
-            "SKILL_DESCRIPTIONS",  # fixed bundled-skill description table
-            "SYSTEM_SKILL_VIEW_NAMES",  # fixed slug -> placement-tag-view-name table for the
-            # three always-on skills, shared between the two writers that seed/backfill it
-        }
+    "src/squads/_interactions/_skills.py": frozenset(
+        {"SKILL_DESCRIPTIONS"}  # fixed bundled-skill description table
     ),
     "src/squads/_cli/_create.py": frozenset(
         {"_create_spec"}  # bundled spec used to statically register `sq create <type>`
@@ -148,6 +138,8 @@ ALLOWLIST: dict[str, frozenset[str]] = {
         {
             "_SOURCE_APPLICABILITY",  # fixed source-kind -> applicability-predicate lookup
             # table, one entry per declared ViewSource.kind, definition-time
+            "SYSTEM_SKILL_VIEW_NAMES",  # fixed slug -> placement-tag-view-name table for the
+            # three always-on skills, shared between the two writers that seed/backfill it
         }
     ),
     "src/squads/_services/_validators.py": frozenset(

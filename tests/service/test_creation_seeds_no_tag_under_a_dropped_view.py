@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
 from squads._sections import get_section
@@ -45,7 +46,7 @@ def _body(svc, item) -> str:
 def _declared(svc, content: str) -> service.Service:
     _write_override(svc.paths.squad_dir, content)
     spec = load_workflow_spec(squad_dir=svc.paths.squad_dir)
-    return service.Service(svc.paths, spec=spec)
+    return make_service(svc.paths, spec=spec)
 
 
 # --------------------------------------------------------------------------------------- role

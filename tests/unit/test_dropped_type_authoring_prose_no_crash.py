@@ -18,7 +18,7 @@ def test_dropping_task_from_the_spec_does_not_crash_the_workflow_cheatsheet() ->
     base = bundled_spec()
     dropped = {k: v for k, v in base.items.items() if k != "task"}
     spec = base.model_copy(update={"items": dropped})
-    rendered = render("workflow.md.j2", spec=spec)
+    rendered = render("workflow.md.j2", spec=spec, from_squad=None)
     authoring_section = rendered.split("## Type-command aliases")[0]
     assert "Tech lead" not in authoring_section  # task's only lane owner, no longer authored
     assert "**Product owner** → `sq create epic" in authoring_section  # others unaffected
@@ -41,6 +41,7 @@ def test_dropping_task_from_the_spec_does_not_crash_the_claude_md_section() -> N
         default_role_full_name="Catherine Manager",
         default_role_slug="manager",
         spec=spec,
+        from_squad=None,
     )
     assert "The **product owner** authors **epics**" in rendered  # rendered past the crash
 
@@ -70,6 +71,6 @@ def test_a_custom_type_with_a_subentity_kind_appears_in_the_generic_summary_line
             "views": base.views,
         }
     )
-    rendered = render("workflow.md.j2", spec=spec)
+    rendered = render("workflow.md.j2", spec=spec, from_squad=None)
     summary_line = next(ln for ln in rendered.splitlines() if "Sub-entities are tracked too" in ln)
     assert "`incident` → `finding`" in summary_line

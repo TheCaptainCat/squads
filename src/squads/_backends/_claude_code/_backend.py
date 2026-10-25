@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any
 
 from squads import _aio
-from squads import _interactions as interactions
 from squads import _sections as sections
 from squads._backends._base import AgentBackend, Artifact, BackendContext
 from squads._backends._claude_code import _claude_md as claude_md
@@ -18,14 +17,22 @@ from squads._backends._claude_code._frontmatter import (
     normalize_model,
     oneline,
 )
+from squads._interactions._playbook import managed_item_types
 from squads._interactions._role_guidance import delegate_example_slugs, developer_roles
+from squads._interactions._skills import (
+    custom_item_skill_description,
+    custom_item_skill_name,
+    is_system_skill,
+    item_skill_name,
+    skill_description,
+)
 from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
-from squads._roles._loader import load_role_catalog
 from squads._roles._projection import OperatorView, RoleView
-from squads._views import place_view_tags
+from squads._view_tags import place_view_tags
+from squads._views import ITEM_SKILL_VIEW_NAME, SYSTEM_SKILL_VIEW_NAMES
 from squads._workflow import ROSTER_SKILL
 
 _AGENTS = "agents"
@@ -77,11 +84,13 @@ class ClaudeCodeBackend(AgentBackend):
         await _aio.mkdir(cdir / _AGENTS, parents=True, exist_ok=True)
         await _aio.mkdir(cdir / _SKILLS / "squads", parents=True, exist_ok=True)
         settings = cdir / "settings.json"
-        await self._merge_settings(settings)
+        await self._merge_settings(ctx, settings)
         return [Artifact(ctx.rel(settings), "settings", self.name)]
 
-    async def _merge_settings(self, settings: Path) -> None:
-        default: dict[str, Any] = json.loads(render("claude/settings.json.j2"))
+    async def _merge_settings(self, ctx: BackendContext, settings: Path) -> None:
+        default: dict[str, Any] = json.loads(
+            render("claude/settings.json.j2", from_squad=ctx.squad_dir)
+        )
         if await _aio.path_exists(settings):
             current: dict[str, Any]
             try:
@@ -107,15 +116,13 @@ class ClaudeCodeBackend(AgentBackend):
         artifacts: list[Artifact] = []
         # The three always-on cross-role skills: a thin pointer in .claude/, and a body file
         # under squads/ whose sq:body region this writer seeds with that skill's own placement
-        # tag (interactions.SYSTEM_SKILL_VIEW_NAMES) — see _write_managed_skill.
-        from squads._workflow import bundled_spec
-
-        spec = ctx.spec if ctx.spec is not None else bundled_spec()
-        for slug, view_name in interactions.SYSTEM_SKILL_VIEW_NAMES.items():
+        # tag (SYSTEM_SKILL_VIEW_NAMES) — see _write_managed_skill.
+        spec = ctx.spec
+        for slug, view_name in SYSTEM_SKILL_VIEW_NAMES.items():
             artifacts += await self._write_managed_skill(
                 ctx,
                 name=slug,
-                description=interactions.skill_description(slug),
+                description=skill_description(slug),
                 body_tag=view_name if view_name in spec.views else None,
                 invocable=ctx.operator_invocable(slug),
             )
@@ -123,6 +130,7 @@ class ClaudeCodeBackend(AgentBackend):
         default = next((r for r in roster if r.is_default), None)
         section = render(
             "claude/claude_section.md.j2",
+            from_squad=ctx.squad_dir,
             squad_dir=squad_dir,
             working_language=ctx.working_language,
             roles=[
@@ -138,7 +146,7 @@ class ClaudeCodeBackend(AgentBackend):
             delegate_examples=delegate_example_slugs(
                 roster,
                 default.slug if default else None,
-                [r.slug for r in developer_roles(roster, load_role_catalog(ctx.squad_dir))],
+                [r.slug for r in developer_roles(roster, ctx.catalog())],
             ),
             operators=[
                 {"full_name": o.full_name, "slug": o.slug, "pronouns": o.pronouns}
@@ -181,10 +189,10 @@ class ClaudeCodeBackend(AgentBackend):
         ``None``, seeded with the ``sq:view:<body_tag>`` placement tag otherwise.
 
         **This backend does not write a skill's definition.** That text renders on read, off
-        the tag this writer seeds (``squads._views.expand_view_tags``, via
+        the tag this writer seeds (``squads._view_tags.expand_view_tags``, via
         ``ItemsMixin.read_body``) — every caller resolves *body_tag* against ``spec.views``
         before calling, the three permanently-system skills and every per-item-type skill
-        alike (``_write_item_skills`` resolves :data:`~squads._interactions.ITEM_SKILL_VIEW_NAME`
+        alike (``_write_item_skills`` resolves :data:`~squads._views.ITEM_SKILL_VIEW_NAME`
         the same way), passing ``None`` when the view is not declared so this writer never mints
         a tag naming an undeclared view. Either way, the pointer never needed either shape:
         ``claude/pointer_skill.md.j2`` renders from *name*, *description* and the resolved
@@ -220,9 +228,7 @@ class ClaudeCodeBackend(AgentBackend):
         # to a slug-named temporary path under the *declared* skill folder (an override
         # may have relocated it before init ever ran); seed_bundled_skills renames it to
         # the convention name right after and rewrites the pointer.
-        from squads._workflow import bundled_spec
-
-        spec = ctx.spec if ctx.spec is not None else bundled_spec()
+        spec = ctx.spec
         resolved = ctx.skill_paths.get(name)
         if resolved is not None:
             body_path: Path = resolved
@@ -236,7 +242,7 @@ class ClaudeCodeBackend(AgentBackend):
         # for a declared view — an undeclared one reaches here as None and this writes an
         # empty, untagged region instead (the same quiet state _repair_body_tag already
         # produces for a dropped view). Placed through the one re-placement routine every other
-        # writer of a ``sq:body`` region drives (:func:`~squads._views.place_view_tags`), over
+        # writer of a ``sq:body`` region drives (:func:`~squads._view_tags.place_view_tags`), over
         # an empty starting region and no prose edit, so this seed is never a second spelling of
         # placement — :func:`~squads._sections.replace_section`'s own newline padding then gives
         # the empty shell the region back exactly as any other writer's would.
@@ -274,7 +280,7 @@ class ClaudeCodeBackend(AgentBackend):
         await _aio.mkdir(pointer.parent, parents=True, exist_ok=True)
         await _aio.write_text(
             pointer,
-            self._render_skill_pointer(name, description, invocable=invocable),
+            self._render_skill_pointer(ctx, name, description, invocable=invocable),
         )
         return [Artifact(ctx.rel(pointer), "skill_pointer", self.name)]
 
@@ -283,7 +289,7 @@ class ClaudeCodeBackend(AgentBackend):
 
         The definition itself is not written here — it renders on read, off the
         ``sq:view:item_skill`` tag this writer seeds into every per-type skill's ``sq:body``
-        (``squads._views.expand_view_tags``, via ``ItemsMixin.read_body``), the same mechanism
+        (``squads._view_tags.expand_view_tags``, via ``ItemsMixin.read_body``), the same mechanism
         the three permanently-system skills above already use. What survives in this backend is
         the enumeration: which per-type skills a squad materialises at all — which needs no
         roster, since a pointer is rendered from a slug and a description, and the tag needs no
@@ -293,52 +299,45 @@ class ClaudeCodeBackend(AgentBackend):
         is no static built-in/custom split any more) — still gets its own skill, so the two
         loops below differ in nothing but which vocabulary names the slug and the description.
         """
-        from squads._workflow import bundled_spec
-
-        spec = ctx.spec if ctx.spec is not None else bundled_spec()
-        playbook = ctx.playbook if ctx.playbook is not None else interactions.get_playbook_spec()
+        spec = ctx.spec
+        playbook = ctx.playbook
         out: list[Artifact] = []
         # Gated the same way the three permanently-system skills' body_tag is gated in
         # write_managed, and the same condition MaintenanceMixin._repair_body_tag already
         # applies to its own per-type branch — a dropped `item_skill` view must never seed a
         # fresh dangling tag on a newly-created skill body.
-        item_skill_body_tag = (
-            interactions.ITEM_SKILL_VIEW_NAME
-            if interactions.ITEM_SKILL_VIEW_NAME in spec.views
-            else None
-        )
+        item_skill_body_tag = ITEM_SKILL_VIEW_NAME if ITEM_SKILL_VIEW_NAME in spec.views else None
 
         # Types with a playbook entry. The active, per-request playbook (ctx.playbook, merged
         # with any .overrides/playbook.toml) decides this set, not the bundled singleton. A type
         # the active spec has dropped or renamed away must produce no skill at all — never a
         # stale one under its old name — so a type absent from the active spec is skipped
         # outright: the "no orphan" bar a shadowing override has to clear.
-        for item_type in interactions.managed_item_types(playbook):
+        for item_type in managed_item_types(playbook):
             if item_type not in spec.items:
                 continue
-            name = interactions.item_skill_name(item_type)
+            name = item_skill_name(item_type)
             out += await self._write_managed_skill(
                 ctx,
                 name=name,
-                description=interactions.skill_description(name),
+                description=skill_description(name),
                 body_tag=item_skill_body_tag,
                 invocable=ctx.operator_invocable(name),
             )
 
         # Types with no active-playbook entry. This is the sole "custom vs built-in" line:
         # any type absent from the active playbook falls back here, bundled or not.
-        if ctx.spec is not None:
-            for ctype, ctype_spec in ctx.spec.items.items():
-                if ctype in playbook.types or ctype_spec.category == "roster":
-                    continue
-                custom_name = interactions.custom_item_skill_name(ctype)
-                out += await self._write_managed_skill(
-                    ctx,
-                    name=custom_name,
-                    description=interactions.custom_item_skill_description(ctype),
-                    body_tag=item_skill_body_tag,
-                    invocable=ctx.operator_invocable(custom_name),
-                )
+        for ctype, ctype_spec in ctx.spec.items.items():
+            if ctype in playbook.types or ctype_spec.category == "roster":
+                continue
+            custom_name = custom_item_skill_name(ctype)
+            out += await self._write_managed_skill(
+                ctx,
+                name=custom_name,
+                description=custom_item_skill_description(ctype),
+                body_tag=item_skill_body_tag,
+                invocable=ctx.operator_invocable(custom_name),
+            )
         return out
 
     # ------------------------------------------------------------------ entries
@@ -359,6 +358,7 @@ class ClaudeCodeBackend(AgentBackend):
         again here."""
         return render(
             "claude/pointer_agent.md.j2",
+            from_squad=ctx.squad_dir,
             slug=role.slug,
             full_name=role.full_name,
             pronouns=role.pronouns,
@@ -393,20 +393,21 @@ class ClaudeCodeBackend(AgentBackend):
         as permanently drifted. An author-defined (non-system) skill has only one writer
         (:meth:`generate_skill_entry` itself), so its own description is exactly right.
         """
-        from squads._workflow import bundled_spec
-
-        spec = ctx.spec if ctx.spec is not None else bundled_spec()
-        if interactions.is_system_skill(slug, spec):
-            return interactions.skill_description(slug)
+        spec = ctx.spec
+        if is_system_skill(slug, spec):
+            return skill_description(slug)
         return item.description or item.title
 
-    def _render_skill_pointer(self, slug: str, description: str, *, invocable: bool) -> str:
+    def _render_skill_pointer(
+        self, ctx: BackendContext, slug: str, description: str, *, invocable: bool
+    ) -> str:
         """The one place ``pointer_skill.md.j2`` is rendered — shared by
         :meth:`_write_managed_skill`, :meth:`generate_skill_entry` and :meth:`render_skill_entry`,
         so the three can never drift onto different content for the same skill. *invocable* is
         already resolved by the engine."""
         return render(
             "claude/pointer_skill.md.j2",
+            from_squad=ctx.squad_dir,
             slug=slug,
             description=oneline(description),
             invocable=invocable,
@@ -420,7 +421,7 @@ class ClaudeCodeBackend(AgentBackend):
         await _aio.write_text(
             pointer,
             self._render_skill_pointer(
-                slug, description, invocable=ctx.operator_invocable(slug, item)
+                ctx, slug, description, invocable=ctx.operator_invocable(slug, item)
             ),
         )
         return Artifact(ctx.rel(pointer), "skill_pointer", self.name)
@@ -446,6 +447,7 @@ class ClaudeCodeBackend(AgentBackend):
         reuses verbatim."""
         slug = item.slug
         return self._render_skill_pointer(
+            ctx,
             slug,
             self._skill_pointer_description(ctx, item, slug),
             invocable=ctx.operator_invocable(slug, item),

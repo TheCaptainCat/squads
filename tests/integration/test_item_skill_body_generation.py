@@ -18,8 +18,9 @@ guidance teaches "handle, not full description" consistently across story/subtas
 
 import pytest
 
-from _helpers import resolved_skill_definition
-from squads import _interactions as interactions
+from _helpers import make_service, resolved_skill_definition
+from squads._interactions._playbook import get_playbook_spec, managed_item_types
+from squads._interactions._skills import item_skill_name
 
 pytestmark = pytest.mark.anyio
 
@@ -27,21 +28,17 @@ pytestmark = pytest.mark.anyio
 async def _item_skill_body(svc, item_type: str) -> str:
     """The type's skill definition as this squad resolves it — the text ``sq skill sq-<type>
     show`` prints. Rendered on read, so *svc* must carry the spec/playbook under test."""
-    return await resolved_skill_definition(svc, interactions.item_skill_name(item_type))
+    return await resolved_skill_definition(svc, item_skill_name(item_type))
 
 
 async def test_item_skills_are_generated_with_a_thin_claude_pointer_and_a_resolved_definition(
     svc, project
 ):
     skills_dir = project.root / ".claude" / "skills"
-    for it in interactions.managed_item_types():
-        pointer = (skills_dir / interactions.item_skill_name(it) / "SKILL.md").read_text(
-            encoding="utf-8"
-        )
-        assert interactions.item_skill_name(it) in pointer
-        assert (
-            project.squad_dir / "agents" / "skills" / f"{interactions.item_skill_name(it)}.md"
-        ).is_file()
+    for it in managed_item_types(get_playbook_spec()):
+        pointer = (skills_dir / item_skill_name(it) / "SKILL.md").read_text(encoding="utf-8")
+        assert item_skill_name(it) in pointer
+        assert (project.squad_dir / "agents" / "skills" / f"{item_skill_name(it)}.md").is_file()
     feature = await _item_skill_body(svc, "feature")
     # 'minimal' roster (manager only) has no active role sections for feature.
     assert "## For " not in feature
@@ -97,13 +94,12 @@ async def test_the_trailer_names_only_the_types_own_actual_subentity_kind(svc):
 
 
 async def test_lifecycle_line_reflects_an_overridden_status_machine(project):
-    from squads._services import _service as service
     from squads._workflow import bundled_spec
 
     base = bundled_spec()
     overridden_task = base.items["task"].model_copy(update={"lifecycle": "guide"})
     spec = base.model_copy(update={"items": {**base.items, "task": overridden_task}})
-    overridden = service.Service(project, spec=spec)
+    overridden = make_service(project, spec=spec)
     task = await _item_skill_body(overridden, "task")
     lifecycle_line = next(ln for ln in task.splitlines() if ln.startswith("**Lifecycle:**"))
     assert lifecycle_line == "**Lifecycle:** Draft → Published → Deprecated"
@@ -117,13 +113,12 @@ async def test_a_dropped_type_resolves_to_no_definition_rather_than_crashing(pro
     The playbook still carries a frozen ``bug`` entry, so this is exactly the case where a
     fallback onto playbook prose would produce a plausible-looking, permanently stale
     definition for a type this squad no longer has."""
-    from squads._services import _service as service
     from squads._workflow import bundled_spec
 
     base = bundled_spec()
     dropped_items = {k: v for k, v in base.items.items() if k != "bug"}
     spec = base.model_copy(update={"items": dropped_items})
-    dropped = service.Service(project, spec=spec)
+    dropped = make_service(project, spec=spec)
     assert await _item_skill_body(dropped, "bug") == ""
     # The types the spec still declares are unaffected.
     assert "**Lifecycle:**" in await _item_skill_body(dropped, "task")
@@ -131,7 +126,7 @@ async def test_a_dropped_type_resolves_to_no_definition_rather_than_crashing(pro
 
 async def test_item_skills_teach_the_full_comments_briefing_in_their_enter_section(svc):
     await svc.add_dev("python")
-    for it in interactions.managed_item_types():
+    for it in managed_item_types(get_playbook_spec()):
         body = await _item_skill_body(svc, it)
         assert "--full --comments" in body, f"sq-{it} skill missing --full --comments briefing"
         assert "show --full --comments" in body

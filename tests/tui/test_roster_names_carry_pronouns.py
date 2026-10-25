@@ -10,7 +10,7 @@ pytest.importorskip("textual")
 
 from textual.widgets import Tree
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads._paths import load_config
 from squads._tui._app import SquadsApp
 
@@ -52,7 +52,7 @@ async def test_the_roster_nodes_print_name_and_pronouns_under_the_setting(
         path.write_text(
             path.read_text(encoding="utf-8") + "\n[display]\npronouns = false\n", encoding="utf-8"
         )
-        svc = type(svc)(replace(svc.paths, config=load_config(path)))
+        svc = make_service(replace(svc.paths, config=load_config(path)), svc.spec, svc.playbook)
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:

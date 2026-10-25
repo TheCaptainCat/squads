@@ -17,7 +17,7 @@ def _lifecycles_section(rendered: str) -> str:
 
 
 def test_the_cheatsheet_embeds_no_diagram_markup() -> None:
-    rendered = render("workflow.md.j2", spec=bundled_spec())
+    rendered = render("workflow.md.j2", spec=bundled_spec(), from_squad=None)
     assert "```mermaid" not in rendered
     assert "flowchart" not in rendered
     assert "stateDiagram" not in rendered
@@ -25,7 +25,7 @@ def test_the_cheatsheet_embeds_no_diagram_markup() -> None:
 
 def test_every_non_roster_type_has_a_lifecycle_row_and_no_roster_type_does() -> None:
     spec = bundled_spec()
-    section = _lifecycles_section(render("workflow.md.j2", spec=spec))
+    section = _lifecycles_section(render("workflow.md.j2", spec=spec, from_squad=None))
     for item_type in spec.non_roster_types():
         assert f"| `{item_type}` |" in section, item_type
     for roster_type in ("role", "skill", "operator"):
@@ -33,7 +33,7 @@ def test_every_non_roster_type_has_a_lifecycle_row_and_no_roster_type_does() -> 
 
 
 def test_a_row_carries_the_types_own_prefix_and_linearized_machine() -> None:
-    section = _lifecycles_section(render("workflow.md.j2", spec=bundled_spec()))
+    section = _lifecycles_section(render("workflow.md.j2", spec=bundled_spec(), from_squad=None))
     assert "| `GUIDE` | `guide` | `Draft → Published → Deprecated` |" in section
     assert (
         "| `ADR` | `decision` | `Proposed → Accepted → Superseded (+ Rejected, Deprecated)` |"
@@ -68,7 +68,9 @@ def _renamed_task_spec() -> WorkflowSpec:
 
 
 def test_a_renamed_type_takes_over_its_row_and_the_bundled_name_does_not_leak() -> None:
-    section = _lifecycles_section(render("workflow.md.j2", spec=_renamed_task_spec()))
+    section = _lifecycles_section(
+        render("workflow.md.j2", spec=_renamed_task_spec(), from_squad=None)
+    )
     assert "| `TCK` | `ticket` |" in section
     assert "| `task` |" not in section
 
@@ -98,7 +100,7 @@ def test_a_custom_lifecycle_is_linearized_with_its_own_states() -> None:
             "views": base.views,
         }
     )
-    section = _lifecycles_section(render("workflow.md.j2", spec=spec))
+    section = _lifecycles_section(render("workflow.md.j2", spec=spec, from_squad=None))
     assert "| `INC` | `incident` | `Open → Done (+ WontFix)` |" in section
 
 
@@ -106,4 +108,6 @@ def test_cheatsheet_rendering_is_deterministic_across_repeated_calls() -> None:
     """Lifecycle.states is a frozenset (hash-seed-ordered) — nothing derived from it may leak
     into the rendered text's ordering, or `sq sync` writes a different file each run."""
     spec = bundled_spec()
-    assert render("workflow.md.j2", spec=spec) == render("workflow.md.j2", spec=spec)
+    assert render("workflow.md.j2", spec=spec, from_squad=None) == render(
+        "workflow.md.j2", spec=spec, from_squad=None
+    )

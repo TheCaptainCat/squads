@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import bundled_migration_context, create_item
+from _helpers import bundled_migration_context, catalog_of, create_item, make_service
 from squads import __version__, _aio
 from squads import _sections as sections
 from squads._models import _markers as markers
@@ -16,8 +16,9 @@ from squads._models._config import SquadsConfig
 from squads._models._schema import SCHEMA_VERSION
 from squads._paths import SquadPaths
 from squads._rendering._engine import invalidate_squad_dir
-from squads._services._service import Service, resolve_playbook
-from squads._views import place_view_tags
+from squads._services._service import Service
+from squads._spec_documents import resolve_playbook
+from squads._view_tags import place_view_tags
 from squads._workflow import load_workflow_spec
 
 pytestmark = pytest.mark.anyio
@@ -39,7 +40,11 @@ async def _downgraded(project) -> Service:
         cfg = SquadsConfig.from_toml_dict(tomllib.load(fh))
     paths = SquadPaths(root=project.root, squad_dir=project.squad_dir, config=cfg)
     spec = load_workflow_spec(squad_dir=paths.squad_dir)
-    return Service(paths, spec=spec, playbook=resolve_playbook(spec, paths.squad_dir))
+    return make_service(
+        paths,
+        spec=spec,
+        playbook=resolve_playbook(spec, paths.squad_dir, catalog_of(paths.squad_dir)),
+    )
 
 
 async def _text(paths: SquadPaths, item) -> str:
@@ -364,7 +369,7 @@ async def test_a_name_the_template_still_seeds_with_no_resolvable_view_skips_tha
         encoding="utf-8",
     )
     invalidate_squad_dir(project.squad_dir)
-    declared = Service(svc.paths, spec=load_workflow_spec(squad_dir=svc.paths.squad_dir))
+    declared = make_service(svc.paths, spec=load_workflow_spec(squad_dir=svc.paths.squad_dir))
     m = (await create_item(declared, "milestone", "M")).item
     body = sections.get_section(await _text(svc.paths, m), markers.BODY)
     assert body is not None

@@ -13,9 +13,9 @@ from _helpers import create_item
 from squads import __version__
 from squads._services import _service as service
 from squads._workflow import bundled_spec
-from squads._workflow._models import (
+from squads._workflow._models import WorkflowSpec
+from squads._workflow._validator_names import (
     DEFAULT_VALIDATOR_LEVEL,
-    WorkflowSpec,
     effective_validator_names,
     parse_validator_entry,
 )

@@ -65,8 +65,8 @@ async def test_a_view_tag_survives_while_a_genuinely_retired_region_in_the_same_
     path = _path(svc, feat)
     text = path.read_text(encoding="utf-8")
     text = text.replace(
-        markers.open_marker(markers.STORIES),
-        _SUMMARY_REGION + markers.open_marker(markers.STORIES),
+        markers.open_marker("stories"),
+        _SUMMARY_REGION + markers.open_marker("stories"),
         1,
     )
     path.write_text(text, encoding="utf-8")

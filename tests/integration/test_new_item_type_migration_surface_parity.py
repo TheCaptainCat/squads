@@ -25,7 +25,7 @@ import shutil
 
 import pytest
 
-from _helpers import bundled_migration_context
+from _helpers import bundled_migration_context, make_service
 from squads._migrations._v0_11_to_v0_14 import migrate as migrate_v0_11_to_v0_14
 from squads._paths import SquadPaths
 from squads._sections import split_frontmatter
@@ -107,7 +107,7 @@ async def test_new_type_folders_and_skill_surface_match_init(
     monkeypatch.chdir(dir_b)
     result_b = await service.init(root=dir_b, roles_spec="minimal")
     paths_b = result_b.paths
-    svc_b = service.Service(paths_b)
+    svc_b = make_service(paths_b)
     await _strip_new_type_surface(svc_b, paths_b)
     # Preconditions: the strip actually removed what it means to.
     for item_type in _NEW_TYPES:
@@ -135,7 +135,7 @@ async def test_migrate_seeds_a_skill_item_for_each_new_type(
     monkeypatch.chdir(dir_b)
     result_b = await service.init(root=dir_b, roles_spec="minimal")
     paths_b = result_b.paths
-    svc_b = service.Service(paths_b)
+    svc_b = make_service(paths_b)
     await _strip_new_type_surface(svc_b, paths_b)
 
     await migrate_v0_11_to_v0_14(bundled_migration_context(paths_b))
@@ -169,7 +169,7 @@ async def test_role_pointer_drift_is_either_absent_or_named_in_the_manual_runboo
     monkeypatch.chdir(dir_a)
     result_a = await service.init(root=dir_a, roles_spec="all")
     paths_a = result_a.paths
-    svc_a = service.Service(paths_a)
+    svc_a = make_service(paths_a)
     await svc_a.add_dev("python")
 
     dir_b = tmp_path / "b"
@@ -177,7 +177,7 @@ async def test_role_pointer_drift_is_either_absent_or_named_in_the_manual_runboo
     monkeypatch.chdir(dir_b)
     result_b = await service.init(root=dir_b, roles_spec="all")
     paths_b = result_b.paths
-    svc_b = service.Service(paths_b)
+    svc_b = make_service(paths_b)
     await svc_b.add_dev("python")
     await _strip_new_type_surface(svc_b, paths_b)
 

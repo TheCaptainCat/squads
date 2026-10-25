@@ -19,12 +19,14 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of, make_service
 from squads import _sections as sections
 from squads._backends._base import BackendContext
 from squads._backends._registry import get_backend
-from squads._interactions import ITEM_SKILL_VIEW_NAME, SYSTEM_SKILL_VIEW_NAMES, is_system_skill
+from squads._interactions._skills import is_system_skill
 from squads._models import _markers as markers
 from squads._services import _service as service
+from squads._views import ITEM_SKILL_VIEW_NAME, SYSTEM_SKILL_VIEW_NAMES
 
 pytestmark = pytest.mark.anyio
 
@@ -35,7 +37,7 @@ async def seeded(tmp_path, monkeypatch, frozen_time):
     ``has_dev`` gate is exercised on the definitions that carry a ``*dev`` guide."""
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="all")
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     await svc.add_dev("python")
     await svc.sync()
     return svc
@@ -108,6 +110,7 @@ async def test_write_managed_reports_a_pointer_for_each_skill_and_no_body_artifa
         },
         spec=seeded.spec,
         playbook=seeded.playbook,
+        catalog=catalog_of(seeded.paths.squad_dir),
     )
     artifacts = await backend.write_managed(ctx, await seeded.roster(), await seeded.operators())
 
@@ -151,7 +154,7 @@ async def test_the_resolved_definition_matches_the_pinned_render_for_every_bundl
     """
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="all")
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     await svc.add_dev("python")
 
     goldens = sorted((Path(__file__).parents[1] / "goldens").glob("skill_body_sq-*.txt"))

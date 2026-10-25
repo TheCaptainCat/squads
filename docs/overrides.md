@@ -159,6 +159,21 @@ model = "opus"
 # mission, responsibilities, etc. inherit from the bundled architect
 ```
 
+A list field such as `responsibilities` or `agreements` is replaced whole when you set it. To add
+to the bundled list instead, open yours with the `$(*self)` splat-ref, which keeps every bundled
+entry and goes on tracking the bundle across upgrades:
+
+```toml
+# .overrides/roles/architect.toml
+# squads:override-base:<version>
+responsibilities = ["$(*self)", "Keep the decision index current"]
+```
+
+`sq role architect show` then lists the bundled responsibilities followed by the new one. The same
+line works in a `[[roles]]` entry of `roles.toml`. `sq override scaffold --role architect` writes
+the stamp and this line, commented out. The deep merge, plain-array and splat-ref rules are those
+of [The override grammar](#the-override-grammar-shadow-append-and-drop).
+
 `full_name`, the role's name, is the one field that applies only once: it names the role when the
 role is created. See [Which name wins](#which-name-wins).
 
@@ -1943,6 +1958,11 @@ steps that move it out — see
 
 Your `workflow.toml` is a **delta**, not a replacement. squads reads the bundled spec, composes your
 file over it, and validates the result. Five rules govern how the two combine.
+
+The examples below use workflow keys, but the first three rules, deep merge, plain arrays and
+splat-refs, hold the same way for the role overrides, `roles.toml` and `roles/<slug>.toml`: a
+role's `responsibilities = ["$(*self)", "…"]` appends to its bundled list (see
+[Role overrides merge by field](#precedence-rule)).
 
 ### 1. Deep merge — declare only what changes
 

@@ -9,6 +9,7 @@ import json
 
 import pytest
 
+from _helpers import make_service
 from squads._models._schema import SCHEMA_VERSION
 
 pytestmark = pytest.mark.anyio
@@ -78,18 +79,16 @@ async def _inject_ghost_item(svc) -> None:
 
 
 async def test_exit_code_3_when_check_finds_an_error_level_issue(project, invoke):
-    from squads._services._service import Service
 
-    await _inject_ghost_item(Service(project))
+    await _inject_ghost_item(make_service(project))
     result = await invoke(["check"])
     assert result.exit_code == 3, result.output
     assert "TASK-99" in result.output
 
 
 async def test_exit_code_3_when_check_json_finds_an_error_level_issue(project, invoke):
-    from squads._services._service import Service
 
-    await _inject_ghost_item(Service(project))
+    await _inject_ghost_item(make_service(project))
     result = await invoke(["check", "--json"])
     assert result.exit_code == 3, result.output
     data = json.loads(result.output)

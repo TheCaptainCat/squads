@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 
+from _helpers import catalog_of
 from squads import __version__
 from squads._errors import SquadsError
 from squads._models._attributes import AttributeKey
@@ -159,4 +160,4 @@ async def test_the_bundled_catalog_declares_no_default_and_an_existing_override_
 
     assert "[defaults]" not in bundled_roles_toml_text()
     assert load_role_catalog().defaults.pronouns is None
-    assert check_override_issues(svc.paths.squad_dir) == []
+    assert check_override_issues(svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir)) == []

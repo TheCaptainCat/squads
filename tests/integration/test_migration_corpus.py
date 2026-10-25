@@ -8,9 +8,10 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+from _helpers import make_service
 from squads._cli import app
 from squads._index._resolver import item_file
-from squads._interactions import is_system_skill
+from squads._interactions._skills import is_system_skill
 from squads._itemfile import read_frontmatter
 from squads._models import _markers as markers
 from squads._models._attributes import CORE_KEYS
@@ -27,7 +28,8 @@ from squads._sections import (
     replace_section,
 )
 from squads._services._service import Service
-from squads._views import place_view_tags, roster_body_view_name
+from squads._view_tags import place_view_tags
+from squads._views import roster_body_view_name
 from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, load_workflow_spec
 
 _CORPUS_DIR = Path(__file__).parent.parent / "fixtures" / "corpus"
@@ -99,7 +101,7 @@ async def test_corpus_migrates_to_current_schema_and_passes_check(
     shutil.copytree(src, dst)
 
     paths = _load_paths(dst)
-    svc = Service(paths)
+    svc = make_service(paths)
     run = await svc.run_pending_migrations()
     applied = run.applied
 
@@ -137,7 +139,7 @@ def test_corpus_cli_migrate_up_and_check_both_exit_clean(
     async def _probe() -> set[str]:
         probe_dst = tmp_path / f"{corpus_name}-probe"
         shutil.copytree(src, probe_dst)
-        probe_svc = Service(_load_paths(probe_dst))
+        probe_svc = make_service(_load_paths(probe_dst))
         probe_run = await probe_svc.run_pending_migrations()
         return await _expected_seeded_view_gap_files(
             probe_svc, set(probe_run.skipped.get("0.15", []))
@@ -215,7 +217,7 @@ async def test_v0_2_migration_rewrites_the_legacy_backend_key(tmp_path: Path) ->
     assert "default_backend" in pre and "active_backends" not in pre  # precondition
 
     paths = _load_paths(dst)
-    svc = Service(paths)
+    svc = make_service(paths)
     await svc.run_pending_migrations()
 
     with (dst / ".squads.toml").open("rb") as fh:
@@ -231,7 +233,7 @@ async def test_the_v0_14_fixtures_milestone_gains_its_roll_up_tag_across_the_cha
     dst = tmp_path / "v0_14"
     shutil.copytree(_CORPUS_DIR / "v0_14", dst)
     paths = _load_paths(dst)
-    svc = Service(paths)
+    svc = make_service(paths)
     await svc.run_pending_migrations()
 
     mile_files = sorted((paths.squad_dir / "milestones").glob("*.md"))
@@ -259,7 +261,7 @@ async def test_corpus_carries_no_retired_region_after_migrating(
     dst = tmp_path / corpus_name
     shutil.copytree(_CORPUS_DIR / corpus_name, dst)
     paths = _load_paths(dst)
-    svc = Service(paths)
+    svc = make_service(paths)
 
     await svc.run_pending_migrations()
 
@@ -284,7 +286,7 @@ async def test_every_template_owned_skills_stored_body_converges_onto_its_tag(
     dst = tmp_path / corpus_name
     shutil.copytree(_CORPUS_DIR / corpus_name, dst)
     paths = _load_paths(dst)
-    svc = Service(paths)
+    svc = make_service(paths)
     before = {
         path.name: _body_region(path.read_text(encoding="utf-8"))
         for path in _md_files(paths.squad_dir)
@@ -346,7 +348,7 @@ async def test_a_role_keeps_its_record_and_loses_its_mirror_across_the_migration
     dst = tmp_path / corpus_name
     shutil.copytree(_CORPUS_DIR / corpus_name, dst)
     paths = _load_paths(dst)
-    svc = Service(paths)
+    svc = make_service(paths)
     before_text = {
         path.name: path.read_text(encoding="utf-8") for path in _md_files(paths.squad_dir)
     }
@@ -394,7 +396,7 @@ async def test_the_sweep_regenerates_no_surface_and_leaves_every_compiled_region
     dst = tmp_path / "v0_11"
     shutil.copytree(_CORPUS_DIR / "v0_11", dst)
     paths = _load_paths(dst)
-    svc = Service(paths)
+    svc = make_service(paths)
     await svc.run_pending_migrations()
     generated = sorted(
         p
@@ -466,7 +468,7 @@ async def test_the_bare_verb_strips_a_corpus_already_at_the_current_stamp(tmp_pa
     already stamped current, but preserves plain-prose bodies no migration ever touched."""
     dst = _v0_14_copy_stamped_schema_current(tmp_path)
     paths = _load_paths(dst)
-    svc = Service(paths)
+    svc = make_service(paths)
     run = await svc.run_pending_migrations()
     assert run.applied == [] and run.repair is None
 

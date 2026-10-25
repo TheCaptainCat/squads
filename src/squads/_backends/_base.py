@@ -5,16 +5,15 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
-from squads._errors import SquadsError
-from squads._interactions import resolve_operator_invocable
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._role_guidance import skills_for_role
+from squads._interactions._skills import resolve_operator_invocable
 from squads._language import WorkingLanguage, resolve_working_language
 from squads._models._item import Item
 from squads._paths import SquadPaths
 from squads._roles._catalog import RoleDef
+from squads._roles._models import CatalogSource
 from squads._roles._projection import OperatorView, RoleView
-from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
 
 
@@ -47,17 +46,16 @@ class BackendContext:
     # `role_guidance.skills_for_role` in :meth:`resolved_skills_for` — see that method.
     role_skills: dict[str, list[str]]
     # Active workflow spec — supplied by the Service so backends can enumerate custom types.
-    # ``None`` means use only built-in types (backward-compatible default for callers that
-    # don't supply a spec, e.g. backend conformance tests).
-    spec: WorkflowSpec | None
+    spec: WorkflowSpec
     # Active (merged) playbook — supplied by the Service alongside ``spec`` so a per-type skill
-    # writer sees a project override's role guidance. ``None`` means the bundled playbook
-    # (:func:`squads._interactions.get_playbook_spec`) — the same backward-compatible default
-    # shape as ``spec`` above, for callers (backend conformance tests) that supply neither.
-    playbook: PlaybookSpec | None
+    # writer sees a project override's role guidance.
+    playbook: PlaybookSpec
+    # The squad's role catalog, read on first use — supplied by the Service so a backend never
+    # loads the project's roles override itself.
+    catalog: CatalogSource
     # The roster's currently-live role/skill slugs — populated by the caller (``sq check``'s
     # `backend_reconciled`, `sync`'s before/after regeneration report) from the index via
-    # `squads._interactions.is_live_roster_entry`, same layering rationale as `skill_paths`/
+    # `is_live_roster_entry`, same layering rationale as `skill_paths`/
     # `role_skills`: a backend never loads the index itself, so it reads the live set here
     # rather than deriving it. Empty by default, which makes `managed_entry_paths` report no
     # per-entry paths at all — the correct answer for a caller that has not populated these
@@ -68,13 +66,14 @@ class BackendContext:
     # for the item-less managed writer. A slug absent here resolves to its declared default.
     skill_invocable: dict[str, bool]
 
-    def __init__(
+    def __init__(  # noqa: PLR0913 — one parameter per input a backend reads
         self,
         paths: SquadPaths,
+        spec: WorkflowSpec,
+        playbook: PlaybookSpec,
+        catalog: CatalogSource,
         skill_paths: dict[str, Path] | None = None,
         role_skills: dict[str, list[str]] | None = None,
-        spec: WorkflowSpec | None = None,
-        playbook: PlaybookSpec | None = None,
         live_role_slugs: frozenset[str] | None = None,
         live_skill_slugs: frozenset[str] | None = None,
         skill_invocable: dict[str, bool] | None = None,
@@ -84,6 +83,7 @@ class BackendContext:
         self.role_skills = role_skills if role_skills is not None else {}
         self.spec = spec
         self.playbook = playbook
+        self.catalog = catalog
         self.live_role_slugs = live_role_slugs if live_role_slugs is not None else frozenset()
         self.live_skill_slugs = live_skill_slugs if live_skill_slugs is not None else frozenset()
         self.skill_invocable = skill_invocable if skill_invocable is not None else {}
@@ -110,8 +110,7 @@ class BackendContext:
         one is given, else from the service-supplied map, else the declared default."""
         if item is None and slug in self.skill_invocable:
             return self.skill_invocable[slug]
-        spec = self.spec if self.spec is not None else bundled_spec()
-        return resolve_operator_invocable(slug, item, spec)[0]
+        return resolve_operator_invocable(slug, item, self.spec)[0]
 
     def resolved_skills_for(self, role: RoleDef) -> list[str]:
         """A role's resolved preload-skill list: ``role_skills[slug]`` when populated, else the
@@ -123,8 +122,6 @@ class BackendContext:
         """
         if role.slug in self.role_skills:
             return self.role_skills[role.slug]
-        if self.spec is None or self.playbook is None:
-            raise SquadsError("a backend context without role_skills needs a spec and a playbook")
         return skills_for_role(role, self.spec, self.playbook)
 
 
@@ -273,7 +270,7 @@ class AgentBackend(ABC):
         differ. ``sync`` also calls this, before and after its own writes, to report which of
         these it just had to regenerate (see ``MaintenanceMixin.sync``); both callers hand it
         the exact same live set derived via
-        :func:`~squads._interactions.is_live_roster_entry`, so retiring or reactivating a
+        :func:`is_live_roster_entry`, so retiring or reactivating a
         role/skill can never produce a false positive on either side of the transition — a
         retired entry's slug is simply absent from ``ctx.live_role_slugs``/
         ``live_skill_slugs``, so this method never names its (correctly withdrawn) pointer at

@@ -33,6 +33,7 @@ from typing import Protocol
 
 import pytest
 
+from _helpers import catalog_of
 from squads import __version__
 from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME
 from squads._overrides import _service as override_service
@@ -334,14 +335,16 @@ async def _uniformity_gaps(kind: str, fixture: _KindFixture, squad_dir: Path, in
     if entry is None or entry.state != STATE_DRIFTED:
         gaps.append("state classifier")
 
-    issues = override_service.check_override_issues(squad_dir)
+    issues = override_service.check_override_issues(squad_dir, catalog=catalog_of(squad_dir))
     shadow_errors = [i for i in issues if i[0] == "error" and i[1] == fixture.display]
     if not shadow_errors:
         gaps.append("stamp-obligation finding (shadowing must error)")
 
     # 3b. Add-only, unstamped -> silent (the other half of the same finding).
     fixture.place_add_only(squad_dir)
-    add_only_issues = override_service.check_override_issues(squad_dir)
+    add_only_issues = override_service.check_override_issues(
+        squad_dir, catalog=catalog_of(squad_dir)
+    )
     if any(i[1] == fixture.add_only_display for i in add_only_issues):
         gaps.append("stamp-obligation finding (add-only must stay silent)")
 
@@ -464,8 +467,12 @@ async def test_removing_the_stamp_obligation_finding_is_caught(
     fixture = _KIND_FIXTURES[kind]
     real_check = override_service.check_override_issues
 
-    def sabotaged_check(squad_dir: Path, role_items_by_slug=None):
-        return [i for i in real_check(squad_dir, role_items_by_slug) if i[1] != fixture.display]
+    def sabotaged_check(squad_dir: Path, role_items_by_slug=None, **kwargs):
+        return [
+            i
+            for i in real_check(squad_dir, role_items_by_slug, **kwargs)
+            if i[1] != fixture.display
+        ]
 
     monkeypatch.setattr(override_service, "check_override_issues", sabotaged_check)
     gaps = await _uniformity_gaps(kind, fixture, project.squad_dir, invoke)

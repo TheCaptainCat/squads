@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import DEFAULT_TEST_AUTHOR
+from _helpers import DEFAULT_TEST_AUTHOR, make_service
 from squads._cli import app
 from squads._services import _service as service
 
@@ -52,7 +52,7 @@ async def _build_scale_squad_async(
     corpus-generation cost.
     """
     result = await service.init(root=tmp_path, roles_spec="minimal", no_claude=True)
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
 
     feat_ids: list[str] = []
     for i in range(features):

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads import __version__
 from squads._errors import SquadsError
 from squads._index._resolver import item_file
@@ -54,7 +55,7 @@ def _write_override(squad_dir: Path, content: str) -> None:
 
 
 def _reopen(paths) -> service.Service:
-    return service.Service(paths, spec=load_workflow_spec(squad_dir=paths.squad_dir))
+    return make_service(paths, spec=load_workflow_spec(squad_dir=paths.squad_dir))
 
 
 def _region(path: Path) -> str:
@@ -78,11 +79,11 @@ async def test_a_permanently_system_skills_dropped_view_round_trip(svc) -> None:
     await dropped.repair()
     assert _region(path) == before, "sq repair rewrote the authored body"
 
-    await service.Service(dropped.paths, spec=dropped.spec).sync()
+    await make_service(dropped.paths, spec=dropped.spec).sync()
     assert _region(path) == before, "the sync backfill rewrote the authored body"
 
     (svc.paths.squad_dir / ".overrides" / "workflow.toml").unlink()
-    redeclared = service.Service(svc.paths)
+    redeclared = make_service(svc.paths)
     with pytest.raises(SquadsError, match="renders through its declared sq:view:"):
         await redeclared.set_body(skill.id, "a second, doomed write")
     assert _region(path) == before, "the refused write must not have touched the prose"
@@ -106,11 +107,11 @@ async def test_a_stale_bundled_sq_bug_after_its_type_is_dropped_round_trip(svc) 
     await dropped.repair()
     assert _region(path) == before, "sq repair rewrote the authored body"
 
-    await service.Service(dropped.paths, spec=dropped.spec).sync()
+    await make_service(dropped.paths, spec=dropped.spec).sync()
     assert _region(path) == before, "the sync backfill rewrote the authored body"
 
     (svc.paths.squad_dir / ".overrides" / "workflow.toml").unlink()
-    redeclared = service.Service(svc.paths)
+    redeclared = make_service(svc.paths)
     with pytest.raises(SquadsError, match="renders through its declared sq:view:"):
         await redeclared.set_body(skill.id, "a second, doomed write")
     assert _region(path) == before, "the refused write must not have touched the prose"
@@ -133,7 +134,7 @@ async def test_a_project_declared_types_stale_sq_widget_round_trip(svc) -> None:
     await svc.repair()
     assert _region(path) == before, "sq repair rewrote an authored custom-skill body"
 
-    await service.Service(svc.paths).sync()
+    await make_service(svc.paths).sync()
     assert _region(path) == before, "the sync backfill rewrote an authored body"
 
     _write_override(svc.paths.squad_dir, _WIDGET_TYPE)

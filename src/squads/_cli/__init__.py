@@ -43,10 +43,10 @@ class _CustomTypeGroup(typer.core.TyperGroup):
     the built-in --help and get_command path always work and never raise from this class.
     """
 
-    # Cache lazily-built custom-type Click commands within a single process invocation so
-    # repeated ``get_command`` calls (e.g. during completion introspection) return the same
-    # Click command object.
-    _custom_cmd_cache: ClassVar[dict[str, _click.Command]] = {}
+    # Lazily-built custom-type Click commands, keyed by canonical type and the spec they were
+    # built from, so repeated ``get_command`` calls (e.g. during completion introspection)
+    # return the same command and another squad's spec never reuses it.
+    _custom_cmd_cache: ClassVar[common.SpecKeyedCache[_click.Command]] = common.SpecKeyedCache()
 
     @staticmethod
     def _resolve_spec_for_ctx(ctx: Any) -> Any:
@@ -175,7 +175,8 @@ class _CustomTypeGroup(typer.core.TyperGroup):
         # Past this point `canonical` IS a declared custom work type.  Build errors here
         # are genuine failures for a type the user declared (and that --help lists), so they
         # must propagate rather than silently become "No such command".
-        if canonical not in self._custom_cmd_cache:
+        cached = self._custom_cmd_cache.get(canonical, spec)
+        if cached is None:
             # Build from the SAME resolved spec used above to decide `canonical` is a
             # declared custom type — not whatever `common.get_active_spec()` holds, which
             # on a cold first-in-process dispatch is still the bundled fallback (the root
@@ -183,18 +184,8 @@ class _CustomTypeGroup(typer.core.TyperGroup):
             type_app = build_item_app(canonical, spec=spec)
             # Give the app a name so help output uses it.
             type_app.info.name = canonical
-            # Convert the Typer app to a Click command group.
-            click_cmd = typer.main.get_command(type_app)
-            # Register spec-declared aliases into the cache so subsequent look-ups find
-            # them without entering this branch again.
-            type_aliases: list[str] = (
-                spec.items[canonical].aliases if canonical in spec.items else []
-            )
-            self._custom_cmd_cache[canonical] = click_cmd
-            for type_alias in type_aliases:
-                self._custom_cmd_cache[type_alias] = click_cmd
-
-        return self._custom_cmd_cache.get(cmd_name)
+            cached = self._custom_cmd_cache.put(canonical, spec, typer.main.get_command(type_app))
+        return cached
 
 
 def _alias_summary(spec: WorkflowSpec) -> str:

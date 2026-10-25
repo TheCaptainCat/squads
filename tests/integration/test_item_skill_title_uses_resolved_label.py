@@ -8,8 +8,7 @@ present at all.
 
 import pytest
 
-from _helpers import resolved_skill_definition
-from squads._services import _service as service
+from _helpers import make_service, resolved_skill_definition
 from squads._workflow import bundled_spec
 from squads._workflow._models import ItemSpec, LabelSpec
 
@@ -24,7 +23,7 @@ async def test_a_kept_built_ins_pinned_singular_label_is_rendered_in_its_skill_t
     base = bundled_spec()
     pinned_bug = base.items["bug"].model_copy(update={"labels": LabelSpec(singular="Defect")})
     spec = base.model_copy(update={"items": {**base.items, "bug": pinned_bug}})
-    body = await resolved_skill_definition(service.Service(project, spec=spec), "sq-bug")
+    body = await resolved_skill_definition(make_service(project, spec=spec), "sq-bug")
     assert _item_skill_title(body) == "Defect items"
 
 
@@ -37,7 +36,7 @@ async def test_a_custom_types_pinned_singular_label_is_rendered_in_its_skill_tit
         labels=LabelSpec(singular="ADR"),
     )
     spec = base.model_copy(update={"items": {**base.items, "adr": custom}})
-    body = await resolved_skill_definition(service.Service(project, spec=spec), "sq-adr")
+    body = await resolved_skill_definition(make_service(project, spec=spec), "sq-adr")
     assert _item_skill_title(body) == "ADR items"
 
 

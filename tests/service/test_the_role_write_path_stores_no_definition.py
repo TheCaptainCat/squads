@@ -16,6 +16,7 @@ table by construction and pass on a table that silently regrew a member.
 
 import pytest
 
+from _helpers import catalog_of
 from squads import _sections as sections
 from squads._index._resolver import item_file
 from squads._itemfile import read_frontmatter
@@ -80,7 +81,9 @@ async def test_the_definition_is_still_answerable_for_every_role(svc):
     await _drive_the_write_path(svc)
 
     for item in await svc.list_roles():
-        resolved = resolve_role_for_item(item, svc.paths.squad_dir)
+        resolved = resolve_role_for_item(
+            item, svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir)
+        )
         assert resolved.full_name.strip()
         assert resolved.title.strip()
         assert resolved.mission.strip()

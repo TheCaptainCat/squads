@@ -3,7 +3,7 @@ slug or the `@<developer>` placeholder, so its hand-offs follow whoever holds th
 
 import re
 
-from squads._interactions import get_playbook_spec
+from squads._interactions._playbook import get_playbook_spec
 from squads._roles._catalog import PREDEFINED
 
 _BUNDLED_SLUG_MENTION = re.compile(

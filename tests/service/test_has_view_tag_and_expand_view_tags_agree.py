@@ -17,9 +17,10 @@ case here is never confounded by an unresolvable-source refusal).
 
 import pytest
 
-from _helpers import create_item
+from _helpers import catalog_of, create_item
 from squads._models import _markers as markers
-from squads._views import expand_view_tags, has_view_tag
+from squads._view_tags import expand_view_tags
+from squads._views import has_view_tag
 
 pytestmark = pytest.mark.anyio
 
@@ -58,7 +59,16 @@ async def test_a_real_view_tag_is_recognised_by_both_and_actually_expands(svc) -
 
     assert has_view_tag(text) is True
     expanded = expand_view_tags(
-        text, item, db, spec, playbook, lambda: roster, squad_dir, squad_dir_display, language
+        text,
+        item,
+        db,
+        spec,
+        playbook,
+        lambda: roster,
+        squad_dir,
+        catalog_of(squad_dir),
+        squad_dir_display,
+        language,
     )
     assert expanded != text
     assert markers.view_tag(_BUNDLED_VIEW) not in expanded
@@ -71,7 +81,16 @@ async def test_a_non_view_shape_is_refused_by_both_and_never_expands(svc, shape:
     assert has_view_tag(shape) is False
     assert (
         expand_view_tags(
-            shape, item, db, spec, playbook, lambda: roster, squad_dir, squad_dir_display, language
+            shape,
+            item,
+            db,
+            spec,
+            playbook,
+            lambda: roster,
+            squad_dir,
+            catalog_of(squad_dir),
+            squad_dir_display,
+            language,
         )
         == shape
     )
@@ -87,7 +106,16 @@ async def test_agreement_holds_with_a_recognised_tag_alongside_a_non_view_marker
 
     assert has_view_tag(text) is True
     expanded = expand_view_tags(
-        text, item, db, spec, playbook, lambda: roster, squad_dir, squad_dir_display, language
+        text,
+        item,
+        db,
+        spec,
+        playbook,
+        lambda: roster,
+        squad_dir,
+        catalog_of(squad_dir),
+        squad_dir_display,
+        language,
     )
     assert "<!-- sq:viewpoint:x -->" in expanded
     assert markers.view_tag(_BUNDLED_VIEW) not in expanded

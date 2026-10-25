@@ -31,8 +31,8 @@ from squads._cli._markup import escape_markup
 from squads._context import get_context, rebind
 from squads._errors import NotInitializedError, RoleNotFoundError, SquadsError
 from squads._index._store import enter_read_scope, exit_read_scope
-from squads._interactions import role_origin
 from squads._interactions._role_guidance import allowed_create_types
+from squads._interactions._skills import role_origin
 from squads._language import resolve_working_language
 from squads._models import _attributes as attrs
 from squads._models._attributes import AttributeKey
@@ -48,8 +48,8 @@ from squads._models._participants import ANONYMOUS_SLUG, refuse_system_actor
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._subentity import SubEntity
 from squads._paths import SquadPaths, resolve
-from squads._rendering._engine import set_active_squad_dir
 from squads._roles._catalog import RoleDef
+from squads._roles._models import CatalogSource
 from squads._roles._resolver import (
     pinned_name_of,
     resolve_pronouns,
@@ -57,7 +57,14 @@ from squads._roles._resolver import (
     role_base_from_item,
 )
 from squads._services._results import BlockResult, SelfRemedied, SubentityDetail
-from squads._services._service import Service, open_service, resolve_playbook
+from squads._services._service import (
+    BYPASS_FALLBACKS,
+    MIGRATE_FALLBACKS,
+    Service,
+    compose_first_of,
+    open_service,
+)
+from squads._spec_documents import SpecSources, spec_sources
 from squads._workflow import CATEGORIES, ROSTER_OPERATOR, ROSTER_ROLE, bundled_spec
 from squads._workflow._models import RESERVED_CLI_ALIASES, WorkflowSpec, reserved_alias_owner
 
@@ -242,6 +249,25 @@ def get_active_spec() -> WorkflowSpec:
     return active if active is not None else bundled_spec()
 
 
+class SpecKeyedCache[T]:
+    """One value per name, each valid only for the spec object it was built from: asking with
+    another spec misses, so a command built from one squad's spec never answers for another."""
+
+    def __init__(self) -> None:
+        self._entries: dict[str, tuple[WorkflowSpec, T]] = {}
+
+    def get(self, name: str, spec: WorkflowSpec) -> T | None:
+        entry = self._entries.get(name)
+        return entry[1] if entry is not None and entry[0] is spec else None
+
+    def put(self, name: str, spec: WorkflowSpec, value: T) -> T:
+        self._entries[name] = (spec, value)
+        return value
+
+    def clear(self) -> None:
+        self._entries.clear()
+
+
 #: ``click.Context.meta`` key for the spec :func:`resolve_spec_for_ctx` read from disk, so the
 #: help and completion path resolves the squad's override once per invocation.
 _RESOLVED_SPEC_META_KEY = "squads.resolved_spec_memo"
@@ -305,7 +331,7 @@ def _read_spec_from_disk(ctx: Any) -> WorkflowSpec:
         if not override_path.is_file():
             return bundled_spec()
         merged = load_workflow_spec(squad_dir=sp.squad_dir)
-        validate_against_index_fail_closed(merged, sp.squad_dir)
+        validate_against_index_fail_closed(merged, sp.squad_dir, bundled=bundled_spec())
     except Exception:  # pylint: disable=broad-except
         # Deliberately the bundled spec, not get_active_spec() — that one refuses under a
         # broken override, and this path must not raise (see resolve_spec_for_ctx).
@@ -455,11 +481,11 @@ def bind_active_spec(client_cwd: Path | None) -> tuple[WorkflowSpec | None, str 
     if not has_override:
         return bundled_spec(), None
 
-    from squads._workflow._loader import load_workflow_spec, validate_against_index_fail_closed
+    from squads._workflow._loader import validate_against_index_fail_closed
 
     try:
-        merged_spec = load_workflow_spec(squad_dir=sp.squad_dir)
-        validate_against_index_fail_closed(merged_spec, sp.squad_dir)
+        merged_spec = invocation_sources(sp.squad_dir).workflow()
+        validate_against_index_fail_closed(merged_spec, sp.squad_dir, bundled=bundled_spec())
     except Exception as exc:  # pylint: disable=broad-except
         return None, spec_refusal(override_path, exc)
     else:
@@ -1381,7 +1407,7 @@ async def build_item_json(svc: Service, it: Item) -> str:
     return json.dumps(payload)
 
 
-def role_base_for_show(slug: str, it: Item | None, squad_dir: Path | None = None) -> RoleDef | None:
+def role_base_for_show(slug: str, it: Item | None, catalog: CatalogSource) -> RoleDef | None:
     """The merge base for a role card: an item in hand's own operator-settable fields
     (:func:`~squads._roles._resolver.role_base_from_item` — a bundled role's ``full_name``, a
     developer role's tech/name/model, plus this squad's own catalog-document override merged
@@ -1391,7 +1417,7 @@ def role_base_for_show(slug: str, it: Item | None, squad_dir: Path | None = None
     source's ``--json`` dispatch (:func:`squads._cli._workflow_cmd._view_json_payload`) — the
     same base a role card is built from either way, never two independent resolutions."""
     if it is not None:
-        return role_base_from_item(it, squad_dir)
+        return role_base_from_item(it, catalog)
     return None
 
 
@@ -1433,12 +1459,14 @@ async def build_role_json_payload(
     data: dict[str, object] = {"slug": slug, "id": item_id, "activated": item_id is not None}
     data.update(origin_json(role_origin(slug) if it is None else attrs.origin(it)))
     skills = await svc.resolved_skills_for_role(slug)
-    pronouns = resolve_pronouns(
-        _pronouns.pronouns(it) if it is not None else None, svc.paths.squad_dir
-    )
+    pronouns = resolve_pronouns(_pronouns.pronouns(it) if it is not None else None, svc.catalog)
     try:
         r = resolve_role_with_base(
-            slug, svc.paths.squad_dir, base=base_role, pinned_name=pinned_name_of(it)
+            slug,
+            svc.paths.squad_dir,
+            base=base_role,
+            catalog=svc.catalog,
+            pinned_name=pinned_name_of(it),
         )
         data.update(
             {
@@ -1505,6 +1533,25 @@ _SERVICE_META_KEY = "squads.service_memo"
 _BYPASS_SERVICE_META_KEY = "squads.service_memo_bypass"
 
 
+#: ``click.Context.meta`` key for the documents this invocation has read, by squad directory (see
+#: :func:`invocation_sources`).
+_SPEC_SOURCES_META_KEY = "squads.spec_sources"
+
+
+def invocation_sources(squad_dir: Path) -> SpecSources:
+    """The documents this invocation has read for *squad_dir*: kept on the Click root context so
+    the root callback, a service the cross-check refused and its fallback share one read of each
+    override. Outside a Click invocation they are fresh."""
+    root = _click_root_context()
+    if root is None:
+        return spec_sources(squad_dir)
+    memo: dict[str, SpecSources] = root.meta.setdefault(_SPEC_SOURCES_META_KEY, {})
+    key = str(squad_dir)
+    if key not in memo:
+        memo[key] = spec_sources(squad_dir)
+    return memo[key]
+
+
 def _click_root_context() -> _click.core.Context | None:
     """The current Click invocation's root context, or ``None`` outside of one.
 
@@ -1533,23 +1580,11 @@ def get_service() -> Service:
     scope is ever opened for it — from also getting a Service pinned for its session: it opts
     out of both for the same reason, on the same check, rather than needing a second one to
     remember.
-
-    Re-establishes :func:`squads._rendering._engine.set_active_squad_dir` on every call,
-    including a memo hit. The ContextVar it sets is per-crossing: each ``command``-wrapped
-    bridge crossing runs its own ``anyio.run`` call over its own copied ``contextvars.Context``
-    (see :func:`command`), so a value set inside ``ServiceCore.__init__`` on the crossing that
-    *built* the memoized ``Service`` never propagates to a later crossing that only *fetches*
-    it — even though both crossings observe the identical ``Service`` object off this same root
-    context. Fetching the memo is the one call every leaf verb already makes before it renders
-    anything, so re-asserting the ContextVar here — from ``cached.paths.squad_dir``, the value
-    the first crossing resolved — carries it across the seam without touching any render call
-    site.
     """
     root = _click_root_context()
     if root is not None and _READ_SCOPE_META_KEY in root.meta:
         cached: Service | None = root.meta.get(_SERVICE_META_KEY)
         if cached is not None:
-            set_active_squad_dir(cached.paths.squad_dir)
             return cached
         svc = _build_plain_service()
         root.meta[_SERVICE_META_KEY] = svc
@@ -1558,28 +1593,18 @@ def get_service() -> Service:
 
 
 def _build_plain_service() -> Service:
-    """Build the invocation's ``Service`` via ``open_service``, without repeating work the
-    root callback's :func:`bind_active_spec` already did for this exact invocation.
+    """Compose the invocation's ``Service`` in the normal mode, from the spec the root callback's
+    :func:`bind_active_spec` already resolved and checked for this invocation.
 
-    ``RequestContext.active_spec`` is that already-resolved spec — merged and, for an
-    override, already cross-checked against the live index — so it is threaded straight
-    through as ``open_service``'s ``resolved_spec``, which skips re-running
-    ``load_workflow_spec``/``validate_against_index_fail_closed`` a second time on the same
-    corpus. ``RequestContext.spec_error`` is the cached refusal from that same earlier
-    resolution: raised directly rather than calling ``open_service`` again just to have it
-    reproduce the identical ``SquadsError`` a second time (and reparse the index a second time
-    doing so). This is the second memo A4 asks to hang off the first (:data:`_SERVICE_META_KEY`
-    already collapses the two bridge crossings into one construction) — not a second anchor,
-    just this call reading the one spec resolution the root callback already anchored.
-
-    Outside a squad (``bind_active_spec`` itself couldn't resolve a dir) both fields are
-    ``None`` and this falls through to ``open_service``'s own independent resolution, which
-    raises the same "not a squad" error it always has.
+    ``RequestContext.spec_error`` is the refusal that earlier resolution cached: it is raised
+    as it is, rather than composing again just to reproduce the identical error. Outside a squad
+    both fields are ``None`` and ``open_service`` raises its own "not a squad" error.
     """
     ctx = get_context()
     if ctx.spec_error is not None:
         raise SquadsError(ctx.spec_error)
-    return open_service(client_cwd=ctx.client_cwd, resolved_spec=ctx.active_spec)
+    sources = invocation_sources(resolve(client_cwd=ctx.client_cwd).squad_dir)
+    return open_service(client_cwd=ctx.client_cwd, resolved_spec=ctx.active_spec, sources=sources)
 
 
 def get_service_bypassing_index_cross_check(*, bundled_fallback: bool = True) -> Service:
@@ -1589,37 +1614,20 @@ def get_service_bypassing_index_cross_check(*, bundled_fallback: bool = True) ->
     rebuildable index merely stale relative to the frontmatter it should mirror. A validation
     gate that locks out its own recovery path is not a recovery path.
 
-    Falls back, in order:
+    Falls back through :data:`~squads._services._service.BYPASS_FALLBACKS` when the normal path
+    raises a ``SquadsError``: the merged spec without the index check, then the bundled spec. With
+    ``bundled_fallback=False`` (``sq migrate up``, which must run under the vocabulary the squad
+    declared or not at all) the only fallback is
+    :data:`~squads._services._service.MIGRATE_FALLBACKS`, which refuses with the file and cause.
 
-    1. The normal path (:func:`get_service` / ``open_service``) — the overwhelming majority of
-       invocations hit this and nothing changes.
-    2. On a ``SquadsError``, the merged (override-aware) spec with no live-index cross-check
-       (``load_workflow_spec`` alone, which never touches the index) — so the caller still
-       resolves a custom type's correct folder/prefix from the active override; it just isn't
-       blocked by a corpus mismatch the cross-check would refuse over.
-    3. If even that fails (a genuinely broken override, unrelated to the index), the bundled
-       spec — the same last-resort ``sq check`` already falls back to for the same reason.
-
-    The fallback instance (step 2/3) is memoized under its own key
-    (:data:`_BYPASS_SERVICE_META_KEY`), separate from :func:`get_service`'s
-    (:data:`_SERVICE_META_KEY`), so the two constructions can never shadow each other within
-    one invocation: a plain caller reading :data:`_SERVICE_META_KEY` can never observe a
-    cross-check-skipping instance, and this function reusing its own memo never masks a
-    genuine, still-current refusal behind a stale success.
-
-    With ``bundled_fallback=False`` step 3 does not exist: an override that will not load stops
-    the caller with the file and the loader's cause, and the service carries the playbook
-    resolved beside the spec. That is the one caller (``sq migrate up``) that must run under the
-    vocabulary the squad declared or not at all.
-
-    Re-establishes the active-squad-dir ContextVar on a memo hit for the same reason
-    :func:`get_service` does — see its docstring.
+    The fallback instance is memoized under its own key (:data:`_BYPASS_SERVICE_META_KEY`),
+    separate from :func:`get_service`'s, so a plain caller can never observe a cross-check-skipping
+    instance and this memo never masks a genuine, still-current refusal behind a stale success.
     """
     root = _click_root_context()
     if root is not None and _READ_SCOPE_META_KEY in root.meta:
         cached: Service | None = root.meta.get(_BYPASS_SERVICE_META_KEY)
         if cached is not None:
-            set_active_squad_dir(cached.paths.squad_dir)
             return cached
         try:
             return get_service()
@@ -1635,28 +1643,13 @@ def get_service_bypassing_index_cross_check(*, bundled_fallback: bool = True) ->
 
 def _build_bypass_fallback_service(*, bundled_fallback: bool = True) -> Service:
     ctx = get_context()
-    sp = resolve(client_cwd=ctx.client_cwd)
-    from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, load_workflow_spec
-
-    try:
-        merged_spec = load_workflow_spec(squad_dir=sp.squad_dir)
-    except SquadsError as exc:
-        if bundled_fallback:
-            return Service(sp, spec=bundled_spec())
-        raise SquadsError(
-            "this squad's workflow override could not be loaded, so `sq migrate up` cannot run "
-            "under the vocabulary it declares.\n"
-            f"  file:  {sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME}\n"
-            f"  cause: {exc}\n"
-            "Correct the file, then re-run `sq migrate up`."
-        ) from exc
-    if bundled_fallback:
-        return Service(sp, spec=merged_spec)
-    try:
-        playbook = resolve_playbook(merged_spec, sp.squad_dir)
-    except SquadsError as exc:
-        raise SquadsError(f"{exc}\nCorrect the file, then re-run `sq migrate up`.") from exc
-    return Service(sp, spec=merged_spec, playbook=playbook)
+    paths = resolve(client_cwd=ctx.client_cwd)
+    return compose_first_of(
+        paths,
+        BYPASS_FALLBACKS if bundled_fallback else MIGRATE_FALLBACKS,
+        resolved_spec=ctx.active_spec,
+        sources=invocation_sources(paths.squad_dir),
+    )
 
 
 def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:
@@ -2053,8 +2046,60 @@ async def resolve_agent_addr(token: str, item_type: str, svc: Service) -> str:
 
 ADDRESS_METAVAR = "<slug|id|n>"
 
+_HELP_REQUESTED_META_KEY = "squads.help_requested"
 
-class AddressedGroup(typer.core.TyperGroup):
+
+class HelpAwareGroup(typer.core.TyperGroup):
+    """A group that records whether help was requested on the verb it dispatches to, so an
+    address-resolving callback can skip resolution (see :func:`verb_help_requested`)."""
+
+    def resolve_command(self, ctx: Any, args: list[str]) -> Any:  # type: ignore[override]
+        ctx.meta[_HELP_REQUESTED_META_KEY] = help_requested(args[1:], ctx.find_root().command)
+        return super().resolve_command(ctx, args)
+
+
+def verb_help_requested(ctx: typer.Context) -> bool:
+    """Whether the verb below this group was invoked with ``--help``, which renders without an
+    address, so the group's callback must not resolve one."""
+    return bool(ctx.meta.get(_HELP_REQUESTED_META_KEY))
+
+
+class UnresolvedAddress(dict[str, Any]):
+    """The ``ctx.obj`` of an addressed group whose address did not resolve while help looked to
+    be requested. Help renders without reading it; any other read of a key it lacks raises the
+    resolution error, so a call that is not a help request never runs without its address."""
+
+    def __init__(self, error: SquadsError, **items: Any) -> None:
+        super().__init__(items)
+        self.error = error
+
+    def __missing__(self, key: str) -> Any:
+        raise self.error
+
+    def extended(self, **items: Any) -> UnresolvedAddress:
+        """A copy carrying *items* as well, with the same deferred error."""
+        return UnresolvedAddress(self.error, **{**self, **items})
+
+
+def extend_obj(obj: dict[str, Any], **items: Any) -> dict[str, Any]:
+    """*obj* with *items* added, keeping an :class:`UnresolvedAddress` deferred."""
+    if isinstance(obj, UnresolvedAddress):
+        return obj.extended(**items)
+    return {**obj, **items}
+
+
+async def address_obj(ctx: typer.Context, resolve: Callable[[], Awaitable[str]]) -> dict[str, Any]:
+    """``{"id": <resolved>}`` for an addressed group's ``ctx.obj``. A failed resolution is raised,
+    unless help was requested for the verb below, when it is deferred to the first read."""
+    try:
+        return {"id": await resolve()}
+    except SquadsError as exc:
+        if not verb_help_requested(ctx):
+            raise
+        return UnresolvedAddress(exc)
+
+
+class AddressedGroup(HelpAwareGroup):
     """The group behind ``sq <roster> <slug|id|n> <verb>``; its usage names the address once."""
 
     def get_params(self, ctx: Any) -> list[Any]:
@@ -2525,7 +2570,7 @@ def register_comment_group(app: typer.Typer, target: CommentTarget) -> None:
         ),
     ) -> None:
         """Show, edit or remove one comment, addressed by its hash."""
-        ctx.obj = {**ctx.obj, "hash": hash_value}
+        ctx.obj = extend_obj(ctx.obj, hash=hash_value)
 
     _register_comment_show(addr_app, target)
     _register_comment_edit(addr_app, target)

@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import role_of
+from _helpers import catalog_of, role_of
 from squads._interactions import _role_guidance as role_guidance
 from squads._interactions._loader import load_playbook
 from squads._language import WorkingLanguage
@@ -125,7 +125,13 @@ def test_the_workflow_scaffolds_worked_example_view_refuses_cleanly_without_a_te
     )
     with pytest.raises(SquadsError, match=r"templates/views/related_incidents.md.j2"):
         views.render_source_view(
-            "related_incidents", [], incident, spec, None, WorkingLanguage("en", "English")
+            "related_incidents",
+            [],
+            incident,
+            spec,
+            None,
+            WorkingLanguage("en", "English"),
+            from_squad=None,
         )
 
 
@@ -178,7 +184,7 @@ def test_the_new_role_scaffold_resolves_with_every_advanced_field_activated(
     )
     _write_override(tmp_path, "roles/security-expert.toml", activated + "\n")
 
-    role = resolve_role("security-expert", tmp_path)
+    role = resolve_role("security-expert", tmp_path, catalog=catalog_of(tmp_path))
 
     assert role.slug == "security-expert"
     assert role.model == "sonnet"

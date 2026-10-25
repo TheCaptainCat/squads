@@ -27,10 +27,12 @@ from pathlib import Path
 
 import pytest
 
-from squads._interactions import item_skill_name
+from _helpers import catalog_of, make_service
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._role_guidance import laned_types
-from squads._services._service import Service, resolve_playbook
+from squads._interactions._skills import item_skill_name
+from squads._services._service import Service
+from squads._spec_documents import resolve_playbook
 from squads._views import PlaybookSource, render_source_view, resolve_source
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import WorkflowSpec
@@ -71,10 +73,17 @@ async def _rendered_is_rich(svc: Service, item_type: str) -> bool:
         svc.playbook,
         lambda: svc.roster_from_db(db),
         svc.paths.squad_dir,
+        catalog=catalog_of(svc.paths.squad_dir),
     )
     assert isinstance(result, PlaybookSource)
     rendered = render_source_view(
-        "item_skill", result, probe_item, svc.spec, svc.paths.config.squad_dir, svc.working_language
+        "item_skill",
+        result,
+        probe_item,
+        svc.spec,
+        svc.paths.config.squad_dir,
+        svc.working_language,
+        from_squad=None,
     )
     if "## For " in rendered:
         assert result.lane is not None, f"{item_type}: rendered role sections with no lane"
@@ -143,8 +152,8 @@ async def test_rendered_agrees_with_carries_a_lane_when_a_renamed_types_lane_lap
     squad_dir = svc.paths.squad_dir
     _write_renamed_guide_override(squad_dir, give_it_back_a_lane=give_it_back_a_lane)
     merged_spec = load_workflow_spec(squad_dir=squad_dir)
-    merged_playbook = resolve_playbook(merged_spec, squad_dir)
-    project_svc = Service(svc.paths, spec=merged_spec, playbook=merged_playbook)
+    merged_playbook = resolve_playbook(merged_spec, squad_dir, catalog_of(squad_dir))
+    project_svc = make_service(svc.paths, spec=merged_spec, playbook=merged_playbook)
 
     # The one type this override actually touches: settle its own direction before the
     # blanket sweep below, so a failure here names the exact case rather than surfacing only

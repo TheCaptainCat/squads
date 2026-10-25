@@ -6,7 +6,7 @@ on), scoped to the single sq-memory slug.
 
 import pytest
 
-from _helpers import bundled_migration_context
+from _helpers import bundled_migration_context, make_service
 from squads._migrations._v0_8_to_v0_10 import migrate as migrate_v0_8_to_v0_10
 from squads._models._schema import SCHEMA_VERSION
 from squads._sections import split_frontmatter
@@ -155,7 +155,7 @@ async def test_repair_after_migration_rebuilds_the_index_cleanly(
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
     await migrate_v0_8_to_v0_10(bundled_migration_context(paths))
 
-    svc = service.Service(paths)
+    svc = make_service(paths)
     await svc.repair()
     issues = await svc.check()
     # Only one runner ran, so roles and skills carry no origin yet.

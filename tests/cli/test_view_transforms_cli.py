@@ -5,8 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import create_item
-from squads._services._service import Service
+from _helpers import create_item, make_service
 
 pytestmark = pytest.mark.anyio
 
@@ -18,7 +17,7 @@ async def _install_transform(project, source: str, declared: str = "transforms/t
     (overrides / "workflow.toml").write_text(
         f'[views.milestone_rollup]\ntransform = {{ path = "{declared}", function = "f" }}\n'
     )
-    return str((await create_item(Service(project), "milestone", "M")).item.sequence_id)
+    return str((await create_item(make_service(project), "milestone", "M")).item.sequence_id)
 
 
 async def test_dash_c_finds_the_transform_of_the_named_squad_not_the_working_directory(

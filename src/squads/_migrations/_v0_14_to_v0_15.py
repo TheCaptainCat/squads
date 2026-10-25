@@ -12,7 +12,7 @@ pass, every milestone already on disk would quietly lose its roll-up the moment 
 attachment is dropped, because its body carries no tag and nothing else places one.
 
 **Placement is the one re-placement routine, not a bespoke insert.** Both steps below call
-:func:`~squads._views.place_view_tags`, the same function every
+:func:`~squads._view_tags.place_view_tags`, the same function every
 other ``sq:body`` writer drives, so the bytes this migration produces for a tag-only or
 ``bottom``-positioned region are identical to what a fresh write would produce. This runner
 does not call ``ServiceCore._locked_section_edit``/the ``view add`` verb directly — the reason
@@ -150,12 +150,8 @@ from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._paths import SquadPaths, number_for_id
 from squads._sections import find_markers, get_section, replace_frontmatter, replace_section
-from squads._views import (
-    place_view_tags,
-    resolve_view_target,
-    roster_body_view_name,
-    template_seeded_view_names,
-)
+from squads._view_tags import place_view_tags
+from squads._views import resolve_view_target, roster_body_view_name, template_seeded_view_names
 from squads._workflow._models import ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
 
 MANUAL = """\
@@ -300,8 +296,9 @@ async def migrate(ctx: MigrationContext) -> MigrationOutcome:
     for item_type in sorted(spec.non_roster_types()):
         names = frozenset(
             name
-            for name in template_seeded_view_names(item_type, spec)
-            if resolve_view_target(name, item_type, spec, playbook) is None
+            for name in template_seeded_view_names(item_type, spec, from_squad=paths.squad_dir)
+            if resolve_view_target(name, item_type, spec, playbook, from_squad=paths.squad_dir)
+            is None
         )
         if names:
             seeded_by_type[item_type] = names

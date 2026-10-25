@@ -6,7 +6,8 @@ import pytest
 
 from squads._errors import SquadsError
 from squads._models import _markers as markers
-from squads._views import ConflictingViewStateError, place_view_tags, view_placement_invocation
+from squads._view_remedies import view_placement_invocation
+from squads._view_tags import ConflictingViewStateError, place_view_tags
 from squads._workflow import bundled_spec
 from squads._workflow._models import ViewSource, ViewSpec
 

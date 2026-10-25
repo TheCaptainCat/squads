@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of
 from squads import _itemfile as itemfile
 from squads._errors import SquadsError
 from squads._index._resolver import item_file
@@ -27,7 +28,7 @@ pytestmark = pytest.mark.anyio
 def _resolved(svc, item):
     """*item*'s definition as every reader of it resolves one -- the role's own fields are
     catalog answers, never a copy stored in its ``extra``."""
-    return resolve_role_for_item(item, svc.paths.squad_dir)
+    return resolve_role_for_item(item, svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir))
 
 
 def _place_dev_toml(squad_dir: Path, slug: str, content: str) -> None:
@@ -165,7 +166,7 @@ async def test_sync_no_ops_on_an_orphaned_custom_role_item(project, svc):
 
     # Confirm the fixture is broken as intended: genuinely unresolvable now.
     with pytest.raises(RoleNotFoundError):
-        resolve_role("compliance-officer", project.squad_dir)
+        resolve_role("compliance-officer", project.squad_dir, catalog=catalog_of(project.squad_dir))
 
     skipped = await svc.sync()  # must not raise
 

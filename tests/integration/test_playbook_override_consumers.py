@@ -10,10 +10,10 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import role_of
-from squads import _interactions as interactions
+from _helpers import catalog_of, role_of
 from squads._interactions import _role_guidance as role_guidance
-from squads._interactions import get_playbook_spec
+from squads._interactions._playbook import get_playbook_spec
+from squads._interactions._skills import item_skill_name
 from squads._services import _config_integrity as config_integrity
 from squads._services import _service as service
 
@@ -41,7 +41,7 @@ async def _skill_body(svc, item_type: str) -> str:
     ``sq:view:item_skill`` tag the skill's own body carries."""
     from squads._workflow._models import ROSTER_SKILL
 
-    item = await svc.roster_item(ROSTER_SKILL, interactions.item_skill_name(item_type))
+    item = await svc.roster_item(ROSTER_SKILL, item_skill_name(item_type))
     assert item is not None, item_type
     return await svc.read_body(item.id)
 
@@ -104,10 +104,20 @@ async def test_config_integrity_type_implied_finding_reflects_the_playbook_overr
     merged_playbook = load_playbook(get_catalog(), spec=svc.spec, squad_dir=project.squad_dir)
     db = await svc.store.load()
     with_playbook = config_integrity.check_preloaded_skill(
-        db, svc.spec, ["claude_code"], merged_playbook, project.squad_dir
+        db,
+        svc.spec,
+        ["claude_code"],
+        merged_playbook,
+        project.squad_dir,
+        catalog=catalog_of(project.squad_dir),
     )
     without_playbook = config_integrity.check_preloaded_skill(
-        db, svc.spec, ["claude_code"], get_playbook_spec(), project.squad_dir
+        db,
+        svc.spec,
+        ["claude_code"],
+        get_playbook_spec(),
+        project.squad_dir,
+        catalog=catalog_of(project.squad_dir),
     )
 
     def _names_task_as_type_implied(

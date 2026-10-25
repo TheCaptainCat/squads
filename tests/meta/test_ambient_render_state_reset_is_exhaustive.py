@@ -11,8 +11,8 @@ of the values that legitimately stay module-level, which ones are ambient per-re
 (``project``/``svc``, via ``service.init``) can silently pre-seed it — the exact shape of the
 bug this whole task exists to close (see the bundled `squads` playbook's task/bug records for
 the mechanism, not repeated here). ``squads._rendering._engine._env_cache`` is a legitimate,
-correctly-allowlisted CODE cache by that first guard's own rule *and* fixture-primed startup
-state by this one — the two properties are not mutually exclusive.
+correctly-allowlisted CODE cache by that first guard's own rule; it is keyed by the squad
+directory the renderer is handed, so with no ``ContextVar`` beside it it is no candidate here.
 
 The root callback (``squads._cli.__init__.main_callback``) is where a real process establishes
 its per-invocation ambient state. It binds one freshly-computed ``RequestContext`` — every
@@ -29,12 +29,11 @@ Two constructs make a module-level binding such a candidate:
    construction and never restored is exactly the shape that leaks;
 2. any module-level mutable cache (dict/list/set literal, or a known mutable-factory call — the
    same check ``test_no_unallowlisted_module_level_mutable_state.py`` runs) living in the *same
-   file* as a non-exempt ``ContextVar`` — presumed keyed off that ambient value, as
-   ``_env_cache`` is keyed off ``_active_squad_dir``.
+   file* as a non-exempt ``ContextVar`` — presumed keyed off that ambient value.
 
 Diffed against ``RESET_TARGETS`` below — closed and enumerated to match today's tree exactly
-(``{_active_squad_dir, _env_cache}``, both in ``_rendering/_engine.py``) — so a fourth candidate
-(or a third module) fails this guard until it is either exempted with a reason or added here
+(empty: the renderer takes its squad directory as an argument) — so a candidate
+fails this guard until it is either exempted with a reason or added here
 *and* to ``tests/conftest.py``'s own ``_AMBIENT_RESET_TARGETS`` (checked separately below, so the
 registry describing the harness and the harness's actual reset code cannot silently drift apart).
 
@@ -79,13 +78,13 @@ file, and forces an ``ALLOWLIST`` entry carrying a written reason before it can 
 The residual gap, written down rather than papered over: that sibling guard routes the decision
 to a human answering **"is this CODE?"** — immutable, safe to share across requests — while the
 question that matters *here* is **"is this fixture-primable?"** — does an in-process fixture
-populate it as a side effect of its own setup. ``_env_cache`` is the proof the two can both be
-true of one binding: it is a correctly-allowlisted CODE cache over there *and* a reset target
-over here. So a new bare ambient-keyed cache is never silent, but it can be allowlisted as CODE
-by someone who never considered the harness question — a wider construct 2 (any module-level
-mutable cache, companion or not) would close that at the cost of making every sanctioned CODE
-cache in the tree a candidate needing an exemption here too. That trade was declined; if the
-allowlist reasons ever stop being read with this question in mind, revisit it.
+populate it as a side effect of its own setup. A template cache keyed off an ambient squad
+directory is the shape for which both can be true: a correctly-allowlisted CODE cache over there
+*and* a reset target over here. So a new bare ambient-keyed cache is never silent, but it can be
+allowlisted as CODE by someone who never considered the harness question — a wider construct 2
+(any module-level mutable cache, companion or not) would close that at the cost of making every
+sanctioned CODE cache in the tree a candidate needing an exemption here too. That trade was
+declined; if the allowlist reasons ever stop being read with this question in mind, revisit it.
 """
 
 import ast
@@ -122,9 +121,7 @@ CONTEXTVAR_EXEMPTIONS: dict[str, frozenset[str]] = {
 #: static re-derivation from src/squads (this file must find no more, no less), and against
 #: tests/conftest.py's own `_AMBIENT_RESET_TARGETS` (the registry must describe what the harness
 #: actually does).
-RESET_TARGETS: dict[str, frozenset[str]] = {
-    "src/squads/_rendering/_engine.py": frozenset({"_active_squad_dir", "_env_cache"}),
-}
+RESET_TARGETS: dict[str, frozenset[str]] = {}
 
 
 # ---------------------------------------------------------------------------------- the scan
@@ -367,8 +364,9 @@ def test_the_wired_guard_reddens_on_a_planted_bare_contextvar_leak(tmp_path: Pat
 def test_the_wired_guard_pulls_in_a_companion_cache_sharing_the_leaking_contextvars_module(
     tmp_path: Path,
 ) -> None:
-    """The exact shape `_env_cache` is: a plain module-level dict living beside a leaking
-    ContextVar, keyed off it — flagged as one candidate pair, not just the ContextVar alone."""
+    """The shape of a template cache keyed off an ambient squad directory: a plain module-level
+    dict living beside a leaking ContextVar, keyed off it — flagged as one candidate pair, not
+    just the ContextVar alone."""
     planted_root = tmp_path / "engine"
     planted_root.mkdir()
     (planted_root / "_leaky_module.py").write_text(

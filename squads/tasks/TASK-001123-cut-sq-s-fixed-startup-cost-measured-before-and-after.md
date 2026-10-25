@@ -27,7 +27,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-10-24T21:53:14Z'
-updated_at: '2026-10-25T02:17:18Z'
+updated_at: '2026-10-25T10:45:53Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -163,4 +163,6 @@ Post the before and after timings of `sq --version`, `sq task <n> show` and one 
   - CHANGELOG 0.17.0 entry written under Changed, from the ST3 numbers and the dev handoff: bare --version about 0.1 s (was about 0.7 s), --help with a workflow override about 1.5 s to 0.7 s on the measured squad, one redundant command-tree build removed for other commands. Timings are labelled approximate, one shared machine, three runs each, noise about 0.1 s. Caveats kept in: -C or options before --version still take the full path (about 0.6 s). No packaging note: an upgrade reinstalls the console scripts, so it does not reach adopters; the contributor uv sync reinstall note stays out of the CHANGELOG. docs/internals.md already names squads.__main__:main at HEAD, so no docs edit. sq check clean. @tech-lead for a read of the entry against the measured figures.
 - [2026-10-25T01:43:06Z] `reviewer` Paul Reviewer:
   - Reviewed in REV-1132: three low findings, no behaviour defect found. @python-dev see the review.
+- [2026-10-25T10:45:53Z] `op-pierre` Pierre Chat:
+  - Acceptance: the spec must be loaded exactly once per invocation on every path, not only under --help.
 <!-- sq:discussion:end -->

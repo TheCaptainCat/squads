@@ -349,7 +349,7 @@ class CollabMixin(ServiceCore):
     ) -> Item:
         """The comment mutation core: takes an already-open transaction's ``db`` (so the author
         display name resolves against in-memory state, not a fresh disk load — see
-        :meth:`~squads._services._base.ServiceCore._author_of`)."""
+        :meth:`~squads._services._roster_projection.RosterProjection.author_of`)."""
         refuse_system_actor(as_slug)
         if not messages:
             raise SquadsError("a comment needs at least one -m message")
@@ -358,7 +358,9 @@ class CollabMixin(ServiceCore):
         tag = self._discussion_tag(story, subtask, finding, sub)
         scope = "" if tag == markers.DISCUSSION else tag.removesuffix(f":{markers.DISCUSSION}")
         now_iso = clock.iso(clock.now())
-        entry = discussion.format_comment(now_iso, as_slug, self._author_of(db, as_slug), messages)
+        entry = discussion.format_comment(
+            now_iso, as_slug, self.roster_projection.author_of(db, as_slug), messages
+        )
 
         def mutate(text: str, _item: Item) -> tuple[str, bool]:
             region = sections.get_section(text, tag)
@@ -626,13 +628,13 @@ class CollabMixin(ServiceCore):
             raise SquadsError("target only one of --story / --subtask / --finding")
         if sub is not None:
             kind, local_id = sub
-            return markers.discussion_tag(f"{kind}:{local_id}")
+            return markers.discussion_tag(markers.subentity_tag(kind, local_id))
         if story:
-            return markers.discussion_tag(markers.story_tag(story))
+            return markers.discussion_tag(markers.subentity_tag("story", story))
         if subtask:
-            return markers.discussion_tag(markers.subtask_tag(subtask))
+            return markers.discussion_tag(markers.subentity_tag("subtask", subtask))
         if finding:
-            return markers.discussion_tag(markers.finding_tag(finding))
+            return markers.discussion_tag(markers.subentity_tag("finding", finding))
         return markers.DISCUSSION
 
     async def inbox(self, slug: str) -> tuple[list[InboxHit], UnreadableItems]:

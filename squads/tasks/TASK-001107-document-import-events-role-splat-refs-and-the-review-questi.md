@@ -3,7 +3,7 @@ id: TASK-1107
 sequence_id: 1107
 type: task
 title: Document import events, role splat-refs and the review question
-status: Ready
+status: Done
 parent: FEAT-1101
 author: tech-lead
 assignee: tech-writer
@@ -15,28 +15,32 @@ description: Doc-only fixes F1, F12 and F11 from REV-1099.
 subentities:
 - local_id: ST1
   title: Document every sq import op with its fields and an example line
-  status: Todo
+  status: Done
+  assignee: tech-writer
   story: US7
 - local_id: ST2
   title: Guard the import op reference against the event model
-  status: Todo
+  status: Done
   assignee: python-dev
   story: US7
 - local_id: ST3
   title: Show splat-refs on role list fields in the override docs
-  status: Todo
+  status: Done
+  assignee: tech-writer
   story: US7
 - local_id: ST4
   title: Add an interview question on when to open a review
-  status: Todo
+  status: Done
+  assignee: tech-writer
   story: US8
 - local_id: ST5
   title: Write the 0.17.0 Documentation note for the import, override and interview
     docs
-  status: Todo
+  status: Done
+  assignee: tech-writer
   story: US7
 created_at: '2026-10-24T10:04:07Z'
-updated_at: '2026-10-24T19:46:26Z'
+updated_at: '2026-10-25T16:06:55Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -91,6 +95,8 @@ Keeps REV-1099 F1 from regressing. A `tests/meta` test asserts every `op` litera
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-25T16:00:45Z] `python-dev` Elias Python:
+  - Added tests/meta/test_the_import_op_reference_lists_every_event_op_and_field.py: ops and fields (incl. base at/as) are read from the ImportEvent union; each op needs a row in the adoption.md table and each field in that row. Reds seen: deleting the assign row failed both op and field tests; dropping deferred_to from sub-status failed the field test. Doc restored, no diff; no real mismatch found.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -139,4 +145,8 @@ Covers REV-1099 F1, F12 and F11 in the CHANGELOG: one Documentation note per doc
 <!-- sq:discussion -->
 - [2026-10-24T19:46:26Z] `tech-lead` Olivia Lead:
   - Realigned: the create op already takes fields, so the doc note is about the stored default; added depends-on TASK-1103 and TASK-1105, whose fields it documents. Moved to Ready.
+- [2026-10-25T11:43:32Z] `tech-writer` Theo Writer:
+  - ST1, ST3, ST4, ST5 done: adoption.md event reference (13 ops, example file imported clean), overrides.md role splat-refs, agents.md review question, 0.17.0 Documentation notes. Release-change notes were already in CHANGELOG, so the docs state present behaviour only. ST2 (guard) left to @python-dev; the table lists at/as in every row for it.
+- [2026-10-25T16:06:35Z] `manager` Catherine Manager:
+  - Done: ST1-ST5 delivered (29e9c7f8, bf60845c); REV-1099 F1, F11, F12 Verified.
 <!-- sq:discussion:end -->

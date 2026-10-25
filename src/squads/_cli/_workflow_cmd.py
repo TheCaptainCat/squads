@@ -25,6 +25,7 @@ trying to report.
 import hashlib
 import json
 import math
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 import typer
@@ -41,17 +42,14 @@ from squads._cli._common import (
     status_text,
 )
 from squads._errors import SquadsError
+from squads._interactions._playbook import get_playbook_spec
 from squads._models._schema import SCHEMA_VERSION
 from squads._models._vocab import labels_for
 from squads._paths import number_for_id
-from squads._workflow._models import (
-    FALLBACK_ROLE_NAME,
-    lifecycle_edges_in_order,
-    lifecycle_states_in_order,
-)
+from squads._workflow._lifecycle_order import lifecycle_edges_in_order, lifecycle_states_in_order
+from squads._workflow._models import FALLBACK_ROLE_NAME
 
 if TYPE_CHECKING:
-    from squads._interactions._models import PlaybookSpec
     from squads._models._item import Item
     from squads._models._subentity import SubEntity
     from squads._services._service import Service
@@ -103,7 +101,8 @@ async def _print_cheatsheet(*, raw: bool) -> None:
     # case degrades to the unfiltered-by-catalog-membership-only behaviour rather
     # than failing the whole command.
     roles: list[dict[str, Any]] | None = None
-    playbook: PlaybookSpec | None = None
+    playbook = get_playbook_spec()
+    from_squad: Path | None = None
     try:
         svc = common.get_service()
         roster = await svc.roster()
@@ -122,9 +121,14 @@ async def _print_cheatsheet(*, raw: bool) -> None:
         # Same reason as the roster: resolve the create-lane through the ACTIVE (merged)
         # playbook so an override-declared authoring role is named here too.
         playbook = svc.playbook
+        from_squad = svc.paths.squad_dir
 
     content = render(
-        "workflow.md.j2", spec=common.get_active_spec(), roles=roles, playbook=playbook
+        "workflow.md.j2",
+        from_squad=from_squad,
+        spec=common.get_active_spec(),
+        roles=roles,
+        playbook=playbook,
     )
     if raw:
         console.print(content, markup=False, highlight=False, soft_wrap=True)
@@ -944,7 +948,7 @@ async def _view_json_payload(
         # `result` (the already-resolved `RoleDef`) is not reused here because
         # `build_role_json_payload` resolves its own, the same way `show_role` itself does.
         slug = item.slug
-        base_role = role_base_for_show(slug, item, svc.paths.squad_dir)
+        base_role = role_base_for_show(slug, item, svc.catalog)
         return await build_role_json_payload(svc, slug, item.id, item, base_role, slug)
 
     if kind == "playbook":
@@ -1002,7 +1006,6 @@ def workflow_lint() -> None:
     from squads._workflow._loader import (
         WORKFLOW_OVERRIDE_FILENAME,
         lint_workflow_spec,
-        load_workflow_spec,
     )
 
     ctx = get_context()
@@ -1021,7 +1024,12 @@ def workflow_lint() -> None:
         )
         return
 
-    findings = lint_workflow_spec(squad_dir)
+    sources = common.invocation_sources(squad_dir)
+    try:
+        loaded = sources.workflow()
+    except SquadsError:
+        loaded = None
+    findings = lint_workflow_spec(squad_dir, sources.files, loaded)
     if not any(f[0] == "error" for f in findings):
         findings.extend(
             (
@@ -1030,7 +1038,7 @@ def workflow_lint() -> None:
                 message,
                 "fix or restore the file under .overrides/ (it is imported, not called).",
             )
-            for name, message in check_view_transforms(load_workflow_spec(squad_dir), squad_dir)
+            for name, message in check_view_transforms(sources.workflow(), squad_dir)
         )
 
     errors = [f for f in findings if f[0] == "error"]

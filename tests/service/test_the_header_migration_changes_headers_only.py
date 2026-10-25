@@ -244,7 +244,7 @@ async def test_a_squad_stamped_below_0_15_migrates_through_the_whole_chain_in_on
 
     run = await reopen(root).run_pending_migrations()
 
-    assert run.applied[-1].to_schema == "0.16"
+    assert run.applied[-1].to_schema == "0.17"
     assert f"- [{TS}] `dev-agent` Dev Agent:" in await read(
         next(root.rglob("TASK-*implement-auth*.md"))
     )

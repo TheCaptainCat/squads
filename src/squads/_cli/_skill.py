@@ -43,9 +43,7 @@ from squads._cli._common import (
     resolve_item_id_any,
     view_disable_result_message,
 )
-from squads._interactions import (
-    ITEM_SKILL_VIEW_NAME,
-    SYSTEM_SKILL_VIEW_NAMES,
+from squads._interactions._skills import (
     is_system_skill,
     orphaned_skill_item_type,
     resolve_operator_invocable,
@@ -53,6 +51,7 @@ from squads._interactions import (
 from squads._models import _attributes as attrs
 from squads._models._attributes import AttributeKey
 from squads._models._item import split_ref
+from squads._views import ITEM_SKILL_VIEW_NAME, SYSTEM_SKILL_VIEW_NAMES
 
 _INVOCABLE_HELP = (
     "Offer the skill to the person at the keyboard: yes, no, or default to follow the "
@@ -133,8 +132,7 @@ async def _resolve_addr(
     ),
 ) -> None:
     svc = get_service()
-    ctx.ensure_object(dict)
-    ctx.obj = {"id": await resolve_agent_addr(addr, "skill", svc)}
+    ctx.obj = await common.address_obj(ctx, lambda: resolve_agent_addr(addr, "skill", svc))
 
 
 @_addr.command("show")

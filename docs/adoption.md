@@ -217,6 +217,83 @@ happens:
 The `--dry-run` option is your guard against an accidental second run — always validate before
 applying to a production squad.
 
+### Event reference
+
+Each line is one JSON object, and its `op` key names the event. A blank line is skipped. A key the
+event does not declare is refused (`create.id: Extra inputs are not permitted`), so a typo is an
+issue rather than a value silently dropped.
+
+**Who and when.** `as` is the slug of a registered role or operator, who performs the event and,
+on a `create`, authors the item. `at` is an ISO 8601 timestamp. An event that gives neither keeps
+the previous event's value; the first event falls back to `sq import --as` and to the global
+`sq --at` (or the current time). An event with no actor from any of these is refused
+(`no actor: missing 'as'`).
+
+**Naming what the file creates.** The ids a `create` will get are unknown when you write the file,
+so a `create` or an `add-*` event can declare a `handle`, a name of your own. A later event names
+the item, or the sub-entity, by that handle wherever it takes an id: `target`, `parent`, `to`,
+`refs`, `deferred_to`, and the sub-entity selectors `local`, `story`, `subtask` and `finding`. A
+token that is not a handle is read as an id (`TASK-12`) or a local id (`ST1`). `--dry-run` prints
+the id each handle will get.
+
+**Values are checked as on the CLI.** A `status` must be one the type's lifecycle declares, and a
+move the lifecycle does not allow needs `"force": true`; a `create` sets its `status` directly. A
+`fields` map takes field codes to collection codes (`{"priority": "high"}`); a field a `create`
+leaves out stores its declared default. `kind` is a sub-entity kind the workflow declares
+(`story`, `subtask` and `finding` in the bundled one). A title must not be blank on an item; a
+sub-entity's title is optional.
+
+| `op` | Required | Optional | What it does |
+|------|----------|----------|--------------|
+| `create` | `type`, `title` | `description`, `parent`, `labels`, `refs`, `assignee`, `fields`, `status`, `slug`, `body`, `handle`, `at`, `as` | Creates an item. `refs` entries are `"ID"` or `"ID:kind"`; `slug` sets the file name's slug. |
+| `status` | `target`, `status` | `force`, `at`, `as` | Moves an item to a status. |
+| `body` | `target`, `body` | `append`, `force`, `at`, `as` | Writes the item's body. Replacing a written body needs `force`; `append` adds to it. |
+| `comment` | `target`, and `message` or `messages` | `story`, `subtask`, `finding`, `sub`, `at`, `as` | Adds one discussion entry, one bullet per message. A selector puts it on a sub-entity's discussion: `story`, `subtask` or `finding` names the local id, `sub` is `[kind, local]`. Give at most one. |
+| `ref` | `target`, `to` | `kind`, `at`, `as` | Adds a ref from `target` to `to`. Without `kind`, the workflow's default kind. |
+| `add-sub` | `target`, `kind` | `title`, `story`, `fields`, `assignee`, `status`, `deferred_to`, `body`, `handle`, `at`, `as` | Adds a sub-entity of any kind. `story` maps a subtask to a story of the task's parent feature. |
+| `add-story` | `target` | `title`, `assignee`, `status`, `body`, `handle`, `at`, `as` | `add-sub` with `kind` `story`. |
+| `add-subtask` | `target` | `title`, `story`, `assignee`, `status`, `body`, `handle`, `at`, `as` | `add-sub` with `kind` `subtask`. |
+| `add-finding` | `target` | `title`, `severity`, `assignee`, `status`, `deferred_to`, `body`, `handle`, `at`, `as` | `add-sub` with `kind` `finding`; `severity` is the finding's severity code. |
+| `sub-status` | `target`, `kind`, `local`, `status` | `deferred_to`, `force`, `at`, `as` | Moves a sub-entity to a status. |
+| `sub-body` | `target`, `kind`, `local`, `body` | `append`, `force`, `at`, `as` | Writes a sub-entity's body, with the same `append` and `force` rules as `body`. |
+| `assign` | `target` | `assignee`, `kind`, `local`, `at`, `as` | Sets the item's assignee, or a sub-entity's with `kind` and `local`. Without `assignee`, removes it. |
+| `update` | `target`, and at least one change | `title`, `description`, `assignee`, `clear_assignee`, `add_labels`, `rm_labels`, `parent`, `clear_parent`, `status`, `force`, `fields`, `unset_fields`, `at`, `as` | Changes an item's metadata, like `sq <type> <n> update`. `fields` sets field values and `unset_fields` removes them by code. |
+
+A status whose role declares `deferred = true` (the bundled finding's `Deferred`) needs
+`deferred_to`, the item that carries the work: an `add-sub`, `add-finding` or `sub-status` event
+that reaches it without one is refused.
+
+An `update` event that names no change is refused (`nothing to update: the event names no field`).
+`"clear_assignee": true` removes the assignee; an empty `assignee`, or `assignee` together with
+`clear_assignee`, is refused. Clearing an assignee the item does not have writes nothing.
+
+```json
+{"op": "update", "target": "TASK-13", "clear_assignee": true}
+```
+
+This file uses every op at least once. It creates a feature with a story, a task under it with two
+subtasks, a review with a finding, and the bug the finding is deferred to:
+
+```json
+{"op": "create", "type": "feature", "title": "Sign-in", "handle": "signin", "as": "product-owner", "at": "2024-01-15T09:00:00Z"}
+{"op": "add-story", "target": "signin", "title": "Sign in with email", "body": "A user signs in with an email and a password.", "handle": "email"}
+{"op": "create", "type": "task", "title": "Build the sign-in form", "parent": "signin", "fields": {"priority": "high"}, "handle": "form", "as": "tech-lead"}
+{"op": "add-subtask", "target": "form", "title": "Render the form", "story": "email", "body": "Two inputs and a submit button.", "handle": "render"}
+{"op": "add-sub", "target": "form", "kind": "subtask", "title": "Post the form", "body": "Send the form to the session endpoint.", "handle": "post"}
+{"op": "status", "target": "form", "status": "Ready", "at": "2024-01-16T10:00:00Z"}
+{"op": "body", "target": "form", "body": "Email and password fields, posted to the session endpoint."}
+{"op": "comment", "target": "form", "message": "Starting with the markup.", "subtask": "render"}
+{"op": "sub-status", "target": "form", "kind": "subtask", "local": "render", "status": "InProgress"}
+{"op": "sub-body", "target": "form", "kind": "subtask", "local": "post", "body": "Show the error inline on a failed sign-in.", "append": true}
+{"op": "assign", "target": "form", "kind": "subtask", "local": "post", "assignee": "tech-lead"}
+{"op": "update", "target": "form", "title": "Build the email sign-in form", "add_labels": ["auth"]}
+{"op": "create", "type": "review", "title": "Review the sign-in form", "body": "The form markup and its post.", "handle": "review", "as": "reviewer", "at": "2024-01-17T15:00:00Z"}
+{"op": "add-finding", "target": "review", "title": "No CSRF token on the post", "severity": "high", "body": "The post carries no CSRF token.", "handle": "csrf"}
+{"op": "create", "type": "bug", "title": "Sign-in post carries no CSRF token", "body": "Any page can post the sign-in form.", "handle": "csrf-bug", "as": "qa", "at": "2024-01-18T11:00:00Z"}
+{"op": "ref", "target": "form", "to": "csrf-bug", "kind": "fixes", "as": "tech-lead"}
+{"op": "sub-status", "target": "review", "kind": "finding", "local": "csrf", "status": "Deferred", "deferred_to": "csrf-bug", "as": "reviewer"}
+```
+
 ## 4. Validate
 
 ```bash

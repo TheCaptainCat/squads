@@ -7,6 +7,7 @@ carries it, because that is the one surface a non-human reader still needs it ma
 
 import pytest
 
+from _helpers import make_service
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -26,7 +27,7 @@ def _pointer_text(paths, slug: str) -> str:
 async def test_link_role_makes_the_role_pointer_preload_the_skill_immediately(
     seeded_paths, invoke
 ) -> None:
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     role = await svc.activate_role("tech-writer")
     skill = await svc.add_skill("Release Runbook")
 
@@ -38,7 +39,7 @@ async def test_link_role_makes_the_role_pointer_preload_the_skill_immediately(
 
 
 async def test_link_role_accepts_a_role_addressed_by_full_id(seeded_paths, invoke) -> None:
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     role = await svc.activate_role("tech-writer")
     skill = await svc.add_skill("Release Runbook")
 
@@ -50,7 +51,7 @@ async def test_link_role_accepts_a_role_addressed_by_full_id(seeded_paths, invok
 async def test_unlink_role_drops_the_skill_from_the_role_pointer_immediately(
     seeded_paths, invoke
 ) -> None:
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     role = await svc.activate_role("tech-writer")
     skill = await svc.add_skill("Release Runbook")
     r = await invoke(["skill", str(skill.sequence_id), "link-role", "tech-writer"])
@@ -65,7 +66,7 @@ async def test_unlink_role_drops_the_skill_from_the_role_pointer_immediately(
 
 
 async def test_linking_a_nonexistent_role_gives_a_clear_error(seeded_paths, invoke) -> None:
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     skill = await svc.add_skill("Release Runbook")
 
     r = await invoke(["skill", str(skill.sequence_id), "link-role", "no-such-role"])
@@ -74,7 +75,7 @@ async def test_linking_a_nonexistent_role_gives_a_clear_error(seeded_paths, invo
 
 
 async def test_relinking_an_already_linked_role_is_a_clean_no_op(seeded_paths, invoke) -> None:
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     await svc.activate_role("tech-writer")
     skill = await svc.add_skill("Release Runbook")
 
@@ -89,7 +90,7 @@ async def test_relinking_an_already_linked_role_is_a_clean_no_op(seeded_paths, i
 
 
 async def test_unlinking_a_role_never_linked_is_a_clean_no_op(seeded_paths, invoke) -> None:
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     await svc.activate_role("tech-writer")
     skill = await svc.add_skill("Release Runbook")
 
@@ -103,7 +104,7 @@ async def test_link_role_run_for_several_roles_preloads_all_and_only_those(
 ) -> None:
     """The release-runbook scenario: one skill linked via the verb to manager, devops, AND
     tech-writer in turn preloads it for each; a role never linked (python-dev) does not."""
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     await svc.activate_role("manager")
     await svc.activate_role("devops")
     await svc.activate_role("tech-writer")
@@ -125,7 +126,7 @@ async def test_link_role_run_for_several_roles_preloads_all_and_only_those(
 async def test_status_unlink_reports_the_severed_scope_edge_and_retires_the_skill(
     seeded_paths, invoke
 ) -> None:
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     role = await svc.activate_role("tech-writer")
     skill = await svc.add_skill("Release Runbook")
     r = await invoke(["skill", str(skill.sequence_id), "link-role", "tech-writer"])
@@ -144,7 +145,7 @@ async def test_status_unlink_reports_the_severed_scope_edge_and_retires_the_skil
 async def test_status_unlink_without_the_flag_leaves_the_scope_edge_and_refuses(
     seeded_paths, invoke
 ) -> None:
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     await svc.activate_role("tech-writer")
     skill = await svc.add_skill("Release Runbook")
     r = await invoke(["skill", str(skill.sequence_id), "link-role", "tech-writer"])

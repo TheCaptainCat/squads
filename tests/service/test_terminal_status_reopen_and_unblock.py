@@ -56,14 +56,14 @@ async def test_terminal_item_hidden_from_open_only_view_but_still_findable(
     svc, item_type, title, terminal_status, search_term
 ):
     """Terminal items stay in the full list and in search — only the open-only view drops them."""
-    from squads import _workflow as workflow
+    from squads._workflow import bundled_spec
 
     item = (await create_item(svc, item_type, title)).item
     await svc.set_status(item.id, terminal_status)
 
     all_items = await svc.list_items()
     assert item.id in [i.id for i in all_items]
-    open_items = [i for i in all_items if workflow.is_open(i.status)]
+    open_items = [i for i in all_items if bundled_spec().is_open(i.status)]
     assert item.id not in [i.id for i in open_items]
 
     search_hits = [r.item.id for r in (await svc.search(search_term))[0]]

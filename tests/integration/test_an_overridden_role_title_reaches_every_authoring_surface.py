@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import resolved_skill_definition
+from _helpers import make_service, resolved_skill_definition
 from squads._backends._managed_region import END, START
 from squads._paths import SquadPaths
 from squads._roles._catalog import PREDEFINED
@@ -71,7 +71,7 @@ def _flat(text: str) -> str:
 async def _squads_skill_body(paths: SquadPaths) -> str:
     """The ``squads`` skill definition this squad resolves — rendered on read from the live
     roster and the active catalog, never from a stored region."""
-    return await resolved_skill_definition(service.Service(paths), "squads")
+    return await resolved_skill_definition(make_service(paths), "squads")
 
 
 async def _initialized_squad(tmp_path: Path) -> SquadPaths:
@@ -87,7 +87,7 @@ async def test_a_retitled_bundled_role_leaves_no_bundled_title_in_the_compiled_r
 ):
     monkeypatch.chdir(tmp_path)
     paths = await _initialized_squad(tmp_path)
-    await service.Service(paths).sync()
+    await make_service(paths).sync()
 
     # Control: with no override, both renderings agree on the bundled title. This is also the
     # standing proof that the catalog and the live roster carry the *same* kind of value (the
@@ -97,7 +97,7 @@ async def test_a_retitled_bundled_role_leaves_no_bundled_title_in_the_compiled_r
     assert _OVERRIDDEN_TITLE.casefold() not in baseline
 
     _write_catalog_override(paths.squad_dir, f'[roles.reviewer]\ntitle = "{_OVERRIDDEN_TITLE}"\n')
-    await service.Service(paths).sync()
+    await make_service(paths).sync()
 
     for name in ("CLAUDE.md", "AGENTS.md"):
         region = _flat(_managed_region(tmp_path / name))
@@ -110,7 +110,7 @@ async def test_the_generated_squads_skill_carries_the_overridden_title(tmp_path,
     monkeypatch.chdir(tmp_path)
     paths = await _initialized_squad(tmp_path)
     _write_catalog_override(paths.squad_dir, f'[roles.reviewer]\ntitle = "{_OVERRIDDEN_TITLE}"\n')
-    await service.Service(paths).sync()
+    await make_service(paths).sync()
 
     body = _flat(await _squads_skill_body(paths))
     assert _OVERRIDDEN_TITLE.casefold() in body
@@ -123,7 +123,7 @@ async def test_the_workflow_cheatsheet_command_carries_the_overridden_title(
     monkeypatch.chdir(tmp_path)
     paths = await _initialized_squad(tmp_path)
     _write_catalog_override(paths.squad_dir, f'[roles.reviewer]\ntitle = "{_OVERRIDDEN_TITLE}"\n')
-    await service.Service(paths).sync()
+    await make_service(paths).sync()
 
     res = await invoke(["workflow"])
     assert res.exit_code == 0
@@ -155,7 +155,7 @@ async def test_a_role_declared_only_by_the_project_still_gets_its_authoring_bull
         'description = "Audits the record."\nmission = "Audit every change."\n',
     )
     _write_playbook_override(paths.squad_dir, _AUDITOR_AUTHORS_REVIEWS)
-    fresh = service.Service(paths)
+    fresh = make_service(paths)
     await fresh.activate_role("auditor")
     await fresh.sync()
 

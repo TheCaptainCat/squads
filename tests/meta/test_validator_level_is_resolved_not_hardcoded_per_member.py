@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from squads._services._validators import CATALOG
-from squads._workflow._models import VALIDATOR_LEVELS
+from squads._workflow._validator_names import VALIDATOR_LEVELS
 
 _SOURCE = ("src", "squads", "_services", "_validators.py")
 
@@ -89,12 +89,12 @@ def test_no_catalog_member_passes_a_literal_level_string_to_checkissue() -> None
 
 
 def test_default_validator_level_values_are_all_declared_levels() -> None:
-    from squads._workflow._models import DEFAULT_VALIDATOR_LEVEL
+    from squads._workflow._validator_names import DEFAULT_VALIDATOR_LEVEL
 
     assert set(DEFAULT_VALIDATOR_LEVEL.values()) <= VALIDATOR_LEVELS
 
 
 def test_validator_level_floor_values_are_all_declared_levels() -> None:
-    from squads._workflow._models import VALIDATOR_LEVEL_FLOOR
+    from squads._workflow._validator_names import VALIDATOR_LEVEL_FLOOR
 
     assert set(VALIDATOR_LEVEL_FLOOR.values()) <= VALIDATOR_LEVELS

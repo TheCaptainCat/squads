@@ -9,6 +9,7 @@ import anyio.to_thread
 import pytest
 
 from squads._index._store import IndexStore
+from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
 
@@ -18,7 +19,9 @@ async def test_concurrent_threads_allocate_distinct_ids(tmp_path):
     must still never hand out a duplicate id."""
     from concurrent.futures import ThreadPoolExecutor
 
-    store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
+    store = IndexStore(
+        tmp_path / ".squads.json", tmp_path / ".squads.json.lock", spec=bundled_spec()
+    )
     store.create_empty()
 
     def alloc(_: int) -> str:
@@ -38,7 +41,9 @@ async def test_concurrent_coroutines_on_one_loop_allocate_distinct_ids(tmp_path)
     """Forcing the thread limiter to a single token makes a single-layer (file-lock-only)
     implementation fail deterministically — every coroutine's acquire would land on the one
     reused worker thread and see the file lock as a reentrant no-op."""
-    store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
+    store = IndexStore(
+        tmp_path / ".squads.json", tmp_path / ".squads.json.lock", spec=bundled_spec()
+    )
     store.create_empty()
 
     n = 8

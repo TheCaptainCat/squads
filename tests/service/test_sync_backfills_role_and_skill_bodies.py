@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
 from squads._paths import resolve as resolve_squad_paths
@@ -23,7 +24,7 @@ async def _build_pre_tag_corpus(tmp_path: Path):
     the definition on read from a hardcoded branch, so the stored region was never anything
     but empty)."""
     result = await service.init(root=tmp_path, roles_spec="all")
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     await svc.add_dev("python", name="Elias Python")
     await svc.seed_bundled_skills()
 
@@ -50,7 +51,7 @@ async def test_every_role_and_skill_body_is_genuinely_empty_before_the_upgrade(
     """Precondition, driven: the constructed corpus really is in the pre-tag shape."""
     root, role_ids, skill_ids = await _build_pre_tag_corpus(tmp_path)
     paths = resolve_squad_paths(client_cwd=root)
-    svc = service.Service(paths)
+    svc = make_service(paths)
     for item_id in [*role_ids, *skill_ids]:
         item = await svc.get(item_id)
         path = item_file(svc.paths, item)
@@ -66,7 +67,7 @@ async def test_an_ordinary_sync_backfills_every_definition_with_no_manual_repair
     afterward, so ``sq role/skill show`` renders a real definition rather than an empty hint."""
     root, role_ids, skill_ids = await _build_pre_tag_corpus(tmp_path)
     paths = resolve_squad_paths(client_cwd=root)
-    svc = service.Service(paths)
+    svc = make_service(paths)
 
     await svc.sync()  # the ordinary upgrade action — repair() is never called in this test
 
@@ -97,7 +98,7 @@ async def test_sync_reports_no_manual_repair_was_needed_through_the_cli(
         assert r.exit_code == 0, r.output
 
         paths = resolve_squad_paths(client_cwd=root)
-        svc = service.Service(paths)
+        svc = make_service(paths)
         item = await svc.get(role_ids[0])
         rendered = await svc.read_body(item.id)
         assert rendered.strip()
@@ -108,13 +109,13 @@ async def test_sync_reports_no_manual_repair_was_needed_through_the_cli(
 async def test_a_second_sync_leaves_a_converged_body_byte_identical(tmp_path, frozen_time) -> None:
     root, role_ids, _skill_ids = await _build_pre_tag_corpus(tmp_path)
     paths = resolve_squad_paths(client_cwd=root)
-    svc = service.Service(paths)
+    svc = make_service(paths)
     await svc.sync()
 
     item = await svc.get(role_ids[0])
     path = item_file(svc.paths, item)
     before = path.read_bytes()
 
-    await service.Service(resolve_squad_paths(client_cwd=root)).sync()
+    await make_service(resolve_squad_paths(client_cwd=root)).sync()
 
     assert path.read_bytes() == before

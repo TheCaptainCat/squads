@@ -8,6 +8,7 @@ so a resolve-and-render call costs one index load, matching ``sq tree``/``sq blo
 """
 
 from squads import _sections as sections
+from squads import _view_tags as view_tags
 from squads import _views as views
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
@@ -27,7 +28,7 @@ class ViewsMixin(ServiceCore):
         item = await self.get(item_id)
         text = await self._read_item_file(item, item_file(self.paths, item))
         region = sections.get_section(text, markers.BODY) or ""
-        states = views.view_tag_states(region, name)
+        states = view_tags.view_tag_states(region, name)
         return next(iter(states)) if len(states) == 1 else None
 
     async def view_tag_present(self, item_id: str, name: str) -> bool:
@@ -38,7 +39,7 @@ class ViewsMixin(ServiceCore):
         item = await self.get(item_id)
         text = await self._read_item_file(item, item_file(self.paths, item))
         region = sections.get_section(text, markers.BODY) or ""
-        return bool(views.view_tag_states(region, name))
+        return bool(view_tags.view_tag_states(region, name))
 
     async def add_view(self, item_id: str, name: str) -> bool:
         """Place the ``sq:view:<name>`` tag on *item_id*, enabled, or re-enable it if disabled
@@ -49,15 +50,17 @@ class ViewsMixin(ServiceCore):
 
         def mutate(text: str, item: Item) -> tuple[str, bool]:
             self._refuse_classified_roster_write(item_id, item, "A view edit", allow_view=name)
-            reason = views.resolve_view_target(name, item.type, self.spec, self.playbook)
+            reason = views.resolve_view_target(
+                name, item.type, self.spec, self.playbook, from_squad=self.paths.squad_dir
+            )
             if reason is not None:
                 raise SquadsError(reason)
-            if (stray := views.out_of_region_view_error(item_id, name, text)) is not None:
+            if (stray := view_tags.out_of_region_view_error(item_id, name, text)) is not None:
                 raise SquadsError(stray)
             reinstating = False
             if sections.get_section(text, markers.BODY) is None:
                 reinstated = (
-                    views.reinstate_absent_body_region(text)
+                    view_tags.reinstate_absent_body_region(text)
                     if item.type in (ROSTER_ROLE, ROSTER_SKILL)
                     else None
                 )
@@ -72,16 +75,18 @@ class ViewsMixin(ServiceCore):
             # already carry is exactly the one this call would have placed — the wrapper itself
             # is new, and the caller (`_section_edit_core`) never rewrites the file at all when
             # `changed` is False, which would silently discard the reinstatement.
-            if not reinstating and views.view_tag_settled(current, name, disabled=False):
+            if not reinstating and view_tags.view_tag_settled(current, name, disabled=False):
                 return text, False
             slug = item.slug
             addr: int | str = (
                 slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item_id)
             )
-            new_inner = views.place_view_tags(
+            new_inner = view_tags.place_view_tags(
                 current,
                 None,
-                seeded=views.seeded_view_names(item.type, slug, self.spec),
+                seeded=views.seeded_view_names(
+                    item.type, slug, self.spec, from_squad=self.paths.squad_dir
+                ),
                 spec=self.spec,
                 item_type=item.type,
                 addr=addr,
@@ -100,12 +105,12 @@ class ViewsMixin(ServiceCore):
 
         def mutate(text: str, item: Item) -> tuple[str, bool]:
             self._refuse_classified_roster_write(item_id, item, "A view edit")
-            if (stray := views.out_of_region_view_error(item_id, name, text)) is not None:
+            if (stray := view_tags.out_of_region_view_error(item_id, name, text)) is not None:
                 raise SquadsError(stray)
             reinstating = False
             if sections.get_section(text, markers.BODY) is None:
                 reinstated = (
-                    views.reinstate_absent_body_region(text)
+                    view_tags.reinstate_absent_body_region(text)
                     if item.type in (ROSTER_ROLE, ROSTER_SKILL)
                     else None
                 )
@@ -117,16 +122,18 @@ class ViewsMixin(ServiceCore):
                 reinstating = True
             current = sections.get_section(text, markers.BODY) or ""
             # See `add_view`'s matching comment: a reinstated region always counts as changed.
-            if not reinstating and views.view_tag_settled(current, name, disabled=True):
+            if not reinstating and view_tags.view_tag_settled(current, name, disabled=True):
                 return text, False
             slug = item.slug
             addr: int | str = (
                 slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item_id)
             )
-            new_inner = views.place_view_tags(
+            new_inner = view_tags.place_view_tags(
                 current,
                 None,
-                seeded=views.seeded_view_names(item.type, slug, self.spec),
+                seeded=views.seeded_view_names(
+                    item.type, slug, self.spec, from_squad=self.paths.squad_dir
+                ),
                 spec=self.spec,
                 item_type=item.type,
                 addr=addr,
@@ -172,6 +179,7 @@ class ViewsMixin(ServiceCore):
             self.playbook,
             lambda: self.roster_from_db(db),
             self.paths.squad_dir,
+            self.catalog,
         )
         return view, item, result
 
@@ -198,4 +206,5 @@ class ViewsMixin(ServiceCore):
             self.paths.config.squad_dir,
             self.working_language,
             data,
+            from_squad=self.paths.squad_dir,
         )

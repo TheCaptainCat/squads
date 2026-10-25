@@ -9,17 +9,16 @@ import sys
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import _sections as sections
 from squads._models._schema import SCHEMA_VERSION
 from squads._services import _service as service
-from squads._services._service import Service
 
 pytestmark = pytest.mark.anyio
 
 
 async def test_an_ordinary_command_hard_stops_until_migrate_up_runs(project, invoke):
-    svc = Service(project)
+    svc = make_service(project)
     task = (await create_item(svc, "task", "T")).item
     guide = (await create_item(svc, "guide", "G")).item
 

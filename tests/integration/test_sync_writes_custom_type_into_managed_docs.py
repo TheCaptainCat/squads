@@ -9,6 +9,7 @@ hardcoded bundled list either).
 
 import pytest
 
+from _helpers import make_service
 from squads._services import _service as service
 from squads._workflow import load_workflow_spec
 
@@ -47,7 +48,7 @@ async def test_sync_writes_the_custom_type_into_agents_md_and_keeps_static_secti
     paths = init_result.paths
     _write_override(paths.squad_dir)
     spec = load_workflow_spec(squad_dir=paths.squad_dir)
-    await service.Service(paths, spec=spec).sync()
+    await make_service(paths, spec=spec).sync()
 
     text = (paths.root / "AGENTS.md").read_text(encoding="utf-8")
     assert "incident" in text and "`inc`" in text
@@ -63,7 +64,7 @@ async def test_sync_writes_the_custom_type_into_claude_md_via_the_squads_skill(
     paths = init_result.paths
     _write_override(paths.squad_dir)
     spec = load_workflow_spec(squad_dir=paths.squad_dir)
-    svc = service.Service(paths, spec=spec)
+    svc = make_service(paths, spec=spec)
     await svc.sync()
 
     item = await svc.roster_item("skill", "squads")
@@ -81,12 +82,12 @@ async def test_static_sections_stay_byte_identical_after_a_custom_type_is_added_
     )
     paths = init_result.paths
 
-    await service.Service(paths).sync()
+    await make_service(paths).sync()
     before = (paths.root / "AGENTS.md").read_text(encoding="utf-8")
 
     _write_override(paths.squad_dir)
     spec = load_workflow_spec(squad_dir=paths.squad_dir)
-    await service.Service(paths, spec=spec).sync()
+    await make_service(paths, spec=spec).sync()
     after = (paths.root / "AGENTS.md").read_text(encoding="utf-8")
 
     def _static_tail(text: str) -> str:

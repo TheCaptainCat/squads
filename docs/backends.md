@@ -145,16 +145,16 @@ real content, stored in that file and read back from it.
 
 Either way the pointer holds no content of its own, which is what keeps the "`.claude/` is
 pointers" invariant and means nothing is lost when the backend config is regenerated. The
-`_interactions` playbook (`skills_for_role`, `PLAYBOOK`) tells you which skills a role gets and what
+`_interactions` playbook (`skills_for_role`, `bundled_item_playbooks`) tells you which skills a role gets and what
 each item skill should say — reuse it.
 
 ## Registering one
 
-Backends self-register. To add, say, a `cursor` backend:
+Backends are rows in a literal table. To add, say, a `cursor` backend:
 
-1. Create `squads/_backends/_cursor/__init__.py` and `_cursor.py`:
+1. Create `squads/_backends/_cursor/__init__.py` and `_cursor/_backend.py`:
    ```python
-   # _cursor.py
+   # _backend.py
    from squads._backends._base import AgentBackend, Artifact, BackendContext, RoleView
    from squads._models._item import Item
    from squads._roles._catalog import RoleDef
@@ -164,15 +164,8 @@ Backends self-register. To add, say, a `cursor` backend:
        async def ensure_scaffold(self, ctx): ...
        # … implement the rest …
    ```
-   ```python
-   # __init__.py  — register on import (side effect)
-   from squads._backends._registry import register
-   from squads._backends._cursor._cursor import CursorBackend
-   register(CursorBackend)
-   ```
-2. Make the registry load it: append `"squads._backends._cursor"` to `_BUILTIN_BACKEND_MODULES` in
-   `_registry.py`. `get_backend` imports every module in that tuple once, for its registration
-   side-effect.
+2. Add it to the table in `_registry.py`: import the class and add `CursorBackend.name:
+   CursorBackend` to `_BACKENDS`. `get_backend` looks a name up there and instantiates the class.
 3. Select it: `sq init --backend cursor` (stored in `active_backends` in `.squads.toml`;
    `--backend` is repeatable to run several backends side by side).
 

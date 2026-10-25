@@ -32,8 +32,8 @@ import pytest
 
 from _helpers import resolved_skill_definition
 from squads import __version__
-from squads import _interactions as interactions
 from squads._errors import SquadsError
+from squads._interactions._skills import item_skill_name
 from squads._overrides._service import scaffold_new_role
 from squads._services import _service as service
 
@@ -100,7 +100,7 @@ def _dropped_guide_warnings(issues, slug: str) -> list[str]:
 async def _task_skill_body(svc) -> str:
     """The ``sq-task`` definition as *svc* resolves it — rendered on read from the live roster
     and the merged playbook, which is exactly what decides whether a guide appears."""
-    return await resolved_skill_definition(svc, interactions.item_skill_name("task"))
+    return await resolved_skill_definition(svc, item_skill_name("task"))
 
 
 # ------------------------------------------------------------------- trigger 1: never activated

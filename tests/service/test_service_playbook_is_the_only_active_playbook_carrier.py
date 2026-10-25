@@ -5,8 +5,8 @@ with different failure semantics) exists to drift out of sync with it again.
 
 import dataclasses
 
-from squads import _interactions as interactions
 from squads._context import RequestContext
+from squads._interactions import _playbook as playbook_module
 
 
 def test_request_context_carries_no_playbook_field() -> None:
@@ -14,5 +14,5 @@ def test_request_context_carries_no_playbook_field() -> None:
     assert "active_playbook" not in field_names
 
 
-def test_interactions_module_exposes_no_ambient_playbook_accessor() -> None:
-    assert not hasattr(interactions, "get_active_playbook_spec")
+def test_playbook_module_exposes_no_ambient_playbook_accessor() -> None:
+    assert not hasattr(playbook_module, "get_active_playbook_spec")

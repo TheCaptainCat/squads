@@ -17,6 +17,7 @@ seeding may be reorganised freely as long as nothing is left bare.
 
 import pytest
 
+from _helpers import make_service
 from squads import __version__
 from squads._services import _service as service
 from squads._workflow import ROSTER_SKILL
@@ -94,14 +95,14 @@ async def test_seeding_on_sync_is_idempotent_and_allocates_nothing_the_second_ti
     result = await service.init(root=tmp_path, backend=["claude_code"], roles_spec="minimal")
     paths = result.paths
 
-    await service.Service(paths).sync()
+    await make_service(paths).sync()
     first = _skill_files(paths)
-    counter_after_first = (await service.Service(paths).store.load()).counter
+    counter_after_first = (await make_service(paths).store.load()).counter
 
-    await service.Service(paths).sync()
+    await make_service(paths).sync()
 
     assert _skill_files(paths) == first
-    assert (await service.Service(paths).store.load()).counter == counter_after_first
+    assert (await make_service(paths).store.load()).counter == counter_after_first
 
 
 async def test_a_skill_body_no_seeding_vocabulary_claims_is_reported_by_sync(tmp_path, monkeypatch):
@@ -115,10 +116,10 @@ async def test_a_skill_body_no_seeding_vocabulary_claims_is_reported_by_sync(tmp
     stray = paths.squad_dir / "agents" / "skills" / "sq-nothing-declares-this.md"
     stray.write_text("<!-- sq:body -->\nbody\n<!-- sq:body:end -->\n", encoding="utf-8")
 
-    reported = await service.Service(paths).sync()
+    reported = await make_service(paths).sync()
 
     assert any(stray.name in line for line in reported), reported
-    assert await service.Service(paths).check() == []  # check stays quiet, as documented
+    assert await make_service(paths).check() == []  # check stays quiet, as documented
 
     stray.unlink()
-    assert await service.Service(paths).sync() == []
+    assert await make_service(paths).sync() == []

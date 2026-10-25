@@ -15,6 +15,8 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
+
 pytestmark = pytest.mark.anyio
 
 #: A pointer's one definition-fetch command line, e.g. `` `sq role architect show` ``.
@@ -47,7 +49,7 @@ async def test_init_then_migrate_up_leaves_no_pointer_naming_a_dangling_path(tmp
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="minimal")
 
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     await svc.run_pending_migrations()  # sq migrate up's own path; a no-op on a fresh init
 
     pointers = _pointer_files(tmp_path)

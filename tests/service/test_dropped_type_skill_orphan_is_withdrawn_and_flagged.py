@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from squads._services import _service as service
+from _helpers import make_service
 from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
@@ -26,7 +26,7 @@ def _drop_type(squad_dir: Path, dropped: str) -> None:
 
 
 async def test_dropping_a_type_withdraws_its_bundled_skills_pointer_on_sync(project):
-    svc = service.Service(project)
+    svc = make_service(project)
     await svc.seed_bundled_skills()
     pointer = project.root / ".claude" / "skills" / "sq-guide"
     assert pointer.is_dir()  # sanity: seeded and materialised before the drop
@@ -45,7 +45,7 @@ async def test_dropping_a_type_withdraws_its_bundled_skills_pointer_on_sync(proj
 
 
 async def test_check_flags_a_live_skill_whose_type_the_active_spec_no_longer_declares(project):
-    svc = service.Service(project)
+    svc = make_service(project)
     await svc.seed_bundled_skills()
     _drop_type(project.squad_dir, "guide")
 
@@ -61,7 +61,7 @@ async def test_check_flags_a_live_skill_whose_type_the_active_spec_no_longer_dec
 
 
 async def test_restoring_the_dropped_type_re_materialises_the_skill_with_no_manual_step(project):
-    svc = service.Service(project)
+    svc = make_service(project)
     await svc.seed_bundled_skills()
     _drop_type(project.squad_dir, "guide")
 
@@ -89,7 +89,7 @@ async def test_an_author_created_skill_named_sq_something_is_never_swept(project
     ``sq-`` prefix alone: on a clean squad with NO override at all, an author-created skill
     that happens to share the house naming convention (every bundled skill uses ``sq-``) must
     survive `sq check`/`sq sync` untouched — never withdrawn, never flagged."""
-    svc = service.Service(project)
+    svc = make_service(project)
     await svc.seed_bundled_skills()
     await svc.add_skill("sq-onboarding", description="House onboarding runbook")
     await svc.sync()  # materialise the pointer sq skill add just created
@@ -107,7 +107,7 @@ async def test_an_author_created_skill_named_sq_something_is_never_swept(project
 async def test_a_still_current_type_skill_is_untouched(project):
     """The negative case: dropping `guide` must not disturb any other bundled skill's
     projection or trip a false `sq check` finding on it."""
-    svc = service.Service(project)
+    svc = make_service(project)
     await svc.seed_bundled_skills()
     _drop_type(project.squad_dir, "guide")
 

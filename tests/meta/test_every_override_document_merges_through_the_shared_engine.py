@@ -28,8 +28,14 @@ from pathlib import Path
 OVERRIDE_LOADERS: dict[str, str] = {
     "src/squads/_workflow/_loader.py": "the workflow spec (.overrides/workflow.toml)",
     "src/squads/_interactions/_loader.py": "the team playbook (.overrides/playbook.toml)",
+    "src/squads/_roles/_loader.py": "the role catalog (.overrides/roles.toml)",
     "src/squads/_roles/_resolver.py": "a role (.overrides/roles/<slug>.toml)",
+    "src/squads/_specload.py": "the load path the three whole-document loaders share",
 }
+
+#: The calls through which a loader reaches the merge engine: directly, or through the shared
+#: load path that makes it.
+_MERGE_ROUTES = frozenset({"merge_override", "load_override"})
 
 #: Names that would indicate a loader re-implementing what the engine owns. A loader may *call*
 #: these; defining one of its own is the hand-rolled merge this forbids.
@@ -64,7 +70,7 @@ def test_every_override_loader_merges_through_merge_override() -> None:
     missing = {
         rel: document
         for rel, document in OVERRIDE_LOADERS.items()
-        if "merge_override" not in _called_names(_tree(rel))
+        if not _MERGE_ROUTES & _called_names(_tree(rel))
     }
     assert not missing, (
         "an override document is resolved without the shared merge engine — it silently loses "

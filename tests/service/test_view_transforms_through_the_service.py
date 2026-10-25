@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads._errors import SquadsError
-from squads._services._service import Service, init, open_service
+from squads._services._service import init, open_service
 from squads._view_transforms import milestone_rollup
 from squads._workflow import bundled_spec
 from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, load_workflow_spec
@@ -38,7 +38,7 @@ async def _squad_with_transform(root: Path, marker: str) -> tuple[Path, str]:
         f"def f(source):\n    return {{'marker': {marker!r}}}\n"
     )
     _write_override(squad_dir, _OVERRIDE)
-    milestone = (await create_item(Service(result.paths), "milestone", "M")).item
+    milestone = (await create_item(make_service(result.paths), "milestone", "M")).item
     return root, milestone.id
 
 

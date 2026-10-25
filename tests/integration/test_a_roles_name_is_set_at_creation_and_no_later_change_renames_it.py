@@ -14,10 +14,10 @@ from dataclasses import dataclass
 
 import pytest
 
+from _helpers import make_service
 from squads import __version__
 from squads._rendering._engine import invalidate_squad_dir
 from squads._sections import split_frontmatter
-from squads._services._service import Service
 
 pytestmark = pytest.mark.anyio
 
@@ -94,7 +94,7 @@ async def test_a_role_is_named_at_creation_and_no_later_change_renames_it(
         roles_toml=CATALOG_NAME if row.roles_toml else None,
         per_slug=SLUG_NAME if row.per_slug else None,
     )
-    svc = Service(project)
+    svc = make_service(project)
     name = GIVEN_NAME if row.given else None
     if row.kind == "bundled":
         role = await svc.activate_role(slug, name=name)

@@ -15,7 +15,7 @@ third caller's shape: refusing a *transition*, not reporting a pre-existing one.
 
 import pytest
 
-from _helpers import create_item, plant_attribute
+from _helpers import create_item, make_service, plant_attribute
 from squads._errors import ConfigIntegrityError, SquadsError
 from squads._index._resolver import item_file
 from squads._itemfile import update_frontmatter
@@ -67,13 +67,12 @@ async def test_no_live_role_allows_retiring_the_last_live_role_with_no_active_ba
     tmp_path, monkeypatch
 ):
     from squads._services import _service as service
-    from squads._services._service import Service
 
     monkeypatch.chdir(tmp_path)
     result = await service.init(
         root=tmp_path, backend=[], roles_spec="minimal", _skip_skill_seed=True
     )
-    no_backend_svc = Service(result.paths)
+    no_backend_svc = make_service(result.paths)
     manager = await no_backend_svc.roster_item("role", "manager")
     assert manager is not None
 
@@ -378,9 +377,7 @@ async def test_unlink_on_a_non_live_to_non_live_move_is_refused_as_meaningless(s
     )
     assert custom_spec.live_statuses(ROSTER_ROLE) == frozenset({"Active"})
 
-    from squads._services._service import Service
-
-    custom_svc = Service(svc.paths, spec=custom_spec)
+    custom_svc = make_service(svc.paths, spec=custom_spec)
     await custom_svc.activate_role("qa")  # a second live role so no_live_role stays satisfied
     role = await custom_svc.roster_item("role", "qa")
     assert role is not None

@@ -9,7 +9,7 @@ import pytest
 
 from _helpers import role_of
 from squads._interactions import _role_guidance as role_guidance
-from squads._interactions import get_playbook_spec
+from squads._interactions._playbook import get_playbook_spec
 from squads._itemfile import read_frontmatter
 from squads._workflow import bundled_spec
 

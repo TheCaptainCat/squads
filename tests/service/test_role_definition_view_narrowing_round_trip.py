@@ -6,11 +6,11 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads import __version__
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
 from squads._sections import get_section
-from squads._services import _service as service
 from squads._workflow import load_workflow_spec
 
 pytestmark = pytest.mark.anyio
@@ -47,7 +47,7 @@ async def _drop_author_re_add(svc) -> tuple[str, Path]:
     path = item_file(svc.paths, role)
 
     _write_override(svc.paths.squad_dir, _DROP_ROLE_DEFINITION)
-    dropped = service.Service(svc.paths, spec=load_workflow_spec(squad_dir=svc.paths.squad_dir))
+    dropped = make_service(svc.paths, spec=load_workflow_spec(squad_dir=svc.paths.squad_dir))
     await dropped.set_body(role.id, _AUTHORED_PROSE)
     region = _region(path)
     assert region.startswith(_AUTHORED_PROSE)
@@ -78,7 +78,7 @@ async def test_the_sync_backfill_preserves_the_marker_free_prose(svc) -> None:
     _role_id, path = await _drop_author_re_add(svc)
 
     before = _region(path)
-    await service.Service(svc.paths).sync()
+    await make_service(svc.paths).sync()
 
     assert _region(path) == before, "the region was rewritten"
 
@@ -104,6 +104,6 @@ async def test_a_repeated_convergence_pass_keeps_the_prose_and_tag_stable(svc) -
     placed = path.read_text(encoding="utf-8")
 
     await svc.repair()
-    await service.Service(svc.paths).sync()
+    await make_service(svc.paths).sync()
 
     assert path.read_text(encoding="utf-8") == placed

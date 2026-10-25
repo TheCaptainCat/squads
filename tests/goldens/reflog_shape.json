@@ -7,7 +7,7 @@
     "target",
     "delta"
   ],
-  "schema_version": "0.16",
+  "schema_version": "0.17",
   "example_ops": [
     "create",
     "status"

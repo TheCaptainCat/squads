@@ -9,7 +9,7 @@ import pytest
 
 from squads._errors import SquadsError
 from squads._models._item import Item
-from squads._rendering._engine import render, set_active_squad_dir
+from squads._rendering._engine import render
 from squads._workflow import bundled_spec
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
@@ -59,8 +59,12 @@ def test_a_bundled_template_reads_a_stored_attribute_from_the_item(
     template: str, item_type: str, attributes: dict[str, Any], fragment: str
 ) -> None:
     spec = bundled_spec()
-    with_it = render(template, item=_item(item_type, attributes), description="", spec=spec)
-    without = render(template, item=_item(item_type, {}), description="", spec=spec)
+    with_it = render(
+        template, item=_item(item_type, attributes), description="", spec=spec, from_squad=None
+    )
+    without = render(
+        template, item=_item(item_type, {}), description="", spec=spec, from_squad=None
+    )
 
     assert fragment in with_it
     assert fragment not in without
@@ -74,13 +78,12 @@ def test_an_adopter_template_reads_an_undeclared_attribute_as_an_item_field(tmp_
         "<!-- sq:body:end -->\n",
         encoding="utf-8",
     )
-    set_active_squad_dir(tmp_path)
-    try:
-        out = render(
-            "items/guide.md.j2", item=_item("guide", {"hand_key": "keep-me"}), spec=bundled_spec()
-        )
-    finally:
-        set_active_squad_dir(None)
+    out = render(
+        "items/guide.md.j2",
+        item=_item("guide", {"hand_key": "keep-me"}),
+        spec=bundled_spec(),
+        from_squad=tmp_path,
+    )
 
     assert "keep-me Example GUIDE-1" in out
 
@@ -89,9 +92,10 @@ def test_a_template_reading_the_extra_variable_fails_to_render(tmp_path) -> None
     override = tmp_path / ".overrides" / "templates" / "items"
     override.mkdir(parents=True)
     (override / "guide.md.j2").write_text("{{ extra.get('hand_key') }}\n", encoding="utf-8")
-    set_active_squad_dir(tmp_path)
-    try:
-        with pytest.raises(SquadsError, match="extra"):
-            render("items/guide.md.j2", item=_item("guide", {"hand_key": "x"}), spec=bundled_spec())
-    finally:
-        set_active_squad_dir(None)
+    with pytest.raises(SquadsError, match="extra"):
+        render(
+            "items/guide.md.j2",
+            item=_item("guide", {"hand_key": "x"}),
+            spec=bundled_spec(),
+            from_squad=tmp_path,
+        )

@@ -10,12 +10,12 @@ import tomllib
 
 import pytest
 
+from _helpers import make_service
 from squads import _aio
 from squads._migrations._registry import MIGRATIONS
 from squads._models._config import SquadsConfig
 from squads._models._schema import SCHEMA_VERSION
 from squads._paths import SquadPaths
-from squads._services._service import Service
 
 pytestmark = pytest.mark.anyio
 
@@ -42,7 +42,7 @@ async def test_running_pending_migrations_from_v0_3_walks_every_step_and_stamps_
     with cfg_path.open("rb") as fh:
         cfg = SquadsConfig.from_toml_dict(tomllib.load(fh))
     paths_03 = SquadPaths(root=project.root, squad_dir=project.squad_dir, config=cfg)
-    svc_03 = Service(paths_03)
+    svc_03 = make_service(paths_03)
 
     applied = (await svc_03.run_pending_migrations()).applied
     assert [a.from_schema for a in applied] == [
@@ -55,6 +55,7 @@ async def test_running_pending_migrations_from_v0_3_walks_every_step_and_stamps_
         "0.11",
         "0.14",
         "0.15",
+        "0.16",
     ]
     assert [a.to_schema for a in applied] == [
         "0.4",
@@ -66,6 +67,7 @@ async def test_running_pending_migrations_from_v0_3_walks_every_step_and_stamps_
         "0.14",
         "0.15",
         "0.16",
+        "0.17",
     ]
 
     with cfg_path.open("rb") as fh:

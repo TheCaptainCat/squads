@@ -9,7 +9,6 @@ from squads._errors import SquadsError
 from squads._migrations import _registry
 from squads._migrations import _v0_15_to_v0_16 as step
 from squads._migrations._v0_15_to_v0_16 import Contribution, Planned, run_contributions
-from squads._models._schema import SCHEMA_VERSION
 
 pytestmark = pytest.mark.anyio
 
@@ -92,13 +91,11 @@ def test_the_manual_and_the_summary_are_assembled_from_the_contributions_in_orde
     assert summary == "summary x. summary y. summary z."
 
 
-def test_the_registry_has_one_0_16_entry_that_is_last_and_reads_the_module():
+def test_the_registry_has_one_0_16_entry_that_reads_the_module():
     entries = [m for m in _registry.MIGRATIONS if m.to_schema == "0.16"]
 
     assert len(entries) == 1
     (entry,) = entries
-    assert _registry.MIGRATIONS[-1] is entry
-    assert entry.to_schema == SCHEMA_VERSION
     assert (entry.version, entry.from_schema) == ("0.16.0", "0.15")
     assert entry.summary == step.SUMMARY and entry.manual == step.MANUAL
     assert entry.manual.strip() and entry.summary.strip()

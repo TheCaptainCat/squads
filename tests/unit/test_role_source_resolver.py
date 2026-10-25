@@ -19,6 +19,7 @@ from unittest.mock import patch
 
 import pytest
 
+from _helpers import catalog_of
 from squads import __version__
 from squads import _views as views
 from squads._roles._resolver import resolve_role_for_item
@@ -28,11 +29,12 @@ pytestmark = pytest.mark.anyio
 
 async def test_resolve_role_source_delegates_to_the_documented_seam(svc) -> None:
     item = await svc.activate_role("tech-writer")
+    catalog = catalog_of(svc.paths.squad_dir)
 
     with patch.object(views, "resolve_role_for_item", wraps=resolve_role_for_item) as spy:
-        resolved = views._resolve_role_source(item, svc.paths.squad_dir)
+        resolved = views._resolve_role_source(item, svc.paths.squad_dir, catalog=catalog)
 
-    spy.assert_called_once_with(item, svc.paths.squad_dir)
+    spy.assert_called_once_with(item, svc.paths.squad_dir, catalog=catalog)
     assert resolved.slug == "tech-writer"
     assert resolved.mission
 
@@ -40,7 +42,9 @@ async def test_resolve_role_source_delegates_to_the_documented_seam(svc) -> None
 async def test_a_developer_role_resolves_the_activated_definition(svc) -> None:
     item = await svc.add_dev("python", name="Test Dev")
 
-    resolved = views._resolve_role_source(item, svc.paths.squad_dir)
+    resolved = views._resolve_role_source(
+        item, svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir)
+    )
 
     assert resolved.slug == "python-dev"
     assert resolved.full_name == "Test Dev"
@@ -60,7 +64,9 @@ async def test_an_overridden_role_resolves_the_override_layered_over_the_catalog
         encoding="utf-8",
     )
 
-    resolved = views._resolve_role_source(item, svc.paths.squad_dir)
+    resolved = views._resolve_role_source(
+        item, svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir)
+    )
 
     assert resolved.mission == "A project-specific mission."
     # Fields the override didn't touch still come from the catalog, not blanked.

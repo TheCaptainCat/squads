@@ -108,7 +108,7 @@ async def test_the_marker_leaves_and_every_other_value_stays_across_the_steps(
 
     first = await invoke(["migrate", "up"])
     assert first.exit_code == 0, first.output
-    assert _stamp(root) == "0.16"
+    assert _stamp(root) == "0.17"
     migrated = _hashes(root)
     for name, front in _files(root).items():
         assert "is_dev" not in front, name
@@ -251,7 +251,7 @@ async def test_roles_named_dev_without_the_capability_are_reported_and_nothing_i
     }
     assert reported == expected, result.output
     assert ("role(s) named -dev hold no developer capability" in result.output) is bool(expected)
-    assert _stamp(root) == "0.16"
+    assert _stamp(root) == "0.17"
     overrides = sorted((root / ".overrides").rglob("*"))
     assert all(p.suffix == ".toml" or p.is_dir() for p in overrides)
 

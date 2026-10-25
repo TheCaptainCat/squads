@@ -7,14 +7,13 @@ import json
 
 import pytest
 
-from _helpers import create_item
-from squads._services._service import Service
+from _helpers import create_item, make_service
 
 pytestmark = pytest.mark.anyio
 
 
 async def test_migrate_repad_renames_files_and_prints_a_summary(project, invoke):
-    svc = Service(project)
+    svc = make_service(project)
     await create_item(svc, "task", "task one")
 
     result = await invoke(["migrate", "repad", "7"])
@@ -42,7 +41,7 @@ async def test_migrate_repad_refuses_to_lower_the_width(project, invoke):
 
 
 async def test_create_exits_1_and_names_migrate_repad_when_the_index_is_full(project, invoke):
-    svc = Service(project)
+    svc = make_service(project)
     raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
     raw["counter"] = 10**6 - 1  # all width-6 IDs exhausted
     svc.store.index_path.write_text(json.dumps(raw), encoding="utf-8")

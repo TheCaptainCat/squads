@@ -61,13 +61,7 @@ _PER_ITEM_FILE_CALLS: frozenset[str] = frozenset({"read_text", "item_file", "abs
 #: ``(module, function)`` walks exempt from the rule, each with the reason failing loudly is the
 #: right answer there rather than degrading. Function-granular, never module-granular, and the
 #: liveness test below fails on a dead entry.
-_ALLOWED: dict[tuple[str, str], str] = {
-    # Builds the slug -> body-path map the backends consume to regenerate managed files. It is
-    # a build input, not an answer delivered to a caller: a squad synced from a silently short
-    # map would write managed files with a skill body quietly missing, which is worse than not
-    # syncing. Loud refusal is correct here, so the whole-walk abort is the intended behaviour.
-    ("src/squads/_services/_base.py", "_skill_paths"): "generation input — must fail loudly",
-}
+_ALLOWED: dict[tuple[str, str], str] = {}
 
 
 def _scan(root: Path, allowed: frozenset[tuple[str, str]] | None = None) -> list[tuple[str, str]]:

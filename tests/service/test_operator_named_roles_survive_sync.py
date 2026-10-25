@@ -24,7 +24,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import dev_role
+from _helpers import catalog_of, dev_role, make_service
 from squads import __version__
 from squads import _itemfile as itemfile
 from squads._context import bind_context, get_context
@@ -123,7 +123,7 @@ async def test_init_time_name_survives_two_consecutive_syncs(tmp_path, frozen_ti
         names={"architect": "Ada Lovelace"},
         _skip_skill_seed=True,
     )
-    svc2 = service.Service(result.paths)
+    svc2 = make_service(result.paths)
 
     role = next(it for it in await svc2.list_items(item_type=ROSTER_ROLE) if it.slug == "architect")
     assert role.title == "Ada Lovelace"
@@ -150,7 +150,7 @@ async def test_name_only_and_name_plus_override_both_survive_the_same_sync(tmp_p
         names={"architect": "Ada Lovelace", "qa": "Sam Reeves"},
         _skip_skill_seed=True,
     )
-    svc2 = service.Service(result.paths)
+    svc2 = make_service(result.paths)
     _place_override(result.paths.squad_dir, "qa", 'full_name = "Sam Reeves"\n')
 
     skipped = await svc2.sync()
@@ -205,11 +205,15 @@ async def test_an_override_declared_after_creation_renames_no_role(
 
 
 async def test_tier_3_bundled_default_and_dev_pool_name_with_no_item_and_no_override(project):
-    resolved = resolve_role_with_base("architect", project.squad_dir, base=None)
+    resolved = resolve_role_with_base(
+        "architect", project.squad_dir, base=None, catalog=catalog_of(project.squad_dir)
+    )
     assert resolved.full_name == _BUNDLED_ARCHITECT.full_name
 
     pool_base = dev_role("rust")
-    resolved_dev = resolve_role_with_base("rust-dev", project.squad_dir, base=pool_base)
+    resolved_dev = resolve_role_with_base(
+        "rust-dev", project.squad_dir, base=pool_base, catalog=catalog_of(project.squad_dir)
+    )
     assert resolved_dev.full_name == pool_base.full_name  # the generated pool pick, not a stub
 
 
@@ -256,7 +260,9 @@ async def test_catalog_resolution_still_reaches_a_stale_item_alongside_a_preserv
     assert healed.description == _BUNDLED_ARCHITECT.mission
     # And every field with no uniform-record home is answered by the resolver, over the top of
     # the stale copy still sitting in `extra`.
-    resolved = resolve_role_for_item(healed, svc.paths.squad_dir)
+    resolved = resolve_role_for_item(
+        healed, svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir)
+    )
     assert resolved.mission == _BUNDLED_ARCHITECT.mission
     assert list(resolved.responsibilities) == list(_BUNDLED_ARCHITECT.responsibilities)
     assert resolved.can_spawn == _BUNDLED_ARCHITECT.can_spawn

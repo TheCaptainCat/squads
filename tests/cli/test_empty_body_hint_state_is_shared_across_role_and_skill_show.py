@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
 from squads._sections import replace_section
-from squads._services import _service as service
 from squads._workflow import load_workflow_spec
 
 pytestmark = pytest.mark.anyio
@@ -65,7 +65,7 @@ def _write_override(squad_dir: Path, content: str) -> None:
 async def test_role_view_undeclared_names_the_view_not_sync(svc, invoke) -> None:
     _write_override(svc.paths.squad_dir, _DROP_ROLE_DEFINITION)
     spec = load_workflow_spec(squad_dir=svc.paths.squad_dir)
-    declared = service.Service(svc.paths, spec=spec)
+    declared = make_service(svc.paths, spec=spec)
     role = await declared.activate_role("reviewer")
     _empty_body(declared, role)
 

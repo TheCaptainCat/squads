@@ -365,7 +365,7 @@ The rules for the carrier pointer:
 - Moving to `Deferred` without a carrier is refused, and `--force` does not waive it:
 
   ```
-  error: <k> cannot be Deferred without the item that carries the work; pass --deferred-to <ID>
+  error: <k> cannot be Deferred without the item that carries the work; pass --deferred-to <ID> (import: deferred_to)
   ```
 
 - On a finding already `Deferred`, `--deferred-to` alone moves the pointer to another item. On a

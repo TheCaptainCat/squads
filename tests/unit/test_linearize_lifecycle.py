@@ -7,7 +7,8 @@ side states (remaining reachable states in BFS discovery order).
 
 import pytest
 
-from squads._workflow._models import Lifecycle, linearize_lifecycle
+from squads._workflow._lifecycle_order import linearize_lifecycle
+from squads._workflow._models import Lifecycle
 
 
 def _m(initial: str, transitions: dict[str, list[str]]) -> Lifecycle:

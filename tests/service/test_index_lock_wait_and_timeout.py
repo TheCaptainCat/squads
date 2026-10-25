@@ -9,13 +9,17 @@ import pytest
 from _helpers import hold_lock
 from squads._errors import IndexLockTimeoutError
 from squads._index._store import IndexStore
+from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
 
 
 def make_store(tmp_path, *, lock_timeout: float) -> IndexStore:
     store = IndexStore(
-        tmp_path / ".squads.json", tmp_path / ".squads.json.lock", lock_timeout=lock_timeout
+        tmp_path / ".squads.json",
+        tmp_path / ".squads.json.lock",
+        lock_timeout=lock_timeout,
+        spec=bundled_spec(),
     )
     store.create_empty()
     return store

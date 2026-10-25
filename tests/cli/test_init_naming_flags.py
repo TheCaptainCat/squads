@@ -5,10 +5,10 @@ tests/service/test_agent_naming_precedence.py.
 
 import pytest
 
+from _helpers import make_service
 from squads._cli import app
 from squads._models._config import CONFIG_FILENAME, SquadsConfig
 from squads._roles._catalog import PREDEFINED
-from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
 
@@ -45,7 +45,7 @@ class TestNameFlag:
         assert r.exit_code == 0, r.output
         from squads._paths import resolve
 
-        svc = service.Service(resolve())
+        svc = make_service(resolve())
         assert _role_item_sync(svc, "manager").title == "Grace Hopper"
 
     def test_name_flag_can_be_repeated_for_multiple_roles(
@@ -69,7 +69,7 @@ class TestNameFlag:
         assert r.exit_code == 0, r.output
         from squads._paths import resolve
 
-        svc = service.Service(resolve())
+        svc = make_service(resolve())
         assert _role_item_sync(svc, "manager").title == "Grace Hopper"
         assert _role_item_sync(svc, "architect").title == "Ada Lovelace"
 
@@ -141,7 +141,7 @@ class TestTtyAndDefaultNamesPrompting:
         assert "Name for" not in r.output
         from squads._paths import resolve
 
-        svc = service.Service(resolve())
+        svc = make_service(resolve())
         bundled = next(role for role in PREDEFINED if role.slug == "manager")
         assert _role_item_sync(svc, "manager").title == bundled.full_name
 
@@ -170,7 +170,7 @@ class TestTtyAndDefaultNamesPrompting:
         assert "Name for" in r.output
         from squads._paths import resolve
 
-        svc = service.Service(resolve())
+        svc = make_service(resolve())
         assert _role_item_sync(svc, "manager").title == "Grace Hopper"
 
     def test_tty_blank_answer_keeps_the_bundled_default(
@@ -186,7 +186,7 @@ class TestTtyAndDefaultNamesPrompting:
         assert r.exit_code == 0, r.output
         from squads._paths import resolve
 
-        svc = service.Service(resolve())
+        svc = make_service(resolve())
         bundled = next(role for role in PREDEFINED if role.slug == "manager")
         assert _role_item_sync(svc, "manager").title == bundled.full_name
 
@@ -235,7 +235,7 @@ class TestTtyAndDefaultNamesPrompting:
         assert "Name for" not in r.output
         from squads._paths import resolve
 
-        svc = service.Service(resolve())
+        svc = make_service(resolve())
         assert _role_item_sync(svc, "manager").title == "Grace Hopper"
 
     def test_name_flag_wins_over_a_config_name_for_the_same_slug(
@@ -267,7 +267,7 @@ class TestTtyAndDefaultNamesPrompting:
         assert r.exit_code == 0, r.output
         from squads._paths import resolve
 
-        svc = service.Service(resolve())
+        svc = make_service(resolve())
         assert _role_item_sync(svc, "manager").title == "From Flag"
 
 
@@ -276,7 +276,7 @@ class TestRoleActivateNameFlag:
         r = await invoke(["role", "activate", "architect", "--name", "Ada Lovelace"])
         assert r.exit_code == 0, r.output
         assert "Ada Lovelace" in r.output
-        svc = service.Service(project)
+        svc = make_service(project)
         item = next(i for i in await svc.list_items(item_type="role") if i.slug == "architect")
         assert item.title == "Ada Lovelace"
 
@@ -287,7 +287,7 @@ class TestRoleActivateNameFlag:
     async def test_activate_without_name_uses_the_bundled_default(self, project, invoke) -> None:
         r = await invoke(["role", "activate", "qa"])
         assert r.exit_code == 0, r.output
-        svc = service.Service(project)
+        svc = make_service(project)
         item = next(i for i in await svc.list_items(item_type="role") if i.slug == "qa")
         bundled = next(role for role in PREDEFINED if role.slug == "qa")
         assert item.title == bundled.full_name

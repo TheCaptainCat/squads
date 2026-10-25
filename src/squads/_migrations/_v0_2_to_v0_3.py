@@ -117,7 +117,12 @@ def _story_label(
 
 
 def _migrate_subentities(
-    md: Path, kind: str, names: dict[str, str], stories: dict[str, dict[str, str]]
+    md: Path,
+    kind: str,
+    names: dict[str, str],
+    stories: dict[str, dict[str, str]],
+    *,
+    from_squad: Path,
 ) -> bool:
     """Lift body ``:meta`` → frontmatter ``subentities``, render ``:head``, drop ``:meta``."""
     text = md.read_text(encoding="utf-8")
@@ -134,6 +139,8 @@ def _migrate_subentities(
             severity=b.severity,
             story=_story_label(stories, parent, b.story),
             assignee_name=names.get(b.assignee, b.assignee) if b.assignee else None,
+            spec=_meta_compat.legacy_spec(),
+            from_squad=from_squad,
         )
         text = _meta_compat.drop_meta(text, kind, b.local_id)
     fm, _ = sections.split_frontmatter(text)
@@ -172,7 +179,9 @@ def migrate(paths: SquadPaths) -> int:
         kind = _KIND_BY_TYPE.get(item_type)
         for md in sorted(folder.glob(f"{prefix}-*.md")):
             touched = _backfill_sequence_id(md)
-            if kind is not None and _migrate_subentities(md, kind, names, stories):
+            if kind is not None and _migrate_subentities(
+                md, kind, names, stories, from_squad=paths.squad_dir
+            ):
                 touched = True
             if touched:
                 changed += 1

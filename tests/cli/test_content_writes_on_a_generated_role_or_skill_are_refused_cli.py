@@ -258,6 +258,7 @@ def test_only_the_gate_asks_the_classification_for_a_write() -> None:
     assert callers == {
         "_views.py": 1,
         "_services/_base.py": 1,
-        "_services/_maintenance.py": 2,
+        "_services/_check.py": 1,
+        "_services/_maintenance.py": 1,
         "_migrations/_v0_14_to_v0_15.py": 1,
     }

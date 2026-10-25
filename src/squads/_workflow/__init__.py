@@ -1,72 +1,28 @@
 """Per-type status workflows and transition validation.
 
-Workflow capabilities live as methods on ``WorkflowSpec``. This module keeps a
-stable bundled-spec constant for the module-level shims and the public API
-(``WORKFLOWS``, ``TERMINAL``, etc.) that the golden-lock test asserts.
+Workflow capabilities live as methods on ``WorkflowSpec``. This module holds the bundled-spec
+accessor and the names the rest of the package imports from here.
 
 There is no process-global mutable state here: per-invocation spec context is
 owned by ``Service`` and threaded explicitly through call sites.
 """
 
+from squads._workflow._lifecycle_order import linearize_lifecycle
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import (
     CATEGORIES,
     ROSTER_OPERATOR,
     ROSTER_ROLE,
     ROSTER_SKILL,
-    ROSTER_TYPES,
-    ItemSpec,
-    Lifecycle,
-    RefRule,
-    RoleSpec,
     StatusSpec,
-    Workflow,
     WorkflowSpec,
-    linearize_lifecycle,
 )
-
-# Alternative names for Lifecycle and ItemSpec.
-StateMachine = Lifecycle
-TypeSpec = ItemSpec
 
 # ---------------------------------------------------------------------------
 # Immutable bundled spec — loaded once at import; never rebindable.
 # ---------------------------------------------------------------------------
 
 _BUNDLED_SPEC: WorkflowSpec = load_workflow_spec()
-
-# ---------------------------------------------------------------------------
-# Module-level constants backed by the immutable bundled spec.
-#
-# These are read-only views over the bundled spec.  To use a different spec,
-# construct a WorkflowSpec and pass it explicitly (e.g. self.spec in Service).
-#
-# WORKFLOWS / SUBENTITY_WORKFLOWS / ALLOWED_PARENTS / TERMINAL are kept for the
-# golden-lock tests (test_workflow_spec.py) and any callers that imported them
-# directly; they always reflect the bundled spec.
-# ---------------------------------------------------------------------------
-
-
-def _make_workflows(spec: WorkflowSpec) -> dict[str, Workflow]:
-    return {t: Workflow.from_machine(spec.machine_for(t)) for t in spec.items}
-
-
-def _make_subentity_workflows(spec: WorkflowSpec) -> dict[str, Workflow]:
-    return {kind: spec.subentity_workflow(kind) for kind in spec.subentity_kinds}
-
-
-def _make_allowed_parents(spec: WorkflowSpec) -> dict[str, set[str]]:
-    return {
-        t: set(ts.parents)
-        for t, ts in spec.items.items()
-        if ts.parents  # empty list = unconstrained — omit it
-    }
-
-
-WORKFLOWS: dict[str, Workflow] = _make_workflows(_BUNDLED_SPEC)
-SUBENTITY_WORKFLOWS: dict[str, Workflow] = _make_subentity_workflows(_BUNDLED_SPEC)
-ALLOWED_PARENTS: dict[str, set[str]] = _make_allowed_parents(_BUNDLED_SPEC)
-TERMINAL: frozenset[str] = _BUNDLED_SPEC.terminal_set()
 
 
 # ---------------------------------------------------------------------------
@@ -101,148 +57,15 @@ def dropped_via_selected(item_type: str, spec: WorkflowSpec) -> bool:
     return item_type not in spec.items and item_type in bundled_spec().items
 
 
-def active_spec() -> WorkflowSpec:
-    """Return the bundled default ``WorkflowSpec``.
-
-    The per-invocation spec context lives on ``Service.spec``; the CLI
-    per-invocation handle lives in ``_common.get_active_spec()``. This
-    function always returns the immutable bundled spec.
-    """
-    return _BUNDLED_SPEC
-
-
-# ---------------------------------------------------------------------------
-# Free functions — thin shims over the bundled spec.
-#
-# These delegate to the bundled spec.  Service call sites use self.spec.<method>;
-# CLI call sites use _common.get_active_spec().
-# ---------------------------------------------------------------------------
-
-
-def is_open(status: str) -> bool:
-    return _BUNDLED_SPEC.is_open(status)
-
-
-def hidden_by_default(item_type: str, status: str) -> bool:
-    """True when an item of *item_type* carrying *status* is hidden from the default
-    (non-``--all``) ``sq list``/``sq tree`` view — see ``WorkflowSpec.hidden_by_default``."""
-    return _BUNDLED_SPEC.hidden_by_default(item_type, status)
-
-
-def parent_allowed(child: str, parent: str) -> bool:
-    return _BUNDLED_SPEC.parent_allowed(child, parent)
-
-
-def parent_hint(child: str) -> str:
-    """Human guidance for an invalid parent (used in error messages)."""
-    return _BUNDLED_SPEC.parent_hint(child)
-
-
-def workflow_for(item_type: str) -> Workflow:
-    return _BUNDLED_SPEC.workflow_for(item_type)
-
-
-def initial_status(item_type: str) -> str:
-    return _BUNDLED_SPEC.initial_status(item_type)
-
-
-def can_transition(item_type: str, src: str, dst: str) -> bool:
-    return _BUNDLED_SPEC.can_transition(item_type, src, dst)
-
-
-def subentity_workflow(kind: str) -> Workflow:
-    return _BUNDLED_SPEC.subentity_workflow(kind)
-
-
-def subentity_initial(kind: str) -> str:
-    return _BUNDLED_SPEC.subentity_initial(kind)
-
-
-def subentity_completion(kind: str) -> str:
-    return _BUNDLED_SPEC.subentity_completion(kind)
-
-
-def subentity_can_transition(kind: str, src: str, dst: str) -> bool:
-    return _BUNDLED_SPEC.subentity_can_transition(kind, src, dst)
-
-
-# ---------------------------------------------------------------------------
-# Capability-flag free functions
-# ---------------------------------------------------------------------------
-
-
-def non_roster_types() -> frozenset[str]:
-    """Creatable/trackable types: work + records — every type whose category isn't roster."""
-    return _BUNDLED_SPEC.non_roster_types()
-
-
-def item_is_roster(item_type: str) -> bool:
-    """True when *item_type*'s category is roster (role, skill, operator)."""
-    return _BUNDLED_SPEC.item_is_roster(item_type)
-
-
-def item_subentity_kind(item_type: str) -> str | None:
-    """The sub-entity kind this type hosts, or None."""
-    return _BUNDLED_SPEC.item_subentity_kind(item_type)
-
-
-def item_parent_required(item_type: str) -> str | None:
-    """Required parent type slug for this item type, or None."""
-    return _BUNDLED_SPEC.item_parent_required(item_type)
-
-
-def item_ref_rules(item_type: str) -> list[RefRule]:
-    """Declared ref-kind rules for the type."""
-    return _BUNDLED_SPEC.item_ref_rules(item_type)
-
-
-def status_role(status: str) -> str | None:
-    """Semantic role marker for this status (e.g. ``'superseded'``), or None."""
-    return _BUNDLED_SPEC.status_role(status)
-
-
-# ---------------------------------------------------------------------------
-# Re-export the spec models for callers that want the explicit-spec surface
-# ---------------------------------------------------------------------------
-
 __all__ = [
-    "ALLOWED_PARENTS",
     "CATEGORIES",
     "ROSTER_OPERATOR",
     "ROSTER_ROLE",
     "ROSTER_SKILL",
-    "ROSTER_TYPES",
-    "SUBENTITY_WORKFLOWS",
-    "TERMINAL",
-    "WORKFLOWS",
-    "ItemSpec",
-    "Lifecycle",
-    "RefRule",
-    "RoleSpec",
-    "StateMachine",
     "StatusSpec",
-    "TypeSpec",
-    "Workflow",
     "WorkflowSpec",
-    "active_spec",
     "bundled_spec",
-    "can_transition",
-    "hidden_by_default",
-    "initial_status",
-    "is_open",
-    "item_is_roster",
-    "item_parent_required",
-    "item_ref_rules",
-    "item_subentity_kind",
+    "dropped_via_selected",
     "linearize_lifecycle",
     "load_workflow_spec",
-    "non_roster_types",
-    "parent_allowed",
-    "parent_hint",
-    "status_role",
-    "subentity_can_transition",
-    "subentity_completion",
-    "subentity_initial",
-    "subentity_workflow",
-    "workflow_for",
 ]

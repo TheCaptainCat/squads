@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import _aio
 from squads._context import bind_context, get_context
 from squads._index._resolver import item_file
@@ -122,7 +122,7 @@ async def _reference_result(tmp_path: Path, source: str, target: str) -> tuple[s
     prior = get_context()
     bind_context(replace(prior, clock_override=datetime(2026, 6, 7, 10, 0, 0, tzinfo=UTC)))
     result = await service.init(root=root, roles_spec="minimal", _skip_skill_seed=True)
-    ref = service.Service(result.paths)
+    ref = make_service(result.paths)
     item = (await create_item(ref, source, "Subject")).item
     res = await ref.retype(item.id, target)
     path = ref.paths.abspath(res.item.path)

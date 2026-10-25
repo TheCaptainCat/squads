@@ -4,13 +4,10 @@ every resolver either succeeds off the spec or raises/degrades to a loud sentine
 plausible-but-wrong value.
 """
 
-from datetime import UTC, datetime
-
 import pytest
 
 from _helpers import BUILTIN_FOLDER, BUILTIN_PREFIX, BUILTIN_TYPES
 from squads._errors import InvalidIdError, SquadsError
-from squads._models._item import UNRESOLVED_PREFIX, Item, effective_prefix
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, type_for_id
 from squads._workflow import bundled_spec
@@ -97,21 +94,10 @@ def test_folder_for_a_custom_type_with_a_spec(tmp_path) -> None:
     assert result == tmp_path / "squads" / _INCIDENT_FOLDER
 
 
-@pytest.mark.parametrize(
-    ("item_type", "spec"),
-    [
-        ("task", None),  # builtin, no spec at all
-        ("incident", None),  # unknown, no spec at all
-        ("incident", bundled_spec()),  # unknown, a real spec that just doesn't declare it
-    ],
-    ids=["builtin-no-spec", "unknown-no-spec", "unknown-wrong-spec"],
-)
-def test_folder_for_raises_when_the_type_has_no_resolvable_spec_entry(
-    tmp_path, item_type: str, spec: WorkflowSpec | None
-) -> None:
+def test_folder_for_raises_when_the_spec_does_not_declare_the_type(tmp_path) -> None:
     sp = _paths(tmp_path)
     with pytest.raises(SquadsError, match="unknown item type"):
-        sp.folder_for(item_type, spec=spec) if spec is not None else sp.folder_for(item_type)
+        sp.folder_for("incident", spec=bundled_spec())
 
 
 # --------------------------------------------------------------------------- squad_relative
@@ -128,10 +114,10 @@ def test_squad_relative_resolves_builtin_and_custom_types_identically(tmp_path) 
     )
 
 
-def test_squad_relative_raises_for_an_unknown_type_with_no_spec(tmp_path) -> None:
+def test_squad_relative_raises_when_the_spec_does_not_declare_the_type(tmp_path) -> None:
     sp = _paths(tmp_path)
     with pytest.raises(SquadsError, match="unknown item type"):
-        sp.squad_relative("incident", "INC-000001-title.md")
+        sp.squad_relative("incident", "INC-000001-title.md", spec=bundled_spec())
 
 
 # --------------------------------------------------------------------------- type_for_id
@@ -153,136 +139,11 @@ def test_type_for_id_resolves_a_hyphenated_custom_prefix_via_its_spec() -> None:
     assert type_for_id(f"{_RUNBOOK_PREFIX}-000001", spec=_spec_with_runbook()) == _RUNBOOK_TYPE
 
 
-@pytest.mark.parametrize(
-    ("item_id", "spec"),
-    [
-        ("TASK-000001", None),  # builtin prefix, no spec at all
-        ("INC-000001", None),  # unknown prefix, no spec at all
-        ("INC-000001", bundled_spec()),  # unknown prefix, a real spec that doesn't declare it
-    ],
-    ids=["builtin-no-spec", "unknown-no-spec", "unknown-wrong-spec"],
-)
-def test_type_for_id_raises_when_the_prefix_has_no_resolvable_spec_entry(
-    item_id: str, spec: WorkflowSpec | None
-) -> None:
+def test_type_for_id_raises_when_the_spec_does_not_declare_the_prefix() -> None:
     with pytest.raises(InvalidIdError, match="unknown ID prefix"):
-        type_for_id(item_id, spec=spec) if spec is not None else type_for_id(item_id)
+        type_for_id("INC-000001", spec=bundled_spec())
 
 
-# --------------------------------------------------------------------------- prefix_for (the
-# reverse direction: type -> prefix, used at create/retype time)
-
-
-def test_prefix_for_resolves_every_builtin_type_via_a_spec() -> None:
-    spec = _spec_with_incident()
-    for item_type, prefix in BUILTIN_PREFIX.items():
-        assert prefix_for(item_type, spec) == prefix
-
-
-def test_prefix_for_resolves_a_custom_type_via_its_spec() -> None:
-    assert prefix_for(_INCIDENT_TYPE, _spec_with_incident()) == _INCIDENT_PREFIX
-
-
-@pytest.mark.parametrize(
-    ("item_type", "spec"),
-    [
-        ("task", None),
-        ("incident", None),
-        ("blork", _spec_with_incident()),
-    ],
-    ids=["builtin-no-spec", "unknown-no-spec", "unknown-wrong-spec"],
-)
-def test_prefix_for_raises_when_the_type_has_no_resolvable_spec_entry(
-    item_type: str, spec: WorkflowSpec | None
-) -> None:
+def test_prefix_for_raises_when_the_spec_does_not_declare_the_type() -> None:
     with pytest.raises(SquadsError, match="unknown item type"):
-        prefix_for(item_type, spec) if spec is not None else prefix_for(item_type)
-
-
-# --------------------------------------------------------------------------- effective_prefix —
-# the shared stand-in used by every acyclic formatter (Item.id, format_id, ref matching) that
-# has no spec in hand and cannot raise; never a type.upper() guess.
-
-
-def test_effective_prefix_returns_the_prefix_when_set() -> None:
-    assert effective_prefix("INC") == "INC"
-
-
-def test_effective_prefix_degrades_to_the_unresolved_sentinel_when_unset() -> None:
-    assert effective_prefix("") == UNRESOLVED_PREFIX
-
-
-# --------------------------------------------------------------------------- Item.prefix is
-# derived from the id string, for builtin AND custom types alike — never a persisted
-# frontmatter key, and a stray legacy one is ignored, not trusted.
-
-
-def _item(item_type: str, prefix: str, path: str) -> Item:
-    now = datetime.now(UTC)
-    return Item(
-        sequence_id=7,
-        type=item_type,
-        prefix=prefix,
-        title="t",
-        slug="t",
-        status="Draft",
-        path=path,
-        created_at=now,
-        updated_at=now,
-    )
-
-
-@pytest.mark.parametrize(
-    ("item_type", "prefix", "path"),
-    [("task", "TASK", "tasks/TASK-000007-t.md"), ("incident", "INC", "incidents/INC-000007-t.md")],
-    ids=["builtin", "custom"],
-)
-def test_item_prefix_round_trips_through_frontmatter_via_id_never_persisted_directly(
-    item_type: str, prefix: str, path: str
-) -> None:
-    original = _item(item_type, prefix, path)
-    assert original.id == f"{prefix}-7"
-
-    fm = original.to_frontmatter_dict()
-    assert "prefix" not in fm  # nothing redundant left to persist
-
-    reloaded = Item.from_frontmatter(fm, path=path, default_kind="related")
-    assert reloaded.prefix == prefix
-    assert reloaded.id == original.id
-
-
-def test_item_id_degrades_to_the_unresolved_sentinel_when_no_prefix_is_resolvable() -> None:
-    """Never a type.upper() guess (which used to coincidentally look right for 'task' but
-    silently mis-renders e.g. 'decision' as DECISION-N instead of ADR-N)."""
-    item = Item(
-        sequence_id=7,
-        type="task",
-        title="t",
-        slug="t",
-        status="Draft",
-        path="tasks/TASK-000007-t.md",
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC),
-    )
-    assert item.prefix == ""
-    assert item.id == f"{UNRESOLVED_PREFIX}-7"
-
-
-def test_a_stray_legacy_prefix_key_in_frontmatter_is_tolerated_but_never_trusted() -> None:
-    """A file carrying a stray, disagreeing ``prefix:`` line (from an earlier, since-reverted
-    build) still loads — the id: line, never the stray key, is the source of truth."""
-    now = datetime.now(UTC).isoformat()
-    data = {
-        "id": "TASK-000007",
-        "sequence_id": 7,
-        "type": "task",
-        "prefix": "WRONGPREFIX",
-        "title": "t",
-        "slug": "t",
-        "status": "Draft",
-        "created_at": now,
-        "updated_at": now,
-    }
-    item = Item.from_frontmatter(data, path="tasks/TASK-000007-t.md", default_kind="related")
-    assert item.prefix == "TASK"
-    assert item.id == "TASK-7"
+        prefix_for("incident", bundled_spec())

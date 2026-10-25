@@ -19,6 +19,7 @@ import pytest
 
 from squads import __version__
 from squads._itemfile import read_frontmatter
+from squads._models._schema import SCHEMA_VERSION
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -176,7 +177,7 @@ async def test_migrating_a_stripped_squad_writes_the_bytes_a_fresh_init_wrote(
         )
     config.write_text(
         config.read_text(encoding="utf-8").replace(
-            'schema_version = "0.16"', 'schema_version = "0.15"'
+            f'schema_version = "{SCHEMA_VERSION}"', 'schema_version = "0.15"'
         ),
         encoding="utf-8",
     )
@@ -185,7 +186,7 @@ async def test_migrating_a_stripped_squad_writes_the_bytes_a_fresh_init_wrote(
     result = await invoke(["migrate", "up"])
 
     assert result.exit_code == 0, result.output
-    assert tomllib.loads(config.read_text(encoding="utf-8"))["schema_version"] == "0.16"
+    assert tomllib.loads(config.read_text(encoding="utf-8"))["schema_version"] == "0.17"
     assert _origins(root) == fresh_origins
     changed = {k for k, v in _hashes(root).items() if fresh.get(k) != v}
     assert changed <= {".squads.toml"}, changed

@@ -44,19 +44,20 @@ from squads._cli._common import (
 )
 from squads._context import get_context
 from squads._errors import RoleNotFoundError, SquadsError
-from squads._interactions import ROLE_DEFINITION_VIEW_NAME, role_origin
 from squads._interactions._role_guidance import allowed_create_types
+from squads._interactions._skills import role_origin
 from squads._models import _attributes as attrs
 from squads._models._item import Item
 from squads._paths import resolve as resolve_squad_paths
-from squads._roles._catalog import PREDEFINED, RoleDef
-from squads._roles._loader import ROLES_OVERRIDE_FILENAME, load_role_catalog
+from squads._roles._catalog import PREDEFINED, RoleDef, get_catalog
+from squads._roles._loader import ROLES_OVERRIDE_FILENAME
 from squads._roles._resolver import (
     pinned_name_of,
     resolve_pronouns,
     resolve_role_for_item,
     resolve_role_with_base,
 )
+from squads._views import ROLE_DEFINITION_VIEW_NAME
 from squads._workflow import ROSTER_ROLE
 
 
@@ -133,8 +134,9 @@ async def role_catalog(
     payload is a bare array.
     """
     squad_dir = _catalog_squad_dir()
-    roles = load_role_catalog(squad_dir).roles
     in_squad = squad_dir is not None
+    catalog = get_service().catalog if in_squad else get_catalog
+    roles = catalog().roles
     live_default = await get_service().default_role_slug() if in_squad else None
     items = {it.slug: it for it in await get_service().list_roles()} if in_squad else {}
 
@@ -152,7 +154,7 @@ async def role_catalog(
     declared = {r.slug for r in roles}
     for it in items.values():
         if it.slug not in declared:
-            role = resolve_role_for_item(it, squad_dir)
+            role = resolve_role_for_item(it, squad_dir, catalog=catalog)
             rows.append(
                 (
                     role.slug,
@@ -220,7 +222,9 @@ async def role_list(
     # Resolved through the catalog (`sq role <slug> show`'s own seam) so the two never
     # disagree — a project override or catalog change reaches this list without a prior
     # `sq sync` having to heal the item's own stored mirror first.
-    resolved = [(r, resolve_role_for_item(r, svc.paths.squad_dir)) for r in roles]
+    resolved = [
+        (r, resolve_role_for_item(r, svc.paths.squad_dir, catalog=svc.catalog)) for r in roles
+    ]
     if json_out:
         print_json_clean(
             json.dumps(
@@ -284,7 +288,7 @@ async def activate_role(
     item = await svc.activate_role(slug, name=name, pronouns=pronouns)
     await svc.refresh_managed()
     name = common.named_markup(
-        svc, item.title, resolve_pronouns(_pronouns.pronouns(item), svc.paths.squad_dir)
+        svc, item.title, resolve_pronouns(_pronouns.pronouns(item), svc.catalog)
     )
     console.print(f"activated [bold]{name}[/bold] ({item.id})")
 
@@ -318,20 +322,24 @@ async def _resolve_addr(
     the None case by rendering a bundled catalog card with an activation hint.
     """
     svc = get_service()
-    ctx.ensure_object(dict)
     obj: dict[str, str | None] = {_ADDR_KEY: addr}
     ctx.obj = obj
     t = addr.strip()
-    # Detect numeric or full-ID-shaped tokens (TYPE-NNNNNN).
-    if t.isdigit() or is_full_id_shape(t):
-        # Numeric or full-ID tokens: strict DB resolution — wrong-type errors bubble up.
-        obj[_ID_KEY] = await resolve_agent_addr(addr, "role", svc)
-    else:
-        # Slug token: try DB; if not found, store None so show() can render a bundled card.
-        try:
+    try:
+        # Detect numeric or full-ID-shaped tokens (TYPE-NNNNNN).
+        if t.isdigit() or is_full_id_shape(t):
+            # Numeric or full-ID tokens: strict DB resolution — wrong-type errors bubble up.
             obj[_ID_KEY] = await resolve_agent_addr(addr, "role", svc)
-        except SquadsError:
-            obj[_ID_KEY] = None
+        else:
+            # Slug token: try DB; if not found, store None so show() can render a bundled card.
+            try:
+                obj[_ID_KEY] = await resolve_agent_addr(addr, "role", svc)
+            except SquadsError:
+                obj[_ID_KEY] = None
+    except SquadsError as exc:
+        if not common.verb_help_requested(ctx):
+            raise
+        ctx.obj = common.UnresolvedAddress(exc, **{_ADDR_KEY: addr})
 
 
 def _require_id(ctx: typer.Context) -> str:
@@ -398,10 +406,10 @@ async def show_role(
     # (`role_base_from_item`); an unactivated developer slug falls back to the generated pool
     # name. Every other unactivated slug keeps `resolve_role`'s ordinary bundled/new-slug base
     # (``None`` here).
-    base_role = common.role_base_for_show(slug, it, svc.paths.squad_dir)
+    base_role = common.role_base_for_show(slug, it, svc.catalog)
     shown_origin = role_origin(slug) if it is None else attrs.origin(it)
     shown_pronouns = resolve_pronouns(
-        _pronouns.pronouns(it) if it is not None else None, svc.paths.squad_dir
+        _pronouns.pronouns(it) if it is not None else None, svc.catalog
     )
 
     if json_out:
@@ -417,7 +425,11 @@ async def show_role(
     r: RoleDef | None = None
     try:
         r = resolve_role_with_base(
-            slug, svc.paths.squad_dir, base=base_role, pinned_name=pinned_name_of(it)
+            slug,
+            svc.paths.squad_dir,
+            base=base_role,
+            pinned_name=pinned_name_of(it),
+            catalog=svc.catalog,
         )
         lane_types = sorted(allowed_create_types(r, svc.spec, svc.playbook))
         creates_display = ", ".join(lane_types) if lane_types else "— (out-of-lane creates warn)"

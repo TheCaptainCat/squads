@@ -6,7 +6,7 @@ this table and not as a silent change in what every squad runs.
 import pytest
 
 from squads._workflow._loader import load_workflow_spec
-from squads._workflow._models import effective_validator_names
+from squads._workflow._validator_names import effective_validator_names
 
 _WORK = (
     "item_status_valid",

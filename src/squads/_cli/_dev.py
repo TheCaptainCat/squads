@@ -8,7 +8,6 @@ from squads import _pronouns
 from squads._cli._common import console, get_service
 from squads._interactions._role_guidance import developer_roles
 from squads._models import _attributes as attrs
-from squads._roles._loader import load_role_catalog
 from squads._roles._resolver import resolve_pronouns, resolve_role_tolerantly
 from squads._workflow import ROSTER_ROLE
 
@@ -36,7 +35,7 @@ async def dev_add(
     svc = get_service()
     item = await svc.add_dev(tech, name=name, model=model, slug=slug, pronouns=pronouns)
     name = common.named_markup(
-        svc, item.title, resolve_pronouns(_pronouns.pronouns(item), svc.paths.squad_dir)
+        svc, item.title, resolve_pronouns(_pronouns.pronouns(item), svc.catalog)
     )
     console.print(f"added [bold]{name}[/bold] (`{item.slug}`) {item.id}")
 
@@ -48,10 +47,11 @@ async def dev_list():
     svc = get_service()
     live = svc.spec.live_statuses(ROSTER_ROLE)
     items = [it for it in await svc.list_items(item_type=ROSTER_ROLE) if it.status in live]
-    roles = {it.slug: resolve_role_tolerantly(it, svc.paths.squad_dir) for it in items}
-    developers = {
-        r.slug for r in developer_roles(roles.values(), load_role_catalog(svc.paths.squad_dir))
+    roles = {
+        it.slug: resolve_role_tolerantly(it, svc.paths.squad_dir, catalog=svc.catalog)
+        for it in items
     }
+    developers = {r.slug for r in developer_roles(roles.values(), svc.catalog())}
     devs = [it for it in items if it.slug in developers]
     if not devs:
         console.print("[dim]no developers (try `sq dev add --tech <t>`)[/dim]", soft_wrap=True)

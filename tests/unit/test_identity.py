@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 
 from squads._models._item import Item
 from squads._services._retype import _carry_or_reset_status
-from squads._workflow import WORKFLOWS, WorkflowSpec, load_workflow_spec
+from squads._workflow import WorkflowSpec, bundled_spec, load_workflow_spec
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -96,14 +96,14 @@ def test_status_carry_relies_on_workflow_value_equality_not_object_identity():
     assert new_status == "Ready"
 
 
-# --------------------------------------------------------------------------- WORKFLOWS isolation
+# --------------------------------------------------------------------------- bundled-map isolation
 
 
 def test_workflows_constant_is_never_mutated_by_constructing_a_custom_spec():
-    """WORKFLOWS is an immutable bundled snapshot; building an unrelated custom WorkflowSpec
+    """The bundled item map is immutable; building an unrelated custom WorkflowSpec
     must not perturb it, and a caller that imported the name keeps seeing the bundled map."""
     bundled = load_workflow_spec()
-    captured = WORKFLOWS  # simulate a caller that imported the name at module load
+    captured = bundled_spec().items  # simulate a caller holding the bundled map
 
     from squads._workflow._models import ItemSpec, Lifecycle, StatusSpec
 
@@ -130,7 +130,7 @@ def test_workflows_constant_is_never_mutated_by_constructing_a_custom_spec():
         }
     )
 
-    assert captured is WORKFLOWS
+    assert captured is bundled_spec().items
     assert "probe" not in captured
     assert custom_spec.workflow_for("probe") is not None
 

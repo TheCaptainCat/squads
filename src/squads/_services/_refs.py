@@ -495,7 +495,7 @@ class RefsMixin(ServiceCore):
         if role.type != ROSTER_ROLE:
             raise SquadsError(f"{role_id} is a {role.type}; link-role targets a role")
         updated = await self.add_ref(skill_id, role_id, kind=self.spec.preload_ref_kind())
-        await self._resync_role_skills(role.slug)
+        await self.roster_projection.resync_role_skills(role.slug)
         return updated
 
     async def unlink_role(self, skill_id: str, role_id: str) -> Item:
@@ -514,7 +514,7 @@ class RefsMixin(ServiceCore):
         if role.type != ROSTER_ROLE:
             raise SquadsError(f"{role_id} is a {role.type}; unlink-role targets a role")
         updated = await self.rm_ref(skill_id, role_id, kind=self.spec.preload_ref_kind())
-        await self._resync_role_skills(role.slug)
+        await self.roster_projection.resync_role_skills(role.slug)
         return updated
 
     async def refs_out(self, item_id: str) -> list[tuple[str, str]]:

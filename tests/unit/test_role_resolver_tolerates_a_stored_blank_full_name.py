@@ -22,7 +22,7 @@ pure seam-level pin, independent of the corpus-level drive in
 
 import pytest
 
-from _helpers import dev_role
+from _helpers import catalog_of, dev_role
 from squads._roles._catalog import PREDEFINED
 from squads._roles._resolver import (
     dev_base_from_item,
@@ -52,7 +52,7 @@ def _blanked(item, blank):
 async def test_a_bundled_roles_base_ignores_a_stored_blank_name(svc, blank):
     item = await svc.activate_role("devops", name="Ada Lovelace")
 
-    base = role_base_from_item(_blanked(item, blank), None)
+    base = role_base_from_item(_blanked(item, blank), catalog_of(None))
 
     assert base is not None
     assert base.full_name == next(r for r in PREDEFINED if r.slug == "devops").full_name
@@ -64,14 +64,16 @@ async def test_a_chosen_but_blank_stored_name_pins_nothing(svc, blank):
     stored = _blanked(item, blank)
 
     assert pinned_name_of(stored) is None
-    assert resolve_role_for_item(stored, svc.paths.squad_dir).full_name.strip()
+    assert resolve_role_for_item(
+        stored, svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir)
+    ).full_name.strip()
 
 
 @BLANKS
 async def test_a_developer_base_falls_back_to_the_generated_pool_name(svc, blank):
     item = await svc.add_dev("python", name="Elias Python")
 
-    base = dev_base_from_item(_blanked(item, blank), None)
+    base = dev_base_from_item(_blanked(item, blank), catalog_of(None))
 
     assert base.full_name == dev_role("python").full_name
 
@@ -81,8 +83,13 @@ async def test_a_real_stored_name_is_kept_by_both_bases(svc):
     developer = await svc.add_dev("python", name="Elias Python")
 
     assert pinned_name_of(activated) == "Mara Tester"
-    assert resolve_role_for_item(activated, svc.paths.squad_dir).full_name == "Mara Tester"
-    assert dev_base_from_item(developer, None).full_name == "Elias Python"
+    assert (
+        resolve_role_for_item(
+            activated, svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir)
+        ).full_name
+        == "Mara Tester"
+    )
+    assert dev_base_from_item(developer, catalog_of(None)).full_name == "Elias Python"
 
 
 async def test_a_role_item_type_still_exists_for_context(svc):

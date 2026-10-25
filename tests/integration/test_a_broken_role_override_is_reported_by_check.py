@@ -19,6 +19,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of
 from squads import __version__
 
 pytestmark = pytest.mark.anyio
@@ -50,7 +51,7 @@ def _assert_fixture_is_broken_as_intended(squad_dir: Path, slug: str) -> None:
     from squads._roles._resolver import resolve_role
 
     with pytest.raises(SquadsError, match="opuss"):
-        resolve_role(slug, squad_dir)
+        resolve_role(slug, squad_dir, catalog=catalog_of(squad_dir))
 
 
 async def test_check_reports_a_role_override_that_will_not_load(project, invoke) -> None:

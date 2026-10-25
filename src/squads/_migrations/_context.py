@@ -9,13 +9,16 @@ from dataclasses import dataclass
 
 from squads._interactions._models import PlaybookSpec
 from squads._paths import SquadPaths
+from squads._roles._models import CatalogSource
 from squads._workflow._models import WorkflowSpec
 
 
 @dataclass(frozen=True)
 class MigrationContext:
-    """The squad's paths, the workflow spec and the playbook the run resolved, built once."""
+    """The squad's paths, the workflow spec, the playbook and the role catalog the run resolved,
+    built once."""
 
     paths: SquadPaths
     spec: WorkflowSpec
     playbook: PlaybookSpec
+    catalog: CatalogSource

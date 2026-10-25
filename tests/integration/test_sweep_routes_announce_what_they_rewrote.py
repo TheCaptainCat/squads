@@ -25,6 +25,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._models import _markers as markers
 from squads._models._config import SquadsConfig
 from squads._paths import SquadPaths
@@ -103,7 +104,7 @@ def _plant_retired_region(squad_dir: Path, *, count: int = 2) -> int:
 async def _fresh_squad(tmp_path: Path) -> tuple[Path, Path]:
     """A current-schema squad whose corpus carries retired regions."""
     result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     await svc.create("task", "Wire the importer", author="manager")
     await svc.create("feature", "Importer", author="manager")
     await svc.create("bug", "Importer drops the last row", author="manager")

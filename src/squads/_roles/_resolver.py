@@ -40,8 +40,10 @@ generated pointer; and an unknown key was silently discarded, so a typo'd field 
 effect. Splat-refs were unresolved too, writing the literal ``"$(*self)"`` into frontmatter and
 into the rendered body — the very idiom the override scaffold teaches.
 
-The resolver is *stateless*: it reads from disk on every call.  The service layer is already the
-cached / transactional boundary; there is no need to cache here.
+The resolver keeps no state: it reads the per-slug files from disk on every call and takes the role
+catalog from the caller as a :data:`~squads._roles._models.CatalogSource`, which whoever owns the
+squad's documents builds once. A caller that wants the bundled catalog alone passes
+:func:`~squads._roles._catalog.get_catalog`.
 
 A role's name is the one its item stores. Configuration supplies it once, when the role is
 created: ``--name`` when given, otherwise the bundled catalog, the project's
@@ -64,32 +66,29 @@ from squads._roles._catalog import (
     dev_role_from_pool,
     role_spec_to_def,
 )
-from squads._roles._loader import VALID_MODELS, load_role_catalog, refuse_pronouns_key
-from squads._roles._models import CAPABILITY_NAME_PATTERN, RoleSpec, malformed_capability_names
+from squads._roles._loader import VALID_MODELS, refuse_pronouns_key
+from squads._roles._models import (
+    CAPABILITY_NAME_PATTERN,
+    CatalogSource,
+    RoleSpec,
+    malformed_capability_names,
+)
 from squads._specmerge import RawMapping, describe_spec_error, merge_override
 
 _PREDEFINED_BY_SLUG: dict[str, RoleDef] = {r.slug: r for r in PREDEFINED}
 
 
-def _predefined_for_slug(slug: str, squad_dir: Path | None) -> RoleDef | None:
+def _predefined_for_slug(slug: str, catalog: CatalogSource) -> RoleDef | None:
     """The predefined base for *slug* — the bundled catalog, with any project catalog-document
     override (``.overrides/roles.toml``) already merged in.
 
     This is where the second precedence layer (bundled base -> the catalog document) is
-    realised: :func:`load_role_catalog` does the merge, and every existing caller of
+    realised: the *catalog* the caller resolved carries the merge, and every caller of
     :func:`resolve_role`/:func:`resolve_role_with_base` picks it up with no call-site change,
     since a per-slug ``.overrides/roles/<slug>.toml`` file (the third and most specific layer)
     is still layered on top by the caller of *this* function exactly as it already was.
-
-    With *squad_dir* ``None`` this is exactly ``_PREDEFINED_BY_SLUG.get(slug)`` — the bundled
-    catalog alone, unchanged. With a *squad_dir*, the catalog is reloaded (and, if present, the
-    override re-merged) on every call — consistent with this module's own stated stance that
-    the resolver is stateless and reads from disk on every call.
     """
-    if squad_dir is None:
-        return _PREDEFINED_BY_SLUG.get(slug)
-    catalog = load_role_catalog(squad_dir)
-    for role_spec in catalog.roles:
+    for role_spec in catalog().roles:
         if role_spec.slug == slug:
             return role_spec_to_def(role_spec)
     return None
@@ -129,7 +128,7 @@ def _overrides_dir(squad_dir: Path) -> Path:
     return squad_dir / ".overrides" / "roles"
 
 
-def project_role_slugs(squad_dir: Path) -> frozenset[str]:
+def project_role_slugs(squad_dir: Path, catalog: CatalogSource) -> frozenset[str]:
     """The slugs with a project role override — a per-slug file at
     ``<squad_dir>/.overrides/roles/<slug>.toml``, or a wholly-new ``[[roles]]`` entry in the
     catalog document (``.overrides/roles.toml``) that names a slug outside the
@@ -146,7 +145,7 @@ def project_role_slugs(squad_dir: Path) -> frozenset[str]:
     file_slugs: frozenset[str] = (
         frozenset(p.stem for p in d.glob("*.toml")) if d.is_dir() else frozenset()
     )
-    catalog_slugs = frozenset(r.slug for r in load_role_catalog(squad_dir).roles)
+    catalog_slugs = frozenset(r.slug for r in catalog().roles)
     return file_slugs | (catalog_slugs - _PREDEFINED_BY_SLUG.keys())
 
 
@@ -284,7 +283,7 @@ def _refuse_blank_strings(spec: RoleSpec, origin: str) -> None:
         )
 
 
-def resolve_role(slug: str, squad_dir: Path | None) -> RoleDef:
+def resolve_role(slug: str, squad_dir: Path | None, *, catalog: CatalogSource) -> RoleDef:
     """Return the ``RoleDef`` for *slug*, applying any project override.
 
     Resolution order:
@@ -296,7 +295,7 @@ def resolve_role(slug: str, squad_dir: Path | None) -> RoleDef:
     the ``base=None`` case of that function, kept as its own entry point so every existing
     caller keeps today's exact signature and behaviour.
     """
-    return resolve_role_with_base(slug, squad_dir, base=None)
+    return resolve_role_with_base(slug, squad_dir, base=None, catalog=catalog)
 
 
 def resolve_role_with_base(
@@ -304,6 +303,7 @@ def resolve_role_with_base(
     squad_dir: Path | None,
     *,
     base: RoleDef | None,
+    catalog: CatalogSource,
     pinned_name: str | None = None,
 ) -> RoleDef:
     """Like :func:`resolve_role`, but the caller may supply the merge base — for a slug outside
@@ -318,7 +318,7 @@ def resolve_role_with_base(
     *pinned_name* is the role's stored name (:func:`pinned_name_of`): it is the result's
     ``full_name`` whatever any layer, the per-slug file included, declares.
     """
-    predefined = _predefined_for_slug(slug, squad_dir)  # None for a slug neither source declares
+    predefined = _predefined_for_slug(slug, catalog)  # None for a slug neither source declares
     effective_base = base if base is not None else predefined
 
     if squad_dir is not None:
@@ -352,11 +352,11 @@ def pinned_name_of(item: Item | None) -> str | None:
     return item.title
 
 
-def dev_base_from_item(item: Item, squad_dir: Path | None) -> RoleDef:
+def dev_base_from_item(item: Item, catalog: CatalogSource) -> RoleDef:
     """The dev-role merge base for a developer role that already exists on the roster.
 
     Reads the item's own stored facts — tech, name, model, default designation — and the
-    ``[dev]`` table of the catalog the squad resolves, so the stored name is inherited instead
+    ``[dev]`` table of the *catalog* the squad resolves, so the stored name is inherited instead
     of re-rolled from the pool; the pool position is never consulted. A stored name that is
     blank is treated as absent, so the role self-heals on its next sync instead of being
     refused. Every other field (title, mission, responsibilities, colour, ``can_spawn``,
@@ -368,7 +368,7 @@ def dev_base_from_item(item: Item, squad_dir: Path | None) -> RoleDef:
     name = item.title if item.title and item.title.strip() else None
     base = dev_role_from_pool(
         attrs.tech(item) or "",
-        load_role_catalog(squad_dir).dev,
+        catalog().dev,
         name=name,
         model=attrs.model(item),
     )
@@ -380,7 +380,7 @@ def dev_base_from_item(item: Item, squad_dir: Path | None) -> RoleDef:
     return replace(base, is_default=stored_default)
 
 
-def role_base_from_item(item: Item, squad_dir: Path | None) -> RoleDef | None:
+def role_base_from_item(item: Item, catalog: CatalogSource) -> RoleDef | None:
     """The resolver base for a role that already has a live roster item — the one seam every
     consumer that resolves against an item (sync's catalog refresh, ``sq role <slug> show``,
     ``sq check``) builds its base through, for a bundled role and a developer role alike.
@@ -389,18 +389,16 @@ def role_base_from_item(item: Item, squad_dir: Path | None) -> RoleDef | None:
     comes from the current catalog on every call:
 
     - **Developer role** — :func:`dev_base_from_item`.
-    - **Bundled role** — the slug's current catalog entry (the bundled catalog with the
-      project's ``.overrides/roles.toml`` merged in when *squad_dir* is given), with
+    - **Bundled role** — the slug's current entry in the *catalog* (the bundled catalog with the
+      project's ``.overrides/roles.toml`` merged in when the squad has one), with
       ``is_default`` swapped for the stored designation (``sq role set-default``). The name
       is pinned to the stored name by the caller (:func:`pinned_name_of`).
     - **Anything else** — a role no catalog declares (a project-defined role with no per-slug
       file yet) has no base: ``None``.
-
-    A *squad_dir* of ``None`` means no squad: the bundled catalog alone.
     """
     if attrs.is_templated(item):
-        return dev_base_from_item(item, squad_dir)
-    predefined = _predefined_for_slug(item.slug, squad_dir)
+        return dev_base_from_item(item, catalog)
+    predefined = _predefined_for_slug(item.slug, catalog)
     if predefined is None:
         return None
     stored_default = attrs.is_default(item)
@@ -409,7 +407,7 @@ def role_base_from_item(item: Item, squad_dir: Path | None) -> RoleDef | None:
     return replace(predefined, is_default=stored_default)
 
 
-def resolve_role_for_item(item: Item, squad_dir: Path | None) -> RoleDef:
+def resolve_role_for_item(item: Item, squad_dir: Path | None, *, catalog: CatalogSource) -> RoleDef:
     """The one seam every consumer that needs a live role item's full ``RoleDef`` goes
     through — the roster projection, a backend's per-entry render, ``sq check``'s pointer-
     currency comparison. Resolves through the catalog (:func:`role_base_from_item` +
@@ -420,25 +418,27 @@ def resolve_role_for_item(item: Item, squad_dir: Path | None) -> RoleDef:
     orphaned custom role item whose backing definition has vanished (no catalog entry, no dev
     shape, no override file). There the item is the only source.
     """
-    base = role_base_from_item(item, squad_dir)
+    base = role_base_from_item(item, catalog)
     try:
         role = resolve_role_with_base(
-            item.slug, squad_dir, base=base, pinned_name=pinned_name_of(item)
+            item.slug, squad_dir, base=base, catalog=catalog, pinned_name=pinned_name_of(item)
         )
     except RoleNotFoundError:
         role = RoleDef.from_item(item)
-    return replace(role, pronouns=resolve_pronouns(pronouns(item), squad_dir))
+    return replace(role, pronouns=resolve_pronouns(pronouns(item), catalog))
 
 
-def resolve_pronouns(own: str | None, squad_dir: Path | None) -> str | None:
+def resolve_pronouns(own: str | None, catalog: CatalogSource) -> str | None:
     """A role's pronouns: its *own* value, else the role catalog document's declared
     ``[defaults].pronouns``, else ``None``. The result is never written to an item."""
     if own is not None:
         return own
-    return load_role_catalog(squad_dir).defaults.pronouns
+    return catalog().defaults.pronouns
 
 
-def resolve_role_tolerantly(item: Item, squad_dir: Path | None) -> RoleDef:
+def resolve_role_tolerantly(
+    item: Item, squad_dir: Path | None, *, catalog: CatalogSource
+) -> RoleDef:
     """:func:`resolve_role_for_item`, or the item's own :meth:`RoleDef.from_item` when a role
     document refuses to load.
 
@@ -447,12 +447,14 @@ def resolve_role_tolerantly(item: Item, squad_dir: Path | None) -> RoleDef:
     own right, and these callers report on or act on other things.
     """
     try:
-        return resolve_role_for_item(item, squad_dir)
+        return resolve_role_for_item(item, squad_dir, catalog=catalog)
     except SquadsError:
         return RoleDef.from_item(item)
 
 
-def holds_default_designation(item: Item, squad_dir: Path | None) -> bool:
+def holds_default_designation(
+    item: Item, squad_dir: Path | None, *, catalog: CatalogSource
+) -> bool:
     """Whether *item* holds this squad's default-role designation, as every reader of that
     designation sees it — the one seam the lane exemption, the retirement warning, ``sq check``'s
     duplicate-holder report and ``set_default_role``'s own move all ask.
@@ -470,7 +472,7 @@ def holds_default_designation(item: Item, squad_dir: Path | None) -> bool:
     under-report a holder.
     """
     try:
-        return resolve_role_for_item(item, squad_dir).is_default
+        return resolve_role_for_item(item, squad_dir, catalog=catalog).is_default
     except SquadsError:
         return attrs.is_default(item) is True
 
@@ -483,22 +485,20 @@ def resolve_dev_role(
     model: str | None = None,
     slug: str | None = None,
     squad_dir: Path | None,
+    catalog: CatalogSource,
 ) -> RoleDef:
     """Build a stack-specific developer role, applying any project override.
 
-    The generated base is built from the ``[dev]`` table of the catalog *squad_dir* resolves
+    The generated base is built from the ``[dev]`` table of the *catalog* the squad resolves
     (the name pool, default model, colour and capabilities), via
-    :func:`~squads._roles._catalog.dev_role_from_pool`; a *squad_dir* of ``None`` means the
-    bundled catalog.
+    :func:`~squads._roles._catalog.dev_role_from_pool`.
 
     If ``<squad_dir>/.overrides/roles/<slug>.toml`` exists (the slug the role is stored under),
     its fields are merged over that base as the third, most-specific precedence layer. ``name``
     is still honoured as before (explicit name wins over both the pool and any TOML
     ``full_name``).
     """
-    base = dev_role_from_pool(
-        tech, load_role_catalog(squad_dir).dev, name=name, seq=seq, model=model
-    )
+    base = dev_role_from_pool(tech, catalog().dev, name=name, seq=seq, model=model)
     if slug is not None:
         base = replace(base, slug=slug)
     slug = base.slug

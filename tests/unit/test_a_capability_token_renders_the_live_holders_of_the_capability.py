@@ -4,7 +4,7 @@ roster order and `/`-joined, or as `*<name>` — a mention of nobody — when no
 import pytest
 
 from squads._discussion import extract_mentions
-from squads._interactions import get_playbook_spec
+from squads._interactions._playbook import get_playbook_spec
 from squads._interactions._role_guidance import live_roster_text
 from squads._roles._projection import RoleView
 

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import __version__
 from squads import _sections as sections
 from squads._errors import SquadsError
@@ -23,7 +23,7 @@ _BUNDLED_VIEW = "milestone_rollup"
 
 def _reopen(project) -> Service:
     """A fresh ``Service`` bound to whatever workflow override is on disk right now."""
-    return Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    return make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
 
 
 async def _text(svc, item_id: str) -> str:

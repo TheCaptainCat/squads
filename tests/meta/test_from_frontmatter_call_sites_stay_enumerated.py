@@ -3,8 +3,9 @@
 through on its way into an ``Item``, so a wrongly-encoded item is never constructed (see the
 function's own docstring, and :func:`squads._models._item.fold_legacy_kinds`). That property
 holds only because the call site count stays small and known: three, in ``src/squads/`` —
-``_itemfile.py`` (the disk side of the frontmatter/index skew guard), and two in
-``_services/_maintenance.py`` (``sq repair``'s corpus rebuild, and ``sq check``'s scan).
+``_itemfile.py`` (the disk side of the frontmatter/index skew guard), one in
+``_services/_maintenance.py`` (``sq repair``'s corpus rebuild) and one in
+``_services/_check.py`` (``sq check``'s scan).
 
 A **required** keyword makes an omission a ``pyright`` error, not a silent regression — but
 that only protects a call site that already exists. Nothing stops a *new* call site from being
@@ -25,7 +26,7 @@ _KNOWN_CALL_SITES: frozenset[tuple[str, str]] = frozenset(
     {
         ("src/squads/_itemfile.py", "frontmatter_skew"),
         ("src/squads/_services/_maintenance.py", "_rebuild_index_from_disk"),
-        ("src/squads/_services/_maintenance.py", "_scan_for_check"),
+        ("src/squads/_services/_check.py", "_scan_for_check"),
     }
 )
 

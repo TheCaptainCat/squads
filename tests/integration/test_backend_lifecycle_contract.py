@@ -13,10 +13,11 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of, make_service
 from squads._backends._agents_md._backend import AgentsMdBackend
 from squads._backends._base import AgentBackend, Artifact, BackendContext
 from squads._backends._claude_code._backend import ClaudeCodeBackend
-from squads._interactions import get_playbook_spec
+from squads._interactions._playbook import get_playbook_spec
 from squads._models._attributes import AttributeKey as X
 from squads._models._config import SquadsConfig
 from squads._models._item import Item
@@ -60,7 +61,12 @@ def paths(squad_root: Path) -> SquadPaths:
 
 @pytest.fixture
 def ctx(paths: SquadPaths) -> BackendContext:
-    return BackendContext(paths=paths, spec=bundled_spec(), playbook=get_playbook_spec())
+    return BackendContext(
+        paths=paths,
+        spec=bundled_spec(),
+        playbook=get_playbook_spec(),
+        catalog=catalog_of(paths.squad_dir),
+    )
 
 
 @pytest.fixture
@@ -448,7 +454,7 @@ class TestFullLifecycleRoundTrip:
         """Drives every registered backend indirectly through the public service seam."""
         monkeypatch.chdir(tmp_path)
         result = await service.init(root=tmp_path, roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         await svc.sync()
         await svc.sync()  # second sync must be idempotent
 
@@ -509,6 +515,9 @@ class TestManagedEntryPaths:
             paths=paths,
             live_role_slugs=frozenset({"manager"}),
             live_skill_slugs=frozenset({"sq-example"}),
+            spec=bundled_spec(),
+            playbook=get_playbook_spec(),
+            catalog=catalog_of(paths.squad_dir),
         )
         for p in backend.managed_entry_paths(entry_ctx):
             assert isinstance(p, str)
@@ -520,6 +529,9 @@ class TestManagedEntryPaths:
             paths=paths,
             live_role_slugs=frozenset({"manager"}),
             live_skill_slugs=frozenset({"sq-example"}),
+            spec=bundled_spec(),
+            playbook=get_playbook_spec(),
+            catalog=catalog_of(paths.squad_dir),
         )
         before = set(entry_ctx.root.rglob("*"))
         backend.managed_entry_paths(entry_ctx)
@@ -544,6 +556,7 @@ class TestManagedEntryPaths:
             playbook=get_playbook_spec(),
             live_role_slugs=frozenset({"manager"}),
             live_skill_slugs=frozenset({"sq-example"}),
+            catalog=catalog_of(paths.squad_dir),
         )
         await backend.generate_role_entry(entry_ctx, role_item, role_def)
         await backend.generate_skill_entry(entry_ctx, skill_item)
@@ -564,10 +577,14 @@ class TestManagedEntryPaths:
             spec=bundled_spec(),
             playbook=get_playbook_spec(),
             live_role_slugs=frozenset({"manager"}),
+            catalog=catalog_of(paths.squad_dir),
         )
         await backend.generate_role_entry(write_ctx, role_item, role_def)
 
         empty_ctx = BackendContext(
-            paths=paths, spec=bundled_spec(), playbook=get_playbook_spec()
+            paths=paths,
+            spec=bundled_spec(),
+            playbook=get_playbook_spec(),
+            catalog=catalog_of(paths.squad_dir),
         )  # nothing currently live
         assert backend.managed_entry_paths(empty_ctx) == []

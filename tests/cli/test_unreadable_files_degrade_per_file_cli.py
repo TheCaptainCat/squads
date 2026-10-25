@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import create_item, make_unreadable_by_the_os
+from _helpers import create_item, make_service, make_unreadable_by_the_os
 from squads._index._resolver import item_file
 from squads._memory._store import role_folder
 from squads._services import _service as service
@@ -32,7 +32,7 @@ def _run(tmp_path, *args: str) -> subprocess.CompletedProcess[bytes]:
 
 async def test_check_exits_3_bare_on_a_corrupt_item_file(tmp_path):
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(init.paths)
+    svc = make_service(init.paths)
     task = (await create_item(svc, "task", "corrupt target")).item
     make_unreadable_by_the_os(svc.paths.abspath(task.path))
 
@@ -47,7 +47,7 @@ async def test_repair_exits_1_bare_on_a_corrupt_item_file(tmp_path):
     printed message tells the operator to fix the file and repair again -- a caller gating on
     `$?` must be able to tell that apart from a clean rebuild."""
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(init.paths)
+    svc = make_service(init.paths)
     task = (await create_item(svc, "task", "corrupt target")).item
     make_unreadable_by_the_os(svc.paths.abspath(task.path))
 
@@ -70,7 +70,7 @@ async def test_board_list_exits_4_bare_on_a_corrupt_notice(tmp_path):
     stream, not a combined capture), with explicit absence from stdout so a script splitting
     the streams never finds a degraded read mixed into its results."""
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(init.paths)
+    svc = make_service(init.paths)
     notice = await svc.board_post("op-alice", "a fine notice")
     notice_path = svc.paths.squad_dir / "board" / f"{notice.id}.md"
     make_unreadable_by_the_os(notice_path)
@@ -90,7 +90,7 @@ async def test_board_list_json_stays_a_bare_array_and_reports_omissions_on_stder
     stderr, and the exit code (`4`) is what tells an automated caller the listing was
     incomplete."""
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(init.paths)
+    svc = make_service(init.paths)
     await svc.board_post("op-alice", "a fine notice")
     notice2 = await svc.board_post("op-alice", "a corrupt notice")
     notice_path = svc.paths.squad_dir / "board" / f"{notice2.id}.md"
@@ -117,7 +117,7 @@ async def test_memory_list_names_the_unreadable_entry_on_stderr_only_and_exits_4
     degraded-read notice mixed into its results. The memory commands' exit code is now
     load-bearing: `0` -> `4` is the intended flip, not a regression to soften."""
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(init.paths)
+    svc = make_service(init.paths)
     await svc.memory_add("manager", "a remembered fact")
     memory_path = next(iter(role_folder(init.paths, "manager").glob("*.md")))
     make_unreadable_by_the_os(memory_path)
@@ -135,7 +135,7 @@ async def test_memory_search_names_the_unreadable_entry_on_stderr_only_and_exits
     """Same stream contract as `memory list` above, for `memory search`'s identical per-file
     loop, and the same `0` -> `4` exit-code flip."""
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(init.paths)
+    svc = make_service(init.paths)
     await svc.memory_add("manager", "a remembered fact")
     memory_path = next(iter(role_folder(init.paths, "manager").glob("*.md")))
     make_unreadable_by_the_os(memory_path)
@@ -152,7 +152,7 @@ async def test_memory_search_names_the_unreadable_entry_on_stderr_only_and_exits
 async def _inbox_and_search_setup(tmp_path):
     """One readable item carrying a mention and the needle text, and one to break."""
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(init.paths)
+    svc = make_service(init.paths)
     good = (await create_item(svc, "task", "readable")).item
     await svc.set_body(good.id, "the quinoa line, and @manager is called out")
     bad = (await create_item(svc, "task", "unreadable")).item
@@ -214,7 +214,7 @@ async def test_inbox_and_search_clean_read_has_no_stderr_and_exits_zero(tmp_path
     """The counterpart to the degraded-read tests above: nothing unreadable means nothing on
     stderr, the answer on stdout, and exit 0 -- unchanged by this fix."""
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(init.paths)
+    svc = make_service(init.paths)
     good = (await create_item(svc, "task", "readable")).item
     await svc.set_body(good.id, "the quinoa line, and @manager is called out")
 
@@ -264,7 +264,7 @@ async def test_check_reports_a_type_invalid_field_without_a_traceback(tmp_path):
     """The fourth failure shape (valid YAML, type-invalid field), at the CLI edge: `check` must
     report it cleanly rather than print `no issues` (the bug) or a raw pydantic traceback."""
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(init.paths)
+    svc = make_service(init.paths)
     task = (await create_item(svc, "task", "type-invalid target")).item
     path = svc.paths.abspath(task.path)
     path.write_text(
@@ -288,7 +288,7 @@ async def test_repair_recovers_from_a_broken_symlink_without_a_traceback(tmp_pat
     """The fifth failure shape (a present dirent, absent target) at the CLI edge, across both
     commands the finding drove."""
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(init.paths)
+    svc = make_service(init.paths)
     await create_item(svc, "task", "an ordinary task")
     ghost = svc.paths.squad_dir / "tasks" / "TASK-999998-ghost.md"
     ghost.symlink_to("/nonexistent/target")
@@ -304,7 +304,7 @@ async def test_repair_recovers_from_a_broken_symlink_without_a_traceback(tmp_pat
 @pytest.mark.parametrize("args", [["check"], ["repair"], ["board", "list"]])
 async def test_a_clean_board_exits_0_bare_across_touched_commands(tmp_path, args):
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(init.paths)
+    svc = make_service(init.paths)
     await create_item(svc, "task", "an ordinary task")
     await svc.board_post("op-alice", "an ordinary notice")
 

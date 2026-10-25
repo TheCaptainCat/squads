@@ -36,7 +36,7 @@ from typing import Any, NamedTuple, cast
 from squads import _aio
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._index._store import IndexStore
-from squads._interactions import role_origin, skill_origin
+from squads._interactions._skills import role_origin, skill_origin
 from squads._itemfile import read_frontmatter, write_text
 from squads._migrations._context import MigrationContext
 from squads._migrations._outcome import MigrationOutcome
@@ -45,7 +45,6 @@ from squads._models._attributes import AttributeKey
 from squads._models._index import SquadsDB
 from squads._models._item import Item, slug_from_stem
 from squads._models._participants import roster_slug_breaches
-from squads._roles._loader import load_role_catalog
 from squads._roles._resolver import resolve_role_with_base
 from squads._sections import (
     find_markers,
@@ -819,7 +818,9 @@ def _held_capabilities(
     if front.get("tech"):
         return tuple(developer)
     try:
-        return resolve_role_with_base(slug, ctx.paths.squad_dir, base=None).capabilities
+        return resolve_role_with_base(
+            slug, ctx.paths.squad_dir, base=None, catalog=ctx.catalog
+        ).capabilities
     except RoleNotFoundError:
         return None
     except SquadsError:
@@ -834,7 +835,7 @@ async def _plan_developer_capability(ctx: MigrationContext, db: SquadsDB) -> Pla
     A role file is read as the flatten step will leave it, since this plans before that writer.
     """
     live = ctx.spec.live_statuses(ROSTER_ROLE)
-    developer = frozenset(load_role_catalog(ctx.paths.squad_dir).dev.capabilities)
+    developer = frozenset(ctx.catalog().dev.capabilities)
     default_kind = ctx.spec.default_ref_kind()
     reported: list[str] = []
     for it in sorted(db.items.values(), key=lambda i: i.sequence_id):

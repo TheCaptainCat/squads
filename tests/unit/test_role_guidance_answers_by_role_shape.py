@@ -9,8 +9,8 @@ as ``python-dev`` does; the rows record those answers as they stand.
 import pytest
 
 from _helpers import role_of
-from squads._interactions import get_playbook_spec
 from squads._interactions._models import PlaybookSpec, RoleGuideSpec
+from squads._interactions._playbook import get_playbook_spec
 from squads._interactions._role_guidance import (
     allowed_create_types,
     example_assignee_slug,

@@ -102,10 +102,15 @@ _TYPES: tuple[tuple[str, str, str], ...] = (
     ("operator", "OP", "operators"),
 )
 
+# The frozen container tags of the three sub-entity kinds this schema knew.
+_STORIES = "stories"
+_SUBTASKS = "subtasks"
+_FINDINGS = "findings"
+
 # Item types whose body holds sub-entities, and the (kind, container) to upgrade + summarise.
 _BODY_KIND: dict[str, tuple[str, str]] = {
-    "task": ("subtask", markers.SUBTASKS),
-    "feature": ("story", markers.STORIES),
+    "task": ("subtask", _SUBTASKS),
+    "feature": ("story", _STORIES),
 }
 
 
@@ -133,14 +138,12 @@ def _fold_ref_kinds(text: str) -> str:
 
 def _insert_findings_skeleton(text: str) -> str:
     """Give a legacy review an empty findings container before its discussion (markers only)."""
-    container = (
-        f"{markers.open_marker(markers.FINDINGS)}\n{markers.close_marker(markers.FINDINGS)}\n\n"
-    )
+    container = f"{markers.open_marker(_FINDINGS)}\n{markers.close_marker(_FINDINGS)}\n\n"
     disc = markers.open_marker(markers.DISCUSSION)
     return text.replace(disc, container + disc, 1) if disc in text else f"{text}\n{container}"
 
 
-def _migrate_file(md: Path, item_type: str) -> bool:
+def _migrate_file(md: Path, item_type: str, *, from_squad: Path) -> bool:
     """Apply all 1→2 transforms to one file; return whether it changed."""
     original = md.read_text(encoding="utf-8")
     text = _fold_ref_kinds(original)
@@ -151,10 +154,14 @@ def _migrate_file(md: Path, item_type: str) -> bool:
             text = _meta_compat.upgrade_legacy_block(text, kind, lid)
         if sections.has_section(text, container):
             subs = [_meta_compat.to_subentity(b) for b in _meta_compat.list_blocks(text, kind)]
-            text = discussion.ensure_summary(text, kind, container, subs)
-    elif item_type == "review" and not sections.has_section(text, markers.FINDINGS):
+            text = discussion.ensure_summary(
+                text, kind, container, subs, _meta_compat.legacy_spec(), from_squad=from_squad
+            )
+    elif item_type == "review" and not sections.has_section(text, _FINDINGS):
         text = _insert_findings_skeleton(text)
-        text = discussion.ensure_summary(text, "finding", markers.FINDINGS, [])
+        text = discussion.ensure_summary(
+            text, "finding", _FINDINGS, [], _meta_compat.legacy_spec(), from_squad=from_squad
+        )
     if text == original:
         return False
     md.write_text(text, encoding="utf-8", newline="")
@@ -169,6 +176,6 @@ def migrate(paths: SquadPaths) -> int:
         if not folder.is_dir():
             continue
         for md in sorted(folder.glob(f"{prefix}-*.md")):
-            if _migrate_file(md, item_type):
+            if _migrate_file(md, item_type, from_squad=paths.squad_dir):
                 changed += 1
     return changed

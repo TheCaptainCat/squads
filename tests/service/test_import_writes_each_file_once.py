@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import _actor as actor
 from squads import _aio
 from squads import _clock as clock
@@ -199,7 +199,7 @@ async def _reference_squad(tmp_path: Path) -> Any:
     root = tmp_path / "reference"
     root.mkdir()
     result = await service.init(root=root, roles_spec="minimal", _skip_skill_seed=True)
-    return service.Service(result.paths)
+    return make_service(result.paths)
 
 
 async def _import(svc: Any, steps: list[Step], ids: dict[str, str]) -> Any:

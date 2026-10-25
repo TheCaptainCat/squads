@@ -9,7 +9,7 @@ reference it) — every one of which ``sq init``/``sq adopt`` already write for 
 after the declaration landed, and none of which a squad created *before* it ever gets on its
 own. The skill's definition text is not among them: a system skill's definition renders from
 its template on every read, off the ``sq:view:item_skill`` tag its ``sq:body`` carries
-(``squads._views.expand_view_tags``, via ``ItemsMixin.read_body``), so nothing stores it and
+(``squads._view_tags.expand_view_tags``, via ``ItemsMixin.read_body``), so nothing stores it and
 nothing here writes it.
 
 No existing item data is rewritten: every write this runner performs creates a path that did
@@ -53,13 +53,14 @@ from squads import _clock as clock
 from squads._backends._base import BackendContext
 from squads._backends._registry import get_backend
 from squads._index._store import IndexStore
-from squads._interactions import item_skill_name, skill_description
 from squads._interactions._models import PlaybookSpec
+from squads._interactions._skills import item_skill_name, skill_description
 from squads._migrations._context import MigrationContext
 from squads._migrations._legacy_extra import legacy_extra, with_legacy_extra
 from squads._models._item import Item
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
+from squads._roles._models import CatalogSource
 from squads._roles._projection import OperatorView, RoleView
 from squads._sections import join_frontmatter, split_frontmatter
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL
@@ -219,7 +220,7 @@ async def _live_roster(
 
 
 async def _regenerate_surface(
-    paths: SquadPaths, spec: WorkflowSpec, playbook: PlaybookSpec
+    paths: SquadPaths, spec: WorkflowSpec, playbook: PlaybookSpec, catalog: CatalogSource
 ) -> None:
     """(Re)write every active backend's roster/version-dependent files — scaffolding plus
     ``write_managed`` — exactly the two calls ``Service.sync``'s own backend loop makes, so the
@@ -229,14 +230,19 @@ async def _regenerate_surface(
     narrower entry point — but a skill file that already exists is left byte-untouched, so an
     existing squad sees no change to anything but the two new types' files."""
     roster, operators, skill_paths = await _live_roster(paths, spec)
-    ctx = BackendContext(paths=paths, skill_paths=skill_paths, spec=spec, playbook=playbook)
+    ctx = BackendContext(
+        paths=paths, skill_paths=skill_paths, spec=spec, playbook=playbook, catalog=catalog
+    )
+    # A frozen runner: it names its backends itself rather than taking the service's.
     for backend_name in paths.config.active_backends:
         backend = get_backend(backend_name)
         await backend.ensure_scaffold(ctx)
         await backend.write_managed(ctx, roster, operators)
 
 
-async def _seed_new_type_skills(paths: SquadPaths, spec: WorkflowSpec) -> int:
+async def _seed_new_type_skills(
+    paths: SquadPaths, spec: WorkflowSpec, playbook: PlaybookSpec, catalog: CatalogSource
+) -> int:
     """Stamp a ``SKILL`` item onto each new type's skill file ``_regenerate_surface`` just
     created, the same allocate → stamp → rewrite-pointer shape every prior runner that seeds a
     skill uses. Scoped to exactly the two slugs this runner is chartered to introduce —
@@ -295,7 +301,7 @@ async def _seed_new_type_skills(paths: SquadPaths, spec: WorkflowSpec) -> int:
         # content does not actually depend on the item (its description is the compiled one,
         # not item.extra), so this is defensive symmetry with every other seeding runner
         # rather than a fix for a real drift.
-        ctx = BackendContext(paths=paths, spec=spec, playbook=None)
+        ctx = BackendContext(paths=paths, spec=spec, playbook=playbook, catalog=catalog)
         for backend_name in paths.config.active_backends:
             await get_backend(backend_name).generate_skill_entry(ctx, item)
         seeded += 1
@@ -310,6 +316,6 @@ async def migrate(ctx: MigrationContext) -> int:
     but before this runner shipped)."""
     paths, spec = ctx.paths, ctx.spec
     changed = await _ensure_type_folders(paths, spec)
-    await _regenerate_surface(paths, spec, ctx.playbook)
-    changed += await _seed_new_type_skills(paths, spec)
+    await _regenerate_surface(paths, spec, ctx.playbook, ctx.catalog)
+    changed += await _seed_new_type_skills(paths, spec, ctx.playbook, ctx.catalog)
     return changed

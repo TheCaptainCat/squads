@@ -5,19 +5,21 @@
 concern mixin under ``_services/``.
 """
 
+from collections.abc import Callable, Sequence
+from enum import StrEnum
 from pathlib import Path
 
 from squads import _aio
+from squads._backends._base import AgentBackend
+from squads._backends._registry import get_backend
 from squads._errors import AlreadyInitializedError, PlaybookConfigError, SquadsError
 from squads._index._store import IndexStore
-from squads._interactions import get_playbook_spec
-from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME, load_playbook
-from squads._interactions._models import PlaybookSpec
 from squads._language import DEFAULT_WORKING_LANGUAGE
 from squads._models._config import CONFIG_FILENAME, SquadsConfig
 from squads._paths import SquadPaths, load_config, process_dir, resolve
-from squads._roles._catalog import RoleDef, get_catalog, resolve_roles
+from squads._roles._catalog import RoleDef, resolve_roles
 from squads._services._board import BoardMixin
+from squads._services._check import CheckMixin
 from squads._services._collab import CollabMixin
 from squads._services._import import ImportMixin
 from squads._services._items import ItemsMixin
@@ -30,7 +32,15 @@ from squads._services._retype import RetypeMixin
 from squads._services._roster import RosterMixin
 from squads._services._subentities import SubentitiesMixin
 from squads._services._views import ViewsMixin
+from squads._spec_documents import SpecDocuments, SpecSources, resolve_documents, spec_sources
+from squads._specload import Lazy
 from squads._workflow import ROSTER_ROLE, bundled_spec
+from squads._workflow._loader import (
+    WORKFLOW_OVERRIDE_FILENAME,
+    load_workflow_spec,
+    spec_refusal,
+    validate_against_index_fail_closed,
+)
 from squads._workflow._models import WorkflowSpec
 
 
@@ -41,6 +51,7 @@ class Service(
     SubentitiesMixin,
     RefsMixin,
     RosterMixin,
+    CheckMixin,
     MaintenanceMixin,
     RetypeMixin,
     RenameMixin,
@@ -54,35 +65,158 @@ class Service(
     """
 
 
-def resolve_playbook(spec: WorkflowSpec, squad_dir: Path) -> PlaybookSpec:
-    """The merged playbook for *spec*/*squad_dir* — the playbook counterpart to the workflow
-    spec's own fast-path/merge split in :func:`open_service`.
+class Mode(StrEnum):
+    """How :func:`compose_service` chooses the documents a service holds when something fails."""
 
-    Coverage always validates against *spec* (see ``_interactions._loader``'s module
-    docstring), so this must still run through :func:`load_playbook` — reparsing the bundled
-    ``playbook.toml`` and revalidating coverage — whenever *spec* is not the untouched bundled
-    singleton, even with no ``.overrides/playbook.toml`` present: a workflow override alone can
-    change which types the playbook must now cover. Only when *spec* IS the bundled singleton
-    **and** no playbook override file exists does this take the zero-reparse fast path and
-    return the cached bundled playbook — byte-identical to a squad with no overrides at all.
+    #: The squad's merged workflow spec, checked against the live index, and its merged playbook.
+    NORMAL = "normal"
+    #: The merged workflow spec without the index check, and the bundled playbook.
+    INDEX_CHECK_SKIPPED = "index-check-skipped"
+    #: The merged workflow spec and playbook, each refused with a pointer back to `sq migrate up`.
+    MIGRATE = "migrate"
+    #: The merged workflow spec (the bundled one if it will not load) and the bundled playbook.
+    PLAYBOOK_UNAVAILABLE = "playbook-unavailable"
+    #: The bundled workflow spec and the bundled playbook.
+    BUNDLED_FALLBACK = "bundled-fallback"
 
-    Raises :class:`~squads._errors.PlaybookConfigError` (never a plain ``SquadsError``) on any
-    load/validation failure — the one place that distinction is made, so both call sites in
-    :func:`open_service` (the fast path and the merged path) get it for free rather than each
-    wrapping the loader's error separately. The wrapped message names the override file
-    directly: unlike the workflow spec, there is today no dedicated lint surface to point a
-    caller at (``sq override diff playbook`` diffs raw text; it does not load or validate), so
-    this names *what* is wrong (the loader's own message, already specific — a malformed-TOML
-    location, a referential/coverage violation) and *where* (the file) rather than inventing a
-    command that would not actually diagnose it.
-    """
-    override_path = squad_dir / PLAYBOOK_OVERRIDE_FILENAME
-    if spec is bundled_spec() and not override_path.is_file():
-        return get_playbook_spec()
+
+#: What a command that must still run beside a refusal tries after :attr:`Mode.NORMAL` fails: the
+#: first rung that builds wins, and a refusal on the last one is the caller's.
+BYPASS_FALLBACKS: tuple[Mode, ...] = (Mode.INDEX_CHECK_SKIPPED, Mode.BUNDLED_FALLBACK)
+MIGRATE_FALLBACKS: tuple[Mode, ...] = (Mode.MIGRATE,)
+
+#: What `sq check` falls back to, by the refusal :attr:`Mode.NORMAL` raised; the first row whose
+#: error class matches wins, so the narrower class comes first.
+CHECK_FALLBACKS: tuple[tuple[type[SquadsError], Mode], ...] = (
+    (PlaybookConfigError, Mode.PLAYBOOK_UNAVAILABLE),
+    (SquadsError, Mode.BUNDLED_FALLBACK),
+)
+
+
+def check_fallback(error: SquadsError) -> Mode:
+    """The mode `sq check` composes its service in after *error* refused :attr:`Mode.NORMAL`."""
+    return next(mode for kind, mode in CHECK_FALLBACKS if isinstance(error, kind))
+
+
+def _squad_workflow_spec(resolved_spec: WorkflowSpec | None, sources: SpecSources) -> WorkflowSpec:
+    """*resolved_spec* when the caller already resolved it, else the squad's merged workflow spec
+    (the bundled one when it has no override), without the index check."""
+    return resolved_spec if resolved_spec is not None else sources.workflow()
+
+
+def _checked_workflow_spec(
+    paths: SquadPaths, resolved_spec: WorkflowSpec | None, sources: SpecSources
+) -> WorkflowSpec:
+    """The workflow spec :attr:`Mode.NORMAL` holds: *resolved_spec* when the caller already
+    resolved and checked it, else the merged spec checked against the live index, refused in the
+    shared wording when either half fails."""
+    if resolved_spec is not None:
+        return resolved_spec
+    override_path = paths.squad_dir / WORKFLOW_OVERRIDE_FILENAME
+    if not override_path.is_file():
+        return bundled_spec()
     try:
-        return load_playbook(get_catalog(), spec=spec, squad_dir=squad_dir)
+        merged = sources.workflow()
+        validate_against_index_fail_closed(merged, paths.squad_dir, bundled=bundled_spec())
     except SquadsError as exc:
-        raise PlaybookConfigError(str(exc)) from exc
+        raise SquadsError(spec_refusal(override_path, exc)) from exc
+    return merged
+
+
+def _documents_for(
+    paths: SquadPaths, mode: Mode, resolved_spec: WorkflowSpec | None, sources: SpecSources
+) -> SpecDocuments:
+    """The documents *mode* puts in a service for the squad at *paths*."""
+    squad_dir = paths.squad_dir
+    match mode:
+        case Mode.NORMAL:
+            return resolve_documents(
+                squad_dir, sources, workflow=_checked_workflow_spec(paths, resolved_spec, sources)
+            )
+        case Mode.INDEX_CHECK_SKIPPED:
+            spec = _squad_workflow_spec(resolved_spec, sources)
+            return resolve_documents(squad_dir, sources, workflow=spec, bundled_playbook=True)
+        case Mode.MIGRATE:
+            try:
+                spec = _squad_workflow_spec(resolved_spec, sources)
+            except SquadsError as exc:
+                raise SquadsError(
+                    "this squad's workflow override could not be loaded, so `sq migrate up` "
+                    "cannot run under the vocabulary it declares.\n"
+                    f"  file:  {squad_dir / WORKFLOW_OVERRIDE_FILENAME}\n"
+                    f"  cause: {exc}\n"
+                    "Correct the file, then re-run `sq migrate up`."
+                ) from exc
+            try:
+                return resolve_documents(squad_dir, sources, workflow=spec)
+            except SquadsError as exc:
+                raise SquadsError(f"{exc}\nCorrect the file, then re-run `sq migrate up`.") from exc
+        case Mode.PLAYBOOK_UNAVAILABLE:
+            try:
+                spec = _squad_workflow_spec(resolved_spec, sources)
+            except SquadsError:
+                spec = bundled_spec()
+            return resolve_documents(squad_dir, sources, workflow=spec, bundled_playbook=True)
+        case Mode.BUNDLED_FALLBACK:
+            return resolve_documents(
+                squad_dir, sources, workflow=bundled_spec(), bundled_playbook=True
+            )
+
+
+def _backends_of(names: Sequence[str]) -> Callable[[], list[AgentBackend]]:
+    """The squad's active backends, instantiated on first use and kept: an unknown name is
+    refused when a backend is first needed, not when the service is built."""
+    instances = Lazy(lambda: [get_backend(name) for name in names])
+    return lambda: list(instances())
+
+
+def build_service(
+    paths: SquadPaths,
+    documents: SpecDocuments,
+    backends: Callable[[], list[AgentBackend]] | None = None,
+) -> Service:
+    """The one place a :class:`Service` is constructed: its index store and backends (the
+    squad's configured ones unless *backends* is given) are built here and handed in, with the
+    *documents* it holds."""
+    return Service(
+        paths,
+        spec=documents.workflow,
+        playbook=documents.playbook,
+        store=IndexStore(paths.index_path, paths.lock_path, spec=documents.workflow),
+        backends=backends if backends is not None else _backends_of(paths.config.active_backends),
+        catalog=documents.catalog,
+        files=documents.files,
+    )
+
+
+def compose_service(
+    paths: SquadPaths,
+    mode: Mode = Mode.NORMAL,
+    *,
+    resolved_spec: WorkflowSpec | None = None,
+    sources: SpecSources | None = None,
+) -> Service:
+    """The service for the squad at *paths*, holding the documents *mode* chooses; *resolved_spec*
+    and *sources* carry what the caller already resolved or read, so none of it is loaded again."""
+    sources = sources if sources is not None else spec_sources(paths.squad_dir)
+    return build_service(paths, _documents_for(paths, mode, resolved_spec, sources))
+
+
+def compose_first_of(
+    paths: SquadPaths,
+    modes: Sequence[Mode],
+    *,
+    resolved_spec: WorkflowSpec | None = None,
+    sources: SpecSources | None = None,
+) -> Service:
+    """The service of the first of *modes* that builds; the last one's refusal is raised."""
+    sources = sources if sources is not None else spec_sources(paths.squad_dir)
+    for mode in modes[:-1]:
+        try:
+            return compose_service(paths, mode, resolved_spec=resolved_spec, sources=sources)
+        except SquadsError:
+            continue
+    return compose_service(paths, modes[-1], resolved_spec=resolved_spec, sources=sources)
 
 
 def _init_time_spec(squad_dir: Path) -> WorkflowSpec:
@@ -101,9 +235,6 @@ def _init_time_spec(squad_dir: Path) -> WorkflowSpec:
     With no override file present this returns the cached bundled singleton with no extra
     parsing — byte-identical to the pre-existing behaviour.
     """
-    from squads._errors import SquadsError
-    from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, load_workflow_spec
-
     override_path = squad_dir / WORKFLOW_OVERRIDE_FILENAME
     if not override_path.is_file():
         return bundled_spec()
@@ -162,13 +293,13 @@ async def init(
         await _aio.mkdir(sp.squad_dir / ts.folder, parents=True, exist_ok=True)
     await _aio.write_text(sp.squad_dir / ".gitignore", ".squads.json.lock\n*.tmp\n")
 
-    store = IndexStore(sp.index_path, sp.lock_path)
+    store = IndexStore(sp.index_path, sp.lock_path, spec=effective_spec)
     index_exists = store.exists()
     holds_corpus = index_exists or _holds_item_files(sp, effective_spec)
     if not index_exists:
         await store.create_empty_threaded()
 
-    svc = Service(sp, spec=effective_spec, playbook=resolve_playbook(effective_spec, sp.squad_dir))
+    svc = compose_service(sp, resolved_spec=effective_spec)
     if holds_corpus:
         # Over an existing squad, rebuild the index from disk over the one already there (under
         # the index lock, carrying forward what cannot be parsed, as `sq repair` does) so roles
@@ -227,6 +358,7 @@ async def adopt(
     """
     root = (root or process_dir()).resolve()
     config_path = root / CONFIG_FILENAME
+    validated_spec: WorkflowSpec | None = None
     if await _aio.path_exists(config_path):
         config = load_config(config_path)
         squad_dir = config.squad_dir
@@ -234,7 +366,7 @@ async def adopt(
         # Validate a pre-placed override before writing .squads.toml — same ordering as
         # init() and for the same reason: adopt is the other caller that can create the
         # config file, so it must not wedge a half-created squad behind a bad override either.
-        _init_time_spec(root / squad_dir)
+        validated_spec = _init_time_spec(root / squad_dir)
         effective_backends: list[str] = backend if backend is not None else ["claude_code"]
         config = SquadsConfig(
             squad_dir=squad_dir,
@@ -246,18 +378,18 @@ async def adopt(
 
     sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
     await _aio.mkdir(sp.squad_dir, parents=True, exist_ok=True)
-    effective_spec = _init_time_spec(sp.squad_dir)
+    effective_spec = validated_spec if validated_spec is not None else _init_time_spec(sp.squad_dir)
     for ts in effective_spec.items.values():
         await _aio.mkdir(sp.squad_dir / ts.folder, parents=True, exist_ok=True)
     gitignore = sp.squad_dir / ".gitignore"
     if not await _aio.path_exists(gitignore):
         await _aio.write_text(gitignore, ".squads.json.lock\n*.tmp\n")
 
-    store = IndexStore(sp.index_path, sp.lock_path)
+    store = IndexStore(sp.index_path, sp.lock_path, spec=effective_spec)
     if not store.exists():
         await store.create_empty_threaded()
 
-    svc = Service(sp, spec=effective_spec, playbook=resolve_playbook(effective_spec, sp.squad_dir))
+    svc = compose_service(sp, resolved_spec=effective_spec)
     # Import any existing squads-native .md files (sets counter from them).
     repair_result = await svc.repair()
     existing_roles = {it.slug for it in repair_result.db.items.values() if it.type == ROSTER_ROLE}
@@ -284,88 +416,17 @@ def open_service(
     *,
     client_cwd: Path | None = None,
     resolved_spec: WorkflowSpec | None = None,
+    sources: SpecSources | None = None,
 ) -> Service:
-    """Resolve the active squad, load (and activate) its workflow spec, return a Service.
+    """Resolve the active squad and compose its service in :attr:`Mode.NORMAL`.
 
-    If the squad has a workflow override under ``<squad_dir>/.overrides/workflow.toml``
-    it is merged (may shadow the bundled default, not only add to it) and
-    passed explicitly to ``Service``.  A squad with no override uses the cached
-    ``_BUNDLED_SPEC`` fast-path — no re-parse on every call.
-
-    A spec that fails validation raises ``SquadsError`` pointing to ``sq workflow lint``.
-    No command proceeds with an invalid spec. A playbook (bundled + any
-    ``.overrides/playbook.toml``) that fails to load or validate raises
-    :class:`~squads._errors.PlaybookConfigError` instead — a distinct ``SquadsError``
-    subclass, so a caller that wants to tell the two failures apart (``sq check``) can,
-    rather than reporting a playbook problem as a workflow one and pointing at a lint command
-    that never reads ``.overrides/playbook.toml``.
-
-    After loading the spec, the live index is cross-checked for items whose type or
-    status is no longer declared in the spec.  A mismatch raises ``SquadsError``
-    listing every offending item ID.
-
-    ``sq workflow lint`` bypasses this by calling ``lint_workflow_spec`` directly —
-    it reports the same errors in collect mode without going through ``open_service``.
-
-    ``client_cwd`` threads straight to :func:`squads._paths.resolve` — the requesting
-    client's working directory (``None`` falls back to the process cwd, one-shot CLI's
-    only case). This function stays a pure, explicit-input call; the CLI edge is what
-    reads the ambient request context and passes its ``client_cwd`` in.
-
-    ``resolved_spec``, when given, is a spec the caller has *already* resolved — merged and,
-    if an override is present, already run through ``validate_against_index_fail_closed`` —
-    for this exact ``client_cwd``. ``_build_plain_service()``
-    (``_cli/_common.py``) is what supplies it, built from the per-invocation spec the CLI's
-    root callback already bound via ``bind_active_spec`` — to avoid re-running the same
-    load/merge/cross-check a second time on the same corpus within one invocation. Every CLI
-    command reaches this, ``sq ui`` included: ``get_service()`` calls
-    ``_build_plain_service()`` directly, and ``get_service_bypassing_index_cross_check()``'s
-    own first fallback step is a plain ``get_service()`` call, so it supplies
-    ``resolved_spec`` too — only that function's steps 2/3 (a genuinely broken override or a
-    live-index conflict) construct a ``Service`` straight from
-    ``load_workflow_spec``/``bundled_spec`` and never call ``open_service`` at all. The
-    callers that actually leave this ``None`` and get the full, independent resolution below
-    are the ones that call ``open_service`` directly rather than through ``get_service()`` —
-    a direct test call being the common example.
+    A workflow spec that fails to load or conflicts with the live index raises ``SquadsError``
+    pointing to ``sq workflow lint``; a playbook that fails to load raises
+    :class:`~squads._errors.PlaybookConfigError`. ``client_cwd`` is the requesting client's
+    working directory (``None`` is the process cwd), ``resolved_spec`` is a spec the caller
+    already resolved and checked for this squad, which replaces the load, and ``sources`` the
+    documents it already read.
     """
-    from squads._workflow._loader import (
-        WORKFLOW_OVERRIDE_FILENAME,
-        load_workflow_spec,
-        spec_refusal,
-        validate_against_index_fail_closed,
+    return compose_service(
+        resolve(client_cwd=client_cwd), resolved_spec=resolved_spec, sources=sources
     )
-
-    sp = resolve(client_cwd=client_cwd)
-
-    if resolved_spec is not None:
-        return Service(
-            sp, spec=resolved_spec, playbook=resolve_playbook(resolved_spec, sp.squad_dir)
-        )
-
-    override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
-    if not override_path.is_file():
-        # Fast path: no workflow override → use the already-validated bundled singleton.
-        # The playbook may still have its OWN override even with no workflow override, so it
-        # is resolved unconditionally through the same helper the merge path below uses —
-        # resolve_playbook's own fast path collapses to the bundled playbook singleton too
-        # when neither override is present, so a squad with neither still lands on the
-        # bundled playbook singleton here.
-        spec = bundled_spec()
-        return Service(sp, spec=spec, playbook=resolve_playbook(spec, sp.squad_dir))
-
-    # Override present: load, merge, validate, then cross-check. Both halves are rewrapped in
-    # the one shared refusal (`spec_refusal`) so this hard stop reads identically to the CLI's
-    # own per-invocation binding — the same failure reported twice in two voices is how an
-    # adopter ends up believing they are two problems.
-    try:
-        merged_spec = load_workflow_spec(squad_dir=sp.squad_dir)
-        # Cross-check the merged spec against the live index — raises if any item's
-        # type or status is not declared by the new spec.
-        validate_against_index_fail_closed(merged_spec, sp.squad_dir)
-    except SquadsError as exc:
-        raise SquadsError(spec_refusal(override_path, exc)) from exc
-
-    # resolve_playbook raises PlaybookConfigError (not a plain SquadsError) on its own
-    # failure — no rewrap needed here; see that function's docstring for why the message
-    # already names the actually-broken file rather than a non-diagnosing command.
-    return Service(sp, spec=merged_spec, playbook=resolve_playbook(merged_spec, sp.squad_dir))

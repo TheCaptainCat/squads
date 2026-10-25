@@ -13,13 +13,16 @@ import pytest
 from squads._errors import SquadsError
 from squads._index._store import IndexStore
 from squads._models._index import SquadsDB
+from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
 
 
 async def test_counter_is_single_and_monotonic_across_every_type(tmp_path):
     """One global counter serves every type — no per-type numbering."""
-    store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
+    store = IndexStore(
+        tmp_path / ".squads.json", tmp_path / ".squads.json.lock", spec=bundled_spec()
+    )
     store.create_empty()
     async with store.transaction() as db:
         ids = [
@@ -34,7 +37,7 @@ async def test_counter_is_single_and_monotonic_across_every_type(tmp_path):
 
 async def test_atomic_write_roundtrips_valid_json_and_leaves_no_temp_file(tmp_path):
     path = tmp_path / ".squads.json"
-    store = IndexStore(path, tmp_path / ".squads.json.lock")
+    store = IndexStore(path, tmp_path / ".squads.json.lock", spec=bundled_spec())
     store.create_empty()
     async with store.transaction() as db:
         db.allocate_id("bug")
@@ -49,7 +52,7 @@ async def test_load_wraps_a_corrupt_index_in_squads_error(tmp_path):
     """A structurally-invalid index (e.g. a negative counter) raises SquadsError, not a raw
     pydantic/JSON exception."""
     path = tmp_path / ".squads.json"
-    store = IndexStore(path, tmp_path / ".squads.json.lock")
+    store = IndexStore(path, tmp_path / ".squads.json.lock", spec=bundled_spec())
     store.create_empty()
     path.write_text('{"counter": -1}', encoding="utf-8")  # violates ge=0
 
@@ -62,7 +65,7 @@ async def test_load_wraps_a_missing_index_in_squads_error(tmp_path):
     wrong directory, a half-finished adopt) is just as unusable as a corrupt one -- it must raise
     the same clean SquadsError naming `sq repair`, not let FileNotFoundError escape raw."""
     path = tmp_path / ".squads.json"
-    store = IndexStore(path, tmp_path / ".squads.json.lock")
+    store = IndexStore(path, tmp_path / ".squads.json.lock", spec=bundled_spec())
     assert not path.exists()
 
     with pytest.raises(SquadsError, match="missing index") as exc_info:
@@ -73,7 +76,9 @@ async def test_load_wraps_a_missing_index_in_squads_error(tmp_path):
 async def test_allocate_id_raises_a_named_recovery_hint_at_capacity(tmp_path):
     """Exhausting the current padding's id space fails closed and names `sq migrate repad`
     rather than silently wrapping or corrupting the counter."""
-    store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
+    store = IndexStore(
+        tmp_path / ".squads.json", tmp_path / ".squads.json.lock", spec=bundled_spec()
+    )
     store.create_empty()
     async with store.transaction() as db:
         db.counter = 10**6 - 1  # the last valid id at padding=6
@@ -89,7 +94,7 @@ def test_sync_bootstrap_write_roundtrips_and_leaves_no_temp_file(tmp_path):
     """`create_empty`'s sync writer (used with no event loop running) round-trips valid JSON
     and leaves no `*.tmp` sibling, same as the async transaction path already proves."""
     path = tmp_path / ".squads.json"
-    store = IndexStore(path, tmp_path / ".squads.json.lock")
+    store = IndexStore(path, tmp_path / ".squads.json.lock", spec=bundled_spec())
 
     store.create_empty()
 
@@ -105,7 +110,7 @@ async def test_a_failure_between_the_temp_write_and_the_replace_leaves_the_index
     on both the sync bootstrap writer and the async transaction writer. Both funnel through
     the same shared primitive, so one test doubles as coverage of that delegation."""
     path = tmp_path / ".squads.json"
-    store = IndexStore(path, tmp_path / ".squads.json.lock")
+    store = IndexStore(path, tmp_path / ".squads.json.lock", spec=bundled_spec())
     store.create_empty()
     previous_bytes = path.read_text(encoding="utf-8")
 

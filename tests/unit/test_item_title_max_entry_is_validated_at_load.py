@@ -8,7 +8,8 @@ import pytest
 
 from squads._errors import SquadsError
 from squads._workflow import bundled_spec
-from squads._workflow._models import ItemSpec, WorkflowSpec, parse_positive_int
+from squads._workflow._models import ItemSpec, WorkflowSpec
+from squads._workflow._validator_names import parse_positive_int
 
 
 def _load(item_type: str, entries: list[str]) -> WorkflowSpec:

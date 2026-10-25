@@ -23,6 +23,7 @@ def _render(default_role_full_name: str | None) -> str:
         default_role_full_name=default_role_full_name,
         default_role_slug="a" if default_role_full_name else None,
         spec=bundled_spec(),
+        from_squad=None,
     )
 
 

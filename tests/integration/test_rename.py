@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads._errors import SquadsError
 from squads._index._reflog import read_lines, reflog_path
 from squads._models._schema import SCHEMA_VERSION
@@ -154,7 +154,7 @@ async def test_rename_type_refuses_when_a_child_would_have_an_invalid_parent_und
             "views": base.views,
         }
     )
-    generic_svc = service.Service(svc.paths, spec=spec)
+    generic_svc = make_service(svc.paths, spec=spec)
 
     feat = (await create_item(svc, "feature", "f")).item
     task = (await create_item(svc, "task", "t", parent=feat.id)).item  # requires a feature parent
@@ -169,7 +169,6 @@ async def test_rename_type_refuses_when_a_child_would_have_an_invalid_parent_und
 async def test_rename_type_mid_flight_failure_restores_disk_and_index(
     svc, monkeypatch, tmp_path
 ) -> None:
-    from squads._services import _service as service
     from squads._services._retype import apply_type_change
     from squads._workflow._loader import load_workflow_spec
     from squads._workflow._models import ItemSpec, WorkflowSpec
@@ -197,7 +196,7 @@ async def test_rename_type_mid_flight_failure_restores_disk_and_index(
             "views": base.views,
         }
     )
-    ticket_svc = service.Service(svc.paths, spec=spec)
+    ticket_svc = make_service(svc.paths, spec=spec)
 
     feat = (await create_item(svc, "feature", "f")).item
     await create_item(svc, "task", "t1", parent=feat.id)

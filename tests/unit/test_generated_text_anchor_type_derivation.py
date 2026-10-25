@@ -5,7 +5,7 @@ drop, since other types still carry the same capability.
 """
 
 from squads._badges import first_ordered_field
-from squads._interactions import cheatsheet_anchor_type
+from squads._interactions._cheatsheet import cheatsheet_anchor_type
 from squads._workflow import bundled_spec
 
 

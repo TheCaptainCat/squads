@@ -14,8 +14,7 @@ Self edges (a package importing itself) are not recorded. ``from pkg import name
 ``pkg.name`` when that is a module. A relative import, and a relative
 ``importlib.import_module`` name, is refused. An ``importlib.import_module("squads....")`` with a
 literal argument counts as an import where it stands. Not seen: an ``import_module`` with a
-computed argument (``_backends/_registry.py`` loads its backends that way, a self edge),
-``__import__``, ``importlib.util`` and ``runpy``.
+computed argument, ``__import__``, ``importlib.util`` and ``runpy``.
 
 Two further tables pin the package-level strongly connected component over the ``top`` edges and
 the package ``__init__`` files that hold code.
@@ -240,8 +239,8 @@ _backends -> _paths top
 _backends -> _rendering top
 _backends -> _roles top
 _backends -> _sections top
+_backends -> _view_tags top
 _backends -> _views top
-_backends -> _workflow local
 _backends -> _workflow top
 _badges -> _workflow top
 _board -> _aio top
@@ -261,7 +260,6 @@ _cli -> _errors local
 _cli -> _errors top
 _cli -> _index top
 _cli -> _interactions top
-_cli -> _interactions typing
 _cli -> _language top
 _cli -> _migrations top
 _cli -> _models local
@@ -272,11 +270,11 @@ _cli -> _paths local
 _cli -> _paths top
 _cli -> _pronouns top
 _cli -> _rendering local
-_cli -> _rendering top
 _cli -> _roles top
 _cli -> _services local
 _cli -> _services top
 _cli -> _services typing
+_cli -> _spec_documents top
 _cli -> _transform local
 _cli -> _tui local
 _cli -> _util top
@@ -305,13 +303,13 @@ _index -> _errors top
 _index -> _models top
 _index -> _paths top
 _index -> _sections top
-_index -> _workflow local
 _index -> _workflow top
 _interactions -> _badges top
 _interactions -> _errors top
 _interactions -> _models top
 _interactions -> _overrides top
 _interactions -> _roles top
+_interactions -> _specload top
 _interactions -> _specmerge top
 _interactions -> _workflow top
 _interactions -> squads local
@@ -343,6 +341,7 @@ _migrations -> _paths top
 _migrations -> _rendering top
 _migrations -> _roles top
 _migrations -> _sections top
+_migrations -> _view_tags top
 _migrations -> _views top
 _migrations -> _workflow top
 _models -> _clock top
@@ -356,8 +355,9 @@ _overrides -> _rendering top
 _overrides -> _roles local
 _overrides -> _roles top
 _overrides -> _sections top
+_overrides -> _specload top
 _overrides -> _util top
-_overrides -> _views top
+_overrides -> _view_tags local
 _overrides -> _workflow top
 _overrides -> squads top
 _paths -> _errors top
@@ -377,6 +377,7 @@ _rendering -> _workflow top
 _roles -> _errors top
 _roles -> _models top
 _roles -> _pronouns top
+_roles -> _specload top
 _roles -> _specmerge top
 _roles -> _util top
 _sections -> _errors top
@@ -406,11 +407,21 @@ _services -> _rendering local
 _services -> _rendering top
 _services -> _roles top
 _services -> _sections top
+_services -> _spec_documents top
+_services -> _specload top
 _services -> _transform top
 _services -> _util top
+_services -> _view_remedies top
+_services -> _view_tags top
 _services -> _views top
-_services -> _workflow local
 _services -> _workflow top
+_spec_documents -> _errors top
+_spec_documents -> _interactions top
+_spec_documents -> _roles top
+_spec_documents -> _specload top
+_spec_documents -> _workflow top
+_specload -> _errors top
+_specload -> _specmerge top
 _specmerge -> _errors top
 _specmerge -> squads top
 _transform -> _errors top
@@ -426,6 +437,17 @@ _tui -> _models top
 _tui -> _pronouns top
 _tui -> _services top
 _tui -> _workflow top
+_view_remedies -> _workflow top
+_view_tags -> _errors top
+_view_tags -> _interactions top
+_view_tags -> _language top
+_view_tags -> _models top
+_view_tags -> _roles top
+_view_tags -> _sections top
+_view_tags -> _transform top
+_view_tags -> _view_remedies top
+_view_tags -> _views top
+_view_tags -> _workflow top
 _view_transforms -> _models top
 _view_transforms -> _workflow top
 _views -> _errors top
@@ -443,6 +465,7 @@ _workflow -> _errors top
 _workflow -> _models local
 _workflow -> _models top
 _workflow -> _overrides top
+_workflow -> _specload top
 _workflow -> _specmerge top
 _workflow -> squads local
 """).splitlines()
@@ -455,7 +478,6 @@ TOP_EDGE_COMPONENT: frozenset[str] = frozenset(
         "_overrides",
         "_paths",
         "_rendering",
-        "_views",
         "_workflow",
     }
 )
@@ -464,10 +486,7 @@ TOP_EDGE_COMPONENT: frozenset[str] = frozenset(
 INITS_WITH_CODE: frozenset[str] = frozenset(
     {
         "squads/__init__.py",
-        "squads/_backends/_agents_md/__init__.py",
-        "squads/_backends/_claude_code/__init__.py",
         "squads/_cli/__init__.py",
-        "squads/_interactions/__init__.py",
         "squads/_workflow/__init__.py",
     }
 )

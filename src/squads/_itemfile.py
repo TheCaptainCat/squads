@@ -124,7 +124,7 @@ def _classify_skew(key: str, disk_data: dict[str, Any], base_dict: dict[str, Any
 def stale_encoding_clause(fields: Iterable[str]) -> str:
     """The shared explanation for a stale-index-encoding skew on *fields* — reused by
     :func:`skew_message` and ``sq check``'s finding wording
-    (``_services/_maintenance.py::_drift_message``) so one state is explained in the same
+    (``_services/_check.py::_drift_message``) so one state is explained in the same
     words on both surfaces. States the true cause — a non-canonical index
     encoding — rather than a divergence the reader can open the file and disprove."""
     return f"the index holds a non-canonical encoding of {', '.join(fields)}, not a divergence"

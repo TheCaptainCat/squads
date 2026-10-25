@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of
 from squads._overrides._service import scaffold_new_role
 from squads._roles._resolver import resolve_role_for_item
 from squads._sections import split_frontmatter
@@ -54,7 +55,9 @@ class TestActivationCreatesTheTrackedItemAndPointer:
         # is resolved from the override document on every read, never copied onto the item.
         assert item.title == "Sam Security"
         assert item.description == "Keep the codebase free of security regressions."
-        resolved = resolve_role_for_item(item, svc.paths.squad_dir)
+        resolved = resolve_role_for_item(
+            item, svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir)
+        )
         assert resolved.title == "security analyst"
         assert resolved.mission == "Keep the codebase free of security regressions."
 
@@ -105,7 +108,12 @@ class TestCanSpawnOptIn:
             mission="Keep the codebase free of security regressions.",
         )
         item = await svc.activate_role("security-analyst")
-        assert resolve_role_for_item(item, svc.paths.squad_dir).can_spawn is False
+        assert (
+            resolve_role_for_item(
+                item, svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir)
+            ).can_spawn
+            is False
+        )
         fm, _ = split_frontmatter(_read_pointer(project, "security-analyst"))
         assert fm.get("disallowedTools") == "Agent"
 
@@ -121,7 +129,12 @@ class TestCanSpawnOptIn:
             mission="Plan and delegate work across the custom role roster.",
         )
         item = await svc.activate_role("orchestrator")
-        assert resolve_role_for_item(item, svc.paths.squad_dir).can_spawn is True
+        assert (
+            resolve_role_for_item(
+                item, svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir)
+            ).can_spawn
+            is True
+        )
         fm, _ = split_frontmatter(_read_pointer(project, "orchestrator"))
         assert "disallowedTools" not in fm
 

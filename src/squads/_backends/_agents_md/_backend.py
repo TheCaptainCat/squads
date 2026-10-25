@@ -22,7 +22,6 @@ from squads._interactions._role_guidance import developer_roles
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
-from squads._roles._loader import load_role_catalog
 from squads._roles._projection import OperatorView, RoleView
 from squads._workflow import ROSTER_SKILL
 from squads._workflow._models import WorkflowSpec
@@ -39,7 +38,7 @@ def _also_creatable_types(spec: WorkflowSpec, anchor_type: str | None) -> str:
     bundled list: a dropped type simply does not appear, and a renamed one appears under its
     new name, with nothing left pointing at the old one.
 
-    ``anchor_type`` is the same generically-derived (:func:`interactions.cheatsheet_anchor_type`)
+    ``anchor_type`` is the same generically-derived (:func:`cheatsheet_anchor_type`)
     type the ``sq create`` example line itself is built from — excluded here so it isn't listed
     against itself, whatever it happens to be."""
     others = sorted(
@@ -114,19 +113,19 @@ class AgentsMdBackend(AgentBackend):
             }
             for r in roster
         ]
-        from squads import _interactions as interactions
-        from squads._workflow import bundled_spec
+        from squads._interactions._cheatsheet import (
+            cheatsheet_anchor_context,
+        )
 
-        spec = ctx.spec if ctx.spec is not None else bundled_spec()
-        anchor_ctx = interactions.cheatsheet_anchor_context(spec)
+        spec = ctx.spec
+        anchor_ctx = cheatsheet_anchor_context(spec)
         section = render(
             "agents_md/agents_section.md.j2",
+            from_squad=ctx.squad_dir,
             squad_dir=squad_dir,
             working_language=ctx.working_language,
             roles=roles_data,
-            developer_slugs=[
-                r.slug for r in developer_roles(roster, load_role_catalog(ctx.squad_dir))
-            ],
+            developer_slugs=[r.slug for r in developer_roles(roster, ctx.catalog())],
             operators=[
                 {"full_name": o.full_name, "slug": o.slug, "pronouns": o.pronouns}
                 for o in operators

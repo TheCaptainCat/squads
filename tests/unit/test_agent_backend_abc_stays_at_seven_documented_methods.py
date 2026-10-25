@@ -14,9 +14,12 @@ into (or adds an eighth) abstract method reddens this file, not just the two doc
 a code change never touches.
 """
 
+from _helpers import catalog_of
 from squads._backends._agents_md._backend import AgentsMdBackend
 from squads._backends._base import AgentBackend, Artifact, BackendContext
 from squads._backends._claude_code._backend import ClaudeCodeBackend
+from squads._interactions._playbook import get_playbook_spec
+from squads._workflow import bundled_spec
 
 #: The exact seven method names both ``docs/stability.md`` and ``docs/backends.md`` document as
 #: the whole ABC -- transcribed from those documents, not derived from the class, so a source
@@ -83,7 +86,12 @@ def test_the_base_defaults_managed_entry_paths_to_an_empty_list(tmp_path):
     backend = _SevenMethodBackend()
     config = SquadsConfig(squad_dir="squads", active_backends=["claude_code"])
     ctx = BackendContext(
-        paths=SquadPaths(root=tmp_path, squad_dir=tmp_path / "squads", config=config)
+        paths=SquadPaths(root=tmp_path, squad_dir=tmp_path / "squads", config=config),
+        spec=bundled_spec(),
+        playbook=get_playbook_spec(),
+        catalog=catalog_of(
+            SquadPaths(root=tmp_path, squad_dir=tmp_path / "squads", config=config).squad_dir
+        ),
     )
     assert backend.managed_entry_paths(ctx) == []
 

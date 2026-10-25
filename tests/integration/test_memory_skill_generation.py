@@ -10,7 +10,7 @@ import re
 
 import pytest
 
-from _helpers import resolved_skill_definition
+from _helpers import make_service, resolved_skill_definition
 from squads import _sections as sections
 from squads._services import _service as service
 from squads._workflow._models import ROSTER_SKILL
@@ -79,7 +79,7 @@ async def test_memory_skill_is_surfaced_across_every_role_not_just_one_type(tmp_
 
 
 async def test_memory_skill_is_registered_among_bundled_skill_slugs():
-    from squads._interactions import MEMORY_SKILL, bundled_skill_slugs, skill_description
+    from squads._interactions._skills import MEMORY_SKILL, bundled_skill_slugs, skill_description
 
     assert MEMORY_SKILL in bundled_skill_slugs()
     assert skill_description(MEMORY_SKILL)  # non-empty description registered
@@ -108,7 +108,7 @@ async def test_squad_dir_agrees_with_claude_md_for_a_nested_squad_dir(tmp_path, 
     nested = "docs/squad"
     result = await service.init(root=tmp_path, squad_dir=nested, roles_spec="minimal")
     paths = result.paths
-    svc = service.Service(paths)
+    svc = make_service(paths)
 
     db = await svc.store.load()
     skill_item = next(

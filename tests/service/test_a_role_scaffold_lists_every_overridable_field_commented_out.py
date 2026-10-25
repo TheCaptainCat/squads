@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of
 from squads._overrides import _service as override_service
 from squads._overrides._service import scaffold_role
 from squads._roles._catalog import role_by_slug
@@ -45,7 +46,9 @@ async def test_each_line_uncommented_alone_loads_as_the_bundled_value(project, f
     text, dest = _scaffold(project, "tech-lead")
     line = next(ln for ln in _field_lines(text) if ln.startswith(f"# {field} = "))
     dest.write_text(text.replace(line, _uncomment(line)), encoding="utf-8")
-    assert resolve_role("tech-lead", project.squad_dir) == role_by_slug("tech-lead")
+    assert resolve_role(
+        "tech-lead", project.squad_dir, catalog=catalog_of(project.squad_dir)
+    ) == role_by_slug("tech-lead")
 
 
 @pytest.mark.parametrize("slug", ["tech-lead", "qa"])
@@ -54,7 +57,9 @@ async def test_the_whole_scaffold_uncommented_loads_as_the_bundled_role(project,
     for line in _field_lines(text):
         text = text.replace(line, _uncomment(line))
     dest.write_text(text, encoding="utf-8")
-    assert resolve_role(slug, project.squad_dir) == role_by_slug(slug)
+    assert resolve_role(
+        slug, project.squad_dir, catalog=catalog_of(project.squad_dir)
+    ) == role_by_slug(slug)
 
 
 async def test_a_field_the_bundled_role_leaves_unset_has_no_line(project, monkeypatch) -> None:
@@ -68,7 +73,9 @@ async def test_the_append_line_resolves_to_the_bundled_list_plus_the_new_entry(p
     text, dest = _scaffold(project, "tech-lead")
     assert _SPLAT_LINE in text
     dest.write_text(text.replace(_SPLAT_LINE, _uncomment(_SPLAT_LINE)), encoding="utf-8")
-    assert resolve_role("tech-lead", project.squad_dir).responsibilities == (
+    assert resolve_role(
+        "tech-lead", project.squad_dir, catalog=catalog_of(project.squad_dir)
+    ).responsibilities == (
         *role_by_slug("tech-lead").responsibilities,
         "…",
     )

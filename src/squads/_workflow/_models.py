@@ -25,19 +25,22 @@ derived from the referenced role, never stored directly. They are encoded in
 closed-set ``Priority``/``Severity`` enums.
 """
 
-import keyword
 import math
 import re
-import uuid
-import warnings
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 from dataclasses import dataclass
 from re import compile as re_compile
 from typing import Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, StrictBool, model_validator
 
-from squads._models._attributes import ROW_ADDED_KEYS, AttributeKey, AttributeSpec
+from squads._models._attributes import AttributeSpec
+from squads._workflow._lifecycle_order import lifecycle_spine, lifecycle_states_in_order
+from squads._workflow._validator_names import (
+    effective_bare_validators,
+    parse_positive_int,
+    parse_validator_entry,
+)
 
 #: The three roster types the engine binds by literal name — the irreducible
 #: structural minimum: the roster, the backends (which write role/skill files), and the
@@ -140,147 +143,6 @@ def reserved_alias_owner(name: str) -> str | None:
     return next((owner for alias, owner in RESERVED_CLI_ALIASES if alias == name), None)
 
 
-#: The closed per-item validator NAME catalog — the vocabulary half of the pluggable-validator
-#: decision. Behaviour (the actual check functions) lives high, in
-#: ``_services/_validators.py::CATALOG``, which asserts ``set(CATALOG) == VALIDATOR_NAMES`` at
-#: import time so impl can never drift from this declared contract. Living here (not in
-#: ``_services``) lets ``WorkflowSpec._validate``'s Plane-1 catalog-membership check read the
-#: valid names without ``_workflow`` importing up into ``_services`` (an inverted, cyclic edge).
-VALIDATOR_NAMES: frozenset[str] = frozenset(
-    {
-        "parent_in",
-        "no_parent",
-        "parent_present",
-        "parent_acyclic",
-        "item_status_valid",
-        "dangling_ref",
-        "ref_kind_valid",
-        "agent_registered",
-        "subtask_story_mapping",
-        "subentity_status_valid",
-        "subentity_container_marker",
-        "subentity_body_written",
-        "subentity_title_max",
-        "subentity_deferral_resolved",
-        "subentities_settled_with_parent",
-        "no_status_banner",
-        "supersedes_incoming",
-        "ref_rule_target_present",
-        "item_skill_shadowed",
-        "item_title_max",
-        "ref_rule_target_typed",
-        "body_written",
-        "description_present",
-        "assignee_present",
-        "blocked_has_blocker",
-        "settled_requires_discussion",
-        "external_id_not_in_title",
-        "attribute_valid",
-        "frontmatter_key_undeclared",
-        "pronouns_valid",
-    }
-)
-
-#: The closed squad-global validator NAME catalog (``_services/_validators.py::
-#: SQUAD_GLOBAL_CATALOG``) — whole-squad checks that run once per ``sq check``/gate
-#: invocation, independent of any type's ``category``.
-SQUAD_GLOBAL_VALIDATOR_NAMES: frozenset[str] = frozenset(
-    {
-        "index_reconciled",
-        "backend_reconciled",
-        "roster_config_integrity",
-        "default_designation_duplicated",
-        "roster_slug_valid",
-        "playbook_guide_role_live",
-        "display_config_valid",
-        "working_language_valid",
-        "view_transform_resolves",
-        "type_has_live_author",
-        "children_settled_with_parent",
-        "dependency_acyclic",
-        "wip_limit",
-        "unassigned_active",
-        "stale_active",
-    }
-)
-
-#: The squad-global members that run in every squad and cannot be named in ``[squad]
-#: validators``: a defect in any squad, not a policy a squad chooses.
-ALWAYS_ON_SQUAD_GLOBAL_NAMES: frozenset[str] = frozenset(
-    {
-        "index_reconciled",
-        "backend_reconciled",
-        "roster_config_integrity",
-        "default_designation_duplicated",
-        "roster_slug_valid",
-        "playbook_guide_role_live",
-        "display_config_valid",
-        "working_language_valid",
-        "view_transform_resolves",
-    }
-)
-
-#: The squad-global members a squad selects in ``[squad] validators``.
-SELECTABLE_SQUAD_GLOBAL_NAMES: frozenset[str] = frozenset(
-    {
-        "type_has_live_author",
-        "children_settled_with_parent",
-        "dependency_acyclic",
-        "wip_limit",
-        "unassigned_active",
-        "stale_active",
-    }
-)
-
-assert ALWAYS_ON_SQUAD_GLOBAL_NAMES.isdisjoint(SELECTABLE_SQUAD_GLOBAL_NAMES), (
-    "a squad-global member is either always-on or selectable, never both"
-)
-assert (
-    ALWAYS_ON_SQUAD_GLOBAL_NAMES | SELECTABLE_SQUAD_GLOBAL_NAMES == SQUAD_GLOBAL_VALIDATOR_NAMES
-), "every squad-global member must be placed in exactly one of always on or opt-in"
-assert SQUAD_GLOBAL_VALIDATOR_NAMES.isdisjoint(VALIDATOR_NAMES), (
-    "a name cannot be both a per-item and a squad-global validator"
-)
-
-#: Each squad-global member's default level, read by ``_services/_validators.py`` through one
-#: resolver; a selection's ``@<level>`` overrides it. At this scope a level changes only
-#: ``sq check``'s exit code, since squad-global members never run at the create/update gate.
-DEFAULT_SQUAD_GLOBAL_LEVEL: dict[str, str] = {
-    "index_reconciled": "error",
-    "backend_reconciled": "error",
-    "roster_config_integrity": "error",
-    "default_designation_duplicated": "error",
-    "roster_slug_valid": "error",
-    "playbook_guide_role_live": "warn",
-    "display_config_valid": "warn",
-    "working_language_valid": "warn",
-    "view_transform_resolves": "error",
-    "type_has_live_author": "warn",
-    "children_settled_with_parent": "warn",
-    "dependency_acyclic": "warn",
-    "wip_limit": "warn",
-    "unassigned_active": "warn",
-    "stale_active": "warn",
-}
-assert set(DEFAULT_SQUAD_GLOBAL_LEVEL) == SQUAD_GLOBAL_VALIDATOR_NAMES, (
-    "DEFAULT_SQUAD_GLOBAL_LEVEL must declare exactly one default per squad-global member"
-)
-
-#: The selectable members that take a required ``:<n>`` parameter, and the least value each
-#: accepts: ``wip_limit`` and ``stale_active`` need a positive number, while
-#: ``unassigned_active:0`` ("any unassigned active item") is meaningful.
-SQUAD_GLOBAL_PARAM_MINIMUM: dict[str, int] = {
-    "wip_limit": 1,
-    "unassigned_active": 0,
-    "stale_active": 1,
-}
-
-#: The selectable members that only make sense where an item can be active: a work-category
-#: type whose lifecycle holds a status of a live role.
-ACTIVE_ITEM_SQUAD_GLOBAL_NAMES: frozenset[str] = frozenset(
-    {"wip_limit", "unassigned_active", "stale_active"}
-)
-
 #: The fallback role name a status with no declared ``role`` resolves to — neutral/non-settled/
 #: shown, so a custom status is fail-safe-visible until its author assigns one.
 FALLBACK_ROLE_NAME = "pending"
@@ -293,379 +155,14 @@ COLOR_INTENTS: frozenset[str] = frozenset(
     {"positive", "danger", "warning", "muted", "neutral", "info"}
 )
 
-#: Validator names that legitimately carry a ``:<param>`` suffix, each read back by the
-#: validator itself from the type's own ``validators`` entries — the dispatch engine strips the
-#: suffix before the catalog lookup (``ValidatorEngine._run_per_item``), same as every other
-#: name. ``subentity_title_max``'s param is its title-length threshold
-#: (``WorkflowSpec.item_subentity_title_max``); ``ref_rule_target_present``'s is the item type
-#: it selects an obligation for (``_services/_validators.py::_ref_rule_target_present``);
-#: ``item_title_max``'s is its title-length threshold and ``external_id_not_in_title``'s a
-#: regular expression (``WorkflowSpec.item_title_max``/``item_external_id_pattern``).
-PARAMETERIZED_VALIDATOR_NAMES: frozenset[str] = frozenset(
-    {"subentity_title_max", "ref_rule_target_present", "item_title_max", "external_id_not_in_title"}
-)
-
-#: The subset of :data:`PARAMETERIZED_VALIDATOR_NAMES` whose own runtime resolver **unions**
-#: every matching entry it finds in a type's own ``validators`` list — so two entries naming
-#: *different* params are independent, additive selections (one obligation per param), not a
-#: repeat. ``ref_rule_target_present`` is the only member with this property today: its
-#: ``targets`` set (``_services/_validators.py::_ref_rule_target_present``) is built from a
-#: comprehension over every matching entry.
-#:
-#: "Is parameterized" and "accepts multiple selections" are two different properties — a name
-#: can take a ``:<param>`` and still resolve to exactly one effective value (see
-#: :data:`SINGLE_SELECTION_VALIDATOR_NAMES`). Keying the duplicate-selection identity
-#: (:func:`validator_selection_key`) on parameterization alone conflates the two; this set is
-#: the declared answer to the question that conflation skipped.
-MULTI_SELECTION_VALIDATOR_NAMES: frozenset[str] = frozenset({"ref_rule_target_present"})
-
-#: The complement within :data:`PARAMETERIZED_VALIDATOR_NAMES`: a member whose own resolver
-#: returns on the **first** matching entry it finds rather than unioning every one —
-#: ``subentity_title_max``'s is ``WorkflowSpec.item_subentity_title_max``, first match, single
-#: value. A second, differently-parameterised entry of one of these names is therefore not an
-#: independent selection: nothing decides which value the resolver would have picked instead,
-#: so it is refused at Plane-1 the same as a same-param repeat — the alternative is a second
-#: entry that loads clean and does nothing, forever, which is exactly what
-#: :func:`_check_ref_rule_targets` refuses on principle for its own member ("refused here rather
-#: than silently doing nothing forever").
-SINGLE_SELECTION_VALIDATOR_NAMES: frozenset[str] = frozenset(
-    {"subentity_title_max", "item_title_max", "external_id_not_in_title"}
-)
-
-assert (
-    MULTI_SELECTION_VALIDATOR_NAMES | SINGLE_SELECTION_VALIDATOR_NAMES
-) == PARAMETERIZED_VALIDATOR_NAMES, (
-    "every PARAMETERIZED_VALIDATOR_NAMES member must be classified into exactly one of "
-    "MULTI_SELECTION_VALIDATOR_NAMES or SINGLE_SELECTION_VALIDATOR_NAMES — a new parameterized "
-    "member added to one catalog without a place in the other fails this assert instead of "
-    "silently inheriting either behaviour"
-)
-assert MULTI_SELECTION_VALIDATOR_NAMES.isdisjoint(SINGLE_SELECTION_VALIDATOR_NAMES), (
-    "MULTI_SELECTION_VALIDATOR_NAMES and SINGLE_SELECTION_VALIDATOR_NAMES must not overlap — "
-    "a member cannot be both first-match and unioning"
-)
-
-#: The opt-in per-item policy checks about the work an item tracks. A type of the ``roster``
-#: category (a role, a skill, an operator) is configuration, not tracked work, so naming one of
-#: these on it is refused at load by :func:`_check_selections_that_cannot_fire` instead of
-#: loading and reporting every roster entry.
-WORK_POLICY_VALIDATOR_NAMES: frozenset[str] = frozenset(
-    {
-        "item_title_max",
-        "ref_rule_target_typed",
-        "body_written",
-        "description_present",
-        "assignee_present",
-        "blocked_has_blocker",
-        "settled_requires_discussion",
-        "external_id_not_in_title",
-    }
-)
-
-#: Members whose ``:<param>`` is required: a bare entry loads nothing to check, so it is refused
-#: at load (:func:`_check_validator_param`) rather than selecting a check that never fires.
-REQUIRED_PARAM_VALIDATOR_NAMES: frozenset[str] = frozenset(
-    {"item_title_max", "external_id_not_in_title"}
-)
 
 #: What a bare ``subentity_title_max`` selection resolves to; a type's own
-#: ``subentity_title_max:<n>`` entry names a different number. ``_interactions.TITLE_ADVISORY_MAX``
-#: re-exports this value for callers that want "the bundled number" without touching validator
-#: machinery (e.g. a test fixture building an over-threshold title); nothing reads that
-#: re-export as a live threshold -- :meth:`WorkflowSpec.item_subentity_title_max` is the only
-#: resolver ``sq check`` and the create-time advisory use, and it answers ``None`` for a type
-#: that does not select the check.
+#: ``subentity_title_max:<n>`` entry names a different number. Callers that want "the bundled
+#: number" without touching validator machinery (e.g. a test fixture building an over-threshold
+#: title) read this constant; nothing reads it as a live threshold --
+#: :meth:`WorkflowSpec.item_subentity_title_max` is the only resolver ``sq check`` and the
+#: create-time advisory use, and it answers ``None`` for a type that does not select the check.
 DEFAULT_SUBENTITY_TITLE_MAX: int = 120
-
-#: The two levels a validator finding may carry — matches :class:`~squads._services._results.
-#: CheckIssue`'s own closed ``level`` contract (``"error"`` aborts create/update at the gate;
-#: ``"warn"`` is advisory everywhere, mirroring ``sq check``'s error-only exit code). A
-#: selection's ``@<level>`` suffix (see :func:`parse_validator_entry`) is Plane-1-checked
-#: against this set, so an adopter cannot invent a third severity the rest of the engine has no
-#: meaning for.
-VALIDATOR_LEVELS: frozenset[str] = frozenset({"error", "warn"})
-
-#: Total order over :data:`VALIDATOR_LEVELS`, low to high — the comparison
-#: :data:`VALIDATOR_LEVEL_FLOOR` needs to tell "raise" from "lower". Not exposed beyond this
-#: module: every external caller asks a yes/no question (does this selection clear the floor),
-#: never a rank.
-_LEVEL_RANK: dict[str, int] = {"warn": 0, "error": 1}
-
-#: The separator between a validator name (with its optional ``:<param>``) and an optional
-#: declared level. ``@`` rather than a second ``:`` — ``:`` is already the param separator, and
-#: reusing it would make ``name:param:level`` ambiguous about which half is which. ``@`` cannot
-#: appear in a validator name (plain identifiers) or in a title-length threshold (an integer,
-#: enforced by :func:`_check_validator_param`), is refused in an ``external_id_not_in_title``
-#: pattern (a literal ``@`` is written ``\x40``), and it is a different namespace from
-#: the unrelated place a bare ``@`` already means something in this codebase (an ``@mention``
-#: inside discussion prose — comment text, never spec vocabulary).
-#:
-#: It is **not** ruled out of ``ref_rule_target_present``'s own param, an item-type name:
-#: unlike a ``[ref_kinds]`` key (:data:`_BARE_TOML_KEY_RE`), nothing restricts an
-#: ``[items.<type>]`` TOML key's character set. A type declared with ``@`` in its own name
-#: would mis-split when selected as a target — :func:`parse_validator_entry` cuts on the first
-#: ``@`` regardless of which half it came from, so the piece after it is read as the level and
-#: refused at Plane-1 as an unknown level rather than as the intended (but wrong) target type.
-#: Fails closed, with a message naming the wrong half of the entry.
-_LEVEL_SEP = "@"
-_PARAM_SEP = ":"
-
-
-def parse_validator_entry(entry: str) -> tuple[str, str | None, str | None]:
-    """Split one ``validators``-list *entry* into ``(bare name, param, level)`` — the single
-    parser every consumer of the assignment grammar (Plane-1 validation, the effective-set
-    composition, the dispatch engine's catalog lookup, and a parameterised validator reading
-    its own argument back) uses, so the grammar is defined once rather than re-partitioned at
-    each call site with room for the definitions to disagree.
-
-    Grammar, in the one order this parses: ``name``, ``name:param``, ``name@level``, or
-    ``name:param@level`` — a param, when present, always precedes a level. The level is split
-    off first (rightmost-meaningful cut, via the first ``@``), then a param is split off the
-    remainder. A reversed composition (``name@level:param``) does not parse as intended: the
-    ``:`` lands inside what this function treats as the level string, which is not a member of
-    :data:`VALIDATOR_LEVELS`, so it fails the Plane-1 level check with a clear message rather
-    than silently accepting an unintended parameter.
-    """
-    head, has_level, level_part = entry.partition(_LEVEL_SEP)
-    level = level_part if has_level else None
-    bare, has_param, param_part = head.partition(_PARAM_SEP)
-    param = param_part if has_param else None
-    return bare, param, level
-
-
-def validator_selection_key(entry: str) -> tuple[str, str | None]:
-    """The de-duplication identity of one ``validators``-list *entry* — what makes two entries
-    "the same selection" rather than two different ones. Used identically by
-    :func:`_check_validators_assignment`'s repeat-selection refusal and by
-    :func:`effective_validator_names`'s composition, so both agree on what counts as a
-    duplicate.
-
-    A member in :data:`MULTI_SELECTION_VALIDATOR_NAMES` is keyed on its bare name *and* its
-    param: its runtime (e.g. ``_ref_rule_target_present``) unions every matching entry it
-    finds in a type's own list, so two entries naming different params are independent,
-    additive selections — one target type each — not a repeat. Two entries naming the *same*
-    param are a genuine duplicate (nothing decides which one "wins").
-
-    Any other member — a non-parameterized name, a parameterized one selected with no param,
-    or a :data:`SINGLE_SELECTION_VALIDATOR_NAMES` member (param or not) — is keyed on its bare
-    name alone: nothing besides the name distinguishes two entries of it, so a repeat is always
-    a duplicate regardless of a differing param or ``@<level>`` suffix. This is the property
-    that keeps ``subentity_title_max:50`` and ``subentity_title_max:80`` on one type a refused
-    duplicate rather than two selections whose second silently never resolves — see
-    :data:`SINGLE_SELECTION_VALIDATOR_NAMES`.
-    """
-    bare, param, _level = parse_validator_entry(entry)
-    if bare in MULTI_SELECTION_VALIDATOR_NAMES and param is not None:
-        return bare, param
-    return bare, None
-
-
-#: Each catalog member's bundled default level, read by ``_services/_validators.py`` instead of
-#: a level literal inline in the member's own ``CheckIssue(...)`` calls — the single place that
-#: number lives, so a member's default cannot say one thing here and do another at runtime.
-#: Lives in the spec layer for the same reason :data:`VALIDATOR_NAMES` does: a selection's
-#: ``@<level>`` override is Plane-1-validated against it (and against
-#: :data:`VALIDATOR_LEVEL_FLOOR` below) without ``_workflow`` importing up into ``_services``.
-DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
-    "parent_in": "error",
-    "no_parent": "error",
-    "parent_present": "error",
-    "parent_acyclic": "error",
-    "item_status_valid": "error",
-    "dangling_ref": "warn",
-    "ref_kind_valid": "warn",
-    "agent_registered": "warn",
-    "subtask_story_mapping": "error",
-    "subentity_status_valid": "error",
-    "subentity_container_marker": "error",
-    "subentity_body_written": "warn",
-    "subentity_title_max": "warn",
-    "subentity_deferral_resolved": "warn",
-    "subentities_settled_with_parent": "warn",
-    "no_status_banner": "warn",
-    "supersedes_incoming": "warn",
-    "ref_rule_target_present": "warn",
-    "item_skill_shadowed": "warn",
-    "item_title_max": "warn",
-    "ref_rule_target_typed": "warn",
-    "body_written": "warn",
-    "description_present": "warn",
-    "assignee_present": "warn",
-    "blocked_has_blocker": "warn",
-    "settled_requires_discussion": "warn",
-    "external_id_not_in_title": "warn",
-    "attribute_valid": "error",
-    "frontmatter_key_undeclared": "warn",
-    "pronouns_valid": "error",
-}
-assert set(DEFAULT_VALIDATOR_LEVEL) == VALIDATOR_NAMES, (
-    "DEFAULT_VALIDATOR_LEVEL must declare exactly one bundled default per VALIDATOR_NAMES member"
-)
-assert set(DEFAULT_VALIDATOR_LEVEL.values()) <= VALIDATOR_LEVELS, (
-    "DEFAULT_VALIDATOR_LEVEL values must each be a declared level"
-)
-
-#: The declared floor: a selection may raise a member's level but never lower it below this,
-#: for the members whose level is load-bearing for the *engine's own correctness* rather than a
-#: policy preference a project may reasonably decline. Applied with the same placement test that
-#: decides catalog placement, one level down: can a competent squad sit in this state on
-#: purpose, indefinitely, with nothing else in the engine misbehaving because of it? A "yes"
-#: means the member is not floor, however undesirable the state is.
-#:
-#: Applying that test to every error-level member, only two hold a floor:
-#:
-#: - ``parent_acyclic``: a parent cycle makes every ancestor/descendant walk in the engine
-#:   non-terminating — a live hang reproduced and fixed on its own, not a house convention a
-#:   project could decline. Demoted to warn, a project's own choice would let a whole-squad hang
-#:   slip past ``sq check``'s exit code, which stays 0 on a warn-only finding.
-#: - ``subentity_container_marker``: the corpus/spec desync it reports leaves no witness the
-#:   loader, ``sq workflow lint``, or the index can see — its own docstring: ``sq check`` is the
-#:   only plane that can. Demoted to warn, ``add-<kind>`` keeps failing on every item of the
-#:   type while sub-entity body writes keep succeeding, and the one report able to say why is
-#:   silenced by the project's own choice.
-#:
-#: The rest are NOT load-bearing, each for a reason specific to it rather than a blanket
-#: "everything else is fine to dial down":
-#:
-#: - ``parent_in``/``no_parent``: nothing downstream assumes the constraint already holds in
-#:   order to function — no walk or transition depends on parent-type eligibility, only on the
-#:   parent existing and the chain terminating (:data:`parent_acyclic`'s own job). A team mid
-#:   reorganisation, or one that wants a looser hierarchy than the bundled default, can hold
-#:   this state on purpose without anything else in the engine misbehaving.
-#: - ``item_status_valid``: flags a status absent from the *type's own* lifecycle graph, not an
-#:   undeclared status altogether — badge/role resolution reads the global status catalog, not
-#:   the per-type graph, so rendering is unaffected. The engine already ships a designed
-#:   recovery for exactly this state: an ordinary status update's ``--force`` short-circuits the
-#:   transition-table lookup and only re-checks target-vocabulary membership, so an item outside
-#:   its lifecycle graph is one recognised, documented escape away rather than genuinely stuck —
-#:   unlike a parent cycle, which has no equivalent designed recovery short of clearing the
-#:   parent.
-#: - ``subtask_story_mapping``: an unresolved mapping affects grouping/rollup display only;
-#:   nothing gates or walks on it resolving, and it is visible wherever the mapping is rendered
-#:   rather than invisible the way the container-marker desync is.
-#: - ``subentity_status_valid``: the same shape and the same reasoning as
-#:   ``item_status_valid``, one level down — the sub-entity status-update path documents the
-#:   identical designed-recovery property in its own code: the vocabulary gate runs first and
-#:   unconditionally, so a sub-entity already carrying a non-member status stays recoverable
-#:   regardless of ``--force``.
-#:
-#: ``parent_present`` is deliberately absent and must stay absent: it sits in no
-#: :data:`CATEGORY_BUNDLES` entry at all, so the only way it is ever effective is a type naming
-#: it — its level, not its rule, is what a project dials, and a floor here would defeat the
-#: entire point of making it selectable at warn.
-VALIDATOR_LEVEL_FLOOR: dict[str, str] = {
-    "parent_acyclic": "error",
-    "subentity_container_marker": "error",
-}
-assert VALIDATOR_LEVEL_FLOOR.keys() <= VALIDATOR_NAMES, (
-    "VALIDATOR_LEVEL_FLOOR must only name declared VALIDATOR_NAMES members"
-)
-assert set(VALIDATOR_LEVEL_FLOOR.values()) <= VALIDATOR_LEVELS, (
-    "VALIDATOR_LEVEL_FLOOR values must each be a declared level"
-)
-assert "parent_present" not in VALIDATOR_LEVEL_FLOOR, (
-    "parent_present must carry no floor — its level, not its rule, is what makes it "
-    "selectable at warn"
-)
-
-#: Per-item validators every type runs regardless of category — cross-cutting item hygiene.
-#: Lives here rather than in ``_services`` for the same reason :data:`VALIDATOR_NAMES` does:
-#: the Plane-1 spec-validity pass below has to resolve a type's *effective* validator set to
-#: check that its declared capability fields are reachable at all, and ``_workflow`` must not
-#: import up into ``_services``. ``_services/_validators.py`` reads these names from here,
-#: so there is one definition of what a category turns on.
-COMMON_CORE: tuple[str, ...] = (
-    "item_status_valid",
-    "dangling_ref",
-    "ref_kind_valid",
-    "agent_registered",
-    "parent_acyclic",
-    "attribute_valid",
-)
-
-#: Per-category default per-item validator-name bundle — the category's *behaviour*, since
-#: nothing else in the engine branches on ``work`` vs ``records`` (every other category
-#: consumer asks only "roster or not"). A type's own ``validators`` list extends this floor and
-#: may never subtract from it.
-CATEGORY_BUNDLES: dict[str, tuple[str, ...]] = {
-    "roster": ("pronouns_valid",),
-    "work": (
-        "parent_in",
-        "subentity_status_valid",
-        "subentity_container_marker",
-        "subentity_body_written",
-        "subentity_deferral_resolved",
-        "subtask_story_mapping",
-    ),
-    "records": ("no_parent", "supersedes_incoming"),
-}
-
-#: The validators whose subject is a type's declared ``subentity_kind``. A type that declares a
-#: kind but whose effective set holds none of these has declared sub-entities nothing can check
-#: — see :func:`_check_category_consistency`. ``subentity_title_max`` is a member although no
-#: bundle supplies it: a hosting type may satisfy the clause by naming it alone.
-#: ``subtask_story_mapping`` is deliberately absent: it is specific to one kind's
-#: ``maps_parent_story`` capability, not to hosting a kind at all, so it is guarded by its own
-#: clause (:func:`_clause_story_mapping_reachable`) instead.
-SUBENTITY_VALIDATOR_NAMES: frozenset[str] = frozenset(
-    {
-        "subentity_status_valid",
-        "subentity_container_marker",
-        "subentity_body_written",
-        "subentity_title_max",
-        "subentity_deferral_resolved",
-    }
-)
-
-
-def effective_validator_names(
-    category: str,
-    *,
-    common_core: tuple[str, ...] = COMMON_CORE,
-    category_bundles: dict[str, tuple[str, ...]] | None = None,
-    extra: tuple[str, ...] = (),
-) -> tuple[str, ...]:
-    """A type's effective per-item validator-name set: common core + its category's default
-    bundle + its own additions (the "extend-only floor" — a type may add to a bundle, never
-    subtract from it).
-
-    *extra* is the per-type ``ItemSpec.validators`` field (the assignment surface) —
-    ``_run_per_item`` passes the item's own list; every other caller defaults to none.
-
-    De-duplicated by :func:`validator_selection_key`, last occurrence of a given key winning —
-    the same "same selection, not same bare name" identity :func:`_check_validators_assignment`
-    refuses a repeat of. *common_core* and *category_bundles* entries are always bare (module
-    constants, never carrying a ``:<param>``/``@<level>`` suffix, so their key is always
-    ``(bare, None)``); the ordinary way a key recurs is a type naming an already-bundled member
-    in its own *extra* with a suffix and no param — e.g. ``subentity_body_written@error`` overriding
-    the level of a category's bare ``subentity_body_written`` — and keeping only the last occurrence
-    makes that override the member's one authoritative entry instead of running it twice under
-    two spellings of the same name. A type's own *extra* naming a
-    :data:`MULTI_SELECTION_VALIDATOR_NAMES` member with two *different* params (e.g.
-    ``ref_rule_target_present:contract`` and ``ref_rule_target_present:milestone``) keys
-    differently for each and both survive as independent selections; the dispatch engine
-    (``ValidatorEngine._run_per_item``) still calls the member's catalog function only once per
-    bare name regardless, since this member's own resolver unions every one of its own entries
-    back off the spec itself rather than off what survived here. A
-    :data:`SINGLE_SELECTION_VALIDATOR_NAMES` member (``subentity_title_max``) keys on its bare
-    name alone no matter the param, so it never reaches this function with two surviving
-    entries in the first place — :func:`_check_validators_assignment` refuses a second,
-    differently-parameterised entry outright, because that member's own resolver reads only its
-    first matching entry rather than unioning. Keeping the *first*-seen key's position is what
-    "extend-only" still means positionally — a type's own addition cannot reorder what the
-    bundle already turned on.
-
-    Parameterised on *common_core*/*category_bundles* — not hardcoded to the module
-    constants — so a caller (or a test) can exercise the composition against a stub bundle.
-    *category_bundles* defaults to ``None`` (resolved to the module-level
-    :data:`CATEGORY_BUNDLES` below) rather than binding the mutable dict itself as a parameter
-    default.
-    """
-    bundles = category_bundles if category_bundles is not None else CATEGORY_BUNDLES
-    combined = common_core + bundles.get(category, ()) + extra
-    resolved = {validator_selection_key(name): name for name in combined}
-    key_order = dict.fromkeys(validator_selection_key(name) for name in combined)
-    return tuple(resolved[key] for key in key_order)
 
 
 # ---------------------------------------------------------------------------
@@ -764,7 +261,7 @@ class RefRule(BaseModel):
     ``implements`` to a ``decision`` is unaffected unless its type selects
     ``ref_rule_target_typed``, which reports such an edge); requiredness stays with
     ``ref_rule_target_present``. Referential validation (Plane-1,
-    ``_check_ref_rule_targets``) checks ``target`` names a declared item type —
+    ``check_ref_rule_targets``) checks ``target`` names a declared item type —
     ``_parse_ref_rules`` cannot: item types are known only after every ``[items.*]`` block has
     parsed, while it sees the declared ref *kinds* alone. Carried on the same declared-
     vocabulary, nothing-published terms as ``kind``/``hint``."""
@@ -903,7 +400,7 @@ class SubentityKindSpec(BaseModel):
     """The done-toggle target status inside this kind's own ``lifecycle`` — what
     ``subentity_completion(kind)`` resolves to instead of a hardcoded ``Done``/``Fixed``
     literal. Must name a reachable, non-initial state of that lifecycle (enforced at load
-    by ``_check_completion_status``)."""
+    by ``check_completion_status``)."""
 
     fields: list[Field] = []
 
@@ -931,7 +428,7 @@ class ItemSpec(BaseModel):
     that represent the common case (a non-roster work item with no special spine).
     They are consumed by the engine: ``category`` selects the type's validator bundle
     (:data:`CATEGORY_BUNDLES`), ``subentity_kind``/``parent_required``/``ref_rules`` are each
-    read by a named validator, and :func:`_check_category_consistency` refuses a declaration
+    read by a named validator, and :func:`check_category_consistency` refuses a declaration
     whose enforcing validator the type's own category does not turn on.
     """
 
@@ -1056,7 +553,7 @@ class ViewSource(BaseModel):
     - ``"self"`` — the projecting item itself, with no join at all. Takes no ``name``.
 
     ``name`` is checked against the merged spec by the same referential pass every other
-    workflow-spec cross-reference goes through (see ``_check_views``); it is never a Python
+    workflow-spec cross-reference goes through (see ``check_views``); it is never a Python
     literal at the resolving end (``squads._views``), which reads it off the declared source
     instead.
     """
@@ -1066,7 +563,7 @@ class ViewSource(BaseModel):
     kind: Literal["ref", "subentity", "subtree", "role", "playbook", "self"]
     name: str | None = None
     """Required for ``ref``/``subentity``/``subtree`` (refused at load if absent — see
-    :func:`_check_view_source`); forbidden for ``role``/``self`` (refused at load if given);
+    ``_validity._check_view_source``); forbidden for ``role``/``self`` (refused at load if given);
     optional for ``playbook``, where its absence means "the host's own type", resolved at read
     time rather than at load — the one kind whose name is genuinely conditional rather than
     strictly required or strictly forbidden."""
@@ -1075,7 +572,7 @@ class ViewSource(BaseModel):
 #: A view name is a bare TOML key and nothing else — reuses
 #: :data:`_BARE_TOML_KEY_RE`'s own grammar (defined below, alongside ``[ref_kinds]``'s
 #: identical floor) rather than a second copy of the same pattern; enforced at load in
-#: :func:`_check_views` rather than by ``ViewSpec`` itself, since the dict *key* is what is
+#: :func:`check_views` rather than by ``ViewSpec`` itself, since the dict *key* is what is
 #: being constrained, not any field on the value. Two reasons, both load-bearing: the
 #: disabled-state suffix is colon-delimited (``squads._models._markers._DISABLED_SUFFIX``), so a
 #: colon inside the name itself would make that suffix ambiguous; and a character outside
@@ -1083,7 +580,7 @@ class ViewSource(BaseModel):
 #: tag invisible to ``find_markers``/``reject_markers``, the property this whole family depends
 #: on. ``end`` is refused too: ``sq:view:end`` spells a close marker, and the marker-pairing
 #: scan would count it as one.
-_RESERVED_VIEW_NAME = "end"
+RESERVED_VIEW_NAME = "end"
 
 
 @dataclass(frozen=True)
@@ -1105,14 +602,14 @@ _AFTER_POSITION_RE = re_compile(r"^after\((?P<pattern>.*)\)$")
 def parse_view_position(raw: str) -> ViewPosition:
     """*raw* (a ``[views.<name>]`` entry's ``position`` string) parsed into a
     :class:`ViewPosition` — the one place the grammar (``"top"``, ``"bottom"``,
-    ``"after(<regex>)"``) is recognised, so :func:`_check_views` (validating) and the
+    ``"after(<regex>)"``) is recognised, so :func:`check_views` (validating) and the
     placement routine (``squads._views``, consuming) can never disagree about what a position
     string means. Dispatches on shape rather than growing an ``if/elif`` chain callers repeat,
     so a later grammar value adds one branch here, never a second parser.
 
     Raises :class:`ValueError` — never a bare string return — for an unrecognised value or an
     ``after(...)`` pattern that fails to compile, so callers that must defer the failure into a
-    collect-all report (:func:`_check_views`) catch it, and a runtime caller that only ever
+    collect-all report (:func:`check_views`) catch it, and a runtime caller that only ever
     sees an already-validated spec is free not to."""
     if raw == "top":
         return ViewPosition("top")
@@ -1131,7 +628,7 @@ def parse_view_position(raw: str) -> ViewPosition:
 class ViewTransform(BaseModel):
     """A view's declared transform: ``function`` in a bundled ``module`` (a dotted import under
     ``squads.``) or in an override ``path`` (relative to ``.overrides/``, confined to it).
-    Exactly one of ``module``/``path``; shape is checked by :func:`_check_views`, and nothing
+    Exactly one of ``module``/``path``; shape is checked by :func:`check_views`, and nothing
     here touches the filesystem or imports."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -1160,7 +657,7 @@ class ViewSpec(BaseModel):
     pattern's first match against the region's prose ends; no match falls back to ``"bottom"``
     silently). Kept here as the **raw string** — ``extra="forbid"`` on this model only checks
     it is a string, never that it parses — so an unrecognised value or a pattern that fails to
-    compile is reported through :func:`_check_views`'s collect-all pass rather than aborting
+    compile is reported through :func:`check_views`'s collect-all pass rather than aborting
     the whole load at the first bad view; :func:`parse_view_position` is where it turns into a
     typed :class:`ViewPosition`, called both by that check and by the placement routine, never
     hand-parsed a second way at either call site. ``position`` carries no order key: several
@@ -1238,1483 +735,6 @@ class StatusSpec(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def _check_lifecycle_statuses(
-    lifecycles: dict[str, Lifecycle],
-    all_statuses: set[str],
-    errors: list[str],
-) -> None:
-    """Check initial and transition src/dst are declared statuses."""
-    for name, m in lifecycles.items():
-        tag = f"lifecycle {name!r}"
-        if m.initial not in all_statuses:
-            errors.append(f"{tag}: initial {m.initial!r} not in status set")
-        for src, dsts in m.transitions.items():
-            if src not in all_statuses:
-                errors.append(f"{tag}: transition source {src!r} not in status set")
-            errors.extend(
-                f"{tag}: transition target {dst!r} not in status set"
-                for dst in dsts
-                if dst not in all_statuses
-            )
-
-
-def _check_reachability(
-    lifecycles: dict[str, Lifecycle],
-    errors: list[str],
-) -> None:
-    """Every state in a lifecycle must be reachable from initial."""
-    for name, m in lifecycles.items():
-        reachable: set[str] = {m.initial}
-        queue: list[str] = [m.initial]
-        while queue:
-            cur = queue.pop()
-            for nxt in m.transitions.get(cur, []):
-                if nxt not in reachable:
-                    reachable.add(nxt)
-                    queue.append(nxt)
-        unreachable = m.states - reachable
-        errors.extend(
-            f"lifecycle {name!r}: state {s!r} unreachable from initial {m.initial!r}"
-            for s in unreachable
-        )
-
-
-def _status_role(
-    status: str, statuses: dict[str, StatusSpec], roles: dict[str, RoleSpec]
-) -> RoleSpec | None:
-    """The role *status* resolves to: an absent ``role`` falls back to ``FALLBACK_ROLE_NAME``,
-    and an unresolvable role name (already caught by ``_check_role_references``) is ``None``
-    rather than raising here."""
-    spec = statuses.get(status)
-    return roles.get((spec.role if spec else None) or FALLBACK_ROLE_NAME)
-
-
-def _status_settled(
-    status: str, statuses: dict[str, StatusSpec], roles: dict[str, RoleSpec]
-) -> bool:
-    """Whether *status* resolves to a settled role; an unresolvable role is not-settled."""
-    role = _status_role(status, statuses, roles)
-    return bool(role and role.settled)
-
-
-def _check_reachable_settled(
-    lifecycles: dict[str, Lifecycle],
-    statuses: dict[str, StatusSpec],
-    roles: dict[str, RoleSpec],
-    errors: list[str],
-) -> None:
-    """Every lifecycle must be able to reach at least one status whose role is settled.
-
-    BFS from ``initial`` over the transition graph; if none of the reachable states resolves
-    to a settled role, the machine can never close (breaking ``sq blocked``, the default
-    closed-item filter, and inbox suppression for any item stuck on it).  Fails closed with the
-    offending lifecycle name so ``sq workflow lint`` can point the author at the fix.
-    """
-    for name, m in lifecycles.items():
-        reachable: set[str] = {m.initial}
-        queue: list[str] = [m.initial]
-        while queue:
-            cur = queue.pop()
-            for nxt in m.transitions.get(cur, []):
-                if nxt not in reachable:
-                    reachable.add(nxt)
-                    queue.append(nxt)
-        if not any(_status_settled(s, statuses, roles) for s in reachable):
-            errors.append(
-                f"lifecycle {name!r}: no status with a settled role reachable from initial "
-                f"{m.initial!r} (reachable: {sorted(reachable)}) — items on this "
-                f"lifecycle could never close; add a transition to a status with a settled role"
-            )
-
-
-def _status_live(status: str, statuses: dict[str, StatusSpec], roles: dict[str, RoleSpec]) -> bool:
-    """Whether *status* resolves to a role declaring ``live``; an unresolvable role is not."""
-    role = _status_role(status, statuses, roles)
-    return bool(role and role.live)
-
-
-def _status_blocked(
-    status: str, statuses: dict[str, StatusSpec], roles: dict[str, RoleSpec]
-) -> bool:
-    """Whether *status* resolves to a role declaring ``blocked``; an unresolvable role is not."""
-    role = _status_role(status, statuses, roles)
-    return bool(role and role.blocked)
-
-
-def _status_deferred(
-    status: str, statuses: dict[str, StatusSpec], roles: dict[str, RoleSpec]
-) -> bool:
-    """Whether *status* resolves to a role declaring ``deferred``; an unresolvable role is not."""
-    role = _status_role(status, statuses, roles)
-    return bool(role and role.deferred)
-
-
-def _check_item_lifecycles_avoid_deferred(
-    items: dict[str, ItemSpec],
-    lifecycles: dict[str, Lifecycle],
-    statuses: dict[str, StatusSpec],
-    roles: dict[str, RoleSpec],
-    errors: list[str],
-) -> None:
-    """An item lifecycle must not reach a status whose role declares ``deferred``: items name
-    their carrier through refs, and the flag would silently do nothing on them."""
-    for t, ts in items.items():
-        lifecycle = lifecycles.get(ts.lifecycle)
-        if lifecycle is None:
-            continue
-        reached = sorted(s for s in lifecycle.states if _status_deferred(s, statuses, roles))
-        if reached:
-            errors.append(
-                f"item {t!r}: lifecycle {ts.lifecycle!r} reaches {reached} whose role declares "
-                "deferred = true — only a sub-entity lifecycle may; use a ref to name a carrier "
-                "or give the status another role"
-            )
-
-
-def _check_roster_lifecycle_floor(
-    items: dict[str, ItemSpec],
-    lifecycles: dict[str, Lifecycle],
-    statuses: dict[str, StatusSpec],
-    roles: dict[str, RoleSpec],
-    errors: list[str],
-) -> None:
-    """The additional floor a lifecycle bound to a ``category = "roster"`` type must satisfy
-    on top of the universal floor above, restated against the ``live`` flag — never a role
-    *name* (the same name-locking the engine forbids one layer down, on the status axis).
-
-    R1 — at least one status whose role is live: zero means no entry of this type could
-    ever be materialised, so the squad's generated config could never present an agent.
-
-    R1' — if the lifecycle's ``initial`` status is not itself live, exactly one status is
-    live: the narrow uniqueness the engine genuinely needs, so ``live_initial`` stays
-    total for the scaffolding path that must create an entry already on offer. When ``initial``
-    IS live there is no ambiguity to resolve and any number of further live statuses is
-    fine.
-
-    R2 — at least one settled, non-live status reachable from a live one: retirement must
-    be reachable, not merely from ``initial`` — the universal reachable-settled floor
-    (``_check_reachable_settled``) only guarantees the latter, which a machine could satisfy
-    while never letting a live entry retire. Reachability is computed from the whole
-    live *set* (R1 does not guarantee a single status).
-
-    All three are derived from the role assignment and the ``initial`` the spec already
-    carries; a lifecycle whose ``initial``/transitions reference an undeclared status is
-    skipped here (already reported by ``_check_item_refs``/``_check_lifecycle_statuses``).
-    """
-    for t, ts in items.items():
-        if ts.category != "roster":
-            continue
-        machine = lifecycles.get(ts.lifecycle)
-        if machine is None:
-            continue
-        live = sorted(s for s in machine.states if _status_live(s, statuses, roles))
-        if not live:
-            errors.append(
-                f"roster type {t!r}: lifecycle {ts.lifecycle!r} has no live status — no "
-                f"entry of this type could ever be materialised (R1)"
-            )
-            continue
-        live_set = set(live)
-        if machine.initial not in live_set and len(live) != 1:
-            errors.append(
-                f"roster type {t!r}: lifecycle {ts.lifecycle!r}'s initial {machine.initial!r} "
-                f"is not live, so exactly one status must be live to give the create "
-                f"path an unambiguous target (R1'; found {len(live)} live: {live})"
-            )
-        reachable: set[str] = set()
-        queue: list[str] = list(live_set)
-        seen: set[str] = set(live_set)
-        while queue:
-            cur = queue.pop()
-            for nxt in machine.transitions.get(cur, []):
-                if nxt not in seen:
-                    seen.add(nxt)
-                    reachable.add(nxt)
-                    queue.append(nxt)
-        if not any(s not in live_set and _status_settled(s, statuses, roles) for s in reachable):
-            errors.append(
-                f"roster type {t!r}: lifecycle {ts.lifecycle!r} has no settled, non-live "
-                f"status reachable from a live status (reachable: {sorted(reachable)}) — "
-                f"an entry could never retire (R2)"
-            )
-
-
-def _check_role_references(
-    statuses: dict[str, StatusSpec],
-    roles: dict[str, RoleSpec],
-    errors: list[str],
-) -> None:
-    """Plane-1 role-catalog checks: every explicit ``status.role`` must name a declared role,
-    every declared role's ``color`` must be a member of the closed intent palette, and the
-    fallback role (``FALLBACK_ROLE_NAME``) a role-less status resolves to must itself be
-    declared — ``role_for``'s fallback lookup otherwise ``KeyError``s instead of failing
-    closed at load."""
-    if FALLBACK_ROLE_NAME not in roles:
-        errors.append(f"role catalog: the fallback role {FALLBACK_ROLE_NAME!r} must be declared")
-    for name, spec in statuses.items():
-        if spec.role is not None and spec.role not in roles:
-            errors.append(f"status {name!r}: role {spec.role!r} not declared in roles")
-    for name, role in roles.items():
-        if role.color not in COLOR_INTENTS:
-            errors.append(
-                f"role {name!r}: color {role.color!r} not in the closed intent palette "
-                f"{sorted(COLOR_INTENTS)}"
-            )
-
-
-def _check_completion_status(
-    subentity_kinds: dict[str, SubentityKindSpec],
-    lifecycles: dict[str, Lifecycle],
-    errors: list[str],
-) -> None:
-    """Each declared sub-entity kind's ``completion`` must name a reachable, non-initial
-    state of its own ``lifecycle`` — the done-toggle target ``subentity_completion(kind)``
-    resolves to. An undeclared ``lifecycle`` is caught separately by
-    ``_check_subentity_kinds``; skipped here to avoid a duplicate error.
-    """
-    for kind, ks in subentity_kinds.items():
-        machine = lifecycles.get(ks.lifecycle)
-        if machine is None:
-            continue
-        if ks.completion == machine.initial:
-            errors.append(
-                f"subentity kind {kind!r}: completion {ks.completion!r} is the initial "
-                f"status of lifecycle {ks.lifecycle!r} — nothing is done at creation"
-            )
-        elif ks.completion not in machine.states:
-            errors.append(
-                f"subentity kind {kind!r}: completion {ks.completion!r} not a reachable "
-                f"status of lifecycle {ks.lifecycle!r} (states: {sorted(machine.states)})"
-            )
-
-
-def _check_subentity_kinds(
-    items: dict[str, ItemSpec],
-    subentity_kinds: dict[str, SubentityKindSpec],
-    all_lifecycle_names: set[str],
-    errors: list[str],
-) -> None:
-    """ItemSpec.subentity_kind references a declared kind; SubentityKindSpec.lifecycle
-    reference + plural/local_prefix non-empty & uniqueness."""
-    errors.extend(
-        f"item {t!r}: references undeclared subentity kind {ts.subentity_kind!r} "
-        f"(not in subentity_kinds)"
-        for t, ts in sorted(items.items())
-        if ts.subentity_kind and ts.subentity_kind not in subentity_kinds
-    )
-
-    seen_plurals: dict[str, str] = {}
-    seen_prefixes: dict[str, str] = {}
-    for kind, ks in subentity_kinds.items():
-        if ks.lifecycle not in all_lifecycle_names:
-            errors.append(
-                f"subentity kind {kind!r}: lifecycle {ks.lifecycle!r} not declared in lifecycles"
-            )
-
-        if not ks.plural:
-            errors.append(f"subentity kind {kind!r}: plural must be non-empty")
-        elif ks.plural in seen_plurals:
-            errors.append(
-                f"duplicate subentity plural {ks.plural!r}: used by kinds "
-                f"{seen_plurals[ks.plural]!r} and {kind!r}"
-            )
-        else:
-            seen_plurals[ks.plural] = kind
-
-        if not ks.local_prefix:
-            errors.append(f"subentity kind {kind!r}: local_prefix must be non-empty")
-        elif ks.local_prefix in seen_prefixes:
-            errors.append(
-                f"duplicate subentity local_prefix {ks.local_prefix!r}: used by kinds "
-                f"{seen_prefixes[ks.local_prefix]!r} and {kind!r}"
-            )
-        else:
-            seen_prefixes[ks.local_prefix] = kind
-
-
-def _check_parent_cycles(
-    items: dict[str, ItemSpec],
-    errors: list[str],
-) -> None:
-    """Detect cycles in the type-parent graph.
-
-    Walks ``items[t].parents`` using DFS with a colour-marking scheme:
-    - WHITE (unvisited), GREY (on the current path), BLACK (fully explored).
-    A back-edge (GREY → GREY) indicates a cycle.
-
-    Reports each cycle once in a deterministic order (sorted entry points).
-    """
-    WHITE, GREY, BLACK = 0, 1, 2
-    colour: dict[str, int] = {t: WHITE for t in items}
-    path: list[str] = []
-    reported: set[frozenset[str]] = set()
-
-    def dfs(node: str) -> None:
-        colour[node] = GREY
-        path.append(node)
-        for parent in items[node].parents:
-            if parent not in colour:
-                # Parent declared but not a known type — caught by _check_item_refs.
-                continue
-            if colour[parent] == GREY:
-                # Back-edge: reconstruct cycle from path.
-                cycle_start = path.index(parent)
-                cycle_nodes = path[cycle_start:]
-                key = frozenset(cycle_nodes)
-                if key not in reported:
-                    reported.add(key)
-                    cycle_str = " → ".join([*cycle_nodes, parent])
-                    errors.append(f"type-parent graph has a cycle: {cycle_str}")
-            elif colour[parent] == WHITE:
-                dfs(parent)
-        path.pop()
-        colour[node] = BLACK
-
-    for t in sorted(items):
-        if colour[t] == WHITE:
-            dfs(t)
-
-
-def _check_item_refs(
-    items: dict[str, ItemSpec],
-    all_lifecycle_names: set[str],
-    all_types: set[str],
-    errors: list[str],
-) -> None:
-    """ItemSpec lifecycle/parent references + prefix/folder/alias uniqueness."""
-    seen_prefixes: dict[str, str] = {}
-    seen_folders: dict[str, str] = {}
-    seen_aliases: dict[str, str] = {}
-
-    for t, ts in items.items():
-        if ts.lifecycle not in all_lifecycle_names:
-            errors.append(f"item {t!r}: lifecycle {ts.lifecycle!r} not declared in lifecycles")
-        errors.extend(
-            f"item {t!r}: parent type {p!r} not declared" for p in ts.parents if p not in all_types
-        )
-        if t in RESERVED_CLI_VERBS:
-            errors.append(
-                f"item {t!r}: shadows the built-in `sq {t}` command — rename the type "
-                "(its whole per-type verb surface, `sq <type> <n> <verb>`, becomes unreachable "
-                "behind the built-in)"
-            )
-        name_alias_owner = reserved_alias_owner(t)
-        if name_alias_owner is not None:
-            errors.append(
-                f"item {t!r}: shadows the built-in `sq {t}` alias of the {name_alias_owner!r} "
-                f"command — rename the type (`sq {t} <n> <verb>` and `sq create {t}` both "
-                f"dispatch into {name_alias_owner!r}'s command tree, not this type's)"
-            )
-        errors.extend(
-            f"item {t!r}: alias {alias!r} shadows the built-in `sq {alias}` command — rename "
-            "or drop the alias"
-            for alias in ts.aliases
-            if alias in RESERVED_CLI_VERBS
-        )
-        errors.extend(
-            f"item {t!r}: alias {alias!r} shadows the built-in `sq {alias}` alias of the "
-            f"{owner!r} command — rename or drop the alias"
-            for alias in ts.aliases
-            if (owner := reserved_alias_owner(alias)) is not None and owner != t
-        )
-        if ts.prefix in seen_prefixes:
-            errors.append(
-                f"duplicate prefix {ts.prefix!r}: used by {seen_prefixes[ts.prefix]!r} and {t!r}"
-            )
-        seen_prefixes[ts.prefix] = t
-
-        if ts.folder in seen_folders:
-            errors.append(
-                f"duplicate folder {ts.folder!r}: used by {seen_folders[ts.folder]!r} and {t!r}"
-            )
-        seen_folders[ts.folder] = t
-
-        for alias in ts.aliases:
-            if alias in seen_aliases:
-                errors.append(
-                    f"duplicate alias {alias!r}: used by {seen_aliases[alias]!r} and {t!r}"
-                )
-            seen_aliases[alias] = t
-
-
-def parse_positive_int(text: str) -> int | None:
-    """*text* as a positive integer, or ``None``. ASCII decimal digits only: ``str.isdigit`` is
-    also true for characters such as a superscript digit that ``int`` refuses."""
-    if not (text.isascii() and text.isdigit()):
-        return None
-    value = int(text)
-    return value if value > 0 else None
-
-
-def _check_external_id_pattern(t: str, entry: str, param: str, errors: list[str]) -> None:
-    """*param* must compile without a warning and must not match the empty string, which would
-    report every title (and, at ``@error``, refuse every write of the type).
-
-    ``re`` warns only on the first compile of a pattern, so the warning check compiles a copy
-    behind a unique comment group: its cache key is never seen before, the semantics are
-    unchanged, and no other caller's cached pattern is touched."""
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        try:
-            compiled = re_compile(param)
-        except re.error as exc:
-            errors.append(
-                f"item {t!r}: validators entry {entry!r} names an invalid regular expression "
-                f"{param!r}: {exc}"
-            )
-            return
-        re_compile(f"(?#{uuid.uuid4().hex}){param}")
-    if caught:
-        detail = re.sub(r" at position \d+", "", str(caught[0].message))
-        errors.append(
-            f"item {t!r}: validators entry {entry!r} names a regular expression {param!r} that "
-            f"compiles with a warning: {detail} — rewrite it"
-        )
-    elif compiled.search("") is not None:
-        errors.append(
-            f"item {t!r}: validators entry {entry!r} names a regular expression {param!r} that "
-            "matches the empty string, so it would report every title — make it require a "
-            "character"
-        )
-
-
-def _check_validator_param(
-    t: str, entry: str, bare: str, param: str | None, errors: list[str]
-) -> None:
-    """The meaningful params: a title-length threshold (``subentity_title_max:<n>``,
-    ``item_title_max:<n>``) must parse as a positive integer, ``external_id_not_in_title``'s
-    must compile as a regular expression, and a member in
-    :data:`REQUIRED_PARAM_VALIDATOR_NAMES` must carry one at all. Resolvable without the whole
-    ``[items.*]`` table (nothing here needs a cross-type lookup)."""
-    if bare in REQUIRED_PARAM_VALIDATOR_NAMES and not (param and param.strip()):
-        shape = "<regex>" if bare == "external_id_not_in_title" else "<n>"
-        errors.append(
-            f"item {t!r}: validators entry {entry!r} is missing its required parameter — "
-            f"name it as '{bare}:{shape}', or drop the validator; "
-            "without a parameter it never fires"
-        )
-        return
-    if param is None:
-        return
-    if bare == "external_id_not_in_title":
-        _check_external_id_pattern(t, entry, param, errors)
-        return
-    if bare not in ("subentity_title_max", "item_title_max"):
-        return
-    if parse_positive_int(param) is None:
-        errors.append(
-            f"item {t!r}: validators entry {entry!r} names a non-positive-integer "
-            f"{bare} threshold {param!r}"
-        )
-
-
-def _check_validator_level(t: str, entry: str, bare: str, level: str, errors: list[str]) -> None:
-    """A declared ``@<level>`` must be a member of :data:`VALIDATOR_LEVELS`, and — for a member
-    :data:`VALIDATOR_LEVEL_FLOOR` names — no lower ranked than its floor."""
-    if level not in VALIDATOR_LEVELS:
-        errors.append(
-            f"item {t!r}: validators entry {entry!r} names an unknown level {level!r} "
-            f"(must be one of {sorted(VALIDATOR_LEVELS)})"
-        )
-        return
-    floor = VALIDATOR_LEVEL_FLOOR.get(bare)
-    if floor is not None and _LEVEL_RANK[level] < _LEVEL_RANK[floor]:
-        errors.append(
-            f"item {t!r}: validator {bare!r} cannot be selected below its floor level "
-            f"{floor!r} (got {level!r})"
-        )
-
-
-def _repeat_selection_message(item_type: str, bare: str, prior: str, entry: str) -> str:
-    """The refusal message for two ``validators``-list entries that share one
-    :func:`validator_selection_key`. *prior* and *entry* can differ in text while still keying
-    equal (a differing param on a :data:`SINGLE_SELECTION_VALIDATOR_NAMES` member, or a
-    differing ``@<level>`` on any member), so simply asserting they are "the same selection"
-    reads as self-contradictory to a reader looking at two visibly different strings — name the
-    actual reason and the remedy instead.
-    """
-    if prior == entry:
-        return (
-            f"item {item_type!r}: validator {bare!r} is selected more than once "
-            f"({entry!r} repeated) — keep one entry"
-        )
-    _, prior_param, _ = parse_validator_entry(prior)
-    _, cur_param, _ = parse_validator_entry(entry)
-    if prior_param != cur_param:
-        # Only a SINGLE_SELECTION_VALIDATOR_NAMES member reaches this branch with differing
-        # params — a MULTI_SELECTION_VALIDATOR_NAMES member keys on (bare, param), so two
-        # differing params never collide for it in the first place.
-        reason = (
-            f"{bare!r} resolves only its first matching entry, so the second would be "
-            "silently ignored rather than take effect — refused here instead"
-        )
-    else:
-        reason = "an '@<level>' suffix alone does not make two entries independent selections"
-    return (
-        f"item {item_type!r}: validator {bare!r} is selected more than once "
-        f"({prior!r} and {entry!r}) — {reason}; keep one entry"
-    )
-
-
-def _check_validators_assignment(items: dict[str, ItemSpec], errors: list[str]) -> None:
-    """Plane-1 checks for each type's ``validators`` list, entry by entry: the bare name must
-    be a declared catalog member (fails closed on an unknown name); a ``:<param>`` suffix is
-    only well-formed on a name in ``PARAMETERIZED_VALIDATOR_NAMES`` (``subentity_title_max``,
-    ``ref_rule_target_present``; every other name on the assignment surface, ``parent_in``
-    among them, is bare) and, for ``subentity_title_max``, must itself parse as a positive
-    integer (:func:`_check_validator_param`); an ``@<level>`` suffix must name a declared level
-    at or above the member's declared floor, if it has one (:func:`_check_validator_level`); and
-    a type may not repeat the same *selection* in its own list (:func:`validator_selection_key`)
-    — for a member outside ``MULTI_SELECTION_VALIDATOR_NAMES`` (every non-parameterized name,
-    a parameterized name named with no param, and a :data:`SINGLE_SELECTION_VALIDATOR_NAMES`
-    member such as ``subentity_title_max`` regardless of param), that means its bare name
-    alone: nothing distinguishes two entries beyond the name, so a second one is ambiguous
-    (which value wins is not this loader's call to make, and letting a differently-parameterised
-    second entry load clean would make it silently, permanently inert instead — see
-    :data:`SINGLE_SELECTION_VALIDATOR_NAMES`) and refused here rather than silently letting the
-    last one win. For a member in ``MULTI_SELECTION_VALIDATOR_NAMES``, two entries naming
-    *different* params are independent selections and both are accepted — e.g.
-    ``ref_rule_target_present:contract`` and ``ref_rule_target_present:milestone`` on one type,
-    one obligation per target — only a repeat of the identical param is refused.
-
-    A ``ref_rule_target_present:<T>`` entry's own coherence — ``<T>`` naming a declared item
-    type, and this type declaring a rule targeting it — is a further check, run once every
-    ``[items.*]`` block is known: see :func:`_check_ref_rule_targets`.
-    """
-    for t, ts in items.items():
-        seen: dict[tuple[str, str | None], str] = {}
-        for entry in ts.validators:
-            bare, param, level = parse_validator_entry(entry)
-            if bare in SQUAD_GLOBAL_VALIDATOR_NAMES:
-                errors.append(
-                    f"item {t!r}: validators entry {entry!r}: {bare} is a squad-global "
-                    "validator — select it in the `[squad]` table's `validators` list"
-                )
-                continue
-            if bare not in VALIDATOR_NAMES:
-                errors.append(f"item {t!r}: validators entry {entry!r} names an unknown validator")
-                continue
-            if param is not None and bare not in PARAMETERIZED_VALIDATOR_NAMES:
-                errors.append(f"item {t!r}: validator {bare!r} takes no param (got {entry!r})")
-            else:
-                _check_validator_param(t, entry, bare, param, errors)
-            if level is not None:
-                if bare == "external_id_not_in_title" and level not in VALIDATOR_LEVELS:
-                    errors.append(
-                        f"item {t!r}: validators entry {entry!r} reads {level!r} as its level — "
-                        "'@' separates the pattern from the level ('error' or 'warn') and cannot "
-                        "appear in the pattern; write a literal '@' as \\x40"
-                    )
-                else:
-                    _check_validator_level(t, entry, bare, level, errors)
-            key = validator_selection_key(entry)
-            if key in seen:
-                errors.append(_repeat_selection_message(t, bare, seen[key], entry))
-            else:
-                seen[key] = entry
-
-
-def _check_ref_rule_targets(items: dict[str, ItemSpec], errors: list[str]) -> None:
-    """Plane-1 referential validation for :attr:`RefRule.target` — run here, never inside
-    ``_parse_ref_rules``, because item types are known only once every ``[items.*]`` block has
-    parsed, while the ref-rule parser sees the declared ref *kinds* alone.
-
-    Three independent checks:
-
-    1. Every declared ``target`` must name an item type the merged spec declares — otherwise
-       the rule types an edge against a type that does not exist.
-    2. A ``ref_rule_target_present`` validator entry must carry a ``:<T>`` parameter at all.
-       The bare name is accepted by :func:`_check_validators_assignment` (it *is* a declared
-       catalog member) and then builds an empty target set at runtime
-       (``_services/_validators.py`` reads the entry's own param via
-       :func:`parse_validator_entry`, empty when the entry carries none), so it is permanently
-       inert —
-       nothing ever fires, and nothing tells the adopter why. Refused here rather than
-       silently doing nothing forever, the same reasoning as check 3.
-    3. A type selecting ``ref_rule_target_present:<T>`` must itself declare at least one
-       ``ref_rules`` entry whose ``target`` is ``<T>``. Without this, ``<T>`` could be an
-       item type nothing points the check at (an accepted set empty by construction — every
-       settled item warns and no edge can ever clear it) or not a declared item type at all;
-       both are refused here rather than warning forever at runtime.
-    """
-    for t, ts in items.items():
-        errors.extend(
-            f"item {t!r}: ref_rules target {rr.target!r} does not name a declared item type"
-            for rr in ts.ref_rules
-            if rr.target is not None and rr.target not in items
-        )
-
-    for t, ts in items.items():
-        for entry in ts.validators:
-            bare, param, _level = parse_validator_entry(entry)
-            if bare != "ref_rule_target_present":
-                continue
-            if param is None:
-                errors.append(
-                    f"item {t!r}: validators entry {entry!r} is missing its required target "
-                    "type parameter — name it as 'ref_rule_target_present:<type>', or drop "
-                    "the validator; without a parameter it never fires"
-                )
-                continue
-            if param not in items:
-                errors.append(
-                    f"item {t!r}: validators entry {entry!r} names target type {param!r}, "
-                    "which is not a declared item type"
-                )
-            elif not any(rr.target == param for rr in ts.ref_rules):
-                errors.append(
-                    f"item {t!r}: validators entry {entry!r} selects target {param!r}, but "
-                    f"{t!r} declares no ref_rules entry with that target — the validator "
-                    "would refuse every settled item unconditionally. Add "
-                    f"{{ kind = ..., target = {param!r} }} to its ref_rules, or drop the "
-                    "validator"
-                )
-
-
-def _check_selections_that_cannot_fire(
-    items: dict[str, ItemSpec],
-    lifecycles: dict[str, Lifecycle],
-    statuses: dict[str, StatusSpec],
-    roles: dict[str, RoleSpec],
-    ref_kinds: dict[str, RefKindSpec],
-    errors: list[str],
-) -> None:
-    """Plane-1: a selected check that the spec's own declarations make unable to fire is
-    refused here, so it is never a silent no-op and never depends on what the corpus holds.
-    Each message names the type, the entry and the declaration that is missing.
-
-    A member of :data:`WORK_POLICY_VALIDATOR_NAMES` is about the work an item tracks, so naming
-    it on a ``roster`` type is refused. ``ref_rule_target_typed`` also needs a ref rule with a
-    target on the type, ``assignee_present`` a lifecycle holding a status of a live role, and
-    ``blocked_has_blocker`` a lifecycle holding a status of a blocked role plus a declared
-    dependency ref kind.
-    """
-    for t, ts in items.items():
-        for entry in ts.validators:
-            bare, _param, _level = parse_validator_entry(entry)
-            if bare in WORK_POLICY_VALIDATOR_NAMES and ts.category == "roster":
-                errors.append(
-                    f"item {t!r}: validators entry {entry!r} cannot apply to a roster type — "
-                    f"{bare} is a policy about tracked work and applies to 'work' and "
-                    "'records' types only; drop the entry"
-                )
-                continue
-            if bare == "ref_rule_target_typed" and not any(
-                rr.target is not None for rr in ts.ref_rules
-            ):
-                errors.append(
-                    f"item {t!r}: validators entry {entry!r} needs a ref_rules entry with a "
-                    f"target, and {t!r} declares none (a rule whose target type was dropped "
-                    "through [selected] is removed with it) — declare "
-                    "{ kind = ..., target = ... } in its ref_rules, or drop the entry"
-                )
-            lifecycle = lifecycles.get(ts.lifecycle)
-            if (
-                bare == "assignee_present"
-                and lifecycle is not None
-                and not any(_status_live(st, statuses, roles) for st in lifecycle.states)
-            ):
-                errors.append(
-                    f"item {t!r}: validators entry {entry!r} needs a status of a role declaring "
-                    f"live = true, and the lifecycle {ts.lifecycle!r} of {t!r} holds none — "
-                    "without one it never fires; drop the entry or give the lifecycle a status "
-                    "of a live role"
-                )
-            if bare == "blocked_has_blocker":
-                errors += _blocked_has_blocker_refusals(
-                    t, ts, entry, lifecycle, statuses, roles, ref_kinds
-                )
-
-
-def _blocked_has_blocker_refusals(
-    t: str,
-    ts: ItemSpec,
-    entry: str,
-    lifecycle: Lifecycle | None,
-    statuses: dict[str, StatusSpec],
-    roles: dict[str, RoleSpec],
-    ref_kinds: dict[str, RefKindSpec],
-) -> list[str]:
-    """What keeps ``blocked_has_blocker`` from firing on *t*: no status of a blocked role in
-    its lifecycle, or no declared dependency ref kind in the spec."""
-    refusals: list[str] = []
-    if lifecycle is not None and not any(
-        _status_blocked(st, statuses, roles) for st in lifecycle.states
-    ):
-        refusals.append(
-            f"item {t!r}: validators entry {entry!r} needs a status of a role declaring "
-            f"blocked = true, and the lifecycle {ts.lifecycle!r} of {t!r} holds none — "
-            "without one it never fires; drop the entry or give the lifecycle a status of a "
-            "blocked role"
-        )
-    if not any(rk.role == "dependency" for rk in ref_kinds.values()):
-        refusals.append(
-            f"item {t!r}: validators entry {entry!r} needs a declared ref kind with "
-            'role = "dependency", and the spec declares none — without one no edge can '
-            "satisfy it; drop the entry or declare a dependency ref kind"
-        )
-    return refusals
-
-
-def parse_non_negative_int(text: str) -> int | None:
-    """*text* as an integer of at least zero, or ``None``; ASCII decimal digits only."""
-    return int(text) if text.isascii() and text.isdigit() else None
-
-
-def _check_squad_validator_entry(entry: str, errors: list[str]) -> None:
-    """Refusals for one ``[squad] validators`` entry's name, parameter and level."""
-    bare, param, level = parse_validator_entry(entry)
-    where = f"squad validators entry {entry!r}"
-    if bare in VALIDATOR_NAMES:
-        errors.append(
-            f"{where}: {bare} is a per-item validator — name it on a type's `validators` list"
-        )
-        return
-    if bare in ALWAYS_ON_SQUAD_GLOBAL_NAMES:
-        errors.append(f"{where}: {bare} always runs and cannot be selected — drop the entry")
-        return
-    if bare not in SELECTABLE_SQUAD_GLOBAL_NAMES:
-        errors.append(f"{where} names an unknown validator")
-        return
-    minimum = SQUAD_GLOBAL_PARAM_MINIMUM.get(bare)
-    if minimum is None:
-        if param is not None:
-            errors.append(f"{where}: {bare} takes no parameter")
-    elif not (param and param.strip()):
-        errors.append(f"{where}: {bare} needs its parameter — write '{bare}:<n>'")
-    else:
-        value = parse_non_negative_int(param)
-        if value is None or value < minimum:
-            kind = "positive" if minimum > 0 else "non-negative"
-            errors.append(f"{where}: {bare} needs a {kind} integer parameter (got {param!r})")
-    if level is not None and level not in VALIDATOR_LEVELS:
-        errors.append(
-            f"{where} names an unknown level {level!r} (must be one of {sorted(VALIDATOR_LEVELS)})"
-        )
-
-
-def _check_squad_validators(
-    squad: SquadSpec,
-    items: dict[str, ItemSpec],
-    lifecycles: dict[str, Lifecycle],
-    statuses: dict[str, StatusSpec],
-    roles: dict[str, RoleSpec],
-    ref_kinds: dict[str, RefKindSpec],
-    errors: list[str],
-) -> None:
-    """Plane-1 checks for ``[squad] validators``: each entry names a selectable squad-global
-    member with a well-formed parameter and level, no member is named twice, and a selection the
-    spec's own declarations make unable to fire is refused (the corpus is never consulted)."""
-    seen: dict[str, str] = {}
-    for entry in squad.validators:
-        _check_squad_validator_entry(entry, errors)
-        bare = parse_validator_entry(entry)[0]
-        if bare not in SELECTABLE_SQUAD_GLOBAL_NAMES:
-            continue
-        if bare in seen:
-            errors.append(
-                f"squad validators entry {entry!r} repeats {bare}, already selected as "
-                f"{seen[bare]!r} — name each member once"
-            )
-            continue
-        seen[bare] = entry
-        if bare in ACTIVE_ITEM_SQUAD_GLOBAL_NAMES and not any(
-            ts.category == "work"
-            and (lc := lifecycles.get(ts.lifecycle)) is not None
-            and any(_status_live(st, statuses, roles) for st in lc.states)
-            for ts in items.values()
-        ):
-            errors.append(
-                f"squad validators entry {entry!r} needs a work type whose lifecycle holds a "
-                "status of a role declaring live = true, and none does — without one no item is "
-                "active and it never fires; drop the entry or give a work type's lifecycle a "
-                "status of a live role"
-            )
-        if bare == "dependency_acyclic" and not any(
-            rk.role == "dependency" for rk in ref_kinds.values()
-        ):
-            errors.append(
-                f"squad validators entry {entry!r} needs a declared ref kind with "
-                'role = "dependency", and the spec declares none — without one no cycle can '
-                "exist; drop the entry or declare a dependency ref kind"
-            )
-
-
-def _effective_bare_validators(ts: ItemSpec) -> frozenset[str]:
-    """A type's effective validator names, bare (a ``:<param>``/``@<level>`` suffix stripped)."""
-    names = effective_validator_names(ts.category, extra=tuple(ts.validators))
-    return frozenset(parse_validator_entry(name)[0] for name in names)
-
-
-#: One consistency clause: given a type, its spec, its effective (bare) validator names, the
-#: sub-entity kind table and the declared ref-kind table, return the refusals its declarations
-#: earn. Clauses are pure and independent — a type that trips two reports both.
-type ConsistencyClause = Callable[
-    [str, ItemSpec, frozenset[str], dict[str, SubentityKindSpec], dict[str, RefKindSpec]],
-    list[str],
-]
-
-
-def _clause_parent_reachable(
-    t: str,
-    ts: ItemSpec,
-    effective: frozenset[str],
-    _kinds: dict[str, SubentityKindSpec],
-    _ref_kinds: dict[str, RefKindSpec],
-) -> list[str]:
-    """Guards ``parent_in``, and owns every arm about the parent declarations as a set.
-
-    Two ways a declared parent constraint cannot be acted on. **Contradicted**: the effective
-    set includes ``no_parent``, which forbids any parent at all, so neither ``parents`` nor
-    ``parent_required`` can ever be satisfied — the records contract's own named example, and
-    reachable without any reassignment by a ``work`` type that adds ``no_parent`` to its own
-    ``validators``. **Unenforced**: neither ``no_parent`` nor ``parent_in`` is effective (today
-    only the ``roster`` bundle, which is empty), so the ``parents`` allowlist is declared and
-    nothing ever reads it.
-
-    Two further contradictions, both between declarations rather than between a declaration and
-    a bundle, and both silent before they were checked here:
-
-    - ``parent_present`` and ``no_parent`` in one effective set. One demands a parent, the other
-      forbids one, so *every* item of the type is refused whichever way it is created. Reachable
-      only by naming ``parent_present`` on a type whose category carries ``no_parent`` (or the
-      reverse), which is why it is the clause rather than the bundle that has to catch it.
-    - ``parent_required`` naming a type the ``parents`` allowlist excludes. ``parent_in`` refuses
-      the one parent type ``subtask_story_mapping`` then insists on, so the mapping capability is
-      dead in both directions while the loaded spec reports both fields — the same shape as a
-      contradictory category reassignment, arrived at without one. An empty ``parents`` is the
-      lenient "any parent", so it excludes nothing and is not a contradiction.
-
-    ``parent_required`` is deliberately absent from the *reachability* audit (only from it): it
-    has a live consumer under every category — the ``--parent`` example in generated agent prose
-    and the anchor-type score both read it — so there is no configuration in which declaring it
-    reaches nothing, and a reachability arm over it would fire on a correct spec. Its
-    enforcement half is opt-in (``parent_present``), which is why the two arms above are the
-    whole of what this clause can say about it.
-    """
-    declared = [
-        f"{name}={value!r}"
-        for name, value in (("parents", ts.parents), ("parent_required", ts.parent_required))
-        if value
-    ]
-    if declared and "no_parent" in effective:
-        return [
-            f"item {t!r}: category {ts.category!r} forbids a parent (its validator set "
-            f"includes 'no_parent'), but the type still declares {', '.join(declared)} "
-            f"— that constraint can never apply. Drop the parent field(s), or leave "
-            f"{t!r} in a category that allows a parent"
-        ]
-    if {"parent_present", "no_parent"} <= effective:
-        return [
-            f"item {t!r}: its validator set holds both 'parent_present' (a parent is "
-            f"mandatory) and 'no_parent' (a parent is forbidden), so every {t} would be "
-            f"refused however it is created. Drop one of the two"
-        ]
-    if ts.parents and "parent_in" not in effective:
-        return [
-            f"item {t!r}: declares parents={ts.parents!r}, but category {ts.category!r} turns "
-            f"on no validator that reads it ('parent_in'), so the allowlist would never be "
-            f"checked. Drop parents, leave {t!r} in a category that checks a parent, or name "
-            f"'parent_in' in its own 'validators' list"
-        ]
-    if ts.parent_required and ts.parents and ts.parent_required not in ts.parents:
-        return [
-            f"item {t!r}: declares parent_required={ts.parent_required!r}, but its "
-            f"parents={ts.parents!r} allowlist excludes that type, so the one parent it "
-            f"requires is the one 'parent_in' refuses. Add {ts.parent_required!r} to parents, "
-            f"point parent_required at a type parents allows, or clear parents to allow any"
-        ]
-    return []
-
-
-def _clause_subentity_checked(
-    t: str,
-    ts: ItemSpec,
-    effective: frozenset[str],
-    _kinds: dict[str, SubentityKindSpec],
-    _ref_kinds: dict[str, RefKindSpec],
-) -> list[str]:
-    """Guards the sub-entity validators a bundle supplies; any of the
-    :data:`SUBENTITY_VALIDATOR_NAMES` satisfies it. A type declaring a ``subentity_kind``
-    must keep at least one validator whose subject is that kind. The ``records`` bundle carries
-    none, so a hosting type moved there keeps its sub-entities while every check on them stops
-    running.
-
-    "At least one" rather than "all four" deliberately: the ``validators`` list is extend-only
-    from the closed catalog, so an adopter who genuinely wants a record that hosts sub-entities
-    can say so by naming the checks they want back — the refusal is reachable, which is what
-    keeps this validation rather than prohibition.
-    """
-    if ts.subentity_kind is None or (effective & SUBENTITY_VALIDATOR_NAMES):
-        return []
-    return [
-        f"item {t!r}: declares subentity_kind {ts.subentity_kind!r}, but category "
-        f"{ts.category!r} turns on no validator for it, so nothing would check those "
-        f"sub-entities. Drop subentity_kind, leave {t!r} in a category that validates "
-        f"sub-entities, or name the checks you want in its own 'validators' list "
-        f"({', '.join(sorted(SUBENTITY_VALIDATOR_NAMES))})"
-    ]
-
-
-def _clause_supersedes_checked(
-    t: str,
-    ts: ItemSpec,
-    effective: frozenset[str],
-    _kinds: dict[str, SubentityKindSpec],
-    ref_kinds: dict[str, RefKindSpec],
-) -> list[str]:
-    """Guards ``supersedes_incoming``, whose gate is a ref rule naming a declared
-    ``supersession``-role kind: the validator returns immediately for a type that declares
-    none, and it sits in the ``records`` bundle and nowhere else. So a type keeping its
-    ``supersession`` rule under any other category keeps the declaration and loses the only
-    check it drives — a record left in a superseded state with no incoming edge stops being
-    reported, on every gate.
-
-    Resolved through *ref_kinds* (mirrors the validator's own gate,
-    ``rr.kind in spec.supersession_ref_kinds()`` in ``_services/_validators.py``), never a
-    fixed ``"supersedes"`` spelling; the rest of a type's ``ref_rules`` drive hint text only,
-    which stays live under every category, so they need nothing here.
-    """
-    supersession_kinds = frozenset(k for k, ks in ref_kinds.items() if ks.role == "supersession")
-    if not any(rr.kind in supersession_kinds for rr in ts.ref_rules) or "supersedes_incoming" in (
-        effective
-    ):
-        return []
-    return [
-        f"item {t!r}: declares a 'supersession'-role ref rule, but category {ts.category!r} "
-        "turns on no validator for it ('supersedes_incoming'), so a superseded "
-        f"{t} with no incoming supersession edge would go unreported. Drop the ref rule, "
-        f"leave {t!r} in a category that checks it, or name 'supersedes_incoming' in its own "
-        "'validators' list"
-    ]
-
-
-def _clause_story_mapping_reachable(
-    t: str,
-    ts: ItemSpec,
-    effective: frozenset[str],
-    kinds: dict[str, SubentityKindSpec],
-    _ref_kinds: dict[str, RefKindSpec],
-) -> list[str]:
-    """Guards ``subtask_story_mapping``, whose gate is the hosted kind's ``maps_parent_story``
-    capability rather than anything on the item type itself — which is why it is not one of
-    :data:`SUBENTITY_VALIDATOR_NAMES` and needs its own clause. Reachable independently of
-    :func:`_clause_subentity_checked`: an adopter who satisfies that one by naming a sub-entity
-    check back would otherwise still lose the mapping check with no report.
-    """
-    ks = kinds.get(ts.subentity_kind) if ts.subentity_kind is not None else None
-    if ks is None or not ks.maps_parent_story or "subtask_story_mapping" in effective:
-        return []
-    return [
-        f"item {t!r}: hosts subentity_kind {ts.subentity_kind!r}, which declares "
-        f"maps_parent_story, but category {ts.category!r} turns on no validator for it "
-        f"('subtask_story_mapping'), so a {ts.subentity_kind} mapping to a story its parent "
-        f"does not have would go unreported. Drop maps_parent_story on "
-        f"{ts.subentity_kind!r}, leave {t!r} in a category that checks the mapping, or name "
-        f"'subtask_story_mapping' in its own 'validators' list"
-    ]
-
-
-#: The :data:`SUBENTITY_VALIDATOR_NAMES` a category bundle supplies -- the ones a category
-#: reassignment can take away, and so the ones :func:`_clause_subentity_checked` guards. The
-#: rest of the set is only ever effective when a type names it.
-_BUNDLED_SUBENTITY_VALIDATOR_NAMES: frozenset[str] = frozenset(
-    name
-    for name in SUBENTITY_VALIDATOR_NAMES
-    if any(name in bundle for bundle in CATEGORY_BUNDLES.values())
-)
-
-#: Each clause paired with the validator names whose *reachability* it guards. Declarative so
-#: the coverage assert below can hold, not decoration: the rule is defined over the validator
-#: set, so the audit that matters is per-validator, and every member of the closed catalog must
-#: be accounted for exactly once.
-CONSISTENCY_CLAUSES: tuple[tuple[frozenset[str], ConsistencyClause], ...] = (
-    (frozenset({"parent_in"}), _clause_parent_reachable),
-    (_BUNDLED_SUBENTITY_VALIDATOR_NAMES, _clause_subentity_checked),
-    (frozenset({"supersedes_incoming"}), _clause_supersedes_checked),
-    (frozenset({"subtask_story_mapping"}), _clause_story_mapping_reachable),
-)
-
-#: The audit's third bucket, and the one that has to be argued rather than derived: a catalog
-#: member no clause guards, because no *declaration* selects it.
-#:
-#: - :data:`COMMON_CORE`'s members are effective for every type under every category, so nothing
-#:   a type declares can put one out of reach — there is no silent-loss shape to catch. That is
-#:   also why ``parent_acyclic`` lives there rather than in a bundle: an acyclic parent relation
-#:   is not a house convention a category could decline, and common-core placement means no
-#:   reachability clause is owed for it.
-#: - ``no_parent`` is the inverse of a declaration: it enforces the *absence* of a parent, so an
-#:   adopter declares nothing that it could stop enforcing. Its failure mode is the opposite one
-#:   — being on while a parent field is declared — which is
-#:   :func:`_clause_parent_reachable`'s first arm.
-#: - ``parent_present`` sits in no :data:`CATEGORY_BUNDLES` entry at all, so the only way it is
-#:   ever effective is a type naming it in its own ``validators``. A name you wrote yourself
-#:   cannot be silently lost to a category, which is what a reachability clause exists to catch;
-#:   its failure mode is again the opposite one, contradiction with ``no_parent``, and again
-#:   :func:`_clause_parent_reachable` owns it.
-#: - ``ref_rule_target_present`` is the same shape as ``parent_present``: it sits in no
-#:   category bundle, so it is only ever effective when a type names it (with its param) in its
-#:   own ``validators`` — nothing a category reassignment can silently take away. Its own
-#:   coherence — the param must name a declared item type, and the declaring type's own
-#:   ``ref_rules`` must carry a rule targeting it — is a *referential*, not reachability, check
-#:   (:func:`_check_ref_rule_targets`), because it is about what the declaration *means*, not
-#:   about which category turns it on.
-#: - ``item_skill_shadowed`` is the same shape again, one level narrower: it sits in no
-#:   category bundle *and* the ``roster`` category's own bundle is empty (:data:`CATEGORY_
-#:   BUNDLES`), so the only place it is ever selected is ``[items.skill]``'s own
-#:   ``validators`` — a name you wrote yourself, per the ``parent_present`` reasoning above.
-#:   ``skill`` is also one of the three roster keys ``_workflow/_loader.py`` locks to
-#:   ``category = "roster"`` permanently (an override may not move it to ``work``/``records``),
-#:   so there is no category reassignment for this member to be silently lost to in the first
-#:   place — a stronger guarantee than the ordinary "nobody happened to reassign it" the other
-#:   two entries above rely on.
-#: - ``no_status_banner`` and ``subentity_title_max`` are the same shape as ``parent_present``:
-#:   each sits in no category bundle and in no floor, so it is only ever effective when a type
-#:   names it, and no category reassignment can take it away. ``subentity_title_max`` is still
-#:   one of the :data:`SUBENTITY_VALIDATOR_NAMES` that satisfy :func:`_clause_subentity_checked`.
-#: - ``subentities_settled_with_parent`` is the same shape: in no bundle, effective only on a type
-#:   that names it. It is deliberately not one of the :data:`SUBENTITY_VALIDATOR_NAMES`: it judges
-#:   a policy about settled parents, not the sub-entities' own validity, so a type naming it must
-#:   not stand in for the checks :func:`_clause_subentity_checked` guards.
-#: - ``pronouns_valid`` is the roster category's whole bundle and judges one attribute no capability
-#:   depends on, so there is nothing for a clause to protect.
-#: - The members of :data:`WORK_POLICY_VALIDATOR_NAMES` are the same shape again: in no bundle
-#:   and no floor, effective only where a type names them, so no category reassignment can take
-#:   one away.
-UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
-    {
-        "no_parent",
-        "parent_present",
-        "ref_rule_target_present",
-        "item_skill_shadowed",
-        "no_status_banner",
-        "subentity_title_max",
-        "subentities_settled_with_parent",
-        "item_title_max",
-        "ref_rule_target_typed",
-        "body_written",
-        "description_present",
-        "assignee_present",
-        "blocked_has_blocker",
-        "settled_requires_discussion",
-        "external_id_not_in_title",
-        "frontmatter_key_undeclared",
-        "pronouns_valid",
-    }
-)
-
-_CLAUSE_GUARDED: frozenset[str] = frozenset(
-    name for names, _ in CONSISTENCY_CLAUSES for name in names
-)
-assert _CLAUSE_GUARDED | frozenset(COMMON_CORE) | UNGUARDED_VALIDATOR_NAMES == VALIDATOR_NAMES, (
-    "every validator must be guarded by a consistency clause, common-core, or named unguarded"
-)
-
-
-def _check_category_consistency(
-    items: dict[str, ItemSpec],
-    kinds: dict[str, SubentityKindSpec],
-    ref_kinds: dict[str, RefKindSpec],
-    errors: list[str],
-) -> None:
-    """Plane-1: every capability a type declares must be *reachable* under the validator set
-    its own category turns on.
-
-    An override may move a built-in between ``work`` and ``records`` — that is settled, and the
-    guardrail is validation, not prohibition. What this checks is whether the result is
-    internally consistent, since an inconsistency is silent on every other gate: ``sq list``
-    exit 0, ``sq workflow lint`` "no errors or warnings", ``sq check`` exit 0. Moving ``task``
-    to ``records`` while it still declares ``parents = ["feature"]`` and
-    ``parent_required = "feature"`` makes that constraint unreachable *in both directions* —
-    creating with no parent succeeds where a parent was required, and creating with the
-    declared parent is refused by the records rule — while the loaded spec goes on reporting
-    both fields.
-
-    The check is written against the **validator set**, not against the category name, because
-    the validator set is what a category actually *is*: nothing else in the engine branches on
-    ``work`` versus ``records``. That makes the rule category-agnostic — it catches a ``work``
-    type that adds ``no_parent`` to its own ``validators`` while declaring ``parents`` just as
-    it catches a reassignment — and it needs no second table to keep in step with the bundles.
-
-    Being defined over the validator set has a second consequence, which is why the clauses are
-    a registry rather than a run of ``if``s: the *complete* rule is one clause per validator
-    whose subject is a declared capability, and a clause set written against the fields that
-    came to mind instead leaves the rest silently unenforced. :data:`CONSISTENCY_CLAUSES` pairs
-    each clause with the names it guards and the assert above closes it against
-    :data:`VALIDATOR_NAMES`, so a validator added to a bundle later cannot skip the decision:
-    guard it, or name it in :data:`UNGUARDED_VALIDATOR_NAMES` with the reason.
-    """
-    for t, ts in sorted(items.items()):
-        effective = _effective_bare_validators(ts)
-        for _guards, clause in CONSISTENCY_CLAUSES:
-            errors.extend(clause(t, ts, effective, kinds, ref_kinds))
-
-
-#: Field codes exempt from the reserved-key check below because this exact schema models
-#: them by field code on purpose — the bundled ``priority``/``severity`` fields keep the
-#: literal key their axis has always used (``Item.priority``/``Item.severity``/
-#: ``SubEntity.severity`` are themselves the badge-code storage, not a shadow of it), so
-#: frontmatter keeps round-tripping unchanged.
-_FIELD_ELIGIBLE_ITEM_KEYS: frozenset[str] = frozenset({"priority", "severity"})
-_FIELD_ELIGIBLE_SUBENTITY_KEYS: frozenset[str] = frozenset({"severity"})
-
-
-def _reserved_item_keys() -> frozenset[str]:
-    """Names a field code or an attribute may not take: the model's own fields (derived from
-    ``Item``, never hand-copied), the names a ``--json`` row adds, and ``extra``. ``path`` and
-    ``prefix`` are model fields that are not frontmatter, and are refused for the same reason: a
-    key of that name is never read back as the user's value."""
-    from squads._models._item import Item
-
-    keys = set(Item.model_fields) | set(Item.model_computed_fields)
-    return frozenset(keys | set(ROW_ADDED_KEYS) | {"extra"})
-
-
-def _reserved_subentity_keys() -> frozenset[str]:
-    """Sub-entity frontmatter keys a field code may not shadow (mirrors ``_reserved_item_keys``)."""
-    from squads._models._subentity import SubEntity
-
-    keys = set(SubEntity.model_fields) | set(SubEntity.model_computed_fields)
-    return frozenset(keys - _FIELD_ELIGIBLE_SUBENTITY_KEYS)
-
-
-def _iter_field_owners(
-    items: dict[str, ItemSpec],
-    subentity_kinds: dict[str, SubentityKindSpec],
-) -> Iterator[tuple[str, bool, list[Field]]]:
-    """Yield ``(owner_name, is_item, fields)`` for every type/kind that declares fields."""
-    for t, ts in items.items():
-        if ts.fields:
-            yield t, True, ts.fields
-    for k, ks in subentity_kinds.items():
-        if ks.fields:
-            yield k, False, ks.fields
-
-
-def _check_field_codes(
-    items: dict[str, ItemSpec],
-    subentity_kinds: dict[str, SubentityKindSpec],
-    errors: list[str],
-) -> None:
-    """Field-code uniqueness per owner + reserved-frontmatter-key collision."""
-    reserved_item = _reserved_item_keys()
-    reserved_subentity = _reserved_subentity_keys()
-    for owner, is_item, fields in _iter_field_owners(items, subentity_kinds):
-        seen: set[str] = set()
-        reserved = (reserved_item - _FIELD_ELIGIBLE_ITEM_KEYS) if is_item else reserved_subentity
-        for f in fields:
-            if f.code in seen:
-                errors.append(f"{owner!r}: duplicate field code {f.code!r}")
-            seen.add(f.code)
-            if f.code in reserved:
-                errors.append(
-                    f"{owner!r}: field code {f.code!r} shadows a reserved frontmatter key"
-                )
-
-
-#: The attributes the engine materialises into agent-host files, by roster type, with the kind
-#: each must be declared with. A resolved spec may add attributes to a roster type but may not
-#: drop or re-kind one of these. Every pin is required the same way: an override merges over the
-#: bundled spec, which declares them all, so only a spec built whole by hand must restate them.
-PINNED_ROSTER_ATTRIBUTES: dict[str, dict[str, str]] = {
-    ROSTER_ROLE: {
-        AttributeKey.IS_DEFAULT: "bool",
-        AttributeKey.MODEL: "str",
-        AttributeKey.ORIGIN: "str",
-        AttributeKey.PRONOUNS: "str",
-        AttributeKey.TECH: "str",
-    },
-    ROSTER_OPERATOR: {
-        AttributeKey.PRONOUNS: "str",
-    },
-    ROSTER_SKILL: {
-        AttributeKey.ALLOWED_TOOLS: "str",
-        AttributeKey.MODEL: "str",
-        AttributeKey.OPERATOR_INVOCABLE: "bool",
-        AttributeKey.ORIGIN: "str",
-        AttributeKey.WHEN_TO_USE: "str",
-    },
-}
-
-
-def _check_attributes(items: dict[str, ItemSpec], errors: list[str]) -> None:
-    """Attribute names are free of reserved keys and badge codes, and each roster type declares
-    its pinned attributes with the pinned kind."""
-    reserved = _reserved_item_keys()
-    for owner, ts in items.items():
-        codes = {f.code for f in ts.fields}
-        for name in ts.attributes:
-            if name in reserved:
-                errors.append(
-                    f"{owner!r}: attribute {name!r} is a reserved key — pick another name"
-                )
-            elif name in codes:
-                errors.append(f"{owner!r}: attribute {name!r} is also a field code on this type")
-    for owner, pinned in PINNED_ROSTER_ATTRIBUTES.items():
-        ts = items.get(owner)
-        if ts is None:
-            continue
-        for name, kind in pinned.items():
-            declared = ts.attributes.get(name)
-            if declared is None or declared.kind != kind:
-                errors.append(
-                    f"roster type {owner!r} must declare attribute {name!r} with kind {kind!r} "
-                    f'— add `{name} = {{ kind = "{kind}" }}` under [items.{owner}.attributes]'
-                )
-
-
-def _check_field_collections(
-    items: dict[str, ItemSpec],
-    subentity_kinds: dict[str, SubentityKindSpec],
-    collections: dict[str, Collection],
-    errors: list[str],
-) -> None:
-    """Every field's collection resolves; every default badge code (field- or
-    collection-level) names a badge in that collection; a required field with no
-    resolvable default is rejected."""
-    for code, coll in collections.items():
-        if not coll.ordered:
-            # Ordered-only for now. The flag stays in the schema (reserved for a future
-            # unordered kind), but nothing downstream (sort/--min-<field>) reads it —
-            # accepting ordered=false here would rank badges by declaration order
-            # silently, a meaningless-but-quiet result. Fail closed instead.
-            errors.append(f"collection {code!r}: unordered collections are not supported yet")
-        if coll.default is not None and coll.default not in coll.badge_codes:
-            errors.append(f"collection {code!r}: default {coll.default!r} not a declared badge")
-
-    for owner, _is_item, fields in _iter_field_owners(items, subentity_kinds):
-        for f in fields:
-            coll = collections.get(f.collection)
-            if coll is None:
-                errors.append(
-                    f"{owner!r} field {f.code!r}: collection {f.collection!r} not declared"
-                )
-                continue
-            if f.default is not None and f.default not in coll.badge_codes:
-                errors.append(
-                    f"{owner!r} field {f.code!r}: default {f.default!r} not a badge in "
-                    f"collection {f.collection!r}"
-                )
-            if f.required:
-                resolved = f.default or coll.default
-                if resolved is None or resolved not in coll.badge_codes:
-                    errors.append(
-                        f"{owner!r} field {f.code!r}: required with no resolvable default "
-                        f"badge in collection {f.collection!r}"
-                    )
-
-
-def _check_view_source(
-    tag: str,
-    src: ViewSource,
-    items: dict[str, ItemSpec],
-    subentity_kinds: dict[str, SubentityKindSpec],
-    ref_kinds: dict[str, RefKindSpec],
-    errors: list[str],
-) -> None:
-    """Refuse *src* when its ``name`` doesn't resolve against the vocabulary its ``kind``
-    points at — a view declares only ``source``, and this is the one referential check that
-    declaration needs (see :func:`_check_views`)."""
-    if src.kind == "ref":
-        if src.name is None or src.name not in ref_kinds:
-            errors.append(f"{tag}: source names ref kind {src.name!r}, not declared in [ref_kinds]")
-        return
-    if src.kind == "subentity":
-        if src.name is None or src.name not in subentity_kinds:
-            errors.append(
-                f"{tag}: source names sub-entity kind {src.name!r}, not declared in "
-                "[subentity_kinds]"
-            )
-        return
-    if src.kind == "subtree":
-        if src.name is None or src.name not in items:
-            errors.append(f"{tag}: source names item type {src.name!r}, not declared in [items]")
-        return
-    if src.kind in ("role", "self"):
-        if src.name is not None:
-            errors.append(f"{tag}: a {src.kind!r} source takes no name (got {src.name!r})")
-        return
-    # "playbook" — name is optional; when given it must resolve like a subtree's does
-    if src.name is not None and src.name not in items:
-        errors.append(f"{tag}: source names item type {src.name!r}, not declared in [items]")
-
-
-def _check_views(
-    views: dict[str, ViewSpec],
-    items: dict[str, ItemSpec],
-    subentity_kinds: dict[str, SubentityKindSpec],
-    ref_kinds: dict[str, RefKindSpec],
-    errors: list[str],
-) -> None:
-    """Referential floor over ``[views]``, run on the **merged** mapping so it lands on the
-    exact same collect-all pass every other cross-reference here does (``sq workflow lint``
-    reports a broken view alongside every other violation in one run, never only the first).
-
-    A view's ``source.name`` must name a declared entry of the vocabulary its ``source.kind``
-    points at (``[ref_kinds]``/``[subentity_kinds]``/``[items]`` — ``role``/``self`` take none,
-    ``playbook``'s is optional against ``[items]``) — the same shape ``_parse_ref_rules``
-    already refuses a rule naming an undeclared kind for, applied to the view axis: a source
-    that can never resolve is refused here rather than carried as an inert declaration.
-
-    Two more checks run in the same collect-all pass, both by design rather than by
-    ``ViewSpec``'s own pydantic validation, so a bad ``position`` and a bad name both land in
-    one ``sq workflow lint`` run instead of the load aborting at the first one found: the view's
-    *key* must be a bare TOML key (:data:`_BARE_TOML_KEY_RE`) other than
-    :data:`_RESERVED_VIEW_NAME`, and its declared ``position`` must parse
-    (:func:`parse_view_position`)."""
-    for name, v in sorted(views.items()):
-        tag = f"view {name!r}"
-        if name == _RESERVED_VIEW_NAME or not _BARE_TOML_KEY_RE.fullmatch(name):
-            errors.append(
-                f"{tag}: not a bare TOML key other than {_RESERVED_VIEW_NAME!r} — a view name "
-                "must match [A-Za-z0-9_-]+ and must not be 'end' (the disabled-state suffix is "
-                "colon-delimited, and `sq:view:end` would spell a close marker)"
-            )
-        try:
-            parse_view_position(v.position)
-        except ValueError as exc:
-            errors.append(f"{tag}: invalid position {v.position!r}: {exc}")
-        _check_view_source(tag, v.source, items, subentity_kinds, ref_kinds, errors)
-        if v.transform is not None:
-            errors.extend(f"{tag}: {problem}" for problem in view_transform_problems(v.transform))
-
-
-def view_transform_problems(transform: ViewTransform) -> list[str]:
-    """Every shape defect of *transform*, none when it is well formed. Pure string checks: no
-    file is opened and nothing is imported."""
-    problems: list[str] = []
-    if (transform.module is None) == (transform.path is None):
-        problems.append("transform takes exactly one of `module` or `path`")
-    if not transform.function.isidentifier() or keyword.iskeyword(transform.function):
-        problems.append(f"transform function {transform.function!r} is not an identifier")
-    if transform.module is not None and not _TRANSFORM_MODULE_RE.fullmatch(transform.module):
-        problems.append(
-            f"transform module {transform.module!r} is not a dotted identifier under `squads.`"
-        )
-    if transform.path is not None:
-        problems.extend(_transform_path_problems(transform.path))
-    return problems
-
-
-#: ``squads.`` followed by one or more dotted identifier segments.
-_TRANSFORM_MODULE_RE = re_compile(r"^squads(\.[A-Za-z_][A-Za-z0-9_]*)+$")
-
-
-def _transform_path_problems(path: str) -> list[str]:
-    problems: list[str] = []
-    if any(ord(c) < 32 or ord(c) == 127 for c in path):
-        problems.append(f"transform path {path!r} must not contain control characters")
-    elif "\\" in path or path.startswith("/") or re.match(r"^[A-Za-z]:", path):
-        problems.append(f"transform path {path!r} must be a relative POSIX path")
-    elif ".." in path.split("/"):
-        problems.append(f"transform path {path!r} must not contain a `..` segment")
-    if not path.endswith(".py"):
-        problems.append(f"transform path {path!r} must end in `.py`")
-    return problems
-
-
-def subentity_source_reason(
-    view_name: str, item_type: str, kind: str | None, items: dict[str, ItemSpec]
-) -> str | None:
-    """``None`` when *item_type*'s own declared sub-entity kind is *kind* — the type genuinely
-    hosts sub-entities of that kind — else the reason it doesn't. The one place this
-    question is composed: ``squads._views._subentity_source_applies`` (the read-time predicate,
-    imported from there — ``_views`` sits above this module in the layering, so the edge runs
-    one way only) calls this rather than independently wording the same comparison."""
-    ts = items.get(item_type)
-    hosted = ts.subentity_kind if ts else None
-    if hosted == kind:
-        return None
-    hosted_desc = repr(hosted) if hosted else "none"
-    return (
-        f"view {view_name!r} sources {kind!r} sub-entities, but a {item_type!r} item hosts "
-        f"{hosted_desc}"
-    )
-
-
-#: A TOML bare key (``[A-Za-z0-9_-]+``) — what every ``[ref_kinds]`` entry's own key must
-#: satisfy so it stays splat-ref addressable; also rules out the wire ref
-#: separator ``:`` (``split_ref`` partitions on it, ``_models/_item.py``) without a second check.
-_BARE_TOML_KEY_RE = re_compile(r"^[A-Za-z0-9_-]+$")
-
-
-def _check_ref_kinds_floor(ref_kinds: dict[str, RefKindSpec], errors: list[str]) -> None:
-    """The per-capability floor over ``[ref_kinds]`` (plus the ``default`` role, folded onto
-    this same floor) — checked here, on the merged mapping, so a
-    violation surfaces as an ordinary ``_build_spec`` finding: visible to ``sq workflow lint``
-    on the exact path every other structural failure already takes, not only at first use
-    inside an accessor like :meth:`WorkflowSpec.default_ref_kind`/
-    :meth:`WorkflowSpec.preload_ref_kind`. This is
-    what keeps lint and a mutating command in agreement on a spec neither should bless.
-
-    - Every key must be a bare TOML key (see :data:`_BARE_TOML_KEY_RE`).
-    - Exactly one kind carries ``role = "default"`` — mandatory; a bare ``"ID"`` ref is
-      undecodable without exactly one.
-    - Exactly one kind carries ``role = "preload"`` — mandatory; zero strands every custom
-      skill from the role that scopes it, two make the resolver's inversion ambiguous.
-    - At most one kind per ``dependency`` direction (``"blocker"``/``"dependent"``) — zero is
-      legal per direction; two spelling the same direction would make the normalisation the
-      graph traversal relies on ambiguous. A kind declaring ``role = "dependency"`` with no
-      direction at all is refused outright — it would silently resolve through neither bucket.
-    - ``supersession`` has no upper bound and no floor: zero is a stated choice (an empty
-      incoming-supersedes check), any number above zero is fine — the validator sites this
-      task converts read the full declared set, not a single kind.
-    """
-    errors.extend(
-        f"ref_kinds {code!r}: not a bare TOML key (must match [A-Za-z0-9_-]+) — this keeps "
-        "every kind splat-ref addressable and rules out the wire ref separator ':'"
-        for code in sorted(ref_kinds)
-        if not _BARE_TOML_KEY_RE.fullmatch(code)
-    )
-
-    defaults = sorted(k for k, ks in ref_kinds.items() if ks.role == "default")
-    if len(defaults) != 1:
-        errors.append(
-            "the workflow spec must declare exactly one ref kind with role = 'default' "
-            f"(a bare ref decodes to it); found {len(defaults)}: {defaults}"
-        )
-
-    preloads = sorted(k for k, ks in ref_kinds.items() if ks.role == "preload")
-    if len(preloads) != 1:
-        errors.append(
-            "the workflow spec must declare exactly one ref kind with role = 'preload' "
-            f"(a skill's forward edge to the role that preloads it); found {len(preloads)}: "
-            f"{preloads}"
-        )
-
-    stray = sorted(
-        k for k, ks in ref_kinds.items() if ks.role == "dependency" and ks.direction is None
-    )
-    if stray:
-        errors.append(
-            f"ref_kinds {stray}: role = 'dependency' requires a 'direction' of 'blocker' or "
-            "'dependent'"
-        )
-    for direction in ("blocker", "dependent"):
-        claimants = sorted(
-            k
-            for k, ks in ref_kinds.items()
-            if ks.role == "dependency" and ks.direction == direction
-        )
-        if len(claimants) > 1:
-            errors.append(
-                f"the workflow spec declares {len(claimants)} ref kinds with role = "
-                f"'dependency' and direction = {direction!r}; at most one is allowed: {claimants}"
-            )
-
-
-# Canonical priority order for well-known exception/side states: states appearing together
-# in the side-state list sort by this (lower = earlier), regardless of BFS discovery order
-# (e.g. Blocked before Cancelled). States absent here keep BFS order via the fallback rank
-# (len(_SIDE_PRIORITY)).
-_SIDE_PRIORITY: dict[str, int] = {
-    "WontFix": 0,
-    "Blocked": 1,
-    "Cancelled": 2,
-    "Rejected": 3,
-    "Deprecated": 4,
-}
-
 # Bundled sub-entity container headings, keyed by kind and paired with the PLURAL that
 # heading belongs to — see WorkflowSpec.subentity_container_heading. The plural is what makes
 # the entry conditional rather than absolute: keyed by kind code alone, this table outranked an
@@ -2725,132 +745,6 @@ _BUNDLED_CONTAINER_HEADINGS: dict[str, tuple[str, str]] = {
     "subtask": ("subtasks", "Subtasks"),
     "finding": ("findings", "Findings"),
 }
-
-
-def lifecycle_spine(machine: Lifecycle) -> list[str]:
-    """The "happy-path" chain through *machine*: greedy forward walk from ``initial``,
-    following the first unvisited outgoing transition at each step, stopping when no new
-    state is reachable. E.g. ``["Draft", "Ready", "InProgress", "InReview", "Done"]`` for
-    the bundled ``work`` lifecycle — exception/side branches (``Blocked``, ``Cancelled``)
-    never appear, by construction (they're only reached as a non-first transition target).
-
-    Shared by :func:`linearize_lifecycle` (renders it as ``"A → B → C"`` plus side states)
-    and the "first happy-path status matching some predicate" family
-    (:meth:`WorkflowSpec.first_active_status`/:meth:`WorkflowSpec.first_settled_status`) —
-    those need the spine specifically, not full BFS reachability order, since a side branch
-    like ``Cancelled`` can resolve to a settled role at a shallower BFS depth than the actual
-    happy-path terminal and would otherwise be picked first.
-    """
-    initial = machine.initial
-    transitions = machine.transitions
-    spine: list[str] = [initial]
-    visited: set[str] = {initial}
-    current = initial
-    while True:
-        next_state: str | None = None
-        for candidate in transitions.get(current, []):
-            if candidate not in visited:
-                next_state = candidate
-                break
-        if next_state is None:
-            break
-        spine.append(next_state)
-        visited.add(next_state)
-        current = next_state
-    return spine
-
-
-def linearize_lifecycle(machine: Lifecycle) -> str:
-    """Derive a readable lifecycle string from an arbitrary transition graph.
-
-    Algorithm:
-    1. Build the **spine** (:func:`lifecycle_spine`) — the "happy-path" chain ``A → B → C``.
-    2. Collect **side states** — all states reachable from ``machine.initial`` that
-       are not on the spine — in BFS discovery order.
-    3. Sort side states into canonical order using :data:`_SIDE_PRIORITY`, so the
-       output is independent of TOML transition-list ordering.  States not in the
-       priority table retain their relative BFS order (sorted after the known states).
-    4. Return ``"A → B → C"`` when there are no side states, or
-       ``"A → B → C (+ D, E)"`` otherwise.
-
-    Deterministic: given the same machine the output is always identical.
-
-    Examples::
-
-        linearize_lifecycle(guide_machine)   # "Draft → Published → Deprecated"
-        linearize_lifecycle(adr_machine)     # "Proposed → Accepted → Superseded (+ ...)"
-    """
-    initial = machine.initial
-    transitions = machine.transitions
-    spine = lifecycle_spine(machine)
-
-    # BFS from initial to collect all reachable states in discovery order.
-    bfs_order: list[str] = [initial]
-    bfs_visited: set[str] = {initial}
-    queue: list[str] = [initial]
-    while queue:
-        node = queue.pop(0)
-        for nxt in transitions.get(node, []):
-            if nxt not in bfs_visited:
-                bfs_visited.add(nxt)
-                bfs_order.append(nxt)
-                queue.append(nxt)
-
-    # Side states = reachable but not on the spine, sorted into canonical order.
-    # Known states sort by their explicit priority; unknown states sort after them
-    # in BFS-discovery order (secondary key = bfs position).
-    spine_set: set[str] = set(spine)
-    _unknown_rank = len(_SIDE_PRIORITY)
-    side: list[str] = sorted(
-        (s for s in bfs_order if s not in spine_set),
-        key=lambda s: (_SIDE_PRIORITY.get(s, _unknown_rank), bfs_order.index(s)),
-    )
-
-    chain = " → ".join(spine)
-    if side:
-        return f"{chain} (+ {', '.join(side)})"
-    return chain
-
-
-def lifecycle_states_in_order(machine: Lifecycle) -> list[str]:
-    """A deterministic listing of every state in ``machine``: BFS discovery order from
-    ``initial`` (mirroring :func:`linearize_lifecycle`'s traversal), then any state left
-    unreached (shouldn't normally happen) appended in sorted order.
-
-    ``Lifecycle.states`` is a ``frozenset`` — its iteration order is hash-seed-dependent, so
-    any caller whose output has to be byte-stable across process runs walks this instead.
-    Today that is :meth:`WorkflowSpec.first_dropped_status`, which picks a status out of a
-    machine for generated text; a hash-ordered pick would rewrite generated files at random.
-    """
-    order = [machine.initial]
-    seen = {machine.initial}
-    queue = [machine.initial]
-    while queue:
-        node = queue.pop(0)
-        for nxt in machine.transitions.get(node, []):
-            if nxt not in seen:
-                seen.add(nxt)
-                order.append(nxt)
-                queue.append(nxt)
-    order.extend(sorted(s for s in machine.states if s not in seen))
-    return order
-
-
-def lifecycle_edges_in_order(machine: Lifecycle) -> list[tuple[str, str]]:
-    """Every transition edge in *machine*, as ``(source, target)`` pairs in a deterministic,
-    byte-stable order: sources in :func:`lifecycle_states_in_order` order, targets in each
-    source's declared ``Lifecycle.transitions`` list order (the TOML declaration order the
-    ``list`` values preserve — never ``Lifecycle.states``, a ``frozenset`` with a
-    hash-seed-dependent iteration order). A source with no outgoing edges contributes nothing.
-
-    The order is deterministic for the ``sq workflow lifecycles --json`` catalog, which
-    publishes each pair as a ``{from, to}`` object.
-    """
-    return [
-        (src, dst)
-        for src in lifecycle_states_in_order(machine)
-        for dst in machine.transitions.get(src, [])
-    ]
 
 
 class SquadSpec(BaseModel):
@@ -3033,7 +927,7 @@ class WorkflowSpec(BaseModel):
         (``_services/_subentities.py``) ask, so the two never disagree on whether the check
         runs or at what number."""
         ts = self.items.get(item_type)
-        if ts is None or "subentity_title_max" not in _effective_bare_validators(ts):
+        if ts is None or "subentity_title_max" not in effective_bare_validators(ts):
             return None
         for entry in ts.validators:
             bare, param, _level = parse_validator_entry(entry)
@@ -3110,7 +1004,7 @@ class WorkflowSpec(BaseModel):
         forward edge to the role that preloads it, inverted by the roster resolver.
 
         Raises ``SquadsError`` when the merged spec declares zero or more than one — the
-        per-capability floor (:func:`_check_ref_kinds_floor`) keeps this total at merge time;
+        per-capability floor (:func:`check_ref_kinds_floor`) keeps this total at merge time;
         this accessor still fails closed rather than guessing, the same shape as
         :meth:`default_ref_kind`.
         """
@@ -3366,7 +1260,7 @@ class WorkflowSpec(BaseModel):
         """The sub-entity/finding kind's designated completion status.
 
         This is what the done-toggle resolves to instead of a hardcoded ``Done``/``Fixed``
-        literal. An O(1) lookup — ``_check_completion_status`` guarantees at load time that
+        literal. An O(1) lookup — ``check_completion_status`` guarantees at load time that
         a validated spec's ``completion`` names a reachable, non-initial status.
 
         Raises ``KeyError`` for an undeclared *kind* — same shape as :meth:`collection`: a
@@ -3441,52 +1335,73 @@ class WorkflowSpec(BaseModel):
     @model_validator(mode="after")
     def _validate(self) -> WorkflowSpec:
         """Fail-closed validation."""
+        from squads._workflow._validity import (
+            check_attributes,
+            check_category_consistency,
+            check_completion_status,
+            check_field_codes,
+            check_field_collections,
+            check_item_lifecycles_avoid_deferred,
+            check_item_refs,
+            check_lifecycle_statuses,
+            check_parent_cycles,
+            check_reachability,
+            check_reachable_settled,
+            check_ref_kinds_floor,
+            check_ref_rule_targets,
+            check_role_references,
+            check_roster_lifecycle_floor,
+            check_selections_that_cannot_fire,
+            check_squad_validators,
+            check_subentity_kinds,
+            check_validators_assignment,
+            check_views,
+        )
+
         all_statuses = set(self.statuses)
         all_lifecycle_names = set(self.lifecycles)
         all_types = set(self.items)
         errors: list[str] = []
 
         # Lifecycle initial/transition statuses exist.
-        _check_lifecycle_statuses(self.lifecycles, all_statuses, errors)
+        check_lifecycle_statuses(self.lifecycles, all_statuses, errors)
 
         # Role-catalog checks: every status.role names a declared role; every role.color is
         # in the closed intent palette.
-        _check_role_references(self.statuses, self.roles, errors)
+        check_role_references(self.statuses, self.roles, errors)
 
         # Reachability.
-        _check_reachability(self.lifecycles, errors)
+        check_reachability(self.lifecycles, errors)
 
         # Every lifecycle must be able to reach a status with a settled role.
-        _check_reachable_settled(self.lifecycles, self.statuses, self.roles, errors)
+        check_reachable_settled(self.lifecycles, self.statuses, self.roles, errors)
 
         # Additional floor for a lifecycle bound to a category="roster" type: R1 (at least one
         # live status), R1' (exactly one live status when the initial isn't live),
         # and R2 (a settled, non-live status reachable from a live one) — the create-at
         # target and the retirement path the engine needs.
-        _check_roster_lifecycle_floor(
-            self.items, self.lifecycles, self.statuses, self.roles, errors
-        )
+        check_roster_lifecycle_floor(self.items, self.lifecycles, self.statuses, self.roles, errors)
 
-        _check_item_lifecycles_avoid_deferred(
+        check_item_lifecycles_avoid_deferred(
             self.items, self.lifecycles, self.statuses, self.roles, errors
         )
 
         # ItemSpec cross-refs + uniqueness.
-        _check_item_refs(self.items, all_lifecycle_names, all_types, errors)
+        check_item_refs(self.items, all_lifecycle_names, all_types, errors)
 
         # Validator-catalog-membership check for each type's `validators` assignment list.
-        _check_validators_assignment(self.items, errors)
+        check_validators_assignment(self.items, errors)
 
         # RefRule.target referential validation: names a declared item type, and a type
         # selecting ref_rule_target_present:<T> declares a rule targeting <T>.
-        _check_ref_rule_targets(self.items, errors)
+        check_ref_rule_targets(self.items, errors)
 
         # A selected check the spec's own declarations make unable to fire is refused.
-        _check_selections_that_cannot_fire(
+        check_selections_that_cannot_fire(
             self.items, self.lifecycles, self.statuses, self.roles, self.ref_kinds, errors
         )
 
-        _check_squad_validators(
+        check_squad_validators(
             self.squad,
             self.items,
             self.lifecycles,
@@ -3498,33 +1413,33 @@ class WorkflowSpec(BaseModel):
 
         # Every capability a type declares must be reachable under the validators its own
         # category turns on — a category reassignment that contradicts itself fails here.
-        _check_category_consistency(self.items, self.subentity_kinds, self.ref_kinds, errors)
+        check_category_consistency(self.items, self.subentity_kinds, self.ref_kinds, errors)
 
         # Parent-cycle detection in the type-parent graph.
-        _check_parent_cycles(self.items, errors)
+        check_parent_cycles(self.items, errors)
 
         # Field-code uniqueness + reserved-key collision (per item type / sub-entity kind).
-        _check_field_codes(self.items, self.subentity_kinds, errors)
+        check_field_codes(self.items, self.subentity_kinds, errors)
 
         # Attribute names + the pinned roster attributes.
-        _check_attributes(self.items, errors)
+        check_attributes(self.items, errors)
 
         # Field->collection referential integrity + default-badge resolution.
-        _check_field_collections(self.items, self.subentity_kinds, self.collections, errors)
+        check_field_collections(self.items, self.subentity_kinds, self.collections, errors)
 
         # SubentityKindSpec.lifecycle reference + plural/local_prefix uniqueness.
-        _check_subentity_kinds(self.items, self.subentity_kinds, all_lifecycle_names, errors)
+        check_subentity_kinds(self.items, self.subentity_kinds, all_lifecycle_names, errors)
 
         # Each declared sub-entity kind's completion names a reachable, non-initial status.
-        _check_completion_status(self.subentity_kinds, self.lifecycles, errors)
+        check_completion_status(self.subentity_kinds, self.lifecycles, errors)
 
         # The per-capability floor over [ref_kinds]: bare-key shape, exactly one default,
         # exactly one preload, at most one kind per dependency direction.
-        _check_ref_kinds_floor(self.ref_kinds, errors)
+        check_ref_kinds_floor(self.ref_kinds, errors)
 
         # [views] referential floor: a declared source's name resolves against its kind's
         # vocabulary.
-        _check_views(self.views, self.items, self.subentity_kinds, self.ref_kinds, errors)
+        check_views(self.views, self.items, self.subentity_kinds, self.ref_kinds, errors)
 
         # Reserved-vocab floor — the spec must declare the three roster types, each with
         # category = "roster". This is the ONLY type-axis floor: every other type

@@ -9,11 +9,11 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import resolved_skill_definition
-from squads._interactions import bundled_skill_slugs
+from _helpers import make_service, resolved_skill_definition
+from squads._interactions._skills import bundled_skill_slugs
 from squads._sections import split_frontmatter
 from squads._services import _service as service
-from squads._workflow import linearize_lifecycle
+from squads._workflow._lifecycle_order import linearize_lifecycle
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import ItemSpec, Lifecycle, WorkflowSpec
 
@@ -77,7 +77,7 @@ async def test_sync_generates_a_thin_skill_with_lifecycle_and_standard_verbs(
     init_result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     paths = init_result.paths
     spec = _spec_with_incident()
-    svc = service.Service(paths, spec=spec)
+    svc = make_service(paths, spec=spec)
 
     await svc.sync()
 
@@ -96,7 +96,7 @@ async def test_seed_custom_skills_allocates_an_idempotent_skill_id_after_every_b
     init_result = await service.init(root=tmp_path, roles_spec="minimal")
     paths = init_result.paths
     spec = _spec_with_incident()
-    svc = service.Service(paths, spec=spec)
+    svc = make_service(paths, spec=spec)
 
     await svc.sync()
     after_first = {it.slug: it.sequence_id for it in await svc.list_items(item_type="skill")}
@@ -116,7 +116,7 @@ async def test_sync_writes_the_pointer_file_for_the_custom_skill(
     monkeypatch.chdir(tmp_path)
     init_result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     paths = init_result.paths
-    svc = service.Service(paths, spec=_spec_with_incident())
+    svc = make_service(paths, spec=_spec_with_incident())
 
     await svc.sync()
 
@@ -132,7 +132,7 @@ async def test_a_bundled_only_squad_gets_no_custom_skill_at_all(
     monkeypatch.chdir(tmp_path)
     init_result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     paths = init_result.paths
-    svc = service.Service(paths)  # bundled spec — no custom types
+    svc = make_service(paths)  # bundled spec — no custom types
 
     await svc.sync()
 
@@ -151,7 +151,7 @@ async def test_the_thin_skill_has_no_dead_subentity_footer_and_its_create_comman
     _write_override(paths.squad_dir)
 
     spec = load_workflow_spec(squad_dir=paths.squad_dir)
-    svc = service.Service(paths, spec=spec)
+    svc = make_service(paths, spec=spec)
     await svc.sync()
 
     skill_text = await _skill_text(svc)
@@ -178,7 +178,7 @@ async def test_init_itself_seeds_a_custom_type_skill_with_no_sync_needed(
     init_result = await service.init(root=tmp_path, roles_spec="minimal")
     paths = init_result.paths
 
-    skills = {it.slug: it for it in await service.Service(paths).list_items(item_type="skill")}
+    skills = {it.slug: it for it in await make_service(paths).list_items(item_type="skill")}
     assert "sq-incident" in skills, "custom-type skill was not indexed by init itself"
 
     # convention-named on disk (not the untracked legacy `<slug>.md` seeding leaves behind).
@@ -198,6 +198,6 @@ async def test_adopt_seeds_both_bundled_and_custom_type_skills(
     adopt_result = await service.adopt(root=tmp_path, roles_spec="minimal")
     paths = adopt_result.paths
 
-    skills = {it.slug: it for it in await service.Service(paths).list_items(item_type="skill")}
+    skills = {it.slug: it for it in await make_service(paths).list_items(item_type="skill")}
     assert "squads" in skills, "bundled skills were not seeded by adopt"
     assert "sq-incident" in skills, "custom-type skill was not seeded by adopt"

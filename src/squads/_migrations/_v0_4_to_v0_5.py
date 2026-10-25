@@ -43,7 +43,7 @@ from squads import _clock as clock
 from squads import _sections as sections
 from squads._backends._claude_code._frontmatter import oneline
 from squads._index._store import IndexStore
-from squads._interactions import bundled_skill_slugs, skill_description
+from squads._interactions._skills import bundled_skill_slugs, skill_description
 from squads._migrations._context import MigrationContext
 from squads._migrations._legacy_extra import with_legacy_extra
 from squads._models._item import Item
@@ -130,6 +130,7 @@ async def _rewrite_pointer(
         pointer,
         render(
             "claude/pointer_skill.md.j2",
+            from_squad=root.squad_dir,
             slug=slug,
             description=oneline(description),
             invocable=True,  # this runner writes no host key; the later pointer refresh does

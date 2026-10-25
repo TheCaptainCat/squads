@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+from _helpers import make_service
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -42,7 +43,7 @@ async def test_show_prints_a_system_definition_although_the_item_stores_only_its
     from squads import _sections as sections
     from squads._models import _markers as markers
 
-    svc = service.Service(seeded)
+    svc = make_service(seeded)
     item = await svc.roster_item("skill", "sq-task")
     assert item is not None
     stored = svc.paths.abspath(item.path).read_text(encoding="utf-8")
@@ -82,7 +83,7 @@ async def test_show_json_carries_every_field_including_origin_and_the_exact_body
     assert payload["slug"] == "sq-task"
     assert payload["origin"] == "system"
 
-    svc = service.Service(seeded)
+    svc = make_service(seeded)
     assert payload["body"] == await svc.read_stored_body(await _sq_task_id(svc))
     assert "sq:view:" in payload["body"]
     assert payload["views"] == {}
@@ -115,7 +116,7 @@ async def test_a_system_skill_for_an_undeclared_type_says_so_instead_of_naming_a
 
 
 async def test_an_unwritten_custom_skill_body_points_at_the_body_verb(seeded, invoke) -> None:
-    svc = service.Service(seeded)
+    svc = make_service(seeded)
     custom = await svc.add_skill("Release Runbook", description="Ship a release safely.")
     await svc.set_body(custom.id, "", force=True)
 

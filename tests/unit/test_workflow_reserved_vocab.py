@@ -12,7 +12,7 @@ import pytest
 
 from _helpers import FLOOR_STATUSES, ROSTER_TYPES, WORK_TYPES, role_of
 from squads._errors import SquadsError
-from squads._interactions import get_playbook_spec
+from squads._interactions._playbook import get_playbook_spec
 from squads._workflow import bundled_spec
 from squads._workflow._models import ItemSpec, Lifecycle, StatusSpec, WorkflowSpec
 
@@ -229,17 +229,6 @@ def test_non_roster_types_includes_a_custom_work_type_but_not_a_custom_roster_ty
     assert "custom-agent" not in nrt
 
 
-def test_module_level_non_roster_types_matches_the_bundled_specs_own_method() -> None:
-    """``squads._workflow.non_roster_types()`` — a package-level convenience wrapper over the
-    bundled singleton's own ``non_roster_types()`` method, proven above."""
-    from squads._workflow import non_roster_types
-
-    spec = bundled_spec()
-    assert non_roster_types() == spec.non_roster_types()
-    for rt in ROSTER_TYPES:
-        assert rt not in non_roster_types()
-
-
 # --------------------------------------------------------------------------- graceful degradation
 # A custom work type has no PLAYBOOK/interactions entry — every playbook accessor degrades to
 # empty rather than KeyError (the playbook stays PLAYBOOK-keyed / built-in-only).
@@ -247,9 +236,9 @@ def test_module_level_non_roster_types_matches_the_bundled_specs_own_method() ->
 
 def test_managed_item_types_is_playbook_keyed_and_excludes_a_hypothetical_custom_type() -> None:
     from _helpers import BUILTIN_TYPES
-    from squads._interactions import managed_item_types
+    from squads._interactions._playbook import managed_item_types
 
-    managed = managed_item_types()
+    managed = managed_item_types(get_playbook_spec())
     for item_type in managed:
         assert item_type in BUILTIN_TYPES
     assert "incident" not in [str(t) for t in managed]

@@ -49,7 +49,6 @@ back is a regression against this paragraph.
 """
 
 import functools
-import importlib.resources
 import tomllib
 from pathlib import Path
 from typing import Any, cast
@@ -68,12 +67,21 @@ from squads._interactions._role_guidance import (
 from squads._overrides._manifest import PLAYBOOK_KEY, artifact_changed_since
 from squads._roles._models import (
     CAPABILITY_NAME_PATTERN,
+    CatalogSource,
     RoleCatalogSpec,
     malformed_capability_names,
 )
 from squads._roles._resolver import project_role_slugs
-from squads._specmerge import RawMapping, describe_spec_error, merge_override
-from squads._workflow import bundled_spec
+from squads._specload import (
+    OverrideFiles,
+    OverrideMessages,
+    SpecDocument,
+    bundled_raw,
+    bundled_text,
+    load_override,
+    override_mapping,
+)
+from squads._specmerge import RawMapping, describe_spec_error
 from squads._workflow._loader import as_entry_list, as_table
 from squads._workflow._models import WorkflowSpec
 
@@ -103,27 +111,30 @@ PLAYBOOK_NO_SELECTED_HINT = (
 )
 
 
-def _read_bundled_bytes() -> bytes:
-    try:
-        pkg = importlib.resources.files("squads._specs")
-        return (pkg / "playbook.toml").read_bytes()
-    except Exception as exc:
-        raise SquadsError(f"Failed to read bundled playbook.toml: {exc}") from exc
+_DOCUMENT = SpecDocument(
+    bundled_file="playbook.toml",
+    override_file=PLAYBOOK_OVERRIDE_FILENAME,
+    override_name="playbook override",
+    top_level_keys=PLAYBOOK_TOP_LEVEL_SECTIONS,
+    selected_sections=PLAYBOOK_SELECTED_SECTIONS,
+    messages=OverrideMessages(
+        malformed="Malformed playbook override {path}: {exc}",
+        unreadable="Cannot read playbook override {path}: {exc}",
+        malformed_hint="Fix the TOML syntax and re-run `sq override diff playbook`.",
+        unreadable_hint="Check file permissions and re-run `sq override diff playbook`.",
+    ),
+    empty_selected_hint=PLAYBOOK_NO_SELECTED_HINT,
+)
 
 
 def _bundled_raw() -> RawMapping:
-    """The bundled ``playbook.toml``, parsed but not yet built into a model — the merge
-    engine's ``base`` input."""
-    try:
-        return tomllib.loads(_read_bundled_bytes().decode())
-    except tomllib.TOMLDecodeError as exc:
-        raise SquadsError(f"Malformed bundled playbook.toml: {exc}") from exc
+    return bundled_raw(_DOCUMENT)
 
 
 def bundled_playbook_toml_text() -> str:
     """The bundled ``playbook.toml``'s raw text — the ``sq override diff playbook`` Δ-mine
     baseline, mirroring :func:`squads._workflow._loader.bundled_workflow_toml_text`."""
-    return _read_bundled_bytes().decode()
+    return bundled_text(_DOCUMENT)
 
 
 def _base_raw_for(spec: WorkflowSpec) -> RawMapping:
@@ -151,45 +162,20 @@ def _base_raw_for(spec: WorkflowSpec) -> RawMapping:
     return {**raw, "types": filtered_types}
 
 
-def _read_raw_override(
-    override_path: Path,
-) -> tuple[dict[str, Any], None] | tuple[dict[str, Any], tuple[str, str]]:
-    """Read and parse the raw TOML override file.
-
-    Returns ``(raw_dict, None)`` on success, or ``({}, (message, fix_hint))`` on any
-    read/parse error — mirrors ``_workflow._loader._read_raw_override`` exactly.
-    """
-    try:
-        raw: dict[str, Any] = tomllib.loads(override_path.read_text(encoding="utf-8"))
-    except tomllib.TOMLDecodeError as exc:
-        return (
-            {},
-            (
-                f"Malformed playbook override {override_path}: {exc}",
-                "Fix the TOML syntax and re-run `sq override diff playbook`.",
-            ),
-        )
-    except OSError as exc:
-        return (
-            {},
-            (
-                f"Cannot read playbook override {override_path}: {exc}",
-                "Check file permissions and re-run `sq override diff playbook`.",
-            ),
-        )
-    else:
-        return raw, None
-
-
 def load_playbook(
     catalog: RoleCatalogSpec,
-    spec: WorkflowSpec | None = None,
+    spec: WorkflowSpec,
     squad_dir: Path | None = None,
+    *,
+    project_catalog: CatalogSource | None = None,
+    files: OverrideFiles | None = None,
 ) -> PlaybookSpec:
     """Read, parse, merge (if a project override is present), and validate the playbook.
 
     Takes the already-loaded ``RoleCatalogSpec`` as the slug authority for cross-spec
-    referential integrity, and a ``WorkflowSpec`` (the bundled spec by default) as the type
+    referential integrity — with *squad_dir* given, joined by the project's own roles: the
+    per-slug role files, and the roles *project_catalog* (the squad's merged catalog, built by
+    the caller) defines beyond the bundled ones — and a ``WorkflowSpec`` as the type
     authority: every one of *spec*'s ``non_roster_types()`` must have a playbook entry, and no
     entry may name anything else. Passing the *active* (possibly merged) workflow spec here —
     not the bundled one — is what makes a workflow override's dropped/renamed/added type
@@ -203,41 +189,16 @@ def load_playbook(
     engine, fail-fast — raises ``SquadsError`` on the first violation), then the merged mapping
     is built and validated exactly as the bundled-only path validates the bundled mapping.
 
-    Called once at module level in ``__init__.py`` (no ``squad_dir``) to build the bundled
-    singleton, and per-request by the loader that resolves the active/merged playbook onto the
-    request context. Raises ``SquadsError`` on any violation.
+    Called once, on first use, by ``_playbook.get_playbook_spec`` (no ``squad_dir``) to build the
+    bundled singleton, and by the squad's document resolver for the active/merged playbook.
+    Raises ``SquadsError`` on any violation.
     """
-    if spec is None:
-        spec = bundled_spec()
-
     raw = _base_raw_for(spec)
+    loaded = load_override(_DOCUMENT, squad_dir, lambda: raw, files)
     origin: str | None = None
-    if squad_dir is not None:
-        override_path = squad_dir / PLAYBOOK_OVERRIDE_FILENAME
-        if override_path.is_file():
-            raw_override, parse_error = _read_raw_override(override_path)
-            if parse_error is not None:
-                raise SquadsError(parse_error[0])
-            origin = str(override_path)
-            result = merge_override(
-                raw,
-                raw_override,
-                PLAYBOOK_SELECTED_SECTIONS,
-                origin,
-                top_level_keys=PLAYBOOK_TOP_LEVEL_SECTIONS,
-                collect_all=False,
-                empty_selected_hint=PLAYBOOK_NO_SELECTED_HINT,
-            )
-            merged = result.merged
-            if merged is None:
-                # Unreachable in fail-fast mode: merge_override raises on its own first
-                # violation before ever returning one. Fails closed rather than asserting,
-                # matching the "never a traceback" contract even for a case that should
-                # not occur.
-                raise SquadsError(
-                    f"playbook override merge failed with no violation reported — {origin}"
-                )
-            raw = merged
+    if loaded is not None:
+        raw = loaded.raw
+        origin = loaded.origin
 
     catalog_slugs = {r.slug for r in catalog.roles}
     if squad_dir is not None:
@@ -248,7 +209,9 @@ def load_playbook(
         # role is meant to enter a type's playbook guidance. The bundled-only module-level
         # load below (no squad_dir) deliberately does not gain this — there is no project to
         # read overrides for.
-        catalog_slugs |= project_role_slugs(squad_dir)
+        catalog_slugs |= project_role_slugs(
+            squad_dir, project_catalog if project_catalog is not None else (lambda: catalog)
+        )
 
     try:
         return _build_spec(raw, catalog_slugs, spec)
@@ -344,15 +307,9 @@ def _check_duplicate_slugs(types: dict[str, ItemPlaybookSpec], errors: list[str]
 
 
 @functools.cache
-def _bundled_type_names() -> frozenset[str]:
-    """The bundled playbook document's ``[types]`` key set — parsed once per process and
-    cached, unlike :func:`_bundled_raw` itself, which stays deliberately un-cached/reparsed on
-    every call (see its docstring / the isolation guarantee that rests on it never handing out
-    a shared mapping). A ``frozenset`` of plain strings has no mutable substructure a caller
-    could alias into, so caching *this* carries none of that risk — the bundled document is a
-    packaged, immutable-for-the-process resource, so its key set can never change mid-process.
-    ``_check_coverage`` is the only caller, and needs nothing but this set from a full reparse.
-    """
+def bundled_type_names() -> frozenset[str]:
+    """The bundled playbook document's ``[types]`` key set, built once from the shared parse of
+    the packaged file: the item types squads ships guidance, and so a managed skill, for."""
     return frozenset(_bundled_raw().get("types", {}))
 
 
@@ -381,10 +338,10 @@ def _check_coverage(
     needs, preserved unchanged.
     """
     creatable_types = spec.non_roster_types()
-    bundled_type_names = _bundled_type_names()
+    bundled_names = bundled_type_names()
     errors.extend(
         f"missing required work-type entry: {wt!r}"
-        for wt in sorted(creatable_types & bundled_type_names)
+        for wt in sorted(creatable_types & bundled_names)
         if wt not in types
     )
     errors.extend(
@@ -447,7 +404,7 @@ def _raw_shadows_bundled(bundled_raw: RawMapping, override_raw: RawMapping) -> b
     return bool(set(bundled_keys) & set(override_keys))
 
 
-def playbook_override_shadows_bundled(squad_dir: Path) -> bool:
+def playbook_override_shadows_bundled(squad_dir: Path, files: OverrideFiles | None = None) -> bool:
     """Whether ``<squad_dir>/.overrides/playbook.toml`` redeclares (shadows) at least one
     bundled type entry — a raw key-set intersection, no merge required.
 
@@ -458,7 +415,7 @@ def playbook_override_shadows_bundled(squad_dir: Path) -> bool:
     if not override_path.is_file():
         return False
     try:
-        override_raw: RawMapping = tomllib.loads(override_path.read_text(encoding="utf-8"))
+        override_raw: RawMapping = override_mapping(override_path, files)
     except (tomllib.TOMLDecodeError, OSError):  # fmt: skip
         return False
     return _raw_shadows_bundled(_bundled_raw(), override_raw)
@@ -487,7 +444,9 @@ def _declared_guide_slugs(entry: Any) -> list[str]:
     return slugs
 
 
-def playbook_override_guide_pairs(squad_dir: Path) -> frozenset[tuple[str, str]]:
+def playbook_override_guide_pairs(
+    squad_dir: Path, files: OverrideFiles | None = None
+) -> frozenset[tuple[str, str]]:
     """Every ``(item_type, role_slug)`` guide ``<squad_dir>/.overrides/playbook.toml`` declares —
     read from the **raw** override mapping, before any merge with the bundled base.
 
@@ -496,7 +455,7 @@ def playbook_override_guide_pairs(squad_dir: Path) -> frozenset[tuple[str, str]]
     is what separates an actionable dropped-guide report from an unactionable one — a guide the
     adopter declared here is theirs to remove, whereas one that exists only in the bundled
     document is squads' own graceful degradation, which no adopter can edit and should therefore
-    not be told about (see :func:`~squads._interactions.orphaned_playbook_guides`).
+    not be told about (see :func:`~squads._interactions._playbook.orphaned_playbook_guides`).
 
     Returns an empty set when the override is absent, unreadable, or malformed TOML — the same
     tolerance :func:`playbook_override_shadows_bundled` keeps, for the same reason: the callers
@@ -505,12 +464,14 @@ def playbook_override_guide_pairs(squad_dir: Path) -> frozenset[tuple[str, str]]
     """
     return frozenset(
         (item_type, slug)
-        for item_type, entry in _override_types(squad_dir).items()
+        for item_type, entry in _override_types(squad_dir, files).items()
         for slug in _declared_guide_slugs(entry)
     )
 
 
-def playbook_override_command_lines(squad_dir: Path) -> frozenset[tuple[str, str]]:
+def playbook_override_command_lines(
+    squad_dir: Path, files: OverrideFiles | None = None
+) -> frozenset[tuple[str, str]]:
     """Every ``(item_type, line)`` command line ``<squad_dir>/.overrides/playbook.toml`` declares
     in a type's ``commands`` (a splat-ref entry carries no token).
 
@@ -518,7 +479,7 @@ def playbook_override_command_lines(squad_dir: Path) -> frozenset[tuple[str, str
     :func:`playbook_override_guide_pairs`: only the adopter can clear a report about these lines.
     """
     lines: set[tuple[str, str]] = set()
-    for item_type, entry in _override_types(squad_dir).items():
+    for item_type, entry in _override_types(squad_dir, files).items():
         commands = (
             cast("dict[str, Any]", entry).get("commands") if isinstance(entry, dict) else None
         )
@@ -529,21 +490,23 @@ def playbook_override_command_lines(squad_dir: Path) -> frozenset[tuple[str, str
     return frozenset(lines)
 
 
-def _override_types(squad_dir: Path) -> dict[str, Any]:
+def _override_types(squad_dir: Path, files: OverrideFiles | None) -> dict[str, Any]:
     """The raw ``[types]`` table of the playbook override, empty when the file is absent,
     unreadable, malformed TOML or has no such table."""
     override_path = squad_dir / PLAYBOOK_OVERRIDE_FILENAME
     if not override_path.is_file():
         return {}
     try:
-        raw: RawMapping = tomllib.loads(override_path.read_text(encoding="utf-8"))
+        raw: RawMapping = override_mapping(override_path, files)
     except (tomllib.TOMLDecodeError, OSError):  # fmt: skip
         return {}
     types_raw = raw.get("types")
     return cast("dict[str, Any]", types_raw) if isinstance(types_raw, dict) else {}
 
 
-def playbook_stamp_finding(squad_dir: Path, stamp: str | None) -> tuple[str, str] | None:
+def playbook_stamp_finding(
+    squad_dir: Path, stamp: str | None, files: OverrideFiles | None = None
+) -> tuple[str, str] | None:
     """The stamp obligation for the playbook override. Returns ``(level, message)``, or
     ``None`` when nothing is owed:
 
@@ -561,7 +524,7 @@ def playbook_stamp_finding(squad_dir: Path, stamp: str | None) -> tuple[str, str
     from squads import __version__
 
     if stamp is None:
-        if playbook_override_shadows_bundled(squad_dir):
+        if playbook_override_shadows_bundled(squad_dir, files):
             return (
                 "error",
                 "shadowing playbook override has no squads:override-base stamp; run "

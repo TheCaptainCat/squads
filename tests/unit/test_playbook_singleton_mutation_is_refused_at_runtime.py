@@ -19,17 +19,17 @@ from types import MappingProxyType
 
 import pytest
 
-from squads._interactions import PLAYBOOK
 from squads._interactions._models import PlaybookSpec
+from squads._interactions._playbook import bundled_item_playbooks
 
 
 def test_playbook_module_constant_is_a_mapping_proxy_not_a_plain_dict() -> None:
-    assert isinstance(PLAYBOOK, MappingProxyType)
+    assert isinstance(bundled_item_playbooks(), MappingProxyType)
 
 
 def test_mutating_the_playbook_module_constant_raises_at_runtime() -> None:
     with pytest.raises(TypeError):
-        PLAYBOOK["task"] = PLAYBOOK["task"]  # type: ignore[index]
+        bundled_item_playbooks()["task"] = bundled_item_playbooks()["task"]  # type: ignore[index]
 
 
 def test_the_playbook_specs_types_field_is_declared_as_a_mapping_not_a_plain_dict() -> None:

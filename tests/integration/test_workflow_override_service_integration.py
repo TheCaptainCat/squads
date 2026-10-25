@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._errors import AlreadyInitializedError, SquadsError
 from squads._index._store import IndexStore
 from squads._services import _service as service
@@ -102,9 +103,9 @@ async def test_validate_against_index_flags_a_live_items_status_dropped_from_the
     statuses_no_draft = {k: v for k, v in bundled.statuses.items() if k != "Draft"}
     mock_spec = type("_MockSpec", (), {"items": bundled.items, "statuses": statuses_no_draft})()
 
-    store = IndexStore(project.index_path, project.lock_path)
+    store = IndexStore(project.index_path, project.lock_path, spec=bundled_spec())
     async with store.transaction() as db:
-        errors = validate_against_index(mock_spec, db)  # type: ignore[arg-type]
+        errors = validate_against_index(mock_spec, db, bundled=bundled_spec())  # type: ignore[arg-type]
 
     assert any("Draft" in e and task_id in e for e in errors)
 
@@ -118,9 +119,9 @@ async def test_validate_against_index_flags_a_live_items_type_dropped_from_the_s
     items_without_bug = {k: v for k, v in bundled.items.items() if k != "bug"}
     mock_spec = type("_MockSpec", (), {"items": items_without_bug, "statuses": bundled.statuses})()
 
-    store = IndexStore(project.index_path, project.lock_path)
+    store = IndexStore(project.index_path, project.lock_path, spec=bundled_spec())
     async with store.transaction() as db:
-        errors = validate_against_index(mock_spec, db)  # type: ignore[arg-type]
+        errors = validate_against_index(mock_spec, db, bundled=bundled_spec())  # type: ignore[arg-type]
 
     assert any("bug" in e for e in errors)
     assert any(result.item.id in e for e in errors)
@@ -136,9 +137,9 @@ async def test_validate_against_index_flags_a_subentitys_status_dropped_from_the
     statuses_no_todo = {k: v for k, v in bundled.statuses.items() if k != "Todo"}
     mock_spec = type("_MockSpec", (), {"items": bundled.items, "statuses": statuses_no_todo})()
 
-    store = IndexStore(project.index_path, project.lock_path)
+    store = IndexStore(project.index_path, project.lock_path, spec=bundled_spec())
     async with store.transaction() as db:
-        errors = validate_against_index(mock_spec, db)  # type: ignore[arg-type]
+        errors = validate_against_index(mock_spec, db, bundled=bundled_spec())  # type: ignore[arg-type]
 
     assert any("Todo" in e and result.item.id in e for e in errors)
 
@@ -220,9 +221,9 @@ async def test_validate_against_index_flags_a_live_items_type_re_prefixed_in_the
         {"items": {**bundled.items, "task": reprefixed_task}, "statuses": bundled.statuses},
     )()
 
-    store = IndexStore(project.index_path, project.lock_path)
+    store = IndexStore(project.index_path, project.lock_path, spec=bundled_spec())
     async with store.transaction() as db:
-        errors = validate_against_index(mock_spec, db)  # type: ignore[arg-type]
+        errors = validate_against_index(mock_spec, db, bundled=bundled_spec())  # type: ignore[arg-type]
 
     assert any("task" in e and task_id in e and "TSK2" in e for e in errors)
     # no migration is ever named — only the two performable ways forward.
@@ -243,9 +244,9 @@ async def test_validate_against_index_flags_a_live_items_type_re_foldered_in_the
         {"items": {**bundled.items, "bug": refoldered_bug}, "statuses": bundled.statuses},
     )()
 
-    store = IndexStore(project.index_path, project.lock_path)
+    store = IndexStore(project.index_path, project.lock_path, spec=bundled_spec())
     async with store.transaction() as db:
-        errors = validate_against_index(mock_spec, db)  # type: ignore[arg-type]
+        errors = validate_against_index(mock_spec, db, bundled=bundled_spec())  # type: ignore[arg-type]
 
     assert any("bug" in e and bug_id in e and "defects" in e for e in errors)
 
@@ -268,9 +269,9 @@ async def test_validate_against_index_leaves_an_item_less_types_re_prefix_unflag
         {"items": {**bundled.items, "bug": reprefixed_bug}, "statuses": bundled.statuses},
     )()
 
-    store = IndexStore(project.index_path, project.lock_path)
+    store = IndexStore(project.index_path, project.lock_path, spec=bundled_spec())
     async with store.transaction() as db:
-        errors = validate_against_index(mock_spec, db)  # type: ignore[arg-type]
+        errors = validate_against_index(mock_spec, db, bundled=bundled_spec())  # type: ignore[arg-type]
 
     assert not any("bug" in e for e in errors)
 
@@ -335,9 +336,9 @@ async def test_validate_against_index_flags_a_live_items_badge_code_dropped_from
         },
     )()
 
-    store = IndexStore(project.index_path, project.lock_path)
+    store = IndexStore(project.index_path, project.lock_path, spec=bundled_spec())
     async with store.transaction() as db:
-        errors = validate_against_index(mock_spec, db)  # type: ignore[arg-type]
+        errors = validate_against_index(mock_spec, db, bundled=bundled_spec())  # type: ignore[arg-type]
 
     assert any("priority" in e and "urgent" in e and result.item.id in e for e in errors)
     # never the misleading remedy no command actually performs.
@@ -350,9 +351,9 @@ async def test_validate_against_index_leaves_a_still_valid_badge_code_unflagged(
     await svc.create("task", "Normal task", author="manager", priority="high")
 
     bundled = load_workflow_spec()
-    store = IndexStore(project.index_path, project.lock_path)
+    store = IndexStore(project.index_path, project.lock_path, spec=bundled_spec())
     async with store.transaction() as db:
-        errors = validate_against_index(bundled, db)
+        errors = validate_against_index(bundled, db, bundled=bundled_spec())
 
     assert not any("field" in e and "priority" in e for e in errors)
 
@@ -525,7 +526,7 @@ async def test_a_stale_index_badge_value_is_unflagged_when_the_override_never_to
 
     merged = load_workflow_spec(squad_dir=project.squad_dir)
     db = _load_index_sync(project.squad_dir)
-    errors = validate_against_index(merged, db)
+    errors = validate_against_index(merged, db, bundled=bundled_spec())
 
     assert not any("priority" in e for e in errors)
 
@@ -715,7 +716,7 @@ async def test_adopt_refuses_rather_than_import_fewer_than_the_real_corpus(
     use case)."""
     monkeypatch.chdir(tmp_path)
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(init.paths)
+    svc = make_service(init.paths)
     r1 = await svc.create("task", "Legacy task one", author="manager")
     r2 = await svc.create("task", "Legacy task two", author="manager")
     (tmp_path / ".squads.toml").unlink()
@@ -812,6 +813,6 @@ async def test_a_stale_badge_code_is_unflagged_when_the_override_only_added_code
 
     merged = load_workflow_spec(squad_dir=project.squad_dir)
     db = _load_index_sync(project.squad_dir)
-    errors = validate_against_index(merged, db)
+    errors = validate_against_index(merged, db, bundled=bundled_spec())
 
     assert not any("bogus" in e for e in errors)

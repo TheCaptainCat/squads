@@ -33,12 +33,12 @@ from squads._errors import SquadsError
 type LabelForm = Literal["singular", "plural", "singular_lower", "plural_lower"]
 
 
-def prefix_for(type_str: str, spec: object = None) -> str:
+def prefix_for(type_str: str, spec: object) -> str:
     """Return the canonical ID prefix for *type_str*.
 
     Resolution: ``spec.items[type_str].prefix`` — the loaded spec is the only
     vocabulary source, for every type (built-in or custom). Raises
-    :class:`~squads._errors.SquadsError` when no spec is supplied, or the spec
+    :class:`~squads._errors.SquadsError` when the spec
     does not declare *type_str*; never falls back to a ``type.upper()`` guess.
 
     ``spec`` is typed as ``object`` so this module stays spec-decoupled

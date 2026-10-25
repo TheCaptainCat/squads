@@ -16,8 +16,10 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of
 from squads._errors import PlaybookConfigError, SquadsError
-from squads._services._service import open_service, resolve_playbook
+from squads._services._service import open_service
+from squads._spec_documents import resolve_playbook
 from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
@@ -48,7 +50,7 @@ def test_resolve_playbook_raises_playbook_config_error_not_a_plain_squads_error(
 ) -> None:
     _write_playbook_override(tmp_path, _BROKEN_PLAYBOOK)
     with pytest.raises(PlaybookConfigError) as exc_info:
-        resolve_playbook(bundled_spec(), tmp_path)
+        resolve_playbook(bundled_spec(), tmp_path, catalog_of(tmp_path))
     message = str(exc_info.value)
     assert "role slug 'no-such-role' not in role catalog" in message
     assert str(tmp_path / ".overrides" / "playbook.toml") in message  # names *where*
@@ -61,7 +63,7 @@ def test_playbook_config_error_is_a_squads_error_subclass_so_broad_catches_still
 ) -> None:
     _write_playbook_override(tmp_path, _BROKEN_PLAYBOOK)
     with pytest.raises(SquadsError):
-        resolve_playbook(bundled_spec(), tmp_path)
+        resolve_playbook(bundled_spec(), tmp_path, catalog_of(tmp_path))
 
 
 # --------------------------------------------------------------------------- open_service: both

@@ -70,7 +70,7 @@ def test_view_tag_parts_round_trips_through_view_tag() -> None:
 
 def test_view_tag_parts_rejects_tags_from_other_families() -> None:
     """``view_tag_parts`` rejects tags from other families, in both bare and on-disk form."""
-    for tag in ("body", "discussion", markers.story_tag("US1"), "subtask:ST1:head"):
+    for tag in ("body", "discussion", markers.subentity_tag("story", "US1"), "subtask:ST1:head"):
         assert markers.view_tag_parts(tag) is None
         assert markers.view_tag_parts(f"{markers.PREFIX}{tag}") is None
 

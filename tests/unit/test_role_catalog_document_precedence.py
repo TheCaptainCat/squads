@@ -7,6 +7,7 @@ to take effect.
 
 from pathlib import Path
 
+from _helpers import catalog_of
 from squads._roles._catalog import PREDEFINED
 from squads._roles._loader import load_role_catalog
 from squads._roles._resolver import project_role_slugs, resolve_dev_role, resolve_role
@@ -30,12 +31,12 @@ def _write_slug_override(squad_dir: Path, slug: str, content: str) -> None:
 
 def test_no_catalog_document_resolves_exactly_the_bundled_role(tmp_path: Path) -> None:
     bundled = next(r for r in PREDEFINED if r.slug == "architect")
-    assert resolve_role("architect", tmp_path) == bundled
+    assert resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path)) == bundled
 
 
 def test_catalog_document_field_overrides_a_bundled_role(tmp_path: Path) -> None:
     _write_catalog_override(tmp_path, '[[roles]]\nslug = "architect"\ntitle = "Chief Architect"\n')
-    resolved = resolve_role("architect", tmp_path)
+    resolved = resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
     bundled = next(r for r in PREDEFINED if r.slug == "architect")
 
     assert resolved.title == "Chief Architect"
@@ -48,7 +49,7 @@ def test_a_per_slug_file_wins_over_the_catalog_document_for_the_same_field(
     _write_catalog_override(tmp_path, '[[roles]]\nslug = "architect"\ntitle = "Chief Architect"\n')
     _write_slug_override(tmp_path, "architect", 'title = "Principal Architect"\n')
 
-    resolved = resolve_role("architect", tmp_path)
+    resolved = resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
 
     assert resolved.title == "Principal Architect"
 
@@ -62,7 +63,7 @@ def test_a_per_slug_file_still_inherits_a_field_the_catalog_document_set(
     _write_catalog_override(tmp_path, '[[roles]]\nslug = "architect"\ncolor = "purple"\n')
     _write_slug_override(tmp_path, "architect", 'title = "Principal Architect"\n')
 
-    resolved = resolve_role("architect", tmp_path)
+    resolved = resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
 
     assert resolved.title == "Principal Architect"
     assert resolved.color == "purple"
@@ -86,7 +87,7 @@ def test_a_catalog_document_only_new_slug_resolves_with_no_per_slug_file(
         all = {all_with_new!r}
         """,
     )
-    resolved = resolve_role("security-analyst", tmp_path)
+    resolved = resolve_role("security-analyst", tmp_path, catalog=catalog_of(tmp_path))
     assert resolved.full_name == "Sam Security"
 
 
@@ -108,15 +109,15 @@ def test_a_catalog_document_only_new_slug_is_counted_as_a_project_role_slug(
         all = {all_with_new!r}
         """,
     )
-    assert "security-analyst" in project_role_slugs(tmp_path)
+    assert "security-analyst" in project_role_slugs(tmp_path, catalog=catalog_of(tmp_path))
 
 
 def test_dev_pool_override_reaches_a_newly_generated_dev_role(tmp_path: Path) -> None:
     _write_catalog_override(tmp_path, '[dev]\nmodel = "opus"\n')
-    resolved = resolve_dev_role("rust", squad_dir=tmp_path)
+    resolved = resolve_dev_role("rust", squad_dir=tmp_path, catalog=catalog_of(tmp_path))
     assert resolved.model == "opus"
 
 
 def test_dev_pool_override_does_not_apply_with_no_squad_dir(tmp_path: Path) -> None:
-    resolved = resolve_dev_role("rust", squad_dir=None)
+    resolved = resolve_dev_role("rust", squad_dir=None, catalog=catalog_of(None))
     assert resolved.model == "sonnet"  # the bundled default, unaffected by any override

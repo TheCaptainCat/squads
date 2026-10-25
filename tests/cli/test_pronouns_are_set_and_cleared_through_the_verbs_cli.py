@@ -8,6 +8,7 @@ from typing import Any
 
 import pytest
 
+from _helpers import catalog_of
 from squads import __version__
 from squads._errors import SquadsError
 from squads._models._attributes import AttributeKey
@@ -220,7 +221,7 @@ async def test_a_role_document_with_a_pronouns_key_is_refused_and_names_the_verb
 
     with pytest.raises(SquadsError, match=r"update --pronouns"):
         if document.startswith("roles/"):
-            resolve_role("architect", project.squad_dir)
+            resolve_role("architect", project.squad_dir, catalog=catalog_of(project.squad_dir))
         else:
             load_role_catalog(project.squad_dir)
 

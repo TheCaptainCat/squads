@@ -2,11 +2,13 @@
 
 Each concern lives in its own ``_services/_*.py`` mixin subclassing ``ServiceCore``; the public
 ``Service`` (in ``_service.py``) multiply-inherits them. ``ServiceCore`` defines what's used across
-concerns (create/get/list, the backend, the role/skill lookups + roster projection) so the mixins
-only ever call core methods + their own.
+concerns (create/get/list, the backend, the role/skill lookups and the ``roster_projection``
+collaborator) so the mixins only ever call core methods + their own.
 """
 
-from collections.abc import AsyncGenerator, Callable, Collection, Mapping
+import contextlib
+import unicodedata
+from collections.abc import AsyncGenerator, Callable, Collection, Iterator, Mapping
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
@@ -19,19 +21,12 @@ from squads import _aio
 from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
+from squads import _view_tags as view_tags
 from squads import _views as views
 from squads._backends._base import AgentBackend, BackendContext
-from squads._backends._registry import get_backend
 from squads._errors import ItemNotFoundError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._index._store import IndexStore
-from squads._interactions import (
-    active_skill_slugs,
-    get_playbook_spec,
-    is_live_roster_entry,
-    item_origin,
-    resolve_operator_invocable,
-)
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._role_guidance import (
     RoleLike,
@@ -40,9 +35,9 @@ from squads._interactions._role_guidance import (
     in_lane_owner,
     is_lane_exempt,
     laned_types,
-    skills_for_role,
     slug_only_role,
 )
+from squads._interactions._skills import item_origin
 from squads._itemfile import (
     ensure_no_skew,
     new_item_text,
@@ -54,10 +49,8 @@ from squads._language import WorkingLanguage, resolve_working_language
 from squads._models import _markers as markers
 from squads._models._attributes import AttributeKey
 from squads._models._index import SquadsDB
-from squads._models._item import Item, effective_prefix, make_ref, ref_id_matches, split_ref
+from squads._models._item import Item, make_ref, split_ref
 from squads._models._participants import (
-    ANONYMOUS_NAME,
-    ANONYMOUS_SLUG,
     OPERATOR_SLUG_PREFIX,
     group_verb_problem,
     operator_slug_problem,
@@ -67,35 +60,44 @@ from squads._models._participants import (
 )
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
-from squads._pronouns import pronouns
-from squads._rendering._engine import render, scaffold_body, set_active_squad_dir
+from squads._rendering._engine import render, scaffold_body
 from squads._roles._catalog import RoleDef
-from squads._roles._loader import ROLES_OVERRIDE_FILENAME, load_role_catalog
+from squads._roles._loader import ROLES_OVERRIDE_FILENAME
+from squads._roles._models import CatalogSource
 from squads._roles._projection import OperatorView, RoleView
 from squads._roles._resolver import (
     holds_default_designation,
-    resolve_role,
-    resolve_role_for_item,
     resolve_role_tolerantly,
 )
 from squads._services._duplicate_ids import (
     DUPLICATE_ID_REMEDY,
+    SHARED_NUMBER_REMEDY,
+    CarrierLog,
     groups_among,
     name_number,
     normalized_id,
     read_id,
 )
-from squads._services._results import CreateResult, TreeNode
+from squads._services._results import CreateResult, SelfRemedied, TreeNode
+from squads._services._roster_projection import RosterProjection
+from squads._services._skill_files import (
+    SkillFolder,
+    SkillScan,
+    managed_skill_slugs,
+    remedy_text,
+    stamped_skill_slug,
+)
 from squads._services._validators import ValidatorEngine
+from squads._specload import OverrideFiles
 from squads._util import operator_slug, slugify
+from squads._view_remedies import view_placement_invocation
 from squads._workflow import (
     ROSTER_OPERATOR,
     ROSTER_ROLE,
     ROSTER_SKILL,
-    bundled_spec,
     dropped_via_selected,
 )
-from squads._workflow._models import Field, WorkflowSpec
+from squads._workflow._models import Field, ItemSpec, WorkflowSpec
 
 
 # Body-local sub-entities: kind <-> parent item type, and the kind's container marker.
@@ -415,6 +417,29 @@ def _build_tree_children(
     return children
 
 
+def is_blank(text: str) -> bool:
+    """Whether *text* shows nothing: empty, or only whitespace and Unicode format characters
+    (category Cf, such as the zero-width space and the byte-order mark)."""
+    return all(ch.isspace() or unicodedata.category(ch) == "Cf" for ch in text)
+
+
+def require_title(title: str, what: str = "title") -> None:
+    """Raise ``SquadsError`` when *title* is blank (see :func:`is_blank`).
+
+    The guard behind every write that sets an item's title: a blank title is not storable (the
+    index model requires one), so it is refused before anything is written. A title that slugs
+    to nothing, such as ``"!!!"``, is valid; its filename slug is ``untitled``.
+    """
+    if is_blank(title):
+        raise SquadsError(f"{what} must not be empty")
+
+
+def subentity_title(title: str) -> str:
+    """A sub-entity's stored title: *title*, or the empty title when it is blank. A sub-entity
+    may have no title, so a blank one is stored as none rather than refused."""
+    return "" if is_blank(title) else title
+
+
 def reject_markers(text: str, what: str = "body") -> None:
     """Raise ``SquadsError`` when *text* contains a well-formed sq marker tag.
 
@@ -444,7 +469,7 @@ def reject_markers(text: str, what: str = "body") -> None:
 def reject_non_view_markers(text: str, what: str = "body") -> None:
     """:func:`reject_markers` over *text* with its ``sq:view:<name>`` tags set aside, for the body
     writers that compare those tags with the ones already placed instead of refusing them."""
-    reject_markers(views.strip_view_tags(text), what)
+    reject_markers(view_tags.strip_view_tags(text), what)
 
 
 #: How many leading lines of the body about to be discarded the refusal quotes back.  Enough to
@@ -528,24 +553,21 @@ class ServiceCore:
     def __init__(
         self,
         paths: SquadPaths,
-        spec: WorkflowSpec | None = None,
-        playbook: PlaybookSpec | None = None,
+        spec: WorkflowSpec,
+        playbook: PlaybookSpec,
+        store: IndexStore,
+        backends: Callable[[], list[AgentBackend]],
+        catalog: CatalogSource,
+        files: OverrideFiles,
     ):
         self.paths = paths
-        # Use the supplied spec, or fall back to the immutable bundled default.
-        # open_service() always supplies the resolved (possibly overridden) spec;
-        # sq init / sq adopt construct Service(sp) without an override spec, which
-        # is fine because they operate on a fresh squad with no override file yet.
-        self.spec: WorkflowSpec = spec if spec is not None else bundled_spec()
-        # Same shape, one release later: open_service() resolves the merged playbook
-        # (bundled base + .overrides/playbook.toml, coverage-checked against self.spec) and
-        # threads it here; a caller with no playbook in hand gets the bundled singleton — the
-        # same "fine because there's no override file yet" reasoning as the spec fallback above.
-        self.playbook: PlaybookSpec = playbook if playbook is not None else get_playbook_spec()
-        self.store = IndexStore(paths.index_path, paths.lock_path, spec=self.spec)
-        # Activate the squad-aware template search path so render() picks up any project
-        # overrides under <squad_dir>/.overrides/templates/ for this service's squad.
-        set_active_squad_dir(paths.squad_dir)
+        self.spec = spec
+        self.playbook = playbook
+        self.store = store
+        self._backends = backends
+        self.catalog = catalog
+        self.files = files
+        self.roster_projection = RosterProjection(paths, spec, playbook, store, backends, catalog)
 
     @property
     def working_language(self) -> WorkingLanguage:
@@ -579,26 +601,21 @@ class ServiceCore:
         """
         from squads._rendering._engine import creation_template_name
 
-        return creation_template_name(item_type, self.spec)
+        return creation_template_name(item_type, self.spec, from_squad=self.paths.squad_dir)
 
     def pristine_body(self, item: Item) -> str | None:
         """The ``:body`` region a freshly-created *item* of this type would carry, or ``None``
         when the scaffold cannot be reproduced (see :func:`~squads._rendering._engine.
         scaffold_body`). It is derived rather than pattern-matched because the scaffold differs
         per type, interpolates item fields and can be replaced by a project template."""
-        return scaffold_body(item, self.spec)
+        return scaffold_body(item, self.spec, from_squad=self.paths.squad_dir)
 
     # ------------------------------------------------------------------ backend
     @property
     def _ctx(self) -> BackendContext:
-        return BackendContext(paths=self.paths, spec=self.spec, playbook=self.playbook)
-
-    def _backends(self) -> list[AgentBackend]:
-        """Return one backend instance for each active (deduped) backend name.
-
-        Empty ``active_backends`` returns an empty list (sq-only squad).
-        """
-        return [get_backend(name) for name in self.paths.config.active_backends]
+        return BackendContext(
+            paths=self.paths, spec=self.spec, playbook=self.playbook, catalog=self.catalog
+        )
 
     async def scaffold_backend(self) -> None:
         """Public entry for init(): create backend scaffolding for every active backend."""
@@ -654,7 +671,7 @@ class ServiceCore:
         """The resolved definition of every live role in *db*, in index order."""
         live = self.spec.live_statuses(ROSTER_ROLE)
         return [
-            resolve_role_tolerantly(it, self.paths.squad_dir)
+            resolve_role_tolerantly(it, self.paths.squad_dir, catalog=self.catalog)
             for it in db.items.values()
             if it.type == ROSTER_ROLE and it.status in live
         ]
@@ -673,7 +690,7 @@ class ServiceCore:
         )
         if item is None:
             return slug_only_role(slug)
-        return resolve_role_tolerantly(item, self.paths.squad_dir)
+        return resolve_role_tolerantly(item, self.paths.squad_dir, catalog=self.catalog)
 
     def _default_role_slug(self, db: SquadsDB) -> str | None:
         """This squad's own ``is_default`` role slug, read from the live roster in *db*.
@@ -696,7 +713,7 @@ class ServiceCore:
             if (
                 it.type == ROSTER_ROLE
                 and it.status in live
-                and holds_default_designation(it, self.paths.squad_dir)
+                and holds_default_designation(it, self.paths.squad_dir, catalog=self.catalog)
             ):
                 return it.slug
         return None
@@ -752,7 +769,7 @@ class ServiceCore:
             f"its content already has one validated authoring surface: {authoring_surface}. "
             f"{verb} is refused — `--force` does not lift this. Drop the view from "
             "`[selected]` to author this directly instead, then clear its leftover tag with "
-            f"`{views.view_placement_invocation(item.type, item.slug, 'disable', roster_view)}`."
+            f"`{view_placement_invocation(item.type, item.slug, 'disable', roster_view)}`."
         )
 
     def _create_model(  # noqa: PLR0913 — mirrors `create`'s own keyword surface
@@ -824,6 +841,7 @@ class ServiceCore:
                 f"unknown item type {item_type!r}: no spec supplied, or the spec does not "
                 "declare this type. Declare it in .overrides/workflow.toml or check for a typo."
             )
+        require_title(title)
         slug = slug or (operator_slug(title) if item_type == ROSTER_OPERATOR else slugify(title))
         is_roster = self.spec.item_is_roster(item_type)
         _check_roster_slug(item_type, is_roster, slug)
@@ -898,7 +916,7 @@ class ServiceCore:
         db.add(item)
         # Fail-closed on the new item's first error-level catalog violation (parent
         # type-eligibility, item status validity, …) — the same engine `sq check` reports.
-        ValidatorEngine(spec=self.spec).gate(item, db)
+        ValidatorEngine(spec=self.spec, playbook=self.playbook).gate(item, db)
         # Advisory lane check, keyed on the declared author slug. Exempt before lookup.
         # Service must NOT print — warning rides back in the result.
         # Only types some playbook guide declares an author for participate in the lane
@@ -911,8 +929,7 @@ class ServiceCore:
             item_type in laned_types(self.playbook)
             and not is_lane_exempt(
                 author,
-                self._default_role_slug(db)
-                or catalog_default_slug(load_role_catalog(self.paths.squad_dir)),
+                self._default_role_slug(db) or catalog_default_slug(self.catalog()),
             )
             and item_type
             not in allowed_create_types(self._role_like(db, author), self.spec, self.playbook)
@@ -990,13 +1007,14 @@ class ServiceCore:
         # panel-adjacent markers, the ``## Discussion`` heading) plus a `sq:body` that already
         # seeds the ``sq:view:role_definition`` placement tag as static text. It reads no
         # ``role.<field>`` at all: the resolved definition itself renders at read time, off
-        # this same tag, through the general view mechanism (`squads._views.expand_view_tags`,
+        # this same tag, through the general view mechanism (`squads._view_tags.expand_view_tags`,
         # via `ItemsMixin.read_body`) — never from anything computed here.
         rendered = render(
             self._template_for(item_type),
             item=item,
             description=item.description,
             spec=self.spec,
+            from_squad=self.paths.squad_dir,
         )
         # Belt-and-suspenders: guarantee a working sub-entity container regardless of which
         # template rendered — a custom/renamed type falls back to `_default.md.j2` (no
@@ -1027,11 +1045,15 @@ class ServiceCore:
         addr: int | str = (
             host_slug if item_type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item.id)
         )
-        template_region = views.strip_view_tags(sections.get_section(rendered, markers.BODY) or "")
-        new_inner = views.place_view_tags(
+        template_region = view_tags.strip_view_tags(
+            sections.get_section(rendered, markers.BODY) or ""
+        )
+        new_inner = view_tags.place_view_tags(
             template_region,
             body,
-            seeded=views.seeded_view_names(item_type, host_slug, self.spec),
+            seeded=views.seeded_view_names(
+                item_type, host_slug, self.spec, from_squad=self.paths.squad_dir
+            ),
             spec=self.spec,
             item_type=item_type,
             addr=addr,
@@ -1074,14 +1096,21 @@ class ServiceCore:
         item = require_item(await self.store.load(), item_id)
         return item.model_copy(deep=True)
 
-    def _all_item_files(self) -> list[Path]:
-        """Every markdown file in every type folder, whatever it is named."""
-        found: list[Path] = []
-        for ts in self.spec.items.values():
+    def _type_folders(self) -> Iterator[tuple[str, ItemSpec, Path]]:
+        """``(type, its spec, its folder)`` for every declared type whose folder exists, in each
+        type's ``order`` (name breaking a tie) -- the one order every corpus walk follows."""
+        for item_type, ts in sorted(self.spec.items.items(), key=lambda kv: (kv[1].order, kv[0])):
             folder = self.paths.squad_dir / ts.folder
             if folder.is_dir():
-                found += sorted(folder.glob("*.md"))
-        return found
+                yield item_type, ts, folder
+
+    def _all_item_files(self) -> list[Path]:
+        """Every markdown file in every type folder, whatever it is named."""
+        return [
+            md
+            for _item_type, _ts, folder in self._type_folders()
+            for md in sorted(folder.glob("*.md"))
+        ]
 
     async def duplicate_files(self, item: Item) -> list[Path]:
         """The other files carrying *item*'s id, by the detector's rule (frontmatter id).
@@ -1198,15 +1227,17 @@ class ServiceCore:
         old, new = self.pristine_body(base), self.pristine_body(item)
         if region is None or new is None or new == old:
             return text  # nothing in the scaffold changed
-        if not views.strip_view_tags(region).strip():
+        if not view_tags.strip_view_tags(region).strip():
             return text  # a tag alone is the seeded shape, not the template
-        if not views.body_is_unwritten(region, old):
+        if not view_tags.body_is_unwritten(region, old):
             return text
         slug = item.slug
-        inner = views.place_view_tags(
+        inner = view_tags.place_view_tags(
             region.strip("\n"),
-            views.strip_view_tags(new).strip(),
-            seeded=views.seeded_view_names(item.type, slug, self.spec),
+            view_tags.strip_view_tags(new).strip(),
+            seeded=views.seeded_view_names(
+                item.type, slug, self.spec, from_squad=self.paths.squad_dir
+            ),
             spec=self.spec,
             item_type=item.type,
             addr=slug,
@@ -1499,8 +1530,8 @@ class ServiceCore:
         rewritten with identical content under a fresh mtime; only the markdown write is
         conditional on ``changed``. Every body/comment/sub-body
         ``mutate`` closure always has something to write and returns ``changed=True``; only a
-        marker-safe placement op (:meth:`~squads._services._views.ViewsMixin.insert_view`/
-        ``remove_view``) can turn out to be a no-op, which is exactly why this core takes the
+        marker-safe placement op (:meth:`~squads._services._views.ViewsMixin.add_view`/
+        ``disable_view``) can turn out to be a no-op, which is exactly why this core takes the
         decision from the callback instead of writing unconditionally.
 
         Shared by :meth:`_locked_section_edit` (body/comment/sub-body/placement's common core)
@@ -1528,411 +1559,158 @@ class ServiceCore:
         return it, True
 
     # ------------------------------------------------------------------ role / skill lookups
+    # One-line delegates over the roster projection, for the callers outside the mixins.
     async def roster_item(self, item_type: str, slug: str) -> Item | None:
-        """Return the roster item of *item_type* (``ROSTER_ROLE``/``ROSTER_SKILL``/
-        ``ROSTER_OPERATOR``) whose slug matches, or ``None``.
-
-        An entry's slug is its file name's when its file stores none.
-        """
-        for it in (await self.store.load()).items.values():
-            if it.type == item_type and it.slug == slug:
-                return it
-        return None
-
-    def _author_of(self, db: SquadsDB, slug: str) -> str:
-        """Display (full) name for a participant slug, resolved against an already-loaded
-        *db* — the pure core :meth:`author` wraps with its own fresh load.
-
-        Reading from a caller-supplied ``db`` (rather than re-loading from disk) matters
-        inside the bulk importer's one open transaction: an earlier event in the same run may
-        have just created the role/operator this slug names, and that item is only visible in
-        the in-memory ``db``, not yet on disk.
-
-        A role participant's name comes from ``item.title`` — the uniform record's own copy of
-        the resolved full name — never a catalog resolution: this
-        is a display name on a comment attribution, and resolving through the catalog here
-        would be both wrong (an operator can rename a role's *display*, via ``sq role activate
-        --name``, without that changing which catalog entry authored a past comment) and
-        needlessly expensive for a lookup this cheap. An operator participant's name is its
-        ``title``.
-        """
-        if slug == ANONYMOUS_SLUG:
-            return ANONYMOUS_NAME
-        participant = next(
-            (
-                it
-                for it in db.items.values()
-                if it.type in (ROSTER_ROLE, ROSTER_OPERATOR) and it.slug == slug
-            ),
-            None,
-        )
-        if participant is not None:
-            if participant.type == ROSTER_ROLE:
-                return participant.title
-            return participant.title
-        try:
-            return resolve_role(slug, self.paths.squad_dir).full_name
-        except SquadsError:
-            return slug
+        """The roster item of *item_type* whose slug matches, or ``None``."""
+        return await self.roster_projection.roster_item(item_type, slug)
 
     async def author(self, slug: str) -> str:
         """Display (full) name for a participant slug; falls back to the slug if unknown."""
-        return self._author_of(await self.store.load(), slug)
-
-    def _role_view(self, it: Item) -> RoleView:
-        """Resolve *it* (a ROLE item) to the ``RoleView`` a backend compiles into the managed
-        region — through the catalog (:func:`resolve_role_for_item`), never off the
-        item's own fields directly."""
-        role = resolve_role_for_item(it, self.paths.squad_dir)
-        return RoleView(
-            slug=role.slug,
-            full_name=role.full_name,
-            title=role.title,
-            is_default=role.is_default,
-            mission=role.mission,
-            responsibilities=role.responsibilities,
-            capabilities=role.capabilities,
-            pronouns=role.pronouns,
-        )
+        return await self.roster_projection.author(slug)
 
     async def roster(self) -> list[RoleView]:
-        """The roles this squad currently **offers** — ``item.status in
-        spec.live_statuses("role")``. This is what ``write_managed`` compiles the host's
-        config from and what skill-preload resolution (:meth:`_role_skills_map`) iterates;
-        a retired role has no business in either. Use :meth:`roster_all` for a caller that
-        needs every entry regardless of status (orphan detection, authorship display,
-        registration checks, the roster's own views).
-
-        Loads its own index; a caller that already has one open (a service method mid-
-        transaction, or the view-rendering path that must not pay a second load for what
-        :meth:`~squads._services._items.ItemsMixin.read_body`'s own docstring already prices
-        as "under the CLI a second index load is free... but ``sq ui`` opts out of that
-        scope") should call :meth:`roster_from_db` against the ``db`` it already holds
-        instead."""
-        return self.roster_from_db(await self.store.load())
+        """The roles this squad currently offers."""
+        return await self.roster_projection.roster()
 
     def roster_from_db(self, db: SquadsDB) -> list[RoleView]:
-        """:meth:`roster`, computed against an already-loaded *db* rather than loading one —
-        the seam a caller mid-transaction, or one that has already paid for a load for an
-        unrelated reason (:meth:`~squads._services._views.ViewsMixin.render_view` resolving a
-        ``playbook`` source, which needs both the index and the roster), reuses instead of
-        loading a second time. Filters and sorts exactly as :meth:`roster` does (live status,
-        ascending sequence number) — this is the one implementation, not a parallel one that
-        could drift from it."""
-        live = self.spec.live_statuses(ROSTER_ROLE)
-        matching = [it for it in db.items.values() if it.type == ROSTER_ROLE and it.status in live]
-        return [self._role_view(it) for it in sorted(matching, key=lambda i: number_for_id(i.id))]
+        """:meth:`roster`, computed against an already-loaded *db*."""
+        return self.roster_projection.roster_from_db(db)
 
     async def roster_all(self) -> list[RoleView]:
-        """Every role entry regardless of status — the full-vocabulary counterpart to
-        :meth:`roster`. See that method's docstring for which callers want which."""
-        return [self._role_view(it) for it in await self.list_items(item_type=ROSTER_ROLE)]
+        """Every role entry regardless of status."""
+        return await self.roster_projection.roster_all()
 
     async def operators(self) -> list[OperatorView]:
-        """The operators this squad currently **offers** — see :meth:`roster`'s docstring;
-        same live/full split, mirrored for the operator type. Use :meth:`operators_all`
-        for a full-vocabulary caller."""
-        live = self.spec.live_statuses(ROSTER_OPERATOR)
-        return [
-            OperatorView(
-                slug=it.slug,
-                full_name=it.title,
-                pronouns=pronouns(it),
-            )
-            for it in await self.list_items(item_type=ROSTER_OPERATOR)
-            if it.status in live
-        ]
+        """The operators this squad currently offers."""
+        return await self.roster_projection.operators()
 
     async def operators_all(self) -> list[OperatorView]:
-        """Every operator entry regardless of status — the full-vocabulary counterpart to
-        :meth:`operators`."""
-        return [
-            OperatorView(
-                slug=it.slug,
-                full_name=it.title,
-                pronouns=pronouns(it),
-            )
-            for it in await self.list_items(item_type=ROSTER_OPERATOR)
-        ]
-
-    async def _skill_paths(self) -> dict[str, Path]:
-        """Build a slug→absolute-body-path map for **live** SKILL items in the index.
-
-        Backends receive this via BackendContext so they never need to load the
-        index themselves (layering invariant: _backends must not import _index). Live-only
-        because this only ever locates a managed skill's own file for ``write_managed`` (which
-        gives a missing one its frontmatter-safe empty ``sq:body`` region and leaves an existing
-        one alone) — a withdrawn skill has no generated entry to locate a file for.
-        ``candidate_orphans`` needs the full skill-slug vocabulary instead and builds it
-        directly rather than reusing this map (see that method).
-        """
-        skill_items = await self.list_items(item_type=ROSTER_SKILL)
-        live = self.spec.live_statuses(ROSTER_SKILL)
-        return {it.slug: self.paths.abspath(it.path) for it in skill_items if it.status in live}
-
-    async def _skill_invocable(self) -> dict[str, bool]:
-        """Slug -> resolved ``operator_invocable`` for every live SKILL item, handed to the
-        backends so none re-derives the value."""
-        live = self.spec.live_statuses(ROSTER_SKILL)
-        return {
-            it.slug: resolve_operator_invocable(it.slug, it, self.spec)[0]
-            for it in await self.list_items(item_type=ROSTER_SKILL)
-            if it.status in live
-        }
-
-    def _resolve_role_skills(self, slug: str, role: Item | None, db: SquadsDB) -> list[str]:
-        """Pure (no I/O) core of the resolver: *db* and *role* are already loaded by the caller.
-
-        Starts from ``role_guidance.skills_for_role(slug)`` (index-blind, always-on skills +
-        the role's item-type skills), then unions in every custom skill carrying a forward
-        edge to this role in the declared ``preload`` semantic (:meth:`WorkflowSpec
-        .preload_ref_kind`) — found by inverting refs (``SquadsDB.backrefs``, kind-agnostic,
-        so filtered here to that one declared kind) and mapping to slugs. Deduped, system-first
-        then scoped skills in lexical order, so the result is stable and — with no preload
-        edges anywhere — byte-identical to the pure function's own output.
-        """
-        resolved = (
-            slug_only_role(slug)
-            if role is None
-            else resolve_role_tolerantly(role, self.paths.squad_dir)
-        )
-        system = skills_for_role(resolved, self.spec, self.playbook)
-        if role is None:
-            return system
-        role_prefix = effective_prefix(role.prefix)
-        seen = set(system)
-        scoped: set[str] = set()
-        preload_kind = self.spec.preload_ref_kind()
-        for candidate_id in db.backrefs(role.id):
-            skill = db.get(candidate_id)
-            if skill is None or skill.type != ROSTER_SKILL:
-                continue
-            for r in skill.refs:
-                rid, kind = split_ref(r)
-                if kind == preload_kind and ref_id_matches(rid, role_prefix, role.sequence_id):
-                    scoped.add(skill.slug)
-                    break
-        return [*system, *sorted(s for s in scoped if s not in seen)]
+        """Every operator entry regardless of status."""
+        return await self.roster_projection.operators_all()
 
     async def resolved_skills_for_role(self, slug: str) -> list[str]:
-        """A **live** role's full preload-skill set — standalone entry point (e.g. the
-        link/unlink partial-sync hook), one index load. See :meth:`_resolve_role_skills` for
-        the algorithm; bulk callers over every role should use :meth:`_role_skills_map`
-        instead, which loads the index once for the whole roster rather than once per role.
-
-        Live-only: a role that isn't on offer has no generated entry to preload skills
-        into, so a slug naming a retired role resolves as if the role were absent — the pure
-        system-membership fallback, never its scoped skills.
-        """
-        db = await self.store.load()
-        live = self.spec.live_statuses(ROSTER_ROLE)
-        role = next(
-            (
-                it
-                for it in db.items.values()
-                if it.type == ROSTER_ROLE and it.slug == slug and it.status in live
-            ),
-            None,
-        )
-        return self._resolve_role_skills(slug, role, db)
-
-    async def _role_skills_map(self) -> dict[str, list[str]]:
-        """Slug → resolved preload-skill list for every **live** role — the
-        ``BackendContext.role_skills`` field.  Companion to :meth:`_skill_paths`: loads the
-        index ONCE and resolves every live role's list from that single snapshot (mirrors
-        ``_skill_paths``'s single-load shape), rather than re-parsing the index per role via
-        :meth:`resolved_skills_for_role`. Live-only for the same reason as that method: a
-        retired role's entry is never written, so its preload list is never consumed.
-        """
-        db = await self.store.load()
-        live = self.spec.live_statuses(ROSTER_ROLE)
-        return {
-            it.slug: self._resolve_role_skills(it.slug, it, db)
-            for it in db.items.values()
-            if it.type == ROSTER_ROLE and it.status in live
-        }
+        """A live role's full preload-skill set."""
+        return await self.roster_projection.resolved_skills_for_role(slug)
 
     async def refresh_managed(self) -> list[str]:
-        """(Re)write every active backend's roster/version-dependent files.
-
-        Returns any WARN-only notices the writes surfaced (e.g. a pre-existing hand-written
-        CLAUDE.md/AGENTS.md contradiction warning) — never gates the run, just bubbles up for
-        the caller (``init``/``adopt``) to report.
-        """
-        skill_map = await self._skill_paths()
-        role_skills = await self._role_skills_map()
-        ctx = BackendContext(
-            paths=self.paths,
-            skill_paths=skill_map,
-            skill_invocable=await self._skill_invocable(),
-            role_skills=role_skills,
-            spec=self.spec,
-            playbook=self.playbook,
-        )
-        roster = await self.roster()
-        ops = await self.operators()
-        warnings: list[str] = []
-        for backend in self._backends():
-            artifacts = await backend.write_managed(ctx, roster, ops)
-            warnings += [a.warning for a in artifacts if a.warning]
-        return warnings
+        """(Re)write every active backend's roster/version-dependent files; returns the warnings."""
+        return await self.roster_projection.refresh_managed()
 
     async def candidate_orphans(self) -> list[str]:
-        """WARN-only candidate-orphan pointer/skill files across every active backend —
-        present on disk but managed by none of them. Never deletes anything; the caller
-        only reports these for the adopter to reconcile by hand.
+        """WARN-only candidate-orphan pointer/skill files across every active backend."""
+        return await self.roster_projection.candidate_orphans()
 
-        Feeds backends the **full** roster vocabulary (:meth:`roster_all`) and the full
-        known skill-slug set (every SKILL item regardless of status, not just
-        :meth:`_skill_paths`'s live-only map) — an orphan means "a file this squad never
-        managed", and a withdrawn entry's leftover file is this squad's own convergence
-        debt, never a foreign file. Feeding the live-only projection here would relabel
-        that debt as a stranger's file, loudest on exactly the squads that have retired
-        an entry.
+    # ------------------------------------------------------------------ corpus reading
+    async def _skill_folder_state(self, scan: SkillScan) -> SkillFolder:
+        """The skill folder's files and who carries which id and slug; built once per scan and
+        given the index's skill items only if some file could be restamped."""
+        if scan.state is None:
+            texts = {md.name: text for md, text in (await self._read_skill_texts(scan)).items()}
+            state = SkillFolder.build(texts, self.spec)
+            if state.needs_index:
+                state = state.with_index(await self._indexed_skills(scan))
+            scan.state = state
+        return scan.state
 
-        The known-slug floor is :func:`active_skill_slugs` (the active spec's *current*
-        vocabulary), not the allocation-order union
-        (``bundled_skill_slugs() | custom_skill_slugs(spec)``) those two seeding helpers use —
-        that union always covers every historically-bundled ``sq-<type>`` slug, so it would
-        keep exempting a dropped/renamed type's stale skill from ever being flagged since a
-        workflow override can shadow a built-in type instead of only adding to it.
-        """
-        all_skills = await self.list_items(item_type=ROSTER_SKILL)
-        skill_slugs = {it.slug for it in all_skills} | active_skill_slugs(self.spec)
-        roster = await self.roster_all()
-        ctx = self._ctx
-        orphans: list[str] = []
-        for backend in self._backends():
-            orphans += await backend.candidate_orphans(ctx, roster, skill_slugs)
-        return [
-            f"candidate orphan (not managed by this squad, never auto-deleted): {p}"
-            for p in orphans
-        ]
+    async def _read_skill_texts(self, scan: SkillScan) -> dict[Path, str]:
+        """The stamped skill files' text: what this scan already read, else read now."""
+        if scan.texts is not None:
+            return scan.texts
+        folder = self.paths.squad_dir / self.spec.items[ROSTER_SKILL].folder
+        texts: dict[Path, str] = {}
+        if folder.is_dir():
+            for md in sorted(folder.glob(f"{prefix_for(ROSTER_SKILL, self.spec)}-*.md")):
+                with contextlib.suppress(OSError):
+                    texts[md] = await _aio.read_text(md)
+        return texts
 
-    async def _resync_role_skills(self, slug: str) -> None:
-        """Partial-sync hook: recompute and rewrite ONE role's backend pointer.
+    @staticmethod
+    async def _scan_text(md: Path, scan: SkillScan) -> str:
+        """A file's text for the ``check`` scan: the up-front skill read if it has one."""
+        cached = scan.texts.get(md) if scan.texts else None
+        return cached if cached is not None else await _aio.read_text(md)
 
-        The supported incremental path for the ``sq skill link-role``/``unlink-role`` verbs —
-        mirrors the per-role pointer step a full :meth:`sync` runs, scoped to a single role;
-        every other role's pointer is left byte-untouched. A full ``sq sync`` remains the
-        authoritative recomputation for the whole roster — this is an optimization on top of
-        it, never the only path.
-
-        The resolved-skills list itself is never persisted anywhere: it is a computed
-        projection, recovered on demand from the index the caller already loaded
-        (:meth:`resolved_skills_for_role`), not a cache this hook refreshes. What this
-        recomputes and writes is the *backend pointer* — the one materialised artifact that
-        still carries the list, because a non-human agent host reads it as a file rather than
-        running a command.
-
-        The backend pointer is only regenerated when the role is **live** — scoping a
-        skill to a retired role must not resurrect its withdrawn projection.
-        """
-        role = await self.roster_item(ROSTER_ROLE, slug)
-        if role is None:
-            return  # nothing to resync — caller already validated the role exists
-        resolved = await self.resolved_skills_for_role(slug)
-        if role.status in self.spec.live_statuses(ROSTER_ROLE):
-            role_ctx = BackendContext(
-                paths=self.paths,
-                spec=self.spec,
-                playbook=self.playbook,
-                role_skills={slug: resolved},
-            )
-            role_def = resolve_role_for_item(role, self.paths.squad_dir)
-            for backend in self._backends():
-                await backend.generate_role_entry(role_ctx, role, role_def)
-
-    async def _project_roster_item(self, item: Item, ctx: BackendContext) -> list[str]:
-        """Materialise or withdraw *item*'s own per-entry backend artifact: an entry is
-        materialised iff its status carries the ``live`` flag; every other status is
-        withdrawn. The single place the materialise-or-withdraw predicate and the backend
-        calls it drives are expressed — shared by the single-item transition path
-        (:meth:`_project_roster_transition`) and ``sync``'s roster sweep
-        (:meth:`MaintenanceMixin.sync`), so the two cannot disagree on either the
-        predicate or the context they hand the backend.
-
-        The materialise-or-withdraw predicate itself is
-        :func:`~squads._interactions.is_live_roster_entry` — shared verbatim with ``sq
-        check``'s ``backend_reconciled`` rule and ``sync``'s own regeneration report
-        (both in :mod:`squads._services`), so none of the three can drift onto a different
-        notion of "live" than the others. For a ``SKILL`` item its second clause requires the
-        slug to still name a type the active spec declares: a dropped or renamed built-in's
-        stale ``sq-<type>`` skill is withdrawn right alongside a manually-retired one, with no
-        separate mechanism — and re-materialises on its own the moment the type comes back,
-        since this is a pure per-call derivation, never a stored flag. This is what keeps a
-        drop's generated-skill residue from outliving the type it described.
-
-        A no-op for an operator item (no per-entry file — only a row in a compiled region);
-        the caller's own managed-region recompile is what represents it. *ctx* must already
-        carry the resolved preload map (:meth:`_role_skills_map`) for a role item — this
-        method never resolves it itself, so a caller processing many items resolves the map
-        once and reuses this same *ctx* for all of them rather than once per item.
-
-        Fans out over every active backend (:meth:`_backends`, already empty-safe: with
-        ``active_backends = []`` there is nothing to project). Materialise calls
-        ``generate_role_entry``/``generate_skill_entry``; withdraw calls the existing
-        ``remove_artifacts`` (missing-tolerant and idempotent by its own contract, so
-        withdrawing against a never-scaffolded backend is a clean no-op).
-
-        Returns the WARN-only notices the per-entry writes surfaced (``Artifact.warning`` —
-        e.g. a declared model the host's own frontmatter cannot express, dropped from the
-        rendered pointer), for the caller to report alongside its own. Empty in the normal
-        case. Never gates anything: this is the same "the write went through, but you should
-        know what it did" channel :meth:`refresh_managed` already bubbles up for the compiled
-        regions, extended to the per-entry files — without it, the only record of the drop is
-        the absence of a line in a generated file.
-        """
-        if item.type not in (ROSTER_ROLE, ROSTER_SKILL):
+    async def _indexed_skills(self, scan: SkillScan | None = None) -> list[Item]:
+        """The skill items the index holds, or none when there is no readable index -- the
+        restamp treats the index as a hint and never needs it."""
+        if scan is not None and scan.items is not None:
+            return scan.items
+        if not self.store.exists():
             return []
-        live = is_live_roster_entry(item, self.spec)
-        role_def = (
-            resolve_role_for_item(item, self.paths.squad_dir)
-            if live and item.type == ROSTER_ROLE
-            else None
+        with contextlib.suppress(SquadsError):
+            return await self.list_items(item_type=ROSTER_SKILL)
+        return []
+
+    async def _skill_remedy(self, md: Path, item_type: str, scan: SkillScan) -> str | None:
+        """The remedy a report line gives for a stamped managed-skill file, else ``None``."""
+        if item_type != ROSTER_SKILL or stamped_skill_slug(md, self.spec) not in (
+            managed_skill_slugs(self.spec)
+        ):
+            return None
+        return remedy_text((await self._skill_folder_state(scan)).verdict(md.name, self.spec))
+
+    async def _id_carriers(self, log: CarrierLog | None = None) -> list[tuple[object, Path]]:
+        """``(frontmatter id, file)`` for every item file whose frontmatter parses and has an
+        ``id`` -- the one input the duplicate-id detector groups. Files a scan already read
+        (*log*) are not read again."""
+        carriers: list[tuple[object, Path]] = list(log.pairs) if log else []
+        seen = log.seen if log else set[Path]()
+        # Every markdown file in a type folder, not only the ones named for its prefix: a copy
+        # of another type's file dropped here carries the id all the same.
+        for md in self._all_item_files():
+            if md in seen:
+                continue
+            with contextlib.suppress(OSError, SquadsError):
+                fid = sections.split_frontmatter(await _aio.read_text(md))[0].get("id")
+                if fid:
+                    carriers.append((fid, md))
+        return carriers
+
+    def _duplicate_id_message(self, files: list[Path]) -> SelfRemedied:
+        """The report line for an id carried by several files, naming every one."""
+        named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
+        return SelfRemedied(f"{len(files)} files carry this id ({named}); {DUPLICATE_ID_REMEDY}")
+
+    def _shared_number_message(self, number: int, files: list[Path]) -> str:
+        """The report line for a number carried under different ids, naming every file."""
+        named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
+        return (
+            f"{len(files)} files carry number {number} under different ids ({named}); "
+            f"{SHARED_NUMBER_REMEDY}"
         )
-        warnings: list[str] = []
-        for backend in self._backends():
-            if live:
-                if item.type == ROSTER_ROLE:
-                    assert role_def is not None  # resolved above, live ROSTER_ROLE guaranteed it
-                    artifact = await backend.generate_role_entry(ctx, item, role_def)
-                else:
-                    artifact = await backend.generate_skill_entry(ctx, item)
-                if artifact.warning:
-                    warnings.append(artifact.warning)
-            else:
-                await backend.remove_artifacts(ctx, item)
-        return warnings
 
-    async def _project_roster_transition(self, item: Item) -> list[str]:
-        """Materialise or withdraw *item*'s backend projection after a single roster item's
-        status transition commits — the projection write happens outside the transaction,
-        same ordering the roster create verbs already use, since a generated file is
-        regenerable cache rather than a markdown item.
+    async def _missing_id_message(self, md: Path, item_type: str, scan: SkillScan) -> str:
+        """The "no ``id``" report line; a stamped managed-skill file also names the remedy that
+        works for its state."""
+        remedy = await self._skill_remedy(md, item_type, scan)
+        msg = "file has no `id` in frontmatter"
+        return SelfRemedied(f"{msg}; {remedy}") if remedy else msg
 
-        Resolves the whole roster's preload map in one index read
-        (:meth:`_role_skills_map`) — even though only one entry is transitioning, the map
-        is a single-load computation over every live role, never a per-role read — and hands
-        it to :meth:`_project_roster_item` so a role's ``scopes``-derived skills survive a
-        retire/reactivate round trip exactly as a first creation would.
+    # ------------------------------------------------------------------ scan helpers
+    def _iter_item_files(self) -> Iterator[tuple[str, Path]]:
+        """Yield (item_type, markdown path) for every item file across the type folders.
 
-        Every transition, in either direction, ends by recompiling the managed regions
-        (:meth:`refresh_managed`): withdrawal changes generated *prose* beyond the roster
-        table (the default-role line, the developer-gated per-item-type skill text), so the
-        compiled regions must be rewritten every time, not only the entry's own file. This
-        also covers an operator transition, which has no per-entry file at all and so skips
-        straight to this region refresh.
+        Every type declared in the active spec — built-in or custom — is scanned uniformly
+        (one generic path, no static/dynamic split), ordered by each type's
+        ``ItemSpec.order`` (the same deterministic-not-alphabetical axis the CLI/playbook
+        registration already uses), tie-broken by type name. This reproduces the exact
+        built-in scan order (epic, feature, task, bug, decision, review, guide,
+        role, skill, operator) byte-for-byte, which matters for collision resolution when
+        two items share a sequence number pre-renumber (`sq repair --renumber`).
 
-        Returns the WARN-only notices both halves surfaced — the entry's own
-        (:meth:`_project_roster_item`) followed by the region recompile's
-        (:meth:`refresh_managed`) — so a caller that has somewhere to print them can, and one
-        that has not is unchanged. The full ``sq sync`` sweep is the surface that always
-        reports; a single transition is the incremental path onto the same files.
+        Skill files follow the ``SKILL-<NNNNNN>-<slug>.md`` convention so they are scanned
+        with the same ``PREFIX-*.md`` glob as every other type.  Legacy slug-named files
+        (pre-migration) are also yielded so callers can detect them; files without an ``id``
+        in their frontmatter are silently skipped by the repair/check callers.
         """
-        role_skills = await self._role_skills_map()
-        ctx = BackendContext(
-            paths=self.paths, spec=self.spec, playbook=self.playbook, role_skills=role_skills
-        )
-        warnings = await self._project_roster_item(item, ctx)
-        return warnings + await self.refresh_managed()
+        for item_type, ts, folder in self._type_folders():
+            prefix = ts.prefix
+            if item_type == ROSTER_SKILL:
+                # Convention files follow SKILL-*.md (post-migration / fresh init).
+                # Also include legacy <slug>.md files so pre-migration squads can still be
+                # repaired/checked (they will be silently skipped by callers that require an id).
+                convention = sorted(folder.glob(f"{prefix}-*.md"))
+                legacy = sorted(md for md in folder.glob("*.md") if not md.name.startswith(prefix))
+                yield from ((item_type, md) for md in convention + legacy)
+            else:
+                yield from ((item_type, md) for md in sorted(folder.glob(f"{prefix}-*.md")))

@@ -5,7 +5,7 @@ import functools
 
 import pytest
 
-from _helpers import create_item, hold_lock
+from _helpers import create_item, hold_lock, make_service
 from squads._errors import IndexLockTimeoutError
 from squads._index._resolver import item_file
 from squads._index._store import IndexStore
@@ -25,7 +25,7 @@ async def test_a_second_init_over_a_fresh_squad_changes_nothing(tmp_path, monkey
 
     paths = (await _init(tmp_path)).paths
 
-    svc = service.Service(paths)
+    svc = make_service(paths)
     db = await svc.store.load()
     assert db.counter == 20
     assert (
@@ -39,11 +39,11 @@ async def test_init_over_a_squad_holding_a_task_keeps_it_and_continues_the_ids(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     paths = (await _init(tmp_path)).paths
-    task = (await create_item(service.Service(paths), "task", "Kept")).item
+    task = (await create_item(make_service(paths), "task", "Kept")).item
 
     paths = (await _init(tmp_path)).paths
 
-    svc = service.Service(paths)
+    svc = make_service(paths)
     assert (await svc.get(task.id)).title == "Kept"
     roles = await svc.list_items(item_type="role")
     assert len(roles) == len({r.slug for r in roles}) == 8
@@ -56,7 +56,7 @@ async def test_init_with_the_lock_held_fails_cleanly_and_leaves_the_index_as_it_
 ) -> None:
     monkeypatch.chdir(tmp_path)
     paths = (await _init(tmp_path)).paths
-    await create_item(service.Service(paths), "task", "Kept")
+    await create_item(make_service(paths), "task", "Kept")
     before = paths.index_path.read_bytes()
     short = functools.partial(IndexStore, lock_timeout=1)
     monkeypatch.setattr("squads._services._service.IndexStore", short)
@@ -76,10 +76,10 @@ async def test_init_carries_an_unparseable_item_forward_as_repair_does(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     paths = (await _init(tmp_path)).paths
-    svc = service.Service(paths)
+    svc = make_service(paths)
     broken = (await create_item(svc, "task", "Broken")).item
     item_file(paths, broken).write_text("---\n: not [valid\n---\n", encoding="utf-8")
 
     paths = (await _init(tmp_path)).paths
 
-    assert broken.id in {i.id for i in (await service.Service(paths).store.load()).items.values()}
+    assert broken.id in {i.id for i in (await make_service(paths).store.load()).items.values()}

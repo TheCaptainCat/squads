@@ -116,6 +116,7 @@ async def _rewrite_pointer(paths: SquadPaths, new_body_rel: str) -> None:
         pointer,
         render(
             "claude/pointer_skill.md.j2",
+            from_squad=paths.squad_dir,
             slug=_SLUG,
             description=oneline(_DESCRIPTION),
             invocable=True,  # this runner writes no host key; the later pointer refresh does

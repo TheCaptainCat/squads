@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -19,7 +19,7 @@ async def seeded_paths(tmp_path, monkeypatch, frozen_time):
 
 
 async def test_skill_show_renders_id_slug_status_and_body(seeded_paths, invoke) -> None:
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     (sk,) = (await svc.list_items(item_type="skill"))[:1]
 
     r = await invoke(["skill", str(sk.sequence_id), "show"])
@@ -30,7 +30,7 @@ async def test_skill_show_renders_id_slug_status_and_body(seeded_paths, invoke) 
 
 
 async def test_skill_show_json_carries_id_slug_and_status(seeded_paths, invoke) -> None:
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     (sk,) = (await svc.list_items(item_type="skill"))[:1]
 
     r = await invoke(["skill", str(sk.sequence_id), "show", "--json"])
@@ -42,7 +42,7 @@ async def test_skill_show_json_carries_id_slug_and_status(seeded_paths, invoke) 
 
 async def test_skill_show_json_body_is_the_exact_stored_prose_alone(seeded_paths, invoke) -> None:
     """``show --json``'s ``body`` key is the exact stored prose, byte for byte."""
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     sk = await svc.add_skill("sq-golden-body-check", description="pins the json body field")
     await svc.set_body(sk.id, "Exact prose, nothing else.")
 
@@ -56,7 +56,7 @@ async def test_skill_show_json_body_is_the_exact_stored_prose_alone(seeded_paths
 async def test_a_task_can_ref_a_skill_and_the_forward_ref_appears_in_its_refs(
     seeded_paths, invoke
 ) -> None:
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     task = (await create_item(svc, "task", "Ref test task")).item
     (sk,) = (await svc.list_items(item_type="skill"))[:1]
 
@@ -69,7 +69,7 @@ async def test_a_task_can_ref_a_skill_and_the_forward_ref_appears_in_its_refs(
 
 async def test_a_skills_backref_appears_via_refs_in_never_persisted(seeded_paths, invoke) -> None:
     """CLAUDE.md invariant #4: backrefs are computed by inversion, never persisted."""
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     task = (await create_item(svc, "task", "Backref test task")).item
     (sk,) = (await svc.list_items(item_type="skill"))[:1]
     await svc.add_ref(task.id, sk.id, kind="related")
@@ -82,7 +82,7 @@ async def test_a_skills_backref_appears_via_refs_in_never_persisted(seeded_paths
 async def test_a_feature_ref_to_a_skill_round_trips_forward_and_backward(
     seeded_paths, invoke
 ) -> None:
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     feat = (await create_item(svc, "feature", "Ref test feature")).item
     (sk,) = (await svc.list_items(item_type="skill"))[:1]
 
@@ -98,7 +98,7 @@ async def test_a_feature_ref_to_a_skill_round_trips_forward_and_backward(
 async def test_skill_show_reports_a_bundled_skills_origin_in_text_and_json(
     seeded_paths, invoke
 ) -> None:
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     (sk,) = (await svc.list_items(item_type="skill"))[:1]
 
     r = await invoke(["skill", str(sk.sequence_id), "show"])
@@ -112,7 +112,7 @@ async def test_skill_show_reports_a_bundled_skills_origin_in_text_and_json(
 async def test_skill_show_reports_a_custom_skills_origin_in_text_and_json(
     seeded_paths, invoke
 ) -> None:
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     skill = await svc.add_skill("Release Runbook", description="Ship a release safely.")
 
     r = await invoke(["skill", str(skill.sequence_id), "show"])
@@ -126,7 +126,7 @@ async def test_skill_show_reports_a_custom_skills_origin_in_text_and_json(
 async def test_skill_body_sets_and_re_edits_a_custom_skills_authored_body(
     seeded_paths, invoke
 ) -> None:
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     skill = await svc.add_skill("Release Runbook", description="Ship a release safely.")
 
     r = await invoke(
@@ -143,7 +143,7 @@ async def test_skill_body_sets_and_re_edits_a_custom_skills_authored_body(
 async def test_skill_body_on_a_bundled_skill_is_rejected_with_a_clear_message(
     seeded_paths, invoke
 ) -> None:
-    svc = service.Service(seeded_paths)
+    svc = make_service(seeded_paths)
     (sk,) = (await svc.list_items(item_type="skill"))[:1]
 
     r = await invoke(["skill", str(sk.sequence_id), "body", "-m", "free-form body"])

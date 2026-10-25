@@ -89,7 +89,9 @@ that reviews a piece of work always be a different one from the agent that built
 
 **3. Quality bar.** What has to be true before work changes hands. Consider asking: what's the
 must-pass gate before a handoff or a commit? Does integrity-critical work earn a heavier review
-than the rest? Should a completion claim be independently verified, or taken at its word?
+than the rest? Should a completion claim be independently verified, or taken at its word? When does
+a check get its own review item, and when does a verdict comment on the work item do? Does the
+answer change when the check found nothing?
 
 **4. Git and releases.** Consider asking: what should a commit message look like, and do you want
 trailers or co-author lines on it? Who commits, who pushes, who publishes a release — and where's

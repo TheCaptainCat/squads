@@ -25,7 +25,8 @@ from typing import Any
 import pytest
 
 from squads._backends._agents_md._backend import _also_creatable_types
-from squads._interactions import cheatsheet_anchor_context, get_playbook_spec
+from squads._interactions._cheatsheet import cheatsheet_anchor_context
+from squads._interactions._playbook import get_playbook_spec
 from squads._language import WorkingLanguage
 from squads._models._item import Item
 from squads._rendering._engine import render
@@ -188,6 +189,7 @@ def _probe_renders(roles: list[dict[str, Any]]) -> dict[str, str]:
             spec=spec,
             squad_dir="team",
             working_language=WorkingLanguage("en", "English"),
+            from_squad=None,
         ),
         "views/memory_skill.md.j2": render(
             "views/memory_skill.md.j2",
@@ -196,6 +198,7 @@ def _probe_renders(roles: list[dict[str, Any]]) -> dict[str, str]:
             spec=spec,
             squad_dir="team",
             working_language=WorkingLanguage("en", "English"),
+            from_squad=None,
         ),
         "claude/claude_section.md.j2": render(
             "claude/claude_section.md.j2",
@@ -207,6 +210,7 @@ def _probe_renders(roles: list[dict[str, Any]]) -> dict[str, str]:
             default_role_full_name=roles[0]["full_name"],
             default_role_slug=roles[0]["slug"],
             spec=spec,
+            from_squad=None,
         ),
         "agents_md/agents_section.md.j2": render(
             "agents_md/agents_section.md.j2",
@@ -218,8 +222,9 @@ def _probe_renders(roles: list[dict[str, Any]]) -> dict[str, str]:
             spec=spec,
             also_creatable_types=_also_creatable_types(spec, anchor_ctx["anchor"]),
             **anchor_ctx,
+            from_squad=None,
         ),
-        "workflow.md.j2": render("workflow.md.j2", spec=spec, roles=roles),
+        "workflow.md.j2": render("workflow.md.j2", spec=spec, roles=roles, from_squad=None),
     }
 
 
@@ -259,6 +264,6 @@ def test_no_bare_task_literal_in_the_guarded_generated_templates() -> None:
         ]
         assert not hit_lines, (
             f"{rel}: hardcoded 'task' literal at line(s) {hit_lines} — derive it from "
-            "interactions.cheatsheet_anchor_type(spec) (or the resolved spec's own "
+            "cheatsheet_anchor_type(spec) (or the resolved spec's own "
             "item/authoring data) instead of naming the bundled type directly"
         )

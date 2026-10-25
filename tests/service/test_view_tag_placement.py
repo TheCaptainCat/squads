@@ -6,14 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import __version__
 from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._models import _markers as markers
 from squads._rendering._engine import invalidate_squad_dir
 from squads._services._service import Service
-from squads._views import place_view_tags
+from squads._view_tags import place_view_tags
 from squads._workflow import load_workflow_spec
 
 pytestmark = pytest.mark.anyio
@@ -77,7 +77,7 @@ def _declare_resolvable_subentity_view(squad_dir: Path, name: str, kind: str) ->
 
 def _reopen(project) -> Service:
     """A fresh ``Service`` bound to a just-written workflow override."""
-    return Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    return make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
 
 
 # --------------------------------------------------------------------------- insert: shape

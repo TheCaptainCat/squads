@@ -34,7 +34,12 @@ _models / _paths / _workflow / _sections / _clock   — shared leaves, no intern
 
 `Service` (`_services/_service.py`) is the façade every command calls, composed from one mixin per
 concern (items, sub-entities, refs, roster, maintenance, …); it's the only place that orchestrates
-the index, the filesystem, the backends, and rendering together.
+the index, the filesystem, the backends, and rendering together. It is built in one place,
+`compose_service` in the same module: a mode picks which workflow spec and playbook the service
+holds (the fallback order is a table there), the index store and the backends are constructed there
+and handed in, and the three spec documents are resolved once through `_spec_documents.py` and
+passed down with the override text each was read from, so a document and the checks that report
+on its provenance read the same file once.
 
 ---
 
@@ -328,8 +333,9 @@ Backends are pluggable behind the `AgentBackend` ABC, whose seven abstract metho
 `remove_artifacts`, `candidate_orphans` and `managed_paths`. Two ship: `claude_code` (the
 `.claude/` pointers, `settings.json` and the `CLAUDE.md` managed section, described below) and
 `agents_md` (one `AGENTS.md` managed section, compiled from the roster; it writes no per-entry
-files). `.squads.toml`'s `active_backends` picks which run. A `_registry` maps names → backends and
-each backend package registers itself on import. Nothing outside a backend reaches into `.claude/`.
+files). `.squads.toml`'s `active_backends` picks which run. `_registry.py` is a literal table of
+names → backend classes; adding a backend is a row there. Nothing outside a backend reaches into
+`.claude/`.
 [backends.md](backends.md) covers writing a third.
 
 Everything in `.claude/` is a thin pointer: it carries the identity the host selects the entry by,
@@ -383,7 +389,7 @@ through `_interactions/`). Both are project-overridable — `.overrides/roles/<s
   are made on demand from the `[dev]` table of the squad's resolved catalog, named from its pool
   (`Elias Dotnet`, slug `dotnet-dev` by default). A developer is any live role holding a capability
   that table declares (`dev`).
-- **The playbook** (`PLAYBOOK`, a thin shim over the loaded `PlaybookSpec`) is a matrix: for each
+- **The playbook** (the loaded `PlaybookSpec`) is a matrix: for each
   item type, the interacting roles + a one-line guidance each. A guide addresses a role slug, or
   every live role holding a capability with `*<capability>` (the bundled `*dev` guides reach every
   developer). It drives two things:

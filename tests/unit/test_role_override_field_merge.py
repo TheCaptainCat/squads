@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._roles._catalog import PREDEFINED
 from squads._roles._resolver import resolve_role
@@ -31,22 +32,22 @@ def _place_role_toml(squad_dir: Path, slug: str, content: str) -> Path:
 
 def test_no_override_returns_the_bundled_entry_unchanged(tmp_path) -> None:
     bundled = next(x for x in PREDEFINED if x.slug == "architect")
-    assert resolve_role("architect", tmp_path) == bundled
+    assert resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path)) == bundled
 
 
 def test_squad_dir_none_returns_the_bundled_entry() -> None:
     bundled = next(x for x in PREDEFINED if x.slug == "manager")
-    assert resolve_role("manager", None) == bundled
+    assert resolve_role("manager", None, catalog=catalog_of(None)) == bundled
 
 
 def test_an_unknown_slug_with_no_override_raises(tmp_path) -> None:
     with pytest.raises(RoleNotFoundError):
-        resolve_role("nonexistent-slug", tmp_path)
+        resolve_role("nonexistent-slug", tmp_path, catalog=catalog_of(tmp_path))
 
 
 def test_only_the_fields_actually_set_change_the_rest_fall_through_to_bundled(tmp_path) -> None:
     _place_role_toml(tmp_path, "architect", 'full_name = "Ada Lovelace"\nmodel = "haiku"\n')
-    r = resolve_role("architect", tmp_path)
+    r = resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
     assert r.full_name == "Ada Lovelace"
     assert r.model == "haiku"
     bundled = next(x for x in PREDEFINED if x.slug == "architect")
@@ -60,13 +61,13 @@ def test_tuple_valued_fields_override_correctly(tmp_path) -> None:
     _place_role_toml(
         tmp_path, "qa", 'responsibilities = ["Write acceptance tests", "Verify bug fixes"]\n'
     )
-    r = resolve_role("qa", tmp_path)
+    r = resolve_role("qa", tmp_path, catalog=catalog_of(tmp_path))
     assert r.responsibilities == ("Write acceptance tests", "Verify bug fixes")
 
 
 def test_a_slug_key_agreeing_with_the_filename_is_accepted(tmp_path) -> None:
     _place_role_toml(tmp_path, "reviewer", 'slug = "reviewer"\nfull_name = "Helen"\n')
-    r = resolve_role("reviewer", tmp_path)
+    r = resolve_role("reviewer", tmp_path, catalog=catalog_of(tmp_path))
     assert r.slug == "reviewer"
     assert r.full_name == "Helen"
 
@@ -76,7 +77,7 @@ def test_a_slug_key_disagreeing_with_the_filename_is_refused(tmp_path) -> None:
     that does nothing — and the document has no other way to say what it meant."""
     _place_role_toml(tmp_path, "reviewer", 'slug = "something-else"\nfull_name = "Helen"\n')
     with pytest.raises(SquadsError) as excinfo:
-        resolve_role("reviewer", tmp_path)
+        resolve_role("reviewer", tmp_path, catalog=catalog_of(tmp_path))
     assert "something-else" in str(excinfo.value)
     assert "filename" in str(excinfo.value)
 
@@ -88,7 +89,7 @@ def test_an_unknown_key_in_the_toml_is_refused_by_name(tmp_path) -> None:
     with the model — leniency was never what bought forward compatibility."""
     _place_role_toml(tmp_path, "devops", 'full_name = "Hugo Custom"\nfuture_key = "ignored"\n')
     with pytest.raises(SquadsError) as excinfo:
-        resolve_role("devops", tmp_path)
+        resolve_role("devops", tmp_path, catalog=catalog_of(tmp_path))
     message = str(excinfo.value)
     assert "future_key" in message
     # Refused at the document's own closed key space, which names the accepted set — so a typo
@@ -105,7 +106,7 @@ def test_a_brand_new_slug_can_be_defined_entirely_by_its_own_toml(tmp_path) -> N
         'description = "Keeps the system secure."\nmission = "Find and fix security issues."\n'
         'model = "opus"\n',
     )
-    r = resolve_role("security-expert", tmp_path)
+    r = resolve_role("security-expert", tmp_path, catalog=catalog_of(tmp_path))
     assert r.slug == "security-expert"
     assert r.full_name == "Sam Security"
     assert r.model == "opus"
@@ -114,7 +115,7 @@ def test_a_brand_new_slug_can_be_defined_entirely_by_its_own_toml(tmp_path) -> N
 def test_a_new_slug_missing_a_required_field_raises(tmp_path) -> None:
     _place_role_toml(tmp_path, "new-role", 'full_name = "New Person"\n')  # missing title etc.
     with pytest.raises(SquadsError, match="missing required fields"):
-        resolve_role("new-role", tmp_path)
+        resolve_role("new-role", tmp_path, catalog=catalog_of(tmp_path))
 
 
 def test_malformed_toml_raises_squads_error(tmp_path) -> None:
@@ -122,4 +123,4 @@ def test_malformed_toml_raises_squads_error(tmp_path) -> None:
     bad.parent.mkdir(parents=True, exist_ok=True)
     bad.write_text("this is not [ valid toml ={{", encoding="utf-8")
     with pytest.raises(SquadsError, match="malformed role override"):
-        resolve_role("manager", tmp_path)
+        resolve_role("manager", tmp_path, catalog=catalog_of(tmp_path))

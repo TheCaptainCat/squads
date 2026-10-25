@@ -4,7 +4,7 @@ unpaired tag is the control that must still error."""
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import __version__
 from squads._models import _markers as markers
 from squads._rendering._engine import invalidate_squad_dir
@@ -37,7 +37,7 @@ def _unclosed_for(tag: str) -> str:
 
 def _reopen(project) -> Service:
     """A fresh ``Service`` bound to a just-written workflow override."""
-    return Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    return make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
 
 
 def _declare_second_view(squad_dir) -> None:

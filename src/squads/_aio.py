@@ -47,7 +47,7 @@ async def read_text(path: Path) -> str:
     runners — so one guard here covers all of them.
 
     Deliberately does **not** catch ``FileNotFoundError``: a few callers
-    (``_services/_maintenance.py``'s ``check`` confirm round, ``_services/_import.py``'s
+    (``_services/_check.py``'s confirm round, ``_services/_import.py``'s
     pre-pass) read a missing file as a signal, not a failure, and rely on it propagating
     unchanged. Callers that want a clean not-found error convert it themselves at their own
     read seam, where "missing" has one meaning instead of several.

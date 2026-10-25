@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
 from squads._sections import replace_section
@@ -104,9 +105,8 @@ async def test_an_empty_per_type_skill_body_under_a_live_type_also_points_at_the
 async def test_an_empty_role_body_under_a_dropped_view_does_not_point_at_sync(svc, invoke) -> None:
     _write_override(svc.paths.squad_dir, _DROP_ROLE_DEFINITION)
     spec = load_workflow_spec(squad_dir=svc.paths.squad_dir)
-    from squads._services import _service as service
 
-    declared = service.Service(svc.paths, spec=spec)
+    declared = make_service(svc.paths, spec=spec)
     role = await declared.activate_role("reviewer")
     _empty_body(declared, role)
 
@@ -181,9 +181,8 @@ async def test_the_dropped_view_hint_names_view_disable_as_the_tag_clearing_reme
 ) -> None:
     _write_override(svc.paths.squad_dir, _DROP_ROLE_DEFINITION)
     spec = load_workflow_spec(squad_dir=svc.paths.squad_dir)
-    from squads._services import _service as service
 
-    declared = service.Service(svc.paths, spec=spec)
+    declared = make_service(svc.paths, spec=spec)
     role = await declared.activate_role("reviewer")
     _empty_body(declared, role)
 

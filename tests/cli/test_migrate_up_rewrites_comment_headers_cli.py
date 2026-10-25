@@ -96,13 +96,13 @@ async def test_migrate_up_prints_the_step_its_report_and_the_manual_hint(squad, 
     out = " ".join(r.output.split())
     assert "0.16.0 (schema v0.15→v0.16)" in out
     assert f"{headers} comment header(s) rewritten in 10 file(s); 0 already carried a slug" in out
-    assert "manual steps remain — read them with `sq migrate chlog v0.15.0..v0.16.0`" in out
-    assert _stamp(squad) == SCHEMA_VERSION == "0.16"
+    assert "manual steps remain — read them with `sq migrate chlog v0.15.0..v0.17.0`" in out
+    assert _stamp(squad) == SCHEMA_VERSION == "0.17"
     assert _legacy_headers_by_counting(squad) == headers  # same count, now in the new form
     assert not re.search(r"^- \[[^\]]+\] [^`]", _discussion_text(squad), re.M)
 
     again = await invoke(["migrate", "up"])
-    assert again.exit_code == 0 and "already at schema v0.16" in again.output
+    assert again.exit_code == 0 and "already at schema v0.17" in again.output
 
 
 def _discussion_text(root: Path) -> str:
@@ -276,7 +276,7 @@ async def test_the_step_is_one_registry_entry_and_a_contribution_can_be_appended
     out = " ".join(r.output.split())
     assert "comment header(s) rewritten" in out and "stand-in report" in out
     assert out.index("comment header(s)") < out.index("stand-in report")
-    assert _stamp(squad) == "0.16"
+    assert _stamp(squad) == "0.17"
 
 
 # Every contribution in the step has a row here: how to tell its work is done after one run.

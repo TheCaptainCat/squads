@@ -10,9 +10,12 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of
 from squads._backends._base import BackendContext
 from squads._backends._registry import get_backend
+from squads._interactions._playbook import get_playbook_spec
 from squads._services import _service as service
+from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
 
@@ -41,10 +44,24 @@ async def test_one_backend_instance_scaffolds_two_squads_with_no_cross_contamina
     backend = get_backend("claude_code")
     assert vars(backend) == {}
 
-    await backend.ensure_scaffold(BackendContext(paths=result_a.paths))
+    await backend.ensure_scaffold(
+        BackendContext(
+            paths=result_a.paths,
+            spec=bundled_spec(),
+            playbook=get_playbook_spec(),
+            catalog=catalog_of(result_a.paths.squad_dir),
+        )
+    )
     assert vars(backend) == {}  # still holds nothing after scaffolding squad A
 
-    await backend.ensure_scaffold(BackendContext(paths=result_b.paths))
+    await backend.ensure_scaffold(
+        BackendContext(
+            paths=result_b.paths,
+            spec=bundled_spec(),
+            playbook=get_playbook_spec(),
+            catalog=catalog_of(result_b.paths.squad_dir),
+        )
+    )
     assert vars(backend) == {}  # still holds nothing after scaffolding squad B too
 
     assert (root_a / ".claude" / "settings.json").is_file()

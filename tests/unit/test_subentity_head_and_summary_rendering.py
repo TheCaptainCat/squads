@@ -18,7 +18,9 @@ from squads._workflow._models import Field, SubentityKindSpec
 
 
 def test_build_block_scaffolds_body_with_no_legacy_meta_or_head_region() -> None:
-    block = discussion.build_block("finding", "F1", "Null deref")
+    block = discussion.build_block(
+        "finding", "F1", "Null deref", spec=bundled_spec(), from_squad=None
+    )
     assert ":meta" not in block
     assert ":head" not in block
     assert "<!-- sq:finding:F1:body -->" in block
@@ -26,15 +28,21 @@ def test_build_block_scaffolds_body_with_no_legacy_meta_or_head_region() -> None
 
 
 def test_build_block_uses_a_given_body_or_falls_back_to_the_kind_placeholder() -> None:
-    block = discussion.build_block("subtask", "ST1", "Validate", body="custom body text")
+    block = discussion.build_block(
+        "subtask", "ST1", "Validate", body="custom body text", spec=bundled_spec(), from_squad=None
+    )
     assert "custom body text" in block
-    assert discussion.body_placeholder("subtask") not in block
-    default = discussion.build_block("subtask", "ST1", "Validate")
-    assert discussion.body_placeholder("subtask") in default
+    assert discussion.body_placeholder("subtask", spec=bundled_spec()) not in block
+    default = discussion.build_block(
+        "subtask", "ST1", "Validate", spec=bundled_spec(), from_squad=None
+    )
+    assert discussion.body_placeholder("subtask", spec=bundled_spec()) in default
 
 
 def test_set_head_renders_status_assignee_and_story_badges_into_a_region_it_creates() -> None:
-    block = discussion.build_block("subtask", "ST1", "Validate")
+    block = discussion.build_block(
+        "subtask", "ST1", "Validate", spec=bundled_spec(), from_squad=None
+    )
     out = discussion.set_head(
         block,
         "subtask",
@@ -42,6 +50,8 @@ def test_set_head_renders_status_assignee_and_story_badges_into_a_region_it_crea
         status="InProgress",
         assignee_name="Grace Hopper",
         story="US1 — Login",
+        spec=bundled_spec(),
+        from_squad=None,
     )
     head = sections.get_section(out, "subtask:ST1:head")
     assert head is not None
@@ -54,10 +64,10 @@ def test_render_summary_builds_the_roll_up_table_and_is_empty_for_no_sub_entitie
     subs = [
         SubEntity(local_id="F1", title="Null deref", status="Open", severity="high", assignee="qa")
     ]
-    out = discussion.render_summary("finding", subs)
+    out = discussion.render_summary("finding", subs, spec=bundled_spec(), from_squad=None)
     assert "| Finding | Severity | Status | Assignee | Title |" in out
     assert "🟠 high" in out and "Open" in out and "qa" in out
-    assert discussion.render_summary("finding", []) == ""
+    assert discussion.render_summary("finding", [], spec=bundled_spec(), from_squad=None) == ""
 
 
 def test_severity_badge_and_summary_degrade_gracefully_when_the_collection_is_dropped() -> None:
@@ -68,14 +78,17 @@ def test_severity_badge_and_summary_degrade_gracefully_when_the_collection_is_dr
     assert badges.badge_render(coll, "high", spec, as_label=True) == "⚪ High"
 
     subs = [SubEntity(local_id="F1", title="Null deref", status="Open", severity="high")]
-    out = discussion.render_summary("finding", subs, spec)
+    out = discussion.render_summary("finding", subs, spec, from_squad=None)
     assert "⚪ high" in out  # emoji degrades; the raw code still renders, never crashes
 
 
 def test_severity_badge_falls_back_for_a_code_no_longer_in_the_collection() -> None:
     """A stored code that isn't (or is no longer) a badge in the collection also degrades
     gracefully rather than raising a KeyError."""
-    assert badges.badge_render("severity", "nonexistent", as_label=True) == "⚪ Nonexistent"
+    assert (
+        badges.badge_render("severity", "nonexistent", as_label=True, spec=bundled_spec())
+        == "⚪ Nonexistent"
+    )
 
 
 def test_custom_kind_summary_table_derives_one_column_per_declared_field() -> None:
@@ -92,6 +105,6 @@ def test_custom_kind_summary_table_derives_one_column_per_declared_field() -> No
     spec = base.model_copy(update={"subentity_kinds": {**base.subentity_kinds, "action": action}})
 
     sub = SubEntity(local_id="AC1", title="Patch the leak", status="Todo")
-    out = discussion.render_summary("action", [sub], spec)
+    out = discussion.render_summary("action", [sub], spec, from_squad=None)
     assert "| Action | Impact | Status | Assignee | Title |" in out
     assert "AC1" in out and "Patch the leak" in out

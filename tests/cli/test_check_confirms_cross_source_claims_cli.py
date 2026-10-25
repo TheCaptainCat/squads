@@ -13,9 +13,9 @@ import threading
 import anyio
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import _aio
-from squads._services import _maintenance as maintenance
+from squads._services import _check as check_module
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -25,7 +25,7 @@ async def test_a_durable_orphan_file_is_reported_with_exit_code_3_through_the_cl
     create_result = await invoke(["create", "task", "orphaned", "--author", "manager"])
     assert create_result.exit_code == 0, create_result.output
 
-    svc = service.Service(project)
+    svc = make_service(project)
     db = await svc.store.load()
     task = next(iter(db.items.values()))
     async with svc.store.transaction() as db2:
@@ -47,12 +47,12 @@ async def test_a_mutation_racing_the_scan_no_longer_flips_sq_check_to_exit_3_thr
 ):
     init_result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     paths = init_result.paths
-    setup_svc = service.Service(paths)
+    setup_svc = make_service(paths)
     task = (await create_item(setup_svc, "task", "t")).item
 
     started = threading.Event()
     release = threading.Event()
-    orig_scan = maintenance.MaintenanceMixin._scan_for_check
+    orig_scan = check_module.CheckMixin._scan_for_check
 
     async def paused_scan(self, carriers):
         started.set()
@@ -60,7 +60,7 @@ async def test_a_mutation_racing_the_scan_no_longer_flips_sq_check_to_exit_3_thr
         return await orig_scan(self, carriers)
 
     monkeypatch.setattr(
-        maintenance.MaintenanceMixin,
+        check_module.CheckMixin,
         "_scan_for_check",
         paused_scan,
     )
@@ -69,7 +69,7 @@ async def test_a_mutation_racing_the_scan_no_longer_flips_sq_check_to_exit_3_thr
         started.wait()
 
         async def _do() -> None:
-            mutator = service.Service(paths)
+            mutator = make_service(paths)
             await mutator.set_status(task.id, "InProgress")
 
         anyio.run(_do)

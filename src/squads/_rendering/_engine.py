@@ -5,52 +5,46 @@ loud error rather than a silent blank.
 
 Squad-aware lookup
 ------------------
-Call ``set_active_squad_dir(squad_dir)`` before rendering to enable per-file project overrides.
-Templates in ``<squad_dir>/.overrides/templates/`` shadow bundled templates by name; every other
-template resolves to the bundled package default.  When no squad dir is active the bundled loader
-is used directly — identical behaviour to the previous single-loader setup.
+Every entry point takes the squad directory whose templates may override the bundled ones
+(``from_squad``). Templates in ``<squad_dir>/.overrides/templates/`` shadow bundled templates by
+name; every other template resolves to the bundled package default, and ``None`` means the
+bundled templates alone.
 
-The function is idempotent for the same squad dir (the Environment is cached per-path, LRU-bounded
-so a long-lived process serving many distinct squads doesn't retain an Environment per squad
-forever); switching squad dirs replaces the active one.  Call ``set_active_squad_dir(None)`` to
-revert to the bundled-only loader (used by tests that want isolation).
+The Environment is cached per squad directory, LRU-bounded so a long-lived process serving many
+distinct squads doesn't retain one per squad forever; :func:`invalidate_squad_dir` evicts one.
 """
 
-from contextvars import ContextVar
+from collections.abc import Iterable, Mapping
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, PackageLoader, StrictUndefined
 
 from squads import _badges as badges
 from squads._errors import SquadsError
-from squads._interactions import (
-    authoring_owners,
-    cheatsheet_anchor_context,
-    cheatsheet_anchor_type,
-    custom_item_skill_commands,
-    parent_chain,
-)
+from squads._interactions._cheatsheet import cheatsheet_anchor_context, cheatsheet_anchor_type
+from squads._interactions._models import PlaybookSpec
+from squads._interactions._playbook import authoring_owners, get_playbook_spec, parent_chain
 from squads._interactions._role_guidance import (
     example_assignee_slug,
     item_skill_role_sections,
     live_roster_text,
 )
+from squads._interactions._skills import custom_item_skill_commands
 from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._models._vocab import label_for
 from squads._paths import number_for_id
 from squads._sections import get_section
 from squads._util import slugify
-from squads._workflow._models import WorkflowSpec, linearize_lifecycle
+from squads._workflow import bundled_spec
+from squads._workflow._lifecycle_order import linearize_lifecycle
+from squads._workflow._models import WorkflowSpec
 
 #: Where a project's own template overrides live, relative to the squad dir — the one place
 #: this path is spelled, so a message naming where to author a view template override (e.g.
 #: :func:`~squads._views.skill_authoring_surface`) never hand-spells it differently.
 TEMPLATES_OVERRIDE_DIR = ".overrides/templates"
-
-# The active squad directory for this logical call stack. None means bundled-only.
-_active_squad_dir: ContextVar[Path | None] = ContextVar("_active_squad_dir", default=None)
 
 #: Cap on distinct squad dirs (+ the bundled-only ``None`` key) kept warm at once. A CODE
 #: cache (compiled templates), so unbounded growth is a resource leak, not a correctness bug —
@@ -103,8 +97,9 @@ def _make_env(squad_dir: Path | None) -> Environment:
     # reimplemented in Jinja (the source-widening decision's guard: a join/lookup arrives as a
     # registered filter or a new source kind, never as logic accreting inside a template).
     # Callable with a second arg for a project's own overridden spec ({{ status | badge(spec) }});
-    # with none it degrades to the bundled vocabulary, matching status_badge's own default.
-    env.filters["badge"] = badges.status_badge
+    # with none it degrades to the bundled vocabulary, so a project template written without the
+    # spec keeps rendering.
+    env.filters["badge"] = _badge
     # workflow helper — callable as {{ spec.machine_for(type) | linearize_lifecycle }} in
     # templates. A filter, per the sanctioned extension point for render-time logic (a pure
     # function of the spec, exposed to templates rather than reimplemented in Jinja) — not a
@@ -127,7 +122,7 @@ def _make_env(squad_dir: Path | None) -> Environment:
     # playbook helpers — the role->type authoring narrative in workflow.md.j2 renders from the
     # playbook's declared create-lanes + the role catalog + the spec's parent chain, not
     # hardcoded prose.
-    env.globals["authoring_owners"] = authoring_owners  # pyright: ignore[reportArgumentType]
+    env.globals["authoring_owners"] = _authoring_owners  # pyright: ignore[reportArgumentType]
     env.globals["parent_chain"] = parent_chain  # pyright: ignore[reportArgumentType]
     # the "--assignee <who>" value in a generated example block: a slug off the LIVE roster,
     # never a bundled slug literal that exits 1 on a squad that doesn't carry that role.
@@ -147,14 +142,13 @@ def _make_env(squad_dir: Path | None) -> Environment:
     return env
 
 
-def _env() -> Environment:
-    """Return the Environment for the currently-active squad dir (or bundled-only).
+def _env(squad_dir: Path | None) -> Environment:
+    """Return the Environment for *squad_dir* (or bundled-only).
 
     LRU-bounded at :data:`_ENV_CACHE_MAX_SIZE`: a hit is moved to the most-recently-used
     end (pop + re-insert — relies on dict insertion order); a miss that would push the
     cache past the cap evicts the least-recently-used entry first.
     """
-    squad_dir = _active_squad_dir.get()
     if squad_dir in _env_cache:
         env = _env_cache.pop(squad_dir)
         _env_cache[squad_dir] = env
@@ -165,16 +159,6 @@ def _env() -> Environment:
         oldest = next(iter(_env_cache))
         del _env_cache[oldest]
     return env
-
-
-def set_active_squad_dir(squad_dir: Path | None) -> None:
-    """Set the squad dir used by ``render()`` for the current logical call stack.
-
-    Pass ``None`` to revert to bundled-only resolution.  Calling with the same path a second time
-    is a no-op (the cached Environment is reused).  The cache entry for a squad dir is evicted
-    when ``invalidate_squad_dir(squad_dir)`` is called, or when the process exits.
-    """
-    _active_squad_dir.set(squad_dir)
 
 
 def invalidate_squad_dir(squad_dir: Path | None) -> None:
@@ -189,8 +173,24 @@ def _idnum(item_id: str) -> str:
     return str(number_for_id(item_id))
 
 
-def has_template(template_name: str) -> bool:
-    """Return True when *template_name* exists in the active environment's loader.
+def _authoring_owners(
+    item_type: str,
+    roster: Iterable[Any] | None,
+    playbook: PlaybookSpec | None,
+    role_titles: Mapping[str, str] | None = None,
+) -> list[tuple[str, str]]:
+    """``authoring_owners`` for templates; a render that carries no playbook is a reference
+    render and reads the bundled one."""
+    active = playbook if playbook is not None else get_playbook_spec()
+    return authoring_owners(item_type, roster, active, role_titles)
+
+
+def _badge(status_value: str, spec: WorkflowSpec | None = None) -> str:
+    return badges.status_badge(status_value, spec if spec is not None else bundled_spec())
+
+
+def has_template(template_name: str, *, from_squad: Path | None) -> bool:
+    """Return True when *template_name* exists in *from_squad*'s environment.
 
     Used by ``_template_for`` to detect whether a per-type item template exists so
     custom types can fall back to ``items/_default.md.j2`` without raising
@@ -198,7 +198,7 @@ def has_template(template_name: str) -> bool:
     """
     from jinja2 import TemplateNotFound
 
-    env = _env()
+    env = _env(from_squad)
     if env.loader is None:
         return False
     try:
@@ -208,7 +208,7 @@ def has_template(template_name: str) -> bool:
     return True
 
 
-def creation_template_name(item_type: str, spec: WorkflowSpec) -> str:
+def creation_template_name(item_type: str, spec: WorkflowSpec, *, from_squad: Path | None) -> str:
     """The Jinja2 template path *item_type*'s creation writes from — the one resolution the
     create path (:meth:`~squads._services._base.ServiceCore._template_for`, a thin wrapper
     over this) and the template-seeded-view derivation
@@ -224,12 +224,12 @@ def creation_template_name(item_type: str, spec: WorkflowSpec) -> str:
     if spec.item_is_roster(item_type):
         return f"agents/{item_type}.md.j2"
     per_type = f"items/{item_type}.md.j2"
-    if has_template(per_type):
+    if has_template(per_type, from_squad=from_squad):
         return per_type
     return "items/_default.md.j2"
 
 
-def scaffold_body(item: Item, spec: WorkflowSpec) -> str | None:
+def scaffold_body(item: Item, spec: WorkflowSpec, *, from_squad: Path | None) -> str | None:
     """The ``:body`` region a freshly-created *item* would carry: its creation template's
     unwritten scaffold, derived by re-rendering through the squad-aware loader so a per-type
     template, an interpolated field and a project's overriding template are all honoured.
@@ -237,7 +237,8 @@ def scaffold_body(item: Item, spec: WorkflowSpec) -> str | None:
     authored", since refusing a first write is recoverable and discarding a real body is not."""
     try:
         rendered = render(
-            creation_template_name(item.type, spec),
+            creation_template_name(item.type, spec, from_squad=from_squad),
+            from_squad=from_squad,
             item=item,
             description=item.description,
             spec=spec,
@@ -247,7 +248,7 @@ def scaffold_body(item: Item, spec: WorkflowSpec) -> str | None:
     return (get_section(rendered, markers.BODY) or "").strip("\n")
 
 
-def template_source(template_name: str) -> str:
+def template_source(template_name: str, *, from_squad: Path | None) -> str:
     """*template_name*'s raw source text, resolved through the same override-aware loader
     :func:`render` uses — never rendered, since a caller reading a template's own authored
     content (which ``sq:view:<name>`` tags its creation scaffold seeds statically) has no item
@@ -258,7 +259,7 @@ def template_source(template_name: str) -> str:
     """
     from jinja2 import TemplateNotFound
 
-    env = _env()
+    env = _env(from_squad)
     if env.loader is None:
         raise SquadsError(f"template {template_name!r} not found (no loader configured)")
     try:
@@ -284,10 +285,10 @@ class _FlatItem:
             raise
 
 
-def render(template_name: str, /, **context: object) -> str:
-    """Render *template_name* against *context* through the one Jinja2 environment every
-    rendering path in the codebase uses (item-file scaffolds, backend artifacts,
-    declared-view presentation, roster entries, …).
+def render(template_name: str, /, *, from_squad: Path | None, **context: object) -> str:
+    """Render *template_name* against *context* through the one Jinja2 environment (the one
+    *from_squad* selects) every rendering path in the codebase uses (item-file scaffolds,
+    backend artifacts, declared-view presentation, roster entries, …).
 
     A ``jinja2.TemplateError`` — a missing template, a syntax error, or (the common case) an
     undefined-variable failure under ``StrictUndefined`` — is translated into
@@ -298,7 +299,7 @@ def render(template_name: str, /, **context: object) -> str:
     in a view template surface identically — the same clean message, not one clean message and
     one traceback. A consumer that wants a more specific message catches this
     :class:`SquadsError` and re-raises with its own context (see
-    :func:`~squads._views._render_resolved_source_or_raise`); a consumer that wants to swallow
+    :func:`~squads._views.render_resolved_source_or_raise`); a consumer that wants to swallow
     a rendering
     failure entirely catches it and returns its own sentinel (see
     :func:`scaffold_body`).
@@ -308,6 +309,6 @@ def render(template_name: str, /, **context: object) -> str:
     if isinstance(context.get("item"), Item):
         context = {**context, "item": _FlatItem(cast("Item", context["item"]))}
     try:
-        return _env().get_template(template_name).render(**context)
+        return _env(from_squad).get_template(template_name).render(**context)
     except TemplateError as exc:
         raise SquadsError(f"template {template_name!r} failed to render: {exc}") from exc

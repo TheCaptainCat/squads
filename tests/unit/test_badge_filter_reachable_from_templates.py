@@ -6,7 +6,7 @@ inspecting the filter registry."""
 
 from pathlib import Path
 
-from squads._rendering._engine import invalidate_squad_dir, render, set_active_squad_dir
+from squads._rendering._engine import invalidate_squad_dir, render
 from squads._workflow import bundled_spec
 
 
@@ -21,9 +21,8 @@ def test_the_badge_filter_renders_the_same_emoji_and_label_status_badge_does(
     tmp_path: Path,
 ) -> None:
     _place_probe_template(tmp_path, "{{ status | badge }}")
-    set_active_squad_dir(tmp_path)
 
-    rendered = render("views/badge_probe.md.j2", status="InProgress")
+    rendered = render("views/badge_probe.md.j2", status="InProgress", from_squad=tmp_path)
 
     assert rendered.strip() == "🟡 In Progress"
 
@@ -32,8 +31,9 @@ def test_the_badge_filter_accepts_an_explicit_spec_argument(tmp_path: Path) -> N
     """``{{ status | badge(spec) }}`` — the two-argument call shape a project-overridden spec's
     own custom badge needs, not just the bundled default the no-arg form falls back to."""
     _place_probe_template(tmp_path, "{{ status | badge(spec) }}")
-    set_active_squad_dir(tmp_path)
 
-    rendered = render("views/badge_probe.md.j2", status="InProgress", spec=bundled_spec())
+    rendered = render(
+        "views/badge_probe.md.j2", status="InProgress", spec=bundled_spec(), from_squad=tmp_path
+    )
 
     assert rendered.strip() == "🟡 In Progress"

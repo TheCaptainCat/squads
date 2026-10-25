@@ -6,7 +6,7 @@ title: squads 0.17 - the daemon
 status: InProgress
 author: product-owner
 created_at: '2026-10-16T11:23:46Z'
-updated_at: '2026-10-24T13:27:51Z'
+updated_at: '2026-10-25T10:45:55Z'
 ---
 <!-- sq:body -->
 The daemon release: a local process that serves squad state over an API on localhost, and a CLI that can talk to it. This milestone holds the work that makes that line usable on one machine, for one person. The web epic carries the larger outcome and the framing; the browser frontend builds on this milestone.
@@ -46,4 +46,10 @@ Membership works through incoming `targets` refs; the roll-up below inverts them
     - EPIC-29 keeps the browser features; its framing text still describes the server and read API, so it needs a refresh once the new epic exists (not done here).
 - [2026-10-16T11:25:09Z] `op-pierre` Pierre Chat:
   - 2026-10-16: the CLI's remote mode and the browser frontend must hit the same API endpoints. One API, two clients; no separate daemon protocol.
+- [2026-10-25T05:40:46Z] `tech-lead` Olivia Lead:
+  - Bug triage 2026-10-25, read on release/0.17 HEAD: 19 live bugs grouped into four Draft tasks; BUG-1003 and BUG-1028 read as fixed, commented for @qa.
+  - Order: 1) TASK-1136 (CLI help/flags/JSON; no composition-root contact). 2) TASK-1135 (sq check causes), before TASK-1126 so its new findings get registered rules with the rest. 3) TASK-1137 ST1/ST2/ST4 and TASK-1138 ST2-ST4, any time. 4) After TASK-1125 lands: TASK-1137 ST3 (init --roles touches init/adopt construction) and TASK-1138 ST1 (override read errors touch _specload.py, which TASK-1125 step 2 rebuilds).
+  - All four are python-dev work; one dev per task.
+- [2026-10-25T10:45:55Z] `op-pierre` Pierre Chat:
+  - Go for the daemon: product owner opens the feature, architect writes the transport ADR.
 <!-- sq:discussion:end -->

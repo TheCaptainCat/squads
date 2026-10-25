@@ -16,10 +16,10 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
 from squads._sections import get_section, replace_section
-from squads._services import _service as service
 from squads._workflow import load_workflow_spec
 
 pytestmark = pytest.mark.anyio
@@ -59,7 +59,7 @@ async def test_role_definition_is_dropped_from_the_active_spec(svc) -> None:
 async def test_the_classifier_declines_a_role_under_a_dropped_view(svc) -> None:
     _write_override(svc.paths.squad_dir, _DROP_ROLE_DEFINITION)
     spec = load_workflow_spec(squad_dir=svc.paths.squad_dir)
-    declared = service.Service(svc.paths, spec=spec)
+    declared = make_service(svc.paths, spec=spec)
     role = await declared.roster_item("role", "manager") or await declared.activate_role("manager")
 
     assert declared._repair_body_tag(role) is None
@@ -75,7 +75,7 @@ async def test_an_empty_body_under_a_dropped_view_stays_empty_through_the_sweep(
 
     _write_override(svc.paths.squad_dir, _DROP_ROLE_DEFINITION)
     spec = load_workflow_spec(squad_dir=svc.paths.squad_dir)
-    declared = service.Service(svc.paths, spec=spec)
+    declared = make_service(svc.paths, spec=spec)
 
     await declared.repair()
 
@@ -94,7 +94,7 @@ async def test_an_already_tagged_body_under_a_dropped_view_is_left_exactly_as_is
 
     _write_override(svc.paths.squad_dir, _DROP_ROLE_DEFINITION)
     spec = load_workflow_spec(squad_dir=svc.paths.squad_dir)
-    declared = service.Service(svc.paths, spec=spec)
+    declared = make_service(svc.paths, spec=spec)
 
     await declared.repair()
 
@@ -113,7 +113,7 @@ async def test_the_classifier_declines_a_system_skill_under_a_dropped_view(svc) 
     await svc.seed_bundled_skills()
     _write_override(svc.paths.squad_dir, _DROP_SQUADS_SKILL)
     spec = load_workflow_spec(squad_dir=svc.paths.squad_dir)
-    declared = service.Service(svc.paths, spec=spec)
+    declared = make_service(svc.paths, spec=spec)
     skill = await declared.roster_item("skill", "squads")
     assert skill is not None
 
@@ -129,7 +129,7 @@ async def test_an_empty_system_skill_body_under_a_dropped_view_stays_empty(svc) 
 
     _write_override(svc.paths.squad_dir, _DROP_SQUADS_SKILL)
     spec = load_workflow_spec(squad_dir=svc.paths.squad_dir)
-    declared = service.Service(svc.paths, spec=spec)
+    declared = make_service(svc.paths, spec=spec)
 
     await declared.repair()
 

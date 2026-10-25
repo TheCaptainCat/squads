@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._paths import SquadPaths
 from squads._sections import split_frontmatter
 from squads._services import _service as service
@@ -134,7 +135,7 @@ async def test_sync_generates_a_thin_skill_for_the_records_type_like_any_non_ros
     (tmp_path / "bundled").mkdir()
     (tmp_path / "override").mkdir()
     bundled_init = await service.init(root=tmp_path / "bundled", roles_spec="minimal")
-    bundled_svc = service.Service(bundled_init.paths)
+    bundled_svc = make_service(bundled_init.paths)
     await bundled_svc.sync()
     bundled_skill_names = {
         p.parent.name for p in (bundled_init.paths.root / ".claude" / "skills").glob("*/SKILL.md")
@@ -145,7 +146,7 @@ async def test_sync_generates_a_thin_skill_for_the_records_type_like_any_non_ros
     from squads._workflow._loader import load_workflow_spec
 
     spec = load_workflow_spec(squad_dir=override_init.paths.squad_dir)
-    override_svc = service.Service(override_init.paths, spec=spec)
+    override_svc = make_service(override_init.paths, spec=spec)
     await override_svc.sync()
     override_skill_names = {
         p.parent.name for p in (override_init.paths.root / ".claude" / "skills").glob("*/SKILL.md")

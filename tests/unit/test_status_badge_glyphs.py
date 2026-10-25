@@ -10,6 +10,7 @@ import pytest
 
 from _helpers import EXPECTED_BUILTIN_STATUS_BADGES
 from squads import _badges as badges
+from squads._workflow import bundled_spec
 
 _EXPECTED_TEXT: dict[str, str] = {
     "Todo": "⚪ Todo",
@@ -33,4 +34,4 @@ def test_the_badge_domain_is_exactly_the_nine_subentity_statuses() -> None:
 
 @pytest.mark.parametrize("status_value", sorted(_EXPECTED_TEXT))
 def test_status_badge_exact_text_for_every_builtin_subentity_status(status_value: str) -> None:
-    assert badges.status_badge(status_value) == _EXPECTED_TEXT[status_value]
+    assert badges.status_badge(status_value, spec=bundled_spec()) == _EXPECTED_TEXT[status_value]

@@ -22,6 +22,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of
 from squads import __version__
 from squads._roles._catalog import PREDEFINED
 
@@ -33,7 +34,7 @@ def _resolved(svc, item):
     catalog answers, never copies stored in its ``extra``."""
     from squads._roles._resolver import resolve_role_for_item
 
-    return resolve_role_for_item(item, svc.paths.squad_dir)
+    return resolve_role_for_item(item, svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir))
 
 
 _BUNDLED_ARCHITECT = next(r for r in PREDEFINED if r.slug == "architect")

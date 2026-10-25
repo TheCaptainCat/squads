@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import __version__
 from squads._errors import SquadsError
 from squads._rendering._engine import invalidate_squad_dir
@@ -73,7 +73,7 @@ async def _review_with_findings(svc):
 def _reopen(project) -> Service:
     """A fresh ``Service`` bound to the just-written workflow override — ``self.spec`` is
     fixed at construction, so a view declared after ``svc`` was built needs a new instance."""
-    return Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    return make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
 
 
 async def test_resolve_view_source_returns_the_declared_sub_entities(project, svc) -> None:

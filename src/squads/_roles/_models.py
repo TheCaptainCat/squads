@@ -5,7 +5,7 @@ assert structural equality between the loaded TOML and the hardcoded data.
 """
 
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 
 from pydantic import BaseModel, ConfigDict
 
@@ -71,3 +71,8 @@ class RoleCatalogSpec(BaseModel):
     bundles: dict[str, list[str]]  # all / core / minimal → slug lists
     dev: DevPoolSpec
     defaults: DefaultsSpec = DefaultsSpec()
+
+
+#: A role catalog resolved on demand: calling it returns the catalog the squad resolves, built
+#: once and kept by whoever owns it, so a caller that never asks never reads a roles override.
+type CatalogSource = Callable[[], RoleCatalogSpec]

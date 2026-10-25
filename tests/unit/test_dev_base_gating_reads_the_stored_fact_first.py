@@ -23,7 +23,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from _helpers import dev_role
+from _helpers import catalog_of, dev_role
 from squads import __version__
 from squads._cli._common import role_base_for_show
 from squads._models._attributes import AttributeKey as X
@@ -67,7 +67,7 @@ def test_an_activated_non_dev_role_whose_slug_ends_in_dev_gets_no_dev_base() -> 
     ``dev_base_from_item`` and KeyError on the missing ``tech`` key."""
     item = _item("data-dev", is_dev=False)
     assert X.TECH not in item.attributes  # the fact that made the old gate crash
-    assert role_base_for_show("data-dev", item) is None
+    assert role_base_for_show("data-dev", item, catalog_of(None)) is None
 
 
 def test_check_override_issues_gives_the_same_role_no_dev_base(tmp_path: Path) -> None:
@@ -82,7 +82,7 @@ def test_check_override_issues_gives_the_same_role_no_dev_base(tmp_path: Path) -
         'full_name = "Dana Analyst"\ntitle = "data steward"\n'
         'description = "Curates the datasets."\nmission = "Keep the catalog accurate."\n',
     )
-    issues = check_override_issues(tmp_path, {"data-dev": item})
+    issues = check_override_issues(tmp_path, {"data-dev": item}, catalog=catalog_of(tmp_path))
     assert issues == []  # loads cleanly through the ordinary (non-dev) path -- no crash, no report
 
 
@@ -91,7 +91,7 @@ def test_check_override_issues_gives_the_same_role_no_dev_base(tmp_path: Path) -
 
 def test_a_slug_with_no_item_has_no_base_whatever_it_ends_in() -> None:
     for slug in ("data-dev", "-dev", "dev"):
-        assert role_base_for_show(slug, None) is None
+        assert role_base_for_show(slug, None, catalog_of(None)) is None
 
 
 # --------------------------------------------------------------------- shape 3: genuine dev role
@@ -104,4 +104,6 @@ def test_a_genuine_dev_role_still_gets_dev_base_from_item() -> None:
         is_dev=True,
         extra={**role.to_attributes(templated=True), X.TECH: "python"},
     )
-    assert role_base_for_show("python-dev", item) == dev_base_from_item(item, None)
+    assert role_base_for_show("python-dev", item, catalog_of(None)) == dev_base_from_item(
+        item, catalog_of(None)
+    )

@@ -10,6 +10,7 @@ import pytest
 
 from squads._index._reflog import read_lines, reflog_path
 from squads._index._store import IndexStore
+from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
 
@@ -17,7 +18,9 @@ pytestmark = pytest.mark.anyio
 async def test_concurrent_transactions_on_one_store_never_cross_attribute_reflog_entries(
     tmp_path,
 ):
-    store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
+    store = IndexStore(
+        tmp_path / ".squads.json", tmp_path / ".squads.json.lock", spec=bundled_spec()
+    )
     store.create_empty()
 
     n = 8

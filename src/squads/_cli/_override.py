@@ -122,7 +122,7 @@ async def scaffold(
 
     if role is not None:
         item = await svc.roster_item(ROSTER_ROLE, role)
-        base = role_base_from_item(item, squad_dir) if item is not None else None
+        base = role_base_from_item(item, svc.catalog) if item is not None else None
         dest = scaffold_role(squad_dir, slug=role, force=force, base=base)
         scaffolded = base is not None or role in {r.slug for r in PREDEFINED}
         action = (
@@ -311,7 +311,7 @@ def diff(
         # No name: diff every drifted override.
         entries = scan_overrides(squad_dir)
         drifted = [e for e in entries if e.state == STATE_DRIFTED]
-        if not drifted:
+        if not drifted and not json_out:
             console.print("[dim]no drifted overrides found[/dim]")
             return
         results.extend(

@@ -14,7 +14,7 @@ import pytest
 from squads._errors import SquadsError
 from squads._interactions._loader import load_playbook
 from squads._roles._catalog import get_catalog
-from squads._workflow import load_workflow_spec
+from squads._workflow import bundled_spec, load_workflow_spec
 
 
 def _write_playbook_override(squad_dir: Path, content: str) -> None:
@@ -30,7 +30,7 @@ def _write_workflow_override(squad_dir: Path, content: str) -> None:
 
 
 def _bundled() -> object:
-    return load_playbook(get_catalog())
+    return load_playbook(get_catalog(), spec=bundled_spec())
 
 
 # --------------------------------------------------------------------------- no override: byte
@@ -38,8 +38,8 @@ def _bundled() -> object:
 
 
 def test_no_override_file_returns_a_playbook_identical_to_the_bundled_one(tmp_path: Path) -> None:
-    bundled = load_playbook(get_catalog())
-    merged = load_playbook(get_catalog(), squad_dir=tmp_path)
+    bundled = load_playbook(get_catalog(), spec=bundled_spec())
+    merged = load_playbook(get_catalog(), squad_dir=tmp_path, spec=bundled_spec())
     assert merged.model_dump(mode="json") == bundled.model_dump(mode="json")
 
 
@@ -47,8 +47,8 @@ def test_no_override_file_is_identical_even_when_squad_dir_exists_but_empty(
     tmp_path: Path,
 ) -> None:
     (tmp_path / ".overrides").mkdir()
-    bundled = load_playbook(get_catalog())
-    merged = load_playbook(get_catalog(), squad_dir=tmp_path)
+    bundled = load_playbook(get_catalog(), spec=bundled_spec())
+    merged = load_playbook(get_catalog(), squad_dir=tmp_path, spec=bundled_spec())
     assert merged.model_dump(mode="json") == bundled.model_dump(mode="json")
 
 
@@ -59,7 +59,7 @@ def test_no_override_file_is_identical_even_when_squad_dir_exists_but_empty(
 def test_one_line_append_adds_a_role_guide_and_leaves_the_others_untouched(
     tmp_path: Path,
 ) -> None:
-    bundled = load_playbook(get_catalog())
+    bundled = load_playbook(get_catalog(), spec=bundled_spec())
     bundled_task_role_slugs = {g.slug for g in bundled.types["task"].roles}
     assert "architect" not in bundled_task_role_slugs  # precondition: no bundled task guide
 
@@ -92,7 +92,7 @@ roles = [
 
 
 def test_appending_to_one_type_leaves_every_other_types_entry_untouched(tmp_path: Path) -> None:
-    bundled = load_playbook(get_catalog())
+    bundled = load_playbook(get_catalog(), spec=bundled_spec())
     _write_playbook_override(
         tmp_path,
         '[types.task]\nroles = ["$(*self)", { slug = "architect" }]\n',
@@ -128,7 +128,7 @@ def test_shadowing_one_field_of_a_bundled_role_guide_leaves_its_other_fields_int
     adopter reading the bundled document/`sq override diff playbook` would produce by hand).
     This proves the field survives the round trip once copied, never that the engine infers
     it — there is no mechanism at this granularity that could."""
-    bundled = load_playbook(get_catalog())
+    bundled = load_playbook(get_catalog(), spec=bundled_spec())
     guides = bundled.types["task"].roles
     target = guides[0]
     restated = [
@@ -157,7 +157,7 @@ def test_shadowing_via_the_append_idiom_targets_only_the_named_field_of_the_spli
     hand-written table appended alongside it is a wholly separate, new entry — not a
     field-level shadow of any spliced one. This is the shape an adopter reaches for to ADD a
     role, contrasted with the previous test's shape for MODIFYING an existing one."""
-    bundled = load_playbook(get_catalog())
+    bundled = load_playbook(get_catalog(), spec=bundled_spec())
     _write_playbook_override(
         tmp_path,
         '[types.task]\nroles = ["$(*self)", { slug = "architect", watch = ["new"] }]\n',
@@ -228,7 +228,7 @@ def test_a_bundled_type_missing_its_own_entry_is_still_a_coverage_violation() ->
     absence is ever tolerated (see the sibling test above)."""
     from squads._interactions._loader import _check_coverage
 
-    bundled = load_playbook(get_catalog())
+    bundled = load_playbook(get_catalog(), spec=bundled_spec())
     spec = load_workflow_spec()
     incomplete = dict(bundled.types)
     del incomplete["task"]
@@ -294,13 +294,13 @@ def test_the_selected_refusal_names_the_real_reason_not_an_empty_menu(tmp_path: 
 def test_malformed_toml_raises_naming_the_override_file(tmp_path: Path) -> None:
     _write_playbook_override(tmp_path, "[types.broken\nthis is not valid toml ===")
     with pytest.raises(SquadsError, match="Malformed playbook override"):
-        load_playbook(get_catalog(), squad_dir=tmp_path)
+        load_playbook(get_catalog(), squad_dir=tmp_path, spec=bundled_spec())
 
 
 def test_an_unknown_top_level_key_fails_closed(tmp_path: Path) -> None:
     _write_playbook_override(tmp_path, '[bogus_section.task]\noverview = "x"\n')
     with pytest.raises(SquadsError, match="unknown top-level key 'bogus_section'"):
-        load_playbook(get_catalog(), squad_dir=tmp_path)
+        load_playbook(get_catalog(), squad_dir=tmp_path, spec=bundled_spec())
 
 
 def test_a_stray_role_slug_not_in_the_catalog_fails_closed(tmp_path: Path) -> None:

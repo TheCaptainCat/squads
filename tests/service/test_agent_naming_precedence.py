@@ -12,6 +12,7 @@ tests/unit/test_init_names_config.py.
 
 import pytest
 
+from _helpers import make_service
 from squads._roles._catalog import PREDEFINED
 from squads._services import _service as service
 
@@ -46,7 +47,7 @@ class TestActivateRoleName:
         overrides_dir = project.squad_dir / ".overrides" / "roles"
         overrides_dir.mkdir(parents=True, exist_ok=True)
         (overrides_dir / "devops.toml").write_text('full_name = "Ops Override"\n', encoding="utf-8")
-        item = await service.Service(project).activate_role("devops")
+        item = await make_service(project).activate_role("devops")
         assert item.title == "Ops Override"
 
 
@@ -61,7 +62,7 @@ class TestInitNames:
             no_claude=True,
             names={"architect": "Ada Lovelace", "manager": "Grace Hopper"},
         )
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         assert (await _role_item(svc, "architect")).title == "Ada Lovelace"
         assert (await _role_item(svc, "manager")).title == "Grace Hopper"
 
@@ -72,7 +73,7 @@ class TestInitNames:
         result = await service.init(
             root=tmp_path, roles_spec="core", no_claude=True, names={"architect": "Ada Lovelace"}
         )
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         mgr = await _role_item(svc, "manager")
         bundled = next(r for r in PREDEFINED if r.slug == "manager")
         assert mgr.title == bundled.full_name

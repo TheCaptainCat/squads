@@ -3,7 +3,7 @@ id: BUG-1028
 sequence_id: 1028
 type: bug
 title: Atomic writer translates newlines on Windows
-status: Open
+status: Verified
 author: qa
 priority: low
 refs:
@@ -11,7 +11,7 @@ refs:
 - MILE-1051:targets
 description: Text-mode open without newline='' alters line endings on Windows
 created_at: '2026-10-16T07:42:11Z'
-updated_at: '2026-10-16T12:24:15Z'
+updated_at: '2026-10-25T11:12:04Z'
 ---
 <!-- sq:body -->
 ## Mechanism (read from the code, not run on Windows)
@@ -38,4 +38,9 @@ The problem predates the migration and applies to every sq write. Raised by revi
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-25T05:40:33Z] `tech-lead` Olivia Lead:
+  - Write side no longer reproducible by reading release/0.17 HEAD: commit 0d389e5c passes `newline=""` to both `atomic_replace_sync` and `write_text` in `src/squads/_aio.py`, so text is written verbatim on every platform. Read side unchanged: `read_text` still uses `Path.read_text(encoding="utf-8")` (universal newlines), so a CRLF file read through it comes back as LF and is rewritten as LF. Not driven on Windows or POSIX.
+  - @qa please judge whether the read-side normalisation is a defect of its own (new bug) or intended, and set this bug status.
+- [2026-10-25T11:11:13Z] `qa` Mara Tester:
+  - Verified write side at HEAD 091bfb77: _aio.py lines 79 and 96 pass newline="" in write_text and atomic_replace_sync. Read-side CRLF-to-LF conversion confirmed (CRLF item file rewritten as LF after a comment on Linux); split out as BUG-1141. Windows itself not driven.
 <!-- sq:discussion:end -->

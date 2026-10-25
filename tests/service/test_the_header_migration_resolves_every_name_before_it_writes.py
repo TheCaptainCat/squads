@@ -106,7 +106,7 @@ async def test_a_resolvable_header_is_rewritten_and_every_other_byte_is_kept(
 
     run = await reopen(project.root).run_pending_migrations()
 
-    assert [m.to_schema for m in run.applied] == ["0.16"]
+    assert [m.to_schema for m in run.applied] == ["0.16", "0.17"]
     after = await read(path)
     assert after == before.replace(row.header, row.migrated, 1)
     assert after.count("\n") == before.count("\n")
@@ -278,7 +278,7 @@ async def test_the_step_is_the_only_thing_that_runs_on_a_0_15_squad_and_lists_it
 
     run = await reopen(project.root).run_pending_migrations()
 
-    assert [m.to_schema for m in run.applied] == ["0.16"]
+    assert [m.to_schema for m in run.applied] == ["0.16", "0.17"]
     assert [c.name for c in step.CONTRIBUTIONS] == [
         "comment-headers",
         "flat-frontmatter",

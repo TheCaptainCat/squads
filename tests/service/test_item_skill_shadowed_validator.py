@@ -4,10 +4,10 @@ collide on the same slug."""
 
 import pytest
 
-from squads._interactions import ITEM_SKILL_VIEW_NAME
 from squads._models import _markers as markers
 from squads._sections import replace_section
 from squads._services._validators import CATALOG, ValidatorContext
+from squads._views import ITEM_SKILL_VIEW_NAME
 from squads._workflow import load_workflow_spec
 
 pytestmark = pytest.mark.anyio

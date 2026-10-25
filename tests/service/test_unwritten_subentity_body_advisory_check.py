@@ -9,6 +9,7 @@ import pytest
 
 from _helpers import create_item
 from squads import _discussion as discussion
+from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
 
@@ -52,7 +53,7 @@ async def test_a_body_diverging_from_the_placeholder_by_one_character_is_not_fla
 ) -> None:
     feat = (await create_item(svc, "feature", "My feature")).item
     res = await svc.add_story(feat.id, "A story")
-    placeholder = discussion.body_placeholder("story")
+    placeholder = discussion.body_placeholder("story", spec=bundled_spec())
     await svc.set_story_body(feat.id, res.local_id, placeholder[:-1] + "!")
     assert not _unwritten_body_issues(await svc.check())
 

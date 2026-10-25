@@ -14,7 +14,7 @@ import json
 import pytest
 import yaml
 
-from _helpers import resolved_skill_definition
+from _helpers import make_service, resolved_skill_definition
 from squads._sections import split_frontmatter
 from squads._services import _service as service
 
@@ -105,7 +105,7 @@ async def test_retiring_the_default_role_drops_it_from_the_claude_md_default_lin
     assert manager is not None
     async with svc.store.transaction() as db:
         db.items[manager.sequence_id].status = "Archived"
-    await svc._project_roster_transition(await svc.get(manager.id))
+    await svc.roster_projection.project_transition(await svc.get(manager.id))
 
     after = (project.root / "CLAUDE.md").read_text(encoding="utf-8")
     assert "default to **Catherine Manager** (`manager`)" not in after
@@ -149,7 +149,7 @@ async def test_the_init_then_sync_round_trip_survives_a_retired_default_role(
     companion test above) — `sync()` is the convergence point under test, not the transition."""
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="minimal")
-    svc2 = service.Service(result.paths)
+    svc2 = make_service(result.paths)
     manager = await svc2.roster_item("role", "manager")
     assert manager is not None
     async with svc2.store.transaction() as db:

@@ -9,8 +9,9 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._models._item import Item
-from squads._rendering._engine import invalidate_squad_dir, render, set_active_squad_dir
+from squads._rendering._engine import invalidate_squad_dir, render
 from squads._services import _service as service
 from squads._workflow import bundled_spec
 
@@ -59,11 +60,33 @@ async def test_overriding_one_squads_template_does_not_leak_into_a_second_squad(
     squad_a, squad_b = result_a.paths.squad_dir, result_b.paths.squad_dir
     _place_override(squad_a, "items/task.md.j2", "A")
 
-    set_active_squad_dir(squad_a)
-    out_a = render("items/task.md.j2", **_task_ctx())
-    set_active_squad_dir(squad_b)
-    out_b = render("items/task.md.j2", **_task_ctx())
+    out_a = render("items/task.md.j2", from_squad=squad_a, **_task_ctx())
+    out_b = render("items/task.md.j2", from_squad=squad_b, **_task_ctx())
 
     assert "OVERRIDDEN:A" in out_a
     assert "OVERRIDDEN" not in out_b
     assert "<!-- sq:body -->" in out_b
+
+
+async def test_two_squads_overriding_one_template_differently_each_create_from_their_own(
+    tmp_path, frozen_time, monkeypatch
+) -> None:
+    """Two squads in one process, each with its own override of the same creation template, take
+    turns creating a task: each file carries its own squad's text, whichever was rendered last."""
+    paths = []
+    for name in ("a", "b"):
+        root = tmp_path / name
+        root.mkdir()
+        monkeypatch.chdir(root)
+        paths.append((await service.init(root=root, roles_spec="minimal")).paths)
+    _place_override(paths[0].squad_dir, "items/task.md.j2", "A")
+    _place_override(paths[1].squad_dir, "items/task.md.j2", "B")
+
+    texts = []
+    for squad in (*paths, *paths):
+        svc = make_service(squad)
+        created = await svc.create("task", "Rendered in turn", author="manager")
+        texts.append(await svc.read_stored_body(created.item.id))
+
+    assert ["OVERRIDDEN:A" in t for t in texts] == [True, False, True, False]
+    assert ["OVERRIDDEN:B" in t for t in texts] == [False, True, False, True]
