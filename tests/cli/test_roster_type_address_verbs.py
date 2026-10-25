@@ -26,6 +26,8 @@ import json
 
 import pytest
 
+from _helpers import make_service
+
 pytestmark = pytest.mark.anyio
 
 
@@ -575,9 +577,8 @@ async def test_c3_tier3_refusal_states_the_permanent_floor_once_on_the_real_term
     remedy exists" with a second "remedy: none" clause. Normalises Rich's line-wrapping
     (a long phrase can wrap mid-word at terminal width) before counting occurrences, since a
     wrapped phrase is still one occurrence to a reader, never two."""
-    from squads._services import _service as service
 
-    await service.Service(project).seed_bundled_skills()  # this fixture skips seeding at init
+    await make_service(project).seed_bundled_skills()  # this fixture skips seeding at init
 
     result = await invoke(["skill", "squads", "status", "Archived"])
 

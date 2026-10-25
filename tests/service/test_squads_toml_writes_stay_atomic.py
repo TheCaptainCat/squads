@@ -7,6 +7,7 @@ import pathlib
 
 import pytest
 
+from _helpers import make_service
 from squads._paths import load_config, resolve
 from squads._services import _service as service
 
@@ -67,7 +68,7 @@ async def test_an_interrupted_migrate_config_write_leaves_the_previous_config_in
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(pathlib.Path, "replace", _fail_for_the_config)
         with pytest.raises(OSError, match="simulated crash"):
-            await service.Service(resolve(client_cwd=svc.paths.root)).run_pending_migrations()
+            await make_service(resolve(client_cwd=svc.paths.root)).run_pending_migrations()
 
     assert config_path.read_bytes() == previous_bytes
     assert load_config(config_path).schema_version == "0.14"

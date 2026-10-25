@@ -7,14 +7,17 @@ not just a roster stub — regression coverage for a staging-file-never-read bug
 
 import pytest
 
+from _helpers import catalog_of, make_service
 from squads._backends._agents_md._backend import AgentsMdBackend
 from squads._backends._agents_md._managed import END, START
 from squads._backends._base import BackendContext
+from squads._interactions._playbook import get_playbook_spec
 from squads._models._config import SquadsConfig
 from squads._paths import SquadPaths
 from squads._roles._projection import OperatorView, RoleView
 from squads._roles._resolver import resolve_role_for_item
 from squads._services import _service as service
+from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
 
@@ -30,7 +33,14 @@ def ctx(squad_root):
     config = SquadsConfig(squad_dir="squads", active_backends=["agents_md"])
     squad_dir = squad_root / "squads"
     squad_dir.mkdir()
-    return BackendContext(paths=SquadPaths(root=squad_root, squad_dir=squad_dir, config=config))
+    return BackendContext(
+        paths=SquadPaths(root=squad_root, squad_dir=squad_dir, config=config),
+        spec=bundled_spec(),
+        playbook=get_playbook_spec(),
+        catalog=catalog_of(
+            SquadPaths(root=squad_root, squad_dir=squad_dir, config=config).squad_dir
+        ),
+    )
 
 
 @pytest.fixture
@@ -105,7 +115,7 @@ class TestUsefulnessPin:
     ):
         monkeypatch.chdir(tmp_path)
         result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         await svc.sync()
         text = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
         assert "sq create task" in text
@@ -123,7 +133,7 @@ class TestUsefulnessPin:
         list, so the block was dead code that no test noticed because it emitted nothing."""
         monkeypatch.chdir(tmp_path)
         result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         await svc.sync()
         text = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
         assert "Role definitions" in text
@@ -132,7 +142,9 @@ class TestUsefulnessPin:
         assert "**Responsibilities:**" in text
         role = await svc.roster_item("role", "manager")
         assert role is not None
-        resolved = resolve_role_for_item(role, svc.paths.squad_dir)
+        resolved = resolve_role_for_item(
+            role, svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir)
+        )
         assert resolved.responsibilities  # sanity: the catalog really does declare some
         for responsibility in resolved.responsibilities:
             assert f"- {responsibility}" in text
@@ -151,7 +163,7 @@ class TestUsefulnessPin:
         ``write_managed`` never depended on it."""
         monkeypatch.chdir(tmp_path)
         result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         await svc.sync()
 
         assert not (tmp_path / ".agents_md").exists()
@@ -194,7 +206,7 @@ class TestRosterProjection:
     ):
         monkeypatch.chdir(tmp_path)
         result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         item = await svc.activate_role("qa")
         await svc.refresh_managed()  # the CLI's own post-activate step
         before = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
@@ -208,7 +220,7 @@ class TestRosterProjection:
     async def test_reactivating_restores_the_compiled_entry(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         item = await svc.activate_role("qa")
         await svc.set_status(item.id, "Archived")
         assert "Mara Tester" not in (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
@@ -234,7 +246,7 @@ class TestCliRoundTrip:
     async def test_sq_sync_refreshes_agents_md_idempotently(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         await svc.add_operator("Alice Tester")
         await svc.sync()
         text = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
@@ -260,7 +272,7 @@ class TestUpgradedSquadCleansUpLegacyStagingFiles:
     ):
         monkeypatch.chdir(tmp_path)
         result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         leftover = tmp_path / ".agents_md" / "roles" / "manager.md"
         leftover.parent.mkdir(parents=True, exist_ok=True)
         leftover.write_text("stale leftover from a pre-upgrade version\n", encoding="utf-8")
@@ -273,7 +285,7 @@ class TestUpgradedSquadCleansUpLegacyStagingFiles:
     ):
         monkeypatch.chdir(tmp_path)
         result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         item = await svc.activate_role("qa")
         await svc.set_status(item.id, "Archived")
         leftover = tmp_path / ".agents_md" / "roles" / "qa.md"
@@ -290,7 +302,7 @@ class TestUpgradedSquadCleansUpLegacyStagingFiles:
         shape ``candidate_orphans`` still needs to catch, on the next ``sq adopt``."""
         monkeypatch.chdir(tmp_path)
         result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         leftover = tmp_path / ".agents_md" / "roles" / "a-role-that-was-removed-outright.md"
         leftover.parent.mkdir(parents=True, exist_ok=True)
         leftover.write_text("nobody owns this any more\n", encoding="utf-8")

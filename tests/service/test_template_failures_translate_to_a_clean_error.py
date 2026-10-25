@@ -12,10 +12,9 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads._errors import SquadsError
 from squads._rendering._engine import invalidate_squad_dir
-from squads._services._service import Service
 
 pytestmark = pytest.mark.anyio
 
@@ -36,7 +35,7 @@ async def test_create_with_a_broken_override_template_raises_a_clean_squads_erro
     project,
 ) -> None:
     _declare_broken_item_template(project.squad_dir, "task")
-    svc = Service(project)
+    svc = make_service(project)
 
     with pytest.raises(SquadsError) as excinfo:
         await create_item(svc, "task", "T")
@@ -50,13 +49,13 @@ async def test_pristine_body_still_swallows_a_broken_template_and_returns_none(p
     """``pristine_body`` catches a broken template's rendering failure and returns ``None``.
     Create with the working bundled template first, then break the override afterward so the
     failure is reached only by a direct ``pristine_body`` call, not by ``create`` itself."""
-    svc = Service(project)
+    svc = make_service(project)
     task = (await create_item(svc, "task", "T")).item
 
     _declare_broken_item_template(project.squad_dir, "task")
     # A fresh Service instance so the newly-broken override is what its template loader sees
     # (self.spec/env resolution is fixed at construction elsewhere in this suite's convention).
-    svc2 = Service(project)
+    svc2 = make_service(project)
 
     assert svc2.pristine_body(task) is None
 
@@ -72,7 +71,7 @@ async def test_create_with_a_working_override_template_is_unaffected(project) ->
         encoding="utf-8",
     )
     invalidate_squad_dir(project.squad_dir)
-    svc = Service(project)
+    svc = make_service(project)
 
     task = (await create_item(svc, "task", "My Task")).item
     body = await svc.read_body(task.id)

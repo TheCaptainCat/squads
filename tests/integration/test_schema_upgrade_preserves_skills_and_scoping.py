@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._migrations._v0_10_to_v0_11 import migrate
 from squads._models._schema import SCHEMA_VERSION
 from squads._paths import SquadPaths
@@ -51,14 +52,13 @@ async def test_running_pending_migrations_on_a_squad_already_at_0_10_only_stamps
     assert cfg["schema_version"] == "0.10"  # precondition
 
     from squads._models._config import SquadsConfig
-    from squads._services._service import Service
 
     paths_010 = SquadPaths(
         root=project.root,
         squad_dir=project.squad_dir,
         config=SquadsConfig.from_toml_dict(cfg),
     )
-    svc = Service(paths_010)
+    svc = make_service(paths_010)
 
     applied = (await svc.run_pending_migrations()).applied
 
@@ -67,6 +67,7 @@ async def test_running_pending_migrations_on_a_squad_already_at_0_10_only_stamps
         ("0.11", "0.14"),
         ("0.14", "0.15"),
         ("0.15", "0.16"),
+        ("0.16", "0.17"),
     ]
     with cfg_path.open("rb") as fh:
         stamped = tomllib.load(fh)
@@ -81,7 +82,7 @@ async def test_running_pending_migrations_on_a_squad_already_at_0_10_only_stamps
         squad_dir=project.squad_dir,
         config=SquadsConfig.from_toml_dict(cfg_after),
     )
-    again = (await Service(paths_011).run_pending_migrations()).applied
+    again = (await make_service(paths_011).run_pending_migrations()).applied
     assert again == []
 
 
@@ -91,9 +92,8 @@ async def test_upgrade_preserves_an_authored_custom_skill_body_and_its_role_scop
     import tomllib
 
     from squads._models._config import SquadsConfig
-    from squads._services._service import Service
 
-    svc = Service(project)
+    svc = make_service(project)
     manager = await svc.activate_role("manager")
     writer = await svc.activate_role("tech-writer")
     await svc.activate_role("devops")
@@ -129,10 +129,10 @@ async def test_upgrade_preserves_an_authored_custom_skill_body_and_its_role_scop
         squad_dir=project.squad_dir,
         config=SquadsConfig.from_toml_dict(cfg),
     )
-    svc_010 = Service(paths_010)
+    svc_010 = make_service(paths_010)
 
     applied = (await svc_010.run_pending_migrations()).applied
-    assert [m.to_schema for m in applied] == ["0.11", "0.14", "0.15", "0.16"]
+    assert [m.to_schema for m in applied] == ["0.11", "0.14", "0.15", "0.16", "0.17"]
 
     with cfg_path.open("rb") as fh:
         stamped = tomllib.load(fh)

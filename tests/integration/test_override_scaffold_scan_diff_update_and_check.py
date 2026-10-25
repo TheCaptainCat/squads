@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of, make_service
 from squads import __version__
 from squads._errors import SquadsError
 from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME
@@ -27,7 +28,6 @@ from squads._overrides._service import (
 )
 from squads._overrides._stamp import read_template_stamp, read_toml_stamp, stamp_toml_file
 from squads._roles._resolver import resolve_role
-from squads._services import _service as service
 from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
 
 pytestmark = pytest.mark.anyio
@@ -193,7 +193,7 @@ class TestScaffoldNewRole:
         )
         dest.write_text(filled, encoding="utf-8")
 
-        r = resolve_role("security-analyst", squad_dir)
+        r = resolve_role("security-analyst", squad_dir, catalog=catalog_of(squad_dir))
         assert r.slug == "security-analyst"
         assert r.full_name == "filled full_name"
         assert r.title == "filled title"
@@ -301,13 +301,13 @@ class TestWorkflowOverride:
     ) -> None:
         """A stale stamp warns only when the bundled file actually changed since then."""
         path = scaffold_workflow(project.squad_dir)
-        assert check_override_issues(project.squad_dir) == []
+        assert check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir)) == []
 
         stamp_toml_file(path, "0.1.0")
-        assert check_override_issues(project.squad_dir) == []
+        assert check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir)) == []
 
         stamp_toml_file(path, "0.13.1")
-        issues = check_override_issues(project.squad_dir)
+        issues = check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir))
         assert len(issues) == 1
         level, display, message = issues[0]
         assert level == "warn"
@@ -325,7 +325,7 @@ class TestWorkflowOverride:
         override_path.parent.mkdir(parents=True, exist_ok=True)
         override_path.write_text('[items.task]\nfolder = "tickets"\n', encoding="utf-8")
 
-        issues = check_override_issues(project.squad_dir)
+        issues = check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir))
         assert len(issues) == 1
         level, display, message = issues[0]
         assert level == "error"
@@ -343,7 +343,7 @@ class TestWorkflowOverride:
             encoding="utf-8",
         )
 
-        assert check_override_issues(project.squad_dir) == []
+        assert check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir)) == []
 
 
 class TestPlaybookOverride:
@@ -436,10 +436,10 @@ class TestPlaybookOverride:
     ) -> None:
         """A stamp below the provenance floor reports clean, never a stale warning."""
         path = scaffold_playbook(project.squad_dir)
-        assert check_override_issues(project.squad_dir) == []
+        assert check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir)) == []
 
         stamp_toml_file(path, "0.1.0")
-        assert check_override_issues(project.squad_dir) == []
+        assert check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir)) == []
 
     async def test_check_warns_when_the_bundled_playbook_actually_changed(
         self, project, svc, monkeypatch
@@ -451,7 +451,7 @@ class TestPlaybookOverride:
         stamp_toml_file(path, "0.13.1")
         monkeypatch.setattr(playbook_loader, "artifact_changed_since", lambda key, v: True)
 
-        issues = check_override_issues(project.squad_dir)
+        issues = check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir))
         assert len(issues) == 1
         level, display, message = issues[0]
         assert level == "warn"
@@ -469,7 +469,7 @@ class TestPlaybookOverride:
         override_path.parent.mkdir(parents=True, exist_ok=True)
         override_path.write_text('[types.task]\nroles = ["$(*self)"]\n', encoding="utf-8")
 
-        issues = check_override_issues(project.squad_dir)
+        issues = check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir))
         assert len(issues) == 1
         level, display, message = issues[0]
         assert level == "error"
@@ -494,7 +494,7 @@ class TestPlaybookOverride:
             encoding="utf-8",
         )
 
-        assert check_override_issues(project.squad_dir) == []
+        assert check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir)) == []
 
 
 class TestScanOverrides:
@@ -664,7 +664,7 @@ class TestCheckDrift:
         _place_template(squad_dir, "items/task.md.j2", _valid_task_override(), stamp=__version__)
         issues = await svc.check()
         assert not [i for i in issues if ".overrides" in i.item]
-        assert check_override_issues(squad_dir) == []
+        assert check_override_issues(squad_dir, catalog=catalog_of(squad_dir)) == []
 
     async def test_check_errors_on_an_unstamped_shadowing_override_but_still_renders(
         self, project, svc
@@ -689,7 +689,7 @@ class TestCheckDrift:
         """An unstamped shadowing role override is an error, not a warning."""
         squad_dir = project.squad_dir
         _place_role(squad_dir, "architect", 'full_name = "Ada"\n')
-        issues = check_override_issues(squad_dir)
+        issues = check_override_issues(squad_dir, catalog=catalog_of(squad_dir))
         assert len(issues) == 1
         level, display, message = issues[0]
         assert level == "error"
@@ -705,7 +705,7 @@ class TestCheckDrift:
         role_dir = _role_dir(squad_dir)
         path = role_dir / "security-analyst.toml"
         path.write_text(path.read_text(encoding="utf-8").split("\n", 1)[1], encoding="utf-8")
-        assert check_override_issues(squad_dir) == []
+        assert check_override_issues(squad_dir, catalog=catalog_of(squad_dir)) == []
 
     async def test_check_errors_on_a_structurally_broken_override(self, project, svc) -> None:
         squad_dir = project.squad_dir
@@ -740,7 +740,7 @@ class TestCheckDrift:
         issues = await svc.check()
         errors = [i for i in issues if i.level == "error" and ".overrides" in i.item]
         assert errors == [], [i.message for i in errors]
-        assert check_override_issues(squad_dir) == []
+        assert check_override_issues(squad_dir, catalog=catalog_of(squad_dir)) == []
 
 
 class TestFullStalenessLoop:
@@ -762,7 +762,7 @@ class TestFullStalenessLoop:
         text = (_tmpl_dir(squad_dir) / "items/task.md.j2").read_text(encoding="utf-8")
         assert read_template_stamp(text) == __version__
 
-        issues_after = await service.Service(project).check()
+        issues_after = await make_service(project).check()
         assert not [i for i in issues_after if ".overrides" in i.item]
 
 

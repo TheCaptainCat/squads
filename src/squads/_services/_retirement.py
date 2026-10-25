@@ -34,6 +34,7 @@ from squads._errors import ConfigIntegrityError
 from squads._interactions._models import PlaybookSpec
 from squads._models._index import SquadsDB
 from squads._models._item import Item, split_ref
+from squads._roles._models import CatalogSource
 from squads._roles._resolver import holds_default_designation
 from squads._services._config_integrity import (
     Clause,
@@ -142,6 +143,7 @@ def enforce(  # noqa: PLR0913 — one keyword per input of the gate
     old_status: str,
     playbook: PlaybookSpec,
     squad_dir: Path,
+    catalog: CatalogSource,
     purge: bool = False,
 ) -> list[Severance]:
     """Evaluate the clauses against *item*'s already-applied prospective status, scoped to this
@@ -187,19 +189,19 @@ def enforce(  # noqa: PLR0913 — one keyword per input of the gate
     current_status = item.status
     item.status = old_status
     before_keys = frozenset(
-        _finding_key(f) for f in check_all(db, spec, active_backends, playbook, squad_dir)
+        _finding_key(f) for f in check_all(db, spec, active_backends, playbook, squad_dir, catalog)
     )
     item.status = current_status
 
     severed: list[Severance] = []
     if unlink:
         prospective = _findings_new_since(
-            check_all(db, spec, active_backends, playbook, squad_dir), before_keys
+            check_all(db, spec, active_backends, playbook, squad_dir, catalog), before_keys
         )
         severed = _sever_declared_edges(item, prospective, spec)
 
     after = _findings_new_since(
-        check_all(db, spec, active_backends, playbook, squad_dir), before_keys
+        check_all(db, spec, active_backends, playbook, squad_dir, catalog), before_keys
     )
     if after:
         # --unlink is only ever a real option on THIS command when it is a retirement of the
@@ -232,7 +234,13 @@ def open_assigned_work(db: SquadsDB, spec: WorkflowSpec, slug: str) -> list[str]
 
 
 def lost_default_designation_warning(
-    db: SquadsDB, spec: WorkflowSpec, item: Item, squad_dir: Path | None, *, purged: bool = False
+    db: SquadsDB,
+    spec: WorkflowSpec,
+    item: Item,
+    squad_dir: Path | None,
+    *,
+    catalog: CatalogSource,
+    purged: bool = False,
 ) -> str | None:
     """A warning (never a refusal — the withdrawn ``no_default_role`` clause) for a transition
     that takes the last live ``is_default`` designation out of a live status: the generated
@@ -251,14 +259,14 @@ def lost_default_designation_warning(
     with nothing stored — and a raw read would stay silent on exactly the retirement that costs
     the generated config its default-role line.
     """
-    if not holds_default_designation(item, squad_dir):
+    if not holds_default_designation(item, squad_dir, catalog=catalog):
         return None
     live = spec.live_statuses(item.type)
     if any(
         it.type == item.type
         and it.id != item.id
         and it.status in live
-        and holds_default_designation(it, squad_dir)
+        and holds_default_designation(it, squad_dir, catalog=catalog)
         for it in db.items.values()
     ):
         return None

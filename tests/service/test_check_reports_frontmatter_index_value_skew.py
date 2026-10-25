@@ -19,7 +19,7 @@ from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._index._store import IndexStore
 from squads._itemfile import read_frontmatter
-from squads._services import _maintenance as maintenance
+from squads._services import _check as check_module
 from squads._services._results import CheckIssue
 
 pytestmark = pytest.mark.anyio
@@ -166,7 +166,7 @@ async def test_check_reports_precisely_when_ensure_no_skew_would_raise(svc):
         except SquadsError:
             raised = True
         fdata = read_frontmatter(text=case_text)
-        issue = maintenance._value_skew_issue(task, case_text, fdata, default_kind=default_kind)
+        issue = check_module._value_skew_issue(task, case_text, fdata, default_kind=default_kind)
         assert (issue is not None) == raised, (case_text, issue, raised)
 
 

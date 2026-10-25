@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -33,7 +34,7 @@ async def test_a_healthy_squad_reports_nothing(tmp_squad: Path) -> None:
     result = await service.init(
         root=tmp_squad, backend=["claude_code", "agents_md"], roles_spec="minimal"
     )
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     await svc.sync()  # the init-time sync already wrote everything
 
     notices = await svc.sync()
@@ -51,7 +52,7 @@ class TestRegeneratedPointerIsReported:
         self, tmp_squad: Path
     ) -> None:
         result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         pointer = tmp_squad / ".claude" / "agents" / "manager.md"
         pointer.unlink()
 
@@ -65,7 +66,7 @@ class TestRegeneratedPointerIsReported:
         import shutil
 
         result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         skills_dir = tmp_squad / ".claude" / "skills"
         one_skill = next(p for p in skills_dir.iterdir() if p.is_dir())
         shutil.rmtree(one_skill)
@@ -81,7 +82,7 @@ class TestRegeneratedPointerIsReported:
         module docstring): a sync over a squad using it — with or without a leftover
         ``.agents_md`` directory from a pre-upgrade version — never names it as regenerated."""
         result = await service.init(root=tmp_squad, backend=["agents_md"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         leftover = tmp_squad / ".agents_md" / "roles" / "manager.md"
         leftover.parent.mkdir(parents=True, exist_ok=True)
         leftover.write_text("stale leftover from a pre-upgrade version\n", encoding="utf-8")
@@ -92,7 +93,7 @@ class TestRegeneratedPointerIsReported:
 
     async def test_partial_loss_names_only_the_missing_entry(self, tmp_squad: Path) -> None:
         result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         await svc.activate_role("qa")
         (tmp_squad / ".claude" / "agents" / "qa.md").unlink()
 
@@ -107,7 +108,7 @@ class TestRegeneratedPointerIsReported:
         result = await service.init(
             root=tmp_squad, backend=["claude_code", "agents_md"], roles_spec="minimal"
         )
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         (tmp_squad / ".claude" / "agents" / "manager.md").unlink()
 
         notices = await svc.sync()
@@ -118,7 +119,7 @@ class TestRegeneratedPointerIsReported:
 
     async def test_duplicate_suppression_one_line_per_missing_file(self, tmp_squad: Path) -> None:
         result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         (tmp_squad / ".claude" / "agents" / "manager.md").unlink()
 
         notices = await svc.sync()
@@ -148,7 +149,7 @@ async def test_retire_sync_reactivate_sync_cycle_never_reports_the_retired_point
     tmp_squad: Path,
 ) -> None:
     """A role's own status transition already materialises/withdraws its pointer immediately
-    (``ServiceCore._project_roster_transition`` — a separate path from ``sync``), so by the
+    (``RosterProjection.project_transition`` — a separate path from ``sync``), so by the
     time ``sync`` runs after either leg the pointer is already in the state it should be in
     and there is nothing to regenerate. This is the point being asserted: retirement is never
     a fault, and neither is a reactivation that has already happened before ``sync`` ran — see
@@ -158,7 +159,7 @@ async def test_retire_sync_reactivate_sync_cycle_never_reports_the_retired_point
     result = await service.init(
         root=tmp_squad, backend=["claude_code", "agents_md"], roles_spec="minimal"
     )
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     item = await svc.activate_role("qa")
     await svc.sync()
 
@@ -189,7 +190,7 @@ async def test_fresh_clone_shape_reports_the_whole_absent_roster_once(
     origin.mkdir()
     monkeypatch.chdir(origin)
     result = await service.init(root=origin, backend=["claude_code"], roles_spec="minimal")
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     await svc.activate_role("qa")
     await svc.sync()
 
@@ -210,7 +211,7 @@ async def test_fresh_clone_shape_reports_the_whole_absent_roster_once(
     monkeypatch.chdir(clone)
     from squads._paths import resolve
 
-    clone_svc = service.Service(resolve())
+    clone_svc = make_service(resolve())
     notices = await clone_svc.sync()
     regen = [n for n in notices if "regenerated" in n]
     assert any("manager.md" in n for n in regen)

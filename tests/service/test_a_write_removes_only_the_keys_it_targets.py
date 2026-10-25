@@ -17,7 +17,7 @@ from typing import Any
 import pytest
 from pydantic_core import to_jsonable_python
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from _legacy_squad import reopen, stamp_behind
 from squads import __version__
 from squads._rendering._engine import invalidate_squad_dir
@@ -206,7 +206,7 @@ async def _p_runner(env: Env):
     run = await reopen(env.project.root).run_pending_migrations()
 
     async def check(_s: Service) -> None:
-        assert [m.to_schema for m in run.applied] == ["0.16"]
+        assert [m.to_schema for m in run.applied] == ["0.16", "0.17"]
 
     return env.host.id, check
 
@@ -266,19 +266,19 @@ async def test_a_write_keeps_a_key_it_did_not_target(
 ) -> None:
     if declared:
         _override(project, host_type, declare=key)
-    svc = Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    svc = make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
     host = await _host(svc, host_type)
     other = (await create_item(svc, "task", "Another item")).item
     _plant(svc, host, key, value)
     await svc.repair()
     if declared:
         _override(project, host_type, declare=None)
-    svc = Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    svc = make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
     env = Env(project, invoke, tmp_path, svc, await svc.get(host.id), other, key)
 
     item_id, witness = await path(env)
 
-    after = Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    after = make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
     await witness(after)
     item = await after.get(item_id)
     stored, _ = split_frontmatter(project.squad_dir.joinpath(item.path).read_text("utf-8"))

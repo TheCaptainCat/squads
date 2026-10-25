@@ -8,7 +8,7 @@ import json
 import pytest
 
 from _selection_table import write_override
-from squads._interactions import TITLE_ADVISORY_MAX
+from squads._workflow._models import DEFAULT_SUBENTITY_TITLE_MAX
 
 pytestmark = pytest.mark.anyio
 
@@ -19,7 +19,7 @@ def _feature_selects_the_title_check(project):  # pyright: ignore[reportUnusedFu
     write_override(project.squad_dir, '[items.feature]\nvalidators = ["subentity_title_max"]\n')
 
 
-LONG_TITLE = "A" * (TITLE_ADVISORY_MAX + 1)
+LONG_TITLE = "A" * (DEFAULT_SUBENTITY_TITLE_MAX + 1)
 SHORT_TITLE = "Short title"
 
 

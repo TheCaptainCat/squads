@@ -217,11 +217,11 @@ class _CustomCreateGroup(typer.core.TyperGroup):
     - ``_CustomCreateGroup`` handles only ``sq create <type> TITLE`` (creation entry).
     - Both call ``common.get_active_spec()`` which is bound once per invocation by
       ``common.bind_active_spec`` in the root callback, so they always see the same spec.
-    - The ``_custom_cmd_cache`` is scoped to this class (``ClassVar``), independent of
-      the resource-group cache, so the two caches do not interfere.
+    - The ``_custom_cmd_cache`` is scoped to this class (``ClassVar``) and keyed on the spec
+      each command was built for, independent of the resource-group cache.
     """
 
-    _custom_cmd_cache: ClassVar[dict[str, _click.Command]] = {}
+    _custom_cmd_cache: ClassVar[common.SpecKeyedCache[_click.Command]] = common.SpecKeyedCache()
 
     def _dropped_static_names(self, ctx: Any) -> frozenset[str]:
         """Statically-registered command/alias names whose canonical built-in type has been
@@ -349,10 +349,11 @@ class _CustomCreateGroup(typer.core.TyperGroup):
         # Past this point canonical IS a declared custom work type.  Build errors here are
         # genuine failures for a type the user declared (and that --help lists), so they
         # must propagate rather than silently become "No such command".
-        if canonical not in self._custom_cmd_cache:
-            self._custom_cmd_cache[canonical] = _build_create_cmd(canonical)
-
-        return self._custom_cmd_cache.get(canonical)
+        spec = common.resolve_spec_for_ctx(ctx)
+        cached = self._custom_cmd_cache.get(canonical, spec)
+        if cached is not None:
+            return cached
+        return self._custom_cmd_cache.put(canonical, spec, _build_create_cmd(canonical))
 
 
 create_app = typer.Typer(

@@ -3,7 +3,7 @@ id: TASK-1124
 sequence_id: 1124
 type: task
 title: Move the roster, thread the spec and split oversized modules
-status: Ready
+status: Done
 parent: FEAT-1092
 author: tech-lead
 priority: medium
@@ -17,38 +17,38 @@ description: 'Behaviour-free moves for REV-956 F3, F5-F10, F12: roster, interact
 subentities:
 - local_id: ST1
   title: Extract the roster projection into a collaborator
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: Move the interactions init into named modules
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST3
   title: Prune bundled shims and make spec parameters required
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST4
-  title: Load the three spec documents through one descriptor
-  status: Todo
+  title: Load the three spec documents through one shared path
+  status: Done
   story: US2
 - local_id: ST5
   title: Split registries, validity checks and ordering out of models
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST6
   title: Share the corpus walk and move check into its own mixin
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST7
   title: Move the view tag engine and remedy builders out of views
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST8
   title: Replace bundled sub-entity tags with one generic helper
-  status: Todo
+  status: Done
   story: US3
 created_at: '2026-10-24T21:53:25Z'
-updated_at: '2026-10-24T21:55:43Z'
+updated_at: '2026-10-25T05:29:44Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -78,7 +78,7 @@ The order follows the feature: the roster extraction comes first because it info
 1. **Roster collaborator (ST1, F3).** Move the cluster into one class in its own service-layer module, for example `src/squads/_services/_roster_projection.py`. It is built from `paths`, `spec`, `playbook`, `store` and the backends, and held as a field on `ServiceCore`. The six mixins that use it call the field. Methods the CLI, the TUI or tests call on the service (`roster`, `roster_all`, `operators`, `author`, `resolved_skills_for_role`, `refresh_managed`, ...) stay on the façade as one-line delegates, so no caller changes.
 2. **Empty the interactions init (ST2, F5).** Split along the consumers that already exist: playbook data, the bundled-playbook accessor, lanes, `authoring_owners`, `parent_chain` and orphan-guide detection go to `_interactions/_playbook.py`; skill naming, descriptions, slug vocabularies and origins go to `_interactions/_skills.py`; cheatsheet anchoring goes to `_interactions/_cheatsheet.py`; `is_live_roster_entry` goes to `_roles/`. The view-name constants go beside the code that writes and repairs those views; the import-edge table decides the module. Load the bundled playbook on first use (a cached function), not at import. Update every importer, with no re-export. Leave the init empty and drop it from CLAUDE.md's non-empty-init list; the import-edge guard (`inits_with_code`) and the mutable-state allowlist (`tests/meta/test_no_unallowlisted_module_level_mutable_state.py`) follow the moved names.
 3. **Required documents (ST3, F6).** Delete the bundled shims in `_workflow/__init__.py` that have no production caller; tests that use them call `bundled_spec().<method>` instead. Make all 41 parameters required, starting with `ServiceCore.__init__` and `BackendContext`, and let pyright list the sites. A site that wants the bundled document passes it explicitly. That includes today's four `Service(...)` constructions without a playbook (`_cli/_common.py:1623`, `:1632`, `_cli/_main.py:1544`, `:1551`): they pass the bundled playbook explicitly, which is today's behaviour, and the composition-root task revisits them. Each remaining production `bundled_spec()` call is either threaded or listed in the commit as a deliberate bundled read (fail-soft help fallback, migrations). Test constructions of `Service` (381 in 136 files) go through one helper in `tests/_helpers.py` rather than being edited one by one.
-4. **One load path (ST4, F8).** Write one document descriptor (bundled file name, override file name, top-level keys, selected sections, build function, caching rule) and one `load(document, squad_dir)` that owns the bundled read, the override read, error wrapping and the unreachable-merge guard. It replaces the three copies of `_read_bundled_bytes`/`_bundled_raw`/`bundled_<doc>_toml_text`/`_read_raw_override` in `_workflow/_loader.py`, `_roles/_loader.py` and `_interactions/_loader.py`. Then add one function that resolves the three documents for a squad together, which absorbs `resolve_playbook` (`_services/_service.py:57`). Each loader keeps its own validation and its exact user-facing messages; the roles loader's raise-versus-tuple contract is unified behind the descriptor without changing what the user reads. The new module's place, for example a top-level `src/squads/_specload.py` beside `_specmerge.py`, is a row in the import-edge table.
+4. **One load path (ST4, F8).** Write one document descriptor (bundled file name, override file name, top-level keys, selected sections, build function, caching rule) and one `load(document, squad_dir)` that owns the bundled read, the override read, error wrapping and the unreachable-merge guard. It replaces the three copies of `_read_bundled_bytes`/`_bundled_raw`/`bundled_<doc>_toml_text`/`_read_raw_override` in `_workflow/_loader.py`, `_roles/_loader.py` and `_interactions/_loader.py`. Each loader keeps its own validation and its exact user-facing messages; the roles loader's raise-versus-tuple contract is unified behind the descriptor without changing what the user reads. The new module's place, for example a top-level `src/squads/_specload.py` beside `_specmerge.py`, is a row in the import-edge table.
 5. **Split `_workflow/_models.py` (ST5, F9).** The validator name registries go to `_workflow/_validator_names.py`, the load-time validity checks to `_workflow/_validity.py`, and lifecycle ordering to `_workflow/_lifecycle_order.py`. `WorkflowSpec._validate` calls the validity module through a function-local import, the cycle break this file already uses. The models' public surface and methods stay.
 6. **Split `_services/_maintenance.py` (ST6, F10).** First lift the per-file classification both loops write (item, unreadable, unparseable, missing id, legacy skill body, vanished) into one corpus-reading primitive that yields a tagged record per file. Build `_rebuild_index_from_disk` and `_scan_for_check` on it, and fold in `ServiceCore._all_item_files` (`_services/_base.py:1077`) and the ad-hoc folder globs where they walk the same set. Then move `check`, its drift-confirmation methods and its own helpers into a `CheckMixin` in `src/squads/_services/_check.py`, added to `Service`'s bases. Break `sync` into named steps in place. Update CLAUDE.md's mixin count and MRO list.
 7. **Split `_views.py` (ST7, F12).** The tag placement and expansion engine goes next to `_sections.py`, as `src/squads/_view_tags.py`. `view_placement_invocation` and `clear_roster_body_cmd` build remedy text for `_services/_validators.py`, `_services/_maintenance.py` and `_services/_base.py`, so they move to a remedy module in `_services/`. Fix the two stale method names to `ViewsMixin.add_view`/`disable_view`, after verifying those names. `_views.py` keeps source resolution, projection, rendering and view data.
@@ -154,10 +154,10 @@ Delete the `_workflow/__init__.py` shims that have no production caller. Make th
 <!-- sq:subtask:ST3:end -->
 
 <!-- sq:subtask:ST4 -->
-### ST4 — Load the three spec documents through one descriptor
+### ST4 — Load the three spec documents through one shared path
 
 <!-- sq:subtask:ST4:body -->
-Replace the three copies of the bundled-read, override-read and error-wrapping code in `_workflow/_loader.py`, `_roles/_loader.py` and `_interactions/_loader.py` with one document descriptor and one `load(document, squad_dir)`. Then add one function that resolves all three documents for a squad and absorbs `resolve_playbook` from `_services/_service.py`. Validation and user-facing messages stay per loader and unchanged. Record the new module's edges in the import-edge table.
+Replace the three copies of the bundled-read, override-read and error-wrapping code in `_workflow/_loader.py`, `_roles/_loader.py` and `_interactions/_loader.py` with one document descriptor and one load path in `src/squads/_specload.py`: bundled read, override read, merge and the unreachable-merge guard. Validation and user-facing messages stay per loader and unchanged. Record the new module's edges in the import-edge table.
 <!-- sq:subtask:ST4:body:end -->
 
 #### Discussion
@@ -222,4 +222,27 @@ Add `subentity_tag(kind, local_id)` to `_models/_markers.py`, use it in both bra
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-25T03:41:31Z] `python-dev` Elias Python:
+  - ST4 is partly delivered: the descriptor and shared load path (src/squads/_specload.py) now carry the three loaders' bundled read, override read, error wrapping, merge and unreachable-merge guard, messages unchanged. Not done: the one function resolving workflow spec, role catalog and playbook together (absorbing resolve_playbook). open_service does not read the role catalog today, so loading it there would make a malformed roles override a new hard stop for every command: a behaviour change, so it needs a decision (@tech-lead) before I do it.
+- [2026-10-25T04:33:58Z, edited 2026-10-25T04:34:29Z] `python-dev` Elias Python:
+  - Handoff, working tree only (nothing committed). Gates: pyright 0 errors, ruff check and format clean, tests/meta, unit, integration, cli, service all green on the last run except one stray-reference meta test I then fixed and re-ran (then tests/meta alone, 458 passed); sq check clean. Generated output: a scratch squad (all roles, claude_code and agents_md) synced before and after, diffed with timestamps normalised: CLAUDE.md, AGENTS.md, .claude pointers, skills, help and check output byte-identical. No CHANGELOG substance: internal restructuring, no behaviour change.
+    
+    **ST1 Done.** RosterProjection in src/squads/_services/_roster_projection.py (494 lines, held as ServiceCore.roster_projection); _base.py 1938 to 1567. The public entry points stay as one-line delegates; mixins call the field for the helpers. Private helpers became public names on the collaborator (pyright).
+    **ST2 Done.** _interactions/__init__.py is empty (was 869 lines): _playbook.py, _skills.py, _cheatsheet.py; bundled playbook loads on first use (cached). Deviations: is_live_roster_entry lives in _roster_projection.py, not _roles/ (it needs _interactions skill naming and _interactions already imports _roles at top, so _roles -> _interactions would join the cycle; every caller is in _services). The view-name constants went to _views.py beside roster_body_view_name, the one derivation the writers and checks share. PLAYBOOK and TITLE_ADVISORY_MAX are gone (bundled_item_playbooks(), DEFAULT_SUBENTITY_TITLE_MAX).
+    **ST3 Done.** Workflow shims and constants deleted (the package keeps bundled_spec and dropped_via_selected). Spec and playbook parameters required on ServiceCore, BackendContext, IndexStore, ValidatorEngine, SquadGlobalContext, load_playbook, managed_item_types, authoring_owners, _badges, _discussion, _paths. Service constructions go through tests/_helpers.make_service. The four playbook-less Service constructions pass get_playbook_spec() explicitly. Remaining None-able spec or playbook parameters (14 lines), none a silent bundled fallback except the first two: _engine._badge and _engine._authoring_owners (template-facing, keep an adopter template that omits the argument rendering; bundled read); ItemFilter.spec and item_skill_role_sections(playbook) (None disables a dimension); _context.active_spec, open_service(resolved_spec), and the CLI helpers that fall back to the request-scoped get_active_spec(). Remaining production bundled_spec() reads (22 calls, 11 files, migrations excluded): CLI static registration and epilog (_cli/__init__, _create, _items), fail-soft fallbacks (_cli/_common, _cli/_main), _services/_service (init, bundled fast path), _services/_items (attributes the bundled spec declares), _services/_maintenance (legacy folder comparison), _workflow dropped_via_selected, _interactions/_loader, the two template wrappers above.
+    **ST4 InProgress, first half done.** src/squads/_specload.py: SpecDocument descriptor, bundled_raw/bundled_text, read_override, load_override (read, check hook, merge, unreachable-merge guard); the three loaders use it, messages unchanged (workflow and playbook keep their fix hints; roles its UTF-8 case). Not done: the single function resolving workflow spec, role catalog and playbook together and absorbing resolve_playbook. open_service does not read the role catalog today, so loading it there makes a malformed roles override a hard stop for every command, a behaviour change. Needs a ruling (@tech-lead). Tests: ignoring the override turns 566 loader and override tests red; the unreadable-override wording survived mutation, so tests/unit/test_spec_override_read_errors.py adds those rows (red when the wording is broken).
+    **ST5 Done.** _workflow/_models.py 3544 to 1464: _validator_names.py (559), _validity.py (1512, entry points renamed public, called through a function-local import in _validate), _lifecycle_order.py (147).
+    **ST6 Done.** src/squads/_services/_corpus_files.py: read_corpus_file returns one tagged record (Vanished, Unreadable, Unparseable, MissingId, LegacySkillBody, Parsed); both _rebuild_index_from_disk and _scan_for_check consume it; tests/unit/test_corpus_file_tags.py, one row per shape, each seam mutated to red. CheckMixin in _services/_check.py (1072 lines; it subclasses MaintenanceMixin since the scan shares its skill helpers), added to Service bases (13); _maintenance.py 3722 to 2571. sync is broken into named steps in place. The corpus globs: ServiceCore._type_folders is the one ordered enumeration behind _all_item_files, _iter_item_files and _id_carriers (identical order on the bundled spec; it can only reorder duplicate-group reports for a custom spec whose declared order differs from (order, name)).
+    **ST7 Done.** _view_tags.py (493) holds the placement and expansion engine; _views.py 1271 to 826 keeps sources, projection, rendering and view_data. view_placement_invocation and clear_roster_body_cmd are in src/squads/_view_remedies.py at the top level, not _services/, because place_view_tags composes the same text. Stale names fixed to ViewsMixin.add_view/disable_view. Side effect on the layering table: _views left the module-top cycle (CLAUDE.md now says six packages; _overrides imports _view_tags locally).
+    **ST8 Done.** markers.subentity_tag used in both _discussion_tag branches; story_tag, subtask_tag, finding_tag and STORIES/SUBTASKS/FINDINGS deleted (the three constants are private to _migrations/_v0_1_to_v0_2.py). Guard tests/meta/test_no_bundled_subentity_kind_literal_outside_the_spec_layer.py with a per-file allowlist (the existing legacy sites, each with a reason) and a planted-literal liveness row; red when a literal is planted in _base.py.
+    
+    Test edits: signature changes only through make_service and explicit specs; deleted tests whose subject no longer exists (the module-level shims, a Service without a spec, a BackendContext without documents); moved patch targets and table rows. Import-edge table, mutable-state allowlist, CLAUDE.md (architecture, mixins, inits) updated.
+- [2026-10-25T04:36:19Z] `tech-lead` Olivia Lead:
+  - Ruling on ST4: option (a). The joint resolver (spec, role catalog, playbook; absorbs resolve_playbook) moves to TASK-1125 as a composition-root step, with the role catalog resolved lazily so no command gains a hard stop. ST4 now describes the delivered load path and is Done.
+- [2026-10-25T04:43:08Z] `python-dev` Elias Python:
+  - TUI follow-up: fixed the moved expand_view_tags patch target and the Service construction in tests/tui; tests/tui green, pyright and ruff clean.
+- [2026-10-25T05:19:46Z] `python-dev` Elias Python:
+  - REV-1133 F1-F5 fixed in the working tree (not committed); targeted run plus tests/tui green (the whole fast set ran, 14092 passed), pyright and ruff clean.
+- [2026-10-25T05:29:44Z] `manager` Catherine Manager:
+  - Accepted: REV-1133 Approved (F1-F5 Verified, F6 tracked as BUG-1134); full suite green at 56c8efb4; no adopter-visible change, so no CHANGELOG line.
 <!-- sq:discussion:end -->

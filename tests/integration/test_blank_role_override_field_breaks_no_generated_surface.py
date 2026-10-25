@@ -15,9 +15,9 @@ import json
 
 import pytest
 
+from _helpers import make_service
 from squads._itemfile import read_frontmatter
 from squads._services import _service as service
-from squads._services._service import Service
 
 pytestmark = pytest.mark.anyio
 
@@ -34,7 +34,7 @@ async def test_sync_refuses_naming_the_file_and_every_blank_field(tmp_path, monk
         root=tmp_path, backend=["claude_code", "agents_md"], roles_spec="minimal"
     )
     project = result.paths
-    svc = Service(project)
+    svc = make_service(project)
     await svc.add_dev("python")
 
     claude_md_before = (project.root / "CLAUDE.md").read_text(encoding="utf-8")

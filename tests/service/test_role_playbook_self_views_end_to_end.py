@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import __version__
 from squads._cli._workflow_cmd import _view_json_payload
 from squads._rendering._engine import invalidate_squad_dir
@@ -36,7 +36,7 @@ def _place_view_template(squad_dir: Path, name: str, content: str) -> None:
 
 def _reopen(project) -> Service:
     """A fresh ``Service`` bound to the just-written workflow override."""
-    return Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    return make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
 
 
 #: A role-sourced view, with the definition view dropped so a role takes a foreign view tag.

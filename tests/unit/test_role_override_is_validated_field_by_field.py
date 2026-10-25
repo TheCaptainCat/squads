@@ -18,6 +18,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of
 from squads._errors import SquadsError
 from squads._roles._models import RoleSpec
 from squads._roles._resolver import resolve_dev_role, resolve_role
@@ -39,7 +40,7 @@ def test_a_quoted_false_never_grants_a_boolean_capability(tmp_path, written: str
     string — truthy — so ``sq role architect show`` reported "can spawn: yes"."""
     _place(tmp_path, "architect", f"can_spawn = {written}\nis_default = {written}\n")
 
-    role = resolve_role("architect", tmp_path)
+    role = resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
 
     assert role.can_spawn is False
     assert role.is_default is False
@@ -51,14 +52,14 @@ def test_a_quoted_true_still_means_yes(tmp_path, written: str) -> None:
     values are refused."""
     _place(tmp_path, "architect", f"can_spawn = {written}\n")
 
-    assert resolve_role("architect", tmp_path).can_spawn is True
+    assert resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path)).can_spawn is True
 
 
 def test_a_boolean_field_with_no_boolean_reading_is_refused(tmp_path) -> None:
     _place(tmp_path, "architect", 'can_spawn = "maybe"\n')
 
     with pytest.raises(SquadsError) as excinfo:
-        resolve_role("architect", tmp_path)
+        resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
     assert "can_spawn" in str(excinfo.value)
 
 
@@ -94,7 +95,7 @@ def test_a_wrong_type_on_any_field_is_refused_naming_the_field(tmp_path, field, 
     _place(tmp_path, "architect", f"{field} = {value}\n")
 
     with pytest.raises(SquadsError) as excinfo:
-        resolve_role("architect", tmp_path)
+        resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
     assert field in str(excinfo.value)
 
 
@@ -113,7 +114,7 @@ def test_a_model_outside_the_catalogs_whitelist_is_refused(tmp_path) -> None:
     _place(tmp_path, "architect", 'model = "opuss"\n')
 
     with pytest.raises(SquadsError) as excinfo:
-        resolve_role("architect", tmp_path)
+        resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
     assert "opuss" in str(excinfo.value)
     assert "opus" in str(excinfo.value)  # the accepted set is named, so it is fixable in place
 
@@ -122,7 +123,7 @@ def test_a_model_outside_the_catalogs_whitelist_is_refused(tmp_path) -> None:
 def test_every_whitelisted_model_is_accepted(tmp_path, model: str) -> None:
     _place(tmp_path, "architect", f'model = "{model}"\n')
 
-    assert resolve_role("architect", tmp_path).model == model
+    assert resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path)).model == model
 
 
 # --------------------------------------------------------------------- splat-refs
@@ -133,10 +134,10 @@ def test_the_append_idiom_spreads_the_bundled_list_instead_of_writing_the_token(
 ) -> None:
     """``["$(*self)", …]`` is what the override scaffold teaches. Unresolved, the literal string
     reached both the ROLE frontmatter and the rendered body."""
-    bundled = resolve_role("architect", None).responsibilities
+    bundled = resolve_role("architect", None, catalog=catalog_of(None)).responsibilities
     _place(tmp_path, "architect", 'responsibilities = ["$(*self)", "Extra thing"]\n')
 
-    role = resolve_role("architect", tmp_path)
+    role = resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
 
     assert role.responsibilities == (*bundled, "Extra thing")
     assert not any("$(" in r for r in role.responsibilities)
@@ -145,10 +146,10 @@ def test_the_append_idiom_spreads_the_bundled_list_instead_of_writing_the_token(
 def test_the_append_idiom_also_works_for_a_generated_dev_role(tmp_path) -> None:
     """A dev role's base is generated rather than catalogued, so its bundled list is only a
     splat target if the resolver composes against the generated definition."""
-    base = resolve_dev_role("python", squad_dir=None).responsibilities
+    base = resolve_dev_role("python", squad_dir=None, catalog=catalog_of(None)).responsibilities
     _place(tmp_path, "python-dev", 'responsibilities = ["$(*self)", "Own the migrations"]\n')
 
-    role = resolve_dev_role("python", squad_dir=tmp_path)
+    role = resolve_dev_role("python", squad_dir=tmp_path, catalog=catalog_of(tmp_path))
 
     assert role.responsibilities == (*base, "Own the migrations")
 
@@ -166,16 +167,16 @@ def test_a_splat_ref_on_a_brand_new_slug_dangles_rather_than_appending_nothing(
     )
 
     with pytest.raises(SquadsError) as excinfo:
-        resolve_role("security-expert", tmp_path)
+        resolve_role("security-expert", tmp_path, catalog=catalog_of(tmp_path))
     assert "self" in str(excinfo.value)
 
 
 def test_a_dotted_splat_path_addresses_a_bundled_field(tmp_path) -> None:
     _place(tmp_path, "architect", 'title = "$(mission)"\n')
 
-    role = resolve_role("architect", tmp_path)
+    role = resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
 
-    assert role.title == resolve_role("architect", None).mission
+    assert role.title == resolve_role("architect", None, catalog=catalog_of(None)).mission
 
 
 # --------------------------------------------------------------------- the untouched path
@@ -186,4 +187,6 @@ def test_an_override_that_sets_nothing_leaves_the_bundled_role_intact(tmp_path) 
     produces. An empty override is the strictest form of that — every field falls through."""
     _place(tmp_path, "architect", "# only a comment\n")
 
-    assert resolve_role("architect", tmp_path) == resolve_role("architect", None)
+    assert resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path)) == resolve_role(
+        "architect", None, catalog=catalog_of(None)
+    )

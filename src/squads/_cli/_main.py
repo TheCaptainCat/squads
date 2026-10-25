@@ -1520,7 +1520,7 @@ async def check(
     """
     from squads._paths import resolve
     from squads._services._results import CheckIssue
-    from squads._workflow import bundled_spec
+    from squads._services._service import check_fallback, compose_service
 
     ctx = get_context()
     sp = resolve(client_cwd=ctx.client_cwd)
@@ -1530,45 +1530,33 @@ async def check(
     # the live-index cross-check). This IS the ground truth for "does the workflow config
     # actually load" — unlike scanning `sq workflow lint`'s findings for any error level, it
     # cannot be tripped by a finding (e.g. the stamp obligation) that is deliberately reported
-    # rather than load-blocking. Only a genuine load failure falls back to the bundled spec so
-    # the remaining checks (marker scan, dangling links, etc.) still run. The stamp finding
-    # reaches the issue list on its own through the override walk, so a config that loads is
-    # never also reported as invalid.
+    # rather than load-blocking. Only a genuine load failure falls back, so the remaining checks
+    # (marker scan, dangling links, etc.) still run. The stamp finding reaches the issue list on
+    # its own through the override walk, so a config that loads is never also reported as invalid.
     #
-    # PlaybookConfigError is caught FIRST and separately, ahead of the general SquadsError
-    # catch below — it is itself a SquadsError subclass, so ordering is load-bearing here: a
-    # broken playbook override must never fall into the workflow branch and inherit a message
-    # and a lint pointer that do not apply to it. `sq workflow lint` does not read the playbook
-    # and no command lints it, so the message names the loader's violation and the file.
+    # Which mode the fallback composes in is `check_fallback`'s table: a broken playbook keeps the
+    # merged workflow spec (the playbook is what failed, and falling back to the bundled spec
+    # would make any item of a project-declared type look undeclared and drown the real finding
+    # in a false corpus error), and anything else falls back to the bundled spec. The playbook
+    # finding is worded apart from the workflow one: `sq workflow lint` does not read the
+    # playbook and no command lints it, so it names the loader's violation and the file.
     try:
         svc = get_service()
-    except PlaybookConfigError as exc:
-        workflow_issues.append(CheckIssue("error", "playbook", f"playbook config invalid: {exc}"))
-        from squads._services._service import Service
-
-        # The playbook is what failed here — the workflow spec loaded fine (open_service only
-        # reaches resolve_playbook after the spec resolves), so falling back to the bundled
-        # spec would throw that away for nothing: any item of a project-declared type then
-        # looks undeclared to svc.check() and drowns out the real (playbook) finding above
-        # with a false, unrelated corpus/type error. Re-resolve the merged workflow spec
-        # directly (bypassing the playbook) so every other check still runs against the
-        # SAME spec every other command loads; only a genuinely broken override (unrelated
-        # to the playbook) falls all the way back to bundled — same last-resort
-        # `get_service_bypassing_index_cross_check` uses.
-        from squads._workflow._loader import load_workflow_spec
-
-        try:
-            fallback_spec = load_workflow_spec(squad_dir=sp.squad_dir)
-        except SquadsError:
-            fallback_spec = bundled_spec()
-        svc = Service(sp, spec=fallback_spec)
-    except SquadsError:
-        workflow_issues.append(
-            CheckIssue("error", "workflow", "workflow config invalid — run `sq workflow lint`")
+    except SquadsError as exc:
+        if isinstance(exc, PlaybookConfigError):
+            workflow_issues.append(
+                CheckIssue("error", "playbook", f"playbook config invalid: {exc}")
+            )
+        else:
+            workflow_issues.append(
+                CheckIssue("error", "workflow", "workflow config invalid — run `sq workflow lint`")
+            )
+        svc = compose_service(
+            sp,
+            check_fallback(exc),
+            resolved_spec=ctx.active_spec,
+            sources=common.invocation_sources(sp.squad_dir),
         )
-        from squads._services._service import Service
-
-        svc = Service(sp, spec=bundled_spec())
 
     # The corpus scan runs against whichever spec survived above, and that spec may be unable to
     # load the index at all: both fallbacks can land on a spec that does not declare a type the

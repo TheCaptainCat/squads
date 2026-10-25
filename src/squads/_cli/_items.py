@@ -14,7 +14,7 @@ per-kind closures. Every verb is a thin wrapper over an existing ``svc.*`` metho
 import inspect
 import json
 import textwrap
-from collections.abc import Callable
+from collections.abc import Callable, Sized
 from typing import Any, cast
 
 import typer
@@ -75,10 +75,36 @@ def _kw_list(kwargs: dict[str, object], key: str) -> list[str] | None:
     return cast(list[str], value) if isinstance(value, list) else None
 
 
-def _guard_update(*, has_any: bool, assignee: str | None, clear_assignee: bool) -> None:
-    """Shared `update` validation: exclusive assignee flags + at least one field given."""
-    if assignee and clear_assignee:
+def _guard_assignee(assignee: str | None, clear_assignee: bool) -> None:
+    """Refuse an empty `--assignee` (it changes nothing) and `--assignee` with its clear flag."""
+    if assignee is not None and not assignee.strip():
+        raise SquadsError("--assignee needs a slug; use --clear-assignee to remove the assignee")
+    if assignee is not None and clear_assignee:
         raise SquadsError("use --assignee or --clear-assignee, not both")
+
+
+def _anything_asked(*values: object) -> bool:
+    """Whether any option value was given (a flag counts when true, a list or dict when
+    non-empty, any other value when not None)."""
+    return any(
+        bool(cast(Sized, v)) if isinstance(v, list | dict) else v not in (None, False)
+        for v in values
+    )
+
+
+def _settle_clear_assignee(
+    current: str | None, clear_assignee: bool, *others: object
+) -> tuple[bool, bool]:
+    """Drop `--clear-assignee` when the target has no assignee (*current*), and report whether
+    nothing else was asked for either (*others*: the remaining `update` options)."""
+    if not clear_assignee or current is not None:
+        return clear_assignee, False
+    return False, not _anything_asked(*others)
+
+
+def _guard_update(*, has_any: bool, assignee: str | None, clear_assignee: bool) -> None:
+    """Shared `update` validation: valid assignee flags + at least one field given."""
+    _guard_assignee(assignee, clear_assignee)
     if not has_any:
         raise SquadsError("nothing to update (pass at least one field, e.g. --title/--status)")
 
@@ -176,7 +202,7 @@ def _dynamic_subentity_group_cls(item_type: str) -> type[typer.core.TyperGroup]:
     )
     bundled_signature = _kind_signature(item_type, _bundled_spec)
 
-    class _Group(typer.core.TyperGroup):
+    class _Group(common.HelpAwareGroup):
         def get_command(self, ctx: Any, cmd_name: str) -> _click.Command | None:
             try:
                 spec = common.get_active_spec()
@@ -255,7 +281,7 @@ def build_item_app(
     item = typer.Typer(
         no_args_is_help=True,
         help=common.type_group_help(item_type),
-        cls=_dynamic_subentity_group_cls(item_type) if dynamic_subentity else typer.core.TyperGroup,
+        cls=_dynamic_subentity_group_cls(item_type) if dynamic_subentity else common.HelpAwareGroup,
     )
 
     # Resolved once, up front (unless the caller already resolved it), so every command
@@ -272,7 +298,7 @@ def build_item_app(
         num: str = typer.Argument(..., metavar="N", help=f"Number or ID of the {item_type}."),
     ):
         svc = get_service()
-        ctx.obj = {"id": await resolve_item_id_typed(num, item_type, svc)}
+        ctx.obj = await common.address_obj(ctx, lambda: resolve_item_id_typed(num, item_type, svc))
 
     _cmd_show(item)
     _cmd_update(item, item_type, spec)
@@ -352,6 +378,7 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
         parent: str | None = typer.Option(None, "--parent", help="New parent item ID or number."),
         no_parent: bool = typer.Option(False, "--no-parent", help="Clear the parent."),
         assignee: str | None = common.assignee_option(),
+        clear_assignee: bool = typer.Option(False, "--clear-assignee", help="Remove the assignee."),
         priority: str | None = typer.Option(None, "--priority", help=priority_help),
         no_priority: bool = typer.Option(False, "--no-priority", help="Clear the priority."),
         add_label: list[str] = typer.Option(None, "--add-label", help="Label to add (repeatable)."),
@@ -383,6 +410,21 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
                 raise SquadsError(f"--set expects key=value, got {pair!r}")
             set_attributes[key.strip()] = value
         svc = get_service()
+        others = (
+            title, desc, author, status, parent, no_parent, priority, no_priority,
+            add_label, rm_label, set_, unset,
+        )  # fmt: skip
+        _guard_update(
+            has_any=_anything_asked(*others, assignee, clear_assignee),
+            assignee=assignee,
+            clear_assignee=clear_assignee,
+        )
+        clear_assignee, nothing_to_change = _settle_clear_assignee(
+            (await svc.get(_id(ctx))).assignee, clear_assignee, *others
+        )
+        if nothing_to_change:
+            console.print(f"{_id(ctx)} has no assignee to clear")
+            return
         validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
         validated_author = await resolve_slug_or_raise(author, svc) if author else None
         resolved_parent = await resolve_item_id_any(parent, svc) if parent is not None else None
@@ -391,6 +433,7 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
             title=title,
             description=desc,
             assignee=validated_assignee,
+            clear_assignee=clear_assignee,
             # No pre-parse: the collection `priority` binds is per-type and the service's
             # `_check_priority` resolves it from this item's own declared field. See the
             # matching note in `_cli/_create.py`.
@@ -744,7 +787,7 @@ def _register_subentity(item: typer.Typer, kind: str, spec: WorkflowSpec) -> Non
         ),
     ):
         assert ctx.parent is not None  # the parent item group always runs first
-        ctx.obj = {**ctx.parent.obj, "local": resolve_local_id(n, kind)}
+        ctx.obj = common.extend_obj(ctx.parent.obj, local=resolve_local_id(n, kind))
 
     _register_sub_verbs(sub, kind, spec)
     item.add_typer(sub, name=kind)
@@ -976,7 +1019,7 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
         _guard_update(
             has_any=any(
                 (
-                    title,
+                    title is not None,
                     field_values,
                     story,
                     no_story,
@@ -990,6 +1033,19 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             clear_assignee=clear_assignee,
         )
         svc = get_service()
+        clear_assignee, nothing_to_change = _settle_clear_assignee(
+            (await svc.get_block(pid, kind, lid)).info.assignee,
+            clear_assignee,
+            title,
+            field_values,
+            story,
+            no_story,
+            status,
+            _kw_str(kwargs, "deferred_to"),
+        )
+        if nothing_to_change:
+            console.print(f"{pid} {lid} has no assignee to clear")
+            return
         validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
         normalized_story = resolve_local_id(story, "story") if story else None
         await svc.update_block(

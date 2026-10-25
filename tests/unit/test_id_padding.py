@@ -7,11 +7,14 @@ staying clean) needs a live squad and lives in tests/integration/test_repad.py.
 from squads._index._store import IndexStore
 from squads._models._index import SquadsDB
 from squads._models._item import DEFAULT_ID_PADDING, format_item_id
+from squads._workflow import bundled_spec
 
 
 def test_padding_defaults_to_six_and_round_trips_through_json(tmp_path):
     assert DEFAULT_ID_PADDING == 6
-    store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
+    store = IndexStore(
+        tmp_path / ".squads.json", tmp_path / ".squads.json.lock", spec=bundled_spec()
+    )
     db = store.create_empty()
     assert db.padding == DEFAULT_ID_PADDING
     data = SquadsDB.model_validate_json(db.to_json())

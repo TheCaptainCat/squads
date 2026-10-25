@@ -12,7 +12,6 @@ from squads._models._attributes import AttributeKey, parse_invocable_choice
 from squads._models._item import Item
 from squads._pronouns import checked_pronouns
 from squads._roles._catalog import PROPOSED_DEVELOPER_SLUG_SUFFIX
-from squads._roles._loader import load_role_catalog
 from squads._roles._resolver import (
     holds_default_designation,
     resolve_dev_role,
@@ -43,7 +42,7 @@ class RosterMixin(ServiceCore):
         slug, and reviving a retired entry is what ``sq role <slug> status <live-initial>`` is
         for.  Returning it untouched instead would report an activation that did not happen.
         """
-        role = resolve_role(slug, self.paths.squad_dir)
+        role = resolve_role(slug, self.paths.squad_dir, catalog=self.catalog)
         own_pronouns = checked_pronouns(pronouns)
         existing = await self.roster_item(ROSTER_ROLE, slug)
         if existing is not None:
@@ -70,7 +69,7 @@ class RosterMixin(ServiceCore):
             author=role.slug,  # an activated role authors itself
             attributes={**role.to_attributes(), **self._pronouns_attribute(own_pronouns)},
         )
-        role = dc_replace(role, pronouns=resolve_pronouns(own_pronouns, self.paths.squad_dir))
+        role = dc_replace(role, pronouns=resolve_pronouns(own_pronouns, self.catalog))
         # Materialise iff live: a project whose roster lifecycle's own
         # `initial` is non-live gets a parked-then-activated entry with no files yet —
         # nothing here branches on *how* the entry got created, only on the status it holds.
@@ -93,11 +92,15 @@ class RosterMixin(ServiceCore):
         roles = await self.list_items(item_type=ROSTER_ROLE)
         seq = sum(1 for it in roles if attrs.is_templated(it))
         role = resolve_dev_role(
-            tech, name=name, seq=seq, model=model, slug=slug, squad_dir=self.paths.squad_dir
+            tech,
+            name=name,
+            seq=seq,
+            model=model,
+            slug=slug,
+            squad_dir=self.paths.squad_dir,
+            catalog=self.catalog,
         )
-        if slug is not None and slug in {
-            r.slug for r in load_role_catalog(self.paths.squad_dir).roles
-        }:
+        if slug is not None and slug in {r.slug for r in self.catalog().roles}:
             raise SquadsError(
                 f"slug {slug!r} belongs to a role the catalog declares; a developer needs "
                 "another slug"
@@ -122,7 +125,7 @@ class RosterMixin(ServiceCore):
                 **self._pronouns_attribute(own_pronouns),
             },
         )
-        role = dc_replace(role, pronouns=resolve_pronouns(own_pronouns, self.paths.squad_dir))
+        role = dc_replace(role, pronouns=resolve_pronouns(own_pronouns, self.catalog))
         # Materialise iff live — see the matching comment in activate_role.
         if res.item.status in self.spec.live_statuses(ROSTER_ROLE):
             ctx = self._ctx
@@ -276,7 +279,7 @@ class RosterMixin(ServiceCore):
                 if (
                     other.type == ROSTER_ROLE
                     and other.id != item.id
-                    and holds_default_designation(other, self.paths.squad_dir)
+                    and holds_default_designation(other, self.paths.squad_dir, catalog=self.catalog)
                 ):
                     other_base = other.model_copy(deep=True)
                     other.attributes[AttributeKey.IS_DEFAULT] = False
@@ -287,7 +290,9 @@ class RosterMixin(ServiceCore):
                     )
                     cleared.append(other.id)
 
-            was_default = holds_default_designation(item, self.paths.squad_dir)
+            was_default = holds_default_designation(
+                item, self.paths.squad_dir, catalog=self.catalog
+            )
             changed = bool(cleared) or not was_default
             if not was_default:
                 base = item.model_copy(deep=True)

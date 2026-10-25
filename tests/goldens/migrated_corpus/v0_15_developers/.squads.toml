@@ -1,5 +1,5 @@
 # squads project configuration
-schema_version = "0.16"
+schema_version = "0.17"
 squad_dir = "."
 active_backends = []
 squads_version = "0.15.0"

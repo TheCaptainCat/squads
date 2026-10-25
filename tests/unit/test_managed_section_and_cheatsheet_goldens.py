@@ -19,7 +19,7 @@ from pathlib import Path
 
 from _helpers import dev_role
 from squads._backends._agents_md._backend import _also_creatable_types
-from squads._interactions import cheatsheet_anchor_context
+from squads._interactions._cheatsheet import cheatsheet_anchor_context
 from squads._interactions._role_guidance import delegate_example_slugs
 from squads._language import WorkingLanguage
 from squads._rendering._engine import render
@@ -102,7 +102,7 @@ def _check_golden(name: str, actual: str) -> None:
 
 
 def test_the_workflow_cheatsheet_matches_its_pinned_golden() -> None:
-    actual = render("workflow.md.j2", spec=bundled_spec())
+    actual = render("workflow.md.j2", spec=bundled_spec(), from_squad=None)
     assert "\x1b[" not in actual
     _check_golden("workflow_cheatsheet", actual)
 
@@ -132,6 +132,7 @@ def test_the_claude_md_managed_section_body_matches_its_pinned_golden() -> None:
         default_role_full_name=_DEFAULT_ROLE.full_name,
         default_role_slug=_DEFAULT_ROLE.slug,
         spec=bundled_spec(),
+        from_squad=None,
     )
     assert "Elias Python" in actual  # sanity: the pinned dev is in the roster
     assert "\x1b[" not in actual
@@ -175,6 +176,7 @@ def test_the_agents_md_managed_section_body_matches_its_pinned_golden() -> None:
         spec=spec,
         also_creatable_types=_also_creatable_types(spec, anchor_ctx["anchor"]),
         **anchor_ctx,
+        from_squad=None,
     )
     assert "Elias Python" in actual
     assert "**Responsibilities:**" in actual  # the block the view field made reachable

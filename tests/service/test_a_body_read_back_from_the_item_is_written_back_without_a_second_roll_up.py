@@ -5,13 +5,12 @@ import json
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import __version__
 from squads._errors import SquadsError
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
 from squads._rendering._engine import invalidate_squad_dir
-from squads._services._service import Service
 from squads._workflow import load_workflow_spec
 
 pytestmark = pytest.mark.anyio
@@ -126,7 +125,7 @@ async def test_an_override_seeded_tag_on_another_type_round_trips_unchanged(proj
         f"# squads:override-base:{__version__}\n", encoding="utf-8"
     )
     invalidate_squad_dir(project.squad_dir)
-    svc = Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    svc = make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
     task = (await create_item(svc, "task", "Seeded")).item
     await svc.set_body(task.id, PROSE, force=True)
     before = file_text(svc, task)

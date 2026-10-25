@@ -44,15 +44,15 @@ cross-check. Every one of those stays here:
 ``sq workflow lint`` — pure-spec validation plus the live-index cross-check.  Returns a list of
 ``(level, location, message, fix_hint)`` 4-tuples; never raises.
 
-``validate_against_index_fail_closed(spec, squad_dir)`` is the enforcement point called by
-``open_service``.  It reads the index synchronously (bypassing the async layer) and raises
+``validate_against_index_fail_closed(spec, squad_dir, bundled=...)`` is the enforcement point
+called by ``open_service``.  It reads the index synchronously (bypassing the async layer) and
+raises
 ``SquadsError`` listing every offending item ID when the merged spec drops a type or status
 still used by live items, or when a type's prefix/folder no longer matches its own corpus.
 ``sq workflow lint`` bypasses this by calling ``lint_workflow_spec`` directly,
 which reports the same findings in collect mode without aborting.
 """
 
-import importlib.resources
 import tomllib
 from pathlib import Path, PurePosixPath
 from re import MULTILINE
@@ -71,12 +71,24 @@ from squads._errors import SquadsError
 # for the playbook's identical stamp obligation, so this follows established precedent rather
 # than opening a new one.
 from squads._overrides._manifest import WORKFLOW_KEY, artifact_changed_since
+from squads._specload import (
+    OverrideFiles,
+    OverrideMessages,
+    OverrideReadError,
+    SpecDocument,
+    bundled_raw,
+    bundled_text,
+    load_override,
+    merge_collecting,
+    override_mapping,
+    override_text,
+    read_override,
+)
 from squads._specmerge import (
     Deselection,
     MergeViolation,
     RawMapping,
     describe_spec_error,
-    merge_override,
 )
 from squads._workflow._models import (
     ROSTER_TYPES,
@@ -306,7 +318,9 @@ def spec_refusal(override_path: Path | str, cause: object) -> str:
     )
 
 
-def load_workflow_spec(squad_dir: Path | None = None) -> WorkflowSpec:
+def load_workflow_spec(
+    squad_dir: Path | None = None, files: OverrideFiles | None = None
+) -> WorkflowSpec:
     """Read, parse, merge (if a project override is present), and validate the workflow spec.
 
     When ``squad_dir`` is ``None`` (the default), returns the fully-validated bundled-only
@@ -323,18 +337,26 @@ def load_workflow_spec(squad_dir: Path | None = None) -> WorkflowSpec:
     Raises ``SquadsError`` on any violation, naming the offending key/item and pointing to
     ``sq workflow lint`` for the full diagnostic where the caller (``open_service``) adds that.
     """
-    if squad_dir is None:
+    loaded = load_override(_DOCUMENT, squad_dir, _bundled_raw, files)
+    if loaded is None:
         return _load_bundled_spec()
+    merged = loaded.raw
+    _raise_on_floor_violation(merged, loaded.origin)
+    _strip_ref_rule_targets_of_dropped_types(merged, loaded.deselections)
+    _drop_bundled_module_where_override_sets_path(merged)
 
-    override_path = squad_dir / WORKFLOW_OVERRIDE_FILENAME
-    if not override_path.is_file():
-        return _load_bundled_spec()
+    try:
+        return _build_spec(merged)
+    except SquadsError as exc:
+        raise SquadsError(_annotate_deselections(str(exc), loaded.deselections)) from exc
 
-    raw_override, parse_error = _read_raw_override(override_path)
-    if parse_error is not None:
-        raise SquadsError(parse_error[0])
 
-    origin = str(override_path)
+# ---------------------------------------------------------------------------
+# Bundled loader
+# ---------------------------------------------------------------------------
+
+
+def _check_override_refusals(raw_override: RawMapping, origin: str) -> None:
     retired_violations = [
         *_retired_view_grammar_violations(raw_override, origin),
         *_override_transform_violations(raw_override, origin),
@@ -343,58 +365,33 @@ def load_workflow_spec(squad_dir: Path | None = None) -> WorkflowSpec:
     if retired_violations:
         raise SquadsError("; ".join(str(v) for v in retired_violations))
 
-    result = merge_override(
-        _bundled_raw(),
-        raw_override,
-        WORKFLOW_SELECTABLE_SECTIONS,
-        origin,
-        top_level_keys=WORKFLOW_TOP_LEVEL_SECTIONS,
-        collect_all=False,
-    )
-    merged = result.merged
-    if merged is None:
-        # Unreachable in fail-fast mode: merge_override raises on its own first violation
-        # before ever returning one. Fails closed rather than asserting, matching the
-        # "never a traceback" contract even for a case that should not occur.
-        raise SquadsError(f"workflow override merge failed with no violation reported — {origin}")
 
-    _raise_on_floor_violation(merged, origin)
-    _strip_ref_rule_targets_of_dropped_types(merged, result.deselections)
-    _drop_bundled_module_where_override_sets_path(merged)
-
-    try:
-        return _build_spec(merged)
-    except SquadsError as exc:
-        raise SquadsError(_annotate_deselections(str(exc), result.deselections)) from exc
-
-
-# ---------------------------------------------------------------------------
-# Bundled loader
-# ---------------------------------------------------------------------------
-
-
-def _read_bundled_bytes() -> bytes:
-    try:
-        pkg = importlib.resources.files("squads._specs")
-        return (pkg / "workflow.toml").read_bytes()
-    except Exception as exc:
-        raise SquadsError(f"Failed to read bundled workflow.toml: {exc}") from exc
+_DOCUMENT = SpecDocument(
+    bundled_file="workflow.toml",
+    override_file=WORKFLOW_OVERRIDE_FILENAME,
+    override_name="workflow override",
+    top_level_keys=WORKFLOW_TOP_LEVEL_SECTIONS,
+    selected_sections=WORKFLOW_SELECTABLE_SECTIONS,
+    messages=OverrideMessages(
+        malformed="Malformed workflow override {path}: {exc}",
+        unreadable="Cannot read workflow override {path}: {exc}",
+        malformed_hint="Fix the TOML syntax and re-run `sq workflow lint`.",
+        unreadable_hint="Check file permissions and re-run `sq workflow lint`.",
+    ),
+    check_override=_check_override_refusals,
+)
 
 
 def _bundled_raw() -> RawMapping:
-    """The bundled ``workflow.toml``, parsed but not yet built into a model — the merge
-    engine's ``base`` input."""
-    try:
-        return tomllib.loads(_read_bundled_bytes().decode())
-    except tomllib.TOMLDecodeError as exc:
-        raise SquadsError(f"Malformed bundled workflow.toml: {exc}") from exc
+    """The bundled ``workflow.toml``, parsed but not yet built into a model."""
+    return bundled_raw(_DOCUMENT)
 
 
 def bundled_workflow_toml_text() -> str:
     """The bundled ``workflow.toml``'s raw text — the ``sq override diff workflow`` Δ-mine
     baseline: an override can shadow, so an empty reference would describe only "what
     the team added"; the meaningful diff is what changed relative to the real bundled document."""
-    return _read_bundled_bytes().decode()
+    return bundled_text(_DOCUMENT)
 
 
 def _load_bundled_spec() -> WorkflowSpec:
@@ -844,7 +841,7 @@ def _strip_ref_rule_targets_of_dropped_types(
     ``RefRule.target`` and a ``ref_rule_target_present:<T>`` validator entry both name another
     item type by string, from the *targeting* type's own block — dropping ``<T>`` leaves that
     block referring to vocabulary that no longer exists, and both
-    :func:`~squads._workflow._models._check_ref_rule_targets` clauses refuse it. Dropping
+    :func:`~squads._workflow._validity.check_ref_rule_targets` clauses refuse it. Dropping
     ``contract`` hits both: the bundled ``feature`` entry declares an ``implements`` rule
     targeting it, and a project that opted into requiring that edge also carries
     ``ref_rule_target_present:contract`` there (nothing bundled selects it). Without this, an
@@ -1119,7 +1116,9 @@ def _code_removed_by_override(
     return not coll.declares(bad_value)
 
 
-def _collect_badge_alignment_errors(spec: WorkflowSpec, db: Any) -> list[str]:
+def _collect_badge_alignment_errors(
+    spec: WorkflowSpec, db: Any, bundled: WorkflowSpec
+) -> list[str]:
     """The badge-vocabulary counterpart to :func:`_collect_corpus_alignment_errors`, on the
     same live-index cross-check plane as the type/status/prefix/folder walks: for every live
     item (and sub-entity) whose stored badge-field value no longer names a code in its bound
@@ -1155,7 +1154,7 @@ def _collect_badge_alignment_errors(spec: WorkflowSpec, db: Any) -> list[str]:
     if not collections:
         return []  # nothing to check a field's code against
 
-    bundled_collections: dict[str, Any] = _load_bundled_spec().collections
+    bundled_collections: dict[str, Any] = bundled.collections
 
     mismatches: dict[tuple[str, str, str, str], list[str]] = {}
     for item in db.items.values():
@@ -1296,7 +1295,9 @@ def _collect_unreachable_status_errors(spec: WorkflowSpec, db: Any) -> list[str]
     return errors
 
 
-def validate_against_index(spec: WorkflowSpec, db: Any, *, alignment: bool = True) -> list[str]:
+def validate_against_index(
+    spec: WorkflowSpec, db: Any, *, bundled: WorkflowSpec, alignment: bool = True
+) -> list[str]:
     """Cross-check live index items against the merged workflow spec.
 
     Returns a list of human-readable error strings (empty = clean).
@@ -1342,7 +1343,7 @@ def validate_against_index(spec: WorkflowSpec, db: Any, *, alignment: bool = Tru
     return [
         *_collect_type_status_errors(spec, db),
         *(_collect_corpus_alignment_errors(spec, db) if alignment else []),
-        *_collect_badge_alignment_errors(spec, db),
+        *_collect_badge_alignment_errors(spec, db, bundled),
     ]
 
 
@@ -1364,7 +1365,7 @@ def _raw_shadows_bundled(bundled_raw: RawMapping, override_raw: RawMapping) -> b
     )
 
 
-def workflow_override_shadows_bundled(squad_dir: Path) -> bool:
+def workflow_override_shadows_bundled(squad_dir: Path, files: OverrideFiles | None = None) -> bool:
     """Whether ``<squad_dir>/.overrides/workflow.toml`` redeclares (shadows) at least one
     bundled key in any section — a raw key-set intersection, no merge required.
 
@@ -1376,13 +1377,15 @@ def workflow_override_shadows_bundled(squad_dir: Path) -> bool:
     if not override_path.is_file():
         return False
     try:
-        override_raw: RawMapping = tomllib.loads(override_path.read_text(encoding="utf-8"))
+        override_raw: RawMapping = override_mapping(override_path, files)
     except (tomllib.TOMLDecodeError, OSError):  # fmt: skip
         return False
     return _raw_shadows_bundled(_bundled_raw(), override_raw)
 
 
-def workflow_stamp_finding(squad_dir: Path, stamp: str | None) -> tuple[str, str] | None:
+def workflow_stamp_finding(
+    squad_dir: Path, stamp: str | None, files: OverrideFiles | None = None
+) -> tuple[str, str] | None:
     """The stamp obligation for the workflow override, evaluated once so ``sq check`` and
     ``sq workflow lint`` always agree. Returns ``(level, message)``, or ``None``
     when nothing is owed:
@@ -1404,7 +1407,7 @@ def workflow_stamp_finding(squad_dir: Path, stamp: str | None) -> tuple[str, str
     from squads import __version__
 
     if stamp is None:
-        if workflow_override_shadows_bundled(squad_dir):
+        if workflow_override_shadows_bundled(squad_dir, files):
             return (
                 "error",
                 "shadowing workflow override has no squads:override-base stamp; run "
@@ -1436,7 +1439,11 @@ _SPEC_ERROR_FIX_HINT = (
 _STAMP_FIX_HINT = "Run `sq override update workflow` after reviewing `sq override diff workflow`."
 
 
-def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 — one return per gate below
+def lint_workflow_spec(  # noqa: PLR0911 — one return per gate below
+    squad_dir: Path,
+    files: OverrideFiles | None = None,
+    loaded: WorkflowSpec | None = None,
+) -> list[LintFinding]:
     """Run ALL workflow spec checks in collect-all-errors mode.
 
     Returns a (possibly empty) list of ``(level, location, message, fix_hint)``
@@ -1447,6 +1454,9 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
     is called directly (not through ``open_service``), a spec that would cause
     ``open_service`` to hard-stop is still fully diagnosed here — the
     "self-blocking" problem does not apply.
+
+    *files* and *loaded* are what the caller already read and built for this squad: the override
+    text, and the merged spec when it loaded, which then is not built a second time.
 
     Phases:
 
@@ -1479,12 +1489,12 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
         # No override; bundled spec is always clean — nothing to report.
         return findings
 
-    raw_override, parse_error = _read_raw_override(override_path)
+    raw_override, parse_error = _read_raw_override(override_path, files)
     if parse_error is not None:
         findings.append(("error", WORKFLOW_OVERRIDE_FILENAME, parse_error[0], parse_error[1]))
         return findings
 
-    stamp_finding = workflow_stamp_finding(squad_dir, _read_toml_stamp(override_path))
+    stamp_finding = workflow_stamp_finding(squad_dir, _read_toml_stamp(override_path, files), files)
     if stamp_finding is not None:
         level, message = stamp_finding
         findings.append((level, WORKFLOW_OVERRIDE_FILENAME, message, _STAMP_FIX_HINT))
@@ -1505,14 +1515,7 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
 
     # Phase 3 — engine-level failures (collect-all): splat/merge/[selected] violations.
     origin = str(override_path)
-    result = merge_override(
-        _bundled_raw(),
-        raw_override,
-        WORKFLOW_SELECTABLE_SECTIONS,
-        origin,
-        top_level_keys=WORKFLOW_TOP_LEVEL_SECTIONS,
-        collect_all=True,
-    )
+    result = merge_collecting(_DOCUMENT, _bundled_raw(), raw_override, origin)
     if result.violations:
         findings.extend(
             ("error", v.path or WORKFLOW_OVERRIDE_FILENAME, v.reason, v.hint)
@@ -1538,7 +1541,7 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
 
     # Phase 5 — structural + referential validation.
     try:
-        spec = _build_spec(merged)
+        spec = loaded if loaded is not None else _build_spec(merged)
     except SquadsError as exc:
         bullets = [_annotate_line(b, result.deselections) for b in _split_spec_errors(str(exc))]
         findings.extend(
@@ -1553,6 +1556,9 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
     # is nonsensical advice for, say, a badge-field mismatch it can never fix.
     db_raw = _load_index_sync(squad_dir)
     if db_raw is not None:
+        from squads._workflow import bundled_spec
+
+        bundled = bundled_spec()
         type_status_fix = (
             "Add the missing type/status back to .overrides/workflow.toml (directly or via "
             "`selected`), or update the affected items to a currently declared type/status."
@@ -1582,7 +1588,7 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
         )
         findings.extend(
             ("error", "index cross-check", msg, badge_fix)
-            for msg in _collect_badge_alignment_errors(spec, db_raw)
+            for msg in _collect_badge_alignment_errors(spec, db_raw, bundled)
         )
         findings.extend(
             ("error", "index cross-check", msg, ref_kind_fix)
@@ -1613,12 +1619,12 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
 _TOML_STAMP_RE = re_compile(r"^#\s*squads:override-base:([A-Za-z0-9._-]+)\s*$", MULTILINE)
 
 
-def _read_toml_stamp(override_path: Path) -> str | None:
+def _read_toml_stamp(override_path: Path, files: OverrideFiles | None) -> str | None:
     """Read the ``# squads:override-base:<version>`` stamp straight off disk, tolerating a
     read failure (returns ``None``) — the caller has already confirmed the file parses as TOML
     by this point, but the stamp itself is a plain-text comment, read independent of that."""
     try:
-        text = override_path.read_text(encoding="utf-8")
+        text = override_text(override_path, files)
     except OSError:
         return None
     m = _TOML_STAMP_RE.search(text)
@@ -1626,7 +1632,7 @@ def _read_toml_stamp(override_path: Path) -> str | None:
 
 
 def _read_raw_override(
-    override_path: Path,
+    override_path: Path, files: OverrideFiles | None
 ) -> tuple[dict[str, Any], None] | tuple[dict[str, Any], tuple[str, str]]:
     """Read and parse the raw TOML override file.
 
@@ -1635,25 +1641,9 @@ def _read_raw_override(
     raw-TOML loading step from merge/floor-violation detection.
     """
     try:
-        raw: dict[str, Any] = tomllib.loads(override_path.read_text(encoding="utf-8"))
-    except tomllib.TOMLDecodeError as exc:
-        return (
-            {},
-            (
-                f"Malformed workflow override {override_path}: {exc}",
-                "Fix the TOML syntax and re-run `sq workflow lint`.",
-            ),
-        )
-    except OSError as exc:
-        return (
-            {},
-            (
-                f"Cannot read workflow override {override_path}: {exc}",
-                "Check file permissions and re-run `sq workflow lint`.",
-            ),
-        )
-    else:
-        return raw, None
+        return read_override(_DOCUMENT, override_path, files), None
+    except OverrideReadError as exc:
+        return {}, (str(exc), exc.fix_hint or "")
 
 
 def _load_index_sync(squad_dir: Path) -> Any:
@@ -1688,7 +1678,9 @@ def _load_index_sync(squad_dir: Path) -> Any:
 # ---------------------------------------------------------------------------
 
 
-def validate_against_index_fail_closed(spec: WorkflowSpec, squad_dir: Path) -> None:
+def validate_against_index_fail_closed(
+    spec: WorkflowSpec, squad_dir: Path, *, bundled: WorkflowSpec
+) -> None:
     """Raise ``SquadsError`` if the merged spec drops types/statuses still
     referenced by live index items, re-prefixes/re-folders a type against a non-empty corpus,
     or shrinks/replaces a badge collection a live value still names — see
@@ -1711,7 +1703,7 @@ def validate_against_index_fail_closed(spec: WorkflowSpec, squad_dir: Path) -> N
     if db is None:
         return
 
-    errors = validate_against_index(spec, db)
+    errors = validate_against_index(spec, db, bundled=bundled)
     if not errors:
         return
 

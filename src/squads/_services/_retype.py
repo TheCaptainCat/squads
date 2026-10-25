@@ -95,7 +95,7 @@ def _carry_or_reset_status(
 ) -> tuple[bool, str]:
     """Return ``(status_reset, new_status_or_same)``.
 
-    Carries the status when old and new share the same :class:`~squads._workflow.Workflow`
+    Carries the status when old and new share the same :class:`~squads._workflow._models.Workflow`
     (same transitions/initial) **and** the current status is valid in the new workflow.
     """
     old_wf = spec.workflow_for(old_type)
@@ -117,7 +117,8 @@ class RetypeMixin(ServiceCore):
           category rules (e.g. the records bundle's ``no_parent``) reject the item as it would
           look post-change — enforced by the same
           :class:`~squads._services._validators.ValidatorEngine` gate create/update use.
-        - Status is carried when old and new share the same :class:`~squads._workflow.Workflow`
+        - Status is carried when old and new share the same
+          :class:`~squads._workflow._models.Workflow`
           object **and** the current status is a valid state of the new workflow; otherwise the
           status is reset to the new type's initial status.
         - All incoming edges (other items' ``refs``, children's ``parent``, and prose
@@ -154,7 +155,9 @@ class RetypeMixin(ServiceCore):
                     "prefix": prefix_for(new_type, self.spec),
                 }
             )
-            ValidatorEngine(spec=self.spec).gate(prospective, db)
+            ValidatorEngine(spec=self.spec, playbook=self.playbook, paths=self.paths).gate(
+                prospective, db
+            )
 
             # Check the skew BEFORE any file moves — apply_type_change renames the file to
             # its new-type path before rewriting the frontmatter, and a refusal raised only

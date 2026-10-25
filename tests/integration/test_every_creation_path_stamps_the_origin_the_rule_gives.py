@@ -13,8 +13,9 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads import __version__
-from squads._interactions import item_origin
+from squads._interactions._skills import item_origin
 from squads._models import _attributes as attrs
 from squads._rendering._engine import invalidate_squad_dir
 from squads._services import _service as service
@@ -144,7 +145,7 @@ async def seeded(tmp_path, monkeypatch, frozen_time):
 @pytest.mark.parametrize("path", list(PATHS))
 async def test_the_stored_origin_equals_the_rule_on_every_row(path, seeded, invoke) -> None:
     create, expected = PATHS[path]
-    svc = service.Service(seeded)
+    svc = make_service(seeded)
     await create(seeded, svc, invoke)
 
     assert await _mismatches(svc, load_workflow_spec(squad_dir=seeded.squad_dir)) == []
@@ -159,7 +160,7 @@ async def test_the_stored_origin_equals_the_rule_on_every_row(path, seeded, invo
 @pytest.mark.parametrize("path", list(PATHS))
 async def test_sync_is_a_fixed_point_after_every_creation_path(path, seeded, invoke) -> None:
     create, _expected = PATHS[path]
-    svc = service.Service(seeded)
+    svc = make_service(seeded)
     await create(seeded, svc, invoke)
     assert (await invoke(["sync"])).exit_code == 0
 
@@ -171,7 +172,7 @@ async def test_sync_is_a_fixed_point_after_every_creation_path(path, seeded, inv
 
 @pytest.mark.parametrize("verb", ["sync", "repair"])
 async def test_a_hand_set_origin_survives_sync_and_repair(verb, seeded, invoke) -> None:
-    svc = service.Service(seeded)
+    svc = make_service(seeded)
     role = await svc.roster_item("role", "manager")
     assert role is not None
     role_file = next(seeded.squad_dir.rglob("ROLE-*-manager.md"))

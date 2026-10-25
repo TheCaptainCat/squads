@@ -6,6 +6,7 @@ never delete/overwrite hand-written content, never abort the run.
 
 import pytest
 
+from _helpers import make_service
 from squads._cli import app
 from squads._services import _service as service
 
@@ -103,7 +104,7 @@ async def test_a_second_sync_over_an_already_managed_file_warns_only_once_and_ne
     assert any("CLAUDE.md" in w for w in result.warnings)
     before = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
 
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     warnings_again = await svc.refresh_managed()
 
     assert not any("CLAUDE.md" in w for w in warnings_again)

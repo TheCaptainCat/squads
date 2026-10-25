@@ -9,8 +9,8 @@ from pathlib import PureWindowsPath
 
 import pytest
 
-from _helpers import bundled_migration_context
-from squads._interactions import bundled_skill_slugs, skill_description
+from _helpers import bundled_migration_context, make_service
+from squads._interactions._skills import bundled_skill_slugs, skill_description
 from squads._migrations._v0_4_to_v0_5 import _posix_rel
 from squads._migrations._v0_4_to_v0_5 import migrate as migrate_v0_4_to_v0_5
 from squads._models._schema import SCHEMA_VERSION
@@ -151,7 +151,7 @@ async def test_repair_after_migration_rebuilds_the_index_cleanly(
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
     await migrate_v0_4_to_v0_5(bundled_migration_context(paths))
 
-    svc = service.Service(paths)
+    svc = make_service(paths)
     await svc.repair()
     issues = await svc.check()
     # Only one runner ran, so roles and skills carry no origin yet.

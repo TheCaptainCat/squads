@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import __version__
 from squads._models import _markers as markers
 from squads._rendering._engine import invalidate_squad_dir
@@ -62,7 +62,7 @@ def _declare_resolvable_subentity_view(squad_dir: Path, name: str, kind: str) ->
 
 
 def _reopen(project) -> Service:
-    return Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    return make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
 
 
 # ---------------------------------------------------------------------- reason 1: unresolvable

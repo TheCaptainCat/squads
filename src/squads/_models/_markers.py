@@ -18,10 +18,6 @@ BODY = "body"
 DISCUSSION = "discussion"
 #: sq-managed roll-up table of a parent's sub-entities (regenerated on every change).
 SUMMARY = "summary"
-# Containers that hold scaffolded sub-blocks.
-STORIES = "stories"
-SUBTASKS = "subtasks"
-FINDINGS = "findings"
 
 #: Marker prefix; used to detect sq markers when linting.
 PREFIX = "sq:"
@@ -35,16 +31,9 @@ def close_marker(tag: str) -> str:
     return f"<!-- sq:{tag}:end -->"
 
 
-def story_tag(local_id: str) -> str:
-    return f"story:{local_id}"
-
-
-def subtask_tag(local_id: str) -> str:
-    return f"subtask:{local_id}"
-
-
-def finding_tag(local_id: str) -> str:
-    return f"finding:{local_id}"
+def subentity_tag(kind: str, local_id: str) -> str:
+    """Anchor tag of one sub-entity block (``<kind>:<local id>``), for any declared *kind*."""
+    return f"{kind}:{local_id}"
 
 
 def discussion_tag(base: str | None = None) -> str:
@@ -85,7 +74,7 @@ def view_tag(name: str, *, disabled: bool = False) -> str:
     """The bare tag (``sq:`` prefix stripped, no HTML-comment wrapper) naming *name*'s
     unpaired view-placement marker, e.g. ``"view:milestone_rollup"`` or, disabled,
     ``"view:milestone_rollup:disabled"``. Composed the same way
-    :func:`story_tag`/:func:`subtask_tag`/:func:`finding_tag` compose theirs — feed it to
+    :func:`subentity_tag` composes its own — feed it to
     :func:`open_marker` for the on-disk form. There is deliberately no matching
     ``close_marker`` counterpart; see :data:`VIEW`. The disabled suffix is spelled here only —
     no other call site composes it by hand."""

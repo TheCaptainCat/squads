@@ -136,8 +136,7 @@ async def _resolve_addr(
     ),
 ) -> None:
     svc = get_service()
-    ctx.ensure_object(dict)
-    ctx.obj = {"id": await resolve_agent_addr(addr, "operator", svc)}
+    ctx.obj = await common.address_obj(ctx, lambda: resolve_agent_addr(addr, "operator", svc))
 
 
 @_addr.command("show")

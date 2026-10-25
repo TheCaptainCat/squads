@@ -6,9 +6,9 @@ kind, not by inspecting the context dict the function builds."""
 
 import pytest
 
-from _helpers import create_item
+from _helpers import catalog_of, create_item
 from squads import _views as views
-from squads._rendering._engine import invalidate_squad_dir, set_active_squad_dir
+from squads._rendering._engine import invalidate_squad_dir
 from squads._workflow._models import ViewSource, ViewSpec
 
 pytestmark = pytest.mark.anyio
@@ -28,12 +28,17 @@ async def test_a_role_source_receives_source_item_spec_and_squad_dir(svc) -> Non
         "role_probe.md.j2",
         "{{ source.slug }}|{{ item.id }}|{{ spec.items|length }}|{{ squad_dir }}\n",
     )
-    set_active_squad_dir(squad_dir)
     role_item = await svc.activate_role("tech-writer")
-    result = views._resolve_role_source(role_item, squad_dir)
+    result = views._resolve_role_source(role_item, squad_dir, catalog=catalog_of(squad_dir))
 
     rendered = views.render_source_view(
-        "role_probe", result, role_item, svc.spec, svc.paths.config.squad_dir, svc.working_language
+        "role_probe",
+        result,
+        role_item,
+        svc.spec,
+        svc.paths.config.squad_dir,
+        svc.working_language,
+        from_squad=squad_dir,
     )
 
     slug, item_id, n_items, sd = rendered.strip().split("|")
@@ -50,16 +55,21 @@ async def test_a_playbook_source_receives_source_item_spec_and_squad_dir(svc) ->
         "playbook_probe.md.j2",
         "{{ source.item_type }}|{{ source.roster|length }}|{{ item.id }}|{{ squad_dir }}\n",
     )
-    set_active_squad_dir(squad_dir)
     task = (await create_item(svc, "task", "T")).item
     roster = await svc.roster()
     view = ViewSpec(source=ViewSource(kind="playbook"))
     result = views._resolve_playbook_source(
-        view, task, svc.playbook, lambda: roster, svc.spec, None
+        view, task, svc.playbook, lambda: roster, svc.spec, catalog_of(None)
     )
 
     rendered = views.render_source_view(
-        "playbook_probe", result, task, svc.spec, svc.paths.config.squad_dir, svc.working_language
+        "playbook_probe",
+        result,
+        task,
+        svc.spec,
+        svc.paths.config.squad_dir,
+        svc.working_language,
+        from_squad=squad_dir,
     )
 
     item_type, n_roster, item_id, sd = rendered.strip().split("|")
@@ -78,7 +88,7 @@ async def test_a_playbook_source_carries_the_whole_active_playbook_not_only_its_
     roster = await svc.roster()
     view = ViewSpec(source=ViewSource(kind="playbook"))
     result = views._resolve_playbook_source(
-        view, task, svc.playbook, lambda: roster, svc.spec, None
+        view, task, svc.playbook, lambda: roster, svc.spec, catalog_of(None)
     )
 
     assert result.playbook is svc.playbook
@@ -89,12 +99,17 @@ async def test_a_self_source_receives_source_item_spec_and_squad_dir(svc) -> Non
     _place_probe_template(
         squad_dir, "self_probe.md.j2", "{{ source.id }}|{{ item.id }}|{{ squad_dir }}\n"
     )
-    set_active_squad_dir(squad_dir)
     task = (await create_item(svc, "task", "T")).item
     result = views._resolve_self_source(task)
 
     rendered = views.render_source_view(
-        "self_probe", result, task, svc.spec, svc.paths.config.squad_dir, svc.working_language
+        "self_probe",
+        result,
+        task,
+        svc.spec,
+        svc.paths.config.squad_dir,
+        svc.working_language,
+        from_squad=squad_dir,
     )
 
     rec_id, item_id, sd = rendered.strip().split("|")

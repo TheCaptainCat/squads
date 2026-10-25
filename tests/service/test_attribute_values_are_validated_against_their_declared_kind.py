@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import __version__
 from squads._rendering._engine import invalidate_squad_dir
 from squads._sections import replace_frontmatter, split_frontmatter
@@ -78,7 +78,7 @@ async def _prepared(
         encoding="utf-8",
     )
     invalidate_squad_dir(project.squad_dir)
-    svc = Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    svc = make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
     item = (await create_item(svc, "guide", "A guide")).item
     path = _guide_file(svc, item)
     text = path.read_text(encoding="utf-8")

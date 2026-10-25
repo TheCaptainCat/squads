@@ -160,7 +160,7 @@ def skills_for_role(role: RoleLike, spec: WorkflowSpec, playbook: PlaybookSpec) 
     dropped/renamed type's skill never lingers, and a project override's guidance changes are
     reflected once the caller threads the active/merged playbook.
     """
-    from squads._interactions import (
+    from squads._interactions._skills import (
         GREETING_SKILL,
         MEMORY_SKILL,
         SQUADS_SKILL,

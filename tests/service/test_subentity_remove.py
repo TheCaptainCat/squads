@@ -8,12 +8,11 @@ its reflecting the removal is a property of state, not of anything written here.
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads._errors import SquadsError
 from squads._index import _reflog
 from squads._index._reflog import reflog_path
 from squads._itemfile import read_frontmatter
-from squads._services._service import Service
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import WorkflowSpec
 
@@ -145,7 +144,7 @@ async def test_removing_a_renamed_story_kind_still_mapped_by_a_renamed_subtask_k
     """The same refusal as above, but with both sub-entity kinds renamed via an override —
     the guard must be driven by the spec's ``maps_parent_story`` flag, not a ``kind ==
     "story"`` literal, so a project that renames the built-in kinds keeps the protection."""
-    svc = Service(project, spec=_spec_with_renamed_story_and_subtask_kinds())
+    svc = make_service(project, spec=_spec_with_renamed_story_and_subtask_kinds())
     feat = (await create_item(svc, "feature", "F")).item
     story = await svc.add_block(feat.id, "userstory", "Login")
     task = (await create_item(svc, "task", "T", parent=feat.id)).item

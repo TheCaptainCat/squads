@@ -7,14 +7,16 @@ from typing import Any
 
 import pytest
 
-from _helpers import create_item, plant_attribute
+from _helpers import backends_of, catalog_of, create_item, make_service, plant_attribute
 from squads import __version__
 from squads import _clock as clock
+from squads._interactions._playbook import get_playbook_spec
 from squads._rendering._engine import invalidate_squad_dir
 from squads._services import _validators
 from squads._services._results import CheckIssue
 from squads._services._service import Service
 from squads._services._validators import SquadGlobalContext, ValidatorEngine
+from squads._specload import OverrideFiles
 from squads._workflow import load_workflow_spec
 
 pytestmark = pytest.mark.anyio
@@ -37,7 +39,7 @@ def _select(project: Any, entries: list[str]) -> Service:
         encoding="utf-8",
     )
     invalidate_squad_dir(project.squad_dir)
-    return Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    return make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
 
 
 async def _corpus(svc: Service) -> str:
@@ -146,7 +148,13 @@ async def test_the_gate_never_evaluates_a_squad_global_member(project) -> None:
         return []
 
     engine = ValidatorEngine(
-        spec=svc.spec, paths=project, squad_global={name: counted for name in ("wip_limit",)}
+        spec=svc.spec,
+        paths=project,
+        squad_global={name: counted for name in ("wip_limit",)},
+        playbook=get_playbook_spec(),
+        role_catalog=catalog_of(project.squad_dir),
+        override_files=OverrideFiles(),
+        backends=backends_of(project),
     )
     db = await svc.store.load()
     engine.gate(next(iter(db.items.values())), db)
@@ -172,7 +180,7 @@ _BASELINE = [
 async def test_a_squad_that_selects_nothing_gets_exactly_the_recorded_issues(
     project, entries: list[str] | None
 ) -> None:
-    svc = _select(project, entries) if entries is not None else Service(project)
+    svc = _select(project, entries) if entries is not None else make_service(project)
     qa = await svc.activate_role("qa")
     await plant_attribute(svc, qa.id, "is_default", True)
     gone = (await create_item(svc, "task", "Vanished")).item
@@ -209,7 +217,14 @@ async def test_the_clock_is_read_once_per_run_and_every_item_is_measured_against
 
     monkeypatch.setattr(_validators.clock, "now", drifting)
     db = await svc.store.load()
-    engine = ValidatorEngine(spec=svc.spec, paths=project, playbook=svc.playbook)
+    engine = ValidatorEngine(
+        spec=svc.spec,
+        paths=project,
+        playbook=svc.playbook,
+        role_catalog=svc.catalog,
+        override_files=svc.files,
+        backends=svc._backends,
+    )
 
     issues = engine.report(db, {})
 

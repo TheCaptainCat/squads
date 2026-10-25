@@ -17,7 +17,7 @@ import json
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError, model_validator
 
 from squads import _clock as clock
 from squads._services._results import ImportIssue
@@ -216,6 +216,7 @@ class UpdateEvent(_EventBase):
     title: str | None = None
     description: str | None = None
     assignee: str | None = None
+    clear_assignee: bool = False
     add_labels: list[str] = []
     rm_labels: list[str] = []
     parent: str | None = None
@@ -224,6 +225,35 @@ class UpdateEvent(_EventBase):
     force: bool = False
     fields: dict[str, str] = {}
     unset_fields: list[str] = []
+
+    @model_validator(mode="after")
+    def _update_names_a_valid_change(self) -> UpdateEvent:
+        if self.assignee is not None and not self.assignee.strip():
+            raise ValueError("assignee is empty; use clear_assignee to remove the assignee")
+        if self.assignee is not None and self.clear_assignee:
+            raise ValueError("use assignee or clear_assignee, not both")
+        if not (self.clear_assignee or self._other_changes()):
+            raise ValueError("nothing to update: the event names no field")
+        return self
+
+    def _other_changes(self) -> bool:
+        """Whether the event asks for any change besides removing the assignee."""
+        return bool(
+            self.title is not None
+            or self.description is not None
+            or self.assignee is not None
+            or self.add_labels
+            or self.rm_labels
+            or self.parent
+            or self.clear_parent
+            or self.status is not None
+            or self.fields
+            or self.unset_fields
+        )
+
+    def only_clears_assignee(self) -> bool:
+        """Whether the event asks for nothing but removing the assignee."""
+        return self.clear_assignee and not self._other_changes()
 
 
 #: The v1 op set, as a discriminated union on ``op`` — the closed vocabulary the JSONL

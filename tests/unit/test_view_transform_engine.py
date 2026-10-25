@@ -10,7 +10,8 @@ from squads import _clock as clock
 from squads._models._item import Item
 from squads._transform import TransformLoader, ViewTransformError, check_view_transforms
 from squads._workflow import bundled_spec
-from squads._workflow._models import ViewTransform, view_transform_problems
+from squads._workflow._models import ViewTransform
+from squads._workflow._validity import view_transform_problems
 
 
 def _item() -> Item:

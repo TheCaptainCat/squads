@@ -3,7 +3,7 @@ id: REV-1099
 sequence_id: 1099
 type: review
 title: 'Adopter field report on 0.15.0: upgrade and a day of work'
-status: InReview
+status: Approved
 author: reviewer
 refs:
 - REV-565
@@ -13,7 +13,7 @@ refs:
 subentities:
 - local_id: F1
   title: 'The sq import event schema is undocumented: no op/field reference'
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F2
   title: sync reports an older release's generated pointer as 'had drifted'
@@ -37,7 +37,7 @@ subentities:
   severity: low
 - local_id: F7
   title: Finding lifecycle has no Noted or Deferred state
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F8
   title: sq list has no compact form; long titles wrap over several lines
@@ -49,15 +49,15 @@ subentities:
   severity: medium
 - local_id: F10
   title: A review can be Approved with Open findings and sq check stays silent
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F11
   title: Bundled reviewer guidance does not say when a review is warranted
-  status: Open
+  status: Verified
   severity: low
 - local_id: F12
   title: Role-override docs never show splat-refs on list fields
-  status: Open
+  status: Verified
   severity: low
 - local_id: F13
   title: sq role show does not say how to change a role's definition
@@ -80,7 +80,7 @@ subentities:
   status: Verified
   severity: low
 created_at: '2026-10-24T09:19:58Z'
-updated_at: '2026-10-25T00:54:27Z'
+updated_at: '2026-10-25T16:06:34Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -185,6 +185,10 @@ model so it cannot drift.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T11:43:26Z] `tech-writer` Theo Writer:
+  - Fixed: docs/adoption.md gains an "Event reference" (all 13 ops of the import model, keys, rules) with an example file, imported clean in a scratch squad (TASK-1107 ST1).
+- [2026-10-25T16:05:33Z] `reviewer` Paul Reviewer:
+  - Verified (driven): the docs/adoption.md event table matches all 13 ImportEvent models field for field; its example file dry-runs and imports clean (handles, Deferred pointer, stored default severity); the documented refusals (extra key, no actor, empty update, assignee+clear_assignee, body without force, Deferred without deferred_to) all reproduce; the tests/meta guard passes.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -368,6 +372,10 @@ expecting a ref to the item that carries the work, so `sq check` can verify the 
 <!-- sq:finding:F7:discussion -->
 - [2026-10-24T09:37:22Z] `op-pierre` Pierre Chat:
   - Agreed: add Deferred (with a ref to the item that carries the work) and Noted (for an info finding). It changes the lifecycle, so it goes through an ADR from the architect.
+- [2026-10-25T16:05:51Z] `reviewer` Paul Reviewer:
+  - Fixed by TASK-1105 (ADR-1102): finding states Noted and Deferred, with a deferred_to pointer checked by sq check.
+- [2026-10-25T16:05:55Z] `reviewer` Paul Reviewer:
+  - Verified (driven, dev build 0.17; this repo board tool is 0.16): Open to Noted works and Noted to Open needs --force; Deferred without --deferred-to is refused even with --force, a missing carrier is refused, a real one stores and shows "Deferred to TASK-10 - carrier"; cancelling the carrier makes sq check warn. Reviewer guidance in playbook.toml names both states.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -443,6 +451,8 @@ no outgoing transition, so reopening a review under a stricter rule needs `--for
 <!-- sq:finding:F10:discussion -->
 - [2026-10-25T00:54:27Z] `manager` Catherine Manager:
   - Rule shipped by TASK-1104 ST1 (7d538630), verified in REV-1131. Verification waits on ST3, the cleanup of this repo reviews, which needs the board tool upgrade.
+- [2026-10-25T16:05:35Z] `reviewer` Paul Reviewer:
+  - Verified (driven, dev build): an Approved review with an Open and a Fixed finding warns "status is Approved with 2 unsettled findings: F1, F2"; InReview stays silent; settling them as Noted and Verified clears it. The repo cleanup of existing reviews stays on TASK-1104 ST3.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -467,6 +477,10 @@ review when it has findings; otherwise comment the verdict on the item".
 <!-- sq:finding:F11:discussion -->
 - [2026-10-24T09:37:23Z] `op-pierre` Pierre Chat:
   - No bundled convention: when to open a review is part of the init interview on how to run the repository; each adopter decides. The fix is a question in the interview checklist, not a rule in the reviewer guidance.
+- [2026-10-25T11:43:31Z] `tech-writer` Theo Writer:
+  - Fixed per the op-pierre ruling: a question under "3. Quality bar" in docs/agents.md, no bundled rule or recommended answer (TASK-1107 ST4).
+- [2026-10-25T16:05:37Z] `reviewer` Paul Reviewer:
+  - Verified (read): docs/agents.md, area 3 Quality bar, asks when a check gets its own review item and whether that changes when it found nothing; no bundled rule or answer, area count unchanged, per the op-pierre ruling.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -489,6 +503,10 @@ Recommendation: state in the role-override section that the same grammar applies
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
+- [2026-10-25T11:43:29Z] `tech-writer` Theo Writer:
+  - Fixed: docs/overrides.md shows responsibilities = ["$(*self)", "…"] on a role and says the grammar holds for role overrides; verified in a scratch squad (TASK-1107 ST3).
+- [2026-10-25T16:05:40Z] `reviewer` Paul Reviewer:
+  - Verified (driven, dev build): responsibilities = ["$(*self)", "..."] appends to the bundled list in both roles/architect.toml and a [[roles]] entry of roles.toml; scaffold --role writes the commented append line; both doc anchors resolve.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 
@@ -627,4 +645,6 @@ tracking the bundle.
 <!-- sq:discussion -->
 - [2026-10-24T09:37:25Z] `op-pierre` Pierre Chat:
   - Triage (2026-10-24): fix every other finding as recommended. Defects F4, F5, F9, F16, F6, F2; sq check rules F10, F3; docs, bundled guidance and ergonomics F1, F12, F13, F15, F17, F8.
+- [2026-10-25T16:06:34Z] `manager` Catherine Manager:
+  - Approved: all 17 findings Verified.
 <!-- sq:discussion:end -->

@@ -14,7 +14,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
-from squads._interactions import PLAYBOOK, get_playbook_spec
+from squads._interactions._playbook import bundled_item_playbooks, get_playbook_spec
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._roles._catalog import PREDEFINED
@@ -113,11 +113,12 @@ def _render_item_skill(item_type: str, roster: list[RoleView]) -> str:
         item=_probe_skill_item(item_type),
         spec=spec,
         squad_dir=None,
+        from_squad=None,
     )
 
 
 def test_dev_section_renders_for_the_three_types_with_a_dev_guide_when_a_dev_is_in_roster() -> None:
-    for item_type in PLAYBOOK:
+    for item_type in bundled_item_playbooks():
         body = _render_item_skill(item_type, _ROSTER_WITH_DEV)
         has_section = "## For `*dev`: " in body
         assert has_section == (item_type in _DEV_GUIDE_TYPES), (
@@ -140,7 +141,7 @@ def test_rendered_skill_body_is_byte_identical_to_the_pinned_golden_on_the_dev_r
     newline either side — so the comparison strips the golden's own trailing newline rather
     than the other way around.
     """
-    for item_type in PLAYBOOK:
+    for item_type in bundled_item_playbooks():
         golden_path = GOLDENS_DIR / f"skill_body_sq-{item_type}.txt"
         if not golden_path.exists():
             continue  # not every bundled type ships a pre-existing golden (e.g. epic/feature)

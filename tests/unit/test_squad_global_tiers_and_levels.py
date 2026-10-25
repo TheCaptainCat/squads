@@ -7,7 +7,7 @@ import inspect
 from squads._services import _validators
 from squads._services._validators import SQUAD_GLOBAL_CATALOG
 from squads._workflow import bundled_spec
-from squads._workflow._models import (
+from squads._workflow._validator_names import (
     ALWAYS_ON_SQUAD_GLOBAL_NAMES,
     DEFAULT_SQUAD_GLOBAL_LEVEL,
     SELECTABLE_SQUAD_GLOBAL_NAMES,

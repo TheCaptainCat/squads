@@ -3,7 +3,7 @@ id: ADR-1128
 sequence_id: 1128
 type: decision
 title: 'Service wiring: a DI container or one composition function'
-status: Proposed
+status: Accepted
 author: architect
 priority: medium
 refs:
@@ -11,83 +11,67 @@ refs:
 - REV-956
 - TASK-1125
 - ADR-1052
-description: 'REV-956 F14: options A (no container, one composition function) and
-  B (soupape); recommends A, reopen on request-scoped growth in the daemon'
+description: 'REV-956 F14: no DI container; one composition function builds Service
+  and loads each spec document once per invocation'
 created_at: '2026-10-24T21:58:58Z'
-updated_at: '2026-10-24T21:59:25Z'
+updated_at: '2026-10-25T10:51:41Z'
 ---
 <!-- sq:body -->
 ## Context
 
-REV-956 F14 asks whether squads should wire its service through a DI container. The obvious candidate is `soupape`. The operator ruled on 2026-10-09 that the question is decided in 0.17, together with the structural work in FEAT-1092. TASK-1125 (one composition root, F15) waits on the answer.
+REV-956 F14 asks whether squads should wire its service through a DI container, the obvious candidate being `soupape`. The question was decided together with the structural work in FEAT-1092, and TASK-1125 (one composition root, F15) builds the answer.
 
-What the code looks like on 2026-10-24 (read, not driven):
+What the code looks like (read, not driven, 2026-10-24):
 
 - **Ten production `Service(...)` constructions** build the same small graph: `Service`, `IndexStore`, `SquadPaths`, `WorkflowSpec`, `PlaybookSpec` and up to two backends. They are in `_services/_service.py` (`init`, `adopt`, three `open_service` branches), `_cli/_common.py` (three in the bypass ladder) and `_cli/_main.py` (two `sq check` fallbacks). Four of them pass no playbook.
-- **Most of the variation between sites is fallback policy**: which spec and playbook to use when an override fails to load. A container resolves types. It does not choose between fallbacks.
-- **Process state.** Construction relies on process-wide state: the `_active_squad_dir` `ContextVar` set in `ServiceCore.__init__` and re-asserted after each `anyio.run` crossing, and the backend `_REGISTRY` dict filled as an import side effect.
+- **Most of the variation between sites is fallback policy**: which spec and playbook to use when an override fails to load. A container resolves types; it does not choose between fallbacks.
+- **Process state.** Construction relies on the `_active_squad_dir` `ContextVar` set in `ServiceCore.__init__` and re-asserted after each `anyio.run` crossing, and on the backend `_REGISTRY` dict filled as an import side effect.
 - **Per-invocation scope** is two memo keys on the Click root context.
-- **The daemon** (ADR-1052) is one long-lived process per squad and per squads version. It holds one squad's service and answers many requests. Each request needs its own `RequestContext` and read scope. Writes already go through `IndexStore.transaction()` under the file lock.
+- **The spec documents** (workflow spec, role catalog, playbook) are loaded by whichever caller needs them: module-level singletons at import, the CLI help path, `open_service`, and per-call loaders such as the role resolver's `load_role_catalog(squad_dir)`. Nothing owns how often they load.
+- **The daemon** (ADR-1052) is one long-lived process per squad and per squads version. It holds one squad's service and answers many requests, each with its own `RequestContext` and read scope. Writes already go through `IndexStore.transaction()` under the file lock.
 
-The reviewer's F14 measurements still describe this graph:
+The F14 measurements of `soupape` against this graph: construction takes 0.17 ms, so startup cost is import time; `soupape` brings four 0.x packages; a constructor hint importable only under `TYPE_CHECKING` raises a bare `NameError` from the container; and its resolution errors name the missing interface, not the service that needed it.
 
-- Construction takes 0.17 ms. Startup cost is import time.
-- `soupape` brings four 0.x packages.
-- A constructor hint that is importable only under `TYPE_CHECKING` raises a bare `NameError` from the container.
-- The container's resolution errors name the missing interface, not the service that needed it.
+## Decision
 
-## Options
+**No DI container. `Service` is built by one composition function.**
 
-**A. No container. One composition function (TASK-1125).**
-- The composition function takes the paths and a mode, and the fallback order becomes one table.
-- The store and backends are built in that function and passed in.
-- The renderer takes the squad directory as an argument.
-- The registry becomes a literal table.
-- For the daemon, the request handler opens a request scope (bind `RequestContext`, open the read scope, close both) around a service built once at startup. That is one context manager.
-- Cost: hand-written wiring, which is about 10 sites today and becomes 1.
+- The composition function takes the squad paths and a mode (normal, index cross-check skipped, playbook unavailable, bundled fallback) and returns the service. Every construction site calls it, and the fallback order is one table in one module.
+- It builds the `IndexStore` and the active backends and passes them in. `ServiceCore.__init__` constructs no collaborator.
+- The renderer takes the squad directory as an argument; the `_active_squad_dir` `ContextVar` and its re-asserts go.
+- The backend registry is a literal name-to-class table with no registration side effect.
+- In the daemon, the request handler opens a request scope (bind `RequestContext`, open the read scope, close both) around the service built once at startup. That scope is one context manager beside the composition function.
 
-**B. Adopt `soupape` at the composition root.**
-- The same graph is registered as singletons. Per-request objects are scoped services, created per daemon request, with ordered teardown.
-- What it would give: lifetime and teardown are declared, not written by hand, which matters if the daemon grows request-scoped collaborators with their own resources.
-- What it costs:
-  - four 0.x runtime dependencies against seven established ones;
-  - an extra 60-260 ms import on the CLI hot path, which FEAT-916 is trying to shrink;
-  - a `NameError` path outside `SquadsError`;
-  - error messages that point less precisely at the cause than today's.
-- It does not remove the fallback table, and it does not fix `X | None = None` defaults. An unregistered optional resolves to `None`, which is the same silent fallback.
+**The composition root owns the spec documents.** The workflow spec, the role catalog and the playbook are each loaded **exactly once per invocation**, on every path that uses them, and not at all on a path that does not (a bare `sq --version` loads none). This holds for ordinary commands, `--help` and completion, `sq check` and every fallback mode, not only for `--help`. Concretely, per invocation and per document:
 
-**Comparison on the four criteria.**
+- the packaged TOML is parsed at most once;
+- the project override, when present, is read at most once;
+- each distinct model (the bundled one, and the merged one when an override exists) is built at most once, from those parses.
 
-| Criterion | A, no container | B, soupape |
-|---|---|---|
-| Scoping | Holds while the per-request set is `RequestContext` plus the read scope. | Helps only when the per-request set grows. |
-| Lifetime | Equal: the daemon has one singleton service either way. | Equal. |
-| Testability | Equal: required parameters and passed-in collaborators make the classes constructible by hand, and 328 test constructions already do that. | Equal. |
-| Dependency cost | None added. | Four 0.x packages on the startup path. |
+A document may be resolved lazily, on first use, as TASK-1125 does for the role catalog so that a malformed roles override fails where it fails today; lazy resolution is memoised at the composition root, so the first use is the only load. Code below the root receives the loaded document; it does not call a loader with a squad directory to get it again. In the daemon the documents are loaded with the service at startup and a request does not reload them; how an edited override reaches a running daemon is settled with the daemon handler (ADR-1052).
 
-## Recommendation
+## Why
 
-**Option A.** The graph has six nodes, its real complexity is fallback policy, and the daemon's per-request state is two objects. A container would add dependencies and import time, and would not reach the parts that are hard.
-
-Once TASK-1124 and TASK-1125 land, moving to B is a contained change, because every class takes its collaborators explicitly and only one function constructs them. Reopen this decision when either of these is true:
-
-- the daemon's request handling needs three or more request-scoped collaborators with teardown;
-- the service is split so that wiring is written in more than one place.
+- The graph has six nodes and its real complexity is fallback policy, which a container does not reach.
+- The daemon's per-request state is two objects, `RequestContext` and the read scope; one context manager covers it.
+- A container would add four 0.x runtime dependencies and 60-260 ms of import on the CLI hot path that FEAT-916 is shrinking, a `NameError` path outside `SquadsError`, and error messages that point less precisely at the cause.
+- Testability is equal either way: required parameters and passed-in collaborators make every class constructible by hand, as the 328 test constructions already do.
+- One composition function is also the one place a load-once guarantee can be enforced; with loads spread across callers, nothing can.
 
 ## Consequences
 
-**If A:**
-- TASK-1125 proceeds as written.
-- F14 closes as WontFix, citing this ADR.
-- The daemon's request scope is a context manager next to the composition function, designed with the daemon handler.
-- No new dependency is added.
+- TASK-1125 proceeds as written, and its acceptance includes the load-once guarantee above, proved by a test that counts parses, override reads and model builds per document for each command path.
+- REV-956 F14 closes as WontFix, citing this decision.
+- No dependency is added.
+- The daemon's request scope is designed with the daemon handler, next to the composition function.
+- Moving to a container later is a contained change: every class takes its collaborators explicitly and one function constructs them.
+- **Reopen trigger.** This decision is reopened when either holds:
+  - the daemon's request handling needs three or more request-scoped collaborators with teardown;
+  - the service is split so that wiring is written in more than one place.
 
-**If B:**
-- TASK-1125 is re-planned around container registration.
-- `soupape` and its three dependencies are added to `pyproject.toml`.
-- The import cost is measured against the FEAT-916 budget.
-- Constructor hints used by the container are moved out of `TYPE_CHECKING`.
-- Container errors are wrapped in `SquadsError` at the edge.
+## Option considered and rejected
+
+**Adopt `soupape` at the composition root.** The same graph registered as singletons, per-request objects as scoped services with ordered teardown. Its gain is declared lifetime and teardown, which matters only once the daemon grows request-scoped collaborators with their own resources (the reopen trigger). Rejected for the dependency and import cost, the error paths above, and because it removes neither the fallback table nor the silent `X | None = None` fallback: an unregistered optional resolves to `None`.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -95,4 +79,8 @@ Once TASK-1124 and TASK-1125 land, moving to B is a contained change, because ev
 <!-- sq:discussion -->
 - [2026-10-24T21:59:25Z] `architect` Robert Architect:
   - @op-pierre your ruling, please: option A (no container, one composition function, reopen on the stated triggers) or B (soupape at the composition root). I recommend A. TASK-1125 waits on it.
+- [2026-10-25T10:45:51Z] `op-pierre` Pierre Chat:
+  - Ruling: option A, one composition function, no DI container (no soupape).
+- [2026-10-25T10:51:41Z] `architect` Robert Architect:
+  - 2026-10-25: body rewritten to record the op-pierre ruling (option A, no container), with the soupape option kept as considered and rejected and the reopen trigger as a consequence. Added his acceptance rule from TASK-1123 as part of the decision: the composition root loads the workflow spec, the role catalog and the playbook exactly once per invocation on every path that uses them, defined per document as one parse of the packaged TOML, one read of the override, one build of each distinct model. Moved to Accepted. Measured today on release/0.17 HEAD the rule does not hold yet; counts are on TASK-1125.
 <!-- sq:discussion:end -->

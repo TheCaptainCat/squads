@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from squads import __version__
-from squads._interactions import item_skill_name
+from squads._interactions._skills import item_skill_name
 from squads._roles._catalog import PREDEFINED
 from squads._services import _service as service
 from squads._workflow import ROSTER_SKILL

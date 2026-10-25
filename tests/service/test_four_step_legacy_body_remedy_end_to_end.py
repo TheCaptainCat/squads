@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads import __version__
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
@@ -35,7 +36,7 @@ def _clear_override(squad_dir: Path) -> None:
 
 
 def _reopen(project) -> Service:
-    return Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    return make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
 
 
 def _region(text: str) -> str:

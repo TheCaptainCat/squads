@@ -15,7 +15,7 @@ does NOT touch (an explicit ``--kind`` naming an undeclared kind is still refuse
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads._errors import SquadsError
 from squads._sections import join_frontmatter, split_frontmatter
 
@@ -285,11 +285,11 @@ async def test_undeclared_kind_edge_agrees_across_refs_and_check_after_a_default
     appear identically in refs_out/refs_in/graph/check."""
     from squads import __version__
     from squads._rendering._engine import invalidate_squad_dir
-    from squads._services._service import Service, init
+    from squads._services._service import init
     from squads._services._validators import ValidatorContext, _ref_kind_valid
 
     result = await init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = Service(result.paths)
+    svc = make_service(result.paths)
     target = (await create_item(svc, "task", "target")).item
     stale = (await create_item(svc, "task", "stale spelling")).item
     native = (await create_item(svc, "task", "native default")).item
@@ -307,7 +307,7 @@ async def test_undeclared_kind_edge_agrees_across_refs_and_check_after_a_default
     invalidate_squad_dir(result.paths.squad_dir)
     from squads._workflow import load_workflow_spec
 
-    svc = Service(result.paths, spec=load_workflow_spec(squad_dir=result.paths.squad_dir))
+    svc = make_service(result.paths, spec=load_workflow_spec(squad_dir=result.paths.squad_dir))
     assert "related" not in svc.spec.ref_kinds
     assert svc.spec.default_ref_kind() == "primary"
 

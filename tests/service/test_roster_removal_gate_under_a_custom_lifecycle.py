@@ -6,6 +6,7 @@ from pathlib import Path
 import anyio
 import pytest
 
+from _helpers import make_service
 from squads._errors import ConfigIntegrityError
 from squads._services import _service as service
 from squads._services._service import Service
@@ -30,11 +31,11 @@ async def _squad(root: Path, monkeypatch: pytest.MonkeyPatch, *, standby: bool) 
     monkeypatch.chdir(root)
     paths = (await service.init(root=root, roles_spec="minimal")).paths
     if not standby:
-        return Service(paths)
+        return make_service(paths)
     overrides = anyio.Path(paths.squad_dir / ".overrides")
     await overrides.mkdir()
     await (overrides / "workflow.toml").write_text(_STANDBY_LIFECYCLE)
-    return Service(paths, spec=load_workflow_spec(squad_dir=paths.squad_dir))
+    return make_service(paths, spec=load_workflow_spec(squad_dir=paths.squad_dir))
 
 
 async def _target(svc: Service, name: str) -> str:

@@ -7,6 +7,7 @@ from pathlib import Path
 import anyio
 import pytest
 
+from _helpers import make_service
 from squads._errors import ConfigIntegrityError
 from squads._services import _service as service
 from squads._services._service import Service
@@ -65,7 +66,7 @@ SHAPES: dict[str, tuple[Build, bool]] = {
 async def _squad(root: Path, monkeypatch: pytest.MonkeyPatch) -> Service:
     await anyio.Path(root).mkdir()
     monkeypatch.chdir(root)
-    return Service((await service.init(root=root, roles_spec="minimal")).paths)
+    return make_service((await service.init(root=root, roles_spec="minimal")).paths)
 
 
 def _normalized(warnings: list[str]) -> list[str]:

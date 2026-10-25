@@ -24,12 +24,14 @@ from typing import Any
 
 import pytest
 
+from _helpers import catalog_of
 from squads import __version__
 from squads._errors import SquadsError
 from squads._interactions._loader import load_playbook
 from squads._interactions._models import ItemPlaybookSpec, RoleGuideSpec
 from squads._roles._loader import load_role_catalog
 from squads._roles._models import RoleSpec
+from squads._workflow import bundled_spec
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import ItemSpec, LabelSpec
 
@@ -68,7 +70,7 @@ def _load_catalog(squad_dir: Path) -> None:
 
 
 def _load_playbook(squad_dir: Path) -> None:
-    load_playbook(load_role_catalog(squad_dir=squad_dir), squad_dir=squad_dir)
+    load_playbook(load_role_catalog(squad_dir=squad_dir), squad_dir=squad_dir, spec=bundled_spec())
 
 
 #: One row per override document that can carry a nested section, each with the model whose
@@ -189,7 +191,7 @@ async def test_a_top_level_unknown_key_still_refuses_in_its_own_shape(project) -
     from squads._roles._resolver import resolve_role
 
     with pytest.raises(SquadsError) as caught:
-        resolve_role("manager", project.squad_dir)
+        resolve_role("manager", project.squad_dir, catalog=catalog_of(project.squad_dir))
     message = str(caught.value)
 
     assert "unknown top-level key 'nonsense'" in message

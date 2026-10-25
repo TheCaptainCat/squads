@@ -8,14 +8,13 @@ import json
 
 import pytest
 
-from _helpers import create_item
-from squads._services._service import Service
+from _helpers import create_item, make_service
 
 pytestmark = pytest.mark.anyio
 
 
 async def test_repair_cli_reports_missing_items_and_holds_the_counter(project, invoke):
-    svc = Service(project)
+    svc = make_service(project)
     await create_item(svc, "feature", "feat")
     top = (await create_item(svc, "task", "task")).item
 
@@ -28,7 +27,7 @@ async def test_repair_cli_reports_missing_items_and_holds_the_counter(project, i
 
 
 async def test_repair_cli_holds_the_padding_floor_after_file_loss(project, invoke):
-    svc = Service(project)
+    svc = make_service(project)
     top = (await create_item(svc, "task", "task")).item
 
     raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))

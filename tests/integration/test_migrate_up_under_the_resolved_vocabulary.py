@@ -16,13 +16,15 @@ from typing import Any
 
 import pytest
 
+from _helpers import catalog_of, make_service
 from squads import __version__, _aio
 from squads._models._config import SquadsConfig
 from squads._models._schema import SCHEMA_VERSION
 from squads._paths import SquadPaths
 from squads._rendering._engine import invalidate_squad_dir
 from squads._services import _service as service
-from squads._services._service import Service, resolve_playbook
+from squads._services._service import Service
+from squads._spec_documents import resolve_playbook
 from squads._workflow import load_workflow_spec
 
 pytestmark = pytest.mark.anyio
@@ -176,7 +178,11 @@ async def _squad_from(source: str, tmp_path: Path, monkeypatch: pytest.MonkeyPat
 def _service_for(paths: SquadPaths) -> Service:
     invalidate_squad_dir(paths.squad_dir)
     spec = load_workflow_spec(squad_dir=paths.squad_dir)
-    return Service(paths, spec=spec, playbook=resolve_playbook(spec, paths.squad_dir))
+    return make_service(
+        paths,
+        spec=spec,
+        playbook=resolve_playbook(spec, paths.squad_dir, catalog_of(paths.squad_dir)),
+    )
 
 
 def _author_of(paths: SquadPaths) -> str:

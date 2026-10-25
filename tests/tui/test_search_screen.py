@@ -5,7 +5,7 @@ no-results states, and escape back to browse.
 import anyio
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 
 pytest.importorskip("textual")
 
@@ -13,7 +13,6 @@ from textual.content import Content
 from textual.widgets import ListView, Static
 from textual.widgets.tree import TreeNode
 
-from squads._services import _service as service
 from squads._tui._app import SquadsApp
 from squads._tui._browse import BrowseScreen
 from squads._tui._reader import ReaderScreen
@@ -292,7 +291,7 @@ async def test_type_filter_options_and_hit_rows_show_the_resolved_type_label(pro
     base = bundled_spec()
     pinned_bug = base.items["bug"].model_copy(update={"labels": LabelSpec(singular="Defect")})
     spec = base.model_copy(update={"items": {**base.items, "bug": pinned_bug}})
-    svc = service.Service(project, spec=spec)
+    svc = make_service(project, spec=spec)
     bug = (await create_item(svc, "bug", "Crash on save")).item
 
     app = SquadsApp(svc)

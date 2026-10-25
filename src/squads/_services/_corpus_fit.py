@@ -17,6 +17,7 @@ from squads._index._reconcile import entry_name
 from squads._index._store import badge_code_problems
 from squads._migrations._legacy_extra import read_flat
 from squads._models._index import SquadsDB
+from squads._workflow import bundled_spec
 from squads._workflow._loader import validate_against_index
 from squads._workflow._models import WorkflowSpec
 
@@ -133,7 +134,9 @@ def corpus_fit_refusal(
         )
     problems = [
         _OVERRIDE_HINT.sub("", p) if override_path is None else p
-        for p in validate_against_index(spec, flat_view(db), alignment=override_path is not None)
+        for p in validate_against_index(
+            spec, flat_view(db), bundled=bundled_spec(), alignment=override_path is not None
+        )
     ]
     if problems:
         remedy = "correct the named frontmatter by hand"

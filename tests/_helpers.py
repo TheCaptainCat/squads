@@ -13,8 +13,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from squads._backends._base import AgentBackend
+    from squads._interactions._models import PlaybookSpec
     from squads._migrations._context import MigrationContext
     from squads._paths import SquadPaths
+    from squads._roles._models import CatalogSource
+    from squads._services._service import Service
+    from squads._workflow._models import WorkflowSpec
 
 _ANSI_SGR = re.compile(r"\x1b\[[0-9;]*m")
 
@@ -231,15 +236,19 @@ async def resolved_skill_definition(svc: Any, slug: str) -> str:
     always has a real item), so there is no method on ``Service`` this wraps — see
     :func:`throwaway_skill_item` for why a stand-in is still test-legitimate.
     """
-    from squads import _interactions as interactions
-    from squads._views import render_source_view, resolve_source
+    from squads._views import (
+        ITEM_SKILL_VIEW_NAME,
+        SYSTEM_SKILL_VIEW_NAMES,
+        render_source_view,
+        resolve_source,
+    )
     from squads._workflow._models import ROSTER_SKILL
 
     # A permanently-system slug names its own view; every other template-owned slug is a
     # per-item-type skill and shares ITEM_SKILL_VIEW_NAME — whether or not *slug* still names a
     # declared type is resolved inside `resolve_source` itself (the emptiness case), never
     # pre-checked here.
-    view_name = interactions.SYSTEM_SKILL_VIEW_NAMES.get(slug, interactions.ITEM_SKILL_VIEW_NAME)
+    view_name = SYSTEM_SKILL_VIEW_NAMES.get(slug, ITEM_SKILL_VIEW_NAME)
     db = await svc.store.load()
     item = next(
         (it for it in db.items.values() if it.type == ROSTER_SKILL and it.slug == slug),
@@ -255,9 +264,16 @@ async def resolved_skill_definition(svc: Any, slug: str) -> str:
         svc.playbook,
         lambda: svc.roster_from_db(db),
         svc.paths.squad_dir,
+        catalog=svc.catalog,
     )
     rendered = render_source_view(
-        view_name, result, item, svc.spec, svc.paths.config.squad_dir, svc.working_language
+        view_name,
+        result,
+        item,
+        svc.spec,
+        svc.paths.config.squad_dir,
+        svc.working_language,
+        from_squad=svc.paths.squad_dir,
     )
     return rendered.strip("\n")
 
@@ -290,21 +306,69 @@ def make_unreadable_by_the_os(path: Path) -> Callable[[], None]:
     return _undo
 
 
+def catalog_of(squad_dir: Path | None) -> CatalogSource:
+    """The role catalog source for a test that points a resolver at *squad_dir*: it reads the
+    squad's roles override each time it is called, and is the bundled catalog for ``None``."""
+    from squads._roles._catalog import get_catalog
+    from squads._roles._loader import load_role_catalog
+
+    if squad_dir is None:
+        return get_catalog
+    return lambda: load_role_catalog(squad_dir)
+
+
+def backends_of(paths: SquadPaths) -> Callable[[], list[AgentBackend]]:
+    """The backends *paths* names, built fresh on each call."""
+    from squads._backends._registry import get_backend
+
+    return lambda: [get_backend(name) for name in paths.config.active_backends]
+
+
 def bundled_migration_context(paths: SquadPaths) -> MigrationContext:
     """The context a runner is handed when a squad carries no override: the bundled workflow
     spec and playbook beside *paths*."""
-    from squads._interactions import get_playbook_spec
+    from squads._interactions._playbook import get_playbook_spec
     from squads._migrations._context import MigrationContext
     from squads._workflow import bundled_spec
 
-    return MigrationContext(paths=paths, spec=bundled_spec(), playbook=get_playbook_spec())
+    return MigrationContext(
+        paths=paths,
+        spec=bundled_spec(),
+        playbook=get_playbook_spec(),
+        catalog=catalog_of(paths.squad_dir),
+    )
+
+
+def make_service(
+    paths: SquadPaths,
+    spec: WorkflowSpec | None = None,
+    playbook: PlaybookSpec | None = None,
+    backends: Callable[[], list[AgentBackend]] | None = None,
+) -> Service:
+    """A ``Service`` over *paths* with the bundled spec and playbook unless one is given."""
+    from squads._interactions._playbook import get_playbook_spec
+    from squads._services._service import build_service
+    from squads._spec_documents import SpecDocuments
+    from squads._specload import OverrideFiles
+    from squads._workflow import bundled_spec
+
+    return build_service(
+        paths,
+        SpecDocuments(
+            workflow=spec if spec is not None else bundled_spec(),
+            playbook=playbook if playbook is not None else get_playbook_spec(),
+            catalog=catalog_of(paths.squad_dir),
+            files=OverrideFiles(),
+        ),
+        backends,
+    )
 
 
 def pinned_attributes(roster_type: str) -> dict[str, Any]:
     """The attribute declarations a hand-built spec's *roster_type* must carry for the loader to
     accept it: the pinned roster attributes, each with its pinned kind."""
     from squads._models._attributes import AttributeSpec
-    from squads._workflow._models import PINNED_ROSTER_ATTRIBUTES
+    from squads._workflow._validity import PINNED_ROSTER_ATTRIBUTES
 
     return {
         name: AttributeSpec(kind=kind)  # pyright: ignore[reportArgumentType]

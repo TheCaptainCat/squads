@@ -30,7 +30,7 @@ def test_status_badge_never_raises_for_a_status_outside_any_fixed_domain() -> No
 
 def test_status_badge_with_no_spec_threaded_falls_back_to_the_bundled_one() -> None:
     """Call sites that don't thread a spec (e.g. the frozen migration runner) keep working."""
-    assert badges.status_badge("InProgress") == "🟡 In Progress"
+    assert badges.status_badge("InProgress", spec=bundled_spec()) == "🟡 In Progress"
 
 
 def test_extending_the_spec_with_a_custom_status_does_not_perturb_builtin_badge_text() -> None:

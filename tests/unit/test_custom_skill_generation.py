@@ -3,7 +3,7 @@
 (``custom_item_skill_commands`` — the standard verb set, embedding the type's own name).
 """
 
-from squads._interactions import (
+from squads._interactions._skills import (
     bundled_skill_slugs,
     custom_item_skill_commands,
     custom_skill_slugs,

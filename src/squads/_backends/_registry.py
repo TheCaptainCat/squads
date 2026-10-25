@@ -1,41 +1,25 @@
-"""Name → backend lookup. New backends register here."""
+"""Name → backend lookup: a literal table of the built-in backends. A new backend is a row here."""
 
-import importlib
+from collections.abc import Mapping
+from types import MappingProxyType
 
+from squads._backends._agents_md._backend import AgentsMdBackend
 from squads._backends._base import AgentBackend
+from squads._backends._claude_code._backend import ClaudeCodeBackend
 from squads._errors import SquadsError
 
-_REGISTRY: dict[str, type[AgentBackend]] = {}
-
-# Built-in backend packages — each is imported once for its register() side-effect.
-# To add a new built-in backend: append its module path here.
-_BUILTIN_BACKEND_MODULES = (
-    "squads._backends._claude_code",
-    "squads._backends._agents_md",
+_BACKENDS: Mapping[str, type[AgentBackend]] = MappingProxyType(
+    {
+        ClaudeCodeBackend.name: ClaudeCodeBackend,
+        AgentsMdBackend.name: AgentsMdBackend,
+    }
 )
-
-_loaded = False
-
-
-def _load_builtins() -> None:
-    global _loaded
-    if _loaded:
-        return
-    for module_path in _BUILTIN_BACKEND_MODULES:
-        importlib.import_module(module_path)
-    _loaded = True
-
-
-def register(cls: type[AgentBackend]) -> type[AgentBackend]:
-    _REGISTRY[cls.name] = cls
-    return cls
 
 
 def get_backend(name: str) -> AgentBackend:
-    _load_builtins()
     try:
-        return _REGISTRY[name]()
+        return _BACKENDS[name]()
     except KeyError:
         raise SquadsError(
-            f"unknown backend {name!r} (available: {', '.join(_REGISTRY) or 'none'})"
+            f"unknown backend {name!r} (available: {', '.join(_BACKENDS) or 'none'})"
         ) from None

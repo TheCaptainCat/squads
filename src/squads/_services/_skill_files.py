@@ -8,7 +8,7 @@ from typing import Literal
 
 from squads import _sections as sections
 from squads._errors import SquadsError
-from squads._interactions import bundled_skill_slugs, custom_skill_slugs
+from squads._interactions._skills import bundled_skill_slugs, custom_skill_slugs
 from squads._models._item import Item
 from squads._models._vocab import prefix_for
 from squads._services._duplicate_ids import CarrierLog, file_slug, normalized_id

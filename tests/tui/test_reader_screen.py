@@ -54,18 +54,18 @@ async def test_reader_screen_expands_no_tag_and_no_index_load_for_an_untagged_bo
 ):
     """A browse-tree selection with no view tag never reaches expansion at all, driven
     through the real component."""
-    from squads import _views as views
+    from squads import _view_tags as view_tags
 
     feat = (await create_item(svc, "feature", "Standalone", body="Hello world")).item
 
     calls: list[str] = []
-    original = views.expand_view_tags
+    original = view_tags.expand_view_tags
 
     def counted(*args, **kwargs):
         calls.append(args[1].id)
         return original(*args, **kwargs)
 
-    monkeypatch.setattr(views, "expand_view_tags", counted)
+    monkeypatch.setattr(view_tags, "expand_view_tags", counted)
 
     app = App[None]()
     async with app.run_test() as pilot:

@@ -6,9 +6,8 @@ and two distinct types are free to share the same kind without either misrouting
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads._rendering._engine import invalidate_squad_dir
-from squads._services import _service as service
 from squads._workflow import bundled_spec
 from squads._workflow._models import ItemSpec, SubentityKindSpec
 
@@ -41,14 +40,14 @@ def _spec_with_custom_kind():
 async def test_a_project_declared_type_hosting_a_project_declared_kind_resolves_with_no_code_change(
     project,
 ) -> None:
-    svc = service.Service(project, spec=_spec_with_custom_kind())
+    svc = make_service(project, spec=_spec_with_custom_kind())
     assert svc.subentity_parent["ticket"] == "gadget"
     assert svc.subentity_kind["gadget"] == "ticket"
     assert svc.subentity_container["ticket"] == "tickets"
 
 
 async def test_the_bundled_maps_are_per_service_never_a_shared_global(project) -> None:
-    svc = service.Service(project)  # a different service, bundled spec only
+    svc = make_service(project)  # a different service, bundled spec only
     assert "ticket" not in svc.subentity_parent
     assert "gadget" not in svc.subentity_kind
     assert svc.subentity_parent == {"story": "feature", "subtask": "task", "finding": "review"}
@@ -77,7 +76,7 @@ async def test_two_types_sharing_one_kind_each_resolve_their_own_items_independe
         encoding="utf-8",
     )
     invalidate_squad_dir(project.squad_dir)  # evict the pre-existing-template env cache
-    svc = service.Service(project, spec=spec)
+    svc = make_service(project, spec=spec)
 
     task = (await create_item(svc, "task", "t")).item
     ticket = (await create_item(svc, "ticket", "tk")).item

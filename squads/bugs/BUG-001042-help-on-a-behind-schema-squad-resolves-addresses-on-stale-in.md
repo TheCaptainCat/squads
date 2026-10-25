@@ -3,14 +3,14 @@ id: BUG-1042
 sequence_id: 1042
 type: bug
 title: Help on a behind-schema squad resolves addresses on stale index
-status: Open
+status: Verified
 author: qa
 priority: low
 refs:
 - REV-1033
 - MILE-1051:targets
 created_at: '2026-10-16T09:01:36Z'
-updated_at: '2026-10-16T12:24:19Z'
+updated_at: '2026-10-25T11:11:41Z'
 ---
 <!-- sq:body -->
 ## Repro
@@ -42,4 +42,6 @@ Found in the docs audit (REV-1033 body, "Code observation").
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-25T11:10:52Z] `qa` Mara Tester:
+  - Verified at HEAD 091bfb77: squad stamped schema 0.15 (build expects 0.16): `list` and `task 1 show` hit the migrate gate; `task 1 show --help`, `task 1 comment --help` and `task 1 comment -m -m --help` print help, exit 0, no ROLE-1 error.
 <!-- sq:discussion:end -->

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of
 from squads import __version__
 from squads._workflow._loader import lint_workflow_spec
 
@@ -134,7 +135,10 @@ def test_lint_and_check_agree_on_the_workflow_stamp_finding(tmp_path: Path, cont
     _write_override(tmp_path, content)
 
     lint_findings = {(level, msg) for level, _loc, msg, _hint in lint_workflow_spec(tmp_path)}
-    check_findings = {(level, msg) for level, _loc, msg in check_override_issues(tmp_path)}
+    check_findings = {
+        (level, msg)
+        for level, _loc, msg in check_override_issues(tmp_path, catalog=catalog_of(tmp_path))
+    }
     assert lint_findings == check_findings
 
 

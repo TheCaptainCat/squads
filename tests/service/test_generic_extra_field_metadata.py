@@ -8,7 +8,7 @@ it shares the same call site (``ItemsMixin._apply_attributes``).
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads._errors import SquadsError
 
 pytestmark = pytest.mark.anyio
@@ -102,7 +102,6 @@ async def test_a_roles_name_is_refused_with_the_verb_that_sets_it_once_its_view_
     """With the definition view dropped from ``[selected]`` a role takes a generic update again,
     and ``full_name`` is refused with the verb that actually sets the name."""
     from squads import __version__
-    from squads._services._service import Service
     from squads._workflow import load_workflow_spec
 
     overrides = project.squad_dir / ".overrides"
@@ -113,7 +112,7 @@ async def test_a_roles_name_is_refused_with_the_verb_that_sets_it_once_its_view_
         '"memory_skill", "item_skill"]\n',
         encoding="utf-8",
     )
-    reopened = Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    reopened = make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
 
     with pytest.raises(SquadsError, match="the item's own `title` field"):
         await reopened.update("ROLE-000001", set_attributes={"full_name": "Someone Else"})

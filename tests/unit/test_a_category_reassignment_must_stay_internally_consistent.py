@@ -29,14 +29,13 @@ import pytest
 
 from squads._errors import SquadsError
 from squads._workflow._loader import _build_spec, _bundled_raw
-from squads._workflow._models import (
+from squads._workflow._validator_names import (
     CATEGORY_BUNDLES,
     COMMON_CORE,
-    CONSISTENCY_CLAUSES,
     SUBENTITY_VALIDATOR_NAMES,
-    UNGUARDED_VALIDATOR_NAMES,
     VALIDATOR_NAMES,
 )
+from squads._workflow._validity import CONSISTENCY_CLAUSES, UNGUARDED_VALIDATOR_NAMES
 
 
 def _spec_with(overrides: dict[str, dict[str, object]]):

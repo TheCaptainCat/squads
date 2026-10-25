@@ -20,6 +20,7 @@ from dataclasses import replace
 
 import pytest
 
+from _helpers import catalog_of, make_service
 from squads._backends._base import BackendContext
 from squads._backends._claude_code._backend import ClaudeCodeBackend
 from squads._backends._claude_code._frontmatter import model_drop_warning, normalize_model
@@ -57,11 +58,11 @@ async def test_sync_reports_a_dev_roles_unrenderable_model_and_the_pointer_omits
     free-form string, so the item stores it and the pointer cannot render it."""
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, backend=["claude_code"], roles_spec="minimal")
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     dev = await svc.add_dev("python", model=_UNRENDERABLE)
     assert dev.attributes["model"] == _UNRENDERABLE  # durable, exactly as declared
 
-    reported = await service.Service(result.paths).sync()
+    reported = await make_service(result.paths).sync()
 
     pointer = (tmp_path / ".claude" / "agents" / "python-dev.md").read_text(encoding="utf-8")
     assert "model:" not in pointer  # still dropped -- this is a report, not a rescue
@@ -81,14 +82,14 @@ async def test_a_role_override_naming_an_unknown_model_is_refused_before_it_can_
     assert override.is_file()
 
     with pytest.raises(SquadsError, match=_UNRENDERABLE):
-        resolve_role("reviewer", result.paths.squad_dir)
+        resolve_role("reviewer", result.paths.squad_dir, catalog=catalog_of(result.paths.squad_dir))
 
 
 async def test_a_role_the_host_can_render_produces_no_warning_at_all(tmp_path, monkeypatch):
     """The negative case, so the report cannot be a constant: an ordinary roster syncs clean."""
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, backend=["claude_code"], roles_spec="all")
-    assert await service.Service(result.paths).sync() == []
+    assert await make_service(result.paths).sync() == []
 
 
 async def test_the_warning_travels_on_the_artifact_the_write_returned(tmp_path, monkeypatch):
@@ -96,12 +97,22 @@ async def test_the_warning_travels_on_the_artifact_the_write_returned(tmp_path, 
     the per-entry write returns, which is the channel every caller of a backend already has."""
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, backend=["claude_code"], roles_spec="minimal")
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     item = await svc.roster_item("role", "manager")
     assert item is not None
-    role = replace(resolve_role_for_item(item, result.paths.squad_dir), model=_UNRENDERABLE)
+    role = replace(
+        resolve_role_for_item(
+            item, result.paths.squad_dir, catalog=catalog_of(result.paths.squad_dir)
+        ),
+        model=_UNRENDERABLE,
+    )
 
-    ctx = BackendContext(paths=result.paths, spec=svc.spec, playbook=svc.playbook)
+    ctx = BackendContext(
+        paths=result.paths,
+        spec=svc.spec,
+        playbook=svc.playbook,
+        catalog=catalog_of(result.paths.squad_dir),
+    )
     artifact = await ClaudeCodeBackend().generate_role_entry(ctx, item, role)
 
     assert artifact.warning is not None

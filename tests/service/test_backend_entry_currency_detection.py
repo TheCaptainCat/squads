@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -40,7 +41,7 @@ def _drift_issues(issues, rel_path: str):
 
 async def test_a_current_pointer_produces_no_finding(tmp_squad: Path) -> None:
     result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     await svc.activate_role("qa")
 
     issues = await svc.check()
@@ -55,7 +56,7 @@ async def test_a_hand_edited_description_is_a_warn(tmp_squad: Path) -> None:
     """A role's frontmatter ``description`` restricts nothing — it only *supplies* selection
     text — so a hand-edit to it is a warn, never an error."""
     result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     pointer = tmp_squad / ".claude" / "agents" / "manager.md"
     text = pointer.read_text(encoding="utf-8")
     assert 'description: "' in text
@@ -73,7 +74,7 @@ async def test_a_hand_edited_description_is_a_warn(tmp_squad: Path) -> None:
 
 async def test_a_hand_edited_skill_pointer_is_a_warn(tmp_squad: Path) -> None:
     result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     await svc.sync()
     skills_dir = tmp_squad / ".claude" / "skills"
     one_skill = next(p for p in skills_dir.iterdir() if p.is_dir())
@@ -96,7 +97,7 @@ async def test_a_missing_restriction_on_a_leaf_role_is_an_error(tmp_squad: Path)
     ``disallowedTools: Agent``. Deleting that line — as a stale, pre-revocation pointer would
     read — is the capability-escalation shape the error severity exists for."""
     result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     await svc.activate_role("qa")
     pointer = tmp_squad / ".claude" / "agents" / "qa.md"
     text = pointer.read_text(encoding="utf-8")
@@ -116,7 +117,7 @@ async def test_a_role_that_may_spawn_carries_no_restriction_to_drift(tmp_squad: 
     line to begin with, so a content drift elsewhere on its pointer is a warn, never an error
     reached through the restriction fragment."""
     result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     pointer = tmp_squad / ".claude" / "agents" / "manager.md"
     text = pointer.read_text(encoding="utf-8")
     assert "disallowedTools" not in text
@@ -142,7 +143,7 @@ async def test_retire_reactivate_produces_no_drift_finding_at_any_point(tmp_squa
     retired entry's (withdrawn, absent) pointer is never a candidate for a content comparison
     at any point in the cycle — driven end to end, not reasoned about."""
     result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     item = await svc.activate_role("qa")
 
     issues = await svc.check()
@@ -162,7 +163,7 @@ async def test_retire_reactivate_produces_no_drift_finding_at_any_point(tmp_squa
 
 async def test_sync_reports_a_currency_fix_distinctly_from_a_presence_fix(tmp_squad: Path) -> None:
     result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     await svc.activate_role("qa")
 
     manager_pointer = tmp_squad / ".claude" / "agents" / "manager.md"
@@ -185,7 +186,7 @@ async def test_sync_reports_a_currency_fix_distinctly_from_a_presence_fix(tmp_sq
 
 async def test_sync_fixes_the_content_a_hand_edit_broke(tmp_squad: Path) -> None:
     result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     pointer = tmp_squad / ".claude" / "agents" / "manager.md"
     text = pointer.read_text(encoding="utf-8")
     pointer.write_text(text.replace("Load your full", "TAMPERED your full"), encoding="utf-8")

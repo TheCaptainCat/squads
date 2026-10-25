@@ -150,9 +150,9 @@ async def test_build_plain_service_always_uses_the_currently_bound_spec(
 
     captured: list[object] = []
 
-    def spy(*, client_cwd=None, resolved_spec=None):
+    def spy(*, client_cwd=None, resolved_spec=None, sources=None):
         captured.append(resolved_spec)
-        return open_service(client_cwd=client_cwd, resolved_spec=resolved_spec)
+        return open_service(client_cwd=client_cwd, resolved_spec=resolved_spec, sources=sources)
 
     monkeypatch.setattr(common, "open_service", spy)
 

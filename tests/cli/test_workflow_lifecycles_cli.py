@@ -35,7 +35,7 @@ from squads._cli._workflow_cmd import (
 )
 from squads._rendering._engine import invalidate_squad_dir
 from squads._workflow import load_workflow_spec
-from squads._workflow._models import lifecycle_edges_in_order, lifecycle_states_in_order
+from squads._workflow._lifecycle_order import lifecycle_edges_in_order, lifecycle_states_in_order
 
 pytestmark = pytest.mark.anyio
 

@@ -12,13 +12,13 @@ import json
 
 import pytest
 
-from squads._services import _service as service
+from _helpers import make_service
 
 pytestmark = pytest.mark.anyio
 
 
 async def test_check_exits_3_and_names_the_role_still_preloading_an_archived_skill(project, invoke):
-    svc = service.Service(project)
+    svc = make_service(project)
     await svc.seed_bundled_skills()
     squads_skill = await svc.roster_item("skill", "squads")
     assert squads_skill is not None
@@ -32,7 +32,7 @@ async def test_check_exits_3_and_names_the_role_still_preloading_an_archived_ski
 
 
 async def test_check_json_names_the_scoped_role_for_an_archived_custom_skill(project, invoke):
-    svc = service.Service(project)
+    svc = make_service(project)
     role = await svc.roster_item("role", "manager")
     assert role is not None
     skill = await svc.add_skill("Custom Helper")
@@ -48,7 +48,7 @@ async def test_check_json_names_the_scoped_role_for_an_archived_custom_skill(pro
 
 
 async def test_check_stays_clean_on_a_freshly_seeded_squad(project, invoke):
-    svc = service.Service(project)
+    svc = make_service(project)
     await svc.seed_bundled_skills()
 
     result = await invoke(["check"])

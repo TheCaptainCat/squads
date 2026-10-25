@@ -7,7 +7,7 @@ import random
 import pytest
 
 from squads._models import _markers as markers
-from squads._views import place_view_tags, strip_view_tags
+from squads._view_tags import place_view_tags, strip_view_tags
 from squads._workflow import bundled_spec
 from squads._workflow._models import ViewSource, ViewSpec, WorkflowSpec
 

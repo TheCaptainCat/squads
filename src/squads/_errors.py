@@ -64,7 +64,7 @@ class UnreadableFileError(SquadsError):
 
 class PlaybookConfigError(SquadsError):
     """The active playbook (bundled base + any ``.overrides/playbook.toml``) failed to load or
-    validate — raised by ``_services._service.resolve_playbook``, distinct from a plain
+    validate — raised by ``_spec_documents.resolve_playbook``, distinct from a plain
     ``SquadsError`` so a caller that also opens the workflow spec (``open_service``, ``sq
     check``) can tell a playbook failure apart from a workflow-spec failure and name the
     actually-broken file rather than pointing at ``sq workflow lint``, which never reads

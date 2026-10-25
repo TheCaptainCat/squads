@@ -27,9 +27,10 @@ from datetime import UTC, datetime
 
 import pytest
 
+from _helpers import catalog_of
 from squads import _views as views
 from squads._errors import SquadsError
-from squads._interactions import get_playbook_spec
+from squads._interactions._playbook import get_playbook_spec
 from squads._models._item import Item
 from squads._workflow import bundled_spec
 from squads._workflow._models import ROSTER_ROLE, ViewSource
@@ -43,7 +44,7 @@ _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 def test_an_undeclared_name_is_refused_regardless_of_host_type() -> None:
-    reason = views.resolve_view_target("no-such-view", "task", SPEC, PLAYBOOK)
+    reason = views.resolve_view_target("no-such-view", "task", SPEC, PLAYBOOK, from_squad=None)
     assert reason is not None
     assert "no declared view" in reason
 
@@ -53,7 +54,12 @@ def test_a_declared_ref_source_view_applies_to_every_host_type() -> None:
     constraint — resolvable against any declared type, including one that hosts no
     sub-entities at all."""
     for item_type in ("milestone", "task", "epic", "review"):
-        assert views.resolve_view_target("milestone_rollup", item_type, SPEC, PLAYBOOK) is None
+        assert (
+            views.resolve_view_target(
+                "milestone_rollup", item_type, SPEC, PLAYBOOK, from_squad=None
+            )
+            is None
+        )
 
 
 def _view_over(kind: str) -> ViewSource:
@@ -143,7 +149,7 @@ def test_an_unresolvable_role_identity_degrades_rather_than_raising() -> None:
         updated_at=_NOW,
         prefix="ROLE",
     )
-    resolved = views._resolve_role_source(item, None)
+    resolved = views._resolve_role_source(item, None, catalog=catalog_of(None))
     assert resolved.slug == "no-such-role-anywhere"
     assert resolved.full_name == "Nobody"
 
@@ -172,7 +178,10 @@ def test_a_hosting_type_with_zero_members_is_not_a_precondition_failure() -> Non
     with no findings still applies, it just projects zero records (proven at the resolver
     level in test_view_projection_engine.py; proven here at the predicate level, which is what
     the quiet consumers gate on)."""
-    assert views.resolve_view_target("milestone_rollup", "milestone", SPEC, PLAYBOOK) is None
+    assert (
+        views.resolve_view_target("milestone_rollup", "milestone", SPEC, PLAYBOOK, from_squad=None)
+        is None
+    )
 
 
 # --------------------------------------------------------------------------- structural properties
@@ -226,7 +235,9 @@ def test_the_dispatcher_is_where_the_direct_question_caller_raises_instead() -> 
     db = SquadsDB(items={task.sequence_id: task})
     view = ViewSpec(source=_view_over("finding"))
     with pytest.raises(SquadsError, match="hosts"):
-        views.resolve_source(view, "probe", task, db, SPEC, PLAYBOOK, lambda: [], None)
+        views.resolve_source(
+            view, "probe", task, db, SPEC, PLAYBOOK, lambda: [], None, catalog=catalog_of(None)
+        )
 
 
 def test_every_applicability_predicate_is_type_scoped_not_item_scoped() -> None:

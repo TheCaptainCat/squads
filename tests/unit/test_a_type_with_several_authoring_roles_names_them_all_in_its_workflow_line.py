@@ -5,8 +5,8 @@ three."""
 import pytest
 
 from _helpers import role_of
-from squads._interactions import authoring_owners, get_playbook_spec
 from squads._interactions._models import ItemPlaybookSpec, PlaybookSpec, RoleGuideSpec
+from squads._interactions._playbook import authoring_owners, get_playbook_spec
 from squads._language import WorkingLanguage
 from squads._rendering._engine import render
 from squads._workflow import bundled_spec
@@ -86,6 +86,7 @@ def _claude_md(playbook: PlaybookSpec, roles: list[dict[str, str]]) -> str:
         default_role_slug="manager",
         spec=bundled_spec(),
         playbook=playbook,
+        from_squad=None,
     )
 
 
@@ -127,6 +128,7 @@ def test_the_workflow_cheatsheet_line_names_both_authors_and_both_slugs() -> Non
         spec=bundled_spec(),
         roles=[role_of("architect"), role_of("tech-writer")],
         playbook=_guide_authors("architect", "tech-writer"),
+        from_squad=None,
     )
 
     line = next(line for line in rendered.splitlines() if 'sq create guide "…"' in line)

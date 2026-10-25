@@ -7,13 +7,15 @@ from typing import Any
 
 import pytest
 
-from _helpers import BUILTIN_FOLDER, BUILTIN_PREFIX
+from _helpers import BUILTIN_FOLDER, BUILTIN_PREFIX, backends_of, catalog_of
+from squads._interactions._playbook import get_playbook_spec
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
 from squads._services import _validators
 from squads._services._results import CheckIssue
 from squads._services._validators import SQUAD_GLOBAL_CATALOG, SquadGlobalContext
+from squads._specload import OverrideFiles
 from squads._workflow import bundled_spec
 from squads._workflow._models import RoleSpec, SquadSpec, WorkflowSpec
 
@@ -72,7 +74,17 @@ def _run(
     db = SquadsDB(counter=max((i.sequence_id for i in items), default=0))
     for it in items:
         db.items[it.sequence_id] = it
-    ctx = SquadGlobalContext(index=db, on_disk={}, spec=selected, paths=project, now=now)
+    ctx = SquadGlobalContext(
+        index=db,
+        on_disk={},
+        spec=selected,
+        paths=project,
+        now=now,
+        playbook=get_playbook_spec(),
+        catalog=catalog_of(project.squad_dir),
+        files=OverrideFiles(),
+        backends=backends_of(project),
+    )
     return SQUAD_GLOBAL_CATALOG[name](ctx)
 
 
@@ -493,7 +505,17 @@ async def test_a_member_that_is_not_selected_reports_nothing_even_when_run_direc
     db = SquadsDB(counter=8)
     for it in items:
         db.items[it.sequence_id] = it
-    ctx = SquadGlobalContext(index=db, on_disk={}, spec=spec, paths=project, now=_NOW)
+    ctx = SquadGlobalContext(
+        index=db,
+        on_disk={},
+        spec=spec,
+        paths=project,
+        now=_NOW,
+        playbook=get_playbook_spec(),
+        catalog=catalog_of(project.squad_dir),
+        files=OverrideFiles(),
+        backends=backends_of(project),
+    )
 
     for name in ("wip_limit", "unassigned_active", "stale_active"):
         assert SQUAD_GLOBAL_CATALOG[name](ctx) == []

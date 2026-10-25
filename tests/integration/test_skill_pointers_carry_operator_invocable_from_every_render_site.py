@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import plant_attribute
+from _helpers import make_service, plant_attribute
 from _invocable_squad import SHAPES, build_squad, drifted, pointer, pointer_lines
 from squads._models._attributes import AttributeKey
 from squads._services import _service as service
@@ -30,7 +30,7 @@ async def test_every_site_renders_the_resolved_value_and_check_sees_no_drift(
 ) -> None:
     slug, declared = SHAPES[shape]
     paths = await build_squad(tmp_path, monkeypatch, invoke)
-    svc = service.Service(paths, spec=None)
+    svc = make_service(paths, spec=None)
     assert await drifted(invoke) == []
     item = await svc.roster_item("skill", slug)
     assert item is not None

@@ -83,14 +83,13 @@ class SquadPaths:
         return self.squad_dir / ".reflog.jsonl"
 
     # --- type folders / item files ---
-    def folder_for(self, item_type: str, spec: WorkflowSpec | None = None) -> Path:
+    def folder_for(self, item_type: str, spec: WorkflowSpec) -> Path:
         """Return the absolute path of the folder for ``item_type``.
 
         The loaded spec is the sole vocabulary source for every type, built-in or custom
-        Raises ``SquadsError`` when ``item_type`` is unknown and no spec is
-        provided (or the spec does not declare it).
+        Raises ``SquadsError`` when the spec does not declare ``item_type``.
         """
-        if spec is not None and item_type in spec.items:
+        if item_type in spec.items:
             return self.squad_dir / spec.items[item_type].folder
         raise SquadsError(
             f"unknown item type {item_type!r} — is this a custom type without a spec?"
@@ -106,16 +105,13 @@ class SquadPaths:
             raise InvalidIdError(f"path {squad_relative!r} escapes the squad folder")
         return self.squad_dir / squad_relative
 
-    def squad_relative(
-        self, item_type: str, filename: str, spec: WorkflowSpec | None = None
-    ) -> str:
+    def squad_relative(self, item_type: str, filename: str, spec: WorkflowSpec) -> str:
         """Return a squad-folder-relative path string for an item file.
 
         The loaded spec is the sole vocabulary source for every type, built-in or custom
-        Raises ``SquadsError`` when ``item_type`` is unknown and no spec is
-        provided (or the spec does not declare it).
+        Raises ``SquadsError`` when the spec does not declare ``item_type``.
         """
-        if spec is not None and item_type in spec.items:
+        if item_type in spec.items:
             return f"{spec.items[item_type].folder}/{filename}"
         raise SquadsError(
             f"unknown item type {item_type!r} — is this a custom type without a spec?"
@@ -138,15 +134,15 @@ def resolve(*, client_cwd: Path | None = None) -> SquadPaths:
     return SquadPaths(root=root, squad_dir=root / config.squad_dir, config=config)
 
 
-def type_for_id(item_id: str, spec: WorkflowSpec | None = None) -> str:
+def type_for_id(item_id: str, spec: WorkflowSpec) -> str:
     """Map an ID (e.g. ``TASK-nnn`` or ``INC-nnn``) back to its item type string.
 
     Resolves via ``spec.prefix_to_type`` — the loaded spec is the sole vocabulary source
-    for every type, built-in or custom. Raises ``InvalidIdError`` when no spec is
-    supplied, or the prefix is not recognised by it.
+    for every type, built-in or custom. Raises ``InvalidIdError`` when the prefix is not
+    recognised by it.
     """
     prefix = prefix_from_id(item_id)
-    if spec is not None and prefix in spec.prefix_to_type:
+    if prefix in spec.prefix_to_type:
         return spec.prefix_to_type[prefix]
     raise InvalidIdError(f"unknown ID prefix in {item_id!r}")
 

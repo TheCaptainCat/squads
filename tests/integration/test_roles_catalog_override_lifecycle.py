@@ -18,6 +18,7 @@ CLI verbs over this same service layer) are exercised through the real CLI in
 
 import pytest
 
+from _helpers import catalog_of
 from squads import __version__
 from squads._errors import SquadsError
 from squads._overrides._service import (
@@ -158,7 +159,7 @@ class TestCheckDrift:
             '[[roles]]\nslug = "architect"\ntitle = "Chief Architect"\n', encoding="utf-8"
         )
 
-        issues = check_override_issues(project.squad_dir)
+        issues = check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir))
         assert len(issues) == 1
         level, display, message = issues[0]
         assert level == "error"
@@ -176,7 +177,7 @@ class TestCheckDrift:
             '[bundles]\nminimal = ["manager", "architect"]\n', encoding="utf-8"
         )
 
-        issues = check_override_issues(project.squad_dir)
+        issues = check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir))
         assert len(issues) == 1
         assert issues[0][0] == "error"
 
@@ -187,7 +188,7 @@ class TestCheckDrift:
         override_path.parent.mkdir(parents=True, exist_ok=True)
         override_path.write_text('[dev]\nmodel = "opus"\n', encoding="utf-8")
 
-        issues = check_override_issues(project.squad_dir)
+        issues = check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir))
         assert len(issues) == 1
         assert issues[0][0] == "error"
 
@@ -203,7 +204,7 @@ class TestCheckDrift:
             encoding="utf-8",
         )
 
-        assert check_override_issues(project.squad_dir) == []
+        assert check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir)) == []
 
     async def test_check_warns_when_the_bundled_catalog_actually_changed(
         self, project, monkeypatch
@@ -218,7 +219,7 @@ class TestCheckDrift:
         stamp_toml_file(path, "0.13.1")
         monkeypatch.setattr(override_service, "artifact_changed_since", lambda key, v: True)
 
-        issues = check_override_issues(project.squad_dir)
+        issues = check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir))
         assert len(issues) == 1
         level, display, message = issues[0]
         assert level == "warn"
@@ -232,10 +233,14 @@ class TestCheckDrift:
         self, project
     ) -> None:
         path = scaffold_roles_catalog(project.squad_dir)
-        assert check_override_issues(project.squad_dir) == []  # freshly scaffolded: clean
+        assert (
+            check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir)) == []
+        )  # freshly scaffolded: clean
 
         stamp_toml_file(path, "0.1.0")
-        assert check_override_issues(project.squad_dir) == []  # uncarried base: silent
+        assert (
+            check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir)) == []
+        )  # uncarried base: silent
 
 
 async def test_roles_catalog_override_coexists_with_the_per_slug_roles_directory(

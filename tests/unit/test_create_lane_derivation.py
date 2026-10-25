@@ -12,7 +12,7 @@ tests/integration/test_an_override_declared_authoring_role_is_in_lane.py.
 """
 
 from _helpers import role_of
-from squads._interactions import PLAYBOOK, get_playbook_spec
+from squads._interactions._playbook import bundled_item_playbooks, get_playbook_spec
 from squads._interactions._role_guidance import (
     allowed_create_types,
     catalog_default_slug,
@@ -49,7 +49,7 @@ class TestLaneTable:
         """Forward direction: nothing enters a lane that the document didn't declare."""
         declared = {
             (item_type, guide.slug)
-            for item_type, entry in PLAYBOOK.items()
+            for item_type, entry in bundled_item_playbooks().items()
             for guide in entry.roles
             if guide.authors
         }

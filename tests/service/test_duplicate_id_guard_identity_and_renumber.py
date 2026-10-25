@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads import _aio
 from squads._errors import SquadsError
 from squads._sections import replace_frontmatter, split_frontmatter
@@ -19,7 +20,7 @@ pytestmark = pytest.mark.anyio
 async def svc(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="minimal")
-    return service.Service(result.paths)
+    return make_service(result.paths)
 
 
 def _tree_hash(root: Path) -> str:
@@ -174,7 +175,7 @@ async def test_a_whitespace_copy_never_takes_the_id_from_the_indexed_original(sv
     await svc.repair(renumber=True)
 
     assert md.exists() and not copy.exists()
-    assert item.sequence_id in (await service.Service(svc.paths).repair()).db.items
+    assert item.sequence_id in (await make_service(svc.paths).repair()).db.items
 
 
 async def test_the_renumbered_files_own_references_are_listed(svc):
@@ -221,7 +222,7 @@ async def test_a_slug_held_in_extra_is_seen_when_the_index_is_gone(svc):
     stray = md.parent / "SKILL-000099-sq-task.md"
     stray.write_text(_stripped(renamed))
     (svc.paths.squad_dir / ".squads.json").unlink()
-    fresh = service.Service(svc.paths)
+    fresh = make_service(svc.paths)
     await fresh.repair()
 
     skips = await fresh.sync()
@@ -236,7 +237,7 @@ async def test_two_unstamped_files_for_one_slug_are_both_left_alone(svc):
     md.write_text(_stripped(md))
     twin.write_text(md.read_text())
     (svc.paths.squad_dir / ".squads.json").unlink()
-    fresh = service.Service(svc.paths)
+    fresh = make_service(svc.paths)
     await fresh.repair()
 
     skips = await fresh.sync()
@@ -253,7 +254,7 @@ async def test_check_does_not_send_the_operator_to_repair_for_a_refused_duplicat
     item, md = await _task(svc, "Alpha")
     _copy(md, name=md.name.replace(".md", "-copy.md"))
     (svc.paths.squad_dir / ".squads.json").unlink()
-    fresh = service.Service(svc.paths)
+    fresh = make_service(svc.paths)
     await fresh.repair()
 
     issues = await fresh.check()

@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._errors import SquadsError
 from squads._services import _service as service
 from squads._workflow import bundled_spec
@@ -36,7 +37,7 @@ async def test_init_with_no_override_present_still_uses_the_bundled_singleton(
     ``WorkflowSpec`` object, not a freshly rebuilt (functionally-equal-but-different) one."""
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     assert svc.spec is bundled_spec()
     assert (tmp_path / "squads" / "guides").is_dir()  # every bundled folder still scaffolded
 

@@ -5,21 +5,21 @@ a superset/subset check would miss a leaked or missing member, so this asserts e
 """
 
 from _helpers import BUILTIN_TYPES
-from squads import _workflow as workflow
+from squads._workflow import bundled_spec
 
 
 def test_a_declared_transition_is_legal_and_an_undeclared_skip_is_rejected() -> None:
-    assert workflow.initial_status("task") == "Draft"
-    assert workflow.can_transition("task", "Draft", "Ready")
-    assert workflow.can_transition("task", "InProgress", "Done")
-    assert not workflow.can_transition("task", "Draft", "Done")  # illegal skip
+    assert bundled_spec().initial_status("task") == "Draft"
+    assert bundled_spec().can_transition("task", "Draft", "Ready")
+    assert bundled_spec().can_transition("task", "InProgress", "Done")
+    assert not bundled_spec().can_transition("task", "Draft", "Done")  # illegal skip
 
 
 def test_the_bug_workflows_own_transition_edges() -> None:
     """The bug lifecycle is a second, differently-shaped instance of the same contract:
     reopen-from-terminal edges (Fixed/Verified/WontFix/Cancelled -> a live state) plus the
     ordinary forward edges."""
-    wf = workflow.workflow_for("bug")
+    wf = bundled_spec().workflow_for("bug")
     legal = [
         ("Open", "InProgress"),
         ("Open", "WontFix"),
@@ -41,35 +41,35 @@ def test_the_bug_workflows_own_transition_edges() -> None:
 
 
 def test_decision_and_review_and_guide_initial_statuses() -> None:
-    assert workflow.initial_status("decision") == "Proposed"
-    assert workflow.can_transition("decision", "Proposed", "Accepted")
-    assert not workflow.can_transition("decision", "Proposed", "Superseded")  # not direct
-    assert workflow.initial_status("review") == "Requested"
-    assert workflow.initial_status("guide") == "Draft"
-    assert workflow.can_transition("guide", "Draft", "Published")
+    assert bundled_spec().initial_status("decision") == "Proposed"
+    assert bundled_spec().can_transition("decision", "Proposed", "Accepted")
+    assert not bundled_spec().can_transition("decision", "Proposed", "Superseded")  # not direct
+    assert bundled_spec().initial_status("review") == "Requested"
+    assert bundled_spec().initial_status("guide") == "Draft"
+    assert bundled_spec().can_transition("guide", "Draft", "Published")
 
 
 def test_every_built_in_types_initial_status_is_a_member_of_its_own_states() -> None:
     for t in BUILTIN_TYPES:
-        wf = workflow.workflow_for(t)
+        wf = bundled_spec().workflow_for(t)
         assert wf.initial in wf.states, f"{t}: initial {wf.initial!r} not in its own states"
 
 
 def test_the_bugs_declared_states_are_exactly_its_own_vocabulary() -> None:
     """An exact-set assertion — a superset/subset check would miss a leaked or missing member."""
-    states = workflow.workflow_for("bug").states
+    states = bundled_spec().workflow_for("bug").states
     assert states == {"Open", "InProgress", "Fixed", "Verified", "Blocked", "WontFix", "Cancelled"}
 
 
 def test_the_bugs_states_exclude_work_item_only_vocabulary() -> None:
-    states = workflow.workflow_for("bug").states
+    states = bundled_spec().workflow_for("bug").states
     for work_only in ("Draft", "Ready", "InReview", "Done", "Todo"):
         assert work_only not in states
 
 
 def test_bug_terminal_states_are_exactly_verified_wontfix_and_cancelled() -> None:
-    wf = workflow.workflow_for("bug")
-    terminals = {s for s in wf.states if s in workflow.TERMINAL}
+    wf = bundled_spec().workflow_for("bug")
+    terminals = {s for s in wf.states if s in bundled_spec().terminal_set()}
     assert terminals == {"Verified", "WontFix", "Cancelled"}
 
 
@@ -83,5 +83,5 @@ def test_work_item_only_statuses_never_leak_into_the_bug_workflow() -> None:
     work_only = {"Draft", "Ready", "InReview", "Done", "Todo"}
     bug_specific = {"Open", "Fixed", "Verified", "WontFix"}
     shared_generic = {"InProgress", "Blocked", "Cancelled"}
-    assert workflow.workflow_for("bug").states == bug_specific | shared_generic
-    assert not (workflow.workflow_for("bug").states & work_only)
+    assert bundled_spec().workflow_for("bug").states == bug_specific | shared_generic
+    assert not (bundled_spec().workflow_for("bug").states & work_only)

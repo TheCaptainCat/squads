@@ -12,6 +12,7 @@ from squads._index._store import (
     IndexStore,
     _transaction_ctx_for,
 )
+from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
 
@@ -19,7 +20,9 @@ pytestmark = pytest.mark.anyio
 def _make_store(tmp_path, name: str = "squad") -> IndexStore:
     squad_dir = tmp_path / name
     squad_dir.mkdir()
-    store = IndexStore(squad_dir / ".squads.json", squad_dir / ".squads.json.lock")
+    store = IndexStore(
+        squad_dir / ".squads.json", squad_dir / ".squads.json.lock", spec=bundled_spec()
+    )
     store.create_empty()
     return store
 

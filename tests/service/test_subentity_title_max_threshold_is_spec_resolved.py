@@ -12,8 +12,8 @@ import pytest
 
 from _helpers import create_item
 from squads import __version__
-from squads._interactions import TITLE_ADVISORY_MAX
 from squads._services import _service as service
+from squads._workflow._models import DEFAULT_SUBENTITY_TITLE_MAX
 
 pytestmark = pytest.mark.anyio
 
@@ -35,7 +35,7 @@ async def test_a_type_selecting_nothing_gets_neither_check_nor_advisory_at_any_l
     """Falsification baseline: on the bundled spec nothing selects the check, so even a title
     far over 120 characters earns no create-time advisory and no ``sq check`` finding."""
     feat = (await create_item(svc, "feature", "f")).item
-    for title in (_BETWEEN_80_AND_120, "x" * (TITLE_ADVISORY_MAX + 1), "x" * 200):
+    for title in (_BETWEEN_80_AND_120, "x" * (DEFAULT_SUBENTITY_TITLE_MAX + 1), "x" * 200):
         res = await svc.add_story(feat.id, title)
         assert res.title_advisory is None
 
@@ -87,12 +87,12 @@ async def test_a_declared_threshold_moves_where_sq_check_fires_with_the_same_num
 async def test_the_default_message_text_is_unchanged(project):
     """Byte-for-byte parity of a bare selection's message — the threshold is resolved through
     ``WorkflowSpec.item_subentity_title_max``, and its number and wording must match
-    ``TITLE_ADVISORY_MAX`` exactly."""
+    ``DEFAULT_SUBENTITY_TITLE_MAX`` exactly."""
     svc = _service_with_override(project.squad_dir, _SELECTS_BARE)
     feat = (await create_item(svc, "feature", "f")).item
-    await svc.add_story(feat.id, "x" * (TITLE_ADVISORY_MAX + 1))
+    await svc.add_story(feat.id, "x" * (DEFAULT_SUBENTITY_TITLE_MAX + 1))
     issues = await svc.check()
     matching = [i for i in issues if i.item == feat.id and "title is" in i.message]
     assert len(matching) == 1
-    assert f"(threshold: {TITLE_ADVISORY_MAX})" in matching[0].message
+    assert f"(threshold: {DEFAULT_SUBENTITY_TITLE_MAX})" in matching[0].message
     assert "put the detail in the body" in matching[0].message

@@ -17,6 +17,7 @@ from typing import Any
 
 import pytest
 
+from _helpers import make_service
 from squads import __version__
 from squads._cli._migrate import migrate_grants
 from squads._errors import IndexFullError, SquadsError
@@ -26,7 +27,6 @@ from squads._models._index import SquadsDB
 from squads._models._schema import SCHEMA_VERSION
 from squads._services import _maintenance
 from squads._services import _service as service
-from squads._services._service import Service
 
 pytestmark = pytest.mark.anyio
 
@@ -369,7 +369,7 @@ async def test_repair_at_the_current_schema_still_says_sq_repair(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     built = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = Service(built.paths)
+    svc = make_service(built.paths)
     task = (await svc.create("task", "t", author="manager")).item
     path = built.paths.abspath(task.path)
     path.write_text(

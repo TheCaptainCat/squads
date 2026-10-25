@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import make_unreadable_by_the_os
+from _helpers import make_service, make_unreadable_by_the_os
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -69,7 +69,7 @@ async def test_sync_clean_row_still_claims_success(svc, invoke) -> None:
 
 async def test_adopt_unreadable_row(tmp_path, monkeypatch, invoke) -> None:
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(init.paths)
+    svc = make_service(init.paths)
     from _helpers import create_item
 
     bad = (await create_item(svc, "task", "a task whose file will be made unreadable")).item

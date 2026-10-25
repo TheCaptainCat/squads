@@ -24,7 +24,12 @@ from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
-from squads._services._base import ServiceCore, reject_body_overwrite, reject_markers
+from squads._services._base import (
+    ServiceCore,
+    reject_body_overwrite,
+    reject_markers,
+    subentity_title,
+)
 from squads._services._results import BlockResult, SubentityDetail
 
 
@@ -165,6 +170,7 @@ class SubentitiesMixin(ServiceCore):
         rendered block to the item's file text around this) and the bulk importer's pre-pass,
         which calls this directly against a throwaway ``db`` copy with ``now=ev.at``.
         """
+        title = subentity_title(title)
         reject_markers(title, "title")
         if body is not None:
             reject_markers(body)
@@ -232,7 +238,9 @@ class SubentitiesMixin(ServiceCore):
         text = await self._read_item_file(item, path)
         if not sections.has_section(text, container):
             raise SquadsError(f"no {container} section in {item_id}")
-        block = discussion.build_block(kind, local_id, title, body=body, spec=self.spec)
+        block = discussion.build_block(
+            kind, local_id, title, body=body, spec=self.spec, from_squad=self.paths.squad_dir
+        )
         text = sections.append_to_section(text, container, block)
         await self._write_block_file(item, path, text=text, sub=sub, base=base)
         # Advisory title-length check. The threshold is the same resolved, type-aware value
@@ -652,6 +660,7 @@ class SubentitiesMixin(ServiceCore):
     ) -> None:
         """The sub-entity metadata-update mutation core: takes an already-open ``db``."""
         if title is not None:
+            title = subentity_title(title)
             reject_markers(title, "title")
         item = self._require_parent(db, parent_id, kind)
         sub = self._find(item, kind, local_id)

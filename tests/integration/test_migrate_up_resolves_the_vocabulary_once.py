@@ -13,14 +13,15 @@ from typing import Any
 
 import pytest
 
+from _helpers import catalog_of, make_service
 from squads import __version__
-from squads._interactions import get_playbook_spec
+from squads._interactions._playbook import get_playbook_spec
 from squads._migrations._context import MigrationContext
 from squads._migrations._registry import MIGRATIONS
 from squads._models._config import SquadsConfig
 from squads._paths import SquadPaths
 from squads._services import _maintenance
-from squads._services._service import Service, resolve_playbook
+from squads._spec_documents import resolve_playbook
 from squads._workflow import bundled_spec, load_workflow_spec
 
 pytestmark = pytest.mark.anyio
@@ -79,7 +80,11 @@ async def test_a_chain_of_runners_shares_one_context_and_resolves_nothing(
         encoding="utf-8",
     )
     spec = load_workflow_spec(squad_dir=paths.squad_dir)
-    svc = Service(paths, spec=spec, playbook=resolve_playbook(spec, paths.squad_dir))
+    svc = make_service(
+        paths,
+        spec=spec,
+        playbook=resolve_playbook(spec, paths.squad_dir, catalog_of(paths.squad_dir)),
+    )
     assert svc.spec is not bundled_spec()
     assert svc.playbook is not get_playbook_spec()
     received: list[MigrationContext] = []

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._errors import SquadsError
 from squads._sections import replace_frontmatter, split_frontmatter
 from squads._services import _service as service
@@ -18,7 +19,7 @@ pytestmark = pytest.mark.anyio
 async def svc(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="minimal")
-    return service.Service(result.paths)
+    return make_service(result.paths)
 
 
 def _copy(md: Path, *, name: str | None = None, folder: Path | None = None, **fm_changes: object):
@@ -218,7 +219,7 @@ async def test_repair_with_no_previous_index_leaves_the_id_out_and_still_reports
     item, _ = await _group(svc, Row("s", _other_folder, True))
     (svc.paths.squad_dir / ".squads.json").unlink()
 
-    result = await service.Service(svc.paths).repair()
+    result = await make_service(svc.paths).repair()
 
     assert result.unreadable
     assert item.sequence_id not in result.db.items
@@ -274,7 +275,7 @@ async def test_with_no_index_the_first_name_is_kept_whatever_the_scan_order(svc,
     _, alpha = await _task(svc)
     first = _copy(alpha, name=alpha.name.replace("alpha", "aaa"), slug="aaa", title="aaa")
     (svc.paths.squad_dir / ".squads.json").unlink()
-    fresh = service.Service(svc.paths)
+    fresh = make_service(svc.paths)
     original = fresh._id_carriers
 
     async def reversed_carriers(*args, **kwargs):

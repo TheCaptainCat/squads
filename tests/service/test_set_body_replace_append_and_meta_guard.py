@@ -6,10 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import __version__
 from squads._errors import SquadsError
-from squads._services import _service as service
 from squads._workflow import load_workflow_spec
 
 pytestmark = pytest.mark.anyio
@@ -117,7 +116,7 @@ async def test_a_role_with_its_view_dropped_admits_replace_and_append(svc):
     role = await svc.roster_item("role", "manager") or await svc.activate_role("manager")
 
     _write_override(svc.paths.squad_dir, '[selected]\nviews = ["milestone_rollup"]\n')
-    dropped = service.Service(svc.paths, spec=load_workflow_spec(squad_dir=svc.paths.squad_dir))
+    dropped = make_service(svc.paths, spec=load_workflow_spec(squad_dir=svc.paths.squad_dir))
 
     await dropped.set_body(role.id, "free-form body")
     body = await dropped.read_body(role.id)

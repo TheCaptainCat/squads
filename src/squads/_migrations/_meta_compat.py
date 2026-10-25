@@ -14,6 +14,7 @@ from squads._models import _markers as markers
 from squads._models._subentity import SubEntity
 from squads._sections import get_section, replace_section
 from squads._workflow import bundled_spec
+from squads._workflow._models import WorkflowSpec
 
 _LOCAL_ID_PREFIX = {"story": "US", "subtask": "ST", "finding": "F"}
 # the meta keys, in render order; assignee/severity/story are optional per kind
@@ -92,13 +93,18 @@ def _body_first_line(block: str, kind: str, local_id: str) -> str:
     return ""
 
 
+def legacy_spec() -> WorkflowSpec:
+    """The bundled vocabulary the frozen legacy-format readers answer from."""
+    return bundled_spec()
+
+
 def _parse_block(block: str, kind: str, local_id: str) -> BlockInfo:
     meta = parse_meta(get_section(block, meta_tag(kind, local_id)) or "")
     title = _heading_title(block, local_id) or _body_first_line(block, kind, local_id)
     return BlockInfo(
         local_id=local_id,
         title=title,
-        status=meta.get("status") or bundled_spec().subentity_initial(kind),
+        status=meta.get("status") or legacy_spec().subentity_initial(kind),
         severity=meta.get("severity"),
         story=meta.get("story"),
         assignee=meta.get("assignee"),

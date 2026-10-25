@@ -10,7 +10,7 @@ refs:
 description: Open gains terminal Noted (done role) and Deferred (new deferred role);
   Deferred stores a deferred_to item pointer that sq check verifies
 created_at: '2026-10-24T09:45:21Z'
-updated_at: '2026-10-24T22:04:01Z'
+updated_at: '2026-10-25T11:30:51Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -74,14 +74,20 @@ The loader refuses a spec in which an item lifecycle reaches a status whose role
 
 **Overrides.** The change is additive. A project whose override redeclares the `Open` list keeps its own machine unchanged and does not get the two new states. It adopts them by adding `"Noted"` and `"Deferred"` to that list. A project's own status with a `deferred`-flagged role gets the pointer, the refusal and the check on the same terms.
 
-**No migration.** No stored value changes meaning and no existing file needs rewriting. `SCHEMA_VERSION` is not bumped.
+**Schema bump, with a no-op migration.** A release that does not declare `Noted` or `Deferred` refuses to load a board that holds one: released 0.16 fails every command that loads the board, `sq repair` included, with an undeclared-status error that never says to upgrade. So this change ships behind a schema bump:
+
+- `SCHEMA_VERSION` (`_models/_schema.py`) goes from `"0.16"` to `"0.17"`, the release that introduces the states, following the rule that the alpha schema version names the release that introduced the schema.
+- One `Migration` entry is appended to `_migrations/_registry.py`: release `"0.17.0"`, `from_schema = "0.16"`, `to_schema = "0.17"`, with a private runner `_migrations/_v0_16_to_v0_17.py`. The runner is a no-op apart from the stamp: it rewrites no item file and reports zero changes, and `sq migrate up` then runs `repair` and stamps `schema_version = "0.17"` as it does after every runner. It has no manual steps. It is a plain function, not a list of contributions as in `_v0_15_to_v0_16.py`: a step with nothing to write has no contributions, and an empty list buys nothing. A later 0.17 change that needs to write turns this runner into the release's contribution list at that point, instead of adding a second runner.
+- Result: a release reading schema 0.16 stops at the schema gate on a migrated squad, with "this squad is at schema v0.17, newer than squads 0.16.0 (v0.16). Upgrade the squads package.", before it reads any finding. A 0.17 release on an unmigrated squad asks for `sq migrate up`.
+
+**General rule.** A new stored state, value or field that a released squads would refuse to load is introduced behind a schema bump, even when no existing file needs rewriting; the migration is then a no-op apart from the stamp. A purely additive change that older releases read without refusing needs no bump.
 
 ## Consequences
 
 - Info findings close as `Noted` instead of piling up as false `Open` debt, and handed-off findings say where the work went, which `sq check` verifies.
 - Reopening a `Noted` or `Deferred` finding takes `--force`. This is the price of not breaking projects that override the finding lifecycle, and it is off the ordinary path.
 - The role catalog surface grows by one flag. `sq workflow roles --json` rows gain `deferred`, and sub-entity rows gain `deferred_to`, both additive.
-- An older squads release ignores `deferred_to` when it reads a review, drops it the next time it writes that review, and reports `Noted`/`Deferred` as undeclared statuses. There is no schema bump to stop it, so the release's CHANGELOG entry states that a team upgrades together for this reason.
+- Every squad runs `sq migrate up` once on upgrading to 0.17, and from then on a teammate on an older release is refused at the schema gate with an upgrade message, whether or not any finding is `Noted` or `Deferred`. The release's CHANGELOG entry says so. A board operated with an older `sq` cannot use the new states until both the tool and the squad are upgraded.
 - The bundled reviewer guidance gains one line on `Noted` for info findings and `Deferred` with `--deferred-to` for work handed to another item.
 - `docs/stability.md` needs a refresh: the sub-entity state paragraph (the pointer), the `sq workflow roles --json` row (`deferred`) and the finding's lifecycle wherever it is shown.
 
@@ -93,7 +99,7 @@ The loader refuses a spec in which an item lifecycle reaches a status whose role
 - **An `addresses` ref from the carrier to the review**: it is review-wide, so it cannot say which finding moved.
 - **`Open → Verified` for info findings**: `Verified` means a fix was checked, and nothing was fixed.
 - **Keeping `WontFix` plus a comment**: it is the misstatement this decision removes.
-- **A schema bump**: it would make every adopter run a migration for an additive change.
+- **No schema bump, a CHANGELOG warning that a team upgrades together**: an older release then fails on every board command with an error that points at `sq repair` and at re-typing data, both wrong fixes, instead of saying to upgrade.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -114,4 +120,8 @@ The loader refuses a spec in which an item lifecycle reaches a status whose role
     Consequence for this repo: board ops run on the released 0.16.0 tool, so no finding here may be set to Noted or Deferred until that tool is upgraded. TASK-1104 ST3 (the review cleanup) waits on this.
 - [2026-10-24T22:04:01Z] `architect` Robert Architect:
   - 2026-10-25: amended the pointer clause for REV-1129 F4. No `:head` region is written any more; the "Deferred to <ID> — <title>" line renders in the CLI display (the badge line of `show --full`/`--raw`, and "deferred to:" on `<kind> <k> show`). The older-release consequence is unchanged and awaits the op-pierre ruling.
+- [2026-10-25T10:52:57Z] `architect` Robert Architect:
+  - 2026-10-25: amended for REV-1129 F1 on the op-pierre ruling (option b). The "No migration" clause is replaced by a schema bump to 0.17 with a no-op runner (`_v0_16_to_v0_17.py`, release 0.17.0, 0.16 to 0.17, stamp only), plus the general rule: a new stored state an older release would refuse ships behind a schema bump. The older-release consequence is corrected to the measured behaviour, and "a schema bump" moves from rejected options to the decision, with "no bump plus a CHANGELOG warning" now the rejected one.
+- [2026-10-25T11:30:51Z] `architect` Robert Architect:
+  - 2026-10-25: amended the runner clause for REV-1129 F9. The 0.16 to 0.17 runner is a plain no-op function, since a step with nothing to write has no contributions; a later 0.17 change that needs to write turns it into the contribution list then.
 <!-- sq:discussion:end -->

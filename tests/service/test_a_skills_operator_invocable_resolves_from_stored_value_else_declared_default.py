@@ -6,9 +6,9 @@ from datetime import UTC, datetime
 
 import pytest
 
-from _helpers import plant_attribute
+from _helpers import make_service, plant_attribute
 from _invocable_squad import SHAPES, build_squad
-from squads._interactions import (
+from squads._interactions._skills import (
     OPERATOR_INVOCABLE_DEFAULTS,
     SKILL_DESCRIPTIONS,
     bundled_skill_slugs,
@@ -16,7 +16,6 @@ from squads._interactions import (
 )
 from squads._models._attributes import AttributeKey
 from squads._models._item import Item
-from squads._services import _service as service
 from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
@@ -68,7 +67,7 @@ async def test_a_project_declared_types_skill_follows_the_per_type_default(
     tmp_path, monkeypatch, invoke
 ) -> None:
     paths = await build_squad(tmp_path, monkeypatch, invoke)
-    svc = service.Service(paths)
+    svc = make_service(paths)
     item = await svc.roster_item("skill", "sq-incident")
     assert item is not None
     r = await invoke(["skill", "sq-incident", "show", "--json"])
@@ -92,7 +91,7 @@ async def test_a_hand_stored_non_boolean_in_a_squad_resolves_as_absent(
     tmp_path, monkeypatch, invoke
 ) -> None:
     paths = await build_squad(tmp_path, monkeypatch, invoke)
-    svc = service.Service(paths)
+    svc = make_service(paths)
     for slug, value in (("onboarding", "no"), ("squads", 1), ("sq-onboarding", ["x"])):
         item = await svc.roster_item("skill", slug)
         assert item is not None

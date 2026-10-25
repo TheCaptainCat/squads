@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._sections import replace_frontmatter, split_frontmatter
 from squads._services import _service as service
 
@@ -15,7 +16,7 @@ pytestmark = pytest.mark.anyio
 async def svc(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="minimal")
-    return service.Service(result.paths)
+    return make_service(result.paths)
 
 
 async def _item(svc, item_type: str):

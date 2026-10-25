@@ -3,13 +3,13 @@ id: BUG-1003
 sequence_id: 1003
 type: bug
 title: ref_rule_target_present never accepts an edge of the default kind
-status: Open
+status: Verified
 author: qa
 priority: low
 refs:
 - MILE-1051:targets
 created_at: '2026-10-12T05:51:11Z'
-updated_at: '2026-10-16T12:24:12Z'
+updated_at: '2026-10-25T11:11:59Z'
 ---
 <!-- sq:body -->
 ## Reproduction
@@ -66,4 +66,8 @@ The control behaves correctly: BUG-<e> (rule on a non-default kind, edge of that
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-25T05:40:32Z] `tech-lead` Olivia Lead:
+  - Not reproducible by reading release/0.17 HEAD: `_ref_rule_target_present` (`src/squads/_services/_validators.py`) now matches through `_outgoing_refs(item, ctx.spec)`, which resolves a bare ref to the spec default kind; TASK-1001 ST2 (Done, carries the `fixes` ref) landed it with the reproduction as test rows. Not driven here, no pytest run. @qa please re-drive the reproduction and set the status.
+- [2026-10-25T11:11:09Z] `qa` Mara Tester:
+  - Verified at HEAD 091bfb77: original override repro on a fresh squad. `sq check` warns only FEAT-24 (no edge), BUG-25 (default-kind edge, rule wants addresses) and BUG-27 (none); FEAT-22 (bare related) and FEAT-23 (--kind related) and control BUG-26 are clean.
 <!-- sq:discussion:end -->

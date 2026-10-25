@@ -9,8 +9,8 @@ tests/integration/test_skill_migration.py).
 
 import pytest
 
-from _helpers import bundled_migration_context
-from squads._interactions import bundled_skill_slugs
+from _helpers import bundled_migration_context, make_service
+from squads._interactions._skills import bundled_skill_slugs
 from squads._migrations._v0_4_to_v0_5 import migrate as migrate_v0_4_to_v0_5
 from squads._services import _service as service
 
@@ -27,7 +27,7 @@ async def test_init_seeded_order_and_post_migration_order_both_match_the_canonic
     dir_a.mkdir()
     monkeypatch.chdir(dir_a)
     result_a = await service.init(root=dir_a, roles_spec="minimal")
-    svc_a = service.Service(result_a.paths)
+    svc_a = make_service(result_a.paths)
     init_skills = sorted(await svc_a.list_items(item_type="skill"), key=lambda s: s.sequence_id)
     init_bundled = [sk.slug for sk in init_skills if sk.slug in set(expected_slugs)]
 
@@ -37,7 +37,7 @@ async def test_init_seeded_order_and_post_migration_order_both_match_the_canonic
     monkeypatch.chdir(dir_b)
     result_b = await service.init(root=dir_b, roles_spec="minimal", _skip_skill_seed=True)
     await migrate_v0_4_to_v0_5(bundled_migration_context(result_b.paths))
-    svc_b = service.Service(result_b.paths)
+    svc_b = make_service(result_b.paths)
     await svc_b.repair()
     migrated_skills = sorted(await svc_b.list_items(item_type="skill"), key=lambda s: s.sequence_id)
     migrated_bundled = [sk.slug for sk in migrated_skills if sk.slug in set(expected_slugs)]

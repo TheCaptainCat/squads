@@ -23,7 +23,7 @@ aborts on their first finding; a warn-level member (``agent_registered``, ``no_s
 evaluated on a write.
 
 **An always-on set of file checks sits beside this catalog and is not part of it.**
-``MaintenanceMixin._scan_for_check`` (``_services/_maintenance.py``) runs a raw-text file-level
+``CheckMixin._scan_for_check`` (``_services/_check.py``) runs a raw-text file-level
 scan *before* this catalog is ever reached — before a file's frontmatter parses, keyed on the
 type folder and filename alone — and produces four of its own error-level findings:
 ``_marker_issues`` (unbalanced/duplicated sq markers), ``_view_target_issues`` (a
@@ -53,6 +53,7 @@ time, never pre-baked onto the spec.
 import dataclasses
 import re
 import unicodedata
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import StrEnum
@@ -62,27 +63,27 @@ from typing import Any, Protocol
 from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
-from squads import _views as views
+from squads import _view_remedies as view_remedies
+from squads import _view_tags as view_tags
 from squads._backends._base import AgentBackend, BackendContext
-from squads._backends._registry import get_backend
 from squads._errors import InvalidIdError, SquadsError
-from squads._interactions import (
-    ITEM_SKILL_VIEW_NAME,
-    get_playbook_spec,
-    in_lane_owner,
-    is_live_roster_entry,
-    item_type_for_skill_slug,
-    orphaned_playbook_guide_message,
-    orphaned_playbook_guides,
-    unheld_capability_token_message,
-    unheld_capability_tokens,
-)
 from squads._interactions._loader import (
     playbook_override_command_lines,
     playbook_override_guide_pairs,
 )
 from squads._interactions._models import PlaybookSpec
-from squads._interactions._role_guidance import CAPABILITY_SUBJECT_PREFIX, create_lanes
+from squads._interactions._playbook import (
+    orphaned_playbook_guide_message,
+    orphaned_playbook_guides,
+    unheld_capability_token_message,
+    unheld_capability_tokens,
+)
+from squads._interactions._role_guidance import (
+    CAPABILITY_SUBJECT_PREFIX,
+    create_lanes,
+    in_lane_owner,
+)
+from squads._interactions._skills import item_type_for_skill_slug
 from squads._language import resolve_working_language
 from squads._models import _markers as markers
 from squads._models._attributes import ORIGIN_VALUES, AttributeKey
@@ -94,7 +95,8 @@ from squads._models._participants import SlugBreach, roster_slug_breaches
 from squads._paths import SquadPaths, number_for_id
 from squads._pronouns import pronouns_problem
 from squads._rendering._engine import scaffold_body
-from squads._roles._loader import load_role_catalog
+from squads._roles._catalog import get_catalog
+from squads._roles._models import CatalogSource
 from squads._roles._resolver import (
     holds_default_designation,
     resolve_role_for_item,
@@ -102,23 +104,23 @@ from squads._roles._resolver import (
 )
 from squads._services import _config_integrity as config_integrity
 from squads._services._results import CheckIssue
+from squads._services._roster_projection import is_live_roster_entry
+from squads._specload import OverrideFiles
 from squads._transform import check_view_transforms
-from squads._workflow._models import (
+from squads._views import ITEM_SKILL_VIEW_NAME
+from squads._workflow._models import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
+from squads._workflow._validator_names import (
     DEFAULT_SQUAD_GLOBAL_LEVEL,
     DEFAULT_VALIDATOR_LEVEL,
-    ROSTER_OPERATOR,
-    ROSTER_ROLE,
-    ROSTER_SKILL,
     SELECTABLE_SQUAD_GLOBAL_NAMES,
     SQUAD_GLOBAL_VALIDATOR_NAMES,
     VALIDATOR_NAMES,
-    WorkflowSpec,
     effective_validator_names,
     parse_validator_entry,
 )
 
 #: The on-disk scan map ``_scan_for_check`` builds: sequence number -> (frontmatter id, file
-#: path, frontmatter dict). Same shape ``MaintenanceMixin.check()``'s scan pass and its one
+#: path, frontmatter dict). Same shape ``CheckMixin.check()``'s scan pass and its one
 #: confirm pass both thread through — ``report()`` takes it for the same reason.
 type OnDiskMap = dict[int, tuple[str, Path, dict[str, Any]]]
 
@@ -202,6 +204,9 @@ class ValidatorContext:
     dependency_incoming: frozenset[int] = frozenset()
     type_present: frozenset[str] = frozenset()
     raw_text: str | None = None
+    #: The squad directory whose template overrides apply when a validator re-renders a scaffold;
+    #: ``None`` is the bundled templates alone.
+    squad_dir: Path | None = None
 
     def held_context(self) -> frozenset[ContextRequirement]:
         """Which :class:`ContextRequirement` fields this instance actually carries.
@@ -225,12 +230,10 @@ class SquadGlobalContext:
     active spec, and the squad's resolved paths — the last two let ``backend_reconciled`` build
     the ``BackendContext`` its backend lookups need.
 
-    ``playbook`` (defaulting to ``None``) is read by two validators:
-    ``roster_config_integrity`` threads it to ``config_integrity.check_all`` so a project's
-    merged playbook, not the bundled one, decides the always-on skill floor, and
-    ``playbook_guide_role_live`` reads its per-type guides directly. ``report()``'s own
-    construction always supplies ``Service.playbook``, so the ``None`` default only ever
-    describes a caller that has no playbook to offer at all.
+    ``playbook`` is read by two validators: ``roster_config_integrity`` threads it to
+    ``config_integrity.check_all`` so a project's merged playbook, not the bundled one, decides
+    the always-on skill floor, and ``playbook_guide_role_live`` reads its per-type guides
+    directly. ``report()``'s own construction supplies ``Service.playbook``.
 
     ``now`` is the run's single clock instant, read once by ``report()``; the members that
     measure time read it from here and call no clock themselves.
@@ -241,7 +244,11 @@ class SquadGlobalContext:
     spec: WorkflowSpec
     paths: SquadPaths
     now: datetime
-    playbook: PlaybookSpec | None = None
+    playbook: PlaybookSpec
+    catalog: CatalogSource
+    files: OverrideFiles
+    #: The service's own backends, so the managed-file rules judge the instances `sync` writes with.
+    backends: Callable[[], list[AgentBackend]]
 
 
 class Validator(Protocol):
@@ -276,7 +283,7 @@ def _resolved_level(ctx: ValidatorContext, name: str) -> str:
     """The effective level a catalog member *name* reports for ``ctx.item``'s type: the
     type's own ``@<level>`` override when its ``validators`` list names *name* with one
     (already Plane-1-checked to be no lower than any declared floor), else the bundled
-    :data:`~squads._workflow._models.DEFAULT_VALIDATOR_LEVEL`.
+    :data:`~squads._workflow._validator_names.DEFAULT_VALIDATOR_LEVEL`.
 
     Every catalog member calls this instead of writing ``"error"``/``"warn"`` into its own
     ``CheckIssue(...)`` — the level lives in exactly one place, the declared table, so a
@@ -352,7 +359,7 @@ def _parent_present(ctx: ValidatorContext) -> list[CheckIssue]:
     requiredness: with it effective, an item created with no parent is refused, naming the
     declared type when the spec declares one.
 
-    **In no** :data:`~squads._workflow._models.CATEGORY_BUNDLES` **entry, deliberately.** A type
+    **In no** :data:`CATEGORY_BUNDLES` **entry, deliberately.** A type
     turns it on by naming it in its own ``validators`` — the same extend-only opt-in the
     sub-entity clause documents. The bundled spec does not, and that is a decision rather than an
     oversight: ``gate()`` and ``report()`` run one effective name set, so a validator that
@@ -375,7 +382,7 @@ def _parent_acyclic(ctx: ValidatorContext) -> list[CheckIssue]:
     """Refuses a parent chain that revisits an item — a self-parent, a mutual pair, or a
     longer chain that closes on itself.
 
-    **In** :data:`~squads._workflow._models.COMMON_CORE`, so it is effective for every type
+    **In** :data:`~squads._workflow._validator_names.COMMON_CORE`, so it is effective for every type
     under every category. The parent relation is the squad's hierarchy and every consumer of it
     walks upward or downward assuming the walk terminates; a cycle is not a house convention a
     category could legitimately decline, so it is floor behaviour rather than a bundle member.
@@ -767,7 +774,9 @@ def _body_written(ctx: ValidatorContext) -> list[CheckIssue]:
     when a plain body write would be accepted as a first write."""
     item = ctx.item
     body = sections.get_section(ctx.raw_text, markers.BODY) if ctx.raw_text is not None else None
-    if body is None or not views.body_is_unwritten(body, scaffold_body(item, ctx.spec)):
+    if body is None or not view_tags.body_is_unwritten(
+        body, scaffold_body(item, ctx.spec, from_squad=ctx.squad_dir)
+    ):
         return []
     level = _resolved_level(ctx, "body_written")
     return [
@@ -1033,11 +1042,11 @@ def _item_skill_shadowed(ctx: ValidatorContext) -> list[CheckIssue]:
         (parts := markers.view_tag_parts(raw)) is not None and parts.name == ITEM_SKILL_VIEW_NAME
         for raw in sections.find_markers(region)
     )
-    prose = views.strip_view_tags(region).strip()
+    prose = view_tags.strip_view_tags(region).strip()
     if not prose:
         return []
     level = _resolved_level(ctx, "item_skill_shadowed")
-    clear_cmd = views.clear_roster_body_cmd(ROSTER_SKILL, slug)
+    clear_cmd = view_remedies.clear_roster_body_cmd(ROSTER_SKILL, slug)
     remedy = (
         f"move the prose first (`sq skill add <new-slug>`); take the type out of the active "
         f"spec (drop it from `[selected]`, or remove a project type's own declaration); clear "
@@ -1211,7 +1220,7 @@ assert {r.value for r in ContextRequirement} <= {
 
 def on_disk_not_indexed(seq: int, fid: str, *, indexed: bool, level: str) -> CheckIssue | None:
     """One direction of ``_index_reconciled``, factored to a single-item predicate so
-    ``check``'s confirm round in ``_maintenance.py`` can re-run this exact comparison against
+    ``check``'s confirm round in ``_check.py`` can re-run this exact comparison against
     a freshly loaded index's membership for just this candidate — never a second copy."""
     if indexed:
         return None
@@ -1253,12 +1262,12 @@ def _index_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
 def live_roster_slugs(ctx: SquadGlobalContext) -> tuple[frozenset[str], frozenset[str]]:
     """The roster-scoped ``(live role slugs, live skill slugs)`` pair
     :func:`backend_entry_candidates` hands to each backend's ``managed_entry_paths`` — derived
-    from ``ctx.index`` via :func:`~squads._interactions.is_live_roster_entry`, the exact
-    predicate ``ServiceCore._project_roster_item`` uses to materialise/withdraw. Never a fixed
+    from ``ctx.index`` via :func:`is_live_roster_entry`, the exact
+    predicate ``RosterProjection.project_item`` uses to materialise/withdraw. Never a fixed
     or historical slug list, so a retire/reactivate cycle can never leave a false positive (the
     retired side) or a false negative (the reactivated side) on either backend.
 
-    Not underscored: :meth:`MaintenanceMixin._confirm_cross_source` calls this a second time,
+    Not underscored: :meth:`CheckMixin._confirm_cross_source` calls this a second time,
     against a freshly reloaded index, to recompute the live set a per-entry candidate is
     confirmed against — see :func:`backend_entry_missing`.
     """
@@ -1285,16 +1294,17 @@ def _backend_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
     A per-entry roster pointer (``managed_entry_paths``) is a *different* claim, reported at
     **warn** for reasons stated where it lives: :func:`backend_entry_candidates` and
     :func:`backend_entry_missing`, confirmed through ``check``'s one confirm round exactly like
-    ``index_reconciled``'s two directions (see :meth:`MaintenanceMixin._confirm_cross_source`).
+    ``index_reconciled``'s two directions (see :meth:`CheckMixin._confirm_cross_source`).
     It needs that round because a per-entry pointer is roster- and therefore index-derived,
     which makes it a cross-source claim; a rule reading only config and disk, like this one, is
     not, and that is the whole difference between the two.
     """
-    bctx = BackendContext(paths=ctx.paths, spec=ctx.spec)
+    bctx = BackendContext(
+        paths=ctx.paths, spec=ctx.spec, playbook=ctx.playbook, catalog=ctx.catalog
+    )
     level = squad_global_level(ctx.spec, "backend_reconciled")
     issues: list[CheckIssue] = []
-    for name in ctx.paths.config.active_backends:
-        backend = get_backend(name)
+    for backend in ctx.backends():
         issues.extend(
             CheckIssue(
                 level,
@@ -1317,7 +1327,7 @@ def backend_entry_candidates(ctx: SquadGlobalContext) -> list[tuple[str, str]]:
     path here transiently absent for a reason that is not a defect. Each ``(backend name,
     rel_path)`` pair is confirmed by :func:`backend_entry_missing` against a freshly reloaded
     index before ever becoming a :class:`CheckIssue` — see
-    :meth:`MaintenanceMixin._confirm_cross_source`.
+    :meth:`CheckMixin._confirm_cross_source`.
 
     Reported at **warn**, not error — and not because gitignoring this backend's directory is a
     supported choice. An adopter who gitignores the whole directory does *not* escape
@@ -1333,12 +1343,13 @@ def backend_entry_candidates(ctx: SquadGlobalContext) -> list[tuple[str, str]]:
     bctx = BackendContext(
         paths=ctx.paths,
         spec=ctx.spec,
+        playbook=ctx.playbook,
+        catalog=ctx.catalog,
         live_role_slugs=live_role_slugs,
         live_skill_slugs=live_skill_slugs,
     )
     candidates: list[tuple[str, str]] = []
-    for name in ctx.paths.config.active_backends:
-        backend = get_backend(name)
+    for backend in ctx.backends():
         candidates.extend(
             (backend.name, rel_path)
             for rel_path in backend.managed_entry_paths(bctx)
@@ -1370,7 +1381,13 @@ def backend_entry_missing(
 
 
 def backend_entry_path(
-    backend: AgentBackend, paths: SquadPaths, kind: str, slug: str
+    backend: AgentBackend,
+    paths: SquadPaths,
+    spec: WorkflowSpec,
+    playbook: PlaybookSpec,
+    catalog: CatalogSource,
+    kind: str,
+    slug: str,
 ) -> str | None:
     """The one declared path for a single live role/skill *slug* — never a second
     path-construction rule of this module's own: reuses :meth:`~squads._backends._base.
@@ -1378,25 +1395,38 @@ def backend_entry_path(
     ``BackendContext`` otherwise), which is this backend's only declared source of a per-entry
     path. ``None`` when *backend* declares no path for a slug of this *kind* (e.g. ``agents_md``,
     which declares none at all). Shared by :func:`backend_entry_drift_candidates` (scan) and the
-    currency confirm round (:class:`~squads._services._maintenance.MaintenanceMixin`), so a
+    currency confirm round (:class:`~squads._services._check.CheckMixin`), so a
     candidate and its confirmation are always compared against the identical path."""
     ctx = (
-        BackendContext(paths=paths, live_role_slugs=frozenset({slug}))
+        BackendContext(
+            paths=paths,
+            spec=spec,
+            playbook=playbook,
+            catalog=catalog,
+            live_role_slugs=frozenset({slug}),
+        )
         if kind == "role"
-        else BackendContext(paths=paths, live_skill_slugs=frozenset({slug}))
+        else BackendContext(
+            paths=paths,
+            spec=spec,
+            playbook=playbook,
+            catalog=catalog,
+            live_skill_slugs=frozenset({slug}),
+        )
     )
     found = backend.managed_entry_paths(ctx)
     return found[0] if found else None
 
 
-def backend_entry_drift(
+def backend_entry_drift(  # noqa: PLR0913 — one keyword per input of the re-render
     backend: AgentBackend,
     kind: str,
     item: Item,
     *,
     paths: SquadPaths,
     spec: WorkflowSpec,
-    playbook: PlaybookSpec | None,
+    playbook: PlaybookSpec,
+    catalog: CatalogSource,
     role_skills: dict[str, list[str]],
     rel_path: str,
 ) -> CheckIssue | None:
@@ -1445,12 +1475,14 @@ def backend_entry_drift(
         disk_text = disk_path.read_text(encoding="utf-8")
     except OSError:
         return None
-    bctx = BackendContext(paths=paths, spec=spec, playbook=playbook, role_skills=role_skills)
+    bctx = BackendContext(
+        paths=paths, spec=spec, playbook=playbook, catalog=catalog, role_skills=role_skills
+    )
     if kind == "role":
         from squads._errors import SquadsError
 
         try:
-            role = resolve_role_for_item(item, paths.squad_dir)
+            role = resolve_role_for_item(item, paths.squad_dir, catalog=catalog)
         except SquadsError:
             return None
     else:
@@ -1495,8 +1527,9 @@ def _roster_config_integrity(ctx: SquadGlobalContext) -> list[CheckIssue]:
         ctx.index,
         ctx.spec,
         ctx.paths.config.active_backends,
-        ctx.playbook if ctx.playbook is not None else get_playbook_spec(),
+        ctx.playbook,
         ctx.paths.squad_dir,
+        ctx.catalog,
     )
     level = squad_global_level(ctx.spec, "roster_config_integrity")
     return [
@@ -1531,7 +1564,7 @@ def _default_designation_duplicated(ctx: SquadGlobalContext) -> list[CheckIssue]
         for it in ctx.index.items.values()
         if it.type == ROSTER_ROLE
         and it.status in live
-        and holds_default_designation(it, ctx.paths.squad_dir)
+        and holds_default_designation(it, ctx.paths.squad_dir, catalog=ctx.catalog)
     )
     if len(holders) <= 1:
         return []
@@ -1650,7 +1683,7 @@ def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
     legitimately in this state for as long as the adopter takes to run ``sq role activate``.
     Refusing the retirement instead — the shape the *skill* side uses, where ``--unlink`` is a
     performable step — would offer no equivalent escape here, since sq never rewrites an
-    adopter's override file. See :func:`~squads._interactions.orphaned_playbook_guides` for the
+    adopter's override file. See :func:`orphaned_playbook_guides` for the
     predicate and its two deliberate exemptions.
 
     Scoped to guides the adopter actually wrote, which is why the raw override document is read
@@ -1659,19 +1692,17 @@ def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
     report an adopter cannot act on is worse than silence for a squad whose only "fault" is
     having retired a bundled role.
     """
-    if ctx.playbook is None:
-        return []  # no playbook resolved for this context — nothing to strip guides from
     live = ctx.spec.live_statuses(ROSTER_ROLE)
     roles = [it for it in ctx.index.items.values() if it.type == ROSTER_ROLE]
     known = frozenset(slug for it in roles if (slug := it.slug))
     live_initial = ctx.spec.live_initial(ROSTER_ROLE)
     level = squad_global_level(ctx.spec, "playbook_guide_role_live")
     live_roles = [
-        resolve_role_tolerantly(it, ctx.paths.squad_dir)
+        resolve_role_tolerantly(it, ctx.paths.squad_dir, catalog=ctx.catalog)
         for it in roles
         if it.status in live and it.slug
     ]
-    override_guides = playbook_override_guide_pairs(ctx.paths.squad_dir)
+    override_guides = playbook_override_guide_pairs(ctx.paths.squad_dir, ctx.files)
     messages = [
         orphaned_playbook_guide_message(
             item_type, slug, retired=slug in known, live_status=live_initial
@@ -1690,7 +1721,7 @@ def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
             ctx.spec,
             live_roles=live_roles,
             override_guides=override_guides,
-            override_commands=playbook_override_command_lines(ctx.paths.squad_dir),
+            override_commands=playbook_override_command_lines(ctx.paths.squad_dir, ctx.files),
         )
     ]
     return [CheckIssue(level, "", message) for message in messages]
@@ -1750,25 +1781,29 @@ def _type_has_live_author(ctx: SquadGlobalContext) -> list[CheckIssue]:
     an in-lane author of it, naming the catalog roles whose activation would fix it. A type
     whose items are all settled is not reported: a role retired on purpose leaves history, not
     debt."""
-    if ctx.playbook is None:
-        return []
     roles = [it for it in ctx.index.items.values() if it.type == ROSTER_ROLE and it.slug]
     live = ctx.spec.live_statuses(ROSTER_ROLE)
     live_roles = [
-        resolve_role_tolerantly(it, ctx.paths.squad_dir) for it in roles if it.status in live
+        resolve_role_tolerantly(it, ctx.paths.squad_dir, catalog=ctx.catalog)
+        for it in roles
+        if it.status in live
     ]
     live_slugs = {role.slug for role in live_roles}
     try:
-        catalog = load_role_catalog(ctx.paths.squad_dir)
+        catalog = ctx.catalog()
     except SquadsError:  # the broken catalog override is its own finding
-        catalog = load_role_catalog()
+        catalog = get_catalog()
     pool = _AuthorPool(
         spec=ctx.spec,
         statuses={it.slug: it.status for it in roles if it.slug},
         capabilities={
             **{r.slug: frozenset(r.capabilities) for r in catalog.roles},
             **{
-                it.slug: frozenset(resolve_role_tolerantly(it, ctx.paths.squad_dir).capabilities)
+                it.slug: frozenset(
+                    resolve_role_tolerantly(
+                        it, ctx.paths.squad_dir, catalog=ctx.catalog
+                    ).capabilities
+                )
                 for it in roles
                 if it.slug
             },
@@ -2146,14 +2181,18 @@ class ValidatorEngine:
     Squad-global validators never run in gate mode — they are a report-only, once-per-
     invocation check, not a create/update gate.
 
-    ``paths`` is required once ``squad_global`` is non-empty (``backend_reconciled`` needs it
-    to build a ``BackendContext``); ``report()``'s default construction
-    (``ValidatorEngine(spec=..., paths=...)``) always supplies it.
+    ``paths`` and ``role_catalog`` are required once ``squad_global`` is non-empty
+    (``backend_reconciled`` needs them to build a ``BackendContext``); ``report()``'s default
+    construction (``ValidatorEngine(spec=..., playbook=..., paths=..., role_catalog=...)``)
+    always supplies them.
     """
 
     spec: WorkflowSpec
+    playbook: PlaybookSpec
     paths: SquadPaths | None = None
-    playbook: PlaybookSpec | None = None
+    role_catalog: CatalogSource | None = None
+    override_files: OverrideFiles | None = None
+    backends: Callable[[], list[AgentBackend]] | None = None
     catalog: dict[str, Validator] = field(default_factory=lambda: CATALOG)
     squad_global: dict[str, SquadGlobalValidator] = field(
         default_factory=lambda: SQUAD_GLOBAL_CATALOG
@@ -2186,6 +2225,7 @@ class ValidatorEngine:
             dependency_incoming=incoming.dependency,
             type_present=type_present,
             raw_text=raw_text,
+            squad_dir=self.paths.squad_dir if self.paths is not None else None,
         )
         held = ctx.held_context()
         issues: list[CheckIssue] = []
@@ -2252,14 +2292,24 @@ class ValidatorEngine:
         if self.squad_global:
             from squads._errors import SquadsError
 
-            if self.paths is None:
-                raise SquadsError("ValidatorEngine.report(): squad-global validators need paths")
+            if (
+                self.paths is None
+                or self.role_catalog is None
+                or self.override_files is None
+                or self.backends is None
+            ):
+                raise SquadsError(
+                    "ValidatorEngine.report(): squad-global validators need paths and a catalog"
+                )
             g_ctx = SquadGlobalContext(
                 index=index,
                 on_disk=on_disk,
                 spec=self.spec,
                 paths=self.paths,
                 playbook=self.playbook,
+                catalog=self.role_catalog,
+                files=self.override_files,
+                backends=self.backends,
                 now=clock.now(),
             )
             for name, validator in self.squad_global.items():

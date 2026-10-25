@@ -11,7 +11,7 @@ import pytest
 from _helpers import create_item
 from _selection_table import service_with
 from squads._index._reflog import read_lines, reflog_path
-from squads._interactions import TITLE_ADVISORY_MAX
+from squads._workflow._models import DEFAULT_SUBENTITY_TITLE_MAX
 
 pytestmark = pytest.mark.anyio
 
@@ -25,8 +25,8 @@ def svc(project):
     return service_with(project.squad_dir, SELECTING)
 
 
-LONG_TITLE = "A" * (TITLE_ADVISORY_MAX + 1)
-EXACT_TITLE = "A" * TITLE_ADVISORY_MAX
+LONG_TITLE = "A" * (DEFAULT_SUBENTITY_TITLE_MAX + 1)
+EXACT_TITLE = "A" * DEFAULT_SUBENTITY_TITLE_MAX
 SHORT_TITLE = "Short title"
 
 _KIND_SETUP = {
@@ -102,7 +102,7 @@ class TestCheckSubentityTitleLengthAdvisory:
         assert issues[0].level == "warn"
         assert issues[0].item == feat.id
         assert str(len(LONG_TITLE)) in issues[0].message
-        assert str(TITLE_ADVISORY_MAX) in issues[0].message
+        assert str(DEFAULT_SUBENTITY_TITLE_MAX) in issues[0].message
 
     async def test_at_threshold_and_short_titles_emit_no_advisory_issue(self, svc):
         feat = (await create_item(svc, "feature", "F")).item

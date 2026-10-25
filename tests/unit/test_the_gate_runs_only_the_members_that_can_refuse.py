@@ -10,6 +10,7 @@ import pytest
 
 from _helpers import BUILTIN_FOLDER, BUILTIN_PREFIX
 from squads._errors import SquadsError
+from squads._interactions._playbook import get_playbook_spec
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._services._results import CheckIssue
@@ -21,11 +22,11 @@ from squads._services._validators import (
     ValidatorEngine,
 )
 from squads._workflow import bundled_spec
-from squads._workflow._models import (
+from squads._workflow._models import WorkflowSpec
+from squads._workflow._validator_names import (
     PARAMETERIZED_VALIDATOR_NAMES,
     VALIDATOR_LEVEL_FLOOR,
     VALIDATOR_NAMES,
-    WorkflowSpec,
 )
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
@@ -77,7 +78,9 @@ def _counting_catalog(calls: list[str]) -> dict[str, Validator]:
 def _gate(spec: WorkflowSpec) -> list[str]:
     calls: list[str] = []
     db = SquadsDB(counter=1)
-    ValidatorEngine(spec=spec, catalog=_counting_catalog(calls), squad_global={}).gate(_item(), db)
+    ValidatorEngine(
+        spec=spec, catalog=_counting_catalog(calls), squad_global={}, playbook=get_playbook_spec()
+    ).gate(_item(), db)
     return calls
 
 
@@ -86,9 +89,9 @@ def _report(spec: WorkflowSpec) -> list[str]:
     db = SquadsDB(counter=1)
     item = _item()
     db.add(item)
-    ValidatorEngine(spec=spec, catalog=_counting_catalog(calls), squad_global={}).report(
-        db, {}, bodies={item.sequence_id: "body"}
-    )
+    ValidatorEngine(
+        spec=spec, catalog=_counting_catalog(calls), squad_global={}, playbook=get_playbook_spec()
+    ).report(db, {}, bodies={item.sequence_id: "body"})
     return calls
 
 
@@ -126,10 +129,14 @@ def _raiser(ctx: ValidatorContext) -> list[CheckIssue]:
 def test_a_raising_member_at_warn_does_not_abort_a_write_and_at_error_does() -> None:
     db = SquadsDB(counter=1)
     catalog = {**CATALOG, "dangling_ref": _raiser}
-    ValidatorEngine(spec=bundled_spec(), catalog=catalog, squad_global={}).gate(_item(), db)
+    ValidatorEngine(
+        spec=bundled_spec(), catalog=catalog, squad_global={}, playbook=get_playbook_spec()
+    ).gate(_item(), db)
     selected = _spec_selecting("dangling_ref", "error")
     with pytest.raises(RuntimeError, match="member raised"):
-        ValidatorEngine(spec=selected, catalog=catalog, squad_global={}).gate(_item(), db)
+        ValidatorEngine(
+            spec=selected, catalog=catalog, squad_global={}, playbook=get_playbook_spec()
+        ).gate(_item(), db)
 
 
 def test_a_finding_at_error_still_refuses_with_its_own_message() -> None:
@@ -140,6 +147,7 @@ def test_a_finding_at_error_still_refuses_with_its_own_message() -> None:
         spec=_spec_selecting("dangling_ref", "error"),
         catalog={**CATALOG, "dangling_ref": flags},
         squad_global={},
+        playbook=get_playbook_spec(),
     )
     with pytest.raises(SquadsError, match="stub refusal"):
         engine.gate(_item(), SquadsDB(counter=1))

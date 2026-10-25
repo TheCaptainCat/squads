@@ -229,6 +229,40 @@ migration needs no manual step, and its entry says so rather than leaving you to
 
 ---
 
+## Upgrading to 0.17: the schema step
+
+0.17 adds two finding states, `Noted` and `Deferred` (see
+[workflow.md § "Closing a finding as Noted or Deferred"](workflow.md#closing-a-finding-as-noted-or-deferred)).
+A release that does not declare them cannot load a squad holding one, so 0.17 moves the schema from
+0.16 to 0.17. Until the squad is migrated, 0.17 stops every command with:
+
+```text
+error: this squad is at schema v0.16; squads 0.17.0 expects v0.17. Run sq migrate up to upgrade it (see `sq migrate help`).
+```
+
+Run the step once per squad, then regenerate the managed files:
+
+```bash
+sq migrate up      # stamps schema 0.17 and rebuilds the index
+sq sync
+```
+
+**No item file changes.** The step rewrites no `.md` file: it edits the `schema_version` line of
+`.squads.toml` and rebuilds `.squads.json`. It has no manual steps, so
+`sq migrate chlog v0.16.0..v0.17.0` prints `no manual steps for v0.16.0..v0.17.0`.
+
+**The whole team upgrades together.** Once the squad is at 0.17, squads 0.16 refuses every command
+on it, `sq repair` and `sq migrate up` included, with:
+
+```text
+error: this squad is at schema v0.17, newer than squads 0.16.0 (v0.16). Upgrade the squads package.
+```
+
+Nothing is written, and installing 0.17 is the fix. Upgrade every machine, CI job and agent
+environment that runs `sq` on the squad before or right after you commit the migrated squad.
+
+---
+
 ## Upgrading to 0.16: the schema step
 
 0.16 changes the durable format, so a squad written by an earlier release is stopped until

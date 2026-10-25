@@ -1,5 +1,5 @@
 """The bundled spec is a tested artifact (P2): no parent-cycle in the type-parent graph, the
-module-level ``WORKFLOWS`` snapshot is immutable and never mutated by constructing a custom
+bundled item map is immutable and never mutated by constructing a custom
 spec, and every squad's (possibly overridden) spec is independent of every other squad's.
 """
 
@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from squads._errors import SquadsError
-from squads._workflow import WORKFLOWS, WorkflowSpec, bundled_spec, load_workflow_spec
+from squads._workflow import WorkflowSpec, bundled_spec, load_workflow_spec
 from squads._workflow._models import ItemSpec, Lifecycle, StatusSpec
 
 
@@ -60,10 +60,10 @@ def test_the_bundled_spec_itself_has_no_parent_cycle() -> None:
 
 
 def test_workflows_dict_is_a_stable_immutable_bundled_snapshot() -> None:
-    """Constructing a custom ``WorkflowSpec`` never mutates the module-level ``WORKFLOWS`` a
-    caller imported earlier — each spec carries its own workflow map via ``workflow_for()``."""
+    """Constructing a custom ``WorkflowSpec`` never mutates the module-level bundled item map a
+    caller held earlier — each spec carries its own workflow map via ``workflow_for()``."""
     bundled = load_workflow_spec()
-    captured = WORKFLOWS
+    captured = bundled_spec().items
 
     custom_spec = WorkflowSpec.model_validate(
         {
@@ -87,8 +87,8 @@ def test_workflows_dict_is_a_stable_immutable_bundled_snapshot() -> None:
         }
     )
 
-    assert captured is WORKFLOWS
-    assert "probe" not in WORKFLOWS
+    assert captured is bundled_spec().items
+    assert "probe" not in bundled_spec().items
     assert custom_spec.workflow_for("probe") is not None
     assert bundled_spec() is bundled_spec()  # always the same cached singleton
 
@@ -120,7 +120,7 @@ lifecycle = "squad_a_lc"
 
     assert "squad_a_type" in spec_a.items
     assert "squad_a_type" not in spec_b.items
-    assert "squad_a_type" not in WORKFLOWS
+    assert "squad_a_type" not in bundled_spec().items
 
 
 def test_load_workflow_spec_with_no_squad_dir_matches_the_bundled_singleton() -> None:

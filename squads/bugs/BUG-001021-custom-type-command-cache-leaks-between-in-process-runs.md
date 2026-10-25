@@ -3,7 +3,7 @@ id: BUG-1021
 sequence_id: 1021
 type: bug
 title: Custom-type command cache leaks between in-process runs
-status: Open
+status: Verified
 author: qa
 priority: low
 refs:
@@ -12,7 +12,7 @@ refs:
 description: Class-level cache keeps one squad's custom type and aliases for later
   -C runs
 created_at: '2026-10-15T20:51:06Z'
-updated_at: '2026-10-16T12:24:14Z'
+updated_at: '2026-10-25T11:11:55Z'
 ---
 <!-- sq:body -->
 ## Summary
@@ -59,4 +59,6 @@ Dev tree at 953a07ae (`squads` 0.15.0 package version); the cache itself is not 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-25T11:11:06Z] `qa` Mara Tester:
+  - Verified at HEAD 091bfb77: one process, two squads declaring widget with aliases wa/wb: A wa, B wb, B-then-A order, and `create widget`/`create <alias>` all exit 0; cross aliases (A wb, B wa) correctly exit 2.
 <!-- sq:discussion:end -->

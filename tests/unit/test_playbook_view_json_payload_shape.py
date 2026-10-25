@@ -15,11 +15,11 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import create_item
+from _helpers import catalog_of, create_item, make_service
 from squads import __version__
 from squads._cli._workflow_cmd import _playbook_json_payload
-from squads._interactions import get_playbook_spec
-from squads._services._service import Service, resolve_playbook
+from squads._interactions._playbook import get_playbook_spec
+from squads._spec_documents import resolve_playbook
 from squads._views import PlaybookSource, _resolve_playbook_source
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import ViewSource, ViewSpec
@@ -80,13 +80,13 @@ async def test_a_declared_but_unlaned_types_json_is_the_no_lane_case_not_a_raise
     squad_dir = svc.paths.squad_dir
     _write_renamed_guide_override(squad_dir)
     merged_spec = load_workflow_spec(squad_dir=squad_dir)
-    merged_playbook = resolve_playbook(merged_spec, squad_dir)
-    project_svc = Service(svc.paths, spec=merged_spec, playbook=merged_playbook)
+    merged_playbook = resolve_playbook(merged_spec, squad_dir, catalog_of(squad_dir))
+    project_svc = make_service(svc.paths, spec=merged_spec, playbook=merged_playbook)
     doc_item = (await create_item(project_svc, "doc", "D")).item
 
     view = ViewSpec(source=ViewSource(kind="playbook"))
     resolved = _resolve_playbook_source(
-        view, doc_item, merged_playbook, lambda: [], merged_spec, None
+        view, doc_item, merged_playbook, lambda: [], merged_spec, catalog_of(None)
     )
     assert resolved.lane is None  # the resolver's own well-formed empty case
 

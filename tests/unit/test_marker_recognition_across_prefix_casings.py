@@ -126,7 +126,10 @@ def test_every_marker_of_a_production_rendered_sub_entity_block_is_recognised() 
     pinned at the service layer (tests/service/test_marker_injection_guard.py).
     """
     text = "".join(
-        discussion.build_block("finding", f"F{n}", f"finding {n}", body="prose") for n in (1, 2, 3)
+        discussion.build_block(
+            "finding", f"F{n}", f"finding {n}", body="prose", spec=bundled_spec(), from_squad=None
+        )
+        for n in (1, 2, 3)
     )
     present = _ANY_SQ_COMMENT.findall(text)
     assert len(present) >= 18, "the block scaffold must carry its nested sub-regions"

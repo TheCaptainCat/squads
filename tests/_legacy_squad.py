@@ -7,7 +7,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import _aio
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
@@ -71,7 +71,7 @@ def stamp_behind(root: Path, schema: str = "0.15") -> None:
 def reopen(root: Path) -> Service:
     """A service over *root* as its config now reads (after :func:`stamp_behind`)."""
     cfg = SquadsConfig.from_toml_dict(tomllib.loads((root / ".squads.toml").read_text("utf-8")))
-    return Service(SquadPaths(root=root, squad_dir=root / cfg.squad_dir, config=cfg))
+    return make_service(SquadPaths(root=root, squad_dir=root / cfg.squad_dir, config=cfg))
 
 
 async def task(svc: Service, title: str = "Target") -> str:

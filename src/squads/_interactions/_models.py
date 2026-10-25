@@ -48,8 +48,8 @@ class ItemPlaybookSpec(BaseModel):
 class PlaybookSpec(BaseModel):
     """The full loaded playbook specification.
 
-    Built by ``load_playbook()``; a module-level singleton is used via the
-    shims in ``_interactions/__init__.py``.
+    Built by ``load_playbook()``; the bundled one is read through
+    ``_playbook.get_playbook_spec()``.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

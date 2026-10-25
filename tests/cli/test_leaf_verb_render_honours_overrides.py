@@ -15,14 +15,6 @@ The second is the guard: it enumerates render() call sites reached from double-b
 verbs (a view template, and the sub-entity block/head/summary templates) by instrumenting the
 rendering engine itself, so a future leaf verb that starts rendering something new trips it
 automatically rather than needing a matching new test.
-
-The third falsifies the harness rather than the code under test: it disables the leaf-verb
-re-assertion via a monkeypatch (opening the seam without touching production source) and asserts
-the resulting bundled-template fallback is actually observed. ``tests/conftest.py``'s ``invoke``
-fixture resets the ambient render ContextVar/cache before every call, so this test needs no
-manual reset of its own: without that harness-level reset, the leak the ``project`` fixture's
-in-process ``service.init(...)`` leaves in the ambient context (``invoke`` copies the calling
-context per call) would mask the break.
 """
 
 from collections.abc import MutableMapping
@@ -89,8 +81,8 @@ async def test_every_leaf_verb_render_call_sees_the_active_squad_dir(
     project, invoke, monkeypatch
 ) -> None:
     """Instrument the engine's template lookup to record, for every ``render()`` call made
-    during a run of double-bridge commands, the template name and whatever squad dir
-    ``render()`` actually resolved against. None of them may see ``None`` — a render that
+    during a run of double-bridge commands, the template name and the squad dir ``render()``
+    was handed. None of them may carry ``None`` — a render that
     resolves against no squad dir silently falls back to the bundled tree — and the recorded set
     must include both a view template and a sub-entity template, so the guard is not pinned to
     the one call site the first test drives.
@@ -98,8 +90,8 @@ async def test_every_leaf_verb_render_call_sees_the_active_squad_dir(
     calls: list[tuple[str, Path | None]] = []
     orig_env = engine._env
 
-    def spying_env() -> Environment:
-        env = orig_env()
+    def spying_env(squad_dir: Path | None) -> Environment:
+        env = orig_env(squad_dir)
         if not getattr(env, "_leaf_verb_render_spy", False):
             real_get_template = env.get_template
 
@@ -108,7 +100,7 @@ async def test_every_leaf_verb_render_call_sees_the_active_squad_dir(
                 parent: str | None = None,
                 globals: MutableMapping[str, Any] | None = None,
             ) -> Template:
-                calls.append((name, engine._active_squad_dir.get()))
+                calls.append((name, squad_dir))
                 return real_get_template(name, parent, globals)
 
             env.get_template = get_template  # type: ignore[method-assign]
@@ -145,42 +137,3 @@ async def test_every_leaf_verb_render_call_sees_the_active_squad_dir(
     assert not missing, f"leaf-verb render() calls with no active squad dir: {missing}"
     wrong = [(name, sd) for name, sd in calls if sd is not None and sd != project.squad_dir]
     assert not wrong, f"leaf-verb render() calls resolved a different squad dir: {wrong}"
-
-
-async def test_a_broken_leaf_verb_render_path_is_caught_once_the_harness_resets_ambient_state(
-    project, invoke, monkeypatch
-) -> None:
-    """Falsification for the harness's per-invocation reset itself, rather than for the
-    leaf-verb re-assertion that reset lets a test observe.
-
-    Disables the leaf-verb re-assertion without touching production source, by monkeypatching
-    ``squads._cli._common.set_active_squad_dir`` to a no-op. That opens the seam this module
-    guards: the item-type group's crossing still sets the ContextVar via
-    ``ServiceCore.__init__`` (a separate import binding in ``_services/_base.py``, untouched by
-    this monkeypatch), but the leaf verb's crossing no longer re-asserts it, so its own
-    ``render()`` call sees no active squad dir and falls back to the bundled template.
-
-    With ``invoke`` correctly resetting the ambient ContextVar/cache before every call, that
-    fallback is what actually happens here — asserted directly: the override marker is absent
-    and a bundled heading renders instead. Without that per-invocation reset, the
-    ambient context the ``project`` fixture leaves behind (its own in-process
-    ``service.init(...)``) would leak into this same invocation and mask the break — the override
-    would render despite it, the same false pass a test written the "obvious way" gives: one
-    that passes whether or not the code under test established the state itself.
-    """
-    from squads._cli import _common
-
-    monkeypatch.setattr(_common, "set_active_squad_dir", lambda _squad_dir: None)
-
-    r = await invoke(["create", "milestone", "Ship it", "--author", "manager"])
-    assert r.exit_code == 0, r.output
-    mile_id = _created_id(r.output)
-
-    r = await invoke(["override", "scaffold", "views/milestone_rollup.md.j2"])
-    assert r.exit_code == 0, r.output
-    _override_milestone_rollup(project.squad_dir, "OVERRIDE-RENDERED-MILESTONE-ROLLUP")
-
-    r = await invoke(["milestone", mile_id, "show"])
-    assert r.exit_code == 0, r.output
-    assert "OVERRIDE-RENDERED-MILESTONE-ROLLUP" not in r.output
-    assert "## Delivered" in r.output

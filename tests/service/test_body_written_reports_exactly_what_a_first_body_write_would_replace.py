@@ -18,7 +18,7 @@ from _selection_table import (
     service_with,
 )
 from squads import _sections as sections
-from squads import _views as views
+from squads import _view_tags as view_tags
 from squads._errors import SquadsError
 from squads._models import _markers as markers
 from squads._models._item import Item
@@ -33,7 +33,7 @@ type Build = Callable[[service.Service, TypeRow], Awaitable[Item]]
 def _scaffold_prose(svc: service.Service, item: Item) -> str:
     scaffold = svc.pristine_body(item)
     assert scaffold is not None
-    return views.strip_view_tags(scaffold).strip()
+    return view_tags.strip_view_tags(scaffold).strip()
 
 
 async def _created(svc: service.Service, row: TypeRow) -> Item:

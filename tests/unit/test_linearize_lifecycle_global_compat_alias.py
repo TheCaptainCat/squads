@@ -14,9 +14,9 @@ inspecting the filter/global registries.
 
 from pathlib import Path
 
-from squads._rendering._engine import invalidate_squad_dir, render, set_active_squad_dir
+from squads._rendering._engine import invalidate_squad_dir, render
 from squads._workflow import bundled_spec
-from squads._workflow._models import linearize_lifecycle
+from squads._workflow._lifecycle_order import linearize_lifecycle
 
 
 def _place_probe_template(squad_dir: Path, content: str) -> None:
@@ -30,10 +30,9 @@ def test_the_old_global_call_shape_still_renders(tmp_path: Path) -> None:
     """The exact syntax a 0.14.x-scaffolded ``workflow.md.j2`` calls: a bare global function,
     not a filter."""
     _place_probe_template(tmp_path, "{{ linearize_lifecycle(machine) }}")
-    set_active_squad_dir(tmp_path)
     machine = bundled_spec().machine_for("task")
 
-    rendered = render("views/linearize_probe.md.j2", machine=machine)
+    rendered = render("views/linearize_probe.md.j2", machine=machine, from_squad=tmp_path)
 
     assert rendered.strip() == linearize_lifecycle(machine)
 
@@ -45,10 +44,9 @@ def test_the_global_and_filter_forms_agree_on_the_same_machine(tmp_path: Path) -
     _place_probe_template(
         tmp_path, "{{ linearize_lifecycle(machine) }}|{{ machine | linearize_lifecycle }}"
     )
-    set_active_squad_dir(tmp_path)
     machine = bundled_spec().machine_for("review")
 
-    rendered = render("views/linearize_probe.md.j2", machine=machine)
+    rendered = render("views/linearize_probe.md.j2", machine=machine, from_squad=tmp_path)
 
     global_form, filter_form = rendered.split("|")
     assert global_form == filter_form
@@ -60,6 +58,8 @@ def test_the_bundled_workflow_template_itself_still_renders() -> None:
     context ``sq workflow`` builds — see ``_cli/_workflow_cmd.py``) still renders clean with
     the alias present — the alias is additive, so it cannot break a template that only ever
     calls the filter form."""
-    rendered = render("workflow.md.j2", spec=bundled_spec(), roles=None, playbook=None)
+    rendered = render(
+        "workflow.md.j2", spec=bundled_spec(), roles=None, playbook=None, from_squad=None
+    )
 
     assert rendered.strip()

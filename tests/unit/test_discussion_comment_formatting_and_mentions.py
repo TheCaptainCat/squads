@@ -6,6 +6,7 @@ already covered at tests/unit/test_subentity_head_and_summary_rendering.py — t
 
 from squads import _discussion as discussion
 from squads._models._subentity import SubEntity
+from squads._workflow import bundled_spec
 
 
 def test_format_comment_renders_a_dated_bullet_list() -> None:
@@ -58,6 +59,8 @@ def _sub(local_id: str, **kw) -> SubEntity:
 
 
 def test_next_local_id_continues_the_existing_sequence_per_kind() -> None:
-    assert discussion.next_local_id([], "story") == "US1"
-    assert discussion.next_local_id([_sub("US1"), _sub("US2")], "story") == "US3"
-    assert discussion.next_local_id([_sub("ST5")], "subtask") == "ST6"
+    assert discussion.next_local_id([], "story", spec=bundled_spec()) == "US1"
+    assert (
+        discussion.next_local_id([_sub("US1"), _sub("US2")], "story", spec=bundled_spec()) == "US3"
+    )
+    assert discussion.next_local_id([_sub("ST5")], "subtask", spec=bundled_spec()) == "ST6"

@@ -4,7 +4,7 @@ refusal when reinstating would be a guess about which lines are authored."""
 
 from squads._models import _markers as markers
 from squads._sections import get_section
-from squads._views import reinstate_absent_body_region
+from squads._view_tags import reinstate_absent_body_region
 
 _FRONTMATTER = "---\nid: ROLE-1\ntype: role\n---\n"
 _TAIL = "\n## Discussion\n\n<!-- sq:discussion -->\n<!-- sq:discussion:end -->\n"

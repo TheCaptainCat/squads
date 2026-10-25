@@ -105,7 +105,7 @@ CLASSIFICATIONS: dict[tuple[str, str], tuple[str, str]] = {
         "builds both the enabled and disabled tag strings only to check for their presence in "
         "the file's text; writes nothing",
     ),
-    ("squads/_views.py", "place_view_tags"): (
+    ("squads/_view_tags.py", "place_view_tags"): (
         "deliberately-ungated",
         "the one re-placement routine every writer of a sq:body region drives — it must be "
         "able to write ANY name, declared or not: an "
@@ -118,11 +118,11 @@ CLASSIFICATIONS: dict[tuple[str, str], tuple[str, str]] = {
         "not-a-writer",
         "composes the bare tag for the roster refusal's own error message only; writes nothing",
     ),
-    ("squads/_views.py", "_resolve_final_states"): (
+    ("squads/_view_tags.py", "_resolve_final_states"): (
         "not-a-writer",
         "composes the bare tag for ConflictingViewStateError's own message only; writes nothing",
     ),
-    ("squads/_services/_maintenance.py", "_seeded_view_issues"): (
+    ("squads/_services/_check.py", "_seeded_view_issues"): (
         "not-a-writer",
         "composes the bare or full tag for its own check-finding messages only; writes nothing",
     ),

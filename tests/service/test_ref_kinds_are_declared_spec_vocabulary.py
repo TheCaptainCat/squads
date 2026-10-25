@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import __version__
 from squads._errors import SquadsError
 from squads._models._item import make_ref, split_ref
@@ -165,12 +165,12 @@ async def test_sq_check_flags_an_undeclared_kind_on_a_live_edge(svc) -> None:
 
 
 async def test_a_project_declared_kind_can_be_added_read_and_graphed(tmp_path: Path) -> None:
-    from squads._services._service import Service, init
+    from squads._services._service import init
 
     result = await init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     _write_override(result.paths.squad_dir, '[ref_kinds.escalates]\nlabel = "Escalates"\n')
     overridden_spec = load_workflow_spec(squad_dir=result.paths.squad_dir)
-    svc = Service(result.paths, spec=overridden_spec)
+    svc = make_service(result.paths, spec=overridden_spec)
     assert "escalates" in svc.spec.ref_kinds
 
     a = (await create_item(svc, "task", "a")).item

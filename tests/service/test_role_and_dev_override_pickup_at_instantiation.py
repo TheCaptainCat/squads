@@ -20,6 +20,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of
 from squads._models._attributes import AttributeKey as X
 from squads._roles._catalog import PREDEFINED
 from squads._roles._resolver import resolve_dev_role, resolve_role_for_item
@@ -29,7 +30,7 @@ pytestmark = pytest.mark.anyio
 
 def _resolved(svc, item):
     """*item*'s definition as every reader of it resolves one."""
-    return resolve_role_for_item(item, svc.paths.squad_dir)
+    return resolve_role_for_item(item, svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir))
 
 
 def _place_role_toml(squad_dir: Path, slug: str, content: str) -> Path:
@@ -88,13 +89,15 @@ async def test_add_dev_with_no_toml_falls_back_to_the_bundled_dev_name_pool(proj
 
 async def test_resolve_dev_role_applies_a_toml_override_directly(project):
     _place_role_toml(project.squad_dir, "dotnet-dev", 'model = "opus"\n')
-    r = resolve_dev_role("dotnet", seq=0, squad_dir=project.squad_dir)
+    r = resolve_dev_role(
+        "dotnet", seq=0, squad_dir=project.squad_dir, catalog=catalog_of(project.squad_dir)
+    )
     assert r.slug == "dotnet-dev"
     assert r.model == "opus"
 
 
 def test_resolve_dev_role_with_no_squad_dir_returns_the_vanilla_pool_output() -> None:
-    r = resolve_dev_role("dotnet", seq=0, squad_dir=None)
+    r = resolve_dev_role("dotnet", seq=0, squad_dir=None, catalog=catalog_of(None))
     assert r.slug == "dotnet-dev"
     assert r.full_name.endswith("Dotnet")
 

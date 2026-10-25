@@ -18,6 +18,7 @@ from squads._errors import SquadsError
 from squads._interactions._loader import load_playbook
 from squads._roles._catalog import get_catalog
 from squads._services._service import open_service
+from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
 
@@ -58,7 +59,7 @@ _CELLS = [
 
 
 async def _roles_listed_under(svc, heading: str) -> list[str]:
-    from squads._interactions import item_skill_name
+    from squads._interactions._skills import item_skill_name
     from squads._workflow import ROSTER_SKILL
 
     item = await svc.roster_item(ROSTER_SKILL, item_skill_name(_TYPE))
@@ -139,7 +140,7 @@ async def test_a_malformed_capability_subject_is_refused_naming_the_file(
 ) -> None:
     _write(project.squad_dir, "playbook.toml", _guide(subject, False))
     with pytest.raises(SquadsError) as excinfo:
-        load_playbook(get_catalog(), squad_dir=project.squad_dir)
+        load_playbook(get_catalog(), squad_dir=project.squad_dir, spec=bundled_spec())
     assert "playbook.toml" in str(excinfo.value).replace("\\", "/")
     assert subject in str(excinfo.value)
 

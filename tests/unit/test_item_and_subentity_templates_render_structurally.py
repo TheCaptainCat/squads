@@ -54,7 +54,7 @@ def test_every_builtin_type_template_renders_the_required_markers_and_heading(
     # renders from the generic `item`/`description`/`spec` context passed below, so only the
     # role case needs the extra kwarg.
     role_kwargs = {"role": RoleDef.from_item(it)} if item_type == ROSTER_ROLE else {}
-    out = render(template_path, item=it, description="", spec=spec, **role_kwargs)
+    out = render(template_path, from_squad=None, item=it, description="", spec=spec, **role_kwargs)
     assert "<!-- sq:body -->" in out and "<!-- sq:body:end -->" in out
     assert "<!-- sq:discussion -->" in out and "<!-- sq:discussion:end -->" in out
     assert "## Discussion" in out
@@ -62,7 +62,9 @@ def test_every_builtin_type_template_renders_the_required_markers_and_heading(
 
 
 def test_subentity_block_skeleton_has_no_meta_or_head_region_and_nests_discussion_deeper() -> None:
-    block = discussion.build_block("subtask", "ST1", "Validate")
+    block = discussion.build_block(
+        "subtask", "ST1", "Validate", spec=bundled_spec(), from_squad=None
+    )
     assert block == (
         "\n<!-- sq:subtask:ST1 -->\n### ST1 — Validate\n\n"
         "<!-- sq:subtask:ST1:body -->\n"
@@ -74,7 +76,9 @@ def test_subentity_block_skeleton_has_no_meta_or_head_region_and_nests_discussio
     )
     assert ":meta" not in block
     assert ":head" not in block
-    assert "### ST1 —\n" in discussion.build_block("subtask", "ST1", "")  # blank title tolerated
+    assert "### ST1 —\n" in discussion.build_block(
+        "subtask", "ST1", "", spec=bundled_spec(), from_squad=None
+    )  # blank title tolerated
 
 
 def test_review_item_template_renders_a_findings_container_with_a_severity_legend() -> None:
@@ -88,7 +92,9 @@ def test_review_item_template_renders_a_findings_container_with_a_severity_legen
         created_at=_NOW,
         updated_at=_NOW,
     )
-    out = render("items/review.md.j2", item=it, description="", spec=bundled_spec())
+    out = render(
+        "items/review.md.j2", item=it, description="", spec=bundled_spec(), from_squad=None
+    )
     assert "<!-- sq:findings -->" in out
     assert "<!-- sq:summary -->" not in out  # retired: the roll-up is a computed view now
     assert "## Findings" in out
@@ -129,7 +135,7 @@ def test_review_severity_legend_and_command_hint_are_spec_derived_not_hardcoded(
         created_at=_NOW,
         updated_at=_NOW,
     )
-    out = render("items/review.md.j2", item=it, description="", spec=spec)
+    out = render("items/review.md.j2", item=it, description="", spec=spec, from_squad=None)
     assert "_Impact:_ 🟣 severe · ⚪ minor" in out
     assert "--severity minor" in out
     assert "critical" not in out
@@ -157,7 +163,7 @@ def test_feature_scaffold_hint_tracks_a_renamed_subentity_kind() -> None:
         created_at=_NOW,
         updated_at=_NOW,
     )
-    out = render("items/feature.md.j2", item=it, description="", spec=spec)
+    out = render("items/feature.md.j2", item=it, description="", spec=spec, from_squad=None)
     assert "add-requirement" in out
     assert "requirement <n> update" in out
     assert "add-story" not in out

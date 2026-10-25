@@ -486,17 +486,25 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         else:
             self._update_model(shadow, target, assignee=event.assignee or "", now=ev.at)
 
+    @staticmethod
+    def _clears_nothing(db: SquadsDB, target: str, event: UpdateEvent) -> bool:
+        """Whether *event* only removes an assignee the target does not have: no write."""
+        return event.only_clears_assignee() and require_item(db, target).assignee is None
+
     def _sim_update(
         self, shadow: SquadsDB, handles: HandleMap, ev: ResolvedEvent, event: UpdateEvent
     ) -> None:
         target = handles.resolve_item(event.target)
         parent = handles.resolve_item(event.parent) if event.parent else None
+        if self._clears_nothing(shadow, target, event):
+            return
         self._update_model(
             shadow,
             target,
             title=event.title,
             description=event.description,
             assignee=event.assignee,
+            clear_assignee=event.clear_assignee,
             add_labels=list(event.add_labels) or None,
             rm_labels=list(event.rm_labels) or None,
             status=event.status,
@@ -567,7 +575,9 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             if item is None:
                 continue
             bodies[item.sequence_id] = await self._read_item_file(item, item_file(self.paths, item))
-        engine = ValidatorEngine(spec=self.spec, squad_global={})
+        engine = ValidatorEngine(
+            spec=self.spec, playbook=self.playbook, squad_global={}, paths=self.paths
+        )
         issues = engine.report(final_db, {}, bodies=bodies, only=frozenset(touched_ids))
         return [i for i in issues if i.item in touched_ids]
 
@@ -709,12 +719,15 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
     async def _apply_update(self, db: SquadsDB, handles: HandleMap, event: UpdateEvent) -> str:
         target = handles.resolve_item(event.target)
         parent = handles.resolve_item(event.parent) if event.parent else None
+        if self._clears_nothing(db, target, event):
+            return target
         item = await self._update_core(
             db,
             target,
             title=event.title,
             description=event.description,
             assignee=event.assignee,
+            clear_assignee=event.clear_assignee,
             add_labels=list(event.add_labels) or None,
             rm_labels=list(event.rm_labels) or None,
             status=event.status,

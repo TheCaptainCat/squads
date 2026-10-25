@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._paths import SquadPaths
-from squads._services._service import Service
 
 _CORPUS_DIR = Path(__file__).parent.parent / "fixtures" / "corpus"
 _ROSTER_FILE = re.compile(r"(ROLE|SKILL|OP)-\d+-")
@@ -46,7 +46,7 @@ async def test_every_existing_roster_entry_keeps_its_slugs_and_file_name(
     shutil.copytree(_CORPUS_DIR / corpus, root)
     before = _roster(root)
 
-    await Service(_paths(root)).run_pending_migrations()
+    await make_service(_paths(root)).run_pending_migrations()
 
     after = _roster(root)
     assert before, f"corpus {corpus!r} holds no roster entry to protect"

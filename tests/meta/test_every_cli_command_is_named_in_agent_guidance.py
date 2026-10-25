@@ -97,14 +97,8 @@ import typer.main
 from squads import _docfiles
 from squads._backends import _managed_region
 from squads._cli import app
-from squads._interactions import (
-    GREETING_SKILL,
-    MEMORY_SKILL,
-    SQUADS_SKILL,
-    get_playbook_spec,
-    item_skill_name,
-    managed_item_types,
-)
+from squads._interactions._playbook import get_playbook_spec, managed_item_types
+from squads._interactions._skills import GREETING_SKILL, MEMORY_SKILL, SQUADS_SKILL, item_skill_name
 from squads._language import WorkingLanguage
 from squads._models._item import Item
 from squads._rendering._engine import render
@@ -209,6 +203,7 @@ def _generated_skill_bodies() -> dict[str, str]:
             spec=spec,
             squad_dir="squads",
             working_language=WorkingLanguage("en", "English"),
+            from_squad=None,
         ),
         f"skill:{GREETING_SKILL}": render(
             "views/greeting_skill.md.j2",
@@ -217,6 +212,7 @@ def _generated_skill_bodies() -> dict[str, str]:
             spec=spec,
             squad_dir="squads",
             working_language=WorkingLanguage("en", "English"),
+            from_squad=None,
         ),
         f"skill:{MEMORY_SKILL}": render(
             "views/memory_skill.md.j2",
@@ -225,6 +221,7 @@ def _generated_skill_bodies() -> dict[str, str]:
             spec=spec,
             squad_dir="squads",
             working_language=WorkingLanguage("en", "English"),
+            from_squad=None,
         ),
     }
     for item_type in managed_item_types(playbook):
@@ -239,6 +236,7 @@ def _generated_skill_bodies() -> dict[str, str]:
             spec=spec,
             squad_dir="squads",
             working_language=WorkingLanguage("en", "English"),
+            from_squad=None,
         )
     return bodies
 

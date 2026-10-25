@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads._services._service import Service
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import WorkflowSpec
@@ -37,7 +37,7 @@ def _spec_with_hyphenated_task_prefix() -> WorkflowSpec:
 
 
 def _svc(project) -> Service:
-    return Service(project, spec=_spec_with_hyphenated_task_prefix())
+    return make_service(project, spec=_spec_with_hyphenated_task_prefix())
 
 
 async def test_repad_preserves_a_hyphenated_prefix(project):

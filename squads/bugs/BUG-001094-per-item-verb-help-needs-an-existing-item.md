@@ -3,14 +3,14 @@ id: BUG-1094
 sequence_id: 1094
 type: bug
 title: Per-item verb help needs an existing item
-status: Open
+status: Verified
 author: qa
 priority: medium
 refs:
 - REV-958
 - MILE-1051:targets
 created_at: '2026-10-17T05:06:10Z'
-updated_at: '2026-10-17T05:06:10Z'
+updated_at: '2026-10-25T11:11:36Z'
 ---
 <!-- sq:body -->
 `--help` on a per-item verb cannot be displayed unless the number resolves to an existing item of that type. Found in REV-958 F6; reproduced on release/0.16 HEAD 3c99dcc8 (clean export, fresh scratch squad) and on the released 0.15.0.
@@ -32,4 +32,6 @@ Text-only mitigation if the behaviour stays: one line in each type group's help 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-25T11:10:49Z] `qa` Mara Tester:
+  - Verified at HEAD 091bfb77 (clean export): `task 1 show --help`, `task 999999 show --help`, `bug 1 update --help`, `skill nosuch show --help` all print leaf help, exit 0, no address resolved; `task show --help` prints the group help (N placeholder), exit 0.
 <!-- sq:discussion:end -->

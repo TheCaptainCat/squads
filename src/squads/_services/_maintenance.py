@@ -2,10 +2,7 @@
 
 import contextlib
 import dataclasses
-import re
-from collections import Counter
-from collections.abc import Iterable, Iterator
-from datetime import UTC, datetime
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, cast
 
@@ -13,9 +10,9 @@ from squads import _actor as actor
 from squads import _aio
 from squads import _clock as clock
 from squads import _sections as sections
+from squads import _view_tags as view_tags
 from squads import _views as views
 from squads._backends._base import AgentBackend, BackendContext
-from squads._backends._registry import get_backend
 from squads._errors import IndexFullError, RoleNotFoundError, SquadsError
 from squads._index._reconcile import (
     ReconcileResult,
@@ -25,33 +22,30 @@ from squads._index._reconcile import (
 )
 from squads._index._reflog import append_line, reflog_path
 from squads._index._resolver import item_file
-from squads._interactions import (
-    bundled_skill_slugs,
-    custom_item_skill_description,
-    custom_skill_slugs,
-    is_live_roster_entry,
-    item_type_for_skill_slug,
-    orphaned_playbook_guide_message,
-    orphaned_playbook_guides,
-    orphaned_skill_item_type,
-    skill_description,
-    skill_origin,
-    unheld_capability_token_message,
-    unheld_capability_tokens,
-)
 from squads._interactions._loader import (
     playbook_override_command_lines,
     playbook_override_guide_pairs,
 )
-from squads._interactions._models import PlaybookSpec
+from squads._interactions._playbook import (
+    orphaned_playbook_guide_message,
+    orphaned_playbook_guides,
+    unheld_capability_token_message,
+    unheld_capability_tokens,
+)
+from squads._interactions._skills import (
+    bundled_skill_slugs,
+    custom_item_skill_description,
+    custom_skill_slugs,
+    orphaned_skill_item_type,
+    skill_description,
+    skill_origin,
+)
 from squads._itemfile import (
-    SkewKey,
     frontmatter_skew,
     read_frontmatter,
     read_item_text,
     rewrite_ids,
     skew_message,
-    stale_encoding_clause,
     update_frontmatter,
     write_text,
 )
@@ -66,34 +60,40 @@ from squads._models._index import SquadsDB
 from squads._models._item import (
     DEFAULT_ID_PADDING,
     DISPLAY_ID_PADDING,
-    INVENTED_WHEN_ABSENT,
     Item,
     format_item_id,
     prefix_from_id,
-    slug_from_stem,
 )
 from squads._models._metadata import RETIRED_ROLE_KEYS
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._vocab import prefix_for
 from squads._paths import number_for_id
 from squads._roles._catalog import RoleDef
+from squads._roles._projection import RoleView
 from squads._roles._resolver import pinned_name_of, resolve_role_with_base, role_base_from_item
 from squads._sections import join_frontmatter
 from squads._services._base import ServiceCore
+from squads._services._corpus_files import (
+    LegacySkillBody,
+    Parsed,
+    Unparseable,
+    Unreadable,
+    Vanished,
+    malformed_id_message,
+    missing_dirent_message,
+    read_corpus_file,
+    seq_from_frontmatter_id,
+    stem_digit_run,
+)
 from squads._services._corpus_fit import corpus_fit_refusal
 from squads._services._duplicate_ids import (
-    DUPLICATE_ID_REMEDY,
-    SHARED_NUMBER_REMEDY,
-    CarrierLog,
     RenumberScope,
     SameIdRenumber,
     duplicate_groups,
     normalized_id,
     renumber_same_id_groups,
-    shared_number_groups,
 )
 from squads._services._results import (
-    CheckIssue,
     MigrationRun,
     ReflogEntry,
     RenumberResult,
@@ -101,29 +101,12 @@ from squads._services._results import (
     SelfRemedied,
     SyncSkips,
 )
+from squads._services._roster_projection import is_live_roster_entry
 from squads._services._skill_files import (
     RESOLVE_CONFLICT_REMEDY,
     RESTAMP_BLOCKED_REMEDY,
-    ScanContext,
-    SkillFolder,
     SkillScan,
-    managed_skill_slugs,
-    remedy_text,
     stamped_skill_parts,
-    stamped_skill_slug,
-)
-from squads._services._validators import (
-    SQUAD_GLOBAL_CATALOG,
-    SquadGlobalContext,
-    ValidatorEngine,
-    backend_entry_candidates,
-    backend_entry_drift,
-    backend_entry_missing,
-    backend_entry_path,
-    live_roster_slugs,
-    not_on_disk,
-    on_disk_not_indexed,
-    squad_global_level,
 )
 from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, bundled_spec
 from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
@@ -132,14 +115,6 @@ from squads._workflow._models import WorkflowSpec
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
 # ``type`` is a plain ``str`` — every type (built-in or custom) resolves from the spec.
 type _FileRec = tuple[str, Path, str, str, int]
-
-# (live role slugs, live skill slugs, role slug -> Item, skill slug -> Item, role slug ->
-# freshly-resolved preload-skill list) — one loaded index's roster-currency state, built by
-# ``MaintenanceMixin._roster_drift_state`` and shared by the scan and confirm halves of
-# per-entry pointer currency detection.
-type _RosterDriftState = tuple[
-    frozenset[str], frozenset[str], dict[str, Item], dict[str, Item], dict[str, list[str]]
-]
 
 _ROOT_TMP_IGNORE_PATTERN = f"{CONFIG_FILENAME}.*.tmp"
 
@@ -170,36 +145,6 @@ async def ensure_root_tmp_ignored(root: Path) -> None:
         return
     sep = "" if text.endswith("\n") else "\n"
     await _aio.atomic_write_text(gitignore, f"{text}{sep}{_ROOT_TMP_IGNORE_PATTERN}\n")
-
-
-def _missing_timestamp_issues(name: str, data: dict[str, Any]) -> list[CheckIssue]:
-    """Report a frontmatter that carries no ``created_at``/``updated_at``.
-
-    Absent, those load as an invented ``clock.now()`` that differs on every read (see
-    :data:`~squads._models._item.INVENTED_WHEN_ABSENT`) — so the file's own reported dates are
-    fiction until something writes them, and every date-ordered view of it is wrong meanwhile.
-    A warning rather than an error: the file is perfectly usable and any mutation heals it, but
-    it is the one part of a loaded item that is not a function of what the file says, so it is
-    reported rather than left to be silently re-invented per read.
-
-    The message names the index as the source the heal will use, and says so in those words.
-    It must not promise "the real value": what a mutation writes back is whatever the index
-    currently holds for the key, which is the item's true original only for as long as the
-    index still has it (:meth:`MaintenanceMixin._rebuild_index_from_disk` carries it
-    across a rebuild for exactly that reason). Over-promising here would make the warning read
-    as reassurance in the one case where the operator most needs to act.
-    """
-    missing = sorted(k for k in INVENTED_WHEN_ABSENT if data.get(k) is None)
-    if not missing:
-        return []
-    return [
-        CheckIssue(
-            "warning",
-            name,
-            f"frontmatter has no {', '.join(missing)} — a placeholder is invented on each read "
-            "until any mutation writes the value the index holds back into the file",
-        )
-    ]
 
 
 def _ref_encoding_is_stale(data: dict[str, Any], item: Item) -> bool:
@@ -265,7 +210,7 @@ def _converge_body_tag(
     be an author's real prose rather than a stale rendering. A missing region is reinstated
     first when that is safe; otherwise *text* comes back unchanged, never raising."""
     if sections.get_section(text, markers.BODY) is None:
-        reinstated = views.reinstate_absent_body_region(text)
+        reinstated = view_tags.reinstate_absent_body_region(text)
         if reinstated is None:
             return text
         text = reinstated
@@ -273,7 +218,7 @@ def _converge_body_tag(
     tag_line = markers.open_marker(markers.view_tag(view_name))
     if current not in ("", tag_line):
         return text
-    new_inner = views.place_view_tags(
+    new_inner = view_tags.place_view_tags(
         sections.get_section(text, markers.BODY) or "",
         None,
         seeded=frozenset({view_name}),
@@ -435,478 +380,6 @@ def _record_pending_rewrite(
         pending.stripped.append(item.id)
 
 
-def _marker_issues(text: str) -> list[str]:
-    """Detect unbalanced or duplicated sq markers in a file.
-
-    The declared unpaired view-tag family (:func:`~squads._models._markers.view_tag_parts`)
-    is exempt from the open/close **pairing** count entirely — by design it has no
-    ``close_marker`` counterpart (see :data:`~squads._models._markers.VIEW`), so demanding one
-    would flag a correctly placed tag as broken, in either state (enabled or disabled — a
-    close-marker spelling never matches either form), and a **duplicate** of one — same state
-    or cross-state (``x`` and ``x:disabled``, a different raw tag to this Counter, so never
-    caught as a duplicate here regardless) — is deferred whole to
-    :func:`_seeded_view_issues`'s own "duplicate by name" condition, the one place that can
-    name the real ``view add``/``view disable`` remedy alongside it. Every other tag family
-    (``sq:body`` and the rest) has no such richer report to defer to, so its own duplicate is
-    still reported here, exactly like unbalanced pairing.
-    """
-    opens: Counter[str] = Counter()
-    closes: Counter[str] = Counter()
-    for raw in sections.find_markers(text):  # e.g. "sq:body", "sq:body:end"
-        tag = raw[len(markers.PREFIX) :]
-        if tag.endswith(":end"):
-            closes[tag[: -len(":end")]] += 1
-        else:
-            opens[tag] += 1
-    problems: list[str] = []
-    for tag, n in opens.items():
-        # A same-state view-tag duplicate is deferred to `_seeded_view_issues`'s own
-        # "duplicate by name" report — the one place that can name the real `view
-        # add`/`view disable` remedy (it alone carries item_type/slug/spec); reporting it
-        # again here, with no remedy, would be the exact double report neither of the two
-        # docstrings wants.
-        if n > 1 and markers.view_tag_parts(tag) is None:
-            problems.append(f"duplicate marker <!-- sq:{tag} -->")
-        if markers.view_tag_parts(tag) is None and closes[tag] < n:
-            problems.append(f"unclosed marker <!-- sq:{tag} -->")
-    for tag, n in closes.items():
-        if opens[tag] < n:
-            problems.append(f"close without open <!-- sq:{tag}:end -->")
-    for tag, n in opens.items():
-        paired = n == 1 and closes[tag] == 1 and markers.view_tag_parts(tag) is None
-        if paired and text.find(markers.close_marker(tag)) < text.find(markers.open_marker(tag)):
-            problems.append(f"close before open <!-- sq:{tag}:end -->")
-    return problems
-
-
-def _view_target_issues(
-    text: str, item_type: str, spec: WorkflowSpec, playbook: PlaybookSpec
-) -> list[str]:
-    """Every **enabled** ``sq:view:<name>`` tag in *text* that cannot resolve for *item_type* —
-    undeclared, template missing, or a source that cannot apply to this type — as report
-    strings, once per name even if its tag repeats (a duplicate is :func:`_marker_issues`'s own
-    signal). Reports only, through :func:`~squads._views.resolve_view_target`; never
-    rewrites."""
-    problems: list[str] = []
-    seen: set[str] = set()
-    for raw in sections.find_markers(text):
-        parts = markers.view_tag_parts(raw)
-        if parts is None or parts.disabled or parts.name in seen:
-            continue
-        seen.add(parts.name)
-        reason = views.resolve_view_target(parts.name, item_type, spec, playbook)
-        if reason is not None:
-            problems.append(f"{reason} (<!-- {raw} -->)")
-    return problems
-
-
-def _stem_slug(md: Path, item_type: str, spec: WorkflowSpec) -> str:
-    """The filename's slug segment (``PREFIX-NNNNNN-<slug>.md`` -> ``<slug>``), resolved from
-    *item_type*'s declared prefix. The fallback :func:`_check_slug` uses only when frontmatter
-    cannot be read at all."""
-    return slug_from_stem(md.stem, spec.items[item_type].prefix)
-
-
-def _check_slug(md: Path, item_type: str, text: str, spec: WorkflowSpec) -> str:
-    """The slug this check pass classifies *md* by, read from frontmatter whenever *text* parses
-    and falling back to the filename segment (:func:`_stem_slug`) only when frontmatter can't be
-    reached — matching the write path's own classification even for a hand-renamed skill file."""
-    try:
-        data = read_frontmatter(text=text, source=str(md))
-    except SquadsError:
-        return _stem_slug(md, item_type, spec)
-    raw_slug = data.get("slug")
-    return raw_slug if isinstance(raw_slug, str) and raw_slug else _stem_slug(md, item_type, spec)
-
-
-def _disable_clause(item_type: str, addr: int | str, name: str, *, is_roster: bool) -> str:
-    """The ``, or disable it with …`` tail of a missing-tag remedy; a roster host's generated
-    view cannot be disabled, so it has none."""
-    if is_roster:
-        return ""
-    disable = views.view_placement_invocation(item_type, addr, "disable", name)
-    return f", or disable it with `{disable}`"
-
-
-#: The opening of any sq tag, spaced the way the marker regex accepts.
-_TAG_FRAGMENT_RE = re.compile(rf"<!--\s*{re.escape(markers.PREFIX)}")
-
-
-def _seeded_view_issues(
-    text: str, item_type: str, slug: str, n: int | None, spec: WorkflowSpec
-) -> list[str]:
-    """Every seeded view (:func:`~squads._views.seeded_view_names`) present exactly once and no
-    view name duplicated, checked directly against *text* on disk — each violation reported
-    with its real, runnable remedy. A role body holding prose in place of its tag is a
-    supported state and reports nothing; a skill with prose beside a missing tag names moving
-    the prose to a new skill before clearing it, since it may be an author's real runbook. An
-    entirely absent region defers to :func:`_absent_body_region_issues`. Reports only, never
-    repairs."""
-    seeded = views.seeded_view_names(item_type, slug, spec)
-    counts: Counter[str] = Counter()
-    for raw in sections.find_markers(text):
-        parts = markers.view_tag_parts(raw)
-        if parts is not None:
-            counts[parts.name] += 1
-    is_roster = item_type in (ROSTER_ROLE, ROSTER_SKILL)
-    addr: int | str = slug if is_roster else (n if n is not None else "<n>")
-    region = sections.get_section(text, markers.BODY) if is_roster else None
-    # A roster host whose `sq:body` marker pair is entirely absent is a different, narrower
-    # shape than a present-but-tagless region (`_absent_body_region_issues`, immediately below,
-    # is the one that reports it) — `view add`/`view disable` both need an existing region to
-    # place a tag into, so neither remedy this loop would otherwise name can work on such a
-    # file. Deferring to that finding here, rather than also naming a remedy that fails, is what
-    # keeps one broken file from ever carrying two findings that disagree on what to run.
-    region_absent = (
-        region is None
-        if is_roster
-        else markers.open_marker(markers.BODY) not in text
-        and markers.close_marker(markers.BODY) not in text
-    )
-    prose_beside_missing_tag = is_roster and bool(views.strip_view_tags(region or "").strip())
-    # A role's prose is a supported state unless it holds a tag fragment: a truncated or
-    # mistyped tag is damage, not prose, and stays reported.
-    role_prose = prose_beside_missing_tag and not _TAG_FRAGMENT_RE.search(region or "")
-    problems: list[str] = []
-    for name in sorted(seeded - set(counts)):
-        if region_absent or (role_prose and item_type == ROSTER_ROLE):
-            continue
-        tag = markers.open_marker(markers.view_tag(name))
-        if prose_beside_missing_tag:
-            clear_cmd = views.clear_roster_body_cmd(item_type, slug)
-            add_cmd = views.view_placement_invocation(item_type, addr, "add", name)
-            doc_type = item_type_for_skill_slug(slug, spec) if item_type == ROSTER_SKILL else None
-            if doc_type is not None:
-                # The same shape `_item_skill_shadowed` also reports: this prose may be an
-                # author's own runbook (the reclaim never ran against it, e.g. an `sq adopt`
-                # or a type declared later), so the remedy preserves it, never deletes outright.
-                problems.append(
-                    f"missing seeded view tag {tag} — the body already carries prose, and "
-                    f"{slug!r} still documents the declared type {doc_type!r}, so this may be "
-                    f"an author's own runbook rather than stale legacy text; the remedy that "
-                    f"preserves it: (1) `sq skill add <new-slug>` and move the prose there; "
-                    f"(2) drop {name!r} from [selected] in .overrides/workflow.toml; (3) clear "
-                    f"{slug}'s own text with `{clear_cmd}`; (4) restore {name!r} to [selected]; "
-                    f"(5) `{add_cmd}`"
-                )
-            else:
-                problems.append(
-                    f"missing seeded view tag {tag} — the body already carries "
-                    f"prose; the remedy that converges to a single live rendering: (1) drop "
-                    f"{name!r} from [selected] in .overrides/workflow.toml; (2) clear the text "
-                    f"with `{clear_cmd}`; (3) restore {name!r} to [selected]; (4) `{add_cmd}`"
-                )
-        else:
-            add_cmd = views.view_placement_invocation(item_type, addr, "add", name)
-            # A roster host's generated view cannot be disabled; its remedy is to restore it.
-            disable_clause = _disable_clause(item_type, addr, name, is_roster=is_roster)
-            problems.append(
-                f"missing seeded view tag {tag} — restore it with `{add_cmd}`{disable_clause}"
-            )
-    stray = {
-        parts.name
-        for tag in views.out_of_region_view_tags(text)
-        if (parts := markers.view_tag_parts(tag)) is not None
-    }
-    for name in sorted(n for n, c in counts.items() if c > 1):
-        head = (
-            f"duplicate {markers.PREFIX}{markers.view_tag(name)} tag "
-            f"({counts[name]} copies, counting both states) — "
-        )
-        if name in stray:
-            problems.append(
-                head + "one copy sits outside sq:body, where `view add` and `view disable` "
-                "refuse to act; remove or move that copy first, then collapse the rest with "
-                f"`{views.view_placement_invocation(item_type, addr, 'add', name)}`"
-            )
-        else:
-            collapse = f"`{views.view_placement_invocation(item_type, addr, 'add', name)}`"
-            if not is_roster:
-                collapse += (
-                    f" or `{views.view_placement_invocation(item_type, addr, 'disable', name)}`"
-                )
-            problems.append(head + "collapse to one with " + collapse)
-    return problems
-
-
-def _absent_body_region_issues(
-    text: str, item_type: str, slug: str, spec: WorkflowSpec
-) -> list[str]:
-    """One error when a file's ``sq:body`` marker pair is entirely absent (both markers
-    missing, not just one — that's :func:`_marker_issues`'s job). Any other type is told to
-    restore the pair; a role or skill names ``view add``/``view disable`` when
-    :func:`~squads._views.reinstate_absent_body_region` says the region can be safely
-    reinstated, or manual recovery when real prose is in the way and neither verb can help
-    without guessing."""
-    if markers.open_marker(markers.BODY) in text or markers.close_marker(markers.BODY) in text:
-        return []
-    generic = [
-        f"missing {markers.PREFIX}{markers.BODY} region (no "
-        f"`{markers.open_marker(markers.BODY)}`/`{markers.close_marker(markers.BODY)}` "
-        "pair at all) — restore the marker pair in this file, for example from git"
-    ]
-    if item_type not in (ROSTER_ROLE, ROSTER_SKILL):
-        return generic
-    view_name = views.roster_body_view_name(item_type, slug, spec)
-    if view_name is None:
-        return generic
-    if views.reinstate_absent_body_region(text) is None:
-        return [
-            "missing sq:body region (no `<!-- sq:body -->`/`<!-- sq:body:end -->` pair at "
-            "all) with something other than the seeded view tag in the way — no `view "
-            "add`/`view disable` can restore this without guessing which lines are authored; "
-            "recover the file by hand or from a backup"
-        ]
-    add_cmd = views.view_placement_invocation(item_type, slug, "add", view_name)
-    return [
-        "missing sq:body region (no `<!-- sq:body -->`/`<!-- sq:body:end -->` pair at all) — "
-        f"restore it with `{add_cmd}`"
-    ]
-
-
-def _drift_direction(item: Item, fdata: dict[str, Any]) -> str | None:
-    """Which side is ahead when the two ``updated_at`` values order the pair:
-    ``"markdown"`` is the expected, repairable skew; ``"index"`` means the ordering rule was
-    violated, or the failure was out of the stated crash model. ``None`` when the clock's
-    whole-second truncation (or a missing/unparseable frontmatter value) leaves the pair
-    unordered — say nothing about direction then, rather than reaching for a second input to
-    force an answer.
-    """
-    raw = fdata.get("updated_at")
-    if isinstance(raw, datetime):
-        disk_dt = raw if raw.tzinfo else raw.replace(tzinfo=UTC)
-    elif isinstance(raw, str):
-        try:
-            disk_dt = clock.parse_iso(raw)
-        except ValueError:
-            return None
-    else:
-        return None
-    if disk_dt > item.updated_at:
-        return "markdown"
-    if item.updated_at > disk_dt:
-        return "index"
-    return None
-
-
-def _drift_message(fields: list[SkewKey], item: Item, fdata: dict[str, Any]) -> str:
-    """The ``sq check`` finding text for a confirmed skew — the same two-clause split as
-    :func:`~squads._itemfile.skew_message`: a real divergence keeps today's wording (with its
-    direction suffix), a stale index encoding gets
-    :func:`~squads._itemfile.stale_encoding_clause` instead, in the same words as the write
-    seam's own refusal. A mixed item reports both clauses."""
-    diverged = [k.name for k in fields if not k.stale_encoding]
-    stale = [k.name for k in fields if k.stale_encoding]
-    clauses: list[str] = []
-    if diverged:
-        direction = _drift_direction(item, fdata)
-        if direction == "markdown":
-            suffix = " — markdown is ahead"
-        elif direction == "index":
-            suffix = " — index is ahead of markdown, which should not happen"
-        else:
-            suffix = ""
-        clauses.append(f"{', '.join(diverged)} drift between frontmatter and index{suffix}")
-    if stale:
-        clauses.append(stale_encoding_clause(stale))
-    return (
-        f"{'; '.join(clauses)}; "
-        "run `sq repair` before this item is mutated again, or the fix is lost silently"
-    )
-
-
-def _value_skew_issue(
-    item: Item, text: str, fdata: dict[str, Any], *, default_kind: str
-) -> CheckIssue | None:
-    """The general frontmatter/index value-divergence candidate: every top-level field on
-    which *text*'s on-disk frontmatter diverges from *item*, not only ``status``/``parent`` —
-    what were ``_status_drift``/``_parent_drift`` fold into this as the two-field special
-    case of the same rule, so the two predicates' own coverage (and their direction-naming in
-    the message) is not lost, only generalised.
-
-    Confirmable for a single item id from a freshly re-observed ``(item, text, fdata)``
-    triple, exactly like its predecessors, so ``check``'s scan pass (to detect the candidate)
-    and its one confirm pass (to decide whether it still holds) both call this same function
-    — never two copies of the comparison to drift apart.
-
-    Reuses :func:`~squads._itemfile.frontmatter_skew` *verbatim*: check reports exactly the
-    set the item-file write seam (:func:`~squads._itemfile.ensure_no_skew`) would refuse on
-    — no more (an operator told to repair a state nothing objects to) and no less (the gap
-    this replaces) — and inherits its exemptions (:data:`~squads._itemfile.PERMITTED_EXTRA_SKEW`)
-    and its round-trip normalisation for free, so a pre-fix corpus carrying only a
-    permanently-exempt skew reports nothing here either.
-
-    ``warn``, matching both predicates this replaces: a value divergence is the drift
-    family's class, not the reconciliation family's — the entry exists on both sides and one
-    side is simply older — so ``sq check``'s exit code is unchanged.
-    """
-    diverging = frontmatter_skew(text, item, default_kind=default_kind)
-    if not diverging:
-        return None
-    return CheckIssue("warn", item.id, _drift_message(diverging, item, fdata))
-
-
-def _stem_digit_run(md: Path, item_type: str, spec: WorkflowSpec) -> str | None:
-    """The zero-padded digit run recovered from *md*'s **filename** stem alone (e.g.
-    ``"000011"``), ``None`` when even that does not parse.
-
-    The fallback source for a file whose frontmatter cannot be read at all — the same
-    prefix-stripped digit-run parse :meth:`MaintenanceMixin.repad` already relies on for the
-    identical reason (a filename is a weaker source of truth than frontmatter, but it is the
-    only one left once frontmatter is unreadable). A hyphenated prefix (e.g. ``"RUN-BOOK"``) is
-    stripped whole rather than split on the stem's first hyphen. Kept as the raw digit-run
-    *string* (not just the parsed int) so a caller that also needs the filename's padding
-    width — :meth:`MaintenanceMixin._rebuild_index_from_disk`'s counter/padding floor — never
-    has to re-parse the stem a second time to get it.
-    """
-    prefix = spec.items[item_type].prefix
-    digits_slug = md.stem.removeprefix(f"{prefix}-")
-    digit_run, _, _slug = digits_slug.partition("-")
-    return digit_run if digit_run.isdigit() else None
-
-
-def _stem_seq(md: Path, item_type: str, spec: WorkflowSpec) -> int | None:
-    """The sequence number recovered from *md*'s **filename** stem alone — see
-    :func:`_stem_digit_run`, whose ``None`` case (the stem doesn't even parse) propagates."""
-    digit_run = _stem_digit_run(md, item_type, spec)
-    return int(digit_run) if digit_run is not None else None
-
-
-def _unparseable_seq_or_suppress(
-    md: Path, item_type: str, spec: WorkflowSpec, unparseable_seqs: set[int]
-) -> bool:
-    """Record *md*'s filename-derived sequence number into *unparseable_seqs* (mutated in
-    place), for :meth:`MaintenanceMixin._scan_for_check` to subtract from its missing-direction
-    reconciliation candidates. Returns ``True`` when even the filename stem doesn't parse, in
-    which case there is no safe seq to subtract and the caller should set ``suppress_missing``
-    instead — see :meth:`MaintenanceMixin._scan_for_check`'s docstring."""
-    stem_seq = _stem_seq(md, item_type, spec)
-    if stem_seq is None:
-        return True
-    unparseable_seqs.add(stem_seq)
-    return False
-
-
-def _seq_from_frontmatter_id(fid: object) -> int | None:
-    """The sequence number carried by a frontmatter ``id:`` value, or ``None`` when that value
-    is not a well-formed id at all.
-
-    Two shapes give ``None``: a non-string (``id: 5``, ``id: [a, b]`` — where ``number_for_id``
-    raises ``AttributeError``) and a trailing segment that is not an integer (``id: TASK-abc``
-    — where it raises ``InvalidIdError``). Both are corrupt *file data*, and every call site is
-    inside a per-file scan loop that must never abort the whole scan for one bad file, so the
-    parse is funnelled through here and the failure reported per file like any other defect.
-    """
-    if not isinstance(fid, str):
-        return None
-    try:
-        return number_for_id(fid)
-    except SquadsError:
-        return None
-
-
-def _report_and_third_state(
-    issues: list[CheckIssue],
-    unparseable_seqs: set[int],
-    md: Path,
-    item_type: str,
-    spec: WorkflowSpec,
-    message: str,
-) -> bool:
-    """Report *message* as an error against *md* and third-state the file — the shared body of
-    every "this file is present but cannot be evaluated" branch in
-    :meth:`MaintenanceMixin._scan_for_check`.
-
-    Both lists are mutated in place. Returns ``True`` when even the filename stem does not parse,
-    so there is no safe sequence number to subtract and the caller must set ``suppress_missing``;
-    callers fold it in with ``|=`` so one branch can never clear another's decision.
-    """
-    issues.append(CheckIssue("error", md.name, message))
-    return _unparseable_seq_or_suppress(md, item_type, spec, unparseable_seqs)
-
-
-def _missing_dirent_message(md: Path, *, is_symlink: bool) -> str:
-    """The one wording for a ``FileNotFoundError`` raised on a dirent the caller's own glob just
-    saw — shared by every command that can hit one (``check``, ``repair``, ``repad``/``renumber``)
-    so the same dirent cannot be given two different diagnoses depending on which command found
-    it.
-
-    The distinction is the whole point of the ``is_symlink`` test each caller performs: a broken
-    symlink is a **present** dirent whose *target* is missing, so "No such file or directory" —
-    what the raw ``OSError`` says —
-    sends an operator looking for a file that is sitting right there. Only a dirent that genuinely
-    vanished between the scan and the read is absent.
-
-    Names the path exactly once and never interpolates the errno: the raw ``str(exc)`` repeats the
-    path a second time inside its own text, which is how the two-paths-in-one-message shape got in.
-    """
-    if is_symlink:
-        return f"{md} is a broken symlink (its target does not exist)"
-    return f"{md} vanished between the directory scan and the read"
-
-
-def _malformed_id_message(fid: object) -> str:
-    """The report for a frontmatter ``id:`` that :func:`_seq_from_frontmatter_id` could not read.
-
-    Describes the **file**, and deliberately says nothing about what another command will then do
-    with it. Two reasons, both load-bearing.
-
-    *No repair outcome is claimed.* ``repair``'s behaviour is not one behaviour across the shapes
-    that reach here, all driven: ``id: TASK-abc`` rebuilds the entry cleanly (prefix from the id's
-    own prefix segment, number from ``sequence_id``); a non-string ``id: 5`` is refused by the load
-    boundary, so ``repair`` reports the file and leaves the previous index entry in place; and a
-    hyphen-less ``id: TASK`` rebuilds an entry whose id degrades to the ``UNRESOLVED`` sentinel.
-    No single sentence is true of all three — and this same message is reused verbatim by
-    ``renumber``, which refuses outright, where any repair claim is doubly wrong. So each command
-    reports its own outcome and this states only what is wrong with the line.
-
-    *The remedy is the one that works.* The wording this replaced also offered "or delete it".
-    Driven: a file with no ``id:`` at all is reported by ``check`` ("file has no `id` in
-    frontmatter") and third-stated by ``repair``, so deleting the line swaps one error for
-    another. Correcting the line is the only action that clears it, and the message says so
-    rather than letting an operator discover it the slow way.
-    """
-    return (
-        f"frontmatter `id` {fid!r} is malformed -- an `id:` must read `<PREFIX>-<number>`, and "
-        "the prefix half of the item's identity is read from this line, with nothing else in the "
-        "file supplying it. Correct the `id:` line to match this file's `sequence_id` and its "
-        "type's prefix; removing the line is reported too, so it is not a fix."
-    )
-
-
-def _is_legacy_skill_body(md: Path, item_type: str, spec: WorkflowSpec) -> bool:
-    """True for a pre-stamping, slug-named skill body file (e.g. ``squads.md``) that has
-    legitimately never carried a frontmatter ``id`` — the one shape where a missing ``id`` is
-    not an error, since these files pre-date the id-stamping migration entirely (see
-    :meth:`MaintenanceMixin._iter_item_files`). An ID-prefixed skill file (``SKILL-*.md``)
-    missing its ``id`` is a real error, same as any other type — only the legacy, unstamped
-    shape is exempt. Shared by both :meth:`MaintenanceMixin._scan_for_check` and
-    :meth:`MaintenanceMixin._rebuild_index_from_disk`'s "no id" branch so the exemption can
-    never drift between the two.
-
-    **This is wider than "pre-migration", and deliberately stays that way.** It matches any
-    skill file whose name lacks the type prefix, whenever it was written — including an
-    unstamped body produced *today* by a seeding gap, which is a real defect (a generated,
-    pointer-referenced file no ``SKILL`` item indexes) wearing the same shape. Narrowing it
-    was tried and is not available: the two states are indistinguishable on disk *and* in the
-    index, because ``init``'s internal ``_skip_skill_seed`` hook manufactures exactly the
-    defect shape on purpose — bodies written, ids deliberately not stamped, to hold the global
-    counter still. Every discriminator that reports the defect also reports that hook's output.
-
-    So the report for an unindexed skill body lives where the file is *produced* rather than
-    where it is later found: :meth:`MaintenanceMixin.sync` seeds every managed skill slug and
-    then reports, by name, any slug-named body still left unindexed
-    (:meth:`MaintenanceMixin._unindexed_skill_bodies`). That covers the variant this exemption
-    cannot — a body whose slug no seeding vocabulary claims — at the one surface that knows it
-    just wrote the file, and leaves check free to keep tolerating a corpus that has genuinely
-    never been stamped.
-    """
-    if item_type != ROSTER_SKILL:
-        return False
-    skill_prefix = prefix_for(ROSTER_SKILL, spec) + "-"
-    return not md.name.startswith(skill_prefix)
-
-
 def _reader_phrase(schema: str) -> str:
     """The release that can read a squad stamped *schema*, as the refusals name it."""
     release = release_reading_schema(schema)
@@ -1002,14 +475,14 @@ class MaintenanceMixin(ServiceCore):
         :meth:`_refresh_catalog_attributes`
         for the narrower catalog-merge case that can raise the same way), one notice per live
         ``SKILL`` item this run just withdrew because its type is no
-        longer declared (:func:`~squads._interactions.orphaned_skill_item_type`), and one per
+        longer declared (:func:`orphaned_skill_item_type`), and one per
         playbook guide **the adopter wrote** that this run just dropped from a generated
         ``sq-<type>`` skill because its role slug names no live role
-        (:func:`~squads._interactions.orphaned_playbook_guides` — the guide-level sibling of that
+        (:func:`orphaned_playbook_guides` — the guide-level sibling of that
         same withdrawal, reported here for the same reason: this run is what silently removed it;
         a guide that exists only in the bundled playbook is squads' own degradation and stays
         silent, since no adopter can edit it), and one per WARN-only notice a per-entry backend
-        write surfaced (``Artifact.warning`` via :meth:`_project_roster_item` — today that is a
+        write surfaced (``Artifact.warning`` via :meth:`project_item` — today that is a
         declared ``model`` the host's own agent frontmatter cannot express, which the generated
         pointer drops), one per per-entry backend pointer this run found absent and had to
         regenerate (naming the file and the backend — see the loop below; empty on a healthy
@@ -1025,21 +498,7 @@ class MaintenanceMixin(ServiceCore):
         the squad still syncs (exit stays 0 — ``sq check`` is the dedicated reporter that
         gates).
         """
-        # Idempotent: a squad initialised before this pattern existed picks it up here
-        # instead of carrying the hole for the rest of its life.
-        await ensure_root_tmp_ignored(self.paths.root)
-
-        # Ensure that every type folder declared in the active spec exists on disk.
-        # Built-in type folders are created by init/adopt; custom type folders may not
-        # yet exist if the type was added to the spec after the squad was initialised.
-        for ts in self.spec.items.values():
-            folder = self.paths.squad_dir / ts.folder
-            await _aio.mkdir(folder, parents=True, exist_ok=True)
-
-        # A managed skill file that lost its frontmatter is restored before anything reads the
-        # index; when the index does not know it yet, rebuild the index from the restored file.
-        first_skips = await self._restore_skill_files_ahead_of_sync()
-
+        skipped = list(await self._prepare_sync_surface())
         backends = self._backends()
         ctx = self._ctx
         for backend in backends:
@@ -1047,22 +506,14 @@ class MaintenanceMixin(ServiceCore):
         # Recompute every role's resolved preload-skill set (system membership + scope
         # edges) once, up front, for the projection ctx below — a full sync is the single
         # recomputation point that every per-entry backend pointer's list is built from.
-        role_skills = await self._role_skills_map()
+        role_skills = await self.roster_projection.role_skills_map()
         proj_ctx = BackendContext(
-            paths=self.paths, spec=self.spec, playbook=self.playbook, role_skills=role_skills
+            paths=self.paths,
+            spec=self.spec,
+            playbook=self.playbook,
+            role_skills=role_skills,
+            catalog=self.catalog,
         )
-        skipped: list[str] = list(first_skips)
-        # sq sync is the convergence point for the live/withdrawn projection:
-        # every roster item's status is re-applied against the predicate on every run,
-        # materialising a live entry and withdrawing every other one — including an entry
-        # already retired before this landed, with no migration owed. The item's own
-        # sq-managed state (the catalog-attribute merge) refreshes unconditionally regardless of
-        # liveness: only the *backend* projection — via ``_project_roster_item``, the same
-        # helper the single-item transition path uses — is gated. The role's own definition
-        # renders at read time off the ``sq:view:role_definition`` tag its ``sq:body`` carries
-        # (``squads._views.expand_view_tags``, via ``ItemsMixin.read_body``); the roster loops
-        # below don't write that tag either — the body-tag backfill just below does, once,
-        # ahead of them (see ``_backfill_roster_body_tags``).
         # Copied out of the snapshot before any mutation: ``list_items`` returns the read
         # scope's own aliases with no copy, and ``_refresh_catalog_attributes`` below mutates
         # ``item.attributes`` in place and then grafts that same object into a fresh
@@ -1081,27 +532,7 @@ class MaintenanceMixin(ServiceCore):
         # rebuild, no retired-region strip, no ref-encoding canonicalisation.
         await self._backfill_roster_body_tags(roster_roles, roster_skills)
 
-        # The roster-scoped set of per-entry pointers that *should* exist after this run —
-        # the same live predicate and the same backend declaration `sq check`'s
-        # `backend_reconciled` rule uses (`managed_entry_paths`), so the two can never
-        # disagree about which pointer belongs to which state. Snapshotting which of them are
-        # absent *before* the roster loops below write anything is what lets the report after
-        # them say "regenerated" rather than treating an ordinary, already-there file the same
-        # way — a second, independent probe would risk drifting from this one.
-        live_role_slugs = frozenset(
-            slug for it in roster_roles if is_live_roster_entry(it, self.spec) and (slug := it.slug)
-        )
-        live_skill_slugs = frozenset(
-            slug
-            for it in roster_skills
-            if is_live_roster_entry(it, self.spec) and (slug := it.slug)
-        )
-        entry_ctx = BackendContext(
-            paths=self.paths,
-            spec=self.spec,
-            live_role_slugs=live_role_slugs,
-            live_skill_slugs=live_skill_slugs,
-        )
+        entry_ctx = self._live_entry_context(roster_roles, roster_skills)
         missing_before = {
             (backend.name, rel_path)
             for backend in backends
@@ -1117,6 +548,88 @@ class MaintenanceMixin(ServiceCore):
         # here, so the two reports stay mutually exclusive by construction.
         content_before = await self._entry_content_snapshot(backends, entry_ctx, missing_before)
 
+        skipped += await self._project_roster_entries(roster_roles, roster_skills, proj_ctx)
+        skipped += self._regenerated_pointer_notices(backends, entry_ctx, missing_before)
+        roster = await self._write_managed_files(backends, role_skills)
+        # Currency's own report, the sibling of the "was missing" one above: a per-entry
+        # pointer whose content this run's own writes above just changed relative to
+        # `content_before`'s snapshot — distinguishable wording ("out of date or edited by
+        # hand") because "was missing" and a changed pointer are different facts about a
+        # repository. Never doubles up with the presence report: a path in `missing_before`
+        # was never captured into `content_before` in the first place.
+        skipped += await self._entry_drift_report(backends, entry_ctx, content_before)
+        skipped += await self._dropped_guidance_notices(roster)
+        # Seed SKILL ids for every managed skill file ``write_managed`` just ensured, bundled
+        # and custom alike, in the same order ``init``/``adopt`` use (idempotent; a slug whose
+        # convention-named file already exists is skipped without touching it). Both halves are
+        # seeded because a bundled-playbook type whose body file first appears after init would
+        # otherwise never be stamped: repair rebuilds the index from frontmatter, and the bare
+        # file has none.
+        await self.seed_bundled_skills()
+        await self.seed_custom_skills()
+        skipped += await self._skill_body_notices()
+        # Collapse exact duplicates only (order-preserving) — see the docstring above. A
+        # second, textually different message about the same item is never touched by this.
+        return SyncSkips(dict.fromkeys(skipped))
+
+    async def _prepare_sync_surface(self) -> list[str]:
+        """The folders and files ``sync`` needs in place before it reads the index; returns the
+        notices from restoring a managed skill file that lost its frontmatter."""
+        # Idempotent: a squad initialised before this pattern existed picks it up here
+        # instead of carrying the hole for the rest of its life.
+        await ensure_root_tmp_ignored(self.paths.root)
+
+        # Ensure that every type folder declared in the active spec exists on disk.
+        # Built-in type folders are created by init/adopt; custom type folders may not
+        # yet exist if the type was added to the spec after the squad was initialised.
+        for ts in self.spec.items.values():
+            folder = self.paths.squad_dir / ts.folder
+            await _aio.mkdir(folder, parents=True, exist_ok=True)
+
+        # A managed skill file that lost its frontmatter is restored before anything reads the
+        # index; when the index does not know it yet, rebuild the index from the restored file.
+        return await self._restore_skill_files_ahead_of_sync()
+
+    def _live_entry_context(
+        self, roster_roles: list[Item], roster_skills: list[Item]
+    ) -> BackendContext:
+        """The roster-scoped set of per-entry pointers that *should* exist after this run —
+        the same live predicate and the same backend declaration `sq check`'s
+        `backend_reconciled` rule uses (`managed_entry_paths`), so the two can never
+        disagree about which pointer belongs to which state. Snapshotting which of them are
+        absent *before* the roster loops write anything is what lets the report after
+        them say "regenerated" rather than treating an ordinary, already-there file the same
+        way — a second, independent probe would risk drifting from this one."""
+        live_role_slugs = frozenset(
+            slug for it in roster_roles if is_live_roster_entry(it, self.spec) and (slug := it.slug)
+        )
+        live_skill_slugs = frozenset(
+            slug
+            for it in roster_skills
+            if is_live_roster_entry(it, self.spec) and (slug := it.slug)
+        )
+        return BackendContext(
+            paths=self.paths,
+            spec=self.spec,
+            playbook=self.playbook,
+            live_role_slugs=live_role_slugs,
+            live_skill_slugs=live_skill_slugs,
+            catalog=self.catalog,
+        )
+
+    async def _project_roster_entries(
+        self, roster_roles: list[Item], roster_skills: list[Item], proj_ctx: BackendContext
+    ) -> list[str]:
+        """Re-apply every roster item's status against the live predicate, materialising a live
+        entry and withdrawing every other one — including an entry already retired before this
+        landed, with no migration owed. The item's own sq-managed state (the catalog-attribute
+        merge) refreshes unconditionally regardless of liveness: only the *backend* projection —
+        via ``project_item``, the same helper the single-item transition path uses — is gated.
+        The role's own definition renders at read time off the ``sq:view:role_definition`` tag
+        its ``sq:body`` carries (``squads._view_tags.expand_view_tags``, via
+        ``ItemsMixin.read_body``); these loops don't write that tag either — the body-tag
+        backfill does, once, ahead of them (see ``_backfill_roster_body_tags``)."""
+        skipped: list[str] = []
         # Resolved once for the whole sync sweep, not per role.
         default_kind = self.spec.default_ref_kind()
         for it in roster_roles:
@@ -1126,7 +639,7 @@ class MaintenanceMixin(ServiceCore):
             msg = await self._refresh_catalog_attributes(it, default_kind=default_kind)
             if msg is not None:
                 skipped.append(msg)
-            skipped += await self._project_roster_item(it, proj_ctx)
+            skipped += await self.roster_projection.project_item(it, proj_ctx)
         for it in roster_skills:
             stale_type = orphaned_skill_item_type(it.slug, self.spec)
             if stale_type is not None and it.status in self.spec.live_statuses(ROSTER_SKILL):
@@ -1135,95 +648,89 @@ class MaintenanceMixin(ServiceCore):
                     "declared — generated files withdrawn; restore the type to "
                     "re-materialise, or retire this skill to close it out"
                 )
-            skipped += await self._project_roster_item(it, proj_ctx)
+            skipped += await self.roster_projection.project_item(it, proj_ctx)
+        return skipped
 
-        # Report, per file and per backend, only the per-entry pointers that were actually
-        # absent before this run and that this run's own loops above just wrote — a
-        # retirement withdraws a pointer by removing its slug from the live set itself, so it
-        # is never a member of `missing_before` and is never reported here.
-        if missing_before:
-            skipped += [
-                f"{rel_path}: was missing — regenerated by this sync (backend: {backend.name})"
-                for backend in backends
-                for rel_path in backend.managed_entry_paths(entry_ctx)
-                if (backend.name, rel_path) in missing_before
-                and (self.paths.root / rel_path).exists()
-            ]
-        skill_map = await self._skill_paths()
+    def _regenerated_pointer_notices(
+        self,
+        backends: list[AgentBackend],
+        entry_ctx: BackendContext,
+        missing_before: set[tuple[str, str]],
+    ) -> list[str]:
+        """Report, per file and per backend, only the per-entry pointers that were actually
+        absent before this run and that this run's own loops just wrote — a retirement
+        withdraws a pointer by removing its slug from the live set itself, so it is never a
+        member of `missing_before` and is never reported here."""
+        if not missing_before:
+            return []
+        return [
+            f"{rel_path}: was missing — regenerated by this sync (backend: {backend.name})"
+            for backend in backends
+            for rel_path in backend.managed_entry_paths(entry_ctx)
+            if (backend.name, rel_path) in missing_before and (self.paths.root / rel_path).exists()
+        ]
+
+    async def _write_managed_files(
+        self, backends: list[AgentBackend], role_skills: dict[str, list[str]]
+    ) -> list[RoleView]:
+        """Compile every backend's managed regions and files; returns the live roster they were
+        compiled from."""
+        skill_map = await self.roster_projection.skill_paths()
         ctx_with_skills = BackendContext(
             paths=self.paths,
             skill_paths=skill_map,
-            skill_invocable=await self._skill_invocable(),
+            skill_invocable=await self.roster_projection.skill_invocable(),
             role_skills=role_skills,
             spec=self.spec,
             playbook=self.playbook,
+            catalog=self.catalog,
         )
         roster = await self.roster()
         ops = await self.operators()
         for backend in backends:
             await backend.write_managed(ctx_with_skills, roster, ops)
-        # Currency's own report, the sibling of the "was missing" one above: a per-entry
-        # pointer whose content this run's own writes above just changed relative to
-        # `content_before`'s snapshot — distinguishable wording ("out of date or edited by
-        # hand") because "was missing" and a changed pointer are different facts about a
-        # repository. Never doubles up with the presence report: a path in `missing_before`
-        # was never captured into `content_before` in the first place.
-        skipped += await self._entry_drift_report(backends, entry_ctx, content_before)
-        # Reported after write_managed, not before: this is a statement about what the files
-        # just written do NOT contain. `roster` is the live set write_managed itself gated on,
-        # so the two can never disagree about which guides were dropped.
+        return roster
+
+    async def _dropped_guidance_notices(self, roster: list[RoleView]) -> list[str]:
+        """What the generated skills just written do NOT contain: reported after
+        ``write_managed``, not before. `roster` is the live set ``write_managed`` itself gated
+        on, so the two can never disagree about which guides were dropped."""
         known_slugs = {r.slug for r in await self.roster_all()}
         live_initial = self.spec.live_initial(ROSTER_ROLE)
-        override_guides = playbook_override_guide_pairs(self.paths.squad_dir)
-        skipped += [
-            orphaned_playbook_guide_message(
-                item_type, slug, retired=slug in known_slugs, live_status=live_initial
-            )
-            for item_type, slug in orphaned_playbook_guides(
-                self.playbook,
-                self.spec,
-                live_roles=roster,
-                override_guides=override_guides,
-            )
+        override_guides = playbook_override_guide_pairs(self.paths.squad_dir, self.files)
+        return [
+            *(
+                orphaned_playbook_guide_message(
+                    item_type, slug, retired=slug in known_slugs, live_status=live_initial
+                )
+                for item_type, slug in orphaned_playbook_guides(
+                    self.playbook,
+                    self.spec,
+                    live_roles=roster,
+                    override_guides=override_guides,
+                )
+            ),
+            *(
+                unheld_capability_token_message(item_type, capability)
+                for item_type, capability in unheld_capability_tokens(
+                    self.playbook,
+                    self.spec,
+                    live_roles=roster,
+                    override_guides=override_guides,
+                    override_commands=playbook_override_command_lines(
+                        self.paths.squad_dir, self.files
+                    ),
+                )
+            ),
         ]
-        skipped += [
-            unheld_capability_token_message(item_type, capability)
-            for item_type, capability in unheld_capability_tokens(
-                self.playbook,
-                self.spec,
-                live_roles=roster,
-                override_guides=override_guides,
-                override_commands=playbook_override_command_lines(self.paths.squad_dir),
-            )
-        ]
-        # Seed SKILL ids for every managed skill file ``write_managed`` just ensured, bundled
-        # and custom alike, in the same order ``init``/``adopt`` use (idempotent; a slug whose
-        # convention-named file already exists is skipped without touching it).
-        #
-        # Seeding only the custom half here — which is what this did — left a hole exactly the
-        # width of "a bundled-playbook type whose body file first appears after init": the
-        # backend writes ``agents/skills/sq-<type>.md`` with no frontmatter, nothing ever
-        # stamps it, and neither a repeated sync nor `sq repair` heals it, because repair
-        # rebuilds the index from frontmatter and this file has none. The type is real, its
-        # `.claude` pointer is generated against the unindexed body, and live roles preload
-        # the skill — but `sq skill sq-<type> show` exits 1 and `sq check` says nothing. That
-        # is reachable today (a workflow override that dropped the type, then removed) and
-        # would otherwise be reachable by construction on every future release that adds a
-        # bundled type: each would need its own hand-written migration to stamp the new
-        # skill. Seeding both halves on every sync is what makes that migration unnecessary.
-        await self.seed_bundled_skills()
-        await self.seed_custom_skills()
+
+    async def _skill_body_notices(self) -> list[str]:
+        """The notices from restamping managed skill frontmatter, then one per skill body that no
+        `SKILL` item indexes: the question that generalises to every variant of the seeding gap,
+        asked at the one moment the answer is unambiguous, right after this run both wrote the
+        bodies and seeded them."""
         _restamped, restamp_skips = await self._restamp_managed_skill_frontmatter()
-        skipped += restamp_skips
-        # ... and report anything the two seeders could not claim. Seeding both halves closes
-        # the gap for every slug a seeding vocabulary names; this closes the *class*, by asking
-        # the only question that generalises to the next variant — is there a skill body on
-        # disk that no `SKILL` item indexes — at the one moment the answer is unambiguous,
-        # right after this run both wrote the bodies and seeded them.
-        skipped += self._unindexed_skill_bodies()
-        # Collapse exact duplicates only (order-preserving) — see the docstring above. A
-        # second, textually different message about the same item is never touched by this.
-        return SyncSkips(dict.fromkeys(skipped))
+        return [*restamp_skips, *self._unindexed_skill_bodies()]
 
     def _catalog_skill_item(
         self, slug: str, number: int, filename: str, known: Item | None = None
@@ -1258,93 +765,6 @@ class MaintenanceMixin(ServiceCore):
                 or skill_origin(slug, self.spec)
             },
         )
-
-    async def _skill_folder_state(self, scan: SkillScan) -> SkillFolder:
-        """The skill folder's files and who carries which id and slug; built once per scan and
-        given the index's skill items only if some file could be restamped."""
-        if scan.state is None:
-            texts = {md.name: text for md, text in (await self._read_skill_texts(scan)).items()}
-            state = SkillFolder.build(texts, self.spec)
-            if state.needs_index:
-                state = state.with_index(await self._indexed_skills(scan))
-            scan.state = state
-        return scan.state
-
-    async def _read_skill_texts(self, scan: SkillScan) -> dict[Path, str]:
-        """The stamped skill files' text: what this scan already read, else read now."""
-        if scan.texts is not None:
-            return scan.texts
-        folder = self.paths.squad_dir / self.spec.items[ROSTER_SKILL].folder
-        texts: dict[Path, str] = {}
-        if folder.is_dir():
-            for md in sorted(folder.glob(f"{prefix_for(ROSTER_SKILL, self.spec)}-*.md")):
-                with contextlib.suppress(OSError):
-                    texts[md] = await _aio.read_text(md)
-        return texts
-
-    @staticmethod
-    async def _scan_text(md: Path, scan: SkillScan) -> str:
-        """A file's text for the ``check`` scan: the up-front skill read if it has one."""
-        cached = scan.texts.get(md) if scan.texts else None
-        return cached if cached is not None else await _aio.read_text(md)
-
-    async def _indexed_skills(self, scan: SkillScan | None = None) -> list[Item]:
-        """The skill items the index holds, or none when there is no readable index -- the
-        restamp treats the index as a hint and never needs it."""
-        if scan is not None and scan.items is not None:
-            return scan.items
-        if not self.store.exists():
-            return []
-        with contextlib.suppress(SquadsError):
-            return await self.list_items(item_type=ROSTER_SKILL)
-        return []
-
-    async def _skill_remedy(self, md: Path, item_type: str, scan: SkillScan) -> str | None:
-        """The remedy a report line gives for a stamped managed-skill file, else ``None``."""
-        if item_type != ROSTER_SKILL or stamped_skill_slug(md, self.spec) not in (
-            managed_skill_slugs(self.spec)
-        ):
-            return None
-        return remedy_text((await self._skill_folder_state(scan)).verdict(md.name, self.spec))
-
-    async def _id_carriers(self, log: CarrierLog | None = None) -> list[tuple[object, Path]]:
-        """``(frontmatter id, file)`` for every item file whose frontmatter parses and has an
-        ``id`` -- the one input the duplicate-id detector groups. Files a scan already read
-        (*log*) are not read again."""
-        carriers: list[tuple[object, Path]] = list(log.pairs) if log else []
-        seen = log.seen if log else set[Path]()
-        for _item_type, ts in sorted(self.spec.items.items(), key=lambda kv: (kv[1].order, kv[0])):
-            folder = self.paths.squad_dir / ts.folder
-            # Every markdown file in a type folder, not only the ones named for its prefix: a
-            # copy of another type's file dropped here carries the id all the same.
-            for md in sorted(folder.glob("*.md")) if folder.is_dir() else []:
-                if md in seen:
-                    continue
-                with contextlib.suppress(OSError, SquadsError):
-                    fid = sections.split_frontmatter(await _aio.read_text(md))[0].get("id")
-                    if fid:
-                        carriers.append((fid, md))
-        return carriers
-
-    def _duplicate_id_message(self, files: list[Path]) -> SelfRemedied:
-        """The report line for an id carried by several files, naming every one."""
-        named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
-        return SelfRemedied(f"{len(files)} files carry this id ({named}); {DUPLICATE_ID_REMEDY}")
-
-    def _shared_number_message(self, number: int, files: list[Path]) -> str:
-        """The report line for a number carried under different ids, naming every file."""
-        named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
-        return (
-            f"{len(files)} files carry number {number} under different ids ({named}); "
-            f"{SHARED_NUMBER_REMEDY}"
-        )
-
-    async def _missing_id_message(self, md: Path, item_type: str, scan: SkillScan) -> str:
-        """The "no ``id``" report line; a stamped managed-skill file also names the remedy that
-        works for its state."""
-        remedy = await self._skill_remedy(md, item_type, scan)
-        msg = "file has no `id` in frontmatter"
-        return SelfRemedied(f"{msg}; {remedy}") if remedy else msg
 
     async def _restore_skill_files_ahead_of_sync(self) -> list[str]:
         """Restamp managed skill files before anything reads them, and rebuild the index from
@@ -1453,7 +873,7 @@ class MaintenanceMixin(ServiceCore):
         repair rebuilds the index *from* frontmatter. It is nonetheless a live file — the
         backends' generated pointers reference it and roles preload its slug.
 
-        ``sq check`` deliberately tolerates this shape (see :func:`_is_legacy_skill_body`: it
+        ``sq check`` deliberately tolerates this shape (see :func:`is_legacy_skill_body`: it
         cannot tell it apart from a genuinely never-stamped corpus, nor from the state
         ``init``'s ``_skip_skill_seed`` hook manufactures). Sync can, because sync is what
         wrote the file: by this point it has run both seeders over every slug either
@@ -1571,10 +991,14 @@ class MaintenanceMixin(ServiceCore):
         compares like any other.
         """
         slug = item.slug
-        base_role = role_base_from_item(item, self.paths.squad_dir)
+        base_role = role_base_from_item(item, self.catalog)
         try:
             catalog_role = resolve_role_with_base(
-                slug, self.paths.squad_dir, base=base_role, pinned_name=pinned_name_of(item)
+                slug,
+                self.paths.squad_dir,
+                base=base_role,
+                catalog=self.catalog,
+                pinned_name=pinned_name_of(item),
             )
         except RoleNotFoundError:
             return None  # orphaned custom role item: no catalog entry, no override file
@@ -1651,7 +1075,9 @@ class MaintenanceMixin(ServiceCore):
         changed: dict[str, int] = {}
         skipped: dict[str, list[str]] = {}
         reports: dict[str, tuple[str, ...]] = {}
-        ctx = MigrationContext(paths=self.paths, spec=self.spec, playbook=self.playbook)
+        ctx = MigrationContext(
+            paths=self.paths, spec=self.spec, playbook=self.playbook, catalog=self.catalog
+        )
         reconciled: ReconcileResult | None = None
         original_index: str | None = None
         config_rewrite: ConfigRewrite | None = None
@@ -1992,38 +1418,6 @@ class MaintenanceMixin(ServiceCore):
             seeded.append(item)
         return seeded
 
-    # ------------------------------------------------------------------ scan helpers
-    def _iter_item_files(self) -> Iterator[tuple[str, Path]]:
-        """Yield (item_type, markdown path) for every item file across the type folders.
-
-        Every type declared in the active spec — built-in or custom — is scanned uniformly
-        (one generic path, no static/dynamic split), ordered by each type's
-        ``ItemSpec.order`` (the same deterministic-not-alphabetical axis the CLI/playbook
-        registration already uses), tie-broken by type name. This reproduces the exact
-        built-in scan order (epic, feature, task, bug, decision, review, guide,
-        role, skill, operator) byte-for-byte, which matters for collision resolution when
-        two items share a sequence number pre-renumber (`sq repair --renumber`).
-
-        Skill files follow the ``SKILL-<NNNNNN>-<slug>.md`` convention so they are scanned
-        with the same ``PREFIX-*.md`` glob as every other type.  Legacy slug-named files
-        (pre-migration) are also yielded so callers can detect them; files without an ``id``
-        in their frontmatter are silently skipped by the repair/check callers.
-        """
-        for item_type, ts in sorted(self.spec.items.items(), key=lambda kv: (kv[1].order, kv[0])):
-            folder = self.paths.squad_dir / ts.folder
-            if not folder.is_dir():
-                continue
-            prefix = ts.prefix
-            if item_type == ROSTER_SKILL:
-                # Convention files follow SKILL-*.md (post-migration / fresh init).
-                # Also include legacy <slug>.md files so pre-migration squads can still be
-                # repaired/checked (they will be silently skipped by callers that require an id).
-                convention = sorted(folder.glob(f"{prefix}-*.md"))
-                legacy = sorted(md for md in folder.glob("*.md") if not md.name.startswith(prefix))
-                yield from ((item_type, md) for md in convention + legacy)
-            else:
-                yield from ((item_type, md) for md in sorted(folder.glob(f"{prefix}-*.md")))
-
     # ------------------------------------------------------------------ scan helpers (cont.)
     async def _corpus_alignment_refusals(
         self, known_corpus: SquadsDB | None, rebuilt: SquadsDB
@@ -2129,7 +1523,7 @@ class MaintenanceMixin(ServiceCore):
         if report:
             line = f"{md.name}: {message}"
             unreadable.append(SelfRemedied(line) if isinstance(message, SelfRemedied) else line)
-        digit_run = _stem_digit_run(md, item_type, self.spec)
+        digit_run = stem_digit_run(md, item_type, self.spec)
         stem_seq = int(digit_run) if digit_run is not None else None
         carried = (
             known_corpus.items.get(stem_seq)
@@ -2192,65 +1586,6 @@ class MaintenanceMixin(ServiceCore):
             db, unreadable, known_corpus, md, item_type, message
         )
         return fold_stem_into_floor(max_n, max_filename_width, stem_seq, digit_run)
-
-    async def _handle_missing_dirent(
-        self,
-        db: SquadsDB,
-        unreadable: list[str],
-        known_corpus: SquadsDB | None,
-        md: Path,
-        item_type: str,
-        max_n: int,
-        max_filename_width: int,
-    ) -> tuple[int, int]:
-        """A ``FileNotFoundError`` on a dirent this rebuild's own glob just saw — the
-        absent-vs-unreadable split: a broken symlink is a *present* dirent (the read failed on
-        its target, not on whether it's there), so it gets :meth:`_report_third_state`'s
-        treatment; a dirent that has genuinely vanished between the glob and the read is not
-        this rebuild's file to report on, so the floor passes through unchanged and nothing is
-        added to ``unreadable`` — a real deletion is `repair`'s missing-direction report to
-        make, from ``known_corpus``, not this scan's.
-        """
-        if not await _aio.path_is_symlink(md):
-            return max_n, max_filename_width
-        return await self._report_third_state(
-            db,
-            unreadable,
-            known_corpus,
-            md,
-            item_type,
-            _missing_dirent_message(md, is_symlink=True),
-            max_n,
-            max_filename_width,
-        )
-
-    async def _handle_missing_id(
-        self,
-        db: SquadsDB,
-        unreadable: list[str],
-        known_corpus: SquadsDB | None,
-        md: Path,
-        item_type: str,
-        max_n: int,
-        max_filename_width: int,
-        scan: SkillScan,
-    ) -> tuple[int, int]:
-        """A file whose frontmatter parsed but carries no ``id`` — the third-state treatment
-        (:meth:`_report_third_state`), except for a pre-migration skill body file, which
-        legitimately has never had one (:func:`_is_legacy_skill_body`) and passes through with
-        the floor unchanged."""
-        if _is_legacy_skill_body(md, item_type, self.spec):
-            return max_n, max_filename_width
-        return await self._report_third_state(
-            db,
-            unreadable,
-            known_corpus,
-            md,
-            item_type,
-            await self._missing_id_message(md, item_type, scan),
-            max_n,
-            max_filename_width,
-        )
 
     def _raise_unless_vocab_valid(self, item: Item, md: Path, rerun: str) -> None:
         """Load-boundary vocab validation for :meth:`_rebuild_index_from_disk`: reject an item
@@ -2491,24 +1826,20 @@ class MaintenanceMixin(ServiceCore):
                     (max_n, max_filename_width),
                 )
                 continue
-            try:
-                text = await _aio.read_text(md)
-                data = read_frontmatter(text=text, source=str(md))
-            except FileNotFoundError:
-                max_n, max_filename_width = await self._handle_missing_dirent(
-                    db, unreadable, known_corpus, md, item_type, max_n, max_filename_width
-                )
+            record = await read_corpus_file(item_type, md, self.spec)
+            if isinstance(record, Vanished | LegacySkillBody):
                 continue
-            except SquadsError as exc:
+            if not isinstance(record, Parsed):
+                message = (
+                    record.message
+                    if isinstance(record, Unreadable | Unparseable)
+                    else await self._missing_id_message(md, item_type, skills)
+                )
                 max_n, max_filename_width = await self._report_third_state(
-                    db, unreadable, known_corpus, md, item_type, str(exc), max_n, max_filename_width
+                    db, unreadable, known_corpus, md, item_type, message, max_n, max_filename_width
                 )
                 continue
-            if not data.get("id"):
-                max_n, max_filename_width = await self._handle_missing_id(
-                    db, unreadable, known_corpus, md, item_type, max_n, max_filename_width, skills
-                )
-                continue
+            text, data = record.text, record.data
             squad_rel = self.paths.squad_relative(item_type, md.name, spec=self.spec)
             try:
                 item = Item.from_frontmatter(data, path=squad_rel, default_kind=default_kind)
@@ -2678,7 +2009,7 @@ class MaintenanceMixin(ServiceCore):
             return SameIdRenumber()
         numbers = [previous_counter]
         for item_type, md in self._iter_item_files():
-            run = _stem_digit_run(md, item_type, self.spec)
+            run = stem_digit_run(md, item_type, self.spec)
             if run is not None:
                 numbers.append(int(run))
         previous: list[Item] = list(known_corpus.items.values()) if known_corpus else []
@@ -2792,23 +2123,23 @@ class MaintenanceMixin(ServiceCore):
                 #
                 # Refusing for both shapes does not mean *diagnosing* both the same way: this
                 # goes through the message every other command uses (see
-                # `_missing_dirent_message`), so one dirent cannot be a "broken symlink" to
+                # `missing_dirent_message`), so one dirent cannot be a "broken symlink" to
                 # `check` and a "No such file or directory" to `repad`.
                 raise SquadsError(
-                    f"{_missing_dirent_message(md, is_symlink=await _aio.path_is_symlink(md))}"
+                    f"{missing_dirent_message(md, is_symlink=await _aio.path_is_symlink(md))}"
                     " — refusing to rewrite ids while a file in the corpus cannot be read"
                 ) from exc
             fid = read_frontmatter(text=text, source=str(md)).get("id")
             if not fid:
                 continue
-            seq = _seq_from_frontmatter_id(fid)
+            seq = seq_from_frontmatter_id(fid)
             if seq is None:
                 # Same "cannot correctly rewrite an identity it cannot read" refusal as the
                 # unreadable-file branch above, for a file whose `id:` itself is corrupt
                 # (`id: 5`, `id: TASK-abc`). Repad/renumber rewrite identity across the whole
                 # corpus, so refusing is right -- but as a clean SquadsError, never the raw
                 # AttributeError/InvalidIdError the parse would otherwise throw.
-                raise SquadsError(f"{md} cannot be renumbered: {_malformed_id_message(fid)}")
+                raise SquadsError(f"{md} cannot be renumbered: {malformed_id_message(fid)}")
             stem = md.name.removesuffix(".md")
             # Strip the id's own (possibly hyphenated) prefix + digit run rather than
             # splitting the stem on its first two hyphens, which mis-parses a hyphenated
@@ -3131,608 +2462,3 @@ class MaintenanceMixin(ServiceCore):
         return out
 
     # ------------------------------------------------------------------ check
-    async def check(self) -> list[CheckIssue]:
-        """Report the squad board as of one point in time.
-
-        ``check`` takes no lock: it never blocks a mutation, is never blocked by one, and
-        never writes. Its per-item/squad-global catalog issues and single-source scan issues
-        (marker damage, a missing frontmatter ``id``, the two override checks, the fixed
-        top-level backend files ``_backend_reconciled`` checks) are each as true as the one
-        read that produced them, and are reported as-is. Its **cross-source** issues —
-        status/parent drift, both directions of index/disk reconciliation, and a per-entry
-        backend pointer's absence (:func:`~squads._services._validators.
-        backend_entry_candidates`) — each a claim comparing the on-disk scan against the index
-        snapshot loaded above — are candidates, not findings: they are confirmed by exactly
-        one cheap re-read (:meth:`_confirm_cross_source`) before being reported, so a mutation
-        racing the scan cannot produce a false drift warning, a false reconciliation
-        error, or a false per-entry-pointer warning (and cannot make ``sq check`` exit 3
-        for a board that was never actually wrong).
-
-        A reported drift or reconciliation issue therefore means a **real, durable**
-        inconsistency that ``sq repair`` heals. What this may **not** claim is quiescence —
-        an empty/warn-only result means "no confirmed inconsistency was observed", not "the
-        board is consistent now"; another transaction may commit the instant after this
-        returns.
-        """
-        from squads._overrides._service import check_override_issues
-
-        index = await self.store.load()
-        ctx = ScanContext()
-        ctx.skills.items = [it for it in index.items.values() if it.type == ROSTER_SKILL]
-        ctx.skills.texts = await self._read_skill_texts(ctx.skills)
-        issues, on_disk, bodies, unparseable_seqs, suppress_missing = await self._scan_for_check(
-            ctx
-        )
-        # Two override checks — version-drift warn + missing-marker error. Role items keyed by
-        # slug so a role override resolves against its own live identity, exactly like
-        # `sq sync` and `sq role <slug> show` do — see `role_base_from_item`.
-        role_items_by_slug = {it.slug: it for it in index.items.values() if it.type == ROSTER_ROLE}
-        issues += [
-            CheckIssue(level, item, msg)
-            for level, item, msg in check_override_issues(self.paths.squad_dir, role_items_by_slug)
-        ]
-        issues += self._orphaned_skill_issues(index)
-        carriers = await self._id_carriers(ctx.carriers)
-        dup_groups = duplicate_groups(carriers)
-        issues += [
-            CheckIssue("error", key, self._duplicate_id_message(files))
-            for key, files in dup_groups.items()
-        ]
-        shared = shared_number_groups(carriers)
-        issues += [
-            CheckIssue("error", f"#{number}", self._shared_number_message(number, files))
-            for number, files in shared.items()
-        ]
-        # The scan keys files by number, so under a shared number it holds only one of the
-        # files, and a per-item check would read it for the wrong item. The shared-number error
-        # names every file; the number is still present on disk.
-        for number in shared:
-            on_disk.pop(number, None)
-            bodies.pop(number, None)
-            unparseable_seqs = unparseable_seqs | {number}
-
-        # ``index_reconciled`` is excluded here — it is cross-source, so its two directions
-        # are confirmed below instead of reported straight from the scan pair.
-        squad_global = {k: v for k, v in SQUAD_GLOBAL_CATALOG.items() if k != "index_reconciled"}
-        engine = ValidatorEngine(
-            spec=self.spec, paths=self.paths, playbook=self.playbook, squad_global=squad_global
-        )
-        issues += engine.report(index, on_disk, bodies=bodies)
-        g_ctx = SquadGlobalContext(
-            now=clock.now(),
-            index=index,
-            on_disk=on_disk,
-            spec=self.spec,
-            paths=self.paths,
-            playbook=self.playbook,
-        )
-        issues += await self._confirm_cross_source(
-            index,
-            on_disk,
-            bodies,
-            unparseable_seqs=unparseable_seqs,
-            suppress_missing=suppress_missing,
-            backend_entry_candidates=backend_entry_candidates(g_ctx),
-            backend_entry_drift_candidates=self._scan_backend_entry_drift(index, on_disk),
-        )
-        # A repair that refuses a duplicated id is no remedy for its absence from the index.
-        issues = [
-            i
-            for i in issues
-            if not (
-                i.message.startswith("on disk but not in index")
-                and normalized_id(i.item) in dup_groups
-            )
-        ]
-        return issues
-
-    def _orphaned_skill_issues(self, index: SquadsDB) -> list[CheckIssue]:
-        """A live ``SKILL`` item whose ``sq-<type>`` slug names a type the active spec no
-        longer declares — the drop or rename left its generated pointer/body withdrawn
-        (:meth:`ServiceCore._project_roster_item`), but the item itself is still sitting at a
-        live status, which would otherwise read as a going concern with no ``sq check``
-        complaint at all. ``warn``, not ``error``: nothing is broken (the withdrawal already
-        happened), and the fix is reversible either way — restore the type, or retire the
-        skill by hand.
-        """
-        issues: list[CheckIssue] = []
-        for item in index.items.values():
-            if item.type != ROSTER_SKILL or item.status not in self.spec.live_statuses(
-                ROSTER_SKILL
-            ):
-                continue
-            stale_type = orphaned_skill_item_type(item.slug, self.spec)
-            if stale_type is None:
-                continue
-            issues.append(
-                CheckIssue(
-                    "warn",
-                    item.id,
-                    f"skill {item.slug!r} is {item.status} but type "
-                    f"{stale_type!r} is no longer declared — its generated files have "
-                    "been withdrawn; restore the type to bring it back, or retire this "
-                    "skill (update its status) to close it out",
-                )
-            )
-        return issues
-
-    async def _confirm_one_drift_candidate(
-        self,
-        seq: int,
-        fresh_index: SquadsDB,
-        on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
-        *,
-        default_kind: str,
-    ) -> list[CheckIssue]:
-        """Re-observe one drift candidate at the freshly-loaded index's path (falling back to
-        the scan's own path when that one's gone — see the inline comment below) and re-run
-        the drift predicate; factored out of :meth:`_confirm_cross_source` so that function's
-        own branch count stays readable. Empty when the candidate cannot be confirmed at all:
-        removed from the index since the scan, gone from disk entirely, or unparseable on this
-        read (a race between the scan and this confirm, or a file that only became unparseable
-        since — either way the run already reports the parse failure once it is next seen at
-        scan time, and stacking a speculative drift claim on top of it helps nobody).
-        """
-        fresh_item = fresh_index.items.get(seq)
-        if fresh_item is None:
-            return []  # removed since the scan — no index side left to confirm against
-        confirm_path = item_file(self.paths, fresh_item)
-        try:
-            text = await _aio.read_text(confirm_path)
-        except FileNotFoundError:
-            # The fresh index's own path field can itself be the stale side: an interrupted
-            # rename leaves the file at its new path while the index still holds the old one.
-            # Fall back to the path the scan actually found this sequence at before giving up
-            # on the candidate — only skip when neither path has the file, the genuine
-            # "gone since the scan" case.
-            confirm_path = on_disk[seq][1]
-            try:
-                text = await _aio.read_text(confirm_path)
-            except FileNotFoundError:
-                return []  # gone from both paths — no frontmatter side left to confirm
-        try:
-            fdata = read_frontmatter(text=text, source=str(confirm_path))
-        except SquadsError:
-            return []  # unparseable on this read — not confirmed, see the docstring above
-        issue = _value_skew_issue(fresh_item, text, fdata, default_kind=default_kind)
-        return [issue] if issue is not None else []
-
-    async def _confirm_cross_source(
-        self,
-        index: SquadsDB,
-        on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
-        bodies: dict[int, str],
-        *,
-        unparseable_seqs: frozenset[int] = frozenset(),
-        suppress_missing: bool = False,
-        backend_entry_candidates: list[tuple[str, str]] | None = None,
-        backend_entry_drift_candidates: list[tuple[str, str, str]] | None = None,
-    ) -> list[CheckIssue]:
-        """The one confirm round for cross-source claims.
-
-        Partitions the frontmatter/index value-skew candidates (every top-level field, not
-        only status/parent) and both index/disk reconciliation directions into
-        *candidates* from the ``(index, on_disk, bodies)`` scan triple, then — only when the
-        candidate set is non-empty — re-loads the index exactly once and re-observes exactly
-        those candidates (never a full rescan, which would reintroduce the cost the
-        lock-free design exists to avoid) at the path the freshly loaded index gives for each
-        one, before re-running the same predicate against that fresh pair. A candidate
-        produced by a transaction that commits between the scan and this reload resolves
-        here and is never reported; a durable inconsistency reproduces on the fresh pair and
-        is reported below, still naming its skew direction when the two ``updated_at``
-        values order it.
-
-        A clean board pays nothing: no candidates, no second index load, no second file read.
-        ``bodies`` is the same raw-text map :meth:`_scan_for_check` already built for the
-        validator engine — passed in, never re-read, so the value-skew candidate costs no new
-        I/O over what the two predicates it replaces already paid for.
-
-        The reload is ``store.load(fresh=True)`` — this false-positive suppression depends on
-        genuinely re-reading disk, so it must bypass any request-scoped snapshot the same
-        invocation already filed (see ``squads._index._store.read_scope``); the scan's own
-        ``index`` a few lines up is deliberately left as whatever the ambient scope served.
-
-        ``unparseable_seqs``/``suppress_missing`` come from :meth:`_scan_for_check`'s
-        present-but-unparseable third state: a file that exists but could not be parsed is
-        never a *missing* candidate (the file is right there — see the module's durability
-        contract), and when even its filename stem could not be resolved to a sequence number,
-        ``suppress_missing`` drops the missing-direction claim for the whole run rather than
-        risk reporting one that might be false.
-
-        ``backend_entry_candidates`` is a fourth candidate set, of a different shape: ``(backend
-        name, rel_path)`` pairs a per-entry roster pointer is missing for, computed by
-        :func:`~squads._services._validators.backend_entry_candidates` against the same *index*
-        the scan used. It counts toward "is there anything to confirm" alongside the other
-        three, and each pair is re-observed by
-        :func:`~squads._services._validators.backend_entry_missing` against the one fresh index
-        reload below — never a second reload of its own.
-
-        ``backend_entry_drift_candidates`` is a fifth candidate set, currency's own: ``(backend
-        name, kind, slug)`` triples this round's caller (``check()``) has ALREADY confirmed
-        genuinely drift at scan time (:meth:`_scan_backend_entry_drift`, run against the very
-        *index* this method was handed — never a second load of its own). Unlike the other four
-        candidate sets, whose scan-time detection is cheap (an in-memory comparison or a
-        ``stat``), a drift claim's own detection cost — a render plus a file read per live
-        entry — is already paid before this method is ever called, so re-observing it here
-        again below is solely about the same race window the other four close: a mutation
-        between the scan and this confirm.
-        """
-        # Resolved once for the whole confirm round — before any scan or confirm — rather
-        # than per candidate: a spec declaring the wrong number of default ref kinds must
-        # fail as one clean refusal naming the spec, not partway through the round.
-        default_kind = self.spec.default_ref_kind()
-        drift_seqs = {
-            item.sequence_id
-            for item in index.items.values()
-            if (text := bodies.get(item.sequence_id)) is not None
-            and frontmatter_skew(text, item, default_kind=default_kind)
-        }
-        orphan_seqs = set(on_disk) - set(index.items)
-        missing_seqs: set[int] = set(index.items) - set(on_disk) - unparseable_seqs
-        if suppress_missing:
-            missing_seqs = set()
-        entry_candidates = backend_entry_candidates or []
-        entry_drift_candidates = backend_entry_drift_candidates or []
-        anything_to_confirm = (
-            drift_seqs or orphan_seqs or missing_seqs or entry_candidates or entry_drift_candidates
-        )
-        if not anything_to_confirm:
-            return []
-
-        # fresh=True: this round's whole point is "re-read the index right now" — a
-        # request-scoped snapshot filed earlier in this invocation (see
-        # ``squads._index._store.read_scope``) would reintroduce exactly the false-positive
-        # window this confirm round exists to close.
-        fresh_index = await self.store.load(fresh=True)
-        issues: list[CheckIssue] = []
-        reconciled_level = squad_global_level(self.spec, "index_reconciled")
-
-        for seq in sorted(drift_seqs):
-            issues += await self._confirm_one_drift_candidate(
-                seq, fresh_index, on_disk, default_kind=default_kind
-            )
-
-        for seq in sorted(orphan_seqs):
-            fid, path, _data = on_disk[seq]
-            if not await _aio.path_exists(path):
-                continue  # the file itself is gone since the scan — nothing left to claim
-            issue = on_disk_not_indexed(
-                seq, fid, indexed=seq in fresh_index.items, level=reconciled_level
-            )
-            if issue is not None:
-                issues.append(issue)
-
-        for seq in sorted(missing_seqs):
-            fresh_item = fresh_index.items.get(seq)
-            if fresh_item is None:
-                continue  # removed from the index since the scan — no claim to confirm
-            exists = await _aio.path_exists(item_file(self.paths, fresh_item))
-            issue = not_on_disk(fresh_item, on_disk=exists, level=reconciled_level)
-            if issue is not None:
-                issues.append(issue)
-
-        issues += self._confirm_backend_entry_candidates(entry_candidates, fresh_index, on_disk)
-        issues += self._confirm_backend_entry_drift_candidates(
-            entry_drift_candidates, fresh_index, on_disk
-        )
-
-        return issues
-
-    def _roster_drift_state(
-        self, index: SquadsDB, on_disk: dict[int, tuple[str, Path, dict[str, Any]]]
-    ) -> _RosterDriftState:
-        """Everything a per-entry currency comparison needs from one loaded *index*: the live
-        role/skill slug sets, each slug's own ``Item``, and every live role's **freshly
-        resolved** preload-skill list (:meth:`ServiceCore._resolve_role_skills`, run against
-        this same *index* — never the pure system-membership fallback, which would misread a
-        role using a ``scopes``-preloaded skill as permanently drifted). Shared by
-        :meth:`_scan_backend_entry_drift` (against the scan-time index) and
-        :meth:`_confirm_backend_entry_drift_candidates` (against a freshly reloaded one) so the
-        two build this state the identical way, off whichever index each is handed.
-        """
-        g_ctx = SquadGlobalContext(
-            now=clock.now(),
-            index=index,
-            on_disk=on_disk,
-            spec=self.spec,
-            paths=self.paths,
-            playbook=self.playbook,
-        )
-        live_role_slugs, live_skill_slugs = live_roster_slugs(g_ctx)
-        role_items = {it.slug: it for it in index.items.values() if it.type == ROSTER_ROLE}
-        skill_items = {it.slug: it for it in index.items.values() if it.type == ROSTER_SKILL}
-        role_skills = {
-            slug: self._resolve_role_skills(slug, role_items.get(slug), index)
-            for slug in live_role_slugs
-        }
-        return live_role_slugs, live_skill_slugs, role_items, skill_items, role_skills
-
-    def _scan_backend_entry_drift(
-        self, index: SquadsDB, on_disk: dict[int, tuple[str, Path, dict[str, Any]]]
-    ) -> list[tuple[str, str, str]]:
-        """The scan-time half of currency detection: a full render-and-compare
-        (:func:`~squads._services._validators.backend_entry_drift`) against *index* **exactly
-        as ``check()`` already loaded it — never a second ``store.load()``** — for every live
-        per-entry pointer every active backend declares. Only a genuine mismatch becomes a
-        ``(backend name, kind, slug)`` candidate for the confirm round, mirroring how
-        frontmatter value-skew's own ``drift_seqs`` is built in
-        :meth:`_confirm_cross_source`: a clean board — the overwhelmingly common case — costs
-        this one render-and-compare pass per live entry and nothing more, in particular no
-        second index load and no re-read of any file this pass already read once (see
-        ``tests/service/test_check_confirms_cross_source_claims.py``'s own pin on both).
-
-        A live slug with no rendered path (this backend declares none for it, or this backend
-        has no per-entry role/skill artifact at all — see
-        :meth:`~squads._backends._base.AgentBackend.managed_entry_paths`) is silently skipped:
-        there is nothing to compare. An absent file is skipped too — that is presence's finding
-        (:func:`~squads._services._validators.backend_entry_candidates`), not this one's.
-        """
-        live_role_slugs, live_skill_slugs, role_items, skill_items, role_skills = (
-            self._roster_drift_state(index, on_disk)
-        )
-        candidates: list[tuple[str, str, str]] = []
-        for backend in self._backends():
-            for kind, slugs, items in (
-                ("role", live_role_slugs, role_items),
-                ("skill", live_skill_slugs, skill_items),
-            ):
-                for slug in sorted(slugs):
-                    item = items.get(slug)
-                    if item is None:
-                        continue
-                    rel_path = backend_entry_path(backend, self.paths, kind, slug)
-                    if rel_path is None:
-                        continue
-                    issue = backend_entry_drift(
-                        backend,
-                        kind,
-                        item,
-                        paths=self.paths,
-                        spec=self.spec,
-                        playbook=self.playbook,
-                        role_skills=role_skills,
-                        rel_path=rel_path,
-                    )
-                    if issue is not None:
-                        candidates.append((backend.name, kind, slug))
-        return candidates
-
-    def _confirm_backend_entry_drift_candidates(
-        self,
-        candidates: list[tuple[str, str, str]],
-        fresh_index: SquadsDB,
-        on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
-    ) -> list[CheckIssue]:
-        """The currency half of :meth:`_confirm_cross_source`'s confirm round, factored out for
-        the same readability reason as :meth:`_confirm_backend_entry_candidates`: re-resolves
-        each candidate's live status, item, and (for a role) freshly-resolved preload-skill list
-        against *fresh_index* — never the scan-time state — before handing it to
-        :func:`~squads._services._validators.backend_entry_drift` again.
-
-        A candidate whose slug was retired, or whose item was removed outright, since the scan
-        resolves silently (absent from the fresh live sets, or no item at that slug any more) —
-        the same race presence's own confirm resolves. Empty *candidates* costs nothing beyond
-        the one (potentially empty) roster-state build, mirroring the caller's own
-        empty-candidates short circuit.
-        """
-        if not candidates:
-            return []
-        fresh_role_slugs, fresh_skill_slugs, role_items, skill_items, role_skills = (
-            self._roster_drift_state(fresh_index, on_disk)
-        )
-        issues: list[CheckIssue] = []
-        for backend_name, kind, slug in candidates:
-            live = fresh_role_slugs if kind == "role" else fresh_skill_slugs
-            if slug not in live:
-                continue  # retired since the scan — the same resolution presence's confirm uses
-            item = (role_items if kind == "role" else skill_items).get(slug)
-            if item is None:
-                continue  # removed from the index entirely since the scan
-            backend = get_backend(backend_name)
-            rel_path = backend_entry_path(backend, self.paths, kind, slug)
-            if rel_path is None or not (self.paths.root / rel_path).exists():
-                continue  # gone since the scan — presence's finding, not this one's
-            issue = backend_entry_drift(
-                backend,
-                kind,
-                item,
-                paths=self.paths,
-                spec=self.spec,
-                playbook=self.playbook,
-                role_skills=role_skills,
-                rel_path=rel_path,
-            )
-            if issue is not None:
-                issues.append(issue)
-        return issues
-
-    def _confirm_backend_entry_candidates(
-        self,
-        candidates: list[tuple[str, str]],
-        fresh_index: SquadsDB,
-        on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
-    ) -> list[CheckIssue]:
-        """The per-entry-pointer half of :meth:`_confirm_cross_source`'s confirm round,
-        factored out to keep that method's own branch count readable — recomputes each
-        backend's ``managed_entry_paths`` from *fresh_index*'s own live-roster set (never the
-        stale scan-time one) and re-checks every candidate against it via
-        :func:`~squads._services._validators.backend_entry_missing`. Empty *candidates* costs
-        nothing (the caller already gates the reload on a non-empty candidate set).
-        """
-        if not candidates:
-            return []
-        fresh_g_ctx = SquadGlobalContext(
-            now=clock.now(), index=fresh_index, on_disk=on_disk, spec=self.spec, paths=self.paths
-        )
-        fresh_role_slugs, fresh_skill_slugs = live_roster_slugs(fresh_g_ctx)
-        fresh_bctx = BackendContext(
-            paths=self.paths,
-            spec=self.spec,
-            live_role_slugs=fresh_role_slugs,
-            live_skill_slugs=fresh_skill_slugs,
-        )
-        fresh_paths_by_backend = {
-            backend.name: frozenset(backend.managed_entry_paths(fresh_bctx))
-            for backend in self._backends()
-        }
-        issues: list[CheckIssue] = []
-        for backend_name, rel_path in candidates:
-            issue = backend_entry_missing(
-                backend_name,
-                rel_path,
-                root=self.paths.root,
-                fresh_live_paths=fresh_paths_by_backend.get(backend_name, frozenset()),
-            )
-            if issue is not None:
-                issues.append(issue)
-        return issues
-
-    async def _scan_for_check(
-        self, ctx: ScanContext
-    ) -> tuple[
-        list[CheckIssue],
-        dict[int, tuple[str, Path, dict[str, Any]]],
-        dict[int, str],
-        frozenset[int],
-        bool,
-    ]:
-        """Scan every item file for marker issues, frontmatter, and raw body text.
-
-        **The file checks of ``sq check``** — its other findings come from the per-item validator
-        catalog (``_services/_validators.py``'s ``CATALOG``/``VALIDATOR_NAMES``, dispatched by
-        ``ValidatorEngine``). The file checks run first, unconditionally, on raw file text before a
-        file's frontmatter even parses: :func:`_marker_issues`, :func:`_view_target_issues`,
-        :func:`_seeded_view_issues` and :func:`_absent_body_region_issues` below are its four
-        members, all error-level and none
-        ever selectable or a catalog member — see :mod:`~squads._services._validators`'s module
-        docstring for why a per-file, unconditional finding belongs here and not there, which is
-        the matching back-reference this paragraph completes.
-
-        Returns ``(issues, on_disk, bodies, unparseable_seqs, suppress_missing)``.
-        ``on_disk``/``bodies`` are keyed by the item's **sequence number** (int) so
-        reconciliation comparisons are width-tolerant — frontmatter ``id`` fields keep their
-        old width after ``sq migrate repad`` while the index reports the new width. ``on_disk``'s
-        stored tuple is ``(fid, path, frontmatter_data)`` so error messages can still name the
-        original frontmatter ID; ``bodies`` is the file's full raw text, read once here and
-        threaded straight into :meth:`ValidatorEngine.report` so no validator re-reads the file
-        itself.
-
-        Skill files with no ``id`` in their frontmatter are silently skipped (pre-migration
-        body files that have not yet been stamped as SKILL items).  Only ID-prefixed skill
-        files (``SKILL-*.md``) without a valid frontmatter id are reported as errors.
-
-        **A file that cannot be read, parsed, or built into an item is a third state, not a
-        skip.** Reading or parsing it raises :class:`SquadsError` (the read-path guards this
-        module depends on turn a raw decode/permission/YAML failure into one), and so does
-        :meth:`Item.from_frontmatter` for frontmatter that parses as YAML but carries a
-        type-invalid field — that is the load boundary check must cross too, or a file
-        ``repair`` cannot rebuild passes here as clean. Every one of those is caught per file
-        so one bad file never aborts the scan for the other hundreds. The failing file is
-        reported as an error-level issue and goes into neither ``on_disk`` nor ``bodies``
-        (there is no usable content to compare), but it is **present on disk**, so treating it
-        as "missing" would be a phantom claim (see :meth:`_confirm_cross_source`). It is
-        instead keyed into ``unparseable_seqs`` — by the frontmatter ``id`` itself when that
-        parsed (the type-invalid-field case), or otherwise best-effort by the sequence number
-        recovered from its **filename** stem alone (the same stem-parsing :meth:`repad` already
-        relies on) — which the caller subtracts from the missing-direction reconciliation
-        candidates. When even the stem does not parse, ``suppress_missing`` is set instead:
-        there is no safe seq to subtract, so the caller drops the whole missing-direction claim
-        for this run rather than risk reporting one that might be false.
-
-        A ``FileNotFoundError`` on a dirent this same call's own glob just saw gets the same
-        absent-vs-unreadable split as :meth:`_rebuild_index_from_disk`: a broken symlink is
-        present-but-unreadable (reported, third-stated), a genuinely vanished dirent is skipped
-        outright with nothing reported.
-        """
-        issues: list[CheckIssue] = []
-        on_disk: dict[int, tuple[str, Path, dict[str, Any]]] = {}
-        bodies: dict[int, str] = {}
-        unparseable_seqs: set[int] = set()
-        suppress_missing = False
-        # Resolved once for the whole scan, before the per-file loop and its own per-file
-        # SquadsError handling below — for the same reason as `_rebuild_index_from_disk`.
-        default_kind = self.spec.default_ref_kind()
-        for item_type, md in self._iter_item_files():
-            try:
-                text = await self._scan_text(md, ctx.skills)
-            except FileNotFoundError:
-                if not await _aio.path_is_symlink(md):
-                    continue  # vanished between glob and read -- genuinely absent
-                suppress_missing |= _report_and_third_state(
-                    issues,
-                    unparseable_seqs,
-                    md,
-                    item_type,
-                    self.spec,
-                    _missing_dirent_message(md, is_symlink=True),
-                )
-                continue
-            except SquadsError as exc:
-                suppress_missing |= _report_and_third_state(
-                    issues, unparseable_seqs, md, item_type, self.spec, str(exc)
-                )
-                continue
-            issues += [CheckIssue("error", md.name, msg) for msg in _marker_issues(text)]
-            issues += [
-                CheckIssue("error", md.name, msg)
-                for msg in _view_target_issues(text, item_type, self.spec, self.playbook)
-            ]
-            issues += [
-                CheckIssue("warn", md.name, views.out_of_region_view_warning(tag))
-                for tag in views.out_of_region_view_tags(text)
-            ]
-            check_slug = _check_slug(md, item_type, text, self.spec)
-            issues += [
-                CheckIssue("error", md.name, msg)
-                for msg in _seeded_view_issues(
-                    text,
-                    item_type,
-                    check_slug,
-                    _stem_seq(md, item_type, self.spec),
-                    self.spec,
-                )
-            ]
-            issues += [
-                CheckIssue("error", md.name, msg)
-                for msg in _absent_body_region_issues(text, item_type, check_slug, self.spec)
-            ]
-            try:
-                data = read_frontmatter(text=text, source=str(md))
-            except SquadsError as exc:
-                remedy = await self._skill_remedy(md, item_type, ctx.skills)
-                suppress_missing |= _report_and_third_state(
-                    issues,
-                    unparseable_seqs,
-                    md,
-                    item_type,
-                    self.spec,
-                    SelfRemedied(f"{exc}; {remedy}") if remedy else str(exc),
-                )
-                continue
-            fid = ctx.carriers.record(md, data.get("id"))
-            if not fid:
-                if _is_legacy_skill_body(md, item_type, self.spec):
-                    continue  # pre-migration skill body -- never had an id, not an error
-                issues.append(
-                    CheckIssue(
-                        "error", md.name, await self._missing_id_message(md, item_type, ctx.skills)
-                    )
-                )
-                continue
-            seq = _seq_from_frontmatter_id(fid)
-            if seq is None:
-                suppress_missing |= _report_and_third_state(
-                    issues, unparseable_seqs, md, item_type, self.spec, _malformed_id_message(fid)
-                )
-                continue
-            squad_rel = self.paths.squad_relative(item_type, md.name, spec=self.spec)
-            try:
-                Item.from_frontmatter(data, path=squad_rel, default_kind=default_kind)
-            except SquadsError as exc:
-                issues.append(CheckIssue("error", md.name, str(exc)))
-                unparseable_seqs.add(seq)
-                continue
-            issues += _missing_timestamp_issues(md.name, data)
-            on_disk[seq] = (fid, md, data)
-            bodies[seq] = text
-        return issues, on_disk, bodies, frozenset(unparseable_seqs), suppress_missing

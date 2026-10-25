@@ -3,11 +3,11 @@ id: BUG-1085
 sequence_id: 1085
 type: bug
 title: update --assignee "" is a silent no-op
-status: Open
+status: Verified
 parent: MILE-1051
 author: qa
 created_at: '2026-10-16T22:52:23Z'
-updated_at: '2026-10-16T22:52:28Z'
+updated_at: '2026-10-25T11:11:45Z'
 ---
 <!-- sq:body -->
 ## Repro
@@ -34,4 +34,6 @@ Docs follow the build: the clearing refusal in the assignee_present table cannot
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-25T11:10:56Z] `qa` Mara Tester:
+  - Verified at HEAD 091bfb77: `bug 22 update --assignee ""` and `task 21 subtask 1 update --assignee ""` exit 1 with 'needs a slug; use --clear-assignee'; assignee unchanged; `--clear-assignee` clears it on both (updated, assignee gone). No silent success.
 <!-- sq:discussion:end -->

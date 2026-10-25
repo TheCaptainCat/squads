@@ -88,7 +88,7 @@ subentities:
   status: WontFix
   severity: low
 created_at: '2026-09-15T09:01:18Z'
-updated_at: '2026-10-17T03:51:04Z'
+updated_at: '2026-10-25T10:53:43Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -736,6 +736,8 @@ Two observations a later change should know about, neither a reason to split now
   - Still open: op-pierre ruled on 2026-10-09 that the DI container is decided in 0.17 with the rest of the structural work, so this verdict stays open until that decision. No code change bears on it.
 - [2026-10-17T03:50:56Z] `manager` Catherine Manager:
   - Moved to FEAT-1092 (0.17) per op-pierre's 2026-10-09 ruling: structural work beyond the import guard, role moves and write guard belongs to 0.17.
+- [2026-10-25T10:53:43Z] `manager` Catherine Manager:
+  - Closed by ADR-1128 (Accepted): no DI container, one composition function.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 

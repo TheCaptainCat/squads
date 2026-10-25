@@ -43,5 +43,6 @@ def test_step_five_names_the_live_editor_or_stays_neutral(roles, expected: str) 
         default_role_full_name=None,
         default_role_slug=None,
         spec=bundled_spec(),
+        from_squad=None,
     )
     assert expected in rendered

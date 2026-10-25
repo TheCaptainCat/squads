@@ -6,7 +6,7 @@ gracefully omitted (not fabricated) when a type has no single in-lane owner or i
 sub-entity/parent requirement changes.
 """
 
-from squads._interactions import authoring_owners, parent_chain
+from squads._interactions._playbook import authoring_owners, get_playbook_spec, parent_chain
 from squads._language import WorkingLanguage
 from squads._rendering._engine import render
 from squads._workflow import bundled_spec
@@ -14,14 +14,18 @@ from squads._workflow._models import ItemSpec, WorkflowSpec
 
 
 def test_authoring_owners_resolve_the_lane_owning_roles_per_type() -> None:
-    assert authoring_owners("feature") == [("product-owner", "product owner")]
-    assert authoring_owners("task") == [("tech-lead", "tech lead")]
+    assert authoring_owners("feature", None, get_playbook_spec()) == [
+        ("product-owner", "product owner")
+    ]
+    assert authoring_owners("task", None, get_playbook_spec()) == [("tech-lead", "tech lead")]
 
 
 def test_authoring_owners_is_empty_for_an_unknown_or_ownerless_type() -> None:
-    assert authoring_owners("no-such-type") == []
-    assert authoring_owners("role") == []  # roster type
-    assert authoring_owners("incident") == []  # a hypothetical custom type, absent from lanes
+    assert authoring_owners("no-such-type", None, get_playbook_spec()) == []
+    assert authoring_owners("role", None, get_playbook_spec()) == []  # roster type
+    assert (
+        authoring_owners("incident", None, get_playbook_spec()) == []
+    )  # a hypothetical custom type, absent from lanes
 
 
 def test_parent_chain_derives_the_authoring_hierarchy() -> None:
@@ -70,7 +74,7 @@ def _spec_with_renamed_task_parent() -> WorkflowSpec:
 
 def test_the_rendered_hierarchy_line_and_parent_flag_track_a_spec_level_parent_rename() -> None:
     spec = _spec_with_renamed_task_parent()
-    rendered = render("workflow.md.j2", spec=spec)
+    rendered = render("workflow.md.j2", spec=spec, from_squad=None)
     assert "--parent INIT-…" in rendered
     assert "Hierarchy: epic → initiative → task" in rendered
     assert "--parent FEAT-…" not in rendered
@@ -91,6 +95,7 @@ def test_the_claude_md_section_also_tracks_the_same_parent_rename() -> None:
         default_role_full_name="Catherine Manager",
         default_role_slug="manager",
         spec=spec,
+        from_squad=None,
     )
     assert "parent is the initiative" in rendered
     assert "--parent INIT-…" in rendered
@@ -109,7 +114,7 @@ def test_a_bullet_is_omitted_not_fabricated_when_its_subentity_or_parent_require
             }
         }
     )
-    rendered = render("workflow.md.j2", spec=no_story)
+    rendered = render("workflow.md.j2", spec=no_story, from_squad=None)
     assert "add-story" not in rendered
     assert "**Product owner** → `sq create feature" in rendered  # bullet itself stays
 
@@ -121,7 +126,7 @@ def test_a_bullet_is_omitted_not_fabricated_when_its_subentity_or_parent_require
             }
         }
     )
-    rendered2 = render("workflow.md.j2", spec=no_parent)
+    rendered2 = render("workflow.md.j2", spec=no_parent, from_squad=None)
     assert "--parent FEAT-…" not in rendered2
     assert "**Tech lead** → `sq create task" in rendered2
 
@@ -146,7 +151,7 @@ def test_a_custom_type_with_no_lane_owner_is_silently_skipped_not_crashed() -> N
             "views": base.views,
         }
     )
-    rendered = render("workflow.md.j2", spec=spec)
+    rendered = render("workflow.md.j2", spec=spec, from_squad=None)
     # Part A (retype target list) includes the custom type...
     assert "`incident`" in rendered.split("Valid targets:")[1].splitlines()[0]
     # ...but no fabricated authoring bullet is generated for a type with no lane owner.

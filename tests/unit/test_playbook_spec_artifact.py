@@ -1,6 +1,6 @@
 """The bundled interaction playbook is a tested artifact: it fails closed on an unknown
 key (extra="forbid" actually fires, not silently dropped), every declared field is covered
-by the pinned golden, the loaded shape is byte-identical to it, and the PLAYBOOK shim
+by the pinned golden, the loaded shape is byte-identical to it, and the bundled item-playbook view
 (dataclass form consumed by the renderer) is a lossless conversion of the spec. Packaging
 (playbook.toml ships in the wheel) lives in tests/meta/test_bundled_toml_packaging.py.
 """
@@ -11,9 +11,13 @@ from typing import Any
 
 import pytest
 
-from squads._interactions import PLAYBOOK, get_playbook_spec, spec_to_item_playbook
 from squads._interactions._loader import _build_spec
 from squads._interactions._models import ItemPlaybookSpec, PlaybookSpec, RoleGuideSpec
+from squads._interactions._playbook import (
+    bundled_item_playbooks,
+    get_playbook_spec,
+    spec_to_item_playbook,
+)
 from squads._roles._catalog import get_catalog
 from squads._workflow import bundled_spec
 
@@ -86,11 +90,11 @@ class TestSpecIsAPinnedArtifact:
 
 class TestShimIsALosslessConversion:
     def test_playbook_shim_covers_the_same_types_as_the_spec(self) -> None:
-        assert set(PLAYBOOK.keys()) == set(get_playbook_spec().types.keys())
+        assert set(bundled_item_playbooks().keys()) == set(get_playbook_spec().types.keys())
 
     def test_spec_to_item_playbook_drops_no_field(self) -> None:
         for item_type, spec_entry in get_playbook_spec().types.items():
-            shim = PLAYBOOK[item_type]
+            shim = bundled_item_playbooks()[item_type]
             converted = spec_to_item_playbook(spec_entry)
             assert shim.overview == converted.overview
             assert shim.lifecycle == converted.lifecycle

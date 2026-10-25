@@ -23,8 +23,8 @@ _models  shared; imports only _clock, _errors and _util (and, through _clock, _c
 Every package-to-package import edge, with where it runs (module top, inside a function, or
 under `TYPE_CHECKING`), is recorded in
 `tests/meta/test_package_import_edges_match_the_recorded_table.py`; that table is the layering
-authority, and a new edge is a row in its diff. Seven packages (`_badges`, `_interactions`,
-`_overrides`, `_paths`, `_rendering`, `_views`, `_workflow`) import each other at module top, so
+authority, and a new edge is a row in its diff. Six packages (`_badges`, `_interactions`,
+`_overrides`, `_paths`, `_rendering`, `_workflow`) import each other at module top, so
 the graph is not a strict stack; the guard pins that set too.
 
 **Module privacy convention.** Every implementation module and subpackage is **private** —
@@ -32,9 +32,8 @@ leading-underscore names (`_service.py`, `_models/`, `_backends/_claude_code/`, 
 `__init__.py` files do **not** re-export (this is a CLI, not yet a library API), so internal code
 imports straight from the underscore modules (`from squads._models._item import Item`). The only
 non-empty inits are `squads/__init__` (`__version__`), `_cli/__init__` (the Typer `app`, the entry
-point `squads._cli:app`), `_backends/_claude_code/__init__` and `_backends/_agents_md/__init__`
-(backend registration side-effect), `_workflow/__init__` (shims over the bundled spec) and
-`_interactions/__init__` (playbook data, skill naming and cheatsheet anchoring); the guard module lists them.
+point `squads._cli:app`) and `_workflow/__init__` (the bundled-spec accessor); the guard module
+lists them.
 Namespace-style imports use an alias to keep call sites readable: `from squads import _clock as clock`.
 
 - `_models/` — pydantic v2. `_item` (`Item`), `_subentity` (`SubEntity` — a story/subtask/finding's
@@ -59,16 +58,32 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
 - `_specs/` — the bundled vocabulary as package-data TOML: `workflow.toml` (types/statuses/
   lifecycles/collections), `roles.toml` (the role catalog), `playbook.toml` (the team playbook).
   Each has its own loader + spec models (`_workflow/`, `_roles/`, `_interactions/`) and its own
-  `.overrides/` counterpart; `_specmerge.py` is the shared deep-merge/splat-ref engine and
-  `_overrides/` the scaffold/diff/stamp surface behind `sq override`.
+  `.overrides/` counterpart; `_specload.py` is the one bundled-read/override-read/merge path the
+  three loaders share (a `SpecDocument` descriptor each; the packaged file is parsed once per
+  process and handed out as copies), `_specmerge.py` the shared deep-merge/splat-ref engine and
+  `_overrides/` the scaffold/diff/stamp surface behind `sq override`. `_spec_documents.py` is the
+  one resolver of a squad's three documents (`resolve_documents`): the workflow spec, the playbook
+  and the role catalog as a lazy, memoised `CatalogSource`, so a roles override that does not load
+  fails only where the catalog is first used. Each document, and each override file, is read once per
+  invocation: the entry points that start one (the CLI root callback, `--help` resolution,
+  `init`/`adopt`) load, and code below them takes `Service.spec`/`.playbook`/`.catalog` and
+  `Service.files` (`OverrideFiles`, the text of each override read once) instead of reading a
+  file or calling a loader with a squad directory. `tests/cli/test_each_spec_document_is_loaded_at_most_once_per_invocation.py`
+  counts file-level reads per document and command family.
 - `_workflow/` — `_loader.py` + `_models.py`: `WorkflowSpec` and friends. The workflow capabilities
-  are **methods on the spec**; `__init__` also exposes module-level shims over the *bundled* spec —
-  per-type status machines + `can_transition` + `TERMINAL`/`is_open` +
-  `ALLOWED_PARENTS`/`parent_allowed`/`parent_hint` — which are **not** override-aware. For anything
-  a project can customise use the threaded active spec (`Service.spec`, `_cli._common.get_active_spec()`);
-  there is no process-global mutable spec.
+  are **methods on the spec**; `__init__` exposes `bundled_spec()`, which is **not** override-aware.
+  Spec and playbook parameters are required: thread the active spec (`Service.spec`,
+  `_cli._common.get_active_spec()`) and playbook (`Service.playbook`), and pass `bundled_spec()` /
+  `get_playbook_spec()` explicitly only where the bundled document is meant. The exceptions take
+  `None`: `ItemFilter.spec` and `item_skill_role_sections(playbook)` (no such filter dimension or
+  text rewrite), the CLI helpers `parse_badge_code`/`parse_filter_badge_code`/`_field_badge`/
+  `build_item_app` (the request's active spec), `label_for` (the derived fallback label), and the template wrappers
+  `_engine._badge`/`_engine._authoring_owners` (a reference render reads the bundled document).
+  There is no process-global mutable spec.
 - `_rendering/` — Jinja2 (`StrictUndefined`); templates are package data under `_rendering/templates/`.
-  `_engine.py` registers `slugify` + `open_marker`/`close_marker` filters. Item files render from
+  `_engine.py` registers `slugify` + `open_marker`/`close_marker` filters. The squad directory whose
+  `.overrides/templates/` may shadow the bundled templates is an argument (`from_squad`) to every
+  entry point, never ambient state; the Environment cache is keyed on it. Item files render from
   `templates/items/*.md.j2`; **sub-entity blocks + their roll-up table** render from
   `templates/subentities/{block,summary}.md.j2` (driven by `_discussion.build_block`/`render_summary`).
   **Sub-entity state (status/assignee/severity/story) lives in the parent's frontmatter**
@@ -80,7 +95,8 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   names/titles from the model and re-renders the head + summary on every mutation. Extend the head with more `{% if %}` lines. The
   legacy body-stored `:meta` regions survive only in `_migrations/_meta_compat.py`, used by the
   migrations.
-- `_backends/` — `AgentBackend` ABC + registry; `_claude_code/` writes pointer files, managed skills
+- `_backends/` — `AgentBackend` ABC + `_registry.py`, a literal name → class table (no registration
+  side effect); `_claude_code/` writes pointer files, managed skills
   (real body under `<squad>/agents/skills/`, thin pointer in `.claude/`), and the CLAUDE.md section;
   `_agents_md/` writes the AGENTS.md equivalent. `_managed_region.py` is the shared, backend-neutral
   managed-section wrapper both use — it stamps the `squads:start`/`squads:end` markers plus the
@@ -88,14 +104,24 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
 - `_roles/_catalog.py` — the 8 bundled roles + the `[dev]` table developers are built from.
 - `_interactions/` — the team **playbook**: which roles interact with each item type (a guide
   subject is a role slug, or `*<capability>` for every role holding it). Drives the per-item-type managed skills (`sq-<type>`) and
-  `skills_for_role()` (the role derivations live in `_interactions/_role_guidance.py`; the
+  `skills_for_role()` (the playbook data and its checks live in `_interactions/_playbook.py`, skill
+  naming and origins in `_interactions/_skills.py`, the cheatsheet anchor in
+  `_interactions/_cheatsheet.py`, the role derivations in `_interactions/_role_guidance.py`; the
   `RoleView`/`OperatorView` roster projection in `_roles/_projection.py`). Workflow cheatsheet partial: `_rendering/templates/workflow.md.j2` (shared by
   the `squads` skill and `sq workflow`).
 - `_services/` — orchestration, the logic behind each command. A shared `_base.ServiceCore`
-  (create/get/list + backend + role/skill lookups + roster) plus one concern **mixin** per file
-  (`_import`, `_items`, `_collab`, `_subentities`, `_refs`, `_roster`, `_maintenance`, `_retype`,
-  `_rename`, `_memory`, `_board`, `_views` — the 12 `Service` bases, in MRO order); `_service.py`
-  composes them into the flat `Service` façade and holds `init`/`adopt`/`open_service`;
+  (create/get/list + backend + role/skill lookups) holding the `_roster_projection.RosterProjection`
+  collaborator (roles, operators and skills projected onto the backends), plus one concern **mixin** per file
+  (`_import`, `_items`, `_collab`, `_subentities`, `_refs`, `_roster`, `_check`, `_maintenance`,
+  `_retype`, `_rename`, `_memory`, `_board`, `_views` — the 13 `Service` bases, in MRO order); the
+  corpus-reading helpers both `_check` and `_maintenance` use live on `ServiceCore`, and
+  `_corpus_files.py` reads one item file into the tagged record the index rebuild and the check
+  scan both consume; `_service.py`
+  composes them into the flat `Service` façade and is the **composition root**: `compose_service`
+  (a `Mode` — normal, index check skipped, migrate, playbook unavailable, bundled fallback — picks
+  the workflow spec and playbook; the fallback order is the `BYPASS_FALLBACKS`/`MIGRATE_FALLBACKS`/
+  `CHECK_FALLBACKS` tables there) and `build_service` (the one `Service(...)` construction: it makes
+  the `IndexStore` and the backends and hands them in) sit beside `init`/`adopt`/`open_service`;
   `_results.py` has the result dataclasses. Non-mixin helpers live alongside: `_validators.py`
   (the `sq check` rules), `_retirement.py`, `_config_integrity.py`, `_import_model.py`.
 - `_services/_corpus_fit.py` — the check before the first migration runner: whether the reconciled index
@@ -110,6 +136,9 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   `templates/views/<name>.md.j2`. No presentation decision lives in the source/projection half;
   no vocabulary literal (a ref-kind, item-type, or sub-entity-kind name) is ever hardcoded here —
   it resolves off the declared `ViewSpec` instead.
+  The view-name constants for the always-on skills and roles live here too. `_view_tags.py` holds the
+  tag placement and read-time expansion engine beside `_sections.py`, and `_view_remedies.py` the
+  command text a message names to place, disable or clear a view tag.
 - `_cli/` — Typer app (`__init__` wires sub-typers + the root `-C` callback + version notice);
   one `_module` per command group; `_common.py` has the shared console/error decorator/parsers.
 

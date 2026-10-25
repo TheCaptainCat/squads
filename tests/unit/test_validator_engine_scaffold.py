@@ -8,7 +8,8 @@ end-to-end byte-identical-set proof, live in the service-level tests.
 
 from datetime import UTC, datetime
 
-from _helpers import BUILTIN_FOLDER, BUILTIN_PREFIX
+from _helpers import BUILTIN_FOLDER, BUILTIN_PREFIX, catalog_of
+from squads._interactions._playbook import get_playbook_spec
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._services._results import CheckIssue
@@ -19,8 +20,9 @@ from squads._services._validators import (
     ValidatorContext,
     ValidatorEngine,
 )
+from squads._specload import OverrideFiles
 from squads._workflow import bundled_spec
-from squads._workflow._models import (
+from squads._workflow._validator_names import (
     CATEGORY_BUNDLES,
     COMMON_CORE,
     SQUAD_GLOBAL_VALIDATOR_NAMES,
@@ -83,7 +85,7 @@ def test_report_runs_the_real_bundles_over_a_clean_item() -> None:
     spec = bundled_spec()
     db = SquadsDB(counter=1)
     db.add(_make_item(1, "task"))
-    engine = ValidatorEngine(spec=spec, squad_global={})
+    engine = ValidatorEngine(spec=spec, squad_global={}, playbook=get_playbook_spec())
     assert engine.report(db, {}) == []
 
 
@@ -92,7 +94,7 @@ def test_gate_does_not_raise_for_a_clean_item() -> None:
     db = SquadsDB(counter=1)
     item = _make_item(1, "decision", status="Proposed")
     db.add(item)
-    engine = ValidatorEngine(spec=spec)
+    engine = ValidatorEngine(spec=spec, playbook=get_playbook_spec())
     engine.gate(item, db)  # must not raise
 
 
@@ -102,7 +104,7 @@ def test_gate_raises_on_an_error_level_violation() -> None:
     spec = bundled_spec()
     db = SquadsDB(counter=1)
     item = _make_item(1, "decision", status="NotAStatus")
-    engine = ValidatorEngine(spec=spec)
+    engine = ValidatorEngine(spec=spec, playbook=get_playbook_spec())
     try:
         engine.gate(item, db)
     except SquadsError as e:
@@ -116,7 +118,7 @@ def test_gate_never_raises_on_a_warn_only_violation() -> None:
     spec = bundled_spec()
     db = SquadsDB(counter=1)
     item = _make_item(1, "task", author="nobody", status="Draft")
-    engine = ValidatorEngine(spec=spec)
+    engine = ValidatorEngine(spec=spec, playbook=get_playbook_spec())
     engine.gate(item, db)  # must not raise
 
 
@@ -299,7 +301,9 @@ def test_engine_calls_a_members_catalog_function_once_across_two_param_selection
     )
     patched_spec = spec.model_copy(update={"items": {**spec.items, "task": item_spec}})
     engine = ValidatorEngine(
-        spec=patched_spec, catalog={**CATALOG, "ref_rule_target_present": _count_and_flag}
+        spec=patched_spec,
+        catalog={**CATALOG, "ref_rule_target_present": _count_and_flag},
+        playbook=get_playbook_spec(),
     )
     item = _make_item(1, "task")
     db = SquadsDB(counter=1)
@@ -323,7 +327,9 @@ def test_engine_uses_a_stub_catalog_to_prove_dispatch_runs_a_named_validator() -
     def _always_flags(ctx: ValidatorContext) -> list[CheckIssue]:
         return [CheckIssue("warn", ctx.item.id, "stub violation")]
 
-    engine = ValidatorEngine(spec=spec, catalog={"stub": _always_flags})
+    engine = ValidatorEngine(
+        spec=spec, catalog={"stub": _always_flags}, playbook=get_playbook_spec()
+    )
     names = effective_validator_names("work", common_core=(), category_bundles={"work": ("stub",)})
     ctx = ValidatorContext(item=_make_item(1, "task"), spec=spec)
     issues = [issue for name in names for issue in engine.catalog[name](ctx)]
@@ -344,7 +350,15 @@ def test_squad_global_validators_run_once_in_report_never_in_gate(tmp_path) -> N
     spec = bundled_spec()
     db = SquadsDB(counter=1)
     paths = SquadPaths(root=tmp_path, squad_dir=tmp_path, config=SquadsConfig())
-    engine = ValidatorEngine(spec=spec, paths=paths, squad_global={"stub_global": _global_check})
+    engine = ValidatorEngine(
+        spec=spec,
+        paths=paths,
+        squad_global={"stub_global": _global_check},
+        playbook=get_playbook_spec(),
+        role_catalog=catalog_of(paths.squad_dir),
+        override_files=OverrideFiles(),
+        backends=lambda: [],
+    )
 
     issues = engine.report(db, {})
     assert issues == [CheckIssue("error", "", "squad-global stub issue")]
@@ -355,7 +369,7 @@ def test_squad_global_validators_run_once_in_report_never_in_gate(tmp_path) -> N
 
 
 def test_squad_global_defaults_to_the_real_catalog() -> None:
-    engine = ValidatorEngine(spec=bundled_spec())
+    engine = ValidatorEngine(spec=bundled_spec(), playbook=get_playbook_spec())
     assert engine.squad_global == SQUAD_GLOBAL_CATALOG
 
 
@@ -365,7 +379,7 @@ def test_report_requires_paths_only_when_squad_global_is_non_empty() -> None:
     skipping the squad-global class."""
     from squads._errors import SquadsError
 
-    engine = ValidatorEngine(spec=bundled_spec())
+    engine = ValidatorEngine(spec=bundled_spec(), playbook=get_playbook_spec())
     db = SquadsDB(counter=1)
     try:
         engine.report(db, {})

@@ -23,10 +23,10 @@ async def test_repair_reports_the_files_it_stripped(svc, invoke):
     path = item_file(svc.paths, task)
     path.write_text(
         path.read_text(encoding="utf-8").replace(
-            markers.open_marker(markers.SUBTASKS),
+            markers.open_marker("subtasks"),
             f"{markers.open_marker(markers.SUMMARY)}\n| Subtask |\n"
             f"{markers.close_marker(markers.SUMMARY)}\n\n"
-            f"{markers.open_marker(markers.SUBTASKS)}",
+            f"{markers.open_marker('subtasks')}",
             1,
         ),
         encoding="utf-8",

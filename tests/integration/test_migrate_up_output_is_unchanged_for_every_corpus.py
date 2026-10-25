@@ -20,9 +20,9 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._models._config import SquadsConfig
 from squads._paths import SquadPaths
-from squads._services._service import Service
 
 pytestmark = pytest.mark.anyio
 
@@ -56,7 +56,7 @@ async def _migrate(corpus: str, tmp_path: Path) -> tuple[Written, list[str]]:
         cfg = SquadsConfig.from_toml_dict(tomllib.load(fh))
     paths = SquadPaths(root=root, squad_dir=root / cfg.squad_dir, config=cfg)
     before = _files(root)
-    await Service(paths).run_pending_migrations()
+    await make_service(paths).run_pending_migrations()
     after = _files(root)
     written = {n: d.decode("utf-8") for n, d in after.items() if before.get(n) != d}
     return written, sorted(set(before) - set(after))

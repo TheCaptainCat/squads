@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+from _helpers import make_service
 from squads._cli import app
 from squads._services import _service as service
 
@@ -44,7 +45,7 @@ class TestBothBackendsWritten:
         result = await service.init(
             root=tmp_squad, backend=["claude_code", "agents_md"], roles_spec="minimal"
         )
-        await service.Service(result.paths).sync()
+        await make_service(result.paths).sync()
         assert (tmp_squad / "CLAUDE.md").exists()
         assert (tmp_squad / "AGENTS.md").exists()
 
@@ -68,7 +69,7 @@ class TestEmptyActiveBackends:
 
     async def test_check_reports_no_backend_errors(self, tmp_squad: Path) -> None:
         result = await service.init(root=tmp_squad, backend=[], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         issues = await svc.check()
         backend_issues = [i for i in issues if "managed file missing" in i.message]
         assert not backend_issues
@@ -96,7 +97,7 @@ class TestEmptyActiveBackends:
         cfg_path.write_text("\n".join(lines), encoding="utf-8")
 
         assert (tmp_squad / "CLAUDE.md").exists()  # deactivation ignores, never deletes
-        svc = service.Service(resolve())
+        svc = make_service(resolve())
         issues = await svc.check()
         backend_issues = [i for i in issues if "managed file missing" in i.message]
         assert not backend_issues
@@ -114,7 +115,7 @@ class TestRosterProjectionFansOutOverBothBackends:
         result = await service.init(
             root=tmp_squad, backend=["claude_code", "agents_md"], roles_spec="minimal"
         )
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         item = await svc.activate_role("qa")
         claude_pointer = tmp_squad / ".claude" / "agents" / "qa.md"
         assert claude_pointer.exists()
@@ -126,7 +127,7 @@ class TestRosterProjectionFansOutOverBothBackends:
         result = await service.init(
             root=tmp_squad, backend=["claude_code", "agents_md"], roles_spec="minimal"
         )
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         item = await svc.activate_role("qa")
         claude_pointer = tmp_squad / ".claude" / "agents" / "qa.md"
         await svc.set_status(item.id, "Archived")
@@ -145,7 +146,7 @@ class TestRosterProjectionFansOutOverBothBackends:
         result = await service.init(
             root=tmp_squad, backend=["claude_code", "agents_md"], roles_spec="minimal"
         )
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         item = await svc.activate_role("qa")
         claude_pointer = tmp_squad / ".claude" / "agents" / "qa.md"
         assert claude_pointer.exists()
@@ -155,7 +156,7 @@ class TestRosterProjectionFansOutOverBothBackends:
         (tmp_squad / ".squads.toml").write_text(cfg.to_toml(), encoding="utf-8")
         from squads._paths import resolve
 
-        svc2 = service.Service(resolve())
+        svc2 = make_service(resolve())
         await svc2.set_status(item.id, "Archived")
         assert claude_pointer.exists()  # the deactivated one was never touched
 

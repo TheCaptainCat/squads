@@ -6,9 +6,10 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads import _sections as sections
 from squads._errors import SquadsError
-from squads._interactions import is_system_skill
+from squads._interactions._skills import is_system_skill
 from squads._models import _markers as markers
 from squads._services import _service as service
 from squads._workflow._loader import load_workflow_spec
@@ -47,7 +48,7 @@ async def squad(tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="minimal")
     _write_override(result.paths.squad_dir)
-    svc = service.Service(result.paths, spec=load_workflow_spec(squad_dir=result.paths.squad_dir))
+    svc = make_service(result.paths, spec=load_workflow_spec(squad_dir=result.paths.squad_dir))
     await svc.sync()
 
     runbook = await svc.add_skill("Release Runbook", description="Ship a release safely.")

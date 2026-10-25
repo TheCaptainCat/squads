@@ -8,13 +8,12 @@ override loader) for every squad it has ever seen. Bundled-only (`None`) and
 from pathlib import Path
 
 from squads._rendering import _engine
-from squads._rendering._engine import invalidate_squad_dir, set_active_squad_dir
+from squads._rendering._engine import invalidate_squad_dir
 
 
 def _touch(squad_dir: Path | None) -> None:
     """Force an Environment to be built/cached for *squad_dir* without rendering a template."""
-    set_active_squad_dir(squad_dir)
-    _engine._env()
+    _engine._env(squad_dir)
 
 
 def test_the_env_cache_never_grows_past_its_capacity(tmp_path: Path) -> None:
@@ -22,8 +21,7 @@ def test_the_env_cache_never_grows_past_its_capacity(tmp_path: Path) -> None:
     dirs = [tmp_path / f"squad-{i}" for i in range(cap + 5)]
     for d in dirs:
         d.mkdir()
-        set_active_squad_dir(d)
-        _engine._env()
+        _engine._env(d)
         assert len(_engine._env_cache) <= cap
 
 
@@ -34,15 +32,13 @@ def test_touching_more_dirs_than_capacity_evicts_the_least_recently_used_first(
     dirs = [tmp_path / f"squad-{i}" for i in range(cap)]
     for d in dirs:
         d.mkdir()
-        set_active_squad_dir(d)
-        _engine._env()
+        _engine._env(d)
     assert dirs[0] in _engine._env_cache
 
     # One more distinct dir past capacity must evict the oldest (dirs[0]), not any other.
     extra = tmp_path / "squad-extra"
     extra.mkdir()
-    set_active_squad_dir(extra)
-    _engine._env()
+    _engine._env(extra)
 
     cache = _engine._env_cache
     assert len(cache) == cap
@@ -58,17 +54,14 @@ def test_re_touching_an_entry_marks_it_most_recently_used_so_it_survives_evictio
     dirs = [tmp_path / f"squad-{i}" for i in range(cap)]
     for d in dirs:
         d.mkdir()
-        set_active_squad_dir(d)
-        _engine._env()
+        _engine._env(d)
 
     # Re-touch the oldest entry so it becomes most-recently-used.
-    set_active_squad_dir(dirs[0])
-    _engine._env()
+    _engine._env(dirs[0])
 
     extra = tmp_path / "squad-extra"
     extra.mkdir()
-    set_active_squad_dir(extra)
-    _engine._env()
+    _engine._env(extra)
 
     cache = _engine._env_cache
     # dirs[1] was the actual least-recently-used one now, not dirs[0].

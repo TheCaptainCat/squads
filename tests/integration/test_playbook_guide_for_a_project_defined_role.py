@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from _helpers import resolved_skill_definition
-from squads import _interactions as interactions
+from squads._interactions._skills import item_skill_name
 from squads._overrides._service import scaffold_new_role
 from squads._services import _service as service
 
@@ -89,7 +89,7 @@ async def test_generated_task_skill_carries_the_project_roles_guidance(project) 
     reopened = service.open_service(client_cwd=project.squad_dir)
     await reopened.refresh_managed()
 
-    body = await resolved_skill_definition(reopened, interactions.item_skill_name("task"))
+    body = await resolved_skill_definition(reopened, item_skill_name("task"))
     assert "Sam Reliability" in body
     assert "Read the incident timeline" in body
     assert "Coordinate the rollback" in body

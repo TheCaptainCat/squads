@@ -12,9 +12,9 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._services import _service as service
 from squads._services._results import CheckIssue
-from squads._services._service import Service
 from squads._workflow import ROSTER_ROLE, bundled_spec
 from squads._workflow._models import Lifecycle, StatusSpec, WorkflowSpec
 
@@ -86,7 +86,7 @@ async def test_check_suppresses_c1_when_no_backend_is_active(tmp_path: Path, mon
     explicitly blessed and must not quietly get un-blessed by this validator."""
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, backend=[], roles_spec="", _skip_skill_seed=True)
-    empty_backend_svc = Service(result.paths)
+    empty_backend_svc = make_service(result.paths)
 
     issues = await empty_backend_svc.check()
     assert _messages(issues, "no role entry is live") == []
@@ -102,7 +102,7 @@ async def test_check_fires_c1_on_the_same_empty_roster_once_a_backend_is_active(
     result = await service.init(
         root=tmp_path, backend=["claude_code"], roles_spec="", _skip_skill_seed=True
     )
-    active_backend_svc = Service(result.paths)
+    active_backend_svc = make_service(result.paths)
 
     issues = await active_backend_svc.check()
     assert _messages(issues, "no role entry is live") != []
@@ -141,7 +141,7 @@ async def test_check_does_not_false_positive_c1_when_a_role_sits_on_a_second_liv
     )
     assert custom_spec.live_statuses(ROSTER_ROLE) == frozenset({"Active", "OnCall"})
 
-    custom_svc = Service(svc.paths, spec=custom_spec)
+    custom_svc = make_service(svc.paths, spec=custom_spec)
     role = await custom_svc.roster_item("role", "manager")
     assert role is not None
     await custom_svc.set_status(role.id, "OnCall")  # the OTHER live status, not "Active"

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads import _aio
 from squads import _clock as clock
 from squads._errors import SquadsError
@@ -39,7 +40,7 @@ _DAMAGES = {
 async def svc(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="minimal")
-    return service.Service(result.paths)
+    return make_service(result.paths)
 
 
 def _skill_file(svc, slug: str) -> Path:
@@ -139,9 +140,9 @@ async def test_restamp_needs_no_index_entry(svc):
     md = _skill_file(svc, "sq-task")
     md.write_text(_strip_whole(md.read_text()))
     (svc.paths.squad_dir / ".squads.json").unlink()
-    await service.Service(svc.paths).repair()
+    await make_service(svc.paths).repair()
 
-    fresh = service.Service(svc.paths)
+    fresh = make_service(svc.paths)
     await fresh.sync()
 
     assert split_frontmatter(md.read_text())[0]["id"].startswith("SKILL-")

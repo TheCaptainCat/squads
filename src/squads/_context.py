@@ -12,8 +12,7 @@ module-level binding is
   classes, compiled template environments) — it may stay module-level, and caching it
   process-wide is fine.
 
-Mirrors the ``_rendering/_engine.py::_active_squad_dir`` ``ContextVar`` precedent: one
-task-local value, seeded/rebound only at the CLI edge (or a future server handler) and
+One task-local value, seeded/rebound only at the CLI edge (or a future server handler) and
 read only through the accessor functions below — nothing below ``open_service`` reads
 the ``ContextVar`` directly.
 

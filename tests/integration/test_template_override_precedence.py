@@ -11,9 +11,9 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads._models._item import Item
-from squads._rendering._engine import invalidate_squad_dir, render, set_active_squad_dir
+from squads._rendering._engine import invalidate_squad_dir, render
 from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
@@ -52,8 +52,7 @@ def _minimal_override(label: str) -> str:
 
 
 async def test_render_is_byte_identical_to_the_bundle_when_no_override_exists(project) -> None:
-    set_active_squad_dir(project.squad_dir)
-    out = render("items/task.md.j2", **_task_ctx())
+    out = render("items/task.md.j2", **_task_ctx(), from_squad=project.squad_dir)
     assert "<!-- sq:body -->" in out
     assert "## Description" in out
     assert "OVERRIDDEN" not in out
@@ -62,16 +61,14 @@ async def test_render_is_byte_identical_to_the_bundle_when_no_override_exists(pr
 async def test_a_single_overridden_template_never_shadows_any_other_template(project) -> None:
     squad_dir = project.squad_dir
     _place_override(squad_dir, "items/task.md.j2", _minimal_override("task"))
-    set_active_squad_dir(squad_dir)
 
-    assert "OVERRIDDEN:task" in render("items/task.md.j2", **_task_ctx())
-    bug_out = render("items/bug.md.j2", **_task_ctx())
+    assert "OVERRIDDEN:task" in render("items/task.md.j2", **_task_ctx(), from_squad=squad_dir)
+    bug_out = render("items/bug.md.j2", **_task_ctx(), from_squad=squad_dir)
     assert "OVERRIDDEN" not in bug_out
     assert "<!-- sq:body -->" in bug_out
 
 
 async def test_service_create_renders_the_override_when_one_is_active(project, svc) -> None:
-    from squads._services import _service as service
 
     custom = (
         "<!-- sq:body -->\n## Custom Project Section\n\nOVERRIDDEN_BODY\n<!-- sq:body:end -->\n\n"
@@ -81,7 +78,7 @@ async def test_service_create_renders_the_override_when_one_is_active(project, s
     )
     _place_override(project.squad_dir, "items/task.md.j2", custom)
     # ServiceCore binds the squad dir at construction time; re-create to pick up the override.
-    result = await service.Service(project).create("task", "Override smoke test", author="manager")
+    result = await make_service(project).create("task", "Override smoke test", author="manager")
     body = result.path.read_text(encoding="utf-8")
     assert "OVERRIDDEN_BODY" in body
 

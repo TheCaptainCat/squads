@@ -20,7 +20,7 @@ from typing import Any
 import anyio
 import pytest
 
-from _helpers import make_unreadable_by_the_os
+from _helpers import make_service, make_unreadable_by_the_os
 from squads import __version__
 from squads._cli._migrate import migrate_grants
 from squads._errors import SquadsError
@@ -29,7 +29,6 @@ from squads._models import _markers as markers
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._services import _maintenance
 from squads._services import _service as service
-from squads._services._service import Service
 from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
@@ -159,7 +158,7 @@ async def _build(root: Path) -> Path:
     moved onto the milestones, and stamped 0.14."""
     await anyio.Path(root).mkdir(parents=True)
     built = await service.init(root=root, roles_spec="minimal", _skip_skill_seed=True)
-    svc = Service(built.paths)
+    svc = make_service(built.paths)
     await svc.create("milestone", "First", author="manager")
     await svc.create("milestone", "Second", author="manager")
     await svc.create("task", "A task", author="manager")

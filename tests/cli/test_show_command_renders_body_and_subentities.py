@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+from _helpers import make_service
 from squads._cli import _common
 
 pytestmark = pytest.mark.anyio
@@ -249,9 +250,8 @@ async def test_a_bracket_bearing_empty_body_hint_is_not_swallowed_as_markup(
     """A dynamic empty-body hint containing its own `[...]` is escaped, not swallowed by Rich."""
     from squads._index._resolver import item_file
     from squads._sections import get_section, replace_section
-    from squads._services._service import Service
 
-    svc = Service(project)
+    svc = make_service(project)
     await svc.seed_bundled_skills()
     skill = await svc.roster_item("skill", "sq-bug")
     assert skill is not None

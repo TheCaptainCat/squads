@@ -11,6 +11,7 @@ the store's own read/cache plumbing is what is under test here, not a whole squa
 import pytest
 
 from squads._index._store import IndexStore, _read_scope, read_scope
+from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
 
@@ -18,7 +19,9 @@ pytestmark = pytest.mark.anyio
 def _make_store(tmp_path, name: str = "squad") -> IndexStore:
     squad_dir = tmp_path / name
     squad_dir.mkdir()
-    store = IndexStore(squad_dir / ".squads.json", squad_dir / ".squads.json.lock")
+    store = IndexStore(
+        squad_dir / ".squads.json", squad_dir / ".squads.json.lock", spec=bundled_spec()
+    )
     store.create_empty()
     return store
 
@@ -63,9 +66,9 @@ async def test_transaction_never_serves_a_stale_snapshot_over_a_newer_index(tmp_
     squad_dir.mkdir()
     index_path = squad_dir / ".squads.json"
     lock_path = squad_dir / ".squads.json.lock"
-    store_a = IndexStore(index_path, lock_path)
+    store_a = IndexStore(index_path, lock_path, spec=bundled_spec())
     store_a.create_empty()
-    store_b = IndexStore(index_path, lock_path)
+    store_b = IndexStore(index_path, lock_path, spec=bundled_spec())
 
     with read_scope():
         primed = await store_a.load()
@@ -127,9 +130,9 @@ async def test_load_fresh_bypasses_the_scope_in_both_directions(tmp_path):
     squad_dir.mkdir()
     index_path = squad_dir / ".squads.json"
     lock_path = squad_dir / ".squads.json.lock"
-    store_a = IndexStore(index_path, lock_path)
+    store_a = IndexStore(index_path, lock_path, spec=bundled_spec())
     store_a.create_empty()
-    store_b = IndexStore(index_path, lock_path)
+    store_b = IndexStore(index_path, lock_path, spec=bundled_spec())
 
     with read_scope():
         cached = await store_a.load()
@@ -187,9 +190,9 @@ async def test_scope_survives_a_raising_transaction_so_a_later_read_sees_a_concu
     squad_dir.mkdir()
     index_path = squad_dir / ".squads.json"
     lock_path = squad_dir / ".squads.json.lock"
-    store_a = IndexStore(index_path, lock_path)
+    store_a = IndexStore(index_path, lock_path, spec=bundled_spec())
     store_a.create_empty()
-    store_b = IndexStore(index_path, lock_path)
+    store_b = IndexStore(index_path, lock_path, spec=bundled_spec())
 
     with read_scope():
         primed = await store_a.load()

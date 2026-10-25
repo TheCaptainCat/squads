@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import dev_role
+from _helpers import catalog_of, dev_role
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._roles._catalog import PREDEFINED
 from squads._roles._resolver import resolve_role, resolve_role_with_base
@@ -39,23 +39,25 @@ def _place_role_toml(squad_dir: Path, slug: str, content: str) -> Path:
 
 def test_base_none_reproduces_resolve_role_for_a_bundled_slug(tmp_path) -> None:
     _place_role_toml(tmp_path, "architect", 'model = "haiku"\n')
-    assert resolve_role_with_base("architect", tmp_path, base=None) == resolve_role(
-        "architect", tmp_path
-    )
+    assert resolve_role_with_base(
+        "architect", tmp_path, base=None, catalog=catalog_of(tmp_path)
+    ) == resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
 
 
 def test_base_none_reproduces_resolve_roles_missing_fields_error_for_a_new_slug(tmp_path) -> None:
     _place_role_toml(tmp_path, "new-role", 'full_name = "New Person"\n')
     with pytest.raises(SquadsError, match="missing required fields") as via_base:
-        resolve_role_with_base("new-role", tmp_path, base=None)
+        resolve_role_with_base("new-role", tmp_path, base=None, catalog=catalog_of(tmp_path))
     with pytest.raises(SquadsError, match="missing required fields") as via_plain:
-        resolve_role("new-role", tmp_path)
+        resolve_role("new-role", tmp_path, catalog=catalog_of(tmp_path))
     assert str(via_base.value) == str(via_plain.value)
 
 
 def test_base_none_reproduces_role_not_found_for_an_unknown_slug_with_no_override(tmp_path) -> None:
     with pytest.raises(RoleNotFoundError):
-        resolve_role_with_base("nonexistent-slug", tmp_path, base=None)
+        resolve_role_with_base(
+            "nonexistent-slug", tmp_path, base=None, catalog=catalog_of(tmp_path)
+        )
 
 
 # --------------------------------------------------------------------- a supplied base wins,
@@ -70,13 +72,15 @@ def test_a_supplied_base_wins_over_a_bundled_slugs_own_catalog_entry(tmp_path) -
 
     bundled = next(x for x in PREDEFINED if x.slug == "architect")
     renamed_base = replace(bundled, full_name="Ada Lovelace")
-    r = resolve_role_with_base("architect", tmp_path, base=renamed_base)
+    r = resolve_role_with_base(
+        "architect", tmp_path, base=renamed_base, catalog=catalog_of(tmp_path)
+    )
     assert r.full_name == "Ada Lovelace"
     assert r.mission == bundled.mission  # every other field still the catalog's own
 
 
 def test_base_none_still_falls_back_to_the_bundled_catalog_entry(tmp_path) -> None:
-    r = resolve_role_with_base("architect", tmp_path, base=None)
+    r = resolve_role_with_base("architect", tmp_path, base=None, catalog=catalog_of(tmp_path))
     bundled = next(x for x in PREDEFINED if x.slug == "architect")
     assert r == bundled
 
@@ -86,13 +90,16 @@ def test_base_none_still_falls_back_to_the_bundled_catalog_entry(tmp_path) -> No
 
 def test_no_override_file_returns_the_supplied_base_unchanged(tmp_path) -> None:
     base = dev_role("python")
-    assert resolve_role_with_base("python-dev", tmp_path, base=base) == base
+    assert (
+        resolve_role_with_base("python-dev", tmp_path, base=base, catalog=catalog_of(tmp_path))
+        == base
+    )
 
 
 def test_a_partial_override_merges_field_wise_over_the_supplied_base(tmp_path) -> None:
     base = dev_role("python")
     _place_role_toml(tmp_path, "python-dev", 'title = "Senior Python developer"\n')
-    r = resolve_role_with_base("python-dev", tmp_path, base=base)
+    r = resolve_role_with_base("python-dev", tmp_path, base=base, catalog=catalog_of(tmp_path))
     assert r.title == "Senior Python developer"
     assert r.full_name == base.full_name  # inherited, not disturbed
     assert r.mission == base.mission
@@ -109,7 +116,7 @@ def test_a_complete_override_sets_every_field_it_declares(tmp_path) -> None:
         'mission = "Ship and maintain the Python codebase."\n'
         'model = "opus"\n',
     )
-    r = resolve_role_with_base("python-dev", tmp_path, base=base)
+    r = resolve_role_with_base("python-dev", tmp_path, base=base, catalog=catalog_of(tmp_path))
     assert r.full_name == "Priya Python"
     assert r.title == "Staff Python developer"
     assert r.mission == "Ship and maintain the Python codebase."
@@ -120,11 +127,11 @@ def test_an_invalid_model_still_refuses_with_a_supplied_base(tmp_path) -> None:
     base = dev_role("python")
     _place_role_toml(tmp_path, "python-dev", 'model = "opuss"\n')
     with pytest.raises(SquadsError, match="opuss"):
-        resolve_role_with_base("python-dev", tmp_path, base=base)
+        resolve_role_with_base("python-dev", tmp_path, base=base, catalog=catalog_of(tmp_path))
 
 
 def test_a_slug_disagreeing_with_the_filename_still_refuses_with_a_supplied_base(tmp_path) -> None:
     base = dev_role("python")
     _place_role_toml(tmp_path, "python-dev", 'slug = "other-dev"\ntitle = "x"\n')
     with pytest.raises(SquadsError, match="filename"):
-        resolve_role_with_base("python-dev", tmp_path, base=base)
+        resolve_role_with_base("python-dev", tmp_path, base=base, catalog=catalog_of(tmp_path))

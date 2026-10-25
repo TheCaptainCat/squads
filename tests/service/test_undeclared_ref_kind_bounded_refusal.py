@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import __version__
 from squads._errors import SquadsError
 from squads._models._item import split_ref
@@ -85,13 +85,13 @@ async def _seed_native_shape(svc: Service) -> tuple[str, str]:
 
 async def test_undeclared_kind_refuses_at_write_and_lint_only(project, invoke) -> None:
     dropped_kind = "duplicates"
-    svc = Service(project)
+    svc = make_service(project)
     referrer_id, target_id = await _seed_native_shape(svc)
     _write_override(project.squad_dir, _DROP_DUPLICATES)
 
     merged = load_workflow_spec(squad_dir=project.squad_dir)
     assert dropped_kind not in merged.ref_kinds
-    svc2 = Service(project, spec=merged)
+    svc2 = make_service(project, spec=merged)
 
     # The load boundary is bounded: neither the low-level constructor above nor the real
     # per-invocation resolution `open_service` uses raises.
@@ -154,12 +154,12 @@ async def test_retype_remap_ignores_declared_vocabulary(project) -> None:
     """The retype ref remap rewrites an EXISTING edge wholesale across the whole corpus and
     must not validate its kind — the write gate's write/persist line, exercised through the
     one other production path (besides an ordinary mutation) that rewrites a live ref."""
-    svc = Service(project)
+    svc = make_service(project)
     referrer_id, target_id = await _seed_native_shape(svc)
     dropped_kind = "duplicates"
     _write_override(project.squad_dir, _DROP_DUPLICATES)
 
-    svc2 = Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    svc2 = make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
     result = await svc2.retype(target_id, "bug")
 
     updated = await svc2.get(referrer_id)
@@ -171,7 +171,7 @@ async def test_retype_remap_ignores_declared_vocabulary(project) -> None:
 
 
 async def test_repair_writes_no_file_over_an_already_canonical_corpus(project) -> None:
-    svc = Service(project)
+    svc = make_service(project)
     a = (await create_item(svc, "task", "a")).item
     b = (await create_item(svc, "task", "b")).item
     await svc.add_ref(a.id, b.id, kind="related")  # ordinary bare edge, already canonical
@@ -185,7 +185,7 @@ async def test_repair_writes_no_file_over_an_already_canonical_corpus(project) -
 
 
 async def test_repair_converges_byte_identically_on_a_second_run(project) -> None:
-    svc = Service(project)
+    svc = make_service(project)
     a = (await create_item(svc, "task", "referrer")).item
     b = (await create_item(svc, "task", "target")).item
     await svc.add_ref(a.id, b.id, kind="related")
@@ -213,7 +213,7 @@ async def test_end_to_end_recovery_needs_no_hand_editing(project) -> None:
     """The recovery A5 promises: revert the override edit, ``sq repair``, mutate the affected
     item once, re-apply the rename — lint clean, check clean, both bare edges reading as the new
     default, with no item ``.md`` touched by hand at any point in the recovery."""
-    svc = Service(project)
+    svc = make_service(project)
     a = (await create_item(svc, "task", "referrer")).item
     b = (await create_item(svc, "task", "target")).item
     c = (await create_item(svc, "task", "other-referrer")).item
@@ -221,7 +221,7 @@ async def test_end_to_end_recovery_needs_no_hand_editing(project) -> None:
     await svc.add_ref(c.id, b.id, kind="related")
 
     _write_override(project.squad_dir, _RENAME_DEFAULT)
-    svc_renamed = Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    svc_renamed = make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
     await svc_renamed.repair()
 
     # Bounded: nothing about this state stops an ordinary command running.
@@ -230,7 +230,7 @@ async def test_end_to_end_recovery_needs_no_hand_editing(project) -> None:
 
     # Recovery, shipped verbs only, no item file ever opened by hand:
     _remove_override(project.squad_dir)  # 1. revert the override edit
-    svc_reverted = Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    svc_reverted = make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
     await svc_reverted.repair()  # 2. sq repair
     await svc_reverted.update(a.id, description="touch")  # 3. mutate the affected item once
     _write_override(project.squad_dir, _RENAME_DEFAULT)  # 4. re-apply the rename
@@ -238,7 +238,7 @@ async def test_end_to_end_recovery_needs_no_hand_editing(project) -> None:
     findings = lint_workflow_spec(project.squad_dir)
     assert not [f for f in findings if f[0] == "error"]  # lint clean
 
-    svc_final = Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    svc_final = make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
     assert _no_errors(await svc_final.check())  # check clean
 
     # Both edges read as the new default.

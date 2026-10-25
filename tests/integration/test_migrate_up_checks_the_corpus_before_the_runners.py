@@ -18,6 +18,7 @@ from typing import Any
 
 import pytest
 
+from _helpers import make_service
 from squads import __version__
 from squads._index._reconcile import ReconcileResult, plan_reconcile
 from squads._index._store import IndexStore
@@ -25,7 +26,6 @@ from squads._models._config import SquadsConfig
 from squads._models._schema import SCHEMA_VERSION
 from squads._paths import SquadPaths
 from squads._services import _corpus_fit, _maintenance
-from squads._services._service import Service
 from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
@@ -203,7 +203,7 @@ async def test_once_the_index_is_restored_the_run_completes_and_the_stray_is_nev
 
     monkeypatch.setattr(_aio, "read_text", _spy)
 
-    run = await Service(_paths_at(squad)).run_pending_migrations()
+    run = await make_service(_paths_at(squad)).run_pending_migrations()
 
     assert run.applied
     assert _stamp(squad) == SCHEMA_VERSION
@@ -366,7 +366,7 @@ async def test_both_questions_pass_over_every_aged_corpus(corpus: str, tmp_path:
     root = tmp_path / corpus
     shutil.copytree(_CORPUS_DIR / corpus, root)
     paths = _paths_at(root)
-    store = IndexStore(paths.index_path, paths.lock_path)
+    store = IndexStore(paths.index_path, paths.lock_path, spec=bundled_spec())
     built, result = await plan_reconcile(paths.squad_dir, store, paths.config.schema_version)
 
     refusal = _corpus_fit.corpus_fit_refusal(
@@ -397,7 +397,7 @@ async def test_with_an_index_no_run_the_checks_let_through_is_refused_by_the_tra
     _STRAYS_WITH_AN_INDEX[stray](squad)
     before = set(_md(squad))
 
-    run = await Service(_paths_at(squad)).run_pending_migrations()
+    run = await make_service(_paths_at(squad)).run_pending_migrations()
 
     assert run.repair is not None and run.repair.unreadable == []
     assert before <= set(_md(squad))
@@ -410,7 +410,7 @@ async def test_a_copy_under_a_non_item_name_in_a_folder_the_index_never_held_is_
     _forget_the_milestone(squad)
     shutil.move(squad / _MILE, squad / "milestones/ship.md")
     # the folder has no item-named file and no entry, so nothing is refused and nothing is lost
-    run = await Service(_paths_at(squad)).run_pending_migrations()
+    run = await make_service(_paths_at(squad)).run_pending_migrations()
 
     assert run.applied
     assert (squad / "milestones/ship.md").exists()
@@ -522,7 +522,7 @@ async def test_the_service_refuses_a_corpus_that_does_not_fit_before_any_item_fi
     from squads._migrations import _registry
 
     monkeypatch.setattr(_maintenance, "MIGRATIONS", [_count(m) for m in _registry.MIGRATIONS])
-    svc = Service(_paths_at(squad), spec=_spec_for(squad))
+    svc = make_service(_paths_at(squad), spec=_spec_for(squad))
 
     with pytest.raises(Exception, match="no migration has run") as excinfo:
         await svc.run_pending_migrations()
@@ -534,7 +534,9 @@ async def test_the_service_refuses_a_corpus_that_does_not_fit_before_any_item_fi
     assert _sq_commands(message) == ["`sq migrate up`"]
     assert ("override" in message) == row.startswith("override")
     remedy(squad)
-    assert (await Service(_paths_at(squad), spec=_spec_for(squad)).run_pending_migrations()).applied
+    assert (
+        await make_service(_paths_at(squad), spec=_spec_for(squad)).run_pending_migrations()
+    ).applied
 
 
 def _spec_for(root: Path) -> Any:
@@ -577,7 +579,7 @@ async def test_every_row_the_check_refuses_is_refused_later_with_the_check_stubb
     monkeypatch.setattr(_maintenance, "corpus_fit_refusal", lambda *a, **k: None)
 
     with pytest.raises(Exception):  # noqa: B017 - any refusal at all is the claim
-        await Service(_paths_at(squad), spec=_spec_for(squad)).run_pending_migrations()
+        await make_service(_paths_at(squad), spec=_spec_for(squad)).run_pending_migrations()
 
     assert _stamp(squad) == "0.14"
 
@@ -815,7 +817,7 @@ async def test_a_refusal_names_a_release_that_reads_the_squads_schema(
     _no_index(root)
 
     with pytest.raises(Exception, match="no migration has run") as excinfo:
-        await Service(_paths_at(root)).run_pending_migrations()
+        await make_service(_paths_at(root)).run_pending_migrations()
 
     message = " ".join(str(excinfo.value).split())
     named = re.search(rf"reads schema v{re.escape(schema)} \(v([\d.]+) is one\)", message)
@@ -848,7 +850,7 @@ async def test_a_declared_folder_spelled_with_a_slash_or_dot_completes(
     spec = _spec_with_override(
         squad, f'[items.incident]\nprefix = "INC"\nfolder = "{folder}"\nlifecycle = "guide"\n'
     )
-    await Service(_paths_at(squad), spec=spec).create("incident", "One", author="dev-agent")
+    await make_service(_paths_at(squad), spec=spec).create("incident", "One", author="dev-agent")
     if state == "no-index":
         _no_index(squad)
     monkeypatch.chdir(squad)
@@ -904,7 +906,7 @@ async def test_with_no_index_an_odd_prefix_item_is_recognised_and_the_run_comple
     spec = _spec_with_override(
         squad, f'[items.incident]\nprefix = "{code}"\nfolder = "incidents"\nlifecycle = "guide"\n'
     )
-    await Service(_paths_at(squad), spec=spec).create("incident", "One", author="dev-agent")
+    await make_service(_paths_at(squad), spec=spec).create("incident", "One", author="dev-agent")
     _no_index(squad)
     monkeypatch.chdir(squad)
 
@@ -922,7 +924,7 @@ async def test_a_declared_prefix_outside_the_walks_shape_is_refused_by_the_secon
     spec = _spec_with_override(
         squad, '[items.incident]\nprefix = "v1.0"\nfolder = "incidents"\nlifecycle = "guide"\n'
     )
-    await Service(_paths_at(squad), spec=spec).create("incident", "One", author="dev-agent")
+    await make_service(_paths_at(squad), spec=spec).create("incident", "One", author="dev-agent")
     _no_index(squad)
     monkeypatch.chdir(squad)
 
@@ -943,7 +945,7 @@ async def test_with_an_index_a_second_odd_prefix_item_gains_an_entry_and_the_fir
     spec = _spec_with_override(
         squad, f'[items.incident]\nprefix = "{code}"\nfolder = "incidents"\nlifecycle = "guide"\n'
     )
-    svc = Service(_paths_at(squad), spec=spec)
+    svc = make_service(_paths_at(squad), spec=spec)
     first = (await svc.create("incident", "One", author="dev-agent")).item
     index = _index(squad)
     for value in index["items"].values():
@@ -956,7 +958,7 @@ async def test_with_an_index_a_second_odd_prefix_item_gains_an_entry_and_the_fir
         _ITEM.format(id=f"{code}-31", seq=31, type="incident", status="Draft"),
     )
 
-    run = await Service(_paths_at(squad), spec=spec).run_pending_migrations()
+    run = await make_service(_paths_at(squad), spec=spec).run_pending_migrations()
 
     assert run.reconcile is not None and run.reconcile.indexed == (f"{code}-31",)
     titles = {v["sequence_id"]: v["title"] for v in _index(squad)["items"].values()}
@@ -986,7 +988,7 @@ async def test_an_odd_prefix_item_with_its_entry_completes(
     spec = _spec_with_override(
         squad, f'[items.incident]\nprefix = "{code}"\nfolder = "incidents"\nlifecycle = "guide"\n'
     )
-    await Service(_paths_at(squad), spec=spec).create("incident", "One", author="dev-agent")
+    await make_service(_paths_at(squad), spec=spec).create("incident", "One", author="dev-agent")
     monkeypatch.chdir(squad)
 
     result = await invoke(["migrate", "up"])
@@ -1000,7 +1002,7 @@ async def test_an_odd_prefix_item_with_its_entry_completes(
 async def test_moving_a_file_back_is_enough_when_its_folder_holds_another_indexed_item(
     squad: Path, monkeypatch: pytest.MonkeyPatch, invoke: Any
 ) -> None:
-    svc = Service(_paths_at(squad))
+    svc = make_service(_paths_at(squad))
     await svc.create("milestone", "Second", author="dev-agent")
     index = _index(squad)
     entry = next(v for v in index["items"].values() if v["path"] == _MILE)

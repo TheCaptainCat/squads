@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads import _sections as sections
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
@@ -68,7 +69,7 @@ async def test_a_newly_created_per_type_skill_under_a_dropped_view_leaves_the_bo
     monkeypatch.chdir(tmp_path)
     init_result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     spec = _spec_with_incident_and_dropped_view(drop="item_skill")
-    declared = service.Service(init_result.paths, spec=spec)
+    declared = make_service(init_result.paths, spec=spec)
 
     await declared.sync()
 
@@ -90,7 +91,7 @@ async def test_a_newly_created_system_skill_under_a_dropped_view_leaves_the_body
     init_result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     spec = load_workflow_spec(squad_dir=init_result.paths.squad_dir)
     assert "squads_skill" not in spec.views, "precondition: the override did not take effect"
-    declared = service.Service(init_result.paths, spec=spec)
+    declared = make_service(init_result.paths, spec=spec)
     await declared.seed_bundled_skills()
 
     skill = await declared.roster_item("skill", "squads")
@@ -107,7 +108,7 @@ async def test_the_seed_and_a_real_body_write_produce_identical_bytes(
     placement routine, never a hand-built tag string."""
     monkeypatch.chdir(tmp_path)
     init_result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(init_result.paths)
+    svc = make_service(init_result.paths)
     await svc.seed_bundled_skills()
 
     seeded = await svc.roster_item("skill", "squads")
@@ -149,7 +150,7 @@ async def test_the_seed_actually_calls_the_placement_routine(
     monkeypatch.setattr(backend_module, "place_view_tags", spy)
     monkeypatch.chdir(tmp_path)
     init_result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    svc = service.Service(init_result.paths)
+    svc = make_service(init_result.paths)
 
     await svc.seed_bundled_skills()
 
@@ -188,7 +189,7 @@ async def test_a_newly_created_per_type_skill_under_a_declared_view_still_seeds_
             "views": base.views,
         }
     )
-    declared = service.Service(init_result.paths, spec=spec)
+    declared = make_service(init_result.paths, spec=spec)
 
     await declared.sync()
 
@@ -235,7 +236,7 @@ async def test_repeated_skill_creation_under_a_dropped_view_adds_no_check_findin
     init_result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     base = load_workflow_spec()
 
-    one_type = service.Service(init_result.paths, spec=_spec_with_types(base, "incident"))
+    one_type = make_service(init_result.paths, spec=_spec_with_types(base, "incident"))
     before = await one_type.check()
     dangling_before = [i for i in before if "no declared view" in i.message]
     skill_dangling_before = [i for i in dangling_before if "item_skill" in i.message]
@@ -248,9 +249,7 @@ async def test_repeated_skill_creation_under_a_dropped_view_adds_no_check_findin
     ]
     assert len(skill_dangling_after_one) == len(skill_dangling_before)
 
-    two_types = service.Service(
-        init_result.paths, spec=_spec_with_types(base, "incident", "gadget")
-    )
+    two_types = make_service(init_result.paths, spec=_spec_with_types(base, "incident", "gadget"))
     await two_types.activate_role("qa")
     await two_types.sync()
     after_two = await two_types.check()

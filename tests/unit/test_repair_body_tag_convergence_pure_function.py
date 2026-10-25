@@ -7,7 +7,7 @@ import pytest
 from squads._models import _markers as markers
 from squads._sections import get_section
 from squads._services._maintenance import _converge_body_tag
-from squads._views import place_view_tags
+from squads._view_tags import place_view_tags
 from squads._workflow import bundled_spec
 
 _SPEC = bundled_spec()

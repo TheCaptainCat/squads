@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import make_service
 from squads._itemfile import write_new
 from squads._models._item import Item
 from squads._services import _service as service
@@ -121,7 +122,7 @@ async def test_ref_add_remove_and_backrefs_do_not_keyerror_for_a_custom_type_ite
 
 
 async def test_sync_creates_the_spec_declared_folder_for_a_custom_type(project) -> None:
-    svc = service.Service(project, spec=_spec_with_incident())
+    svc = make_service(project, spec=_spec_with_incident())
     incidents_folder = project.squad_dir / _INCIDENT_FOLDER
     assert not incidents_folder.exists()
 
@@ -138,7 +139,7 @@ async def test_repair_is_a_stable_noop_for_a_squad_holding_a_custom_type_item(
     from squads import _clock as clock
 
     spec = _spec_with_incident()
-    svc = service.Service(project, spec=spec)
+    svc = make_service(project, spec=spec)
 
     squad_rel = project.squad_relative(_INCIDENT_TYPE, "INC-000099-db-timeout.md", spec=spec)
     abs_path = project.abspath(squad_rel)

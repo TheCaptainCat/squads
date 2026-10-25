@@ -11,6 +11,7 @@ from squads import _aio
 from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
+from squads import _view_tags as view_tags
 from squads import _views as views
 from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkflowError
 from squads._index._resolver import item_file, require_item
@@ -25,7 +26,12 @@ from squads._pronouns import checked_pronouns
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import resolve_role_for_item
 from squads._services import _retirement as retirement
-from squads._services._base import ServiceCore, reject_body_overwrite, reject_non_view_markers
+from squads._services._base import (
+    ServiceCore,
+    reject_body_overwrite,
+    reject_non_view_markers,
+    require_title,
+)
 from squads._services._results import RemoveResult, RosterRemoval, RosterStatusResult
 from squads._services._validators import ValidatorEngine
 from squads._transform import TransformData
@@ -39,8 +45,8 @@ class ItemsMixin(ServiceCore):
         importer calls that core directly (its own transaction is already open).
 
         A roster item's transition additionally projects into backend config, **after** the
-        transaction commits (see :meth:`~squads._services._base.ServiceCore
-        ._project_roster_transition`): materialise when the new status is live, withdraw
+        transaction commits (see :meth:`~squads._services._roster_projection.RosterProjection
+        .project_transition`): materialise when the new status is live, withdraw
         otherwise, then recompile the managed regions. The bulk importer's direct
         ``_set_status_core`` calls skip this — replayed history converges on the next
         ``sq sync``, the same story as any squad already on disk with a retired entry.
@@ -74,7 +80,7 @@ class ItemsMixin(ServiceCore):
                 db, item_id, status, force=force, unlink=unlink
             )
         if self.spec.item_is_roster(item.type):
-            await self._project_roster_transition(item)
+            await self.roster_projection.project_transition(item)
         # Post-commit partial resync for each severed preload edge — mirrors unlink_role's own
         # existing behaviour: the retiring item's own status/refs are already committed above,
         # this only refreshes the previously-scoped role's re-derivable cache + generated entry.
@@ -82,7 +88,7 @@ class ItemsMixin(ServiceCore):
         for sev in severed:
             if sev.kind == preload_kind:
                 role = await self.get(sev.target)
-                await self._resync_role_skills(role.slug)
+                await self.roster_projection.resync_role_skills(role.slug)
         return RosterStatusResult(item=item, severed=severed, warnings=warnings)
 
     def _set_status_model(
@@ -133,6 +139,7 @@ class ItemsMixin(ServiceCore):
                 old_status=old_status,
                 playbook=self.playbook,
                 squad_dir=self.paths.squad_dir,
+                catalog=self.catalog,
             )
             live = self.spec.live_statuses(item.type)
             if old_status in live and item.status not in live:
@@ -145,7 +152,7 @@ class ItemsMixin(ServiceCore):
         # A parent cycle is the case that makes it load-bearing: the item is unwritable until
         # the cycle is broken, and `--no-parent` (which never comes through here) is the way
         # out. A warn-level catalog issue never aborts, exactly as on the update path.
-        ValidatorEngine(spec=self.spec).gate(item, db)
+        ValidatorEngine(spec=self.spec, playbook=self.playbook, paths=self.paths).gate(item, db)
         return item, old_status, base, severed, warnings
 
     def _retirement_warnings(self, db: SquadsDB, item: Item, *, purged: bool = False) -> list[str]:
@@ -161,7 +168,7 @@ class ItemsMixin(ServiceCore):
                 )
         if item.type == ROSTER_ROLE:
             warning = retirement.lost_default_designation_warning(
-                db, self.spec, item, self.paths.squad_dir, purged=purged
+                db, self.spec, item, self.paths.squad_dir, purged=purged, catalog=self.catalog
             )
             if warning:
                 warnings.append(warning)
@@ -197,6 +204,7 @@ class ItemsMixin(ServiceCore):
         title: str | None = None,
         description: str | None = None,
         assignee: str | None = None,
+        clear_assignee: bool = False,
         priority: str | None = None,
         clear_priority: bool = False,
         add_labels: list[str] | None = None,
@@ -222,6 +230,7 @@ class ItemsMixin(ServiceCore):
                 title=title,
                 description=description,
                 assignee=assignee,
+                clear_assignee=clear_assignee,
                 priority=priority,
                 clear_priority=clear_priority,
                 add_labels=add_labels,
@@ -282,6 +291,7 @@ class ItemsMixin(ServiceCore):
         title: str | None = None,
         description: str | None = None,
         assignee: str | None = None,
+        clear_assignee: bool = False,
         priority: str | None = None,
         clear_priority: bool = False,
         add_labels: list[str] | None = None,
@@ -327,7 +337,10 @@ class ItemsMixin(ServiceCore):
         if description is not None:
             delta["description"] = description
             item.description = description
-        if assignee is not None:
+        if clear_assignee:
+            delta["assignee"] = None
+            item.assignee = None
+        elif assignee is not None:
             self._check_assignee(db, assignee or None)
             delta["assignee"] = assignee or None
             item.assignee = assignee or None
@@ -369,7 +382,7 @@ class ItemsMixin(ServiceCore):
         item.modified_session, _ = actor.current_session()
         # Fail-closed on the updated item's first error-level catalog violation — the
         # same engine `sq check` reports (a warn-level catalog issue never aborts here).
-        ValidatorEngine(spec=self.spec).gate(item, db)
+        ValidatorEngine(spec=self.spec, playbook=self.playbook, paths=self.paths).gate(item, db)
         return item, delta, rename_paths, base
 
     async def _update_core(  # noqa: PLR0913 — mirrors `update`'s own keyword surface
@@ -380,6 +393,7 @@ class ItemsMixin(ServiceCore):
         title: str | None = None,
         description: str | None = None,
         assignee: str | None = None,
+        clear_assignee: bool = False,
         priority: str | None = None,
         clear_priority: bool = False,
         add_labels: list[str] | None = None,
@@ -413,6 +427,7 @@ class ItemsMixin(ServiceCore):
             title=title,
             description=description,
             assignee=assignee,
+            clear_assignee=clear_assignee,
             priority=priority,
             clear_priority=clear_priority,
             add_labels=add_labels,
@@ -537,6 +552,7 @@ class ItemsMixin(ServiceCore):
         file move through the ``_aio`` helpers. A roster entry's slug is permanent, so only its
         display title changes and nothing moves (``None``).
         """
+        require_title(new_title)
         if self.spec.item_is_roster(item.type):
             item.title = new_title
             return None
@@ -565,7 +581,9 @@ class ItemsMixin(ServiceCore):
             # Fail-closed on the reparented child's first error-level catalog violation
             # (parent type-eligibility, in particular) — the same engine every other
             # create/update site gates through.
-            ValidatorEngine(spec=self.spec).gate(child, db)
+            ValidatorEngine(spec=self.spec, playbook=self.playbook, paths=self.paths).gate(
+                child, db
+            )
             await self._update_item_frontmatter(child, base)
             self.store.log(
                 "link",
@@ -596,7 +614,7 @@ class ItemsMixin(ServiceCore):
         item = await self.get(item_id)
         ctx = self._ctx
         if item.type == ROSTER_ROLE:
-            role_def = resolve_role_for_item(item, self.paths.squad_dir)
+            role_def = resolve_role_for_item(item, self.paths.squad_dir, catalog=self.catalog)
             for backend in self._backends():
                 await backend.generate_role_entry(ctx, item, role_def)
         elif item.type == ROSTER_SKILL:
@@ -638,7 +656,7 @@ class ItemsMixin(ServiceCore):
         a role/system/per-item-type-skill whose view is not (or no longer) declared, a stale
         historically-bundled ``sq-<type>`` skill whose type is dropped — is admitted here: a
         missing seeded tag is not this guard's job, since the placement routine
-        (:func:`~squads._views.place_view_tags`) inserts it — the routine holds exactly-once,
+        (:func:`~squads._view_tags.place_view_tags`) inserts it — the routine holds exactly-once,
         by construction, inside the region, and its only refusal is the conflicting-state
         one."""
         self._refuse_classified_roster_write(item_id, item, "Append" if append else "A replace")
@@ -653,7 +671,7 @@ class ItemsMixin(ServiceCore):
         """Raise when *body* carries a view tag that *region* (the item's current ``sq:body``
         content) has not placed with the same name and state. The one check the body write and
         the importer's pre-pass both run."""
-        if unplaced := views.unplaced_view_tags(region, body):
+        if unplaced := view_tags.unplaced_view_tags(region, body):
             raise SquadsError(self._unplaced_view_tag_message(item, unplaced[0]))
 
     def _unplaced_view_tag_message(self, item: Item, raw_tag: str) -> str:
@@ -670,7 +688,9 @@ class ItemsMixin(ServiceCore):
         )
         if (
             not has_view_verbs
-            or views.resolve_view_target(parts.name, item.type, self.spec, self.playbook)
+            or views.resolve_view_target(
+                parts.name, item.type, self.spec, self.playbook, from_squad=self.paths.squad_dir
+            )
             is not None
         ):
             return f"{text}."
@@ -690,7 +710,7 @@ class ItemsMixin(ServiceCore):
         :meth:`_reject_unwritable_body` is the first thing the closure asks — see its own
         docstring for the roster refusal it composes. The prose edit itself — replace, or
         append onto whatever is there — is applied by the one re-placement routine
-        (:func:`~squads._views.place_view_tags`), which also
+        (:func:`~squads._view_tags.place_view_tags`), which also
         re-inserts every view tag at its declared position, so this closure never touches a
         tag's bytes directly. An incoming view tag that matches one already placed in the region is
         dropped from the incoming text (the routine puts it back); any other is refused."""
@@ -709,31 +729,33 @@ class ItemsMixin(ServiceCore):
                 )
             current = region.strip("\n")
             self._refuse_unplaced_view_tags(item, current, body)
-            incoming = views.strip_view_tags(body)
+            incoming = view_tags.strip_view_tags(body)
             authored = False
             if not append:
                 # Replacing: authored iff there is prose (tags stripped from both sides, so a
                 # tag's state or location never by itself makes a body count as authored — see
                 # `reject_body_overwrite`'s own docstring) and it is not the template scaffold
                 # the item was created with (`ServiceCore.pristine_body`). Stripping a tag here
-                # (`views.strip_view_tags`) and placing one (`views.place_view_tags`) are exact
-                # inverses of each other's spacing — a tag never manufactures a blank line the
+                # (`view_tags.strip_view_tags`) and placing one (`view_tags.place_view_tags`) are
+                # exact inverses of each other's spacing — a tag never manufactures a blank line the
                 # scaffold didn't already have at that point, and stripping it back out restores
                 # exactly what was there before — so the two sides compare equal on a byte-level
                 # scaffold once the tag's own line is gone, whatever position it was placed at.
-                current_prose = views.strip_view_tags(current).strip()
-                authored = not views.body_is_unwritten(current, self.pristine_body(item))
+                current_prose = view_tags.strip_view_tags(current).strip()
+                authored = not view_tags.body_is_unwritten(current, self.pristine_body(item))
                 if authored and not force:
                     reject_body_overwrite(item.id, current_prose)
             slug = item.slug
             addr: int | str = (
                 slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item_id)
             )
-            new_inner = views.place_view_tags(
+            new_inner = view_tags.place_view_tags(
                 current,
                 incoming,
                 append=append,
-                seeded=views.seeded_view_names(item.type, slug, self.spec),
+                seeded=views.seeded_view_names(
+                    item.type, slug, self.spec, from_squad=self.paths.squad_dir
+                ),
                 spec=self.spec,
                 item_type=item.type,
                 addr=addr,
@@ -778,7 +800,7 @@ class ItemsMixin(ServiceCore):
         **The one shared body-read boundary for rendered text.** Every text surface — ``sq
         show``, ``--raw``, the TUI reader, the operator pane, and the skill read — resolves a
         body through this method, so expansion inherits from this single place rather than being
-        reimplemented per surface (see :func:`~squads._views.expand_view_tags`). ``show --json``
+        reimplemented per surface (see :func:`~squads._view_tags.expand_view_tags`). ``show --json``
         reads :meth:`read_stored_body` instead, the text with its tags left as tags.
 
         Read-only: the body-*write* path (:meth:`set_body`'s ``mutate`` closure) reads the
@@ -787,7 +809,7 @@ class ItemsMixin(ServiceCore):
         **No index load when the body carries no tag.** Tag spans are computable from the body
         text alone (:func:`~squads._views.has_view_tag`), so the overwhelming majority of
         reads — a body with no ``sq:view:<name>`` tag — return without an index load or an
-        :func:`~squads._views.expand_view_tags` call. Under the CLI a second index load is free
+        :func:`~squads._view_tags.expand_view_tags` call. Under the CLI a second index load is free
         (one invocation-scoped read scope serves it), but ``sq ui`` deliberately opts out of
         that scope, so every TUI reader-panel load would otherwise pay a fresh full index read
         on every item selected, tag or no tag — this boundary is documented as a read on a
@@ -799,7 +821,7 @@ class ItemsMixin(ServiceCore):
             return body
         db = await self.store.load()
         roster = cache(lambda: self.roster_from_db(db))
-        return views.expand_view_tags(
+        return view_tags.expand_view_tags(
             body,
             item,
             db,
@@ -807,6 +829,7 @@ class ItemsMixin(ServiceCore):
             self.playbook,
             roster,
             self.paths.squad_dir,
+            self.catalog,
             self.paths.config.squad_dir,
             self.working_language,
         )
@@ -831,7 +854,7 @@ class ItemsMixin(ServiceCore):
         db = await self.store.load()
         roster = cache(lambda: self.roster_from_db(db))
         return views.view_data(
-            body, item, db, self.spec, self.playbook, roster, self.paths.squad_dir
+            body, item, db, self.spec, self.playbook, roster, self.paths.squad_dir, self.catalog
         )
 
     async def read_discussion(self, item_id: str) -> str:
@@ -868,6 +891,7 @@ class ItemsMixin(ServiceCore):
             playbook=self.playbook,
             squad_dir=self.paths.squad_dir,
             purge=purge,
+            catalog=self.catalog,
         )
 
     def _non_live_status(self, item: Item) -> str | None:

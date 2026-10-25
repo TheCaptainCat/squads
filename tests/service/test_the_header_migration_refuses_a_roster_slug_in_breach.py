@@ -146,7 +146,7 @@ async def test_a_compliant_roster_migrates(project, svc) -> None:
 
     run = await reopen(project.root).run_pending_migrations()
 
-    assert [m.to_schema for m in run.applied] == ["0.16"]
+    assert [m.to_schema for m in run.applied] == ["0.16", "0.17"]
 
 
 def test_the_manual_gives_the_remedy_and_does_not_say_nothing_is_refused() -> None:
@@ -176,4 +176,4 @@ async def test_a_group_verb_slug_does_not_refuse_the_run(project, svc, monkeypat
 
     run = await reopen(project.root).run_pending_migrations()
 
-    assert [m.to_schema for m in run.applied] == ["0.16"]
+    assert [m.to_schema for m in run.applied] == ["0.16", "0.17"]

@@ -7,7 +7,7 @@ contributes an entry to this rule's report — see ``test_agents_md_declares_no_
 below.
 
 The hard constraint this whole rule turns on: the declared per-entry set is scoped to the
-roster's *currently-live* entries (:func:`~squads._interactions.is_live_roster_entry`), never
+roster's *currently-live* entries (:func:`is_live_roster_entry`), never
 a fixed or historical slug list, so a retire/reactivate cycle never produces a false positive
 or a false negative on either side of the transition — the first test below drives exactly
 that cycle end to end, not as a snapshot.
@@ -25,10 +25,13 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import backends_of, catalog_of, make_service
 from squads import _clock as clock
+from squads._interactions._playbook import get_playbook_spec
 from squads._services import _service as service
 from squads._services._results import CheckIssue
 from squads._services._validators import SQUAD_GLOBAL_CATALOG, SquadGlobalContext
+from squads._specload import OverrideFiles
 
 pytestmark = pytest.mark.anyio
 
@@ -45,7 +48,15 @@ def _rule(ctx: SquadGlobalContext) -> list[CheckIssue]:
 async def _ctx(svc) -> SquadGlobalContext:
     index = await svc.store.load()
     return SquadGlobalContext(
-        now=clock.now(), index=index, on_disk={}, spec=svc.spec, paths=svc.paths
+        now=clock.now(),
+        index=index,
+        on_disk={},
+        spec=svc.spec,
+        paths=svc.paths,
+        playbook=get_playbook_spec(),
+        catalog=catalog_of(svc.paths.squad_dir),
+        files=OverrideFiles(),
+        backends=backends_of(svc.paths),
     )
 
 
@@ -77,7 +88,7 @@ class TestRetirementCycleStaysClean:
         result = await service.init(
             root=tmp_squad, backend=["claude_code", "agents_md"], roles_spec="minimal"
         )
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
 
         item = await svc.activate_role("qa")
         assert (await svc.check()) == [] or not any(i.level == "error" for i in await svc.check())
@@ -103,7 +114,7 @@ class TestRetirementCycleStaysClean:
 class TestPerEntryPointerReported:
     async def test_missing_role_pointer_is_flagged_at_warn(self, tmp_squad: Path) -> None:
         result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         (tmp_squad / ".claude" / "agents" / "manager.md").unlink()
 
         issues = await _issues(svc)
@@ -113,7 +124,7 @@ class TestPerEntryPointerReported:
 
     async def test_missing_skill_pointer_is_flagged_at_warn(self, tmp_squad: Path) -> None:
         result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         await svc.sync()
         skills_dir = tmp_squad / ".claude" / "skills"
         one_skill = next(p for p in skills_dir.iterdir() if p.is_dir())
@@ -128,7 +139,7 @@ class TestPerEntryPointerReported:
         docstring): ``sq check`` never names one of its paths or reports it missing, whether
         or not a legacy ``.agents_md`` directory happens to exist on disk."""
         result = await service.init(root=tmp_squad, backend=["agents_md"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         await svc.activate_role("qa")
 
         issues = await _issues(svc)
@@ -139,7 +150,7 @@ class TestPerEntryPointerReported:
         self, tmp_squad: Path
     ) -> None:
         result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         shutil.rmtree(tmp_squad / ".claude" / "agents")
 
         issues = await _issues(svc)
@@ -147,7 +158,7 @@ class TestPerEntryPointerReported:
 
     async def test_partial_loss_names_only_the_missing_entry(self, tmp_squad: Path) -> None:
         result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         await svc.activate_role("qa")
         (tmp_squad / ".claude" / "agents" / "qa.md").unlink()
 
@@ -164,7 +175,7 @@ class TestPerEntryPointerReported:
         result = await service.init(
             root=tmp_squad, backend=["claude_code", "agents_md"], roles_spec="minimal"
         )
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         (tmp_squad / ".claude" / "agents" / "manager.md").unlink()
 
         issues = await _issues(svc)
@@ -176,7 +187,7 @@ class TestPerEntryPointerReported:
     async def test_top_level_file_still_errors(self, tmp_squad: Path) -> None:
         """Regression guard: the widening must not soften the existing top-level contract."""
         result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         (tmp_squad / "CLAUDE.md").unlink()
 
         ctx = await _ctx(svc)
@@ -188,7 +199,7 @@ class TestPerEntryPointerReported:
 class TestActiveBackendsScoping:
     async def test_no_active_backends_reports_nothing(self, tmp_squad: Path) -> None:
         result = await service.init(root=tmp_squad, backend=[], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         ctx = await _ctx(svc)
         assert _rule(ctx) == []
 
@@ -204,7 +215,7 @@ class TestActiveBackendsScoping:
         (tmp_squad / ".squads.toml").write_text(cfg.to_toml(), encoding="utf-8")
         from squads._paths import resolve
 
-        svc2 = service.Service(resolve())
+        svc2 = make_service(resolve())
         ctx = await _ctx(svc2)
         issues = _rule(ctx)
         assert not any("claude_code" in i.message for i in issues)
@@ -221,7 +232,7 @@ async def test_orphaned_skill_type_pointer_is_not_reported(tmp_squad: Path) -> N
     from squads._workflow import bundled_spec
 
     result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
     await svc.seed_bundled_skills()
     pointer = tmp_squad / ".claude" / "skills" / "sq-guide"
     assert pointer.is_dir()
@@ -257,7 +268,7 @@ class TestFreshCloneShape:
         origin.mkdir()
         monkeypatch.chdir(origin)
         result = await service.init(root=origin, backend=["claude_code"], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         await svc.activate_role("qa")
 
         clone = tmp_path / "clone"
@@ -277,7 +288,7 @@ class TestFreshCloneShape:
         monkeypatch.chdir(clone)
         from squads._paths import resolve
 
-        clone_svc = service.Service(resolve())
+        clone_svc = make_service(resolve())
         issues = await _issues(clone_svc)
         assert any("manager.md" in i.item and i.level == "warn" for i in issues)
         assert any("qa.md" in i.item and i.level == "warn" for i in issues)
@@ -292,7 +303,7 @@ async def test_no_new_index_load(tmp_squad: Path) -> None:
     """The live set comes from ``ctx.index`` — already loaded by the caller — never a second
     ``store.load()`` from inside the rule itself."""
     result = await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
-    svc = service.Service(result.paths)
+    svc = make_service(result.paths)
 
     load_calls = 0
     orig_load = svc.store.load
@@ -306,7 +317,15 @@ async def test_no_new_index_load(tmp_squad: Path) -> None:
     index = await svc.store.load()
     assert load_calls == 1
     ctx = SquadGlobalContext(
-        now=clock.now(), index=index, on_disk={}, spec=svc.spec, paths=svc.paths
+        now=clock.now(),
+        index=index,
+        on_disk={},
+        spec=svc.spec,
+        paths=svc.paths,
+        playbook=get_playbook_spec(),
+        catalog=catalog_of(svc.paths.squad_dir),
+        files=OverrideFiles(),
+        backends=backends_of(svc.paths),
     )
     _rule(ctx)
     assert load_calls == 1, "backend_reconciled must not load the index itself"

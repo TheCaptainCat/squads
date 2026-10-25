@@ -3,14 +3,14 @@ id: REV-1129
 sequence_id: 1129
 type: review
 title: Review of the Noted and Deferred finding states
-status: ChangesRequested
+status: Approved
 author: reviewer
 refs:
 - TASK-1105
 subentities:
 - local_id: F1
   title: Released 0.16 hard-stops on every command once one finding is Noted or Deferred
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F2
   title: Import add-finding cannot seed a Deferred finding, and the refusal names
@@ -39,8 +39,16 @@ subentities:
   title: Self-pointers and roster items are accepted as deferral carriers
   status: Verified
   severity: medium
+- local_id: F8
+  title: CHANGELOG still says the Noted and Deferred states need no migration
+  status: Verified
+  severity: low
+- local_id: F9
+  title: The 0.17 runner is not built as a contribution list, as ADR-1102 says
+  status: Verified
+  severity: info
 created_at: '2026-10-24T22:00:20Z'
-updated_at: '2026-10-24T22:23:26Z'
+updated_at: '2026-10-25T11:34:51Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -82,6 +90,12 @@ The tech writer measured the same thing independently, and @manager has put the 
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-25T10:52:58Z] `architect` Robert Architect:
+  - ADR-1102 amended on the op-pierre ruling (b): schema 0.16 to 0.17 with a no-op migration, so released 0.16 stops at the schema gate with "Upgrade the squads package." The build is on TASK-1105; this finding stays Open until it lands and is verified.
+- [2026-10-25T11:15:49Z] `python-dev` Elias Python:
+  - Fixed: schema bumped to 0.17 with a no-op migration, so 0.16 stops at the schema gate with an upgrade message (driven by hand with released 0.16).
+- [2026-10-25T11:29:09Z] `reviewer` Paul Reviewer:
+  - Verified on 565e1671. Driven: corpora v0_1, v0_3, v0_15 and v0_16 each reach 0.17 in one `sq migrate up` (exit 0). A squad written by released 0.16.0 (task, subtask, review with findings, comment) migrates with every `.md` byte-identical; only `.squads.toml`, `.squads.json` and the reflog change. Released 0.16.0 on that squad, with a Noted and a Deferred finding, refuses `list`, `check`, `show`, `review 18 show`, `tree`, `inbox`, `repair`, `sync`, `migrate up` and `-C <dir> list` with exit 1 and "this squad is at schema v0.17, newer than squads 0.16.0 (v0.16). Upgrade the squads package."; `--help` and `migrate help` exit 0. `migrate help` lists v0.17.0 with no manual; `chlog v0.16..v0.17` prints "no manual steps". Goldens: outside the new v0_16 copy only `schema_version` lines changed; the v0_16 index copy differs from its fixture only by derivable `deferred_to: null` and the dropped `squads_version`. Tests: beyond the "is last" assert, `entry.to_schema == SCHEMA_VERSION` went too, which is right, and `tests/unit/test_migration_registry.py` still pins the highest entry to SCHEMA_VERSION. The two skips that stopped are the v0_16 rows of `test_every_template_owned_skills_stored_body_converges_onto_its_tag` and `test_a_role_keeps_its_record_and_loses_its_mirror_across_the_migration` (`tests/integration/test_migration_corpus.py`), which skipped while v0_16 was current; both pass now. That is correct.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -212,6 +226,46 @@ Recommendation: in `_settle_deferral`, refuse a carrier that is the sub-entity's
   - Verified on 7576d2d1: self (REV-4, bare 4) and ROLE-1 are refused on update and import add-finding; a hand-edited self-pointer warns after repair; removal with a pointer elsewhere is not blocked.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
+
+<!-- sq:finding:F8 -->
+### F8 — CHANGELOG still says the Noted and Deferred states need no migration
+
+<!-- sq:finding:F8:body -->
+**Driven.** The CHANGELOG Changed entry now says to run `sq migrate up` once on each squad, which is true (driven on four corpora and on a squad written by released 0.16). The Added entry "A finding can be closed as `Noted` or `Deferred`" still ends with "No migration is needed, but upgrade everyone at once (see **Changed**)." That sentence is false since the schema bump: a 0.17 release refuses an unmigrated squad until `sq migrate up` runs.
+
+The same entry quotes the refusal as `error: F2 cannot be Deferred without the item that carries the work; pass --deferred-to <ID>`. The driven text ends in "pass --deferred-to <ID> (import: deferred_to)".
+
+Recommendation: @tech-writer, replace the sentence with one that points to the migration (for example "Needs `sq migrate up` once; see **Changed**.") and quote the refusal as it now reads.
+<!-- sq:finding:F8:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F8:discussion -->
+- [2026-10-25T11:33:15Z] `tech-writer` Theo Writer:
+  - Fixed: the Noted/Deferred entry now points to the one sq migrate up and quotes the refusal with its (import: deferred_to) ending; the import entry says add-finding and add-sub take deferred_to; docs/workflow.md quote matched; docs/migration.md gains an Upgrading to 0.17 section (driven on dev and released 0.16). @reviewer
+- [2026-10-25T11:34:46Z] `reviewer` Paul Reviewer:
+  - Verified on 556b8239: the Added entry now says a squad needs sq migrate up once; the Deferred refusal is quoted as driven, in CHANGELOG and docs/workflow.md. docs/migration.md 0.17 section driven on an export of 556b8239: both error texts match byte for byte, chlog v0.16.0..v0.17.0 prints the quoted line, migrate up on a 0.16-written squad changes only .squads.toml (schema_version line), .squads.json and the reflog, and released 0.16 then refuses repair and migrate up.
+<!-- sq:finding:F8:discussion:end -->
+<!-- sq:finding:F8:end -->
+
+<!-- sq:finding:F9 -->
+### F9 — The 0.17 runner is not built as a contribution list, as ADR-1102 says
+
+<!-- sq:finding:F9:body -->
+**Read.** ADR-1102 says the 0.16 to 0.17 runner "is built as the release's one migration step, a list of contributions as in `_v0_15_to_v0_16.py`, so any later 0.17 change that needs a real rewrite appends a contribution to it instead of adding a runner." `_migrations/_v0_16_to_v0_17.py` is a bare `migrate` that returns `MigrationOutcome(count=0)`, with no `CONTRIBUTIONS` list and no `run_contributions`. Behaviour is right; the code and the ADR disagree.
+
+Recommendation (simplest): @architect amends the clause in place, with a dated comment, to say the runner is a plain no-op and the first 0.17 change that needs a rewrite turns it into a contribution list then. An empty contribution list now buys nothing. The alternative is to build it as a list of zero contributions, as the ADR says.
+<!-- sq:finding:F9:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F9:discussion -->
+- [2026-10-25T11:30:54Z] `architect` Robert Architect:
+  - Fixed: ADR-1102 now says the runner is a plain no-op function, made a contribution list only when a later 0.17 change needs to write.
+- [2026-10-25T11:34:48Z] `reviewer` Paul Reviewer:
+  - Verified on 76cf1b73: ADR-1102 runner clause now says a plain no-op function, with a dated amendment comment; matches _v0_16_to_v0_17.py.
+<!-- sq:finding:F9:discussion:end -->
+<!-- sq:finding:F9:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -219,4 +273,10 @@ Recommendation: in `_settle_deferral`, refuse a carrier that is the sub-entity's
 <!-- sq:discussion -->
 - [2026-10-24T22:02:16Z] `reviewer` Paul Reviewer:
   - Verdict: ChangesRequested. Code fixes for @python-dev: F7 (refuse a self or roster carrier), F2 (deferred_to on import add-sub, refusal worded by field), F3 (an add enters its status, so the pointer rule applies). F5 and F6 are cleanups, cheap to fold in. F1 is the op-pierre ruling already raised on ADR-1102. F4 and F1 need a dated amendment on ADR-1102 from @architect. The five listed divergences: four accepted, the import one is F2. Targeted tests: 61 passed.
+- [2026-10-25T10:45:52Z] `op-pierre` Pierre Chat:
+  - Ruling on F1: option (b), bump the schema with a no-op migration so 0.16 stops at the schema gate with an upgrade message instead of failing on Noted/Deferred findings.
+- [2026-10-25T11:29:21Z] `reviewer` Paul Reviewer:
+  - F1 Verified on 565e1671 (driven: chain from 0.1/0.3/0.15/0.16, no .md touched from 0.16, released 0.16 refuses a 0.17 squad with the upgrade message). Two new findings: F8 (@tech-writer, CHANGELOG still says no migration is needed) and F9 (@architect, ADR-1102 says the runner is a contribution list; it is not). Review stays ChangesRequested until both settle.
+- [2026-10-25T11:34:51Z] `reviewer` Paul Reviewer:
+  - Verdict: Approved. F1-F9 all Verified.
 <!-- sq:discussion:end -->

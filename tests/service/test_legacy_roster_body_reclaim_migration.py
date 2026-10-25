@@ -12,16 +12,16 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import bundled_migration_context
+from _helpers import bundled_migration_context, make_service
 from squads import _actor as actor
 from squads._aio import read_text, write_text
-from squads._interactions import ITEM_SKILL_VIEW_NAME, SYSTEM_SKILL_VIEW_NAMES
 from squads._itemfile import read_frontmatter
 from squads._models import _markers as markers
 from squads._models._config import SquadsConfig
 from squads._paths import SquadPaths
 from squads._sections import get_section, replace_frontmatter, replace_section
 from squads._services._service import Service
+from squads._views import ITEM_SKILL_VIEW_NAME, SYSTEM_SKILL_VIEW_NAMES
 from squads._workflow import load_workflow_spec
 from squads._workflow._models import WorkflowSpec
 
@@ -43,7 +43,7 @@ async def _downgraded(project, *, spec: WorkflowSpec | None = None) -> Service:
     with cfg_path.open("rb") as fh:
         cfg = SquadsConfig.from_toml_dict(tomllib.load(fh))
     sp = SquadPaths(root=project.root, squad_dir=project.squad_dir, config=cfg)
-    return Service(sp, spec=spec)
+    return make_service(sp, spec=spec)
 
 
 async def _text(paths: SquadPaths, item) -> str:
@@ -364,7 +364,7 @@ async def test_reclaims_every_role_and_skill_across_a_real_multi_runner_chain(tm
     with (dst / ".squads.toml").open("rb") as fh:
         cfg = SquadsConfig.from_toml_dict(tomllib.load(fh))
     paths = SquadPaths(root=dst, squad_dir=dst / cfg.squad_dir, config=cfg)
-    down = Service(paths)
+    down = make_service(paths)
 
     run = await down.run_pending_migrations()
 

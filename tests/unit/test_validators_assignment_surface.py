@@ -13,15 +13,13 @@ from datetime import UTC, datetime
 import pytest
 
 from squads._errors import SquadsError
+from squads._interactions._playbook import get_playbook_spec
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._services._validators import ValidatorEngine
 from squads._workflow import bundled_spec
-from squads._workflow._models import (
-    ItemSpec,
-    WorkflowSpec,
-    parse_validator_entry,
-)
+from squads._workflow._models import ItemSpec, WorkflowSpec
+from squads._workflow._validator_names import parse_validator_entry
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -162,7 +160,7 @@ def test_the_engine_actually_runs_a_types_own_validators_addition() -> None:
     db.add(parent)
     db.add(bug)
 
-    engine = ValidatorEngine(spec=spec, squad_global={})
+    engine = ValidatorEngine(spec=spec, squad_global={}, playbook=get_playbook_spec())
     issues = engine.report(db, {})
     assert any(i.item == bug.id and "no parent" in i.message for i in issues)
     with pytest.raises(SquadsError, match="no parent"):
@@ -419,7 +417,7 @@ def test_a_member_with_no_floor_accepts_a_level_lower_than_its_default(entry: st
 
 
 def test_parent_present_carries_no_floor_entry() -> None:
-    from squads._workflow._models import VALIDATOR_LEVEL_FLOOR
+    from squads._workflow._validator_names import VALIDATOR_LEVEL_FLOOR
 
     assert "parent_present" not in VALIDATOR_LEVEL_FLOOR
 

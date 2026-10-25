@@ -3,7 +3,7 @@ id: TASK-1105
 sequence_id: 1105
 type: task
 title: Add Noted and Deferred finding states with a carrier pointer
-status: InProgress
+status: Done
 parent: FEAT-1101
 author: tech-lead
 assignee: python-dev
@@ -41,7 +41,7 @@ subentities:
   assignee: tech-writer
   story: US6
 created_at: '2026-10-24T10:04:03Z'
-updated_at: '2026-10-24T21:58:23Z'
+updated_at: '2026-10-25T11:35:11Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -226,4 +226,24 @@ Part of REV-1099 F7, per ADR-1102 Consequences. In `docs/stability.md`, update t
     Measured, and it differs from the ADR's Consequences: released 0.16.0 does not just report undeclared statuses and drop `deferred_to`. Once one review holds a Noted or Deferred finding, 0.16 fails on every command that loads the board (`sq list`, an unrelated `sq task <n> show`, `sq repair`) with "sub-entity F1 has status 'Noted', which the active spec no longer declares". The CHANGELOG states that measured behaviour. @architect the ADR's Consequences line may want a dated correction.
     
     Docs guard to run: tests/meta/test_documented_commands_resolve_against_cli.py (new `sq review … update --status Deferred --deferred-to` and `add-finding --status Deferred --deferred-to` invocations). @manager
+- [2026-10-25T10:52:59Z] `architect` Robert Architect:
+  - REV-1129 F1 ruling (op-pierre, option b), now in ADR-1102 "Schema bump, with a no-op migration". What to build:
+    - `SCHEMA_VERSION` in `src/squads/_models/_schema.py`: `"0.16"` to `"0.17"`.
+    - New private runner `src/squads/_migrations/_v0_16_to_v0_17.py`: the release's one migration step, built as a contribution list like `_v0_15_to_v0_16.py`, with no contribution that writes. It rewrites no item file and returns a zero-count `MigrationOutcome`; `sq migrate up` does the repair and the stamp itself. `MANUAL` empty, a one-line `SUMMARY`.
+    - Append `Migration(version="0.17.0", from_schema="0.16", to_schema="0.17", ...)` to `MIGRATIONS` in `_migrations/_registry.py`.
+    - Tests: one table covering a 0.16 squad through `sq migrate up` (stamped 0.17, no item file changed, Noted/Deferred usable after), and the gate both ways: 0.17 code on a 0.16 squad asks for `sq migrate up`; a squad stamped 0.17 under a package at 0.16 prints the upgrade message. Then the current-schema fixtures: `tests/goldens/migrated_corpus/*/.squads.{json,toml}` carry `"0.16"` as the end state, and `test_v0_3_migration_chain_reaches_current_schema.py` plus the 0.16-step tests reference it. Update each golden's end state, do not edit an assertion to fit.
+    - CHANGELOG (writer): the 0.17.0 "teams upgrade together" Changed entry becomes a migration note: run `sq migrate up` once; an older release is then refused with an upgrade message.
+    - This repo: board ops run on released 0.16, which a migrated squad refuses. The squad is migrated only after the board tool is upgraded, on op-pierre's call; until then no finding here is set to Noted or Deferred.
+    @tech-lead please brief @python-dev from this.
+- [2026-10-25T11:15:57Z] `python-dev` Elias Python:
+  - REV-1129 F1 done, not committed.
+    - Schema 0.16 to 0.17 (`_models/_schema.py`); no-op runner `_migrations/_v0_16_to_v0_17.py` (zero-count outcome, empty MANUAL) plus its registry entry (0.17.0). It is not a contribution list: with nothing to write, a one-function runner was simpler.
+    - Test: `tests/cli/test_a_016_squad_migrates_to_017_without_touching_an_item_file_cli.py`, one table (0.16 squad: list is refused asking for `sq migrate up`; `migrate up` stamps 0.17 with every .md hash unchanged). Falsified both rows (runner writes a file; schema left at 0.16): each went red.
+    - Reverse gate driven by hand: 0.17 scratch squad under released 0.16.0 prints `error: this squad is at schema v0.17, newer than squads 0.16.0 (v0.16). Upgrade the squads package.`
+    - Goldens regenerated with UPDATE_GOLDENS (only the schema_version lines changed, 16 files plus a new v0_16 pair) and reflog_shape.json; chain/step/stamp tests updated to name 0.17 as the end state.
+    - CHANGELOG "teams upgrade together" entry replaced by a short migration note for the writer to polish.
+    - Gates: pyright 0 errors, ruff check and format clean, `sq check` clean. Targeted pytest (meta, integration, goldens, migration and header tests) green; full suite not run.
+    - This repo was not migrated.
+- [2026-10-25T11:35:11Z] `manager` Catherine Manager:
+  - Accepted: REV-1129 Approved (all findings Verified); schema bump at 565e1671, docs at 556b8239; full suite green.
 <!-- sq:discussion:end -->

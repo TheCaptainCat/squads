@@ -7,7 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from squads import _views as views
+from _helpers import catalog_of, make_service
+from squads import _view_tags as view_tags
 from squads._errors import SquadsError
 from squads._services import _service as service
 
@@ -57,7 +58,7 @@ _POSITIONS = [
 async def svc(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    return service.Service(result.paths)
+    return make_service(result.paths)
 
 
 async def _milestone(svc, transform) -> tuple[str, Path]:
@@ -94,7 +95,7 @@ async def test_render_follows_the_region(svc, transform, out_of_region):
     rendered = await svc.read_body(item_id)
 
     in_region_tag = "sq:view:milestone_rollup" in region
-    assert (rendered.strip() != views.strip_view_tags(region).strip()) == in_region_tag
+    assert (rendered.strip() != view_tags.strip_view_tags(region).strip()) == in_region_tag
 
 
 @pytest.mark.parametrize("verb", ["add_view", "disable_view"])
@@ -150,7 +151,7 @@ async def test_template_override_route(svc):
     moved = _without_tag(text).replace(_BODY_CLOSE, _BODY_CLOSE + tag, 1)
     path.write_text(moved, encoding="utf-8")
 
-    issues = check_override_issues(svc.paths.squad_dir)
+    issues = check_override_issues(svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir))
 
     assert [i for i in issues if "outside sq:body" in i[2] and i[0] == "warn"]
 
@@ -160,7 +161,7 @@ async def test_adopt_route(svc, tmp_path):
     (svc.paths.squad_dir / ".squads.json").unlink()
 
     result = await service.adopt(root=tmp_path, roles_spec="minimal")
-    adopted = service.Service(result.paths)
+    adopted = make_service(result.paths)
 
     assert _stray_warnings(await adopted.check(), md)
 

@@ -24,6 +24,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of
 from squads._errors import SquadsError
 from squads._roles._models import RoleSpec
 from squads._roles._resolver import resolve_role
@@ -76,7 +77,7 @@ def test_a_blank_scalar_field_is_refused_naming_the_field(tmp_path, field, value
     _place(tmp_path, "architect", f"{field} = {value}\n")
 
     with pytest.raises(SquadsError) as excinfo:
-        resolve_role("architect", tmp_path)
+        resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
     assert field in str(excinfo.value)
     assert "blank" in str(excinfo.value) or "whitespace" in str(excinfo.value)
 
@@ -88,7 +89,7 @@ def test_a_blank_list_entry_is_refused_naming_the_field(tmp_path, field, value) 
     _place(tmp_path, "architect", f"{field} = {value}\n")
 
     with pytest.raises(SquadsError) as excinfo:
-        resolve_role("architect", tmp_path)
+        resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
     assert field in str(excinfo.value)
 
 
@@ -111,9 +112,9 @@ def test_omitting_a_key_still_inherits_the_base_value(tmp_path) -> None:
     never mentions ``title`` keeps the bundled ``title``, exactly as before this change."""
     _place(tmp_path, "architect", 'full_name = "Ada Lovelace"\n')
 
-    role = resolve_role("architect", tmp_path)
+    role = resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
 
-    bundled = resolve_role("architect", None)
+    bundled = resolve_role("architect", None, catalog=catalog_of(None))
     assert role.full_name == "Ada Lovelace"
     assert role.title == bundled.title
 
@@ -126,7 +127,7 @@ def test_a_valid_override_with_real_values_still_applies(tmp_path) -> None:
         'responsibilities = ["Real responsibility"]\n',
     )
 
-    role = resolve_role("architect", tmp_path)
+    role = resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
 
     assert role.full_name == "Chief Design Officer"
     assert role.model == "opus"
@@ -142,7 +143,7 @@ def test_a_complete_new_slug_override_with_real_values_still_applies(tmp_path) -
         'description = "Keeps the system secure."\nmission = "Find and fix security issues."\n',
     )
 
-    role = resolve_role("security-expert", tmp_path)
+    role = resolve_role("security-expert", tmp_path, catalog=catalog_of(tmp_path))
 
     assert role.full_name == "Sam Security"
 
@@ -175,7 +176,7 @@ def test_the_blank_field_refusal_names_only_the_file_and_the_fields(tmp_path) ->
     toml_path = tmp_path / ".overrides" / "roles" / "architect.toml"
 
     with pytest.raises(SquadsError) as excinfo:
-        resolve_role("architect", tmp_path)
+        resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
     message = str(excinfo.value)
 
     assert message == (
@@ -191,7 +192,7 @@ def test_a_single_whitespace_only_field_refusal_is_equally_clean(tmp_path) -> No
     toml_path = tmp_path / ".overrides" / "roles" / "architect.toml"
 
     with pytest.raises(SquadsError) as excinfo:
-        resolve_role("architect", tmp_path)
+        resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
     message = str(excinfo.value)
 
     assert message == (
@@ -209,7 +210,7 @@ def test_the_sibling_model_whitelist_message_is_unchanged(tmp_path) -> None:
     toml_path = tmp_path / ".overrides" / "roles" / "architect.toml"
 
     with pytest.raises(SquadsError) as excinfo:
-        resolve_role("architect", tmp_path)
+        resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
 
     assert str(excinfo.value) == (
         f"invalid role override {toml_path}: model 'gpt-9' is not one of "
@@ -226,7 +227,7 @@ def test_a_wrong_type_refusal_still_leaks_pydantic_internals_not_fixed_here(tmp_
     _place(tmp_path, "architect", "full_name = 7\n")
 
     with pytest.raises(SquadsError) as excinfo:
-        resolve_role("architect", tmp_path)
+        resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
     message = str(excinfo.value).lower()
 
     assert any(marker in message for marker in _PYDANTIC_LEAK_MARKERS), str(excinfo.value)

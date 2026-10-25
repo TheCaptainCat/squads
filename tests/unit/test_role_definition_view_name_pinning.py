@@ -15,12 +15,12 @@ import pytest
 
 from squads import _clock as clock
 from squads._index._resolver import item_file
-from squads._interactions import ROLE_DEFINITION_VIEW_NAME
 from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._rendering import _engine
 from squads._sections import get_section
 from squads._services._maintenance import MaintenanceMixin
+from squads._views import ROLE_DEFINITION_VIEW_NAME
 from squads._workflow import ROSTER_ROLE, bundled_spec
 
 pytestmark = pytest.mark.anyio

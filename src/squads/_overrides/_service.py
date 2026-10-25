@@ -31,7 +31,6 @@ from pathlib import Path
 from typing import Any, cast
 
 from squads import __version__
-from squads import _views as views
 from squads._errors import SquadsError
 from squads._interactions._loader import (
     PLAYBOOK_OVERRIDE_FILENAME,
@@ -60,15 +59,16 @@ from squads._overrides._stamp import (
     write_template_stamp,
 )
 from squads._rendering._engine import invalidate_squad_dir
-from squads._roles._catalog import PREDEFINED, RoleDef, role_by_slug
+from squads._roles._catalog import PREDEFINED, RoleDef, get_catalog, role_by_slug
 from squads._roles._loader import (
     ROLES_OVERRIDE_FILENAME,
+    bundled_roles_raw,
     bundled_roles_toml_text,
-    load_role_catalog,
 )
-from squads._roles._models import RoleSpec
+from squads._roles._models import CatalogSource, RoleSpec
 from squads._roles._resolver import role_base_from_item
 from squads._sections import find_markers
+from squads._specload import OverrideFiles, override_mapping
 from squads._util import version_tuple
 from squads._workflow._loader import (
     WORKFLOW_OVERRIDE_FILENAME,
@@ -1249,7 +1249,7 @@ def _role_override_shadows_bundled(
     """
     item = role_items_by_slug.get(slug)
     if item is not None:
-        return role_base_from_item(item, None) is not None
+        return role_base_from_item(item, get_catalog) is not None
     return _shadowed_bundled_role_toml(slug, squad_dir) is not None
 
 
@@ -1265,7 +1265,9 @@ def _raw_role_slugs(raw: Mapping[str, Any]) -> set[str]:
     }
 
 
-def _roles_catalog_override_shadows_bundled(squad_dir: Path) -> bool:
+def _roles_catalog_override_shadows_bundled(
+    squad_dir: Path, files: OverrideFiles | None = None
+) -> bool:
     """Whether ``<squad_dir>/.overrides/roles.toml`` redeclares (shadows) at least one bundled
     role slug, bundle name, or the ``[dev]`` table — a raw key-set intersection, no merge
     required, mirroring ``workflow_override_shadows_bundled``/``playbook_override_shadows_bundled``.
@@ -1282,14 +1284,14 @@ def _roles_catalog_override_shadows_bundled(squad_dir: Path) -> bool:
     if not path.is_file():
         return False
     try:
-        override_raw: dict[str, Any] = tomllib.loads(path.read_text(encoding="utf-8"))
+        override_raw: dict[str, Any] = override_mapping(path, files)
     except (tomllib.TOMLDecodeError, OSError):  # fmt: skip
         return False
 
     # Unguarded, like `workflow_override_shadows_bundled`/`playbook_override_shadows_bundled`'s
     # own bundled reads: a broken bundled roles.toml is a packaging defect, not a state this
     # predicate tolerates silently.
-    bundled_raw: dict[str, Any] = tomllib.loads(bundled_roles_toml_text())
+    bundled_raw = bundled_roles_raw()
 
     bundled_bundles = bundled_raw.get("bundles")
     override_bundles = override_raw.get("bundles")
@@ -1309,7 +1311,7 @@ def _roles_catalog_override_shadows_bundled(squad_dir: Path) -> bool:
 
 
 def _roles_catalog_stamp_finding_gated(
-    squad_dir: Path, stamp: str | None
+    squad_dir: Path, stamp: str | None, files: OverrideFiles | None = None
 ) -> tuple[str, str] | None:
     """The stamp obligation for the role catalog document override, content-gated exactly like
     ``squads._workflow._loader.workflow_stamp_finding``/``playbook_stamp_finding`` — the same
@@ -1321,7 +1323,7 @@ def _roles_catalog_stamp_finding_gated(
     ``roles`` positional to the ``roles`` kind, not the ``template`` fallback.
     """
     if stamp is None:
-        if _roles_catalog_override_shadows_bundled(squad_dir):
+        if _roles_catalog_override_shadows_bundled(squad_dir, files):
             return (
                 "error",
                 "shadowing role catalog override has no squads:override-base stamp; run "
@@ -1337,20 +1339,22 @@ def _roles_catalog_stamp_finding_gated(
     return None
 
 
-def _roles_catalog_invalid_issue(squad_dir: Path) -> tuple[str, str, str] | None:
+def _roles_catalog_invalid_issue(
+    squad_dir: Path, catalog: CatalogSource
+) -> tuple[str, str, str] | None:
     """The error finding when the merged role catalog refuses to load, else ``None``. The
     catalog loads lazily, so ``open_service`` never surfaces an invalid merge."""
     if not _roles_catalog_override_path(squad_dir).is_file():
         return None
     try:
-        load_role_catalog(squad_dir)
+        catalog()
     except SquadsError as exc:
         return ("error", ROLES_OVERRIDE_FILENAME, f"role catalog override is invalid: {exc}")
     return None
 
 
 def _check_roles_catalog_override_issues(
-    squad_dir: Path, invalid: tuple[str, str, str] | None
+    squad_dir: Path, invalid: tuple[str, str, str] | None, files: OverrideFiles
 ) -> list[tuple[str, str, str]]:
     """Return check issues for the role catalog document override (if present): the stamp
     findings its workflow and playbook siblings report, plus *invalid* — the refusal from
@@ -1360,22 +1364,29 @@ def _check_roles_catalog_override_issues(
         return []
 
     display = ROLES_OVERRIDE_FILENAME
-    text = rc_path.read_text(encoding="utf-8", errors="replace")
+    try:
+        text = files.text(rc_path)
+    except UnicodeDecodeError:
+        text = rc_path.read_bytes().decode("utf-8", errors="replace")
     stamp = read_toml_stamp(text)
     issues: list[tuple[str, str, str]] = []
     if invalid is not None:
         issues.append(invalid)
-    finding = _roles_catalog_stamp_finding_gated(squad_dir, stamp)
+    finding = _roles_catalog_stamp_finding_gated(squad_dir, stamp, files)
     if finding is not None:
         issues.append((finding[0], display, finding[1]))
     return issues
 
 
-# ─── check helpers (used by _services/_maintenance.py) ────────────────────────
+# ─── check helpers (used by _services/_check.py) ────────────────────────
 
 
 def check_override_issues(
-    squad_dir: Path, role_items_by_slug: Mapping[str, Item] | None = None
+    squad_dir: Path,
+    role_items_by_slug: Mapping[str, Item] | None = None,
+    *,
+    catalog: CatalogSource,
+    files: OverrideFiles | None = None,
 ) -> list[tuple[str, str, str]]:
     """Return a list of (level, item_path, message) for sq check integration.
 
@@ -1391,17 +1402,18 @@ def check_override_issues(
     has the index in hand) supplies it.
     """
     role_items_by_slug = role_items_by_slug or {}
+    files = files if files is not None else OverrideFiles()
     # Per-slug role overrides resolve against the merged catalog, so with it invalid their
     # resolve step can only repeat its refusal; their stamp checks still run.
-    catalog_invalid = _roles_catalog_invalid_issue(squad_dir)
+    catalog_invalid = _roles_catalog_invalid_issue(squad_dir, catalog)
     return [
         *_check_template_override_issues(squad_dir),
         *_check_role_toml_override_issues(
-            squad_dir, role_items_by_slug, resolve=catalog_invalid is None
+            squad_dir, role_items_by_slug, catalog, resolve=catalog_invalid is None
         ),
-        *_check_workflow_override_issues(squad_dir),
-        *_check_playbook_override_issues(squad_dir),
-        *_check_roles_catalog_override_issues(squad_dir, catalog_invalid),
+        *_check_workflow_override_issues(squad_dir, files),
+        *_check_playbook_override_issues(squad_dir, files),
+        *_check_roles_catalog_override_issues(squad_dir, catalog_invalid, files),
     ]
 
 
@@ -1410,6 +1422,9 @@ def _check_template_override_issues(squad_dir: Path) -> list[tuple[str, str, str
     structurally broken item/role template, an error for a shadowing override with no stamp
     (shadowing-vs-add-only: an add-only override with no bundled counterpart reports nothing), and a
     content-gated drift warning."""
+    # Function-local: `_view_tags` sits on the cycle through `_views`, which this package is on.
+    from squads import _view_tags as view_tags
+
     issues: list[tuple[str, str, str]] = []
     tmpl_dir = _template_overrides_dir(squad_dir)
     if not tmpl_dir.is_dir():
@@ -1422,8 +1437,8 @@ def _check_template_override_issues(squad_dir: Path) -> list[tuple[str, str, str
 
         if _is_item_or_role_template(rel):
             issues += [
-                ("warn", display, views.out_of_region_view_warning(tag))
-                for tag in views.out_of_region_view_tags(text)
+                ("warn", display, view_tags.out_of_region_view_warning(tag))
+                for tag in view_tags.out_of_region_view_tags(text)
             ]
 
         # Error: missing required markers (structural breakage).
@@ -1472,7 +1487,11 @@ def _check_template_override_issues(squad_dir: Path) -> list[tuple[str, str, str
 
 
 def _check_role_toml_override_issues(
-    squad_dir: Path, role_items_by_slug: Mapping[str, Item], *, resolve: bool = True
+    squad_dir: Path,
+    role_items_by_slug: Mapping[str, Item],
+    catalog: CatalogSource,
+    *,
+    resolve: bool = True,
 ) -> list[tuple[str, str, str]]:
     """Return check issues for every ``.overrides/roles/<slug>.toml`` override: an error for a
     shadowing override with no stamp (the uniform severity contract), a content-gated
@@ -1510,13 +1529,17 @@ def _check_role_toml_override_issues(
             )
         if resolve:
             issues.extend(
-                _check_role_override_resolves(squad_dir, slug, display, role_items_by_slug)
+                _check_role_override_resolves(squad_dir, slug, display, role_items_by_slug, catalog)
             )
     return issues
 
 
 def _check_role_override_resolves(
-    squad_dir: Path, slug: str, display: str, role_items_by_slug: Mapping[str, Item]
+    squad_dir: Path,
+    slug: str,
+    display: str,
+    role_items_by_slug: Mapping[str, Item],
+    catalog: CatalogSource,
 ) -> list[tuple[str, str, str]]:
     """Report a role override that the surfaces which consume it refuse to load.
 
@@ -1536,7 +1559,7 @@ def _check_role_override_resolves(
     catalog refresh and ``sq role <slug> show`` both go through — rather than a re-implemented
     validation, so the report can never claim a refusal the consumers do not make, or miss one
     they do. A slug with a roster item gets the same base those two consumers would build
-    (:func:`~squads._roles._resolver.role_base_from_item`, passed this squad's own *squad_dir*
+    (:func:`~squads._roles._resolver.role_base_from_item`, passed this squad's own *catalog*
     so a bundled role's base already carries a project's catalog-document override —
     ``.overrides/roles.toml`` — the same way ``sq role <slug> show``/``sq sync`` do — a stored
     fact, whether the item is a developer or a bundled role, for exactly the fields an operator
@@ -1556,10 +1579,12 @@ def _check_role_override_resolves(
     )
 
     item = role_items_by_slug.get(slug)
-    base_role = role_base_from_item(item, squad_dir) if item is not None else None
+    base_role = role_base_from_item(item, catalog) if item is not None else None
 
     try:
-        resolve_role_with_base(slug, squad_dir, base=base_role, pinned_name=pinned_name_of(item))
+        resolve_role_with_base(
+            slug, squad_dir, base=base_role, catalog=catalog, pinned_name=pinned_name_of(item)
+        )
     except SquadsError as exc:
         return [
             (
@@ -1572,7 +1597,9 @@ def _check_role_override_resolves(
     return []
 
 
-def _check_workflow_override_issues(squad_dir: Path) -> list[tuple[str, str, str]]:
+def _check_workflow_override_issues(
+    squad_dir: Path, files: OverrideFiles
+) -> list[tuple[str, str, str]]:
     """Return check issues for the workflow TOML override (if present), via
     :func:`~squads._workflow._loader.workflow_stamp_finding`: an error-level finding when the
     override shadows a bundled key and carries no stamp, a content-gated warn-level drift
@@ -1585,16 +1612,18 @@ def _check_workflow_override_issues(squad_dir: Path) -> list[tuple[str, str, str
         return []
 
     display = WORKFLOW_OVERRIDE_FILENAME
-    text = wf_path.read_text(encoding="utf-8")
+    text = files.text(wf_path)
     stamp = read_toml_stamp(text)
-    finding = workflow_stamp_finding(squad_dir, stamp)
+    finding = workflow_stamp_finding(squad_dir, stamp, files)
     if finding is None:
         return []
     level, message = finding
     return [(level, display, message)]
 
 
-def _check_playbook_override_issues(squad_dir: Path) -> list[tuple[str, str, str]]:
+def _check_playbook_override_issues(
+    squad_dir: Path, files: OverrideFiles
+) -> list[tuple[str, str, str]]:
     """Return check issues for the playbook TOML override (if present) — mirrors
     :func:`_check_workflow_override_issues` exactly, sharing the same stamp-obligation
     decision shape via :func:`playbook_stamp_finding`."""
@@ -1603,9 +1632,9 @@ def _check_playbook_override_issues(squad_dir: Path) -> list[tuple[str, str, str
         return []
 
     display = PLAYBOOK_OVERRIDE_FILENAME
-    text = pb_path.read_text(encoding="utf-8")
+    text = files.text(pb_path)
     stamp = read_toml_stamp(text)
-    finding = playbook_stamp_finding(squad_dir, stamp)
+    finding = playbook_stamp_finding(squad_dir, stamp, files)
     if finding is None:
         return []
     level, message = finding

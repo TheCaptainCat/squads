@@ -20,7 +20,7 @@ preloaded pointer set, because that is what decides which guidance an agent actu
 
 import pytest
 
-from _helpers import resolved_skill_definition
+from _helpers import make_service, resolved_skill_definition
 from squads import __version__
 
 pytestmark = pytest.mark.anyio
@@ -65,7 +65,7 @@ async def squad(tmp_path, monkeypatch, frozen_time):
 
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="all", _skip_skill_seed=True)
-    await service.Service(result.paths).seed_bundled_skills()
+    await make_service(result.paths).seed_bundled_skills()
     return result.paths
 
 

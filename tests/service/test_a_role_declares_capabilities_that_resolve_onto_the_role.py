@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of
 from squads import __version__
 from squads._errors import SquadsError
 from squads._roles._catalog import BUNDLES
@@ -126,17 +127,22 @@ async def test_the_declared_capabilities_resolve_onto_the_role_and_its_view(
         with pytest.raises(SquadsError) as excinfo:
             if item is None:
                 item = await _bring_onto_roster(svc, site)
-            resolve_role_for_item(item, project.squad_dir)
+            resolve_role_for_item(item, project.squad_dir, catalog=catalog_of(project.squad_dir))
         assert site.file in str(excinfo.value).replace("\\", "/")
         return
 
     if item is None:
         item = await _bring_onto_roster(svc, site)
-    role = resolve_role_for_item(item, project.squad_dir)
+    role = resolve_role_for_item(item, project.squad_dir, catalog=catalog_of(project.squad_dir))
     assert role.capabilities == expected
-    view = svc._role_view(item)
+    view = svc.roster_projection.role_view(item)
     assert view.capabilities == expected
-    assert view.capabilities == resolve_role_for_item(item, project.squad_dir).capabilities
+    assert (
+        view.capabilities
+        == resolve_role_for_item(
+            item, project.squad_dir, catalog=catalog_of(project.squad_dir)
+        ).capabilities
+    )
 
 
 async def test_every_live_role_view_carries_what_the_resolver_computes(project, svc) -> None:
@@ -144,8 +150,10 @@ async def test_every_live_role_view_carries_what_the_resolver_computes(project, 
     await svc.add_dev("rust")
     for item in await svc.list_items(item_type=ROSTER_ROLE):
         assert (
-            svc._role_view(item).capabilities
-            == resolve_role_for_item(item, project.squad_dir).capabilities
+            svc.roster_projection.role_view(item).capabilities
+            == resolve_role_for_item(
+                item, project.squad_dir, catalog=catalog_of(project.squad_dir)
+            ).capabilities
         )
 
 
@@ -219,11 +227,18 @@ async def test_an_existing_developer_follows_a_later_change_to_the_dev_table_cap
 ) -> None:
     value, expected = _DEV_TABLE_CHANGES[change]
     item = await svc.add_dev("rust")
-    assert resolve_role_for_item(item, project.squad_dir).capabilities == ("dev",)
+    assert resolve_role_for_item(
+        item, project.squad_dir, catalog=catalog_of(project.squad_dir)
+    ).capabilities == ("dev",)
     _write_dev_table(project.squad_dir, f"capabilities = {value}\n")
 
-    assert resolve_role_for_item(item, project.squad_dir).capabilities == expected
-    assert svc._role_view(item).capabilities == expected
+    assert (
+        resolve_role_for_item(
+            item, project.squad_dir, catalog=catalog_of(project.squad_dir)
+        ).capabilities
+        == expected
+    )
+    assert svc.roster_projection.role_view(item).capabilities == expected
     shown = await invoke(["role", "rust-dev", "show", "--json"])
     assert shown.exit_code == 0, shown.output
     assert json.loads(shown.output)["capabilities"] == list(expected)
@@ -251,6 +266,6 @@ async def test_the_two_malformed_name_messages_read_alike(project, svc) -> None:
     (project.squad_dir / ".overrides" / "roles.toml").unlink()
     _write_slug_file("architect")(project.squad_dir, 'capabilities = ["Bad"]\n')
     with pytest.raises(SquadsError) as file_error:
-        resolve_role_for_item(architect, project.squad_dir)
+        resolve_role_for_item(architect, project.squad_dir, catalog=catalog_of(project.squad_dir))
     assert "capabilities entry 'Bad' must match" in str(catalog_error.value)
     assert "capabilities entry 'Bad' must match" in str(file_error.value)

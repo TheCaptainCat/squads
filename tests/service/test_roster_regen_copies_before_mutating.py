@@ -9,10 +9,10 @@ them just because ``sync`` ran afterwards in that same scope.
 
 import pytest
 
+from _helpers import make_service
 from squads._index._resolver import item_file
 from squads._index._store import read_scope
 from squads._itemfile import update_frontmatter
-from squads._services import _service as service
 from squads._workflow import ROSTER_ROLE
 
 pytestmark = pytest.mark.anyio
@@ -37,7 +37,7 @@ async def _make_role_stale(svc, role_id: str) -> None:
 
 
 async def test_sync_never_mutates_an_item_a_caller_is_still_holding_from_list_items(project):
-    svc = service.Service(project)
+    svc = make_service(project)
     await _make_role_stale(svc, "ROLE-1")
 
     with read_scope():
@@ -55,24 +55,24 @@ async def test_sync_never_mutates_an_item_a_caller_is_still_holding_from_list_it
 
     # The commit itself is real: a fresh read (a new Service, no scope) sees the mission
     # restored, so the copy is locality-only and changes no observable behaviour.
-    refreshed = await service.Service(project).get("ROLE-1")
+    refreshed = await make_service(project).get("ROLE-1")
     assert refreshed.description != STALE_MISSION
 
 
 async def test_sync_output_and_frontmatter_are_unchanged_by_the_copy(project):
     """The copy is locality, not a behaviour change: ``sync`` still reports the same skip
     messages and still writes the same reconciled frontmatter, scope or no scope."""
-    svc = service.Service(project)
+    svc = make_service(project)
     await _make_role_stale(svc, "ROLE-1")
 
-    scoped_svc = service.Service(project)
+    scoped_svc = make_service(project)
     with read_scope():
         scoped_skipped = await scoped_svc.sync()
-    scoped_mission = (await service.Service(project).get("ROLE-1")).description
+    scoped_mission = (await make_service(project).get("ROLE-1")).description
 
     await _make_role_stale(svc, "ROLE-1")
-    unscoped_skipped = await service.Service(project).sync()
-    unscoped_mission = (await service.Service(project).get("ROLE-1")).description
+    unscoped_skipped = await make_service(project).sync()
+    unscoped_mission = (await make_service(project).get("ROLE-1")).description
 
     assert scoped_skipped == unscoped_skipped
     assert scoped_mission == unscoped_mission

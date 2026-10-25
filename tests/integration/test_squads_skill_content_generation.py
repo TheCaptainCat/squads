@@ -9,7 +9,7 @@ import re
 
 import pytest
 
-from _helpers import resolved_skill_definition
+from _helpers import make_service, resolved_skill_definition
 from squads._services import _service as service
 from squads._workflow._models import ROSTER_SKILL
 
@@ -35,26 +35,24 @@ async def test_priority_guidance_derives_from_the_active_collection_not_a_hardco
 ):
     """A custom priority collection (renamed codes) must show up in the guidance verbatim —
     the skill must never fall back to the bundled urgent|high|medium|low literal."""
-    from squads._services import _service as service
     from squads._workflow import bundled_spec
     from squads._workflow._models import Badge, Collection
 
     base = bundled_spec()
     custom = Collection(label="Priority", ordered=True, badges=[Badge(code="p0", label="P0")])
     spec = base.model_copy(update={"collections": {**base.collections, "priority": custom}})
-    body = await _squads_skill_body(service.Service(project, spec=spec))
+    body = await _squads_skill_body(make_service(project, spec=spec))
     assert "p0" in body
     assert "urgent|high|medium|low" not in body
 
 
 async def test_create_example_lists_only_active_work_types(project):
-    from squads._services import _service as service
     from squads._workflow import bundled_spec
 
     base = bundled_spec()
     dropped = {k: v for k, v in base.items.items() if k != "guide"}
     spec = base.model_copy(update={"items": dropped})
-    body = await _squads_skill_body(service.Service(project, spec=spec))
+    body = await _squads_skill_body(make_service(project, spec=spec))
     assert "guide" not in body.split("# also:")[1].splitlines()[0]
 
 
@@ -111,7 +109,7 @@ async def test_squad_dir_agrees_with_claude_md_for_a_nested_squad_dir(tmp_path, 
     verbatim" from "the resolved Path's last segment" — both happen to be the same value there.
     A nested ``squad_dir`` (``docs/squad``) separates the two, and this drives the real read
     path (``sq skill squads show --raw`` -> ``ItemsMixin.read_body`` ->
-    ``squads._views.expand_view_tags``) against a real seeded skill item, not a throwaway one.
+    ``squads._view_tags.expand_view_tags``) against a real seeded skill item, not a throwaway one.
 
     The property under test is *agreement between two independently-rendered surfaces* —
     this skill's view-rendered text and ``CLAUDE.md``'s backend-rendered managed section — not
@@ -123,7 +121,7 @@ async def test_squad_dir_agrees_with_claude_md_for_a_nested_squad_dir(tmp_path, 
     nested = "docs/squad"
     result = await service.init(root=tmp_path, squad_dir=nested, roles_spec="minimal")
     paths = result.paths
-    svc = service.Service(paths)
+    svc = make_service(paths)
 
     db = await svc.store.load()
     skill_item = next(

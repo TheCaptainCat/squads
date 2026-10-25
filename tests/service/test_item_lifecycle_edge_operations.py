@@ -6,9 +6,8 @@ subtask's story mapping and ``sq check`` catches it.
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads._errors import SquadsError
-from squads._services._service import Service
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import WorkflowSpec
 
@@ -91,7 +90,7 @@ async def test_check_flags_the_same_dangling_mapping_after_the_story_and_subtask
     spec's ``maps_parent_story`` flag (as ``_check_maps_parent_story`` already is), not a
     ``kind != "subtask"`` literal — otherwise a project that renames the built-in kinds loses
     ``sq check``'s dangling-story-mapping detection entirely."""
-    svc = Service(project, spec=_spec_with_renamed_story_and_subtask_kinds())
+    svc = make_service(project, spec=_spec_with_renamed_story_and_subtask_kinds())
     feat = (await create_item(svc, "feature", "f")).item
     story = await svc.add_block(feat.id, "userstory", "login")
     task = (await create_item(svc, "task", "t", parent=feat.id)).item

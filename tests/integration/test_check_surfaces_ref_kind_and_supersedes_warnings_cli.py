@@ -6,7 +6,7 @@ rules themselves are proven once at tests/service/test_check_ref_kind_and_supers
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads import _sections as sections
 from squads._itemfile import read_frontmatter
 
@@ -14,9 +14,8 @@ pytestmark = pytest.mark.anyio
 
 
 async def test_check_cli_prints_both_warnings_and_exits_0(project, invoke):
-    from squads._services._service import Service
 
-    svc = Service(project)
+    svc = make_service(project)
     a = (await create_item(svc, "task", "a")).item
     await create_item(svc, "task", "b")
     old_adr = (await create_item(svc, "decision", "old decision")).item

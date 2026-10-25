@@ -3,6 +3,7 @@ skill changes none of its bytes and draws no warning, with either backend set ac
 
 import pytest
 
+from _helpers import make_service
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -17,7 +18,7 @@ async def test_agents_md_is_byte_identical_with_and_without_stored_values(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     paths = (await service.init(root=tmp_path, backend=backends, roles_spec="minimal")).paths
-    svc = service.Service(paths)
+    svc = make_service(paths)
     assert (await invoke(["sync"])).exit_code == 0
     before = (tmp_path / "AGENTS.md").read_bytes()
 

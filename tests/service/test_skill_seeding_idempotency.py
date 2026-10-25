@@ -5,7 +5,7 @@ with a convention-named file.
 
 import pytest
 
-from squads._services._service import Service
+from _helpers import make_service
 from squads._workflow import ROSTER_SKILL, bundled_spec
 from squads._workflow._models import Lifecycle, StatusSpec, WorkflowSpec
 
@@ -70,7 +70,7 @@ async def test_seed_bundled_skills_creates_at_the_live_status_when_initial_is_no
     assert custom_spec.initial_status(ROSTER_SKILL) == "Provisioning"
     assert custom_spec.live_initial(ROSTER_SKILL) == "Active"
 
-    custom_svc = Service(svc.paths, spec=custom_spec)
+    custom_svc = make_service(svc.paths, spec=custom_spec)
     seeded = await custom_svc.seed_bundled_skills()
     assert seeded  # sanity: something was actually seeded
     assert all(sk.status == "Active" for sk in seeded)

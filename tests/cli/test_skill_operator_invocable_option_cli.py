@@ -7,11 +7,11 @@ from types import MappingProxyType
 
 import pytest
 
-import squads._interactions as interactions
-from _helpers import squad_tree
+from _helpers import make_service, squad_tree
 from _invocable_squad import SHAPES, build_squad, pointer_lines, skill_show
+from squads._interactions import _skills as skills
+from squads._interactions._skills import OPERATOR_INVOCABLE_DEFAULTS
 from squads._sections import split_frontmatter
-from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
 
@@ -38,7 +38,7 @@ def _stored(paths, svc_item_path: str) -> object:
 
 
 async def _item_path(paths, slug: str) -> str:
-    item = await service.Service(paths).roster_item("skill", slug)
+    item = await make_service(paths).roster_item("skill", slug)
     assert item is not None
     return item.path
 
@@ -130,9 +130,9 @@ async def test_a_release_changing_a_default_moves_only_skills_with_no_stored_val
         await invoke(["skill", "greeting", "update", "--operator-invocable", "no"])
     ).exit_code == 0
     assert LINE in pointer_lines(paths, "squads")
-    flipped = {slug: True for slug in interactions.OPERATOR_INVOCABLE_DEFAULTS}
-    monkeypatch.setattr(interactions, "OPERATOR_INVOCABLE_DEFAULTS", MappingProxyType(flipped))
-    monkeypatch.setattr(interactions, "ITEM_SKILL_OPERATOR_INVOCABLE", True)
+    flipped = {slug: True for slug in OPERATOR_INVOCABLE_DEFAULTS}
+    monkeypatch.setattr(skills, "OPERATOR_INVOCABLE_DEFAULTS", MappingProxyType(flipped))
+    monkeypatch.setattr(skills, "ITEM_SKILL_OPERATOR_INVOCABLE", True)
 
     assert (await invoke(["sync"])).exit_code == 0
 

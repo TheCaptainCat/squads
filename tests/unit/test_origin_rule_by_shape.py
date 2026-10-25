@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from squads._interactions import item_origin, role_origin, skill_origin
+from squads._interactions._skills import item_origin, role_origin, skill_origin
 from squads._models._item import Item
 from squads._workflow import load_workflow_spec
 from squads._workflow._models import ItemSpec, Lifecycle, WorkflowSpec

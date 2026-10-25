@@ -16,7 +16,7 @@ from typing import Any
 
 import pytest
 
-from _helpers import make_unreadable_by_the_os
+from _helpers import make_service, make_unreadable_by_the_os
 from squads._index._reconcile import ReconcileResult
 from squads._migrations import _registry
 from squads._models import _markers as markers
@@ -24,7 +24,6 @@ from squads._models._config import SquadsConfig
 from squads._models._schema import SCHEMA_VERSION
 from squads._paths import SquadPaths
 from squads._services import _maintenance
-from squads._services._service import Service
 
 pytestmark = pytest.mark.anyio
 
@@ -98,7 +97,7 @@ async def test_the_service_migrates_every_eligible_item_whatever_state_the_index
 ) -> None:
     _INDEX_STATES[state](squad)
 
-    run = await Service(_paths_at(squad)).run_pending_migrations()
+    run = await make_service(_paths_at(squad)).run_pending_migrations()
 
     assert _stamp(squad) == SCHEMA_VERSION
     assert run.changed["0.15"] >= 1
@@ -277,7 +276,7 @@ async def test_the_service_stops_before_any_runner_and_resumes_once_the_file_is_
     before = _md_digest(squad)
 
     with pytest.raises(Exception, match="no migration has run") as excinfo:
-        await Service(_paths_at(squad)).run_pending_migrations()
+        await make_service(_paths_at(squad)).run_pending_migrations()
 
     message = str(excinfo.value)
     assert calls.count == 0
@@ -288,7 +287,7 @@ async def test_the_service_stops_before_any_runner_and_resumes_once_the_file_is_
     _no_sq_command_but_migrate_up(message)
 
     undo()
-    run = await Service(_paths_at(squad)).run_pending_migrations()
+    run = await make_service(_paths_at(squad)).run_pending_migrations()
     assert run.applied
     assert _stamp(squad) == SCHEMA_VERSION
 
@@ -344,7 +343,7 @@ async def test_the_refusal_carries_the_entry_forward_and_says_what_the_rebuild_d
     )
 
     with pytest.raises(Exception, match="no migration has run") as excinfo:
-        await Service(_paths_at(squad)).run_pending_migrations()
+        await make_service(_paths_at(squad)).run_pending_migrations()
 
     assert "indexed TASK-99" in str(excinfo.value)
     index = json.loads((squad / ".squads.json").read_text(encoding="utf-8"))
@@ -377,9 +376,9 @@ async def test_the_rebuild_changes_nothing_a_migration_produces_over_every_corpu
     shutil.copytree(_CORPUS_DIR / corpus, with_rebuild)
     shutil.copytree(_CORPUS_DIR / corpus, without)
 
-    await Service(_paths_at(with_rebuild)).run_pending_migrations()
+    await make_service(_paths_at(with_rebuild)).run_pending_migrations()
     monkeypatch.setattr(_maintenance, "plan_reconcile", _noop_reconcile)
-    await Service(_paths_at(without)).run_pending_migrations()
+    await make_service(_paths_at(without)).run_pending_migrations()
 
     assert _tree(with_rebuild) == _tree(without)
 
@@ -575,7 +574,7 @@ async def test_the_trailing_repair_never_refuses_a_run_the_reconcile_let_through
     _STRAYS[stray](squad)
     on_disk = set(_md_digest(squad))
 
-    run = await Service(_paths_at(squad)).run_pending_migrations()
+    run = await make_service(_paths_at(squad)).run_pending_migrations()
 
     assert run.repair is not None
     assert run.repair.unreadable == []
@@ -671,7 +670,7 @@ async def test_repair_reports_the_same_idless_file_in_a_types_folder_that_the_re
 ) -> None:
     _put(squad, "tasks/TASK-000099-new.md", "---\ntitle: x\n---\nx\n")
 
-    result = await Service(_paths_at(squad)).repair()
+    result = await make_service(_paths_at(squad)).repair()
 
     assert any("TASK-000099-new.md" in line for line in result.unreadable)
 
@@ -681,7 +680,7 @@ async def test_repair_reports_the_same_copy_under_any_name_that_the_reconcile_st
 ) -> None:
     shutil.copy(squad / _TASK, squad / "tasks/notes.md")
 
-    result = await Service(_paths_at(squad)).repair()
+    result = await make_service(_paths_at(squad)).repair()
 
     assert any("notes.md" in line for line in result.unreadable)
 
@@ -691,7 +690,7 @@ async def test_repair_does_not_see_another_types_prefix_inside_a_types_folder(
 ) -> None:
     _another_types_prefix_in_a_types_folder(squad)
 
-    result = await Service(_paths_at(squad)).repair()
+    result = await make_service(_paths_at(squad)).repair()
 
     assert result.unreadable == []
     assert 50 not in result.db.items

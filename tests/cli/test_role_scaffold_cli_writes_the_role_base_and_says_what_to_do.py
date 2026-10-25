@@ -5,6 +5,7 @@ import re
 
 import pytest
 
+from _helpers import catalog_of
 from squads._roles._models import RoleSpec
 from squads._roles._resolver import resolve_role_with_base, role_base_from_item
 from squads._workflow import ROSTER_ROLE
@@ -35,8 +36,13 @@ async def test_a_templated_developer_gets_its_template_fields_commented_out(
         lines.append(line)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     item = await svc.roster_item(ROSTER_ROLE, "python-dev")
-    base = role_base_from_item(item, project.squad_dir)
-    assert resolve_role_with_base("python-dev", project.squad_dir, base=base) == base
+    base = role_base_from_item(item, catalog_of(project.squad_dir))
+    assert (
+        resolve_role_with_base(
+            "python-dev", project.squad_dir, base=base, catalog=catalog_of(project.squad_dir)
+        )
+        == base
+    )
 
 
 @pytest.mark.parametrize(

@@ -13,9 +13,9 @@ from pathlib import Path
 import pytest
 
 from squads._workflow._loader import load_workflow_spec
-from squads._workflow._models import (
+from squads._workflow._models import WorkflowSpec
+from squads._workflow._validator_names import (
     DEFAULT_VALIDATOR_LEVEL,
-    WorkflowSpec,
     effective_validator_names,
     parse_validator_entry,
 )

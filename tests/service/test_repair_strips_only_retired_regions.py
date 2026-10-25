@@ -4,9 +4,9 @@ skill's stored body, authored sub-entity content, and a role's own legacy prose 
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_service
 from squads._index._resolver import item_file
-from squads._interactions import SYSTEM_SKILL_VIEW_NAMES, is_system_skill
+from squads._interactions._skills import is_system_skill
 from squads._itemfile import read_frontmatter
 from squads._models import _attributes as attrs
 from squads._models import _markers as markers
@@ -14,7 +14,7 @@ from squads._models._attributes import CORE_KEYS
 from squads._models._attributes import AttributeKey as X
 from squads._models._metadata import RETIRED_ROLE_KEYS
 from squads._sections import get_section, has_section, replace_frontmatter, replace_section
-from squads._services import _service as service
+from squads._views import SYSTEM_SKILL_VIEW_NAMES
 from squads._workflow import load_workflow_spec
 
 pytestmark = pytest.mark.anyio
@@ -86,12 +86,12 @@ async def _task_carrying_both_families(svc):
     path = item_file(svc.paths, task)
     text = path.read_text(encoding="utf-8")
     text = text.replace(
-        markers.open_marker(markers.SUBTASKS),
-        _SUMMARY_REGION + markers.open_marker(markers.SUBTASKS),
+        markers.open_marker("subtasks"),
+        _SUMMARY_REGION + markers.open_marker("subtasks"),
         1,
     )
     for local_id in ("ST1", "ST2"):
-        tag = markers.subtask_tag(local_id)
+        tag = markers.subentity_tag("subtask", local_id)
         text = text.replace(
             markers.open_marker(f"{tag}:body"),
             _head_region(tag) + markers.open_marker(f"{tag}:body"),
@@ -132,8 +132,8 @@ async def test_a_stripped_file_matches_what_the_live_write_path_writes_today(svc
     await svc.repair()
 
     def _subtasks_section(text: str) -> str:
-        start = text.index(markers.open_marker(markers.SUBTASKS))
-        return text[start : text.index(markers.close_marker(markers.SUBTASKS))]
+        start = text.index(markers.open_marker("subtasks"))
+        return text[start : text.index(markers.close_marker("subtasks"))]
 
     stripped = _subtasks_section(carrying_path.read_text(encoding="utf-8"))
     never_carried = _subtasks_section(clean_path.read_text(encoding="utf-8"))
@@ -152,7 +152,7 @@ async def test_a_head_region_of_an_adopter_declared_kind_is_stripped_too(svc):
         "<!-- sq:risk:RK1:end -->\n"
     )
     text = text.replace(
-        markers.close_marker(markers.SUBTASKS), block + markers.close_marker(markers.SUBTASKS), 1
+        markers.close_marker("subtasks"), block + markers.close_marker("subtasks"), 1
     )
     path.write_text(text, encoding="utf-8")
 
@@ -213,7 +213,7 @@ async def test_declaring_an_item_type_does_not_delete_an_authored_skill_of_that_
     )
     spec = load_workflow_spec(squad_dir=svc.paths.squad_dir)
     assert is_system_skill("sq-onboarding", spec)
-    declared = service.Service(svc.paths, spec=spec)
+    declared = make_service(svc.paths, spec=spec)
 
     await declared.repair()
 
@@ -330,7 +330,7 @@ async def test_authored_sub_entity_content_survives_the_strip(svc):
     assert {tag: get_section(after, tag) for tag in authored_tags} == before_regions
     assert [line for line in after.splitlines() if line.startswith("### ")] == before_headings
     assert after.split("---\n")[1] == before_frontmatter
-    assert has_section(after, markers.SUBTASKS)
+    assert has_section(after, "subtasks")
 
 
 async def test_a_squad_that_never_carried_the_regions_is_byte_unchanged(svc):
@@ -482,7 +482,7 @@ async def test_the_sweep_spares_a_role_attribute_the_squad_declares(project, nam
             encoding="utf-8",
         )
         invalidate_squad_dir(project.squad_dir)
-    svc = service.Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    svc = make_service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
     item = await svc.roster_item("role", "manager")
     assert item is not None
     path = item_file(svc.paths, item)

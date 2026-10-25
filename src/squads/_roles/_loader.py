@@ -40,8 +40,6 @@ keyed collection, so there is nothing in it to shrink (mirrors the playbook docu
 empty-``[selected]``-menu treatment of a field that isn't a keyed collection).
 """
 
-import importlib.resources
-import tomllib
 from pathlib import Path
 from typing import Any, cast
 
@@ -55,7 +53,15 @@ from squads._roles._models import (
     RoleSpec,
     malformed_capability_names,
 )
-from squads._specmerge import RawMapping, describe_spec_error, merge_override
+from squads._specload import (
+    OverrideFiles,
+    OverrideMessages,
+    SpecDocument,
+    bundled_raw,
+    bundled_text,
+    load_override,
+)
+from squads._specmerge import RawMapping, describe_spec_error
 
 VALID_MODELS: frozenset[str] = frozenset({"sonnet", "opus", "haiku", "inherit"})
 
@@ -69,30 +75,6 @@ ROLES_TOP_LEVEL_KEYS: frozenset[str] = frozenset({"roles", "bundles", "dev", "de
 #: The catalog document's deselectable ``[selected]`` section names. ``dev`` is deliberately
 #: absent — see the module docstring.
 ROLES_SELECTED_SECTIONS: frozenset[str] = frozenset({"roles", "bundles"})
-
-
-def _read_bundled_bytes() -> bytes:
-    try:
-        pkg = importlib.resources.files("squads._specs")
-        return (pkg / "roles.toml").read_bytes()
-    except Exception as exc:
-        raise SquadsError(f"Failed to read bundled roles.toml: {exc}") from exc
-
-
-def _bundled_raw() -> RawMapping:
-    """The bundled ``roles.toml``, parsed but not yet built into a model — the merge engine's
-    ``base`` input."""
-    try:
-        return tomllib.loads(_read_bundled_bytes().decode())
-    except tomllib.TOMLDecodeError as exc:
-        raise SquadsError(f"Malformed bundled roles.toml: {exc}") from exc
-
-
-def bundled_roles_toml_text() -> str:
-    """The bundled ``roles.toml``'s raw text — the ``sq override diff roles`` Δ-mine baseline,
-    mirroring ``_workflow._loader.bundled_workflow_toml_text``/
-    ``_interactions._loader.bundled_playbook_toml_text``."""
-    return _read_bundled_bytes().decode()
 
 
 def _role_entry_slug(entry: Any, *, origin: str, index: int) -> str:
@@ -146,25 +128,53 @@ def _unkeyed_from_merge(raw: RawMapping) -> RawMapping:
     return {**raw, "roles": list(cast("RawMapping", roles).values())}
 
 
-def _read_raw_override(path: Path) -> RawMapping:
-    try:
-        raw = tomllib.loads(path.read_text(encoding="utf-8"))
-    except tomllib.TOMLDecodeError as exc:
-        raise SquadsError(f"malformed role catalog override {path}: {exc}") from exc
-    except UnicodeDecodeError as exc:
-        raise SquadsError(f"role catalog override {path} is not valid UTF-8: {exc}") from exc
-    except OSError as exc:
-        raise SquadsError(f"cannot read role catalog override {path}: {exc}") from exc
+def _check_override_shape(raw: RawMapping, origin: str) -> None:
     for key, kind, expected in (
         ("roles", (list, dict), "an array or a table"),
         ("bundles", dict, "a table"),
     ):
         if key in raw and not isinstance(raw[key], kind):
-            raise SquadsError(f"{path}: '{key}' must be {expected}, got {type(raw[key]).__name__}")
-    return raw
+            raise SquadsError(
+                f"{origin}: '{key}' must be {expected}, got {type(raw[key]).__name__}"
+            )
 
 
-def load_role_catalog(squad_dir: Path | None = None) -> RoleCatalogSpec:
+_DOCUMENT = SpecDocument(
+    bundled_file="roles.toml",
+    override_file=ROLES_OVERRIDE_FILENAME,
+    override_name="role catalog override",
+    top_level_keys=ROLES_TOP_LEVEL_KEYS,
+    selected_sections=ROLES_SELECTED_SECTIONS,
+    messages=OverrideMessages(
+        malformed="malformed role catalog override {path}: {exc}",
+        unreadable="cannot read role catalog override {path}: {exc}",
+        not_utf8="role catalog override {path} is not valid UTF-8: {exc}",
+    ),
+    check_override=_check_override_shape,
+    to_merge_form=lambda raw, origin: _keyed_for_merge(raw, origin=origin),
+    from_merge_form=_unkeyed_from_merge,
+)
+
+
+def bundled_roles_toml_text() -> str:
+    """The bundled ``roles.toml``'s raw text — the ``sq override diff roles`` Δ-mine baseline,
+    mirroring ``_workflow._loader.bundled_workflow_toml_text``/
+    ``_interactions._loader.bundled_playbook_toml_text``."""
+    return bundled_text(_DOCUMENT)
+
+
+def _bundled_raw() -> RawMapping:
+    return bundled_raw(_DOCUMENT)
+
+
+def bundled_roles_raw() -> RawMapping:
+    """A copy of the packaged ``roles.toml``'s parse, for the ``sq check`` shadow predicate."""
+    return _bundled_raw()
+
+
+def load_role_catalog(
+    squad_dir: Path | None = None, files: OverrideFiles | None = None
+) -> RoleCatalogSpec:
     """Read, parse, merge (if a project catalog-document override is present), validate, and
     return the role catalog.
 
@@ -190,33 +200,12 @@ def load_role_catalog(squad_dir: Path | None = None) -> RoleCatalogSpec:
     open the named file and disprove (see :func:`_catalog_error_prefix`).
     """
     raw = _bundled_raw()
-    origin: str | None = None
-    bundled_slugs: frozenset[str] | None = None
-
-    if squad_dir is not None:
-        override_path = squad_dir / ROLES_OVERRIDE_FILENAME
-        if override_path.is_file():
-            bundled_slugs = _known_slugs(raw.get("roles"))
-            raw_override = _read_raw_override(override_path)
-            origin = str(override_path)
-            result = merge_override(
-                _keyed_for_merge(raw, origin="<bundled roles.toml>"),
-                _keyed_for_merge(raw_override, origin=origin),
-                ROLES_SELECTED_SECTIONS,
-                origin,
-                top_level_keys=ROLES_TOP_LEVEL_KEYS,
-                collect_all=False,
-            )
-            merged = result.merged
-            if (
-                merged is None
-            ):  # pragma: no cover - fail-fast mode raises on its own first violation
-                raise SquadsError(
-                    f"role catalog override merge failed with no violation reported — {origin}"
-                )
-            raw = _unkeyed_from_merge(merged)
-
-    return _build_catalog(raw, origin=origin, bundled_slugs=bundled_slugs)
+    loaded = load_override(_DOCUMENT, squad_dir, lambda: raw, files)
+    if loaded is None:
+        return _build_catalog(raw, origin=None, bundled_slugs=None)
+    return _build_catalog(
+        loaded.raw, origin=loaded.origin, bundled_slugs=_known_slugs(raw.get("roles"))
+    )
 
 
 def _catalog_error_prefix(origin: str | None) -> str:

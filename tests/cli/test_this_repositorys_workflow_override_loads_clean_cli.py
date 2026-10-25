@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from squads._services import _service as service
-from squads._workflow._models import effective_validator_names, parse_validator_entry
+from squads._workflow._validator_names import effective_validator_names, parse_validator_entry
 
 pytestmark = pytest.mark.anyio
 

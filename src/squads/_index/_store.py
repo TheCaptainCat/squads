@@ -308,8 +308,7 @@ class _ActiveTransaction:
 # unlike the instance attribute this replaces — a binding made by store A
 # is visible to code running on the same task against store B (two squads in one process,
 # e.g. a long-lived server). ``_transaction_ctx_for`` below closes that gap by checking
-# ownership; nothing else reads this ContextVar directly. Follows the
-# ``_rendering/_engine.py::_active_squad_dir`` precedent: one module-level ContextVar for
+# ownership; nothing else reads this ContextVar directly. One module-level ContextVar for
 # one concern, not a field folded onto the general-purpose ``RequestContext`` — a
 # transaction context is shorter-lived than a request and engine-internal, not an ambient
 # request *input*.
@@ -353,25 +352,18 @@ class IndexStore:
         index_path: Path,
         lock_path: Path,
         *,
-        spec: WorkflowSpec | None = None,
+        spec: WorkflowSpec,
         lock_timeout: float = 10.0,
     ):
         """Construct an ``IndexStore``.
 
-        ``spec`` is the :class:`WorkflowSpec` used to validate item vocabulary at
-        load time.  When ``None``, the immutable bundled default is used, for code
-        that constructs an ``IndexStore`` without an explicit spec (e.g. ``sq init``,
-        ``sq adopt``, tests).  Pass ``Service.spec`` (or another resolved spec) to
-        validate against a squad-specific override.
+        ``spec`` is the :class:`WorkflowSpec` used to validate item vocabulary at load time;
+        pass ``Service.spec`` (or another resolved spec) to validate against a squad-specific
+        override.
         """
         self.index_path = index_path
         self.lock_path = lock_path
-        if spec is None:
-            from squads._workflow import bundled_spec
-
-            self._spec: WorkflowSpec = bundled_spec()
-        else:
-            self._spec = spec
+        self._spec = spec
         # Layer 3 — cross-process file lock. thread_local=False is safe because Layer 2
         # guarantees single-threaded entry, so its shared-state race is unreachable.
         self._lock = FileLock(str(lock_path), timeout=lock_timeout, thread_local=False)
@@ -503,7 +495,7 @@ class IndexStore:
           later validating caller in the same invocation skip a fail-closed check, the wrong
           direction to fail. See :meth:`_read_from_disk` for why this one exists at all.
         - ``fresh=True`` — for the caller whose contract is "re-read the index right now"
-          (``_confirm_cross_source`` in ``_services/_maintenance.py``, ``sq check``'s
+          (``_confirm_cross_source`` in ``_services/_check.py``, ``sq check``'s
           false-positive suppression round): serving *or filing* a scope-cached answer here
           would defeat the one re-read its own docstring depends on.
         """

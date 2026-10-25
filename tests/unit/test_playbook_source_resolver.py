@@ -13,10 +13,10 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import create_item
+from _helpers import catalog_of, create_item, make_service
 from squads import _views as views
-from squads._interactions import item_skill_name
-from squads._services._service import Service, resolve_playbook
+from squads._interactions._skills import item_skill_name
+from squads._spec_documents import resolve_playbook
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import ViewSource, ViewSpec
 
@@ -29,7 +29,7 @@ async def test_an_explicit_name_resolves_that_types_own_lane_not_the_hosts(svc) 
     roster = await svc.roster()
 
     result = views._resolve_playbook_source(
-        view, task, svc.playbook, lambda: roster, svc.spec, None
+        view, task, svc.playbook, lambda: roster, svc.spec, catalog_of(None)
     )
 
     assert result.item_type == "bug"
@@ -43,7 +43,7 @@ async def test_an_absent_name_resolves_the_hosts_own_type(svc) -> None:
     roster = await svc.roster()
 
     result = views._resolve_playbook_source(
-        view, task, svc.playbook, lambda: roster, svc.spec, None
+        view, task, svc.playbook, lambda: roster, svc.spec, catalog_of(None)
     )
 
     assert result.item_type == "task"
@@ -73,13 +73,13 @@ async def test_a_declared_type_with_no_lane_resolves_an_empty_lane_not_a_raise(s
     squad_dir = svc.paths.squad_dir
     _write_renamed_guide_override(squad_dir)
     merged_spec = load_workflow_spec(squad_dir=squad_dir)
-    merged_playbook = resolve_playbook(merged_spec, squad_dir)
-    project_svc = Service(svc.paths, spec=merged_spec, playbook=merged_playbook)
+    merged_playbook = resolve_playbook(merged_spec, squad_dir, catalog_of(squad_dir))
+    project_svc = make_service(svc.paths, spec=merged_spec, playbook=merged_playbook)
     doc_item = (await create_item(project_svc, "doc", "D")).item
 
     view = ViewSpec(source=ViewSource(kind="playbook"))
     result = views._resolve_playbook_source(
-        view, doc_item, merged_playbook, lambda: [], merged_spec, None
+        view, doc_item, merged_playbook, lambda: [], merged_spec, catalog_of(None)
     )
 
     assert result.item_type == "doc"
@@ -92,7 +92,7 @@ async def test_a_skill_hosts_absent_name_resolves_the_type_its_own_slug_document
     roster = await svc.roster()
 
     result = views._resolve_playbook_source(
-        view, skill, svc.playbook, lambda: roster, svc.spec, None
+        view, skill, svc.playbook, lambda: roster, svc.spec, catalog_of(None)
     )
 
     assert result.item_type == "task"
@@ -113,7 +113,7 @@ async def test_the_gate_prevents_an_ordinary_items_slug_from_naming_a_different_
     roster = await svc.roster()
 
     result = views._resolve_playbook_source(
-        view, task, svc.playbook, lambda: roster, svc.spec, None
+        view, task, svc.playbook, lambda: roster, svc.spec, catalog_of(None)
     )
 
     assert result.item_type == "task"
@@ -127,7 +127,9 @@ async def test_a_skill_hosts_undocumented_slug_falls_back_to_its_own_type(svc) -
     assert skill.slug == "sq-onboarding"
     view = ViewSpec(source=ViewSource(kind="playbook"))
 
-    result = views._resolve_playbook_source(view, skill, svc.playbook, lambda: [], svc.spec, None)
+    result = views._resolve_playbook_source(
+        view, skill, svc.playbook, lambda: [], svc.spec, catalog_of(None)
+    )
 
     assert result.item_type == "skill"
     assert result.lane is None

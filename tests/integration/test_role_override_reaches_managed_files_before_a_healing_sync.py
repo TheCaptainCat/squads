@@ -18,6 +18,7 @@ from typing import Any
 
 import pytest
 
+from _helpers import catalog_of, make_service
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -47,7 +48,7 @@ async def test_a_post_sync_override_reaches_every_managed_file_with_no_sync(tmp_
         root=tmp_path, backend=["claude_code", "agents_md"], roles_spec="all"
     )
     paths = result.paths
-    svc = service.Service(paths)
+    svc = make_service(paths)
     await svc.sync()  # baseline: mirror and every managed file carry the bundled definition
 
     baseline_attributes = _index_role_attributes(paths, "reviewer")
@@ -65,7 +66,7 @@ async def test_a_post_sync_override_reaches_every_managed_file_with_no_sync(tmp_
 
     # No sync, no repair anywhere below — the item's own stored mirror never gets a chance to
     # heal itself. Reconfirmed at the very end, so nothing in between could have quietly synced.
-    fresh = service.Service(paths)
+    fresh = make_service(paths)
 
     # 1. The roster projection itself — what every backend's write_managed compiles from.
     reviewer_view = next(r for r in await fresh.roster() if r.slug == "reviewer")
@@ -106,7 +107,7 @@ async def test_sq_role_set_default_survives_sq_sync(tmp_path, monkeypatch):
         root=tmp_path, backend=["claude_code", "agents_md"], roles_spec="all"
     )
     paths = result.paths
-    svc = service.Service(paths)
+    svc = make_service(paths)
     qa = await svc.roster_item("role", "qa")
     assert qa is not None
 
@@ -143,7 +144,7 @@ async def test_falsifying_the_is_default_carry_reproduces_the_revert(tmp_path, m
         root=tmp_path, backend=["claude_code", "agents_md"], roles_spec="all"
     )
     paths = result.paths
-    svc = service.Service(paths)
+    svc = make_service(paths)
     qa_item = await svc.roster_item("role", "qa")
     assert qa_item is not None
     await svc.set_default_role(qa_item.id)
@@ -156,13 +157,17 @@ async def test_falsifying_the_is_default_carry_reproduces_the_revert(tmp_path, m
     # The pre-fix base: only full_name carried, is_default always the catalog's stale answer —
     # reproduces the sync-reverts-set-default defect, at the resolver level rather than the CLI.
     pre_fix_base = replace(qa_predefined, full_name=qa_item.title)
-    reverted = resolve_role_with_base("qa", paths.squad_dir, base=pre_fix_base)
+    reverted = resolve_role_with_base(
+        "qa", paths.squad_dir, base=pre_fix_base, catalog=catalog_of(paths.squad_dir)
+    )
     assert reverted.is_default is False  # the operator's designation is lost — the revert
 
     # The fixed base (what role_base_from_item now builds) carries the operator's designation.
     from squads._roles._resolver import role_base_from_item
 
-    fixed_base = role_base_from_item(qa_item, paths.squad_dir)
+    fixed_base = role_base_from_item(qa_item, catalog_of(paths.squad_dir))
     assert fixed_base is not None
-    resolved = resolve_role_with_base("qa", paths.squad_dir, base=fixed_base)
+    resolved = resolve_role_with_base(
+        "qa", paths.squad_dir, base=fixed_base, catalog=catalog_of(paths.squad_dir)
+    )
     assert resolved.is_default is True  # restored — the carry holds

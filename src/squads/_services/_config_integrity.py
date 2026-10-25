@@ -24,12 +24,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from squads._interactions import item_skill_name
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._role_guidance import item_types_for_role, skills_for_role
+from squads._interactions._skills import item_skill_name
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, ref_id_matches, split_ref
 from squads._roles._catalog import RoleDef
+from squads._roles._models import CatalogSource
 from squads._roles._resolver import resolve_role_tolerantly
 from squads._workflow._models import ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
 
@@ -242,7 +243,8 @@ def check_preloaded_skill(
     spec: WorkflowSpec,
     active_backends: Sequence[str],
     playbook: PlaybookSpec,
-    squad_dir: Path,
+    squad_dir: Path | None,
+    catalog: CatalogSource,
 ) -> list[ConfigIntegrityFinding]:
     """``preloaded_skill`` — a referenced skill, already broken: a non-live ``skill`` entry
     still named by a live role's resolved preload list. Classified into three kinds — a stored
@@ -260,7 +262,7 @@ def check_preloaded_skill(
     live_roles = _live_role_items(index, spec)
     if not live_roles:
         return []
-    resolved = {r.id: resolve_role_tolerantly(r, squad_dir) for r in live_roles}
+    resolved = {r.id: resolve_role_tolerantly(r, squad_dir, catalog=catalog) for r in live_roles}
     floor = _always_on_floor(list(resolved.values()), spec, playbook)
     live_skill_statuses = spec.live_statuses(ROSTER_SKILL)
     findings: list[ConfigIntegrityFinding] = []
@@ -355,7 +357,8 @@ def check_all(
     spec: WorkflowSpec,
     active_backends: Sequence[str],
     playbook: PlaybookSpec,
-    squad_dir: Path,
+    squad_dir: Path | None,
+    catalog: CatalogSource,
 ) -> list[ConfigIntegrityFinding]:
     """Every clause's findings, ``no_live_role`` then ``preloaded_skill`` — the single entry
     point both the reporter and the gate call, rather than each composing the clauses itself.
@@ -363,11 +366,11 @@ def check_all(
     order, is what makes output deterministic wherever more than one finding renders together.
 
     ``playbook`` is the active/merged one (``Service.playbook``), passed through with
-    *squad_dir* to ``check_preloaded_skill`` alone, since ``no_live_role`` never reads playbook
-    data or role documents; they make the always-on floor and type-implied kind reflect a
-    project override's guidance and its roles' declared capabilities.
+    *squad_dir* and *catalog* to ``check_preloaded_skill`` alone, since ``no_live_role`` never
+    reads playbook data or role documents; they make the always-on floor and type-implied kind
+    reflect a project override's guidance and its roles' declared capabilities.
     """
     return [
         *check_no_live_role(index, spec, active_backends),
-        *check_preloaded_skill(index, spec, active_backends, playbook, squad_dir),
+        *check_preloaded_skill(index, spec, active_backends, playbook, squad_dir, catalog),
     ]

@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import catalog_of, make_service
 from squads._paths import SquadPaths
 from squads._services import _service as service
 from squads._workflow import bundled_spec
@@ -107,7 +108,7 @@ class TestEmptyActiveBackendsProjectsNothing:
     ):
         monkeypatch.chdir(tmp_path)
         result = await service.init(root=tmp_path, backend=[], roles_spec="minimal")
-        svc = service.Service(result.paths)
+        svc = make_service(result.paths)
         item = await svc.activate_role("qa")
         assert not (tmp_path / ".claude").exists()
 
@@ -148,7 +149,7 @@ class TestCandidateOrphansUsesTheFullRoster:
         ``roster_all()`` for the live-only ``roster()`` (the exact bug this predicate exists
         to prevent) and prove the retired entry's own leftover file gets misreported as a
         foreign orphan."""
-        from squads._interactions import bundled_skill_slugs, custom_skill_slugs
+        from squads._interactions._skills import bundled_skill_slugs, custom_skill_slugs
 
         item = await svc.activate_role("qa")
         pointer = _pointer(project, "qa")
@@ -294,7 +295,7 @@ class TestTwoLiveStatusCustomLifecycle:
         assert spec.live_statuses("role") == {"Active", "Trialling"}
 
     async def test_both_live_statuses_materialise_and_only_the_settled_one_withdraws(self, project):
-        svc = service.Service(project, spec=_dual_live_role_spec())
+        svc = make_service(project, spec=_dual_live_role_spec())
         item = await svc.activate_role("qa")
         pointer = _pointer(project, "qa")
         assert pointer.exists()
@@ -360,12 +361,19 @@ class TestReactivationRestoresAScopedSkill:
         await svc.link_role(skill.id, role.id)
 
         wrong_ctx = BackendContext(
-            paths=svc.paths, spec=svc.spec, playbook=svc.playbook
+            paths=svc.paths,
+            spec=svc.spec,
+            playbook=svc.playbook,
+            catalog=catalog_of(svc.paths.squad_dir),
         )  # WRONG: no role_skills
         role_item = await svc.get(role.id)
         for backend in svc._backends():
             await backend.generate_role_entry(
-                wrong_ctx, role_item, resolve_role_for_item(role_item, svc.paths.squad_dir)
+                wrong_ctx,
+                role_item,
+                resolve_role_for_item(
+                    role_item, svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir)
+                ),
             )
         assert "custom-helper" not in _pointer(project, "qa").read_text(encoding="utf-8"), (
             "an empty role_skills context was expected to lose the scoped skill — if this "
