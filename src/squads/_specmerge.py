@@ -689,6 +689,32 @@ def describe_spec_error(exc: Exception, model: type[BaseModel]) -> str:
     return "; ".join(sentences)
 
 
+def spec_error_sentences(exc: Exception, model: type[BaseModel]) -> list[str]:
+    """One written sentence per bad field of a validation failure against *model*, with no
+    pydantic rendering in it. An unknown key keeps the accepted-keys menu
+    :func:`describe_spec_error` gives; any other failure names the key and states what
+    pydantic found wrong with it. A non-validation error is its own single sentence."""
+    if not isinstance(exc, ValidationError):
+        return [str(exc)]
+    sentences: list[str] = []
+    for entry in exc.errors(include_url=False):
+        loc = entry["loc"]
+        where = ".".join(str(segment) for segment in loc)
+        if entry["type"] == "extra_forbidden" and loc:
+            parent = ".".join(str(segment) for segment in loc[:-1])
+            reason = f"unknown key {str(loc[-1])!r}" + (f" in {parent!r}" if parent else "")
+            accepted = _accepted_keys_at(model, loc)
+            sentences.append(
+                reason if accepted is None else f"{reason} — {_accepted_menu('key', accepted)}"
+            )
+        elif entry["type"] == "missing" and loc:
+            sentences.append(f"missing required key {where!r}")
+        else:
+            subject = f"key {where!r}" if where else "the entry"
+            sentences.append(f"{subject} is invalid — {entry['msg']}")
+    return sentences or [str(exc)]
+
+
 def _top_level_key_violations(
     override: RawMapping, top_level_keys: frozenset[str], origin: str
 ) -> list[MergeViolation]:

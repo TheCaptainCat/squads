@@ -54,10 +54,13 @@ which reports the same findings in collect mode without aborting.
 """
 
 import tomllib
+from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 from re import DOTALL, MULTILINE
 from re import compile as re_compile
 from typing import Any, cast
+
+from pydantic import BaseModel
 
 from squads._errors import SquadsError
 
@@ -90,6 +93,7 @@ from squads._specmerge import (
     MergeViolation,
     RawMapping,
     describe_spec_error,
+    spec_error_sentences,
 )
 from squads._workflow._models import (
     ROSTER_TYPES,
@@ -204,6 +208,42 @@ def _override_transform_violations(raw_override: RawMapping, origin: str) -> lis
                 )
             )
     return violations
+
+
+def _drop_inherited_unreachable_transitions(merged: RawMapping, override: RawMapping) -> None:
+    """Drop a bundled transition key the override never names when the override redeclared its
+    lifecycle's transitions and nothing now leads to the key's state. The state then leaves that
+    machine instead of lingering unreachable; an adopter's own unreachable state stays and is
+    reported."""
+    lifecycles = merged.get("lifecycles")
+    own = override.get("lifecycles")
+    bundled = _bundled_raw().get("lifecycles")
+    if not (isinstance(lifecycles, dict) and isinstance(own, dict) and isinstance(bundled, dict)):
+        return
+    for name, table in cast(RawMapping, lifecycles).items():
+        mine = cast(RawMapping, own).get(name)
+        base = cast(RawMapping, bundled).get(name)
+        if not (isinstance(table, dict) and isinstance(mine, dict) and isinstance(base, dict)):
+            continue
+        written = cast(RawMapping, mine).get("transitions")
+        inherited = cast(RawMapping, base).get("transitions")
+        merged_transitions = cast(RawMapping, table).get("transitions")
+        if not (
+            isinstance(written, dict)
+            and isinstance(inherited, dict)
+            and isinstance(merged_transitions, dict)
+        ):
+            continue
+        graph = cast(dict[str, list[str]], merged_transitions)
+        reached = {cast(str, cast(RawMapping, table).get("initial"))}
+        queue = list(reached)
+        while queue:
+            for nxt in graph.get(queue.pop(), []):
+                if nxt not in reached:
+                    reached.add(nxt)
+                    queue.append(nxt)
+        for state in [s for s in graph if s in inherited and s not in written and s not in reached]:
+            del graph[state]
 
 
 def _drop_bundled_module_where_override_sets_path(merged: RawMapping) -> None:
@@ -367,6 +407,7 @@ def load_workflow_spec(
     _raise_on_floor_violation(merged, loaded.origin)
     _strip_ref_rule_targets_of_dropped_types(merged, loaded.deselections)
     _drop_bundled_module_where_override_sets_path(merged)
+    _drop_inherited_unreachable_transitions(merged, loaded.override)
 
     try:
         return _build_spec(merged)
@@ -504,6 +545,23 @@ def _section(raw: dict[str, Any], name: str) -> dict[str, dict[str, Any]]:
     return {key: as_table(data, f"{name}.{key}") for key, data in section.items()}
 
 
+class SpecEntryError(SquadsError):
+    """A malformed entry of one workflow section. ``findings`` is one sentence per bad field,
+    each naming the entry."""
+
+    def __init__(self, label: str, exc: Exception, model: type[BaseModel]) -> None:
+        super().__init__(f"{label}: {describe_spec_error(exc, model)}")
+        self.findings = [f"{label}: {sentence}" for sentence in spec_error_sentences(exc, model)]
+
+
+class SpecShapeErrors(SquadsError):
+    """Every malformed entry of a workflow document, collected in one pass."""
+
+    def __init__(self, findings: list[str]) -> None:
+        super().__init__("\n".join(findings))
+        self.findings = findings
+
+
 def _parse_lifecycle(name: str, data: dict[str, Any]) -> Lifecycle:
     """Parse one ``[lifecycles.<name>]`` table.
 
@@ -515,9 +573,7 @@ def _parse_lifecycle(name: str, data: dict[str, Any]) -> Lifecycle:
     try:
         return Lifecycle.model_validate(dict(data))
     except Exception as exc:
-        raise SquadsError(
-            f"Invalid lifecycle {name!r}: {describe_spec_error(exc, Lifecycle)}"
-        ) from exc
+        raise SpecEntryError(f"Invalid lifecycle {name!r}", exc, Lifecycle) from exc
 
 
 def _parse_ref_rules(raw_rules: Any, ctx: str, declared_kinds: frozenset[str]) -> list[RefRule]:
@@ -535,7 +591,7 @@ def _parse_ref_rules(raw_rules: Any, ctx: str, declared_kinds: frozenset[str]) -
         try:
             rule = RefRule.model_validate(rule_data)
         except Exception as exc:
-            raise SquadsError(f"{ctx} ref_rule[{i}]: {describe_spec_error(exc, RefRule)}") from exc
+            raise SpecEntryError(f"{ctx} ref_rule[{i}]", exc, RefRule) from exc
         if rule.kind not in declared_kinds:
             raise SquadsError(
                 f"{ctx} ref_rule[{i}]: kind {rule.kind!r} is not one of the declared ref "
@@ -564,7 +620,7 @@ def _parse_fields(
         try:
             field = Field.model_validate(field_data)
         except Exception as exc:
-            raise SquadsError(f"{ctx} field[{i}]: {describe_spec_error(exc, Field)}") from exc
+            raise SpecEntryError(f"{ctx} field[{i}]", exc, Field) from exc
         if field.code in reserved:
             raise SquadsError(
                 f"{ctx} field[{i}]: code {field.code!r} is also a built-in `sq create` option "
@@ -581,7 +637,7 @@ def _parse_badges(raw_badges: Any, ctx: str) -> list[Badge]:
         try:
             badges.append(Badge.model_validate(badge_data))
         except Exception as exc:
-            raise SquadsError(f"{ctx} badge[{i}]: {describe_spec_error(exc, Badge)}") from exc
+            raise SpecEntryError(f"{ctx} badge[{i}]", exc, Badge) from exc
     return badges
 
 
@@ -592,9 +648,7 @@ def _parse_collection(code: str, data: dict[str, Any]) -> Collection:
     try:
         return Collection.model_validate(payload)
     except Exception as exc:
-        raise SquadsError(
-            f"Invalid collection {code!r}: {describe_spec_error(exc, Collection)}"
-        ) from exc
+        raise SpecEntryError(f"Invalid collection {code!r}", exc, Collection) from exc
 
 
 def _parse_role(code: str, data: dict[str, Any]) -> RoleSpec:
@@ -609,7 +663,7 @@ def _parse_role(code: str, data: dict[str, Any]) -> RoleSpec:
     try:
         return RoleSpec.model_validate(data)
     except Exception as exc:
-        raise SquadsError(f"Invalid role {code!r}: {describe_spec_error(exc, RoleSpec)}") from exc
+        raise SpecEntryError(f"Invalid role {code!r}", exc, RoleSpec) from exc
 
 
 def _parse_ref_kind(code: str, data: dict[str, Any]) -> RefKindSpec:
@@ -618,9 +672,7 @@ def _parse_ref_kind(code: str, data: dict[str, Any]) -> RefKindSpec:
     try:
         return RefKindSpec.model_validate(data)
     except Exception as exc:
-        raise SquadsError(
-            f"Invalid ref_kinds entry {code!r}: {describe_spec_error(exc, RefKindSpec)}"
-        ) from exc
+        raise SpecEntryError(f"Invalid ref_kinds entry {code!r}", exc, RefKindSpec) from exc
 
 
 def _parse_view(name: str, data: dict[str, Any]) -> ViewSpec:
@@ -640,12 +692,12 @@ def _parse_view(name: str, data: dict[str, Any]) -> ViewSpec:
     try:
         source = ViewSource.model_validate(raw_source)
     except Exception as exc:
-        raise SquadsError(f"Invalid {ctx}.source: {describe_spec_error(exc, ViewSource)}") from exc
+        raise SpecEntryError(f"Invalid {ctx}.source", exc, ViewSource) from exc
     payload: dict[str, Any] = {**data, "source": source}
     try:
         return ViewSpec.model_validate(payload)
     except Exception as exc:
-        raise SquadsError(f"Invalid view {name!r}: {describe_spec_error(exc, ViewSpec)}") from exc
+        raise SpecEntryError(f"Invalid view {name!r}", exc, ViewSpec) from exc
 
 
 def _parse_subentity_kind(kind: str, data: dict[str, Any]) -> SubentityKindSpec:
@@ -655,8 +707,8 @@ def _parse_subentity_kind(kind: str, data: dict[str, Any]) -> SubentityKindSpec:
     try:
         return SubentityKindSpec.model_validate(payload)
     except Exception as exc:
-        raise SquadsError(
-            f"Invalid subentity_kinds entry {kind!r}: {describe_spec_error(exc, SubentityKindSpec)}"
+        raise SpecEntryError(
+            f"Invalid subentity_kinds entry {kind!r}", exc, SubentityKindSpec
         ) from exc
 
 
@@ -670,106 +722,95 @@ def _parse_squad(value: Any) -> SquadSpec:
     try:
         return SquadSpec.model_validate(value)
     except Exception as exc:
-        raise SquadsError(f"Invalid squad table: {describe_spec_error(exc, SquadSpec)}") from exc
+        raise SpecEntryError("Invalid squad table", exc, SquadSpec) from exc
 
 
-def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
+def _parse_item(name: str, data: dict[str, Any], declared_ref_kinds: frozenset[str]) -> ItemSpec:
+    """Parse one ``[items.<name>]`` table into an ``ItemSpec``."""
+    data = _pop_legacy_is_meta(name, data)
+    # parents stays a list of plain strings; cross-refs are checked in WorkflowSpec._validate.
+    # A non-list here would become a per-character list, so it is refused like every other
+    # shape — ItemSpec's own list[str] typing cannot tell "P","e" apart from a real entry.
+    raw_parents = data.get("parents", [])
+    if not isinstance(raw_parents, list):
+        raise SquadsError(
+            f"items.{name}.parents must be an array of type names "
+            f"(got {type(raw_parents).__name__})"
+        )
+    parents: list[str] = list(cast(list[Any], raw_parents))
+    ref_rules = _parse_ref_rules(data.get("ref_rules", []), f"items.{name}", declared_ref_kinds)
+    fields = _parse_fields(data.get("fields", []), f"items.{name}", reserved=CREATE_OPTION_NAMES)
+    # Start with the raw data, then override the pre-coerced fields so model_validate sees the
+    # right types AND any unknown keys trigger extra="forbid".
+    payload: dict[str, Any] = {**data, "parents": parents, "ref_rules": ref_rules, "fields": fields}
+    try:
+        return ItemSpec.model_validate(payload)
+    except Exception as exc:
+        raise SpecEntryError(f"Invalid item spec {name!r}", exc, ItemSpec) from exc
+
+
+def _build_spec(raw: dict[str, Any], *, collect: bool = False) -> WorkflowSpec:
     """Build and validate a ``WorkflowSpec`` from a raw parsed-TOML mapping — the bundled one,
     or a bundled-plus-override mapping the merge engine has already produced. One parser
     family, run once, regardless of which raw mapping it is handed.
 
     Every section and entry is read through :func:`_section`/:func:`as_entry_list`, so a
     malformed shape anywhere in the document is refused as a clean ``SquadsError`` — the shape
-    guards' own comment above says why that matters more than the message quality suggests."""
+    guards' own comment above says why that matters more than the message quality suggests.
+    The first malformed entry is refused, unless *collect* is set: then every malformed entry
+    is parsed past and the failures are raised together as one :class:`SpecShapeErrors`."""
     raw = as_table(raw, "workflow spec")
-    # --- lifecycles (merged item + sub-entity machines) ---
-    lifecycles: dict[str, Lifecycle] = {
-        name: _parse_lifecycle(name, data) for name, data in _section(raw, "lifecycles").items()
-    }
+    problems: list[str] = []
 
-    # --- statuses --- (keys are plain str)
-    statuses: dict[str, StatusSpec] = {}
-    for name, data in _section(raw, "statuses").items():
+    def parse[K, V](
+        entries: dict[K, dict[str, Any]], one: Callable[[K, dict[str, Any]], V]
+    ) -> dict[K, V]:
+        parsed: dict[K, V] = {}
+        for key, data in entries.items():
+            try:
+                parsed[key] = one(key, data)
+            except SquadsError as exc:
+                if not collect:
+                    raise
+                problems.extend(exc.findings if isinstance(exc, SpecEntryError) else [str(exc)])
+        return parsed
+
+    def status(name: str, data: dict[str, Any]) -> StatusSpec:
         # Pass the full status data dict through model_validate so extra="forbid" fires
         # on any unknown keys.
         try:
-            statuses[name] = StatusSpec.model_validate(data)
+            return StatusSpec.model_validate(data)
         except Exception as exc:
-            raise SquadsError(
-                f"Invalid status {name!r}: {describe_spec_error(exc, StatusSpec)}"
-            ) from exc
+            raise SpecEntryError(f"Invalid status {name!r}", exc, StatusSpec) from exc
 
-    # --- ref_kinds (the declared ref-kind vocabulary) --- parsed before items:
-    # ref_rules validation below refuses a rule naming an undeclared kind.
-    ref_kinds: dict[str, RefKindSpec] = {
-        code: _parse_ref_kind(code, data) for code, data in _section(raw, "ref_kinds").items()
-    }
+    lifecycles = parse(_section(raw, "lifecycles"), _parse_lifecycle)
+    statuses = parse(_section(raw, "statuses"), status)
+    # ref_kinds are parsed before items: ref_rules validation refuses a rule naming an
+    # undeclared kind.
+    ref_kinds = parse(_section(raw, "ref_kinds"), _parse_ref_kind)
     declared_ref_kinds = frozenset(ref_kinds)
-
-    # --- items --- (type keys/values are plain str)
-    items: dict[str, ItemSpec] = {}
-    prefix_to_type: dict[str, str] = {}
-    alias_to_type: dict[str, str] = {}
-
-    for name, data in _section(raw, "items").items():
-        data = _pop_legacy_is_meta(name, data)
-        # parents stays a list of plain strings; cross-refs are checked in WorkflowSpec._validate.
-        # A non-list here would become a per-character list, so it is refused like every other
-        # shape — ItemSpec's own list[str] typing cannot tell "P","e" apart from a real entry.
-        raw_parents = data.get("parents", [])
-        if not isinstance(raw_parents, list):
-            raise SquadsError(
-                f"items.{name}.parents must be an array of type names "
-                f"(got {type(raw_parents).__name__})"
-            )
-        parents: list[str] = list(cast(list[Any], raw_parents))
-        ref_rules = _parse_ref_rules(data.get("ref_rules", []), f"items.{name}", declared_ref_kinds)
-        fields = _parse_fields(
-            data.get("fields", []), f"items.{name}", reserved=CREATE_OPTION_NAMES
-        )
-        # Build the payload: start with the raw data, then override the pre-coerced fields
-        # so model_validate sees the right types AND any unknown keys trigger extra="forbid".
-        payload: dict[str, Any] = {
-            **data,
-            "parents": parents,
-            "ref_rules": ref_rules,
-            "fields": fields,
-        }
-        try:
-            ts = ItemSpec.model_validate(payload)
-        except Exception as exc:
-            raise SquadsError(
-                f"Invalid item spec {name!r}: {describe_spec_error(exc, ItemSpec)}"
-            ) from exc
-        items[name] = ts
-        prefix_to_type[ts.prefix] = name
-        for alias in ts.aliases:
-            alias_to_type[alias] = name
-
-    # --- collections (reusable badge libraries, keyed by collection code) ---
-    collections: dict[str, Collection] = {
-        code: _parse_collection(code, data) for code, data in _section(raw, "collections").items()
+    items = parse(
+        _section(raw, "items"), lambda name, data: _parse_item(name, data, declared_ref_kinds)
+    )
+    prefix_to_type: dict[str, str] = {ts.prefix: name for name, ts in items.items()}
+    alias_to_type: dict[str, str] = {
+        alias: name for name, ts in items.items() for alias in ts.aliases
     }
-
-    # --- subentity_kinds (per-kind machine binding, CLI vocab, and field declarations) ---
-    subentity_kinds: dict[str, SubentityKindSpec] = {
-        kind: _parse_subentity_kind(kind, data)
-        for kind, data in _section(raw, "subentity_kinds").items()
-    }
-
-    # --- roles (the role catalog: settled/hidden/color per role name) ---
-    roles: dict[str, RoleSpec] = {
-        code: _parse_role(code, data) for code, data in _section(raw, "roles").items()
-    }
-
-    # --- views (declared derived-view projections) --- parsed last: cross-referenced
-    # against items/subentity_kinds/ref_kinds by WorkflowSpec._validate, not here.
-    views: dict[str, ViewSpec] = {
-        name: _parse_view(name, data) for name, data in _section(raw, "views").items()
-    }
-
-    # --- squad (the squad-wide validator selection) ---
-    squad = _parse_squad(raw.get("squad", {}))
+    collections = parse(_section(raw, "collections"), _parse_collection)
+    subentity_kinds = parse(_section(raw, "subentity_kinds"), _parse_subentity_kind)
+    roles = parse(_section(raw, "roles"), _parse_role)
+    # views are cross-referenced against items/subentity_kinds/ref_kinds by
+    # WorkflowSpec._validate, not here.
+    views = parse(_section(raw, "views"), _parse_view)
+    squad = SquadSpec()
+    try:
+        squad = _parse_squad(raw.get("squad", {}))
+    except SquadsError as exc:
+        if not collect:
+            raise
+        problems.extend(exc.findings if isinstance(exc, SpecEntryError) else [str(exc)])
+    if problems:
+        raise SpecShapeErrors(problems)
 
     # WorkflowSpec construction triggers the model_validator (pydantic v2).
     # Route through model_validate so extra="forbid" fires at construction.
@@ -1463,7 +1504,33 @@ _SPEC_ERROR_FIX_HINT = (
     "(directly or via `selected`), and re-run `sq workflow lint`."
 )
 
+_SPEC_SHAPE_FIX_HINT = (
+    "Correct the entry in .overrides/workflow.toml as the finding states, and re-run "
+    "`sq workflow lint`."
+)
+
 _STAMP_FIX_HINT = "Run `sq override update workflow` after reviewing `sq override diff workflow`."
+
+
+def _spec_failure_findings(
+    exc: SquadsError, deselections: tuple[Deselection, ...]
+) -> list[LintFinding]:
+    """The findings for a ``_build_spec`` failure: one per malformed entry field, or one per
+    referential bullet."""
+    if isinstance(exc, SpecShapeErrors):
+        return [
+            ("error", WORKFLOW_OVERRIDE_FILENAME, line, _SPEC_SHAPE_FIX_HINT)
+            for line in exc.findings
+        ]
+    return [
+        (
+            "error",
+            WORKFLOW_OVERRIDE_FILENAME,
+            _annotate_line(line, deselections),
+            _SPEC_ERROR_FIX_HINT,
+        )
+        for line in _split_spec_errors(str(exc))
+    ]
 
 
 def lint_workflow_spec(  # noqa: PLR0911 — one return per gate below
@@ -1574,15 +1641,13 @@ def lint_workflow_spec(  # noqa: PLR0911 — one return per gate below
 
     _strip_ref_rule_targets_of_dropped_types(merged, result.deselections)
     _drop_bundled_module_where_override_sets_path(merged)
+    _drop_inherited_unreachable_transitions(merged, raw_override)
 
     # Phase 5 — structural + referential validation.
     try:
-        spec = loaded if loaded is not None else _build_spec(merged)
+        spec = loaded if loaded is not None else _build_spec(merged, collect=True)
     except SquadsError as exc:
-        bullets = [_annotate_line(b, result.deselections) for b in _split_spec_errors(str(exc))]
-        findings.extend(
-            ("error", WORKFLOW_OVERRIDE_FILENAME, b, _SPEC_ERROR_FIX_HINT) for b in bullets
-        )
+        findings.extend(_spec_failure_findings(exc, result.deselections))
         return findings
 
     # Phase 6 — live-index cross-check. Each family gets its OWN fix hint (called separately

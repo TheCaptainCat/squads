@@ -391,6 +391,7 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
             help="Set a declared attribute as `key=value` (repeatable; see `sq workflow types`).",
         ),
         unset: list[str] = typer.Option(None, "--unset", help="Attribute to remove (repeatable)."),
+        as_: str | None = common.edit_as_option(),
     ):
         """Change the item's title, status, parent, assignee, labels or attributes."""
         # `is not None`, not truthiness: an empty `--parent ""` is a value the user supplied,
@@ -410,6 +411,7 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
                 raise SquadsError(f"--set expects key=value, got {pair!r}")
             set_attributes[key.strip()] = value
         svc = get_service()
+        await common.apply_edit_actor(as_, svc)
         others = (
             title, desc, author, status, parent, no_parent, priority, no_priority,
             add_label, rm_label, set_, unset,
@@ -459,9 +461,12 @@ def _cmd_status(item: typer.Typer) -> None:
         ctx: typer.Context,
         new_status: str = typer.Argument(..., metavar="STATUS", help=common.MOVE_STATUS_HELP),
         force: bool = common.force_transition_option(),
+        as_: str | None = common.edit_as_option(),
     ):
         """Move the item to another status."""
-        it = await get_service().set_status(_id(ctx), parse_status(new_status), force=force)
+        svc = get_service()
+        await common.apply_edit_actor(as_, svc)
+        it = await svc.set_status(_id(ctx), parse_status(new_status), force=force)
         console.print(f"{it.id} → [bold]{it.status}[/bold]")
 
 
@@ -474,6 +479,7 @@ def _cmd_body(item: typer.Typer) -> None:
         file: str | None = common.file_option(),
         append: bool = common.append_option(),
         force: bool = common.replace_body_option(),
+        as_: str | None = common.edit_as_option(),
     ):
         """Set or append to the item's body.
 
@@ -481,7 +487,9 @@ def _cmd_body(item: typer.Typer) -> None:
         refusal names what would be lost and writes nothing, so a bare `body` is a
         safe check. A first write over the template just works.
         """
-        await get_service().set_body(
+        svc = get_service()
+        await common.apply_edit_actor(as_, svc)
+        await svc.set_body(
             _id(ctx), resolve_body(message or None, file), append=append, force=force
         )
         console.print(f"{_id(ctx)}: body {'appended' if append else 'set'}")
@@ -500,6 +508,7 @@ def _cmd_retype(item: typer.Typer) -> None:
                 "The item number is kept; only the ID prefix changes."
             ),
         ),
+        as_: str | None = common.edit_as_option(),
     ):
         """Reclassify this item to a different type, keeping its number and body.
 
@@ -513,6 +522,7 @@ def _cmd_retype(item: typer.Typer) -> None:
             work = ", ".join(sorted(wt))
             raise SquadsError(f"cannot retype to {new_type!r}; valid targets: {work}")
         svc = get_service()
+        await common.apply_edit_actor(as_, svc)
         res = await svc.retype(_id(ctx), target)
         console.print(
             f"retyped {e(res.old_id)} → [bold]{e(res.item.id)}[/bold]  [dim]{res.item.path}[/dim]"
@@ -542,6 +552,7 @@ def _cmd_remove(item: typer.Typer) -> None:
         json_out: bool = typer.Option(
             False, "--json", help="Print one JSON object: the removed ID and the cut refs."
         ),
+        as_: str | None = common.edit_as_option(),
     ):
         """Delete this item for good: its file and its index entry.
 
@@ -551,9 +562,10 @@ def _cmd_remove(item: typer.Typer) -> None:
         remove only items that should never have existed.
         """
         item_id = _id(ctx)
+        svc = get_service()
+        await common.apply_edit_actor(as_, svc)
         if not yes:
             typer.confirm(f"Remove {item_id}? This cannot be undone.", abort=True)
-        svc = get_service()
         res = await svc.remove_work_item(item_id, force=force)
         if json_out:
             print_json_clean(
@@ -624,9 +636,11 @@ def _cmd_refs(item: typer.Typer) -> None:
             "--kind",
             help="Ref kind (see `sq workflow ref-kinds`); without it, the default kind.",
         ),
+        as_: str | None = common.edit_as_option(),
     ):
         """Add a ref from this item to TARGET."""
         svc = get_service()
+        await common.apply_edit_actor(as_, svc)
         # target may be a bare number, full ID, or ID:kind — resolve the ID part only
         raw_id, embedded_kind = split_ref(target)
         resolved_id = await resolve_item_id_any(raw_id, svc)
@@ -637,10 +651,13 @@ def _cmd_refs(item: typer.Typer) -> None:
     @ref_app.command("rm")
     @common.command
     async def ref_rm(
-        ctx: typer.Context, target: str = typer.Argument(..., help="Item ID or number.")
+        ctx: typer.Context,
+        target: str = typer.Argument(..., help="Item ID or number."),
+        as_: str | None = common.edit_as_option(),
     ):
         """Remove this item's ref to TARGET."""
         svc = get_service()
+        await common.apply_edit_actor(as_, svc)
         raw_id, _ = split_ref(target)
         resolved_id = await resolve_item_id_any(raw_id, svc)
         await svc.rm_ref(_id(ctx), resolved_id)
@@ -667,9 +684,12 @@ def _cmd_view(item: typer.Typer) -> None:
     async def view_add(
         ctx: typer.Context,
         name: str = typer.Argument(..., help="Declared view name (see `sq workflow views`)."),
+        as_: str | None = common.edit_as_option(),
     ):
         """Show a declared view in the item's body, or re-enable it."""
-        placed = await get_service().add_view(_id(ctx), name)
+        svc = get_service()
+        await common.apply_edit_actor(as_, svc)
+        placed = await svc.add_view(_id(ctx), name)
         if placed:
             console.print(f"{_id(ctx)}: view {e(name)} placed in sq:body")
         else:
@@ -682,9 +702,11 @@ def _cmd_view(item: typer.Typer) -> None:
         name: str = typer.Argument(
             ..., help="View name; it need not be declared, so a dropped view can be turned off."
         ),
+        as_: str | None = common.edit_as_option(),
     ):
         """Stop showing a view in the item's body; its tag stays, disabled."""
         svc = get_service()
+        await common.apply_edit_actor(as_, svc)
         item_id = _id(ctx)
         was_present = await svc.view_tag_present(item_id, name)
         disabled = await svc.disable_view(item_id, name)
@@ -700,6 +722,16 @@ def _cmd_view(item: typer.Typer) -> None:
 # Everything below is built from the resolved SubentityKindSpec (spec.subentity_kinds[kind]) —
 # no per-kind ("story"/"subtask"/"finding") branches. A project-declared custom kind gets the
 # identical add-<kind>/<plural>/<kind> <n> <verb> surface for free.
+
+
+def _edit_as_param() -> inspect.Parameter:
+    """The ``--as`` option of a generated ``add-<kind>`` / ``update`` verb."""
+    return inspect.Parameter(
+        "as_",
+        inspect.Parameter.KEYWORD_ONLY,
+        default=common.edit_as_option(),
+        annotation=str | None,
+    )
 
 
 def _field_param(field: Field) -> inspect.Parameter:
@@ -897,12 +929,14 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             default=typer.Option(False, "--json", help=f"Print one JSON object: the new {kind}."),
             annotation=bool,
         ),
+        _edit_as_param(),
     ]
 
     async def _add(**kwargs: object) -> None:
         ctx = cast(typer.Context, kwargs["ctx"])
         title = cast(str, kwargs["title"])
         svc = get_service()
+        await common.apply_edit_actor(_kw_str(kwargs, "as_"), svc)
         assignee = _kw_str(kwargs, "assignee")
         validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
         story = _kw_str(kwargs, "story")
@@ -993,6 +1027,7 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             default=common.force_transition_option(),
             annotation=bool,
         ),
+        _edit_as_param(),
     ]
 
     async def _update(**kwargs: object) -> None:
@@ -1033,6 +1068,7 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             clear_assignee=clear_assignee,
         )
         svc = get_service()
+        await common.apply_edit_actor(_kw_str(kwargs, "as_"), svc)
         clear_assignee, nothing_to_change = _settle_clear_assignee(
             (await svc.get_block(pid, kind, lid)).info.assignee,
             clear_assignee,
@@ -1122,9 +1158,12 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
         file: str | None = common.file_option(),
         append: bool = common.append_option(),
         force: bool = common.replace_body_option(),
+        as_: str | None = common.edit_as_option(),
     ):
         pid, lid = ids(ctx)
-        await get_service().set_block_body(
+        svc = get_service()
+        await common.apply_edit_actor(as_, svc)
+        await svc.set_block_body(
             pid, kind, lid, resolve_body(message or None, file), append=append, force=force
         )
         console.print(f"{pid} {lid}: body {'appended' if append else 'set'}")
@@ -1140,11 +1179,14 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
         json_out: bool = typer.Option(
             False, "--json", help=f"Print one JSON object naming the removed {kind}."
         ),
+        as_: str | None = common.edit_as_option(),
     ):
         pid, lid = ids(ctx)
+        svc = get_service()
+        await common.apply_edit_actor(as_, svc)
         if not yes:
             typer.confirm(f"Remove {kind} {lid} from {pid}? This cannot be undone.", abort=True)
-        await get_service().remove_block(pid, kind, lid)
+        await svc.remove_block(pid, kind, lid)
         if json_out:
             print_json_clean(json.dumps({"removed": f"{kind} {lid}"}))
             return

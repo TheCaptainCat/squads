@@ -788,9 +788,7 @@ class MaintenanceMixin(ServiceCore):
             number, slug = stamped_skill_parts(folder / name, self.spec) or (0, "")
             item = self._catalog_skill_item(slug, number, name, state.known.get(number))
             body = sections.strip_frontmatter(text)
-            await _aio.atomic_write_text(
-                folder / name, join_frontmatter(item.to_frontmatter_dict(), body)
-            )
+            await write_text(folder / name, join_frontmatter(item.to_frontmatter_dict(), body))
             restamped.append(number)
         return restamped, skipped
 

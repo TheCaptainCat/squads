@@ -216,6 +216,13 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
     ]
 
 
+def _order_cell(order: Any) -> str:
+    """A type's order as the table prints it: whole as an integer, fractional as is."""
+    if order is None:
+        return ""
+    return str(int(order)) if float(order).is_integer() else str(order)
+
+
 @workflow_app.command("types")
 @handle_errors
 def workflow_types(
@@ -242,7 +249,7 @@ def workflow_types(
     for row in rows:
         table.add_row(
             e(str(row["type"])),
-            "" if row["order"] is None else str(row["order"]),
+            _order_cell(row["order"]),
             e(str(row["prefix"])),
             "yes" if row["reserved"] else "",
             e(str(row["category"])),

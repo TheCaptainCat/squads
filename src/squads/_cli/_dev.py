@@ -28,13 +28,20 @@ async def dev_add(
         None, "--slug", help="Slug to file the developer under instead of `<tech>-dev`."
     ),
     pronouns: str | None = common.pronouns_option(),
+    as_: str | None = common.edit_as_option(),
 ):
     """Add a developer role for one technology, such as `--tech dotnet`.
 
     Exactly `sq role activate [<slug>] --from dev --tech <t>`.
     """
     await role_cli.activate_with_template(
-        slug, name=name, model=model, pronouns=pronouns, from_template=DEV_TEMPLATE_NAME, tech=tech
+        slug,
+        name=name,
+        model=model,
+        pronouns=pronouns,
+        from_template=DEV_TEMPLATE_NAME,
+        tech=tech,
+        as_=as_,
     )
 
 

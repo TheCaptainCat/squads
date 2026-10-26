@@ -210,7 +210,8 @@ def test_preloaded_skill_fires_for_an_archived_type_implied_skill_and_names_the_
     assert "remedy" not in findings[0].message  # remedy lives in its own field, not baked in
     assert findings[0].remedy is not None
     assert "make the skill live again" in findings[0].remedy
-    assert "drop the implicating type" in findings[0].remedy
+    assert "stays implied for as long as those types are declared" in findings[0].remedy
+    assert "[selected]" not in findings[0].remedy and "drop" not in findings[0].remedy
 
 
 def test_preloaded_skill_type_implied_stays_silent_with_no_active_backend() -> None:
@@ -389,7 +390,7 @@ def test_render_finding_scoped_edge_defaults_to_the_no_unlink_remedy() -> None:
     )[0]
     rendered = render_finding(finding)
     assert rendered == (
-        "not live (status 'Archived') but still scoped to live role(s): python-dev — remedy: "
+        "not live but still scoped to live role(s): python-dev — remedy: "
         "sever the edge with `sq skill <addr> unlink-role <role>`, or reactivate the skill"
     )
     assert "--unlink" not in rendered
@@ -409,7 +410,7 @@ def test_render_finding_scoped_edge_offers_unlink_when_available() -> None:
     )[0]
     rendered = render_finding(finding, unlink_available=True)
     assert rendered == (
-        "not live (status 'Archived') but still scoped to live role(s): python-dev — remedy: "
+        "not live but still scoped to live role(s): python-dev — remedy: "
         "pass --unlink, or run `sq skill <addr> unlink-role <role>` first"
     )
     assert rendered.count("remedy") == 1
@@ -424,9 +425,9 @@ def test_render_finding_type_implied_composes_condition_and_remedy_exactly_once(
     )[0]
     rendered = render_finding(finding)
     assert rendered == (
-        "not live (status 'Archived') but implied by declared type(s): task — remedy: make "
-        "the skill live again, or drop the implicating type via `[selected]` in "
-        ".overrides/workflow.toml"
+        "not live but implied by declared type(s): task — remedy: make the skill live "
+        "again; it stays implied for as long as those types are declared, and can retire "
+        "once no declared type implies it"
     )
     assert rendered.count("remedy") == 1
     _assert_no_phrase_repeats(rendered)
@@ -443,7 +444,7 @@ def test_render_finding_always_on_floor_composes_the_condition_alone_with_no_rem
     )[0]
     rendered = render_finding(finding)
     assert rendered == (
-        "not live (status 'Archived') but every role preloads it unconditionally — a "
+        "not live but every role preloads it unconditionally — a "
         "permanent floor of the roster contract; no remedy exists"
     )
     assert rendered.count("remedy") == 1  # appears once, as a fact — never a second "remedy:" tail

@@ -35,8 +35,12 @@ async def to_thread[T](fn: Callable[[], T]) -> T:
     return await anyio.to_thread.run_sync(fn)
 
 
-async def read_text(path: Path) -> str:
-    """Read *path* as UTF-8 text on a worker thread.
+async def read_text(path: Path, *, verbatim: bool = False) -> str:
+    """Read *path* as UTF-8 text on a worker thread, with every line ending read as LF.
+
+    No reader of content sees a CR. A writer that must put untouched lines back byte for byte
+    passes ``verbatim=True`` to get the file's own endings (the item-file write seam compares
+    its new text with them).
 
     Raises :class:`~squads._errors.UndecodableFileError` (a ``SquadsError`` naming *path* and
     the decoder's failing byte/offset) when the on-disk bytes aren't valid UTF-8, and
@@ -53,7 +57,9 @@ async def read_text(path: Path) -> str:
     read seam, where "missing" has one meaning instead of several.
     """
     try:
-        return await to_thread(lambda: path.read_text(encoding="utf-8"))
+        return await to_thread(
+            lambda: path.read_text(encoding="utf-8", newline="" if verbatim else None)
+        )
     except UnicodeDecodeError as exc:
         bad_byte = exc.object[exc.start]
         raise UndecodableFileError(

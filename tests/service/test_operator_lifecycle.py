@@ -67,13 +67,13 @@ async def test_operator_is_assignable_on_a_subentity(svc):
 async def test_check_accepts_an_operator_author_and_assignee(svc):
     await svc.add_operator("Alice Tester")
     await svc.create("task", "Manual deploy", author="op-alice", assignee="op-alice")
-    warnings = [i for i in await svc.check() if "not a registered agent" in i.message]
+    warnings = [i for i in await svc.check() if "not a registered role or operator" in i.message]
     assert warnings == []
 
 
 async def test_an_unknown_slug_is_still_rejected(svc):
     task = (await create_item(svc, "task", "t")).item
-    with pytest.raises(Exception, match="not a registered agent or operator"):
+    with pytest.raises(Exception, match="not a registered role or operator"):
         await svc.update(task.id, assignee="op-ghost")
 
 

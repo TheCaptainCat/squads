@@ -172,6 +172,17 @@ async def _body_region_deleted(svc: Any, project: Any, mp: Any) -> None:
     )
 
 
+async def _block_outside_its_container(svc: Any, project: Any, mp: Any) -> None:
+    task = (await svc.create("task", "Host", author="manager")).item
+    await svc.add_subtask(task.id, "first")
+    path = svc.paths.abspath((await svc.get(task.id)).path)
+    text = path.read_text(encoding="utf-8")
+    path.write_text(
+        text.replace("<!-- sq:subtasks -->\n", "").replace("<!-- sq:subtasks:end -->\n", ""),
+        encoding="utf-8",
+    )
+
+
 async def _drifted_workflow_override(svc: Any, project: Any, mp: Any) -> None:
     from squads._overrides._service import scaffold_workflow
 
@@ -293,6 +304,7 @@ _SOURCES: list[tuple[str, Callable[[Any, Any, Any], Awaitable[None]], str]] = [
     ("raw-text scan: stray view tag", _view_tag_outside_the_body, "view_tag_in_region"),
     ("raw-text scan: seeded view", _seeded_view_tag_missing, "seeded_view_resolves"),
     ("raw-text scan: body region", _body_region_deleted, "body_regions_present"),
+    ("raw-text scan: block outside container", _block_outside_its_container, "block_in_container"),
     ("file load: unreadable", _unreadable_file, "file_readable"),
     ("file load: no id", _missing_id, "id_present"),
     ("file load: bad id", _malformed_id, "id_well_formed"),

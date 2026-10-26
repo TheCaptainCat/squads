@@ -293,8 +293,8 @@ def diff(
 
     Merge what Δ-upgrade added into your override by hand, then run
     `sq override update <name>`. With no name or flag, every drifted override is
-    diffed; one that cannot be read is named with its cause and the command
-    exits 1 after the rest.
+    diffed; a broken one is named (with its cause when it cannot be read) and the
+    command exits 1 after the rest.
     """
     squad_dir = get_squad_paths().squad_dir
 
@@ -316,9 +316,9 @@ def diff(
         entries = scan_overrides(squad_dir)
         drifted = [e for e in entries if e.state == STATE_DRIFTED]
         if not drifted and not json_out:
-            if not any(entry.cause for entry in entries):
+            if not any(entry.state == STATE_BROKEN for entry in entries):
                 console.print("[dim]no drifted overrides found[/dim]")
-            _fail_on_unreadable(entries)
+            _fail_on_broken(entries)
             return
         results.extend(
             diff_override(squad_dir, name=entry.name, kind=entry.kind) for entry in drifted
@@ -340,12 +340,27 @@ def diff(
                 ]
             )
         )
-        _fail_on_unreadable(entries)
+        _fail_on_broken(entries)
         return
 
     for result in results:
         _print_diff_result(result)
-    _fail_on_unreadable(entries)
+    _fail_on_broken(entries)
+
+
+def _fail_on_broken(entries: list[OverrideEntry]) -> None:
+    """Name each broken override and exit 1 when there is one; the readable overrides have
+    already been handled. An unreadable one states its cause, a readable one points at
+    `sq override list`."""
+    broken = [entry for entry in entries if entry.state == STATE_BROKEN]
+    for entry in broken:
+        line = entry.cause or (
+            f"{entry.name} is broken (a required sq region is missing); "
+            "run `sq override list` for the state of every override"
+        )
+        err_console.print(f"error: {e(line)}", soft_wrap=True)
+    if broken:
+        raise typer.Exit(1)
 
 
 def _fail_on_unreadable(entries: list[OverrideEntry]) -> None:

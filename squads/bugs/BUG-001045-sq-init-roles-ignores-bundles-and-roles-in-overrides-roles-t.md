@@ -3,14 +3,14 @@ id: BUG-1045
 sequence_id: 1045
 type: bug
 title: sq init --roles ignores bundles and roles in .overrides/roles.toml
-status: Open
+status: Verified
 author: qa
 priority: low
 refs:
 - REV-1035
 - MILE-1051:targets
 created_at: '2026-10-16T09:14:41Z'
-updated_at: '2026-10-16T12:24:22Z'
+updated_at: '2026-10-26T06:46:26Z'
 ---
 <!-- sq:body -->
 `sq init --roles <name>` resolves its bundle and slugs against the bundled role catalog only, so a bundle or role declared in the project's `.overrides/roles.toml` is refused.
@@ -32,4 +32,10 @@ Expected: with `.overrides/roles.toml` present, `--roles` accepts its bundles an
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-26T06:45:42Z] `qa` Mara Tester:
+  - Verified on the dev build (release/0.17, uv run sq), scratch squads under /tmp.
+    - Repro: init --roles minimal, `override scaffold roles`, append `[[roles]] sre` + `[bundles] all=[$(*self),"sre"]`, `ops=[manager,sre]`; `override diff roles` and `sq check` accept it.
+    - `init --force --default-names --no-claude --roles ops` -> roles: manager, sre. `--roles manager,sre` -> same. `--roles all` -> all eight plus sre. rc 0.
+    - Neighbours: `--roles sre,nonexist` -> `error: no bundle or role 'nonexist' (bundles: all, core, minimal, ops; roles: ... sre)`, rc 1. No override: `--roles sre` -> `no bundle or role 'sre' (bundles: all, core, minimal; ...)`, rc 1. Malformed override (`[[roles`) -> `error: malformed role catalog override .../roles.toml: Expected ']]' ...`, rc 1. Fresh checkout (override committed, no .squads.toml): `init --roles ops` -> roles: manager, sre.
+    Fix held (TASK-1137 ST3). Moving to Verified.
 <!-- sq:discussion:end -->

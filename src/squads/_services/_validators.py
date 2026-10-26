@@ -523,8 +523,8 @@ def _ref_kind_valid(ctx: ValidatorContext) -> list[CheckIssue]:
 
 def _agent_registered(ctx: ValidatorContext) -> list[CheckIssue]:
     """← ``_check_items``'s author/assignee branch: both must resolve to a registered
-    role or operator slug (``ctx.registered_slugs``, precomputed by the engine). A skill authored
-    by its own slug has no actor to check."""
+    role or operator slug (``ctx.registered_slugs``, precomputed by the engine). A skill
+    authored by its own slug has no actor to check."""
     level = _resolved_level(ctx, "agent_registered")
     issues: list[CheckIssue] = []
     for attr in ("author", "assignee"):
@@ -536,7 +536,7 @@ def _agent_registered(ctx: ValidatorContext) -> list[CheckIssue]:
                 CheckIssue(
                     level,
                     ctx.item.id,
-                    f"{attr} {slug!r} is not a registered agent or operator",
+                    f"{attr} {slug!r} is not a registered role or operator",
                     rule="agent_registered",
                 )
             )

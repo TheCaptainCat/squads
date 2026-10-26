@@ -3,14 +3,14 @@ id: BUG-1141
 sequence_id: 1141
 type: bug
 title: Read side converts CRLF item files to LF on write
-status: Open
+status: Verified
 parent: MILE-1051
 author: qa
 priority: low
 refs:
 - BUG-1028
 created_at: '2026-10-25T11:10:37Z'
-updated_at: '2026-10-25T11:11:14Z'
+updated_at: '2026-10-26T06:46:40Z'
 ---
 <!-- sq:body -->
 ## Reproduction
@@ -36,4 +36,11 @@ Split out of the read-side note on the atomic-writer bug. Same effect on the ind
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-26T06:45:47Z] `qa` Mara Tester:
+  - Verified on the dev build. Scratch squad, task file rewritten to CRLF (44 CRLF, 0 bare LF), then one write at a time:
+    - comment (+2), body, status Ready, add-subtask (+16), subtask body, subtask comment, subtask update --status, subtask update --assignee: bare-LF count stayed 0 after every verb. `sq check` ok, `sq repair` leaves 63 CRLF / 0 LF, the comment text is present.
+    - Mixed file (22 CRLF / 22 LF): a comment keeps the 22 CRLF and the existing 22 LF untouched; the two inserted lines take LF (tie goes to LF, per TASK-1147 ST1).
+    - LF file stays LF (0 CRLF). CRLF CLAUDE.md with the managed region: `sq sync` leaves 126 CRLF / 126 lines, user text kept.
+    - Not covered: a CRLF `.squads.json` is read fine but rewritten as LF by the next write (68 LF, 0 CRLF after a comment). It is a generated, rebuildable file, so I treat it as acceptable; flag it if you want it held to the same rule.
+    Moving to Verified.
 <!-- sq:discussion:end -->

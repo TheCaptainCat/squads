@@ -52,6 +52,36 @@ async def test_noted_is_reached_from_open_and_left_only_with_force(svc, edge: st
         assert (await _finding(svc, review)).status == path[-1]
 
 
+async def test_a_noted_finding_moves_to_deferred_with_its_carrier_and_no_force(svc) -> None:
+    review, carrier = await _review_with_finding(svc)
+    await svc.update_finding(review, "F1", status="Noted")
+
+    await svc.update_finding(review, "F1", status="Deferred", deferred_to=carrier)
+
+    finding = await _finding(svc, review)
+    assert (finding.status, finding.deferred_to) == ("Deferred", carrier)
+
+
+@pytest.mark.parametrize("force", [False, True])
+async def test_a_noted_finding_still_needs_a_carrier_to_be_deferred(svc, force: bool) -> None:
+    review, _ = await _review_with_finding(svc)
+    await svc.update_finding(review, "F1", status="Noted")
+
+    with pytest.raises(SquadsError, match="--deferred-to"):
+        await svc.update_finding(review, "F1", status="Deferred", force=force)
+
+    assert (await _finding(svc, review)).status == "Noted"
+
+
+async def test_a_deferred_finding_keeps_no_outgoing_edge(svc) -> None:
+    review, carrier = await _review_with_finding(svc)
+    await svc.update_finding(review, "F1", status="Noted")
+    await svc.update_finding(review, "F1", status="Deferred", deferred_to=carrier)
+
+    with pytest.raises(InvalidTransitionError, match="--force"):
+        await svc.update_finding(review, "F1", status="Noted")
+
+
 #: shape -> (finding starts deferred to "carrier", update arguments, error fragment or None,
 #: expected (status, pointer) afterwards). Pointer tokens: "carrier", "second", "seq" (the
 #: carrier's bare number), "self" (the review), "role" (a roster item), "missing".

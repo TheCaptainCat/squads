@@ -601,6 +601,9 @@ FILE_HELP = "Read the text from a file instead of `-m`; `-` reads stdin."
 MOVE_STATUS_HELP = "Status to move to (see `sq workflow lifecycles`)."
 AUTHOR_AS_HELP = "Author: a role slug or `op-<slug>` (required)."
 COMMENT_AUTHOR_AS_HELP = "The comment's author (required)."
+EDIT_AS_HELP = (
+    "Attribute the edit in the reflog to this role slug or `op-<slug>`; default `system`."
+)
 _FORCE_TRANSITION_HELP = "Make a transition the lifecycle does not allow."
 
 
@@ -650,6 +653,10 @@ def author_option(default: Any = ...) -> Any:
 
 def as_option(help: str = AUTHOR_AS_HELP) -> Any:
     return typer.Option(None, "--as", help=help)
+
+
+def edit_as_option() -> Any:
+    return as_option(EDIT_AS_HELP)
 
 
 def yes_option() -> Any:
@@ -791,7 +798,7 @@ def print_block(parent_id: str, res: BlockResult, json_out: bool) -> None:
     if json_out:
         data: dict[str, object] = {
             "local_id": res.local_id,
-            "file": str(res.path),
+            "path": str(res.path),
             "region": res.body_tag,
             "start_line": res.start_line,
             "end_line": res.end_line,
@@ -2267,10 +2274,13 @@ def register_status_verb(
                 "check again; refused on any other transition."
             ),
         ),
+        as_: str | None = edit_as_option(),
     ) -> None:
         """Move this entry to another status."""
         item_id = id_from_ctx(ctx)
-        result = await get_service().set_roster_status(
+        svc = get_service()
+        await apply_edit_actor(as_, svc)
+        result = await svc.set_roster_status(
             item_id, parse_status(new_status), force=force, unlink=unlink
         )
         console.print(f"{result.item.id} → [bold]{result.item.status}[/bold]")
@@ -2303,6 +2313,7 @@ def register_remove_verb(
         purge: bool = typer.Option(
             False, "--purge", help="Delete the file too; remove refuses without it."
         ),
+        as_: str | None = edit_as_option(),
     ) -> None:
         """Delete this entry for good; it needs `--purge`.
 
@@ -2311,6 +2322,7 @@ def register_remove_verb(
         """
         item_id = id_from_ctx(ctx)
         svc = get_service()
+        await apply_edit_actor(as_, svc)
         removal = await svc.remove_item(item_id, purge=purge)
         if refresh_managed:
             await svc.refresh_managed()
@@ -2333,6 +2345,7 @@ def register_body_verb(addr_app: typer.Typer, id_from_ctx: Callable[[typer.Conte
         file: str | None = file_option(),
         append: bool = append_option(),
         force: bool = replace_body_option(),
+        as_: str | None = edit_as_option(),
     ) -> None:
         """Set or append to the body.
 
@@ -2342,7 +2355,9 @@ def register_body_verb(addr_app: typer.Typer, id_from_ctx: Callable[[typer.Conte
         """
         item_id = id_from_ctx(ctx)
         text = resolve_body(message or None, file)
-        await get_service().set_body(item_id, text, append=append, force=force)
+        svc = get_service()
+        await apply_edit_actor(as_, svc)
+        await svc.set_body(item_id, text, append=append, force=force)
         console.print(f"{item_id}: body {'appended' if append else 'set'}")
 
     addr_app.command("body")(body)
@@ -2630,6 +2645,13 @@ async def resolve_actor_or_raise(slug: str, svc: Service) -> str:
     is refused before the roster is read, so no roster entry can make it resolve."""
     refuse_system_actor(slug)
     return await resolve_slug_or_raise(slug, svc)
+
+
+async def apply_edit_actor(as_: str | None, svc: Service) -> None:
+    """Record an optional ``--as`` as the actor of the edit that follows, validated as a
+    comment's is; without it the actor stays ``system``. Call it before any write."""
+    if as_ is not None:
+        actor.set_actor(await resolve_actor_or_raise(as_, svc))
 
 
 async def resolve_slug_or_raise(slug: str, svc: Service, *, live_only: bool = True) -> str:

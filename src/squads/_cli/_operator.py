@@ -66,9 +66,11 @@ async def operator_add(
         None, "--slug", help="Slug to use instead of `op-<first name>`."
     ),
     pronouns: str | None = common.pronouns_option(),
+    as_: str | None = common.edit_as_option(),
 ) -> None:
     """Register a person who can be assigned work and write items and comments."""
     svc = get_service()
+    await common.apply_edit_actor(as_, svc)
     item = await svc.add_operator(name, slug=slug, pronouns=pronouns)
     name = common.named_markup(svc, item.title, _pronouns.pronouns(item))
     console.print(f"registered [bold]{name}[/bold] (`{item.slug}`) {item.id}")
@@ -194,11 +196,13 @@ async def operator_update(
     pronouns: str | None = typer.Option(
         None, "--pronouns", help="The operator's pronouns; a blank value clears them."
     ),
+    as_: str | None = common.edit_as_option(),
 ) -> None:
     """Rename an operator or set their pronouns; the slug never changes."""
     common.require_update_fields(title=title, pronouns=pronouns)
     item_id: str = ctx.obj["id"]
     svc = get_service()
+    await common.apply_edit_actor(as_, svc)
     await svc.update(item_id, title=title, pronouns=pronouns)
     await svc.refresh_managed()
     console.print(f"updated {item_id}")

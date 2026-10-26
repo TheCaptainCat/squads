@@ -23,6 +23,7 @@ is the same one-sided, repair-safe shape as a single-file write, just with more 
 ahead side.
 """
 
+import contextlib
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -32,7 +33,12 @@ from typing import Any
 from squads import _aio
 from squads._errors import SquadsError
 from squads._models._item import INVENTED_WHEN_ABSENT, Item
-from squads._sections import join_frontmatter, replace_frontmatter, split_frontmatter
+from squads._sections import (
+    conform_line_endings,
+    join_frontmatter,
+    replace_frontmatter,
+    split_frontmatter,
+)
 
 
 def read_frontmatter(
@@ -221,9 +227,7 @@ async def update_frontmatter(path: Path, item: Item, base: Item, *, default_kind
     """
     text = await read_item_text(path, item.id)
     ensure_no_skew(text, base, default_kind=default_kind)
-    await _aio.atomic_write_text(
-        path, replace_frontmatter(text, item.to_frontmatter_dict(), source=str(path))
-    )
+    await write_text(path, replace_frontmatter(text, item.to_frontmatter_dict(), source=str(path)))
 
 
 async def write_text(path: Path, text: str) -> None:
@@ -234,7 +238,12 @@ async def write_text(path: Path, text: str) -> None:
     frontmatter+body rewrite, …) rather than growing a bespoke ``_aio.atomic_write_text`` import
     at each such call site — so every write of an item ``.md`` funnels through this module and
     "the item-file layer exposes only the atomic primitive" stays structurally true.
+
+    The text takes the on-disk file's line endings (:func:`~squads._sections.conform_line_endings`):
+    lines it shares with the file keep theirs, added or changed lines use the file's dominant one.
     """
+    with contextlib.suppress(FileNotFoundError):
+        text = conform_line_endings(await _aio.read_text(path, verbatim=True), text)
     await _aio.atomic_write_text(path, text)
 
 
@@ -259,6 +268,6 @@ async def rewrite_ids(paths: Iterable[Path], remap: dict[str, str]) -> list[Path
         text = await _aio.read_text(path)
         new_text = remap_ids_text(text, remap)
         if new_text != text:
-            await _aio.atomic_write_text(path, new_text)
+            await write_text(path, new_text)
             touched.append(path)
     return touched

@@ -28,6 +28,7 @@ WORDINGS: dict[str, set[str]] = {
     "--as": {
         "Author: a role slug or `op-<slug>` (required).",
         "The comment's author (required).",
+        "Attribute the edit in the reflog to this role slug or `op-<slug>`; default `system`.",
         "Slug to attribute events with no `as` of their own and none to inherit; "
         "without it such an event is refused.",
     },

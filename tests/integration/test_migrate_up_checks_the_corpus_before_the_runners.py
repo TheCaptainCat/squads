@@ -197,9 +197,9 @@ async def test_once_the_index_is_restored_the_run_completes_and_the_stray_is_nev
     opened: list[Path] = []
     real = _aio.read_text
 
-    async def _spy(path: Path) -> str:
+    async def _spy(path: Path, **kwargs: bool) -> str:
         opened.append(path)
-        return await real(path)
+        return await real(path, **kwargs)
 
     monkeypatch.setattr(_aio, "read_text", _spy)
 

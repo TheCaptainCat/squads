@@ -17,6 +17,7 @@ import hashlib
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
 from typing import NamedTuple
 
@@ -31,6 +32,7 @@ from squads._sections import (
     append_to_section,
     find_markers,
     get_section,
+    iter_marker_spans,
     replace_section,
     split_lines,
 )
@@ -638,10 +640,10 @@ def restore_regions(
     if kind is None or not item.subentities:
         return text
     container = spec.subentity_plural(kind)
-    if get_section(text, container) is None:
+    if _pair_absent(text, container):
         if stale_container_tags(text, container):
             return text
-        text = _restore_container(text, spec.subentity_container_heading(kind), container)
+        text = restore_container(text, item, kind, spec)
     for sub in item.subentities:
         tag = f"{kind}:{sub.local_id}"
         if _pair_absent(text, tag):
@@ -651,12 +653,84 @@ def restore_regions(
     return text
 
 
-def _restore_container(text: str, heading: str, container: str) -> str:
-    """*text* with an empty container added before the item discussion, else at the end."""
-    if markers.open_marker(markers.DISCUSSION) not in text:
-        return ensure_container(text, heading, container)
-    at = _before_region(text, markers.DISCUSSION, "## Discussion")
-    return _insert_at_line_start(text, at, f"## {heading}\n\n{_pair(container)}")
+def restore_container(text: str, item: Item, kind: str, spec: WorkflowSpec) -> str:
+    """*text* with the missing container added around the item's surviving blocks of *kind*, so
+    each sits inside it in id order; with none, an empty one before the item discussion.
+
+    A heading already above the first block is reused, never written twice. Refuses, naming the
+    item and the container, when prose sits between the surviving blocks: enclosing them would
+    move it.
+    """
+    heading, container = spec.subentity_container_heading(kind), spec.subentity_plural(kind)
+    spans = _surviving_block_spans(text, item, kind)
+    if not spans:
+        if (own := re.search(rf"^## {re.escape(heading)}[ \t]*$", text, re.MULTILINE)) is not None:
+            following = re.compile(r"^## ", re.MULTILINE).search(text, own.end())
+            return _insert_at_line_start(
+                text, following.start() if following else len(text), _pair(container)
+            )
+        if markers.open_marker(markers.DISCUSSION) not in text:
+            return ensure_container(text, heading, container)
+        at = _before_region(text, markers.DISCUSSION, "## Discussion")
+        return _insert_at_line_start(text, at, f"## {heading}\n\n{_pair(container)}")
+    first, last = spans[0][1], max(end for _, _, end in spans)
+    if any(text[end:start].strip() for (_, _, end), (_, start, _) in pairwise(spans)):
+        raise SquadsError(
+            f"{item.id}: cannot restore the {container} container, prose sits between its blocks"
+            f" -- restore the {markers.open_marker(container)} and "
+            f"{markers.close_marker(container)} lines by hand"
+        )
+    _refuse_inside_a_region(text, item, container, first, last)
+    inner = text[first:last]
+    ordered = sorted(spans, key=lambda span: _local_number(span[0]))
+    if [span[0] for span in ordered] != [span[0] for span in spans]:
+        inner = "\n".join(text[start:end] for _, start, end in ordered)
+    after_region = max(
+        (end for tag, _, end in iter_marker_spans(text) if end <= first and _closes_a_region(tag)),
+        default=0,
+    )
+    own = re.search(rf"^## {re.escape(heading)}[ \t]*$", text[after_region:first], re.MULTILINE)
+    lead = "" if own else f"## {heading}\n\n"
+    opened = f"{lead}{markers.open_marker(container)}\n\n"
+    return f"{text[:first]}{opened}{inner}{markers.close_marker(container)}\n{text[last:]}"
+
+
+def _closes_a_region(tag: str) -> bool:
+    """Whether *tag* closes a top-level region (``sq:body:end``), not a block or a sub-region."""
+    return tag.endswith(":end") and tag.count(":") == 2
+
+
+def _refuse_inside_a_region(text: str, item: Item, container: str, first: int, last: int) -> None:
+    """Raise when the blocks to enclose sit inside another top-level region (the body, the
+    discussion): the container would nest in it."""
+    for tag in find_markers(text):
+        name = tag.removeprefix(markers.PREFIX)
+        if ":" in name or name == container:
+            continue
+        start = text.find(markers.open_marker(name))
+        end = text.find(markers.close_marker(name), start)
+        if start != -1 and end != -1 and start < first and last <= end:
+            raise SquadsError(
+                f"{item.id}: cannot restore the {container} container, its blocks sit inside the "
+                f"{name} region -- move them out of it, or restore the {container} marker lines "
+                "by hand"
+            )
+
+
+def _surviving_block_spans(text: str, item: Item, kind: str) -> list[tuple[str, int, int]]:
+    """``(local_id, start, end)`` of each of the item's *kind* blocks whose pair is in *text*, in
+    file order: *start* at the opening marker line, *end* just past the closing marker line."""
+    spans: list[tuple[str, int, int]] = []
+    for sub in item.subentities:
+        tag = f"{kind}:{sub.local_id}"
+        start = text.find(markers.open_marker(tag))
+        close = text.find(markers.close_marker(tag), start) if start != -1 else -1
+        if close == -1:
+            continue
+        line = text.rfind("\n", 0, start) + 1
+        newline = text.find("\n", close)
+        spans.append((sub.local_id, line, len(text) if newline == -1 else newline + 1))
+    return sorted(spans, key=lambda span: span[1])
 
 
 def _restore_block(

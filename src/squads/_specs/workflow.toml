@@ -129,9 +129,10 @@ Done = ["InProgress"]
 Cancelled = ["Todo"]
 
 [lifecycles.finding]
-# Review findings: Open → Fixed → Verified (+ WontFix); Noted and Deferred are terminal
-# targets of Open with no table key of their own, so an override that redeclares the Open list
-# keeps its own machine.
+# Review findings: Open → Fixed → Verified (+ WontFix); Noted and Deferred close a finding from
+# Open, and a noted finding can still be deferred. Deferred has no table key of its own; Noted
+# keeps its one edge when an override redeclares the Open list, so an override that drops Noted
+# from Open leaves it unreachable but still valid.
 initial = "Open"
 
 [lifecycles.finding.transitions]
@@ -139,6 +140,7 @@ Open = ["Fixed", "WontFix", "Noted", "Deferred"]
 Fixed = ["Verified", "Open"]
 Verified = []
 WontFix = ["Open"]
+Noted = ["Deferred"]
 
 # ---------------------------------------------------------------------------
 # Roles — the role catalog. Nine bundled roles; every status below names exactly one.

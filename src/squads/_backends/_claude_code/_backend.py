@@ -272,7 +272,10 @@ class ClaudeCodeBackend(AgentBackend):
                 # not the plain truncating writer. No frontmatter is invented here when there
                 # is none: allocation is a separate step.
                 text = sections.join_frontmatter(fm, seed_body) if fm else seed_body
-                await _aio.atomic_write_text(body_path, text)
+                on_disk = await _aio.read_text(body_path, verbatim=True)
+                await _aio.atomic_write_text(
+                    body_path, sections.conform_line_endings(on_disk, text)
+                )
         else:
             await _aio.atomic_write_text(body_path, seed_body)
 

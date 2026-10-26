@@ -26,7 +26,6 @@ from squads._models._item import Item
 from squads._models._subentity import SubEntity
 from squads._services._base import (
     ServiceCore,
-    ensure_subentity_container_text,
     reject_body_overwrite,
     reject_markers,
     subentity_title,
@@ -240,7 +239,13 @@ class SubentitiesMixin(ServiceCore):
         if not sections.has_section(text, container):
             if discussion.stale_container_tags(text, container):
                 raise SquadsError(f"no {container} section in {item_id}")
-            text = ensure_subentity_container_text(self.spec, item.type, text)
+            opened, closed = markers.open_marker(container), markers.close_marker(container)
+            if (opened in text) != (closed in text):
+                raise SquadsError(
+                    f"{item_id}: the {container} container is half present -- restore its "
+                    f"{opened} and {closed} lines by hand"
+                )
+            text = discussion.restore_container(text, item, kind, self.spec)
         block = discussion.build_block(
             kind, local_id, title, body=body, spec=self.spec, from_squad=self.paths.squad_dir
         )

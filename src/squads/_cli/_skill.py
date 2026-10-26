@@ -99,9 +99,11 @@ async def skill_add(
     operator_invocable: str | None = typer.Option(
         None, "--operator-invocable", help=_INVOCABLE_HELP
     ),
+    as_: str | None = common.edit_as_option(),
 ) -> None:
     """Create a skill item and its Claude pointer."""
     svc = get_service()
+    await common.apply_edit_actor(as_, svc)
     resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
     item = await svc.add_skill(
         name,
@@ -291,10 +293,12 @@ async def skill_ref_add(
         "--kind",
         help="Ref kind (see `sq workflow ref-kinds`); without it, the default kind.",
     ),
+    as_: str | None = common.edit_as_option(),
 ) -> None:
     """Add a ref from this skill to TARGET."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
+    await common.apply_edit_actor(as_, svc)
     raw_id, embedded_kind = split_ref(target)
     resolved_id = await resolve_item_id_any(raw_id, svc)
     effective_kind = embedded_kind or kind or svc.spec.default_ref_kind()
@@ -305,11 +309,14 @@ async def skill_ref_add(
 @_ref_app.command("rm")
 @common.command
 async def skill_ref_rm(
-    ctx: typer.Context, target: str = typer.Argument(..., help="Item ID or number.")
+    ctx: typer.Context,
+    target: str = typer.Argument(..., help="Item ID or number."),
+    as_: str | None = common.edit_as_option(),
 ) -> None:
     """Remove this skill's ref to TARGET."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
+    await common.apply_edit_actor(as_, svc)
     raw_id, _ = split_ref(target)
     resolved_id = await resolve_item_id_any(raw_id, svc)
     await svc.rm_ref(item_id, resolved_id)
@@ -322,7 +329,9 @@ _addr.add_typer(_ref_app, name="ref")
 @_addr.command("link-role")
 @common.command
 async def skill_link_role(
-    ctx: typer.Context, role: str = typer.Argument(..., help="Role slug, ID, or number.")
+    ctx: typer.Context,
+    role: str = typer.Argument(..., help="Role slug, ID, or number."),
+    as_: str | None = common.edit_as_option(),
 ) -> None:
     """Scope this skill to ROLE and update that role's pointer at once.
 
@@ -331,6 +340,7 @@ async def skill_link_role(
     """
     item_id: str = ctx.obj["id"]
     svc = get_service()
+    await common.apply_edit_actor(as_, svc)
     role_id = await resolve_agent_addr(role, "role", svc)
     await svc.link_role(item_id, role_id)
     console.print(f"{item_id} scoped to {role_id} (role resynced)")
@@ -339,11 +349,14 @@ async def skill_link_role(
 @_addr.command("unlink-role")
 @common.command
 async def skill_unlink_role(
-    ctx: typer.Context, role: str = typer.Argument(..., help="Role slug, ID, or number.")
+    ctx: typer.Context,
+    role: str = typer.Argument(..., help="Role slug, ID, or number."),
+    as_: str | None = common.edit_as_option(),
 ) -> None:
     """Unscope this skill from ROLE and update that role's pointer at once."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
+    await common.apply_edit_actor(as_, svc)
     role_id = await resolve_agent_addr(role, "role", svc)
     await svc.unlink_role(item_id, role_id)
     console.print(f"{item_id} unscoped from {role_id} (role resynced)")
@@ -371,13 +384,16 @@ async def skill_update(
     operator_invocable: str | None = typer.Option(
         None, "--operator-invocable", help=_INVOCABLE_HELP
     ),
+    as_: str | None = common.edit_as_option(),
 ) -> None:
     """Edit a skill's display fields; its slug never changes."""
     common.require_update_fields(
         title=title, desc=desc, when_to_use=when_to_use, operator_invocable=operator_invocable
     )
     item_id: str = ctx.obj["id"]
-    await get_service().update(
+    svc = get_service()
+    await common.apply_edit_actor(as_, svc)
+    await svc.update(
         item_id,
         title=title,
         description=desc,
@@ -409,10 +425,13 @@ _view_app = typer.Typer(
 async def skill_view_add(
     ctx: typer.Context,
     name: str = typer.Argument(..., help="Declared view name (see `sq workflow views`)."),
+    as_: str | None = common.edit_as_option(),
 ) -> None:
     """Show a declared view in the skill's body, or re-enable it."""
     item_id: str = ctx.obj["id"]
-    placed = await get_service().add_view(item_id, name)
+    svc = get_service()
+    await common.apply_edit_actor(as_, svc)
+    placed = await svc.add_view(item_id, name)
     if placed:
         console.print(f"{item_id}: view {e(name)} placed in sq:body")
     else:
@@ -426,10 +445,12 @@ async def skill_view_disable(
     name: str = typer.Argument(
         ..., help="View name; it need not be declared, so a dropped view can be turned off."
     ),
+    as_: str | None = common.edit_as_option(),
 ) -> None:
     """Stop showing a view in the skill's body; its tag stays, disabled."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
+    await common.apply_edit_actor(as_, svc)
     was_present = await svc.view_tag_present(item_id, name)
     disabled = await svc.disable_view(item_id, name)
     console.print(

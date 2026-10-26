@@ -76,6 +76,7 @@ _SITES: dict[tuple[str, str], tuple[str, ...]] = {
         "view_tag_in_region",
         "seeded_view_resolves",
         "body_regions_present",
+        "block_in_container",
         "frontmatter_parses",
         "id_present",
         "id_well_formed",

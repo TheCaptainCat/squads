@@ -3,14 +3,14 @@ id: BUG-1075
 sequence_id: 1075
 type: bug
 title: set-default on a catalog-less project role is lost on resolve
-status: Open
+status: Verified
 parent: MILE-1051
 author: qa
 priority: low
 refs:
 - REV-1068
 created_at: '2026-10-16T20:02:07Z'
-updated_at: '2026-10-16T20:02:07Z'
+updated_at: '2026-10-26T06:46:29Z'
 ---
 <!-- sq:body -->
 `sq role <slug> set-default` on a project role (a role defined under `.overrides/roles/<slug>.toml`, with no bundled-catalog entry) stores `is_default: true` in the role item, but resolving the role reads it back as `is_default: false`. The designation is lost: `sq role list` shows no default and the generated CLAUDE.md omits the default-role line. Found by REV-1068 F13; pre-existing, not a regression of the current work.
@@ -51,4 +51,10 @@ The Default column holds no tick at all after the archive. `ROLE-000003-lead.md`
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-26T06:45:43Z] `qa` Mara Tester:
+  - Verified on the dev build. Judged against ADR-1151 / TASK-1153 (project role now created with `sq role add --file`, since `activate` of a file-only slug is refused by design).
+    - Scratch squad (roles manager,qa,reviewer, claude_code backend), `role add lead --file` and `builder --file`, `role lead set-default` (cleared ROLE-1), `role manager status Archived`.
+    - `role list`: Default tick on lead, Origin project; `role lead show --json`: "is_default": true; CLAUDE.md: `default to **lead Person** (lead)`.
+    - Neighbours: `role qa set-default` (bundled) -> tick moves to qa, lead is_default false, CLAUDE.md names Mara Tester; `sq sync` keeps the designation (qa is_default true after).
+    Fix held (TASK-1153 ST2). Moving to Verified.
 <!-- sq:discussion:end -->

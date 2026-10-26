@@ -344,6 +344,7 @@ Open     → { Fixed, WontFix, Noted, Deferred }
 Fixed    → { Verified, Open }
 Verified → { }
 WontFix  → { Open }
+Noted    → { Deferred }
 ```
 
 - **`Noted`** (🔵, the `done` role) closes a finding with nothing to fix, such as an `info`
@@ -355,8 +356,8 @@ WontFix  → { Open }
   sq review <n> finding <k> update --status Deferred --deferred-to <ID>
   ```
 
-Both are settled, so neither counts as open work. Neither has an outgoing edge, so reopening one
-takes `--force`.
+Both are settled, so neither counts as open work. A noted finding can still be deferred when its
+work turns out to belong to another item, with no `--force`; reopening either takes `--force`.
 
 The rules for the carrier pointer:
 
@@ -394,7 +395,8 @@ settled there (see
 [overrides.md § "Validators"](overrides.md#validators-the-checks-a-type-runs-and-how-loud-they-are)).
 
 **If your override redeclares the finding's `Open` list**, your lifecycle stays as you wrote it,
-without `Noted` or `Deferred`. Add both to the list to adopt them:
+without `Noted` or `Deferred`; the bundled `Noted → Deferred` edge is dropped with them. Add both
+to the list to adopt them, and the edge returns:
 
 ```toml
 [lifecycles.finding.transitions]
@@ -678,7 +680,7 @@ Each line is a JSON object with these fields:
 |-------|------|---------|
 | `v` | `string` | Schema version the line was written under — tracks the index schema, forward-compatible by addition |
 | `ts` | `string` | ISO-8601 UTC timestamp of the operation |
-| `actor` | `string` | Role slug (`python-dev`, `system`, `op-alice`, …) performing the write |
+| `actor` | `string` | Role slug (`python-dev`, `system`, `op-alice`, …) performing the write. An edit verb records `system` unless it is given `--as <slug>`, which takes a live role or operator exactly as a comment's `--as` does |
 | `op` | `string` | Operation name (see table below) |
 | `target` | `string` | Primary item ID affected (empty `""` for squad-level ops) |
 | `delta` | `object` | Free-form before/after detail — shape varies by `op` |
@@ -702,6 +704,7 @@ one this guide ships with; your reflog is not corrupt.
 | `status` | `sq <type> <n> status …` |
 | `update` | `sq <type> <n> update …` — including a re-parent via `--parent` |
 | `body` | `sq <type> <n> body …` |
+| `view` | `sq <type> <n> view add` / `view disable`, when the tag changes. `delta` carries the `view` name and its `state`, `enabled` or `disabled` |
 | `comment` | `sq <type> <n> comment …`, on an item, a sub-entity, a role, a skill or an operator |
 | `comment_edit` | `comment <hash> edit` — one line per edit; `delta.comments` lists each comment it changed, with its `author`, `hash`, `region`, `ts`, the `before` text and the `after_hash` |
 | `comment_remove` | `comment <hash> remove` — one line per removal; `delta.comments` lists each removed comment with its `author`, `hash`, `region`, `ts` and `before` text |

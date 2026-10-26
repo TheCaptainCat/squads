@@ -3,7 +3,7 @@ id: TASK-1147
 sequence_id: 1147
 type: task
 title: Keep line endings and sub-entity containers intact on write
-status: Ready
+status: Done
 author: tech-lead
 priority: low
 refs:
@@ -15,12 +15,12 @@ description: CRLF survives read-modify-write; a restored container encloses its 
 subentities:
 - local_id: ST1
   title: Preserve CRLF line endings through read and write
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Enclose existing blocks when a container is restored
-  status: Todo
+  status: Done
 created_at: '2026-10-25T19:56:57Z'
-updated_at: '2026-10-26T04:14:52Z'
+updated_at: '2026-10-26T06:38:36Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -57,6 +57,10 @@ Test: a table over write verbs (comment, body, status, add-subtask, sub-entity b
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-26T04:33:51Z] `python-dev` Elias Python:
+  - Read is verbatim (newline="") in _aio.read_text. Item writes go through _itemfile.write_text, which now conforms the new text to the on-disk file (_sections.conform_line_endings): unchanged and in-place-edited lines keep their own ending; inserted or reflowed lines take the dominant ending (CRLF only when strictly more lines end in CRLF than LF, else LF). Managed-region files (CLAUDE.md/AGENTS.md) conform the same way. Frontmatter, find_markers and section replace already accepted CRLF. Tests: tests/unit/test_conform_line_endings.py, tests/service/test_a_write_keeps_the_files_line_endings.py (crlf/mixed/lf x 8 verbs, check/repair, CRLF index, CRLF managed file). Mutated the read and the conform: both go red. Changelog entry added.
+- [2026-10-26T04:52:22Z] `python-dev` Elias Python:
+  - Follow-up on the CRLF skill migration test: the test expectation was right, the code was wrong. With the verbatim read, repair converges a skill body through place_view_tags, which stripped only LF and so treated the CR as prose and added a blank line after the body marker. place_view_tags now normalises its region to LF; the write seam restores the file ending. Added tests/unit/test_view_tag_placement_ignores_the_regions_line_endings.py (3 rows go red without the fix). Full cli 4329, service, unit, meta, integration all green.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -76,6 +80,8 @@ Test: the bug's repro (container pair removed, ST1 block left, then `subtask 1 b
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-26T04:33:52Z] `python-dev` Elias Python:
+  - Restored container now encloses surviving blocks in id order (_discussion._restore_container); an existing heading directly above is reused, and an empty restore reuses a surviving heading instead of writing a second one; prose between blocks refuses with one error line naming item and container, nothing written. sq check gains the warn rule block_in_container (registered in _check_rules, site pinned in the meta guard, row in the per-source json table): a block outside its container is a real defect and detectable from text alone. Tests: tests/service/test_a_restored_container_encloses_its_blocks.py (3 kinds, heading kept/gone, container removed with its only block, out-of-order, refusal, check rule). Each fix mutated and its rows go red.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 <!-- sq:subtasks:end -->
@@ -83,4 +89,6 @@ Test: the bug's repro (container pair removed, ST1 block left, then `subtask 1 b
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-26T06:38:36Z] `manager` Catherine Manager:
+  - Delivered in b7e8ba29, 3724d3a2, 5528700e, da1f550f; REV-1159 Approved with all nine findings Verified; full suite 15359 passed. Accepted under the operator's delegation.
 <!-- sq:discussion:end -->

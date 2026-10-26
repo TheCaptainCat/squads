@@ -43,18 +43,18 @@ async def test_a_slug_is_registered_when_a_role_or_an_operator_holds_it(
     issues = [
         i
         for i in await svc.check()
-        if i.item == task.id and "is not a registered agent or operator" in i.message
+        if i.item == task.id and "is not a registered role or operator" in i.message
     ]
 
     assert bool(issues) is not registered
     if issues:
-        assert f"{field} '{slug}' is not a registered agent or operator" in issues[0].message
+        assert f"{field} '{slug}' is not a registered role or operator" in issues[0].message
 
 
 async def test_a_skill_item_authored_by_its_own_slug_is_not_reported(svc, roster) -> None:
     issues = await svc.check()
 
-    assert [i for i in issues if "is not a registered agent or operator" in i.message] == []
+    assert [i for i in issues if "is not a registered role or operator" in i.message] == []
 
 
 @pytest.mark.parametrize(("author", "reported"), [("pairing", False), ("qa-gone", True)])

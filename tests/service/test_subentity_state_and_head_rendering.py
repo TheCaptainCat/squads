@@ -124,7 +124,7 @@ async def test_update_applies_several_fields_at_once_and_still_validates_status_
     await svc.update_subtask(task.id, "ST1", status="Todo", force=True)
     assert (await svc.list_subtasks(task.id))[0].status == "Todo"
 
-    with pytest.raises(SquadsError, match="not a registered agent"):
+    with pytest.raises(SquadsError, match="not a registered role or operator"):
         await svc.update_subtask(task.id, "ST1", assignee="ghost")
 
 
