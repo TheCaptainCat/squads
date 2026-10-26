@@ -42,18 +42,18 @@ subentities:
   title: Measure per-OS CI times and test count
   status: Todo
 created_at: '2026-10-17T07:56:25Z'
-updated_at: '2026-10-24T19:42:24Z'
+updated_at: '2026-10-26T09:30:49Z'
 ---
 <!-- sq:body -->
 ## Problem
 
-The suite has grown from about 6,300 tests at 0.15 to about 13,800 at 0.16. Most
+The suite has grown from about 6,300 tests at 0.15 to about 13,800 at 0.16, and to 15,636 on `release/0.17` (2026-10-26). Most
 of that growth is parametrised position x shape tables, which prove each 
 mechanism against many inputs but largely re-assert the same seam. The cost is 
 now felt where it hurts most:
 
-- Full suite: about 3.5 min locally.
-- CI pytest step (2026-10-17 main push): 53 min on Windows, 14 min on macOS, 8 min on Ubuntu.
+- Full suite: about 3.5 min locally at 0.16.
+- CI pytest step on the 0.16 suite: 53 min on Windows, 14 on macOS and 8 on Ubuntu on the 2026-10-17 push to `main`; 39 to 59 min on Windows, 11 to 13 on macOS and 15 to 16 on Ubuntu on the two 2026-10-24 pull-request runs. `release/0.17` has no CI run yet.
 - A speed boost is not enough: the operator ruled on 2026-10-17 that the suite 
 needs another complete rebuild, from the ground up.
 
@@ -133,17 +133,38 @@ Windows.
 - Write-once guard behaviour.
 - Golden renders with pinned inputs (CLAUDE.md section, AGENTS.md section, 
 workflow cheatsheet, template manifest).
+- CR leaking into reads from a verbatim read: readers (show, `--json` bodies, the template-body guard) see LF; only the write seam sees the on-disk bytes.
+- Line endings conformed only at the write seam: every writer of an item, skill or managed-region file goes through it, and untouched lines keep their endings in mixed-ending files with duplicate lines, in linear time.
+- Block outside its container: a lost container is restored around the surviving blocks on every write path, adds included, never inside another region and never with a second heading; prose between blocks or a half-present marker pair refuses with one error line, not a traceback.
+- Role base resolution from stored facts: the base comes from what the item stores, an existing item is found before the catalog is consulted, and origin follows a change of base.
+- One validated accessor per stored value: a value outside its whitelist reads as unset on every resolution path and is reported by `sq check`, never filtered on one path and shown on another.
+- A migration step must be safe to re-apply: it drops only what it can tell is residue, keeps and reports a differing operator setting, reports every value it drops, and leaves no legacy mirrored value winning as a setting.
+- A lint relaxation that hides adopter errors: an exemption covers only inherited keys the override neither writes nor enters; an adopter's own unreachable state still fails, and lint and load apply the same rule.
+- Tests that tolerate a whole error class instead of naming the expected set: a helper or exit-code switch that ignores every finding of a rule hides a regression of that rule.
+- A refused command writes nothing: resolution and validation run before the first write, on fresh and forced runs.
+- Lookups read the squad's merged document, not the bundled one, on every path to them, interactive prompts included.
+- A second creation path that bypasses the one creation seam (an import creating a roster entry with no base) is refused or routed through it.
+- Required text rejects whitespace-only values and malformed stored names, at the write and in `sq check`; reserved slugs are refused wherever a slug enters, grammar-only checks included.
+- Bundled documents agree with each other (every bundled guide subject is held by a bundled role or template), held by a guard rather than only by goldens.
+- An accepted flag has an effect: `--as` implies an attributed reflog line, every verb that writes a reflog line takes `--as`, and a no-op given differing values refuses instead of reporting success.
+- Messages and remedies state the set the rule actually checks and name a command that works in the state where they are shown.
+- A client moving to another payload keeps the filter the old one applied (an archived role is not a mention target), and the skew canary pins the exact key set of each payload the client reads.
+- Test preconditions do not depend on the host terminal or platform (forced colour on a Windows pipe, `TERM=dumb`).
+- An unlocked reader built from two scans reports a concurrent rename as a duplicate id; a finding drawn from two reads is confirmed before it is reported.
+- Each spec document is read once per invocation on every command, `init` included.
 
 The ledger is a living inventory: the first story extends this seed from the 
 actual suite.
 
 ## CI time targets
 
-| Measure | Now (2026-10-17 main push) | Target |
-|---|---|---|
-| CI pytest step, Ubuntu | 8 min | under 10 min |
-| CI pytest step, macOS | 14 min | under 10 min |
-| CI pytest step, Windows | 53 min | up to 15 min |
+| Measure | 2026-10-17 push to `main` | 2026-10-24 pull-request runs | Target |
+|---|---|---|---|
+| CI pytest step, Ubuntu | 8 min | 15 to 16 min | under 10 min |
+| CI pytest step, macOS | 14 min | 11 to 13 min | under 10 min |
+| CI pytest step, Windows | 53 min | 39 to 59 min | up to 15 min |
+
+All three runs test the 0.16 suite (13,816 tests collected; run 39020459902, and runs 40116628420 and 40116638095 from two dependency-bump pull requests, whose second Windows leg failed one TUI test). The spread between the two same-day runs is the runner noise any later comparison has to allow for. Worker counts are not in the `-q` logs.
 
 Every CI test job stays under 10 minutes; Windows may take up to 15. Windows CI 
 runs the full suite, not a platform subset. Targets are measured at the same 
@@ -370,4 +391,28 @@ rebuild is cited.
   - No row-budget guard either: an oversized or cross-product table is for the review to catch, not a tests/meta guard.
 - [2026-10-24T14:34:30Z] `tech-lead` Olivia Lead:
   - - Applied op-pierre's ruling: no row-budget guard. I removed it from TASK-1112 (body, ST1, ST2) and TASK-1113; reviewers now check table size and cross products. TASK-1112 ST2 keeps only the naming and one-owner-layer guards.
+- [2026-10-26T08:51:56Z] `op-pierre` Pierre Chat:
+  - The test rebuild stays in 0.17 and runs last in the release, after the other 0.17 work.
+- [2026-10-26T09:17:32Z] `op-pierre` Pierre Chat:
+  - Show me the rebuild plan before any dev starts on it.
+- [2026-10-26T09:19:32Z] `op-pierre` Pierre Chat:
+  - Plan validated. Refresh it against current HEAD (counts, fresh CI figures, this week's regression classes in the ledger seed, new code mapped to the area tasks) before any dev starts; I want to see the refreshed plan.
+- [2026-10-26T09:30:49Z] `tech-lead` Olivia Lead:
+  - @manager Plan refreshed against `release/0.17` 9b79babd (2026-10-26). Principles, targets and the task breakdown are unchanged.
+    
+    - **Counts** (`pytest --collect-only -n0`, one directory at a time): 15,636 tests in 821 files, up from 13,931 on 2026-10-24. By directory: service 5,388, cli 4,451, unit 3,979, integration 1,243, meta 492, tui 77, scale 6. Most of the growth is in `tests/cli` (+1,068). The new large tables are the damaged-override table (402), load-once (145) and `--as` (100).
+    - **CI** (`gh run view`): `release/0.17` has never run the `test` workflow, because it triggers only on `main`. The latest runs are two 2026-10-24 dependency-bump PRs on the 0.16 suite: Windows 39 and 59 min, macOS 11 and 13, Ubuntu 15 and 16. Run 40116638095 failed one TUI test on Windows. At those per-test costs, the 0.17 suite projects to about 44 to 66 min on Windows and 17 to 18 on Ubuntu. That is inferred, not run. FEAT-1096, TASK-1111, TASK-1112 and TASK-1116 now cite both runs.
+    - **Ledger seed:** 19 classes added to the FEAT-1096 body, drawn from REV-1155 to REV-1161 and the bugs BUG-1030, 1045, 1065, 1075, 1141, 1144 and 1154.
+    - **Mapping:**
+      - Line endings and container restore go to a new TASK-1113 ST4. The 0.16 to 0.17 role step goes to TASK-1113 ST2.
+      - Role bases, templates, creation (`role add`, `dev add`, `init`/`adopt --roles`, the import refusal) and update go to a new TASK-1114 ST7.
+      - TASK-1114 ST1 gets the lifecycle drop and `Noted` to `Deferred`, ST2 the new check rules, ST3 the role-list golden and the load-once guard, ST5 `--as` and the `view` op.
+      - TASK-1115 ST1 gets pointers per role base and the managed roster after `role add`. The VS Code hover stays with the client suite.
+    
+    Flags, for a decision, not edited:
+    1. TASK-1111 has no depends-on for the 0.17 work still open (TASK-1127, TASK-1148, TASK-1153), although the rebuild is meant to run last. I recommend adding them.
+    2. BUG-1154 is open, and TASK-1114 ST2 assumes its fix. I recommend fixing it before TASK-1111 starts; otherwise the ledger records it as a gap.
+    3. No CI baseline exists for 0.17. I recommend pulling TASK-1111 ST3's on-demand trigger forward as a small devops change, so we get one run per OS now.
+    4. The same suite on the same day took 39 and 59 min on Windows. I recommend judging the targets on at least two runs per OS; TASK-1116 ST2 records one.
+    5. FEAT-1096 does not say whether the client's TypeScript tests are in scope. I recommend adding them to Out of scope explicitly.
 <!-- sq:discussion:end -->

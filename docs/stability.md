@@ -370,21 +370,28 @@ or command behaviour.
 
 The line schema (frozen field set):
 
-- `v` — schema version (currently coupled to the index `SCHEMA_VERSION`); whether to decouple is open
+- `v` — the schema version of the squad that wrote the line, as a dotted string (`"0.17"`); the
+  lines a `sq migrate up` run writes carry the version it migrates to. It is not a line-format
+  version: lines written under different schema versions share one format
 - `ts` — ISO-8601 timestamp with Z suffix
-- `actor` — who made the change (slug or operator ID)
+- `actor` — who made the change: a role slug, an operator's `op-<slug>`, or `system`. `sq create`
+  records its `--author`; the comment verbs record their `--as`, which they require; every other
+  verb that edits one item, sub-entity or roster entry takes an optional `--as` and records
+  `system` without it. `sq init`, `sq adopt`, `sq sync`, `sq repair`, `sq renumber` and
+  `sq migrate` record `system`
 - `op` — operation name, from a closed vocabulary:
 
   | `op` | Written when |
   |------|--------------|
-  | `create` | an item is created |
+  | `create` | an item is created: `sq create`, and the roster verbs `skill add`, `operator add`, `role add`, `role activate` and `dev add` |
   | `status` | an item's status changes |
   | `update` | item metadata changes (assignee, badge fields, labels, …) |
   | `body` | an item's body is set |
+  | `view` | `view add` or `view disable` changes a view tag (`delta`: `view`, the view's name, and `state`, `enabled` or `disabled`) |
   | `comment` | a comment is appended |
   | `comment_edit` | a comment's author edits it (`delta.comments`: `author`, `hash`, `region`, `ts`, `before`, `after_hash`) |
   | `comment_remove` | a comment's author removes it (`delta.comments`: `author`, `hash`, `region`, `ts`, `before`) |
-  | `subentity` | a sub-entity is added, edited (status, assignee, fields, body), or removed |
+  | `subentity` | a sub-entity changes; `delta.op` names the action: `add`, `status`, `assignee`, `update`, `body` or `remove` |
   | `ref` | a ref is added, removed, or severed |
   | `link` | an item's parent is set or cleared |
   | `retype` | an item is retyped |
@@ -392,21 +399,22 @@ The line schema (frozen field set):
   | `remove` | an item is hard-removed (carries the gone-item snapshot) |
   | `repair` | `sq repair` rebuilds the index (including `--renumber`) |
   | `renumber` | `sq renumber` shifts a range of sequence numbers |
-  | `migrate` | `sq migrate up` applies a batch |
+  | `migrate` | `sq migrate up` applies a batch, and `sq migrate repad` widens the padding (`delta.op` = `repad`) |
   | `rename-type` | one line per item moved by `sq migrate rename-type` |
   | `rename-status` | one line per item moved by `sq migrate rename-status` |
 
 - `target` — the affected item's formatted ID (its prefix names the type). Empty for the
   corpus-wide ops (`repair`, `renumber`, `migrate`), which are not item-scoped
-- `delta` — before→after summary (not a replayable diff); its shape depends on `op`
+- `delta` — before→after summary (not a replayable diff). It is a namespace owned by the line's
+  `op`: its keys, including a nested `delta.op`, mean something only under that `op`
 - `session_id`, `parent_session_id` — *optional*, omitted entirely when absent. Best-effort,
   **untrusted, observability-only** identifiers read from the invoking environment; squads never
   mints or verifies them, and a forged or copied id is indistinguishable from a real one. Only the
   immediate parent is stored — walk the edges to reconstruct a chain. Lines written without them
   parse with both as absent; nothing is rewritten.
 
-Lines are versioned and forward-compatible by field addition; readers key off `v` and ignore
-unknown fields, skip a trailing partial line, and warn-skip interior bad lines. Durability: the
+The line format is forward-compatible by field addition: readers ignore unknown fields, skip a
+trailing partial line, and warn-skip interior bad lines. Durability: the
 line is appended AFTER the index's atomic `os.replace` commit, inside the lock. Applied-without-logged is the tolerated failure (append failure warns, never rolls back); logged-without-applied is
 impossible.
 

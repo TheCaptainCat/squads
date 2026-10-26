@@ -1,8 +1,8 @@
 """The default-ref-kind encoding convergence table: three on-disk encodings of one edge, each
 checked against an index that already holds the canonical form for its kind. This asserts
-CONVERGENCE, not merely the absence of a false-refuse warning -- a fold-level unit test on
-``fold_legacy_kinds`` in isolation would not have caught the regression this guards, since the
-fold's output is correct as a mechanical function; what broke was which encoding reaches disk
+CONVERGENCE, not merely the absence of a false-refuse warning -- a unit test on
+``normalise_ref_kinds`` in isolation would not have caught the regression this guards, since the
+function's output is correct as a mechanical function; what broke was which encoding reaches disk
 and the index in the first place.
 
 Per row: ``frontmatter_skew`` is empty, ``sq repair`` stores the canonical encoding, the next

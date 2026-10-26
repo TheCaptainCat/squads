@@ -6,8 +6,6 @@ title: Hugo Ops
 slug: devops
 status: Active
 author: devops
-description: 'Keep delivery smooth: maintain CI/CD, infrastructure, and the release
-  process.'
 created_at: '2026-06-10T12:29:40Z'
 updated_at: '2026-06-10T12:29:40Z'
 is_default: false

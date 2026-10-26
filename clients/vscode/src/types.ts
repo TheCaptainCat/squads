@@ -185,7 +185,8 @@ export interface SqRoleCatalogEntry {
   readonly hidden: boolean;
   readonly color: string;
   readonly live: boolean;
-  /** Whether the role's statuses wait on something else; optional because an older `sq` omits it. */
+  /** Whether the role's statuses wait on something else; optional because an older `sq` omits
+   * it. */
   readonly blocked?: boolean;
 }
 

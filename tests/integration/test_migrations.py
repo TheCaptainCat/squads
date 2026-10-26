@@ -99,12 +99,12 @@ async def test_v0_1_to_v0_2_migrate_writes_a_legacy_default_kind_map_bare_on_dis
 
 def test_v0_1_to_v0_2_never_imports_the_live_vocabulary_aware_fold():
     """Structural proof alongside the ``tests/meta`` import-hygiene guard: the module holds no
-    reference to ``squads._models._item.fold_legacy_kinds`` at all -- its own frozen
+    reference to ``squads._models._item.normalise_ref_kinds`` at all -- its own frozen
     ``_fold_legacy_kinds`` is a distinct function object, not a re-export."""
-    from squads._models._item import fold_legacy_kinds as live_fold
+    from squads._models._item import normalise_ref_kinds as live_fold
 
     assert _v0_1_to_v0_2._fold_legacy_kinds is not live_fold
-    assert not hasattr(_v0_1_to_v0_2, "fold_legacy_kinds")
+    assert not hasattr(_v0_1_to_v0_2, "normalise_ref_kinds")
 
 
 async def test_v0_1_to_v0_2_is_idempotent_on_an_already_current_squad(svc):

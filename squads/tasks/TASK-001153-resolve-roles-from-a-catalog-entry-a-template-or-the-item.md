@@ -52,7 +52,7 @@ subentities:
   title: Document role bases, templates, role add and the [dev] rename
   status: Done
 created_at: '2026-10-25T22:01:52Z'
-updated_at: '2026-10-26T03:25:09Z'
+updated_at: '2026-10-26T08:51:57Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -449,4 +449,6 @@ Owner: tech-writer. Last, against the merged behaviour of ST1 to ST8. Implements
     - Gates and `sq check` clean.
 - [2026-10-26T03:25:09Z] `manager` Catherine Manager:
   - All nine subtasks are Done; REV-1155, REV-1156 and REV-1157 are Approved; full suite 15160 passed at the last commit. Left InReview for @op-pierre: the VS Code mention hover (now read from sq role list --json, archived roles excluded) wants a dev-host look, and running the 0.17 role step on this repo's squad (set schema_version = 0.16, then sq migrate up; simulated twice on a copy: 10 role files change) is his call.
+- [2026-10-26T08:51:57Z] `op-pierre` Pierre Chat:
+  - Go to run the extended 0.17 role step on this repo's squad now.
 <!-- sq:discussion:end -->

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { NO_BADGE_VOCABULARY, NO_FIELD_BINDINGS } from '../src/domain/badgeCatalog';
 import {
   buildTooltip,
   collectNodeIds,
@@ -8,8 +9,13 @@ import {
   emptyStateDisplayNode,
   errorDisplayNode,
   groupDisplayNode,
+  itemLeaf,
+  type LeafContext,
+  sortedItemLeaves,
 } from '../src/domain/displayNode';
+import { NO_ROLES, NO_STATUS_ROLES } from '../src/domain/statusRole';
 import { CYCLE_ANCHOR_TOOLTIP_LINE } from '../src/domain/treeAnchor';
+import type { SqListItem } from '../src/types';
 
 function leaf(id: string): DisplayNode {
   return {
@@ -157,5 +163,85 @@ describe('collectNodeIds', () => {
 
   it('returns an empty set for an empty tree', () => {
     expect(collectNodeIds([])).toEqual(new Set());
+  });
+});
+
+describe('itemLeaf / sortedItemLeaves', () => {
+  const NO_CONTEXT: LeafContext = {
+    fieldBindings: NO_FIELD_BINDINGS,
+    badgeVocabulary: NO_BADGE_VOCABULARY,
+    statusRoles: NO_STATUS_ROLES,
+    roleCatalog: NO_ROLES,
+  };
+  const row = (id: string, status = 'Ready'): SqListItem => ({
+    id,
+    sequence_id: Number(id.split('-')[1]),
+    type: 'task',
+    title: `Title ${id}`,
+    slug: id.toLowerCase(),
+    status,
+    description: '',
+    parent: null,
+    author: null,
+    assignee: 'ada',
+    priority: null,
+    severity: null,
+    labels: [],
+    refs: [],
+    path: '',
+    created_at: '',
+    updated_at: '',
+  });
+
+  it('renders id and title as the label, the given description and icon, and an empty tree', () => {
+    const node = itemLeaf(row('TASK-7'), NO_CONTEXT, { description: 'Ready · ada', iconId: 'bug' });
+    expect(node).toMatchObject({
+      id: 'TASK-7',
+      itemId: 'TASK-7',
+      memoryRef: null,
+      label: 'TASK-7  Title TASK-7',
+      description: 'Ready · ada',
+      iconId: 'bug',
+      blocked: false,
+      anchor: false,
+      children: [],
+    });
+    expect(node.tooltip).toContain('TASK-7');
+  });
+
+  it('appends the label and tooltip suffixes and carries the given children', () => {
+    const child = leaf('child');
+    const plain = itemLeaf(row('TASK-7'), NO_CONTEXT, { description: 'd', iconId: 'i' });
+    const node = itemLeaf(row('TASK-7'), NO_CONTEXT, {
+      description: 'd',
+      iconId: 'i',
+      labelSuffix: ' (3)',
+      tooltipSuffix: '\n\nextra',
+      children: [child],
+    });
+    expect(node.label).toBe('TASK-7  Title TASK-7 (3)');
+    expect(node.tooltip).toBe(`${plain.tooltip}\n\nextra`);
+    expect(node.children).toEqual([child]);
+  });
+
+  it('takes closed, hidden and colour from the status role, and is open with none', () => {
+    const context: LeafContext = {
+      ...NO_CONTEXT,
+      statusRoles: new Map([['Done', 'finished']]),
+      roleCatalog: new Map([['finished', { settled: true, hidden: true, color: 'positive' }]]),
+    };
+    const done = itemLeaf(row('TASK-1', 'Done'), context, { description: '', iconId: 'i' });
+    expect(done).toMatchObject({ closed: true, hidden: true, colorIntent: 'positive' });
+    const open = itemLeaf(row('TASK-2', 'Unknown'), context, { description: '', iconId: 'i' });
+    expect(open).toMatchObject({ closed: false, hidden: false, colorIntent: null });
+  });
+
+  it('sorts by numeric id, not lexicographically, without mutating the input', () => {
+    const items = [row('TASK-10'), row('TASK-9'), row('TASK-100'), row('TASK-2')];
+    const nodes = sortedItemLeaves(items, (item) =>
+      itemLeaf(item, NO_CONTEXT, { description: '', iconId: 'i' }),
+    );
+    expect(nodes.map((n) => n.id)).toEqual(['TASK-2', 'TASK-9', 'TASK-10', 'TASK-100']);
+    expect(items.map((i) => i.id)).toEqual(['TASK-10', 'TASK-9', 'TASK-100', 'TASK-2']);
   });
 });

@@ -112,6 +112,8 @@ CONTEXTVAR_EXEMPTIONS: dict[str, frozenset[str]] = {
             "_active_transaction",
             # Same enter_read_scope()/exit_read_scope() token-pairing discipline.
             "_read_scope",
+            # set(...)/reset(token) paired in the same try/finally (IndexStore.exclusive()).
+            "_exclusive_holder",
         }
     ),
 }

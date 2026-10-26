@@ -16,7 +16,8 @@
  *
  * The mention hover reads `sq role list --json` (the roster fetch that also carries pronouns); the
  * id->hover-text fetch is one `sq list --json --all`, because prose overwhelmingly cites settled
- * work. Both are batched — a render's cost never scales with how many ids a body happens to mention.
+ * work. Both are batched — a render's cost never scales with how many ids a body happens to
+ * mention.
  *
  * Navigation and back/forward history are covered by the methods below (`openFromTree`,
  * `navigate`, `goBack`/`goForward`, `stepHistoryFor`) and by `domain/previewMessages.ts`'s
@@ -89,7 +90,9 @@ import {
   parseNavigateHistoryMessage,
   parseOpenItemMessage,
   parseRefreshMessage,
+  parseRenderReportMessage,
   parseToggleFoldMessage,
+  type RenderReportMessage,
   routeForMessage,
   routeForTreeSelection,
   UPDATE_CONTENT_COMMAND,
@@ -284,6 +287,11 @@ export class ItemPreviewManager {
   // open at once and only one of them is visually focused. Drives which panel's history
   // `goBack`/`goForward` apply to.
   private focusedPanel: vscode.WebviewPanel | undefined;
+  private readonly renderReports = new vscode.EventEmitter<RenderReportMessage>();
+
+  /** Fires with what an item preview's page observed after its mermaid pass settled (see
+   * `RenderReportMessage`) — the only window onto a webview's DOM the extension host has. */
+  readonly onDidReportRender: vscode.Event<RenderReportMessage> = this.renderReports.event;
 
   constructor(
     private readonly runner: ProcessRunner,
@@ -519,6 +527,11 @@ export class ItemPreviewManager {
         this.foldState.set(panel, tracker);
       }
       tracker.setExpanded(foldMessage.id, foldMessage.open);
+      return;
+    }
+    const report = parseRenderReportMessage(raw);
+    if (report !== null) {
+      this.renderReports.fire(report);
       return;
     }
     const message = parseOpenItemMessage(raw);

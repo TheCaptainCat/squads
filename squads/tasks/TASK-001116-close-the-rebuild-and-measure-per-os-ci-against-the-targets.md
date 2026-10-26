@@ -28,12 +28,12 @@ subentities:
   status: Todo
   story: US9
 created_at: '2026-10-24T13:42:20Z'
-updated_at: '2026-10-24T21:56:21Z'
+updated_at: '2026-10-26T09:30:13Z'
 ---
 <!-- sq:body -->
 Close the rebuild: retire what is left of the old root, rename the new one, finish the parity record (US9), and measure CI per OS against the binding targets (US10).
 
-**Binding targets** (op-pierre, 2026-10-24): every CI test job under 10 minutes; Windows up to 15. Baseline from the 2026-10-17 push to `main` (run 39020459902): Windows 53 min, macOS 14 min, Ubuntu 8 min for the pytest step; the inventory task re-measures it before the rebuild starts.
+**Binding targets** (op-pierre, 2026-10-24): every CI test job under 10 minutes; Windows up to 15. Pytest step on the 0.16 suite: Windows 53 min, macOS 14, Ubuntu 8 on the 2026-10-17 push to `main` (run 39020459902); Windows 39 to 59 min, macOS 11 to 13, Ubuntu 15 to 16 on the two 2026-10-24 pull-request runs (40116628420, 40116638095). The inventory task records the baseline on the suite as it stands when the rebuild starts, and that baseline is the one compared here.
 
 **What is left in the old root after the three areas.** Files that cover entries in more than one area, the shared helpers (`_helpers.py`, `_roster_squad.py`, `_gate_layouts.py` and the others at the root), `tests/conftest.py`, `tests/CONVENTIONS.md`, and any golden or fixture no area ported. Each remaining test file's entries are proven red in the new root before it is deleted, as in the area tasks.
 

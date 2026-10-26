@@ -209,7 +209,8 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   default of the tool: `squads/.overrides/workflow.toml` selects `no_status_banner` on every type.
 - **Refs carry their kind inline** (`schema_version` 0.2): `item.refs` entries are `"ID"` or
   `"ID:kind"`; use `split_ref`/`make_ref` from `_models/_item.py`, never parse the `:` by hand. The
-  pre-0.2 `extra.ref_kinds` map is read transparently and folded by `from_frontmatter`.
+  pre-0.2 `extra.ref_kinds` map is folded into inline refs by `sq migrate up` only; the read path
+  (`from_frontmatter`) never reads it.
 - **Schema version & migrations.** `_models/_schema.py::SCHEMA_VERSION` is the single source of
   truth (models default to it). While alpha it's a **dotted string tracking the release that
   introduced the schema** (`"0.1"`, `"0.2"`), not an integer counter — compare with `schema_tuple`,

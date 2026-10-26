@@ -22,7 +22,7 @@ from squads._paths import SquadPaths
 
 #: Frozen: the declared-default ref kind at schema 0.1/0.2, matching the retired
 #: ``_models._item.DEFAULT_KIND`` literal this runner used to inherit indirectly through
-#: ``fold_legacy_kinds`` before that helper became live-spec-aware. NEVER re-derive this
+#: ``normalise_ref_kinds`` before that helper became live-spec-aware. NEVER re-derive this
 #: from ``WorkflowSpec.default_ref_kind()`` — a migration is a point-in-time snapshot of the
 #: schema version it transforms, and the active spec's declared default can be renamed or
 #: re-declared by a project the runner has no business knowing about.
@@ -53,7 +53,7 @@ def _fold_legacy_kinds(refs: list[str], legacy: dict[str, str]) -> list[str]:
     :data:`_DEFAULT_KIND` to the bare wire form — never spelled out, exactly the encoding
     invariant this schema version's corpus already holds.
 
-    Deliberately duplicates (never imports) ``squads._models._item.fold_legacy_kinds``, which
+    Deliberately duplicates (never imports) ``squads._models._item.normalise_ref_kinds``, which
     now takes the *active* spec's declared default kind as a required argument and is
     therefore live-vocabulary-aware — reaching back for it would make this frozen runner's
     on-disk output track whatever an adopter's spec declares today, rather than the schema

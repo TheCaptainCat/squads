@@ -6,8 +6,10 @@ import {
   parseNavigateHistoryMessage,
   parseOpenItemMessage,
   parseRefreshMessage,
+  parseRenderReportMessage,
   parseToggleFoldMessage,
   REFRESH_COMMAND,
+  RENDER_REPORT_COMMAND,
   routeForMessage,
   routeForTreeSelection,
   TOGGLE_FOLD_COMMAND,
@@ -167,5 +169,35 @@ describe('parseToggleFoldMessage', () => {
       parseToggleFoldMessage({ command: TOGGLE_FOLD_COMMAND, id: 'ST1', open: 'yes' }),
     ).toBeNull();
     expect(parseToggleFoldMessage({ command: TOGGLE_FOLD_COMMAND, id: 'ST1' })).toBeNull();
+  });
+});
+
+describe('parseRenderReportMessage', () => {
+  const valid = {
+    command: RENDER_REPORT_COMMAND,
+    rendered: 2,
+    failed: 0,
+    styleElements: 2,
+    styleElementsNonced: 2,
+    styleElementsApplied: 2,
+    inlineStyleAttributes: 5,
+    inlineStyleAttributesApplied: 5,
+    violations: ['style-src-attr'],
+  };
+
+  it('parses a well-formed report', () => {
+    expect(parseRenderReportMessage(valid)).toEqual(valid);
+  });
+
+  it.each([
+    ['null', null],
+    ['another command', { ...valid, command: 'refresh' }],
+    ['a non-numeric count', { ...valid, rendered: '2' }],
+    ['a fractional count', { ...valid, failed: 0.5 }],
+    ['a missing count', { ...valid, styleElements: undefined }],
+    ['non-array violations', { ...valid, violations: 'style-src-attr' }],
+    ['a non-string violation', { ...valid, violations: [1] }],
+  ])('rejects %s', (_label, value) => {
+    expect(parseRenderReportMessage(value)).toBeNull();
   });
 });

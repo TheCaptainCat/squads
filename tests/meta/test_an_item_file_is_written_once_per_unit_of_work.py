@@ -123,6 +123,21 @@ async def test_the_index_and_regenerable_output_are_not_item_files(svc, write_le
     assert _write_guard.is_item_file(svc.paths.squad_dir / "tasks" / "x.md")
 
 
+async def test_the_repair_rebuild_is_watched_while_it_runs(svc, write_ledger, monkeypatch):
+    real_overwrite = svc.store.overwrite
+
+    async def overwrite_then_write(db):
+        await real_overwrite(db)
+        await _aio.atomic_write_text(svc.paths.squad_dir / "tasks" / "late.md", "x")
+
+    monkeypatch.setattr(svc.store, "overwrite", overwrite_then_write)
+    await svc.repair()
+
+    assert write_ledger.take_violations() == [
+        "_rebuild_index_from_disk: late.md written after the index commit"
+    ]
+
+
 # ----------------------------------------------------------------- known positives
 async def _create(svc: Any) -> Any:
     return (await create_item(svc, "task", "seam")).item

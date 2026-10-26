@@ -38,13 +38,17 @@ subentities:
   title: Prove engine, services and CLI parity and delete their old files
   status: Todo
   story: US9
+- local_id: ST7
+  title: Rebuild role resolution and role creation tests
+  status: Todo
+  story: US7
 created_at: '2026-10-24T13:42:16Z'
-updated_at: '2026-10-24T19:48:45Z'
+updated_at: '2026-10-26T09:29:39Z'
 ---
 <!-- sq:body -->
 Rebuild the spec engine, services and CLI in the new root (US7), then prove parity and delete the old files this area covers (US9). This is the bulk of the suite and the bulk of the duplicate coverage. It runs after the integrity-core increment and before the backend one.
 
-**Measured** (2026-10-24, by filename): about 8,650 old tests in 384 files fall here. The hot spots:
+**Measured** (2026-10-24, by filename): about 8,650 old tests in 384 files fall here. Re-run on 2026-10-26 with the same keyword lists over per-file collected counts: about 10,065 tests in 444 files, the largest new tables being `tests/cli/test_a_damaged_override_is_a_clean_error_cli.py` (402), `tests/cli/test_each_spec_document_is_loaded_at_most_once_per_invocation.py` (145) and `tests/cli/test_every_item_edit_verb_takes_an_optional_as_cli.py` (100). Role-named files count toward the backend area by keyword, but their service behaviour is owned here (ST7). The hot spots below are the 2026-10-24 figures:
 
 - `sq check` rules: 72 files, 2,358 tests. Several are check by type by level cross products, for example `tests/service/test_a_check_reports_only_on_the_types_that_select_it.py` (488 rows), `tests/service/test_item_title_max_selected_at_error_refuses_exactly_what_check_reports.py` (208) and `tests/service/test_a_selected_check_loads_or_is_refused_on_every_type_row.py` (141).
 - The `-C` differential and the schema gate: 11 files, about 980 tests. `tests/cli/test_c_runs_exactly_as_cd_into_the_folder_would.py` is 477 rows (layouts from `tests/_gate_layouts.py` by command by schema direction); `tests/cli/test_the_gate_lets_past_by_command_and_direction.py` is 291.
@@ -53,7 +57,9 @@ Rebuild the spec engine, services and CLI in the new root (US7), then prove pari
 - Override, spec and vocabulary loading: about 105 files, 1,630 tests by a looser filename match that overlaps the check files.
 - 17 behaviours are tested under the same name at two layers (service and CLI, or CLI and unit), for example `status_banner_advisory_check`, `view_tag_placement` and `unreadable_files_degrade_per_file`.
 
-Ledger classes owned here: enum identity against value equality in retype and type or status comparisons; invalid or unknown vocabulary at the load boundary; cardinality and liveness by set membership (REV-706); the config-integrity gate (`--unlink` abort leaves the file byte-identical, `--force` never overrides a clause); `FORCE_COLOR` and ANSI in `--json`.
+Ledger classes owned here: enum identity against value equality in retype and type or status comparisons; invalid or unknown vocabulary at the load boundary; cardinality and liveness by set membership (REV-706); the config-integrity gate (`--unlink` abort leaves the file byte-identical, `--force` never overrides a clause); `FORCE_COLOR` and ANSI in `--json`; role base resolution from stored facts; one validated accessor per stored value; a lint relaxation that hides adopter errors; a refused command writes nothing; lookups against the squad's merged document; one creation seam; whitespace-only and reserved values refused at every entry; bundled documents agreeing with each other; an accepted flag has an effect; messages and remedies naming the set checked and a command that works; each spec document read once per invocation; a finding drawn from two unlocked reads confirmed before it is reported.
+
+Code added or reshaped since the plan was written that lands here: role bases and templates (`_roles/_templates.py`, `_roles/_resolver.py`, `_roles/_catalog.py` including `stored_model`, `RoleDef.from_item`), `sq role add`, `activate --from` and `update` per kind (`_services/_roster.py`, `_cli/_role.py`, `_cli/_dev.py`), `init` and `adopt --roles` against the squad's catalog (`_cli/_main.py`, `_services/_service.py`), the import refusing a role create, the role check rules (`role_base_resolves`, `role_definition_shadowed`, the stale-stamp scope), `block_in_container`, the single `agent_registered` wording, `--as` on every edit and roster-create verb and the `view` reflog op, the finding lifecycle's `Noted` to `Deferred` edge and the inherited-unreachable drop (`_workflow/_loader.py`, `_workflow/_validity.py`), and the playbook loader's guide-subject grammar.
 
 Boundaries with the other areas: the effect of reactivation and retirement on generated files (pointers, compiled regions) belongs to the backend area; this area owns the roster lifecycle's service behaviour. The CLI output goldens in `tests/goldens` (the `--json` shapes of list, tree, show, refs, inbox, mine, blocked, workload, search, workflow and override) are ported here; the rendered-artifact goldens (CLAUDE.md and AGENTS.md sections, skill bodies, workflow cheatsheet, role, skill and operator shows) belong to the backend area.
 
@@ -78,7 +84,7 @@ _Add with `sq task 1114 add-subtask "<title>"`; track with `sq task 1114 subtask
 ### ST1 — Rebuild spec, override and vocabulary loading at the load boundary
 
 <!-- sq:subtask:ST1:body -->
-Rebuild spec, override and vocabulary loading once on a spec: the merge and splat-ref engine, reserved vocabulary, unknown keys failing closed, corrupt frontmatter type or status at the load boundary, and override-merge conflicts. Failure rows at the boundary, not one row per bundled type.
+Rebuild spec, override and vocabulary loading once on a spec: the merge and splat-ref engine, reserved vocabulary, unknown keys failing closed, corrupt frontmatter type or status at the load boundary, override-merge conflicts, and a damaged override as one clean error line (the 402-row table reduced to its boundary rows). Role templates load as `[templates.<name>]` data with their placeholders and brace escape, and the legacy `[dev]` table is refused. Lifecycles: the finding's `Noted` to `Deferred` edge; an override that redeclares a lifecycle drops only an inherited key it neither writes nor enters, while an adopter's own entry-less state, chain or new-lifecycle orphan fails, on the load path and on the lint path alike (including lint after a failed load). The playbook loader refuses a reserved or group-verb guide subject, and one guard holds every bundled guide subject to a bundled role or capability holder. Failure rows at the boundary, not one row per bundled type.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -91,7 +97,7 @@ Rebuild spec, override and vocabulary loading once on a spec: the merge and spla
 ### ST2 — Rebuild the sq check rules as one boundary table per check
 
 <!-- sq:subtask:ST2:body -->
-Rebuild the `sq check` rules: one boundary table per check, plus one test that type selection and level (warn or error) apply the same way for every check. This replaces the check by type by level products (2,358 tests in 72 files today), and the refuse-on-write rows that mirror what the check reports become one shared assertion.
+Rebuild the `sq check` rules: one boundary table per check, plus one test that type selection and level (warn or error) apply the same way for every check. This replaces the check by type by level products (2,358 tests in 72 files on 2026-10-24), and the refuse-on-write rows that mirror what the check reports become one shared assertion. Rules added since the plan include `role_base_resolves` (whitespace-only text and malformed stored capabilities as rows), `role_definition_shadowed`, the stale-stamp warning only over a bundled base, an invalid stored role model, `block_in_container` (with its half-present guard), `agent_registered` with its single wording, a settled review holding an unsettled finding, and `playbook_guide_role_live` naming the command that applies per slug. A duplicate-id group is confirmed by a re-read before it is reported, with a row for a rename between the two reads.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -104,7 +110,7 @@ Rebuild the `sq check` rules: one boundary table per check, plus one test that t
 ### ST3 — Rebuild the CLI spine: -C, schema gate, exit codes and clean --json
 
 <!-- sq:subtask:ST3:body -->
-Rebuild the CLI spine: the `-C` property on the boundary layouts the audit names (not every layout by command by direction), the schema gate by grant and direction, exit codes, `--json` with no ANSI under `FORCE_COLOR`, `@handle_errors` clean messages, and the CLI `--json` output goldens. Only what an operator sees; no seam already owned by a service test.
+Rebuild the CLI spine: the `-C` property on the boundary layouts the audit names (not every layout by command by direction), the schema gate by grant and direction, exit codes, `--json` with no ANSI under `FORCE_COLOR`, `@handle_errors` clean messages, and the CLI `--json` output goldens, including the `sq role list --json` row (`id`, `slug`, `full_name`, `description`, `status`) that the client skew canary mirrors. The load-once guard keeps one row per command family, `init` included. Test preconditions pin their environment (`TERM`, platform skips stated) rather than inherit the caller's. Only what an operator sees; no seam already owned by a service test.
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion
@@ -130,7 +136,7 @@ Rebuild views, view tags, comments and discussion: placement, expansion at read 
 ### ST5 — Rebuild items, sub-entities, refs and roster lifecycle service tests
 
 <!-- sq:subtask:ST5:body -->
-Rebuild items, sub-entities, refs, retype, rename, the board and the roster lifecycle services: set-membership cardinality and liveness (REV-706), enum identity in retype, and the config-integrity gate with `--unlink` leaving the file byte-identical and `--force` never overriding a clause. What reactivation and retirement write to generated files is the backend area's.
+Rebuild items, sub-entities, refs, retype, rename, the board and the roster lifecycle services: set-membership cardinality and liveness (REV-706), enum identity in retype, and the config-integrity gate with `--unlink` leaving the file byte-identical and `--force` never overriding a clause. Reflog attribution: `--as` on every edit and roster-create verb, validated like a comment's, and the `view` op written with its actor only when a tag changes. What reactivation and retirement write to generated files is the backend area's; role bases and role creation are ST7's.
 <!-- sq:subtask:ST5:body:end -->
 
 #### Discussion
@@ -143,7 +149,7 @@ Rebuild items, sub-entities, refs, retype, rename, the board and the roster life
 ### ST6 — Prove engine, services and CLI parity and delete their old files
 
 <!-- sq:subtask:ST6:body -->
-Apply each entry's recorded break for this area in a scratch worktree, show the listed old tests and the new owner both red, record it in the ledger, then delete the old files this area alone covers in one reviewed commit. Record CI time per OS after the increment.
+Apply each entry's recorded break for this area in a scratch worktree, show the listed old tests and the new owner both red, record it in the ledger, then delete the old files this area alone covers in one reviewed commit. Record CI time per OS after the increment. Runs after ST1 to ST5 and ST7.
 <!-- sq:subtask:ST6:body:end -->
 
 #### Discussion
@@ -151,6 +157,19 @@ Apply each entry's recorded break for this area in a scratch worktree, show the 
 <!-- sq:subtask:ST6:discussion -->
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
+
+<!-- sq:subtask:ST7 -->
+### ST7 — Rebuild role resolution and role creation tests
+
+<!-- sq:subtask:ST7:body -->
+Rebuild role resolution and role creation. The base comes from stored facts (catalog entry, template or the item itself), an existing item is found before the catalog, stored values win over every layer, origin follows a change of base, and one accessor reads each stored value, so an invalid model reads as unset on every path. Creation goes through one seam: `activate`, `activate --from`, `role add` (flags, `--file`, both), `dev add`, and `init` and `adopt --roles` resolved against the squad's merged catalog on the prompt and non-prompt paths, with a refused run writing nothing; an import role create is refused. `activate` on a live role of any base is a no-op and refuses differing flags; `update` per kind sets and clears keys; refusals name the flag; reserved and group-verb slugs are refused at every entry. Boundary rows per base kind, not a kind by verb by field product.
+<!-- sq:subtask:ST7:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST7:discussion -->
+<!-- sq:subtask:ST7:discussion:end -->
+<!-- sq:subtask:ST7:end -->
 <!-- sq:subtasks:end -->
 
 ## Discussion

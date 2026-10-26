@@ -3,7 +3,7 @@ id: TASK-1149
 sequence_id: 1149
 type: task
 title: Correct stale comments and close small test gaps
-status: Draft
+status: Done
 author: tech-lead
 priority: low
 refs:
@@ -22,36 +22,36 @@ description: 'Hygiene: stale comments and docstrings, client JSDoc width, README
 subentities:
 - local_id: ST1
   title: Correct the role-base and missing-body-region comments
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Wrap client doc comments at 100 columns
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Tighten the README shell-completion note
-  status: Todo
+  status: Done
 - local_id: ST4
   title: Pin repair padding from filenames and renumber stem width
-  status: Todo
+  status: Done
 - local_id: ST5
   title: Pin the workload exclusion of role and skill items
-  status: Todo
+  status: Done
 - local_id: ST6
   title: Cover seeded init and the 0.1 review shape in tests
-  status: Todo
+  status: Done
 - local_id: ST7
   title: Pin workflow --raw output under forced colour
-  status: Todo
+  status: Done
 - local_id: ST8
   title: Run RUF029 by enabling ruff preview for that rule alone
-  status: Todo
+  status: Done
 - local_id: ST9
   title: Correct the CLAUDE.md claim that loads fold extra.ref_kinds
-  status: Todo
+  status: Done
 - local_id: ST10
   title: Correct docstrings that call wired behaviour a later task
-  status: Todo
+  status: Done
 created_at: '2026-10-25T19:56:59Z'
-updated_at: '2026-10-25T22:06:40Z'
+updated_at: '2026-10-26T09:13:44Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -90,6 +90,8 @@ Owner: python-dev. Carries REV-1010 F8 and a stale comment found in `_cli/_role.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-26T08:23:25Z] `python-dev` Elias Python:
+  - Handoff. The `show_role` comment in `_cli/_role.py` already says what happens today (an unactivated slug resolves through the catalog, `None` here), so it needed no edit. Drove the no-body-region state: `set_body` ends in a clean `SquadsError` refusal, not a KeyError. Dropped `_NOT_GUARDED` and its stale comment from the body_written guard test, so the no-body-region state is now compared against the first-write answer (108 cases pass). No new test names.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -105,6 +107,8 @@ The client's `printWidth` is 100 and Prettier does not rewrap comments. Rewrap t
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-26T08:34:32Z] `typescript-dev` Ada Typescript:
+  - Rewrapped every comment line over 100 columns in clients/vscode/src: itemPreviewManager.ts, types.ts, sqAdapter.ts, domain/boardView.ts, statusRole.ts, metaView.ts, typeCategory.ts, domain/previewDocument.ts. Wording unchanged; code lines untouched. awk finds no comment line over 100; lint clean, npm test 746 passed.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -120,6 +124,8 @@ The README's shell-completion note says completion does not work through `uv run
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-10-26T08:13:35Z] `tech-writer` Theo Writer:
+  - Done. README note reworded: the installed script registers completion for a command named sq and runs sq from PATH, so it does not apply to uv run sq (the shell completes uv). Checked against sq --show-completion zsh (compdef _sq_completion sq; the hook execs sq). Install steps unchanged; doc guards 32 passed at -n 4.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 
@@ -136,6 +142,8 @@ Owner: python-dev. Carries REV-105 F2 and REV-302 F2.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-10-26T08:23:29Z] `python-dev` Elias Python:
+  - Handoff. New tests: `test_repair_raises_the_stored_padding_to_the_widest_filename_stem` (tests/integration/test_repair_integrity.py) and `test_renumber_pads_renamed_stems_to_the_index_padding_and_rewrites_refs_from_below` (tests/integration/test_renumber_cli.py); `test_renumber_shifts_a_block_and_rewrites_refs_and_files` now asserts the stem digit width equals the index padding. Falsified: repair padding set to the stored floor only fails the repair test; hard-coding the renamed stem width fails both renumber tests; skipping the id rewrite fails both renumber tests.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 
@@ -151,6 +159,8 @@ Workload excludes roster items. Only the operator leg is pinned (`tests/service/
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
+- [2026-10-26T08:23:32Z] `python-dev` Elias Python:
+  - Handoff. New tests: `test_workload_leaves_out_role_and_skill_items_even_when_assigned` (tests/service/test_search_and_workload_views.py) and `test_workload_cli_json_leaves_out_role_and_skill_items` (tests/cli/test_blocked_workload_search_cli.py), each with work items beside the roster items. Falsified by removing the roster skip in `workload`: all three workload tests fail.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
 
@@ -167,6 +177,11 @@ Owner: python-dev. Carries REV-191 F3, REV-201 F5 and REV-130 F1.
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
+- [2026-10-26T08:23:50Z] `python-dev` Elias Python:
+  - Handoff, partial. Done: the 0.1 review shape. `tests/fixtures/corpus/v0_1/` gains `reviews/REV-000006-auth-module-review.md` (prose `## Findings`, no `:findings` region) and its index entry; goldens under `tests/goldens/migrated_corpus/v0_1/` regenerated (the skill ids there shift by one, expected); the corpus README line updated. New test: `test_a_pre_0_2_review_gains_an_empty_findings_container_and_keeps_its_prose` (tests/integration/test_migration_corpus.py), falsified by skipping the skeleton insertion. Finding: after `sq migrate up` the review has the empty findings container but NO summary region (ensure_summary writes none for zero findings), so the test asserts the container and the absence of a summary rather than a summary.
+    NOT done: the seeded-init fixture. Seeding shifts every global id and the whole suite's expectations, and the brief and CONVENTIONS push to leave the default fixture alone; adding a seeded fixture plus moving end-to-end tests onto it is a design call (fixture name, which tests, id shift) that I did not make. Leaving this subtask at InProgress for @tech-lead to decide.
+- [2026-10-26T08:25:27Z] `python-dev` Elias Python:
+  - Correction to my earlier comment: the seeded-init part is now done too, so nothing is left. `tests/conftest.py` gains a `seeded_project` fixture (init with the bundled skills seeded) beside `project`, whose docstring now names it the unseeded default. New test: `test_a_seeded_squad_creates_lists_and_checks_clean` (tests/cli/test_a_seeded_squad_creates_lists_and_checks_clean.py): seeded init, skills present, create, list, check clean; falsified by swapping in the unseeded `project` fixture (the precondition fails). No existing test was moved, so no id expectations changed. Gates: pyright 0 errors, ruff check and format clean on src and tests, pytest -n 4 green on every tests directory (the new file and the conftest docstring were verified on tests/meta and the file itself after the last full pass).
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
 
@@ -182,6 +197,8 @@ Owner: python-dev. Carries REV-460 F1.
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
+- [2026-10-26T08:23:36Z] `python-dev` Elias Python:
+  - Handoff. New test: `test_workflow_raw_has_no_escape_codes_even_when_colour_is_forced` (tests/cli/test_workflow_raw_markdown_golden.py). The autouse fixture is not weakened: the shared console is built once at import, so an in-process FORCE_COLOR cannot reach it; the test runs the installed `sq` in a subprocess with FORCE_COLOR=3 and TTY_COMPATIBLE removed, asserts the non-raw render does carry escapes (precondition), then that `--raw` has no escape and no box-drawing. Falsified by printing the raw path through rich Markdown: it fails.
 <!-- sq:subtask:ST7:discussion:end -->
 <!-- sq:subtask:ST7:end -->
 
@@ -203,6 +220,8 @@ A bare `ruff check .` also lints `.claude/worktrees/` (untracked, not gitignored
 #### Discussion
 
 <!-- sq:subtask:ST8:discussion -->
+- [2026-10-26T08:23:39Z] `python-dev` Elias Python:
+  - Handoff. pyproject.toml `[tool.ruff.lint]`: `preview = true`, `explicit-preview-rules = true`, `extend-select = ["RUF029"]`, and RUF029 added to the `tests/*` ignores with a comment. `ruff check src tests` found one src hit, `_async` in `_wrap_sync`, now `# noqa: RUF029`; the 0.16 to 0.17 runner has real IO and needs no noqa. Proved live: removing that noqa makes RUF029 fire (1 error), restored. Format check unaffected. pyright 0 errors, ruff check and format clean on src and tests.
 <!-- sq:subtask:ST8:discussion:end -->
 <!-- sq:subtask:ST8:end -->
 
@@ -224,6 +243,8 @@ Owner: python-dev.
 #### Discussion
 
 <!-- sq:subtask:ST9:discussion -->
+- [2026-10-26T08:23:43Z] `python-dev` Elias Python:
+  - Handoff. CLAUDE.md bullet reworded: the legacy map is folded by `sq migrate up` only, the read path never reads it (hand-written part only; `claude_section.md.j2` carries no copy of the claim). Choice on `fold_legacy_kinds`: dropped the `legacy` parameter (single caller passed `{}`), docstring rewritten; also removed the `{}` in the meta test's sample source. tests/meta and tests/unit pass. Grep for the old wording finds it only in this task's own body.
 <!-- sq:subtask:ST9:discussion:end -->
 <!-- sq:subtask:ST9:end -->
 
@@ -245,6 +266,8 @@ Before handing back, scan `src/` for the same class ("not yet", "later task", "a
 #### Discussion
 
 <!-- sq:subtask:ST10:discussion -->
+- [2026-10-26T08:23:46Z] `python-dev` Elias Python:
+  - Handoff. Fixed the three docstrings: `SubentityKindSpec.placeholder` (falls back to `_discussion.body_placeholder`), the `_services/_import.py` module docstring (names `sq import`, `_cli/_import.py`), and the `--dry-run` parenthesis in `_results.py`. Whitespace-collapsed scan of src for "not yet", "later task", "a later" and similar: every other hit is legitimate (e.g. "not yet migrated", "a later read"); no further stale hit.
 <!-- sq:subtask:ST10:discussion:end -->
 <!-- sq:subtask:ST10:end -->
 <!-- sq:subtasks:end -->
@@ -254,4 +277,6 @@ Before handing back, scan `src/` for the same class ("not yet", "later task", "a
 <!-- sq:discussion -->
 - [2026-10-25T22:06:40Z] `tech-lead` Olivia Lead:
   - Added ST8 (RUF029 not active: recommend enabling preview for that rule alone; measured 2 src and 178 test hits), ST9 (CLAUDE.md wrongly says loads fold extra.ref_kinds; the line is outside the managed region, so no template or golden change) and ST10 (three docstrings call wired behaviour a later task), all from the 2026-10-25 ADR audit.
+- [2026-10-26T09:13:44Z] `manager` Catherine Manager:
+  - All ten subtasks Done; REV-1161 Approved with F1–F3 Verified; full suite 15620 passed, pyright 0 errors at 7ac783a4. Accepted under the operator's delegation.
 <!-- sq:discussion:end -->

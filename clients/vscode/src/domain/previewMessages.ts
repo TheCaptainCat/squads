@@ -135,6 +135,73 @@ export function parseToggleFoldMessage(data: unknown): ToggleFoldMessage | null 
   return { command: TOGGLE_FOLD_COMMAND, id: record.id, open: record.open };
 }
 
+/** Posted once the webview's mermaid pass over every `.sq-graph-source` has settled: what the
+ * page itself observed about its strict CSP. The extension host cannot read a webview's DOM, so
+ * this report is the only way the extension-host smoke can see whether a graph really rendered
+ * and whether the browser honoured the nonce'd `<style>` elements. */
+export const RENDER_REPORT_COMMAND = 'renderReport';
+
+export interface RenderReportMessage {
+  readonly command: typeof RENDER_REPORT_COMMAND;
+  /** Graph outputs that now hold an `<svg>`. */
+  readonly rendered: number;
+  /** Graph outputs left as a failure message. */
+  readonly failed: number;
+  /** `<style>` elements inside the rendered SVGs, and how many carry the page nonce / have a
+   * live stylesheet attached (a CSP-blocked `<style>` has none). */
+  readonly styleElements: number;
+  readonly styleElementsNonced: number;
+  readonly styleElementsApplied: number;
+  /** Elements inside the rendered SVGs with a `style=""` attribute, and how many of them have
+   * that first declaration reflected in `el.style`. */
+  readonly inlineStyleAttributes: number;
+  readonly inlineStyleAttributesApplied: number;
+  /** Every `securitypolicyviolation` the page saw so far, as its violated directive. */
+  readonly violations: readonly string[];
+}
+
+const RENDER_REPORT_COUNTS = [
+  'rendered',
+  'failed',
+  'styleElements',
+  'styleElementsNonced',
+  'styleElementsApplied',
+  'inlineStyleAttributes',
+  'inlineStyleAttributesApplied',
+] as const;
+
+/** Shape guard for a `RenderReportMessage` — same untrusted-input treatment as the others. */
+export function parseRenderReportMessage(data: unknown): RenderReportMessage | null {
+  if (typeof data !== 'object' || data === null) {
+    return null;
+  }
+  const r = data as Record<string, unknown>;
+  if (r.command !== RENDER_REPORT_COMMAND) {
+    return null;
+  }
+  const counts: Record<(typeof RENDER_REPORT_COUNTS)[number], number> = {
+    rendered: 0,
+    failed: 0,
+    styleElements: 0,
+    styleElementsNonced: 0,
+    styleElementsApplied: 0,
+    inlineStyleAttributes: 0,
+    inlineStyleAttributesApplied: 0,
+  };
+  for (const key of RENDER_REPORT_COUNTS) {
+    const value = r[key];
+    if (typeof value !== 'number' || !Number.isInteger(value)) {
+      return null;
+    }
+    counts[key] = value;
+  }
+  const violations = r.violations;
+  if (!Array.isArray(violations) || !violations.every((v): v is string => typeof v === 'string')) {
+    return null;
+  }
+  return { command: RENDER_REPORT_COMMAND, ...counts, violations };
+}
+
 export type OpenRoute = 'same-panel' | 'new-panel';
 
 /** A plain click (or ctrl/cmd-click) navigates the panel that sent the message in place;

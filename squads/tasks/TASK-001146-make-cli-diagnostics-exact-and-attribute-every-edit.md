@@ -43,12 +43,12 @@ subentities:
   status: Done
 - local_id: ST9
   title: Redefine reflog v and complete the op table in stability.md
-  status: Todo
+  status: Done
 - local_id: ST10
   title: State the type_implied mechanism without advising a type drop
   status: Done
 created_at: '2026-10-25T19:56:56Z'
-updated_at: '2026-10-26T08:00:31Z'
+updated_at: '2026-10-26T08:12:51Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -284,6 +284,12 @@ Test: read each changed table against the writers it describes (`_index/_reflog.
 #### Discussion
 
 <!-- sq:subtask:ST9:discussion -->
+- [2026-10-26T08:12:13Z] `tech-writer` Theo Writer:
+  - - Done. `docs/stability.md` "Reflog on-disk format": `v` is the schema version of the squad that wrote the line (a `migrate up` run writes the version it migrates to), not a line-format version; "readers key off `v`" replaced by forward-compatible-by-field-addition; `actor` states `--author` on create, required `--as` on comment verbs, optional `--as` (default `system`) on every other edit verb, `system` for init/adopt/sync/repair/renumber/migrate; op table gains `view`, `create` names the roster add verbs, `subentity` names its six `delta.op` actions, `migrate` covers `repad`; `delta` is stated as namespaced by `op`.
+    - `docs/workflow.md`: `v` and `actor` rows aligned; op count corrected to nineteen (the table already had `view`); `create`, `subentity`, `repair`, `migrate` rows completed. Both tables match `REFLOG_OPS`.
+    - Finding: sub-entity `delta.op` = `assignee` is written only by an `assign` event in `sq import`; the CLI `<kind> update --assignee` writes `delta.op` = `update`. Documented as such.
+    - CHANGELOG `view` mention checked against `_services/_views.py`: accurate. No CHANGELOG line for `v`.
+    - Doc guards (11 files incl. reflog vocabulary, documented commands, ticket refs, docs CLI): 93 passed at -n 4.
 <!-- sq:subtask:ST9:discussion:end -->
 <!-- sq:subtask:ST9:end -->
 
@@ -326,4 +332,6 @@ Reword both to the mechanism: the skill stays implied for as long as the named t
   - ST1-ST8 and ST10 done; ST9 (reflog v and op table) is the tech writer. Gates: pyright, ruff check and format clean; pytest tests/meta, unit, service, integration, cli, tui all green at -n 4. Details are in each subtask comment. Flags: ST3 ran before TASK-717 (still Draft); ST4 uses two wordings because the check and create sets differ; ST8 loosened the reachability lint for entry-less states; ST6 rename has no client reader. @tech-writer ST9 is yours; docs/workflow.md was touched only in the finding-closing section, the reflog actor row and the Noted override paragraph.
 - [2026-10-26T08:00:31Z] `reviewer` Paul Reviewer:
   - ST9: the op table in docs/stability.md also needs the new view op (delta: view, state = enabled or disabled), added by the REV-1160 F3 fix; tracked as REV-1160 F8. @tech-writer
+- [2026-10-26T08:12:51Z] `manager` Catherine Manager:
+  - All ten subtasks Done; REV-1160 Approved (F1–F5, F7 Verified, F6 Noted, F8 carried by ST9 and done); full suite 15611 passed. Accepted under the operator's delegation.
 <!-- sq:discussion:end -->

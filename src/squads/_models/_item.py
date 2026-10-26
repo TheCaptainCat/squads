@@ -122,19 +122,15 @@ def ref_id_matches(stored_ref_id: str, prefix: str, seq: int) -> bool:
     return head.upper() == prefix.upper() and int(digits) == seq
 
 
-def fold_legacy_kinds(refs: list[str], legacy: dict[str, str], *, default_kind: str) -> list[str]:
-    """Merge a ``{ID: kind}`` map into inline ``ID:kind`` ref
-    strings, and normalise every resulting edge against *default_kind* so an edge whose
-    resolved kind IS the declared default is always written bare — never spelled out, whether
-    it arrived via the legacy map or was already spelled inline (e.g. by a repair run before
-    this normalisation existed). *default_kind* is resolved by the caller
-    (``WorkflowSpec.default_ref_kind``), where the active spec is in hand; this stays a pure
-    mechanical merge over its input, never resolving vocabulary itself.
+def normalise_ref_kinds(refs: list[str], *, default_kind: str) -> list[str]:
+    """Normalise every ``ID[:kind]`` ref against *default_kind*, so an edge whose kind IS the
+    declared default is always written bare, however the file spelled it. *default_kind* is
+    resolved by the caller (``WorkflowSpec.default_ref_kind``); this stays a pure mechanical
+    pass over its input, never resolving vocabulary itself.
     """
     result: list[str] = []
     for rid, kind in (split_ref(r) for r in refs):
-        resolved = legacy.get(rid, kind)
-        result.append(make_ref(rid, "" if resolved == default_kind else resolved))
+        result.append(make_ref(rid, "" if kind == default_kind else kind))
     return result
 
 
@@ -340,7 +336,7 @@ class Item(BaseModel):
         *default_kind* is the active spec's declared ``role = "default"`` ref kind
         (``WorkflowSpec.default_ref_kind()``) — a **required** keyword, not a default
         parameter, so omitting it is a type error rather than a silent regression. It is
-        handed straight to :func:`_read_refs`/:func:`fold_legacy_kinds`, which is the one
+        handed straight to :func:`_read_refs`/:func:`normalise_ref_kinds`, which is the one
         point every ``refs`` value passes through on its way into an ``Item``: an edge whose
         kind is the declared default is always folded to the bare wire form here, never left
         (or produced) spelled out. ``_models/`` still resolves no vocabulary itself — this
@@ -556,22 +552,22 @@ def _empty_list_if_unset(value: Any) -> Any:
 
 
 def _is_str_list(value: object) -> bool:
-    """True only for a list of ``str`` — the one shape :func:`fold_legacy_kinds` can parse."""
+    """True only for a list of ``str`` — the one shape :func:`normalise_ref_kinds` can parse."""
     return isinstance(value, list) and all(isinstance(v, str) for v in cast("list[Any]", value))
 
 
 def _read_refs(data: dict[str, Any], *, default_kind: str | None) -> Any:
     """Refs as inline ``ID[:kind]`` strings, normalised against *default_kind* (see
-    :func:`fold_legacy_kinds`) so an edge of the declared default kind is always bare.
+    :func:`normalise_ref_kinds`) so an edge of the declared default kind is always bare.
 
     Returns the raw value untouched when it is not a list of strings (``refs: 5``,
-    ``refs: [5]``) — the fold has nothing to do with such a value, and ``model_validate``
+    ``refs: [5]``) — the normalisation has nothing to do with such a value, and ``model_validate``
     reports it. With no *default_kind* the refs are kept exactly as the file spells them.
     """
     refs: Any = _empty_list_if_unset(data.get("refs"))
     if default_kind is None or not refs or not _is_str_list(refs):
         return refs
-    return fold_legacy_kinds(cast("list[str]", refs), {}, default_kind=default_kind)
+    return normalise_ref_kinds(cast("list[str]", refs), default_kind=default_kind)
 
 
 def _add_badge_fields(data: dict[str, Any], item: Item) -> None:

@@ -6,8 +6,6 @@ title: Paul Reviewer
 slug: reviewer
 status: Active
 author: reviewer
-description: 'Guard quality: review changes critically, request changes when needed,
-  approve when sound.'
 created_at: '2026-06-10T12:29:40Z'
 updated_at: '2026-06-10T12:29:40Z'
 is_default: false

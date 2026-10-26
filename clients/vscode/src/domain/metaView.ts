@@ -24,10 +24,14 @@ import {
   type FieldBindingsByType,
   NO_BADGE_VOCABULARY,
   NO_FIELD_BINDINGS,
-  resolveItemBadges,
 } from './badgeCatalog';
-import { buildTooltip, type DisplayNode, groupDisplayNode, iconForMetaType } from './displayNode';
-import { compareIds } from './idOrder';
+import {
+  type DisplayNode,
+  groupDisplayNode,
+  iconForMetaType,
+  itemLeaf,
+  sortedItemLeaves,
+} from './displayNode';
 import {
   isMemoryEligibleType,
   memoryChildren,
@@ -39,13 +43,7 @@ import {
 import { DEFAULT_META_VIEW_STATE, matchesMetaFilter, type MetaViewState } from './metaFilter';
 import { NO_PRONOUNS_CONTEXT, pronounsBadge, type PronounsContext } from './pronouns';
 import { META_BUCKETS } from './reservedTypes';
-import {
-  NO_ROLES,
-  NO_STATUS_ROLES,
-  resolveRole,
-  type RoleCatalogMap,
-  type StatusRoleMap,
-} from './statusRole';
+import { NO_ROLES, NO_STATUS_ROLES, type RoleCatalogMap, type StatusRoleMap } from './statusRole';
 import { NO_LABELS, pluralLabel, type TypeLabelMap } from './typeLabels';
 
 function rosterDescription(item: SqListItem, pronouns: PronounsContext): string {
@@ -55,51 +53,10 @@ function rosterDescription(item: SqListItem, pronouns: PronounsContext): string 
   return badge === '' ? item.status : `${badge}  ${item.status}`;
 }
 
-function itemToLeaf(
-  item: SqListItem,
-  fieldBindings: FieldBindingsByType,
-  badgeVocabulary: BadgeVocabulary,
-  statusRoles: StatusRoleMap,
-  roleCatalog: RoleCatalogMap,
-  memory: MemoryRenderContext,
-  pronouns: PronounsContext,
-): DisplayNode {
-  const role = resolveRole(item.status, statusRoles, roleCatalog);
-  // Only Role/Operator identities are memory-eligible at all, and only when
-  // `metaTreeDataProvider.ts::refresh` actually fetched this one's pool (it fetches only for
-  // identities surviving the current filter) — everything else (Skills, and an eligible
-  // identity that was never asked for) renders exactly as it did before this feature: no
-  // suffix, no children.
-  const pool = isMemoryEligibleType(item.type) ? memory.pools.get(item.slug) : undefined;
-  return {
-    id: item.id,
-    itemId: item.id,
-    memoryRef: null,
-    label: `${item.id}  ${item.title}${pool === undefined ? '' : memoryLabelSuffix(pool, memory.now)}`,
-    // Status (assignee is meaningless for meta items, unlike the work tree) behind the
-    // identity's pronouns; the description slot is the tree's de-emphasised text.
-    description: rosterDescription(item, pronouns),
-    tooltip:
-      buildTooltip({
-        id: item.id,
-        type: item.type,
-        status: item.status,
-        assignee: item.assignee,
-        badges: resolveItemBadges(item.type, item.badges, fieldBindings, badgeVocabulary),
-        blocked: false,
-        // A flat row is not a tree root at all, so nothing here can be an invented one.
-        anchor: false,
-      }) + (pool === undefined ? '' : memoryTooltipLine(pool, memory.now)),
-    iconId: iconForMetaType(item.type),
-    blocked: false,
-    closed: role?.settled ?? false,
-    hidden: role?.hidden ?? false,
-    colorIntent: role?.color ?? null,
-    anchor: false,
-    children: memoryChildren(item.slug, pool, memory.now),
-  };
-}
-
+/** Items in id order as flat leaves: the identity's pronouns and status as the description, the
+ * roster icon. Only Role/Operator identities are memory-eligible, and only when
+ * `metaTreeDataProvider.ts::refresh` fetched this one's pool (it fetches only for identities
+ * surviving the current filter); everything else renders with no suffix and no children. */
 function sortedLeaves(
   items: readonly SqListItem[],
   fieldBindings: FieldBindingsByType,
@@ -109,11 +66,21 @@ function sortedLeaves(
   memory: MemoryRenderContext,
   pronouns: PronounsContext,
 ): DisplayNode[] {
-  return [...items]
-    .sort((a, b) => compareIds(a.id, b.id))
-    .map((item) =>
-      itemToLeaf(item, fieldBindings, badgeVocabulary, statusRoles, roleCatalog, memory, pronouns),
-    );
+  const context = { fieldBindings, badgeVocabulary, statusRoles, roleCatalog };
+  return sortedItemLeaves(items, (item) => {
+    const pool = isMemoryEligibleType(item.type) ? memory.pools.get(item.slug) : undefined;
+    return itemLeaf(item, context, {
+      description: rosterDescription(item, pronouns),
+      iconId: iconForMetaType(item.type),
+      ...(pool === undefined
+        ? {}
+        : {
+            labelSuffix: memoryLabelSuffix(pool, memory.now),
+            tooltipSuffix: memoryTooltipLine(pool, memory.now),
+          }),
+      children: memoryChildren(item.slug, pool, memory.now),
+    });
+  });
 }
 
 /** The optional per-leaf rendering inputs, bundled to stay under the max-params bar. */
@@ -132,12 +99,12 @@ export interface RosterRenderOptions {
  * `labelMap` defaults to `NO_LABELS`, resolving each bucket's header via the shared `pluralLabel`
  * resolver rather than a hardcoded literal — falls back to the raw type string the same way
  * every other tree does. `state` defaults to `DEFAULT_META_VIEW_STATE` (archived hidden, no
- * status filter, grouped) — see `domain/metaFilter.ts` for the predicate. `render.memory` (the eagerly-
- * fetched Role/Operator memory pools, plus the "now" the age text is computed against) defaults
- * to `NO_MEMORY_CONTEXT` — an empty pool map degrades every leaf to its pre-feature rendering,
- * same graceful-fallback shape as every other catalog here. `render.pronouns` (the slug -> pronouns
- * lookup and the `squads.showPronouns` setting) adds a de-emphasised `(pronouns)` to a
- * Role/Operator leaf's description; the default shows none. */
+ * status filter, grouped) — see `domain/metaFilter.ts` for the predicate. `render.memory` (the
+ * eagerly-fetched Role/Operator memory pools, plus the "now" the age text is computed against)
+ * defaults to `NO_MEMORY_CONTEXT` — an empty pool map degrades every leaf to its pre-feature
+ * rendering, same graceful-fallback shape as every other catalog here. `render.pronouns` (the
+ * slug -> pronouns lookup and the `squads.showPronouns` setting) adds a de-emphasised
+ * `(pronouns)` to a Role/Operator leaf's description; the default shows none. */
 export function buildMetaView(
   items: readonly SqListItem[],
   fieldBindings: FieldBindingsByType = NO_FIELD_BINDINGS,

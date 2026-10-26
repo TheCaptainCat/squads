@@ -3,6 +3,8 @@ range disjoint from another branch's, rewriting refs/parents and renaming files 
 intent survives the shift, driven through the real CLI end to end.
 """
 
+import re
+
 import pytest
 
 from _helpers import create_item, make_service, strip_ansi
@@ -29,10 +31,38 @@ async def test_renumber_shifts_a_block_and_rewrites_refs_and_files(project, invo
     assert not old_bug_path.exists()
     new_bug = next(it for it in db.items.values() if it.title == "shift-bug")
     assert svc.paths.abspath(new_bug.path).exists()
+    stem_digits = re.fullmatch(r"BUG-(\d+)-.*\.md", svc.paths.abspath(new_bug.path).name)
+    assert stem_digits is not None
+    assert len(stem_digits.group(1)) == db.padding
     # the task's ref now points at the same (renumbered) bug — referential intent preserved
     new_task = next(it for it in db.items.values() if it.title == "shift-task")
     assert new_task.refs == [new_bug.id]
     assert new_task.parent == feat.id  # a link crossing the shift boundary still resolves
+
+
+async def test_renumber_pads_renamed_stems_to_the_index_padding_and_rewrites_refs_from_below(
+    project, invoke
+):
+    svc = make_service(project)
+    below = (await create_item(svc, "feature", "below the block")).item
+    shifted = (await create_item(svc, "bug", "shifted bug")).item
+    await svc.add_ref(below.id, shifted.id)
+    async with svc.store.transaction() as idx:
+        idx.padding = 7
+
+    result = await invoke(["renumber", "--from", str(shifted.sequence_id), "--onto", "10"])
+    assert result.exit_code == 0, result.output
+
+    db = await svc.store.load()
+    new_shifted = next(it for it in db.items.values() if it.title == "shifted bug")
+    assert new_shifted.id != shifted.id
+    name = svc.paths.abspath(new_shifted.path).name
+    stem_digits = re.fullmatch(r"BUG-(\d+)-.*\.md", name)
+    assert stem_digits is not None, name
+    assert len(stem_digits.group(1)) == 7
+    kept = next(it for it in db.items.values() if it.title == "below the block")
+    assert kept.id == below.id
+    assert kept.refs == [new_shifted.id]
 
 
 async def test_renumber_rejects_specifying_both_onto_and_by(project, invoke):

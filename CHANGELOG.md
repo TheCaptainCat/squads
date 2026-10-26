@@ -107,6 +107,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- **`sq check` no longer reports a duplicate id or a shared number for a file being renamed or retyped.** A rename or retype racing the scan, such as `sq <type> <n> update --title` or `retype`, could make one file count as two, with a message advising a hand deletion or a renumber. A duplicate id or shared number is now reported only when the files are read again and still carry it, and a real copy renamed in that window is still found. `sq repair`, `sq renumber` and `sq migrate repad` hold the index lock from their first file read to the index commit, so a concurrent `retype` or edit waits instead of being half-undone or aborting the run with a traceback.
+
 - **A write to an item file leaves the lines it does not edit as they were, line endings included.** A file saved with CRLF endings, such as a Windows checkout with `autocrlf`, was rewritten with LF endings by any write, even a one-line comment. Lines the write does not touch keep their endings; lines it adds or changes use the file's dominant ending (CRLF only when more lines end in CRLF than in LF). The same holds for the managed section of `CLAUDE.md` and `AGENTS.md`.
 
 - **A restored sub-entity container wraps the blocks that survived.** When a write restored a container whose marker pair had been deleted, the surviving blocks stayed outside it, under a second heading. The restored pair now encloses every surviving block in id order under the existing heading, and the write is refused with one error line when text of your own sits between those blocks. `sq check` reports a block outside its container as a `warn` under the rule `block_in_container`.

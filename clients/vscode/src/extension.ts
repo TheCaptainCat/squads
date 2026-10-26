@@ -11,6 +11,7 @@ import { REFRESH_ALL_COMMAND } from './commandIds';
 import { registerCommands } from './commands';
 import { SqDiscovery } from './discovery';
 import { describeMetaFilterState } from './domain/metaFilter';
+import type { RenderReportMessage } from './domain/previewMessages';
 import { ItemPreviewManager } from './itemPreviewManager';
 import { SquadsMetaTreeDataProvider } from './metaTreeDataProvider';
 import { createNodeDiscoveryEnvironment, createNodeSquadDirEnvironment } from './nodeEnvironment';
@@ -28,10 +29,15 @@ function getSquadsConfig(): { sqPath: string; command: readonly string[] } {
   };
 }
 
-export function activate(context: vscode.ExtensionContext): void {
+/** What `activate` hands to other extensions and to the extension-host smoke. */
+export interface SquadsExtensionApi {
+  readonly onDidReportPreviewRender: vscode.Event<RenderReportMessage>;
+}
+
+export function activate(context: vscode.ExtensionContext): SquadsExtensionApi | undefined {
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
   if (workspaceFolder === undefined) {
-    return;
+    return undefined;
   }
   const root = workspaceFolder.uri.fsPath;
 
@@ -186,6 +192,8 @@ export function activate(context: vscode.ExtensionContext): void {
       },
     }),
   );
+
+  return { onDidReportPreviewRender: previewManager.onDidReportRender };
 }
 
 export function deactivate(): void {

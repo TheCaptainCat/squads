@@ -20,7 +20,7 @@ primitive the answer is always "maybe, later" — not because it currently does,
 nothing prevents a future edit from making it so, and the runner has no way to notice. So the
 answer does not turn on today's purity; it turns on *category*. Every name that formats,
 parses, or supplies a width/default for an id or ref literal is forbidden, unconditionally,
-with no per-name exemption — ``make_ref``, ``split_ref`` and ``fold_legacy_kinds`` included.
+with no per-name exemption — ``make_ref``, ``split_ref`` and ``normalise_ref_kinds`` included.
 A migration that needs one carries a private, frozen copy instead (see
 ``_v0_1_to_v0_2._split_ref``/``_make_ref`` and ``_v0_5_to_v0_7._split_ref``/``_make_ref``/
 ``_format_item_id``).
@@ -66,7 +66,7 @@ closing it would need a different technique (import-time monkeypatching of the t
 a runtime audit hook), not a wider AST rule. The guard's actual guarantee is: every *statically
 named* reach for a forbidden primitive, however the reimport is phrased, is caught.
 
-Two runners hold this today. ``_v0_1_to_v0_2.py`` used to import ``fold_legacy_kinds`` before
+Two runners hold this today. ``_v0_1_to_v0_2.py`` used to import ``normalise_ref_kinds`` before
 it became live-spec-aware; the runner now carries its own frozen copy
 (``_v0_1_to_v0_2._fold_legacy_kinds``). ``_v0_5_to_v0_7.py`` used to import ``split_ref``,
 ``make_ref``, ``format_item_id`` and ``DISPLAY_ID_PADDING``; it now carries frozen copies of
@@ -92,7 +92,7 @@ from squads._models import _item as models_item
 #: vocabulary today" — the whole point is that today's implementation shape is not the test.
 _WIRE_ENCODING_PRIMITIVES: frozenset[str] = frozenset(
     {
-        "fold_legacy_kinds",
+        "normalise_ref_kinds",
         "make_ref",
         "split_ref",
         "format_item_id",
@@ -181,13 +181,13 @@ def test_the_scan_would_catch_a_planted_reimport(tmp_path: Path) -> None:
     planted = tmp_path / "src" / "squads" / "_migrations" / "_example.py"
     planted.parent.mkdir(parents=True)
     planted.write_text(
-        "from squads._models._item import fold_legacy_kinds\n\n"
-        "def use():\n    return fold_legacy_kinds([], {}, default_kind='related')\n",
+        "from squads._models._item import normalise_ref_kinds\n\n"
+        "def use():\n    return normalise_ref_kinds([], default_kind='related')\n",
         encoding="utf-8",
     )
 
     hits = _scan(tmp_path)
-    assert hits == [("src/squads/_migrations/_example.py", "fold_legacy_kinds")]
+    assert hits == [("src/squads/_migrations/_example.py", "normalise_ref_kinds")]
 
 
 def test_the_scan_catches_the_purely_mechanical_ref_primitives_too(tmp_path: Path) -> None:

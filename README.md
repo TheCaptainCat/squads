@@ -376,7 +376,7 @@ sq --show-completion bash
 sq --show-completion zsh
 ```
 
-> **Note:** completion requires `sq` to be on your `PATH` (i.e. installed as a tool via `uv tool install` or `pipx install`). It will not work through `uv run sq` because `uv run` wraps the entry point in a way that the shell cannot discover.
+> **Note:** completion requires `sq` to be on your `PATH` (i.e. installed as a tool via `uv tool install` or `pipx install`). The installed script registers completion for a command named `sq` and runs `sq` from your `PATH` to compute the candidates, so it does not apply to `uv run sq`, where the command the shell completes is `uv`.
 
 ---
 

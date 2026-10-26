@@ -48,6 +48,21 @@ async def test_a_hand_regressed_counter_is_corrected_on_the_next_write(svc):
     assert new_item.sequence_id == task.sequence_id + 1
 
 
+async def test_repair_raises_the_stored_padding_to_the_widest_filename_stem(svc):
+    item = (await create_item(svc, "task", "wide stem")).item
+    assert (await svc.store.load()).padding == 6
+
+    path = svc.paths.abspath(item.path)
+    wide = path.with_name(path.name.replace(f"{item.sequence_id:06d}", f"{item.sequence_id:07d}"))
+    assert wide != path
+    path.rename(wide)
+
+    result = await svc.repair()
+
+    assert result.db.padding == 7
+    assert (await svc.store.load()).padding == 7
+
+
 async def test_repair_renumber_resolves_a_sequence_collision(svc):
     """A collision like a git merge would produce: two items sharing one number."""
     await create_item(svc, "task", "real task")

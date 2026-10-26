@@ -389,7 +389,7 @@ class SubentityKindSpec(BaseModel):
 
     placeholder: str | None = None
     """Scaffold prose shown for a freshly-created block with no body yet. ``None`` falls
-    back to a generic kind-derived placeholder (derivation not yet wired — a later task)."""
+    back to the generic kind-derived placeholder (``_discussion.body_placeholder``)."""
 
     maps_parent_story: bool = False
     """Capability flag: a sub-entity of this kind maps to one of its parent's stories

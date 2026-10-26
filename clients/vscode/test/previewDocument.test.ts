@@ -479,6 +479,8 @@ describe('buildPreviewHtml', () => {
   it('re-runs the mermaid render pass after a patch, via a re-callable global', () => {
     expect(html).toContain('window.__sqRenderMermaid');
     expect(html).toContain('window.__sqRenderMermaid();');
+    expect(html).toContain("command: 'renderReport'");
+    expect(html).toContain('securitypolicyviolation');
   });
 
   it('explicitly scrolls to the top on a fresh load — a genuine navigation resets, never inherits scroll', () => {

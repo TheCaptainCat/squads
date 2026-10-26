@@ -542,7 +542,7 @@ class ImportPlan:
     Writes nothing — ``handle_to_id``/``handle_to_sub`` is the *projected* allocation plan (a
     simulated counter bump, never the real one); ``issues`` is the ordered, line-numbered error
     list. ``ok`` (no issues) is what gates whether apply may proceed; a non-empty ``issues`` is
-    exactly what ``--dry-run`` (a later task) prints instead of applying.
+    exactly what ``--dry-run`` prints instead of applying.
     """
 
     op_counts: ImportOpCount

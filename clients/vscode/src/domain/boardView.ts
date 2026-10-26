@@ -41,9 +41,10 @@ export function buildBoardMarkdown(notices: readonly SqBoardNotice[]): string {
  * its own.
  *
  * A one-or-more-unreadable-notices read (the partial-result exit code `4`) still comes back
- * `kind: 'success'` (`sqAdapter.ts::classifyNonZeroExit`), with `omissions` populated — so the notices that *were*
- * read render exactly as a clean board's would, with a visible "listing partial" line appended
- * rather than the panel showing nothing (the failure branch below is unreachable for this case). */
+ * `kind: 'success'` (`sqAdapter.ts::classifyNonZeroExit`), with `omissions` populated — so the
+ * notices that *were* read render exactly as a clean board's would, with a visible "listing
+ * partial" line appended rather than the panel showing nothing (the failure branch below is
+ * unreachable for this case). */
 export function renderBoardHtml(outcome: SqOutcome<readonly SqBoardNotice[]>): string {
   if (outcome.kind !== 'success') {
     return renderMarkdownToHtml(`# Squads: unable to load the board\n\n${outcome.message}`);

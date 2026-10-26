@@ -4,8 +4,20 @@
  * each node into an actual `vscode.TreeItem`. Keeping this layer free of the `vscode` import is
  * what lets the JSON -> display mapping run under `vitest` with no real VS Code host.
  */
-import type { ResolvedBadge } from './badgeCatalog';
-import type { ColorIntent } from './statusRole';
+import type { SqListItem } from '../types';
+import {
+  type BadgeVocabulary,
+  type FieldBindingsByType,
+  type ResolvedBadge,
+  resolveItemBadges,
+} from './badgeCatalog';
+import { compareIds } from './idOrder';
+import {
+  type ColorIntent,
+  resolveRole,
+  type RoleCatalogMap,
+  type StatusRoleMap,
+} from './statusRole';
 import { CYCLE_ANCHOR_TOOLTIP_LINE } from './treeAnchor';
 
 /** What a memory-entry leaf's `DisplayNode.memoryRef` carries: exactly what
@@ -253,4 +265,71 @@ export function collectNodeIds(nodes: readonly DisplayNode[]): Set<string> {
   };
   nodes.forEach(visit);
   return ids;
+}
+
+/** The vocabulary a flat item row is resolved against: its badges and its status's role. */
+export interface LeafContext {
+  readonly fieldBindings: FieldBindingsByType;
+  readonly badgeVocabulary: BadgeVocabulary;
+  readonly statusRoles: StatusRoleMap;
+  readonly roleCatalog: RoleCatalogMap;
+}
+
+/** What differs from one view's flat item row to the next; everything else is shared. */
+export interface LeafRendering {
+  readonly description: string;
+  readonly iconId: string;
+  /** Appended to the `<id>  <title>` label. */
+  readonly labelSuffix?: string;
+  /** Appended to the tooltip. */
+  readonly tooltipSuffix?: string;
+  readonly children?: readonly DisplayNode[];
+}
+
+/** One `sq list --json` row as a flat leaf, shared by the work, roster and records views. A flat
+ * row carries no blocked flag (a tree-only field) and is never a tree root. */
+export function itemLeaf(
+  item: SqListItem,
+  context: LeafContext,
+  rendering: LeafRendering,
+): DisplayNode {
+  const role = resolveRole(item.status, context.statusRoles, context.roleCatalog);
+  return {
+    id: item.id,
+    itemId: item.id,
+    memoryRef: null,
+    label: `${item.id}  ${item.title}${rendering.labelSuffix ?? ''}`,
+    description: rendering.description,
+    tooltip:
+      buildTooltip({
+        id: item.id,
+        type: item.type,
+        status: item.status,
+        assignee: item.assignee,
+        badges: resolveItemBadges(
+          item.type,
+          item.badges,
+          context.fieldBindings,
+          context.badgeVocabulary,
+        ),
+        blocked: false,
+        anchor: false,
+      }) + (rendering.tooltipSuffix ?? ''),
+    iconId: rendering.iconId,
+    blocked: false,
+    closed: role?.settled ?? false,
+    hidden: role?.hidden ?? false,
+    colorIntent: role?.color ?? null,
+    anchor: false,
+    children: rendering.children ?? [],
+  };
+}
+
+/** `items` in id order using shared numeric collation (a lower sequence number sorts first,
+ * never plain lexicographic), each rendered through `render`. */
+export function sortedItemLeaves(
+  items: readonly SqListItem[],
+  render: (item: SqListItem) => DisplayNode,
+): DisplayNode[] {
+  return [...items].sort((a, b) => compareIds(a.id, b.id)).map(render);
 }

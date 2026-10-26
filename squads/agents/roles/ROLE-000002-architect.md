@@ -6,8 +6,6 @@ title: Robert Architect
 slug: architect
 status: Active
 author: architect
-description: 'Own the system''s shape: design coherent solutions, record decisions
-  as ADRs, and guide implementation.'
 created_at: '2026-06-10T12:29:40Z'
 updated_at: '2026-06-10T12:29:40Z'
 is_default: false
