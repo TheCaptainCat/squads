@@ -242,6 +242,31 @@ async def test_v0_2_migration_rewrites_the_legacy_backend_key(tmp_path: Path) ->
     assert post["active_backends"] == ["claude_code"]
 
 
+async def test_a_pre_0_2_review_gains_an_empty_findings_container_and_keeps_its_prose(
+    tmp_path: Path,
+) -> None:
+    """A review with a prose findings section gains the container before its discussion; the
+    prose is left as written and no finding is invented from it."""
+    dst = tmp_path / "v0_1"
+    shutil.copytree(_CORPUS_DIR / "v0_1", dst)
+    paths = _load_paths(dst)
+    review_files = sorted((paths.squad_dir / "reviews").glob("*.md"))
+    assert review_files, "the v0_1 fixture carries no review for this migration to act on"
+    assert not has_section(review_files[0].read_text(encoding="utf-8"), "findings")  # precondition
+
+    await make_service(paths).run_pending_migrations()
+
+    text = review_files[0].read_text(encoding="utf-8")
+    assert has_section(text, "findings")
+    assert (get_section(text, "findings") or "").strip() == ""
+    assert text.index(markers.open_marker("findings")) < text.index(
+        markers.open_marker(markers.DISCUSSION)
+    )
+    assert "1. The token expiry (`exp` claim) is not validated on every endpoint." in text
+    assert "sq:finding:F1" not in text
+    assert "sq:summary" not in text
+
+
 async def test_the_v0_14_fixtures_milestone_gains_its_roll_up_tag_across_the_chain(
     tmp_path: Path,
 ) -> None:

@@ -1767,6 +1767,14 @@ class MaintenanceMixin(ServiceCore):
         return db, unreadable, pending.canonicalized, pending.stripped
 
     async def repair(self, *, renumber: bool = False, rerun: str = "`sq repair`") -> RepairResult:
+        """Rebuild the index from the markdown frontmatter (see :meth:`_repair_held`), holding the
+        index lock from the first file read to the index commit so no writer interleaves."""
+        async with self.store.exclusive():
+            return await self._repair_held(renumber=renumber, rerun=rerun)
+
+    async def _repair_held(
+        self, *, renumber: bool = False, rerun: str = "`sq repair`"
+    ) -> RepairResult:
         """Rebuild the index from the markdown frontmatter, and sweep the corpus while walking
         it (:meth:`_rebuild_index_from_disk`).
 
@@ -1907,6 +1915,12 @@ class MaintenanceMixin(ServiceCore):
 
     # ------------------------------------------------------------------ repad
     async def repad(self, new_padding: int) -> int:
+        """Raise the squad's ID padding (see :meth:`_repad_held`), holding the index lock from
+        the first file read to the index commit so no writer interleaves."""
+        async with self.store.exclusive():
+            return await self._repad_held(new_padding)
+
+    async def _repad_held(self, new_padding: int) -> int:
         """Raise the squad's ID padding to ``new_padding`` and rename every item file.
 
         One-way, irreversible format bump:
@@ -1920,7 +1934,7 @@ class MaintenanceMixin(ServiceCore):
 
         Returns the number of files renamed.
         """
-        db = await self.store.load()
+        db = await self.store.load(fresh=True)
         current = db.padding
         if new_padding <= current:
             raise SquadsError(
@@ -1961,32 +1975,42 @@ class MaintenanceMixin(ServiceCore):
                 await _aio.path_rename(md, new_path)
                 renamed += 1
 
-        # Write the new padding into the index before calling repair, so repair's stored-floor
-        # logic picks it up and writes it back out.
-        async with self.store.transaction() as _db:
-            old_padding = _db.padding
-            _db.padding = new_padding
-            self.store.log(
-                "migrate",
-                "",
-                {
-                    "op": "repad",
-                    "old_padding": old_padding,
-                    "new_padding": new_padding,
-                    "renamed": renamed,
-                },
-            )
+        # Write the new padding into the index before the rebuild, so its stored-floor logic
+        # picks it up and writes it back out. The lock is already held, so the index is
+        # replaced directly rather than through a transaction.
+        stored = await self.store.load(fresh=True)
+        old_padding = stored.padding
+        stored.padding = new_padding
+        await self.store.overwrite(stored)
+        sid, psid = actor.current_session()
+        await append_line(
+            reflog_path(self.paths.squad_dir),
+            ts=clock.iso(clock.now()),
+            actor=actor.current_actor(),
+            op="migrate",
+            target="",
+            delta={
+                "op": "repad",
+                "old_padding": old_padding,
+                "new_padding": new_padding,
+                "renamed": renamed,
+            },
+            session_id=sid,
+            parent_session_id=psid,
+        )
 
         # Rebuild the index so path fields and all item IDs reflect the new width.
-        await self.repair()
+        await self._repair_held()
         return renamed
 
     async def _scan_records(self) -> list[_FileRec]:
         records: list[_FileRec] = []
-        for item_type, md in self._iter_item_files():
+        for item_type, md in list(self._iter_item_files()):
             try:
                 text = await _aio.read_text(md)
             except FileNotFoundError as exc:
+                if not await _aio.path_is_symlink(md):
+                    continue  # moved or removed since the listing: the file is no longer here
                 # Same "cannot correctly rewrite an identity it cannot read" refusal as any
                 # other unreadable file below — just a dirent this scan's own glob saw but
                 # whose read then failed (a broken symlink, most plausibly). Converted to a
@@ -2109,7 +2133,11 @@ class MaintenanceMixin(ServiceCore):
             md for files in duplicate_groups((r[0], r[1]) for r in records).values() for md in files
         }
         records = [r for r in records if r[1] not in shared]
-        padding = (await self.store.load()).padding if self.store.exists() else DEFAULT_ID_PADDING
+        padding = (
+            (await self.store.load(fresh=True)).padding
+            if self.store.exists()
+            else DEFAULT_ID_PADDING
+        )
         remap, renames = self._renumber_plan(records, padding)
         if not remap:
             return {}
@@ -2193,6 +2221,14 @@ class MaintenanceMixin(ServiceCore):
     async def renumber(
         self, *, from_seq: int, onto: int | None = None, by: int | None = None
     ) -> RenumberResult:
+        """Pre-merge block-shift renumber (see :meth:`_renumber_held`), holding the index lock
+        from the first file read to the index commit so no writer interleaves."""
+        async with self.store.exclusive():
+            return await self._renumber_held(from_seq=from_seq, onto=onto, by=by)
+
+    async def _renumber_held(
+        self, *, from_seq: int, onto: int | None = None, by: int | None = None
+    ) -> RenumberResult:
         """Pre-merge block-shift renumber: the new top-level ``sq renumber`` verb.
 
         Shifts every local item with ``sequence_id >= from_seq`` into a disjoint range,
@@ -2231,7 +2267,7 @@ class MaintenanceMixin(ServiceCore):
         were written. Nothing is appended on the no-op path (nothing shifted).
         """
         if self.store.exists():
-            idx = await self.store.load()
+            idx = await self.store.load(fresh=True)
             counter, padding = idx.counter, idx.padding
         else:
             counter, padding = 0, DEFAULT_ID_PADDING
@@ -2272,7 +2308,7 @@ class MaintenanceMixin(ServiceCore):
                 parent_session_id=psid,
             )
         elif self.store.exists():
-            db = await self.store.load()
+            db = await self.store.load(fresh=True)
             stripped = []
         else:
             db = SquadsDB(counter=counter, padding=padding)

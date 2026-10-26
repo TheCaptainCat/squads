@@ -45,7 +45,7 @@ def _wrap_sync(
     """Lift a synchronous migration runner that only walks files into an async one taking the
     run's context (no IO needed)."""
 
-    async def _async(ctx: MigrationContext) -> MigrationOutcome:
+    async def _async(ctx: MigrationContext) -> MigrationOutcome:  # noqa: RUF029 — async by the runner contract
         return MigrationOutcome(count=fn(ctx.paths))
 
     return _async

@@ -124,6 +124,15 @@ describe('groupListItems', () => {
     expect(nodes.every((node) => node.itemId !== null && node.children.length === 0)).toBe(true);
   });
 
+  it('describes a flat leaf as its status and assignee, "unassigned" when it has none', () => {
+    const nodes = groupListItems(
+      [makeItem('TASK-1', 'task'), { ...makeItem('TASK-2', 'task'), assignee: 'ada' }],
+      false,
+    );
+
+    expect(nodes.map((node) => node.description)).toEqual(['Ready · unassigned', 'Ready · ada']);
+  });
+
   it('with no orderMap (the graceful fallback), groups by type name', () => {
     const nodes = groupListItems(items, true);
 

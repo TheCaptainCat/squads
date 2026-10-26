@@ -867,7 +867,8 @@ export function getRolesCatalog(
   );
 }
 
-/** `sq role list --json` — the roles' resolved pronouns and one-line descriptions, joined by slug. */
+/** `sq role list --json` — the roles' resolved pronouns and one-line descriptions, joined by
+ * slug. */
 export function getRoleIdentities(
   runner: ProcessRunner,
   invocation: SqInvocation,
@@ -911,10 +912,10 @@ export function getGraph(
 
 /** `sq memory <role> list --json` — one role/operator's notebook index, feeding the Roster
  * tree's eager memory children (`metaTreeDataProvider.ts::refresh`). One or more unreadable
- * entries exits `4` (the frozen partial-result contract): the readable rows are still a valid array on stdout, and the
- * outcome comes back `kind: 'success'` with `omissions` populated — never dropped to a plain
- * failure, never silently under-counted. Only a genuine fetch failure (bad role slug, `sq` not
- * found, malformed output) surfaces as a non-success outcome. */
+ * entries exits `4` (the frozen partial-result contract): the readable rows are still a valid
+ * array on stdout, and the outcome comes back `kind: 'success'` with `omissions` populated —
+ * never dropped to a plain failure, never silently under-counted. Only a genuine fetch failure
+ * (bad role slug, `sq` not found, malformed output) surfaces as a non-success outcome. */
 export function getMemoryList(
   runner: ProcessRunner,
   invocation: SqInvocation,

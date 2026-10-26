@@ -3,13 +3,13 @@ id: BUG-1154
 sequence_id: 1154
 type: bug
 title: check reports false duplicate id during a retitle
-status: Open
+status: Verified
 parent: MILE-1051
 author: qa
 priority: low
 severity: low
 created_at: '2026-10-25T22:05:02Z'
-updated_at: '2026-10-25T22:05:02Z'
+updated_at: '2026-10-26T12:15:07Z'
 ---
 <!-- sq:body -->
 ## Steps (driven 2026-10-25, scratch squad, dev build 0.17)
@@ -44,4 +44,15 @@ Treat a duplicate-id group like the cross-source candidates: re-scan the group's
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-26T09:44:36Z] `python-dev` Elias Python:
+  - Root cause: check built the duplicate-id report from two reads, the scan log and a second directory listing; a rename between them put one file in the report under its old and new name.
+  - Fix: a duplicate group is confirmed by re-reading its files (gone or no longer carrying the id drops out) before it is reported, as for cross-source issues. No lock added.
+  - Repair: reads the carriers once per call (one listing, no second read to disagree with), so it is not the same shape; left unchanged. Test: tests/service/test_check_does_not_report_a_file_renamed_during_the_scan_as_a_duplicate.py (red without the confirmation).
+- [2026-10-26T12:15:06Z] `qa` Mara Tester:
+  - Verified on release/0.17 dev build (scratch squad, 121 milestones + 2 tasks; writer loop and `sq check`/`sq repair` loop in two processes; a report = "files carry" / numbers_unique / duplicate / traceback in the output):
+    - Retitle loop (`milestone 9 update --title`, 50 iterations) vs `sq check`: 36 checks, 0 false reports. Control, same loop with the installed `~/.local/bin/sq` as reader: 9 of 39 flagged, so the race fires in this setup.
+    - Retype loop (task 130 to bug and back, 60 rounds) vs `sq check` (shared-number rule): 100 checks, 0 reports.
+    - Retitle + retype loop (40 rounds) vs `sq repair`: 115 runs, 0 duplicate/renumber/traceback; 25 rounds vs `sq repair --renumber`: 63 runs, 0; item count unchanged (121 milestones, 2 tasks, ids intact).
+    - Real duplicate (hand-copied MILE-10 file): still reported, `error MILE-10: 2 files carry this id (...)`, exit 3; removing the copy gives 0 reports.
+    Moving to Verified.
 <!-- sq:discussion:end -->

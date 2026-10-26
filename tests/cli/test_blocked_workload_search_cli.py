@@ -29,6 +29,19 @@ async def test_workload_cli_json_counts_open_items_per_assignee(project, invoke)
     assert rows["manager"]["open"] == 1
 
 
+async def test_workload_cli_json_leaves_out_role_and_skill_items(project, invoke):
+    await invoke(["create", "task", "A", "--author", "manager", "--assignee", "manager"])
+    added_role = await invoke(["role", "activate", "tech-lead"])
+    added_skill = await invoke(["skill", "add", "Deploy checks"])
+    assert added_role.exit_code == 0, added_role.output
+    assert added_skill.exit_code == 0, added_skill.output
+
+    result = await invoke(["workload", "--json"])
+    assert result.exit_code == 0, result.output
+    rows = json.loads(result.output)
+    assert [(r["assignee"], r["total"]) for r in rows] == [("manager", 1)]
+
+
 async def test_search_cli_finds_a_matching_item_and_json_matches_human_output(project, invoke):
     await invoke(["create", "task", "Token validation", "--author", "manager"])
 

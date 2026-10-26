@@ -1,7 +1,7 @@
 """``Item.from_frontmatter`` takes the active spec's resolved default ref kind as a
-**required** keyword (``default_kind``) — the one seam every ``refs`` value passes the fold
-through on its way into an ``Item``, so a wrongly-encoded item is never constructed (see the
-function's own docstring, and :func:`squads._models._item.fold_legacy_kinds`). That property
+**required** keyword (``default_kind``) — the one seam every ``refs`` value is normalised
+on its way into an ``Item``, so a wrongly-encoded item is never constructed (see the
+function's own docstring, and :func:`squads._models._item.normalise_ref_kinds`). That property
 holds only because the call site count stays small and known: three, in ``src/squads/`` —
 ``_itemfile.py`` (the disk side of the frontmatter/index skew guard), one in
 ``_services/_maintenance.py`` (``sq repair``'s corpus rebuild) and one in

@@ -6,8 +6,6 @@ title: Theo Writer
 slug: tech-writer
 status: Active
 author: tech-writer
-description: 'Make the work understandable: write and maintain clear documentation
-  and guides.'
 created_at: '2026-06-10T12:29:40Z'
 updated_at: '2026-06-10T12:29:40Z'
 is_default: false

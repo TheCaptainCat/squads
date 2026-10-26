@@ -110,16 +110,26 @@ class WriteLedger:
         return taken
 
     @contextlib.asynccontextmanager
-    async def unit(self, squad_dir: Path, method: str, inner: Any) -> AsyncGenerator[Any]:
+    async def unit(
+        self, squad_dir: Path, method: str, inner: Any, *, after_enter: bool = True
+    ) -> AsyncGenerator[Any]:
+        """Watch one unit. With *after_enter* the unit opens once *inner* is entered: a
+        transaction waiting for the lock is not yet the unit that writes, and the pass holding
+        the lock keeps its own writes. A unit whose work runs *in* entering *inner* (the rebuild)
+        opens first."""
         unit = Unit(method)
         stack = self.stacks.setdefault(squad_key(squad_dir), [])
-        stack.append(unit)
+        if not after_enter:
+            stack.append(unit)
         try:
             async with inner as value:
+                if after_enter:
+                    stack.append(unit)
                 yield value
             unit.committed = True
         finally:
-            stack.remove(unit)
+            if unit in stack:
+                stack.remove(unit)
             self.finish(unit)
 
 
@@ -154,6 +164,7 @@ def install(monkeypatch: pytest.MonkeyPatch) -> WriteLedger:
             self.paths.squad_dir,
             "_rebuild_index_from_disk",
             _Awaited(real_rebuild(self, *args, **kwargs)),
+            after_enter=False,
         ) as built:
             return built
 

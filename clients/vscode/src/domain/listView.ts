@@ -10,24 +10,17 @@ import {
   type FieldBindingsByType,
   NO_BADGE_VOCABULARY,
   NO_FIELD_BINDINGS,
-  resolveItemBadges,
 } from './badgeCatalog';
 import {
-  buildTooltip,
   type DisplayNode,
   groupDisplayNode,
   iconForType,
+  itemLeaf,
+  sortedItemLeaves,
   type TypeIconOverrides,
 } from './displayNode';
-import { compareIds } from './idOrder';
 import { isReservedType } from './reservedTypes';
-import {
-  NO_ROLES,
-  NO_STATUS_ROLES,
-  resolveRole,
-  type RoleCatalogMap,
-  type StatusRoleMap,
-} from './statusRole';
+import { NO_ROLES, NO_STATUS_ROLES, type RoleCatalogMap, type StatusRoleMap } from './statusRole';
 import { NO_CATEGORIES, type TypeCategoryMap } from './typeCategory';
 import { NO_LABELS, pluralLabel, type TypeLabelMap } from './typeLabels';
 import {
@@ -75,49 +68,12 @@ export function filterListItems(items: readonly SqListItem[], filter: ListFilter
   return items.filter((item) => matchesFilter(item, filter));
 }
 
-function itemToLeaf(
-  item: SqListItem,
-  iconOverrides: TypeIconOverrides,
-  fieldBindings: FieldBindingsByType,
-  badgeVocabulary: BadgeVocabulary,
-  statusRoles: StatusRoleMap,
-  roleCatalog: RoleCatalogMap,
-): DisplayNode {
-  const role = resolveRole(item.status, statusRoles, roleCatalog);
-  return {
-    id: item.id,
-    itemId: item.id,
-    memoryRef: null,
-    label: `${item.id}  ${item.title}`,
-    description: `${item.status} · ${item.assignee ?? 'unassigned'}`,
-    tooltip: buildTooltip({
-      id: item.id,
-      type: item.type,
-      status: item.status,
-      assignee: item.assignee,
-      badges: resolveItemBadges(item.type, item.badges, fieldBindings, badgeVocabulary),
-      blocked: false,
-      // A flat row is not a tree root at all, so nothing here can be an invented one.
-      anchor: false,
-    }),
-    iconId: iconForType(item.type, iconOverrides),
-    // `sq list --json` carries no blocked flag (that's a tree-only field, computed from
-    // dependency edges); the flat/grouped view doesn't surface blocked-state.
-    blocked: false,
-    closed: role?.settled ?? false,
-    hidden: role?.hidden ?? false,
-    colorIntent: role?.color ?? null,
-    anchor: false,
-    children: [],
-  };
-}
-
 function sortedTypeEntries<T>(map: ReadonlyMap<string, T>, orderMap: TypeOrderMap): [string, T][] {
   return [...map.entries()].sort(([a], [b]) => compareTypesByOrder(orderMap, a, b));
 }
 
-/** Items sorted by id using shared numeric collation (a lower sequence number sorts first, never
- * plain lexicographic), mapped to leaf display nodes. */
+/** Items in id order as flat leaves: status and assignee as the description, the type's icon.
+ * A flat row carries no blocked flag (a tree-only field), so none is surfaced. */
 function sortedLeaves(
   items: readonly SqListItem[],
   iconOverrides: TypeIconOverrides,
@@ -126,11 +82,13 @@ function sortedLeaves(
   statusRoles: StatusRoleMap,
   roleCatalog: RoleCatalogMap,
 ): DisplayNode[] {
-  return [...items]
-    .sort((a, b) => compareIds(a.id, b.id))
-    .map((item) =>
-      itemToLeaf(item, iconOverrides, fieldBindings, badgeVocabulary, statusRoles, roleCatalog),
-    );
+  const context = { fieldBindings, badgeVocabulary, statusRoles, roleCatalog };
+  return sortedItemLeaves(items, (item) =>
+    itemLeaf(item, context, {
+      description: `${item.status} · ${item.assignee ?? 'unassigned'}`,
+      iconId: iconForType(item.type, iconOverrides),
+    }),
+  );
 }
 
 /** The catalog-derived rendering inputs to `groupListItems`, bundled into one options object

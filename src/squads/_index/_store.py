@@ -671,6 +671,28 @@ class IndexStore:
         if ctx is not None:
             ctx.held = None
 
+    @contextlib.asynccontextmanager
+    async def exclusive(self) -> AsyncGenerator[None]:
+        """Hold the three-layer lock across a multi-step pass that reads files, rewrites them
+        and commits the index itself with :meth:`overwrite`, so no writer interleaves. Inside
+        the block :meth:`overwrite` does not take the lock again; :meth:`transaction` still
+        would, so the body must not open one."""
+        async with self._loop_lock():
+            await _aio.to_thread(self._proc_mutex.acquire)
+            try:
+                await self._acquire_file_lock()
+                token = _exclusive_holder.set(self)
+                try:
+                    yield
+                finally:
+                    _exclusive_holder.reset(token)
+                    scope = _read_scope.get()
+                    if scope is not None:
+                        scope.snapshots.pop(self, None)
+                    await _aio.to_thread(self._lock.release)
+            finally:
+                await _aio.to_thread(self._proc_mutex.release)
+
     async def overwrite(self, db: SquadsDB) -> None:
         """Replace the whole index under the three-layer lock (used by ``sq repair``), with the
         same Layer-1-first ordering as :meth:`transaction`.
@@ -679,6 +701,9 @@ class IndexStore:
         unconditionally, in the same ``finally`` that releases Layer 3 — so a read after this
         in the same invocation never serves the pre-rebuild snapshot.
         """
+        if _exclusive_holder.get() is self:
+            await self._atomic_write(db)
+            return
         async with self._loop_lock():
             await _aio.to_thread(self._proc_mutex.acquire)
             try:
@@ -732,6 +757,9 @@ class _ReadScope:
 # opt-in on the *read* side — ``load()`` behaves exactly as it always has when no scope is bound
 # (opt-in, and its absence is only ever slow, never wrong), and nothing here changes what
 # ``transaction()`` does or reads.
+# The store whose :meth:`IndexStore.exclusive` block the current task is inside, if any.
+_exclusive_holder: ContextVar[IndexStore | None] = ContextVar("_exclusive_holder", default=None)
+
 _read_scope: ContextVar[_ReadScope | None] = ContextVar("_read_scope", default=None)
 
 

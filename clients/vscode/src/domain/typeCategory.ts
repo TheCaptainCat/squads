@@ -21,7 +21,8 @@ export const RECORDS_CATEGORY = 'records';
 export type TypeCategoryMap = ReadonlyMap<string, string>;
 
 /** The degrade-gracefully default: no known categories — used when the type-catalog fetch failed
- * or hasn't completed. Callers must treat an empty map as "can't tell", not "nothing is records". */
+ * or hasn't completed. Callers must treat an empty map as "can't tell", not "nothing is
+ * records". */
 export const NO_CATEGORIES: TypeCategoryMap = new Map();
 
 export function buildCategoryMap(catalog: readonly SqTypeCatalogEntry[]): TypeCategoryMap {

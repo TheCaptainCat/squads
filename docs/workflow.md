@@ -678,9 +678,9 @@ Each line is a JSON object with these fields:
 
 | Field | Type | Meaning |
 |-------|------|---------|
-| `v` | `string` | Schema version the line was written under — tracks the index schema, forward-compatible by addition |
+| `v` | `string` | Schema version of the squad that wrote the line (`"0.17"`). It is not a line-format version: the format is shared across schema versions and grows only by field addition |
 | `ts` | `string` | ISO-8601 UTC timestamp of the operation |
-| `actor` | `string` | Role slug (`python-dev`, `system`, `op-alice`, …) performing the write. An edit verb records `system` unless it is given `--as <slug>`, which takes a live role or operator exactly as a comment's `--as` does |
+| `actor` | `string` | Role slug (`python-dev`, `system`, `op-alice`, …) performing the write. `sq create` records its `--author`, and the comment verbs their required `--as`. Every other verb that edits one item, sub-entity or roster entry records `system` unless it is given `--as <slug>`, which takes a live role or operator exactly as a comment's `--as` does. `sq init`, `sq adopt`, `sq sync`, `sq repair`, `sq renumber` and `sq migrate` record `system` |
 | `op` | `string` | Operation name (see table below) |
 | `target` | `string` | Primary item ID affected (empty `""` for squad-level ops) |
 | `delta` | `object` | Free-form before/after detail — shape varies by `op` |
@@ -693,14 +693,13 @@ so a forged or copied id is indistinguishable from a real one — never make a t
 them. Only the immediate parent is stored; walk `parent_session_id` edges to reconstruct a chain
 (`sq reflog --tree` does exactly that). Lines written without them read back with both absent.
 
-**Op names.** The vocabulary is closed — these eighteen and no others, and the same eighteen
-`sq reflog --op` accepts. Both this table and that option's help come from one declared list, so
-they cannot drift apart. An `op` you meet that isn't here came from a squads version other than the
+**Op names.** The vocabulary is closed — these nineteen and no others, and the same nineteen
+`sq reflog --op` accepts. An `op` you meet that isn't here came from a squads version other than the
 one this guide ships with; your reflog is not corrupt.
 
 | `op` | Triggered by |
 |------|-------------|
-| `create` | `sq create …` |
+| `create` | `sq create …`, and the roster verbs `skill add`, `operator add`, `role add`, `role activate` and `dev add` (`sq init`, `sq adopt` and `sq sync` write one for each role or skill they register) |
 | `status` | `sq <type> <n> status …` |
 | `update` | `sq <type> <n> update …` — including a re-parent via `--parent` |
 | `body` | `sq <type> <n> body …` |
@@ -708,15 +707,15 @@ one this guide ships with; your reflog is not corrupt.
 | `comment` | `sq <type> <n> comment …`, on an item, a sub-entity, a role, a skill or an operator |
 | `comment_edit` | `comment <hash> edit` — one line per edit; `delta.comments` lists each comment it changed, with its `author`, `hash`, `region`, `ts`, the `before` text and the `after_hash` |
 | `comment_remove` | `comment <hash> remove` — one line per removal; `delta.comments` lists each removed comment with its `author`, `hash`, `region`, `ts` and `before` text |
-| `subentity` | `add-story` / `add-subtask` / `add-finding`, and a sub-entity's `update` / `body` / `remove`. The specific change is in `delta.op` |
+| `subentity` | `add-story` / `add-subtask` / `add-finding`, and a sub-entity's `update` / `body` / `remove`. `delta.op` names the action: `add`, `status`, `assignee` (an `assign` event in `sq import`), `update`, `body` or `remove` |
 | `ref` | `sq <type> <n> ref add` / `ref rm`, and refs severed by a forced `remove` |
-| `link` | An item's parent set or cleared through the service's own link path. **No CLI verb reaches this today** — from the CLI, a parent change arrives as `update` |
+| `link` | An item's parent set or cleared through the service's own link path. **No CLI verb writes it** — from the CLI, a parent change arrives as `update` |
 | `retype` | `sq <type> <n> retype …` |
 | `default_role` | `sq role <addr> set-default` |
 | `remove` | `sq <type> <n> remove …` (the `delta` carries the gone-item snapshot) |
-| `repair` | `sq repair`, with or without `--renumber` — and the rebuild inside `sq adopt` and `sq migrate up`. `delta.stripped` names every item whose file the rebuild rewrote, `delta.canonicalized` every item whose refs it re-encoded |
+| `repair` | `sq repair`, with or without `--renumber` — and the rebuild inside `sq adopt`, `sq migrate up` and `sq migrate repad`. `delta.stripped` names every item whose file the rebuild rewrote, `delta.canonicalized` every item whose refs it re-encoded |
 | `renumber` | `sq renumber` — the distinct verb that shifts a range of sequence numbers. `delta.stripped` names every item the shift's own rebuild rewrote, by its **post-shift** id |
-| `migrate` | `sq migrate up`, and `sq migrate repad` (which sets `delta.op` to `repad`) |
+| `migrate` | `sq migrate up` (`delta.from_schema`, `to_schema`, `applied`), and `sq migrate repad` (`delta.op` = `repad`, with `old_padding`, `new_padding`, `renamed`) |
 | `rename-type` | `sq migrate rename-type` — **one line per item moved**, not one line for the run |
 | `rename-status` | `sq migrate rename-status` — likewise, one line per item moved |
 

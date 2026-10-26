@@ -24,6 +24,7 @@ import {
   NAVIGATE_HISTORY_COMMAND,
   OPEN_ITEM_COMMAND,
   REFRESH_COMMAND,
+  RENDER_REPORT_COMMAND,
   TOGGLE_FOLD_COMMAND,
   UPDATE_CONTENT_COMMAND,
 } from './previewMessages';
@@ -257,6 +258,7 @@ function clientScript(
   return `(function () {
   window.scrollTo(0, 0);
   const vscode = acquireVsCodeApi();
+  window.__sqPostToHost = function (message) { vscode.postMessage(message); };
   function post(event, newTab) {
     const target = event.target.closest('a.sq-item-link, g.node[data-item-id]');
     if (!target) { return; }
@@ -339,8 +341,48 @@ function clientScript(
 function mermaidRenderScript(nonce: string): string {
   return `(function () {
   var callSeq = 0;
+  var violations = [];
+  document.addEventListener('securitypolicyviolation', function (event) {
+    violations.push(event.effectiveDirective || event.violatedDirective);
+  });
+  var report = function () {
+    var outputs = document.querySelectorAll('.sq-graph-output');
+    var rendered = 0;
+    var styleElements = 0, styleElementsNonced = 0, styleElementsApplied = 0;
+    var inlineStyleAttributes = 0, inlineStyleAttributesApplied = 0;
+    outputs.forEach(function (outputEl) {
+      var svg = outputEl.querySelector('svg');
+      if (!svg) { return; }
+      rendered++;
+      svg.querySelectorAll('style').forEach(function (styleEl) {
+        styleElements++;
+        if ((styleEl.nonce || styleEl.getAttribute('nonce')) === currentNonce) { styleElementsNonced++; }
+        if (styleEl.sheet) { styleElementsApplied++; }
+      });
+      svg.querySelectorAll('[style]').forEach(function (el) {
+        var first = (el.getAttribute('style') || '').split(';')[0].split(':');
+        var prop = (first[0] || '').trim();
+        if (!prop || first.length < 2) { return; }
+        inlineStyleAttributes++;
+        if (el.style.getPropertyValue(prop) !== '') { inlineStyleAttributesApplied++; }
+      });
+    });
+    if (typeof window.__sqPostToHost !== 'function') { return; }
+    window.__sqPostToHost({
+      command: '${RENDER_REPORT_COMMAND}',
+      rendered: rendered,
+      failed: outputs.length - rendered,
+      styleElements: styleElements,
+      styleElementsNonced: styleElementsNonced,
+      styleElementsApplied: styleElementsApplied,
+      inlineStyleAttributes: inlineStyleAttributes,
+      inlineStyleAttributesApplied: inlineStyleAttributesApplied,
+      violations: violations.slice(),
+    });
+  };
+  var currentNonce = '${nonce}';
   window.__sqRenderMermaid = function () {
-    if (typeof mermaid === 'undefined') { return; }
+    if (typeof mermaid === 'undefined') { report(); return; }
     mermaid.initialize({
       startOnLoad: false,
       securityLevel: 'strict',
@@ -358,6 +400,7 @@ function mermaidRenderScript(nonce: string): string {
       });
     };
     var sources = document.querySelectorAll('.sq-graph-source');
+    var settled = [];
     sources.forEach(function (sourceEl) {
       var outputId = sourceEl.getAttribute('data-output-id');
       var outputEl = outputId ? document.getElementById(outputId) : null;
@@ -365,7 +408,7 @@ function mermaidRenderScript(nonce: string): string {
       var text = sourceEl.textContent || '';
       if (!text.trim()) { return; }
       var renderId = 'sq-mermaid-render-' + String(callSeq++);
-      mermaid.render(renderId, text).then(function (result) {
+      settled.push(mermaid.render(renderId, text).then(function (result) {
         var parsed = new DOMParser().parseFromString(result.svg, 'image/svg+xml');
         var svgEl = parsed.documentElement;
         if (!svgEl || svgEl.nodeName === 'parsererror') {
@@ -388,8 +431,9 @@ function mermaidRenderScript(nonce: string): string {
         outputEl.replaceChildren(document.importNode(svgEl, true));
       }).catch(function () {
         outputEl.textContent = 'Failed to render diagram.';
-      });
+      }));
     });
+    if (settled.length > 0) { Promise.all(settled).then(report); }
   };
   window.__sqRenderMermaid();
 })();`;
@@ -612,9 +656,9 @@ export interface DiscussionOutcome {
 }
 
 /** One comment: an author (plus its slug when that differs from the name) + ISO-timestamp header,
- * then its body rendered through the same markdown renderer the dossier body uses (so item-id references — and, when `roles` resolves
- * them, `@<slug>` role mentions — inside a comment linkify the same way, and `currentId` still
- * suppresses a self-link). */
+ * then its body rendered through the same markdown renderer the dossier body uses (so item-id
+ * references — and, when `roles` resolves them, `@<slug>` role mentions — inside a comment
+ * linkify the same way, and `currentId` still suppresses a self-link). */
 function buildCommentHtml(
   entry: SqDiscussionEntry,
   currentId: string | undefined,

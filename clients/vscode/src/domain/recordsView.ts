@@ -17,69 +17,27 @@ import {
   type FieldBindingsByType,
   NO_BADGE_VOCABULARY,
   NO_FIELD_BINDINGS,
-  resolveItemBadges,
 } from './badgeCatalog';
 import {
-  buildTooltip,
   type DisplayNode,
   groupDisplayNode,
   iconForType,
+  itemLeaf,
+  sortedItemLeaves,
   type TypeIconOverrides,
 } from './displayNode';
-import { compareIds } from './idOrder';
 import {
   DEFAULT_RECORDS_VIEW_STATE,
   matchesRecordsFilter,
   type RecordsViewState,
 } from './recordsFilter';
-import {
-  NO_ROLES,
-  NO_STATUS_ROLES,
-  resolveRole,
-  type RoleCatalogMap,
-  type StatusRoleMap,
-} from './statusRole';
+import { NO_ROLES, NO_STATUS_ROLES, type RoleCatalogMap, type StatusRoleMap } from './statusRole';
 import { NO_CATEGORIES, recordsTypes, type TypeCategoryMap } from './typeCategory';
 import { NO_LABELS, pluralLabel, type TypeLabelMap } from './typeLabels';
 import { NO_TYPE_ORDER, sortTypesByOrder, type TypeOrderMap } from './typeOrder';
 
-function itemToLeaf(
-  item: SqListItem,
-  iconOverrides: TypeIconOverrides,
-  fieldBindings: FieldBindingsByType,
-  badgeVocabulary: BadgeVocabulary,
-  statusRoles: StatusRoleMap,
-  roleCatalog: RoleCatalogMap,
-): DisplayNode {
-  const role = resolveRole(item.status, statusRoles, roleCatalog);
-  return {
-    id: item.id,
-    itemId: item.id,
-    memoryRef: null,
-    label: `${item.id}  ${item.title}`,
-    // Status alone — same as `metaView.ts`: a records item's assignee (an ADR, a guide) isn't
-    // the operative field the way it is for work items.
-    description: item.status,
-    tooltip: buildTooltip({
-      id: item.id,
-      type: item.type,
-      status: item.status,
-      assignee: item.assignee,
-      badges: resolveItemBadges(item.type, item.badges, fieldBindings, badgeVocabulary),
-      blocked: false,
-      // A flat row is not a tree root at all, so nothing here can be an invented one.
-      anchor: false,
-    }),
-    iconId: iconForType(item.type, iconOverrides),
-    blocked: false,
-    closed: role?.settled ?? false,
-    hidden: role?.hidden ?? false,
-    colorIntent: role?.color ?? null,
-    anchor: false,
-    children: [],
-  };
-}
-
+/** Items in id order as flat leaves: status alone as the description (a records item's
+ * assignee, an ADR's or a guide's, isn't the operative field it is for a work item). */
 function sortedLeaves(
   items: readonly SqListItem[],
   iconOverrides: TypeIconOverrides,
@@ -88,11 +46,13 @@ function sortedLeaves(
   statusRoles: StatusRoleMap,
   roleCatalog: RoleCatalogMap,
 ): DisplayNode[] {
-  return [...items]
-    .sort((a, b) => compareIds(a.id, b.id))
-    .map((item) =>
-      itemToLeaf(item, iconOverrides, fieldBindings, badgeVocabulary, statusRoles, roleCatalog),
-    );
+  const context = { fieldBindings, badgeVocabulary, statusRoles, roleCatalog };
+  return sortedItemLeaves(items, (item) =>
+    itemLeaf(item, context, {
+      description: item.status,
+      iconId: iconForType(item.type, iconOverrides),
+    }),
+  );
 }
 
 /** The rendering-only trailing inputs to `buildRecordsView`, bundled into one options object

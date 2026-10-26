@@ -13,6 +13,8 @@
 .claude/skills/squads/SKILL.md
 .squads.toml
 CLAUDE.md
+agents/skills/SKILL-000007-sq-contract.md
+agents/skills/SKILL-000008-sq-milestone.md
 agents/skills/greeting.md
 agents/skills/sq-bug.md
 agents/skills/sq-decision.md

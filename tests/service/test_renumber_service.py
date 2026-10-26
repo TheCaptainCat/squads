@@ -37,3 +37,20 @@ async def test_renumber_with_nothing_to_shift_is_a_noop_even_though_the_index_al
     await create_item(svc, "task", "unrelated")  # ensures the index file exists on disk
     result = await svc.renumber(from_seq=999, onto=5)
     assert result.remap == {}
+
+
+async def test_scan_skips_a_file_that_vanished_after_the_listing(svc, monkeypatch):
+    created = await svc.create("task", "alpha", author="manager")
+    other = await svc.create("task", "beta", author="manager")
+    listed = svc._iter_item_files
+
+    def vanishing():
+        files = list(listed())
+        created.path.unlink()
+        return iter(files)
+
+    monkeypatch.setattr(svc, "_iter_item_files", vanishing)
+    records = await svc._scan_records()
+    paths = [r[1] for r in records]
+    assert other.path in paths
+    assert created.path not in paths

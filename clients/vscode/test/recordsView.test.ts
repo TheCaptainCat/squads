@@ -79,6 +79,16 @@ describe('buildRecordsView', () => {
     expect(allLeafIds).toEqual(['ADR-1']);
   });
 
+  it('describes a record leaf by its status alone, even when it has an assignee', () => {
+    const nodes = buildRecordsView(
+      [{ ...makeItem('ADR-1', 'decision', 'Accepted'), assignee: 'robert' }],
+      CATEGORY_MAP,
+      ORDER_MAP,
+    );
+
+    expect(nodes[0]?.children.map((leaf) => leaf.description)).toEqual(['Accepted']);
+  });
+
   it('each declared records bucket is present even with 0 items', () => {
     const nodes = buildRecordsView([], CATEGORY_MAP, ORDER_MAP);
 

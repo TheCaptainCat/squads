@@ -105,9 +105,6 @@ _STATES: dict[str, tuple[Build, bool]] = {
     "no-body-region": (_no_region, False),
     "template-no-longer-renders": (_template_no_longer_renders, False),
 }
-#: A file with no body region at all cannot be written by `body -m` (it ends in an unhandled
-#: KeyError rather than a refusal), so there is no first-write answer to compare with.
-_NOT_GUARDED = frozenset({"no-body-region"})
 
 
 @pytest.mark.parametrize("state", _STATES)
@@ -122,8 +119,6 @@ async def test_an_item_is_reported_exactly_when_a_first_body_write_would_be_acce
     found = member_findings(await svc.check(), BODY_WRITTEN_MEMBER)
     assert [i for _, i, _ in found] == ([item.id] if expected else []), state
 
-    if state in _NOT_GUARDED:
-        return
     try:
         await svc.set_body(item.id, "A first body.")
     except SquadsError:

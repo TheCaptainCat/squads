@@ -100,6 +100,13 @@ select = [
     "ASYNC",                                 # blocking calls inside async fns
     "ERA",                                   # commented-out code
 ]
+# RUF029 (async function without `await`) is a preview rule. `explicit-preview-rules` keeps every
+# other preview rule off, the `RUF` prefix included, but preview also turns on the preview
+# behaviour of already-selected stable rules (F401, F811, SIM102 fixes, ...): none changes the
+# findings at ruff 0.15.16, so re-measure on a ruff bump.
+preview = true
+explicit-preview-rules = true
+extend-select = ["RUF029"]
 ignore = [
     "TRY003",  # long messages in raise() are intentional (user-facing SquadsError text)
 ]
@@ -116,7 +123,9 @@ max-args = 8
 # tests favour readability over these rules; ERA001 false-positives heavily on our
 # section-divider comments ("# Label: word", "# Label (word)") and the verbatim-quoted
 # docstring text in the backend-conformance findings catalogue
-"tests/*" = ["PLR2004", "PLR0913", "S101", "ERA001"]
+# RUF029: async tests with no `await` run on the event loop under anyio_mode = "auto"; they are
+# left as written until the suite is rebuilt.
+"tests/*" = ["PLR2004", "PLR0913", "S101", "ERA001", "RUF029"]
 
 [tool.pyright]
 include = ["src", "tests"]

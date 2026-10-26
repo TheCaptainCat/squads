@@ -98,12 +98,52 @@ async def read_id(md: Path) -> str | None:
 
 async def groups_among(files: Iterable[Path]) -> dict[str, list[Path]]:
     """The duplicate groups among *files*, reading every one of them."""
+    return duplicate_groups(await _read_pairs(files))
+
+
+async def _read_pairs(files: Iterable[Path]) -> list[tuple[object, Path]]:
+    """``(normalized id, file)`` for each of *files* that still reads and carries an id."""
     pairs: list[tuple[object, Path]] = []
     for md in sorted(files):
         fid = await read_id(md)
         if fid is not None:
             pairs.append((fid, md))
-    return duplicate_groups(pairs)
+    return pairs
+
+
+def _candidates(files: Iterable[Path], number: int, listing: Iterable[Path]) -> set[Path]:
+    """*files* plus every listed file whose name carries *number*: a copy renamed since the scan
+    is found again by its number, without reading the rest of the corpus."""
+    return set(files) | {md for md in listing if name_number(md.name) == number}
+
+
+async def confirmed_groups(
+    groups: dict[str, list[Path]], listing: Iterable[Path]
+) -> dict[str, list[Path]]:
+    """The duplicate groups that still hold when read again against a fresh *listing*: a file
+    renamed or removed since the scan drops out, and a renamed copy is found under its new
+    name, so one file seen under two names is not reported as two."""
+    listing = list(listing)
+    confirmed: dict[str, list[Path]] = {}
+    for key, files in groups.items():
+        again = duplicate_groups(await _read_pairs(_candidates(files, number_for_id(key), listing)))
+        if key in again:
+            confirmed[key] = again[key]
+    return confirmed
+
+
+async def confirmed_shared_numbers(
+    groups: dict[int, list[Path]], listing: Iterable[Path]
+) -> dict[int, list[Path]]:
+    """The shared-number groups that still hold when read again against a fresh *listing*,
+    regrouped by number from what each candidate file carries now."""
+    listing = list(listing)
+    confirmed: dict[int, list[Path]] = {}
+    for number, files in groups.items():
+        again = shared_number_groups(await _read_pairs(_candidates(files, number, listing)))
+        if number in again:
+            confirmed[number] = again[number]
+    return confirmed
 
 
 @dataclass

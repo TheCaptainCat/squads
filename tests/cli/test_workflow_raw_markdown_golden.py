@@ -8,6 +8,8 @@ Regenerating the golden: set ``UPDATE_GOLDENS=1`` and run this module; commit th
 """
 
 import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -16,6 +18,8 @@ pytestmark = pytest.mark.anyio
 
 GOLDENS_DIR = Path(__file__).parents[1] / "goldens"
 _UPDATE = os.getenv("UPDATE_GOLDENS") == "1"
+#: The installed `sq` console script, so forced colour reaches a fresh process.
+_SQ_BIN = Path(sys.executable).parent / "sq"
 
 
 def _check_golden(name: str, actual: str) -> None:
@@ -55,3 +59,25 @@ async def test_workflow_raw_emits_markdown_tables_and_no_diagram_markup(project,
     assert "| Canonical | Aliases | Example |" in result.output
     assert "| Prefix | Type | Lifecycle |" in result.output
     assert "```mermaid" not in result.output
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="rich writes no ANSI to a pipe on Windows")
+async def test_workflow_raw_has_no_escape_codes_even_when_colour_is_forced(project):
+    """Run as a subprocess: the console is built once at import, so only a fresh process reads
+    forced colour (the autouse fixture strips it from the in-process environment)."""
+    env = {k: v for k, v in os.environ.items() if k != "TTY_COMPATIBLE"}
+    env["FORCE_COLOR"] = "3"
+    env["TERM"] = "xterm-256color"  # a dumb terminal is colourless even when forced
+
+    def run(*args: str) -> str:
+        proc = subprocess.run(
+            [str(_SQ_BIN), *args], cwd=project.root, env=env, capture_output=True, text=True
+        )
+        assert proc.returncode == 0, proc.stderr
+        return proc.stdout
+
+    assert "\x1b[" in run("workflow"), "precondition: forced colour styles the rendered form"
+    raw = run("workflow", "--raw")
+    assert "\x1b[" not in raw
+    for box_char in "╭╮╰╯│─":
+        assert box_char not in raw

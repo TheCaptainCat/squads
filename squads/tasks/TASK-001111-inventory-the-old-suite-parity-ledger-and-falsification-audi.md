@@ -37,26 +37,26 @@ subentities:
   assignee: devops
   story: US10
 created_at: '2026-10-24T13:42:12Z'
-updated_at: '2026-10-24T21:56:19Z'
+updated_at: '2026-10-26T09:26:33Z'
 ---
 <!-- sq:body -->
 Inventory what the old suite protects before any of it is rebuilt: the parity ledger (US1), the falsification audit (US2) and the per-OS CI baseline every later increment is measured against (US10). Read-only on `tests/` and `src/`: no old test is deleted or edited here. The one file this task adds to the repo is the ledger, `tests_next/LEDGER.md`, which starts the new root; the rest of that root is set up by the next task.
 
-The task starts after the queue ahead of it (TASK-1110, TASK-1098 and the FEAT-1101 tasks TASK-1103 to TASK-1107) has landed, so the suite it inventories is the one the rebuild replaces.
+The task starts after the queue ahead of it has landed (TASK-1110, TASK-1098, the FEAT-1101 tasks TASK-1103 to TASK-1107, and TASK-1123 to TASK-1126, all Done on 2026-10-26), and runs last in the 0.17 release (op-pierre, 2026-10-26), so the suite it inventories is the one the rebuild replaces.
 
-**Measured on 2026-10-24** (`pytest --collect-only --run-slow`, static reads, `gh run view 39020459902`, the 2026-10-17 push to `main`):
+**Measured on 2026-10-26** at `release/0.17` 9b79babd (`pytest --collect-only -n0`, one directory at a time; `gh run view` on the latest `test` workflow runs):
 
-- 13,931 tests in 751 files. Per directory: `tests/service` 5,119; `tests/unit` 3,668; `tests/cli` 3,383; `tests/integration` 1,228; `tests/meta` 450 (55 files); `tests/tui` 77; `tests/test_scale.py` 6 (the only `slow` tests, skipped in CI).
-- From the earlier count the same day (13,816 tests): 4,975 test functions; 9,605 parametrised rows (70%) from 760 parametrised functions; the 20 largest functions hold 3,811 tests (28%), the 100 largest 6,283 (45%).
-- CI pytest step: Windows 3,190 s (53 min, 13,772 passed, 44 skipped), macOS 852 s (14 min), Ubuntu 480 s (8 min). Setup steps are under 10 s each; the time is all pytest. That is about 231 ms per test on Windows, 62 on macOS, 35 on Ubuntu. Worker counts are not in the `-q` log.
-- A filename heuristic puts about 8,100 tests in 509 files on a fresh `init` per test, against 1,500 tests in 33 files that copy a shared squad (`tests/_roster_squad.py` pattern). This is an estimate from static reads, to be confirmed by the profile.
+- 15,636 tests in 821 files. Per directory: `tests/service` 5,388 (256 files); `tests/cli` 4,451 (232); `tests/unit` 3,979 (164); `tests/integration` 1,243 (97); `tests/meta` 492 (60); `tests/tui` 77 (11); `tests/test_scale.py` 6 (the only `slow` tests, skipped in CI). That is 1,705 more than the 13,931 counted on 2026-10-24, 1,068 of them in `tests/cli`; the largest new tables are `tests/cli/test_a_damaged_override_is_a_clean_error_cli.py` (402), `tests/cli/test_each_spec_document_is_loaded_at_most_once_per_invocation.py` (145) and `tests/cli/test_every_item_edit_verb_takes_an_optional_as_cli.py` (100).
+- From the 2026-10-24 count (13,816 tests), not re-measured: 4,975 test functions; 9,605 parametrised rows (70%) from 760 parametrised functions; the 20 largest functions hold 3,811 tests (28%), the 100 largest 6,283 (45%).
+- CI pytest step, all on the 0.16 suite (13,816 collected): the 2026-10-17 push to `main` (run 39020459902) took 3,190 s on Windows, 852 s on macOS and 480 s on Ubuntu. The two 2026-10-24 dependency-bump pull requests took 2,319 s and 3,516 s on Windows (run 40116628420, passed; run 40116638095, one TUI test failed), 635 s and 796 s on macOS, 885 s and 954 s on Ubuntu. That is 168 to 255 ms per test on Windows, 46 to 58 on macOS and 64 to 69 on Ubuntu; Ubuntu is already over its 10-minute target. `release/0.17` has never run the `test` workflow, which triggers only on pushes and pull requests to `main`. Worker counts are not in the `-q` log.
+- A filename heuristic put about 8,100 tests in 509 files on a fresh `init` per test, against 1,500 tests in 33 files that copy a shared squad (`tests/_roster_squad.py` pattern), on 2026-10-24. This is an estimate from static reads, to be confirmed by the profile.
 
 The queue ahead adds tests, so ST2 and ST3 re-count at the start and the ledger and baseline cite that count, not these figures.
 
 **What makes an edge case a ledger entry.** An entry is kept when it falls in one of these sources, and only then:
 
 1. The regression classes seeded in the FEAT-1096 body.
-2. A Verified or Fixed bug (115 Verified, 6 Fixed on 2026-10-24) whose fix added or changed a test: found from the bug's refs, the fixing commit and `git log -S` on the test name.
+2. A Verified or Fixed bug (140 Verified, 5 Fixed on 2026-10-26) whose fix added or changed a test: found from the bug's refs, the fixing commit and `git log -S` on the test name.
 3. A defect-severity review finding (critical, high, medium; Verified or Fixed), REV-706 F1, F10, F11 and F12 included.
 4. An old test that the audit shows is the only one red for some break of its seam (a unique kill). A row that only ever goes red together with its siblings is redundant; a row that never goes red is not protective. Neither becomes an entry.
 

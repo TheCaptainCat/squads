@@ -37,6 +37,20 @@ async def test_workload_counts_open_and_closed_per_assignee_and_groups_unassigne
     assert rows[None].open == 1
 
 
+async def test_workload_leaves_out_role_and_skill_items_even_when_assigned(svc):
+    role = await svc.activate_role("manager")
+    skill = await svc.add_skill("Deploy checks")
+    await svc.update(role.id, assignee="manager")
+    await svc.update(skill.id, assignee="manager")
+    await create_item(svc, "task", "real work", assignee="manager")
+    await create_item(svc, "task", "unassigned work")
+
+    rows = {r.assignee: r for r in await svc.workload()}
+    assert rows["manager"].total == 1
+    assert rows[None].total == 1
+    assert sum(r.total for r in rows.values()) == 2
+
+
 async def test_search_status_filter_ands_with_the_query_and_type(svc):
     open_task = await create_item(svc, "task", "Retry the payment webhook")
     done_task = (await create_item(svc, "task", "Retry the payment queue")).item

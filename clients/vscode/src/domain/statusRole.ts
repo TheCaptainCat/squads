@@ -6,7 +6,8 @@
  *    `"in_force"`), if any — `StatusRoleMap`, the reference step.
  * 2. `sq workflow roles --json` is the role catalog itself: each role is a first-class object
  *    carrying `settled` (the old `terminal` concept), `hidden` (excluded from the default,
- *    non-`--all` view), and `color` (a semantic intent from a closed vocabulary) — `RoleCatalogMap`.
+ *    non-`--all` view), and `color` (a semantic intent from a closed vocabulary) —
+ *    `RoleCatalogMap`.
  *
  * `resolveRole` performs the full two-step join. Neither `terminal` nor `is_open` exists on any
  * `sq --json` surface any more — a client re-derives them from the resolved role's `settled`.

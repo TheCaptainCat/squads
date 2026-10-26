@@ -45,6 +45,8 @@ from squads._services._corpus_files import (
     stem_digit_run,
 )
 from squads._services._duplicate_ids import (
+    confirmed_groups,
+    confirmed_shared_numbers,
     duplicate_groups,
     normalized_id,
     shared_number_groups,
@@ -535,12 +537,13 @@ class CheckMixin(ServiceCore):
         ]
         issues += self._orphaned_skill_issues(index)
         carriers = await self._id_carriers(ctx.carriers)
-        dup_groups = duplicate_groups(carriers)
+        listing = self._all_item_files()
+        dup_groups = await confirmed_groups(duplicate_groups(carriers), listing)
         issues += [
             CheckIssue("error", key, self._duplicate_id_message(files), "ids_unique")
             for key, files in dup_groups.items()
         ]
-        shared = shared_number_groups(carriers)
+        shared = await confirmed_shared_numbers(shared_number_groups(carriers), listing)
         issues += [
             CheckIssue(
                 "error", f"#{number}", self._shared_number_message(number, files), "numbers_unique"

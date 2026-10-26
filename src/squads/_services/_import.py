@@ -1,5 +1,5 @@
 """Bulk event import engine (``sq import``): validate-first pre-pass + single-
-transaction apply. The CLI command itself is a separate concern (a later task) — this module
+transaction apply. The command itself is ``sq import`` (``_cli/_import.py``); this module
 exposes the whole engine as one service entry point, :meth:`ImportMixin.import_events`.
 
 **Two passes, one op set.** Every op's real mutation lives in exactly one place — the
