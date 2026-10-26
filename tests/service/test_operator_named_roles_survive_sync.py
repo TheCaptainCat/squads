@@ -18,8 +18,6 @@ Every test below exercises both at once; an integration test cannot isolate one 
 so a red test here points at either site.
 """
 
-from dataclasses import replace as dc_replace
-from datetime import timedelta
 from pathlib import Path
 
 import pytest
@@ -27,8 +25,6 @@ import pytest
 from _helpers import catalog_of, dev_role, make_service
 from squads import __version__
 from squads import _itemfile as itemfile
-from squads._context import bind_context, get_context
-from squads._index._reflog import read_lines, reflog_path
 from squads._roles._catalog import PREDEFINED
 from squads._roles._resolver import resolve_role_with_base
 from squads._services import _service as service
@@ -98,7 +94,7 @@ async def test_a_developer_roles_name_survives_two_consecutive_syncs(project, sv
     """The developer side of the same mechanism (unified, not a parallel code path): a
     developer named at creation must be just as durable through `role_base_from_item` as it
     was through the old dev-only special case."""
-    dev = await svc.add_dev("python", name="Hank Python")
+    dev = await svc.activate_role(None, from_template="dev", tech="python", name="Hank Python")
     assert dev.title == "Hank Python"
 
     for _ in range(2):
@@ -184,7 +180,7 @@ async def test_an_override_declared_after_creation_renames_no_role(
     project, svc, kind, given, declared
 ):
     if kind == "python":
-        role = await svc.add_dev("python", name=given)
+        role = await svc.activate_role(None, from_template="dev", tech="python", name=given)
         slug = "python-dev"
     else:
         role = await svc.activate_role(kind, name=given)
@@ -218,61 +214,6 @@ async def test_tier_3_bundled_default_and_dev_pool_name_with_no_item_and_no_over
 
 
 # --------------------------------------------------------------------------------------------
-# Catalog resolution still works: a RoleDef field an operator never sets (mission,
-# responsibilities, can_spawn) still reaches every reader of an item whose stored copy is
-# stale, in the very same sync that also preserves the operator's own name. A fix that simply
-# froze the whole definition to the item would pass every test above and fail only this one.
-#
-# The stale copy is planted in `extra` and stays there: nothing writes those keys any more and
-# nothing reads them, so "the current catalog value reaches the item" is now asserted where the
-# value is actually consumed -- the uniform record's `description`, the resolved definition, the
-# generated pointer -- rather than on a mirror that no longer exists.
-# --------------------------------------------------------------------------------------------
-
-
-async def test_catalog_resolution_still_reaches_a_stale_item_alongside_a_preserved_name(
-    project, svc
-):
-    role = await svc.activate_role("architect", name="Ada Lovelace")
-
-    from squads._index._resolver import item_file
-    from squads._itemfile import update_frontmatter
-    from squads._roles._resolver import resolve_role_for_item
-
-    current = await svc.get(role.id)
-    base = current.model_copy(deep=True)
-    stale = current.model_copy(deep=True)
-    stale.attributes["mission"] = "a long-obsolete mission statement"
-    stale.description = "a long-obsolete mission statement"
-    stale.attributes["responsibilities"] = ["an obsolete responsibility"]
-    stale.attributes["can_spawn"] = not _BUNDLED_ARCHITECT.can_spawn
-    async with svc.store.transaction() as db:
-        await update_frontmatter(
-            item_file(svc.paths, stale), stale, base, default_kind=svc.spec.default_ref_kind()
-        )
-        db.add(stale)
-
-    skipped = await svc.sync()
-    assert not skipped
-
-    healed = await svc.get(role.id)
-    # The uniform record's own field reconverges to the *current* catalog value.
-    assert healed.description == _BUNDLED_ARCHITECT.mission
-    # And every field with no uniform-record home is answered by the resolver, over the top of
-    # the stale copy still sitting in `extra`.
-    resolved = resolve_role_for_item(
-        healed, svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir)
-    )
-    assert resolved.mission == _BUNDLED_ARCHITECT.mission
-    assert list(resolved.responsibilities) == list(_BUNDLED_ARCHITECT.responsibilities)
-    assert resolved.can_spawn == _BUNDLED_ARCHITECT.can_spawn
-    # The stale copy is inert, not healed -- pinned so a reader knows which of the two it is.
-    assert healed.attribute("mission") == "a long-obsolete mission statement"
-    # The operator's own name is untouched by the very same sync.
-    assert healed.title == "Ada Lovelace"
-
-
-# --------------------------------------------------------------------------------------------
 # `[init.names]` is read by no resolver and no sync path: a stale or absent entry changes
 # nothing about what a resolve produces.
 # --------------------------------------------------------------------------------------------
@@ -297,39 +238,3 @@ async def test_init_names_presence_or_absence_changes_no_resolve(project, svc):
     await svc.sync()
     reloaded = await svc.get(role.id)
     assert reloaded.title == "Ada Lovelace"
-
-
-# --------------------------------------------------------------------------------------------
-# A change through this writer is visible: updated_at moves, modified_session is set, and one
-# "update" reflog entry is appended -- while the role's own "create" entry stays readable.
-# --------------------------------------------------------------------------------------------
-
-
-async def test_a_change_through_this_writer_is_visible_and_the_create_entry_survives(
-    project, svc, frozen_time
-):
-    from squads import _actor as actor
-
-    actor.seed_session("sid-activate", None)
-    role = await svc.activate_role("architect")
-    original_updated_at = role.updated_at
-
-    _place_override(project.squad_dir, "architect", 'mission = "A new mission."\n')
-
-    later = frozen_time + timedelta(hours=1)
-    bind_context(dc_replace(get_context(), clock_override=later))
-    actor.seed_session("sid-sync", None)
-    skipped = await svc.sync()
-    assert not skipped
-
-    reloaded = await svc.get(role.id)
-    assert reloaded.title == "Robert Architect"
-    assert reloaded.description == "A new mission."
-    assert reloaded.updated_at == later
-    assert reloaded.updated_at != original_updated_at
-    assert reloaded.modified_session == "sid-sync"
-
-    lines = await read_lines(reflog_path(project.squad_dir))
-    role_lines = [ln for ln in lines if ln.target == role.id]
-    assert [ln.op for ln in role_lines] == ["create", "update"]  # append-only, in order
-    assert role_lines[0].delta.get("title") == "Robert Architect"  # the create entry, untouched

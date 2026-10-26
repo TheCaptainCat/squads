@@ -1,8 +1,8 @@
-"""An existing developer's definition is regenerated from the ``[dev]`` table of the catalog the
-squad resolves, on every read. The colour follows a ``[dev]`` change after the developer was
-added; the stored model and the stored name do not change.
+"""An existing developer's definition is regenerated from the ``[templates.dev]`` table of the
+catalog the squad resolves, on every read. The colour and the model follow a template change after
+the developer was added; the stored name does not change.
 
-One table: the ``[dev]`` override when the developer is added, by what changes afterwards, by the
+One table: the template override when the developer is added, by what changes afterwards, by the
 per-slug role file. Each cell compares the generated pointer with ``sq role rust-dev show``.
 """
 
@@ -25,7 +25,7 @@ _ADDED_NAME = "Elias Rust"
 def _write_dev_table(squad_dir: Path, model: str | None, color: str | None) -> None:
     overrides = squad_dir / ".overrides"
     overrides.mkdir(exist_ok=True)
-    lines = [f"# squads:override-base:{__version__}", "[dev]"]
+    lines = [f"# squads:override-base:{__version__}", "[templates.dev]"]
     if model is not None:
         lines.append(f'model = "{model}"')
     if color is not None:
@@ -73,9 +73,9 @@ class _Add:
 
 @dataclass(frozen=True)
 class _After:
-    """What changes after the developer exists, and the ``[dev]`` table that results."""
+    """What changes after the developer exists, and the ``[templates.dev]`` table that results."""
 
-    writes: _Add | None  # a new [dev] table, or None to leave the file as it is
+    writes: _Add | None  # a new [templates.dev] table, or None to leave the file as it is
     removes: bool = False
 
 
@@ -107,7 +107,7 @@ _PAIRS = [
 
 @pytest.mark.parametrize("slug_file", list(_SLUG_FILES))
 @pytest.mark.parametrize(("at_add", "after"), _PAIRS)
-async def test_the_colour_follows_the_dev_table_and_the_stored_model_and_name_do_not(
+async def test_the_colour_and_model_follow_the_template_and_the_stored_name_does_not(
     at_add: str, after: str, slug_file: str, project, svc, invoke
 ) -> None:
     added = _AT_ADD[at_add]
@@ -119,18 +119,20 @@ async def test_the_colour_follows_the_dev_table_and_the_stored_model_and_name_do
     result = await invoke(["dev", "add", "--tech", "rust"])
     assert result.exit_code == 0, result.output
 
-    stored_model = added.model if added is not None and added.model else _BUNDLED_MODEL
+    table_model = added.model if added is not None and added.model else _BUNDLED_MODEL
     table_color = added.color if added is not None and added.color else _BUNDLED_COLOR
     if change.removes:
         (project.squad_dir / ".overrides" / "roles.toml").unlink()
         table_color = _BUNDLED_COLOR
+        table_model = _BUNDLED_MODEL
     elif change.writes is not None:
         _write_dev_table(project.squad_dir, change.writes.model, change.writes.color)
         table_color = change.writes.color or table_color
+        table_model = change.writes.model or table_model
     if file_body:
         _write_slug_file(project.squad_dir, file_body)
 
-    expected_model = file_model or stored_model
+    expected_model = file_model or table_model
     expected_color = file_color or table_color
 
     seen: list[tuple[str, str]] = []
@@ -153,7 +155,7 @@ async def test_the_colour_follows_the_dev_table_and_the_stored_model_and_name_do
     assert item.title == _ADDED_NAME
 
 
-async def test_a_dev_table_override_reaches_a_developer_added_before_it_existed(
+async def test_a_template_override_reaches_a_developer_added_before_it_existed(
     project, svc, invoke
 ) -> None:
     """The reproduction of the reverted override: pointer at haiku and pink after the add,
@@ -173,7 +175,8 @@ async def test_a_changed_name_pool_leaves_an_existing_name_and_feeds_the_next_de
     overrides = project.squad_dir / ".overrides"
     overrides.mkdir(exist_ok=True)
     (overrides / "roles.toml").write_text(
-        f'# squads:override-base:{__version__}\n[dev]\nname_pool = ["Zed"]\n', encoding="utf-8"
+        f'# squads:override-base:{__version__}\n[templates.dev]\nname_pool = ["Zed"]\n',
+        encoding="utf-8",
     )
     for _ in range(2):
         assert (await invoke(["sync"])).exit_code == 0

@@ -58,16 +58,25 @@ async def test_set_and_unset_a_badge_field_by_key_routes_through_set_badge_value
 
 
 async def test_setting_a_role_field_is_refused_and_the_pointer_is_unchanged(svc, project):
-    """A role's content is authored in its role document, so a generic ``--set`` on a role is
-    refused and the generated pointer keeps the catalog's answer."""
+    """A role's content is authored in its role document, so a generic ``--set`` of a definition
+    field on a role is refused and the generated pointer keeps the catalog's answer."""
     pointer_path = project.root / ".claude" / "agents" / "manager.md"
     before = pointer_path.read_text(encoding="utf-8")
 
     with pytest.raises(SquadsError, match="authoring surface"):
-        await svc.update("ROLE-000001", set_attributes={"model": "haiku"})
+        await svc.update("ROLE-000001", set_attributes={"mission": "a new mission"})
 
-    assert "model" not in (await svc.get("ROLE-000001")).attributes
+    assert "mission" not in (await svc.get("ROLE-000001")).attributes
     assert pointer_path.read_text(encoding="utf-8") == before
+
+
+async def test_a_roles_model_is_an_operator_setting_that_reaches_the_pointer(svc, project):
+    pointer_path = project.root / ".claude" / "agents" / "manager.md"
+
+    await svc.update("ROLE-000001", set_attributes={"model": "haiku"})
+
+    assert (await svc.get("ROLE-000001")).attributes["model"] == "haiku"
+    assert "model: haiku" in pointer_path.read_text(encoding="utf-8")
 
 
 async def test_a_role_field_that_moved_to_the_catalog_is_refused_with_where_it_lives_now(svc):

@@ -2,6 +2,7 @@
 
 import contextlib
 import dataclasses
+import tomllib
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, cast
@@ -13,7 +14,7 @@ from squads import _sections as sections
 from squads import _view_tags as view_tags
 from squads import _views as views
 from squads._backends._base import AgentBackend, BackendContext
-from squads._errors import IndexFullError, RoleNotFoundError, SquadsError
+from squads._errors import IndexFullError, SquadsError
 from squads._index._reconcile import (
     ReconcileResult,
     carry_forward_indexed_timestamps,
@@ -46,7 +47,6 @@ from squads._itemfile import (
     read_item_text,
     rewrite_ids,
     skew_message,
-    update_frontmatter,
     write_text,
 )
 from squads._migrations._config_text import ConfigRewrite, plan_config_rewrite
@@ -68,9 +68,8 @@ from squads._models._metadata import RETIRED_ROLE_KEYS
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._vocab import prefix_for
 from squads._paths import number_for_id
-from squads._roles._catalog import RoleDef
+from squads._roles._loader import LEGACY_DEV_TABLE_MESSAGE, ROLES_OVERRIDE_FILENAME
 from squads._roles._projection import RoleView
-from squads._roles._resolver import pinned_name_of, resolve_role_with_base, role_base_from_item
 from squads._sections import join_frontmatter
 from squads._services._base import ServiceCore
 from squads._services._corpus_files import (
@@ -248,26 +247,15 @@ def _retired_role_keys(item: Item, spec: WorkflowSpec) -> frozenset[str]:
     """The retired mirror keys *item* still carries as attributes — empty for anything that is
     not a role item, and empty for a role that carries none of them.
 
-    The set is a difference between two declarations, never a list written out here: the
-    candidates are :data:`~squads._models._metadata.RETIRED_ROLE_KEYS` widened by
-    :meth:`RoleDef.attribute_keys`, and what is taken back out is
-    :meth:`RoleDef.stored_attribute_keys` for *this* role's shape. That subtraction is why a
-    developer's ``model`` survives while a non-dev role's is removed, and why the answer cannot
-    drift from the writer. Getting it wrong in the other direction is unrecoverable: a
-    developer's ``model`` is an operator setting with no catalog answer, so a stripped one is
-    re-rolled from the dev pool as a different value.
-
-    A role is identified by its item type and its shape by the stored ``tech`` attribute, never
-    by the slug's spelling. An operator item is kept off this sweep by the type check.
+    The candidates are the closed set :data:`~squads._models._metadata.RETIRED_ROLE_KEYS`, never
+    "every key this build does not recognise", so a sweep never deletes a key some other tool
+    put on a role item. A name the squad's spec declares on role is the adopter's attribute, not
+    a mirror key.
     """
     if item.type != ROSTER_ROLE:
         return frozenset()
-    stored = RoleDef.stored_attribute_keys(templated=attrs.is_templated(item))
-    retired = (RETIRED_ROLE_KEYS | RoleDef.attribute_keys()) - stored
-    # A name the squad's spec declares on role is the adopter's attribute, not a mirror key; the
-    # one declared name the mirror also used (the stored model) is still swept.
-    declared = frozenset(spec.item_attributes(ROSTER_ROLE)) - RoleDef.attribute_keys()
-    return (retired - declared) & frozenset(item.attributes)
+    declared = frozenset(spec.item_attributes(ROSTER_ROLE))
+    return (RETIRED_ROLE_KEYS - declared) & frozenset(item.attributes)
 
 
 @dataclasses.dataclass
@@ -471,9 +459,7 @@ class MaintenanceMixin(ServiceCore):
         keep treating it as the plain ``list[str]`` of skip/notice messages below.
 
         Returns one skip-report message per drifted roster role whose
-        frontmatter was left untouched (see :meth:`_detect_roster_item_skew`, and
-        :meth:`_refresh_catalog_attributes`
-        for the narrower catalog-merge case that can raise the same way), one notice per live
+        frontmatter was left untouched (see :meth:`_detect_roster_item_skew`), one notice per live
         ``SKILL`` item this run just withdrew because its type is no
         longer declared (:func:`orphaned_skill_item_type`), and one per
         playbook guide **the adopter wrote** that this run just dropped from a generated
@@ -514,14 +500,8 @@ class MaintenanceMixin(ServiceCore):
             role_skills=role_skills,
             catalog=self.catalog,
         )
-        # Copied out of the snapshot before any mutation: ``list_items`` returns the read
-        # scope's own aliases with no copy, and ``_refresh_catalog_attributes`` below mutates
-        # ``item.attributes`` in place and then grafts that same object into a fresh
-        # ``transaction()`` db via ``db.add`` — a pre-transaction object landing in a db it
-        # did not come from. The commit path is safe regardless (``ensure_no_skew`` gates the
-        # graft, and the excluded-key set is exactly what the graft reasserts), but a private
-        # copy here makes that local to this loop rather than something a reader has to trace
-        # across three files.
+        # Copied out of the snapshot: ``list_items`` returns the read scope's own aliases with no
+        # copy, and the loop below hands these items to the projection.
         roster_roles = [
             item.model_copy(deep=True) for item in await self.list_items(item_type=ROSTER_ROLE)
         ]
@@ -622,9 +602,8 @@ class MaintenanceMixin(ServiceCore):
     ) -> list[str]:
         """Re-apply every roster item's status against the live predicate, materialising a live
         entry and withdrawing every other one — including an entry already retired before this
-        landed, with no migration owed. The item's own sq-managed state (the catalog-attribute
-        merge) refreshes unconditionally regardless of liveness: only the *backend* projection —
-        via ``project_item``, the same helper the single-item transition path uses — is gated.
+        landed, with no migration owed. Only the *backend* projection — via ``project_item``,
+        the same helper the single-item transition path uses — is gated.
         The role's own definition renders at read time off the ``sq:view:role_definition`` tag
         its ``sq:body`` carries (``squads._view_tags.expand_view_tags``, via
         ``ItemsMixin.read_body``); these loops don't write that tag either — the body-tag
@@ -636,9 +615,6 @@ class MaintenanceMixin(ServiceCore):
             skew_msg = await self._detect_roster_item_skew(it, default_kind=default_kind)
             if skew_msg is not None:
                 skipped.append(skew_msg)
-            msg = await self._refresh_catalog_attributes(it, default_kind=default_kind)
-            if msg is not None:
-                skipped.append(msg)
             skipped += await self.roster_projection.project_item(it, proj_ctx)
         for it in roster_skills:
             stale_type = orphaned_skill_item_type(it.slug, self.spec)
@@ -698,10 +674,18 @@ class MaintenanceMixin(ServiceCore):
         known_slugs = {r.slug for r in await self.roster_all()}
         live_initial = self.spec.live_initial(ROSTER_ROLE)
         override_guides = playbook_override_guide_pairs(self.paths.squad_dir, self.files)
+        try:
+            catalog_slugs = {r.slug for r in self.catalog().roles}
+        except SquadsError:  # the broken catalog override is its own finding
+            catalog_slugs = set[str]()
         return [
             *(
                 orphaned_playbook_guide_message(
-                    item_type, slug, retired=slug in known_slugs, live_status=live_initial
+                    item_type,
+                    slug,
+                    retired=slug in known_slugs,
+                    live_status=live_initial,
+                    in_catalog=slug in catalog_slugs,
                 )
                 for item_type, slug in orphaned_playbook_guides(
                     self.playbook,
@@ -903,16 +887,9 @@ class MaintenanceMixin(ServiceCore):
         refusal a single-mutation write seam raises, the ``ImportIssue`` the bulk importer's
         pre-pass collects, and "the skip-and-report line ``sq sync`` emits for a drifted
         roster item" -- the third one, and this is that check's home. Unconditionally is the
-        load-bearing word: a role whose catalog fields already agree with the index
-        (:meth:`_refresh_catalog_attributes` finds nothing to merge) would otherwise never have its
-        frontmatter read again during a sync, so a drift on an ordinary field -- unrelated to
-        any catalog-merged value, e.g. an interrupted ``description`` edit -- would go
-        unnoticed until some unrelated seam happened to touch the same item.
-
-        Deliberately independent of :meth:`_refresh_catalog_attributes`: both run unconditionally
-        over the same roster loop, so a real skew is reported the same way regardless of
-        whether the catalog merge also has something to say about the same item -- ``sync``'s
-        own dedup collapses the identical message if both happen to raise it.
+        load-bearing word: a role is otherwise never read again during a sync, so a drift on an
+        ordinary field, e.g. an interrupted ``description`` edit, would go unnoticed until some
+        unrelated seam happened to touch the same item.
 
         A missing or unreadable file is not this check's business -- some other pass reports
         that -- so it returns ``None`` rather than raising.
@@ -926,127 +903,6 @@ class MaintenanceMixin(ServiceCore):
         if not diverging:
             return None
         return skew_message(item, diverging)
-
-    async def _refresh_catalog_attributes(self, item: Item, *, default_kind: str) -> str | None:
-        """Reconcile a role item against its resolved definition: merge
-        :meth:`RoleDef.to_attributes`'s keys into the item's attributes, and project the
-        resolved name/mission onto the item's own ``title``/``description``.
-
-        **What this merges is deliberately small.** A role's title, mission, responsibilities,
-        agreements, colour and spawn authority resolve from the catalog on every read, so there
-        is nothing about them left to reconcile here. What the merge converges is the stored
-        residue (:data:`~squads._roles._catalog.RoleDef._ATTRIBUTE_FIELDS`) and, through
-        :meth:`RoleDef.to_item_fields`, the resolved ``full_name``/``mission`` onto
-        ``item.title``/``item.description`` — the fields read by every surface that does not
-        know the item is a role and so cannot resolve a role catalog.
-
-        Every role, dev or bundled, resolves through
-        :func:`~squads._roles._resolver.resolve_role_with_base` with a base built by
-        :func:`~squads._roles._resolver.role_base_from_item` (passed this squad's own
-        ``squad_dir``, so a bundled role's base already carries a project's catalog-document
-        override — ``.overrides/roles.toml`` — the same way an unactivated slug's does), which
-        reads *this item's own* stored operator-settable fields rather than re-rolling a dev
-        name from the pool. Every other field comes from the current catalog fresh. With no
-        override file present the merged definition equals the base equals the item's own
-        values, so both diff loops below find nothing and this returns ``None``. Only a
-        genuinely orphaned custom item — no catalog entry, no dev shape, no override file — is
-        skipped outright, via the ``RoleNotFoundError`` catch just below.
-
-        **A change through this writer is not silent.** When the merge actually changes
-        something, ``item.updated_at`` moves, ``item.modified_session`` is set to the acting
-        session, and one ``"update"`` reflog entry is appended (after the index commit,
-        alongside every other mutation) — so a reverted or refreshed role is visible on every
-        recency surface instead of only in a diff of the file. This is a pure append: the
-        role's own ``create`` reflog entry is never rewritten, pruned, or superseded by it.
-
-        This is a roster-regen path, not a single mutation: an unrepaired skew is skipped and
-        reported (the returned message) rather than refused, and the in-memory merge — both the
-        attributes and the projected fields — is rolled back on skip so *item*
-        stays truthful to what is actually on disk. Returns ``None`` when nothing changed or
-        the write went through.
-
-        **The merge is mirrored into the index, in the same transaction.** The values this
-        merges are read from ``resolve_role_with_base``, which layers a project's
-        ``.overrides/roles/<slug>.toml`` over the bundled catalog — so this is the write that
-        carries an adopter's renamed role title (or model, or mission) onto the item. Every
-        consumer of that title reads the *index*, not the frontmatter: :meth:`roster` builds
-        its ``RoleView`` list from the index, and that list is what both backends
-        compile ``CLAUDE.md``/``AGENTS.md`` from. Writing the frontmatter alone left the
-        override's title durable but invisible — the generated roster kept rendering the
-        bundled value until an unrelated ``sq repair`` happened to rebuild the index, with
-        ``sq check`` clean the whole time. Markdown first, index commit last (invariant 8), so
-        an interrupted refresh leaves the sanctioned one-sided skew ``sq repair`` heals. The
-        projected top-level fields ride the same single ``update_frontmatter`` call — no new
-        write, no new position in the order.
-
-        **The projection never routes through the title-rename path.** ``item.title`` is
-        assigned directly; ``_update_model``/``_rename`` are never called here, so ``item.slug``
-        and ``item.path`` are untouched — a roster item's path slug is its role slug, not a
-        slug of its title, and this call must never move the file.
-
-        The attributes this call writes stay exempt from the skew guard everywhere — see
-        ``_itemfile.PERMITTED_ATTRIBUTE_SKEW``, which lets a squad whose index already lags on
-        those keys converge on its next sync instead of being refused by the guard first. The
-        projected ``title``/``description`` fields are ordinary core keys the skew guard
-        compares like any other.
-        """
-        slug = item.slug
-        base_role = role_base_from_item(item, self.catalog)
-        try:
-            catalog_role = resolve_role_with_base(
-                slug,
-                self.paths.squad_dir,
-                base=base_role,
-                catalog=self.catalog,
-                pinned_name=pinned_name_of(item),
-            )
-        except RoleNotFoundError:
-            return None  # orphaned custom role item: no catalog entry, no override file
-        # Whether the item carries ``tech`` (a templated developer) decides whether the
-        # dev-only column (``model``) is part of this merge — see ``RoleDef.to_attributes``.
-        catalog_attributes = catalog_role.to_attributes(templated=attrs.is_templated(item))
-        item_fields = catalog_role.to_item_fields()
-        base = item.model_copy(deep=True)
-        previous_attributes: dict[str, Any] = {}
-        previous_fields: dict[str, Any] = {}
-        for key, value in catalog_attributes.items():
-            if item.attributes.get(key) != value:
-                previous_attributes[key] = item.attributes.get(key)
-                item.attributes[key] = value
-        for field, value in item_fields.items():
-            if getattr(item, field) != value:
-                previous_fields[field] = getattr(item, field)
-                setattr(item, field, value)
-        if not previous_attributes and not previous_fields:
-            return None
-        previous_updated_at = item.updated_at
-        previous_modified_session = item.modified_session
-        item.updated_at = clock.now()
-        sid, _psid = actor.current_session()
-        item.modified_session = sid
-        delta: dict[str, Any] = {
-            **{key: [old, item.attributes.get(key)] for key, old in previous_attributes.items()},
-            **{field: [old, getattr(item, field)] for field, old in previous_fields.items()},
-        }
-        try:
-            async with self.store.transaction() as db:
-                await update_frontmatter(
-                    item_file(self.paths, item), item, base, default_kind=default_kind
-                )
-                db.add(item)
-                self.store.log("update", item.id, delta)
-        except SquadsError as exc:
-            for key, old_value in previous_attributes.items():
-                if old_value is None:
-                    item.attributes.pop(key, None)
-                else:
-                    item.attributes[key] = old_value
-            for field, old_value in previous_fields.items():
-                setattr(item, field, old_value)
-            item.updated_at = previous_updated_at
-            item.modified_session = previous_modified_session
-            return str(exc)
-        return None
 
     # ------------------------------------------------------------------ migrations
     async def run_pending_migrations(self) -> MigrationRun:
@@ -1082,6 +938,7 @@ class MaintenanceMixin(ServiceCore):
         original_index: str | None = None
         config_rewrite: ConfigRewrite | None = None
         if applied:
+            await self._refuse_legacy_dev_table()
             # Computed and checked before any file changes, written last.
             config_rewrite = plan_config_rewrite(
                 await self._config_text(),
@@ -1146,6 +1003,23 @@ class MaintenanceMixin(ServiceCore):
             reconcile=reconciled,
             config_dropped=config_rewrite.dropped if config_rewrite else (),
         )
+
+    async def _refuse_legacy_dev_table(self) -> None:
+        """Stop the run, changing nothing, when the role catalog override carries a ``[dev]``
+        table, which is not a key of the catalog document. The table is never renamed here:
+        ``sq migrate`` does not rewrite overrides."""
+        path = self.paths.squad_dir / ROLES_OVERRIDE_FILENAME
+        if not await _aio.path_exists(path):
+            return
+        try:
+            declared = tomllib.loads(await _aio.read_text(path))
+        except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError):  # fmt: skip
+            return  # the catalog loader reports an unreadable document
+        if "dev" in declared:
+            raise SquadsError(
+                f"{LEGACY_DEV_TABLE_MESSAGE}\nNothing was changed: rename the table, then run "
+                "`sq migrate up` again."
+            )
 
     async def _config_text(self) -> str:
         """``.squads.toml`` as written, line endings included."""

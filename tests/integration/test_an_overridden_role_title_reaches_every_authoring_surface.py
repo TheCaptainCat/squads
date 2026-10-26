@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import make_service, resolved_skill_definition
+from _helpers import add_role_from_toml, make_service, resolved_skill_definition
 from squads._backends._managed_region import END, START
 from squads._paths import SquadPaths
 from squads._roles._catalog import PREDEFINED
@@ -43,12 +43,6 @@ def _managed_region(path: Path) -> str:
 
 def _write_catalog_override(squad_dir: Path, body: str) -> None:
     path = squad_dir / ".overrides" / "roles.toml"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(body, encoding="utf-8")
-
-
-def _write_role_override(squad_dir: Path, slug: str, body: str) -> None:
-    path = squad_dir / ".overrides" / "roles" / f"{slug}.toml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(body, encoding="utf-8")
 
@@ -148,15 +142,13 @@ async def test_a_role_declared_only_by_the_project_still_gets_its_authoring_bull
 ):
     monkeypatch.chdir(tmp_path)
     paths = await _initialized_squad(tmp_path)
-    _write_role_override(
-        paths.squad_dir,
-        "auditor",
+    definition = (
         'full_name = "Ann Auditor"\ntitle = "compliance auditor"\n'
-        'description = "Audits the record."\nmission = "Audit every change."\n',
+        'description = "Audits the record."\nmission = "Audit every change."\n'
     )
     _write_playbook_override(paths.squad_dir, _AUDITOR_AUTHORS_REVIEWS)
     fresh = make_service(paths)
-    await fresh.activate_role("auditor")
+    await add_role_from_toml(fresh, "auditor", definition)
     await fresh.sync()
 
     region = _flat(_managed_region(tmp_path / "CLAUDE.md"))

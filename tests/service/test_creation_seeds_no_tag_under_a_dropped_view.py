@@ -74,27 +74,6 @@ async def test_activating_a_role_under_a_declared_view_still_seeds_the_tag(svc) 
     assert _body(svc, role) == markers.open_marker(markers.view_tag("role_definition"))
 
 
-async def test_importing_a_role_under_a_dropped_view_seeds_no_tag(svc) -> None:
-    """The bulk importer's ``create`` op, a separate call site, also seeds no tag for a
-    dropped view."""
-    import json
-
-    declared = _declared(svc, _DROP_ROLE_DEFINITION)
-    event = json.dumps({"op": "create", "as": "manager", "type": "role", "title": "Imported Role"})
-
-    result = await declared.import_events(event, default_as="manager")
-
-    assert not result.plan.issues, result.plan.issues
-    roles = await declared.list_items(item_type="role")
-    (role,) = [r for r in roles if r.title == "Imported Role"]
-    assert _body(declared, role) == ""
-    role_filename = Path(role.path).name
-    issues = await declared.check()
-    assert not any("role_definition" in i.message and i.item == role_filename for i in issues), [
-        i.message for i in issues
-    ]
-
-
 # ---------------------------------------------------------------------------------- milestone
 
 

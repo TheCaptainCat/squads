@@ -244,8 +244,38 @@
     "lifecycle": "agent",
     "fields": [],
     "attributes": {
+      "agreements": {
+        "kind": "list",
+        "required": false,
+        "settable": false
+      },
+      "can_spawn": {
+        "kind": "bool",
+        "required": false,
+        "settable": false
+      },
+      "capabilities": {
+        "kind": "list",
+        "required": false,
+        "settable": false
+      },
+      "color": {
+        "kind": "str",
+        "required": false,
+        "settable": false
+      },
       "is_default": {
         "kind": "bool",
+        "required": false,
+        "settable": false
+      },
+      "job_title": {
+        "kind": "str",
+        "required": false,
+        "settable": false
+      },
+      "mission": {
+        "kind": "str",
         "required": false,
         "settable": false
       },
@@ -264,7 +294,17 @@
         "required": false,
         "settable": false
       },
+      "responsibilities": {
+        "kind": "list",
+        "required": false,
+        "settable": false
+      },
       "tech": {
+        "kind": "str",
+        "required": false,
+        "settable": false
+      },
+      "template": {
         "kind": "str",
         "required": false,
         "settable": false

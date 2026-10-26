@@ -184,26 +184,40 @@
       "manager"
     ]
   },
-  "dev": {
-    "name_pool": [
-      "Elias",
-      "Ada",
-      "Linus",
-      "Grace",
-      "Dennis",
-      "Margaret",
-      "Alan",
-      "Barbara",
-      "Ken",
-      "Edsger",
-      "Radia",
-      "Donald"
-    ],
-    "model": "sonnet",
-    "color": "green",
-    "capabilities": [
-      "dev"
-    ]
+  "templates": {
+    "dev": {
+      "slug": "{tech}-dev",
+      "name": "{first} {Tech}",
+      "name_pool": [
+        "Elias",
+        "Ada",
+        "Linus",
+        "Grace",
+        "Dennis",
+        "Margaret",
+        "Alan",
+        "Barbara",
+        "Ken",
+        "Edsger",
+        "Radia",
+        "Donald"
+      ],
+      "title": "{Tech} developer",
+      "description": "Implements {Tech} code following the project's guides and standards.",
+      "mission": "Implement assigned tasks in {Tech}, following the project's guides, with tests.",
+      "responsibilities": [
+        "Implement tasks in {Tech}",
+        "Write tests for changes",
+        "Follow the relevant guides; ask the architect when unsure"
+      ],
+      "agreements": [],
+      "model": "sonnet",
+      "color": "green",
+      "can_spawn": false,
+      "capabilities": [
+        "dev"
+      ]
+    }
   },
   "defaults": {
     "pronouns": null

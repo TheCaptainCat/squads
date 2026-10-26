@@ -89,13 +89,15 @@ async def squad(tmp_path, monkeypatch, frozen_time, invoke):
         "roles/security-analyst.toml",
         _ROLE_FILE.format(name="Sentinel", slug="security-analyst"),
     )
+    role_file = squad_dir / ".overrides" / "roles" / "security-analyst.toml"
     for args in (
         ["dev", "add", "--tech", "rust"],
-        ["role", "activate", "security-analyst"],
+        ["role", "add", "security-analyst", "--file", str(role_file)],
         ["skill", "add", "Release Runbook", "--desc", "Ship it."],
     ):
         result = await invoke(args)
         assert result.exit_code == 0, result.output
+    role_file.unlink()
     _override(squad_dir, "workflow.toml", _WORKFLOW)
     result = await invoke(["sync"])
     assert result.exit_code == 0, result.output
@@ -166,10 +168,10 @@ def _refused(verb: str, kind: str, generated: bool) -> bool:
         return False
     if verb == "update-title":
         return kind == "skill"
+    if verb in {"update-field", "update-project-and-pinned-attribute"}:
+        return kind == "skill"  # a role's model is an operator setting, not generated content
     return verb in {
         "update-description",
-        "update-field",
-        "update-project-and-pinned-attribute",
         "update-title-and-description",
         "body",
         "body-force",
@@ -204,6 +206,8 @@ async def test_a_generated_host_refuses_content_verbs_and_keeps_the_open_ones(
         if tag_only or verb in ("update-labels", "update-assignee", "update-project-attribute"):
             assert result.exit_code == 0, result.output
             assert _body(path.read_bytes()) == _body(before)
+        if verb in ("update-field", "update-project-and-pinned-attribute") and kind == "role":
+            assert result.exit_code == 0, result.output
         if verb in (
             "update-title",
             "update-description",
@@ -231,7 +235,7 @@ def test_the_exempt_fields_are_the_declared_set_and_nothing_broader() -> None:
     from squads._services._base import ROSTER_UPDATE_EXEMPT
 
     assert {k: set(v) for k, v in ROSTER_UPDATE_EXEMPT.items()} == {
-        "role": {"title"},
+        "role": {"title", "model"},
         "skill": set(),
     }
 

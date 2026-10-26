@@ -1,7 +1,6 @@
 """The `sq override` lifecycle end to end, over `template`/`role`/`workflow`: scaffold, scan,
 diff, update-stamp, and `sq check`'s drift-warning/broken-marker-error reporting."""
 
-import re
 from pathlib import Path
 
 import pytest
@@ -18,7 +17,6 @@ from squads._overrides._service import (
     DiffResult,
     check_override_issues,
     diff_override,
-    scaffold_new_role,
     scaffold_playbook,
     scaffold_role,
     scaffold_template,
@@ -27,7 +25,6 @@ from squads._overrides._service import (
     update_stamp,
 )
 from squads._overrides._stamp import read_template_stamp, read_toml_stamp, stamp_toml_file
-from squads._roles._resolver import resolve_role
 from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
 
 pytestmark = pytest.mark.anyio
@@ -134,70 +131,6 @@ class TestScaffold:
         squad_dir = project.squad_dir
         dest = scaffold_role(squad_dir, slug="architect")
         assert dest.resolve().is_relative_to((squad_dir / ".overrides" / "roles").resolve())
-
-
-class TestScaffoldNewRole:
-    """``scaffold_new_role`` — the brand-new (non-bundled) custom role slug path."""
-
-    async def test_writes_stamped_toml_with_essentials_active_and_advanced_commented(
-        self, project
-    ) -> None:
-        dest = scaffold_new_role(project.squad_dir, slug="security-analyst")
-        text = dest.read_text(encoding="utf-8")
-        assert dest == project.squad_dir / ".overrides" / "roles" / "security-analyst.toml"
-        assert read_toml_stamp(text) == __version__
-        for field in ("full_name", "title", "description", "mission"):
-            assert f"\n{field} = " in f"\n{text}"
-        for field in ("responsibilities", "agreements", "model", "color", "can_spawn"):
-            assert f"\n# {field}" in text or f"\n# {field} =" in text
-
-    async def test_refuses_to_clobber_without_force_and_overwrites_with_it(self, project) -> None:
-        squad_dir = project.squad_dir
-        dest = scaffold_new_role(squad_dir, slug="incident-commander")
-        with pytest.raises(SquadsError, match="already exists"):
-            scaffold_new_role(squad_dir, slug="incident-commander")
-
-        dest.write_text("stale content\n", encoding="utf-8")
-        scaffold_new_role(squad_dir, slug="incident-commander", force=True)
-        assert "stale content" not in dest.read_text(encoding="utf-8")
-
-    async def test_rejects_a_bundled_slug_and_points_at_role_flag(self, project) -> None:
-        with pytest.raises(SquadsError, match="use `sq override scaffold --role"):
-            scaffold_new_role(project.squad_dir, slug="architect")
-
-    @pytest.mark.parametrize("bad_slug", ["../escape", "/abs/escape", "", "   ", "a/b", "a\\b"])
-    async def test_rejects_an_unsafe_slug(self, project, bad_slug) -> None:
-        with pytest.raises(SquadsError, match="role slug"):
-            scaffold_new_role(project.squad_dir, slug=bad_slug)
-
-    async def test_a_valid_slug_writes_inside_overrides_roles(self, project) -> None:
-        squad_dir = project.squad_dir
-        dest = scaffold_new_role(squad_dir, slug="security-analyst")
-        assert dest.resolve().is_relative_to((squad_dir / ".overrides" / "roles").resolve())
-
-    async def test_can_spawn_flag_emits_an_active_true_instead_of_commented(self, project) -> None:
-        dest = scaffold_new_role(project.squad_dir, slug="orchestrator", can_spawn=True)
-        text = dest.read_text(encoding="utf-8")
-        assert "can_spawn = true" in text
-        assert "# can_spawn" not in text
-
-    async def test_filled_scaffold_parses_and_resolves_to_a_valid_roledef(self, project) -> None:
-        squad_dir = project.squad_dir
-        dest = scaffold_new_role(squad_dir, slug="security-analyst")
-        text = dest.read_text(encoding="utf-8")
-        filled = re.sub(
-            r'^(full_name|title|description|mission) = ".*"$',
-            lambda m: f'{m.group(1)} = "filled {m.group(1)}"',
-            text,
-            flags=re.MULTILINE,
-        )
-        dest.write_text(filled, encoding="utf-8")
-
-        r = resolve_role("security-analyst", squad_dir, catalog=catalog_of(squad_dir))
-        assert r.slug == "security-analyst"
-        assert r.full_name == "filled full_name"
-        assert r.title == "filled title"
-        assert r.can_spawn is False
 
 
 class TestWorkflowOverride:
@@ -577,7 +510,10 @@ class TestDiffOverride:
     async def test_new_role_delta_mine_keeps_the_empty_baseline(self, project) -> None:
         """A brand-new, non-bundled role slug has no bundled counterpart, so Δ-mine stays empty."""
         squad_dir = project.squad_dir
-        scaffold_new_role(squad_dir, slug="security-analyst")
+        _role_dir(squad_dir).mkdir(parents=True, exist_ok=True)
+        (_role_dir(squad_dir) / "security-analyst.toml").write_text(
+            'full_name = "Sam"\n', encoding="utf-8"
+        )
         delta_mine = diff_override(squad_dir, "security-analyst", "role").delta_mine
         assert "(empty — role overrides start from scratch)" in delta_mine
 
@@ -696,16 +632,28 @@ class TestCheckDrift:
         assert display == ".overrides/roles/architect.toml"
         assert "no squads:override-base stamp" in message
 
-    async def test_check_reports_nothing_for_an_unstamped_add_only_role_override(
-        self, project
+    async def test_check_reports_nothing_for_an_unstamped_layer_over_a_role_that_defines_itself(
+        self, project, svc
     ) -> None:
-        """An unstamped add-only role override, shadowing nothing, still reports clean."""
+        """An unstamped role override over a role the bundled document does not declare owes no
+        stamp, so it still reports clean."""
         squad_dir = project.squad_dir
-        scaffold_new_role(squad_dir, slug="security-analyst")
+        item = await svc.add_role(
+            "security-analyst",
+            name="Sam Security",
+            job_title="security analyst",
+            description="Reviews changes.",
+            mission="Keep the codebase safe.",
+        )
         role_dir = _role_dir(squad_dir)
-        path = role_dir / "security-analyst.toml"
-        path.write_text(path.read_text(encoding="utf-8").split("\n", 1)[1], encoding="utf-8")
-        assert check_override_issues(squad_dir, catalog=catalog_of(squad_dir)) == []
+        role_dir.mkdir(parents=True, exist_ok=True)
+        (role_dir / "security-analyst.toml").write_text('color = "teal"\n', encoding="utf-8")
+        assert (
+            check_override_issues(
+                squad_dir, {"security-analyst": item}, catalog=catalog_of(squad_dir)
+            )
+            == []
+        )
 
     async def test_check_errors_on_a_structurally_broken_override(self, project, svc) -> None:
         squad_dir = project.squad_dir

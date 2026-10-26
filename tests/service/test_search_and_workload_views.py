@@ -130,7 +130,7 @@ async def test_assignee_filter_returns_exactly_the_items_assigned_to_that_slug(s
     is returned, an item assigned to a different slug B is not — a positive assertion, not
     just that the slug argument itself validates (that's the separate slug-validation
     cluster)."""
-    await svc.add_dev("python")  # registers python-dev
+    await svc.activate_role(None, from_template="dev", tech="python")  # registers python-dev
     mine = (await create_item(svc, "task", "Mine", assignee="manager")).item
     await create_item(svc, "task", "Not mine", assignee="python-dev")
 

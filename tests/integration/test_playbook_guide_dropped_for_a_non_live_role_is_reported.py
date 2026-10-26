@@ -30,11 +30,10 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import resolved_skill_definition
+from _helpers import add_role_from_file, resolved_skill_definition, write_role_file
 from squads import __version__
 from squads._errors import SquadsError
 from squads._interactions._skills import item_skill_name
-from squads._overrides._service import scaffold_new_role
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -72,27 +71,6 @@ roles = [{{ slug = "{slug}", enter = ["Read our house checklist"], do = ["Do it 
 """
 
 
-def _fill_in_role_stub(path: Path) -> None:
-    text = path.read_text(encoding="utf-8")
-    for placeholder, value in (
-        (
-            'full_name = "TODO: full name (e.g. \\"Sam Security\\")"',
-            'full_name = "Sam Reliability"',
-        ),
-        ('title = "TODO: one-line title (e.g. \\"security analyst\\")"', 'title = "SRE"'),
-        (
-            'description = "TODO: one-line description for the Claude pointer frontmatter"',
-            'description = "Keeps the lights on."',
-        ),
-        (
-            'mission = "TODO: what this role is responsible for accomplishing"',
-            'mission = "Own incident response and rollback."',
-        ),
-    ):
-        text = text.replace(placeholder, value)
-    path.write_text(text, encoding="utf-8")
-
-
 def _dropped_guide_warnings(issues, slug: str) -> list[str]:
     return [i.message for i in issues if i.level == "warn" and f"{slug!r}" in i.message]
 
@@ -110,7 +88,7 @@ async def test_a_guide_for_a_scaffolded_but_unactivated_role_is_warned_about(pro
     """`sq override scaffold --new <slug>` prints activation as its *next* step, so writing the
     role file and its guidance before activating is the natural order -- and everything reported
     clean while the guidance sat inert."""
-    _fill_in_role_stub(scaffold_new_role(project.squad_dir, slug="sre"))
+    write_role_file(project.squad_dir, "sre")
     _write_playbook_override(project.squad_dir, _guidance_for("sre"))
 
     svc = service.open_service(client_cwd=project.squad_dir)
@@ -127,14 +105,14 @@ async def test_the_guidance_really_is_absent_from_the_generated_skill(project):
     """The other half of the same claim, so the warning is not asserted against an imagined drop:
     the guide text genuinely is not in the generated skill while the role is unactivated, and
     genuinely is once it is."""
-    _fill_in_role_stub(scaffold_new_role(project.squad_dir, slug="sre"))
+    write_role_file(project.squad_dir, "sre")
     _write_playbook_override(project.squad_dir, _guidance_for("sre"))
 
     svc = service.open_service(client_cwd=project.squad_dir)
     await svc.refresh_managed()
     assert "Do the ops thing" not in await _task_skill_body(svc)
 
-    await svc.activate_role("sre")
+    await add_role_from_file(svc, "sre")
     reopened = service.open_service(client_cwd=project.squad_dir)
     await reopened.refresh_managed()
     assert "Do the ops thing" in await _task_skill_body(reopened)
@@ -143,9 +121,9 @@ async def test_the_guidance_really_is_absent_from_the_generated_skill(project):
 async def test_no_warning_once_the_project_role_is_live(project):
     """The negative direction, and the one that makes the rule usable rather than noise: a live
     project role's guide reaches the skill, so there is nothing to report."""
-    _fill_in_role_stub(scaffold_new_role(project.squad_dir, slug="sre"))
+    write_role_file(project.squad_dir, "sre")
     svc = service.open_service(client_cwd=project.squad_dir)
-    await svc.activate_role("sre")
+    await add_role_from_file(svc, "sre")
     _write_playbook_override(project.squad_dir, _guidance_for("sre"))
 
     reopened = service.open_service(client_cwd=project.squad_dir)
@@ -160,9 +138,9 @@ async def test_no_warning_once_the_project_role_is_live(project):
 async def test_a_guide_for_a_retired_project_role_is_warned_about(project):
     """The trigger that bites in practice: nothing about the override changes, the role is simply
     retired, and the section quietly vanishes from the generated skill on the next sync."""
-    _fill_in_role_stub(scaffold_new_role(project.squad_dir, slug="sre"))
+    write_role_file(project.squad_dir, "sre")
     svc = service.open_service(client_cwd=project.squad_dir)
-    role = await svc.activate_role("sre")
+    role = await add_role_from_file(svc, "sre")
     _write_playbook_override(project.squad_dir, _guidance_for("sre"))
 
     reopened = service.open_service(client_cwd=project.squad_dir)
@@ -261,7 +239,7 @@ async def test_the_named_revival_command_is_the_one_that_works_for_each_shape(pr
     what creates and activates it. Naming one command for both would send half the readers to a
     command that cannot do what the message asks of it.
     """
-    _fill_in_role_stub(scaffold_new_role(project.squad_dir, slug="sre"))
+    write_role_file(project.squad_dir, "sre")
     _write_playbook_override(project.squad_dir, _guidance_for("sre"))
 
     svc = service.open_service(client_cwd=project.squad_dir)
@@ -269,7 +247,7 @@ async def test_the_named_revival_command_is_the_one_that_works_for_each_shape(pr
     assert unactivated, "fixture assumption: the unactivated shape must report"
     assert "sq role activate sre" in unactivated[0], unactivated
 
-    role = await svc.activate_role("sre")
+    role = await add_role_from_file(svc, "sre")
     reopened = service.open_service(client_cwd=project.squad_dir)
     await reopened.set_roster_status(role.id, "Archived")
     after = service.open_service(client_cwd=project.squad_dir)
@@ -284,7 +262,7 @@ async def test_the_named_revival_command_is_the_one_that_works_for_each_shape(pr
 
     # Why: driven, so the claim above is behaviour rather than reading of the implementation.
     with pytest.raises(SquadsError, match=f"sq role sre status {live}"):
-        await after.activate_role("sre")
+        await add_role_from_file(after, "sre")
     assert (await after.get(role.id)).status == "Archived", "and it changed nothing on the way out"
 
     # And the command the message does name clears the report.
@@ -300,17 +278,14 @@ async def test_the_named_revival_command_is_the_one_that_works_for_each_shape(pr
     ("filename", "content"),
     [
         ("broken.toml", "this is not = = valid toml\n"),
-        ("NOTES.toml", "# just some notes an adopter dropped here\n"),
+        ("notes.toml", "# just some notes an adopter dropped here\n"),
     ],
     ids=["malformed_toml", "stray_non_role_file"],
 )
-async def test_a_stem_the_loader_accepts_but_that_is_no_role_is_warned_about(
-    project, filename, content
-):
-    """The loader globs filenames rather than parsing, so any `.toml` under `.overrides/roles/`
-    contributes its stem as an acceptable playbook slug. Keeping the loader permissive is right (it
-    must be readable before the index), so the same one rule covers this: the stem resolves to no
-    live role, therefore the guide is dropped, therefore it is reported."""
+async def test_a_stem_that_is_no_role_is_warned_about(project, filename, content):
+    """The loader checks a guide's slug for grammar only and reads no file under
+    `.overrides/roles/`, so a stray file makes no role: the slug resolves to no live role,
+    therefore the guide is dropped, therefore it is reported."""
     overrides = project.squad_dir / ".overrides" / "roles"
     overrides.mkdir(parents=True, exist_ok=True)
     (overrides / filename).write_text(content, encoding="utf-8")
@@ -405,7 +380,7 @@ async def test_sync_reports_the_guide_it_just_dropped(project):
     """`sq sync` is the run that actually removes the section from the file, so it carries the news
     too -- the same channel the orphaned `sq-<type>` skill notice already uses, and the same wording
     as `check`, so the two surfaces cannot drift into describing one event two ways."""
-    _fill_in_role_stub(scaffold_new_role(project.squad_dir, slug="sre"))
+    write_role_file(project.squad_dir, "sre")
     _write_playbook_override(project.squad_dir, _guidance_for("sre"))
 
     svc = service.open_service(client_cwd=project.squad_dir)
@@ -419,9 +394,9 @@ async def test_sync_reports_the_guide_it_just_dropped(project):
 
 
 async def test_sync_reports_nothing_once_the_role_is_live(project):
-    _fill_in_role_stub(scaffold_new_role(project.squad_dir, slug="sre"))
+    write_role_file(project.squad_dir, "sre")
     svc = service.open_service(client_cwd=project.squad_dir)
-    await svc.activate_role("sre")
+    await add_role_from_file(svc, "sre")
     _write_playbook_override(project.squad_dir, _guidance_for("sre"))
 
     reopened = service.open_service(client_cwd=project.squad_dir)
@@ -440,8 +415,14 @@ async def test_the_new_report_does_not_change_check_or_sync_exit_codes(invoke, p
     dropped guide without their pipeline turning red for it. Driven at the CLI, since the exit code
     is the CLI's contract and no service-level assertion can observe it.
     """
-    _fill_in_role_stub(scaffold_new_role(project.squad_dir, slug="sre"))
+    write_role_file(project.squad_dir, "sre")
     _write_playbook_override(project.squad_dir, _guidance_for("sre"))
+    created = await invoke(
+        ["role", "add", "sre", "--file", str(write_role_file(project.squad_dir, "sre"))]
+    )
+    assert created.exit_code == 0, created.output
+    retired = await invoke(["role", "sre", "status", "Archived"])
+    assert retired.exit_code == 0, retired.output
 
     check = await invoke(["check"])
     assert check.exit_code == 0, check.output
@@ -466,3 +447,42 @@ async def test_retiring_a_bundled_role_leaves_both_cli_surfaces_silent(invoke, p
 
     sync = await invoke(["sync"])
     assert "names no live role" not in sync.output, sync.output
+
+
+#: (id, guide slug, in the bundled catalog, command the warning names, command it must not name)
+REMEDIES = [
+    ("a-catalog-slug-is-activated", "devops", "sq role activate devops", "sq role add"),
+    ("any-other-slug-is-created", "srr", "sq role add srr", "sq role activate srr`"),
+]
+
+
+@pytest.mark.parametrize(
+    ("slug", "named", "absent"), [r[1:] for r in REMEDIES], ids=[r[0] for r in REMEDIES]
+)
+async def test_the_warning_names_the_command_that_applies_to_the_slug(
+    project, slug: str, named: str, absent: str
+) -> None:
+    _write_playbook_override(project.squad_dir, _guidance_for(slug))
+
+    svc = service.open_service(client_cwd=project.squad_dir)
+    warnings = _dropped_guide_warnings(await svc.check(), slug)
+
+    assert warnings, "fixture assumption: the guide for a role nobody holds reports"
+    assert named in warnings[0], warnings
+    assert absent not in warnings[0], warnings
+    if slug == "srr":
+        assert f"sq role activate {slug} --from" in warnings[0], warnings
+
+
+@pytest.mark.parametrize(
+    ("slug", "named", "absent"), [r[1:] for r in REMEDIES], ids=[r[0] for r in REMEDIES]
+)
+async def test_the_sync_notice_names_the_command_that_applies_to_the_slug(
+    invoke, project, slug: str, named: str, absent: str
+) -> None:
+    _write_playbook_override(project.squad_dir, _guidance_for(slug))
+
+    out = " ".join((await invoke(["sync"])).output.split())
+
+    assert named in out, out
+    assert absent not in out, out

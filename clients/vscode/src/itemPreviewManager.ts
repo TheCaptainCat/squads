@@ -14,10 +14,9 @@
  * degrades on its own (see `itemIdMatcherFrom`/`subEntityFieldsFrom`); neither can fail the
  * render.
  *
- * Two `sq list --json` fetches sit alongside them, and they are two on purpose: the roster one
- * (`-t role`) keeps the default view because an archived role is not a mention target, while the
- * id->hover-text one passes `--all` because prose overwhelmingly cites settled work. Both are
- * batched — a render's cost never scales with how many ids a body happens to mention.
+ * The mention hover reads `sq role list --json` (the roster fetch that also carries pronouns); the
+ * id->hover-text fetch is one `sq list --json --all`, because prose overwhelmingly cites settled
+ * work. Both are batched — a render's cost never scales with how many ids a body happens to mention.
  *
  * Navigation and back/forward history are covered by the methods below (`openFromTree`,
  * `navigate`, `goBack`/`goForward`, `stepHistoryFor`) and by `domain/previewMessages.ts`'s
@@ -102,7 +101,18 @@ import {
   NO_PRONOUNS,
   type PronounsContext,
 } from './domain/pronouns';
-import { buildRoleDirectory, NO_ROLE_DIRECTORY, type RoleDirectory } from './domain/roleDirectory';
+import {
+  buildRoleDirectory,
+  NO_ROLE_DIRECTORY,
+  type RoleDirectory,
+  type RoleStatusVocabulary,
+} from './domain/roleDirectory';
+import {
+  buildRoleCatalogMap,
+  buildStatusRoleMap,
+  NO_ROLES,
+  NO_STATUS_ROLES,
+} from './domain/statusRole';
 import type { ProcessRunner } from './processRunner';
 import {
   describeFailure,
@@ -113,7 +123,9 @@ import {
   getOperatorIdentities,
   getRaw,
   getRoleIdentities,
+  getRolesCatalog,
   getShowJson,
+  getStatusesCatalog,
   getSubentityKindsCatalog,
   getTree,
   getTypeCatalog,
@@ -123,8 +135,11 @@ import {
 import type {
   SqGraphNode,
   SqListItem,
+  SqRoleCatalogEntry,
+  SqRoleListRow,
   SqRosterIdentity,
   SqShowJson,
+  SqStatusCatalogEntry,
   SqSubEntityKindCatalogEntry,
   SqTreeNode,
   SqTypeCatalogEntry,
@@ -165,16 +180,29 @@ function toSubEntitiesOutcome(outcome: SqOutcome<SqShowJson>): SubEntitiesOutcom
   return { entities: outcome.data.subentities };
 }
 
-/** Degrades a failed/unreachable `sq list -t role --json` fetch to `NO_ROLE_DIRECTORY` — same
+/** Degrades a failed/unreachable `sq role list --json` fetch to `NO_ROLE_DIRECTORY` — same
  * graceful-degrade shape `treeDataProvider.ts`'s catalog joins use — so a `@<slug>` mention
  * simply renders as plain text rather than breaking the preview render. */
 function roleDirectoryFrom(
-  outcome: SqOutcome<readonly SqListItem[]>,
+  outcome: SqOutcome<readonly SqRoleListRow[]>,
   pronouns: PronounsContext,
+  vocabulary: RoleStatusVocabulary,
 ): RoleDirectory {
   return outcome.kind === 'success'
-    ? buildRoleDirectory(outcome.data, pronouns)
+    ? buildRoleDirectory(outcome.data, pronouns, vocabulary)
     : NO_ROLE_DIRECTORY;
+}
+
+/** The status -> role join that decides which roles are mention targets; a failed fetch of either
+ * catalog leaves it empty, so every role stays a target. */
+function roleStatusVocabularyFrom(
+  statuses: SqOutcome<readonly SqStatusCatalogEntry[]>,
+  roles: SqOutcome<readonly SqRoleCatalogEntry[]>,
+): RoleStatusVocabulary {
+  return {
+    statusRoles: statuses.kind === 'success' ? buildStatusRoleMap(statuses.data) : NO_STATUS_ROLES,
+    roles: roles.kind === 'success' ? buildRoleCatalogMap(roles.data) : NO_ROLES,
+  };
 }
 
 /** A roster fetch's rows, or none when it failed (or an older `sq` lacks the verb). */
@@ -556,23 +584,25 @@ export class ItemPreviewManager {
         tree,
         graph,
         showJson,
-        roleList,
         itemList,
         typeCatalog,
         kindCatalog,
         roleRows,
         operatorRows,
+        statusCatalog,
+        roleCatalog,
       ] = await Promise.all([
         getRaw(this.runner, invocation, this.workspaceRoot, id),
         getTree(this.runner, invocation, this.workspaceRoot, id),
         getGraph(this.runner, invocation, this.workspaceRoot, id),
         getShowJson(this.runner, invocation, this.workspaceRoot, id),
-        getList(this.runner, invocation, this.workspaceRoot, ['-t', 'role']),
         getList(this.runner, invocation, this.workspaceRoot, ['--all']),
         getTypeCatalog(this.runner, invocation, this.workspaceRoot),
         getSubentityKindsCatalog(this.runner, invocation, this.workspaceRoot),
         getRoleIdentities(this.runner, invocation, this.workspaceRoot),
         getOperatorIdentities(this.runner, invocation, this.workspaceRoot),
+        getStatusesCatalog(this.runner, invocation, this.workspaceRoot),
+        getRolesCatalog(this.runner, invocation, this.workspaceRoot),
       ]);
       if (dossier.kind !== 'success') {
         if (dossier.kind === 'spawn-error') {
@@ -586,10 +616,14 @@ export class ItemPreviewManager {
       const showPronouns = vscode.workspace
         .getConfiguration('squads')
         .get<boolean>('showPronouns', true);
-      const roles = roleDirectoryFrom(roleList, {
-        pronouns: roleRows.kind === 'success' ? buildPronounsMap(roleRows.data) : NO_PRONOUNS,
-        enabled: showPronouns,
-      });
+      const roles = roleDirectoryFrom(
+        roleRows,
+        {
+          pronouns: roleRows.kind === 'success' ? buildPronounsMap(roleRows.data) : NO_PRONOUNS,
+          enabled: showPronouns,
+        },
+        roleStatusVocabularyFrom(statusCatalog, roleCatalog),
+      );
       const headerPronouns = headingPronouns(
         id,
         [...identityRowsOf(roleRows), ...identityRowsOf(operatorRows)],

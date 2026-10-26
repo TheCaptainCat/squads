@@ -57,39 +57,22 @@ async def test_scaffold_role_creates_a_stamped_toml(project, invoke) -> None:
     assert (project.squad_dir / ".overrides" / "roles" / "architect.toml").exists()
 
 
-async def test_scaffold_new_creates_a_stamped_toml_and_reports_the_path(project, invoke) -> None:
-    r = await invoke(["override", "scaffold", "--new", "security-analyst"])
-    assert r.exit_code == 0, r.output
-    dest = project.squad_dir / ".overrides" / "roles" / "security-analyst.toml"
-    assert dest.exists()
-    assert "security-analyst.toml" in r.output.replace("\n", "")
-    assert "sq role activate security-analyst" in " ".join(r.output.split())
+@pytest.mark.parametrize(
+    "slug",
+    ["security-analyst", "architect", "squads", "operator", "op-anna", "../../pwned", "/tmp/x", ""],
+)
+async def test_scaffold_new_is_retired_points_at_role_add_and_writes_nothing(
+    project, invoke, slug
+) -> None:
+    before = sorted(p.name for p in (project.squad_dir / ".overrides").rglob("*"))
 
-    clobber = await invoke(["override", "scaffold", "--new", "security-analyst"])
-    assert clobber.exit_code == 1
+    r = await invoke(["override", "scaffold", "--new", slug])
 
-    forced = await invoke(["override", "scaffold", "--new", "security-analyst", "--force"])
-    assert forced.exit_code == 0, forced.output
-
-
-async def test_scaffold_new_on_a_bundled_slug_errors_and_points_at_role(project, invoke) -> None:
-    r = await invoke(["override", "scaffold", "--new", "architect"])
-    assert r.exit_code == 1
-    assert "--role" in r.output
-
-
-async def test_scaffold_new_and_role_are_mutually_exclusive(project, invoke) -> None:
-    r = await invoke(["override", "scaffold", "--role", "architect", "--new", "security-analyst"])
-    assert r.exit_code != 0
-
-
-@pytest.mark.parametrize("bad_slug", ["../../pwned", "/tmp/x", ""])
-async def test_scaffold_new_rejects_a_traversal_or_empty_slug(project, invoke, bad_slug) -> None:
-    r = await invoke(["override", "scaffold", "--new", bad_slug])
     assert r.exit_code == 1, r.output
-    escaped = project.squad_dir.parent / "pwned"
-    assert not escaped.exists()
-    assert not (project.squad_dir / ".overrides" / "roles" / ".toml").exists()
+    assert "retired" in r.output
+    assert "sq role add" in " ".join(r.output.split())
+    assert sorted(p.name for p in (project.squad_dir / ".overrides").rglob("*")) == before
+    assert not (project.squad_dir.parent / "pwned").exists()
 
 
 @pytest.mark.parametrize("bad_slug", ["../../pwned", "/tmp/x", ""])
@@ -99,15 +82,6 @@ async def test_scaffold_role_rejects_a_traversal_or_empty_slug(project, invoke, 
     escaped = project.squad_dir.parent / "pwned"
     assert not escaped.exists()
     assert not (project.squad_dir / ".overrides" / "roles" / ".toml").exists()
-
-
-async def test_scaffold_new_with_can_spawn_emits_an_active_true_key(project, invoke) -> None:
-    r = await invoke(["override", "scaffold", "--new", "orchestrator", "--can-spawn"])
-    assert r.exit_code == 0, r.output
-    text = (project.squad_dir / ".overrides" / "roles" / "orchestrator.toml").read_text(
-        encoding="utf-8"
-    )
-    assert "can_spawn = true" in text
 
 
 async def test_scaffold_with_no_name_and_no_role_exits_nonzero(project, invoke) -> None:
@@ -299,7 +273,7 @@ async def test_scaffold_diff_and_update_all_reach_the_roles_catalog_kind(project
     assert "Δ-mine" in diffed.output and "Δ-upgrade" in diffed.output
     assert "kind: roles" in diffed.output
 
-    edited = dest.read_text(encoding="utf-8") + '\n[dev]\ncolor = "magenta"\n'
+    edited = dest.read_text(encoding="utf-8") + '\n[templates.dev]\ncolor = "magenta"\n'
     dest.write_text(edited, encoding="utf-8")
     rediffed = await invoke(["override", "diff", "roles"])
     assert rediffed.exit_code == 0, rediffed.output
@@ -342,7 +316,7 @@ async def test_scaffold_and_diff_help_distinguish_role_from_roles_catalog(projec
     scaffold_help = await invoke(["override", "scaffold", "--help"])
     assert scaffold_help.exit_code == 0, scaffold_help.output
     assert "--roles-catalog" in scaffold_help.output
-    assert "one role, bundled (`--role`)" in scaffold_help.output
+    assert "one role (`--role`)" in " ".join(scaffold_help.output.split())
 
     diff_help = await invoke(["override", "diff", "--help"])
     assert diff_help.exit_code == 0, diff_help.output

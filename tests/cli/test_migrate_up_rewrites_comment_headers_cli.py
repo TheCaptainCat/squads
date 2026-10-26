@@ -177,6 +177,7 @@ async def test_the_diff_of_every_item_file_is_header_lines_and_the_flattened_fro
             lifted
             | {"slug"}
             | ({"origin"} if new_front.get("type") in ("role", "skill") else set())
+            | ({"template"} if new_front.get("type") == "role" else set())
         )
         assert set(new_front) - set(old_front) <= added, path
     assert changed == _legacy_headers_by_counting(squad)

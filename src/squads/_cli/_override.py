@@ -3,7 +3,6 @@
 The four subcommands are the complete override-management surface:
 
 - ``sq override scaffold <name>`` — copy a bundled template into ``.overrides/`` with stamp.
-- ``sq override scaffold --new <slug>`` — start a brand-new, non-bundled role TOML.
 - ``sq override list``            — show all overrides with kind, base, and state.
 - ``sq override diff [<name>]``   — two-delta view (Δ-mine + Δ-upgrade) for drifted overrides.
 - ``sq override update [<name>]`` — re-stamp after a hand-merge; body untouched.
@@ -29,6 +28,7 @@ from squads._cli._common import (
     past_the_gate,
     print_json_clean,
 )
+from squads._errors import SquadsError
 from squads._overrides._service import (
     STATE_BROKEN,
     STATE_CURRENT,
@@ -36,7 +36,6 @@ from squads._overrides._service import (
     DiffResult,
     OverrideEntry,
     diff_override,
-    scaffold_new_role,
     scaffold_playbook,
     scaffold_role,
     scaffold_roles_catalog,
@@ -77,12 +76,8 @@ async def scaffold(
     new: str | None = typer.Option(
         None,
         "--new",
-        help="Slug for a new role that is not in the catalog, such as `security-analyst`.",
-    ),
-    can_spawn: bool = typer.Option(
-        False,
-        "--can-spawn",
-        help="With `--new`, let the new role spawn other agents.",
+        hidden=True,
+        help="Retired: create a new role with `sq role add`.",
     ),
     workflow: bool = typer.Option(
         False, "--workflow", help="Scaffold the workflow spec override, `workflow.toml`."
@@ -99,32 +94,29 @@ async def scaffold(
 ):
     """Copy a bundled default into `.overrides/` to start an override from.
 
-    Pick one: a template by `NAME`; one role, bundled (`--role`) or new (`--new`);
-    or a whole document, the workflow spec, the playbook or the role catalog. Each
-    document has two spellings, a name or a flag: `workflow` or `--workflow`,
-    `playbook` or `--playbook`, `roles` or `--roles-catalog`. Edit the file, then
-    check it with `sq override diff`; a new role is created with `sq role
-    activate`.
+    Pick one: a template by `NAME`; one role (`--role`); or a whole document, the
+    workflow spec, the playbook or the role catalog. Each document has two
+    spellings, a name or a flag: `workflow` or `--workflow`, `playbook` or
+    `--playbook`, `roles` or `--roles-catalog`. Edit the file, then check it with
+    `sq override diff`. A new role is created with `sq role add`, not an override.
     """
     svc = get_service()
     squad_dir = svc.paths.squad_dir
 
-    if role is not None and new is not None:
-        raise typer.BadParameter("--role and --new are mutually exclusive")
-
     if new is not None:
-        dest = scaffold_new_role(squad_dir, slug=new, force=force, can_spawn=can_spawn)
-        console.print(
-            f"[green]scaffolded[/green] new role override: [bold]{e(str(dest))}[/bold]\n"
-            f"Edit [cyan]{e(str(dest))}[/cyan] to fill in the stubbed essentials, then activate "
-            f"with [cyan]sq role activate {e(new)}[/cyan].",
-            soft_wrap=True,
+        raise SquadsError(
+            f"`sq override scaffold --new` is retired: create the role with "
+            f"`sq role add {new} --name … --job-title … --desc … --mission …`"
         )
-        return
 
     if role is not None:
         item = await svc.roster_item(ROSTER_ROLE, role)
         base = role_base_from_item(item, svc.catalog) if item is not None else None
+        if item is None and role not in {r.slug for r in svc.catalog().roles}:
+            raise SquadsError(
+                f"no role {role!r} to override: create it with `sq role add {role} --name … "
+                f"--job-title … --desc … --mission …` or `sq role activate {role}`"
+            )
         dest = scaffold_role(squad_dir, slug=role, force=force, base=base)
         scaffolded = base is not None or role in {r.slug for r in PREDEFINED}
         action = (
@@ -170,7 +162,7 @@ async def scaffold(
         console.print(
             f"[green]scaffolded[/green] role catalog override: [bold]{e(str(dest))}[/bold]\n"
             f"Edit [cyan]{e(str(dest))}[/cyan] to override \\[\\[roles]], \\[bundles], or "
-            f"\\[dev], then inspect with [cyan]sq override diff roles[/cyan].",
+            f"\\[templates.<name>], then inspect with [cyan]sq override diff roles[/cyan].",
             soft_wrap=True,
         )
         return

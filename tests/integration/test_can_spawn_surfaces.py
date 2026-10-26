@@ -34,7 +34,7 @@ class TestPointerDenylist:
         assert fm.get("disallowedTools") == "Agent"
 
     async def test_a_dev_role_pointer_denies_the_agent_tool(self, project, svc) -> None:
-        await svc.add_dev("python")
+        await svc.activate_role(None, from_template="dev", tech="python")
         fm, _ = split_frontmatter(_read_pointer(project, "python-dev"))
         assert fm.get("disallowedTools") == "Agent"
 

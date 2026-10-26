@@ -87,18 +87,24 @@ async def _activate_bundled(project, svc, invoke) -> None:
     assert (await invoke(["role", "activate", "qa"])).exit_code == 0
 
 
-async def _activate_project_declared(project, svc, invoke) -> None:
+async def _add_from_file(project, invoke, slug: str) -> None:
+    file = project.squad_dir / ".overrides" / "roles" / f"{slug}.toml"
+    assert (await invoke(["role", "add", slug, "--file", str(file)])).exit_code == 0
+    file.unlink()
+
+
+async def _add_project_declared(project, svc, invoke) -> None:
     _declare_role(project.squad_dir, "security-analyst")
-    assert (await invoke(["role", "activate", "security-analyst"])).exit_code == 0
+    await _add_from_file(project, invoke, "security-analyst")
 
 
 async def _dev_add(project, svc, invoke) -> None:
     assert (await invoke(["dev", "add", "--tech", "rust"])).exit_code == 0
 
 
-async def _activate_declared_developer(project, svc, invoke) -> None:
+async def _add_declared_developer(project, svc, invoke) -> None:
     _declare_role(project.squad_dir, "auditor-dev", capabilities=["dev"])
-    assert (await invoke(["role", "activate", "auditor-dev"])).exit_code == 0
+    await _add_from_file(project, invoke, "auditor-dev")
 
 
 async def _skill_add(project, svc, invoke) -> None:
@@ -108,7 +114,6 @@ async def _skill_add(project, svc, invoke) -> None:
 async def _import(project, svc, invoke) -> None:
     events = [
         {"op": "create", "as": "manager", "type": "skill", "title": "Imported Skill"},
-        {"op": "create", "as": "manager", "type": "role", "title": "Imported Role"},
     ]
     (project.root / "events.jsonl").write_text(
         "\n".join(json.dumps(e) for e in events) + "\n", encoding="utf-8"
@@ -121,17 +126,14 @@ PATHS: dict[str, tuple[Create, list[tuple[str, str]]]] = {
     "init-with-every-role": (_init_all, [("manager", "system"), ("squads", "system")]),
     "sync-after-a-declared-type": (_sync_after_a_declared_type, [("sq-zebra", "system")]),
     "activate-a-bundled-role": (_activate_bundled, [("qa", "system")]),
-    "activate-a-project-declared-role": (
-        _activate_project_declared,
+    "add-a-project-defined-role": (
+        _add_project_declared,
         [("security-analyst", "project")],
     ),
     "dev-add": (_dev_add, [("rust-dev", "system")]),
-    "activate-a-declared-developer": (_activate_declared_developer, [("auditor-dev", "project")]),
+    "add-a-declared-developer": (_add_declared_developer, [("auditor-dev", "project")]),
     "skill-add": (_skill_add, [("release-runbook", "project")]),
-    "import-a-skill-and-a-role": (
-        _import,
-        [("imported-skill", "project"), ("imported-role", "project")],
-    ),
+    "import-a-skill": (_import, [("imported-skill", "project")]),
 }
 
 
@@ -207,3 +209,16 @@ async def test_the_retired_key_sweep_keeps_origin(seeded, invoke) -> None:
         assert (await invoke([verb])).exit_code == 0
 
     assert role_file.read_text(encoding="utf-8") == before
+
+
+async def test_an_import_does_not_create_a_role_because_a_role_needs_a_base(seeded, invoke) -> None:
+    event = {"op": "create", "as": "manager", "type": "role", "title": "Imported Role"}
+    (seeded.root / "events.jsonl").write_text(json.dumps(event) + "\n", encoding="utf-8")
+    before = _tree_hash(seeded.root)
+
+    result = await invoke(["import", "events.jsonl"])
+
+    assert result.exit_code == 1, result.output
+    message = " ".join(result.output.split())
+    assert "sq role add" in message and "sq role activate" in message
+    assert _tree_hash(seeded.root) == before

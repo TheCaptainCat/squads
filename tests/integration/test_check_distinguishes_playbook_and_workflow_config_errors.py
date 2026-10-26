@@ -16,7 +16,6 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import catalog_of
 from squads._errors import PlaybookConfigError, SquadsError
 from squads._services._service import open_service
 from squads._spec_documents import resolve_playbook
@@ -37,7 +36,7 @@ def _write_workflow_override(squad_dir: Path, content: str) -> None:
     (override_dir / "workflow.toml").write_text(content, encoding="utf-8")
 
 
-_BROKEN_PLAYBOOK = '[types.task]\nroles = [{ slug = "no-such-role" }]\n'
+_BROKEN_PLAYBOOK = '[types.task]\nroles = [{ slug = "No Such Role" }]\n'
 _BROKEN_WORKFLOW = '[bogus_section.task]\nprefix = "X"\n'
 
 
@@ -50,9 +49,9 @@ def test_resolve_playbook_raises_playbook_config_error_not_a_plain_squads_error(
 ) -> None:
     _write_playbook_override(tmp_path, _BROKEN_PLAYBOOK)
     with pytest.raises(PlaybookConfigError) as exc_info:
-        resolve_playbook(bundled_spec(), tmp_path, catalog_of(tmp_path))
+        resolve_playbook(bundled_spec(), tmp_path)
     message = str(exc_info.value)
-    assert "role slug 'no-such-role' not in role catalog" in message
+    assert "role slug 'No Such Role' is not a slug" in message
     assert str(tmp_path / ".overrides" / "playbook.toml") in message  # names *where*
     assert "sq workflow lint" not in message  # never a non-diagnosing pointer
     assert "sq override diff playbook" not in message  # diff doesn't validate; not invented
@@ -63,7 +62,7 @@ def test_playbook_config_error_is_a_squads_error_subclass_so_broad_catches_still
 ) -> None:
     _write_playbook_override(tmp_path, _BROKEN_PLAYBOOK)
     with pytest.raises(SquadsError):
-        resolve_playbook(bundled_spec(), tmp_path, catalog_of(tmp_path))
+        resolve_playbook(bundled_spec(), tmp_path)
 
 
 # --------------------------------------------------------------------------- open_service: both
@@ -124,7 +123,7 @@ async def test_check_reports_playbook_config_invalid_for_a_broken_playbook_overr
     _write_playbook_override(project.squad_dir, _BROKEN_PLAYBOOK)
     result = await invoke(["check"])
     assert "playbook config invalid" in result.output
-    assert "role slug" in result.output and "no-such-role" in result.output
+    assert "role slug" in result.output and "No Such Role" in result.output
     assert "workflow config invalid" not in result.output
     # No non-diagnosing pointer: nothing lints a playbook override today.
     assert "sq workflow lint" not in result.output

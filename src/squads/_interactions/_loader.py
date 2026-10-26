@@ -64,14 +64,13 @@ from squads._interactions._role_guidance import (
     CAPABILITY_TOKEN_CANDIDATE,
     guide_text_lines,
 )
-from squads._overrides._manifest import PLAYBOOK_KEY, artifact_changed_since
-from squads._roles._models import (
-    CAPABILITY_NAME_PATTERN,
-    CatalogSource,
-    RoleCatalogSpec,
-    malformed_capability_names,
+from squads._models._participants import (
+    group_verb_problem,
+    is_valid_slug,
+    reserved_role_slug_problem,
 )
-from squads._roles._resolver import project_role_slugs
+from squads._overrides._manifest import PLAYBOOK_KEY, artifact_changed_since
+from squads._roles._models import CAPABILITY_NAME_PATTERN, malformed_capability_names
 from squads._specload import (
     OverrideFiles,
     OverrideMessages,
@@ -168,23 +167,18 @@ def _base_raw_for(spec: WorkflowSpec) -> RawMapping:
 
 
 def load_playbook(
-    catalog: RoleCatalogSpec,
     spec: WorkflowSpec,
     squad_dir: Path | None = None,
     *,
-    project_catalog: CatalogSource | None = None,
     files: OverrideFiles | None = None,
 ) -> PlaybookSpec:
     """Read, parse, merge (if a project override is present), and validate the playbook.
 
-    Takes the already-loaded ``RoleCatalogSpec`` as the slug authority for cross-spec
-    referential integrity — with *squad_dir* given, joined by the project's own roles: the
-    per-slug role files, and the roles *project_catalog* (the squad's merged catalog, built by
-    the caller) defines beyond the bundled ones — and a ``WorkflowSpec`` as the type
-    authority: every one of *spec*'s ``non_roster_types()`` must have a playbook entry, and no
-    entry may name anything else. Passing the *active* (possibly merged) workflow spec here —
-    not the bundled one — is what makes a workflow override's dropped/renamed/added type
-    correctly change the playbook's coverage requirement, with no separate wiring.
+    Takes a ``WorkflowSpec`` as the type authority: every one of *spec*'s
+    ``non_roster_types()`` must have a playbook entry, and no entry may name anything else.
+    Passing the *active* (possibly merged) workflow spec here — not the bundled one — is what
+    makes a workflow override's dropped/renamed/added type correctly change the playbook's
+    coverage requirement, with no separate wiring.
 
     When *squad_dir* is ``None`` or ``<squad_dir>/.overrides/playbook.toml`` is absent, this
     builds the playbook straight from the bundled raw mapping — byte-identical to today's
@@ -205,28 +199,15 @@ def load_playbook(
         raw = loaded.raw
         origin = loaded.origin
 
-    catalog_slugs = {r.slug for r in catalog.roles}
-    if squad_dir is not None:
-        # The per-request slug authority: bundled catalog union the project's own role
-        # overrides on disk. A wholly-new or renamed-into project role is never in the
-        # bundled catalog singleton and cannot be, so validating against the catalog alone
-        # refuses every guide slug for a live project role — the mechanism by which a custom
-        # role is meant to enter a type's playbook guidance. The bundled-only module-level
-        # load below (no squad_dir) deliberately does not gain this — there is no project to
-        # read overrides for.
-        catalog_slugs |= project_role_slugs(
-            squad_dir, project_catalog if project_catalog is not None else (lambda: catalog)
-        )
-
     try:
-        return _build_spec(raw, catalog_slugs, spec)
+        return _build_spec(raw, spec)
     except SquadsError as exc:
         if origin is None:
             raise
         raise SquadsError(f"{origin}: {exc}") from exc
 
 
-def _build_spec(raw: dict[str, Any], catalog_slugs: set[str], spec: WorkflowSpec) -> PlaybookSpec:
+def _build_spec(raw: dict[str, Any], spec: WorkflowSpec) -> PlaybookSpec:
     types_raw = as_table(raw.get("types", {}), "types")
     types: dict[str, ItemPlaybookSpec] = {}
 
@@ -243,7 +224,7 @@ def _build_spec(raw: dict[str, Any], catalog_slugs: set[str], spec: WorkflowSpec
             ) from exc
         types[name] = entry
 
-    _validate(types, catalog_slugs, spec)
+    _validate(types, spec)
 
     try:
         pb_spec = PlaybookSpec(types=types)
@@ -266,11 +247,11 @@ def _parse_role_guide(data: dict[str, Any], type_name: str, idx: int) -> RoleGui
 
 def _check_slugs(
     types: dict[str, ItemPlaybookSpec],
-    catalog_slugs: set[str],
     errors: list[str],
 ) -> None:
-    """Cross-spec slug referential integrity. A capability subject (``*<name>``) names no
-    catalog slug and is exempt; a malformed one is refused."""
+    """A guide's subject is checked for grammar only: a role slug in the slug grammar, or a
+    capability subject (``*<name>``) with a well-formed name. Whether a role holds it is
+    ``sq check``'s finding, since the loader reads no role item."""
     for item_type, entry in types.items():
         for guide in entry.roles:
             if guide.slug.startswith(CAPABILITY_SUBJECT_PREFIX):
@@ -281,8 +262,17 @@ def _check_slugs(
                         f"{CAPABILITY_SUBJECT_PREFIX}<name>, with a name matching "
                         f"{CAPABILITY_NAME_PATTERN}"
                     )
-            elif guide.slug not in catalog_slugs:
-                errors.append(f"types.{item_type}: role slug {guide.slug!r} not in role catalog")
+            elif not is_valid_slug(guide.slug):
+                errors.append(
+                    f"types.{item_type}: role slug {guide.slug!r} is not a slug "
+                    "(lowercase letters, digits and hyphens)"
+                )
+            elif problem := (
+                reserved_role_slug_problem(guide.slug) or group_verb_problem("role", guide.slug)
+            ):
+                errors.append(
+                    f"types.{item_type}: role slug {guide.slug!r} {problem}, so no role can hold it"
+                )
 
 
 def _check_duplicate_slugs(types: dict[str, ItemPlaybookSpec], errors: list[str]) -> None:
@@ -379,11 +369,9 @@ def _check_capability_tokens(types: dict[str, ItemPlaybookSpec], errors: list[st
         )
 
 
-def _validate(
-    types: dict[str, ItemPlaybookSpec], catalog_slugs: set[str], spec: WorkflowSpec
-) -> None:
+def _validate(types: dict[str, ItemPlaybookSpec], spec: WorkflowSpec) -> None:
     errors: list[str] = []
-    _check_slugs(types, catalog_slugs, errors)
+    _check_slugs(types, errors)
     _check_duplicate_slugs(types, errors)
     _check_coverage(types, spec, errors)
     _check_text(types, errors)

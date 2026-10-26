@@ -1,7 +1,7 @@
-"""A role is a developer because it holds a capability the ``[dev]`` table declares, however it
-came to exist: a templated developer (``sq dev add``) and a declared one (a role file with the
-capability) get identical answers on every surface, and a role merely named ``...-dev`` gets
-the answers of any ordinary role.
+"""A role is a developer because it holds a capability the ``dev`` template declares, however it
+came to exist: a templated developer (``sq dev add``) and a declared one (a role that
+defines itself with the capability) get identical answers on every surface, and a role merely
+named ``...-dev`` gets the answers of any ordinary role.
 
 One table: role shape by roster. Surfaces per role: the pointer's skill list, the per-type
 skill's capability section, the create lane, ``sq dev list``. Surfaces per roster: the example
@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import add_role_from_toml
 from squads import __version__
 from squads._interactions._skills import item_skill_name
 from squads._workflow import ROSTER_SKILL
@@ -48,13 +49,12 @@ _ROSTERS = {
 async def _add(svc, project, shape: str) -> None:
     slug = _SLUGS[shape]
     if shape == "templated":
-        await svc.add_dev("rust")
+        await svc.activate_role(None, from_template="dev", tech="rust")
         return
     if shape in ("declared", "suffixed"):
-        path = project.squad_dir / ".overrides" / "roles" / f"{slug}.toml"
-        path.parent.mkdir(parents=True, exist_ok=True)
         capabilities = 'capabilities = ["dev"]\n' if shape == "declared" else ""
-        path.write_text(_ROLE_FILE + capabilities, encoding="utf-8")
+        await add_role_from_toml(svc, slug, _ROLE_FILE + capabilities)
+        return
     await svc.activate_role(slug)
 
 
@@ -130,11 +130,12 @@ async def test_every_surface_treats_a_developer_alike_however_it_was_made(
 async def test_a_role_named_dev_gains_and_loses_the_developer_guidance_with_its_capability(
     project, svc, invoke
 ) -> None:
-    """Declaring the capability and syncing turns an ordinary role named ``-dev`` into a
-    developer; dropping it turns it back, with nothing else changed."""
+    """A per-slug file declaring the capability, and a sync, turn an ordinary role named
+    ``-dev`` into a developer; dropping it turns it back, with nothing else changed."""
     await _add(svc, project, "suffixed")
     role_file = project.squad_dir / ".overrides" / "roles" / "legacy-dev.toml"
-    plain = role_file.read_text(encoding="utf-8")
+    role_file.parent.mkdir(parents=True, exist_ok=True)
+    plain = ""
 
     async def preloads_task() -> bool:
         assert (await invoke(["sync"])).exit_code == 0

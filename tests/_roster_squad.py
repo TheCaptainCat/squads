@@ -3,7 +3,8 @@
 The shapes a roster verb must be checked against: a bundled skill, a generated per-type
 skill, a system skill whose view the project dropped, a project skill, a bundled role, a
 bundled role with a per-slug override, a templated developer, a declared developer, a project
-role, a retired role, an operator and a retired operator. ``restore`` copies the built squad
+role (the last two define themselves in their own items), a retired role, an operator and a
+retired operator. ``restore`` copies the built squad
 into a test's own directory, so a destructive verb never sees another test's leftovers.
 """
 
@@ -87,8 +88,10 @@ def build(root: Path) -> Path:
             _ROLE_FILE.format(name="Sentinel", slug="security-analyst"),
         )
         _override(squad_dir, "roles/architect.toml", 'full_name = "Renamed Architect"\n')
-        run("role", "activate", "auditor-dev")
-        run("role", "activate", "security-analyst")
+        for slug in ("auditor-dev", "security-analyst"):
+            file = squad_dir / ".overrides" / "roles" / f"{slug}.toml"
+            run("role", "add", slug, "--file", str(file))
+            file.unlink()
         run("role", "devops", "status", "Archived")
         run("skill", "add", "Release Runbook", "--desc", "Ship a release.")
         run("operator", "add", "Ada Lovelace", "--slug", "op-ada")

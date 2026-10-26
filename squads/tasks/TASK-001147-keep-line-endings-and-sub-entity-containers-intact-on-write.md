@@ -3,7 +3,7 @@ id: TASK-1147
 sequence_id: 1147
 type: task
 title: Keep line endings and sub-entity containers intact on write
-status: Draft
+status: Ready
 author: tech-lead
 priority: low
 refs:
@@ -20,7 +20,7 @@ subentities:
   title: Enclose existing blocks when a container is restored
   status: Todo
 created_at: '2026-10-25T19:56:57Z'
-updated_at: '2026-10-25T19:57:16Z'
+updated_at: '2026-10-26T04:14:52Z'
 ---
 <!-- sq:body -->
 ## Goal

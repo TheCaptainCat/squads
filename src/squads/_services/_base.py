@@ -479,7 +479,7 @@ BODY_OVERWRITE_PREVIEW_LINES = 3
 #: Per roster type, the metadata fields an update may change on a generated entry: identity the
 #: operator sets, never generated content. Keyed by the field names ``_update_model`` reports.
 ROSTER_UPDATE_EXEMPT: Mapping[str, frozenset[str]] = MappingProxyType(
-    {ROSTER_ROLE: frozenset({"title"}), ROSTER_SKILL: frozenset()}
+    {ROSTER_ROLE: frozenset({"title", "model"}), ROSTER_SKILL: frozenset()}
 )
 
 
@@ -758,8 +758,8 @@ class ServiceCore:
         if roster_view is None or roster_view == allow_view:
             return
         authoring_surface = (
-            f"`{ROLES_OVERRIDE_FILENAME}` (or `.overrides/roles/<slug>.toml` for a "
-            "project-defined role)"
+            f"`{ROLES_OVERRIDE_FILENAME}` (or `.overrides/roles/<slug>.toml`), or `sq role "
+            f"{item.slug} update` for a role that defines itself"
             if item.type == ROSTER_ROLE
             else views.skill_authoring_surface(roster_view, item.slug, self.spec, self.playbook)
         )
@@ -1088,6 +1088,12 @@ class ServiceCore:
         return CreateResult(
             item=item, path=self.paths.abspath(squad_rel), lane_warning=lane_warning
         )
+
+    @staticmethod
+    def check_role_slug(slug: str) -> None:
+        """Raise when *slug* may not name a role: outside the slug grammar, or reserved. The one
+        check every role creation verb runs before it writes."""
+        _check_roster_slug(ROSTER_ROLE, True, slug)
 
     async def get(self, item_id: str) -> Item:
         """Return *item_id*, always as a deep copy.

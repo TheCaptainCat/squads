@@ -71,7 +71,7 @@ async def test_an_entry_outside_its_grammar_is_reported_once_with_its_remedy(
     assert list(reports) == [item.id]
     assert fragment in reports[item.id]
     assert f"sq {kind} {item.id} remove --purge" in reports[item.id]
-    assert "sq operator add" in reports[item.id] or "sq role activate" in reports[item.id]
+    assert "sq operator add" in reports[item.id] or "sq role add" in reports[item.id]
 
 
 async def test_a_retired_breaching_operator_is_reported(svc, unchecked_creation) -> None:
@@ -122,7 +122,7 @@ async def test_a_skill_holding_the_system_slug_is_not_reported(svc) -> None:
 
 async def test_a_compliant_roster_reports_nothing(svc) -> None:
     await svc.add_operator("Anna Lee")
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     await svc.add_skill("Pairing")
 
     assert await _reports(svc) == {}
@@ -190,8 +190,8 @@ async def test_a_role_that_breaks_no_rule_is_pointed_at_the_operator_to_replace(
     reports = await _reports(svc)
 
     assert f"remedy: replace {op.id}, which breaks a rule of its own" in reports[role.id]
-    assert "rename the project role file" not in reports[role.id]
-    assert "rename the project role file" not in reports[op.id]
+    assert "create the role again" not in reports[role.id]
+    assert "create the role again" not in reports[op.id]
 
 
 async def test_a_retired_operator_is_retired_again_after_the_re_add(
@@ -226,10 +226,10 @@ async def test_a_role_or_skill_holding_a_group_verb_is_reported_with_a_remedy(
     assert f"sq {kind} {item.id} remove --purge" in reports[item.id]
 
 
-async def test_a_role_slug_that_is_a_skill_verb_and_a_skill_slug_that_is_a_role_verb_pass(
+async def test_a_role_slug_near_a_verb_and_a_skill_slug_that_is_a_role_verb_pass(
     svc, unchecked_creation
 ) -> None:
-    await _entry(svc, "role", "add")
+    await _entry(svc, "role", "adds")
     await _entry(svc, "skill", "list")
 
     assert await _reports(svc) == {}
@@ -261,3 +261,15 @@ async def test_an_operator_an_older_release_wrote_without_a_stored_slug_is_a_par
     assert [
         i for i in issues if i.item != legacy.id and "is not a registered agent" in i.message
     ] == []
+
+
+async def test_a_role_slug_in_breach_is_pointed_at_role_add_not_at_a_role_file(
+    svc, unchecked_creation
+) -> None:
+    role = await _entry(svc, "role", "bad-role")
+    await _hand_edited(svc, role, "Bad Role")
+
+    report = (await _reports(svc))[role.id]
+
+    assert "sq role add <slug>" in report
+    assert "rename the project role file" not in report

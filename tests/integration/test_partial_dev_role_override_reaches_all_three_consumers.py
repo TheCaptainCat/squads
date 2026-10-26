@@ -5,9 +5,9 @@ the override's value and every other field coming from the live role's own store
 
 Service-level proof of the merge/rename semantics lives in tests/service/test_partial_dev_
 role_override_is_honoured_by_sync.py; the resolver-level proof lives in tests/unit/test_dev_
-role_base_is_supplied_not_inferred.py and tests/unit/test_dev_base_from_item_inherits_the_
-live_identity.py. This file is the CLI smoke test the acceptance criteria call for, plus the
-check-report retirement (a file that now loads must not still be flagged) and the ``show``
+role_base_is_supplied_not_inferred.py and tests/unit/test_a_role_resolves_from_one_base_
+chosen_by_its_stored_facts.py. This file is the CLI smoke test the acceptance criteria call for,
+plus the check-report retirement (a file that now loads must not still be flagged) and the ``show``
 card fallback fix.
 """
 
@@ -30,7 +30,7 @@ def _place_dev_toml(squad_dir: Path, slug: str, content: str) -> None:
 async def test_sync_and_role_show_both_exit_0_on_a_partial_dev_override(
     project, svc, invoke
 ) -> None:
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     _place_dev_toml(project.squad_dir, "python-dev", 'title = "Senior Python developer"\n')
 
     shown = await invoke(["role", "python-dev", "show"])
@@ -46,7 +46,7 @@ async def test_check_is_clean_on_a_squad_carrying_a_partial_dev_override(
 ) -> None:
     """The report this exact shape used to get is retired in the same change that makes the
     shape load -- leaving it would flag a file that now works."""
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     _place_dev_toml(
         project.squad_dir,
         "python-dev",
@@ -60,7 +60,7 @@ async def test_check_is_clean_on_a_squad_carrying_a_partial_dev_override(
 
 
 async def test_check_still_exits_non_zero_on_a_broken_dev_override(project, svc, invoke) -> None:
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     _place_dev_toml(project.squad_dir, "python-dev", 'model = "opuss"\n')
 
     result = await invoke(["check"])
@@ -77,7 +77,7 @@ async def test_a_live_dev_roles_show_renders_the_full_card_not_the_three_line_fa
     full card like every other role -- title, model, spawn, creates, skills -- plus the
     resolved definition beneath it (mission, responsibilities) -- even with no override file
     present at all."""
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
 
     result = await invoke(["role", "python-dev", "show"])
 
@@ -88,7 +88,7 @@ async def test_a_live_dev_roles_show_renders_the_full_card_not_the_three_line_fa
 
 
 async def test_a_live_dev_roles_json_show_carries_the_full_fields(project, svc, invoke) -> None:
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
 
     result = await invoke(["role", "python-dev", "show", "--json"])
     data = json.loads(result.output)
@@ -98,26 +98,26 @@ async def test_a_live_dev_roles_json_show_carries_the_full_fields(project, svc, 
     assert data["title"] == "Python developer"
 
 
-async def test_a_dev_toml_for_a_tech_with_no_roster_entry_is_reported_as_a_new_role(
+async def test_a_dev_toml_for_a_tech_with_no_roster_entry_is_reported_as_a_layer_with_no_base(
     project, svc, invoke
 ) -> None:
-    """No ``sq dev add`` has run for this tech, so the file is a role definition of its own and
-    must carry every required field; ``sq check`` says so and the card refuses."""
+    """No ``sq dev add`` has run for this tech, so there is no role under the file: ``sq check``
+    says so and the card refuses."""
     _place_dev_toml(project.squad_dir, "rust-dev", 'title = "Rust wrangler"\n')
 
     checked = await invoke(["check"])
     shown = await invoke(["role", "rust-dev", "show"])
 
     assert checked.exit_code != 0, checked.output
-    assert "missing required fields" in " ".join(checked.output.split())
+    assert "no role under it" in " ".join(checked.output.split())
     assert shown.exit_code == 1, shown.output
 
 
 async def test_declaring_full_name_renames_nothing_via_the_sync_cli_command(
     project, svc, invoke
 ) -> None:
-    await svc.add_dev("python")
-    second = await svc.add_dev("typescript")
+    await svc.activate_role(None, from_template="dev", tech="python")
+    second = await svc.activate_role(None, from_template="dev", tech="typescript")
     _place_dev_toml(project.squad_dir, "typescript-dev", 'full_name = "Zara Typescript"\n')
 
     result = await invoke(["sync"])
@@ -130,8 +130,8 @@ async def test_declaring_full_name_renames_nothing_via_the_sync_cli_command(
 async def test_omitting_full_name_preserves_it_via_the_sync_cli_command(
     project, svc, invoke
 ) -> None:
-    await svc.add_dev("python")
-    second = await svc.add_dev("typescript")
+    await svc.activate_role(None, from_template="dev", tech="python")
+    second = await svc.activate_role(None, from_template="dev", tech="typescript")
     _place_dev_toml(project.squad_dir, "typescript-dev", 'title = "Senior TypeScript developer"\n')
 
     result = await invoke(["sync"])

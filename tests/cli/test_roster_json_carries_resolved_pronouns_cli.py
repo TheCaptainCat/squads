@@ -16,8 +16,8 @@ from squads._services._service import Service
 pytestmark = pytest.mark.anyio
 
 ROLE_LIST_KEYS = {
-    "id", "slug", "full_name", "pronouns", "title", "is_default", "capabilities", "status",
-    "origin",
+    "id", "slug", "full_name", "pronouns", "title", "description", "is_default", "capabilities",
+    "status", "origin",
 }  # fmt: skip
 ROLE_SHOW_KEYS = {
     "slug", "id", "activated", "origin", "full_name", "pronouns", "title", "mission", "model",

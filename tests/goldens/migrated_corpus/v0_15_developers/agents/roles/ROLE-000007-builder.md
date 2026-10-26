@@ -6,10 +6,12 @@ title: Bea Builder
 slug: builder
 status: Active
 author: builder
-description: Do the builder work.
+description: Builder role.
 created_at: '2025-05-20T11:24:00Z'
 updated_at: '2025-05-20T11:24:00Z'
 origin: project
+job_title: builder
+mission: Do the builder work.
 ---
 <!-- sq:body -->
 <!-- sq:view:role_definition -->

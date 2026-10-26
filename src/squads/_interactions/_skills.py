@@ -12,7 +12,7 @@ from squads._interactions._loader import bundled_type_names
 from squads._models import _attributes as attrs
 from squads._models._attributes import ORIGIN_PROJECT, ORIGIN_SYSTEM
 from squads._models._item import Item
-from squads._roles._catalog import PREDEFINED
+from squads._roles._catalog import PREDEFINED, get_catalog
 from squads._workflow._models import ROSTER_SKILL, WorkflowSpec
 
 SQUADS_SKILL = "squads"
@@ -266,11 +266,16 @@ def is_system_skill(slug: str, spec: WorkflowSpec) -> bool:
     return slug in bundled_skill_slugs() or slug in custom_skill_slugs(spec)
 
 
-def role_origin(slug: str, *, templated: bool = False) -> str:
-    """``system`` for a bundled role (even one the project overrides) or a templated developer,
-    else ``project``. Reads the catalog as packaged, never the squad's resolved one."""
-    in_bundle = any(r.slug == slug for r in PREDEFINED)
-    return ORIGIN_SYSTEM if in_bundle or templated else ORIGIN_PROJECT
+def role_origin(slug: str, *, template: str | None = None, item_defined: bool = False) -> str:
+    """``system`` when the role's base is a bundled catalog entry or a bundled template (even one
+    the project overrides), else ``project``. Reads the catalog as packaged, never the squad's
+    resolved one. *template* is the template name the role stores; *item_defined* is a role
+    that stores its own definition."""
+    if template is not None:
+        return ORIGIN_SYSTEM if template in get_catalog().templates else ORIGIN_PROJECT
+    if item_defined:
+        return ORIGIN_PROJECT
+    return ORIGIN_SYSTEM if any(r.slug == slug for r in PREDEFINED) else ORIGIN_PROJECT
 
 
 def skill_origin(slug: str, spec: WorkflowSpec) -> str:
@@ -282,7 +287,11 @@ def item_origin(item: Item, spec: WorkflowSpec) -> str:
     """The origin a role or skill *item* is classified as, by the one rule every writer uses."""
     if item.type == ROSTER_SKILL:
         return skill_origin(item.slug, spec)
-    return role_origin(item.slug, templated=attrs.is_templated(item))
+    return role_origin(
+        item.slug,
+        template=attrs.template(item),
+        item_defined=attrs.mission(item) is not None,
+    )
 
 
 def orphaned_skill_item_type(slug: str, spec: WorkflowSpec) -> str | None:

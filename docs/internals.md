@@ -62,7 +62,7 @@ on its provenance read the same file once.
     │                     # bundled default folders; custom types use declared folders
     ├── .overrides/
     │   ├── workflow.toml # custom item types, statuses, lifecycles, badge collections
-    │   ├── roles.toml    # role catalog delta (roles, bundles, [dev] table)
+    │   ├── roles.toml    # role catalog delta (roles, role templates, bundles)
     │   ├── playbook.toml # playbook delta (per-type role guidance)
     │   └── templates/ roles/    # template and per-role overrides
     ├── operators/        # OP-*.md (the humans on the project)
@@ -385,10 +385,15 @@ through `_interactions/`). Both are project-overridable — `.overrides/roles/<s
 - **Bundled roles** — 8 `RoleDef`s, each with a real name + slug (Catherine Manager `manager`
   [default/triage], Robert Architect `architect`, Olivia Lead `tech-lead`, Paul Reviewer
   `reviewer`, Mara Tester `qa`, Hugo Ops `devops`, Nina Product `product-owner`, Theo Writer
-  `tech-writer`). `BUNDLES` (`all`/`core`/`minimal`) select sets at `init`/`adopt`. **Developers**
-  are made on demand from the `[dev]` table of the squad's resolved catalog, named from its pool
-  (`Elias Dotnet`, slug `dotnet-dev` by default). A developer is any live role holding a capability
-  that table declares (`dev`).
+  `tech-writer`). `BUNDLES` (`all`/`core`/`minimal`) select sets at `init`/`adopt`. **Role templates** are
+  `[templates.<name>]` tables of the same catalog; a role built from one stores `template` (and
+  `tech`) and is instantiated from the table on every read. **Developers** are made on demand from
+  the `dev` template, named from its pool (`Elias Dotnet`, slug `dotnet-dev` by default). A
+  developer is any live role holding a capability that template declares (`dev`). A role created
+  with `sq role add` stores its own definition (`job_title`, `mission`, …). The base kind is read
+  from the stored keys only (`template`, then `mission`, then the catalog); the per-slug override
+  merges over the base, and the item's stored name, default designation, model and pronouns are
+  applied last.
 - **The playbook** (the loaded `PlaybookSpec`) is a matrix: for each
   item type, the interacting roles + a one-line guidance each. A guide addresses a role slug, or
   every live role holding a capability with `*<capability>` (the bundled `*dev` guides reach every

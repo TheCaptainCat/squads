@@ -21,17 +21,18 @@ GLOBAL_FIELDS = frozenset(
     {"title", "description", "status", "parent", "author", "assignee", "labels"}
 )
 
-#: Role keys that are not settable here because they are resolved from the role catalog. An
-#: operator reaching for one of them has a real intent and a real place to satisfy it, so the
+#: Role keys that are not settable here because a role verb or the role's definition owns them.
+#: An operator reaching for one of them has a real intent and a real place to satisfy it, so the
 #: refusal names that place rather than reporting an unknown field.
-_ROLE_DECLARED_IN_OVERRIDES: frozenset[str] = frozenset(
+_ROLE_DEFINITION_KEYS: frozenset[str] = frozenset(
     {
-        "title",
+        "job_title",
         "mission",
         "responsibilities",
         "agreements",
         "color",
         "can_spawn",
+        "capabilities",
         "description",
     }
 )
@@ -40,23 +41,19 @@ _ROLE_DECLARED_IN_OVERRIDES: frozenset[str] = frozenset(
 #: --name`` / ``sq dev add --name``, and the item's own top-level ``title`` is where it lives.
 _ROLE_NAME_KEY: str = "full_name"
 
-#: The developer marker an earlier release stored on a role; a templated role is the one that
-#: carries ``tech``, and a developer is the role that holds the capability the ``[dev]`` table
-#: declares.
+#: The developer marker an earlier release stored on a role; a developer is the role that holds a
+#: capability the ``dev`` template declares.
 _RETIRED_ROLE_DEV_KEY: str = "is_dev"
 
 #: A role's skill list is a computed projection over the playbook and the index; a stored copy
 #: of it is a retired mirror key.
 _RETIRED_ROLE_SKILLS_KEY: str = "skills"
 
-#: The retired mirror keys of a role item: its definition fields (which the role catalog answers)
-#: and its skill list. A closed, named set — never "every key this build does not recognise" — so
-#: a sweep never deletes a key some other tool put on a role item.
-RETIRED_ROLE_KEYS: frozenset[str] = (
-    _ROLE_DECLARED_IN_OVERRIDES
-    | {_ROLE_NAME_KEY}
-    | {_RETIRED_ROLE_SKILLS_KEY}
-    | {_RETIRED_ROLE_DEV_KEY}
+#: The retired mirror keys of a role item: the stored name copy, the skill list and the developer
+#: marker. A closed, named set — never "every key this build does not recognise" — so a sweep
+#: never deletes a key some other tool put on a role item.
+RETIRED_ROLE_KEYS: frozenset[str] = frozenset(
+    {_ROLE_NAME_KEY, _RETIRED_ROLE_SKILLS_KEY, _RETIRED_ROLE_DEV_KEY}
 )
 
 
@@ -174,16 +171,15 @@ def _refusal_hint(item_type: str, key: str, attributes: Mapping[str, AttributeSp
     different types, and sending an operator to a role override document from a skill's refusal
     would be a remedy that does not apply."""
     if item_type == "role":
-        if key == _ROLE_NAME_KEY:
+        if key in (_ROLE_NAME_KEY, "title"):
             return (
                 " — a role's name lives on the item's own `title` field; set it with"
-                " `sq role activate --name` / `sq dev add --name`"
+                " `sq role <slug> update --title`"
             )
-        if key in _ROLE_DECLARED_IN_OVERRIDES:
+        if key in _ROLE_DEFINITION_KEYS:
             return (
-                " — a role's definition is resolved from the role catalog, not stored on the"
-                " item; declare it in `.overrides/roles.toml`, or in"
-                " `.overrides/roles/<slug>.toml` for a project-defined role"
+                " — a role's definition is set with `sq role <slug> update`"
+                " (item-defined roles only), or declared in `.overrides/roles/<slug>.toml`"
             )
     if key == AttributeKey.PRONOUNS and item_type in ("role", "operator"):
         return f" — set it with `sq {item_type} <addr> update --pronouns`"

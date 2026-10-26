@@ -20,7 +20,11 @@ from typing import Any
 import anyio
 import pytest
 
-from _helpers import make_service, make_unreadable_by_the_os
+from _helpers import (
+    check_is_clean_but_for_orphaned_roles,
+    make_service,
+    make_unreadable_by_the_os,
+)
 from squads import __version__
 from squads._cli._migrate import migrate_grants
 from squads._errors import SquadsError
@@ -304,7 +308,7 @@ async def test_a_squad_that_can_migrate_ends_where_the_clean_squad_ends(
     assert _indexed_paths(root) == {p for p in reference_paths if (root / p).exists()} | set(
         spec.now_indexed
     )
-    assert (await invoke(["check"])).exit_code == 0
+    await check_is_clean_but_for_orphaned_roles(invoke)
     assert (await invoke(["list"])).exit_code == 0
     if spec.reflog:
         reflog = (root / "squads/.reflog.jsonl").read_text(encoding="utf-8")
@@ -443,7 +447,7 @@ async def test_a_squad_that_cannot_migrate_is_refused_untouched_and_the_remedy_w
 
     assert again.exit_code == 0, again.output
     assert _stamp(squad) == SCHEMA_VERSION
-    assert (await invoke(["check"])).exit_code == 0
+    await check_is_clean_but_for_orphaned_roles(invoke)
 
 
 # --------------------------------------------------------------------------- a run that is stopped
@@ -637,7 +641,7 @@ async def test_a_squad_with_a_type_of_its_own_migrates_from_an_older_schema_keep
     assert [v["path"] for v in kept] == [_INCIDENT_PATH]
     assert "type: incident" in (root / _INCIDENT_PATH).read_text(encoding="utf-8")
     assert {k: v for k, v in _own_md(root).items() if k != _INCIDENT_PATH} == _own_md(reference)
-    assert (await invoke(["check"])).exit_code == 0
+    await check_is_clean_but_for_orphaned_roles(invoke, ("dev-agent",))
 
 
 async def test_a_squad_at_the_project_root_ignores_the_markdown_that_is_not_its_own(
@@ -702,4 +706,4 @@ async def test_a_pre_0_7_squad_stopped_after_any_runner_is_resumed_to_the_uninte
     assert _stamp(root) == SCHEMA_VERSION
     assert not any(v.get("id", "").startswith("UNRESOLVED") for v in _index(root)["items"].values())
     assert _own_md(root) == _own_md(reference)
-    assert (await invoke(["check"])).exit_code == 0
+    await check_is_clean_but_for_orphaned_roles(invoke, ("dev-agent",))

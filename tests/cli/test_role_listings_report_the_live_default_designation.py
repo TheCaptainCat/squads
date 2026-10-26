@@ -19,28 +19,16 @@ import json
 
 import pytest
 
-from squads import __version__
 from squads._rendering._engine import invalidate_squad_dir
 
 pytestmark = pytest.mark.anyio
 
-_GHOST_ROLE = (
-    f"# squads:override-base:{__version__}\n"
-    'full_name = "Ghost"\ntitle = "ghost"\n'
-    'description = "A declared role."\nmission = "A declared role."\n'
-)
-
 
 async def _make_ghost_the_default(project, svc, invoke) -> None:
-    """Activate a declared role, designate it, then delete its definition: a live holder that
-    matches no catalog row."""
-    role_file = project.squad_dir / ".overrides" / "roles" / "ghost.toml"
-    role_file.parent.mkdir(parents=True, exist_ok=True)
-    role_file.write_text(_GHOST_ROLE, encoding="utf-8")
-    invalidate_squad_dir(project.squad_dir)
-    await svc.activate_role("ghost")
+    """Create a role no catalog entry, template or stored definition backs and designate it: a
+    live holder that matches no catalog row."""
+    await svc.create("role", "Gwen Ghost", description="A ghost.", slug="ghost", author="ghost")
     assert (await invoke(["role", "ghost", "set-default"])).exit_code == 0
-    role_file.unlink()
     invalidate_squad_dir(project.squad_dir)
 
 

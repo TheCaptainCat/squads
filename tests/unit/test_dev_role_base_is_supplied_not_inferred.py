@@ -8,13 +8,9 @@ merge.py); this file covers the new seam: ``base=None`` reproduces ``resolve_rol
 base wins over that catalog entry regardless of whether the slug is in ``PREDEFINED`` (a
 caller that already knows a role's live identity must be able to make it the merge base for a
 bundled role too, not only for a developer slug), and a supplied base merges field-wise
-exactly like the bundled-slug case does. ``dev_base_for_slug`` — the builder for a
-``<tech>-dev.toml`` with no matching roster entry — is covered here too, since it needs no live
-item. The item-backed builder, ``dev_base_from_item``, is covered separately (tests/unit/
-test_dev_base_from_item_inherits_the_live_identity.py) because it needs an ``Item`` to read
-from; ``role_base_from_item`` (the seam that dispatches between a developer's
-``dev_base_from_item`` and a bundled role's item-carried ``full_name``) is covered at
-tests/unit/test_role_base_from_item_dispatches_by_role_kind.py.
+exactly like the bundled-slug case does. ``role_base_from_item``, the item-backed seam that
+chooses between a template, the item's own definition and the catalog, is covered at
+tests/unit/test_a_role_resolves_from_one_base_chosen_by_its_stored_facts.py.
 """
 
 from pathlib import Path
@@ -44,13 +40,20 @@ def test_base_none_reproduces_resolve_role_for_a_bundled_slug(tmp_path) -> None:
     ) == resolve_role("architect", tmp_path, catalog=catalog_of(tmp_path))
 
 
-def test_base_none_reproduces_resolve_roles_missing_fields_error_for_a_new_slug(tmp_path) -> None:
-    _place_role_toml(tmp_path, "new-role", 'full_name = "New Person"\n')
-    with pytest.raises(SquadsError, match="missing required fields") as via_base:
+@pytest.mark.parametrize(
+    "content",
+    [
+        'full_name = "New Person"\n',
+        'full_name = "N"\ntitle = "t"\ndescription = "d"\nmission = "m"\n',
+    ],
+    ids=["partial", "complete"],
+)
+def test_a_per_slug_file_alone_does_not_define_a_role(tmp_path, content: str) -> None:
+    _place_role_toml(tmp_path, "new-role", content)
+    with pytest.raises(RoleNotFoundError, match="new-role"):
         resolve_role_with_base("new-role", tmp_path, base=None, catalog=catalog_of(tmp_path))
-    with pytest.raises(SquadsError, match="missing required fields") as via_plain:
+    with pytest.raises(RoleNotFoundError, match="new-role"):
         resolve_role("new-role", tmp_path, catalog=catalog_of(tmp_path))
-    assert str(via_base.value) == str(via_plain.value)
 
 
 def test_base_none_reproduces_role_not_found_for_an_unknown_slug_with_no_override(tmp_path) -> None:

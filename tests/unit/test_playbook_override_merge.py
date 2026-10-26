@@ -13,7 +13,6 @@ import pytest
 
 from squads._errors import SquadsError
 from squads._interactions._loader import load_playbook
-from squads._roles._catalog import get_catalog
 from squads._workflow import bundled_spec, load_workflow_spec
 
 
@@ -30,7 +29,7 @@ def _write_workflow_override(squad_dir: Path, content: str) -> None:
 
 
 def _bundled() -> object:
-    return load_playbook(get_catalog(), spec=bundled_spec())
+    return load_playbook(spec=bundled_spec())
 
 
 # --------------------------------------------------------------------------- no override: byte
@@ -38,8 +37,8 @@ def _bundled() -> object:
 
 
 def test_no_override_file_returns_a_playbook_identical_to_the_bundled_one(tmp_path: Path) -> None:
-    bundled = load_playbook(get_catalog(), spec=bundled_spec())
-    merged = load_playbook(get_catalog(), squad_dir=tmp_path, spec=bundled_spec())
+    bundled = load_playbook(spec=bundled_spec())
+    merged = load_playbook(squad_dir=tmp_path, spec=bundled_spec())
     assert merged.model_dump(mode="json") == bundled.model_dump(mode="json")
 
 
@@ -47,8 +46,8 @@ def test_no_override_file_is_identical_even_when_squad_dir_exists_but_empty(
     tmp_path: Path,
 ) -> None:
     (tmp_path / ".overrides").mkdir()
-    bundled = load_playbook(get_catalog(), spec=bundled_spec())
-    merged = load_playbook(get_catalog(), squad_dir=tmp_path, spec=bundled_spec())
+    bundled = load_playbook(spec=bundled_spec())
+    merged = load_playbook(squad_dir=tmp_path, spec=bundled_spec())
     assert merged.model_dump(mode="json") == bundled.model_dump(mode="json")
 
 
@@ -59,7 +58,7 @@ def test_no_override_file_is_identical_even_when_squad_dir_exists_but_empty(
 def test_one_line_append_adds_a_role_guide_and_leaves_the_others_untouched(
     tmp_path: Path,
 ) -> None:
-    bundled = load_playbook(get_catalog(), spec=bundled_spec())
+    bundled = load_playbook(spec=bundled_spec())
     bundled_task_role_slugs = {g.slug for g in bundled.types["task"].roles}
     assert "architect" not in bundled_task_role_slugs  # precondition: no bundled task guide
 
@@ -74,7 +73,7 @@ roles = [
 """,
     )
     spec = load_workflow_spec()
-    merged = load_playbook(get_catalog(), spec=spec, squad_dir=tmp_path)
+    merged = load_playbook(spec=spec, squad_dir=tmp_path)
 
     merged_slugs = [g.slug for g in merged.types["task"].roles]
     # every bundled guide survives, in order, with a new one appended
@@ -92,13 +91,13 @@ roles = [
 
 
 def test_appending_to_one_type_leaves_every_other_types_entry_untouched(tmp_path: Path) -> None:
-    bundled = load_playbook(get_catalog(), spec=bundled_spec())
+    bundled = load_playbook(spec=bundled_spec())
     _write_playbook_override(
         tmp_path,
         '[types.task]\nroles = ["$(*self)", { slug = "architect" }]\n',
     )
     spec = load_workflow_spec()
-    merged = load_playbook(get_catalog(), spec=spec, squad_dir=tmp_path)
+    merged = load_playbook(spec=spec, squad_dir=tmp_path)
     for item_type in bundled.types:
         if item_type == "task":
             continue
@@ -128,7 +127,7 @@ def test_shadowing_one_field_of_a_bundled_role_guide_leaves_its_other_fields_int
     adopter reading the bundled document/`sq override diff playbook` would produce by hand).
     This proves the field survives the round trip once copied, never that the engine infers
     it — there is no mechanism at this granularity that could."""
-    bundled = load_playbook(get_catalog(), spec=bundled_spec())
+    bundled = load_playbook(spec=bundled_spec())
     guides = bundled.types["task"].roles
     target = guides[0]
     restated = [
@@ -137,7 +136,7 @@ def test_shadowing_one_field_of_a_bundled_role_guide_leaves_its_other_fields_int
     ]
     _write_playbook_override(tmp_path, f"[types.task]\nroles = [{', '.join(restated)}]\n")
     spec = load_workflow_spec()
-    merged = load_playbook(get_catalog(), spec=spec, squad_dir=tmp_path)
+    merged = load_playbook(spec=spec, squad_dir=tmp_path)
     merged_guide = merged.types["task"].roles[0]
     assert merged_guide.slug == target.slug
     assert merged_guide.watch == ["a new watch line"]
@@ -157,13 +156,13 @@ def test_shadowing_via_the_append_idiom_targets_only_the_named_field_of_the_spli
     hand-written table appended alongside it is a wholly separate, new entry — not a
     field-level shadow of any spliced one. This is the shape an adopter reaches for to ADD a
     role, contrasted with the previous test's shape for MODIFYING an existing one."""
-    bundled = load_playbook(get_catalog(), spec=bundled_spec())
+    bundled = load_playbook(spec=bundled_spec())
     _write_playbook_override(
         tmp_path,
         '[types.task]\nroles = ["$(*self)", { slug = "architect", watch = ["new"] }]\n',
     )
     spec = load_workflow_spec()
-    merged = load_playbook(get_catalog(), spec=spec, squad_dir=tmp_path)
+    merged = load_playbook(spec=spec, squad_dir=tmp_path)
     assert len(merged.types["task"].roles) == len(bundled.types["task"].roles) + 1
     assert merged.types["task"].roles[-1].watch == ["new"]
 
@@ -193,7 +192,7 @@ roles = [{ slug = "qa" }]
 """,
     )
     spec = load_workflow_spec(squad_dir=tmp_path)
-    merged = load_playbook(get_catalog(), spec=spec, squad_dir=tmp_path)
+    merged = load_playbook(spec=spec, squad_dir=tmp_path)
     assert "incident" in merged.types
     assert merged.types["incident"].overview == "An incident."
 
@@ -217,7 +216,7 @@ lifecycle = "work"
 """,
     )
     spec = load_workflow_spec(squad_dir=tmp_path)
-    merged = load_playbook(get_catalog(), spec=spec, squad_dir=tmp_path)
+    merged = load_playbook(spec=spec, squad_dir=tmp_path)
     assert "incident" not in merged.types
 
 
@@ -228,7 +227,7 @@ def test_a_bundled_type_missing_its_own_entry_is_still_a_coverage_violation() ->
     absence is ever tolerated (see the sibling test above)."""
     from squads._interactions._loader import _check_coverage
 
-    bundled = load_playbook(get_catalog(), spec=bundled_spec())
+    bundled = load_playbook(spec=bundled_spec())
     spec = load_workflow_spec()
     incomplete = dict(bundled.types)
     del incomplete["task"]
@@ -254,7 +253,7 @@ def test_dropping_a_type_via_workflow_override_drops_its_playbook_coverage_requi
 
     # no .overrides/playbook.toml at all — loads clean, with the dropped type's entry gone
     # from the merged playbook too (never required, never present as a stray "extra").
-    merged = load_playbook(get_catalog(), spec=spec, squad_dir=tmp_path)
+    merged = load_playbook(spec=spec, squad_dir=tmp_path)
     bundled_pb = _bundled()
     assert "guide" not in merged.types
     assert set(merged.types) == set(bundled_pb.types) - {"guide"}  # type: ignore[attr-defined]
@@ -271,7 +270,7 @@ def test_a_selected_table_on_the_playbook_override_is_refused(tmp_path: Path) ->
     _write_playbook_override(tmp_path, '[selected]\ntypes = ["task"]\n')
     spec = load_workflow_spec()
     with pytest.raises(SquadsError, match="unknown \\[selected\\] section 'types'"):
-        load_playbook(get_catalog(), spec=spec, squad_dir=tmp_path)
+        load_playbook(spec=spec, squad_dir=tmp_path)
 
 
 def test_the_selected_refusal_names_the_real_reason_not_an_empty_menu(tmp_path: Path) -> None:
@@ -281,7 +280,7 @@ def test_the_selected_refusal_names_the_real_reason_not_an_empty_menu(tmp_path: 
     _write_playbook_override(tmp_path, '[selected]\ntypes = ["task"]\n')
     spec = load_workflow_spec()
     with pytest.raises(SquadsError) as exc_info:
-        load_playbook(get_catalog(), spec=spec, squad_dir=tmp_path)
+        load_playbook(spec=spec, squad_dir=tmp_path)
     message = str(exc_info.value)
     assert "accepted [selected] sections: []" not in message
     assert "no [selected] sections to deselect" in message
@@ -294,23 +293,34 @@ def test_the_selected_refusal_names_the_real_reason_not_an_empty_menu(tmp_path: 
 def test_malformed_toml_raises_naming_the_override_file(tmp_path: Path) -> None:
     _write_playbook_override(tmp_path, "[types.broken\nthis is not valid toml ===")
     with pytest.raises(SquadsError, match="Malformed playbook override"):
-        load_playbook(get_catalog(), squad_dir=tmp_path, spec=bundled_spec())
+        load_playbook(squad_dir=tmp_path, spec=bundled_spec())
 
 
 def test_an_unknown_top_level_key_fails_closed(tmp_path: Path) -> None:
     _write_playbook_override(tmp_path, '[bogus_section.task]\noverview = "x"\n')
     with pytest.raises(SquadsError, match="unknown top-level key 'bogus_section'"):
-        load_playbook(get_catalog(), squad_dir=tmp_path, spec=bundled_spec())
+        load_playbook(squad_dir=tmp_path, spec=bundled_spec())
 
 
-def test_a_stray_role_slug_not_in_the_catalog_fails_closed(tmp_path: Path) -> None:
+def test_a_guide_naming_a_role_no_catalog_declares_loads(tmp_path: Path) -> None:
+    """A guide's subject is checked for grammar only; `sq check` reports a role nobody holds."""
     _write_playbook_override(
-        tmp_path,
-        '[types.task]\nroles = ["$(*self)", { slug = "no-such-role" }]\n',
+        tmp_path, '[types.task]\nroles = ["$(*self)", { slug = "no-such-role" }]\n'
     )
-    spec = load_workflow_spec()
-    with pytest.raises(SquadsError, match="role slug 'no-such-role' not in role catalog"):
-        load_playbook(get_catalog(), spec=spec, squad_dir=tmp_path)
+
+    playbook = load_playbook(spec=load_workflow_spec(), squad_dir=tmp_path)
+
+    assert "no-such-role" in [g.slug for g in playbook.types["task"].roles]
+
+
+@pytest.mark.parametrize("slug", ["No Such Role", "-lead", "a/b", ""])
+def test_a_guide_subject_outside_the_slug_grammar_is_refused(tmp_path: Path, slug: str) -> None:
+    _write_playbook_override(
+        tmp_path, f'[types.task]\nroles = ["$(*self)", {{ slug = "{slug}" }}]\n'
+    )
+
+    with pytest.raises(SquadsError, match="is not a slug"):
+        load_playbook(spec=load_workflow_spec(), squad_dir=tmp_path)
 
 
 def test_the_dev_sentinel_role_slug_is_exempt_from_catalog_validation(tmp_path: Path) -> None:
@@ -321,7 +331,7 @@ def test_the_dev_sentinel_role_slug_is_exempt_from_catalog_validation(tmp_path: 
         '[types.epic]\nroles = ["$(*self)", { slug = "*dev" }]\n',
     )
     spec = load_workflow_spec()
-    merged = load_playbook(get_catalog(), spec=spec, squad_dir=tmp_path)
+    merged = load_playbook(spec=spec, squad_dir=tmp_path)
     assert merged.types["epic"].roles[-1].slug == "*dev"
 
 
@@ -332,4 +342,4 @@ def test_a_typo_field_on_a_role_guide_table_raises_via_extra_forbid(tmp_path: Pa
     )
     spec = load_workflow_spec()
     with pytest.raises(SquadsError):
-        load_playbook(get_catalog(), spec=spec, squad_dir=tmp_path)
+        load_playbook(spec=spec, squad_dir=tmp_path)

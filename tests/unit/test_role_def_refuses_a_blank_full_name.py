@@ -5,8 +5,8 @@
 
 All three construction paths converge here: the override merge
 (``_apply_override``/``role_spec_to_def``), ``activate_role``'s ``dataclasses.replace`` (which
-re-runs ``__post_init__`` on a frozen dataclass exactly like the constructor), and ``add_dev``'s
-``dev_role()`` call. One rule, enforced once, at the point they all actually meet.
+re-runs ``__post_init__`` on a frozen dataclass exactly like the constructor), and a template
+role's instantiation. One rule, enforced once, at the point they all actually meet.
 """
 
 import dataclasses
@@ -48,7 +48,7 @@ def test_dataclasses_replace_with_a_blank_full_name_is_refused(blank):
 
 @pytest.mark.parametrize("blank", ["", "   "], ids=["empty", "spaces"])
 def test_dev_role_with_an_explicit_blank_name_is_refused(blank):
-    """The exact mechanism ``add_dev`` uses. ``dev_role`` tests ``name is not None`` (not a
+    """The exact mechanism a template role uses. ``dev_role`` tests ``name is not None`` (not a
     falsy check), so an explicitly-passed blank name is not silently treated as "no name
     given" -- it reaches the same seam and is refused."""
     with pytest.raises(SquadsError) as excinfo:

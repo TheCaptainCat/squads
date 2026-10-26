@@ -102,7 +102,9 @@ async def squad(tmp_path, monkeypatch, frozen_time, invoke):
     _override(squad_dir, "roles/architect.toml", 'full_name = "Renamed Architect"\n')
     invalidate_squad_dir(squad_dir)
     for slug in ("auditor-dev", "security-analyst", "sandbox-dev"):
-        await run("role", "activate", slug)
+        file = squad_dir / ".overrides" / "roles" / f"{slug}.toml"
+        await run("role", "add", slug, "--file", str(file))
+        file.unlink()
     await run("role", "devops", "status", "Archived")
     await run("skill", "add", "Release Runbook", "--desc", "Ship a release.")
     _override(squad_dir, "workflow.toml", _WORKFLOW)

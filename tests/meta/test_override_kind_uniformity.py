@@ -125,13 +125,20 @@ def _place_role_shadowing(squad_dir: Path) -> None:
 
 
 def _place_role_add_only(squad_dir: Path) -> None:
-    from squads._overrides._service import scaffold_new_role
+    """A per-slug file over a role the project's own catalog declares: it has a base, and the
+    base is not the bundled document, so no stamp is owed."""
+    from squads._roles._catalog import BUNDLES
 
-    dest = scaffold_new_role(squad_dir, slug="uniformity-probe-role")
-    # Unstamp: scaffold_new_role always stamps, and this fixture is testing the unstamped
-    # add-only case specifically.
-    text = dest.read_text(encoding="utf-8")
-    dest.write_text(text.split("\n", 1)[1], encoding="utf-8")
+    catalog = _shadowing_path(squad_dir, ".overrides/roles.toml")
+    catalog.write_text(
+        "# squads:override-base:0.0.0\n"
+        f"[bundles]\nall = {[*BUNDLES['all'], 'uniformity-probe-role']!r}\n"
+        '\n[[roles]]\nslug = "uniformity-probe-role"\nfull_name = "Probe"\ntitle = "t"\n'
+        'description = "d"\nmission = "m"\n'.replace("'", '"'),
+        encoding="utf-8",
+    )
+    path = _shadowing_path(squad_dir, ".overrides/roles/uniformity-probe-role.toml")
+    path.write_text('full_name = "Uniformity Probe"\n', encoding="utf-8")
 
 
 # ─── workflow ───────────────────────────────────────────────────────────────────

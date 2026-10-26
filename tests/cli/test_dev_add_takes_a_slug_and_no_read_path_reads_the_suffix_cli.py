@@ -96,7 +96,7 @@ async def test_a_slug_nothing_declares_resolves_to_nothing_however_it_is_spelled
 
 
 @pytest.mark.parametrize("slug", ["rust-dev", "data-dev"])
-async def test_a_role_file_for_an_unadded_dev_slug_is_a_new_role_and_needs_its_fields(
+async def test_a_role_file_for_an_unadded_dev_slug_is_a_layer_with_no_role_under_it(
     slug: str, project, invoke
 ) -> None:
     roles = project.squad_dir / ".overrides" / "roles"
@@ -107,9 +107,10 @@ async def test_a_role_file_for_an_unadded_dev_slug_is_a_new_role_and_needs_its_f
     shown = await invoke(["role", slug, "show"])
 
     assert checked.exit_code != 0, checked.output
-    assert "missing required fields" in " ".join(checked.output.split())
+    assert "no role under it" in " ".join(checked.output.split())
+    assert f"sq role add {slug} --file" in " ".join(checked.output.split())
     assert shown.exit_code == 1, shown.output
-    assert "missing required fields" in shown.output
+    assert "no role" in shown.output
 
 
 async def test_dev_add_refuses_a_slug_the_project_catalog_declares(project, svc, invoke) -> None:

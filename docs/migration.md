@@ -109,6 +109,9 @@ the schema is unchanged. The message names each file or item and says what to do
   not a single code, such as a list, is refused before any runner too.
 - **The workflow override or playbook override does not load.** `sq migrate up` never falls
   back to the bundled vocabulary. Correct the file.
+- **The role catalog override still carries a `[dev]` table.** Rename it to `[templates.dev]`
+  (see [Upgrading to 0.17](#upgrading-to-017-the-schema-step)); this is checked before the index
+  is rebuilt, so nothing at all is written.
 
 ```
 error: no migration has run: the corpus does not fit the vocabulary this squad declares:
@@ -232,24 +235,88 @@ migration needs no manual step, and its entry says so rather than leaving you to
 ## Upgrading to 0.17: the schema step
 
 0.17 adds two finding states, `Noted` and `Deferred` (see
-[workflow.md § "Closing a finding as Noted or Deferred"](workflow.md#closing-a-finding-as-noted-or-deferred)).
-A release that does not declare them cannot load a squad holding one, so 0.17 moves the schema from
-0.16 to 0.17. Until the squad is migrated, 0.17 stops every command with:
+[workflow.md § "Closing a finding as Noted or Deferred"](workflow.md#closing-a-finding-as-noted-or-deferred)),
+and moves each role onto the base its definition comes from (see
+[roles.md § "Where a role's definition comes from"](roles.md#where-a-roles-definition-comes-from)).
+A release that does not declare the new states cannot load a squad holding one, so 0.17 moves the
+schema from 0.16 to 0.17. Until the squad is migrated, 0.17 stops every command with:
 
 ```text
 error: this squad is at schema v0.16; squads 0.17.0 expects v0.17. Run sq migrate up to upgrade it (see `sq migrate help`).
 ```
 
-Run the step once per squad, then regenerate the managed files:
+**Before upgrading, rename `[dev]` to `[templates.dev]`** in `.overrides/roles.toml`, if the file
+has one. The table's `name_pool`, `model`, `color` and `capabilities` keys are unchanged; only its
+header moves. `sq migrate up` checks the file before its first runner and refuses while the old
+table is there, changing nothing:
+
+```text
+error: .overrides/roles.toml: [dev] is not a key of the role catalog; rename it to [templates.dev] (its name_pool, model, color and capabilities keys are unchanged)
+Nothing was changed: rename the table, then run `sq migrate up` again.
+```
+
+The migration never renames it for you, since `sq migrate` never rewrites an override. Every
+other role command refuses the old table the same way.
+
+Then run the step once per squad, read its manual steps, and regenerate the managed files:
 
 ```bash
-sq migrate up      # stamps schema 0.17 and rebuilds the index
+sq migrate up
+sq migrate chlog v0.16.0..v0.17.0
+sq check
 sq sync
 ```
 
-**No item file changes.** The step rewrites no `.md` file: it edits the `schema_version` line of
-`.squads.toml` and rebuilds `.squads.json`. It has no manual steps, so
-`sq migrate chlog v0.16.0..v0.17.0` prints `no manual steps for v0.16.0..v0.17.0`.
+**What the step rewrites.** Only role item files, besides `.squads.toml`'s `schema_version` line,
+the index and the reflog:
+
+- **A developer** (a role that stores `tech`) gains `template: dev`. A `model` it stores is kept,
+  since it may be a choice you made; clear it with `sq role <slug> update --model ""` to make the
+  developer follow the template's model.
+- **A catalog or template role** loses its stored `description`, which was a copy of its mission.
+  `sq list -t role --json` then shows an empty `description` for it; `sq role list --json` carries
+  the resolved one-line description of every role.
+- **A catalog role's stored `model`** is dropped when it equals the model the catalog gives the
+  role, and kept when it differs, since it may be a choice you made. The run names each one:
+
+  ```text
+      architect: dropped its stored model 'opus', which the catalog also sets
+      tech-lead: kept its stored model 'haiku', which differs from the catalog's 'opus'; clear it with `sq role tech-lead update --model ""` if it is a leftover
+  ```
+
+- **A custom role defined only by `.overrides/roles/<slug>.toml`** (no `tech`, no catalog entry,
+  and a file that loads as a complete role) takes the file's definition into its item: `title` as
+  `job_title`, `description`, `mission`, `responsibilities`, `agreements`, `color`, `can_spawn`
+  and `capabilities`, and the file's `model` as the role's stored model. Its name is untouched, and
+  so is the file, which now layers over identical values, so nothing resolves differently.
+  `sq check` warns under `role_definition_shadowed` until you delete the file:
+
+  ```text
+  warn ROLE-18: .overrides/roles/compliance-officer.toml sets capabilities, description, mission, title, which role 'compliance-officer' stores in its item: the file wins, so `sq role compliance-officer update` of those fields has no effect — delete the file or those keys
+  ```
+
+  Delete it, then change the role with `sq role <slug> update`.
+- **A role nothing backs, or whose file does not load,** is listed in the run's report and left
+  as it was; no definition is guessed for it. `sq check` then reports it under
+  `role_base_resolves`. Give it a definition with
+  `sq role <slug> update --job-title … --desc … --mission …`:
+
+  ```text
+      orphan-role: no catalog entry and no role file; define it with `sq role orphan-role update --job-title … --desc … --mission …`
+  ```
+
+A role declared by a `[[roles]]` entry of `.overrides/roles.toml` is a catalog role, and is
+treated as one.
+
+**After the upgrade.** A per-slug file for a slug with no role under it, partial or complete, is
+an error from `sq check`: create the role first (`sq dev add` for a developer, or
+`sq role add <slug> --file <path>`). `sq override scaffold --new` is retired in favour of
+`sq role add`.
+
+**A squad stamped 0.17 by a pre-release build of 0.17** has not had the role part of the step: the
+schema says 0.17, so `sq migrate up` has nothing to run. The step is safe to apply again, so set
+`schema_version = "0.16"` in `.squads.toml` and run `sq migrate up` with the release; it runs only
+the 0.17 step, changes nothing it already changed, and stamps 0.17 again.
 
 **The whole team upgrades together.** Once the squad is at 0.17, squads 0.16 refuses every command
 on it, `sq repair` and `sq migrate up` included, with:

@@ -19,7 +19,7 @@ OPERATOR_SLUG_PREFIX = "op-"
 #: The group verbs of ``sq role`` and ``sq skill``: a slug equal to one cannot be addressed by slug.
 #: Hand-maintained because the models sit below the CLI; ``tests/meta`` pins both against the
 #: registered commands.
-ROLE_GROUP_VERBS: frozenset[str] = frozenset({"activate", "catalog", "list"})
+ROLE_GROUP_VERBS: frozenset[str] = frozenset({"activate", "add", "catalog", "list"})
 SKILL_GROUP_VERBS: frozenset[str] = frozenset({"add"})
 OPERATOR_SLUG_RE = re.compile(re.escape(OPERATOR_SLUG_PREFIX) + SLUG_PATTERN)
 

@@ -17,7 +17,7 @@ from squads._index._store import IndexStore
 from squads._language import DEFAULT_WORKING_LANGUAGE
 from squads._models._config import CONFIG_FILENAME, SquadsConfig
 from squads._paths import SquadPaths, load_config, process_dir, resolve
-from squads._roles._catalog import RoleDef, resolve_roles
+from squads._roles._catalog import resolve_roles
 from squads._services._board import BoardMixin
 from squads._services._check import CheckMixin
 from squads._services._collab import CollabMixin
@@ -37,7 +37,6 @@ from squads._specload import Lazy, override_present
 from squads._workflow import ROSTER_ROLE, bundled_spec
 from squads._workflow._loader import (
     WORKFLOW_OVERRIDE_FILENAME,
-    load_workflow_spec,
     spec_refusal,
     validate_against_index_fail_closed,
 )
@@ -219,27 +218,17 @@ def compose_first_of(
     return compose_service(paths, modes[-1], resolved_spec=resolved_spec, sources=sources)
 
 
-def _init_time_spec(squad_dir: Path) -> WorkflowSpec:
-    """The spec ``init``/``adopt`` must scaffold against.
+def _init_time_spec(sources: SpecSources) -> WorkflowSpec:
+    """The spec ``init``/``adopt`` must scaffold against: the squad's, from *sources*.
 
-    The override lives *inside* the squad directory these two callers are creating/populating
-    (``<squad_dir>/.overrides/workflow.toml``), so a pre-placed override — dropped there by hand
-    before a fresh ``sq init``, or already part of a folder ``sq adopt`` is importing — is only
-    visible once ``squad_dir`` itself exists, which both callers guarantee before calling this.
-    When present, it is loaded and validated exactly the way ``open_service`` loads it later
-    (fail-closed on a floor violation, pointing at ``sq workflow lint``) so every scaffolding
-    decision this call makes — which folders to create, what initial status a freshly-activated
-    roster item gets via ``self.spec.initial_status`` — is made against the SAME spec every
-    subsequent command will load, not the bundled default the merged spec may disagree with.
-
-    With no override file present this returns the cached bundled singleton with no extra
-    parsing — byte-identical to the pre-existing behaviour.
+    The override lives *inside* the squad directory these two callers are creating/populating,
+    so a pre-placed override is validated here, before anything is written, exactly as
+    ``open_service`` loads it later (fail-closed, pointing at ``sq workflow lint``). Every
+    scaffolding decision is then made against the spec every subsequent command will load. With
+    no override this is the cached bundled spec.
     """
-    override_path = squad_dir / WORKFLOW_OVERRIDE_FILENAME
-    if not override_present(override_path):
-        return bundled_spec()
     try:
-        return load_workflow_spec(squad_dir=squad_dir)
+        return sources.workflow()
     except SquadsError as exc:
         raise SquadsError(f"{exc} — run `sq workflow lint` to see details") from exc
 
@@ -253,6 +242,7 @@ async def init(
     no_claude: bool = False,
     force: bool = False,
     names: dict[str, str] | None = None,
+    sources: SpecSources | None = None,
     _skip_skill_seed: bool = False,
 ) -> InitResult:
     """Initialise a new squad.
@@ -260,6 +250,10 @@ async def init(
     ``names`` maps role slug → full name for any roles that should have a custom name at
     creation time (combines ``--name`` flags and ``[init.names]`` config).  Slugs not in
     ``names`` fall through to the bundled pool / PREDEFINED.
+
+    ``sources`` carries the documents the caller already read; ``roles_spec`` is resolved against
+    the squad's own role catalog, so a bundle or role its ``.overrides/roles.toml`` declares is
+    accepted.
 
     ``_skip_skill_seed`` is an **internal testing hook** — production callers must never
     set it.  When ``True``, the bundled-skill id-stamping step is omitted so existing tests
@@ -274,7 +268,9 @@ async def init(
     # derivable from root/squad_dir alone, so a malformed or floor-violating override means
     # init never starts (no config, no scaffolding) rather than wedging a half-created squad
     # a retry can neither finish nor cleanly restart from.
-    effective_spec = _init_time_spec(root / squad_dir)
+    sources = sources if sources is not None else spec_sources(root / squad_dir)
+    effective_spec = _init_time_spec(sources)
+    role_defs = resolve_roles(roles_spec, sources.catalog()) if roles_spec else []
 
     effective_names = names or {}
     effective_backends: list[str] = backend if backend is not None else ["claude_code"]
@@ -299,7 +295,7 @@ async def init(
     if not index_exists:
         await store.create_empty_threaded()
 
-    svc = compose_service(sp, resolved_spec=effective_spec)
+    svc = compose_service(sp, resolved_spec=effective_spec, sources=sources)
     if holds_corpus:
         # Over an existing squad, rebuild the index from disk over the one already there (under
         # the index lock, carrying forward what cannot be parsed, as `sq repair` does) so roles
@@ -308,7 +304,6 @@ async def init(
     if not no_claude:
         await svc.scaffold_backend()
 
-    role_defs: list[RoleDef] = resolve_roles(roles_spec) if roles_spec else []
     created = [await svc.activate_role(r.slug, name=effective_names.get(r.slug)) for r in role_defs]
 
     warnings: list[str] = []
@@ -359,14 +354,18 @@ async def adopt(
     root = (root or process_dir()).resolve()
     config_path = root / CONFIG_FILENAME
     validated_spec: WorkflowSpec | None = None
-    if await _aio.path_exists(config_path):
-        config = load_config(config_path)
-        squad_dir = config.squad_dir
+    existing = load_config(config_path) if await _aio.path_exists(config_path) else None
+    if existing is not None:
+        squad_dir = existing.squad_dir
+    sources = spec_sources(root / squad_dir)
+    role_defs = resolve_roles(roles_spec, sources.catalog()) if roles_spec else []
+    if existing is not None:
+        config = existing
     else:
         # Validate a pre-placed override before writing .squads.toml — same ordering as
         # init() and for the same reason: adopt is the other caller that can create the
         # config file, so it must not wedge a half-created squad behind a bad override either.
-        validated_spec = _init_time_spec(root / squad_dir)
+        validated_spec = _init_time_spec(sources)
         effective_backends: list[str] = backend if backend is not None else ["claude_code"]
         config = SquadsConfig(
             squad_dir=squad_dir,
@@ -378,7 +377,7 @@ async def adopt(
 
     sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
     await _aio.mkdir(sp.squad_dir, parents=True, exist_ok=True)
-    effective_spec = validated_spec if validated_spec is not None else _init_time_spec(sp.squad_dir)
+    effective_spec = validated_spec if validated_spec is not None else _init_time_spec(sources)
     for ts in effective_spec.items.values():
         await _aio.mkdir(sp.squad_dir / ts.folder, parents=True, exist_ok=True)
     gitignore = sp.squad_dir / ".gitignore"
@@ -389,14 +388,13 @@ async def adopt(
     if not store.exists():
         await store.create_empty_threaded()
 
-    svc = compose_service(sp, resolved_spec=effective_spec)
+    svc = compose_service(sp, resolved_spec=effective_spec, sources=sources)
     # Import any existing squads-native .md files (sets counter from them).
     repair_result = await svc.repair()
     existing_roles = {it.slug for it in repair_result.db.items.values() if it.type == ROSTER_ROLE}
 
     if not no_claude:
         await svc.scaffold_backend()
-    role_defs: list[RoleDef] = resolve_roles(roles_spec) if roles_spec else []
     created = [await svc.activate_role(r.slug) for r in role_defs if r.slug not in existing_roles]
     warnings: list[str] = []
     if not no_claude:

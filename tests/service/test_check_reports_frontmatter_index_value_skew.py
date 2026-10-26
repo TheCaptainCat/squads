@@ -116,22 +116,17 @@ async def test_a_never_synced_role_override_reports_nothing_before_and_after_syn
     assert not any(i.item == item.id for i in issues), issues
 
 
-async def test_a_permanently_exempt_extra_key_is_still_never_reported(svc):
-    """A role's catalog-shaped attribute (``RoleDef.attribute_keys()``) can sit ahead of the
-    index by design (``PERMITTED_ATTRIBUTE_SKEW``) on a squad whose index lags —
-    functional proof the exemption still holds under the generalised rule, not a pinned
-    literal copy of the set (which the widening must not touch, and does not: this behaviour
-    comes from ``frontmatter_skew`` unmodified). Constructed directly on disk rather than via
-    a resync writer: the resolved-skills cache this test used to reproduce the shape through
-    (``link_role``) is gone along with the cache itself."""
+async def test_a_stored_role_model_ahead_of_the_index_is_reported(svc):
+    """No role key is exempt from the skew guard: a ``model`` written to a role's file ahead of
+    the index is a real divergence."""
     role = await svc.activate_role("qa")
     path = svc.paths.abspath(role.path)
     fm = read_frontmatter(path=path)
     assert fm.get("model") is None
-    _edit_frontmatter(path, model="haiku")  # a `PERMITTED_ATTRIBUTE_SKEW` member, on a non-dev role
+    _edit_frontmatter(path, model="haiku")
 
     issues = await svc.check()
-    assert not any(i.item == role.id for i in issues), issues
+    assert any(i.item == role.id for i in issues), issues
 
 
 # --------------------------------------------------------------------------- equivalence property

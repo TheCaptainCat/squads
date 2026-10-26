@@ -8,7 +8,6 @@ from _helpers import create_item, make_service
 from squads._index._resolver import item_file
 from squads._interactions._skills import is_system_skill
 from squads._itemfile import read_frontmatter
-from squads._models import _attributes as attrs
 from squads._models import _markers as markers
 from squads._models._attributes import CORE_KEYS
 from squads._models._attributes import AttributeKey as X
@@ -33,18 +32,12 @@ _SUMMARY_REGION = """<!-- sq:summary -->
 #: produces it any more.
 _RETIRED_MIRROR: dict[str, object] = {
     "full_name": "Stored Name",
-    "mission": "A stored mission.",
-    "responsibilities": ["Stored responsibility"],
-    "agreements": ["Stored agreement"],
-    "color": "blue",
-    "can_spawn": True,
-    X.MODEL: "opus",
     "skills": ["squads", "sq-task"],
     "is_dev": True,
 }
 
 #: The names the sweep takes off a role item.
-_RETIRED_MIRROR_KEYS: frozenset[str] = (RETIRED_ROLE_KEYS - set(CORE_KEYS)) | {X.MODEL}
+_RETIRED_MIRROR_KEYS: frozenset[str] = RETIRED_ROLE_KEYS - set(CORE_KEYS)
 
 
 def _stored_attributes(path) -> dict[str, object]:
@@ -255,27 +248,27 @@ async def test_a_role_bodys_mirror_keys_strip_leaves_a_legacy_prose_region_untou
 
 @pytest.mark.parametrize("is_dev", [False, True], ids=["bundled", "developer"])
 async def test_a_role_keeps_exactly_the_attributes_a_writer_still_produces(svc, is_dev: bool):
-    """A role keeps exactly the attributes a live writer still produces, for both a bundled
-    role (``model`` is mirror residue) and a developer (``model`` is a live operator setting)."""
+    """A role keeps exactly the attributes a live writer still produces, for both a catalog
+    role and a template role (``model`` is a live operator setting on either)."""
     role = (
-        await svc.add_dev("rust", name="Rusty Dev", model="opus")
+        await svc.activate_role(
+            None, from_template="dev", tech="rust", name="Rusty Dev", model="opus"
+        )
         if is_dev
-        else await svc.activate_role("architect")
+        else await svc.activate_role("architect", model="opus")
     )
     await svc.set_default_role(role.id)
     slug = role.slug
     _item, path = await _role_carrying_the_retired_shape(svc, slug)
     stored = _stored_attributes(path)
     assert set(stored) >= _RETIRED_MIRROR_KEYS
-    assert stored[X.MODEL] == "opus"
 
     await svc.repair()
 
-    retained: dict[str, object] = {X.IS_DEFAULT: True, X.ORIGIN: "system"}
+    retained: dict[str, object] = {X.IS_DEFAULT: True, X.ORIGIN: "system", X.MODEL: "opus"}
     if is_dev:
-        retained |= {X.MODEL: "opus", X.TECH: "rust"}
+        retained |= {X.TEMPLATE: "dev", X.TECH: "rust"}
     assert _stored_attributes(path) == retained
-    assert (X.MODEL in _stored_attributes(path)) is is_dev
 
 
 async def test_the_index_loses_the_same_role_keys_the_file_does(svc):
@@ -295,7 +288,7 @@ async def test_an_operator_keeps_a_key_the_role_sweep_retires(svc):
     path = item_file(svc.paths, item)
     text = path.read_text(encoding="utf-8")
     data = read_frontmatter(text=text, source=str(path))
-    data["mission"] = "an operator's own key"
+    data["skills"] = ["an operator's own key"]
     path.write_text(replace_frontmatter(text, data, source=str(path)), encoding="utf-8")
     await svc.repair()  # adopt the hand edit into the index
     before = path.read_bytes()
@@ -426,7 +419,7 @@ async def test_the_live_write_path_produces_none_of_the_stripped_names(svc):
     await svc.add_finding(review.id, "A finding")
     feature = (await create_item(svc, "feature", "Driven through the write path")).item
     await svc.add_story(feature.id, "A story")
-    dev = await svc.add_dev("rust", name="Rusty Dev")
+    dev = await svc.activate_role(None, from_template="dev", tech="rust", name="Rusty Dev")
     await svc.sync()
 
     for path in sorted(svc.paths.squad_dir.rglob("*.md")):
@@ -459,15 +452,13 @@ async def test_the_live_write_path_produces_none_of_the_stripped_names(svc):
             f"the {slug} role body carries something other than its own placement tag"
         )
         stored = set(_stored_attributes(item_file(svc.paths, item)))
-        assert stored & _RETIRED_MIRROR_KEYS <= (
-            {X.MODEL} if attrs.is_templated(item) else set()
-        ), f"the {slug} role carries mirror keys again"
+        assert not stored & _RETIRED_MIRROR_KEYS, f"the {slug} role carries mirror keys again"
 
 
 # ------------------------------------------------------- a declared name is not a mirror key
 
 
-@pytest.mark.parametrize("name", sorted(_RETIRED_MIRROR_KEYS - {"model"}))
+@pytest.mark.parametrize("name", sorted(_RETIRED_MIRROR_KEYS))
 @pytest.mark.parametrize("declared", [True, False], ids=["declared-on-role", "undeclared"])
 async def test_the_sweep_spares_a_role_attribute_the_squad_declares(project, name, declared):
     from squads import __version__

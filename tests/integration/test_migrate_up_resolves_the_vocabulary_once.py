@@ -13,7 +13,7 @@ from typing import Any
 
 import pytest
 
-from _helpers import catalog_of, make_service
+from _helpers import make_service
 from squads import __version__
 from squads._interactions._playbook import get_playbook_spec
 from squads._migrations._context import MigrationContext
@@ -83,7 +83,7 @@ async def test_a_chain_of_runners_shares_one_context_and_resolves_nothing(
     svc = make_service(
         paths,
         spec=spec,
-        playbook=resolve_playbook(spec, paths.squad_dir, catalog_of(paths.squad_dir)),
+        playbook=resolve_playbook(spec, paths.squad_dir),
     )
     assert svc.spec is not bundled_spec()
     assert svc.playbook is not get_playbook_spec()

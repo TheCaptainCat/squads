@@ -9,7 +9,7 @@ pytestmark = pytest.mark.anyio
 @pytest.fixture
 async def roster(svc):
     """One of each kind of roster entry beside the minimal squad's roles."""
-    dev = await svc.add_dev("python")
+    dev = await svc.activate_role(None, from_template="dev", tech="python")
     await svc.add_operator("Anna Lee")
     await svc.add_operator("Old Hand")
     await svc.add_skill("Pairing")

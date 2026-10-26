@@ -92,7 +92,6 @@ All overrides live under a single umbrella directory, **`<squad-dir>/.overrides/
     tech-writer.toml
     manager.toml
     python-dev.toml
-    custom-role.toml
   transforms/
     progress.py               # a view transform: any path a view's `transform` names
 ```
@@ -102,11 +101,14 @@ All overrides live under a single umbrella directory, **`<squad-dir>/.overrides/
 - **`templates/`** mirrors the bundled `_rendering/templates/` tree exactly. An override is named by
   its **template path** (e.g., `items/task.md.j2`, `agents/role.md.j2`). You don't override
   everything — drop a single file and only that template changes; the rest still use the bundle.
-- **`roles/`** holds TOML files for role data: one file per role slug (e.g., `architect.toml`). You
-  can override bundled roles (like changing the architect's name or model) or define entirely new
-  custom roles.
+- **`roles/`** holds TOML files for role data: one file per role slug (e.g., `architect.toml`). A
+  per-slug file is a layer over a role that exists, a catalog role, a role built from a template or
+  a role that defines itself, and changes its fields (like the architect's title or model). It
+  never creates a role: a custom role is created with `sq role add` (see
+  [roles.md § "Custom roles"](roles.md#custom-roles-sq-role-add)), and a file for a slug with no
+  role under it is a `sq check` error.
 - **`roles.toml`** is your squad's delta on the **role catalog** as one document: the roles
-  themselves, the named bundles, and the developer defaults (see
+  themselves, the role templates, the named bundles and the roster defaults (see
   [The role catalog override](#the-role-catalog-override-rolestoml)).
 - **`workflow.toml`** is your squad's vocabulary delta — item types, statuses, lifecycles, and badge
   collections (see below). It can add to the bundled vocabulary, shadow a bundled entry field by
@@ -177,15 +179,15 @@ of [The override grammar](#the-override-grammar-shadow-append-and-drop).
 `full_name`, the role's name, is the one field that applies only once: it names the role when the
 role is created. See [Which name wins](#which-name-wins).
 
-**A developer's override merges onto the developer you already have:**
-Developers aren't in the bundled catalog — they're created on demand by `sq dev add`, from the
-`[dev]` table of the role catalog — so a `roles/<slug>.toml` for a developer merges over the
-definition that developer already carries rather than over a bundled entry. Everything that reads a role resolves it that way — `sq dev add`, `sq sync`,
-`sq role <slug> show`, `sq check`.
+**A per-slug file is a layer over a role that exists.** It merges over whichever base the role
+has: its catalog entry, the template it was built from, or the definition a role created with
+`sq role add` stores. Everything that reads a role resolves it that way: `sq sync`,
+`sq role <slug> show`, `sq check`. The values the role item stores (its name, default-role
+designation, `model` and `pronouns`) are applied after the file, so they win over it.
 
-Add the developer first. `sq dev add --tech <tech>` takes `--name`, `--model`, `--slug` and
-`--pronouns`, and that is all most developers need. Write an override only for what those flags
-do not set:
+For a developer, add the role first. `sq dev add --tech <tech>` takes `--name`, `--model`, `--slug`
+and `--pronouns`, and that is all most developers need. Write an override only for what those
+flags do not set:
 
 ```bash
 sq dev add --tech go --name "Gina Go" --model sonnet
@@ -196,7 +198,7 @@ sq override scaffold --role go-dev
 # .overrides/roles/go-dev.toml
 # squads:override-base:<version>
 title = "Senior Go developer"
-# full_name, mission, responsibilities, model, etc. inherit from the live go-dev role
+# mission, responsibilities, etc. keep following the dev template
 ```
 
 After `sq sync`, `sq role go-dev show` opens with:
@@ -206,107 +208,88 @@ After `sq sync`, `sq role go-dev show` opens with:
 │ title: Senior Go developer                                                   │
 ```
 
-Two rules follow from that base:
+Two rules follow from that layering:
 
-- **Fields you omit keep the role's current values.** A file that sets only `title` changes only
-  the title.
-- **A field you declare wins, except `full_name`.** The developer's name is the one stored when
-  they were added, and a `full_name` in the file never renames one you already have.
+- **Fields you omit keep the base's values.** A file that sets only `title` changes only the
+  title; the rest goes on following the template, so a change to `[templates.dev]` still reaches
+  this developer.
+- **A field you declare wins, except the stored ones.** `full_name` names a role only when the file
+  is present at the moment the role is created, and never renames a role you already have; a
+  stored `model` wins over the file's `model`.
 
-**An override for a slug that is not on the roster is a new role, so it must be complete.** It
-has no developer to merge onto, so it must declare every field a new role requires: `full_name`,
-`title`, `description` and `mission`. A complete file written first is the other way to add a
-developer. `sq dev add` builds the new developer from it, and its `full_name` names them unless
-`--name` is given:
-
-```toml
-# .overrides/roles/zig-dev.toml
-# squads:override-base:<version>
-full_name = "Zoe Zig"
-title = "Zig developer"
-description = "Implements Zig code for the runtime."
-mission = "Implement assigned tasks in Zig, with tests."
-```
+**A file for a slug with no role under it is an error.** With no role item and no catalog entry
+for its slug, the file has nothing to layer over, whether it is partial or complete. `sq check`
+reports it (exit `3`):
 
 ```
-$ sq dev add --tech zig --model haiku
-added Zoe Zig (`zig-dev`) ROLE-<n>
+error .overrides/roles/rust-dev.toml: role override has no role under it: no role item and no catalog entry for 'rust-dev' — create the role first, or `sq role add rust-dev --file squads/.overrides/roles/rust-dev.toml`
 ```
 
-Write the stamp line in such a file. Once the developer is added, the file is an override of a
-live role, and `sq check` reports an unstamped one at `error` until `sq override update --role
-<slug>` stamps it.
-
-A file that is not complete, for a slug that is not on the roster, does not load. `sq check`
-reports the fields it lacks (exit `3`):
+Create the role, and the file becomes its layer: `sq dev add --tech rust` for a developer (a
+`full_name` in the file then names it, unless `--name` is given), or `sq role add <slug> --file
+<path>` for a role that defines itself; the remedy prints the file's path relative to the directory
+you run `sq` in. A file passed to
+`sq role add` has done its job once the role exists: its definition is stored on the role, so
+delete the file, or `sq check` warns under `role_definition_shadowed` that it shadows what the role
+stores:
 
 ```
-error .overrides/roles/rust-dev.toml: role override does not load: role override for new slug 'rust-dev' is missing required fields: full_name, description, mission — `sq role rust-dev show` refuses now, and `sq sync` does too once rust-dev is on the roster
+warn ROLE-23: .overrides/roles/auditor.toml sets capabilities, color, description, mission, responsibilities, title, which role 'auditor' stores in its item: the file wins, so `sq role auditor update` of those fields has no effect — delete the file or those keys
 ```
 
-Complete the file, or remove it and add the developer with `sq dev add` first.
+`sq role activate <slug>` for a slug that only a per-slug file declares exits `1` and names
+`sq role add`:
+
+```
+error: role 'auditor' is declared only by .overrides/roles/auditor.toml, which layers over a role and does not define one; create the role with `sq role add auditor --file squads/.overrides/roles/auditor.toml`
+```
 
 **The workflow override merges by field too, and can also drop:**
 `workflow.toml` composes over the bundled vocabulary the same way — write the fields you want
 changed, inherit the rest, and use a `[selected]` list to remove a built-in entirely. See
 [The override grammar](#the-override-grammar-shadow-append-and-drop).
 
-A brand-new role slug (one not in the bundle) defines a wholly custom role — e.g. a
-`security-analyst` or `compliance-officer` — from the TOML. It is a developer only if it declares
-a capability the `[dev]` table declares (see [roles.md § "Capabilities"](roles.md#capabilities)). Start it with:
-
-```bash
-sq override scaffold --new compliance-officer
-```
-
-This writes `squads/.overrides/roles/compliance-officer.toml` with the essential fields stubbed and the
-advanced fields present as commented-out lines to uncomment and fill in:
-
-```toml
-# .overrides/roles/compliance-officer.toml
-full_name = "Compliance Officer"
-title = "The keeper of standards"
-description = "Ensures all code meets compliance requirements."
-mission = "Keep the team on the right side of policy."
-responsibilities = ["Review all PRs for policy violations", "Maintain the compliance handbook"]
-model = "opus"
-# can_spawn = true   # opt this role into spawning/orchestrating subagents (default: false)
-```
-
-Then `sq role activate compliance-officer` creates the role the same way it does for a bundled
-slug. See [roles.md](roles.md) for the activation flow.
+**A custom role is not an override.** A role no catalog declares, such as a `security-analyst` or a
+`compliance-officer`, is created with `sq role add`, which stores its definition on the role item;
+nothing under `.overrides/` is needed. See
+[roles.md § "Custom roles: `sq role add`"](roles.md#custom-roles-sq-role-add). It is a developer
+only if it holds a capability the `dev` template declares (see
+[roles.md § "Capabilities"](roles.md#capabilities)).
 
 ### The role catalog override: `roles.toml`
 
 A per-slug file changes one role. **`.overrides/roles.toml`** is the whole role catalog as one
 document, the same catalog `sq role catalog` lists, and it also reaches the parts no per-slug file
-can: the developer defaults and the named bundles. Start it from a stamped, commented example:
+can: the role templates and the named bundles. Start it from a stamped, commented example:
 
 ```bash
 sq override scaffold roles      # or: sq override scaffold --roles-catalog
 ```
 
-The document takes three tables, plus `[selected]`. Any other top-level key is refused by name.
+The document's top-level keys are `roles`, `templates`, `bundles`, `defaults` and `selected`. Any
+other is refused by name.
 
 - **`[[roles]]`** — one entry per role, keyed by its `slug`. An entry naming a bundled slug merges
-  field by field onto it, so you write only what changes. An entry naming a new slug defines a new
-  role, and then `full_name`, `title`, `description` and `mission` are required. An entry may
-  declare `capabilities` (see [roles.md § "Capabilities"](roles.md#capabilities)).
-- **`[dev]`** — the template every developer `sq dev add` creates is built from: `model`, `color`,
-  `capabilities` (the bundled table declares `dev`, which is what makes a role a developer) and
-  `name_pool`, the names a new developer is picked from. Each field merges on its own. `color` and
-  `capabilities` reach existing developers on the next `sq sync`; `model` and the name are stored
-  when a developer is added, so a change reaches only developers added afterwards.
+  field by field onto it, so you write only what changes. An entry naming a new slug declares a new
+  catalog role, and then `full_name`, `title`, `description` and `mission` are required. An entry
+  may declare `capabilities` (see [roles.md § "Capabilities"](roles.md#capabilities)).
+- **`[templates.<name>]`** — a role template (see
+  [roles.md § "Role templates"](roles.md#role-templates)). A table naming a bundled template, such
+  as `dev`, merges field by field onto it; a new name declares a new template. Every field of a
+  template reaches the roles already built from it on the next `sq sync`, except a role's stored
+  name and a `model` the role stores.
 - **`[bundles]`** — the named role lists (`all`, `core`, `minimal`). The `all` bundle must name
   every role in the catalog, so a role you add here has to join it too.
+- **`[defaults]`** — roster-wide defaults; see below.
 
 ```toml
 # .overrides/roles.toml
 # squads:override-base:<version>
 
-[dev]
+[templates.dev]
 model = "opus"
 name_pool = ["Hedy", "Katherine", "Frances"]
+responsibilities = ["$(*self)", "Run the {Tech} linters"]
 
 [bundles]
 all = ["$(*bundles.all)", "security-analyst"]   # every role must be in `all`
@@ -323,9 +306,17 @@ description = "Reviews changes for exposure."
 mission = "Keep the attack surface small."
 ```
 
-With that file, the architect is retitled, the next `sq dev add` picks a name from the new pool
-and runs on `opus`, and `security-analyst` appears in `sq role catalog` as a project role, ready
-for `sq role activate security-analyst`.
+With that file, the architect is retitled, every developer gains a responsibility and runs on
+`opus` unless it stores a model of its own, the next `sq dev add` picks a name from the new pool,
+and `security-analyst` appears in `sq role catalog` as a project role, ready for
+`sq role activate security-analyst`.
+
+A `[dev]` table is not a key of the catalog: the developer template is `[templates.dev]`, and a
+file that still carries `[dev]` stops every role command:
+
+```
+error: .overrides/roles.toml: [dev] is not a key of the role catalog; rename it to [templates.dev] (its name_pool, model, color and capabilities keys are unchanged)
+```
 
 **A roster-wide pronouns default.** A `[defaults]` table in `roles.toml` takes one key,
 `pronouns`, applied to every role with no pronouns of its own, never to an operator, and never
@@ -334,13 +325,15 @@ written onto an item; run `sq sync` after changing it. A role's own pronouns are
 a per-slug file is refused. See [roles.md § "Pronouns"](roles.md#pronouns).
 
 **Precedence, lowest to highest:** the bundled catalog, then `roles.toml`, then a per-slug
-`.overrides/roles/<slug>.toml`. When both override files set the same field for one role, the
-per-slug file wins. For `full_name` the order decides only the name a role gets when it is
+`.overrides/roles/<slug>.toml`, then the values the role item stores. When both override files set
+the same field for one role, the per-slug file wins. For `full_name` the order decides only the name a role gets when it is
 created: an active role keeps the name it stores, whatever either file says later (see
 [Which name wins](#which-name-wins)).
 
-**Dropping a role** goes through `[selected].roles`, which lists the roles that survive. A bundle
-that still names a dropped role is refused, naming the bundle:
+**Dropping a role or a template** goes through `[selected]`: `roles` lists the roles that
+survive and `templates` the templates that do. A role already built from a dropped template, or
+activated from a dropped entry, stays on the roster and `sq check` reports it under
+`role_base_resolves`. A bundle that still names a dropped role is refused, naming the bundle:
 
 ```
 bundle 'all' references unknown slug 'devops' — 'devops' looks deselected via [selected].roles;
@@ -357,8 +350,9 @@ roles = ["manager", "architect", "tech-lead", "reviewer", "qa", "product-owner",
 all = ["manager", "architect", "tech-lead", "reviewer", "qa", "product-owner", "tech-writer"]
 ```
 
-A dropped role can no longer be activated. A file that only adds, such as a new bundle, needs no
-stamp. One that changes a bundled role, a bundled bundle or `[dev]` must carry the
+A dropped role cannot be activated, and a dropped template cannot build one. A
+file that only adds, such as a new bundle or a new template, needs no stamp. One that changes a
+bundled role, a bundled bundle or a bundled template must carry the
 `squads:override-base` stamp, and `sq check` reports it as an error until it does. Appending a
 role to `all` counts as changing it, so a file that adds a role always needs the stamp. The upgrade cycle is the same as for every other override:
 `sq override diff roles`, merge by hand, then `sq override update roles` (see
@@ -584,8 +578,8 @@ items.task.extra_fields: 'extra_fields' is not a declared key — a type's keys 
 **Keys no declaration names are kept.** A key you add to a file by hand, a key a removed
 declaration used to name, and a key from a newer spec are all carried through every write and
 through `sq repair`, with their values. No command removes a key it was not asked to change, with
-one exception: on a role, `sq repair` removes the role-definition keys the role catalog answers
-(`full_name`, `mission`, `responsibilities`, `agreements`, `color`, `can_spawn`, `skills`, `is_dev`), unless the `role` type declares them as attributes (see
+one exception: on a role, `sq repair` removes the retired role keys `full_name`, `skills` and
+`is_dev`, unless the `role` type declares them as attributes (see
 [adoption.md § "What `sq repair` writes"](adoption.md#what-sq-repair-writes)).
 
 A key you add by hand puts the file ahead of the index, as any hand edit does: run `sq repair`
@@ -1250,7 +1244,7 @@ sq check             # what do they find?
 Some checks look at the squad as a whole rather than at one item. They run once per `sq check`,
 never at the create/update gate, and they belong to no type's list.
 
-**Always on.** Nine report a defect in any squad, so they run in every squad and cannot be selected,
+**Always on.** Eleven report a defect in any squad, so they run in every squad and cannot be selected,
 dropped or given another level:
 
 | Check | Reports | Level |
@@ -1260,7 +1254,9 @@ dropped or given another level:
 | `roster_config_integrity` | a roster with no live role left, or a live role that preloads a retired skill | `error` |
 | `default_designation_duplicated` | more than one live role holds the default-role designation | `error` |
 | `roster_slug_valid` | a role or operator slug that breaks the slug rules (see [stability.md § "Comment headers"](stability.md#comment-headers)) | `error` |
-| `playbook_guide_role_live` | a playbook guide that names no live role | `warn` |
+| `playbook_guide_role_live` | a playbook guide that names no live role, including a slug no role holds | `warn` |
+| `role_base_resolves` | a live role whose base does not resolve: a catalog role whose slug the catalog does not declare, a template role naming an undeclared template or missing (or carrying) the `tech` its template takes, a role that defines itself without a job title or description, or one storing both `template` and `mission` (see [roles.md § "Where a role's definition comes from"](roles.md#where-a-roles-definition-comes-from)) | `error` |
+| `role_definition_shadowed` | a per-slug role file that sets a field the role stores in its item, so `sq role <slug> update` of that field has no effect | `warn` |
 | `display_config_valid` | an unknown key or a non-boolean value in `.squads.toml`'s `[display]` table | `warn` |
 | `working_language_valid` | a `working_language` in `.squads.toml` that is not a language tag squads recognises; English applies | `warn` |
 | `view_transform_resolves` | an override view transform whose file is missing, leaves `.overrides/`, fails to import, or lacks a function sq can call; it imports the file, which runs its top-level code (see [Giving a view a transform](#giving-a-view-a-transform)) | `error` |
@@ -1382,7 +1378,7 @@ The squad checks run once per `sq check`:
 | `frontmatter_matches_index` | a field whose value in the file differs from the index | `warn` | the file is the source of truth; the next mutation would write the index's value back, so `sq repair` must run first |
 | `override_stamped` | an override under `.overrides/` that shadows a bundled file and carries no `squads:override-base` stamp | `error` | without the stamp, `sq` cannot tell whether the bundled file changed under it |
 | `override_current` | an override whose bundled base changed since the version it is stamped with | `warn` | the override may hide an upgrade's change; `sq override diff` shows it |
-| `override_loads` | a template, role or role catalog override that cannot be read, lacks the markers a template needs, or does not load | `error` | the overrides are the configuration every selection is read from |
+| `override_loads` | a template, role or role catalog override that cannot be read, lacks the markers a template needs, or does not load; a per-slug role file with no role under it | `error` | the overrides are the configuration every selection is read from |
 | `skill_type_declared` | a live skill generated for an item type the workflow no longer declares | `warn` | its generated files have been withdrawn, so the skill points at nothing |
 
 The configuration checks are reported by `sq check` itself when a document will not load. No
@@ -1413,7 +1409,7 @@ the checks its `category` turns on: `parent_in`, `subentity_status_valid`,
 `subtask_story_mapping` for `work`; `no_parent` and `supersedes_incoming` for `records`;
 `pronouns_valid` for `roster`. A type's `validators` list can change their level, within each
 check's floor, but cannot drop them. Only the checks a type adds beyond them are selectable. The
-nine always-on squad-wide checks in the table above (`index_reconciled` and the others) cannot be
+eleven always-on squad-wide checks in the table above (`index_reconciled` and the others) cannot be
 selected, dropped or relevelled at all.
 
 **Every finding names its rule.** In `sq check --json`, each finding carries `rule`: the name of
@@ -2056,8 +2052,9 @@ A role's body, a permanently-system skill's body (`squads`, `greeting`, `sq-memo
 per-item-type `sq-<type>` skill's body render through their view and refuse prose — replace and
 append alike, `--force` or not. The same entries refuse a description, an attribute the bundled
 spec declares, a skill's title and view edits (see
-[roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses)). Their content normally comes from `.overrides/roles.toml`
-(`.overrides/roles/<slug>.toml` for a project-defined role), the playbook overrides, or the
+[roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses)). Their content normally comes from `.overrides/roles.toml` or
+`.overrides/roles/<slug>.toml` (or `sq role <slug> update`, for a role that defines itself), the
+playbook overrides, or the
 view's own template override. To write one of these bodies yourself instead, drop its view from
 `[selected]`. `[selected].views` lists the survivors, so name every other view you keep:
 
@@ -2481,23 +2478,28 @@ the **security analyst** author **bugs** …").
   Which means: to change *one field* of a bundled guide, you must restate the array by hand (omit
   `"$(*self)"` and list every guide you want to keep). Spreading and then re-adding the same slug is
   not the way to edit one.
-- **Every slug must be one of three things:** a bundled catalog role, a project role you have
-  defined under `.overrides/roles/<slug>.toml` or in `.overrides/roles.toml`, or `*<capability>`,
-  which addresses every live role holding that capability (see
-  [roles.md § "Capabilities"](roles.md#capabilities)). A project role is accepted here — you do not
-  have to pick from the bundled catalog. The bundled guides addressed to `*dev` use the same form:
-  they reach every developer. A capability subject is checked at load: `*Dev`, `*` and `* dev` are
-  refused, naming `.overrides/playbook.toml`.
+- **A slug is a role slug or `*<capability>`.** A role slug names one role of any kind: a
+  catalog role, a role built from a template, or a role that defines itself. `*<capability>`
+  addresses every live role holding that capability (see
+  [roles.md § "Capabilities"](roles.md#capabilities)); the bundled guides addressed to `*dev` use
+  that form to reach every developer. The playbook loader checks a subject for its form only, so
+  `*Dev`, `*` and `* dev` are refused at load, naming `.overrides/playbook.toml`, while a
+  well-formed slug no role holds loads and is reported by `sq check` (below).
 - **A capability guide renders under its capability.** Its section in the generated skill is headed
   with the capability and its holders (``## For `*infra`: Bob Builder (`builder`)``), and
   `authors = true` puts the type in the create lane of every holder.
-- **A project role must also be activated for its guidance to reach the skill**, and the order
-  matters. `sq role activate <slug>` is what makes the role live; a guide naming a role that is not
-  live *loads without complaint* but is dropped when the skill is generated. `sq check` and `sq sync`
-  both warn while that is true, naming the guide and both ways out — activate the role, or remove the
-  guide. The same warning covers a role you activated and later retired, and a stray file in
-  `.overrides/roles/` whose name is read as a slug but never becomes a role. A guide of yours
-  addressed to a capability no live role holds is warned about the same way, with its two ways out:
+- **A guide reaches the skill only while its role is live.** A guide naming a role that is not
+  live loads but is dropped when the skill is generated. `sq check` and `sq sync` both warn while
+  that is true, naming the guide and both ways out. For a slug the role catalog declares, the way
+  in is `sq role activate <slug>`; for any other slug, `sq role add <slug> …` or
+  `sq role activate <slug> --from <template>`:
+
+  ```
+  warn: playbook guide for role 'ghost' on type 'task' names no live role, so its guidance is dropped from the generated `sq-task` skill — create the role (`sq role add ghost …`, or `sq role activate ghost --from <template>`), or remove the guide from `.overrides/playbook.toml` under `[types.task]`
+  ```
+
+  The same warning covers a role you activated and later retired. A guide of yours addressed to a
+  capability no live role holds is warned about the same way, with its two ways out:
 
   ```
   warn: playbook guide for capability '*infra' on type 'bug' names no live role, so its guidance is dropped from the generated `sq-bug` skill — declare `capabilities = ["infra"]` on a live role, or remove the guide from `.overrides/playbook.toml` under `[types.bug]`
@@ -2549,21 +2551,18 @@ the **security analyst** author **bugs** …").
 
 ### Guidance for a role you invented
 
-A **project-defined role** — one you started with `sq override scaffold --new <slug>` and activated
-with `sq role activate <slug>` — can be given playbook guidance like any bundled role. Name it in a
-type's `roles`, run `sq sync`, and it gets its own section in that type's generated `sq-<type>`
-skill; the skill is also preloaded on the role's generated pointer, so the role boots with it. Until
-you name it somewhere in the playbook, a custom role appears in no item skill at all.
+A role you created yourself, with `sq role add` or from a template, can be given playbook guidance
+like any bundled role. Name it in a type's `roles`, run `sq sync`, and it gets its own section in
+that type's generated `sq-<type>` skill; the skill is also preloaded on the role's generated
+pointer, so the role boots with it. Until you name it somewhere in the playbook, a custom role
+appears in no item skill at all.
 
-**Write the guide and activate the role in either order — just do both.** `sq override scaffold
---new` prints activation as its *next* step, so it is natural to write the playbook guide while the
-role is still inactive, and that is fine: the override loads, and `sq check` reminds you the
-guidance is not reaching the skill yet. What you should not do is leave it there, because an
-inactive role's guidance is silently absent from the generated skill:
+**Write the guide and create the role in either order, but do both.** A guide naming a slug no
+role holds yet loads, and `sq check` reminds you its guidance is not reaching the skill. What you
+should not do is leave it there, because the guidance stays absent from the generated skill:
 
 ```bash
-sq override scaffold --new security-analyst   # then fill in the stubbed fields
-sq role activate security-analyst             # ← the step that makes the guidance render
+sq role add security-analyst --name "Sam Security" --job-title "security analyst" --desc "Reviews changes for exposure." --mission "Keep the attack surface small."
 sq sync                                       # regenerate the sq-<type> skills
 sq check                                      # confirms the warning has cleared
 ```
@@ -2776,17 +2775,13 @@ sq override scaffold --role architect
 # A developer already on your roster (every field commented out with its current value)
 sq override scaffold --role python-dev
 
-# Start a wholly custom role that isn't in the bundled catalog
-sq override scaffold --new security-analyst
-sq override scaffold --new security-analyst --can-spawn   # opt it into spawning subagents
-
 # Start the workflow override (vocabulary: item types, statuses, lifecycles, collections)
 sq override scaffold workflow
 
 # Start the playbook override (which roles interact with each item type, and their guidance)
 sq override scaffold playbook
 
-# Start the role catalog override (roles, bundles and developer defaults in one document)
+# Start the role catalog override (roles, templates and bundles in one document)
 sq override scaffold roles
 
 # Overwrite an existing override
@@ -2799,17 +2794,19 @@ sq override scaffold items/task.md.j2 --force
   `title`, `description`, `mission`, `responsibilities`, `agreements`, `model`, `color`,
   `can_spawn` and `capabilities`. A commented `responsibilities = ["$(*self)", "…"]` line shows how
   to append to the bundled list instead of replacing it. Uncomment the lines you want to change and
-  run `sq sync`; a field left commented keeps its bundled value. For a developer already on the
-  roster (`python-dev`) the same fields follow, commented out with that developer's current
-  values. For a developer slug not on the roster yet, the file holds only the stamp and a comment
-  line, and it does not load until it declares every field a new role requires (see
-  [Precedence rule](#precedence-rule)); `--new <slug>` stubs those fields for you to fill in.
-- `--new <slug>` starts a **brand-new, non-bundled** role: the essential fields (`full_name`,
-  `title`, `description`, `mission`) are stubbed as active keys, the advanced fields
-  (`responsibilities`, `agreements`, `model`, `color`, `capabilities`, `can_spawn`) are included
-  commented out.
-  Refuses a slug that's already a bundled role — use `--role` for that. Follow up with `sq role
-  activate <slug>` once you've filled it in.
+  run `sq sync`; a field left commented keeps its bundled value. For a role already on the roster
+  (a developer such as `python-dev`, or any other role) the same fields follow, commented out with
+  that role's current values. A slug with no role item and no catalog entry is refused with exit `1`
+  and nothing written, naming the commands that create a role:
+
+  ```
+  error: no role 'nobody' to override: create it with `sq role add nobody --name … --job-title … --desc … --mission …` or `sq role activate nobody`
+  ```
+- `--new` is retired. A custom role is created with `sq role add`, and `--new` exits `1` naming it:
+
+  ```
+  error: `sq override scaffold --new` is retired: create the role with `sq role add foo --name … --job-title … --desc … --mission …`
+  ```
 - Template names copy the named bundled template into `.overrides/templates/`.
 - `workflow` starts `.overrides/workflow.toml` from a commented worked example rather than a copy of
   the bundled spec — see
@@ -2979,11 +2976,12 @@ CI) always behave as if `--default-names` is set** — you'll never hit a prompt
 
 Any role not named via a flag, config, or prompt takes the name the configuration gives it: a
 `full_name` in its per-slug override file, else in `roles.toml`, else the bundled name (bundled
-roles) or a name from the dev pool (developer roles).
+roles) or the name pattern of the template it is built from (developer roles).
 
 ### Naming roles after init
 
-When you activate a new role or add a developer, you can provide a name then:
+When you activate a new role, add a developer or create a custom role, you can provide a name
+then:
 
 ```bash
 # Activate a bundled role with a custom name
@@ -2991,6 +2989,9 @@ sq role activate architect --name "Chief Designer"
 
 # Add a Python developer with a custom name
 sq dev add --tech python --name "Pythonista"
+
+# A custom role always takes its name at creation
+sq role add sre --name "Sam Reliability" --job-title "site reliability engineer" --desc "Keeps production up." --mission "Keep the services up and the pager quiet."
 ```
 
 Omit the name and the role takes the name the configuration gives it, as at `init`.
@@ -3012,13 +3013,13 @@ The name is stored as the ROLE item's `title`. Everything downstream reads from 
 A role's name is decided once, when the role is created, and stored. At creation the first of
 these that applies wins:
 
-1. **A name you give:** `--name` on `sq role activate` or `sq dev add`, or at `sq init` a `--name`
-   flag, the `[init.names]` table or the prompt.
-2. **`full_name` in `.overrides/roles/<slug>.toml`.** For a developer, this names them only when
-   the file is complete and written before `sq dev add`.
+1. **A name you give:** `--name` on `sq role activate`, `sq role add` or `sq dev add`, or at
+   `sq init` a `--name` flag, the `[init.names]` table or the prompt.
+2. **`full_name` in `.overrides/roles/<slug>.toml`**, when the file is there as the role is
+   created.
 3. **`full_name` in `.overrides/roles.toml`.**
-4. **The bundled catalog's name**, or for a developer a name picked from the pool (a first name
-   followed by the tech).
+4. **The bundled catalog's name**, or for a role built from a template the template's `name`
+   pattern (for a developer, a first name from the pool followed by the tech).
 
 **After that, the stored name is the role's name.** No configuration change renames an active
 role: a `full_name` added to or changed in either override file, or a squads release that changes
@@ -3026,12 +3027,13 @@ a bundled name, names the roles created after it and leaves the ones you have al
 never changes a name, and the upgrade to a new squads version keeps every stored name. To rename a
 role, use `sq role <slug> update --title` (see "Renaming an active role" below).
 
-**What `sq sync` keeps, and what it refreshes.** The name is kept. So is a developer's `--model`,
-the other field `sq dev add` lets you choose. Everything else in a role's definition — its job
-title (the catalog's `title`, not the name stored as the role item's `title`), mission,
-responsibilities, spawn authority, a bundled role's model, its preloaded skills — is
-refreshed from the bundled definition (or from your override) on every sync, so an improvement
-squads ships reaches a role you activated long ago.
+**What `sq sync` keeps, and what it refreshes.** The name is kept. So is a `model` the role
+stores, set with `--model` at creation or with `sq role <slug> update --model`. Everything else in
+a catalog or template role's definition — its job title (the catalog's `title`, not the name
+stored as the role item's `title`), mission, responsibilities, spawn authority, its model when it
+stores none, its preloaded skills — is refreshed from the catalog entry or the template (and your
+overrides) on every sync, so an improvement squads ships reaches a role you activated long ago. A
+role that defines itself keeps the definition it stores.
 
 **Renaming an active role** sets its stored `title` with `update --title`, on any role, a bundled
 one included:
@@ -3051,7 +3053,7 @@ written under.
 `python-dev`) is the addressing key for skills, @mentions, pointer filenames, and interactions. A
 team renames *who fills the architect slot*, not *the architect slot itself*.
 
-If you need a new role entirely, scaffold it under a new slug. If you need to split an existing
+If you need a new role entirely, create it under a new slug with `sq role add`. If you need to split an existing
 role, add a new one rather than renaming.
 
 ---
@@ -3144,34 +3146,22 @@ title = "Senior Python developer"
 Run `sq sync`. The new title reaches the role's definition under `squads/agents/roles/`, its
 pointer in `.claude/`, and the agent roster in `CLAUDE.md`; the developer's name, model, mission
 and responsibilities are untouched, because the file didn't mention them. A `full_name` in the
-same file would not rename them either: a `full_name` names a developer only from a complete file
-written before `sq dev add`.
+same file would not rename them either: a `full_name` names a developer only when the file is
+there before `sq dev add` creates it.
 
 ### Define a custom role
 
-You want a compliance-officer role that isn't in the bundled catalog. Scaffold it:
+You want a compliance-officer role that isn't in the bundled catalog. Create it with its
+definition:
 
 ```bash
-sq override scaffold --new compliance-officer
+sq role add compliance-officer --name "Cora Compliance" --job-title "compliance officer" --desc "Keeps the project's work compliant." --mission "Review changes for regulatory and policy compliance." --model opus
 ```
 
-This writes `squads/.overrides/roles/compliance-officer.toml` with the essentials stubbed. Fill them in
-(and uncomment any advanced fields you want):
-
-```toml
-full_name = "Compliance Officer"
-title = "The keeper of standards"
-description = "Ensures all code meets compliance requirements."
-mission = "Keep the team on the right side of policy."
-responsibilities = [
-  "Review all PRs for policy violations",
-  "Maintain the compliance handbook",
-]
-model = "opus"
-```
-
-Run `sq role activate compliance-officer` to add it to your active roster, then `sq sync` to
-generate the pointer and listing.
+The definition is stored on the role item, and `add` writes its pointer. For a longer definition,
+with responsibilities or capabilities, put it in a TOML file in the per-slug override grammar and
+pass it with `--file` (see [roles.md § "Custom roles"](roles.md#custom-roles-sq-role-add)). Change
+it later with `sq role compliance-officer update --mission …` or `update --file`.
 
 ### Upgrade overrides after a squads release
 
@@ -3269,8 +3259,8 @@ with the accepted set:
 
 ```
 favourite_colour: unknown top-level key 'favourite_colour' — use one of the accepted top-level keys
-in v<version>: ['agreements', 'can_spawn', 'color', 'description', 'full_name', 'is_default',
-'mission', 'model', 'responsibilities', 'selected', 'slug', 'title']
+in v<version>: ['agreements', 'can_spawn', 'capabilities', 'color', 'description', 'full_name',
+'is_default', 'mission', 'model', 'responsibilities', 'selected', 'slug', 'title']
 ```
 
 `sq check` reports it as an error, `sq role <slug> show` refuses, and so does `sq sync` once the

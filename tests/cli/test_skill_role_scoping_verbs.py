@@ -108,7 +108,7 @@ async def test_link_role_run_for_several_roles_preloads_all_and_only_those(
     await svc.activate_role("manager")
     await svc.activate_role("devops")
     await svc.activate_role("tech-writer")
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     skill = await svc.add_skill("Release Runbook")
 
     for slug in ("manager", "devops", "tech-writer"):

@@ -1,6 +1,6 @@
 """``sq sync``'s catalog-refresh honours a partial ``<tech>-dev.toml``: the merge base for a
 developer role that already exists on the roster is built from *that item's own stored
-identity* (:func:`~squads._roles._resolver.dev_base_from_item`), never re-derived from
+identity* (:func:`~squads._roles._resolver.role_base_from_item`), never re-derived from
 ``dev_role(tech)`` at its default ``seq=0``.
 
 The rename is the risk, so it is the first test below: a squad's second developer sits at a
@@ -39,7 +39,7 @@ def _place_dev_toml(squad_dir: Path, slug: str, content: str) -> None:
 
 def _on_disk_full_name(svc, item) -> str:
     """The name as the *file* carries it -- ``title``, the uniform-record field the resolved
-    full name projects onto, which is also where ``dev_base_from_item`` reads it back from."""
+    full name is stored on, which is also where ``role_base_from_item`` reads it back from."""
     fm = itemfile.read_frontmatter(text=item_file(svc.paths, item).read_text(encoding="utf-8"))
     return fm["title"]
 
@@ -51,8 +51,10 @@ async def test_a_second_developers_full_name_survives_two_syncs_with_a_partial_o
     that never mentions ``full_name``. Two consecutive syncs must leave her name exactly as it
     was, in frontmatter and in the index both.
     """
-    await svc.add_dev("python")  # seq=0 -> pool[0]
-    second = await svc.add_dev("typescript")  # seq=1 -> pool[1] ("Ada Typescript")
+    await svc.activate_role(None, from_template="dev", tech="python")  # seq=0 -> pool[0]
+    second = await svc.activate_role(
+        None, from_template="dev", tech="typescript"
+    )  # seq=1 -> pool[1] ("Ada Typescript")
     assert second.title == "Ada Typescript"
 
     _place_dev_toml(project.squad_dir, "typescript-dev", 'title = "Senior TypeScript developer"\n')
@@ -72,8 +74,8 @@ async def test_a_second_developers_full_name_survives_two_syncs_with_a_partial_o
 
 
 async def test_omitting_full_name_preserves_the_live_name(project, svc):
-    await svc.add_dev("python")
-    second = await svc.add_dev("typescript")
+    await svc.activate_role(None, from_template="dev", tech="python")
+    second = await svc.activate_role(None, from_template="dev", tech="typescript")
 
     _place_dev_toml(project.squad_dir, "typescript-dev", 'title = "Senior TypeScript developer"\n')
     await svc.sync()
@@ -86,8 +88,8 @@ async def test_omitting_full_name_preserves_the_live_name(project, svc):
 async def test_declaring_full_name_does_not_rename_the_live_dev_role(project, svc):
     """A role's stored name is its name: a file that declares ``full_name`` after the role was
     created changes the name nowhere."""
-    await svc.add_dev("python")
-    second = await svc.add_dev("typescript")
+    await svc.activate_role(None, from_template="dev", tech="python")
+    second = await svc.activate_role(None, from_template="dev", tech="typescript")
 
     _place_dev_toml(project.squad_dir, "typescript-dev", 'full_name = "Zara Typescript"\n')
     await svc.sync()
@@ -99,7 +101,7 @@ async def test_declaring_full_name_does_not_rename_the_live_dev_role(project, sv
 
 
 async def test_a_complete_dev_override_applies_every_declared_field(project, svc):
-    dev = await svc.add_dev("rust")
+    dev = await svc.activate_role(None, from_template="dev", tech="rust")
     _place_dev_toml(
         project.squad_dir,
         "rust-dev",
@@ -115,12 +117,12 @@ async def test_a_complete_dev_override_applies_every_declared_field(project, svc
     assert resolved.title == "Staff Rust developer"
     assert resolved.mission == "Own the Rust surface end to end."
     assert resolved.model == "opus"
-    # A dev's model has no catalog answer to fall back to, so it is also stored on the item.
-    assert reloaded.attribute(X.MODEL) == "opus"
+    # The model follows the file; only an explicit `--model` stores one on the item.
+    assert reloaded.attribute(X.MODEL) is None
 
 
 async def test_sync_still_refuses_a_dev_override_with_an_off_whitelist_model(project, svc):
-    dev = await svc.add_dev("go")
+    dev = await svc.activate_role(None, from_template="dev", tech="go")
     _place_dev_toml(project.squad_dir, "go-dev", 'model = "opuss"\n')
 
     with pytest.raises(SquadsError, match="opuss"):
@@ -134,7 +136,7 @@ async def test_sync_still_refuses_a_dev_override_with_an_off_whitelist_model(pro
 async def test_sync_still_refuses_a_dev_override_whose_slug_disagrees_with_its_filename(
     project, svc
 ):
-    dev = await svc.add_dev("elixir")
+    dev = await svc.activate_role(None, from_template="dev", tech="elixir")
     before = item_file(svc.paths, dev).read_text(encoding="utf-8")
     _place_dev_toml(project.squad_dir, "elixir-dev", 'slug = "other-dev"\ntitle = "x"\n')
 
@@ -147,22 +149,24 @@ async def test_sync_still_refuses_a_dev_override_whose_slug_disagrees_with_its_f
     assert item_file(svc.paths, dev).read_text(encoding="utf-8") == before
 
 
-async def test_sync_no_ops_on_an_orphaned_custom_role_item(project, svc):
-    """A role item with neither a catalog entry nor a project override (its backing definition
-    vanished after activation) is the one case still meant to hit the narrowed
-    ``RoleNotFoundError`` catch -- a genuine skip, not a refusal. This is what makes that catch
-    honest: it no longer also catches every unmodified developer role, only this."""
+async def test_sync_materialises_a_role_whose_catalog_entry_vanished_from_what_it_stores(
+    project, svc
+):
+    """A catalog role whose entry is gone (its backing definition vanished after activation)
+    resolves to nothing from the catalog; sync neither raises nor skips it, and its pointer is
+    written from what the item stores."""
     from squads._errors import RoleNotFoundError
     from squads._roles._resolver import resolve_role
 
-    _place_dev_toml(
-        project.squad_dir,
-        "compliance-officer",
-        'full_name = "Sam Security"\ntitle = "security analyst"\n'
-        'description = "Keeps compliance."\nmission = "Protect the project."\n',
-    )
-    role = await svc.activate_role("compliance-officer")
-    (project.squad_dir / ".overrides" / "roles" / "compliance-officer.toml").unlink()
+    role = (
+        await svc.create(
+            "role",
+            "Sam Security",
+            description="Protect the project.",
+            slug="compliance-officer",
+            author="compliance-officer",
+        )
+    ).item
 
     # Confirm the fixture is broken as intended: genuinely unresolvable now.
     with pytest.raises(RoleNotFoundError):
@@ -170,4 +174,6 @@ async def test_sync_no_ops_on_an_orphaned_custom_role_item(project, svc):
 
     skipped = await svc.sync()  # must not raise
 
-    assert not any(role.id in msg for msg in skipped)  # no-op, not even reported as a skip
+    assert not any(role.id in msg for msg in skipped)
+    pointer = project.root / ".claude" / "agents" / "compliance-officer.md"
+    assert "Sam Security" in pointer.read_text(encoding="utf-8")

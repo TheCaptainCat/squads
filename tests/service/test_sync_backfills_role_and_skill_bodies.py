@@ -25,7 +25,7 @@ async def _build_pre_tag_corpus(tmp_path: Path):
     but empty)."""
     result = await service.init(root=tmp_path, roles_spec="all")
     svc = make_service(result.paths)
-    await svc.add_dev("python", name="Elias Python")
+    await svc.activate_role(None, from_template="dev", tech="python", name="Elias Python")
     await svc.seed_bundled_skills()
 
     roles = await svc.list_items(item_type="role")

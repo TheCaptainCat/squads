@@ -4,7 +4,6 @@ Provides:
 - :func:`scan_overrides` — enumerate every present override with kind, stamp, and state.
 - :func:`scaffold_template` — copy a bundled template into ``.overrides/templates/`` with stamp.
 - :func:`scaffold_role` — copy a bundled role (empty TOML) into ``.overrides/roles/`` with stamp.
-- :func:`scaffold_new_role` — start a brand-new, non-bundled role TOML with essentials stubbed.
 - :func:`scaffold_workflow` — create ``.overrides/workflow.toml`` with stamp + commented example.
 - :func:`diff_override` — produce the two-delta comparison (Δ-mine + Δ-upgrade) for one override.
 - :func:`update_stamp` — re-stamp one or all structurally-valid overrides to the current version.
@@ -31,13 +30,14 @@ from pathlib import Path
 from typing import Any, cast
 
 from squads import __version__
-from squads._errors import SquadsError
+from squads._errors import RoleNotFoundError, SquadsError
 from squads._interactions._loader import (
     PLAYBOOK_OVERRIDE_FILENAME,
     PLAYBOOK_OVERRIDE_MESSAGES,
     bundled_playbook_toml_text,
     playbook_stamp_finding,
 )
+from squads._models import _attributes as attrs
 from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._overrides._manifest import (
@@ -59,6 +59,7 @@ from squads._overrides._stamp import (
     stamp_toml_file,
     write_template_stamp,
 )
+from squads._paths import path_from_process_dir
 from squads._rendering._engine import invalidate_squad_dir
 from squads._roles._catalog import PREDEFINED, RoleDef, get_catalog, role_by_slug
 from squads._roles._loader import (
@@ -518,69 +519,6 @@ def scaffold_role(
     return dest
 
 
-# ─── scaffold_new_role ─────────────────────────────────────────────────────────
-
-#: Starter body for a brand-new (non-bundled) custom role — essentials active, advanced commented.
-_NEW_ROLE_SCAFFOLD_TPL = """\
-# Role override for '{slug}' — defines a brand-new custom role (not in the bundled catalog).
-#
-# Fill in the essentials below, then activate it with: sq role activate {slug}
-# See docs/roles.md and docs/overrides.md for the full field reference.
-
-full_name = "TODO: full name (e.g. \\"Sam Security\\")"
-title = "TODO: one-line title (e.g. \\"security analyst\\")"
-description = "TODO: one-line description for the Claude pointer frontmatter"
-mission = "TODO: what this role is responsible for accomplishing"
-
-# Advanced fields (optional) — uncomment and edit to set:
-# responsibilities = ["First responsibility", "Second responsibility"]
-# agreements = ["A team agreement this role follows"]
-# model = "sonnet"  # sonnet | opus | haiku | inherit (omit to inherit the project default)
-# color = "teal"
-# capabilities = ["reviewer"]  # names a playbook guide can address as *reviewer
-{can_spawn_line}
-"""
-
-_CAN_SPAWN_COMMENTED = (
-    "# can_spawn = false  # true grants this role the ability to spawn/orchestrate subagents"
-)
-_CAN_SPAWN_ACTIVE = (
-    "can_spawn = true  # grants this role the ability to spawn/orchestrate subagents"
-)
-
-
-def scaffold_new_role(
-    squad_dir: Path, slug: str, *, force: bool = False, can_spawn: bool = False
-) -> Path:
-    """Create ``.overrides/roles/<slug>.toml`` defining a wholly new, non-bundled role.
-
-    *slug* must not collide with a bundled role (use :func:`scaffold_role` / ``--role`` for that).
-    The essential fields the resolver requires for a new-slug role (``full_name``, ``title``,
-    ``description``, ``mission``) are pre-stubbed as active keys with fill-in placeholders;
-    the advanced fields (``responsibilities``, ``agreements``, ``model``, ``color``, ``can_spawn``)
-    are included commented out. Pass ``can_spawn=True`` to emit ``can_spawn = true`` active instead.
-
-    Raises :class:`SquadsError` if *slug* is unsafe or a bundled role, or the file exists without
-    ``--force``.
-    """
-    dest = _validate_role_slug(squad_dir, slug)
-    if slug in _BUNDLED_ROLE_SLUGS:
-        raise SquadsError(
-            f"{slug!r} is a bundled role; use `sq override scaffold --role {slug}` to override it "
-            "(--new is for a brand-new, non-bundled role slug)"
-        )
-
-    if dest.exists() and not force:
-        raise SquadsError(f".overrides/roles/{slug}.toml already exists; use --force to overwrite")
-
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    stamp_line = f"# squads:override-base:{__version__}\n"
-    can_spawn_line = _CAN_SPAWN_ACTIVE if can_spawn else _CAN_SPAWN_COMMENTED
-    body = _NEW_ROLE_SCAFFOLD_TPL.format(slug=slug, can_spawn_line=can_spawn_line)
-    dest.write_text(stamp_line + body, encoding="utf-8", newline="")
-    return dest
-
-
 # ─── scaffold_workflow ─────────────────────────────────────────────────────────
 
 #: Starter content for a scaffolded workflow override — stamp + commented example.
@@ -755,26 +693,29 @@ def scaffold_playbook(squad_dir: Path, *, force: bool = False) -> Path:
 #: Starter content for a scaffolded role-catalog override — stamp + a commented example
 #: covering all three sections this document closes over.
 _ROLES_CATALOG_SCAFFOLD_BODY = """\
-# Role catalog override — bundles, the dev-role pool, and (optionally) roles, all in one
+# Role catalog override — bundles, role templates, and (optionally) roles, all in one
 # document. Precedence: bundled roles.toml -> this document -> a per-slug
 # .overrides/roles/<slug>.toml file, which still wins over this document for the same field.
 #
-# A role's name: a new role takes its `full_name` from these layers when it is created, the most
+# A role's name: a new role takes its name from these layers when it is created, the most
 # specific one winning, unless `--name` is given (`sq role activate --name`, `sq dev add --name`,
 # `sq init --name`). The name is then stored on the role and no change here renames it.
 #
 # Rules:
-#   - Top-level keys are limited to: roles, bundles, dev, defaults (plus [selected] below).
+#   - Top-level keys are limited to: roles, bundles, templates, defaults (plus [selected] below).
 #   - [bundles.<name>] fields merge field-by-field over the bundled default; a new bundle
 #     name is simply added.
-#   - [dev] fields (model, color, capabilities, name_pool) merge field-by-field — override
-#     just one without restating the others.
+#   - [templates.<name>] fields merge field-by-field over a bundled template of that name —
+#     override just one without restating the others; a new name defines a new template,
+#     instantiated by `sq role activate --from <name>` (placeholders: {tech}, {Tech}, and
+#     {first} in `name`).
 #   - [defaults] holds roster-wide values a role takes when it has none of its own: pronouns
 #     (one line, 1 to 40 characters). Never written onto a role; operators never take it.
 #   - [[roles]] entries are keyed by their own 'slug': an entry naming a bundled slug
 #     field-merges onto it (write only the field you want to change); an entry naming a new
-#     slug defines a wholly new role (full_name, title, description, mission all required).
-#   - Drop a bundled role or bundle via [selected] (selected.roles / selected.bundles) — a
+#     slug adds a catalog role (full_name, title, description, mission all required).
+#   - Drop a bundled role, bundle or template via [selected] (selected.roles / bundles /
+#     templates) — a
 #     deselect that would empty a bundle or remove the default agent fails validation.
 #
 # See state after editing: sq override diff roles
@@ -782,7 +723,7 @@ _ROLES_CATALOG_SCAFFOLD_BODY = """\
 #
 # --- Worked example (uncomment and edit to activate) -------------------------
 #
-# [dev]
+# [templates.dev]
 # model = "opus"
 #
 # [defaults]
@@ -1028,8 +969,8 @@ def _diff_role(squad_dir: Path, slug: str) -> DiffResult:
     # Δ-mine: a role override merges field-wise over the bundled role, so it SHADOWS — diff
     # against the shadowed bundled role's own fields, not an empty reference, which would
     # describe only what the team added and say nothing about a shadowed field (the same
-    # fix already shipped for the workflow document). A brand-new, non-bundled
-    # role slug (`--new`) genuinely has no bundled counterpart, so it keeps the empty baseline.
+    # fix already shipped for the workflow document). A file over a role
+    # with no bundled counterpart keeps the empty baseline.
     shadowed = _shadowed_bundled_role_toml(slug, squad_dir)
     if shadowed is not None:
         delta_mine = _unified_diff(
@@ -1282,7 +1223,7 @@ def _template_override_shadows_bundled(template_name: str) -> bool:
 def _role_override_shadows_bundled(
     slug: str, role_items_by_slug: Mapping[str, Item], squad_dir: Path | None = None
 ) -> bool:
-    """Whether *slug* shadows a bundled or dev-pool role identity — resolved the exact way
+    """Whether *slug* shadows a bundled catalog or template role — resolved the exact way
     :func:`_check_role_override_resolves` resolves a base to validate against: the roster's
     own stored fact (a live item's ``tech`` / its bundled slug, via
     :func:`~squads._roles._resolver.role_base_from_item`) wins over the slug's naming
@@ -1301,7 +1242,7 @@ def _role_override_shadows_bundled(
     """
     item = role_items_by_slug.get(slug)
     if item is not None:
-        return role_base_from_item(item, get_catalog) is not None
+        return attrs.mission(item) is None and role_base_from_item(item, get_catalog) is not None
     return _shadowed_bundled_role_toml(slug, squad_dir) is not None
 
 
@@ -1317,17 +1258,21 @@ def _raw_role_slugs(raw: Mapping[str, Any]) -> set[str]:
     }
 
 
+def _keys_overlap(bundled: Any, override: Any) -> bool:
+    """Whether two raw keyed tables (bundles, templates) name a key in common."""
+    return (
+        isinstance(bundled, dict)
+        and isinstance(override, dict)
+        and bool(set(cast("dict[str, Any]", bundled)) & set(cast("dict[str, Any]", override)))
+    )
+
+
 def _roles_catalog_override_shadows_bundled(
     squad_dir: Path, files: OverrideFiles | None = None
 ) -> bool:
     """Whether ``<squad_dir>/.overrides/roles.toml`` redeclares (shadows) at least one bundled
-    role slug, bundle name, or the ``[dev]`` table — a raw key-set intersection, no merge
+    role slug, bundle name or template name — a raw key-set intersection, no merge
     required, mirroring ``workflow_override_shadows_bundled``/``playbook_override_shadows_bundled``.
-
-    ``[dev]`` carries no keyed collection to intersect (the module docstring of
-    ``squads._roles._loader`` — it is one object, not a keyed collection, so there is nothing
-    in it to shrink via ``[selected]`` either): declaring it at all has redeclared that whole
-    table, not merely added to it, so any presence counts as shadowing.
 
     Returns ``False`` when the override is absent, unreadable, undecodable or malformed TOML:
     the drift-stamp obligation is moot for a file that cannot even be parsed.
@@ -1345,20 +1290,11 @@ def _roles_catalog_override_shadows_bundled(
     # predicate tolerates silently.
     bundled_raw = bundled_roles_raw()
 
-    bundled_bundles = bundled_raw.get("bundles")
-    override_bundles = override_raw.get("bundles")
-    bundle_overlap = (
-        isinstance(bundled_bundles, dict)
-        and isinstance(override_bundles, dict)
-        and bool(
-            set(cast("dict[str, Any]", bundled_bundles))
-            & set(cast("dict[str, Any]", override_bundles))
-        )
-    )
+    bundle_overlap = _keys_overlap(bundled_raw.get("bundles"), override_raw.get("bundles"))
     return (
-        bool(override_raw.get("dev"))
-        or bool(_raw_role_slugs(bundled_raw) & _raw_role_slugs(override_raw))
+        bool(_raw_role_slugs(bundled_raw) & _raw_role_slugs(override_raw))
         or bundle_overlap
+        or _keys_overlap(bundled_raw.get("templates"), override_raw.get("templates"))
     )
 
 
@@ -1570,8 +1506,8 @@ def _check_role_toml_override_issues(
 ) -> list[OverrideIssue]:
     """Return check issues for every ``.overrides/roles/<slug>.toml`` override: an error for a
     shadowing override with no stamp (the uniform severity contract), a content-gated
-    drift warning, and — when *resolve* — whatever :func:`_check_role_override_resolves` finds
-    for load-ability."""
+    drift warning (both only over a base the bundled document declares), and — when *resolve* —
+    whatever :func:`_check_role_override_resolves` finds for load-ability."""
     issues: list[OverrideIssue] = []
     role_dir = _role_overrides_dir(squad_dir)
     if not role_dir.is_dir():
@@ -1597,7 +1533,11 @@ def _check_role_toml_override_issues(
                         "override_stamped",
                     )
                 )
-        elif stamp != __version__ and artifact_changed_since(ROLES_KEY, stamp):
+        elif (
+            stamp != __version__
+            and artifact_changed_since(ROLES_KEY, stamp)
+            and _role_override_shadows_bundled(slug, role_items_by_slug, squad_dir)
+        ):
             issues.append(
                 _issue(
                     "warn",
@@ -1644,9 +1584,8 @@ def _check_role_override_resolves(
     so a bundled role's base already carries a project's catalog-document override —
     ``.overrides/roles.toml`` — the same way ``sq role <slug> show``/``sq sync`` do — a stored
     fact, whether the item is a developer or a bundled role, for exactly the fields an operator
-    can set on it), and no base for a slug with no roster item. ``RoleNotFoundError`` is
-    unreachable here (the file exists, so resolution always takes the override branch) and needs
-    no separate arm.
+    can set on it), and no base for a slug with no roster item. A file with no role under it
+    (no item, no catalog entry) is a layer with no base and is reported as such.
 
     Every override file is resolved, not only the slugs the roster carries: ``sq role <slug>
     show`` reads one for a bundled role that was never activated, so scoping to live roles
@@ -1654,18 +1593,29 @@ def _check_role_override_resolves(
     the message names when each consumer refuses rather than asserting both do.
     """
     from squads._roles._resolver import (
-        pinned_name_of,
+        materialised_base,
         resolve_role_with_base,
-        role_base_from_item,
+        stored_values,
     )
 
     item = role_items_by_slug.get(slug)
-    base_role = role_base_from_item(item, catalog) if item is not None else None
+    base_role = materialised_base(item, catalog) if item is not None else None
 
     try:
         resolve_role_with_base(
-            slug, squad_dir, base=base_role, catalog=catalog, pinned_name=pinned_name_of(item)
+            slug, squad_dir, base=base_role, catalog=catalog, stored=stored_values(item)
         )
+    except RoleNotFoundError:
+        return [
+            _issue(
+                "error",
+                display,
+                f"role override has no role under it: no role item and no catalog entry for "
+                f"{slug!r} — create the role first, or `sq role add {slug} --file "
+                f"{path_from_process_dir(_role_overrides_dir(squad_dir) / f'{slug}.toml')}`",
+                "override_loads",
+            )
+        ]
     except SquadsError as exc:
         return [
             _issue(

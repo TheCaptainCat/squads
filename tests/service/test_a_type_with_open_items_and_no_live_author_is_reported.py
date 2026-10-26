@@ -114,7 +114,7 @@ async def _findings(project, shape: Shape) -> list[tuple[str, str]]:
     if shape.settled:
         await svc.update(item.id, status="Approved", force=True)
     for tech in shape.developers:
-        developer = await svc.add_dev(tech)
+        developer = await svc.activate_role(None, from_template="dev", tech=tech)
         await svc.set_status(developer.id, "Archived")
     for slug, status in shape.moved.items():
         await svc.set_status(roles[slug].id, status)

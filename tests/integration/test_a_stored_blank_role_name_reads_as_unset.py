@@ -1,5 +1,6 @@
 """A role item whose *stored* name is already blank, planted directly into the frontmatter and
-index, self-heals on ``sync`` for both a bundled and a developer role."""
+index, reads as unset: ``sync``, ``show``, ``regen`` and ``check`` resolve the catalog's (or the
+template's) name for both a bundled and a developer role, and never refuse."""
 
 import pytest
 
@@ -24,26 +25,18 @@ async def _plant_stored_blank_full_name(svc, item) -> None:
         stored.title = "   "
 
 
-async def _role_stored_name(svc, slug: str) -> str:
-    """The role's stored name, read where it lives: the item's own ``title`` field."""
-    roles = await svc.list_items(item_type=ROSTER_ROLE)
-    role = next(it for it in roles if it.slug == slug)
-    return role.title
-
-
 # ------------------------------------------------------------------------------- bundled role
 
 
-async def test_sync_self_heals_a_stored_blank_name_on_a_bundled_role(project, svc, invoke):
+async def test_sync_resolves_a_stored_blank_name_on_a_bundled_role(project, svc, invoke):
     item = await svc.activate_role("devops")
     await _plant_stored_blank_full_name(svc, item)
 
     synced = await invoke(["sync"])
     assert synced.exit_code == 0, synced.output
 
-    healed = await _role_stored_name(svc, "devops")
-    assert healed.strip()
-    assert healed == "Hugo Ops"  # the bundled catalog's own name for this slug
+    pointer = project.root / ".claude" / "agents" / "devops.md"
+    assert "Hugo Ops" in pointer.read_text(encoding="utf-8")  # the catalog's own name
 
     checked = await invoke(["check"])
     assert checked.exit_code == 0, checked.output
@@ -81,15 +74,15 @@ async def test_check_stays_clean_with_a_stored_blank_name_on_a_bundled_role(proj
 # --------------------------------------------------------------------------------- developer role
 
 
-async def test_sync_self_heals_a_stored_blank_name_on_a_developer_role(project, svc, invoke):
-    item = await svc.add_dev("python", name="Elias Python")
+async def test_sync_resolves_a_stored_blank_name_on_a_developer_role(project, svc, invoke):
+    item = await svc.activate_role(None, from_template="dev", tech="python", name="Elias Python")
     await _plant_stored_blank_full_name(svc, item)
 
     synced = await invoke(["sync"])
     assert synced.exit_code == 0, synced.output
 
-    healed = await _role_stored_name(svc, "python-dev")
-    assert healed.strip()
+    pointer = project.root / ".claude" / "agents" / "python-dev.md"
+    assert "Elias Python" in pointer.read_text(encoding="utf-8")  # the template's name pattern
 
     checked = await invoke(["check"])
     assert checked.exit_code == 0, checked.output
@@ -98,7 +91,7 @@ async def test_sync_self_heals_a_stored_blank_name_on_a_developer_role(project, 
 async def test_role_show_tolerates_a_stored_blank_name_on_a_developer_role_before_any_sync(
     project, svc, invoke
 ):
-    item = await svc.add_dev("python", name="Elias Python")
+    item = await svc.activate_role(None, from_template="dev", tech="python", name="Elias Python")
     await _plant_stored_blank_full_name(svc, item)
 
     shown = await invoke(["role", "python-dev", "show"])
@@ -108,7 +101,7 @@ async def test_role_show_tolerates_a_stored_blank_name_on_a_developer_role_befor
 async def test_role_regen_tolerates_a_stored_blank_name_on_a_developer_role_before_any_sync(
     project, svc, invoke
 ):
-    item = await svc.add_dev("python", name="Elias Python")
+    item = await svc.activate_role(None, from_template="dev", tech="python", name="Elias Python")
     await _plant_stored_blank_full_name(svc, item)
 
     regenned = await invoke(["role", "python-dev", "regen"])
@@ -116,7 +109,7 @@ async def test_role_regen_tolerates_a_stored_blank_name_on_a_developer_role_befo
 
 
 async def test_check_stays_clean_with_a_stored_blank_name_on_a_developer_role(project, svc, invoke):
-    item = await svc.add_dev("python", name="Elias Python")
+    item = await svc.activate_role(None, from_template="dev", tech="python", name="Elias Python")
     await _plant_stored_blank_full_name(svc, item)
 
     checked = await invoke(["check"])
@@ -126,9 +119,9 @@ async def test_check_stays_clean_with_a_stored_blank_name_on_a_developer_role(pr
 # ------------------------------------------------------------------------ neither remedy is needed
 
 
-async def test_a_second_sync_after_the_first_heal_is_silent(project, svc, invoke):
-    """A second sync after the heal makes no further change and reports nothing."""
-    item = await svc.add_dev("python", name="Elias Python")
+async def test_a_second_sync_is_silent(project, svc, invoke):
+    """A second sync makes no further change and reports nothing."""
+    item = await svc.activate_role(None, from_template="dev", tech="python", name="Elias Python")
     await _plant_stored_blank_full_name(svc, item)
 
     first = await invoke(["sync"])
@@ -140,7 +133,7 @@ async def test_a_second_sync_after_the_first_heal_is_silent(project, svc, invoke
 
 
 async def test_the_role_is_never_purged_by_any_of_this(project, svc, invoke):
-    """Self-healing recovers the role entry; it never discards it."""
+    """Reading a blank name as unset keeps the role entry; it never discards it."""
     item = await svc.activate_role("qa")
     await _plant_stored_blank_full_name(svc, item)
 

@@ -170,7 +170,7 @@ async def test_role_pointer_drift_is_either_absent_or_named_in_the_manual_runboo
     result_a = await service.init(root=dir_a, roles_spec="all")
     paths_a = result_a.paths
     svc_a = make_service(paths_a)
-    await svc_a.add_dev("python")
+    await svc_a.activate_role(None, from_template="dev", tech="python")
 
     dir_b = tmp_path / "b"
     dir_b.mkdir()
@@ -178,7 +178,7 @@ async def test_role_pointer_drift_is_either_absent_or_named_in_the_manual_runboo
     result_b = await service.init(root=dir_b, roles_spec="all")
     paths_b = result_b.paths
     svc_b = make_service(paths_b)
-    await svc_b.add_dev("python")
+    await svc_b.activate_role(None, from_template="dev", tech="python")
     await _strip_new_type_surface(svc_b, paths_b)
 
     affected_roles = ("architect", "product-owner", "tech-lead", "python-dev")

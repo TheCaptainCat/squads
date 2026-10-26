@@ -10,7 +10,6 @@ import pytest
 
 from squads._errors import SquadsError
 from squads._interactions._loader import load_playbook
-from squads._roles._catalog import get_catalog
 from squads._roles._loader import load_role_catalog
 from squads._workflow import bundled_spec, load_workflow_spec
 
@@ -28,7 +27,7 @@ _LOADERS: dict[str, tuple[Loader, str, str]] = {
         "Cannot read workflow override",
     ),
     "playbook": (
-        lambda squad_dir: load_playbook(get_catalog(), bundled_spec(), squad_dir),
+        lambda squad_dir: load_playbook(bundled_spec(), squad_dir),
         "playbook.toml",
         "Cannot read playbook override",
     ),

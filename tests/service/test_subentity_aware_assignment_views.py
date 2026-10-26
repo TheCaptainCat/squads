@@ -25,7 +25,7 @@ async def test_mine_surfaces_an_item_via_a_sub_entity_assignment_alone(svc):
 
 
 async def test_mine_excludes_an_item_whose_sub_entities_are_assigned_elsewhere(svc):
-    await svc.add_dev("python")  # registers python-dev
+    await svc.activate_role(None, from_template="dev", tech="python")  # registers python-dev
     task = (await create_item(svc, "task", "parent")).item
     await svc.add_subtask(task.id, "child", assignee="python-dev")
 

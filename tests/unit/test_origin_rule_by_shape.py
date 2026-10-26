@@ -1,5 +1,6 @@
 """The one rule that classifies a role or skill as ``system`` or ``project``, by the shapes the
-rule's inputs can take: the slug, whether the role is templated (carries ``tech``), and the spec.
+rule's inputs can take: the slug, the template the role stores, whether it stores its own
+definition, and the spec.
 """
 
 from datetime import UTC, datetime
@@ -49,16 +50,18 @@ def _item(item_type: str, slug: str, **attributes: str) -> Item:
     )
 
 
-#: role shape -> (slug, templated, expected origin)
+#: role shape -> (slug, stored template, stores its own definition, expected origin)
 ROLE_SHAPES = {
-    "bundled": ("manager", False, "system"),
-    "bundled-with-a-project-override": ("architect", False, "system"),
-    "bundled-and-retired": ("devops", False, "system"),
-    "templated-developer": ("rust-dev", True, "system"),
-    "declared-developer": ("auditor-dev", False, "project"),
-    "project-role": ("security-analyst", False, "project"),
-    "project-role-ending-in-dev": ("sandbox-dev", False, "project"),
-    "bundled-slug-that-is-also-templated": ("manager", True, "system"),
+    "bundled": ("manager", None, False, "system"),
+    "bundled-with-a-project-override": ("architect", None, False, "system"),
+    "bundled-and-retired": ("devops", None, False, "system"),
+    "bundled-template": ("rust-dev", "dev", False, "system"),
+    "project-template": ("auditor", "auditor", False, "project"),
+    "project-role": ("security-analyst", None, False, "project"),
+    "project-role-ending-in-dev": ("sandbox-dev", None, False, "project"),
+    "item-defined": ("sre", None, True, "project"),
+    "item-defined-under-a-bundled-slug": ("manager", None, True, "project"),
+    "bundled-slug-that-is-also-templated": ("manager", "dev", False, "system"),
 }
 
 #: skill shape -> (slug, expected origin)
@@ -75,14 +78,18 @@ SKILL_SHAPES = {
 
 @pytest.mark.parametrize("shape", list(ROLE_SHAPES))
 def test_role_origin_by_shape(shape: str) -> None:
-    slug, templated, expected = ROLE_SHAPES[shape]
-    assert role_origin(slug, templated=templated) == expected
+    slug, template, item_defined, expected = ROLE_SHAPES[shape]
+    assert role_origin(slug, template=template, item_defined=item_defined) == expected
 
 
 @pytest.mark.parametrize("shape", list(ROLE_SHAPES))
-def test_item_origin_of_a_role_reads_the_tech_attribute_not_the_slug(shape: str) -> None:
-    slug, templated, expected = ROLE_SHAPES[shape]
-    item = _item("role", slug, **({"tech": "rust"} if templated else {}))
+def test_item_origin_of_a_role_reads_the_stored_base_not_the_slug(shape: str) -> None:
+    slug, template, item_defined, expected = ROLE_SHAPES[shape]
+    stored = {
+        **({"template": template} if template else {}),
+        **({"mission": "Run things"} if item_defined else {}),
+    }
+    item = _item("role", slug, **stored)
     assert item_origin(item, load_workflow_spec()) == expected
 
 

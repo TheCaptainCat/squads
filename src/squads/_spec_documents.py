@@ -70,7 +70,6 @@ def resolve_catalog(squad_dir: Path, files: OverrideFiles | None = None) -> Role
 def resolve_playbook(
     spec: WorkflowSpec,
     squad_dir: Path,
-    catalog: CatalogSource,
     files: OverrideFiles | None = None,
 ) -> PlaybookSpec:
     """The merged playbook for *spec*, raising :class:`PlaybookConfigError` when it will not load.
@@ -81,9 +80,7 @@ def resolve_playbook(
     if spec is bundled_spec() and not override_present(squad_dir / PLAYBOOK_OVERRIDE_FILENAME):
         return get_playbook_spec()
     try:
-        return load_playbook(
-            get_catalog(), spec=spec, squad_dir=squad_dir, project_catalog=catalog, files=files
-        )
+        return load_playbook(spec=spec, squad_dir=squad_dir, files=files)
     except SquadsError as exc:
         raise PlaybookConfigError(str(exc)) from exc
 
@@ -102,7 +99,7 @@ def resolve_documents(
     playbook = (
         get_playbook_spec()
         if bundled_playbook
-        else resolve_playbook(spec, squad_dir, sources.catalog, sources.files)
+        else resolve_playbook(spec, squad_dir, sources.files)
     )
     return SpecDocuments(
         workflow=spec, playbook=playbook, catalog=sources.catalog, files=sources.files

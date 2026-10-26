@@ -67,31 +67,24 @@ async def test_a_role_sourced_view_places_expands_at_read_time_and_renders(proje
 
 
 async def test_an_orphaned_project_role_under_a_placed_tag_still_reads(project, svc) -> None:
-    """Deleting a project-declared role's own override file degrades the read, not a crash."""
-    override_dir = project.squad_dir / ".overrides" / "roles"
-    override_dir.mkdir(parents=True, exist_ok=True)
-    override_path = override_dir / "sre.toml"
-    override_path.write_text(
-        f"# squads:override-base:{__version__}\n"
-        'full_name = "Sam Reliability"\n'
-        'title = "site reliability engineer"\n'
-        'description = "Keeps production reliable."\n'
-        'mission = "Keep production reliable."\n',
-        encoding="utf-8",
-    )
+    """A role no catalog entry, template or stored definition backs reads from what it stores,
+    not a crash."""
     _write_workflow_override(project.squad_dir, _ROLE_CARD_WITHOUT_THE_DEFINITION)
     _place_view_template(project.squad_dir, "role_card", "Role: {{ source.slug }}\n")
     reopened = _reopen(project)
-    role_item = await reopened.activate_role("sre")
+    role_item = (
+        await reopened.create(
+            "role",
+            "Sam Reliability",
+            description="Keeps production reliable.",
+            slug="sre",
+            author="sre",
+        )
+    ).item
 
     assert await reopened.add_view(role_item.id, "role_card") is True
     body = await reopened.read_body(role_item.id)
     assert "Role: sre" in body
-
-    override_path.unlink()
-
-    degraded_body = await reopened.read_body(role_item.id)
-    assert "Role: sre" in degraded_body
 
 
 async def test_a_role_sourced_views_json_resolution_reuses_the_role_show_json_shape(

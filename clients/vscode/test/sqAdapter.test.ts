@@ -25,6 +25,7 @@ import {
   getWorkflowRaw,
   isSqDiscussionEntry,
   isSqRoleCatalogEntry,
+  isSqRoleListRow,
   isSqRosterIdentity,
   isSqSearchHit,
 } from '../src/sqAdapter';
@@ -1359,5 +1360,41 @@ describe('roster identity fetches', () => {
     expect(isSqRosterIdentity({ slug: 'manager' })).toBe(true);
     expect(isSqRosterIdentity({ slug: 'manager', pronouns: 3 })).toBe(false);
     expect(isSqRosterIdentity({ pronouns: 'she/her' })).toBe(false);
+  });
+
+  it('rejects the whole role list when one row fails the guard', async () => {
+    const good = {
+      id: 'ROLE-1',
+      slug: 'manager',
+      full_name: 'Catherine Manager',
+      status: 'Active',
+    };
+    const runner = stubRunner({
+      stdout: JSON.stringify([good, { ...good, id: 'ROLE-2', slug: 'qa', description: 3 }]),
+      stderr: '',
+      exitCode: 0,
+    });
+
+    expect((await getRoleIdentities(runner, UV_INVOCATION, WORKSPACE_ROOT)).kind).toBe(
+      'parse-error',
+    );
+  });
+
+  it('accepts a role list row with a name, a status and an optional description', () => {
+    const row = { id: 'ROLE-1', slug: 'manager', full_name: 'Catherine Manager', status: 'Active' };
+    expect(isSqRoleListRow(row)).toBe(true);
+    expect(isSqRoleListRow({ ...row, description: 'Delegates.', pronouns: null })).toBe(true);
+    expect(isSqRoleListRow({ ...row, description: '' })).toBe(true);
+  });
+
+  it('rejects a role list row with a missing or non-string field, and a generic list row', () => {
+    const row = { id: 'ROLE-1', slug: 'manager', full_name: 'Catherine Manager', status: 'Active' };
+    expect(isSqRoleListRow({ ...row, description: 3 })).toBe(false);
+    expect(isSqRoleListRow({ ...row, full_name: 3 })).toBe(false);
+    expect(isSqRoleListRow({ ...row, status: undefined })).toBe(false);
+    expect(isSqRoleListRow({ ...row, id: undefined })).toBe(false);
+    expect(
+      isSqRoleListRow({ id: 'ROLE-1', type: 'role', slug: 'manager', title: 'Catherine Manager' }),
+    ).toBe(false);
   });
 });

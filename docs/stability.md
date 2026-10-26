@@ -86,10 +86,8 @@ An item's frontmatter is one flat mapping, with no nested container:
 - **Unknown keys are kept.** A key no declaration names is carried through every write, `sq
   repair` and every migration, with its value. A write removes or changes only the keys its
   command targets, so a key whose declaration is removed from an override stays in the files.
-  The one exception is a closed set of role-definition keys, which the role catalog answers
-  (`full_name`, `mission`, `responsibilities`, `agreements`, `color`, `can_spawn`, `skills`,
-  `is_dev`): on a role whose type does not declare them as attributes, `sq repair`
-  removes them, as do `sq adopt`, `sq renumber` and `sq migrate up`, which end with the same
+  The one exception is a closed set of retired role keys, `full_name`, `skills` and `is_dev`: on
+  a role whose type does not declare them as attributes, `sq repair` removes them, as do `sq adopt`, `sq renumber` and `sq migrate up`, which end with the same
   rescan (see
   [adoption.md § "What `sq repair` writes"](adoption.md#what-sq-repair-writes)).
 - **A hand edit is indexed before the next write.** A key added or changed by hand puts the file
@@ -158,7 +156,8 @@ name      = one or more characters, on the same line
   A typed slug is stored as typed: it is never lowercased or prefixed. The derived slug (`op-` and
   the first name) always complies.
 - **Creating a role with `operator`, `squads` or a slug that starts with `op-` is refused**, through
-  `sq role activate`, `sq dev add` or `sq import`, with exit `1` and nothing written:
+  `sq role activate`, `sq role add` or `sq dev add`, with exit `1` and nothing written (`sq import`
+  creates no role at all):
 
   ```
   error: slug 'op-dev' is reserved for operators (the 'op-' prefix); a role needs another slug
@@ -221,9 +220,10 @@ Every comment has a hash: the SHA-256, in lowercase hex, of these fields joined 
 
 ### A roster slug never changes
 
-The slug of a roster entry is fixed when the entry is created: a role's is its catalog key or
-its project role file's name, whatever `--name` it is given, a developer role's is the `--slug`
-given to `sq dev add` or else comes from `--tech` (`sq dev add --tech python` gives `python-dev`), a skill's from its catalog entry or the name
+The slug of a roster entry is fixed when the entry is created: a role's is its catalog key, the
+slug given to `sq role add`, or, for a role built from a template, the slug given to
+`sq role activate --from` (or `sq dev add --slug`) or else the template's slug pattern
+(`sq dev add --tech python` gives `python-dev`), whatever `--name` it is given; a skill's from its catalog entry or the name
 given to `sq skill add`, and an operator's from its first name (`op-` plus the first name) or
 `sq operator add --slug`. After that no command, override or
 migration changes it, and the entry's file keeps its name: no `update` takes a slug option, and
@@ -258,22 +258,42 @@ folder in the squad directory. The frozen surfaces are:
   mirror bundled template names 1:1; per-role files are TOML keyed by slug (e.g., `architect.toml`);
   `workflow.toml` is the squad's vocabulary delta — item types, statuses, lifecycles, badge
   collections, status roles, ref kinds, derived views, and the squad-wide checks it selects; `roles.toml` is a delta over the whole role
-  catalog (its roles, bundles and the `[dev]` table developers are built from); `playbook.toml` is a delta over the playbook, the
+  catalog (its roles, role templates, bundles and defaults); `playbook.toml` is a delta over the playbook, the
   per-type guidance each role gets. A transform file is Python that sq runs with the user's
   permissions, like a `conftest.py`: every read that renders its view calls it, and `sq check` and
   `sq workflow lint` import it, which runs its top-level code. There is no approval step; see
   [overrides.md § "Giving a view a transform"](overrides.md#giving-a-view-a-transform).
 - **Precedence:** per-file, project → bundled. Presence of a file is the override. Templates
-  override whole-file; a role resolves bundled, then `roles.toml`, then its per-slug file, merging
-  field-wise; the workflow override composes over the bundled vocabulary and **may shadow a
+  override whole-file; a role resolves its base (a catalog entry or a role template, bundled then
+  `roles.toml`, or its own item), then its per-slug file, merging field-wise, then the values its
+  item stores (see **Role bases** below); the workflow override composes over the bundled vocabulary and **may shadow a
   built-in**, not only add to it.
 - **A role's name is stored.** A role is named when it is created: by `--name` (or, at `sq init`,
   a `--name` flag, `[init.names]` or the prompt), otherwise by the `full_name` its per-slug file,
-  then `roles.toml`, then the bundled catalog gives it, and for a developer by the name pool. From
+  then `roles.toml`, then the bundled catalog gives it, and for a role built from a template by the
+  template's name pattern. From
   then on the stored name is the role's name: no change to an override or to the bundled catalog
   renames an active role, and neither `sq sync` nor a migration does; `sq role <slug> update
   --title` does. See
   [overrides.md § "Which name wins"](overrides.md#which-name-wins).
+- **Role bases (frozen):** a role's definition comes from exactly one base. A **catalog** role
+  takes its slug's entry in the role catalog; a **template** role takes a `[templates.<name>]`
+  table of the catalog, instantiated with its `tech`; a role that defines itself (the **item**
+  base) takes the definition its item stores. The kind is decided from the item's stored keys
+  only, in this order: `template`, then `mission`, then the catalog. Resolution is the base, then
+  the per-slug file, then the values the item stores (its name, the default-role designation,
+  `model`, `pronouns`). The role catalog document's top-level keys are `roles`, `bundles`,
+  `templates`, `defaults` and `selected`, and `[selected]` takes `roles`, `bundles` and
+  `templates`. A template's keys are `title`, `description` and `mission` (required),
+  `responsibilities`, `agreements`, `model`, `color`, `can_spawn`, `capabilities`, and the
+  template-only `slug`, `name` and `name_pool`; its placeholders are exactly `{tech}`, `{Tech}`
+  and `{first}` (in `name` only), with `{{` and `}}` for a literal brace. The stored role keys and
+  their meanings are frozen: `template` (the template's name), `tech` (its parameter), `job_title`,
+  `mission`, `responsibilities`, `agreements`, `color`, `can_spawn` and `capabilities` (a
+  self-defined role's definition), `model` (the role's own model, which wins over every layer), and
+  `description` (a self-defined role's one-line description; a catalog or template role stores
+  none). The bundled templates' prose and name pools are not frozen. See
+  [roles.md § "Where a role's definition comes from"](roles.md#where-a-roles-definition-comes-from).
 - **Attribute grammar (frozen):** a type declares its attributes in `[items.<type>.attributes]`,
   one `<name> = { kind = …, required = …, settable = … }` entry each. `kind` is one of `str`,
   `list`, `bool`, `date`; `required` and `settable` default to `false` and `true`. An attribute may
@@ -323,10 +343,11 @@ folder in the squad directory. The frozen surfaces are:
   (`# squads:override-base:<version>`) in a per-role file and in each of the three spec documents.
   `sq check` warns if the bundled counterpart changed since that base version (drift), and errors if
   a template is missing required markers. A template override must always carry the stamp. A
-  per-role file for a bundled role, and a spec document that shadows a bundled entry, must carry it
-  too — unstamped and shadowing is an error-level `sq check` finding (and a `sq workflow lint` one
-  for the workflow override), though not a load-time refusal; an add-only spec document, or a
-  per-role file defining a new role, needs no stamp. `sq migrate` never rewrites overrides; the `sq override`
+  per-role file over a base the bundled document declares (a bundled catalog entry or a bundled
+  template), and a spec document that shadows a bundled entry, must carry it too — unstamped and
+  shadowing is an error-level `sq check` finding (and a `sq workflow lint` one for the workflow
+  override), though not a load-time refusal; an add-only spec document, or a per-role file over a
+  role that defines itself or over a project-declared entry or template, needs no stamp. `sq migrate` never rewrites overrides; the `sq override`
   command group (`scaffold` / `diff` / `update` / `list`) is the user-owned upgrade path. `sq
   override diff` shows two deltas: Δ-mine (your customisation vs current bundled) and Δ-upgrade
   (base-version bundled vs current bundled), so you see exactly what to merge.
@@ -503,16 +524,26 @@ retire it (offered only while the entry is live). See
 ```bash
 sq role activate architect           # group-level verb-first
 sq role activate <slug> --name "…"   # with optional custom name
+sq role activate [<slug>] --from <template> [--tech <t>]
+sq role add <slug> --name "…" (--file <toml> | --job-title "…" --desc "…" --mission "…")
+sq dev add --tech <t> --slug <slug>    # exactly sq role activate <slug> --from dev --tech <t>
 sq skill add <name>
 sq operator add "<name>"
 ```
+
+`sq role <addr> update` takes `--title`, `--pronouns` and `--model` on every role, and the
+definition options (`--job-title`, `--desc`, `--mission`, `--capabilities`, `--color`,
+`--can-spawn`, `--file`) on a role that defines itself only. On a catalog or template role a
+definition option exits `1`, writes nothing and names the per-slug file and the
+`sq override scaffold --role` command (see
+[roles.md § "Changing a role"](roles.md#changing-a-role-update-per-kind)).
 
 **Role catalog:** `sq role catalog` lists the roles the catalog declares, activated or not, plus
 every role item it does not declare (shows slug, name, title, default, origin).
 
 **Slug resolution:** for every addressed verb (`role show`, `update`, `remove`, `status`, …), slug is a valid address
 form in addition to full ID and bare number. A slug that equals a verb of its group cannot be used
-as an address, so creation refuses one: role activation refuses `activate`, `catalog` and `list` as a slug, and `sq skill add`
+as an address, so creation refuses one: role creation refuses `activate`, `add`, `catalog` and `list` as a slug, and `sq skill add`
 refuses `add`, with exit `1` and nothing written:
 
 ```
@@ -816,6 +847,8 @@ The frozen surface includes:
   `operator list`, `operator <addr> show`. Skills have no dedicated `skill list` — use the generic
   `list -t skill`. A role or skill row carries `origin`, `system` or `project` (see
   [roles.md § "Where a role or skill comes from"](roles.md#where-a-role-or-skill-comes-from-origin)).
+  `role list` rows carry `description`, the role's resolved one-line description; a generic item
+  row (`list -t role`) carries the stored `description`, empty on a catalog or template role.
   `role list`, `role <addr> show`, `operator list` and `operator <addr> show` carry `pronouns`
   after `full_name` on every row: the resolved value, or `null` (see
   [roles.md § "Pronouns"](roles.md#pronouns)). `skill <addr> show --json` carries `operator_invocable` (the resolved boolean) and

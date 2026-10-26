@@ -38,15 +38,31 @@ class RoleSpec(BaseModel):
     capabilities: list[str] = []  # names a playbook guide addresses as ``*<name>``
 
 
-class DevPoolSpec(BaseModel):
-    """Dev-role factory inputs: the name pool and the default model/color."""
+class RoleTemplateSpec(BaseModel):
+    """One ``[templates.<name>]`` table of the role catalog: a role definition with placeholders,
+    instantiated into a role by ``sq role activate --from <name>``.
+
+    The definition keys mean what they mean on a ``[[roles]]`` entry; ``slug``, ``name`` and
+    ``name_pool`` are the template's own."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    name_pool: list[str]
-    model: str = "sonnet"
-    color: str = "green"
-    capabilities: list[str] = []  # held by every templated developer
+    slug: str | None = None  # the proposed slug pattern
+    name: str | None = None  # the name pattern; ``{first}`` draws from ``name_pool``
+    name_pool: list[str] = []
+    title: str
+    description: str
+    mission: str
+    responsibilities: list[str] = []
+    agreements: list[str] = []
+    model: str | None = None  # sonnet | opus | haiku | inherit
+    color: str | None = None
+    can_spawn: bool = False
+    capabilities: list[str] = []  # names a playbook guide addresses as ``*<name>``
+
+
+#: The template ``sq dev add`` instantiates, and whose capabilities define a developer.
+DEV_TEMPLATE_NAME = "dev"
 
 
 class DefaultsSpec(BaseModel):
@@ -69,8 +85,13 @@ class RoleCatalogSpec(BaseModel):
 
     roles: list[RoleSpec]  # 8 bundled roles, declaration order preserved
     bundles: dict[str, list[str]]  # all / core / minimal → slug lists
-    dev: DevPoolSpec
+    templates: dict[str, RoleTemplateSpec] = {}
     defaults: DefaultsSpec = DefaultsSpec()
+
+    def developer_capabilities(self) -> frozenset[str]:
+        """The capabilities the ``dev`` template declares; empty when the squad dropped it."""
+        template = self.templates.get(DEV_TEMPLATE_NAME)
+        return frozenset(template.capabilities) if template is not None else frozenset()
 
 
 #: A role catalog resolved on demand: calling it returns the catalog the squad resolves, built

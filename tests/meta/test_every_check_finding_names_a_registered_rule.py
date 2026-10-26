@@ -61,7 +61,10 @@ _SITES: dict[tuple[str, str], tuple[str, ...]] = {
         "override_stamped",
         "override_current",
     ),
-    ("squads/_overrides/_service.py", "_check_role_override_resolves"): ("override_loads",),
+    ("squads/_overrides/_service.py", "_check_role_override_resolves"): (
+        "override_loads",
+        "override_loads",
+    ),
     ("squads/_services/_check.py", "_missing_timestamp_issues"): ("timestamps_present",),
     ("squads/_services/_check.py", "_value_skew_issue"): ("frontmatter_matches_index",),
     ("squads/_services/_check.py", "check"): ("ids_unique", "numbers_unique"),

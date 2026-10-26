@@ -38,7 +38,7 @@ async def seeded(tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="all")
     svc = make_service(result.paths)
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     await svc.sync()
     return svc
 
@@ -155,7 +155,7 @@ async def test_the_resolved_definition_matches_the_pinned_render_for_every_bundl
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="all")
     svc = make_service(result.paths)
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
 
     goldens = sorted((Path(__file__).parents[1] / "goldens").glob("skill_body_sq-*.txt"))
     assert goldens, "no pinned reference renders found"

@@ -2,11 +2,14 @@
 
 Grammar:
   sq role catalog                    — show the role catalog for the active squad
-  sq role activate <slug>            — activate a bundled role
+  sq role activate <slug>            — activate a catalog role
+  sq role activate [<slug>] --from <template> [--tech <t>] — build a role from a role template
+  sq role add <slug> …               — create a role that defines itself
   sq role <slug|id|n> show           — show a role's card + body
   sq role <slug|id|n> regen          — regenerate the Claude pointer
   sq role <slug|id|n> status <S>     — transition the role's status
   sq role <slug|id|n> set-default    — move the default-role designation here
+  sq role <slug|id|n> update …       — edit the name, pronouns, model or (own definition) fields
   sq role <slug|id|n> view add <n>       — place or re-enable a view tag in sq:body
   sq role <slug|id|n> view disable <n>   — disable a view tag in sq:body (kept, not removed)
   sq role <slug|id|n> remove --purge — delete the role item (or set status Archived)
@@ -48,14 +51,17 @@ from squads._interactions._role_guidance import allowed_create_types
 from squads._interactions._skills import role_origin
 from squads._models import _attributes as attrs
 from squads._models._item import Item
+from squads._models._participants import ROLE_GROUP_VERBS
 from squads._paths import resolve as resolve_squad_paths
-from squads._roles._catalog import PREDEFINED, RoleDef, get_catalog
+from squads._roles._catalog import get_catalog
 from squads._roles._loader import ROLES_OVERRIDE_FILENAME
 from squads._roles._resolver import (
-    pinned_name_of,
+    read_role_toml,
     resolve_pronouns,
     resolve_role_for_item,
     resolve_role_with_base,
+    role_base_from_item,
+    stored_values,
 )
 from squads._views import ROLE_DEFINITION_VIEW_NAME
 from squads._workflow import ROSTER_ROLE
@@ -79,7 +85,7 @@ role_app = typer.Typer(
             "sq role qa set-default",
             "sq role qa view disable role_definition",
         ),
-        "catalog, activate, list",
+        ", ".join(sorted(ROLE_GROUP_VERBS)),
     ),
     cls=_RoleDispatchGroup,
 )
@@ -104,15 +110,21 @@ def _catalog_squad_dir() -> Path | None:
         return None
 
 
-def _change_role_hint(slug: str, base: RoleDef | None) -> str:
-    """How to change a role's definition: scaffold an override for a role with a bundled or
-    templated base, edit the project's own file for any other."""
-    if base is not None or any(r.slug == slug for r in PREDEFINED):
+def _change_role_hint(slug: str, item: Item | None, resolved: bool) -> str:
+    """How to change a role's definition: update a role that defines itself, scaffold an override
+    for a role whose base resolves, say what is missing for any other."""
+    if item is not None and attrs.mission(item) is not None:
+        return f"To change its definition: `sq role {slug} update --mission …` (or --file)."
+    if resolved:
         return (
-            "To change its mission, responsibilities or model: "
-            f"`sq override scaffold --role {slug}`, edit the file, then `sq sync`."
+            "To change its mission or responsibilities: "
+            f"`sq override scaffold --role {slug}`, edit the file, then `sq sync`. "
+            f"To change its model: `sq role {slug} update --model …`."
         )
-    return f"To change it: edit `.overrides/roles/{slug}.toml`, then `sq sync`."
+    return (
+        "Nothing backs its definition: restore the catalog entry or template it came from, or "
+        f"make it define itself with `sq role {slug} update --job-title … --desc … --mission …`."
+    )
 
 
 @role_app.command("catalog")
@@ -196,9 +208,10 @@ async def role_catalog(
         table.add_row(e(slug), e(full_name), e(title), "✓" if is_default else "", _origin(slug))
     console.print(table)
     console.print(
-        "\n[dim]Need a wholly custom non-dev role (not in this catalog)? "
-        "Run [cyan]sq override scaffold --new <slug>[/cyan], fill in the essentials, "
-        "then [cyan]sq role activate <slug>[/cyan].[/dim]",
+        "\n[dim]Need a role that is not in this catalog? "
+        "Run [cyan]sq role add <slug> --name … --job-title … --desc … --mission …[/cyan], "
+        "or build one from a role template with [cyan]sq role activate --from <template>[/cyan]."
+        "[/dim]",
         soft_wrap=True,
     )
 
@@ -235,6 +248,7 @@ async def role_list(
                         "full_name": role.full_name,
                         "pronouns": role.pronouns,
                         "title": role.title,
+                        "description": role.description,
                         "is_default": role.is_default,
                         "capabilities": list(role.capabilities),
                         "status": r.status,
@@ -267,30 +281,107 @@ async def role_list(
 # --------------------------------------------------------------------------- activate
 
 
+async def activate_with_template(
+    slug: str | None,
+    *,
+    name: str | None,
+    model: str | None,
+    pronouns: str | None,
+    from_template: str | None,
+    tech: str | None,
+) -> None:
+    """Activate a role and print the result: the one command body `sq role activate` and
+    `sq dev add` share."""
+    svc = get_service()
+    item = await svc.activate_role(
+        slug, name=name, model=model, pronouns=pronouns, from_template=from_template, tech=tech
+    )
+    await svc.refresh_managed()
+    shown = common.named_markup(
+        svc, item.title, resolve_pronouns(_pronouns.pronouns(item), svc.catalog)
+    )
+    verb = "activated" if from_template is None else "added"
+    console.print(f"{verb} [bold]{shown}[/bold] (`{item.slug}`) {item.id}")
+
+
 @role_app.command("activate")
 @common.command
 async def activate_role(
-    slug: str = typer.Argument(
-        ..., help="A role from `sq role catalog`, or one declared in `.overrides/roles/`."
+    slug: str | None = typer.Argument(
+        None,
+        help=(
+            "A role from `sq role catalog`. With `--from`, the slug to file the role under; "
+            "optional when the template declares a slug pattern."
+        ),
     ),
     name: str | None = typer.Option(
-        None, "--name", help="Full name for this agent instead of the bundled one."
+        None, "--name", help="Full name for this agent instead of the catalog's or the template's."
     ),
+    from_template: str | None = typer.Option(
+        None, "--from", help="Build the role from a role template, such as `dev`."
+    ),
+    tech: str | None = common.tech_option(),
+    model: str | None = common.model_option(),
     pronouns: str | None = common.pronouns_option(),
 ) -> None:
-    """Activate a role: create its tracked item and Claude pointer.
+    """Activate a catalog role, or build one from a template with `--from`.
 
-    Scaffold a custom role first with `sq override scaffold --new <slug>`.
-    Activating a live role does nothing. A retired role is refused; bring it back
-    with `sq role <slug> status <status>`.
+    A role that defines itself is created with `sq role add`. Activating a live
+    role does nothing. A retired role is refused; bring it back with
+    `sq role <slug> status <status>`.
+    """
+    await activate_with_template(
+        slug, name=name, model=model, pronouns=pronouns, from_template=from_template, tech=tech
+    )
+
+
+@role_app.command("add")
+@common.command
+async def add_role(  # noqa: PLR0913 — a flag per definition field
+    slug: str = typer.Argument(..., help="Slug to file the new role under."),
+    name: str | None = typer.Option(None, "--name", help="Full name of the agent."),
+    file: Path | None = common.file_option(common.ROLE_DEFINITION_FILE_HELP),
+    job_title: str | None = typer.Option(None, "--job-title", help="The role's job title."),
+    desc: str | None = common.desc_option(None),
+    mission: str | None = typer.Option(None, "--mission", help="What the role is there to do."),
+    capabilities: str | None = typer.Option(
+        None, "--capabilities", help="Comma-separated capability names a playbook guide can use."
+    ),
+    model: str | None = common.model_option(),
+    pronouns: str | None = common.pronouns_option(),
+) -> None:
+    """Create a role that defines itself: its definition is stored on the role.
+
+    Give `--name`, `--job-title`, `--desc` and `--mission`, or a `--file` that
+    sets them. A role from the catalog or a template is made with `sq role
+    activate`.
     """
     svc = get_service()
-    item = await svc.activate_role(slug, name=name, pronouns=pronouns)
+    definition = read_role_toml(file) if file is not None else None
+    item = await svc.add_role(
+        slug,
+        name=name,
+        job_title=job_title,
+        description=desc,
+        mission=mission,
+        capabilities=_split_capabilities(capabilities),
+        model=model,
+        pronouns=pronouns,
+        definition=definition,
+        source=str(file) if file is not None else "the role definition",
+    )
     await svc.refresh_managed()
-    name = common.named_markup(
+    shown = common.named_markup(
         svc, item.title, resolve_pronouns(_pronouns.pronouns(item), svc.catalog)
     )
-    console.print(f"activated [bold]{name}[/bold] ({item.id})")
+    console.print(f"added [bold]{shown}[/bold] (`{item.slug}`) {item.id}")
+
+
+def _split_capabilities(raw: str | None) -> list[str] | None:
+    """The capability names in a comma-separated flag; ``None`` when the flag is absent."""
+    if raw is None:
+        return None
+    return [part.strip() for part in raw.split(",") if part.strip()]
 
 
 # ---------------------------------------------------------------- addressed subgroup (_addr)
@@ -362,8 +453,8 @@ def _role_empty_body_hint(hint_state: views.EmptyBodyHintState, slug: str) -> st
     if hint_state == "declared":
         return (
             "(empty — run `sq sync`; if it stays empty, declare the definition in "
-            f"`{ROLES_OVERRIDE_FILENAME}`, or `.overrides/roles/<slug>.toml` for a "
-            f"project-defined role, or run `sq role {slug} view add {name}`)"
+            f"`{ROLES_OVERRIDE_FILENAME}`, or `.overrides/roles/<slug>.toml`, or run "
+            f"`sq role {slug} view add {name}`)"
         )
     return (
         f"(empty — the view {name!r} is not declared in this project's spec, so `sq sync` "
@@ -401,12 +492,10 @@ async def show_role(
         # Bundled-only role: the addr IS the slug (slug resolution fell through without finding it).
         slug = addr
 
-    # A role's base is never a function of the slug alone: an activated role (dev or
-    # bundled) inherits its own operator-settable fields from the live item
-    # (`role_base_from_item`); an unactivated developer slug falls back to the generated pool
-    # name. Every other unactivated slug keeps `resolve_role`'s ordinary bundled/new-slug base
-    # (``None`` here).
+    # A role's base is never a function of the slug alone: an activated role resolves from the
+    # base its item stores; an unactivated slug resolves through the catalog (``None`` here).
     base_role = common.role_base_for_show(slug, it, svc.catalog)
+    base_resolves = it is None or role_base_from_item(it, svc.catalog) is not None
     shown_origin = role_origin(slug) if it is None else attrs.origin(it)
     shown_pronouns = resolve_pronouns(
         _pronouns.pronouns(it) if it is not None else None, svc.catalog
@@ -419,74 +508,50 @@ async def show_role(
 
     if it is not None:
         await common.warn_duplicate_id(svc, it)
-    # Build the catalog card from the resolved role definition (project override → bundled).
-    # `r` is kept past the try/except (`None` when resolution fails) — the rendered
-    # definition below reuses this exact resolution rather than resolving a second time.
-    r: RoleDef | None = None
     try:
         r = resolve_role_with_base(
             slug,
             svc.paths.squad_dir,
             base=base_role,
-            pinned_name=pinned_name_of(it),
+            stored=stored_values(it),
             catalog=svc.catalog,
         )
-        lane_types = sorted(allowed_create_types(r, svc.spec, svc.playbook))
-        creates_display = ", ".join(lane_types) if lane_types else "— (out-of-lane creates warn)"
-        # A computed projection over the index, not a field of `r` — resolved live for both
-        # an activated role and a bundled-only one (falls back to system membership; see
-        # `Service.resolved_skills_for_role`).
-        skills = await svc.resolved_skills_for_role(slug)
-        skills_display = ", ".join(skills) if skills else "—"
-        # Mission/responsibilities are deliberately absent: the resolved definition printed
-        # below carries them once, in the form an agent is meant to read, rather than the
-        # card repeating what it does not need to.
-        shown_name = common.named_markup(svc, r.full_name, shown_pronouns, style="bold")
-        rows = [
-            f"{shown_name} (`{e(r.slug)}`)",
-            f"[bold]title:[/bold] {e(r.title)}",
-            f"[bold]origin:[/bold] {shown_origin or '—'}",
-            f"[bold]model:[/bold] {e(r.model or 'inherit')}",
-            f"[bold]color:[/bold] {e(r.color or '—')}",
-            f"[bold]can spawn:[/bold] {'yes' if r.can_spawn else 'no'}",
-            f"[bold]capabilities:[/bold] {e(', '.join(r.capabilities) or '—')}",
-            f"[bold]creates:[/bold] {e(creates_display)}",
-            f"[bold]skills:[/bold] {e(skills_display)}",
-        ]
     except RoleNotFoundError:
-        # No bundled catalog entry, no dev base, no override file — fall back to the item
-        # fields. Narrow for the same reason as the --json branch above: an invalid override
-        # must be reported, never quietly replaced by the stored item's own copy of the fields.
-        if it is not None:
-            rows = [
-                f"[bold]{e(it.title)}[/bold] (`{e(slug)}`)",
-                f"[bold]id:[/bold] {it.id}",
-                f"[bold]origin:[/bold] {shown_origin or '—'}",
-                f"[bold]status:[/bold] {it.status}",
-            ]
-        else:
-            raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None
+        raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None
+    lane_types = sorted(allowed_create_types(r, svc.spec, svc.playbook))
+    creates_display = ", ".join(lane_types) if lane_types else "— (out-of-lane creates warn)"
+    # A computed projection over the index, not a field of `r` — resolved live for both
+    # an activated role and a bundled-only one (falls back to system membership; see
+    # `Service.resolved_skills_for_role`).
+    skills = await svc.resolved_skills_for_role(slug)
+    skills_display = ", ".join(skills) if skills else "—"
+    # Mission/responsibilities are deliberately absent: the resolved definition printed
+    # below carries them once, in the form an agent is meant to read, rather than the
+    # card repeating what it does not need to.
+    shown_name = common.named_markup(svc, r.full_name, shown_pronouns, style="bold")
+    rows = [
+        f"{shown_name} (`{e(r.slug)}`)",
+        f"[bold]title:[/bold] {e(r.title)}",
+        f"[bold]origin:[/bold] {shown_origin or '—'}",
+        f"[bold]model:[/bold] {e(r.model or 'inherit')}",
+        f"[bold]color:[/bold] {e(r.color or '—')}",
+        f"[bold]can spawn:[/bold] {'yes' if r.can_spawn else 'no'}",
+        f"[bold]capabilities:[/bold] {e(', '.join(r.capabilities) or '—')}",
+        f"[bold]creates:[/bold] {e(creates_display)}",
+        f"[bold]skills:[/bold] {e(skills_display)}",
+    ]
     console.print(Panel("\n".join(rows), expand=False))
 
     # The definition — styled markdown on a TTY, plain with --raw or when piped — read the
     # same way any other item's body is (`read_body`, tag-expanded), not rendered from `r`
     # directly: the item's own `sq:body` carries the `sq:view:role_definition` tag seeded at
     # activation, and reading it resolves and renders fresh on every call.
-    # Keyed on the item's own existence (`it`) alone, not on `r`: `resolve_role_for_item` (the
-    # seam the tag's own source resolves through) degrades a broken project override to
-    # `RoleDef.from_extra_or_item` rather than raising, so the definition still renders even
-    # on the one path where the catalog card above could not resolve `r` — the same graceful
-    # degrade every other consumer of a live role item already gets. That degrade is a feature,
-    # not a bug to undo — but it must not be a *silent* one: `r is None` here means the catalog
-    # card above already fell back to the item's own fields, and the definition pane rendering
-    # something plausible-looking must not be the only signal, or an operator has no way to
-    # tell a genuinely resolved role from a broken `.overrides/roles.toml` degrading quietly.
     if it is not None:
-        if r is None:
+        if not base_resolves:
             console.print()
             console.print(
                 f"[dim](the definition for {e(slug)} could not be resolved — "
-                "run `sq check` to see why)[/dim]",
+                "`sq check` reports why, under role_base_resolves)[/dim]",
                 soft_wrap=True,
             )
         # `body` is refused while the view is declared, so the default hint would name an
@@ -512,7 +577,8 @@ async def show_role(
             soft_wrap=True,
         )
     console.print()
-    console.print(f"[dim]{e(_change_role_hint(slug, base_role))}[/dim]", soft_wrap=True)
+    hint = _change_role_hint(slug, it, base_resolves)
+    console.print(f"[dim]{e(hint)}[/dim]", soft_wrap=True)
 
 
 @_addr.command("regen")
@@ -550,20 +616,85 @@ async def set_default_role(ctx: typer.Context) -> None:
 
 @_addr.command("update")
 @common.command
-async def update_role(
+async def update_role(  # noqa: PLR0913 — a flag per role field
     ctx: typer.Context,
     title: str | None = typer.Option(None, "--title", help="The role's name."),
     pronouns: str | None = typer.Option(
         None, "--pronouns", help="The role's pronouns; a blank value clears them."
     ),
+    model: str | None = typer.Option(
+        None, "--model", help="The model the agent runs on; a blank value clears it."
+    ),
+    job_title: str | None = typer.Option(
+        None, "--job-title", help="The job title (a role that defines itself only)."
+    ),
+    desc: str | None = common.desc_option(None),
+    mission: str | None = typer.Option(
+        None, "--mission", help="The mission (a role that defines itself only)."
+    ),
+    capabilities: str | None = typer.Option(
+        None,
+        "--capabilities",
+        help="Comma-separated capability names; blank clears (a role that defines itself only).",
+    ),
+    color: str | None = typer.Option(
+        None, "--color", help="The colour; blank clears (a role that defines itself only)."
+    ),
+    can_spawn: str | None = typer.Option(
+        None,
+        "--can-spawn",
+        help="`yes` or `no`: may the role spawn agents (a role that defines itself only).",
+    ),
+    file: Path | None = common.file_option(common.ROLE_DELTA_FILE_HELP),
 ) -> None:
-    """Rename a role or set its pronouns; its slug never changes."""
-    common.require_update_fields(title=title, pronouns=pronouns)
+    """Edit a role's name, pronouns, model, or a definition it holds itself.
+
+    The name, pronouns and model are editable on every role. The definition
+    flags (`--job-title`, `--desc`, `--mission`, `--capabilities`, `--color`,
+    `--can-spawn`, `--file`) apply to a role created with `sq role add`. A role
+    from the catalog or a template takes them from the file that defines it, and
+    the refusal names it. The slug never changes.
+    """
+    common.require_update_fields(
+        title=title,
+        pronouns=pronouns,
+        model=model,
+        job_title=job_title,
+        desc=desc,
+        mission=mission,
+        capabilities=capabilities,
+        color=color,
+        can_spawn=can_spawn,
+        file=file,
+    )
     item_id = _require_id(ctx)
     svc = get_service()
-    await svc.update(item_id, title=title, pronouns=pronouns)
+    result = await svc.update_role(
+        item_id,
+        title=title,
+        pronouns=pronouns,
+        model=model,
+        job_title=job_title,
+        description=desc,
+        mission=mission,
+        capabilities=_split_capabilities(capabilities),
+        color=color,
+        can_spawn=_parse_yes_no("--can-spawn", can_spawn),
+        definition=read_role_toml(file) if file is not None else None,
+        source=str(file) if file is not None else "the role definition",
+    )
     await svc.refresh_managed()
     console.print(f"updated {item_id}")
+    common.print_warnings(result.warnings)
+
+
+def _parse_yes_no(flag: str, raw: str | None) -> bool | None:
+    """`yes` / `no` as a bool; ``None`` when the flag is absent."""
+    if raw is None:
+        return None
+    if raw not in ("yes", "no"):
+        raise SquadsError(f"{flag} takes yes or no, not {raw!r}")
+    return raw == "yes"
 
 
 register_body_verb(_addr, _require_id)

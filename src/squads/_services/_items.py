@@ -24,7 +24,7 @@ from squads._models._metadata import coerce_attribute, require_settable
 from squads._paths import number_for_id
 from squads._pronouns import checked_pronouns
 from squads._roles._catalog import RoleDef
-from squads._roles._resolver import resolve_role_for_item
+from squads._roles._resolver import model_problem, resolve_role_for_item
 from squads._services import _retirement as retirement
 from squads._services._base import (
     ServiceCore,
@@ -479,9 +479,12 @@ class ItemsMixin(ServiceCore):
             if field is not None:
                 item.set_badge_value(field.code, self._parse_badge_code(field, raw))
             else:
-                item.attributes[key] = coerce_attribute(
-                    item.type, key, raw, self.spec.item_attributes(item.type)
-                )
+                value = coerce_attribute(item.type, key, raw, self.spec.item_attributes(item.type))
+                if item.type == ROSTER_ROLE and key == AttributeKey.MODEL:
+                    problem = model_problem(value)
+                    if problem is not None:
+                        raise SquadsError(problem)
+                item.attributes[key] = value
         for key in unset or []:
             field = self._badge_field(item.type, key)
             if field is not None:

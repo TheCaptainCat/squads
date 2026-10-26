@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import add_role_from_toml
 from squads import __version__
 from squads._interactions._skills import item_skill_name
 from squads._roles._catalog import PREDEFINED
@@ -44,21 +45,15 @@ _ROLE_FILE = (
 
 
 async def _declared(svc, root: Path) -> None:
-    path = root / "squads" / ".overrides" / "roles" / "builder.toml"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(_ROLE_FILE + 'capabilities = ["dev"]\n', encoding="utf-8")
-    await svc.activate_role("builder")
+    await add_role_from_toml(svc, "builder", _ROLE_FILE + 'capabilities = ["dev"]\n')
 
 
 async def _suffixed(svc, root: Path) -> None:
-    path = root / "squads" / ".overrides" / "roles" / "legacy-dev.toml"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(_ROLE_FILE, encoding="utf-8")
-    await svc.activate_role("legacy-dev")
+    await add_role_from_toml(svc, "legacy-dev", _ROLE_FILE)
 
 
 async def _all_with_templated(svc, root: Path) -> None:
-    await svc.add_dev("rust")
+    await svc.activate_role(None, from_template="dev", tech="rust")
 
 
 async def _architect_with_declared(svc, root: Path) -> None:
@@ -69,9 +64,7 @@ async def _architect_with_declared(svc, root: Path) -> None:
 async def _renamed_squad(svc, root: Path) -> None:
     """Live roles that share no slug with the bundled catalog; the bundled default retired."""
     await _declared(svc, root)
-    path = root / "squads" / ".overrides" / "roles" / "lead.toml"
-    path.write_text(_ROLE_FILE.replace("Bea Builder", "Lee Lead"), encoding="utf-8")
-    await svc.activate_role("lead")
+    await add_role_from_toml(svc, "lead", _ROLE_FILE.replace("Bea Builder", "Lee Lead"))
     manager = await svc.roster_item("role", "manager")
     assert manager is not None
     await svc.set_status(manager.id, "Archived")

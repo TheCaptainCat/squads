@@ -386,8 +386,8 @@
     "_rendering/templates/workflow_static.md.j2": "42a6707b57c79ee25fad1539167089e6f3deeeb6183fcb2c01e14b5f7f859708",
     "_rendering/templates/working_language.md.j2": "cf5ce9439d3f9d569882868708e110990349dcd304ef33e6f9191bad0a643316",
     "_specs/playbook.toml": "42fda9118c5d46fa344fdcd024df1bf3bc7e0701fef79069df3bdb5a4a483231",
-    "_specs/roles.toml": "7770f4225509507549ad6b426e18c5accd9e1b5d94bff651d767673254708fd6",
-    "_specs/workflow.toml": "a8d7989694f4d5479dc8a75f1d8dec3a4ad2fbe6e34b9c2a2e74a232beaa9fac"
+    "_specs/roles.toml": "4915028527ed18455e35866cae12e27165825c13aa1a00e570e10c0cecce1011",
+    "_specs/workflow.toml": "263a893c13b26e761c175c85b5e24a5e18947090f0620fef0f7451de7202d095"
   },
   "0.4.0": {
     "_rendering/templates/agents/greeting_skill.md.j2": "ead65be126550ae3826abd2a0f401d3c911e336f41500e97762eab5bd024e4dc",

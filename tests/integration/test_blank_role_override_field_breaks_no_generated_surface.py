@@ -35,7 +35,7 @@ async def test_sync_refuses_naming_the_file_and_every_blank_field(tmp_path, monk
     )
     project = result.paths
     svc = make_service(project)
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
 
     claude_md_before = (project.root / "CLAUDE.md").read_text(encoding="utf-8")
     agents_md_before = (project.root / "AGENTS.md").read_text(encoding="utf-8")
@@ -92,14 +92,14 @@ async def test_dev_add_itself_refuses_a_pre_existing_blank_override(project, svc
     target.write_text('full_name = ""\n', encoding="utf-8")
 
     with pytest.raises(SquadsError, match="full_name"):
-        await svc.add_dev("rust")
+        await svc.activate_role(None, from_template="dev", tech="rust")
 
 
 async def test_check_json_carries_the_blank_field_error(project, svc, invoke) -> None:
     """The free-coverage claim, pinned precisely: ``check --json`` (the CI-facing surface, not
     just the human table) names the file among its error-level issues, with no dedicated
     blank-field reporter added anywhere."""
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     _place_blank_override(project, "python-dev")
 
     result = await invoke(["check", "--json"])
@@ -115,7 +115,7 @@ async def test_removing_the_override_and_resyncing_restores_the_real_values(
 ) -> None:
     """The bug's own closing note: this is a validation gap, not a corruption one. Confirmed
     here rather than only asserted -- the role's real, pre-override values survive untouched."""
-    dev = await svc.add_dev("python")
+    dev = await svc.activate_role(None, from_template="dev", tech="python")
     real_full_name = dev.title
 
     _place_blank_override(project, "python-dev")

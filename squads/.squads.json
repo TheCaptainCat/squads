@@ -1,6 +1,6 @@
 {
   "schema_version": "0.17",
-  "counter": 1154,
+  "counter": 1158,
   "padding": 6,
   "items": {
     "12": {
@@ -33232,7 +33232,7 @@
       "type": "task",
       "title": "Resolve init --roles against the project role catalog",
       "slug": "resolve-init-roles-against-the-project-role-catalog",
-      "status": "Ready",
+      "status": "Done",
       "description": "BUG-1045: sq init --roles accepts bundles and roles declared in .overrides/roles.toml",
       "parent": null,
       "author": "tech-lead",
@@ -33271,7 +33271,7 @@
         {
           "local_id": "ST3",
           "title": "Resolve init --roles against the project role catalog",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -33291,7 +33291,7 @@
       ],
       "path": "tasks/TASK-001137-resolve-init-roles-against-the-project-role-catalog.md",
       "created_at": "2026-10-25T05:39:18Z",
-      "updated_at": "2026-10-25T22:06:39Z",
+      "updated_at": "2026-10-26T04:14:35Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -58320,7 +58320,7 @@
       "type": "task",
       "title": "Keep line endings and sub-entity containers intact on write",
       "slug": "keep-line-endings-and-sub-entity-containers-intact-on-write",
-      "status": "Draft",
+      "status": "Ready",
       "description": "CRLF survives read-modify-write; a restored container encloses its existing blocks",
       "parent": null,
       "author": "tech-lead",
@@ -58357,7 +58357,7 @@
       ],
       "path": "tasks/TASK-001147-keep-line-endings-and-sub-entity-containers-intact-on-write.md",
       "created_at": "2026-10-25T19:56:57Z",
-      "updated_at": "2026-10-25T19:57:16Z",
+      "updated_at": "2026-10-26T04:14:52Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -58695,11 +58695,11 @@
       "type": "task",
       "title": "Resolve roles from a catalog entry, a template or the item",
       "slug": "resolve-roles-from-a-catalog-entry-a-template-or-the-item",
-      "status": "Ready",
+      "status": "InReview",
       "description": "ADR-1151: three role bases, [templates.<name>], sq role add, per-kind update, migration, checks, playbook, client hover",
       "parent": null,
       "author": "tech-lead",
-      "assignee": null,
+      "assignee": "python-dev",
       "priority": "medium",
       "severity": null,
       "labels": [],
@@ -58715,8 +58715,8 @@
         {
           "local_id": "ST1",
           "title": "Declare role templates as data in the role catalog",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "deferred_to": null,
@@ -58725,8 +58725,8 @@
         {
           "local_id": "ST2",
           "title": "Resolve the base from stored facts and let stored values win",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "deferred_to": null,
@@ -58735,8 +58735,8 @@
         {
           "local_id": "ST3",
           "title": "Create roles through activate --from, role add and dev add",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "deferred_to": null,
@@ -58745,8 +58745,8 @@
         {
           "local_id": "ST4",
           "title": "Edit an item-defined role with update, refuse it elsewhere",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "deferred_to": null,
@@ -58755,8 +58755,8 @@
         {
           "local_id": "ST5",
           "title": "Extend the 0.17 migration and refuse a legacy [dev] table",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "deferred_to": null,
@@ -58765,8 +58765,8 @@
         {
           "local_id": "ST6",
           "title": "Report unresolved bases and shadowing files in sq check",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "deferred_to": null,
@@ -58775,8 +58775,8 @@
         {
           "local_id": "ST7",
           "title": "Check playbook guide slugs for grammar only at load",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "deferred_to": null,
@@ -58785,7 +58785,7 @@
         {
           "local_id": "ST8",
           "title": "Read the mention hover description from sq role list --json",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -58795,7 +58795,7 @@
         {
           "local_id": "ST9",
           "title": "Document role bases, templates, role add and the [dev] rename",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -58805,7 +58805,7 @@
       ],
       "path": "tasks/TASK-001153-resolve-roles-from-a-catalog-entry-a-template-or-the-item.md",
       "created_at": "2026-10-25T22:01:52Z",
-      "updated_at": "2026-10-25T22:07:45Z",
+      "updated_at": "2026-10-26T03:25:09Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -58835,6 +58835,374 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "BUG-1154"
+    },
+    "1155": {
+      "sequence_id": 1155,
+      "type": "review",
+      "title": "Review TASK-1153 ST1-ST4: role bases, templates, role add, update",
+      "slug": "review-task-1153-st1-st4-role-bases-templates-role-add-updat",
+      "status": "Approved",
+      "description": "Review of commit d37899d4: role templates as data, base from stored facts, one creation path, update per kind.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1153"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Migrating a pre-0.14 squad keeps each catalog role's mirrored model as a winning stored setting",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "sq role activate on a live template or item-defined role exits 1 with a false message",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "activate on a live role silently drops --model, --pronouns and --name and prints activated",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "sq role add refusals use override vocabulary and blame the file for a flag value",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "An orphan made self-defining by update keeps origin system",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "role show for a deselected bundled role hints at a per-slug scaffold that cannot fix it",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Stale remedies and hints still describe the per-slug creation flow",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Clearing a definition key and role add refreshing managed files survive mutation",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "An invalid stored role model is kept, dropped from the pointer, and unreported",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001155-review-task-1153-st1-st4-role-bases-templates-role-add-updat.md",
+      "created_at": "2026-10-26T00:03:46Z",
+      "updated_at": "2026-10-26T00:41:48Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1155"
+    },
+    "1156": {
+      "sequence_id": 1156,
+      "type": "review",
+      "title": "Review TASK-1153 ST5-ST7: role migration, base checks, playbook grammar",
+      "slug": "review-task-1153-st5-st7-role-migration-base-checks-playbook",
+      "status": "Approved",
+      "description": "Review of commit 137d5ec9: 0.17 role migration, role_base_resolves/role_definition_shadowed, grammar-only guide slugs.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1153"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Re-running the 0.17 step on a squad at 0.17 drops operator-set models on catalog roles and orphans",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "check_is_clean_but_for_orphaned_roles tolerates every role_base_resolves error, masking lost developer bases",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "sq import creates a role with no base, exit 0, and role_base_resolves errors on it at once",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Drift warning on a migrated custom role's file asks to re-stamp it while the shadow warning says delete it",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "role_base_resolves passes a whitespace job_title or mission and a malformed stored capability",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "A playbook guide for a reserved slug loads and its warning names a role add that is refused",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Bundled playbook guide slugs are no longer checked against the bundled catalog; composition row deleted",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "CHANGELOG still says the 0.17 migration step changes no item file",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Re-applying the 0.17 step silently drops an operator model pin equal to the catalog's model",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001156-review-task-1153-st5-st7-role-migration-base-checks-playbook.md",
+      "created_at": "2026-10-26T01:42:16Z",
+      "updated_at": "2026-10-26T02:33:20Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1156"
+    },
+    "1157": {
+      "sequence_id": 1157,
+      "type": "review",
+      "title": "Review TASK-1153 ST8: mention hover reads sq role list --json",
+      "slug": "review-task-1153-st8-mention-hover-reads-sq-role-list-json",
+      "status": "Approved",
+      "description": "Review of commit 91218ad1: the VS Code mention hover reads name and description from sq role list --json.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1153"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Archived roles become mention targets: sq role list --json includes them, the old default list view did not",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Skew canary pins role list keys without description and now fails; new guard clauses untested",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Preview wiring is unpinned: feeding sq list rows to roleDirectoryFrom compiles and passes all tests",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001157-review-task-1153-st8-mention-hover-reads-sq-role-list-json.md",
+      "created_at": "2026-10-26T02:39:33Z",
+      "updated_at": "2026-10-26T02:48:47Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1157"
+    },
+    "1158": {
+      "sequence_id": 1158,
+      "type": "review",
+      "title": "Review TASK-1137 ST3: init/adopt --roles use the squad catalog",
+      "slug": "review-task-1137-st3-init-adopt-roles-use-the-squad-catalog",
+      "status": "Approved",
+      "description": "Review of commit 5922d04f: init and adopt --roles resolve against the squad role catalog (BUG-1045).",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1137"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Refusal-before-write ordering is unpinned: moving resolution after the config write stays green",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "A catalog without the all bundle makes bare init/adopt fail with no predefined role all, naming no bundles",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Load-count guard has no init row: shared-sources claim unpinned, workflow.toml read twice",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Interactive init prompt path never runs against an override: bundled-catalog mutation stays green",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "CHANGELOG entry says nothing changes without an override, but the unknown --roles wording changed for every squad",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001158-review-task-1137-st3-init-adopt-roles-use-the-squad-catalog.md",
+      "created_at": "2026-10-26T03:48:40Z",
+      "updated_at": "2026-10-26T04:14:15Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1158"
     }
   }
 }

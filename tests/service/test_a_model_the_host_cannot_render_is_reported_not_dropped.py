@@ -10,7 +10,7 @@ reported no issues.
 
 The refusal that *does* exist lives upstream and covers one path only: a role override naming
 an unknown model is refused when the override is resolved. This is the backstop for every
-other way a value reaches the item (``sq dev add --model``, an import, a migrated corpus) —
+other way a value reaches the item (a hand edit, a migrated corpus) —
 deliberately a report rather than a second validator, so the two can never disagree about the
 same value: one refuses at declaration time, the other says what the write just failed to
 render.
@@ -51,22 +51,27 @@ def test_every_unrenderable_shape_is_both_dropped_and_reported(model):
     assert "reviewer" in warning
 
 
-async def test_sync_reports_a_dev_roles_unrenderable_model_and_the_pointer_omits_it(
+async def test_a_hand_written_unrenderable_model_is_reported_by_check_and_read_as_unset(
     tmp_path, monkeypatch
 ):
-    """End to end on the path that still reaches the backend: ``sq dev add --model`` takes a
-    free-form string, so the item stores it and the pointer cannot render it."""
+    """End to end on the path that still reaches the item: a model written into the role's file
+    by hand is rebuilt into the index, ``sq check`` reports it, and the role reads as if it
+    stored none, so the pointer carries the template's model."""
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, backend=["claude_code"], roles_spec="minimal")
     svc = make_service(result.paths)
-    dev = await svc.add_dev("python", model=_UNRENDERABLE)
-    assert dev.attributes["model"] == _UNRENDERABLE  # durable, exactly as declared
+    dev = await svc.activate_role(None, from_template="dev", tech="python", model="opus")
+    path = result.paths.abspath(dev.path)
+    edited = path.read_text(encoding="utf-8").replace("model: opus", f"model: {_UNRENDERABLE}")
+    path.write_text(edited, encoding="utf-8")
+    await make_service(result.paths).repair()
 
-    reported = await make_service(result.paths).sync()
+    issues = await make_service(result.paths).check()
+    await make_service(result.paths).sync()
 
+    assert any(_UNRENDERABLE in i.message and i.item == dev.id for i in issues), issues
     pointer = (tmp_path / ".claude" / "agents" / "python-dev.md").read_text(encoding="utf-8")
-    assert "model:" not in pointer  # still dropped -- this is a report, not a rescue
-    assert any(_UNRENDERABLE in line and "python-dev" in line for line in reported), reported
+    assert "model: sonnet" in pointer
 
 
 async def test_a_role_override_naming_an_unknown_model_is_refused_before_it_can_be_stored(
@@ -117,3 +122,15 @@ async def test_the_warning_travels_on_the_artifact_the_write_returned(tmp_path, 
 
     assert artifact.warning is not None
     assert _UNRENDERABLE in artifact.warning
+
+
+@pytest.mark.parametrize("model", [_UNRENDERABLE, "opuss", "Sonnet"])
+async def test_a_write_naming_an_unknown_model_is_refused_with_the_whitelist(
+    tmp_path, monkeypatch, model
+):
+    monkeypatch.chdir(tmp_path)
+    result = await service.init(root=tmp_path, backend=["claude_code"], roles_spec="minimal")
+    svc = make_service(result.paths)
+    with pytest.raises(SquadsError, match="is not one of"):
+        await svc.activate_role(None, from_template="dev", tech="python", model=model)
+    assert await svc.roster_item("role", "python-dev") is None

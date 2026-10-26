@@ -152,7 +152,7 @@ async def test_rendered_agrees_with_carries_a_lane_when_a_renamed_types_lane_lap
     squad_dir = svc.paths.squad_dir
     _write_renamed_guide_override(squad_dir, give_it_back_a_lane=give_it_back_a_lane)
     merged_spec = load_workflow_spec(squad_dir=squad_dir)
-    merged_playbook = resolve_playbook(merged_spec, squad_dir, catalog_of(squad_dir))
+    merged_playbook = resolve_playbook(merged_spec, squad_dir)
     project_svc = make_service(svc.paths, spec=merged_spec, playbook=merged_playbook)
 
     # The one type this override actually touches: settle its own direction before the

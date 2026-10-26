@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from _helpers import make_service
+from _helpers import make_service, orphaned_role_slugs
 from squads._cli import app
 from squads._index._resolver import item_file
 from squads._interactions._skills import is_system_skill
@@ -20,6 +20,7 @@ from squads._models._config import SquadsConfig
 from squads._models._metadata import RETIRED_ROLE_KEYS
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._paths import SquadPaths
+from squads._roles._catalog import get_catalog
 from squads._sections import (
     find_markers,
     get_section,
@@ -91,6 +92,15 @@ async def _expected_seeded_view_gap_files(svc: Service, skipped_ids: set[str]) -
     return expected
 
 
+#: The roles a migrated corpus holds that no catalog entry, template or role file backs: the
+#: migration reports them and never guesses a definition. The two developer corpora hold none.
+_NO_ORPHANS = frozenset({"v0_15_developers", "v0_15_discussions"})
+
+
+def _expected_orphans(corpus_name: str) -> set[str]:
+    return set() if corpus_name in _NO_ORPHANS else {"dev-agent"}
+
+
 @pytest.mark.parametrize("schema_label,corpus_name", _CORPUS_CASES)
 async def test_corpus_migrates_to_current_schema_and_passes_check(
     schema_label: str, corpus_name: str, tmp_path: Path
@@ -121,7 +131,10 @@ async def test_corpus_migrates_to_current_schema_and_passes_check(
         i
         for i in errors
         if not ("missing seeded view tag" in i.message and i.item in expected_gaps)
+        and i.rule != "role_base_resolves"
     ]
+    reported = [{"rule": i.rule, "message": i.message} for i in issues]
+    assert orphaned_role_slugs(reported) == _expected_orphans(corpus_name)
     assert not unexpected, (
         f"sq check produced errors after migrating {corpus_name!r} from {schema_label!r}:\n"
         + "\n".join(f"  [{i.level}] {i.item}: {i.message}" for i in unexpected)
@@ -167,12 +180,15 @@ def test_corpus_cli_migrate_up_and_check_both_exit_clean(
         for i in check_payload
         if i["level"] == "error"
         and not ("missing seeded view tag" in i["message"] and i["item"] in expected_gaps)
+        and i["rule"] != "role_base_resolves"
     ]
+    orphans = orphaned_role_slugs(check_payload)
+    assert orphans == _expected_orphans(corpus_name)
     assert not unexpected, (
         f"sq check reported unexpected error(s) after migrating {corpus_name!r} "
         f"({schema_label!r}):\n" + "\n".join(f"  {i}" for i in unexpected)
     )
-    if expected_gaps:
+    if expected_gaps or orphans:
         assert check_result.exit_code == 3, check_result.output
     else:
         assert check_result.exit_code == 0, check_result.output
@@ -384,7 +400,10 @@ async def test_a_role_keeps_its_record_and_loses_its_mirror_across_the_migration
                 f"{item.id}: the body converged onto something other than its placement tag"
             )
         assert item.title == was["title"]
-        assert item.description == was.get("description", "")
+        # A catalog or template role stores no description; a role defining itself keeps one.
+        resolved = item.slug in {r.slug for r in get_catalog().roles} or stored.get(X.TECH)
+        if X.MISSION not in stored:  # a role defining itself takes its description from its file
+            assert item.description == ("" if resolved else was.get("description", ""))
         assert item.attributes == stored, f"{item.id}: the index and the file disagree"
 
 
@@ -510,10 +529,14 @@ async def test_the_bare_verb_strips_a_corpus_already_at_the_current_stamp(tmp_pa
     ]
     expected_gaps = await _expected_seeded_view_gap_files(svc, set())
     expected_gaps |= {item_file(paths, it).name for it in (*roles, *system_skills)}
+    issues = await svc.check()
     unexpected = [
         i
-        for i in await svc.check()
+        for i in issues
         if i.level == "error"
         and not ("missing seeded view tag" in i.message and i.item in expected_gaps)
+        and i.rule != "role_base_resolves"
     ]
     assert not unexpected, unexpected
+    reported = [{"rule": i.rule, "message": i.message} for i in issues]
+    assert orphaned_role_slugs(reported) == {"dev-agent"}

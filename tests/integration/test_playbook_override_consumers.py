@@ -99,9 +99,8 @@ async def test_config_integrity_type_implied_finding_reflects_the_playbook_overr
 
     _write_override(project.squad_dir, _APPEND_ARCHITECT_TO_TASK)
     from squads._interactions._loader import load_playbook
-    from squads._roles._catalog import get_catalog
 
-    merged_playbook = load_playbook(get_catalog(), spec=svc.spec, squad_dir=project.squad_dir)
+    merged_playbook = load_playbook(spec=svc.spec, squad_dir=project.squad_dir)
     db = await svc.store.load()
     with_playbook = config_integrity.check_preloaded_skill(
         db,

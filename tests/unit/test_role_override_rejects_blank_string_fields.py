@@ -27,7 +27,7 @@ import pytest
 from _helpers import catalog_of
 from squads._errors import SquadsError
 from squads._roles._models import RoleSpec
-from squads._roles._resolver import resolve_role
+from squads._roles._resolver import resolve_role, role_defined_by_file
 
 
 def _place(tmp_path: Path, slug: str, body: str) -> None:
@@ -143,8 +143,9 @@ def test_a_complete_new_slug_override_with_real_values_still_applies(tmp_path) -
         'description = "Keeps the system secure."\nmission = "Find and fix security issues."\n',
     )
 
-    role = resolve_role("security-expert", tmp_path, catalog=catalog_of(tmp_path))
+    role = role_defined_by_file("security-expert", tmp_path)
 
+    assert role is not None
     assert role.full_name == "Sam Security"
 
 

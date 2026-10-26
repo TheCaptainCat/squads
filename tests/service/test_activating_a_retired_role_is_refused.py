@@ -5,7 +5,7 @@ untouched, so the CLI printed ``activated <Name> (ROLE-n)`` at exit 0 while the 
 retired — a success line for a command that did nothing, with `sq check` silent either side.
 
 Refusing (rather than performing the transition) is what keeps ``activate`` consistent with
-every sibling roster create verb — ``add_dev``, ``add_skill``, ``add_operator`` all raise on an
+every sibling roster create verb — ``add_role``, ``add_skill``, ``add_operator`` all raise on an
 existing slug — and keeps "create" and "transition" as separate verbs. The refusal names the
 transition verb that does work, resolved from the roster type's own live-initial status rather
 than a hard-coded one, so a project that renamed its roster lifecycle is told its own vocabulary.
@@ -81,7 +81,7 @@ async def test_activate_matches_its_sibling_create_verbs_on_a_retired_slug(svc):
     """The behaviour this aligns to: every other roster create verb already refuses an existing
     slug whatever its status. Pinned here so a future 'make it idempotent' change has to face
     all four at once rather than quietly re-splitting activate off from the family."""
-    dev = await svc.add_dev("python")
+    dev = await svc.activate_role(None, from_template="dev", tech="python")
     skill = await svc.add_skill("Some Skill")
     operator = await svc.add_operator("Some Person")
     for item in (dev, skill, operator):
@@ -89,7 +89,7 @@ async def test_activate_matches_its_sibling_create_verbs_on_a_retired_slug(svc):
     await _activated_then_retired(svc, "tech-writer")
 
     with pytest.raises(SquadsError, match="already exists"):
-        await svc.add_dev("python")
+        await svc.activate_role(None, from_template="dev", tech="python")
     with pytest.raises(SquadsError, match="already exists"):
         await svc.add_skill("Some Skill")
     with pytest.raises(SquadsError, match="already exists"):

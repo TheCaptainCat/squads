@@ -316,9 +316,7 @@ _interactions -> squads local
 _itemfile -> _aio top
 _itemfile -> _errors top
 _itemfile -> _models top
-_itemfile -> _roles top
 _itemfile -> _sections top
-_itemfile -> _workflow top
 _memory -> _aio top
 _memory -> _clock top
 _memory -> _errors top
@@ -351,6 +349,7 @@ _overrides -> _aio top
 _overrides -> _errors top
 _overrides -> _interactions top
 _overrides -> _models top
+_overrides -> _paths top
 _overrides -> _rendering top
 _overrides -> _roles local
 _overrides -> _roles top
@@ -410,6 +409,7 @@ _services -> _roles top
 _services -> _sections top
 _services -> _spec_documents top
 _services -> _specload top
+_services -> _specmerge top
 _services -> _transform top
 _services -> _util top
 _services -> _view_remedies top
@@ -592,7 +592,7 @@ _MEASURED = measure(_src())
 @pytest.mark.parametrize(
     ("importer", "imported", "kind"),
     [
-        ("_itemfile", "_roles", "top"),
+        ("_services", "_roles", "top"),
         ("_models", "_clock", "top"),
         ("_backends", "_views", "top"),
         ("_backends", "_interactions", "local"),

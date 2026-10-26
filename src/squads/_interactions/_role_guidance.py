@@ -280,9 +280,9 @@ def item_skill_role_sections(
 
 
 def developer_roles[R: RoleLike](roster: Iterable[R], catalog: RoleCatalogSpec) -> list[R]:
-    """The roles in *roster* that hold a capability the *catalog*'s ``[dev]`` table declares, in
+    """The roles in *roster* that hold a capability the *catalog*'s ``dev`` template declares, in
     roster order — a templated developer and a declared one alike."""
-    developer = set(catalog.dev.capabilities)
+    developer = catalog.developer_capabilities()
     return [r for r in roster if developer.intersection(r.capabilities)]
 
 

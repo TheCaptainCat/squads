@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import check_is_clean_but_for_orphaned_roles
 from squads._itemfile import read_frontmatter
 from squads._sections import replace_frontmatter
 
@@ -131,8 +132,8 @@ async def test_the_marker_leaves_and_every_other_value_stays_across_the_steps(
     assert rebuilt.exit_code == 0, rebuilt.output
     assert _hashes(root) == migrated | {".squads.json": _hashes(root)[".squads.json"]}
     assert _indexed(root) == index_after_first
-    checked = await invoke(["check"])
-    assert checked.exit_code == 0, checked.output
+    orphans = ("dev-agent",) if shape == "no-developer" else ()
+    await check_is_clean_but_for_orphaned_roles(invoke, orphans)
 
 
 async def test_a_developer_file_missing_from_the_index_loses_the_marker_like_any_other(
@@ -179,6 +180,11 @@ async def test_a_sixteen_file_that_still_carries_the_marker_reads_through_tech_a
     path = _roles(root)["ROLE-000002-python-dev.md"]
     text = path.read_text(encoding="utf-8")
     data = read_frontmatter(text=text, source=str(path))
+    data["template"] = "dev"  # the base is chosen by the stored template, never by `is_dev`
+    path.write_text(replace_frontmatter(text, data, source=str(path)), encoding="utf-8")
+    assert (await invoke(["repair"])).exit_code == 0
+    text = path.read_text(encoding="utf-8")
+    data = read_frontmatter(text=text, source=str(path))
     data["is_dev"] = True
     path.write_text(replace_frontmatter(text, data, source=str(path)), encoding="utf-8")
 
@@ -201,7 +207,7 @@ def _remove_role_file(root: Path, slug: str) -> None:
 
 def _empty_dev_table(root: Path) -> None:
     (root / ".overrides" / "roles.toml").write_text(
-        "# squads:override-base:0.15.0\n[dev]\ncapabilities = []\n", encoding="utf-8"
+        "# squads:override-base:0.15.0\n[templates.dev]\ncapabilities = []\n", encoding="utf-8"
     )
 
 
@@ -265,3 +271,44 @@ async def test_a_corpus_with_no_role_named_dev_prints_no_report(tmp_path, monkey
 
     assert result.exit_code == 0, result.output
     assert "hold no developer capability" not in result.output
+
+
+#: (id, slug file, model planted under extra, kept in the file after the run)
+MIRRORED = [
+    ("catalog-role-the-mirror-of-its-model", "ROLE-000001-manager.md", "opus", None),
+    ("catalog-role-a-different-model-is-kept", "ROLE-000001-manager.md", "haiku", "haiku"),
+    ("role-with-a-role-file-and-no-tech", "ROLE-000007-builder.md", "haiku", None),
+    ("developer-keeps-its-model", "ROLE-000002-python-dev.md", "haiku", "haiku"),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "planted", "kept"), [r[1:] for r in MIRRORED], ids=[r[0] for r in MIRRORED]
+)
+async def test_a_mirrored_model_on_a_role_without_tech_is_dropped_only_when_it_is_the_resolved_one(
+    name: str, planted: str, kept: str | None, tmp_path, monkeypatch, invoke
+) -> None:
+    root = tmp_path / "squad"
+    shutil.copytree(_CORPUS / "v0_15_developers", root)
+    path = _roles(root)[name]
+    text = path.read_text(encoding="utf-8")
+    data = read_frontmatter(text=text, source=str(path))
+    extra = dict(data["extra"])  # pyright: ignore[reportUnknownArgumentType]
+    extra["model"] = planted
+    data["extra"] = extra
+    path.write_text(replace_frontmatter(text, data, source=str(path)), encoding="utf-8")
+    monkeypatch.chdir(root)
+
+    result = await invoke(["migrate", "up"])
+
+    assert result.exit_code == 0, result.output
+    assert read_frontmatter(path=_roles(root)[name]).get("model") == kept
+    slug = name.split("-", 2)[2].removesuffix(".md")
+    flat = " ".join(result.output.split())
+    if name.startswith("ROLE-000001") and kept is None:
+        assert f"dropped its stored model '{planted}'" in flat
+    if kept is None:
+        shown = await invoke(["role", slug, "show", "--json"])
+        assert json.loads(shown.output[shown.output.index("{") :])["model"] != "haiku"
+    elif name.startswith("ROLE-000001"):
+        assert "kept its stored model 'haiku'" in " ".join(result.output.split())

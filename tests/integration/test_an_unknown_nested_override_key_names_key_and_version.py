@@ -70,7 +70,7 @@ def _load_catalog(squad_dir: Path) -> None:
 
 
 def _load_playbook(squad_dir: Path) -> None:
-    load_playbook(load_role_catalog(squad_dir=squad_dir), squad_dir=squad_dir, spec=bundled_spec())
+    load_playbook(squad_dir=squad_dir, spec=bundled_spec())
 
 
 #: One row per override document that can carry a nested section, each with the model whose

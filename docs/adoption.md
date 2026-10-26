@@ -312,16 +312,17 @@ squads computes on every read rather than stores:
 
 - the sub-entity roll-up table and each sub-entity block's badge line, from any item file that
   carries them;
-- the keys a role item mirrored from its definition (`full_name`, `mission`, `responsibilities`,
-  `agreements`, `color`, `can_spawn`, `skills`, `is_dev`). A role keeps its `title` (its name),
-  `slug` and `description`, its default-role designation, a developer role's `model` and `tech`,
+- the retired role keys `full_name`, `skills` and `is_dev`. A role keeps its `title` (its name),
+  `slug`, its default-role designation, its stored `model`, a template role's `template` and
+  `tech`, a self-defined role's definition (`job_title`, `description`, `mission` and the rest),
   and any other key.
 
 It also canonicalises any legacy ref encoding it finds, and fills an **empty** body region on a
 role or a generated skill (`squads`, `greeting`, `sq-memory`, `sq-<type>`) with the view tag
 that `sq role <slug> show` / `sq skill <slug> show` render the definition into. That definition
-comes from the role catalog, the bundled templates and your own overrides, so make sure a role you
-defined yourself has its `.overrides/roles/<slug>.toml`. On a corpus that carries any of this, one
+comes from the role's base (its catalog entry, its role template, or the definition it stores) and
+your own overrides, so create a custom role with `sq role add` rather than relying on a role file
+alone. On a corpus that carries any of this, one
 `sq repair` can touch every file you just imported.
 
 **No body that carries prose is touched** — a role or skill body with content in it is left as it

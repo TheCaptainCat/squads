@@ -59,9 +59,9 @@ async def test_a_designation_moved_onto_a_bundled_role_survives_sync_and_repair(
 
 
 async def test_a_designation_moved_onto_a_developer_role_survives_sync_and_repair(project, svc):
-    """The developer shape resolves through a different merge base (``dev_base_from_item``), so
-    it is a second seam, not a second spelling of the first."""
-    dev = await svc.add_dev("rust", name="Priya Rust")
+    """The template shape resolves through a different base (``role_base_from_item``), so it is
+    a second seam, not a second spelling of the first."""
+    dev = await svc.activate_role(None, from_template="dev", tech="rust", name="Priya Rust")
 
     await svc.set_default_role(dev.id)
     assert await _holders(svc) == ["rust-dev"]
@@ -90,7 +90,7 @@ async def test_the_move_clears_the_catalogs_own_holder_which_stores_nothing(svc)
 
 
 async def test_check_stays_clean_across_the_whole_move(svc):
-    dev = await svc.add_dev("rust", name="Priya Rust")
+    dev = await svc.activate_role(None, from_template="dev", tech="rust", name="Priya Rust")
     await svc.set_default_role(dev.id)
     await _reconcile(svc)
     assert await svc.check() == []

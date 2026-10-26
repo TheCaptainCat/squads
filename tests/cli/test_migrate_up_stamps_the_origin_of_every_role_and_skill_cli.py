@@ -151,13 +151,15 @@ async def fresh_squad(tmp_path, monkeypatch, frozen_time, invoke):
     )
     for args in (
         ["dev", "add", "--tech", "rust"],
-        ["role", "activate", "auditor-dev"],
-        ["role", "activate", "analyst"],
+        ["role", "add", "auditor-dev", "--file", str(overrides / "auditor-dev.toml")],
+        ["role", "add", "analyst", "--file", str(overrides / "analyst.toml")],
         ["skill", "add", "Release Runbook", "--desc", "Ship it."],
         ["role", "devops", "status", "Archived"],
     ):
         result = await invoke(args)
         assert result.exit_code == 0, result.output
+    for slug in ("auditor-dev", "analyst"):
+        (overrides / f"{slug}.toml").unlink()
     return paths
 
 

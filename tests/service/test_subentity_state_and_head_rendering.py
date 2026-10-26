@@ -34,8 +34,8 @@ async def test_subentity_state_lives_in_frontmatter_not_body_markers(svc):
 
 
 async def test_assignee_reassign_and_clear_updates_frontmatter_only_no_head_region(svc):
-    await svc.add_dev("python", name="Grace Hopper")
-    await svc.add_dev("rust", name="Alan Turing")
+    await svc.activate_role(None, from_template="dev", tech="python", name="Grace Hopper")
+    await svc.activate_role(None, from_template="dev", tech="rust", name="Alan Turing")
     task = (await create_item(svc, "task", "t")).item
 
     await svc.add_subtask(task.id, "Validate", assignee="python-dev")
@@ -109,7 +109,7 @@ async def test_update_subtask_story_remap_validates_and_clears(svc):
 
 
 async def test_update_applies_several_fields_at_once_and_still_validates_status_and_assignee(svc):
-    await svc.add_dev("python", name="Grace Hopper")
+    await svc.activate_role(None, from_template="dev", tech="python", name="Grace Hopper")
     task = (await create_item(svc, "task", "t")).item
     await svc.add_subtask(task.id, "Old")
 

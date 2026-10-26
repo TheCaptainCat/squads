@@ -310,7 +310,10 @@ async def init(
     roles: str = typer.Option(
         "all",
         "--roles",
-        help="Roles to activate: `all`, `core`, `minimal` or comma-separated slugs.",
+        help=(
+            "Roles to activate: a bundle of the squad's role catalog (bundled: `all`, `core`, "
+            "`minimal`) or comma-separated slugs."
+        ),
     ),
     no_claude: bool = typer.Option(False, "--no-claude", help="Skip Claude Code scaffolding."),
     no_seed_skills: bool = typer.Option(
@@ -354,14 +357,13 @@ async def init(
     # Rule: prompt if (TTY and not --default-names), else skip.
     interactive = _is_tty() and not default_names
 
-    # Collect the full set of role slugs that will be activated.
-    role_defs = resolve_roles(roles) if roles else []
-
     # Build the combined names map: config < flags (flags win).
     # A slug already covered by either source is not asked interactively.
     combined_names: dict[str, str] = {**names_from_config, **names_from_flags}
 
+    sources = common.invocation_sources((root or process_dir()) / squad_dir)
     if interactive:
+        role_defs = resolve_roles(roles, sources.catalog()) if roles else []
         for rdef in role_defs:
             slug = rdef.slug
             if slug in combined_names:
@@ -395,6 +397,7 @@ async def init(
         no_claude=no_claude,
         force=force,
         names=combined_names if combined_names else None,
+        sources=sources,
         _skip_skill_seed=no_seed_skills,
     )
     sp = result.paths
@@ -435,7 +438,10 @@ async def adopt(
     roles: str = typer.Option(
         "all",
         "--roles",
-        help="Roles to activate: `all`, `core`, `minimal` or comma-separated slugs.",
+        help=(
+            "Roles to activate: a bundle of the squad's role catalog (bundled: `all`, `core`, "
+            "`minimal`) or comma-separated slugs."
+        ),
     ),
     no_claude: bool = typer.Option(False, "--no-claude", help="Skip Claude Code scaffolding."),
 ):
