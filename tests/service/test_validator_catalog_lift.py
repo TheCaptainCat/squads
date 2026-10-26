@@ -138,7 +138,7 @@ async def test_agent_registered_flags_a_deregistered_author(svc):
     issues = CATALOG["agent_registered"](ctx)
     assert len(issues) == 1
     assert issues[0].level == "warn" and issues[0].item == task.id
-    assert "author 'manager' is not a registered agent or operator" in issues[0].message
+    assert "author 'manager' is not a registered role or operator" in issues[0].message
 
 
 async def test_agent_registered_is_silent_for_a_registered_author(svc):

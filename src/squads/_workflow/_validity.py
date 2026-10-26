@@ -106,7 +106,7 @@ def check_reachability(
         unreachable = m.states - reachable
         errors.extend(
             f"lifecycle {name!r}: state {s!r} unreachable from initial {m.initial!r}"
-            for s in unreachable
+            for s in sorted(unreachable)
         )
 
 

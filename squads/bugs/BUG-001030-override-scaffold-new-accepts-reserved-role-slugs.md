@@ -3,14 +3,14 @@ id: BUG-1030
 sequence_id: 1030
 type: bug
 title: override scaffold --new accepts reserved role slugs
-status: Open
+status: Verified
 author: qa
 priority: low
 refs:
 - FEAT-980
 - MILE-1051:targets
 created_at: '2026-10-16T08:24:07Z'
-updated_at: '2026-10-16T12:24:16Z'
+updated_at: '2026-10-26T06:46:36Z'
 ---
 <!-- sq:body -->
 ## Observed
@@ -54,4 +54,13 @@ Run the same reserved-slug check that `sq role activate` uses (squads, operator,
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-26T06:45:45Z] `qa` Mara Tester:
+  - Verified on the dev build, against the by-design change (`override scaffold --new` is retired; the reserved-slug refusal lives on role creation, TASK-1153 ST3).
+    - Fresh squad (init --roles minimal). For each of squads, operator, op-foo, op-:
+      - `override scaffold --new <slug>` -> `error: `sq override scaffold --new` is retired: create the role with `sq role add <slug> ...``, rc 1.
+      - `role add <slug> --name "X Y" --job-title j --desc d --mission m` -> `slug 'squads' is reserved for system entries; a role needs another slug` / `'operator' is reserved for the anonymous author` / `'op-foo' is reserved for operators (the 'op-' prefix)`, rc 1.
+      - `role activate <slug> --from dev --tech py` -> same messages, rc 1.
+    - Group verbs: `role add add` and `role add list` refused (`is a verb of sq role`), `role add Archived` refused (slug grammar); `role add show` is accepted, correct because `show` is an addressing verb, not a group verb (group verbs are activate/add/catalog/list).
+    - Control: `role add sre ...` -> added, rc 0. No `.overrides/roles/` directory created by any refused call; `sq check` clean.
+    Moving to Verified. Note: the fixing task TASK-1153 itself is still InReview.
 <!-- sq:discussion:end -->

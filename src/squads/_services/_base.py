@@ -1446,13 +1446,8 @@ class ServiceCore:
     def _is_participant(self, db: SquadsDB, slug: str) -> bool:
         """A slug that can author/be-assigned work: a registered role agent or a human operator.
 
-        Skills are roster types but NOT participants — only role and operator are. This is
-        deliberately **not** the catalog's ``agent_registered`` validator: that one is
-        warn-level (report-only, matching today's ``sq check`` output) and, unlike this
-        stricter create/update gate, treats any roster type — including a skill's slug — as
-        registered. Retiring this in favour of the catalog would silently start accepting a
-        skill as an author at create/update time; kept separate on purpose (flagged on the
-        routing task's handoff).
+        Skills are roster types but NOT participants — only role and operator are. The catalog's
+        ``agent_registered`` validator is warn-level (report-only) but reads the same set.
         """
         return any(
             self.spec.item_is_roster(it.type) and it.type != ROSTER_SKILL and it.slug == slug
@@ -1465,14 +1460,14 @@ class ServiceCore:
             return
         if not self._is_participant(db, author):
             raise SquadsError(
-                f"author {author!r} is not a registered agent or operator — register it first"
+                f"author {author!r} is not a registered role or operator — register it first"
             )
 
     def _check_assignee(self, db: SquadsDB, assignee: str | None) -> None:
         # an assignee is optional, but when set it must name a participant (a role or an operator)
         if assignee and not self._is_participant(db, assignee):
             raise SquadsError(
-                f"assignee {assignee!r} is not a registered agent or operator — register it first"
+                f"assignee {assignee!r} is not a registered role or operator — register it first"
             )
 
     def _badge_field(self, item_type: str, key: str) -> Field | None:

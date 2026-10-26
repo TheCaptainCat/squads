@@ -3,7 +3,7 @@ id: TASK-1146
 sequence_id: 1146
 type: task
 title: Make CLI diagnostics exact and attribute every edit
-status: Draft
+status: Done
 author: tech-lead
 priority: low
 refs:
@@ -19,36 +19,36 @@ description: Lint per-entry errors, broken overrides in diff, message wording, -
 subentities:
 - local_id: ST1
   title: Collect every per-entry shape error in workflow lint
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Name broken overrides in a bare override diff
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Stop the roster gate refusal stating the status twice
-  status: Todo
+  status: Done
 - local_id: ST4
   title: Name skills in the unregistered author and assignee messages
-  status: Todo
+  status: Done
 - local_id: ST5
   title: Print whole type orders as integers in the types table
-  status: Todo
+  status: Done
 - local_id: ST6
   title: Key the add-<kind> --json item file as path
-  status: Todo
+  status: Done
 - local_id: ST7
   title: Take an optional --as on every item-mutating verb
-  status: Todo
+  status: Done
 - local_id: ST8
   title: Let a noted finding move to Deferred without --force
-  status: Todo
+  status: Done
 - local_id: ST9
   title: Redefine reflog v and complete the op table in stability.md
   status: Todo
 - local_id: ST10
   title: State the type_implied mechanism without advising a type drop
-  status: Todo
+  status: Done
 created_at: '2026-10-25T19:56:56Z'
-updated_at: '2026-10-25T22:06:41Z'
+updated_at: '2026-10-26T08:00:31Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -102,6 +102,8 @@ Test: a table in the lint tests with two and three malformed entries across `ite
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-26T07:09:19Z] `python-dev` Elias Python:
+  - Lint now collects every per-entry shape error: _build_spec takes collect=True from lint, entries parse past failures, one sentence per bad field naming entry and key (spec_error_sentences in _specmerge), no pydantic text, shape-specific hint. Load path still refuses on the first. Test: tests/unit/test_workflow_lint_collects_entry_errors.py, falsified with collect=False.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -121,6 +123,8 @@ Test: CLI tests for a squad with only a broken template override, with a broken 
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-26T07:09:22Z] `python-dev` Elias Python:
+  - Bare override diff names every broken override (cause when unreadable, else a pointer to sq override list) and exits 1, matching override list; the no-drift notice prints only when nothing is broken. Tests in test_override_commands_cli.py (broken only, broken plus drifted, none), falsified.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -138,6 +142,8 @@ Test: the gate refusal and the reporter output for the same squad state carry th
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-10-26T07:09:24Z] `python-dev` Elias Python:
+  - preloaded_skill condition text no longer restates the status (all three kinds). Gate and reporter share it. Pinned strings refreshed in test_roster_config_integrity_predicates.py and test_retirement_refuses_a_config_breaking_transition.py, and the docs/roles.md transcript. TASK-717 is still Draft, so this ran ahead of it: whoever lands it must rebase its byte-unchanged guarantee onto the new text.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 
@@ -155,6 +161,8 @@ Test: assert the new text in the check and create paths; refresh the check golde
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-10-26T07:09:27Z] `python-dev` Elias Python:
+  - Check message now reads: not a registered role, skill or operator. Create/update message reads: not a registered role or operator. They differ on purpose: the check set holds skills, the create gate refuses them (docs/stability.md says --as/--author/--assignee take a role or operator only), so one wording cannot be true for both. Tests updated in test_agent_registered_names_roles_and_operators_only, test_validator_catalog_lift, test_create_participant_and_parent_existence_guards, test_operator_lifecycle, test_subentity_state_and_head_rendering, test_check_reports_a_roster_slug_that_breaks_its_grammar.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 
@@ -172,6 +180,8 @@ Test: a CLI test with a whole and a fractional order in an override, asserting b
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
+- [2026-10-26T07:09:29Z] `python-dev` Elias Python:
+  - Types table prints 10 / 25.5 via _order_cell; --json unchanged (golden untouched). Test in test_workflow_types_cli.py, falsified.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
 
@@ -189,6 +199,8 @@ Test: the add-* `--json` tests assert `path` and the absence of `file`; CHANGELO
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
+- [2026-10-26T07:09:31Z] `python-dev` Elias Python:
+  - add-<kind> --json keys the item file as path. No reader of the old key: grep of clients/vscode (src and tests) and src/squads/_tui finds no use of add-story/add-subtask/add-finding output; the client only runs add-subtask without --json in the skew canary. No test read it either. New test_add_kind_json_keys_the_item_file_as_path_cli.py. print_block had no docstring recording the asymmetry, so nothing to edit there. CHANGELOG notes the rename for JSON consumers.
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
 
@@ -221,6 +233,10 @@ Docs and CHANGELOG: the unreleased section notes the new flag; the reflog `actor
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
+- [2026-10-26T07:09:34Z] `python-dev` Elias Python:
+  - Optional --as on: work-item status, update, body, ref add/rm, retype, remove, view add/disable; sub-entity add-<kind>, update, body, remove; roster status (incl. --unlink), body, remove, update, view add/disable, skill ref add/rm, link-role/unlink-role, role set-default. One helper apply_edit_actor in _cli/_common.py, called before any write. Left out: regen (rewrites generated files, not an edit), role add/activate, skill add, operator add, memory/dev/board (create or own-slug verbs), repair/renumber/migrate/sync (system by rule). Notes: view add/disable write no reflog line, so only the option is checked there; role body is refused for every role (view-rendered), so no row. Table test: tests/cli/test_every_item_edit_verb_takes_an_optional_as_cli.py (as, system default, refusals of unknown/system/empty with nothing written, --unlink attributes the ref and status lines); mutation-checked. Shared-flag help table gained the new wording. docs/workflow.md actor row and docs/roles.md unlink text updated; CHANGELOG entry.
+- [2026-10-26T07:23:45Z] `op-pierre` Pierre Chat:
+  - Confirmed: --as stays optional on the edit verbs; comment keeps its required --as.
 <!-- sq:subtask:ST7:discussion:end -->
 <!-- sq:subtask:ST7:end -->
 
@@ -242,6 +258,8 @@ Docs and CHANGELOG: the unreleased section notes the new transition. In `docs/wo
 #### Discussion
 
 <!-- sq:subtask:ST8:discussion -->
+- [2026-10-26T07:09:36Z] `python-dev` Elias Python:
+  - Noted = ["Deferred"] added to the bundled finding lifecycle. A redeclared Open list without Noted would have failed lint (Noted unreachable), so check_reachability now ignores a state nothing leads to, and what only it leads to; a loop of entered states is still reported. Side effect to know: an override redeclaring Open now has Noted and Deferred in its machine as dormant states (edge refused without --force, and force can now land on them); test_an_override_redeclaring_open... updated. This repo override needs nothing. Refreshed: tests/goldens/workflow_lifecycles.json, templates_manifest.json and content_store.json (gen_template_manifest, then seed_content_store --rebuild dropped one stale blob); no rendered skill or cheatsheet golden changed. docs/workflow.md transition block and sentence updated; CHANGELOG entry. Tests in test_a_deferred_finding_names_the_item_that_carries_the_work.py and test_lifecycle_reachability_lint_cli.py.
 <!-- sq:subtask:ST8:discussion:end -->
 <!-- sq:subtask:ST8:end -->
 
@@ -288,6 +306,8 @@ Reword both to the mechanism: the skill stays implied for as long as the named t
 #### Discussion
 
 <!-- sq:subtask:ST10:discussion -->
+- [2026-10-26T07:09:38Z] `python-dev` Elias Python:
+  - type_implied remedy and removal_remedy now state the mechanism (stays implied while the type is declared; can retire or be removed once no declared type implies it); no [selected], no drop advice; code comment removed. New test_type_implied_skill_refusals_state_the_mechanism.py over retirement refusal, check reporter and removal refusal; old wording grep across tests/ and docs/ found only the pinned strings updated in ST3.
 <!-- sq:subtask:ST10:discussion:end -->
 <!-- sq:subtask:ST10:end -->
 <!-- sq:subtasks:end -->
@@ -302,4 +322,8 @@ Reword both to the mechanism: the skill stays implied for as long as the named t
     ST7 takes all the verbs Robert listed, not status only: one shared resolve-and-set helper, and a status-only cut would split the sub-entity `update` verb. The reasoning is in ST7's body.
 - [2026-10-25T22:06:41Z] `tech-lead` Olivia Lead:
   - Added ST10 from the ADR-697 audit note: the type_implied remedy texts advise dropping the type via [selected], which ADR-697 section 8 rules out. The ADR is right; the code changes. Runs after ST3.
+- [2026-10-26T07:09:48Z] `python-dev` Elias Python:
+  - ST1-ST8 and ST10 done; ST9 (reflog v and op table) is the tech writer. Gates: pyright, ruff check and format clean; pytest tests/meta, unit, service, integration, cli, tui all green at -n 4. Details are in each subtask comment. Flags: ST3 ran before TASK-717 (still Draft); ST4 uses two wordings because the check and create sets differ; ST8 loosened the reachability lint for entry-less states; ST6 rename has no client reader. @tech-writer ST9 is yours; docs/workflow.md was touched only in the finding-closing section, the reflog actor row and the Noted override paragraph.
+- [2026-10-26T08:00:31Z] `reviewer` Paul Reviewer:
+  - ST9: the op table in docs/stability.md also needs the new view op (delta: view, state = enabled or disabled), added by the REV-1160 F3 fix; tracked as REV-1160 F8. @tech-writer
 <!-- sq:discussion:end -->

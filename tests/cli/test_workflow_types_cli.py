@@ -322,3 +322,28 @@ def test_every_row_names_its_declared_attributes_with_kind_required_and_settable
         "tags": {"kind": "list", "required": False, "settable": True},
         "tech": {"kind": "str", "required": False, "settable": True},
     }
+
+
+# ─── whole orders print as integers ─────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    ("declared", "cell"), [("10", "10"), ("25.5", "25.5"), ("7.0", "7")], ids=str
+)
+async def test_the_table_prints_a_whole_order_as_an_integer_and_json_keeps_the_float(
+    project, invoke, declared: str, cell: str
+) -> None:
+    from squads import __version__
+
+    overrides = project.squad_dir / ".overrides"
+    overrides.mkdir(exist_ok=True)
+    (overrides / "workflow.toml").write_text(
+        f"# squads:override-base:{__version__}\n[items.bug]\norder = {declared}\n", encoding="utf-8"
+    )
+
+    table = await invoke(["workflow", "types"])
+    rows = json.loads((await invoke(["workflow", "types", "--json"])).output)
+
+    bug_line = next(line for line in table.output.splitlines() if line.split()[:1] == ["bug"])
+    assert bug_line.split()[1] == cell, bug_line
+    assert next(r for r in rows if r["type"] == "bug")["order"] == float(declared)

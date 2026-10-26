@@ -92,6 +92,7 @@ class ViewsMixin(ServiceCore):
                 addr=addr,
                 force=(name, False),
             )
+            self.store.log("view", item.id, {"view": name, "state": "enabled"})
             return sections.replace_section(text, markers.BODY, new_inner), True
 
         _, inserted = await self._locked_section_edit(item_id, mutate)
@@ -139,6 +140,7 @@ class ViewsMixin(ServiceCore):
                 addr=addr,
                 force=(name, True),
             )
+            self.store.log("view", item.id, {"view": name, "state": "disabled"})
             return sections.replace_section(text, markers.BODY, new_inner), True
 
         _, disabled = await self._locked_section_edit(item_id, mutate)

@@ -277,9 +277,8 @@ def check_preloaded_skill(
                     clause=PRELOADED_SKILL,
                     entry=skill.id,
                     message=(
-                        f"not live (status {skill.status!r}) but every role preloads it "
-                        "unconditionally — a permanent floor of the roster contract; no "
-                        "remedy exists"
+                        "not live but every role preloads it unconditionally — a permanent "
+                        "floor of the roster contract; no remedy exists"
                     ),
                     remedy=None,  # no code path from which one could ever be offered
                     kind=ALWAYS_ON_FLOOR,
@@ -316,8 +315,7 @@ def check_preloaded_skill(
                     clause=PRELOADED_SKILL,
                     entry=skill.id,
                     message=(
-                        f"not live (status {skill.status!r}) but still scoped to live "
-                        f"role(s): {_cap_and_join(scoped_roles)}"
+                        f"not live but still scoped to live role(s): {_cap_and_join(scoped_roles)}"
                     ),
                     remedy="pass --unlink, or run `sq skill <addr> unlink-role <role>` first",
                     kind=SCOPED_EDGE,
@@ -332,20 +330,18 @@ def check_preloaded_skill(
                     clause=PRELOADED_SKILL,
                     entry=skill.id,
                     message=(
-                        f"not live (status {skill.status!r}) but implied by declared "
-                        f"type(s): {_cap_and_join(implicating_types)}"
+                        f"not live but implied by declared type(s): "
+                        f"{_cap_and_join(implicating_types)}"
                     ),
-                    # item_types_for_role is threaded the active spec, so dropping the
-                    # implicating type genuinely un-implies the skill — the remedy names
-                    # that action rather than disclaiming it.
                     remedy=(
-                        "make the skill live again, or drop the implicating type via "
-                        "`[selected]` in .overrides/workflow.toml"
+                        "make the skill live again; it stays implied for as long as those "
+                        "types are declared, and can retire once no declared type implies it"
                     ),
                     kind=TYPE_IMPLIED,
                     dependency=f"implied by declared type(s): {_cap_and_join(implicating_types)}",
                     removal_remedy=(
-                        "drop the type via `[selected]` in .overrides/workflow.toml first"
+                        "it stays implied for as long as those types are declared, and can "
+                        "be removed once no declared type implies it"
                     ),
                 )
             )

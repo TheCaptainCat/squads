@@ -334,6 +334,27 @@ def _absent_body_region_issues(
     ]
 
 
+def _blocks_outside_container_issues(text: str, item_type: str, spec: WorkflowSpec) -> list[str]:
+    """One warning per sub-entity block whose opening marker sits outside the item's container
+    (or in a file with no container at all). A half-present container is left to
+    :func:`_marker_issues`."""
+    kind = spec.item_subentity_kind(item_type)
+    if kind is None:
+        return []
+    plural = spec.subentity_plural(kind)
+    opened, closed = markers.open_marker(plural), markers.close_marker(plural)
+    start, end = text.find(opened), text.find(closed)
+    if (start == -1) != (end == -1):
+        return []
+    prefix = f"{markers.PREFIX}{kind}:"
+    return [
+        f"{kind} block {tag.removeprefix(prefix)} sits outside its {plural!r} container "
+        f"-- move it between `{opened}` and `{closed}`"
+        for tag, at, _ in sections.iter_marker_spans(text)
+        if tag.startswith(prefix) and tag.count(":") == 2 and not (start != -1 and start < at < end)
+    ]
+
+
 def _drift_direction(item: Item, fdata: dict[str, Any]) -> str | None:
     """Which side is ahead when the two ``updated_at`` values order the pair:
     ``"markdown"`` is the expected, repairable skew; ``"index"`` means the ordering rule was
@@ -1066,6 +1087,10 @@ class CheckMixin(ServiceCore):
             issues += [
                 CheckIssue("error", md.name, msg, "body_regions_present")
                 for msg in _absent_body_region_issues(text, item_type, check_slug, self.spec)
+            ]
+            issues += [
+                CheckIssue("warn", md.name, msg, "block_in_container")
+                for msg in _blocks_outside_container_issues(text, item_type, self.spec)
             ]
             if isinstance(record, Unparseable):
                 remedy = await self._skill_remedy(md, item_type, ctx.skills)

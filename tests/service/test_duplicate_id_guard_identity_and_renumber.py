@@ -301,9 +301,9 @@ async def test_check_on_damaged_skills_parses_the_index_and_reads_files_no_more_
     reads: dict[Path, int] = {}
     real_read = _aio.read_text
 
-    async def counting_read(path: Path) -> str:
+    async def counting_read(path: Path, **kwargs: bool) -> str:
         reads[path] = reads.get(path, 0) + 1
-        return await real_read(path)
+        return await real_read(path, **kwargs)
 
     monkeypatch.setattr(SquadsDB, "model_validate_json", classmethod(counted))
     monkeypatch.setattr(_aio, "read_text", counting_read)
@@ -337,9 +337,9 @@ async def test_a_write_and_a_show_read_a_bounded_number_of_files(svc, monkeypatc
     reads: list[Path] = []
     real_read = _aio.read_text
 
-    async def counting_read(path: Path) -> str:
+    async def counting_read(path: Path, **kwargs: bool) -> str:
         reads.append(path)
-        return await real_read(path)
+        return await real_read(path, **kwargs)
 
     monkeypatch.setattr(_aio, "read_text", counting_read)
 

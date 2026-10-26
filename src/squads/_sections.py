@@ -4,6 +4,8 @@ All section edits go through here so we only ever touch content *between* a sect
 close markers, leaving the marker lines and surrounding agent-authored prose intact.
 """
 
+import bisect
+import difflib
 import re
 from collections.abc import Callable
 from typing import Any, cast
@@ -237,6 +239,140 @@ def split_lines(text: str, *, keepends: bool = False) -> list[str]:
     item file (``str.splitlines`` also breaks at U+2028, form feeds and others)."""
     lines = _LINE_RE.findall(text)
     return lines if keepends else [ln.rstrip("\r\n") for ln in lines]
+
+
+def dominant_eol(text: str) -> str:
+    """The line ending most of *text*'s lines use: CRLF when strictly more lines end in CRLF
+    than in a bare LF, else LF."""
+    crlf = text.count("\r\n")
+    return "\r\n" if crlf > text.count("\n") - crlf else "\n"
+
+
+#: Largest old x new middle (in lines) :func:`conform_line_endings` aligns with a full diff; a
+#: larger edit span is aligned greedily, in linear time.
+_FULL_DIFF_CELLS = 4_000_000
+
+
+_RUN_FIELDS = 5
+
+
+def _unique_anchors(
+    old: list[str], new: list[str], o1: int, o2: int, n1: int, n2: int
+) -> list[tuple[int, int]]:
+    """Index pairs of lines that occur exactly once in ``old[o1:o2]`` and in ``new[n1:n2]``,
+    reduced to the longest run that keeps both indices increasing."""
+    seen_old: dict[str, int | None] = {}
+    for i in range(o1, o2):
+        seen_old[old[i]] = None if old[i] in seen_old else i
+    seen_new: dict[str, int | None] = {}
+    for j in range(n1, n2):
+        seen_new[new[j]] = None if new[j] in seen_new else j
+    pairs = [
+        (i, j)
+        for line, j in seen_new.items()
+        if j is not None and (i := seen_old.get(line)) is not None
+    ]
+    pairs.sort(key=lambda pair: pair[1])
+    tails: list[int] = []  # smallest tail old-index of an increasing run of each length
+    link: list[int] = []  # index of the previous pair in the run ending at each pair
+    ends: list[int] = []  # pair index ending the run of each length
+    for k, (i, _j) in enumerate(pairs):
+        at = bisect.bisect_left(tails, i)
+        if at == len(tails):
+            tails.append(i)
+            ends.append(k)
+        else:
+            tails[at] = i
+            ends[at] = k
+        link.append(ends[at - 1] if at else -1)
+    run: list[tuple[int, int]] = []
+    k = ends[-1] if ends else -1
+    while k != -1:
+        run.append(pairs[k])
+        k = link[k]
+    return run[::-1]
+
+
+def _align(old: list[str], new: list[str]) -> list[tuple[bool, int, int, int, int]]:
+    """``(same, i1, i2, j1, j2)`` runs that cover *old* and *new* in order, where a ``same`` run
+    holds equal lines. Equal head and tail lines of a span are matched first; the rest is diffed
+    in full when small, and otherwise split at the lines unique to both sides (the longest
+    in-order run of them) and each part aligned in turn. A part with no such line is left
+    unmatched."""
+    runs: list[tuple[bool, int, int, int, int]] = []
+    # Spans still to align, and runs already settled, popped in file order.
+    todo: list[tuple[int, int, int, int] | tuple[bool, int, int, int, int]] = [
+        (0, len(old), 0, len(new))
+    ]
+    while todo:
+        task = todo.pop()
+        if len(task) == _RUN_FIELDS:
+            runs.append(task)
+            continue
+        o1, o2, n1, n2 = task
+        head = 0
+        while o1 + head < o2 and n1 + head < n2 and old[o1 + head] == new[n1 + head]:
+            head += 1
+        tail = 0
+        while (
+            o2 - tail > o1 + head
+            and n2 - tail > n1 + head
+            and old[o2 - 1 - tail] == new[n2 - 1 - tail]
+        ):
+            tail += 1
+        mo1, mo2, mn1, mn2 = o1 + head, o2 - tail, n1 + head, n2 - tail
+        ahead: list[tuple[int, int, int, int] | tuple[bool, int, int, int, int]] = []
+        if head:
+            ahead.append((True, o1, mo1, n1, mn1))
+        if mo2 > mo1 or mn2 > mn1:
+            if (mo2 - mo1) * (mn2 - mn1) <= _FULL_DIFF_CELLS:
+                matcher = difflib.SequenceMatcher(None, old[mo1:mo2], new[mn1:mn2], autojunk=False)
+                ahead += [
+                    (tag == "equal", mo1 + i1, mo1 + i2, mn1 + j1, mn1 + j2)
+                    for tag, i1, i2, j1, j2 in matcher.get_opcodes()
+                ]
+            else:
+                i_at, j_at = mo1, mn1
+                anchors = _unique_anchors(old, new, mo1, mo2, mn1, mn2)
+                for i, j in [*anchors, (mo2, mn2)]:
+                    if i > i_at or j > j_at:
+                        ahead.append((i_at, i, j_at, j) if anchors else (False, i_at, i, j_at, j))
+                    if i < mo2:
+                        ahead.append((True, i, i + 1, j, j + 1))
+                    i_at, j_at = i + 1, j + 1
+        if tail:
+            ahead.append((True, mo2, o2, mn2, n2))
+        todo.extend(reversed(ahead))
+    return runs
+
+
+def conform_line_endings(old: str, new: str) -> str:
+    """*new* with every line it shares with *old*, or edits in place, keeping *old*'s ending, and
+    every line it inserts or reflows ending in *old*'s dominant ending.
+
+    A write that edits one region then leaves the rest of the file byte for byte, and what it
+    adds matches the file. An *old* with no CR comes back with *new* unchanged.
+    """
+    if "\r" not in old:
+        return new
+    dominant = dominant_eol(old)
+    old_lines, new_lines = split_lines(old, keepends=True), split_lines(new, keepends=True)
+
+    def content(line: str) -> str:
+        return line.rstrip("\r\n")
+
+    out: list[str] = []
+    for _same, i1, i2, j1, j2 in _align(
+        [content(ln) for ln in old_lines], [content(ln) for ln in new_lines]
+    ):
+        # Lines the write left alone, and lines it edited in place, keep their own ending.
+        paired = i2 - i1 == j2 - j1
+        for k, new_line in enumerate(new_lines[j1:j2]):
+            body, has_ending = content(new_line), new_line != content(new_line)
+            old_line = old_lines[i1 + k] if paired else ""
+            kept = old_line[len(content(old_line)) :] or dominant
+            out.append(body + (kept if has_ending else ""))
+    return "".join(out)
 
 
 def region_lines(text: str, tag: str) -> tuple[int, int] | None:

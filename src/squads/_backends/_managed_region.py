@@ -14,6 +14,7 @@ file-specific "create if missing" header text.
 from pathlib import Path
 
 from squads import _aio
+from squads._sections import conform_line_endings
 
 START = "<!-- squads:start -->"
 END = "<!-- squads:end -->"
@@ -50,19 +51,19 @@ async def inject(target: Path, section_body: str, *, missing_header: str) -> boo
     if not await _aio.path_exists(target):
         await _aio.atomic_write_text(target, f"{missing_header}{block}")
         return False
-    text = await _aio.read_text(target)
+    text = await _aio.read_text(target, verbatim=True)
     si, ei = text.find(START), text.find(END)
     if si != -1 and ei != -1:
         new = text[:si] + block.rstrip("\n") + text[ei + len(END) :]
-        await _aio.atomic_write_text(target, new)
+        await _aio.atomic_write_text(target, conform_line_endings(text, new))
         return False
     if text.strip():
         # Real pre-existing hand-written content, no markers yet: lead with the managed
         # block (insert at the top) rather than appending below it.
         sep = "" if text.startswith("\n") else "\n"
-        await _aio.atomic_write_text(target, f"{block}{sep}{text}")
+        await _aio.atomic_write_text(target, conform_line_endings(text, f"{block}{sep}{text}"))
         return True
     # Blank/whitespace-only file: nothing to contradict — append quietly, as before.
     sep = "" if text.endswith("\n") else "\n"
-    await _aio.atomic_write_text(target, f"{text}{sep}\n{block}")
+    await _aio.atomic_write_text(target, conform_line_endings(text, f"{text}{sep}\n{block}"))
     return False

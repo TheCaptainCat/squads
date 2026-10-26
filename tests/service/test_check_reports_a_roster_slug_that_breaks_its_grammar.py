@@ -259,7 +259,9 @@ async def test_an_operator_an_older_release_wrote_without_a_stored_slug_is_a_par
     assert await svc.author("op-ann") == "Ann Two"
     issues = await svc.check()
     assert [
-        i for i in issues if i.item != legacy.id and "is not a registered agent" in i.message
+        i
+        for i in issues
+        if i.item != legacy.id and "is not a registered role or operator" in i.message
     ] == []
 
 

@@ -289,10 +289,12 @@ async def activate_with_template(
     pronouns: str | None,
     from_template: str | None,
     tech: str | None,
+    as_: str | None = None,
 ) -> None:
     """Activate a role and print the result: the one command body `sq role activate` and
     `sq dev add` share."""
     svc = get_service()
+    await common.apply_edit_actor(as_, svc)
     item = await svc.activate_role(
         slug, name=name, model=model, pronouns=pronouns, from_template=from_template, tech=tech
     )
@@ -323,6 +325,7 @@ async def activate_role(
     tech: str | None = common.tech_option(),
     model: str | None = common.model_option(),
     pronouns: str | None = common.pronouns_option(),
+    as_: str | None = common.edit_as_option(),
 ) -> None:
     """Activate a catalog role, or build one from a template with `--from`.
 
@@ -331,7 +334,13 @@ async def activate_role(
     `sq role <slug> status <status>`.
     """
     await activate_with_template(
-        slug, name=name, model=model, pronouns=pronouns, from_template=from_template, tech=tech
+        slug,
+        name=name,
+        model=model,
+        pronouns=pronouns,
+        from_template=from_template,
+        tech=tech,
+        as_=as_,
     )
 
 
@@ -349,6 +358,7 @@ async def add_role(  # noqa: PLR0913 — a flag per definition field
     ),
     model: str | None = common.model_option(),
     pronouns: str | None = common.pronouns_option(),
+    as_: str | None = common.edit_as_option(),
 ) -> None:
     """Create a role that defines itself: its definition is stored on the role.
 
@@ -357,6 +367,7 @@ async def add_role(  # noqa: PLR0913 — a flag per definition field
     activate`.
     """
     svc = get_service()
+    await common.apply_edit_actor(as_, svc)
     definition = read_role_toml(file) if file is not None else None
     item = await svc.add_role(
         slug,
@@ -593,7 +604,7 @@ async def regen_role(ctx: typer.Context) -> None:
 
 @_addr.command("set-default")
 @common.command
-async def set_default_role(ctx: typer.Context) -> None:
+async def set_default_role(ctx: typer.Context, as_: str | None = common.edit_as_option()) -> None:
     """Make this role the default role, clearing every other holder.
 
     A role that is not live is refused, and naming the current holder changes
@@ -605,6 +616,7 @@ async def set_default_role(ctx: typer.Context) -> None:
     """
     item_id = _require_id(ctx)
     svc = get_service()
+    await common.apply_edit_actor(as_, svc)
     result = await svc.set_default_role(item_id)
     if not result.changed:
         console.print(f"{result.item.id} already the default — no change")
@@ -646,6 +658,7 @@ async def update_role(  # noqa: PLR0913 — a flag per role field
         help="`yes` or `no`: may the role spawn agents (a role that defines itself only).",
     ),
     file: Path | None = common.file_option(common.ROLE_DELTA_FILE_HELP),
+    as_: str | None = common.edit_as_option(),
 ) -> None:
     """Edit a role's name, pronouns, model, or a definition it holds itself.
 
@@ -669,6 +682,7 @@ async def update_role(  # noqa: PLR0913 — a flag per role field
     )
     item_id = _require_id(ctx)
     svc = get_service()
+    await common.apply_edit_actor(as_, svc)
     result = await svc.update_role(
         item_id,
         title=title,
@@ -725,10 +739,13 @@ _view_app = typer.Typer(
 async def role_view_add(
     ctx: typer.Context,
     name: str = typer.Argument(..., help="Declared view name (see `sq workflow views`)."),
+    as_: str | None = common.edit_as_option(),
 ) -> None:
     """Show a declared view in the role's body, or re-enable it."""
     item_id = _require_id(ctx)
-    placed = await get_service().add_view(item_id, name)
+    svc = get_service()
+    await common.apply_edit_actor(as_, svc)
+    placed = await svc.add_view(item_id, name)
     if placed:
         console.print(f"{item_id}: view {e(name)} placed in sq:body")
     else:
@@ -742,10 +759,12 @@ async def role_view_disable(
     name: str = typer.Argument(
         ..., help="View name; it need not be declared, so a dropped view can be turned off."
     ),
+    as_: str | None = common.edit_as_option(),
 ) -> None:
     """Stop showing a view in the role's body; its tag stays, disabled."""
     item_id = _require_id(ctx)
     svc = get_service()
+    await common.apply_edit_actor(as_, svc)
     was_present = await svc.view_tag_present(item_id, name)
     disabled = await svc.disable_view(item_id, name)
     console.print(

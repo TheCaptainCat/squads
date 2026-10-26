@@ -218,8 +218,9 @@ def place_view_tags(
     removes or moves a tag on its own. A tag mirrors whatever separator already sat at its
     landing spot (never manufacturing a blank line), which is what makes stripping it back out
     the exact inverse; conflicting states raise :class:`ConflictingViewStateError`, and *force*
-    is how ``view add``/``view disable`` settle that without tripping it."""
-    prose, existing = _region_view_tags(region)
+    is how ``view add``/``view disable`` settle that without tripping it. The result has LF line
+    endings whatever *region* had; the write seam gives the file's own back."""
+    prose, existing = _region_view_tags(region.replace("\r\n", "\n"))
     prose = prose.strip("\n")
     if edit is not None:
         prose = (f"{prose}\n\n{edit}" if prose else edit) if append else edit

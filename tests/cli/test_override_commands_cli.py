@@ -321,3 +321,41 @@ async def test_scaffold_and_diff_help_distinguish_role_from_roles_catalog(projec
     diff_help = await invoke(["override", "diff", "--help"])
     assert diff_help.exit_code == 0, diff_help.output
     assert "--roles-catalog" in diff_help.output
+
+
+def _drifted_template(squad_dir: Path, name: str) -> None:
+    target = squad_dir / ".overrides" / "templates" / name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(_valid_task_override(), encoding="utf-8")  # unstamped reads as drifted
+
+
+_BARE_DIFF_ROWS = {
+    "only a broken template": (["broken"], 1, ["items/task.md.j2", "sq override list"], False),
+    "a broken and a drifted one": (
+        ["broken", "drifted"],
+        1,
+        ["items/task.md.j2", "sq override list"],
+        True,
+    ),
+    "none": ([], 0, ["no drifted overrides found"], False),
+}
+
+
+@pytest.mark.parametrize("row", list(_BARE_DIFF_ROWS))
+async def test_a_bare_diff_names_every_broken_override(project, invoke, row: str) -> None:
+    placed, exit_code, expected, shows_drift = _BARE_DIFF_ROWS[row]
+    if "broken" in placed:
+        _place_template(
+            project.squad_dir, "items/task.md.j2", _broken_task_override(), stamp=__version__
+        )
+    if "drifted" in placed:
+        _drifted_template(project.squad_dir, "items/bug.md.j2")
+
+    result = await invoke(["override", "diff"])
+
+    out = " ".join(result.output.split())
+    assert result.exit_code == exit_code, out
+    for fragment in expected:
+        assert fragment in out, out
+    assert ("no drifted overrides found" in out) == (row == "none"), out
+    assert ("items/bug.md.j2" in out) == shows_drift, out

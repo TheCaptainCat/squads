@@ -7,6 +7,8 @@ kind's off-vocab completion status exits 1 too.
 
 import pytest
 
+from squads import __version__
+
 pytestmark = pytest.mark.anyio
 
 
@@ -120,3 +122,80 @@ local_prefix = "AC"
     result = await invoke(["workflow", "lint"])
     assert result.exit_code == 1
     assert "action" in result.output
+
+
+async def test_an_override_that_redeclares_open_without_noted_still_lints_clean_and_loads(
+    project, invoke
+):
+    _write_override(
+        project.squad_dir,
+        f"""# squads:override-base:{__version__}
+[lifecycles.finding.transitions]
+Open = ["Fixed", "WontFix"]
+""",
+    )
+
+    lint = await invoke(["workflow", "lint"])
+    assert lint.exit_code == 0, lint.output
+    assert "unreachable" not in lint.output
+    assert (await invoke(["workflow", "lifecycles"])).exit_code == 0
+
+
+_OWN_STATE_ROWS = {
+    "an own state whose entry edge was forgotten": """
+[statuses.Parked]
+[lifecycles.work.transitions]
+Parked = ["Ready"]
+""",
+    "a chain from an own entry-less state": """
+[statuses.Parked]
+[statuses.Shelved]
+[lifecycles.work.transitions]
+Parked = ["Shelved"]
+Shelved = ["Ready"]
+""",
+    "an orphan of a new lifecycle": """
+[statuses.Triage]
+[statuses.Escalated]
+[statuses.Resolved]
+role = "done"
+[lifecycles.incident_lc]
+initial = "Triage"
+[lifecycles.incident_lc.transitions]
+Triage = ["Resolved"]
+Escalated = ["Resolved"]
+Resolved = []
+[items.incident]
+prefix = "INC"
+folder = "incidents"
+lifecycle = "incident_lc"
+""",
+}
+
+
+@pytest.mark.parametrize("row", list(_OWN_STATE_ROWS))
+async def test_an_adopters_own_unreachable_state_is_still_reported(project, invoke, row: str):
+    _write_override(
+        project.squad_dir, f"# squads:override-base:{__version__}\n{_OWN_STATE_ROWS[row]}"
+    )
+
+    result = await invoke(["workflow", "lint"])
+
+    assert result.exit_code == 1, result.output
+    assert "unreachable" in result.output
+
+
+async def test_an_inherited_state_the_override_stops_entering_lints_clean(project, invoke):
+    _write_override(
+        project.squad_dir,
+        f"""# squads:override-base:{__version__}
+[lifecycles.work.transitions]
+Ready = ["InProgress", "Cancelled"]
+InProgress = ["InReview", "Done", "Cancelled"]
+InReview = ["InProgress", "Done", "Cancelled"]
+""",
+    )
+
+    result = await invoke(["workflow", "lint"])
+
+    assert result.exit_code == 0, result.output

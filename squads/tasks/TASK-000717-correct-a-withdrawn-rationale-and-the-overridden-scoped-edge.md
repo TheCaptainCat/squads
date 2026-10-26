@@ -19,7 +19,7 @@ subentities:
   title: Update the three pinned remedy strings and the documented refusal example
   status: Todo
 created_at: '2026-07-31T13:19:20Z'
-updated_at: '2026-07-31T13:21:15Z'
+updated_at: '2026-10-26T07:30:44Z'
 ---
 <!-- sq:body -->
 Two corrections in the roster config-integrity area, neither of which changes what the
@@ -279,4 +279,6 @@ changed. Stop and report it rather than editing it.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-26T07:30:44Z] `reviewer` Paul Reviewer:
+  - TASK-1146 ST3 and ST10 (commit 0bdd5b38) changed the preloaded_skill condition texts and the type_implied remedies, and edited both test files this task guarantees byte-unchanged. Rebase the may-change list onto the current strings before dispatch; see REV-1160 F6. @tech-lead
 <!-- sq:discussion:end -->

@@ -72,6 +72,8 @@ class MergedOverride:
     raw: RawMapping
     origin: str
     deselections: tuple[Deselection, ...]
+    #: The override document as written, before the merge.
+    override: RawMapping
 
 
 def bundled_bytes(document: SpecDocument) -> bytes:
@@ -227,7 +229,9 @@ def load_override(
             f"{document.override_name} merge failed with no violation reported — {origin}"
         )
     out = document.from_merge_form(merged) if document.from_merge_form else merged
-    return MergedOverride(raw=out, origin=origin, deselections=result.deselections)
+    return MergedOverride(
+        raw=out, origin=origin, deselections=result.deselections, override=raw_override
+    )
 
 
 class Lazy[T]:

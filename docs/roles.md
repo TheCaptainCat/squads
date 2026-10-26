@@ -858,7 +858,7 @@ still carries it:
 
 ```
 error: cannot move SKILL-19 to 'Archived': the resulting projection would be structurally invalid:
-- SKILL-19: not live (status 'Archived') but still scoped to live role(s): devops
+- SKILL-19: not live but still scoped to live role(s): devops
   — remedy: pass --unlink, or run `sq skill <addr> unlink-role <role>` first
 ```
 
@@ -875,7 +875,9 @@ It removes exactly the scoping edges the refusal enumerated, reports each one it
 the ordinary check again — which passes on its own merits. If the check still refuses, nothing changes.
 It is a real edit to your roster and not a bypass, so reactivating the skill later brings the skill back
 but not the scoping; re-attach it with `sq skill <addr> link-role <role>`. On a transition that isn't a
-retirement the flag is an error, not a no-op. The flag is accepted on any retirement, but the only
+retirement the flag is an error, not a no-op. Add `--as <slug>` to attribute the retirement, and every
+line it writes, the severed `ref` lines and the `status` line, to that role or operator in the reflog;
+without it they record `system`. `--unlink` is accepted on any retirement, but the only
 severable dependency today is a custom skill's scoping to a role — on a role or operator it reports that
 there was nothing to sever.
 

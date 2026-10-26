@@ -387,7 +387,7 @@
     "_rendering/templates/working_language.md.j2": "cf5ce9439d3f9d569882868708e110990349dcd304ef33e6f9191bad0a643316",
     "_specs/playbook.toml": "42fda9118c5d46fa344fdcd024df1bf3bc7e0701fef79069df3bdb5a4a483231",
     "_specs/roles.toml": "4915028527ed18455e35866cae12e27165825c13aa1a00e570e10c0cecce1011",
-    "_specs/workflow.toml": "263a893c13b26e761c175c85b5e24a5e18947090f0620fef0f7451de7202d095"
+    "_specs/workflow.toml": "633b2d904718ecc1f02d88d6d74b61090dab34b46b7f1fda5572315ac2f4d5b4"
   },
   "0.4.0": {
     "_rendering/templates/agents/greeting_skill.md.j2": "ead65be126550ae3826abd2a0f401d3c911e336f41500e97762eab5bd024e4dc",

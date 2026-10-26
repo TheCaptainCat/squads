@@ -14,6 +14,7 @@ BINDING_RULES: dict[str, str] = {
     "view_tag_in_region": "raw-text scan",
     "seeded_view_resolves": "raw-text scan",
     "body_regions_present": "raw-text scan",
+    "block_in_container": "raw-text scan",
     "file_readable": "file load",
     "frontmatter_parses": "file load",
     "id_present": "file load",

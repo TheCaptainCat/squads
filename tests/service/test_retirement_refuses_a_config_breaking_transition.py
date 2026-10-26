@@ -155,7 +155,7 @@ async def test_preloaded_skill_refuses_retiring_a_type_implied_skill_and_names_a
     assert "implied by declared type" in message
     assert "task" in message
     assert "make the skill live again" in message
-    assert "drop the implicating type" in message
+    assert "stays implied for as long as those types are declared" in message
 
 
 async def test_preloaded_skill_refuses_retiring_the_always_on_skill_with_no_remedy_offered(svc):
@@ -516,7 +516,7 @@ async def test_reactivation_scoped_edge_refusal_does_not_offer_the_meaningless_u
     assert message == (
         f"cannot move {role.id} to 'Active': the resulting projection would be structurally "
         "invalid:\n"
-        f"- {skill.id}: not live (status 'Archived') but still scoped to live role(s): qa "
+        f"- {skill.id}: not live but still scoped to live role(s): qa "
         "— remedy: sever the edge with `sq skill <addr> unlink-role <role>`, or reactivate "
         "the skill"
     )
@@ -583,7 +583,7 @@ async def test_scoped_edge_composed_message_names_the_condition_and_the_remedy_e
     assert message == (
         f"cannot move {skill.id} to 'Archived': the resulting projection would be structurally "
         "invalid:\n"
-        f"- {skill.id}: not live (status 'Archived') but still scoped to live role(s): qa "
+        f"- {skill.id}: not live but still scoped to live role(s): qa "
         "— remedy: pass --unlink, or run `sq skill <addr> unlink-role <role>` first"
     )
     assert message.count("remedy") == 1
@@ -602,9 +602,9 @@ async def test_type_implied_composed_message_names_the_condition_and_the_remedy_
     assert message == (
         f"cannot move {skill.id} to 'Archived': the resulting projection would be structurally "
         "invalid:\n"
-        f"- {skill.id}: not live (status 'Archived') but implied by declared type(s): "
-        "task — remedy: make the skill live again, or drop the implicating type via "
-        "`[selected]` in .overrides/workflow.toml"
+        f"- {skill.id}: not live but implied by declared type(s): "
+        "task — remedy: make the skill live again; it stays implied for as long as those "
+        "types are declared, and can retire once no declared type implies it"
     )
     assert message.count("remedy") == 1
 
@@ -624,7 +624,7 @@ async def test_always_on_floor_composed_message_states_the_floor_once_with_no_re
     assert message == (
         f"cannot move {squads_skill.id} to 'Archived': the resulting projection would be "
         "structurally invalid:\n"
-        f"- {squads_skill.id}: not live (status 'Archived') but every role preloads it "
+        f"- {squads_skill.id}: not live but every role preloads it "
         "unconditionally — a permanent floor of the roster contract; no remedy exists"
     )
     assert message.count("permanent floor of the roster contract") == 1
