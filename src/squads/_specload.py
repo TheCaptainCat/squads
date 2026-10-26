@@ -1,14 +1,14 @@
 """One load path for the spec documents: the workflow spec, the role catalog and the playbook.
 
 A :class:`SpecDocument` says where a document lives (the packaged file and the project override
-beside it), which top-level keys and ``[selected]`` sections its override may carry, and the exact
+beside it), which top-level keys and ``[selected]`` sections its override may carry, and the
 wording of its read errors. :func:`bundled_raw` reads the packaged file; :func:`load_override`
 reads the project override, merges it over a base mapping fail-fast and refuses a merge that
-reports nothing. Building and validating the model stays with each document's own loader, since
-what is checked and how a failure is worded differs per document.
+reports nothing. Each document's own loader builds and validates the model, since what is
+checked and how a failure is worded differs per document.
 
-The packaged file is parsed once per process: :func:`bundled_raw` hands each caller its own copy of
-that one parse, so the bundled model and every merged model are built from the same read.
+The packaged file is parsed once per process; :func:`bundled_raw` hands each caller its own
+copy, so the bundled model and every merged model come from the same read.
 """
 
 import copy

@@ -1,16 +1,8 @@
-"""JSONL event model for bulk import (``sq import``): one line, one mutation.
-
-Parsing is line-scoped and permissive at this layer — a malformed line (bad JSON, an unknown
-``op``, a field that fails its type) becomes an :class:`ImportIssue` (never a raised exception),
-so the validate-first pre-pass can collect every problem in one pass instead of stopping at the
-first bad line. ``at``/``as`` inheritance (an event with neither carries the *effective* value
-forward from the previous event, or the file-level default) is resolved here too, over the
-parsed line stream — pure model bookkeeping shared by both the dry-run pre-pass and apply.
-
-The three ergonomic fronts (``add-story``/``add-subtask``/``add-finding``) parse and stay as
-their own event classes (so per-op counts reflect what the file actually wrote); the engine
-calls :func:`generic_add_sub` at dispatch time to fold them to the generic :class:`AddSubEvent`
-shape it actually simulates/applies against.
+"""JSONL event model for bulk import (``sq import``): one line, one mutation. A malformed line
+becomes an :class:`ImportIssue`, not an exception, so the pre-pass collects every problem at once,
+and ``at``/``as`` inheritance is resolved here. The ``add-story``/``add-subtask``/``add-finding``
+fronts stay distinct events for per-op counts and :func:`generic_add_sub` folds them to
+:class:`AddSubEvent` at dispatch.
 """
 
 import json
@@ -343,17 +335,11 @@ def generic_add_sub(ev: ImportEvent) -> AddSubEvent:
 def parse_events(
     text: str, *, default_at: datetime, default_as: str | None = None
 ) -> tuple[list[ResolvedEvent], list[ImportIssue]]:
-    """Parse a JSONL event stream into resolved events, collecting every problem seen.
-
-    File order is authoritative — never reordered by ``at``. A line that fails to parse (bad
-    JSON, an unrecognised ``op``, a field of the wrong shape) becomes one :class:`ImportIssue`
-    and is skipped; it does not interrupt ``at``/``as`` inheritance for the lines around it,
-    which continues to track only successfully parsed events.
-
-    ``default_as`` has no fallback of its own — leave it ``None`` and an event that reaches
-    the chain with no actor at all (no ``as`` of its own, no prior event's, no file-level
-    default) becomes an :class:`ImportIssue` naming the missing actor rather than silently
-    inventing one.
+    """Parse a JSONL event stream into resolved events, collecting every problem. File order is
+    authoritative, never reordered by ``at``. A line that fails to parse becomes one
+    :class:`ImportIssue` and is skipped without interrupting ``at``/``as`` inheritance.
+    ``default_as`` has no fallback: an event with no actor from any source becomes an issue naming
+    the missing actor.
     """
     events: list[ResolvedEvent] = []
     issues: list[ImportIssue] = []

@@ -19,7 +19,7 @@ refs:
 - ADR-422:supersedes
 - ADR-880
 created_at: '2026-08-22T09:28:29Z'
-updated_at: '2026-10-25T21:42:17Z'
+updated_at: '2026-10-26T12:47:13Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -119,7 +119,8 @@ every rendering path uses, so a view's presentation is adopter-overridable throu
   and `model`, `pronouns`, `origin`. Every other field of its definition (job title, mission,
   responsibilities, agreements, colour, spawn authority, skills) resolves from the catalog on every
   read. Its `sq:body` region holds the `sq:view:role_definition` tag, and the definition renders
-  from the resolved `RoleDef` at read time.
+  from the resolved `RoleDef` at read time. Authored prose may sit beside the tag; it is never
+  part of the definition (ADR-880 §8).
 - **A system (template-owned) skill** body holds its view tag (`squads_skill`, `greeting_skill`,
   `memory_skill`, or `item_skill` for a per-item-type `sq-<type>` skill) and renders at read time.
   The classification is `roster_body_view_name(type, slug, spec)`, never the folder, the item type
@@ -252,4 +253,6 @@ touched, in the result and the reflog delta, so the diff it produces is stated, 
     @tech-lead the rewrite is on TASK-849. @op-pierre the accepted cost, stated rather than mitigated: `sq repair` now rewrites file content as well as the index, so it produces a large announced diff on any corpus still carrying the regions.
 - [2026-10-25T21:42:17Z] `architect` Robert Architect:
   - 2026-10-25 audit: body rewritten in present tense; the rule (no derived content stored, every view computed) unchanged. Folded the four 2026-09-01 amendments and the 2026-09-02 correction. The clause "views do not widen; definitions render through their own resolver" is replaced by a pointer to ADR-880, which widened the source grammar (role/playbook/self) and owns roster bodies; related ref added.
+- [2026-10-26T12:47:13Z] `architect` Robert Architect:
+  - Narrowed §5 in place: a role body may hold authored prose beside its role_definition tag, never part of the definition. The rule lives in ADR-880 §8 (op-pierre, 2026-10-26).
 <!-- sq:discussion:end -->

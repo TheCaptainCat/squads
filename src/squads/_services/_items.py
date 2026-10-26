@@ -41,25 +41,11 @@ from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, bundled
 
 class ItemsMixin(ServiceCore):
     async def set_status(self, item_id: str, status: str, *, force: bool = False) -> Item:
-        """Opens its own transaction, then delegates to :meth:`_set_status_core` — the bulk
-        importer calls that core directly (its own transaction is already open).
-
-        A roster item's transition additionally projects into backend config, **after** the
-        transaction commits (see :meth:`~squads._services._roster_projection.RosterProjection
-        .project_transition`): materialise when the new status is live, withdraw
-        otherwise, then recompile the managed regions. The bulk importer's direct
-        ``_set_status_core`` calls skip this — replayed history converges on the next
-        ``sq sync``, the same story as any squad already on disk with a retired entry.
-
-        A roster item's transition is additionally held to the config-integrity clauses
-        (see ``_services/_retirement.py``), scoped to this transition's own delta, inside
-        :meth:`_set_status_model`'s pure half — unconditionally, regardless of ``force``, which
-        overrides only the lifecycle's own transition edge, never these. This entry point never
-        passes ``--unlink``; the roster ``status`` verb calls :meth:`set_roster_status` instead,
-        which also reports what that flag severed.
-
-        Both entry points are held to the per-item catalog gate in that same pure half, so this
-        shortcut refuses exactly what ``update --status`` refuses.
+        """Open a transaction and delegate to :meth:`_set_status_core`, which the importer calls
+        directly. A roster transition is projected into backend config after commit (the importer
+        skips that, as replayed history converges on the next ``sq sync``) and held to the config-
+        integrity clauses regardless of ``force``. It never passes ``--unlink``
+        (:meth:`set_roster_status` does) and gets the same catalog gate as ``update --status``.
         """
         result = await self._set_roster_status_impl(item_id, status, force=force, unlink=False)
         return result.item
@@ -81,9 +67,8 @@ class ItemsMixin(ServiceCore):
             )
         if self.spec.item_is_roster(item.type):
             await self.roster_projection.project_transition(item)
-        # Post-commit partial resync for each severed preload edge — mirrors unlink_role's own
-        # existing behaviour: the retiring item's own status/refs are already committed above,
-        # this only refreshes the previously-scoped role's re-derivable cache + generated entry.
+        # Post-commit partial resync for each severed preload edge, as unlink_role does: refresh
+        # the previously-scoped role's cache and generated entry.
         preload_kind = self.spec.preload_ref_kind()
         for sev in severed:
             if sev.kind == preload_kind:
@@ -101,27 +86,11 @@ class ItemsMixin(ServiceCore):
         unlink: bool = False,
         now: datetime | None = None,
     ) -> tuple[Item, str, Item, list[retirement.Severance], list[str]]:
-        """The PURE half of a status transition: no file I/O. Returns ``(item, old_status, base,
-        severed, warnings)``:
-
-        - ``base`` is the item as loaded, before this call's own delta, for the write seam's
-          skew guard (see :func:`~squads._itemfile.ensure_no_skew`).
-        - ``severed`` is the ``--unlink`` edges removed from *item*'s own refs — always empty
-          unless ``unlink`` was passed and the transition is a retirement.
-        - ``warnings`` is board-hygiene notices (open assigned work on a retiring role/operator)
-          that never block the transition — config integrity and board hygiene are different
-          questions (see :func:`~squads._services._retirement.open_assigned_work`).
-
-        A roster item is held to the config-integrity clauses here, scoped to this transition's
-        own delta — a pre-existing violation never blocks it — unconditionally with respect to
-        ``force``, which overrides only the lifecycle edge just above, never these; see
-        ``_services/_retirement.py``.
-
-        Shared by :meth:`_set_status_core` (the interactive/apply path) and the bulk importer's
-        pre-pass, which calls this directly against a throwaway ``db`` copy with ``now=ev.at``
-        to simulate the transition using the exact same workflow gate the real path runs —
-        including the config-integrity gate, so a replayed history is held to the same rule at
-        each step it replays.
+        """The pure half of a status transition (no file I/O), returning ``(item, old_status, base,
+        severed, warnings)``: *base* is the item as loaded for the skew guard, *severed* the
+        ``--unlink`` edges removed, *warnings* non-blocking hygiene notices. A roster item is held
+        to the config-integrity clauses on this delta regardless of ``force``. Shared with the
+        importer's pre-pass, which runs it on a throwaway index copy.
         """
         item = require_item(db, item_id)
         base = item.model_copy(deep=True)
@@ -146,12 +115,9 @@ class ItemsMixin(ServiceCore):
                 warnings = self._retirement_warnings(db, item)
         item.updated_at = now if now is not None else clock.now()
         item.modified_session, _ = actor.current_session()
-        # Fail-closed on the transitioned item's first error-level catalog violation — the
-        # same gate `_update_model` runs, reached here for the same reason: the `status` verb
-        # is a shortcut for `update --status`, so the two must refuse the same corpus states.
-        # A parent cycle is the case that makes it load-bearing: the item is unwritable until
-        # the cycle is broken, and `--no-parent` (which never comes through here) is the way
-        # out. A warn-level catalog issue never aborts, exactly as on the update path.
+        # Fail closed on the item's first error-level catalog violation, as `_update_model` does:
+        # `status` is a shortcut for `update --status`, so both refuse the same states (a parent
+        # cycle leaves the item unwritable until `--no-parent`). A warn-level issue never aborts.
         ValidatorEngine(spec=self.spec, playbook=self.playbook, paths=self.paths).gate(item, db)
         return item, old_status, base, severed, warnings
 
@@ -307,19 +273,11 @@ class ItemsMixin(ServiceCore):
         operator_invocable: str | None = None,
         now: datetime | None = None,
     ) -> tuple[Item, dict[str, object], tuple[Path, Path] | None, Item]:
-        """The PURE half of a metadata update: no file I/O. Returns ``(item, delta, rename,
-        base)``.
-
-        ``rename`` is ``(old_path, new_path)`` when the title change requires moving the file
-        on disk, else ``None`` — the physical move is a separate I/O step the caller
-        (:meth:`_update_core`) performs, kept out of this pure half so the bulk importer's
-        pre-pass (which calls this directly against a throwaway ``db`` copy with ``now=ev.at``
-        to simulate the update using the exact same checks + catalog gate the real path runs)
-        never touches the real filesystem.
-
-        ``base`` is *item* as loaded, before this call's own delta — captured before any
-        field is touched, for the write seam's skew guard
-        (see :func:`~squads._itemfile.ensure_no_skew`).
+        """The pure half of a metadata update (no file I/O). Returns ``(item, delta, rename,
+        base)``: *rename* is ``(old_path, new_path)`` when a title change moves the file, else
+        ``None``, left to :meth:`_update_core` so the bulk importer's pre-pass (against a throwaway
+        ``db`` copy with ``now=ev.at``) never touches the filesystem; *base* is *item* as loaded
+        before any field is touched, for the skew guard (:func:`~squads._itemfile.ensure_no_skew`).
         """
         item = require_item(db, item_id)
         # Only what the role document or playbook supplies is gated; tracking metadata
@@ -357,10 +315,9 @@ class ItemsMixin(ServiceCore):
             item.author = author
         if status is not None:
             if self.spec.item_is_roster(item.type):
-                # A roster item's status is held to the config-integrity clauses and projects
-                # into backend config — this metadata-update seam evaluates neither. Keep the
-                # roster status axis reachable through exactly one gated path
-                # (`_set_status_model`/`set_roster_status`), never through this one.
+                # A roster item's status is gated by the config-integrity clauses and projected
+                # into backend config, which this seam does neither; keep that axis reachable only
+                # through `_set_status_model`/`set_roster_status`.
                 raise SquadsError(
                     f"{item.id}'s status cannot change through `update` — use the roster "
                     "`status` verb instead (`sq role|skill|operator <addr> status <status>`)"
@@ -368,7 +325,7 @@ class ItemsMixin(ServiceCore):
             old_st = item.status
             self._apply_status(item, status, force=force)
             delta["status"] = [old_st, item.status]
-        if clear_parent:
+        if clear_parent:  # before the gate below, so `--no-parent` escapes a parent cycle
             delta["parent"] = None
             item.parent = None
         elif parent is not None:
@@ -408,17 +365,10 @@ class ItemsMixin(ServiceCore):
         pronouns: str | None = None,
         operator_invocable: str | None = None,
     ) -> Item:
-        """The metadata-update mutation core: takes an already-open transaction's ``db``.
-
-        Does NOT run the roster pointer regen — that stays in :meth:`update`, since it is its
-        own I/O concern outside the index transaction (the bulk importer runs its own regen
-        pass, if any, after the whole apply commits).
-
-        A title change shares retype's rename-then-write shape below: the file moves to its
-        new path, then its frontmatter is rewritten there — see
-        :func:`squads._services._retype.apply_type_change` for the crash window that opens
-        between those two steps and why it is the expected, repairable outcome rather than a
-        defect. A title-less update never renames, so it stays readable at one path throughout.
+        """The metadata-update core: takes an already-open transaction's ``db``. The roster pointer
+        regen stays in :meth:`update`, outside the index transaction. A title change moves the file
+        then rewrites its frontmatter, the crash window described at
+        :func:`squads._services._retype.apply_type_change`; a title-less update never renames.
         """
         await self._refuse_duplicated_ids(require_item(db, item_id))
         item, delta, rename_paths, base = self._update_model(
@@ -446,12 +396,9 @@ class ItemsMixin(ServiceCore):
         if rename_paths is not None:
             old_path, new_path = rename_paths
             if old_path != new_path and await self._item_file_exists(old_path):
-                # Check for a skew BEFORE the physical move, at the item's still-current
-                # path: once moved, a refusal here would otherwise leave the file sitting at
-                # the new filename with its old (skewed) frontmatter still inside — a strictly
-                # worse intermediate state than not moving it at all. `update_frontmatter`'s
-                # own read below (at the possibly-new path) re-checks against the same `base`,
-                # which is safe/redundant rather than a second real read of divergent content.
+                # Check for skew before the move, at the still-current path: after it, a refusal
+                # would leave the new filename holding old, skewed frontmatter.
+                # `update_frontmatter`'s read re-checks against the same `base`.
                 old_text = await self._read_item_file(item, old_path)
                 ensure_no_skew(old_text, base, default_kind=default_kind)
                 await self._move_item_file(old_path, new_path)
@@ -628,41 +575,14 @@ class ItemsMixin(ServiceCore):
         return item
 
     def _reject_unwritable_body(self, item_id: str, item: Item, *, append: bool) -> None:
-        """Raise when *item*'s body write is refused for a reason independent of the
-        authored-content overwrite guard (:func:`~squads._services._base.reject_body_overwrite`,
-        which the caller checks separately, only on a replace, only once this passes).
-
-        The one place either of two questions is asked, so :meth:`_body_mutate`'s real write and
-        the bulk importer's pre-pass simulation
-        (:meth:`~squads._services._import.ImportMixin._sim_body`) can never disagree about which
-        bodies this refuses — a second, hand-rolled membership test at either call site is
-        exactly the drift a single derivation exists to prevent (see
-        :func:`~squads._views.roster_body_view_name`'s own docstring).
-
-        - **Replace and append alike, on a roster-classified document** (a role, a
-          permanently-system skill, or a per-item-type skill —
-          :func:`~squads._views.roster_body_view_name` names a declared view): refused
-          unconditionally, and ``--force`` lifts neither half.
-          The content already has one declared, validated authoring surface — the role
-          overrides for a role, or a skill's own real surface
-          (:func:`~squads._views.skill_authoring_surface`, resolved from the view's own
-          declared source rather than the skill's slug) — and body prose would be a second,
-          unvalidated one. The escape is spec-level, not a per-write flag: drop the view from
-          ``[selected]`` and the document leaves the classification. A metadata update and a
-          ``view disable`` on such a host go through the same gate
-          (:meth:`~squads._services._base.ServiceCore._refuse_classified_roster_write`).
-        - **Either, on a project-declared roster type outside role/skill/operator**: refused
-          unconditionally — its body is generated from its fields, not a view question, and
-          this branch is untouched by the one above.
-
-        Every other document — an ordinary item's seeded view (``milestone_rollup`` included),
-        a role/system/per-item-type-skill whose view is not (or no longer) declared, a stale
-        historically-bundled ``sq-<type>`` skill whose type is dropped — is admitted here: a
-        missing seeded tag is not this guard's job, since the placement routine
-        (:func:`~squads._view_tags.place_view_tags`) inserts it — the routine holds exactly-once,
-        by construction, inside the region, and its only refusal is the conflicting-state
-        one."""
-        self._refuse_classified_roster_write(item_id, item, "Append" if append else "A replace")
+        """Raise when *item*'s body write is refused independently of the overwrite guard
+        (:func:`~squads._services._base.reject_body_overwrite`), shared with the importer's
+        simulation. A skill whose body renders through a declared view is refused on replace and
+        append, ``--force`` lifting neither; so is a project-declared roster type outside
+        role/skill/operator. A role takes prose beside its view tag.
+        """
+        if item.type == ROSTER_SKILL:
+            self._refuse_classified_roster_write(item_id, item, "Append" if append else "A replace")
         if self.spec.item_is_roster(item.type) and item.type not in (
             ROSTER_ROLE,
             ROSTER_SKILL,
@@ -686,9 +606,7 @@ class ItemsMixin(ServiceCore):
             f"the body contains the view tag line {raw_tag}, which is not placed on {item.id} "
             "in that state. Leave it out of the body: sq keeps a placed tag in place"
         )
-        has_view_verbs = item.type in (ROSTER_ROLE, ROSTER_SKILL) or not self.spec.item_is_roster(
-            item.type
-        )
+        has_view_verbs = item.type == ROSTER_SKILL or not self.spec.item_is_roster(item.type)
         if (
             not has_view_verbs
             or views.resolve_view_target(
@@ -697,26 +615,21 @@ class ItemsMixin(ServiceCore):
             is not None
         ):
             return f"{text}."
-        host = "role" if item.type == ROSTER_ROLE else item.type
-        addr = item.slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item.id)
+        addr = item.slug if item.type == ROSTER_SKILL else number_for_id(item.id)
         return (
-            f"{text}; to show or hide the view use `sq {host} {addr} view add {parts.name}` or "
-            f"`sq {host} {addr} view disable {parts.name}`."
+            f"{text}; to show or hide the view use `sq {item.type} {addr} view add {parts.name}` "
+            f"or `sq {item.type} {addr} view disable {parts.name}`."
         )
 
     def _body_mutate(
         self, item_id: str, body: str, *, append: bool, force: bool = False
     ) -> Callable[[str, Item], tuple[str, bool]]:
-        """Build the ``mutate(text, item)`` closure :meth:`set_body` applies via the shared
-        section-edit core — factored out so the bulk importer's ``body`` op can drive the exact
-        same logic through :meth:`~squads._services._base.ServiceCore._section_edit_core`.
-        :meth:`_reject_unwritable_body` is the first thing the closure asks — see its own
-        docstring for the roster refusal it composes. The prose edit itself — replace, or
-        append onto whatever is there — is applied by the one re-placement routine
-        (:func:`~squads._view_tags.place_view_tags`), which also
-        re-inserts every view tag at its declared position, so this closure never touches a
-        tag's bytes directly. An incoming view tag that matches one already placed in the region is
-        dropped from the incoming text (the routine puts it back); any other is refused."""
+        """Build the ``mutate(text, item)`` closure :meth:`set_body` applies through the shared
+        section-edit core, so the importer's ``body`` op runs the same logic. It first asks
+        :meth:`_reject_unwritable_body`, then applies the prose edit through
+        :func:`~squads._view_tags.place_view_tags`, which re-inserts every view tag at its declared
+        position; an incoming tag matching a placed one is dropped and any other refused.
+        """
         reject_non_view_markers(body)
 
         def mutate(text: str, item: Item) -> tuple[str, bool]:
@@ -735,15 +648,9 @@ class ItemsMixin(ServiceCore):
             incoming = view_tags.strip_view_tags(body)
             authored = False
             if not append:
-                # Replacing: authored iff there is prose (tags stripped from both sides, so a
-                # tag's state or location never by itself makes a body count as authored — see
-                # `reject_body_overwrite`'s own docstring) and it is not the template scaffold
-                # the item was created with (`ServiceCore.pristine_body`). Stripping a tag here
-                # (`view_tags.strip_view_tags`) and placing one (`view_tags.place_view_tags`) are
-                # exact inverses of each other's spacing — a tag never manufactures a blank line the
-                # scaffold didn't already have at that point, and stripping it back out restores
-                # exactly what was there before — so the two sides compare equal on a byte-level
-                # scaffold once the tag's own line is gone, whatever position it was placed at.
+                # Replacing: authored iff there is prose (tags stripped from both sides) that is not
+                # the template scaffold (`ServiceCore.pristine_body`); tag stripping and placing are
+                # exact spacing inverses, so a scaffold compares equal.
                 current_prose = view_tags.strip_view_tags(current).strip()
                 authored = not view_tags.body_is_unwritten(current, self.pristine_body(item))
                 if authored and not force:
@@ -775,48 +682,22 @@ class ItemsMixin(ServiceCore):
     async def set_body(
         self, item_id: str, body: str, *, append: bool = False, force: bool = False
     ) -> Item:
-        """Set (or ``--append`` to) an item's top-level ``:body`` region — no manual editing.
-
-        The body is free-form markdown the agent owns; ``description`` stays a short frontmatter
-        summary. A role's body, a permanently-system skill's, and a per-item-type skill's are
-        refused on both ``--replace`` and ``--append`` whenever ``sq:body`` classifies as
-        rendering one of those (:meth:`_reject_unwritable_body`) — the content already has a
-        declared, validated authoring surface elsewhere. A *custom* (author-defined) skill
-        carries no such classification: its body is authored content, and the only place that
-        content lives, so it's admitted unconditionally, and so is every ordinary item's,
-        ``milestone_rollup`` included.
-
-        Replacing an **authored** body is refused unless ``force`` — the write is destructive and
-        there is no undo (see :func:`~squads._services._base.reject_body_overwrite`). Writing over
-        the unwritten template scaffold, which is what a first write does, is not affected. The
-        roster refusal is independent of, and checked before, that guard: ``--force``
-        never lifts it.
+        """Set (or ``--append`` to) an item's top-level ``:body`` region. A system skill's
+        and per-item-type skill's body is refused (:meth:`_reject_unwritable_body`), while a
+        role's, a custom skill's and an ordinary item's is admitted. Replacing authored prose is
+        refused unless ``force`` (:func:`~squads._services._base.reject_body_overwrite`), which
+        never lifts the skill refusal.
         """
         mutate = self._body_mutate(item_id, body, append=append, force=force)
         item, _changed = await self._locked_section_edit(item_id, mutate)
         return item
 
     async def read_body(self, item_id: str) -> str:
-        """The item's top-level ``:body`` region content (for ``sq show``), with any
-        ``sq:view:<name>`` tag it carries expanded to that view's rendered output.
-
-        **The one shared body-read boundary for rendered text.** Every text surface — ``sq
-        show``, ``--raw``, the TUI reader, the operator pane, and the skill read — resolves a
-        body through this method, so expansion inherits from this single place rather than being
-        reimplemented per surface (see :func:`~squads._view_tags.expand_view_tags`). ``show --json``
-        reads :meth:`read_stored_body` instead, the text with its tags left as tags.
-
-        Read-only: the body-*write* path (:meth:`set_body`'s ``mutate`` closure) reads the
-        region directly and never through here, so expanded bytes never reach disk.
-
-        **No index load when the body carries no tag.** Tag spans are computable from the body
-        text alone (:func:`~squads._views.has_view_tag`), so the overwhelming majority of
-        reads — a body with no ``sq:view:<name>`` tag — return without an index load or an
-        :func:`~squads._view_tags.expand_view_tags` call. Under the CLI a second index load is free
-        (one invocation-scoped read scope serves it), but ``sq ui`` deliberately opts out of
-        that scope, so every TUI reader-panel load would otherwise pay a fresh full index read
-        on every item selected, tag or no tag — this boundary is documented as a read on a
-        thread and should not silently acquire an index dependency for the common case.
+        """The item's top-level ``:body`` content with any ``sq:view:<name>`` tag expanded: the one
+        body-read boundary for rendered text (:func:`~squads._view_tags.expand_view_tags`), while
+        ``show --json`` reads :meth:`read_stored_body` unexpanded. No writer may source its text
+        from here, or expanded view output would be persisted over the tag. A body with no tag
+        returns without an index load, as ``sq ui`` opts out of the read scope.
         """
         item = await self.get(item_id)
         body = await self._stored_body(item)
@@ -941,19 +822,11 @@ class ItemsMixin(ServiceCore):
         )
 
     async def remove_item(self, item_id: str, *, purge: bool) -> RosterRemoval:
-        """Remove an agent-type item (role/skill/operator): index entry, file and pointers.
-
-        Refuses without *purge*: the markdown is the source of truth, so removing only the index
-        entry would leave a file ``sq check`` flags and ``sq repair`` re-indexes. Archiving is
-        the non-destructive retirement.
-
-        A live entry is held to the same structural clauses as retiring it, so a removal, with
-        or without *purge*, is refused wherever archiving is, and it carries the same
-        board-hygiene warnings. The removal is recorded in the reflog.
-
-        For **work items** (feature/task/bug/decision/review/epic/guide), use
-        :meth:`remove_work_item` instead — it enforces ref/child safety, always unlinks the
-        ``.md``, and carries the reflog op stub.
+        """Remove an agent-type item (role/skill/operator): index entry, file and pointers. Refused
+        without *purge*, since removing only the index entry would leave a file ``sq check`` flags
+        and ``sq repair`` re-indexes; archiving is the non-destructive retirement. A live entry is
+        held to the same structural clauses as retiring it, carries the same board-hygiene warnings,
+        and the removal is reflogged. Work items use :meth:`remove_work_item`.
         """
         warnings: list[str] = []
         async with self.store.transaction() as db:
@@ -966,11 +839,9 @@ class ItemsMixin(ServiceCore):
             if non_live is not None:
                 warnings = self._retirement_warnings(db, item, purged=True)
             del db.items[item.sequence_id]
-            # Unlink BEFORE the index commit (same direction as remove_work_item): a crash here
-            # leaves the file gone with the index still referencing it, which `sq repair` heals
-            # by dropping the orphan entry. Unlinking after the commit (the previous shape) is
-            # the lossy direction — a crash there leaves the index without the entry and the
-            # file still on disk, which `sq repair` re-indexes, resurrecting the removed item.
+            # Unlink before the index commit, as remove_work_item does: a crash leaves the file
+            # gone and the index referencing it, which `sq repair` heals by dropping the entry. The
+            # reverse would let `sq repair` resurrect the removed item.
             await _aio.path_unlink(item_file(self.paths, item), missing_ok=True)
             self.store.log(
                 "remove",
@@ -989,23 +860,11 @@ class ItemsMixin(ServiceCore):
         *,
         force: bool = False,
     ) -> RemoveResult:
-        """Hard-delete a work item: unlink the ``.md`` and drop its index entry atomically.
-
-        **Safety checks** (performed inside the transaction):
-
-        - Refuses when the item has children (items whose ``parent`` == *item_id*), even with
-          ``--force``.  Children must be re-parented or removed first.
-        - Refuses when the item has incoming refs **and** ``force`` is False; lists every
-          referrer so the operator can act.
-        - When ``force`` is True, severs every incoming ref by removing the matching forward-
-          edge entry from each referrer's frontmatter, inside the **same transaction**. A
-          sub-entity's ``deferred_to`` naming the item counts as an incoming ref and is cleared.
-
-        **Counter invariant:** ``db.counter`` is **never modified** here.  A freed sequence
-        number is a sanctioned gap — it is never reissued.
-
-        **Reflog:** the op identity (``op=remove``) and gone-item snapshot are assembled
-        here and appended post-commit via ``store.log()`` inside the transaction.
+        """Hard-delete a work item: unlink the ``.md`` and drop its index entry atomically. It
+        refuses an item with children even with ``force``, and refuses incoming refs unless
+        ``force``, which severs each referrer's edge (a sub-entity's ``deferred_to`` counts) in the
+        same transaction. ``db.counter`` is never modified, so a freed number is a sanctioned gap,
+        and the ``op=remove`` reflog line is appended inside the transaction.
         """
         async with self.store.transaction() as db:
             item = require_item(db, item_id)
@@ -1067,10 +926,8 @@ class ItemsMixin(ServiceCore):
             # 4. Hard-delete: drop index entry + unlink the .md
             # ------------------------------------------------------------------
             path = item_file(self.paths, item)
-            # Unlink BEFORE the index commit so the safe failure direction is preserved:
-            # a crash here leaves the file gone with the index still referencing it —
-            # sq repair drops the orphan entry.  The reverse (index-gone / file-survives)
-            # would let sq repair resurrect the removed item.
+            # Unlink before the index commit so a crash leaves the file gone and the index
+            # referencing it, which `sq repair` heals; the reverse would resurrect the item.
             await _aio.path_unlink(path, missing_ok=True)
             del db.items[item.sequence_id]
             # counter is intentionally NOT modified — the gap is sanctioned.

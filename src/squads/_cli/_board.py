@@ -5,11 +5,10 @@ Grammar:
   sq board list [--json]                                    — current (unexpired) notices
   sq board clear <n>                                        — take the n-th listed notice down
 
-Unlike `sq memory <role> ...`, the board is **team-scoped** — there is no positional role
-subject; every command operates on the one shared board. A notice has no counter-allocated id
-(see squads._board): `list`'s ordinal is a display affordance — the notice's entry-line
-position in the live, sorted, unexpired listing — resolved fresh on every `list`/`clear` call,
-never persisted or stable across posts/clears.
+Unlike `sq memory <role> ...`, the board is team-scoped: no role subject, one shared board. A
+notice has no counter-allocated id (see squads._board); `list`'s ordinal is its position in
+the live, sorted, unexpired listing, resolved fresh on every `list`/`clear` and not stable
+across posts or clears.
 """
 # Commands registered via Typer decorators (side effects) read as unused to static analysis.
 # pyright: reportUnusedFunction=false

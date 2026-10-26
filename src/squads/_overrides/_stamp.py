@@ -1,20 +1,8 @@
-"""Override-base stamp: read and write the ``<!-- squads:override-base:<version> -->`` marker.
-
-The stamp follows the existing managed-file stamping convention (see the ``squads:start``/
-``squads:end`` managed-region markers in CLAUDE.md/AGENTS.md).  It is a plain HTML comment,
-inert to rendering.  The stamp is the override file's provenance marker: "last reconciled
-against squads v<version>".
-
-Stamp format::
-
-    <!-- squads:override-base:<squads_version> -->
-
-The ``squads:`` prefix (not ``sq:``) is intentional: this marker is tooling metadata, not
-a document-section delimiter.  ``find_markers`` (strict ``sq:``-only regex) correctly ignores it.
-
-Role TOML overrides also carry a stamp, embedded as a TOML comment on the first line::
-
-    # squads:override-base:0.3.0
+"""Override-base stamp: read and write the ``<!-- squads:override-base:<version> -->`` marker, the
+override file's provenance ("last reconciled against squads v<version>") following the managed-file
+stamping convention. It is an HTML comment inert to rendering; the ``squads:`` prefix (not ``sq:``)
+marks tooling metadata, not a section delimiter, so ``find_markers`` ignores it. A role TOML
+override carries it as a first-line TOML comment, ``# squads:override-base:<squads_version>``.
 """
 
 import re
@@ -28,11 +16,10 @@ from squads._specload import (
     read_override_text,
 )
 
-# Both stamp writers below rewrite a *whole* override file the adopter hand-authored — a
-# template or a role TOML — so a kill mid-write must not cost that content. This module is sync
-# end to end (called from `_overrides/_service.py`, itself sync), so it reaches for
-# `_aio.atomic_replace_sync` directly rather than the async `atomic_write_text` wrapper, which
-# would force this whole call chain async for no benefit.
+# Both stamp writers rewrite a whole hand-authored override file, so a kill mid-write must not cost
+# it. This module is sync end to end (as `_overrides/_service.py` is), so it uses
+# `_aio.atomic_replace_sync` rather than the async `atomic_write_text`, which would force the chain
+# async.
 
 # ─── Template-file stamp (HTML comment) ────────────────────────────────────────
 

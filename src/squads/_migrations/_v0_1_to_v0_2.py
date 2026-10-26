@@ -1,14 +1,10 @@
-"""Schema 0.1 → 0.2 runner. Per item file:
-
-  - fold the legacy ``extra.ref_kinds`` ``{ID: kind}`` map into inline ``ID:kind`` refs,
-  - upgrade sub-entity headings (subtask ``[ ]``/``[x]`` checkboxes, bare story headings) into the
-    sq-owned ``:meta`` regions, then (re)build the parent's ``:summary`` table, and
-  - give legacy reviews an (empty) ``:findings`` container + ``:summary`` region so the new
-    finding commands work. Their **free-form prose findings are NOT auto-structured** — that's the
-    manual, LLM-assisted step documented in ``docs/migration.md``.
-
-Deterministic, marker-safe (agent bodies untouched), and **idempotent**. Invoked by the
-``sq migrate`` command via ``_migrations._registry`` — never run directly (this module is private).
+"""Schema 0.1 → 0.2 runner, per item file: fold the legacy ``extra.ref_kinds`` ``{ID: kind}`` map
+into inline ``ID:kind`` refs; upgrade sub-entity headings (subtask ``[ ]``/``[x]`` checkboxes, bare
+story headings) into the sq-owned ``:meta`` regions and rebuild the parent's ``:summary`` table; and
+give legacy reviews an empty ``:findings`` container plus ``:summary`` region so the finding
+commands work, their free-form prose findings left unstructured (the manual, LLM-assisted step in
+``docs/migration.md``). It is deterministic, marker-safe (agent bodies untouched) and idempotent,
+and runs only through ``sq migrate`` via ``_migrations._registry``.
 """
 
 from pathlib import Path
@@ -20,46 +16,39 @@ from squads._migrations import _meta_compat
 from squads._models import _markers as markers
 from squads._paths import SquadPaths
 
-#: Frozen: the declared-default ref kind at schema 0.1/0.2, matching the retired
-#: ``_models._item.DEFAULT_KIND`` literal this runner used to inherit indirectly through
-#: ``normalise_ref_kinds`` before that helper became live-spec-aware. NEVER re-derive this
-#: from ``WorkflowSpec.default_ref_kind()`` — a migration is a point-in-time snapshot of the
-#: schema version it transforms, and the active spec's declared default can be renamed or
-#: re-declared by a project the runner has no business knowing about.
+#: Frozen: the declared-default ref kind at schema 0.1/0.2, the retired
+#: ``_models._item.DEFAULT_KIND`` literal. Never re-derive it from
+#: ``WorkflowSpec.default_ref_kind()``: a migration is a snapshot of the schema it transforms, and a
+#: project's spec can rename the default.
 _DEFAULT_KIND = "related"
 
 
 def _split_ref(ref: str) -> tuple[str, str]:
     """Frozen, private copy of ``squads._models._item.split_ref``: ``"ID"`` -> ``(ID, "")``,
-    ``"ID:kind"`` -> ``(ID, kind)``. Never imported live — see
-    ``tests/meta/test_migrations_never_import_a_vocabulary_folded_primitive.py``: a live
-    primitive's collapse behaviour can change out from under a frozen runner even when its
-    signature looks purely mechanical, which is exactly what moved this runner's sibling
-    (``_v0_5_to_v0_7``) bytes."""
+    ``"ID:kind"`` -> ``(ID, kind)``. It is never imported live (see
+    ``tests/meta/test_migrations_never_import_a_vocabulary_folded_primitive.py``), since a live
+    primitive's collapse behaviour can change out from under a frozen runner even when its signature
+    looks mechanical, as it did to ``_v0_5_to_v0_7``.
+    """
     rid, _, kind = ref.partition(":")
     return rid, kind
 
 
 def _make_ref(item_id: str, kind: str) -> str:
-    """Frozen, private copy of the pre-0.14 ``squads._models._item.make_ref`` collapse
-    behaviour: an edge whose kind is unspelled or resolves to :data:`_DEFAULT_KIND` is written
-    bare; any other kind is spelled out. Never imported live — see :func:`_split_ref`."""
+    """Frozen, private copy of the pre-0.14 ``squads._models._item.make_ref`` collapse: an edge
+    whose kind is unspelled or is :data:`_DEFAULT_KIND` is written bare and any other kind spelled
+    out. Never imported live (see :func:`_split_ref`).
+    """
     return item_id if kind in ("", _DEFAULT_KIND) else f"{item_id}:{kind}"
 
 
 def _fold_legacy_kinds(refs: list[str], legacy: dict[str, str]) -> list[str]:
-    """Runner-owned, frozen copy of the legacy ``extra.ref_kinds`` fold: merge the map into
-    inline ``ID:kind`` ref strings, collapsing an edge whose resolved kind is
-    :data:`_DEFAULT_KIND` to the bare wire form — never spelled out, exactly the encoding
-    invariant this schema version's corpus already holds.
-
-    Deliberately duplicates (never imports) ``squads._models._item.normalise_ref_kinds``, which
-    now takes the *active* spec's declared default kind as a required argument and is
-    therefore live-vocabulary-aware — reaching back for it would make this frozen runner's
-    on-disk output track whatever an adopter's spec declares today, rather than the schema
-    0.1/0.2 vocabulary this transform is defined against. ``split_ref``/``make_ref`` are not
-    imported either, for the same reason and despite looking purely mechanical today — see
-    :func:`_split_ref`.
+    """Runner-owned, frozen copy of the legacy ``extra.ref_kinds`` fold: merge the map into inline
+    ``ID:kind`` refs, collapsing an edge whose kind is :data:`_DEFAULT_KIND` to the bare form. It
+    duplicates rather than imports ``squads._models._item.normalise_ref_kinds``, which takes the
+    active spec's default kind and would make this runner's output track an adopter's spec instead
+    of the schema 0.1/0.2 vocabulary; ``split_ref``/``make_ref`` are not imported either (see
+    :func:`_split_ref`).
     """
     result: list[str] = []
     for rid, kind in (_split_ref(r) for r in refs):
@@ -86,9 +75,8 @@ review `<n>`, drive an agent with:
 5. Verify: `sq review <n> findings` shows them all and `sq check` is clean.
 """
 
-# Frozen v0.1/v0.2 type vocabulary — the type-name/prefix/folder literals as they existed at
-# this schema version. NEVER derive this from the live spec/enum: a migration is a
-# point-in-time snapshot — the live spec/enum must never be re-introduced here.
+# Frozen v0.1/v0.2 type vocabulary (type-name, prefix and folder literals at this schema). Never
+# derive it from the live spec: a migration is a point-in-time snapshot.
 _TYPES: tuple[tuple[str, str, str], ...] = (
     ("epic", "EPIC", "epics"),
     ("feature", "FEAT", "features"),

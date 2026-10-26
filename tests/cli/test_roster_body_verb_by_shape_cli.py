@@ -2,9 +2,9 @@
 
 Rows are the shapes a roster entry can be in; columns are the four ways to supply a body, each
 with and without `--force`. A cell is judged on the bare exit code, the printed text, the file's
-bytes on refusal and the body read back through `show`. A role whose view is in `[selected]` is
-refused whatever the flag; a role whose view the project dropped and an operator are writable,
-with a written body asking for `--force` on a replace only.
+bytes on refusal and the body read back through `show`. A role, whether or not its view is
+selected, and an operator are writable, with a written body asking for `--force` on a replace
+only.
 """
 
 import hashlib
@@ -43,7 +43,7 @@ SOURCES = {
 
 #: shape -> (kind, slug, what the body is before the write)
 SHAPES = {
-    "role-in-selected": ("role", "manager", "refused"),
+    "role-in-selected": ("role", "manager", "unwritten"),
     "role-view-dropped": ("role", "manager", "unwritten"),
     "declared-role-view-dropped": ("role", "security-analyst", "unwritten"),
     "bundled-role-not-activated": ("role", "qa", "inactive"),
@@ -122,14 +122,10 @@ async def test_the_body_verb_by_shape_source_and_force(
     result = await invoke(args, input=stdin)
 
     append = source == "append"
-    refused = state in ("refused", "inactive") or (state == "written" and not append and not force)
+    refused = state == "inactive" or (state == "written" and not append and not force)
     if refused:
         assert result.exit_code == 1, result.output
-        if state == "refused":
-            assert ".overrides/roles.toml" in result.output
-            assert "--force" in result.output and "does not lift" in result.output
-            assert f"sq role {slug} view disable role_definition" in " ".join(result.output.split())
-        elif state == "inactive":
+        if state == "inactive":
             assert "activate it first" in result.output
         else:
             assert "already has a body" in result.output

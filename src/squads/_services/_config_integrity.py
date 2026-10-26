@@ -1,22 +1,8 @@
-"""Roster config-integrity clauses — ``no_live_role`` and ``preloaded_skill`` — evaluated as
-pure predicates over an already-loaded index snapshot rather than a proposed transition.
-
-Shared by two callers that must never restate this logic themselves: the ``sq check`` reporter
-(a squad-global validator in ``_services/_validators.py`` calls :func:`check_all` against state
-already on disk) and the retirement gate (``_services/_retirement.py`` calls the same functions
-against a transaction's prospective snapshot, scoped to the transition's own delta). Every
-function here is therefore pure: no I/O, no ``Service`` instance — that purity is what lets one
-predicate serve both a reporter over on-disk state and a gate over a transaction snapshot, with
-neither restating the other's logic.
-
-Vocabulary note: "live" here is exactly ``WorkflowSpec.live_statuses(item_type)`` membership —
-never a role-name-keyed accessor and never a single-status equality: a lifecycle may declare
-several live statuses at once, so a cardinality check must test membership in that set, not
-equality against one status name.
-
-Clause and kind identifiers (below) are internal vocabulary — code, the per-clause ref-kind
-declaration in ``_retirement.py``, and tests. They never appear in user-facing text: a refusal
-or a report reads as the condition plus its remedy, nothing else (see :func:`render_finding`).
+"""Roster config-integrity clauses (``no_live_role``, ``preloaded_skill``) as pure predicates over
+an already-loaded index snapshot, shared by the ``sq check`` reporter and the retirement gate so
+neither restates the logic. "Live" is membership in ``WorkflowSpec.live_statuses(item_type)``, never
+a single status name. Clause and kind identifiers are internal; user-facing text is the condition
+plus its remedy (see :func:`render_finding`).
 """
 
 from collections.abc import Iterable, Sequence
@@ -34,20 +20,15 @@ from squads._roles._models import CatalogSource
 from squads._roles._resolver import resolve_role_tolerantly
 from squads._workflow._models import ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
 
-#: Clause identifiers — internal, never rendered. Named for the condition each checks so the
-#: set survives a clause being added or withdrawn. The withdrawn default-role clause
-#: (``no_default_role``) has no runtime representation any more; it is recorded only in the
-#: decision that governs this module as the history of a clause that was decided and then
-#: withdrawn.
+# Clause identifiers, internal and never rendered; named for the condition each checks.
 type Clause = Literal["no_live_role", "preloaded_skill"]
 
 NO_LIVE_ROLE: Clause = "no_live_role"
 PRELOADED_SKILL: Clause = "preloaded_skill"
 
-#: ``preloaded_skill``'s three dependency kinds, named for what holds the dependency, and
-#: ordered by the remedy available, from severable to none — an ordering of remedies only,
-#: never a severity or an evaluation order, and never a licence to report just one kind a skill
-#: happens to be caught by.
+# ``preloaded_skill``'s dependency kinds, ordered by the remedy available (severable to none): an
+# ordering of remedies only, not a severity or evaluation order, and every kind a skill is caught by
+# is reported.
 type Kind = Literal["scoped_edge", "type_implied", "always_on_floor"]
 
 SCOPED_EDGE: Kind = "scoped_edge"
@@ -61,38 +42,11 @@ _ENUMERATION_CAP = 5
 
 @dataclass(frozen=True)
 class ConfigIntegrityFinding:
-    """One clause violation against state already on disk: an entry that a fresh retirement
-    transition would refuse, sitting in that state because nothing ever refused it (a squad
-    transitioned before the gate existed, or reached some other way). ``entry`` is the roster
-    item id the finding is about, or ``""`` when the violation is squad-wide rather than
-    attached to one entry (``no_live_role`` — there is no single entry to blame for zero live
-    roles).
-
-    ``message`` and ``remedy`` are deliberately two separate fields, not one composed string:
-    ``message`` states the *condition* alone — the dependent entity/entities, and for a
-    ``sq-<type>`` implication, the implicating type(s) — and never mentions what to do about it.
-    ``remedy`` is the specific, satisfiable next step for the direction this finding was
-    *computed* in, or ``None`` when no direction ever has one (``always_on_floor``). It is not
-    necessarily the remedy every caller renders, though: :func:`render_finding` takes the
-    situation the caller is actually in (a retirement in progress, or not) and substitutes a
-    direction-appropriate remedy for the one kind whose only stored remedy names a flag
-    (``--unlink``) that is not available in every situation a finding can be rendered in — see
-    its own docstring. Two callers each render through it — the ``sq check`` reporter (no
-    transition in play at all) and the retirement gate (a specific transition, in a specific
-    direction) — so the composition happens in exactly one place and neither caller can
-    accidentally concatenate two overlapping phrases, or offer a step the caller cannot
-    actually perform.
-
-    ``kind`` is ``None`` for ``no_live_role`` (no severable-vs-not classification) and, for
-    ``preloaded_skill``, one of the three dependency shapes the retirement gate's ``--unlink``
-    cares about: ``scoped_edge`` a stored ``scopes`` edge (severable), ``type_implied`` a
-    ``sq-<type>`` implication (not severable, but temporary in principle), ``always_on_floor``
-    the permanent floor (not severable, no remedy).
-
-    ``severable_targets`` names the specific item ids a ``scoped_edge`` finding's dependency is
-    stored on — empty for every other kind. ``--unlink`` consumes this directly rather than
-    re-deriving which edges its own refusal enumerated, which is what keeps the flag from
-    severing more than the finding that refused actually named (see ``_retirement.py``).
+    """One clause violation against state already on disk. ``entry`` is the roster item id, or
+    ``""`` when squad-wide. ``message`` states the condition and ``remedy`` the next step (``None``
+    if none), composed only by :func:`render_finding`. ``kind`` is ``None`` for ``no_live_role``,
+    else ``scoped_edge`` (severable), ``type_implied`` or ``always_on_floor``; ``severable_targets``
+    names the ids a ``scoped_edge`` is stored on, so ``--unlink`` severs exactly what was named.
     """
 
     clause: Clause
@@ -105,11 +59,9 @@ class ConfigIntegrityFinding:
     removal_remedy: str | None = None
 
 
-#: ``scoped_edge``'s remedy when the caller is not a retirement of the finding's own ``entry`` —
-#: the reporter (no transition in play), or the retirement gate rendering this finding on a
-#: *reactivation* (the finding's entry is a bystander skill, not the item transitioning, so
-#: ``--unlink`` is refused as meaningless on that command). Never mentions ``--unlink``, the one
-#: step neither situation can actually perform.
+# ``scoped_edge``'s remedy when the caller is not retiring the finding's own ``entry`` (the
+# reporter, or a reactivation naming a bystander skill); it never mentions ``--unlink``, which
+# neither can perform.
 _SCOPED_EDGE_NO_UNLINK_REMEDY = (
     "sever the edge with `sq skill <addr> unlink-role <role>`, or reactivate the skill"
 )
@@ -118,20 +70,12 @@ _SCOPED_EDGE_NO_UNLINK_REMEDY = (
 def render_finding(
     finding: ConfigIntegrityFinding, *, unlink_available: bool = False, removal: bool = False
 ) -> str:
-    """The finding's condition, plus its remedy when one exists — the single place
-    ``message``/``remedy`` are ever concatenated, so the two halves are joined exactly once and
-    never twice, and every caller renders the identical *condition* text for the same finding:
-    they are two renderings of one predicate, and neither forks the wording for its own caller.
+    """The finding's condition plus its remedy when one exists; the one place ``message`` and
+    ``remedy`` are joined, so every caller renders the same condition.
 
-    The *remedy*, unlike the condition, is a property of the caller's own situation rather than
-    of the predicate: ``--unlink`` is only ever a real option when the caller is a retirement in
-    progress of the finding's own ``entry`` — never on the ``sq check`` reporter, which has no
-    transition in play, and never on the retirement gate rendering a finding on a *different*
-    transition's own item (a reactivation that would preload an already-non-live skill; the
-    finding names that skill, not the role actually transitioning). ``unlink_available`` (default
-    ``False``, matching the reporter's no-transition situation) is what lets one call site say so.
-    Only ``scoped_edge``'s stored remedy ever varies by it — every other kind's remedy already
-    holds regardless of direction.
+    The remedy depends on the caller: ``--unlink`` is offered only when ``unlink_available``
+    (default ``False``, the reporter's case) says the caller is retiring the finding's own
+    ``entry``, and only ``scoped_edge``'s stored remedy varies by it.
     """
     if removal:
         # A removal leaves the entry live in its own right: only the dependency and the step
@@ -166,11 +110,10 @@ def _cap_and_join(values: Iterable[str]) -> str:
 
 
 def _scopes_role(skill: Item, role: Item, spec: WorkflowSpec) -> bool:
-    """Whether *skill* carries a forward ``preload``-role ref to *role* — the ``scoped_edge``
-    stored edge, read directly off the skill's own ``refs`` (the skill is always the referrer
-    today), never inverted via ``backrefs`` since both ends are already in hand. Resolved
-    through the declared ``preload`` semantic (:meth:`WorkflowSpec.preload_ref_kind`), never
-    the bundled ``"scopes"`` spelling."""
+    """Whether *skill* carries a forward ``preload``-role ref to *role* (the ``scoped_edge``),
+    read directly off the skill's own ``refs`` (the skill is the referrer), never inverted via
+    ``backrefs`` since both ends are in hand. Resolved through the declared ``preload`` semantic
+    (:meth:`WorkflowSpec.preload_ref_kind`), never the bundled ``"scopes"`` spelling."""
     role_prefix = effective_prefix(role.prefix)
     preload_kind = spec.preload_ref_kind()
     for r in skill.refs:
@@ -183,24 +126,10 @@ def _scopes_role(skill: Item, role: Item, spec: WorkflowSpec) -> bool:
 def _always_on_floor(
     live_roles: Sequence[RoleDef], spec: WorkflowSpec, playbook: PlaybookSpec
 ) -> frozenset[str]:
-    """Whatever ``skills_for_role`` implies for *every* live role — the un-retirable floor,
-    derived rather than a hand-maintained list of names: that formulation survives a rename and
-    survives the set growing or shrinking, without a blocklist to maintain.
-
-    Each role's own contribution is first stripped of *that role's own* ``sq-<type>``
-    implications before the sets are intersected — never the resolved list as-is. Without that
-    subtraction, a squad with exactly one live role would see the intersection collapse to that
-    one role's *entire* resolved list (an intersection of one set is the set itself), sweeping
-    its type-implied skills into the permanent floor by coincidence of roster size rather than
-    by declared authority. Subtracting first keeps the floor exactly the always-on trio
-    regardless of how many roles are live, not merely when two or more happen to disagree on
-    their type-implied extras.
-
-    An intersection over zero roles is mathematically the universal set, which would wrongly
-    floor every non-live skill — guarded to the empty set instead. In practice this function is
-    only ever called with a non-empty *live_roles* (its one caller already returns early when
-    there are none), but the guard keeps the property honest standalone rather than relying on
-    that caller discipline.
+    """Whatever ``skills_for_role`` implies for every live role: the un-retirable floor, derived
+    rather than listed. Each role's own ``sq-<type>`` implications are subtracted before
+    intersecting, or a single live role would sweep its whole resolved list into the floor; an empty
+    ``live_roles`` yields the empty set rather than the universal one.
     """
     if not live_roles:
         return frozenset()
@@ -246,18 +175,11 @@ def check_preloaded_skill(
     squad_dir: Path | None,
     catalog: CatalogSource,
 ) -> list[ConfigIntegrityFinding]:
-    """``preloaded_skill`` — a referenced skill, already broken: a non-live ``skill`` entry
-    still named by a live role's resolved preload list. Classified into three kinds — a stored
-    ``scopes`` edge, a ``sq-<type>`` implication, or the always-on floor — because the kind
-    changes the message and the available remedy, never the detection itself. A skill can be
-    caught by more than one kind at once; each is reported as its own finding, in the declared
-    severable-to-none order: ``scoped_edge`` before ``type_implied``.
-
-    ``always_on_floor`` is the one kind not conditioned on ``active_backends``: its authority is
-    a declared rule of the roster contract, not a derived property of the
-    projection, so it still refuses in a squad with no active backend. Its other condition is
-    unchanged and is about roles, not backends — a property quantified over every live role is
-    vacuous when there are none, so the whole clause stays silent with no live role at all.
+    """``preloaded_skill``: a non-live ``skill`` entry still named by a live role's resolved preload
+    list, classified as a stored ``scopes`` edge, a ``sq-<type>`` implication or the always-on
+    floor. A skill caught by several kinds yields one finding per kind, ``scoped_edge`` first.
+    ``always_on_floor`` does not depend on ``active_backends`` (its authority is the roster
+    contract), and the clause stays silent with no live role.
     """
     live_roles = _live_role_items(index, spec)
     if not live_roles:
@@ -356,15 +278,10 @@ def check_all(
     squad_dir: Path | None,
     catalog: CatalogSource,
 ) -> list[ConfigIntegrityFinding]:
-    """Every clause's findings, ``no_live_role`` then ``preloaded_skill`` — the single entry
-    point both the reporter and the gate call, rather than each composing the clauses itself.
-    This fixed clause order, together with ``check_preloaded_skill``'s declared per-skill kind
-    order, is what makes output deterministic wherever more than one finding renders together.
-
-    ``playbook`` is the active/merged one (``Service.playbook``), passed through with
-    *squad_dir* and *catalog* to ``check_preloaded_skill`` alone, since ``no_live_role`` never
-    reads playbook data or role documents; they make the always-on floor and type-implied kind
-    reflect a project override's guidance and its roles' declared capabilities.
+    """Every clause's findings, ``no_live_role`` then ``preloaded_skill``: the one entry point for
+    the reporter and the gate, in a fixed order so output is deterministic. ``playbook``,
+    *squad_dir* and *catalog* go to ``check_preloaded_skill`` alone, so the floor and type-implied
+    kinds reflect overrides.
     """
     return [
         *check_no_live_role(index, spec, active_backends),

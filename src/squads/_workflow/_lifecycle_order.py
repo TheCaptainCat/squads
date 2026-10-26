@@ -8,10 +8,9 @@ if TYPE_CHECKING:
     from squads._workflow._models import Lifecycle
 
 
-# Canonical priority order for well-known exception/side states: states appearing together
-# in the side-state list sort by this (lower = earlier), regardless of BFS discovery order
-# (e.g. Blocked before Cancelled). States absent here keep BFS order via the fallback rank
-# (len(_SIDE_PRIORITY)).
+# Canonical priority for well-known side states: those in the side-state list sort by this (lower is
+# earlier, Blocked before Cancelled) regardless of BFS discovery; absent states keep BFS order via
+# the fallback rank ``len(_SIDE_PRIORITY)``.
 _SIDE_PRIORITY: dict[str, int] = {
     "WontFix": 0,
     "Blocked": 1,
@@ -22,18 +21,13 @@ _SIDE_PRIORITY: dict[str, int] = {
 
 
 def lifecycle_spine(machine: Lifecycle) -> list[str]:
-    """The "happy-path" chain through *machine*: greedy forward walk from ``initial``,
-    following the first unvisited outgoing transition at each step, stopping when no new
-    state is reachable. E.g. ``["Draft", "Ready", "InProgress", "InReview", "Done"]`` for
-    the bundled ``work`` lifecycle — exception/side branches (``Blocked``, ``Cancelled``)
-    never appear, by construction (they're only reached as a non-first transition target).
-
-    Shared by :func:`linearize_lifecycle` (renders it as ``"A → B → C"`` plus side states)
-    and the "first happy-path status matching some predicate" family
-    (:meth:`WorkflowSpec.first_active_status`/:meth:`WorkflowSpec.first_settled_status`) —
-    those need the spine specifically, not full BFS reachability order, since a side branch
-    like ``Cancelled`` can resolve to a settled role at a shallower BFS depth than the actual
-    happy-path terminal and would otherwise be picked first.
+    """The "happy-path" chain through *machine*: a greedy forward walk from ``initial`` following
+    the first unvisited outgoing transition until nothing new is reachable, e.g. ``["Draft",
+    "Ready", "InProgress", "InReview", "Done"]``; side branches (``Blocked``, ``Cancelled``) are
+    only non-first targets and never appear. Shared by :func:`linearize_lifecycle` and
+    :meth:`WorkflowSpec.first_active_status`/:meth:`WorkflowSpec.first_settled_status`, which need
+    the spine, not BFS order, since a side branch like ``Cancelled`` can resolve settled at a
+    shallower depth than the real terminal.
     """
     initial = machine.initial
     transitions = machine.transitions
@@ -55,24 +49,11 @@ def lifecycle_spine(machine: Lifecycle) -> list[str]:
 
 
 def linearize_lifecycle(machine: Lifecycle) -> str:
-    """Derive a readable lifecycle string from an arbitrary transition graph.
-
-    Algorithm:
-    1. Build the **spine** (:func:`lifecycle_spine`) — the "happy-path" chain ``A → B → C``.
-    2. Collect **side states** — all states reachable from ``machine.initial`` that
-       are not on the spine — in BFS discovery order.
-    3. Sort side states into canonical order using :data:`_SIDE_PRIORITY`, so the
-       output is independent of TOML transition-list ordering.  States not in the
-       priority table retain their relative BFS order (sorted after the known states).
-    4. Return ``"A → B → C"`` when there are no side states, or
-       ``"A → B → C (+ D, E)"`` otherwise.
-
-    Deterministic: given the same machine the output is always identical.
-
-    Examples::
-
-        linearize_lifecycle(guide_machine)   # "Draft → Published → Deprecated"
-        linearize_lifecycle(adr_machine)     # "Proposed → Accepted → Superseded (+ ...)"
+    """Derive a readable lifecycle string from a transition graph, deterministically: the spine
+    (:func:`lifecycle_spine`) as ``A → B → C``, then the side states (reachable from
+    ``machine.initial`` but off the spine) sorted by :data:`_SIDE_PRIORITY` so TOML transition order
+    does not matter, unknown ones keeping BFS order after, as ``A → B → C (+ D, E)``, or without the
+    suffix when there are none. E.g. ``"Draft → Published → Deprecated"``.
     """
     initial = machine.initial
     transitions = machine.transitions
@@ -107,14 +88,11 @@ def linearize_lifecycle(machine: Lifecycle) -> str:
 
 
 def lifecycle_states_in_order(machine: Lifecycle) -> list[str]:
-    """A deterministic listing of every state in ``machine``: BFS discovery order from
-    ``initial`` (mirroring :func:`linearize_lifecycle`'s traversal), then any state left
-    unreached (shouldn't normally happen) appended in sorted order.
-
-    ``Lifecycle.states`` is a ``frozenset`` — its iteration order is hash-seed-dependent, so
-    any caller whose output has to be byte-stable across process runs walks this instead.
-    Today that is :meth:`WorkflowSpec.first_dropped_status`, which picks a status out of a
-    machine for generated text; a hash-ordered pick would rewrite generated files at random.
+    """Every state in *machine* in a deterministic order: BFS discovery from ``initial`` (as
+    :func:`linearize_lifecycle` traverses), then any unreached state sorted. ``Lifecycle.states`` is
+    a ``frozenset`` with hash-seed-dependent order, so a caller needing byte-stable output walks
+    this instead; :meth:`WorkflowSpec.first_dropped_status` does, as a hash-ordered pick would
+    rewrite generated files at random.
     """
     order = [machine.initial]
     seen = {machine.initial}
@@ -131,14 +109,11 @@ def lifecycle_states_in_order(machine: Lifecycle) -> list[str]:
 
 
 def lifecycle_edges_in_order(machine: Lifecycle) -> list[tuple[str, str]]:
-    """Every transition edge in *machine*, as ``(source, target)`` pairs in a deterministic,
-    byte-stable order: sources in :func:`lifecycle_states_in_order` order, targets in each
-    source's declared ``Lifecycle.transitions`` list order (the TOML declaration order the
-    ``list`` values preserve — never ``Lifecycle.states``, a ``frozenset`` with a
-    hash-seed-dependent iteration order). A source with no outgoing edges contributes nothing.
-
-    The order is deterministic for the ``sq workflow lifecycles --json`` catalog, which
-    publishes each pair as a ``{from, to}`` object.
+    """Every transition edge in *machine* as ``(source, target)`` pairs in a byte-stable order:
+    sources in :func:`lifecycle_states_in_order` order, targets in each source's declared
+    ``Lifecycle.transitions`` list order (never the hash-ordered ``frozenset``); a source with no
+    edges contributes nothing. It gives the ``sq workflow lifecycles --json`` catalog its ``{from,
+    to}`` objects a deterministic order.
     """
     return [
         (src, dst)

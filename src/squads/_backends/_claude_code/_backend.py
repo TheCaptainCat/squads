@@ -41,11 +41,9 @@ _SKILL_FILE = "SKILL.md"
 _CLAUDE_DIR = ".claude"
 _CLAUDE_MD = "CLAUDE.md"
 
-#: The slug-bound startup command set an agent pointer names, in priority order — the concrete
-#: rendering of the protocol CLAUDE.md's managed section states generically for every agent
-#: (``claude/claude_section.md.j2``'s "Start of a run" section). One declaration, so a command
-#: added here appears on every generated agent pointer with no template edit.
-#: ``{slug}`` is substituted per role by ``_startup_commands``.
+#: The slug-bound startup commands an agent pointer names, in priority order: the concrete form
+#: of the "Start of a run" protocol in ``claude/claude_section.md.j2``. One declaration, so a
+#: command added here reaches every pointer; ``{slug}`` is filled per role by ``_startup_commands``.
 _STARTUP_COMMAND_TEMPLATES: list[str] = [
     "sq memory {slug} list",
     "sq memory {slug} show <slug>",
@@ -61,19 +59,18 @@ def _startup_commands(slug: str) -> list[str]:
 
 
 class ClaudeCodeBackend(AgentBackend):
-    """Question 1: **yes** — a Claude Code agent runs `sq` itself, which is the containment
-    rule's whole premise, so a runtime fetch substitutes for anything that only *supplies*
-    content.
-    Question 2: the expressible set is this backend's whole frontmatter surface — ``name``,
-    ``description``, ``model`` (``_VALID_MODELS``/``model_drop_warning`` below), ``color``,
-    ``disallowedTools``, the resolved ``skills`` list; nothing squads projects onto a role falls
-    outside it today.
-    Question 3: the irreducible set is ``name`` and ``description`` — Claude Code's own
-    discovery contract (a `name`-keyed dispatch identifier plus the selection text read before
-    any agent exists to run anything).
-    Question 4: :meth:`restriction_fragment` — ``disallowedTools``, Claude Code's spelling of
-    the squad's own spawn-tool attenuation.
-    Question 5: :meth:`render_role_entry`/:meth:`render_skill_entry`.
+    """Answers to the five per-host questions of ``AgentBackend``.
+
+    1. Command execution: yes. A Claude Code agent runs `sq` itself, the containment rule's
+       premise, so a runtime fetch substitutes for anything that only supplies content.
+    2. The expressible set is this backend's whole frontmatter: ``name``, ``description``,
+       ``model`` (``_VALID_MODELS``/``model_drop_warning``), ``color``, ``disallowedTools`` and
+       the resolved ``skills`` list.
+    3. The irreducible set is ``name`` and ``description``: Claude Code's discovery contract (a
+       ``name``-keyed dispatch identifier plus selection text read before any agent runs).
+    4. :meth:`restriction_fragment`: ``disallowedTools``, its spelling of the squad's spawn-tool
+       attenuation.
+    5. :meth:`render_role_entry`/:meth:`render_skill_entry`.
     """
 
     name = "claude_code"
@@ -152,11 +149,9 @@ class ClaudeCodeBackend(AgentBackend):
                 {"full_name": o.full_name, "slug": o.slug, "pronouns": o.pronouns}
                 for o in operators
             ],
-            # No live role carrying `is_default` is a legitimate state, not a gap to paper over
-            # with a fabricated slug: the template omits the default-role line and the
-            # orchestration paragraph's name entirely rather than inventing one, the same
-            # degradation the generated skills' `has_dev` gate performs when the last developer
-            # role retires (that gate lives with the render, on ServiceCore).
+            # No live default role is legitimate: the template omits the default-role line and
+            # the orchestration paragraph's name rather than inventing one, as the generated
+            # skills' `has_dev` gate does when the last developer role retires.
             default_role_full_name=default.full_name if default else None,
             default_role_slug=default.slug if default else None,
             spec=spec,
@@ -184,50 +179,33 @@ class ClaudeCodeBackend(AgentBackend):
         invocable: bool,
         body_tag: str | None = None,
     ) -> list[Artifact]:
-        """Write a managed skill's thin pointer in .claude/, and make sure its body file under
-        squads/ exists with a well-formed ``sq:body`` region — empty when *body_tag* is
-        ``None``, seeded with the ``sq:view:<body_tag>`` placement tag otherwise.
+        """Write a managed skill's thin .claude/ pointer and ensure its body file has a ``sq:body``.
 
-        **This backend does not write a skill's definition.** That text renders on read, off
-        the tag this writer seeds (``squads._view_tags.expand_view_tags``, via
-        ``ItemsMixin.read_body``) — every caller resolves *body_tag* against ``spec.views``
-        before calling, the three permanently-system skills and every per-item-type skill
-        alike (``_write_item_skills`` resolves :data:`~squads._views.ITEM_SKILL_VIEW_NAME`
-        the same way), passing ``None`` when the view is not declared so this writer never mints
-        a tag naming an undeclared view. Either way, the pointer never needed either shape:
-        ``claude/pointer_skill.md.j2`` renders from *name*, *description* and the resolved
-        *invocable* value alone.
+        The region is empty when *body_tag* is ``None`` and seeded with the ``sq:view:<body_tag>``
+        placement tag otherwise. This backend does not write a skill's definition: it renders on
+        read off that tag (``squads._view_tags.expand_view_tags``, via ``ItemsMixin.read_body``).
+        Every caller resolves *body_tag* against ``spec.views`` first and passes ``None`` for an
+        undeclared view, so a tag naming one is never minted. The pointer needs neither shape;
+        ``claude/pointer_skill.md.j2`` renders from *name*, *description* and *invocable* alone.
 
-        What is still owed is the file's *shape*. The seeding step
-        (``Service.seed_bundled_skills``/``seed_custom_skills``) stamps a ``SKILL`` id onto the
-        slug-named file this writes, so a managed skill with no file on disk is never seeded and
-        never becomes an indexed item at all.
+        What is owed is the file's shape: ``Service.seed_bundled_skills``/``seed_custom_skills``
+        stamp a ``SKILL`` id onto the slug-named file written here, so a managed skill with no file
+        is never seeded or indexed.
 
-        Body path derivation:
-        - If the skill is already in the index (i.e. it has been stamped as a SKILL item),
-          the body path is resolved from ``item.path`` — which encodes the convention-correct
-          name ``agents/skills/SKILL-<NNNNNN>-<slug>.md``.  This is the normal sync path.
-        - On a first write (no index entry yet — during ``sq init`` before ``seed_bundled_skills``
-          runs), the legacy slug-named path ``agents/skills/<slug>.md`` is used as a temporary
-          landing spot.  ``seed_bundled_skills`` will rename it to the convention name
-          immediately afterwards.
+        Body path: if the skill is already indexed, it is resolved from ``item.path``
+        (``agents/skills/SKILL-<NNNNNN>-<slug>.md``), the normal sync path. On a first write (``sq
+        init``, before seeding) the slug-named ``agents/skills/<slug>.md`` is a temporary landing
+        spot that ``seed_bundled_skills`` renames right after.
 
-        A file that already carries a ``sq:body`` region is left byte-untouched, whatever that
-        region holds — including a definition an older release stored there, which is a corpus
-        concern and not this writer's to rewrite (``sq repair``'s backfill sweep is what heals
-        an already-existing file that predates *body_tag*; see
-        ``MaintenanceMixin._repair_body_tag``). So a second run over a synced squad writes no
-        skill body file at all, and produces no diff on one.
+        A file that already carries a ``sq:body`` region is left byte-untouched whatever it holds,
+        including a definition stored there earlier, which is a corpus concern healed by ``sq
+        repair``'s backfill sweep (``MaintenanceMixin._repair_body_tag``). A second run over a
+        synced squad therefore writes no skill body file and produces no diff.
         """
-        # Resolve the body path from the caller-supplied skill_paths map.
-        # refresh_managed() populates ctx.skill_paths from the index before calling
-        # write_managed, so this backend never needs to load the index itself
-        # (layering invariant: _backends must not import _index).
-        #
-        # On first write (sq init, before seeding): skill_paths is empty so we fall back
-        # to a slug-named temporary path under the *declared* skill folder (an override
-        # may have relocated it before init ever ran); seed_bundled_skills renames it to
-        # the convention name right after and rewrites the pointer.
+        # The body path comes from ctx.skill_paths (filled by refresh_managed(), since _backends
+        # must not import _index). On a first write (`sq init`, before seeding) it is empty, so
+        # fall back to a slug-named path under the declared skill folder, which an override may
+        # have relocated; seed_bundled_skills renames it and rewrites the pointer.
         spec = ctx.spec
         resolved = ctx.skill_paths.get(name)
         if resolved is not None:
@@ -236,16 +214,10 @@ class ClaudeCodeBackend(AgentBackend):
             body_path = ctx.squad_dir / spec.items[ROSTER_SKILL].folder / f"{name}.md"
         await _aio.mkdir(body_path.parent, parents=True, exist_ok=True)
 
-        # A marker-structured region: detectable on subsequent syncs regardless of whether
-        # frontmatter has been stamped yet, and the shape every item file shares. Every caller
-        # gates body_tag on spec.views before calling this method, so the tag is seeded only
-        # for a declared view — an undeclared one reaches here as None and this writes an
-        # empty, untagged region instead (the same quiet state _repair_body_tag already
-        # produces for a dropped view). Placed through the one re-placement routine every other
-        # writer of a ``sq:body`` region drives (:func:`~squads._view_tags.place_view_tags`), over
-        # an empty starting region and no prose edit, so this seed is never a second spelling of
-        # placement — :func:`~squads._sections.replace_section`'s own newline padding then gives
-        # the empty shell the region back exactly as any other writer's would.
+        # A marker region, detectable on later syncs whether or not frontmatter is stamped yet.
+        # body_tag is None for an undeclared view (the state _repair_body_tag leaves for a dropped
+        # one), giving an empty untagged region. The tag goes through `place_view_tags` over an
+        # empty region with no prose edit, so seeding is not a second spelling of placement.
         placed = place_view_tags(
             "",
             None,
@@ -266,11 +238,9 @@ class ClaudeCodeBackend(AgentBackend):
             existing = await _aio.read_text(body_path)
             fm, _ = sections.split_frontmatter(existing, source=str(body_path))
             if not sections.has_section(existing, markers.BODY):
-                # Region absent or partial. Fail-safe: re-emit any frontmatter that is there so
-                # a stamped id/sequence_id is never lost, and give the file the region back.
-                # This is squad data (a possibly-indexed SKILL item's .md) — atomic replace,
-                # not the plain truncating writer. No frontmatter is invented here when there
-                # is none: allocation is a separate step.
+                # Region absent or partial: re-emit any frontmatter so a stamped id is never lost
+                # and restore the region. Squad data (a possibly-indexed SKILL .md), hence atomic
+                # replace; no frontmatter is invented, since allocation is a separate step.
                 text = sections.join_frontmatter(fm, seed_body) if fm else seed_body
                 on_disk = await _aio.read_text(body_path, verbatim=True)
                 await _aio.atomic_write_text(
@@ -288,34 +258,26 @@ class ClaudeCodeBackend(AgentBackend):
         return [Artifact(ctx.rel(pointer), "skill_pointer", self.name)]
 
     async def _write_item_skills(self, ctx: BackendContext) -> list[Artifact]:
-        """One managed skill per item type: its ``.claude`` pointer, and its body file's shape.
+        """One managed skill per item type: its ``.claude`` pointer and its body file's shape.
 
-        The definition itself is not written here — it renders on read, off the
-        ``sq:view:item_skill`` tag this writer seeds into every per-type skill's ``sq:body``
-        (``squads._view_tags.expand_view_tags``, via ``ItemsMixin.read_body``), the same mechanism
-        the three permanently-system skills above already use. What survives in this backend is
-        the enumeration: which per-type skills a squad materialises at all — which needs no
-        roster, since a pointer is rendered from a slug and a description, and the tag needs no
-        roster either (it names a view, nothing else).
-
-        A type with no entry in the active playbook — built-in or project-declared alike (there
-        is no static built-in/custom split any more) — still gets its own skill, so the two
-        loops below differ in nothing but which vocabulary names the slug and the description.
+        The definition renders on read off the ``sq:view:item_skill`` tag seeded into every
+        per-type skill's ``sq:body`` (``expand_view_tags``, via ``ItemsMixin.read_body``), like the
+        permanently-system skills above. What remains here is which per-type skills a squad
+        materialises, which needs no roster: the pointer renders from a slug and a description, and
+        the tag names a view and nothing else. A type with no active-playbook entry, built-in or
+        project-declared, still gets a skill, so the two loops below differ only in which vocabulary
+        names the slug and description.
         """
         spec = ctx.spec
         playbook = ctx.playbook
         out: list[Artifact] = []
-        # Gated the same way the three permanently-system skills' body_tag is gated in
-        # write_managed, and the same condition MaintenanceMixin._repair_body_tag already
-        # applies to its own per-type branch — a dropped `item_skill` view must never seed a
-        # fresh dangling tag on a newly-created skill body.
+        # Gated like write_managed's body_tag and `_repair_body_tag`'s per-type branch: a dropped
+        # `item_skill` view must never seed a dangling tag on a new skill body.
         item_skill_body_tag = ITEM_SKILL_VIEW_NAME if ITEM_SKILL_VIEW_NAME in spec.views else None
 
-        # Types with a playbook entry. The active, per-request playbook (ctx.playbook, merged
-        # with any .overrides/playbook.toml) decides this set, not the bundled singleton. A type
-        # the active spec has dropped or renamed away must produce no skill at all — never a
-        # stale one under its old name — so a type absent from the active spec is skipped
-        # outright: the "no orphan" bar a shadowing override has to clear.
+        # Types with a playbook entry, from the active playbook (ctx.playbook), not the bundled
+        # one. A type the active spec dropped or renamed is skipped outright, so no skill
+        # survives under the old name.
         for item_type in managed_item_types(playbook):
             if item_type not in spec.items:
                 continue
@@ -384,16 +346,15 @@ class ClaudeCodeBackend(AgentBackend):
         return Artifact(ctx.rel(pointer), "agent", self.name, warning=warning)
 
     def _skill_pointer_description(self, ctx: BackendContext, item: Item, slug: str) -> str:
-        """The description :meth:`generate_skill_entry` renders for *slug* — but for a
-        **system** skill (bundled or a per-type ``sq-<type>``, :func:`interactions
-        .is_system_skill`), ``write_managed``'s own compiled-description call
-        (:meth:`_write_managed_skill`/:meth:`_write_item_skills`) is what runs *last* in a full
-        ``sync`` and so is this slug's real current content, not *item*'s own (possibly
-        seed-time-stale) description. :meth:`render_skill_entry`
-        (question 5) must answer with whichever of the two is actually this slug's last writer,
-        or a system skill whose bundled description text moved since it was seeded would read
-        as permanently drifted. An author-defined (non-system) skill has only one writer
-        (:meth:`generate_skill_entry` itself), so its own description is exactly right.
+        """The description :meth:`generate_skill_entry` renders for *slug*.
+
+        For a system skill (bundled or per-type ``sq-<type>``, :func:`interactions.is_system_skill`)
+        the compiled-description call of :meth:`_write_managed_skill`/:meth:`_write_item_skills`
+        runs last in a full ``sync``, so it is the slug's real current content, not *item*'s
+        possibly seed-time-stale description. :meth:`render_skill_entry` (question 5) must answer
+        with whichever writer ran last, or a system skill whose bundled text moved since seeding
+        would read as permanently drifted. An author-defined skill has one writer
+        (:meth:`generate_skill_entry`), so its own description is right.
         """
         spec = ctx.spec
         if is_system_skill(slug, spec):

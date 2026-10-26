@@ -83,13 +83,10 @@ class ReaderScreen(Screen[None]):
 
 
 def _glance_line(item: Item, spec: WorkflowSpec) -> Content:
-    """The item header: status, then one badge per declared field carrying a value, then the
-    assignee — generic over ``fields_for(item.type)``, exactly like ``_subentity_head_line``
-    below and ``_tui/_filter.py``'s code enumeration.
+    """The item header: status, one badge per declared field carrying a value, then the assignee.
 
-    Hardcoding ``priority`` here made an adopter's own declared axis invisible in the header
-    while remaining filterable and sortable in the same UI: `sq ui` could sort by ``impact``
-    and never show it.
+    Generic over ``fields_for(item.type)``, as ``_subentity_head_line`` and ``_tui/_filter.py``
+    are: a hardcoded ``priority`` would hide an adopter's own sortable axis such as ``impact``.
     """
     # Static renders through Textual's own Content markup, which does not honor Rich's `\[`
     # escaping — so the assignee (free-form, may contain brackets) goes in as a template

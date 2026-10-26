@@ -1,65 +1,39 @@
-"""Shared, loader-agnostic override-merge engine over raw parsed-TOML mappings.
+"""Shared, loader-agnostic override-merge engine over raw parsed-TOML mappings: a bundled base and a
+project override in, an effective merged ``dict[str, Any]`` out, before any pydantic validation,
+since the spec models set ``extra="forbid"`` and would reject an unresolved splat token or a stray
+``[selected]`` table as a type error first. :func:`merge_override` applies four mechanisms in this
+fixed order:
 
-Turns a bundled base document and a project override document into an effective merged
-document, entirely on ``dict[str, Any]`` in, ``dict[str, Any]`` out — before any pydantic
-model validation, since the strictly-typed spec models set ``extra="forbid"`` and would
-reject an unresolved splat token or a stray ``[selected]`` table as a type error before
-this engine ever got a chance to resolve it.
+1. The override's own top level (:func:`_top_level_key_violations`): an unrecognised key is a
+   collected violation, checked first and only here because after the merge every base key is
+   present and the override's top level is indistinguishable.
+2. Splat-refs (:func:`resolve_splat_refs`): ``$(path)`` / ``$(*path)`` resolve against the base
+   only, never the override, keeping the merge order-independent. A path segment is a TOML bare key
+   (``A-Za-z0-9_-``) joined by ``.``; a key TOML would quote is not addressable, by rule, since a
+   quoted key containing a dot would be ambiguous. That binds this project's bundled documents (all
+   bare, guarded in ``tests/meta``), never an adopter's.
+3. Deep merge (:func:`deep_merge`): tables recurse per key and a leaf, including a plain array,
+   replaces its counterpart.
+4. ``selected`` deselect (:func:`apply_selected`): shrink each named section to its surviving keys,
+   then strip the table.
 
-Four mechanisms, the first three applied in one fixed order by :func:`merge_override`:
+A string, value or key, is in token territory iff it begins with an unescaped ``$(``; one that only
+contains the sigil later is data. A value in territory is resolved or refused as malformed. A key in
+territory is always refused, since no splice-into-a-key operation exists and a section's keys are
+the open vocabulary, so the models cannot backstop one. ``$$(`` at the start unescapes to a literal
+``$(`` in both positions, so the refusal is a spelling requirement, not a naming restriction.
 
-1. **The override document's own top level** (:func:`_top_level_key_violations`) — a closed
-   key space when the caller supplies one: an unrecognised top-level key is a collected
-   violation naming it. Checked first, and only here, because after the merge every base key
-   is present and the override's own top level is no longer distinguishable from it.
-2. **Splat-refs** (:func:`resolve_splat_refs`) — resolve ``$(path)`` / ``$(*path)`` tokens
-   against the base mapping only, never the override, so the merge stays order-independent.
-   A path segment is exactly a TOML bare key (``A-Za-z0-9_-``, one or more characters, joined
-   by ``.``) — the grammar addresses everything a bundled document could name without quoting,
-   no narrower. A key that TOML itself would require quoting (non-ASCII, most concretely) is
-   not addressable: by rule, not by accident of a character class, since a bare key is ASCII
-   by TOML's own definition and ``.`` is the path delimiter, so a quoted key containing a dot
-   would be irreducibly ambiguous to split back apart. That restriction binds this project's
-   own bundled documents, never an adopter's — resolution is base-only, so a path only ever
-   addresses a bundled key, and every bundled key today is already bare (see the standing
-   guard in ``tests/meta``).
-3. **Deep merge** (:func:`deep_merge`) — recurse tables per key; a leaf value (including a
-   plain array — arrays are leaves, never element-merged) replaces its counterpart.
-4. **``selected`` deselect** (:func:`apply_selected`) — shrink each named section to its
-   surviving key set, then strip the ``[selected]`` table itself.
+The engine knows nothing of which document produced its inputs or what its caller-supplied key sets
+mean, and owns no floor check, roster lock, lifecycle floor, category catalog, drift stamping or
+live-index cross-check; those stay in each loader. It does own the wording of an unknown-key refusal
+at both depths (the top-level check and, via :func:`describe_spec_error`, the models' own
+``extra="forbid"`` one level down), sharing one version-qualified menu sentence
+(:func:`_accepted_menu`) so the two cannot diverge.
 
-A string — value or key alike — is in **token territory** iff it *begins* with an unescaped
-``$(``; a string that merely contains the sigil after its first character is data, in both
-positions, left verbatim. In a value, territory means resolve, or refuse as malformed. In a
-key, territory means **refuse**, always — never resolved, never passed through, because there
-is no splice-into-a-key operation to define (a path addresses a value, and a value is not a
-key) and a section's keys are the open vocabulary itself, so the models cannot backstop a key
-the way they can a value's shape. ``$$(`` at the start unescapes to a literal ``$(`` in both
-positions, which is what makes the key refusal a spelling requirement rather than a
-restriction on what a key may be named.
-
-The engine is loader-agnostic: it knows nothing about which document produced its inputs, or
-what any of its caller-supplied key sets mean, and owns no floor check of its own — no
-roster-locked rule, no lifecycle floor, no category catalog, no drift stamping, no live-index
-cross-check. Those stay in each loader; this module supplies the top-level check, the merge,
-the deselect, and the splat resolution.
-
-It also owns the **wording of an unknown-key refusal**, at both depths. The top-level check
-above writes one; the models' own ``extra="forbid"`` writes the other, one level down, after
-this engine has handed the merged document on — and :func:`describe_spec_error` is what a
-loader routes that second one through so the two arrive in one shape rather than two. The
-version-qualified menu sentence they share (:func:`_accepted_menu`) is written once, here,
-because a promise made at the top level and broken one level down is exactly the defect that
-brought the deep half here.
-
-Two calling modes share one code path: every mechanism below always *collects* its
-violations — including a nesting bound exceeded on either walk (see ``_MAX_NESTING_DEPTH``),
-which is a hard structural limit rather than a data-shape violation but still lands on the
-same collected channel, so a lint pass reports it beside every other finding instead of dying
-on the first one it hits. Only the top-level :func:`merge_override` decides, from its
-``collect_all`` flag, whether to raise on the first violation (fail-fast, the load path) or
-return every violation it found (collect-all, a lint-style report) — never raising directly
-itself.
+Every mechanism collects its violations, including a nesting bound exceeded on either walk
+(``_MAX_NESTING_DEPTH``, a hard structural limit that still lands on the collected channel), so a
+lint pass reports it beside the rest. Only :func:`merge_override` decides, from ``collect_all``,
+whether to raise on the first violation (the load path) or return them all.
 """
 
 from collections.abc import Iterable
@@ -78,32 +52,22 @@ type RawMapping = dict[str, Any]
 
 _SELECTED_KEY = "selected"
 
-#: A splat token is recognised only when it is the *entire* string value: `$(path)` or
-#: `$(*path)`, where `path` is one or more dot-joined TOML bare keys (`A-Za-z0-9_-`, one or
-#: more characters each — no restriction on the leading character, so a hyphenated segment
-#: like `user-story` and a digit-leading one both address) or the literal `self`. ASCII-only
-#: in every position, deliberately and for the same reason throughout: a TOML bare key is
-#: ASCII by the format's own definition, so a non-ASCII key is necessarily a *quoted* key and
-#: is unaddressable by that rule rather than by an accident of this class rejecting it in one
-#: position and not another.
+#: A splat token is recognised only as the entire string value: `$(path)` or `$(*path)`, `path`
+#: being dot-joined TOML bare keys (`A-Za-z0-9_-`, any leading character, so `user-story` and digit-
+#: leading keys address) or the literal `self`. It is ASCII-only in every position because a TOML
+#: bare key is ASCII by definition, so a non-ASCII key is a quoted key and unaddressable by rule.
 _TOKEN_RE = re_compile(r"^\$\((\*)?([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*)\)$")
 
-#: Broader than ``_TOKEN_RE``: anything shaped like a whole-string splat token — starts with
-#: an unescaped `$(`, ends with a matching `)` — whether or not its interior is grammar-valid.
-#: Used only to extract a nicer "path" substring for a malformed-token message; the decision
-#: that a value is malformed is made by territory + a failed ``_parse_token``, not by whether
-#: this pattern happens to match (an unclosed token, e.g. `$(items.task`, is malformed too,
-#: and this pattern simply falls back to quoting the whole value for that case).
+#: Broader than ``_TOKEN_RE``: anything shaped like a whole-string splat token (starts with an
+#: unescaped `$(`, ends with `)`), used only to extract a "path" for a malformed-token message.
+#: Malformedness is decided by token territory plus a failed ``_parse_token``, not by this pattern,
+#: which falls back to quoting the whole value (e.g. an unclosed `$(items.task`).
 _TOKEN_SHAPE_RE = re_compile(r"^\$\((\*)?(.*)\)$", DOTALL)
 
-#: A ceiling on override/base nesting depth, picked to satisfy two properties rather than any
-#: particular number: **far above** anything a hand-authored document reaches (the deepest key
-#: path in any bundled document is four levels), and **far below** the interpreter's own
-#: recursion headroom, leaving room for the copy the merge performs at each level. 300 clears
-#: both comfortably. Binds both walks — the override's own resolution, and the merge's
-#: traversal of the untouched base — because a deep untouched-base subtree overflows the stack
-#: inside the *copy*, not inside either walk's own recursive frame, so a guard on only one
-#: side would miss the other.
+#: A ceiling on override/base nesting depth, far above any hand-authored document (the deepest
+#: bundled key path is four levels) and far below the interpreter's recursion headroom, which the
+#: merge's per-level copy also uses. It binds both walks, as a deep untouched-base subtree overflows
+#: inside the copy, not inside either walk's own frame.
 _MAX_NESTING_DEPTH = 300
 
 
@@ -155,12 +119,11 @@ def _lookup_base_path(base: RawMapping, path: str) -> tuple[bool, Any]:
 
 
 def _in_token_territory(value: str) -> bool:
-    """A string — value or key alike — is in token territory iff it *begins* with an
-    unescaped ``$(``. The sigil is POSIX command substitution and one of the three documents
-    this engine serves carries command lines, so a value merely *containing* it after the
-    first character (or a value/key beginning with the ``$$(`` escape, which this correctly
-    excludes — its first two characters are ``$$``, not ``$(``) is plain data, never scanned,
-    never touched."""
+    """A string, value or key, is in token territory iff it begins with an unescaped ``$(``. The
+    sigil is POSIX command substitution and one bundled document carries command lines, so a string
+    that merely contains it after its first character, or begins with the ``$$(`` escape, is plain
+    data, never scanned or touched.
+    """
     return value.startswith("$(")
 
 
@@ -175,13 +138,11 @@ def _unescape_leading_token(value: str) -> str:
 
 
 def _parse_token(value: str) -> tuple[bool, str] | None:
-    """``(star, path)`` when *value* is, in its entirety, a grammar-valid splat token;
-    ``None`` otherwise. Only meaningful once *value* is already known to be in token
-    territory — see :func:`_in_token_territory` — but harmless to call otherwise, since
-    anything not starting with an unescaped ``$(`` can never fullmatch ``_TOKEN_RE`` either.
-    ``fullmatch`` (not ``match``) so a single trailing newline — which Python's ``$`` anchor
-    alone would let through — is not silently inside the grammar; the token must be the
-    *entire* string value."""
+    """``(star, path)`` when *value* is, in its entirety, a grammar-valid splat token, else
+    ``None``; meaningful once :func:`_in_token_territory` holds but harmless otherwise. It uses
+    ``fullmatch`` so a single trailing newline, which ``$`` alone would let through, is not inside
+    the grammar.
+    """
     match = _TOKEN_RE.fullmatch(value)
     if match is None:
         return None
@@ -218,17 +179,12 @@ def _depth_violation(origin: str, path: str, verb: str) -> MergeViolation:
 def _bounded_deepcopy(
     value: Any, origin: str, path: str, depth: int = 0
 ) -> tuple[Any, list[MergeViolation]]:
-    """A depth-guarded stand-in for ``copy.deepcopy``, scoped to what ``tomllib`` can actually
-    produce: ``dict`` and ``list`` are the only mutable container types, so every other value
-    (``str``, ``int``, ``float``, ``bool``, a ``datetime.date``/``time``/``datetime``, ``None``)
-    is immutable and returning it unchanged is already a safe copy. Guards the one recursion
-    stdlib ``deepcopy`` has none for — an untouched base subtree nested deep enough to overflow
-    the stack on its own, independent of anything the override does.
-
-    Collects rather than raises, matching every other mechanism in this module: past the
-    bound, returns *value* uncopied alongside a violation naming the dotted path and stops
-    descending that branch — never itself the point where a violation short-circuits the rest
-    of the walk. The caller decides what to do about it (see :func:`_maybe_raise`).
+    """A depth-guarded stand-in for ``copy.deepcopy`` scoped to what ``tomllib`` produces: ``dict``
+    and ``list`` are the only mutable containers, so every other value is immutable and returning it
+    is a safe copy. It guards the one recursion ``deepcopy`` has no bound for, an untouched base
+    subtree deep enough to overflow the stack. It collects rather than raises: past the bound it
+    returns *value* uncopied with a violation naming the dotted path and stops descending that
+    branch (see :func:`_maybe_raise`).
     """
     if depth > _MAX_NESTING_DEPTH:
         return value, [_depth_violation(origin, path, "copying")]
@@ -252,13 +208,12 @@ def _bounded_deepcopy(
 
 
 def _resolve_key(key: str, current_path: str, origin: str, violations: list[MergeViolation]) -> str:
-    """A dict key is never a splat target. Outside token territory a key is plain data, with
-    only a leading ``$$(`` ever unescaped — exactly the value rule. *Inside* territory a key
-    is always **refused**: there is no splice-into-a-key operation (a path addresses a value,
-    and a value is not a key), and the refusal is a spelling requirement rather than a
-    vocabulary restriction, since the escape still gets a project the literal key it wants.
-    A grammar-valid token is reported distinctly from a malformed one, since resolving it is
-    undefined rather than malformed."""
+    """A dict key is never a splat target. Outside token territory a key is plain data (only a
+    leading ``$$(`` is unescaped, as for values); inside it a key is always refused, since a path
+    addresses a value and a value is not a key, and the escape still lets a project spell the
+    literal key. A grammar-valid token is reported distinctly from a malformed one, as resolving it
+    is undefined rather than malformed.
+    """
     if not _in_token_territory(key):
         return _unescape_leading_token(key)
     key_path = _dotted(current_path, key)
@@ -321,9 +276,8 @@ def _resolve_string(
 ) -> Any:
     """Resolve a value-position string: outside token territory it is plain data (only a
     leading ``$$(`` ever unescaped); inside it, resolve a well-formed token or report it as
-    malformed. There is no third case — the old "surviving literal" category is gone:
-    anything containing the sigil after its first character was never in territory to begin
-    with, so it was always data, never a violation."""
+    malformed. There is no third case: anything containing the sigil after its first
+    character is outside token territory, so it is data, never a violation."""
     if not _in_token_territory(value):
         return _unescape_leading_token(value)
     token = _parse_token(value)
@@ -434,22 +388,16 @@ def _resolve_list(
 def resolve_splat_refs(
     base: RawMapping, override: RawMapping, origin: str
 ) -> tuple[RawMapping, list[MergeViolation]]:
-    """Walk *override* and replace every splat token with a value read from *base*.
+    """Walk *override* and replace every splat token with a value read from *base*, in a single pass
+    (a spliced value is never re-scanned) and against *base* only, which keeps the merge cycle-free
+    and order-independent. It returns the resolved mapping, best-effort (a dangling, mismatched,
+    malformed or too-deep token is left as a marker string or uncopied), plus every violation; it
+    never raises.
 
-    Single pass: a value spliced or spread in from the base is never itself re-scanned for
-    tokens. Resolution targets *base* only — no override value is ever a splat target — which
-    is what keeps the merge free of cycles and order-independent. Returns the resolved
-    mapping (best-effort — a dangling/mismatched/malformed/too-deep token is left as a marker
-    string or uncopied, not substituted) plus every violation found; never raises.
-
-    ``self``/``*self`` address **the nearest enclosing keyed path, at any list depth** — this
-    is definitional, not a special case: a list position contributes nothing to the path,
-    because a list index has no dotted name to contribute, so "the key currently being
-    written" is unchanged by however many list levels sit between the token and that key.
-    Two ``self`` tokens at different list depths under one key therefore resolve to the same
-    base value, and a ``$(*self)`` nested inside a sub-list spreads the enclosing key's list
-    into that sub-list — permitted, because the destination's shape is the models' plane, not
-    this engine's.
+    ``self``/``*self`` address the nearest enclosing keyed path at any list depth, since a list
+    index contributes no dotted name: two ``self`` tokens at different list depths under one key
+    resolve to the same base value, and ``$(*self)`` in a sub-list spreads the enclosing key's list
+    into it, the destination's shape being the models' concern.
     """
     violations: list[MergeViolation] = []
     resolved = _resolve_value(override, base, "", origin, violations)
@@ -464,28 +412,14 @@ def deep_merge(
     _current_path: str = "",
     _depth: int = 0,
 ) -> tuple[RawMapping, list[MergeViolation]]:
-    """Recursively merge *override* over *base* at leaf granularity.
-
-    Tables recurse per key; any other value — including a plain array, which is always a
-    leaf — replaces its counterpart wholesale. *override* should already have its splat
-    tokens resolved (see :func:`resolve_splat_refs`); this function has no opinion on tokens.
-
-    The result shares no ``dict`` or ``list`` object with either input, at any depth — the
-    two mutable container types a parsed TOML document can hold; every other value type
-    (``str``, ``int``, ``float``, ``bool``, a date/time value, ``None``) is immutable, so
-    sharing it is already safe. This is the guarantee a caller relies on to reuse *base*
-    unmodified across every subsequent merge, whatever *base* itself turns out to be — the
-    engine makes no assumption about that beyond its declared ``dict[str, Any]`` shape.
-
-    Key order is base order, with override-only keys appended in override order — an override
-    touching one field of one entry must never relocate that entry (or any other key) in the
-    merged mapping's iteration order, at this level or any nested one.
-
-    Collects rather than raises, matching every other mechanism: a nesting bound exceeded on
-    either side — the override's own structure, or a deep untouched base subtree copied via
-    :func:`_bounded_deepcopy` — appends a violation naming the dotted path and stops
-    descending that one branch, so the rest of the document is still walked and a lint pass
-    sees every finding together. Never raises.
+    """Recursively merge *override* over *base* at leaf granularity: tables recurse per key and any
+    other value, a plain array included, replaces its counterpart wholesale. *override* should
+    already have its splats resolved. The result shares no ``dict`` or ``list`` with either input at
+    any depth, which lets a caller reuse *base* unmodified across every merge. Key order is base
+    order with override-only keys appended in override order, so an override touching one field
+    never relocates an entry. A nesting bound exceeded on either side (via
+    :func:`_bounded_deepcopy`) is collected with the dotted path and that branch skipped; it never
+    raises.
     """
     if _depth > _MAX_NESTING_DEPTH:
         return {}, [_depth_violation(origin, _current_path, "merging")]
@@ -541,28 +475,16 @@ def _unknown_key_violations(
     *,
     empty_accepted_hint: str | None = None,
 ) -> list[MergeViolation]:
-    """Every key in *keys* not present in *accepted* — one collected violation each, naming
-    the key, the running squads version and the accepted set. Shared, verbatim, by two
-    callers that are the same check over two different key spaces: ``[selected]``'s section
-    names (*path_prefix* the ``selected`` table, *what* ``"[selected] section"``) and the
-    override document's own closed top-level key space (*path_prefix* empty, *what*
-    ``"top-level key"``) — the engine's ignorance of what either name space *means* is exactly
-    what makes one helper correct for both.
+    """Every key in *keys* not in *accepted*, one collected violation each naming the key, the
+    running squads version and the accepted set. It is shared by two checks over different key
+    spaces, ``[selected]`` section names (*path_prefix* ``selected``, *what* ``"[selected]
+    section"``) and the override's closed top-level keys (*path_prefix* empty, *what* ``"top-level
+    key"``). The version tells an adopter a typo from a key a newer squads accepts or an older one
+    dropped.
 
-    The version is what turns a bare "not accepted" into a forward-compatibility answer: an
-    adopter reading it can tell whether the key is a typo, a key from a newer squads than the
-    one that refused it, or a key an older squads has since dropped — three different remedies
-    a version-less menu cannot distinguish between.
-
-    *empty_accepted_hint* is the escape hatch for a *structurally* empty menu: when *accepted*
-    is empty, ``"use one of the accepted ...s: []"`` offers nothing to read — technically
-    correct, useless. A caller whose document has NO valid entries for this key space at all
-    (rather than merely none the adopter happened to name) may pass a one-line reason here
-    instead; it replaces the empty-menu fix hint verbatim, version omitted deliberately — that
-    hint explains *why the vocabulary is empty by design* (a structural fact, true at every
-    version), not what a newer or older squads happens to accept, so there is no version-bound
-    menu for it to be qualified against. Ignored (and harmless) when *accepted* is non-empty —
-    the normal, version-qualified menu is the useful one there.
+    *empty_accepted_hint* replaces the useless "one of the accepted ...s: []" fix hint when a
+    document has no valid entries for this key space by design; it omits the version, being true at
+    every version, and is ignored when *accepted* is non-empty.
     """
     fix_hint = (
         empty_accepted_hint
@@ -577,30 +499,21 @@ def _unknown_key_violations(
 
 
 def _accepted_menu(what: str, accepted: frozenset[str]) -> str:
-    """The version-qualified menu sentence, written here once because two refusals carry it
-    and they are the same promise at two depths: an unknown *top-level* key
-    (:func:`_unknown_key_violations`) and an unknown *nested* key
-    (:func:`describe_spec_error`). Sharing the sentence is what stops the deep half drifting
-    into a second dialect of the shallow half — which is the defect that made the nested
-    refusal worth fixing in the first place.
-
-    The version is the load-bearing half: it lets an adopter tell a typo from a key a newer
-    squads accepts from a key an older squads has since dropped.
+    """The version-qualified menu sentence, written once because an unknown top-level key
+    (:func:`_unknown_key_violations`) and an unknown nested key (:func:`describe_spec_error`) are
+    the same promise at two depths, and sharing it stops the nested half drifting into another
+    dialect. The version lets an adopter tell a typo from a key a newer squads accepts or an older
+    one dropped.
     """
     return f"use one of the accepted {what}s in v{__version__}: {sorted(accepted)}"
 
 
 def _model_in(annotation: Any) -> tuple[type[BaseModel] | None, bool]:
-    """The pydantic model reachable through *annotation*, plus whether reaching it passes
-    through a container.
-
-    The container flag is what keeps a location path aligned with the model graph: a field
-    typed ``list[M]`` contributes *two* path segments (the field name, then the index), a
-    field typed ``M`` contributes one. A caller that walked both the same way would resolve
-    the wrong model, silently, and print a menu belonging to somewhere else.
-
-    ``M | None`` is unwrapped to ``M``: an optional section is the same section when it is
-    present, and only a present section can carry an unknown key.
+    """The pydantic model reachable through *annotation*, plus whether reaching it passes through a
+    container. The flag keeps a location path aligned with the model graph: ``list[M]`` contributes
+    two path segments (name, then index) and ``M`` one, and walking both alike would resolve the
+    wrong model and print another section's menu. ``M | None`` unwraps to ``M``, as only a present
+    section can carry an unknown key.
     """
     if isinstance(annotation, type) and issubclass(annotation, BaseModel):
         return annotation, False
@@ -622,15 +535,10 @@ def _model_in(annotation: Any) -> tuple[type[BaseModel] | None, bool]:
 
 
 def _accepted_keys_at(model: type[BaseModel], loc: tuple[int | str, ...]) -> frozenset[str] | None:
-    """The declared field names of the section *loc* addresses inside *model* — the accepted
-    key menu for wherever the offending key actually sits, read off the model itself so it
-    grows with the model instead of going stale beside it.
-
-    *loc* is a pydantic error location whose last segment is the offending key; everything
-    before it names the route from *model* down to the section that refused it. ``None`` when
-    the route cannot be resolved against the model graph, which the caller must treat as "no
-    menu to offer" rather than guessing one: a menu naming the wrong section's keys is worse
-    than none, because an adopter would act on it.
+    """The declared field names of the section *loc* addresses inside *model*, read off the model so
+    the menu grows with it; *loc* is a pydantic error location whose last segment is the offending
+    key. ``None`` when the route cannot be resolved, which the caller treats as "no menu", since a
+    menu naming another section's keys is worse than none.
     """
     current: type[BaseModel] = model
     parts = loc[:-1]
@@ -655,20 +563,12 @@ def _accepted_keys_at(model: type[BaseModel], loc: tuple[int | str, ...]) -> fro
 
 
 def describe_spec_error(exc: Exception, model: type[BaseModel]) -> str:
-    """Render *exc* — raised validating a document against *model* — as the message body a
-    spec loader hands an adopter.
-
-    An **unknown key** is folded into the same shape a top-level unknown key already
-    produces: the offending key, where it sits, the accepted keys for that section, and the
-    running version. A raw pydantic rendering keeps none of that promise and leaks an
-    implementation dependency into an adopter-facing message — a header naming an internal
-    model class, an ``input_value``/``input_type`` dump, and a link to pydantic's own error
-    documentation.
-
-    Everything else is returned verbatim. The fold is deliberately bounded to a failure whose
-    *whole* cause is unknown keys: a wrong type and a missing required field keep the handling
-    they have today, and a failure that mixes an unknown key with one of those keeps it too,
-    rather than have this function paraphrase an error shape it was not built to describe.
+    """Render *exc*, raised validating a document against *model*, as the message body a spec loader
+    gives an adopter. An unknown key is folded into the shape a top-level unknown key produces (key,
+    location, the section's accepted keys, running version), replacing pydantic's internal header,
+    input dump and docs link. Everything else is returned verbatim, since the fold covers only a
+    failure whose whole cause is unknown keys: a wrong type, a missing required field, or a mix
+    keeps its existing handling.
     """
     if not isinstance(exc, ValidationError):
         return str(exc)
@@ -718,23 +618,12 @@ def spec_error_sentences(exc: Exception, model: type[BaseModel]) -> list[str]:
 def _top_level_key_violations(
     override: RawMapping, top_level_keys: frozenset[str], origin: str
 ) -> list[MergeViolation]:
-    """The override document's own top level, checked before the merge — after merging,
-    every base key is present and the override's own top level is no longer distinguishable
-    from it. A closed top level is the only mode: every caller supplies its own accepted
-    set, derived from wherever that document's own vocabulary is declared (a role
-    document's from ``RoleSpec.model_fields``, so it grows with the model instead of going
-    stale beside it; the others from their own section-name constants) — there is no
-    open/unchecked mode left to opt into. A caller that once wanted forward compatibility
-    for an unrecognised key got silent key-dropping instead, which turned a typo into a
-    no-op the adopter could not see; refusing the key, naming it and the running version, is
-    what actually serves that case.
-
-    ``selected`` is accepted unconditionally, whether or not the caller's own set names it.
-    It is not the document's vocabulary — it is *this engine's* own reserved key (defined,
-    consumed, and stripped by :func:`apply_selected`), the same status the sigil holds in
-    every string position. A caller should never have to know to add it, and a caller who
-    forgot to would otherwise see a legitimate override refused on the load path for a
-    document the adopter got right.
+    """The override's own top level, checked before the merge, when every base key is present. The
+    accepted set is always caller-supplied and closed, derived from where that document's vocabulary
+    is declared (a role document's from ``RoleSpec.model_fields``), because an open mode turned a
+    typo into a silent no-op. ``selected`` is accepted unconditionally as this engine's own reserved
+    key, defined and stripped by :func:`apply_selected`, so a caller need not add it and a
+    legitimate override is not refused.
     """
     top_level_keys = top_level_keys | {_SELECTED_KEY}
     return _unknown_key_violations(override.keys(), top_level_keys, origin, "", "top-level key")
@@ -746,17 +635,11 @@ def _validate_selected_shape(
     origin: str,
     empty_selected_hint: str | None = None,
 ) -> list[MergeViolation]:
-    """Every ``[selected]`` shape violation, collected together: an unknown section key, a
-    ``keep`` value that is not a list, or a list containing a non-string element.
-
-    A shape mismatch must never reach ``set(keep)`` unchecked — ``keep = "task"`` (the typo
-    for ``["task"]``) would silently become the character set ``{"t", "a", "s", "k"}``,
-    matching no real key and dropping every one of them, the most damaging way this could
-    fail. Fail closed instead, with a message that names what is actually wrong.
-
-    *empty_selected_hint* — see :func:`_unknown_key_violations` — lets a document with no
-    deselectable sections at all (an empty *section_names*) explain why, rather than pointing
-    at an empty menu.
+    """Every ``[selected]`` shape violation, collected: an unknown section key, a ``keep`` that is
+    not a list, or a non-string element. A mismatch must never reach ``set(keep)``, as ``keep =
+    "task"`` would become the characters ``{"t", "a", "s", "k"}`` and drop every key, so it fails
+    closed naming the problem. *empty_selected_hint* (see :func:`_unknown_key_violations`) explains
+    a document with no deselectable sections.
     """
     violations = _unknown_key_violations(
         selected.keys(),
@@ -797,12 +680,10 @@ def _validate_selected_shape(
 def _selected_section_shape_violations(
     selected: RawMapping, result: RawMapping, origin: str
 ) -> list[MergeViolation]:
-    """A section named by ``[selected]`` but *absent* from the merged mapping is a deliberate,
-    inert no-op — there is nothing to shrink. A section that is *present* but not a table is
-    not: silently doing nothing there means the adopter's deselect never happened, and the
-    resulting spec is still perfectly valid — the one deselect failure mode no downstream
-    floor/referential/live-index check can ever see, because there is nothing wrong with the
-    spec that resulted, only with the one that was asked for. Fail closed instead.
+    """A section named by ``[selected]`` but absent from the merged mapping is an inert no-op, but
+    one that is present and not a table fails closed: silently doing nothing would mean the
+    adopter's deselect never happened while the resulting spec stays valid, the one deselect failure
+    no downstream floor, referential or live-index check can see.
     """
     violations: list[MergeViolation] = []
     for section in selected:
@@ -826,21 +707,11 @@ def _selected_section_shape_violations(
 def _selected_entry_violations(
     selected: RawMapping, result: RawMapping, origin: str
 ) -> list[MergeViolation]:
-    """Every ``[selected]`` keep-list *entry* that names no key of the section it is keeping.
-
-    The counterpart of :func:`_validate_selected_shape` one level down: that function refuses a
-    keep list whose *shape* is wrong, on the argument that a mismatch must never reach
-    ``set(keep)`` unchecked — and the same argument applies to the list's contents. A
-    well-shaped list holding a misspelled entry (``selected.items = [… "guied"]``) passes every
-    shape check, silently drops the key it meant to keep, and leaves a spec that is *valid* —
-    so nothing downstream can report it. It is the deselect failure mode with no backstop: the
-    floor, the referential checks and the live-index cross-check all inspect the spec that
-    resulted, never the one that was asked for. Fail closed instead, naming the section's real
-    keys.
-
-    A keep list may name only keys the *merged* mapping actually holds — a key the override
-    itself adds is present by then, so adding and keeping in one document works; only a name
-    that matches nothing is refused.
+    """Every ``[selected]`` keep-list entry that names no key of its section, the counterpart of
+    :func:`_validate_selected_shape` for contents: a well-shaped list with a misspelled entry
+    (``"guied"``) silently drops the key it meant to keep and leaves a valid spec no downstream
+    check can flag, so it fails closed naming the section's real keys. A keep list may name any key
+    the merged mapping holds, including one the override adds.
     """
     violations: list[MergeViolation] = []
     for section, keep in selected.items():
@@ -865,22 +736,14 @@ def apply_selected(
     origin: str,
     empty_selected_hint: str | None = None,
 ) -> tuple[RawMapping, tuple[Deselection, ...], list[MergeViolation]]:
-    """Apply the top-level ``[selected]`` table's surviving-set deselect, then strip it.
-
-    *section_names* is the closed, caller-supplied set of section keys ``[selected]`` may
-    name; any other key fails closed. Each named list is the surviving set for that section —
-    replace-wholesale, keys not listed are dropped. Every entry of that list must name a key
-    the section actually holds (:func:`_selected_entry_violations`). Every violation found is
-    returned together.
-
-    On success (``violations`` empty): returns the merged mapping with ``selected`` removed
-    and every deselected key dropped, in base order, plus the provenance of each drop.
-
-    On the violation path (``violations`` non-empty): returns *merged* completely unmodified
-    — the caller's own input object, ``selected`` still present, nothing dropped — and empty
-    deselections. This return value must never be used as if a deselect had been attempted;
-    :func:`merge_override` already enforces that by setting ``MergeResult.merged`` to ``None``
-    whenever any violation exists. Never raises.
+    """Apply the top-level ``[selected]`` deselect, then strip it. *section_names* is the closed
+    caller-supplied set of sections it may name (any other fails closed); each named list is the
+    surviving set, replaced wholesale, and every entry must name a key the section holds
+    (:func:`_selected_entry_violations`). On success it returns the merged mapping with ``selected``
+    removed and deselected keys dropped, in base order, plus each drop's provenance. On violations
+    it returns *merged* unmodified with ``selected`` still present and no deselections, which must
+    not be read as an attempted deselect (:func:`merge_override` sets ``MergeResult.merged`` to
+    ``None``). It never raises.
     """
     raw_selected = merged.get(_SELECTED_KEY)
     if raw_selected is None:
@@ -943,38 +806,17 @@ def merge_override(
     collect_all: bool = False,
     empty_selected_hint: str | None = None,
 ) -> MergeResult:
-    """The public entry point: check the override's own top level, resolve splats,
-    deep-merge, apply ``selected``, strip it.
+    """The public entry point: check the override's top level, resolve splats, deep-merge, apply
+    ``selected`` and strip it, in that fixed order, since the typed models would reject an
+    unresolved token before it could resolve and only the first step still sees the override's own
+    top level. ``top_level_keys`` has no default, so forgetting it is a type error, and no ``None``
+    opt-out exists because every overridable document (workflow, playbook, role catalog, per-slug
+    role) has a closed top level.
 
-    Runs the four mechanisms in their fixed order — nothing later may be reordered ahead of
-    splat resolution, since the strictly-typed spec models would reject an unresolved token
-    as a type error before it could ever be resolved, and nothing may be reordered ahead of
-    the top-level check, which is the only point at which the override's own top level is
-    still distinguishable from the base's.
-
-    ``top_level_keys`` has no default — a caller must pass its accepted set, so "forgot to
-    pass it" stays a type error rather than a silent fail-open. There is no ``None`` escape
-    to opt out of the check: every overridable bundled document — workflow, playbook, the
-    role catalog, and a per-slug role — has a closed top level, so no caller has anything
-    left to ask this engine for an open one, and "deliberately open" is not expressible without
-    amending the decision that closed it (a role override's top-level set is derived from
-    ``RoleSpec.model_fields``). ``selected`` is accepted
-    unconditionally whenever a set is given — see :func:`_top_level_key_violations`.
-
-    Two calling modes over one code path:
-
-    - **fail-fast** (``collect_all=False``, the default — the load path): raises a clean
-      ``SquadsError`` on the first violation found.
-    - **collect-all** (``collect_all=True`` — a lint-style report): never raises; returns
-      every violation found across every step, together — including a nesting bound exceeded
-      on either walk (see ``_MAX_NESTING_DEPTH``), which lands on the same collected channel
-      as everything else rather than aborting the pass.
-
-    ``empty_selected_hint`` — see :func:`_unknown_key_violations` — is for a document with NO
-    deselectable ``[selected]`` sections at all (an empty *section_names*, e.g. the playbook):
-    an override that writes ``[selected]`` there is still refused, but the fix hint states the
-    caller-supplied reason instead of pointing at an empty accepted-sections list. Ignored
-    whenever *section_names* is non-empty.
+    With ``collect_all=False`` (the load path) it raises a clean ``SquadsError`` on the first
+    violation; with ``True`` (a lint report) it never raises and returns every violation, a nesting
+    bound included. ``empty_selected_hint`` (see :func:`_unknown_key_violations`) is for a document
+    with no deselectable sections (the playbook) and is ignored when *section_names* is non-empty.
     """
     violations: list[MergeViolation] = []
 

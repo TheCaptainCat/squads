@@ -5,15 +5,13 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class RoleView:
-    """The roster entry passed to backends (decoupled from RoleDef internals).
+    """The roster entry passed to backends, decoupled from ``RoleDef`` internals.
 
-    Carries every role field a backend renders into a compiled managed region — explicitly,
-    ``mission`` and ``responsibilities`` included — because a view field is the declaration and
-    generated text is output, never an input. A backend that recovers a declaration by parsing
-    markdown it rendered itself makes a template's formatting the carrier of that declaration,
-    over a template that is meant to be editable: relabel the line and the field empties out of
-    the compiled file silently, with nothing reporting it. Anything a backend renders is
-    therefore declared here rather than read back off the page.
+    It carries every role field a backend renders into a compiled managed region, ``mission`` and
+    ``responsibilities`` included, because a view field is the declaration and generated text is
+    output, never input. A backend that recovers a declaration by parsing markdown it rendered
+    itself makes the template's formatting the carrier: relabel a line and the field empties out of
+    the compiled file with nothing reporting it. Anything a backend renders is declared here.
     """
 
     slug: str

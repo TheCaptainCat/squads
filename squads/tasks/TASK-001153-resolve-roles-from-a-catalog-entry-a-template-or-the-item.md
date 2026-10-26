@@ -3,7 +3,7 @@ id: TASK-1153
 sequence_id: 1153
 type: task
 title: Resolve roles from a catalog entry, a template or the item
-status: InReview
+status: Done
 author: tech-lead
 assignee: python-dev
 priority: medium
@@ -52,7 +52,7 @@ subentities:
   title: Document role bases, templates, role add and the [dev] rename
   status: Done
 created_at: '2026-10-25T22:01:52Z'
-updated_at: '2026-10-26T08:51:57Z'
+updated_at: '2026-10-26T14:03:06Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -451,4 +451,6 @@ Owner: tech-writer. Last, against the merged behaviour of ST1 to ST8. Implements
   - All nine subtasks are Done; REV-1155, REV-1156 and REV-1157 are Approved; full suite 15160 passed at the last commit. Left InReview for @op-pierre: the VS Code mention hover (now read from sq role list --json, archived roles excluded) wants a dev-host look, and running the 0.17 role step on this repo's squad (set schema_version = 0.16, then sq migrate up; simulated twice on a copy: 10 role files change) is his call.
 - [2026-10-26T08:51:57Z] `op-pierre` Pierre Chat:
   - Go to run the extended 0.17 role step on this repo's squad now.
+- [2026-10-26T14:03:04Z] `op-pierre` Pierre Chat:
+  - Checked the mention hovers in the dev host: catalog, template and item-defined roles show the right name and description; the archived role is not a mention target.
 <!-- sq:discussion:end -->

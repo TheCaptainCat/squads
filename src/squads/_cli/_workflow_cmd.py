@@ -7,19 +7,13 @@ Sub-commands:
   ``subentity-kinds``, ``collections``, ``statuses``, ``roles``, ``lifecycles``,
   ``ref-kinds``), each a human Rich table by default and a bare JSON array under ``--json``:
   one row per declared entry in a documented order, every key present on every row, and
-  cross-references carried **by name** so a client joins catalogs instead of receiving
-  denormalized copies.
+  cross-references carried by name so a client joins catalogs instead of receiving copies.
 
-``lint`` is the author-facing diagnostic: it runs the same checks that ``open_service`` runs
-fail-closed (pure-spec validation + live-index cross-check), but prints EVERY error and
-warning with the offending config key and a fix hint instead of aborting on the first problem.
-Exit code 0 on a clean spec, 1 when any error is present.
-
-Design: ``lint`` calls ``lint_workflow_spec`` directly — it does NOT go through
-``open_service``.  This is intentional: a spec that causes ``open_service`` to hard-stop (e.g.
-it drops a status still in use) is precisely what an author runs ``sq workflow lint`` to
-diagnose.  Bypassing ``open_service`` means lint is never self-blocked by the same check it is
-trying to report.
+``lint`` runs the checks ``open_service`` runs fail-closed (pure-spec validation plus the
+live-index cross-check) but prints every error and warning with its config key and a fix hint.
+Exit 0 on a clean spec, 1 when any error is present. It calls ``lint_workflow_spec`` directly
+and never goes through ``open_service``: a spec that makes ``open_service`` hard-stop is
+exactly what an author runs it to diagnose.
 """
 
 import hashlib
@@ -94,13 +88,9 @@ async def _print_cheatsheet(*, raw: bool) -> None:
     """
     from squads._rendering._engine import render
 
-    # The cheatsheet's authoring bullets (authoring_owners) are roster-aware when a live
-    # roster is available, so an agent reading `sq workflow` sees the same "who actually
-    # authors what" answer as CLAUDE.md/the squads skill — never a role this squad doesn't
-    # have. `sq workflow` is also a valid reference command *outside* any squad (before
-    # `sq init`, or from an unrelated directory), where there is no roster to read; that
-    # case degrades to the unfiltered-by-catalog-membership-only behaviour rather
-    # than failing the whole command.
+    # The authoring bullets are roster-aware when a live roster exists, so `sq workflow`
+    # matches CLAUDE.md and never names a role this squad lacks. Outside any squad there is
+    # no roster, and the bullets degrade to catalog membership only.
     roles: list[dict[str, Any]] | None = None
     playbook = get_playbook_spec()
     from_squad: Path | None = None
@@ -154,10 +144,8 @@ TYPE_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str, str, str, str] = (
     "labels",
 )
 
-#: Frozen field set for each entry of a ``fields`` array — the SAME entry shape on the type
-#: catalog and the sub-entity-kind catalog, deliberately one tuple rather than two parallel
-#: ones: the sub-entity field mechanism is the item one unforked, and the published shape is
-#: part of that.
+#: Frozen field set for each entry of a ``fields`` array, one shape shared by the type and
+#: sub-entity-kind catalogs because the sub-entity field mechanism is the item one.
 FIELD_ENTRY_FIELDS: tuple[str, str, str] = ("code", "label", "collection")
 
 
@@ -173,27 +161,21 @@ def _field_entries(type_or_kind: str, spec: WorkflowSpec) -> list[dict[str, obje
 
 
 def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
-    """The frozen type-catalog rows, ascending resolved ``order`` (type-name string
-    tiebreak — the same ordering the CLI uses to register per-type commands).
+    """The frozen type-catalog rows, ascending resolved ``order`` (type name breaks ties).
 
-    Includes every declared type (work AND reserved: role/skill/operator). ``order`` is
-    ``None`` when ``ItemSpec.order`` is unset (``+inf``) — present-but-null, never
-    omitted, so the key set stays stable across every row. ``category`` is the type's
-    declared ``roster``/``work``/``records`` axis (the same taxonomy ``reserved``
-    already summarizes as a boolean) — a client reads it here instead of re-deriving the
-    split from ``reserved`` or a hardcoded type list. ``subentity_kind`` names the declared
-    kind this type hosts (``null`` for a type that hosts none) and is the join key into
-    ``sq workflow subentity-kinds --json``: a sub-entity in ``sq show --json`` carries no kind
-    of its own, so type -> kind is the only link a client has to the kind's declared field
-    labels. ``lifecycle`` names the machine this type binds — a declared choice, derivable
-    from nothing else on the row. Both are references *by name*, never inlined copies.
-    ``fields`` is the type's declared field->collection bindings — ``[]`` for a type with no
-    badge fields. ``attributes`` is the type's declared non-badge frontmatter keys, name to
-    ``{kind, required, settable}`` — ``{}`` for a type that declares none; a client reads
-    here which keys an item row of the type may carry. ``labels`` is the type's four resolved
-    display-label forms (``singular``/``plural``/``singular_lower``/``plural_lower``),
-    pin-else-derive via ``labels_for`` — a client reads a pretty group header here instead of
-    title-casing the raw type string itself.
+    Every declared type is included, work and reserved. Every key is present on every row.
+
+    - ``order`` is ``None`` when ``ItemSpec.order`` is unset.
+    - ``category`` is the declared ``roster``/``work``/``records`` axis.
+    - ``subentity_kind`` names the kind the type hosts (``null`` if none) and is the join key into
+      ``sq workflow subentity-kinds --json``: a sub-entity in ``show --json`` carries no kind, so
+      type to kind is a client's only link to the kind's field labels.
+    - ``lifecycle`` names the machine the type binds, by name.
+    - ``fields`` is the declared field-to-collection bindings (``[]`` when none).
+    - ``attributes`` is the declared non-badge frontmatter keys, name to ``{kind, required,
+      settable}`` (``{}`` when none).
+    - ``labels`` is the four resolved display forms (``singular``/``plural``/``singular_lower``/
+      ``plural_lower``) from ``labels_for``, so a client need not title-case the type string.
     """
     types = sorted(spec.items, key=lambda t: (spec.items[t].order, t))
     return [
@@ -259,10 +241,8 @@ def workflow_types(
 
 # ─── subentity-kinds ────────────────────────────────────────────────────────────
 
-#: Frozen field set for the ``sq workflow subentity-kinds --json`` catalog.
-#:
-#: ``placeholder`` is deliberately absent: scaffold prose is content the engine writes into a
-#: file, not vocabulary a client resolves.
+#: Frozen field set for the ``sq workflow subentity-kinds --json`` catalog. ``placeholder`` is
+#: absent: scaffold prose is content the engine writes into a file, not vocabulary.
 SUBENTITY_KIND_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str, str] = (
     "subentity_kind",
     "lifecycle",
@@ -278,30 +258,22 @@ SUBENTITY_KIND_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str, str] = (
 def _subentity_kind_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
     """The frozen sub-entity-kind rows, ascending kind name.
 
-    ``subentity_kind`` is the identity key, named as the spec names it, so the type row's
-    reference uses the identical key name (``type.subentity_kind`` joins
-    ``subentity_kind.subentity_kind``). Not ``kind``: ``kind`` already means ref-kind
-    everywhere a client sees ``refs`` (``"ID:kind"``).
-
-    Each remaining key is a declaration a client would otherwise have to guess:
+    ``subentity_kind`` is the identity key, named as the spec names it so ``type.subentity_kind``
+    joins it; it is not ``kind``, which means ref-kind wherever ``refs`` (``"ID:kind"``) appear.
+    The other keys are declarations a client would otherwise guess:
 
     - ``lifecycle`` — the machine this kind binds, by name.
-    - ``plural`` — the CLI list verb AND the persisted container-marker name; a client that
-      invokes the verb or reads the marker must read this rather than pluralize the kind name.
-    - ``local_prefix`` — the local-id prefix (``US``/``ST``/``F``), for rendering or parsing
-      a local id.
-    - ``container_heading`` — the resolved ``## <heading>`` above the kind's container block.
-      Published because it is an engine derivation with a special case ("User Stories", which
-      ``"stories".title()`` does not produce): a client that title-cases ``plural`` itself
-      renders a heading that disagrees with the markdown sq writes into the file.
-    - ``completion`` — the done-target status inside this kind's own lifecycle, so a "mark
-      done" action targets a declared status instead of a hardcoded ``Done``/``Fixed``.
-    - ``maps_parent_story`` — completes the roll-up column derivation (fixed base + one column
-      per declared field + a story column iff this flag). A client handed ``fields`` but not
-      the flag can build every column but the last, and would hardcode that one.
-    - ``fields`` — the same ``{code, label, collection}`` entry shape the type row carries
-      (:data:`FIELD_ENTRY_FIELDS`), so a client renders a declared label rather than a
-      title-cased code.
+    - ``plural`` — the CLI list verb and the persisted container-marker name.
+    - ``local_prefix`` — the local-id prefix (``US``/``ST``/``F``).
+    - ``container_heading`` — the resolved ``## <heading>`` above the container block. An engine
+      derivation with a special case ("User Stories"), so title-casing ``plural`` disagrees with
+      the markdown sq writes.
+    - ``completion`` — the done-target status in this kind's lifecycle, so a "mark done" action
+      targets a declared status, not a hardcoded ``Done``/``Fixed``.
+    - ``maps_parent_story`` — completes the roll-up column derivation (fixed base, one column per
+      declared field, a story column iff this flag).
+    - ``fields`` — the ``{code, label, collection}`` entry shape the type row carries
+      (:data:`FIELD_ENTRY_FIELDS`).
     """
     return [
         {
@@ -372,28 +344,20 @@ TRANSITION_ENTRY_FIELDS: tuple[str, str] = ("from", "to")
 def _lifecycle_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
     """The frozen lifecycle-catalog rows, ascending lifecycle name.
 
-    ``lifecycle`` is the identity key — the map key on ``spec.lifecycles``, named as the spec
-    names it, so the type row's and the sub-entity-kind row's own ``lifecycle`` fields join
-    here by that identical name.
+    ``lifecycle`` is the identity key, the ``spec.lifecycles`` map key, so the ``lifecycle`` field
+    of the type and sub-entity-kind rows joins on it.
 
-    ``states`` is :func:`lifecycle_states_in_order` — BFS discovery order from ``initial``,
-    then any unreached state appended sorted. Deliberately NOT ``linearize_lifecycle``'s
-    prettier spine-then-side-states ordering: that ordering canonicalizes side states through
-    a table keyed on bundled status names, so publishing it would freeze a
-    bundled-name-dependent order into a contract and silently degrade for an adopter's own
-    status names. ``Lifecycle.states`` itself is a ``frozenset`` and is never iterated for
-    anything that reaches this row.
+    ``states`` is :func:`lifecycle_states_in_order`: BFS discovery order from ``initial``, then any
+    unreached state sorted. It is not ``linearize_lifecycle``'s ordering, which canonicalizes side
+    states through a table keyed on bundled status names and would freeze a bundled-name-dependent
+    order into the contract. ``transitions`` is one ``{from, to}`` object per edge
+    (:func:`lifecycle_edges_in_order`), sources in ``states`` order and targets in declared order;
+    a positional pair cannot grow a named key and a map keyed on adopter status names has no
+    frozen key set.
 
-    ``transitions`` is one ``{from, to}`` object per edge (:func:`lifecycle_edges_in_order`) —
-    sources in ``states`` order, targets in each source's declared order. Not a positional
-    pair (``[src, dst]`` cannot grow a named key) and not a map keyed on adopter-declared
-    status names, which would have no frozen key set for a strictly-typed client.
-
-    The row does not carry which types/kinds bind this lifecycle — the inversion of a forward
-    edge; join ``sq workflow types --json``'s / ``sq workflow subentity-kinds --json``'s own
-    ``lifecycle`` field instead — and it does not carry per-state terminality, which is
-    ``role.settled`` one join away via ``sq workflow statuses --json`` -> ``sq workflow roles
-    --json``.
+    The row omits which types/kinds bind the lifecycle (join the ``lifecycle`` field of ``sq
+    workflow types``/``subentity-kinds --json``) and per-state terminality (``role.settled``, via
+    ``sq workflow statuses --json`` then ``roles --json``).
     """
     return [
         {
@@ -517,21 +481,16 @@ STATUS_CATALOG_FIELDS: tuple[str, str, str] = ("status", "role", "badge")
 
 
 def _status_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
-    """The frozen status-vocabulary rows, ascending status name — a client joins
-    an item's ``status`` string to this catalog to read ``role``/``badge`` instead of keying
-    on the literal status name (e.g. hardcoding ``status == "InProgress"`` to detect "work in
-    flight"). ``role`` is the sole status axis — join ``sq workflow roles --json`` to resolve
-    it to ``{settled, hidden, color}``; ``terminal``/``is_open`` are not exposed here, they are
-    ``role.settled``/``not role.settled`` on that catalog.
+    """The frozen status-vocabulary rows, ascending status name.
 
-    ``role`` is the *resolved* role name (``StatusSpec.role`` or, when a status declares none,
-    the engine's own ``FALLBACK_ROLE_NAME`` fallback — the same resolution
-    :meth:`WorkflowSpec.role_for` performs) — never the bare, possibly-``None`` declared field.
-    A client that receives ``role: null`` here would have no way to distinguish "this status
-    genuinely has no behaviour" from "the catalog fetch hasn't loaded yet"; every declared
-    status has *some* resolved role, so ``null`` is reserved for the latter. Byte-identical for
-    the bundled spec (every bundled status declares its own role already); only a role-less
-    custom status sees a different value here than the bare field would have given."""
+    A client joins an item's ``status`` string here to read ``role``/``badge`` instead of keying
+    on a literal status name. ``role`` is the sole status axis: join ``sq workflow roles --json``
+    for ``{settled, hidden, color}``; terminality is ``role.settled`` there.
+
+    ``role`` is the resolved name (``StatusSpec.role``, else ``FALLBACK_ROLE_NAME``, as
+    :meth:`WorkflowSpec.role_for` does), never the bare declared field. Every declared status has
+    some resolved role, so ``null`` would be indistinguishable from "catalog not loaded yet".
+    """
     return [
         {
             "status": name,
@@ -658,17 +617,13 @@ REF_KIND_CATALOG_FIELDS: tuple[str, str, str, str, str] = (
 
 
 def _ref_kind_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
-    """The frozen ref-kind-vocabulary rows, ascending kind name — the accepted
-    ``sq <type> <n> ref add <id> --kind <kind>`` set, replacing the former closed
-    ``VALID_REF_KINDS`` frozenset with the merged spec's own declared ``[ref_kinds]``.
+    """The frozen ref-kind rows, ascending kind name: the set ``ref add --kind`` accepts.
 
-    ``kind`` is the identity key — the literal string a ``refs`` entry carries after the
-    ``:`` (``"ID:kind"``), or that a bare ``"ID"`` decodes to when it names the kind whose
-    ``role`` is ``"default"``. ``role`` binds engine behaviour to a semantic instead of a
-    spelling (``null`` for a purely navigational kind); ``direction`` (``"blocker"``/
-    ``"dependent"``/``null``) only ever accompanies ``role = "dependency"``. Complete on first
-    ship, following the family's own one-catalog-per-spec-map rule: every key is present on
-    every row.
+    ``kind`` is the identity key, the string a ``refs`` entry carries after the ``:``
+    (``"ID:kind"``), or that a bare ``"ID"`` decodes to when it names the kind whose ``role`` is
+    ``"default"``. ``role`` binds engine behaviour to a semantic instead of a spelling (``null``
+    for a purely navigational kind); ``direction`` (``"blocker"``/``"dependent"``/``null``)
+    accompanies only ``role = "dependency"``. Every key is present on every row.
     """
     return [
         {
@@ -725,15 +680,12 @@ VIEW_CATALOG_FIELDS: tuple[str, str, str, str] = ("view", "source_kind", "source
 def _view_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
     """The frozen view-catalog rows, ascending view name.
 
-    ``view`` is the identity key, named as the spec names it — also the presentation
-    template's own identity (``templates/views/<view>.md.j2``; there is no separate
-    ``presentation`` key to carry). ``source_kind``/``source_name`` name the declared source
-    (``"ref"``/``"subentity"``/``"subtree"``/``"role"``/``"playbook"``/``"self"`` + the
-    declared kind/type it names, or ``null`` for the three kinds that take none — join
-    ``source_name`` into ``sq workflow ref-kinds``/``subentity-kinds``/``types --json``
-    depending on ``source_kind``). ``transform`` is the declaration as merged (``{module,
-    function}`` or ``{path, function}``) or ``null``. No
-    field/group-by/order-by grammar exists to report.
+    ``view`` is the identity key and also the template's identity
+    (``templates/views/<view>.md.j2``). ``source_kind``/``source_name`` name the declared source
+    (``"ref"``/``"subentity"``/``"subtree"``/``"role"``/``"playbook"``/``"self"`` plus the kind or
+    type it names, ``null`` for the three kinds that take none; join ``source_name`` into
+    ``ref-kinds``/``subentity-kinds``/``types`` by ``source_kind``). ``transform`` is the merged
+    declaration (``{module, function}`` or ``{path, function}``) or ``null``.
     """
     return [
         {
@@ -778,15 +730,14 @@ def workflow_views(
 
 
 def _playbook_json_payload(source: PlaybookSource) -> dict[str, object]:
-    """A ``playbook`` source's ``--json`` payload — no pre-existing serializer to match (unlike
-    the other five kinds), so this is the shape reasoned out directly here: the resolved type,
-    its playbook lane's own declared fields (``overview``/``lifecycle``/``commands``/
-    ``roles``) when it has one, and the live roster — the raw ingredients
-    :class:`~squads._views.PlaybookSource` itself carries, unflattened. ``lane`` is ``None``
-    for a type genuinely declared but outside every guide's lane domain — that source's own
-    well-formed empty case (see :class:`~squads._views.PlaybookSource`), not a raise. No
-    ``fields``/``group_by``/``groups`` key anywhere in this shape: a client reading a
-    ``playbook`` payload sees only its own declared fields, never a projection envelope."""
+    """A ``playbook`` source's ``--json`` payload.
+
+    It has no pre-existing serializer to match: the resolved type, its playbook lane's declared
+    fields (``overview``/``lifecycle``/``commands``/``roles``) and the live roster, the raw
+    ingredients :class:`~squads._views.PlaybookSource` carries. ``lane`` is ``None`` for a
+    declared type outside every guide's lane domain, which is that source's well-formed empty
+    case. No ``fields``/``group_by``/``groups`` key: a client sees only the declared fields.
+    """
     lane = source.lane
     return {
         "type": source.item_type,
@@ -846,16 +797,14 @@ def _view_json_child_rows(
     blocked_ids: set[str],
     seen: set[str],
 ) -> list[dict[str, Any]]:
-    """One matched record's real descendant subtree, recursively, in the same shape
-    ``sq tree --json`` builds ``children`` in for that same item — the equivalence
-    :func:`_view_json_payload`'s ``ref``/``subtree`` arm declares. Reuses
-    ``squads._views.children_by_parent``'s own resolution (no third implementation of "who
-    are this item's children") and, unconditionally, every descendant: ``sq workflow view
-    --json`` carries no flag equivalent to ``sq tree --all`` for closed-item visibility, so
-    closed descendants are included exactly like open ones. *seen* is one call's own set,
-    seeded with the matched record's id before the first call — the same cycle guard
-    ``_resolve_subtree_source`` already applies to the identical walk, so a genuine parent
-    cycle in the corpus terminates here instead of recursing forever."""
+    """One matched record's descendant subtree, shaped like ``sq tree --json`` children.
+
+    This is the equivalence the ``ref``/``subtree`` arm of :func:`_view_json_payload` declares. It
+    reuses ``squads._views.children_by_parent`` and includes every descendant, closed ones too,
+    since ``sq workflow view --json`` has no ``--all`` equivalent. *seen* is one call's set,
+    seeded with the matched record's id, the cycle guard ``_resolve_subtree_source`` applies to
+    the same walk, so a parent cycle terminates.
+    """
     rows: list[dict[str, Any]] = []
     for child in sorted(children_by_parent.get(parent_id, []), key=lambda i: number_for_id(i.id)):
         if child.id in seen:
@@ -885,21 +834,17 @@ def _view_json_child_rows(
 async def _view_json_payload(
     svc: Service, spec: WorkflowSpec, view_name: str, item_id: str
 ) -> object:
-    """The ``--json`` payload for ``sq workflow view <name> <id> --json`` — *view_name*
-    resolved against *item_id* once
-    (:meth:`~squads._services._views.ViewsMixin.resolve_view_source`), then serialized in the
-    shape its own declared source kind already has a serializer for — never a shared envelope:
-    ``ref``/``subtree`` reuse :func:`~squads._cli._common.build_item_row_json` (the
-    same builder ``sq tree --json`` renders its own nodes with, ``children`` populated the same
-    way — see :func:`_view_json_child_rows`), ``subentity`` reuses
-    :func:`~squads._cli._common.build_subentity_row_json` (the same builder ``sq <type> <n>
-    <kind>s --json`` uses), ``role`` reuses
-    :func:`~squads._cli._common.build_role_json_payload` (the same builder ``sq role <slug>
-    show --json`` uses), ``self`` reuses :func:`~squads._cli._common.build_item_json` (the
-    same builder an item's own ``show --json`` uses) plus :func:`_spec_identity_json`, and
-    ``playbook`` is :func:`_playbook_json_payload`. No kind's output carries a
-    ``fields``/``group_by``/``groups`` key: each shape is exactly what its own reused builder
-    already produces, nothing added."""
+    """The ``--json`` payload for ``sq workflow view <name> <id> --json``.
+
+    *view_name* is resolved against *item_id* once
+    (:meth:`~squads._services._views.ViewsMixin.resolve_view_source`) and serialized by the
+    builder its source kind already has, with no shared envelope: ``ref``/``subtree`` use
+    :func:`~squads._cli._common.build_item_row_json` (children as in
+    :func:`_view_json_child_rows`), ``subentity`` uses ``build_subentity_row_json``, ``role`` uses
+    ``build_role_json_payload``, ``self`` uses ``build_item_json`` plus
+    :func:`_spec_identity_json`, and ``playbook`` is :func:`_playbook_json_payload`. No shape
+    carries a ``fields``/``group_by``/``groups`` key.
+    """
     from squads._cli._common import (
         build_item_json,
         build_role_json_payload,

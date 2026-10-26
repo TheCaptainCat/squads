@@ -1235,12 +1235,15 @@ or by hand, then run `sq check` again.
 
 **Which bodies take prose.** A milestone's body is ordinary prose around its roll-up tag:
 `sq milestone <n> body -m` and `body --append` both work, and the tag stays where its `position`
-puts it. A role's body, a permanently-system skill's body and a per-item-type `sq-<type>` skill's
-body take no writes while their view is declared — replace and append are both refused, and
-`--force` does not lift it. Their content is authored elsewhere:
+puts it. A role's body takes prose the same way, beside its generated definition: `sq role <slug>
+body` and `body --append` both work on every role, and the `role_definition` tag stays at the top,
+so the definition comes first. The definition itself is authored in `.overrides/roles.toml` or
+`.overrides/roles/<slug>.toml`, or with `sq role <slug> update` for a role that defines itself.
 
-- a role: `.overrides/roles.toml` or `.overrides/roles/<slug>.toml`, or `sq role <slug> update`
-  for a role that defines itself;
+A permanently-system skill's body and a per-item-type `sq-<type>` skill's body take no writes
+while their view is declared — replace and append are both refused, and `--force` does not lift
+it. Their content is authored elsewhere:
+
 - a per-item-type skill: that type's `[types.<type>]` lane in `.overrides/playbook.toml`;
 - `squads`: `.overrides/playbook.toml`;
 - `greeting` and `sq-memory`: the view's template override,
@@ -1255,9 +1258,11 @@ error: SKILL-10's body renders through its declared sq:view:item_skill tag, and 
 
 An operator's body is ordinary prose, its profile, and `sq operator <slug> body` always writes it
 (see [roles.md § "The operator profile"](roles.md#the-operator-profile)). A role body that holds
-prose is accepted by `sq check`, and `show` prints the prose in place of the generated definition.
+prose is accepted by `sq check`, with its tag or without it; without the tag, `show` prints the
+prose in place of the generated definition.
 
-To write such a body by hand, drop its view from `[selected]` — see
+To write a generated skill's body by hand, or replace a role's generated definition, drop the
+view from `[selected]` — see
 [overrides.md § "Authoring a role or skill body by hand"](overrides.md#authoring-a-role-or-skill-body-by-hand).
 On these documents `view disable` is refused too, and so is `view add` of any view but the
 document's own (see [roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses)).

@@ -170,7 +170,7 @@ parallel, or would you rather they were sequenced?
   less than the command.
 - **`body` replaces; it does not add.** Writing over a body that already has prose in it is refused,
   so you can run it to find out whether one is occupied. Use `--append` to add to what is there, and
-  `--force` only when you mean to discard it. This applies to a sub-entity's body and a custom
+  `--force` only when you mean to discard it. This applies to a sub-entity's body, a role's and a custom
   skill's too.
 - **The `.md` frontmatter is the source of truth** — don't hand-edit `id`/`status`/`parent`; use the
   commands so the index stays in sync.

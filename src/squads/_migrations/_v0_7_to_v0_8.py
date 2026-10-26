@@ -1,27 +1,15 @@
-"""Schema 0.7 → 0.8 runner: relocate bug item-level severity from ``extra`` to top-level.
+"""Schema 0.7 → 0.8 runner: relocate bug item-level severity from ``extra`` to the top-level
+``severity:`` field (which mirrors ``priority`` and has a load-time fallback to the legacy
+location). For every bug file still carrying the legacy ``extra[severity]`` it lifts the value to
+the top-level key and drops the ``extra`` entry (and the whole ``extra`` map if that was its only
+member). It is one-way: a relocated file never returns to the legacy shape.
 
-A bug's item-level severity historically lived at ``extra[severity]`` (see the frozen key
-below); the model has since grown a real top-level ``severity:`` frontmatter field (mirroring
-``priority``) with a load-time fallback that reads the legacy location when the new one is
-absent. This runner makes that relocation durable on disk: for every bug file that still
-carries the legacy ``extra`` copy, it lifts the value onto the top-level key and drops the
-``extra`` entry (the whole ``extra`` map is dropped too, if that was its only member).
-
-**One-way.** Once relocated, a file never round-trips back to the legacy shape.
-
-**Frozen vocabulary.** This runner moves a stored *string*, verbatim — it never inspects,
-validates, or ranks the severity value against any collection. The only two literals it needs
-(the bug folder/prefix and the legacy ``extra`` key name) are pinned locally below rather than
-read from the live spec, matching every other runner in this package.
-
-Only bug files carry item-level severity — findings already store their own severity in the
-sub-entity frontmatter block, and priority is already top-level on every type — so this runner
-walks only the bug folder.
-
-Idempotent: a file with no ``extra`` severity is left untouched.
-
-Invoked by ``sq migrate up`` via ``_migrations._registry`` — never run directly (this module is
-private).
+It moves a stored string verbatim, never inspecting or ranking it against a collection, and pins its
+only two literals (the bug folder/prefix and the legacy ``extra`` key) locally rather than reading
+the live spec. Only bug files carry item-level severity (findings store theirs in sub-entity
+frontmatter, priority is already top-level), so it walks only the bug folder. It is idempotent (a
+file with no ``extra`` severity is untouched) and runs only through ``sq migrate up`` via
+``_migrations._registry``.
 """
 
 from typing import Any, cast

@@ -14,7 +14,7 @@ refs:
 description: 'A role item is identity plus verb-set values; its definition projects
   one base: catalog, [templates.<name>], or the item'
 created_at: '2026-10-25T20:43:13Z'
-updated_at: '2026-10-25T22:06:44Z'
+updated_at: '2026-10-26T12:49:55Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -320,6 +320,22 @@ layer.**
   refusals.
 - Not frozen: the bundled templates' prose and pools, and the Python seams.
 
+### 11. List keys are set through `--file`, and an empty one renders nothing (2026-10-26)
+
+- **`responsibilities` and `agreements` are stored keys of an item-defined role, set through
+  `--file` only.** `sq role add --file` sets them, and `sq role <slug> update --file` replaces one
+  (`["$(*self)", "…"]` appends to it, `[]` clears it). No flag sets a list key: flags carry
+  single values, and a repeatable flag would need a second spelling for append and clear that
+  the delta grammar already has. The help of `add` and `update` names the list keys under
+  `--file`.
+- **An empty list renders nothing.** The `role_definition` view omits the `## Responsibilities`
+  heading when the resolved list is empty, as an empty agreements list already adds no line. No `_TODO_` placeholder
+  renders for any base kind; an unfinished definition is not something an agent can act on.
+- **Body prose is not the home for responsibilities.** They are a definition key, typed and
+  resolved with the rest of the `RoleDef`; prose beside the tag (ADR-880 §8) is for what the
+  definition has no key for, and putting responsibilities there would split one definition
+  across two stores (see Rejected).
+
 ## Consequences
 
 - Making a custom role no longer touches `.overrides/`. Overrides go back to modifying a base,
@@ -419,4 +435,9 @@ layer.**
   - This ships in 0.17.
 - [2026-10-25T22:06:44Z] `tech-lead` Olivia Lead:
   - Broken down into TASK-1153 (nine subtasks, Draft). TASK-1137 now carries only its ST3.
+- [2026-10-26T12:49:55Z] `architect` Robert Architect:
+  - Added §11 (2026-10-26): list keys on an item-defined role, and the empty-list rendering. @op-pierre @manager
+    
+    - Driven on a scratch squad with a clean copy of HEAD 4220cbba (the dev tree does not import right now: `_services/_config_integrity.py` line 117 raises IndentationError). `sq role add --file` sets `responsibilities` and the definition renders them. `sq role <slug> update --file` replaces the list, appends to it with `["$(*self)", "…"]`, and clears it with `[]`. On a catalog role, `update --file` is refused and names the override. No flag sets the list. An empty list renders `- _TODO: list responsibilities._`, and a role made with flags alone always shows it.
+    - The rule: list keys stay `--file`-only, an empty list renders no Responsibilities section, and responsibilities do not move into body prose. This is the fourth question, asked on ADR-880 beside the other three.
 <!-- sq:discussion:end -->

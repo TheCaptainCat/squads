@@ -1,16 +1,12 @@
 """`sq import <file>` — thin CLI wrapper over the bulk event-import engine
 (:meth:`squads._services._import.ImportMixin.import_events`).
 
-This module reads the file (or stdin for ``-``) as text and hands it to the engine
-unchanged — every validate/apply decision lives there (the pre-pass/apply tasks). This module
-only turns the returned :class:`~squads._services._results.ImportResult` into a human or
-``--json`` rendering and picks the process exit code; it recomputes nothing.
-
-The file-level ``at`` default events inherit when they omit their own is the existing global
-``--at`` (``sq --at <when> import file.jsonl``) — the same clock-forging flag every other
-command already shares — rather than a second, locally-scoped ``--at``: the root callback's
-arg-hoisting (``_hoist_global_options``) always routes a bare ``--at`` token to the root
-command, so a subcommand-local option of the same name could never actually receive it.
+It reads the file (or stdin for ``-``) as text, hands it to the engine unchanged, renders the
+returned :class:`~squads._services._results.ImportResult` as human text or ``--json`` and
+picks the exit code; every validate/apply decision lives in the engine. The default ``at`` of
+events that omit their own is the global ``--at``, not a local option: the root callback's
+``_hoist_global_options`` routes a bare ``--at`` to the root command, so a local one could
+never receive it.
 """
 
 import json
@@ -46,21 +42,16 @@ def _plan_json(plan: ImportPlan) -> dict[str, Any]:
 
 
 def _result_json(result: ImportResult, *, dry_run: bool) -> dict[str, Any]:
-    """The ``--json`` envelope: the pre-pass plan plus (when applied) the real outcome.
+    """The ``--json`` envelope: the pre-pass plan plus, when applied, the real outcome.
 
-    ``op_counts``/``handle_to_id``/``handle_to_sub`` reflect the real apply once one
-    happened (the projected pre-pass values are simulated against a throwaway copy and are
-    superseded); a dry run or a failed pre-pass reports the pre-pass's own (projected/partial)
-    values instead, since nothing was applied.
-
-    ``issues`` is one list with two mutually exclusive fillings, because a run is either
-    refused or applied and never both: pre-pass refusals (``line``/``message``, nothing
-    written) or, once the events were applied, every validator finding on a touched item
-    carrying its own ``level``. ``warnings`` holds the warn-level lines in the human wording,
-    unchanged. ``ok`` is false when the pre-pass refused the file or an applied finding is
-    error-level — a warn-only run fills ``issues`` and stays ``ok``. ``applied`` says which of
-    the two a caller is looking at, and stays **true** alongside an error-level finding,
-    because the write did happen.
+    ``op_counts``/``handle_to_id``/``handle_to_sub`` come from the real apply once one happened;
+    a dry run or a failed pre-pass reports the pre-pass's projected values, since nothing was
+    applied. ``issues`` holds one of two fillings, because a run is refused or applied, never
+    both: pre-pass refusals (``line``/``message``, nothing written) or every validator finding on
+    a touched item, each with its ``level``. ``warnings`` holds the warn-level lines as the human
+    output words them. ``ok`` is false when the pre-pass refused or an applied finding is
+    error-level; a warn-only run stays ``ok``. ``applied`` stays true alongside an error-level
+    finding, because the write happened.
     """
     payload = _plan_json(result.plan)
     applied = result.applied
@@ -122,14 +113,12 @@ def _print_applied(applied: ImportApplyResult) -> None:
 
 
 def _exit_on_error_findings(applied: ImportApplyResult | None) -> None:
-    """Exit 3 when an applied run's touched items carry an error-level finding — the code the
-    integrity check already uses for exactly these findings, so the two doors agree.
+    """Exit 3 when an applied run's touched items carry an error-level finding.
 
-    Deliberately *not* exit 1: 1 means squads could not do what was asked, which on this door
-    would say nothing was written. Here the transaction committed and the write stands, so the
-    only honest non-zero is the one that means "reported, not refused". ``applied`` is ``None``
-    for a dry run (nothing written, no touched corpus to report on) and after a pre-pass
-    refusal, and neither gains a non-zero path from here.
+    That is the code the integrity check uses for these findings, so the two doors agree. It is
+    not exit 1, which means squads could not do what was asked; here the transaction committed
+    and the write stands. ``applied`` is ``None`` for a dry run and after a pre-pass refusal,
+    which gain no non-zero path from here.
     """
     if applied is not None and applied.error_findings:
         raise typer.Exit(3)

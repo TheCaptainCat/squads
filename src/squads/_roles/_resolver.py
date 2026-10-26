@@ -1,39 +1,37 @@
-"""Role resolver: a role is one base, a per-slug file layered over it, then the item's stored
-per-role values.
+"""Role resolver: one base, a per-slug file layered over it, then the item's stored values.
 
-The **base** is chosen from the item's stored facts only, in this order
+The base is chosen from the item's stored facts only, in this order
 (:func:`role_base_from_item`):
 
-1. the item stores ``template`` -- the ``[templates.<name>]`` table of the catalog the squad
-   resolves, instantiated with the item's ``tech``;
-2. the item stores ``mission`` -- the item's own definition fields;
-3. otherwise the slug's entry in the catalog (the bundled ``roles.toml`` with the project's
+1. the item stores ``template``: the ``[templates.<name>]`` table of the squad's catalog,
+   instantiated with the item's ``tech``;
+2. the item stores ``mission``: the item's own definition fields;
+3. otherwise the slug's catalog entry (the bundled ``roles.toml`` with the project's
    ``.overrides/roles.toml`` merged in).
 
-The catalog is never consulted to decide the kind, so a later catalog entry cannot swap a live
-role's definition. A base that does not resolve (a catalog slug the catalog no longer declares,
-an undeclared template) leaves the role to materialise from what the item stores
+The catalog never decides the kind, so a later catalog entry cannot swap a live role's
+definition. A base that does not resolve (a slug the catalog no longer declares, an
+undeclared template) leaves the role to materialise from what the item stores
 (:meth:`~squads._roles._catalog.RoleDef.from_item`); ``sq check`` reports it.
 
-The per-slug file ``<squad-dir>/.overrides/roles/<slug>.toml``, when present, merges field-wise
-over the base. :class:`StoredRoleValues` -- the name, default designation and model a role verb
-set on the item -- is applied last and wins over every layer.
+The per-slug file ``<squad-dir>/.overrides/roles/<slug>.toml``, when present, merges
+field-wise over the base. :class:`StoredRoleValues` (the name, default designation and model a
+role verb set on the item) is applied last and wins over every layer.
 
-The merge itself is the shared engine (:mod:`squads._specmerge`) and the validation is the
-typed :class:`~squads._roles._models.RoleSpec`, exactly as the workflow and playbook overrides
-already do. A role is materialised into the agent hosts' own files, so a bad value here writes
-a broken agent definition rather than making an ``sq`` view odd; a quoting mistake in
-``can_spawn``, a misspelt model, a non-string colour or an unknown key is refused, and splat-refs
-resolve before validation.
+The merge is the shared engine (:mod:`squads._specmerge`) and validation is the typed
+:class:`~squads._roles._models.RoleSpec`, as for the workflow and playbook overrides. A role
+is materialised into the agent hosts' own files, so a bad value would write a broken agent
+definition: a quoting mistake in ``can_spawn``, a misspelt model, a non-string colour or an
+unknown key is refused, and splat-refs resolve before validation.
 
-The resolver keeps no state: it reads the per-slug files from disk on every call and takes the
-role catalog from the caller as a :data:`~squads._roles._models.CatalogSource`, which whoever
-owns the squad's documents builds once. A caller that wants the bundled catalog alone passes
+The resolver keeps no state: it reads the per-slug files on every call and takes the catalog
+from the caller as a :data:`~squads._roles._models.CatalogSource` that whoever owns the
+squad's documents builds once; a caller wanting the bundled catalog alone passes
 :func:`~squads._roles._catalog.get_catalog`.
 
-A role's name is the one its item stores. It is chosen once, when the role is created: ``--name``
-when given, otherwise a per-slug file's ``full_name``, the catalog entry's, or the template's
-``name`` pattern. No later configuration change renames the role.
+A role's name is the one its item stores, chosen once at creation: ``--name`` if given, else a
+per-slug file's ``full_name``, the catalog entry's, or the template's ``name`` pattern. No
+later configuration change renames the role.
 """
 
 import tomllib
@@ -68,14 +66,12 @@ _PREDEFINED_BY_SLUG: dict[str, RoleDef] = {r.slug: r for r in PREDEFINED}
 
 
 def _predefined_for_slug(slug: str, catalog: CatalogSource) -> RoleDef | None:
-    """The predefined base for *slug* — the bundled catalog, with any project catalog-document
-    override (``.overrides/roles.toml``) already merged in.
+    """The predefined base for *slug*: the bundled catalog with a project ``roles.toml`` merged.
 
-    This is where the second precedence layer (bundled base -> the catalog document) is
-    realised: the *catalog* the caller resolved carries the merge, and every caller of
-    :func:`resolve_role`/:func:`resolve_role_with_base` picks it up with no call-site change,
-    since a per-slug ``.overrides/roles/<slug>.toml`` file (the third and most specific layer)
-    is still layered on top by the caller of *this* function exactly as it already was.
+    This is the second precedence layer (bundled base, then the catalog document): the *catalog*
+    the caller resolved carries the merge, so every caller of :func:`resolve_role` and
+    :func:`resolve_role_with_base` picks it up. A per-slug file, the most specific layer, is still
+    layered on top by the caller.
     """
     for role_spec in catalog().roles:
         if role_spec.slug == slug:
@@ -86,23 +82,17 @@ def _predefined_for_slug(slug: str, catalog: CatalogSource) -> RoleDef | None:
 # Required fields for a *new-slug* TOML (slug is derived from the filename, not the TOML).
 _REQUIRED_FOR_NEW = ("full_name", "title", "description", "mission")
 
-#: Post-validation blank-string check, alongside the model whitelist below rather than declared
-#: on ``RoleSpec`` itself: a bare ``pydantic.ValidationError`` reads as framework noise to an
-#: adopter (a "1 validation error for RoleSpec" header naming an internal class, a truncated
-#: ``input_value`` dict dump, a link to pydantic's own error docs) -- compare the clean,
-#: hand-written sentence the model check below already produces for the same seam. These three
-#: groups mirror RoleSpec's own field shape: required fields are never ``None``; the optional
-#: ``model``/``color`` keep ``None`` as their legitimate "not set" value and are only checked
-#: when a string was actually declared; list fields are checked per element.
+#: Post-validation blank-string check, beside the model whitelist rather than on ``RoleSpec``,
+#: because a bare ``pydantic.ValidationError`` reads as framework noise to an adopter. The groups
+#: mirror RoleSpec's fields: required ones are never ``None``; optional ``model``/``color`` keep
+#: ``None`` as "not set" and are checked only when a string was declared; lists per element.
 _REQUIRED_NON_BLANK_FIELDS = ("full_name", "title", "description", "mission")
 _OPTIONAL_NON_BLANK_FIELDS = ("model", "color")
 _LIST_NON_BLANK_FIELDS = ("responsibilities", "agreements")
 
-#: The role document's closed top-level key space — the fields of ``RoleSpec``, read off the
-#: model rather than restated, so it grows with the model instead of going stale beside it.
-#: Deriving it is also what lets this document be *closed* without costing forward
-#: compatibility: the old resolver silently dropped any key it did not recognise, on a
-#: forward-compat argument that in practice made every typo a no-op the adopter could not see.
+#: The role document's closed top-level key space, read off ``RoleSpec`` so it grows with the
+#: model. Closing it refuses an unknown key, which would otherwise be a typo that silently does
+#: nothing.
 _ROLE_TOP_LEVEL_KEYS: frozenset[str] = frozenset(RoleSpec.model_fields)
 
 #: A role TOML has no keyed sub-sections, so there is nothing a ``[selected]`` table could
@@ -159,15 +149,12 @@ def _base_raw(base: RoleDef | None) -> RawMapping:
 
 
 def _apply_override(base: RoleDef | None, data: RawMapping, slug: str, origin: str) -> RoleDef:
-    """Merge *data* from a TOML file over *base* (or build a new role if base is ``None``),
-    then validate the result as a :class:`RoleSpec`.
+    """Merge *data* from a TOML file over *base* (or build a new role if ``None``) and validate it.
 
-    *origin* is the override file's path, carried into every violation the engine reports so
-    a refusal names the file the adopter has to edit.
-
-    A ``slug`` key inside the TOML is accepted only when it agrees with the filename, which is
-    canonical: a disagreeing one is a declaration that would silently do nothing, and this
-    document has no other way to say what it meant.
+    *origin* is the override file's path, carried into every violation so a refusal names the file
+    to edit. A ``slug`` key in the TOML is accepted only when it agrees with the filename, which
+    is canonical: a disagreeing one would silently do nothing and the document has no other way
+    to say what it meant. The result is validated as a :class:`RoleSpec`.
     """
     if base is None:
         # New-slug path: all required fields must be present. Checked before the merge so the
@@ -224,25 +211,18 @@ def _apply_override(base: RoleDef | None, data: RawMapping, slug: str, origin: s
 
 
 def _refuse_blank_strings(spec: RoleSpec, origin: str) -> None:
-    """Refuse a declared-but-blank string field with the same clean shape as the model
-    whitelist check just below this call site: the file, then one sentence naming every
-    offending field, nothing pydantic wrote.
+    """Refuse a declared-but-blank string field, naming the file and every offending field.
 
-    An empty (or whitespace-only -- ``.strip()`` before the length check, on the same
-    reasoning: it renders exactly as broken and is exactly as clearly not an intentional
-    value) string is never a legitimate "inherit the base value" signal, because omitting the
-    key already means that. Runs on the *validated* ``spec`` (types are already guaranteed),
-    exactly where the model check runs, so a future field added to ``RoleSpec`` is not
-    automatically covered here the way a declarative constraint would be -- that trade is
-    deliberate: this is the only seam where the offending value has a *file* to name, so a
-    clean adopter-facing message pointing at it matters more here than defence in depth for a
-    construction path this function alone can see. This is **not** the only place a
-    ``RoleSpec``-shaped role is built from adopter-editable text, though -- ``sq role
-    activate --name``/``sq dev add --name`` reach ``RoleDef`` directly with an operator's raw
-    CLI string, no ``RoleSpec`` in between (a hole a past fix here left open, since neither
-    path calls this function). Those two converge on ``RoleDef.__post_init__`` instead, which
-    refuses the same way on ``full_name`` alone -- the field either CLI path can set -- and
-    this function's checks on the file's *other* fields stay the file-path's own job.
+    The message has the clean shape of the model whitelist check beside it, with nothing
+    pydantic wrote. A blank or whitespace-only string is never an "inherit the base" signal,
+    because omitting the key already means that. It runs on the validated ``spec`` where the model
+    check runs, so a field later added to ``RoleSpec`` is not covered automatically: this is the
+    one seam where the offending value has a file to name.
+
+    It is not the only place a role is built from editable text. ``sq role activate --name`` and
+    ``sq dev add --name`` reach ``RoleDef`` with a raw CLI string and no ``RoleSpec``, and
+    converge on ``RoleDef.__post_init__``, which refuses a blank ``full_name`` (the one field
+    either path sets). This function's checks of the file's other fields stay the file path's job.
     """
     blank = [name for name in _REQUIRED_NON_BLANK_FIELDS if not getattr(spec, name).strip()]
     blank += [
@@ -515,21 +495,18 @@ def resolve_role_tolerantly(
 def holds_default_designation(
     item: Item, squad_dir: Path | None, *, catalog: CatalogSource
 ) -> bool:
-    """Whether *item* holds this squad's default-role designation, as every reader of that
-    designation sees it — the one seam the lane exemption, the retirement warning, ``sq check``'s
-    duplicate-holder report and ``set_default_role``'s own move all ask.
+    """Whether *item* holds the squad's default-role designation, as every reader sees it.
 
-    The designation is **resolved**, not read raw off the item: the stored ``is_default`` is an
-    override on an answer the role catalog also gives, and a role item stores it only when
-    something wrote it, so the role the catalog designates holds the designation with nothing
-    stored. A raw read finds no holder there and leaves a squad generating config with two live
-    defaults.
+    The lane exemption, the retirement warning, ``sq check``'s duplicate-holder report and
+    ``set_default_role``'s move all ask this. The designation is resolved, not read raw: a stored
+    ``is_default`` overrides an answer the catalog also gives, and an item stores it only if
+    something wrote it, so the catalog's designated role holds it with nothing stored. A raw read
+    would find no holder and leave a squad generating config with two live defaults.
 
-    Falls back to the stored key alone when resolution refuses — a role override document the
-    resolver rejects. That refusal is already a ``sq check`` finding in its own right, and every
-    caller here is either a reporter, which must survive one broken role to finish the scan, or
-    a mutation that must not be blocked by a file it is not touching. The fallback can only
-    under-report a holder.
+    It falls back to the stored key alone when resolution refuses (a rejected role override
+    document). That refusal is already a ``sq check`` finding, and every caller is a reporter that
+    must survive one broken role or a mutation that a file it is not touching must not block. The
+    fallback can only under-report a holder.
     """
     try:
         return resolve_role_for_item(item, squad_dir, catalog=catalog).is_default

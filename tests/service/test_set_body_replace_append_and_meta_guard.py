@@ -1,6 +1,6 @@
 """``Service.set_body`` replaces by default, appends with a blank-line separator, and is
-rejected outright, even with ``--force``, for a role or system skill — unless the view is
-dropped from ``[selected]``. A custom skill carries no such classification."""
+rejected outright, even with ``--force``, for a system skill — unless the view is dropped from
+``[selected]``. A role and a custom skill take prose."""
 
 from pathlib import Path
 
@@ -33,24 +33,25 @@ async def test_set_body_replaces_by_default_and_appends_with_a_blank_line_separa
     assert (await svc.read_body(task.id)).endswith("Full body content.\n\nMore detail.")
 
 
-async def test_set_body_on_a_role_is_rejected(svc):
-    role = await svc.get("ROLE-000001")
-    with pytest.raises(SquadsError, match="renders through its declared sq:view:") as exc:
-        await svc.set_body("ROLE-000001", "free-form body")
-    assert "roles.toml" in str(exc.value)
-    assert role.slug
+async def test_set_body_on_a_role_writes_prose_and_keeps_the_view_tag_on_top(svc):
+    await svc.set_body("ROLE-000001", "free-form body")
+    stored = await svc.read_stored_body("ROLE-000001")
+    assert stored.startswith("<!-- sq:view:role_definition -->")
+    assert stored.endswith("\n\nfree-form body")
 
 
-async def test_set_body_on_a_role_is_rejected_even_with_force(svc):
-    """The roster refusal never consults ``force``."""
-    with pytest.raises(SquadsError, match="`--force` does not lift this"):
-        await svc.set_body("ROLE-000001", "free-form body", force=True)
+async def test_append_on_a_role_adds_prose_without_force(svc):
+    await svc.set_body("ROLE-000001", "first", append=True)
+    await svc.set_body("ROLE-000001", "second", append=True)
+    assert (await svc.read_stored_body("ROLE-000001")).endswith("\n\nfirst\n\nsecond")
 
 
-async def test_append_on_a_role_is_rejected_the_same_way_as_replace(svc):
-    with pytest.raises(SquadsError, match="renders through its declared sq:view:") as exc:
-        await svc.set_body("ROLE-000001", "free-form body", append=True)
-    assert "roles.toml" in str(exc.value)
+async def test_replacing_a_roles_written_prose_needs_force(svc):
+    await svc.set_body("ROLE-000001", "first")
+    with pytest.raises(SquadsError, match="--force"):
+        await svc.set_body("ROLE-000001", "second")
+    await svc.set_body("ROLE-000001", "second", force=True)
+    assert (await svc.read_stored_body("ROLE-000001")).endswith("\n\nsecond")
 
 
 async def test_set_body_on_a_system_skill_is_rejected(svc):

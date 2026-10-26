@@ -1,10 +1,6 @@
-"""The declared-view surface: resolve a ``[views]`` entry's source against one item, and
-optionally render it.
-
-The mechanism itself (source resolution, presentation) lives in ``squads._views`` — a
-top-level module with no service dependency, the same layering ``squads._discussion`` already
-has. This mixin is the one seam that loads the index and hands the already-open ``db`` to it,
-so a resolve-and-render call costs one index load, matching ``sq tree``/``sq blocked``.
+"""The declared-view surface: resolve a ``[views]`` entry's source against one item, and optionally
+render it. The mechanism lives in ``squads._views``; this mixin loads the index once and hands the
+open ``db`` to it.
 """
 
 from squads import _sections as sections
@@ -71,10 +67,9 @@ class ViewsMixin(ServiceCore):
                 text = reinstated
                 reinstating = True
             current = sections.get_section(text, markers.BODY) or ""
-            # A reinstated region always counts as changed, even when the tag it turns out to
-            # already carry is exactly the one this call would have placed — the wrapper itself
-            # is new, and the caller (`_section_edit_core`) never rewrites the file at all when
-            # `changed` is False, which would silently discard the reinstatement.
+            # A reinstated region always counts as changed: the wrapper is new, and
+            # `_section_edit_core` skips the write when `changed` is False, which would discard the
+            # reinstatement.
             if not reinstating and view_tags.view_tag_settled(current, name, disabled=False):
                 return text, False
             slug = item.slug
@@ -149,22 +144,11 @@ class ViewsMixin(ServiceCore):
     async def resolve_view_source(
         self, view_name: str, item_id: str
     ) -> tuple[ViewSpec, Item, views.SourceResult]:
-        """*view_name*'s declared source resolved against *item_id*, in its own native shape —
-        the declared view, the host item, and whatever :func:`~squads._views.resolve_source`
-        returns for it (a flat ``list[Item]``/``list[SubEntity]`` for a relation kind, or the
-        ``RoleDef`` / :class:`~squads._views.PlaybookSource` / host ``Item`` a
-        ``role``/``playbook``/``self`` source resolves to). Raises :class:`SquadsError` when
-        *view_name* isn't declared, or when its source cannot apply to *item_id*'s type — the
-        same loud refusal :func:`~squads._views.resolve_source` always raises, never a quiet
-        one.
-
-        Works for all six source kinds — the resolution entry point for a caller that wants
-        the resolved value itself rather than :meth:`render_view`'s presentation: ``sq workflow
-        view <name> <id> --json`` (``squads._cli._workflow_cmd.workflow_view``) is that caller,
-        and it serializes each kind's result in that kind's own existing shape — a decision
-        this method has no part in, since which shape a resolved value serializes as is a
-        presentation choice and every such choice in this codebase lives in ``_cli``, never in
-        this service layer."""
+        """*view_name*'s declared source resolved against *item_id* in its native shape (see
+        :func:`~squads._views.resolve_source`), for callers that want the value rather than
+        :meth:`render_view`'s presentation. Raises :class:`SquadsError` when *view_name* is
+        undeclared or its source cannot apply to *item_id*'s type.
+        """
         view = self.spec.views.get(view_name)
         if view is None:
             raise SquadsError(
@@ -186,12 +170,10 @@ class ViewsMixin(ServiceCore):
         return view, item, result
 
     async def render_view(self, view_name: str, item_id: str) -> str:
-        """*view_name* resolved against *item_id* and rendered through its declared
-        presentation template — one index load, then the same Jinja2 engine every other
-        rendering path uses. A thin wrapper over :meth:`resolve_view_source` (the one
-        resolution entry point) followed by :func:`~squads._views.render_source_view` (the one
-        render entry point, shared with read-time tag expansion): this method has no
-        resolution logic of its own to keep in step with it."""
+        """*view_name* resolved against *item_id* and rendered through its declared presentation
+        template: :meth:`resolve_view_source` then :func:`~squads._views.render_source_view`, in one
+        index load.
+        """
         view, item, result = await self.resolve_view_source(view_name, item_id)
         data = (
             TransformLoader(self.paths.squad_dir).run(

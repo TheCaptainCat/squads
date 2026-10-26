@@ -7,16 +7,11 @@ Grammar:
   sq memory <role> add "<fact>" [--file f] [--slug s]  — jot a new memory
   sq memory <role> forget <slug>            — delete one
 
-Role is a positional subject, consistent with `sq inbox <role>` / `sq mine <role>`: resolved
-once in the group callback against the roster (agents + operators), raising a clean
-SquadsError on an unknown slug — never a stack trace. Memory is a lighter tier than an item
-(see `squads._memory._store`) so, unlike the `sq <type> <n> ...` groups, there is no
-counter-allocated id to resolve here — only the role slug and, for `show`/`forget`, the memory's
-own stable slug.
-
-Resolved against the **full** roster vocabulary, not just live slugs — a role's own
-notebook (like `sq inbox`/`sq mine`) is read-scoped to that role, not authorship attributed to
-it on someone else's item, so a retired role's memory stays reachable for review.
+The role is a positional subject like `sq inbox <role>` / `sq mine <role>`, resolved once in
+the group callback against the full roster (agents and operators, retired included) with a
+clean SquadsError on an unknown slug. The notebook is read-scoped to the role, not authorship
+on someone else's item, so a retired role's memory stays reachable. Memory has no
+counter-allocated id (see `squads._memory._store`); `show`/`forget` take the memory's slug.
 """
 # Commands registered via Typer decorators (side effects) read as unused to static analysis.
 # pyright: reportUnusedFunction=false

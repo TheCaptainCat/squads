@@ -38,23 +38,18 @@ def addresses(subject: str, role: RoleLike) -> bool:
     return subject == role.slug
 
 
-# The advisory create-lane is DERIVED from the playbook document, per role guide, from the
-# declared `authors` flag — never from a second table beside it, and never scanned out of the
-# guide's prose. A prose scan was rejected for the reason the flag exists: the create verb for a
-# type does not always live in that type's own section (the reviewer's `sq create review` is
-# written in the task playbook's reviewer guide), so the scan has to match across sections and
-# still misses a role whose guidance never spells the verb. A declaration says it once, in the
-# document an adopter can override.
+# The advisory create-lane is derived from each role guide's declared `authors` flag, not from
+# a second table or a scan of the prose: the create verb for a type can live in another type's
+# section (the reviewer's `sq create review` is in the task playbook's reviewer guide), and a
+# guide that never spells the verb would be missed. The flag lives in the overridable document.
 
 
 def create_lanes(playbook: PlaybookSpec) -> dict[str, set[str]]:
-    """Role slug → the set of item types that slug is in-lane to author, derived from the
-    role guides of *playbook* that declare ``authors``.
+    """Role slug to the item types it is in-lane to author, from the ``authors`` role guides.
 
-    Computed per call rather than cached in a module constant: the answer depends on the
-    active/merged playbook, and a process serves many squads. A capability subject
-    (``*<name>``) is a key like any other; :func:`allowed_create_types` expands it to the roles
-    that hold the capability.
+    Computed per call, not cached, since the answer depends on the active merged playbook and a
+    process serves many squads. A capability subject (``*<name>``) is a key like any other;
+    :func:`allowed_create_types` expands it to the roles holding the capability.
     """
     lanes: dict[str, set[str]] = {}
     for item_type, entry in playbook.types.items():
@@ -93,17 +88,13 @@ def catalog_default_slug(catalog: RoleCatalogSpec) -> str | None:
 
 
 def allowed_create_types(role: RoleLike, spec: WorkflowSpec, playbook: PlaybookSpec) -> set[str]:
-    """Return the set of item types *role* is in-lane to author via ``sq create``.
+    """The item types *role* is in-lane to author via ``sq create``.
 
-    Derived from :func:`create_lanes` over *playbook*: the lanes of every guide that addresses
-    *role* by slug or by a capability it holds. The default role and ``op-*`` slugs should be
-    checked via :func:`is_lane_exempt` **before** calling this — the exemption is the
-    meaningful check for those slugs; this function answers only what the playbook declares.
-
-    ``spec`` mirrors :func:`item_types_for_role`'s own membership filter: a type a guide still
-    names that *spec* has dropped (via ``[selected]``, or renamed away to a new key) is
-    filtered out here — a role's advertised create-lane never keeps naming a type that no
-    longer exists.
+    Derived from :func:`create_lanes` over *playbook*: the lanes of every guide addressing *role*
+    by slug or by a capability it holds. Check the default role and ``op-*`` slugs with
+    :func:`is_lane_exempt` before calling this, since the exemption is the meaningful check for
+    them; this answers only what the playbook declares. ``spec`` filters as
+    :func:`item_types_for_role` does, so a type *spec* dropped or renamed away is not advertised.
     """
     lane = {
         t
@@ -136,15 +127,12 @@ def in_lane_owner(item_type: str, playbook: PlaybookSpec, roster: Iterable[RoleL
 def item_types_for_role(role: RoleLike, spec: WorkflowSpec, playbook: PlaybookSpec) -> list[str]:
     """Item types this role interacts with: those with a guide that addresses it.
 
-    ``playbook`` is the active (merged) one, so a project-added role guide or type entry changes
-    a role's interacting-type list. A type the playbook still names
-    but *spec* has dropped (via ``[selected]``, directly, or by renaming it away to a new key)
-    is filtered out here, so a role's preload list never keeps naming a type that no longer
-    exists. A type *spec* declares that has no playbook entry at all — a project-declared custom
-    type with no override coverage, or the new name a rename produced — contributes nothing
-    here (there is no interaction data to derive from), the same "no preload, but the thin
-    auto-generated skill still exists and is still loadable by hand" degradation any custom type
-    already gets.
+    *playbook* is the active merged one, so a project-added guide or type entry changes the
+    list. A type the playbook names but *spec* dropped (via ``[selected]``, directly, or by
+    renaming) is filtered out, so a preload list never names a missing type. A type *spec*
+    declares with no playbook entry (a custom type without override coverage, or a rename's new
+    name) contributes nothing: it keeps the thin auto-generated skill, loadable by hand, without
+    a preload.
     """
     return [
         item_type
@@ -202,7 +190,7 @@ def live_roster_text(
     A reference to a role the roster lacks becomes :data:`ABSENT_ROLE_PLACEHOLDER`, so a
     generated command or hand-off never names a slug the squad cannot use; only roles the
     *playbook* itself names as a guide subject are rewritten. An ``@*<name>`` token becomes the
-    ``@<slug>`` of every live holder of capability ``<name>``, in roster order and joined with
+    ``@<slug>`` of every live holder of capability ``<name>``, in roster order joined with
     ``/``, or ``*<name>`` when none holds it.
     """
     roles = list(roster)
@@ -231,21 +219,16 @@ def item_skill_role_sections(
     roster: Iterable[RoleView],
     playbook: PlaybookSpec | None = None,
 ) -> list[dict[str, Any]]:
-    """The ordered per-role section blocks a per-item-type skill's presentation template
-    renders for one item type — empty for a type the active playbook does not cover (the thin
-    skill's "no role sections" degradation).
+    """The ordered per-role section blocks for one item type's per-type skill template.
 
-    Registered as a Jinja filter (``_rendering/_engine.py``), so the roster lookup stays in
-    Python rather than in template logic.
+    Empty for a type the active playbook does not cover (the thin skill's "no role sections").
+    It is a Jinja filter (``_rendering/_engine.py``), so the roster lookup stays in Python.
 
-    Two rules depend on the roster:
-
-    - a guide addressed to a capability (``*<name>``) renders only while at least one live role
-      holds it, under a heading that names the capability and lists those holders;
-    - a guide addressed to a role renders only while that role is in the live roster.
-
-    With *playbook*, every reference to a role the roster lacks in a guide's text is written as
-    a placeholder (:func:`live_roster_text`); a template that omits it keeps the text as authored.
+    Two rules depend on the roster: a guide addressed to a capability (``*<name>``) renders only
+    while a live role holds it, under a heading naming the capability and its holders; a guide
+    addressed to a role renders only while that role is live. With *playbook*, every reference
+    to a role the roster lacks in a guide's text becomes a placeholder
+    (:func:`live_roster_text`); a template that omits it keeps the text as authored.
     """
     if pb is None:
         return []
@@ -325,24 +308,17 @@ def example_assignee_slug(
     roles: Iterable[Mapping[str, str] | RoleView] | None = None,
     developers: Iterable[str] = (),
 ) -> str:
-    """A concrete ``--assignee`` value for a generated "common commands" example, taken from
-    the **live** roster rather than named as a literal.
+    """A concrete ``--assignee`` for a generated "common commands" example, from the live roster.
 
-    The generated squads skill and AGENTS.md both show one metadata-update example. Naming a
-    bundled slug there hands an agent a command that exits 1 with an unknown-slug error on any
-    squad that doesn't carry that role — ``sq init --roles minimal`` being the documented way
-    to get one.
+    The squads skill and AGENTS.md each show one metadata-update example, and a bundled slug
+    would hand an agent a command that exits 1 (unknown slug) on a squad without that role, as
+    with ``sq init --roles minimal``. It prefers a slug in *developers* (the live developer
+    roles, since implementation is what gets assigned), then the first roster entry, and
+    degrades to the ``<slug>`` placeholder when the roster is empty or not threaded in.
 
-    Prefers a slug in *developers* (the slugs of the live developer roles; implementation work
-    is what gets assigned), then the first roster entry, and degrades to the ``<slug>``
-    placeholder the surrounding block already uses for the reader's own slug when the roster is
-    empty or wasn't threaded in.
-
-    Accepts either shape a caller's roster comes in — a plain ``{"slug": ...}`` mapping
-    (``templates/agents_md/agents_section.md.j2``'s ``roles``) or a real ``RoleView``
-    (``templates/views/squads_skill.md.j2``'s ``source.roster``, unflattened rather than
-    converted to a dict for that call) — so neither of the two template call sites needs a
-    reshaping step of its own.
+    It accepts either roster shape, a ``{"slug": ...}`` mapping (``agents_md/agents_section``'s
+    ``roles``) or a ``RoleView`` (``views/squads_skill``'s ``source.roster``), so neither
+    template call site reshapes its input.
     """
     slugs = [s for s in (_role_slug(r) for r in roles or ()) if s]
     preferred = set(developers)

@@ -95,13 +95,10 @@ class BrowseScreen(Screen[None]):
         self._tree.focus()
 
     async def refresh_tree(self) -> None:
-        """Re-run `tree_view()` under the active filter/closed toggle, reorder siblings per the
-        active sort, eagerly fetch every visible Role/Operator's memory pool, and repopulate
-        the tree.
+        """Re-run `tree_view()` under the active filter, toggle and sort, and repopulate the tree.
 
-        The memory fetch happens here, once per identity, rather than lazily on node
-        expansion — the whole point of the view is comparing hygiene across the roster at a
-        glance, and the roster is small enough that this is effectively free.
+        Every visible Role/Operator's memory pool is fetched here, once per identity, not on node
+        expansion: the view compares hygiene across the roster at a glance.
         """
         nodes = await self._svc.tree_view(
             filter=self.state.filter, include_closed=self.state.include_closed

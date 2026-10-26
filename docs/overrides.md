@@ -1868,6 +1868,9 @@ or on a bundled view, without restating its `source`:
 position = "after(^## Scope)"
 ```
 
+The bundled `role_definition` view declares `position = "top"`, so a role's definition comes
+before the prose written beside it; setting it to `"bottom"` puts the prose first.
+
 Every body write re-places the tags, so a changed `position` moves the tag on each document's
 next body write, and a new document gets it from the start. A bad value or a pattern that does not
 compile fails the load; `sq workflow lint` lists it. The full grammar, the view-name rules and
@@ -2048,15 +2051,18 @@ instances.
 
 ##### Authoring a role or skill body by hand
 
-A role's body, a permanently-system skill's body (`squads`, `greeting`, `sq-memory`) and a
-per-item-type `sq-<type>` skill's body render through their view and refuse prose — replace and
-append alike, `--force` or not. The same entries refuse a description, an attribute the bundled
-spec declares, a skill's title and view edits (see
-[roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses)). Their content normally comes from `.overrides/roles.toml` or
-`.overrides/roles/<slug>.toml` (or `sq role <slug> update`, for a role that defines itself), the
-playbook overrides, or the
-view's own template override. To write one of these bodies yourself instead, drop its view from
-`[selected]`. `[selected].views` lists the survivors, so name every other view you keep:
+A role takes prose with no override: `sq role <slug> body` writes beside its generated
+definition on every role (see
+[roles.md § "Updating and commenting on roles, skills and operators"](roles.md#updating-and-commenting-on-roles-skills-and-operators)).
+
+A permanently-system skill's body (`squads`, `greeting`, `sq-memory`) and a per-item-type
+`sq-<type>` skill's body render through their view and refuse prose — replace and append alike,
+`--force` or not. The same skills refuse a description, an attribute the bundled spec declares, a
+title and view edits (see
+[roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses)).
+Their content normally comes from the playbook overrides or the view's own template override. To
+write one of these bodies yourself instead, drop its view from `[selected]`. `[selected].views`
+lists the survivors, so name every other view you keep:
 
 ```toml
 [selected]
@@ -2065,20 +2071,15 @@ views = ["milestone_rollup", "role_definition", "greeting_skill", "memory_skill"
 
 With `squads_skill` dropped, `sq skill squads body -m "…"` is admitted, and `sq sync` and
 `sq repair` leave the prose alone. The tag already in the body now names an undeclared view, so
-`sq check` reports it until you run `sq skill squads view disable squads_skill`. With
-`role_definition` dropped, a role takes `body` the same way, and its tag is cleared the same way:
+`sq check` reports it until you run `sq skill squads view disable squads_skill`. Putting the view
+back in `[selected]` makes the body refuse writes again. A skill body that holds prose and lacks
+its tag is reported, with the remedy. The text you wrote stays, and renders beside the view once
+its tag is re-enabled with `view add`; changing it means dropping the view again.
 
-```bash
-sq role qa body -m "Our own QA charter."
-sq role qa view disable role_definition
-```
-
-Dropping `role_definition` affects every role at once — each one's tag becomes an undeclared-view
-error in `sq check` until disabled. A role activated while the view is dropped gets no tag at all.
-Putting the view back in `[selected]` makes the bodies refuse writes again. A role body that
-holds your prose is accepted by `sq check`, with or without its tag; a skill body that holds prose
-and lacks its tag is reported, with the remedy. The text you wrote stays, and renders beside the
-view once its tag is re-enabled with `view add`; changing it means dropping the view again.
+Dropping `role_definition` the same way is only for replacing a role's generated definition with
+text of your own. It affects every role at once: each one's tag becomes an undeclared-view error
+in `sq check` until cleared with `sq role <slug> view disable role_definition`, and a role
+activated while the view is dropped gets no tag.
 
 A runbook you want to keep does not belong in an `sq-<type>` skill's body: give it a skill of its
 own with `sq skill add`. If one already sits in an `sq-<type>` skill, `sq check` names the five

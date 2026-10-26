@@ -119,20 +119,11 @@ _ROOT_TMP_IGNORE_PATTERN = f"{CONFIG_FILENAME}.*.tmp"
 
 
 async def ensure_root_tmp_ignored(root: Path) -> None:
-    """Make sure an interrupted ``.squads.toml`` write's temp sibling can never end up
-    committed by accident.
-
-    The atomic-replace primitive puts the temp file in the target's own directory (a
-    cross-directory rename isn't atomic) — for ``.squads.toml`` that's the *project root*,
-    outside the squad dir's own ``.gitignore``. Appends the pattern to a root ``.gitignore``
-    if one exists, without touching any of its other (adopter-owned) content; creates a
-    minimal one if none exists yet. A no-op once the pattern (or a covering ``*.tmp``) is
-    already present.
-
-    Called from ``init``/``adopt`` (a squad's first appearance) and from :meth:`sync
-    <MaintenanceMixin.sync>` — the idempotent "bring this squad up to date" path, so a squad
-    initialised before this pattern existed still picks it up on its next sync rather than
-    carrying the hole forever.
+    """Ensure an interrupted ``.squads.toml`` write's temp sibling cannot be committed: the atomic-
+    replace temp file sits in the project root, outside the squad dir's ``.gitignore``. It appends
+    the pattern to a root ``.gitignore`` (creating a minimal one if absent) without touching adopter
+    content, and is a no-op once a covering pattern exists. ``init``, ``adopt`` and :meth:`sync
+    <MaintenanceMixin.sync>` call it.
     """
     gitignore = root / ".gitignore"
     if not await _aio.path_exists(gitignore):
@@ -147,47 +138,26 @@ async def ensure_root_tmp_ignored(root: Path) -> None:
 
 
 def _ref_encoding_is_stale(data: dict[str, Any], item: Item) -> bool:
-    """Whether *data* — the raw, unfolded frontmatter :meth:`_rebuild_index_from_disk` just
-    parsed for *item* — holds a ref encoding other than the canonical one *item* (already
-    folded through :meth:`Item.from_frontmatter`) carries.
-
-    A spelled ref folds to a different literal than what is written on disk when an edge is
-    spelled with the live default kind (never emitted, always folded back to bare). That is
-    the only shape the fold changes; every other frontmatter field round-trips unchanged when
-    *item* was built from *data* directly, so comparing ``refs`` alone is exact.
-
-    ``data["refs"]`` is safe to compare as a plain list here without re-validating its shape:
-    *item* already exists, which means ``Item.from_frontmatter`` already accepted this same
-    *data* — so ``refs`` was already either absent/empty or a list of ``str``.
+    """Whether *data*, the raw frontmatter just parsed for *item*, holds a ref encoding other than
+    the canonical one *item* carries after folding. The only shape the fold changes is an edge
+    spelled with the default kind (folded to bare), so comparing ``refs`` alone is exact; *item*
+    exists, so ``data["refs"]`` was already accepted as absent or a list of ``str``.
     """
     raw_refs = cast("list[str]", data.get("refs") or [])
     return list(item.refs) != raw_refs
 
 
-#: Suffix of a retired sub-entity badge region's tag. The tag itself
-#: (``<kind>:<local-id>:head``) is composed at write time and is **not** declared in
-#: ``_models/_markers.py``, so there is no constant to compare against and an absent one
-#: proves nothing about what a corpus holds. Matching on the suffix is deliberate: it is
-#: vocabulary-blind, so a badge region belonging to a sub-entity kind a project declared and
-#: later dropped is recognised too, without this sweep having to read the live spec's kind
-#: list. A local id is a declared ``local_prefix`` plus a number, free-form and uppercase for
-#: every bundled kind, which is why nothing here may assume its spelling — a scan whose
-#: character class assumes lowercase matches none of them and reports an empty corpus.
+#: Suffix of a retired sub-entity badge region's tag (``<kind>:<local-id>:head``), undeclared in
+#: ``_models/_markers.py``. Suffix matching is vocabulary-blind, so a dropped kind's region is
+#: recognised, and a local id is free-form and uppercase.
 _RETIRED_HEAD_SUFFIX = ":head"
 
 
 def _retired_region_tags(text: str) -> list[str]:
-    """Every retired marker region present in *text*, as section tags in file order.
-
-    Two families, matched by tag **shape** rather than by any declared vocabulary: the fixed
-    :data:`~squads._models._markers.SUMMARY` region, and every tag ending in
-    :data:`_RETIRED_HEAD_SUFFIX`. Both are derived renderings whose writers have retired and
-    whose replacements are computed on every read, so what is on disk can only disagree with
-    the frontmatter that is the sole source.
-
-    Close markers are skipped (their tag carries a trailing ``:end``) so each region is named
-    once, and a tag whose region is not balanced in *text* is skipped outright — an unclosed
-    region is a marker defect for ``check`` to report, never something to cut through.
+    """Every retired marker region in *text*, as section tags in file order, matched by shape: the
+    fixed :data:`~squads._models._markers.SUMMARY` region and every tag ending in
+    :data:`_RETIRED_HEAD_SUFFIX`. Close markers are skipped so each region is named once, and an
+    unbalanced region is left for ``check`` to report rather than cut through.
     """
     seen: list[str] = []
     for raw in sections.find_markers(text):
@@ -244,13 +214,10 @@ def _strip_retired_regions(
 
 
 def _retired_role_keys(item: Item, spec: WorkflowSpec) -> frozenset[str]:
-    """The retired mirror keys *item* still carries as attributes — empty for anything that is
-    not a role item, and empty for a role that carries none of them.
-
-    The candidates are the closed set :data:`~squads._models._metadata.RETIRED_ROLE_KEYS`, never
-    "every key this build does not recognise", so a sweep never deletes a key some other tool
-    put on a role item. A name the squad's spec declares on role is the adopter's attribute, not
-    a mirror key.
+    """The retired mirror keys *item* still carries as attributes, empty for a non-role item. The
+    candidates are the closed set :data:`~squads._models._metadata.RETIRED_ROLE_KEYS`, never every
+    unrecognised key, so a sweep never deletes another tool's key; a name the spec declares on role
+    is the adopter's attribute.
     """
     if item.type != ROSTER_ROLE:
         return frozenset()
@@ -260,20 +227,11 @@ def _retired_role_keys(item: Item, spec: WorkflowSpec) -> frozenset[str]:
 
 @dataclasses.dataclass
 class _PendingRewrites:
-    """The file rewrites :meth:`MaintenanceMixin._rebuild_index_from_disk`'s per-file loop has
-    decided on but not yet performed — deferred to after the corpus-alignment refusal check,
-    so a refusal that aborts the whole rebuild never leaves a rewritten file behind with no
-    matching index commit.
-
-    ``files`` holds one ``(path, new_text)`` entry **per path**, never two. Both
-    transformations a file can need — the ref-encoding canonicalisation and the retired-region
-    strip — are composed into that single replacement text by :func:`_record_pending_rewrite`.
-    Queuing them as two independent entries, each built from the file's original text, would
-    mean whichever was written last silently discarded the other's edit.
-
-    ``canonicalized`` and ``stripped`` name the items each transformation actually applied to,
-    kept apart because they are different facts about a corpus and are reported separately.
-    An item can appear in both.
+    """The file rewrites :meth:`MaintenanceMixin._rebuild_index_from_disk` has decided on but not
+    performed, deferred past the corpus-alignment refusal check so a refusal never leaves a
+    rewritten file without an index commit. ``files`` holds one ``(path, new_text)`` per path, the
+    transformations composed by :func:`_record_pending_rewrite` so neither edit discards the other.
+    ``canonicalized`` and ``stripped`` name the items each applied to; an item can be in both.
     """
 
     files: list[tuple[Path, str]] = dataclasses.field(default_factory=list[tuple[Path, str]])
@@ -302,43 +260,11 @@ def _record_pending_rewrite(
     body_tag: str | None,
     spec: WorkflowSpec,
 ) -> None:
-    """Queue *item*'s write-back onto *pending* when its file needs one.
-
-    Two independent reasons a file is rewritten, composed here into **one** replacement text
-    and **one** queued entry (see :class:`_PendingRewrites`):
-
-    - its on-disk ref encoding is stale (:func:`_ref_encoding_is_stale`), so the frontmatter is
-      rewritten to the canonical encoding the fold already produced;
-    - it carries a retired region, or a body this sweep converges onto a placement tag
-      (:func:`_strip_retired_regions`, licensed per-item by *body_tag* — see
-      :meth:`MaintenanceMixin._repair_body_tag`);
-    - it is a role item that still carries retired mirror keys (:func:`_retired_role_keys`).
-
-    The regions go first and the frontmatter rewrite last, over the stripped text:
-    :func:`~squads._sections.replace_frontmatter` preserves the body verbatim, so the order
-    only decides which text the later transformation reads, never what any of them produces.
-
-    There is exactly **one** frontmatter rewrite, never two, and the two reasons pick
-    different mappings for it. Canonicalisation writes ``item.to_frontmatter_dict()``, the
-    model's own projection — it has to, since the canonical ref encoding exists only on the
-    parsed ``Item``; the mirror keys are already gone from that ``Item`` by then, so the one
-    rewrite serves both. A file needing only the key removal is rewritten from its own parsed
-    frontmatter instead (:func:`_frontmatter_without`), which is the narrower edit: the model's
-    projection would also drop a key the model derives rather than stores, and this sweep
-    removes only what is on its list.
-
-    **The mirror keys leave the** :class:`~squads._models._item.Item` **as well as the file**,
-    and that is the coupling this vehicle introduces which a migration step did not have: the
-    caller's very next statement is ``db.add(item)``, so an ``Item`` still carrying a key the
-    file no longer does would put the index and the markdown into disagreement on exactly the
-    key just removed. Those keys are not in ``PERMITTED_EXTRA_SKEW`` either, so the
-    disagreement would not be forgiven — it would refuse every later read of that item.
-
-    Nothing is queued when the composed text equals the original — the identity that makes a
-    second rebuild over an already-corrected corpus write no file at all.
-
-    Split out of the per-file loop purely to keep that already-long method under the
-    complexity ceiling; the writes themselves are the caller's, after the refusal check.
+    """Queue *item*'s write-back onto *pending* when its file needs one, composing every reason
+    (stale ref encoding, retired region or body convergence, retired role mirror keys) into one
+    replacement text: regions first, then one frontmatter rewrite (``item.to_frontmatter_dict()``
+    when canonicalising, else :func:`_frontmatter_without`). The mirror keys leave the ``Item`` too,
+    so ``db.add(item)`` agrees with the file; nothing is queued when the text is unchanged.
     """
     slug = item.slug
     addr: int | str = slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item.id)
@@ -444,45 +370,12 @@ def _unindexable_refusal(result: ReconcileResult, reader: str) -> str:
 class MaintenanceMixin(ServiceCore):
     # ------------------------------------------------------------------ sync
     async def sync(self) -> SyncSkips:
-        """Regenerate all tool-owned managed files to the current version. The body-tag backfill
-        (:meth:`_backfill_roster_body_tags`) never declines (convergence is strict, so it either
-        fills a genuinely empty region or leaves a non-empty one untouched, silently). Never
-        writes ``.squads.toml``.
-
-        **Deduplicated by exact text before returning.** A generic safety net over the
-        per-writer skip-report messages below, not tied to any one of them — collapsing exact
-        duplicates (not de-duplicating by item id, or by any other looser key) is what keeps a
-        second, genuinely different message about the *same* item — a different field set, a
-        different reason — passing through untouched.
-
-        Returns a :class:`~squads._services._results.SyncSkips` — every existing caller can
-        keep treating it as the plain ``list[str]`` of skip/notice messages below.
-
-        Returns one skip-report message per drifted roster role whose
-        frontmatter was left untouched (see :meth:`_detect_roster_item_skew`), one notice per live
-        ``SKILL`` item this run just withdrew because its type is no
-        longer declared (:func:`orphaned_skill_item_type`), and one per
-        playbook guide **the adopter wrote** that this run just dropped from a generated
-        ``sq-<type>`` skill because its role slug names no live role
-        (:func:`orphaned_playbook_guides` — the guide-level sibling of that
-        same withdrawal, reported here for the same reason: this run is what silently removed it;
-        a guide that exists only in the bundled playbook is squads' own degradation and stays
-        silent, since no adopter can edit it), and one per WARN-only notice a per-entry backend
-        write surfaced (``Artifact.warning`` via :meth:`project_item` — today that is a
-        declared ``model`` the host's own agent frontmatter cannot express, which the generated
-        pointer drops), one per per-entry backend pointer this run found absent and had to
-        regenerate (naming the file and the backend — see the loop below; empty on a healthy
-        squad, byte-identical to before this reporting existed), one per per-entry backend
-        pointer this run found present but whose content differed from a fresh render and
-        had to regenerate (the same shape, worded "out of date or edited by hand" rather than
-        "was missing" so an operator can tell the two facts apart), and one per skill body
-        left on disk that no ``SKILL`` item indexes once this run's own seeding is done
-        (:meth:`_unindexed_skill_bodies`) — empty for a clean roster, exactly today's
-        silent behaviour. Never raises for any of them: this is bulk
-        regeneration of derived state, and is itself what an operator reaches for when
-        generated files are wrong, so a drifted or withdrawn item is reported and the rest of
-        the squad still syncs (exit stays 0 — ``sq check`` is the dedicated reporter that
-        gates).
+        """Regenerate all tool-owned managed files (never ``.squads.toml``) and return a
+        :class:`~squads._services._results.SyncSkips`, a plain ``list[str]`` of exact-text-
+        deduplicated notices (drifted roster role left untouched, withdrawn ``SKILL`` item, dropped
+        adopter-written playbook guide, per-entry backend WARN, regenerated pointer, unindexed skill
+        body). It never raises for these, being what an operator runs when generated files are
+        wrong; ``sq check`` gates.
         """
         skipped = list(await self._prepare_sync_surface())
         backends = self._backends()
@@ -519,32 +412,22 @@ class MaintenanceMixin(ServiceCore):
             for rel_path in backend.managed_entry_paths(entry_ctx)
             if not (self.paths.root / rel_path).exists()
         }
-        # The currency sibling of `missing_before` (the render-and-compare half of pointer
-        # detection): the content of every per-entry pointer that DOES already exist,
-        # captured before the roster loops below (re)write it — so the report after them can
-        # tell "out of date or edited by hand"
-        # (content changed) apart from "was missing" (`missing_before`, above) rather than
-        # conflating the two under one message. A path in `missing_before` is never a member
-        # here, so the two reports stay mutually exclusive by construction.
+        # Currency sibling of `missing_before`: the content of every existing per-entry pointer,
+        # captured before the roster loops rewrite it, so the report can tell "out of date or edited
+        # by hand" from "was missing". A path in `missing_before` is never a member here.
         content_before = await self._entry_content_snapshot(backends, entry_ctx, missing_before)
 
         skipped += await self._project_roster_entries(roster_roles, roster_skills, proj_ctx)
         skipped += self._regenerated_pointer_notices(backends, entry_ctx, missing_before)
         roster = await self._write_managed_files(backends, role_skills)
-        # Currency's own report, the sibling of the "was missing" one above: a per-entry
-        # pointer whose content this run's own writes above just changed relative to
-        # `content_before`'s snapshot — distinguishable wording ("out of date or edited by
-        # hand") because "was missing" and a changed pointer are different facts about a
-        # repository. Never doubles up with the presence report: a path in `missing_before`
-        # was never captured into `content_before` in the first place.
+        # Currency's report, sibling of the "was missing" one: a pointer whose content this run just
+        # changed relative to `content_before`, worded apart from a missing one. A path in
+        # `missing_before` was never captured, so the two never overlap.
         skipped += await self._entry_drift_report(backends, entry_ctx, content_before)
         skipped += await self._dropped_guidance_notices(roster)
-        # Seed SKILL ids for every managed skill file ``write_managed`` just ensured, bundled
-        # and custom alike, in the same order ``init``/``adopt`` use (idempotent; a slug whose
-        # convention-named file already exists is skipped without touching it). Both halves are
-        # seeded because a bundled-playbook type whose body file first appears after init would
-        # otherwise never be stamped: repair rebuilds the index from frontmatter, and the bare
-        # file has none.
+        # Seed SKILL ids for every managed skill file ``write_managed`` just ensured, bundled and
+        # custom, in ``init``/``adopt`` order and idempotently; a bare file has no frontmatter, so
+        # repair could never index one that first appears after init.
         await self.seed_bundled_skills()
         await self.seed_custom_skills()
         skipped += await self._skill_body_notices()
@@ -573,13 +456,11 @@ class MaintenanceMixin(ServiceCore):
     def _live_entry_context(
         self, roster_roles: list[Item], roster_skills: list[Item]
     ) -> BackendContext:
-        """The roster-scoped set of per-entry pointers that *should* exist after this run —
-        the same live predicate and the same backend declaration `sq check`'s
-        `backend_reconciled` rule uses (`managed_entry_paths`), so the two can never
-        disagree about which pointer belongs to which state. Snapshotting which of them are
-        absent *before* the roster loops write anything is what lets the report after
-        them say "regenerated" rather than treating an ordinary, already-there file the same
-        way — a second, independent probe would risk drifting from this one."""
+        """The roster-scoped set of per-entry pointers that should exist after this run, by the same
+        live predicate and ``managed_entry_paths`` declaration `sq check`'s `backend_reconciled`
+        uses, so the two agree. Snapshotting the absent ones before the roster loops write lets the
+        report say "regenerated" for them alone.
+        """
         live_role_slugs = frozenset(
             slug for it in roster_roles if is_live_roster_entry(it, self.spec) and (slug := it.slug)
         )
@@ -600,14 +481,12 @@ class MaintenanceMixin(ServiceCore):
     async def _project_roster_entries(
         self, roster_roles: list[Item], roster_skills: list[Item], proj_ctx: BackendContext
     ) -> list[str]:
-        """Re-apply every roster item's status against the live predicate, materialising a live
-        entry and withdrawing every other one — including an entry already retired before this
-        landed, with no migration owed. Only the *backend* projection — via ``project_item``,
-        the same helper the single-item transition path uses — is gated.
-        The role's own definition renders at read time off the ``sq:view:role_definition`` tag
-        its ``sq:body`` carries (``squads._view_tags.expand_view_tags``, via
-        ``ItemsMixin.read_body``); these loops don't write that tag either — the body-tag
-        backfill does, once, ahead of them (see ``_backfill_roster_body_tags``)."""
+        """Re-apply every roster item's status against the live predicate, materialising live
+        entries and withdrawing every other, including ones retired earlier. Only the backend
+        projection (``project_item``, shared with the single-item transition) is gated here; a
+        role's definition renders at read time off its ``sq:view:role_definition`` tag, which the
+        body-tag backfill writes ahead of these loops.
+        """
         skipped: list[str] = []
         # Resolved once for the whole sync sweep, not per role.
         default_kind = self.spec.default_ref_kind()
@@ -761,12 +640,12 @@ class MaintenanceMixin(ServiceCore):
         return skips
 
     async def _restamp_managed_skill_frontmatter(self) -> tuple[list[int], list[str]]:
-        """Rewrite the frontmatter of every managed skill file that has none, has no ``id`` or
-        has unreadable YAML, keeping its body. The frontmatter comes from the file name and the
-        skill catalog, never from the index, and an authored item is never touched. A file that
-        another file's id or slug already claims is reported, not written; a merge conflict
-        that reaches past the frontmatter refuses the sync. Returns the numbers restamped and
-        one report line per file left alone."""
+        """Rewrite the frontmatter of every managed skill file that has none, has no ``id`` or has
+        unreadable YAML, keeping its body. It comes from the file name and skill catalog, never the
+        index, and an authored item is untouched. A file another file's id or slug already claims is
+        reported, not written, and a merge conflict past the frontmatter refuses the sync. Returns
+        the number restamped and a report line per file left alone.
+        """
         state = await self._skill_folder_state(SkillScan())
         folder = self.paths.squad_dir / self.spec.items[ROSTER_SKILL].folder
         restamped: list[int] = []
@@ -819,13 +698,10 @@ class MaintenanceMixin(ServiceCore):
         entry_ctx: BackendContext,
         content_before: dict[tuple[str, str], str],
     ) -> list[str]:
-        """The post-write half of ``sync``'s currency report — the sibling of the "was missing"
-        block, factored out for the same readability reason as
-        :meth:`_entry_content_snapshot`. Compares each snapshotted path's content right now
-        against *content_before*; a changed one means this run's own writes above just replaced
-        content that no longer matched a fresh render, so it is reported "out of date or edited
-        by hand" rather than "was missing" — the two never overlap, since a path in
-        ``missing_before`` was never captured into *content_before* to begin with.
+        """The post-write half of ``sync``'s currency report: compares each snapshotted path's
+        content now against *content_before*, and a changed one is reported "out of date or edited
+        by hand" (never "was missing", since a path in ``missing_before`` was never captured).
+        Factored out like :meth:`_entry_content_snapshot`.
         """
         if not content_before:
             return []
@@ -846,22 +722,11 @@ class MaintenanceMixin(ServiceCore):
         return report
 
     def _unindexed_skill_bodies(self) -> list[str]:
-        """One report line per slug-named skill body file left with no ``SKILL`` item after
-        seeding — empty in the normal case.
-
-        A skill body under the skills folder that does not carry the type's id prefix has no
-        frontmatter, so nothing indexes it: ``sq skill <slug> show`` cannot find it, it is
-        absent from ``sq list --type skill``, and ``sq repair`` cannot recover it either, since
-        repair rebuilds the index *from* frontmatter. It is nonetheless a live file — the
-        backends' generated pointers reference it and roles preload its slug.
-
-        ``sq check`` deliberately tolerates this shape (see :func:`is_legacy_skill_body`: it
-        cannot tell it apart from a genuinely never-stamped corpus, nor from the state
-        ``init``'s ``_skip_skill_seed`` hook manufactures). Sync can, because sync is what
-        wrote the file: by this point it has run both seeders over every slug either
-        vocabulary names, so anything still bare is a body no seeding path claims — the shape
-        a future generated-skill slug outside those vocabularies would take. Reported, never
-        raised: the rest of the sync stands, exactly like every other line this method returns.
+        """One report line per slug-named skill body left with no ``SKILL`` item after seeding. Such
+        a body has no frontmatter, so ``sq skill <slug> show`` cannot find it and ``sq repair``
+        cannot index it, yet backend pointers reference it. ``sq check`` tolerates the shape
+        (:func:`is_legacy_skill_body`), but sync wrote the file and ran both seeders over every
+        known slug, so a leftover is one no seeding path claims. Reported, never raised.
         """
         folder = self.paths.squad_dir / self.spec.items[ROSTER_SKILL].folder
         if not folder.is_dir():
@@ -878,19 +743,11 @@ class MaintenanceMixin(ServiceCore):
         ]
 
     async def _detect_roster_item_skew(self, item: Item, *, default_kind: str) -> str | None:
-        """Read *item*'s on-disk frontmatter and report -- never write -- a real divergence
-        from the index-loaded copy, unconditionally, for every roster item this pass touches.
-
-        :func:`~squads._itemfile.skew_message`'s own docstring names three reusers: the
-        refusal a single-mutation write seam raises, the ``ImportIssue`` the bulk importer's
-        pre-pass collects, and "the skip-and-report line ``sq sync`` emits for a drifted
-        roster item" -- the third one, and this is that check's home. Unconditionally is the
-        load-bearing word: a role is otherwise never read again during a sync, so a drift on an
-        ordinary field, e.g. an interrupted ``description`` edit, would go unnoticed until some
-        unrelated seam happened to touch the same item.
-
-        A missing or unreadable file is not this check's business -- some other pass reports
-        that -- so it returns ``None`` rather than raising.
+        """Read *item*'s on-disk frontmatter and report, never write, a real divergence from the
+        index-loaded copy, for every roster item this pass touches
+        (:func:`~squads._itemfile.skew_message`'s sync reuse). It is unconditional because a role is
+        otherwise not read during a sync, so a drift would go unnoticed. A missing or unreadable
+        file returns ``None``, being another pass's report.
         """
         path = item_file(self.paths, item)
         try:
@@ -904,25 +761,11 @@ class MaintenanceMixin(ServiceCore):
 
     # ------------------------------------------------------------------ migrations
     async def run_pending_migrations(self) -> MigrationRun:
-        """Apply each migration whose target schema exceeds the on-disk one, in order.
-
-        Rebuilds the index from the migrated frontmatter and stamps the new schema version.
-
-        Returns the applied :class:`Migration` records **and the rebuild's own**
-        :class:`~squads._services._results.RepairResult`, because that rebuild is also the
-        corpus sweep and this is the only route a squad behind the current schema takes: an
-        operator migrating an older squad gets files rewritten, and ``sq migrate up`` reports
-        them rather than saying only "index rebuilt". The
-        caller announces it with
-        :meth:`~squads._services._results.RepairResult.strip_notice`, the same sentence ``sq
-        repair`` prints.
-
-        The :meth:`repair` call below is the one place that verb runs against a corpus not yet
-        at the current schema, and it sits after every runner deliberately: see
-        :meth:`repair` for the ordering prohibition that placement satisfies. It is also why a
-        squad already at the current stamp is not swept here — no runner applies, so nothing
-        rebuilds, and the ordinary verb is that corpus's only route to the sweep. That is also
-        why ``repair`` is ``None`` exactly when ``applied`` is empty.
+        """Apply each migration whose target schema exceeds the on-disk one, in order, then rebuild
+        the index and stamp the new schema. It returns the applied :class:`Migration` records and
+        the rebuild's :class:`~squads._services._results.RepairResult`, the corpus sweep a behind-
+        schema squad only gets here. The :meth:`repair` call sits after every runner (see its
+        ordering rule), and its result is ``None`` exactly when nothing applied.
         """
         disk = self.paths.config.schema_version
         applied = [m for m in MIGRATIONS if schema_tuple(m.to_schema) > schema_tuple(disk)]
@@ -1106,23 +949,11 @@ class MaintenanceMixin(ServiceCore):
 
     # ------------------------------------------------------------------ skill seeding
     async def seed_bundled_skills(self) -> list[Item]:
-        """Stamp SKILL-… ids onto the bundled managed skill body files (idempotent).
-
-        Called by ``sq init`` after ``refresh_managed()`` has created the skill body files.
-        Each bundled skill receives a full ``Item`` of the ``skill`` roster type with the
-        roster-type profile (status ``Active``, no sub-entities), allocated through
-        ``IndexStore.transaction()`` in lexical-by-slug order.
-
-        Files are written with the convention-correct name
-        ``agents/skills/SKILL-<NNNNNN>-<slug>.md``. The legacy slug-named file ``write_managed``
-        creates (``<slug>.md``, carrying an empty ``sq:body`` region — a system skill's
-        definition is rendered on read, never stored) is renamed to the convention name at this
-        step; the ``sq init`` flow always ends with convention-named files on disk.
-
-        Idempotent: if a convention-named file ``SKILL-*-<slug>.md`` already exists for a
-        slug, it is left completely untouched.
-
-        Returns the list of ``Item``s that were stamped (not including already-stamped ones).
+        """Stamp SKILL-… ids onto the bundled managed skill bodies (idempotent), after
+        ``refresh_managed()`` creates them. Each gets a roster-profile ``skill`` ``Item`` (status
+        ``Active``) allocated through ``IndexStore.transaction()`` in lexical-by-slug order, and the
+        legacy ``<slug>.md`` is renamed to ``agents/skills/SKILL-<NNNNNN>-<slug>.md``; a slug
+        already convention-named is untouched. Returns the ``Item``s stamped.
         """
         now = clock.now()
         seeded: list[Item] = []
@@ -1157,11 +988,9 @@ class MaintenanceMixin(ServiceCore):
                     prefix=skill_prefix,
                     title=slug,
                     slug=slug,
-                    # Scaffolding creates LIVE, not merely at `initial`: a generated role
-                    # entry preloads a skill by slug and never consults that skill item's
-                    # status, so seeding at a non-live `initial` would leave a clean `sq
-                    # init` with every role entry preloading skills that were never
-                    # materialised — a config-invalid state manufactured by squads itself.
+                    # Scaffolding creates LIVE, not at `initial`: a role entry preloads a skill by
+                    # slug without consulting its status, so a non-live skill would leave a clean
+                    # `sq init` with roles preloading unmaterialised skills.
                     status=self.spec.live_initial(ROSTER_SKILL),
                     description=desc,
                     author=slug,
@@ -1177,11 +1006,9 @@ class MaintenanceMixin(ServiceCore):
                 stamped = join_frontmatter(item.to_frontmatter_dict(), existing_text)
                 convention_path = skills_folder / new_name
                 await write_text(convention_path, stamped)
-                # Remove the legacy slug-named file inside the SAME transaction: the item's
-                # own convention-named file is already written above, so this costs nothing
-                # and keeps the skew one-sided (a crash here leaves the legacy file gone and
-                # the index not-yet-committed — markdown ahead, exactly the sanctioned skew —
-                # rather than a permanent orphan the idempotent-skip logic can never revisit).
+                # Remove the legacy slug-named file in the same transaction, after the convention-
+                # named file is written: a crash leaves markdown ahead (the sanctioned skew) rather
+                # than an orphan the idempotent skip never revisits.
                 await _aio.path_unlink(legacy_path)
                 db.add(item)
                 self.store.log(
@@ -1193,10 +1020,9 @@ class MaintenanceMixin(ServiceCore):
                         "status": self.spec.live_initial(ROSTER_SKILL),
                     },
                 )
-            # Rewrite each backend's .claude pointer to reference the convention-named body.
-            # write_managed ran before seeding and wrote the pointer to the old slug path;
-            # generate_skill_entry rewrites it to item.path (= SKILL-NNNNNN-slug.md). Stays
-            # outside the transaction: a backend pointer is a regenerable artifact.
+            # Rewrite each backend's pointer to reference the convention-named body (write_managed
+            # wrote the old slug path). It stays outside the transaction, a backend pointer being
+            # regenerable.
             ctx = self._ctx
             for backend in self._backends():
                 await backend.generate_skill_entry(ctx, item)
@@ -1205,19 +1031,11 @@ class MaintenanceMixin(ServiceCore):
 
     # ------------------------------------------------------------------ custom skill seeding
     async def seed_custom_skills(self) -> list[Item]:
-        """Stamp SKILL-… ids onto custom-type managed skill body files (idempotent).
-
-        Mirrors :meth:`seed_bundled_skills` but operates on custom types declared in the
-        active spec (beyond the built-in types).  SKILL ids are allocated in
-        the same lexical-by-slug order as :func:`bundled_skill_slugs`, so there's no
-        SKILL-id churn for existing bundled skills — custom slugs sort independently into the
-        full sorted slug space.
-
-        Called from :meth:`sync` (so a custom type declared or renamed after the squad
-        already exists gets seeded on the next sync) AND from ``init``/``adopt`` (which both
-        resolve the merged, possibly-overridden spec via ``_init_time_spec`` and so see custom
-        types from the very start — a fresh squad with a custom type has no
-        unindexed skill body files waiting for someone to run `sq sync`).
+        """Stamp SKILL-… ids onto custom-type managed skill body files (idempotent), mirroring
+        :meth:`seed_bundled_skills` for custom types in the active spec. Ids follow
+        :func:`bundled_skill_slugs`'s lexical-by-slug order, so bundled ids do not churn. It runs
+        from :meth:`sync` (a type declared or renamed later) and from ``init``/``adopt`` (via
+        ``_init_time_spec``), so a fresh squad has no unindexed skill bodies.
         """
         now = clock.now()
         seeded: list[Item] = []
@@ -1251,11 +1069,9 @@ class MaintenanceMixin(ServiceCore):
                     prefix=skill_prefix,
                     title=slug,
                     slug=slug,
-                    # Scaffolding creates LIVE, not merely at `initial`: a generated role
-                    # entry preloads a skill by slug and never consults that skill item's
-                    # status, so seeding at a non-live `initial` would leave a clean `sq
-                    # init` with every role entry preloading skills that were never
-                    # materialised — a config-invalid state manufactured by squads itself.
+                    # Scaffolding creates LIVE, not at `initial`: a role entry preloads a skill by
+                    # slug without consulting its status, so a non-live skill would leave a clean
+                    # `sq init` with roles preloading unmaterialised skills.
                     status=self.spec.live_initial(ROSTER_SKILL),
                     description=desc,
                     author=slug,
@@ -1294,32 +1110,11 @@ class MaintenanceMixin(ServiceCore):
     async def _corpus_alignment_refusals(
         self, known_corpus: SquadsDB | None, rebuilt: SquadsDB
     ) -> list[str]:
-        """Human-readable refusal messages for a rebuild-from-disk that would otherwise glob
-        only the *active* spec's declared ``folder``/``prefix`` and silently treat a
-        re-foldered or re-prefixed type's pre-existing corpus as deleted. Empty when nothing
-        is misaligned.
-
-        Two sources, combined:
-
-        - **Precise, when a previous index is available** (``known_corpus`` — repair's own
-          last-loaded snapshot): any item present in ``known_corpus`` but missing from
-          ``rebuilt`` (the fresh disk scan just produced), whose own last-recorded ``path`` is
-          still an actual file on disk. This asks only the one question that matters — is the
-          file this index entry pointed at still really there — never a comparison of the
-          item's own ``prefix``/``id`` metadata (which a hand-built ``Item`` in a test, or any
-          other legitimately-reconstructible-but-stale record, can carry without the file
-          having moved at all). It is also right even after more than one rename generation:
-          the previous index reflects wherever the corpus actually was last aligned, not just
-          the bundled default.
-        - **Disk fallback, for any type with no prior knowledge** (``known_corpus`` is
-          ``None`` — a fresh ``sq adopt`` with no index yet — or a type the previous index had
-          zero items for): the bundled location is the one other place a pre-existing corpus
-          can legitimately be, so it is the one extra place worth a direct disk check before
-          concluding a type truly has nothing left behind.
-
-        A wholly custom type (no bundled counterpart, and never previously indexed) has no
-        reference point either way and is silently skipped — there is nothing to compare
-        against, the same way an always-empty type is.
+        """Refusal messages for a rebuild that would glob only the active spec's
+        ``folder``/``prefix`` and treat a re-foldered or re-prefixed type's corpus as deleted; empty
+        when aligned. With ``known_corpus``, an item missing from ``rebuilt`` whose recorded
+        ``path`` is still a file is refused, and every type absent from it has its bundled location
+        checked on disk. A wholly custom, never-indexed type is skipped.
         """
         errors: list[str] = []
         known_types: set[str] = set()
@@ -1382,15 +1177,10 @@ class MaintenanceMixin(ServiceCore):
         report: bool = True,
     ) -> tuple[int | None, str | None]:
         """One file's third-state handling, shared by every branch of
-        :meth:`_rebuild_index_from_disk` that cannot produce an ``Item`` from *md* (unreadable
-        bytes, unparseable YAML, valid YAML with no ``id``, or a type-invalid field): report
-        *message* under *md*'s name, and carry *md*'s previous entry from ``known_corpus``
-        forward into *db* unchanged when one exists — recovered by the sequence number parsed
-        from the filename stem alone, since the frontmatter is exactly what this file cannot
-        supply. Returns that stem's ``(seq, digit_run)`` so the caller can fold it into its own
-        running counter/padding floor via :func:`fold_stem_into_floor` — this method only
-        touches ``db``/``unreadable``, never the floor, which is a whole-rebuild value no
-        single file owns.
+        :meth:`_rebuild_index_from_disk` that cannot build an ``Item`` from *md*: report *message*
+        under its name and carry its previous entry from ``known_corpus`` into *db* unchanged, found
+        by the sequence number in the filename stem. Returns the stem's ``(seq, digit_run)`` for the
+        caller's floor via :func:`fold_stem_into_floor`, which no single file owns.
         """
         if report:
             line = f"{md.name}: {message}"
@@ -1487,29 +1277,12 @@ class MaintenanceMixin(ServiceCore):
     async def _backfill_roster_body_tags(
         self, roster_roles: list[Item], roster_skills: list[Item]
     ) -> None:
-        """Converge every role's and skill's ``sq:body`` region onto its placement tag, in
-        place — the one piece of :meth:`repair`'s corpus sweep :meth:`sync` needs on the
-        ordinary path (see the call site in :meth:`sync`), without
-        :meth:`repair`'s index rebuild, retired-region strip, or ref-encoding
-        canonicalisation.
-
-        Reuses :meth:`_repair_body_tag` for the classification (which tag, if any, a given
-        item's body converges onto — the same question ``sq repair`` asks, so the two callers
-        can never disagree about what "the tag this item should carry" means) and
-        :func:`_converge_body_tag` for the mutation, directly — not through
-        :func:`_strip_retired_regions`/:func:`_record_pending_rewrite`, which also compose in
-        the retired-region strip and the ref-encoding rewrite that are :meth:`repair`'s job,
-        not this call's. A file this call writes gets **only** its ``sq:body`` region touched;
-        nothing else in it changes.
-
-        No index rebuild: nothing about an item's *indexed* fields (title, status, and so on)
-        changes here, only body content the index has never stored, so there is nothing for a
-        rebuild to reconcile. That is also why this needs no reflog entry of its own — the same
-        posture ``sync``'s other file writes already have.
-
-        Never declines: :func:`_converge_body_tag` is strict unconditionally, so it either
-        converges a genuinely empty region or leaves a non-empty one untouched, silently —
-        this function has no channel to report either outcome on."""
+        """Converge every role's and skill's ``sq:body`` region onto its placement tag in place: the
+        part of :meth:`repair`'s sweep :meth:`sync` needs, without the index rebuild, retired-region
+        strip or ref canonicalisation. It uses :meth:`_repair_body_tag` to classify and the strict
+        :func:`_converge_body_tag` to mutate (a genuinely empty region only), touching only
+        ``sq:body`` and needing no reflog entry since no indexed field changes.
+        """
         for item in (*roster_roles, *roster_skills):
             view_name = self._repair_body_tag(item)
             if view_name is None:
@@ -1527,29 +1300,12 @@ class MaintenanceMixin(ServiceCore):
                 await write_text(md, new_text)
 
     def _repair_body_tag(self, item: Item) -> str | None:
-        """The placement tag name the repair sweep converges/backfills *item*'s ``sq:body``
-        onto, or ``None`` when this sweep leaves the region alone. Naming a tag here is only
-        the classification half — :func:`_converge_body_tag` decides, strictly and
-        unconditionally, how much of that classification it actually acts on: a genuinely
-        empty region only.
-
-        The classification itself is :func:`~squads._views.roster_body_view_name` — the same
-        pure function of a role's/skill's item type and slug that the roster write refusal and
-        the ``sq check`` finding both read (:func:`~squads._views.seeded_view_names`), so this
-        sweep can never disagree with either about which view a
-        document carries. See that function's own docstring for the three shapes it names (a
-        role, a permanently-system skill, a per-item-type ``sq-<type>`` skill) and the
-        declared-view gate every one of them shares — dropping a view via a
-        ``.overrides/workflow.toml`` ``[selected]`` block is ordinary, supported customisation,
-        so a dropped view's region is left alone here (genuinely empty or plain, never
-        dangling), matching the standard "empty — activate/sync" guidance rather than needing a
-        repair of its own.
-
-        A role's region converging is not deletion — see :func:`_strip_retired_regions`, which
-        records what was driven: no read path branches on the region's own bytes, so rewriting
-        it changes nothing any read surface observes beyond what the tag itself resolves
-        to. It is the marker pair every item file carries, and keeping it is the cheaper of two
-        harmless choices."""
+        """The placement tag the repair sweep converges *item*'s ``sq:body`` onto, or ``None`` to
+        leave it alone; :func:`_converge_body_tag` acts only on a genuinely empty region. It is
+        :func:`~squads._views.roster_body_view_name`, which the roster write refusal and ``sq
+        check`` also read (:func:`~squads._views.seeded_view_names`), so they cannot disagree; a
+        view dropped via ``[selected]`` leaves its region alone.
+        """
         slug = item.slug
         if item.type not in (ROSTER_ROLE, ROSTER_SKILL):
             return None
@@ -1563,126 +1319,37 @@ class MaintenanceMixin(ServiceCore):
         known_corpus: SquadsDB | None = None,
         rerun: str = "`sq repair`",
     ) -> tuple[SquadsDB, list[str], list[str], list[str]]:
-        """Scan every item file fresh and commit a rebuilt index — the core of :meth:`repair`,
-        factored out so :meth:`renumber` can reuse it *without* repair's previous-snapshot /
-        missing-file / reflog bookkeeping, which is specific to the ``sq repair`` verb (a
-        renumber shift makes old sequence numbers vanish on purpose; repair's missing-file
-        detector has no way to tell that apart from a genuine deletion, so `renumber` must not
-        route through it — see :meth:`renumber`).
+        """Scan every item file fresh and commit a rebuilt index: the core of :meth:`repair`,
+        factored out so :meth:`renumber` reuses it without repair's missing-file bookkeeping, which
+        would misread a shift as deletions. ``previous_counter``/``previous_padding`` are floors the
+        result never regresses below and ``known_corpus`` is the caller's last-loaded snapshot. It
+        refuses (nothing written) when :meth:`_corpus_alignment_refusals` finds a corpus the active
+        spec cannot see. Returns ``(db, unreadable, canonicalized, stripped)``.
 
-        ``previous_counter``/``previous_padding`` are the floors the rebuilt counter/padding
-        must never regress below: the caller's most recent index read. ``known_corpus`` is
-        the caller's last-loaded index snapshot, when it has one (``repair`` does;
-        ``renumber`` passes ``None``) — see :meth:`_corpus_alignment_refusals`.
+        ``unreadable`` names every file that could not be read, parsed or built into an item, caught
+        per file. Its previous entry is carried forward from ``known_corpus`` by filename-stem
+        sequence number (else it stays unindexed, as guessing an id would report a guess as fact),
+        and the stem folds into the counter/padding floor (:func:`fold_stem_into_floor`) so its
+        number is never reissued. A timestamp the markdown lacks is carried forward, not invented.
 
-        Refuses (``SquadsError``, nothing written) rather than committing the freshly-scanned
-        result when :meth:`_corpus_alignment_refusals` finds a type's pre-existing corpus
-        sitting somewhere the active spec's declared ``folder``/``prefix`` can no longer see: a
-        commit that proceeded anyway would glob only the active location, find nothing, and
-        report those items as deleted when their files are sitting right there — exactly the
-        corpus-alignment refusal the ordinary load path already makes for this same
-        situation, made here too since this path can otherwise walk straight past it. The
-        check runs on the freshly-scanned result (not the spec in the abstract), so it fires
-        only when something a previous index actually knew about truly stopped resolving —
-        never on a merely-reconstructed metadata quirk that doesn't affect where the file is.
-
-        Returns ``(db, unreadable, canonicalized, stripped)`` — ``unreadable`` names
-        every file whose content could not be read or parsed, **or** that parsed but cannot
-        become an item
-        (no ``id``, or a type-invalid field — :meth:`Item.from_frontmatter` is the load boundary
-        for the latter, raising :class:`SquadsError` for both). Each is reported, never silently
-        dropped: caught here per file so one bad file never aborts the rebuild for the rest of
-        the corpus. Its *previous* index entry — recovered from ``known_corpus`` via the
-        sequence number parsed from the filename stem alone, since the frontmatter ``id`` is
-        exactly what may be unreadable or absent — is carried forward into ``db`` unchanged
-        rather than dropped: skipping it would make the item unresolvable and its file an
-        orphan, the exact disappearance this release's durability work closed. A carried entry
-        is exactly what was already indexed — nothing fabricated — so the next repair after the
-        file is fixed picks up the real values. Nothing is carried when there is no previous
-        entry to carry (never indexed, or no previous index at all): the item is left
-        unindexed, and it is reported here as unreadable, full stop — ``check`` does not
-        additionally claim it is on-disk-but-not-indexed, since that would mean guessing the
-        file's id from its filename and reporting the guess as fact.
-        Either way, the filename-derived sequence number/digit-run width is folded into the
-        rebuild's counter/padding floor (:func:`fold_stem_into_floor`) — an unreadable file's
-        own number must never be free for reissue just because its frontmatter couldn't
-        contribute to the ordinary ``max_n``/``max_filename_width`` scan below.
-
-        A timestamp the markdown does not carry is *not* re-read as an invented ``now`` and
-        committed over the entry the index already holds: it is carried forward from
-        ``known_corpus`` (:func:`carry_forward_indexed_timestamps`) — the same carry-the-
-        previous-entry posture above, at field granularity rather than file granularity. The
-        rebuild rebuilds from what the corpus says; it must not manufacture what the corpus
-        omitted, least of all over a value it already had.
-
-        A ``FileNotFoundError`` on a dirent this same call's own glob just saw is a fourth,
-        narrower case: a *broken symlink* is a present-but-unreadable dirent (the read failed
-        on its target, not on its own presence) and gets the third-state treatment above; a
-        dirent that has genuinely vanished between the glob and the read is skipped outright,
-        with nothing reported here — it is not this rebuild's file to report, and the
-        missing-direction reconciliation this same call's caller (:meth:`repair`) already
-        computes from ``known_corpus`` is the honest place for a real deletion to surface.
-
-        **The file, not only the index, is made canonical.** For every item whose raw on-disk
-        ``refs`` encoding differs from what the fold just produced
-        (:func:`_ref_encoding_is_stale`) — a spelled ref that folds to a different literal (a
-        spelled-default edge) — the file's frontmatter is rewritten
-        to the canonical encoding, markdown before the index commit below as always. Nothing new
-        is stored: the fold already produced *item*'s canonical ``refs``; this only writes what
-        the rebuild already holds the data to write. ``canonicalized`` names every item so
-        rewritten; a corpus that needs no correction has this list empty and writes no file at
-        all, and a second rebuild over an already-canonical corpus is byte-identical to the
-        first — the on-disk encoding a comparison like :func:`_ref_encoding_is_stale` reads is
-        exactly what the previous rebuild just wrote.
-
-        **Retired regions are stripped, in the same walk and the same deferred write.** A
-        marker region whose writer has retired and whose replacement is computed on every read
-        can only disagree with the frontmatter that is its sole source, so it is removed
-        wherever it is still stored (:func:`_strip_retired_regions`), and so are the retired
-        keys a role item still mirrors (:func:`_retired_role_keys`) — from the
-        parsed ``Item`` as well as from the file, since the index entry committed below is
-        built from it. ``stripped`` names every item so rewritten. What may be removed is a
-        **frozen list** of named regions and keys, each satisfying three conditions in this
-        same build: no live write path produces it, no read path consumes it as authoritative
-        because its computed replacement has already shipped, and its content is derived
-        rather than authored. A role's stored body converges onto its placement tag on the same
-        terms and in the same write (:meth:`_repair_body_tag`); a general template-owned
-        skill's does not, because being *derived* is not on its own enough — the sweep also has
-        to be able to prove that nothing authored what it is about to overwrite, and only the
-        role case (and, on the same license, the three permanently-system skills — see
-        :meth:`_repair_body_tag`) can. Adding a name is a
-        decision, not a developer's choice, and a name added before its writer retires puts
-        this sweep and that writer into a loop where each undoes the other on alternate
-        commands. ``tests/service/test_repair_strips_only_retired_regions.py`` is the
-        falsifiable guard: it drives a fresh squad through the write path and asserts none of
-        the listed names comes back.
-
-        The same properties as canonicalization hold, for the same reason — a corpus carrying
-        none of them writes no file at all, and a second rebuild over a stripped corpus is
-        byte-identical to the first, since the strip's own output is what the next scan reads.
-        Every transformation composes into **one** queued entry per path
-        (:func:`_record_pending_rewrite`), so none of them can discard another's edit.
-
-        **A body-tag convergence that declines is reported, not fatal.** When
-        :func:`_strip_retired_regions` catches a marker-shaped ``sq:body`` its convergence has no
-        model for, that one file's region is left untouched and its message is collected into
-        ``skipped`` — every other file in the same corpus still converges normally, since the
-        decline is caught per file inside the loop below rather than propagating out of it.
+        The file is made canonical too: a stale ref encoding, a retired region or role mirror key
+        (also dropped from the parsed ``Item``) and a role's body-tag convergence compose into one
+        queued write per path (:func:`_record_pending_rewrite`), written before the index commit;
+        ``canonicalized`` and ``stripped`` name those items. The strip list is frozen: a name needs
+        no live writer, no authoritative reader and derived content, or this sweep and its writer
+        would undo each other.
         """
         db = SquadsDB(counter=0)
         max_n = 0
         max_filename_width = 0
         unreadable: list[str] = []
-        # Every file this rebuild decides to rewrite — one entry per path, composing both
-        # transformations a file can need — collected here and written only after the
-        # corpus-alignment refusal check below passes, so a refusal that aborts the whole
-        # rebuild (nothing committed) never leaves a rewritten file behind with no matching
-        # index commit. See _PendingRewrites.
+        # Every file to rewrite, one entry per path composing both transformations, collected here
+        # and written only after the corpus-alignment refusal check passes, so a refusal never
+        # leaves a rewritten file without an index commit (see _PendingRewrites).
         pending = _PendingRewrites()
-        # Resolved once for the whole rebuild, before the per-file loop and its own
-        # per-file SquadsError handling below — a spec declaring the wrong number of
-        # default ref kinds must fail as one clean refusal naming the spec, never be
-        # caught and mis-reported as N separate "unreadable file" issues.
+        # Resolved once before the per-file loop and its SquadsError handling: a spec declaring the
+        # wrong number of default ref kinds must fail as one refusal naming the spec, not N
+        # "unreadable file" issues.
         default_kind = self.spec.default_ref_kind()
         skills = SkillScan()
         duplicated = await self._duplicated_files()
@@ -1727,11 +1394,9 @@ class MaintenanceMixin(ServiceCore):
             )
             db.add(item)
             max_n = max(max_n, number_for_id(item.id))
-            # Derive the filename digit-run width (PREFIX-<digits>-<slug>.md).
-            # The filename, not the frontmatter id, is the in-corpus record of a repad.
-            # Strip the *known* prefix (from the item just parsed, hyphens and all) rather
-            # than splitting the stem on its first/second hyphen — a hyphenated prefix (e.g.
-            # "RUN-BOOK") would otherwise be mis-split and the digit run missed entirely.
+            # The filename digit-run width (PREFIX-<digits>-<slug>.md) is the in-corpus record of a
+            # repad. Strip the known prefix (from the parsed item) rather than splitting on a
+            # hyphen, which would mis-split a hyphenated prefix like "RUN-BOOK".
             stem = md.stem  # e.g. "RUN-BOOK-000042-fix-login"
             digits_slug = stem.removeprefix(f"{item.prefix}-")  # "000042-fix-login"
             digit_run, _, _slug = digits_slug.partition("-")  # "000042", "fix-login"
@@ -1741,10 +1406,8 @@ class MaintenanceMixin(ServiceCore):
         # Never let the counter regress: keep whichever is higher — the previous high-water mark
         # or the maximum sequence number found on disk.
         db.counter = max(previous_counter, max_n)
-        # Padding: max(stored_floor, corpus_max_filename_width).
-        # The stored value is the floor; the filename scan is the recompute. previous_padding
-        # defaults to DEFAULT_ID_PADDING (6) for pre-existing squads, so a single max() with
-        # the corpus width always yields a correct, never-regressing result.
+        # Padding is max(stored floor, corpus max filename width): the stored value is the floor and
+        # the filename scan the recompute, so the result never regresses.
         db.padding = max(previous_padding, max_filename_width)
 
         refusals = await self._corpus_alignment_refusals(known_corpus, db)
@@ -1775,53 +1438,25 @@ class MaintenanceMixin(ServiceCore):
     async def _repair_held(
         self, *, renumber: bool = False, rerun: str = "`sq repair`"
     ) -> RepairResult:
-        """Rebuild the index from the markdown frontmatter, and sweep the corpus while walking
-        it (:meth:`_rebuild_index_from_disk`).
-
-        **A strip must never run ahead of a surface regeneration that reads what it removes,
-        and must regenerate nothing itself.** That is a constraint on where a stripping step
-        may sit relative to a surface-touching one, not an instruction to order two particular
-        calls — a local phrasing survives only until someone reorders two adjacent lines for
-        tidiness, whereas a property is inherited by a future step without being told.
-
-        On this verb the first half holds **by construction**, which is worth recording rather
-        than re-engineering. ``require_current_schema`` (``_cli/_common.py``) refuses every
-        subcommand but ``migrate`` on a mismatched stamp, so ``sq repair`` can only ever run
-        against a corpus already at the current schema; the single call on a behind-schema
-        corpus is the tail of :meth:`run_pending_migrations`, after every ordered runner has
-        finished — a runner's own surface regeneration included. A regeneration therefore
-        always reads a corpus this sweep has not yet touched.
-
-        What that protects is not hypothetical: a runner's surface step compiles the managed
-        regions and every backend pointer from the roster projection it reads off the corpus,
-        and a strip landing first would regenerate them from what it had just removed —
-        silently, with nothing near the cause failing. The second half of the prohibition (the
-        sweep regenerates nothing itself) is asserted by outcome in
-        ``tests/integration/test_migration_corpus.py``: the compiled regions and pointers are
-        byte-identical across the sweep. An assertion about which call ran first would pass on
-        a sweep that quietly rewrote them.
+        """Rebuild the index from the markdown frontmatter, sweeping the corpus while walking it
+        (:meth:`_rebuild_index_from_disk`). A strip must never run ahead of a surface regeneration
+        that reads what it removes, nor regenerate anything itself. That holds here by construction:
+        ``require_current_schema`` limits ``sq repair`` to a current-schema corpus, and the one
+        behind-schema call is the tail of :meth:`run_pending_migrations`, after every runner.
         """
-        # Snapshot the previous index (if any) before rebuilding, so we can:
-        #  (a) preserve the high-water mark of the counter,
-        #  (b) preserve the padding floor, and
-        #  (c) report items that were indexed but whose files have gone missing.
+        # Snapshot the previous index (if any) before rebuilding, to preserve the counter high-water
+        # mark and padding floor and to report indexed items whose files have gone missing.
         previous_counter = 0
         previous_padding = DEFAULT_ID_PADDING
-        # Keyed by sequence_id (int) so the comparison is width-tolerant: _propagate_padding
-        # widens item.id strings when loading from an already-repadded index, while
-        # from_frontmatter below rebuilds at the default width.  Comparing by the integer
-        # sequence number avoids the cross-width mismatch (mirrors _check_reconciliation).
+        # Keyed by sequence_id (int) so the comparison is width-tolerant: a repadded index widens id
+        # strings while from_frontmatter rebuilds at the default width (as `index_reconciled` does).
         previous_seq_to_id: dict[int, str] = {}
         known_corpus: SquadsDB | None = None
         if self.store.exists():
             try:
-                # validate_vocab=False: repair's whole point is recovering from vocab drift
-                # (e.g. a type/status/badge-code dropped via an override) — the ordinary
-                # fail-closed load() would raise SquadsError for precisely that case, which
-                # is NOT a corrupt index (it parsed fine) and must not be treated as absent:
-                # doing so would lose the counter high-water mark and let a freed sequence
-                # number be reissued. A genuinely unreadable index (missing file, bad JSON,
-                # schema violation) still raises here and falls into the except below.
+                # validate_vocab=False: repair recovers from vocab drift that load() rejects; an
+                # absent-index fallback would lose the counter mark and let a freed number be
+                # reissued. A genuinely unreadable index is caught below and treated as empty.
                 prev = await self.store.load(validate_vocab=False)
                 previous_counter = prev.counter
                 previous_padding = prev.padding
@@ -1921,18 +1556,11 @@ class MaintenanceMixin(ServiceCore):
             return await self._repad_held(new_padding)
 
     async def _repad_held(self, new_padding: int) -> int:
-        """Raise the squad's ID padding to ``new_padding`` and rename every item file.
-
-        One-way, irreversible format bump:
-
-        - Refuses if ``new_padding`` <= the current stored padding (padding never shrinks).
-        - Renames every item file across all type folders to
-          ``PREFIX-<seq zero-padded to new_padding>-<slug>.md``.
-        - File *contents* are left byte-untouched — only filenames change.
-        - Calls :meth:`repair` afterwards to rebuild the index with the new padding stored and
-          all ``path`` fields updated.
-
-        Returns the number of files renamed.
+        """Raise the squad's ID padding to ``new_padding`` and rename every item file to
+        ``PREFIX-<seq zero-padded>-<slug>.md``. It is a one-way bump: it refuses ``new_padding`` not
+        above the stored padding, leaves file contents byte-untouched, and calls :meth:`repair`
+        afterwards to rebuild the index with the new padding and paths. Returns the number of files
+        renamed.
         """
         db = await self.store.load(fresh=True)
         current = db.padding
@@ -1942,22 +1570,16 @@ class MaintenanceMixin(ServiceCore):
                 "padding can only increase (one-way format bump)"
             )
 
-        # Refuse before touching anything if any file's frontmatter cannot be read — unlike
-        # `sq check`/`sq repair`, repad rewrites identity (the filename, then the frontmatter
-        # id it encodes) across the *whole* corpus, and a file whose id cannot be read cannot
-        # be correctly repadded. `_scan_records()` reads every file unguarded for exactly this
-        # reason: any parse failure raises here, before the first rename below, leaving the
-        # tree untouched. (`self.repair()` at the end of this method would otherwise degrade
-        # past the same failure instead of refusing — that leniency is right for `repair` on
-        # its own, but not for a bulk identity rewrite riding on top of it.)
+        # Refuse before touching anything if any frontmatter cannot be read: repad rewrites identity
+        # across the whole corpus, so `_scan_records()` reads every file unguarded and a parse
+        # failure raises before the first rename.
         await self._scan_records()
 
         renamed = 0
         for item_type, md in self._iter_item_files():
             stem = md.stem  # e.g. "RUN-BOOK-XXXXXX-fix-login"
-            # Prefix comes from the active spec for this item's type — not by splitting the
-            # stem on a hyphen, which mis-parses a hyphenated prefix (e.g. "RUN-BOOK") and
-            # corrupts the filename. Strip that known prefix, then the remainder is
+            # The prefix comes from the active spec for this item's type, not a hyphen split, which
+            # would mis-parse a hyphenated prefix like "RUN-BOOK"; the remainder is
             # <digits>[-<slug>].
             prefix = self.spec.items[item_type].prefix
             digits_slug = stem.removeprefix(f"{prefix}-")  # "000042-fix-login"
@@ -2011,16 +1633,9 @@ class MaintenanceMixin(ServiceCore):
             except FileNotFoundError as exc:
                 if not await _aio.path_is_symlink(md):
                     continue  # moved or removed since the listing: the file is no longer here
-                # Same "cannot correctly rewrite an identity it cannot read" refusal as any
-                # other unreadable file below — just a dirent this scan's own glob saw but
-                # whose read then failed (a broken symlink, most plausibly). Converted to a
-                # clean SquadsError here rather than left to propagate raw: repad/renumber
-                # refuse either way, but the caller should never see a bare traceback for it.
-                #
-                # Refusing for both shapes does not mean *diagnosing* both the same way: this
-                # goes through the message every other command uses (see
-                # `missing_dirent_message`), so one dirent cannot be a "broken symlink" to
-                # `check` and a "No such file or directory" to `repad`.
+                # A dirent this scan's glob saw but whose read failed (likely a broken symlink) gets
+                # the same refusal as any unreadable file, as a clean SquadsError, worded by
+                # `missing_dirent_message` so `check` and `repad` diagnose it identically.
                 raise SquadsError(
                     f"{missing_dirent_message(md, is_symlink=await _aio.path_is_symlink(md))}"
                     " — refusing to rewrite ids while a file in the corpus cannot be read"
@@ -2030,11 +1645,9 @@ class MaintenanceMixin(ServiceCore):
                 continue
             seq = seq_from_frontmatter_id(fid)
             if seq is None:
-                # Same "cannot correctly rewrite an identity it cannot read" refusal as the
-                # unreadable-file branch above, for a file whose `id:` itself is corrupt
-                # (`id: 5`, `id: TASK-abc`). Repad/renumber rewrite identity across the whole
-                # corpus, so refusing is right -- but as a clean SquadsError, never the raw
-                # AttributeError/InvalidIdError the parse would otherwise throw.
+                # A file whose `id:` is corrupt (`id: 5`, `id: TASK-abc`) is refused as a clean
+                # SquadsError, never the raw AttributeError/InvalidIdError, since repad/renumber
+                # cannot rewrite an identity they cannot read.
                 raise SquadsError(f"{md} cannot be renumbered: {malformed_id_message(fid)}")
             stem = md.name.removesuffix(".md")
             # Strip the id's own (possibly hyphenated) prefix + digit run rather than
@@ -2050,15 +1663,11 @@ class MaintenanceMixin(ServiceCore):
         records: list[_FileRec],
         padding: int = DEFAULT_ID_PADDING,
     ) -> tuple[dict[str, str], list[tuple[Path, str, str, str]]]:
-        """Assign fresh numbers to ID-number collisions. Returns (id remap, files to rename).
-
-        ``padding`` is the squad's current (filename) padding (from ``db.padding``); the
-        **rename** target is minted at this width so renumber on a width-7 squad does not
-        produce width-6 filenames. The **remap** target — fed to ``rewrite_ids`` to rewrite
-        frontmatter ``id:``/refs/prose everywhere — is minted unpadded instead
-        (``DISPLAY_ID_PADDING``): those two must diverge exactly like the create/rename/retype
-        seams, or the textual substitution would stamp a padded string into content that is
-        supposed to read unpadded.
+        """Assign fresh numbers to ID-number collisions. Returns (id remap, files to rename). The
+        rename target is minted at the squad's filename ``padding`` (``db.padding``), but the remap
+        target fed to ``rewrite_ids`` is unpadded (``DISPLAY_ID_PADDING``), as in the
+        create/rename/retype seams, or the substitution would stamp a padded string into content
+        that reads unpadded.
         """
         by_number: dict[int, list[_FileRec]] = {}
         for rec in records:
@@ -2085,27 +1694,11 @@ class MaintenanceMixin(ServiceCore):
         remap: dict[str, str],
         renames: list[tuple[Path, str, str, str]],
     ) -> None:
-        """Shared renumber apply-path: rewrite refs -> rename -> resync.
-
-        Both ``repair --renumber`` (post-merge collision fixer, via :meth:`_renumber`) and
-        ``sq renumber`` (pre-merge block-shift, via :meth:`renumber`) drive this identical
-        sequence so the machinery does not fork:
-
-        1. ``rewrite_ids`` over every file in ``paths`` — whole-word substitution of each old
-           id in ``remap`` to its new **unpadded** display id (content, not filenames)
-           across frontmatter ``id:``/refs, body prose, and inline mentions.
-        2. Rename the files whose own id changed to the **padded** filename stem in
-           ``renames`` (already minted by the caller's planner at the squad's filename
-           padding — deliberately not the unpadded id written into content above).
-        3. Resync the renamed file's stored ``sequence_id`` frontmatter field to match.
-
-        Counter-neutral by design: this executor never touches ``SquadsDB.counter``. The
-        accepted pre-merge block-shift design's shared-apply-path description lists "counter
-        bump" alongside this sequence but then assigns the bump to ``sq renumber``
-        specifically — the ratified reading (tech-lead) is that the executor stays
-        counter-neutral and each caller reconciles the counter its own way (``repair``'s
-        full-index rebuild vs. ``sq renumber``'s explicit bump-to-new-max). A no-op when
-        ``remap`` is empty (nothing to shift/reassign).
+        """Shared renumber apply path, driven by ``repair --renumber`` (:meth:`_renumber`) and ``sq
+        renumber`` (:meth:`renumber`): ``rewrite_ids`` substitutes each old id in ``remap`` with its
+        unpadded display id across *paths*, the files in ``renames`` get the padded filename stem,
+        and each renamed file's ``sequence_id`` is resynced. It never touches ``SquadsDB.counter``,
+        each caller reconciling it its own way, and is a no-op for an empty ``remap``.
         """
         if not remap:
             return
@@ -2155,36 +1748,12 @@ class MaintenanceMixin(ServiceCore):
         by: int | None,
         padding: int,
     ) -> tuple[dict[str, str], list[tuple[Path, str, str, str]], str | None]:
-        """Plan a disjoint block-shift of every local item numbered ``>= from_seq``:
-        operator-supplied integers in, a ``{old -> new}`` remap + padded renames out. sq stays
-        git-agnostic here — no subprocess, no git, no merge-base; ``counter``/``onto``/
-        ``by`` cross in as plain integers the caller already resolved.
-
-        Exactly one of ``onto``/``by`` must be supplied:
-
-        - ``onto=M`` (the other branch's counter): the minimal safe offset is auto-computed —
-          ``delta = max(M, counter) + 1 - from_seq`` — landing the shifted block strictly above
-          both this branch's own maximum (``counter``) and the other branch's counter. Always
-          computable, always safe; this path never emits an unsafe offset or a warning.
-        - ``by=n`` (explicit escape-hatch offset): validated as ``from_seq + n > counter``. An
-          unsafe value **refuses** with :class:`SquadsError` — no records/paths are touched,
-          the minimum safe offset is reported, and the message notes that without ``onto`` sq
-          cannot certify the shift also clears the *other* branch's counter (the operator's
-          guarantee to make on this path). Never silently auto-corrected. A *safe* ``by`` still
-          returns a non-``None`` warning string for the same reason — the missing-``onto``
-          certification gap applies whether or not the value happened to be safe.
-
-        Because the new range sits strictly above the old local range, no new id string in the
-        remap ever equals an old one, so the single-pass whole-word ``rewrite_ids`` substitution
-        is order-independent — no high-to-low ordering machinery is needed here, unlike an
-        in-place/overlapping shift would require.
-
-        Returns ``(remap, renames, warning)``. ``remap``/``renames`` are the same shape
-        :meth:`_renumber_plan` produces for the collision path — empty when no local item has
-        ``sequence_id >= from_seq``. ``remap`` targets are unpadded display ids (content);
-        ``renames`` targets are minted at filename ``padding`` (on-disk), preserving relative
-        order and gaps among the shifted items. ``warning`` is non-``None`` exactly on the
-        ``by`` path.
+        """Plan a disjoint block-shift of every item numbered ``>= from_seq``, returning ``(remap,
+        renames, warning)``. Exactly one of ``onto``/``by`` is required: ``onto=M`` computes the
+        minimal safe ``delta = max(M, counter) + 1 - from_seq``, while ``by=n`` refuses (naming the
+        minimum) unless ``from_seq + n > counter`` and always warns, as sq cannot certify the other
+        branch's counter. The new range sits strictly above the old, so no new id equals an old one
+        and the single-pass ``rewrite_ids`` is order-independent.
         """
         if (onto is None) == (by is None):
             raise SquadsError("sq renumber: exactly one of --onto or --by is required")
@@ -2229,42 +1798,12 @@ class MaintenanceMixin(ServiceCore):
     async def _renumber_held(
         self, *, from_seq: int, onto: int | None = None, by: int | None = None
     ) -> RenumberResult:
-        """Pre-merge block-shift renumber: the new top-level ``sq renumber`` verb.
-
-        Shifts every local item with ``sequence_id >= from_seq`` into a disjoint range,
-        preserving referential intent — every reference is rewritten while it is still
-        unambiguous (contrast the post-merge ``repair(renumber=True)`` fallback, whose remap
-        is keyed by the collided id string and so cannot tell which reference meant which
-        item). This is a distinct verb from ``repair --renumber``: an intentional,
-        operator-parameterized identity transform with a required boundary, not an idempotent
-        argument-free reconstruction.
-
-        Validation happens strictly before any file is touched: :meth:`_offset_plan` raises
-        :class:`SquadsError` for an unsafe ``--by`` (or a bad ``onto``/``by`` combination)
-        before the executor or the index rebuild runs, so the tree is left completely
-        untouched on the refuse path.
-
-        The shift reuses the shared apply-path executor (:meth:`_apply_remap`) and then
-        commits via :meth:`_rebuild_index_from_disk` — the same disk-rescan :meth:`repair`
-        uses internally, so the counter bump to the true post-shift maximum falls out for
-        free — but **not** ``repair`` itself: `repair`'s missing-file detector would
-        otherwise see every shifted item's old sequence number vanish and misreport it as a
-        deletion, when it in fact just moved.
-
-        Exactly one reflog line is appended, strictly after the index commit above, carrying
-        a compact summary of the shift (the boundary, whichever of ``onto``/``by`` the
-        operator actually supplied, the full remap, and the items the shared rebuild's corpus
-        sweep rewrote) — never a replayable diff. That last part is reported for the same
-        reason ``repair`` reports it: the rebuild this verb borrows also strips retired
-        regions, so a shift that said nothing about it would rewrite content under a verb
-        whose advertised job is identity. It reaches the operator's console through
-        :meth:`~squads._services._results.RenumberResult.strip_notice`, in the one sentence
-        every sweep-reaching command prints. Every
-        prior reflog line is left completely untouched: this is a pure append, no in-place
-        rewrite of any historical ``target``/``delta``. A forensic reader walking the log
-        forward from an old, now-superseded id finds this one line and can follow it to the
-        item's current id; the old lines stay a truthful record of what was true when they
-        were written. Nothing is appended on the no-op path (nothing shifted).
+        """Pre-merge block-shift renumber (``sq renumber``): shift every item with ``sequence_id >=
+        from_seq`` into a disjoint range, rewriting each reference while it is unambiguous.
+        :meth:`_offset_plan` validates before any file is touched, and the commit goes through
+        :meth:`_rebuild_index_from_disk`, not ``repair``, whose missing-file detector would
+        misreport the moves as deletions. One reflog line is appended after the commit, and none
+        when nothing shifted.
         """
         if self.store.exists():
             idx = await self.store.load(fresh=True)
@@ -2325,18 +1864,11 @@ class MaintenanceMixin(ServiceCore):
         since: str | None = None,
         tail: int | None = None,
     ) -> list[ReflogEntry]:
-        """Read and filter the reflog.
-
-        - A missing or empty reflog returns an empty list (back-compat).
-        - A trailing partial line is skipped silently; interior malformed lines are warn-skipped.
-        - No lock is acquired — reads are lock-free, like ``store.load()``.
-
-        Filters are applied in order (AND semantics):
-        - ``item``: match ``target`` exactly.
-        - ``actor_filter``: match ``actor`` exactly.
-        - ``op_filter``: match ``op`` exactly.
-        - ``since``: only entries whose ``ts >= since`` (lexicographic ISO-8601 comparison).
-        - ``tail``: keep only the last N entries (applied after filtering).
+        """Read and filter the reflog: a missing or empty reflog returns an empty list, a trailing
+        partial line is skipped silently and an interior malformed line is warn-skipped, and no lock
+        is taken. Filters are ANDed: ``item`` matches ``target``, ``actor_filter`` ``actor`` and
+        ``op_filter`` ``op`` exactly; ``since`` keeps ``ts >= since`` (ISO-8601 string order);
+        ``tail`` keeps the last N after filtering.
         """
         from squads._index._reflog import read_lines
 

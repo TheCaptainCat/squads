@@ -120,3 +120,32 @@ def test_epic_and_feature_still_fail_on_their_own_pre_existing_parents_coupling(
     )
     with pytest.raises(SquadsError, match="parent type 'epic' not declared"):
         load_workflow_spec(squad_dir=tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("entry", "stripped"),
+    [
+        ("ref_rule_target_present:contract", True),
+        ("ref_rule_target_present:contract@warn", True),
+        ("ref_rule_target_present:contract@error", True),
+        ("ref_rule_target_present:milestone", False),
+        ("ref_rule_target_present:milestone@warn", False),
+        ("ref_rule_target_present:milestone@error", False),
+        ("body_written@warn", False),
+    ],
+)
+def test_a_validator_entry_is_stripped_exactly_when_its_target_type_is_dropped(
+    tmp_path: Path, entry: str, stripped: bool
+) -> None:
+    """Every entry shape (plain, ``@level``) is read through the one grammar parser."""
+    _write_override(
+        tmp_path,
+        _WITHOUT_CONTRACT
+        + '\n[items.feature]\nref_rules = [{ kind = "implements", target = "milestone" }]\n'
+        + f'validators = ["{entry}"]\n',
+    )
+
+    spec = load_workflow_spec(squad_dir=tmp_path)
+
+    assert (entry in spec.items["feature"].validators) is not stripped
+    assert [f for f in lint_workflow_spec(tmp_path) if f[0] == "error"] == []

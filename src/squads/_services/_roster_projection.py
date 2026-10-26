@@ -30,28 +30,11 @@ from squads._workflow._models import WorkflowSpec
 
 
 def is_live_roster_entry(item: Item, spec: WorkflowSpec) -> bool:
-    """Whether *item* (a ``role`` or ``skill`` roster item) currently should have a
-    materialised per-entry backend artifact — the same two-clause predicate
-    ``ServiceCore._project_roster_item`` (:mod:`squads._services._base`) already applies
-    while materialising/withdrawing, extracted here so that caller and every other reader of
-    "is this roster entry live" — ``sq check``'s ``backend_reconciled`` rule and ``sync``'s
-    own before/after regeneration report (both in :mod:`squads._services`) — derive it from
-    this one function instead of growing a second, separately-maintained notion of the same
-    fact. ``False`` for any other item type (an operator, or an ordinary work item, has no
-    per-entry backend artifact at all).
-
-    Two clauses, both required for a ``SKILL`` item, only the first for a ``ROLE`` item:
-
-    - the item's own status carries the type's ``live`` flag
-      (:meth:`WorkflowSpec.live_statuses`); and
-    - for a ``SKILL`` item only, its slug still names a type the active spec declares
-      (:func:`orphaned_skill_item_type` returns ``None``) — a dropped or renamed built-in's
-      stale ``sq-<type>`` skill is withdrawn right alongside a manually-retired one, with no
-      separate mechanism. Miss this clause and a squad whose workflow override dropped a type
-      reports a permanent false positive no ``sq sync`` can clear.
-
-    Pure: reads only *item* and *spec*, no index, no filesystem — safe for a backend-context
-    caller that must not load the index itself.
+    """Whether *item* (a ``role`` or ``skill``) should have a materialised backend artifact: the one
+    predicate behind ``project_item``, ``sq check``'s ``backend_reconciled`` and ``sync``'s
+    report. The status must carry the type's ``live`` flag and, for a ``SKILL``, the slug must still
+    name a type the active spec declares, so a dropped type's skill is withdrawn. ``False`` for any
+    other type. Pure: reads only *item* and *spec*.
     """
     if item.type not in (ROSTER_ROLE, ROSTER_SKILL):
         return False
@@ -99,21 +82,10 @@ class RosterProjection:
         return None
 
     def author_of(self, db: SquadsDB, slug: str) -> str:
-        """Display (full) name for a participant slug, resolved against an already-loaded
-        *db* — the pure core :meth:`author` wraps with its own fresh load.
-
-        Reading from a caller-supplied ``db`` (rather than re-loading from disk) matters
-        inside the bulk importer's one open transaction: an earlier event in the same run may
-        have just created the role/operator this slug names, and that item is only visible in
-        the in-memory ``db``, not yet on disk.
-
-        A role participant's name comes from ``item.title`` — the uniform record's own copy of
-        the resolved full name — never a catalog resolution: this
-        is a display name on a comment attribution, and resolving through the catalog here
-        would be both wrong (an operator can rename a role's *display*, via ``sq role activate
-        --name``, without that changing which catalog entry authored a past comment) and
-        needlessly expensive for a lookup this cheap. An operator participant's name is its
-        ``title``.
+        """Display (full) name for a participant slug against an already-loaded *db*, the pure core
+        of :meth:`author`; a fresh load would miss a role or operator created earlier in the same
+        bulk import. A role's name is ``item.title`` rather than a catalog resolution, since an
+        operator can rename a role's display without changing which entry authored a past comment.
         """
         if slug == ANONYMOUS_SLUG:
             return ANONYMOUS_NAME
@@ -155,29 +127,17 @@ class RosterProjection:
         )
 
     async def roster(self) -> list[RoleView]:
-        """The roles this squad currently **offers** — ``item.status in
-        spec.live_statuses("role")``. This is what ``write_managed`` compiles the host's
-        config from and what skill-preload resolution (:meth:`role_skills_map`) iterates;
-        a retired role has no business in either. Use :meth:`roster_all` for a caller that
-        needs every entry regardless of status (orphan detection, authorship display,
-        registration checks, the roster's own views).
-
-        Loads its own index; a caller that already has one open (a service method mid-
-        transaction, or the view-rendering path that must not pay a second load for what
-        :meth:`~squads._services._items.ItemsMixin.read_body`'s own docstring already prices
-        as "under the CLI a second index load is free... but ``sq ui`` opts out of that
-        scope") should call :meth:`roster_from_db` against the ``db`` it already holds
-        instead."""
+        """The roles this squad currently offers (status in ``spec.live_statuses("role")``): what
+        ``write_managed`` compiles config from and :meth:`role_skills_map` iterates. Use
+        :meth:`roster_all` for every entry regardless of status. It loads its own index; a caller
+        holding a ``db`` should use :meth:`roster_from_db`.
+        """
         return self.roster_from_db(await self.store.load())
 
     def roster_from_db(self, db: SquadsDB) -> list[RoleView]:
-        """:meth:`roster`, computed against an already-loaded *db* rather than loading one —
-        the seam a caller mid-transaction, or one that has already paid for a load for an
-        unrelated reason (:meth:`~squads._services._views.ViewsMixin.render_view` resolving a
-        ``playbook`` source, which needs both the index and the roster), reuses instead of
-        loading a second time. Filters and sorts exactly as :meth:`roster` does (live status,
-        ascending sequence number) — this is the one implementation, not a parallel one that
-        could drift from it."""
+        """:meth:`roster` computed against an already-loaded *db* instead of loading one: the one
+        implementation, for a caller mid-transaction or that already paid for a load.
+        """
         live = self.spec.live_statuses(ROSTER_ROLE)
         matching = [it for it in db.items.values() if it.type == ROSTER_ROLE and it.status in live]
         return [self.role_view(it) for it in sorted(matching, key=lambda i: number_for_id(i.id))]
@@ -215,15 +175,10 @@ class RosterProjection:
         ]
 
     async def skill_paths(self) -> dict[str, Path]:
-        """Build a slug→absolute-body-path map for **live** SKILL items in the index.
-
-        Backends receive this via BackendContext so they never need to load the
-        index themselves (layering invariant: _backends must not import _index). Live-only
-        because this only ever locates a managed skill's own file for ``write_managed`` (which
-        gives a missing one its frontmatter-safe empty ``sq:body`` region and leaves an existing
-        one alone) — a withdrawn skill has no generated entry to locate a file for.
-        ``candidate_orphans`` needs the full skill-slug vocabulary instead and builds it
-        directly rather than reusing this map (see that method).
+        """Slug to absolute body path for live SKILL items, passed to backends through
+        BackendContext so they never load the index. Live-only because it only locates files for
+        ``write_managed``; ``candidate_orphans`` needs the full slug vocabulary and builds it
+        itself.
         """
         skill_items = await self._items_of(ROSTER_SKILL)
         live = self.spec.live_statuses(ROSTER_SKILL)
@@ -240,15 +195,10 @@ class RosterProjection:
         }
 
     def resolve_role_skills(self, slug: str, role: Item | None, db: SquadsDB) -> list[str]:
-        """Pure (no I/O) core of the resolver: *db* and *role* are already loaded by the caller.
-
-        Starts from ``role_guidance.skills_for_role(slug)`` (index-blind, always-on skills +
-        the role's item-type skills), then unions in every custom skill carrying a forward
-        edge to this role in the declared ``preload`` semantic (:meth:`WorkflowSpec
-        .preload_ref_kind`) — found by inverting refs (``SquadsDB.backrefs``, kind-agnostic,
-        so filtered here to that one declared kind) and mapping to slugs. Deduped, system-first
-        then scoped skills in lexical order, so the result is stable and — with no preload
-        edges anywhere — byte-identical to the pure function's own output.
+        """Pure core of the resolver: *db* and *role* are already loaded. It starts from
+        ``role_guidance.skills_for_role(slug)`` and adds every custom skill with a forward edge to
+        this role in the declared ``preload`` kind (found by inverting refs). The result is deduped,
+        system skills first then scoped ones in lexical order.
         """
         resolved = (
             slug_only_role(slug)
@@ -274,14 +224,9 @@ class RosterProjection:
         return [*system, *sorted(s for s in scoped if s not in seen)]
 
     async def resolved_skills_for_role(self, slug: str) -> list[str]:
-        """A **live** role's full preload-skill set — standalone entry point (e.g. the
-        link/unlink partial-sync hook), one index load. See :meth:`resolve_role_skills` for
-        the algorithm; bulk callers over every role should use :meth:`role_skills_map`
-        instead, which loads the index once for the whole roster rather than once per role.
-
-        Live-only: a role that isn't on offer has no generated entry to preload skills
-        into, so a slug naming a retired role resolves as if the role were absent — the pure
-        system-membership fallback, never its scoped skills.
+        """A live role's full preload-skill set, one index load (see :meth:`resolve_role_skills`);
+        bulk callers use :meth:`role_skills_map`. A retired role resolves as if absent, with only
+        the system-membership fallback.
         """
         db = await self.store.load()
         live = self.spec.live_statuses(ROSTER_ROLE)
@@ -296,12 +241,8 @@ class RosterProjection:
         return self.resolve_role_skills(slug, role, db)
 
     async def role_skills_map(self) -> dict[str, list[str]]:
-        """Slug → resolved preload-skill list for every **live** role — the
-        ``BackendContext.role_skills`` field.  Companion to :meth:`skill_paths`: loads the
-        index ONCE and resolves every live role's list from that single snapshot (mirrors
-        ``skill_paths``'s single-load shape), rather than re-parsing the index per role via
-        :meth:`resolved_skills_for_role`. Live-only for the same reason as that method: a
-        retired role's entry is never written, so its preload list is never consumed.
+        """Slug to resolved preload-skill list for every live role (``BackendContext.role_skills``),
+        from one index load rather than one per role; a retired role's list is never consumed.
         """
         db = await self.store.load()
         live = self.spec.live_statuses(ROSTER_ROLE)
@@ -338,24 +279,11 @@ class RosterProjection:
         return warnings
 
     async def candidate_orphans(self) -> list[str]:
-        """WARN-only candidate-orphan pointer/skill files across every active backend —
-        present on disk but managed by none of them. Never deletes anything; the caller
-        only reports these for the adopter to reconcile by hand.
-
-        Feeds backends the **full** roster vocabulary (:meth:`roster_all`) and the full
-        known skill-slug set (every SKILL item regardless of status, not just
-        :meth:`skill_paths`'s live-only map) — an orphan means "a file this squad never
-        managed", and a withdrawn entry's leftover file is this squad's own convergence
-        debt, never a foreign file. Feeding the live-only projection here would relabel
-        that debt as a stranger's file, loudest on exactly the squads that have retired
-        an entry.
-
-        The known-slug floor is :func:`active_skill_slugs` (the active spec's *current*
-        vocabulary), not the allocation-order union
-        (``bundled_skill_slugs() | custom_skill_slugs(spec)``) those two seeding helpers use —
-        that union always covers every historically-bundled ``sq-<type>`` slug, so it would
-        keep exempting a dropped/renamed type's stale skill from ever being flagged since a
-        workflow override can shadow a built-in type instead of only adding to it.
+        """WARN-only candidate-orphan pointer and skill files across every active backend: present
+        on disk but managed by none, never deleted. Backends get the full roster
+        (:meth:`roster_all`) and every SKILL slug regardless of status, since a withdrawn entry's
+        leftover file is this squad's own debt. The known-slug floor is :func:`active_skill_slugs`,
+        not the allocation-order union, which would exempt a dropped type's stale skill.
         """
         all_skills = await self._items_of(ROSTER_SKILL)
         skill_slugs = {it.slug for it in all_skills} | active_skill_slugs(self.spec)
@@ -372,23 +300,11 @@ class RosterProjection:
         ]
 
     async def resync_role_skills(self, slug: str) -> None:
-        """Partial-sync hook: recompute and rewrite ONE role's backend pointer.
-
-        The supported incremental path for the ``sq skill link-role``/``unlink-role`` verbs —
-        mirrors the per-role pointer step a full :meth:`sync` runs, scoped to a single role;
-        every other role's pointer is left byte-untouched. A full ``sq sync`` remains the
-        authoritative recomputation for the whole roster — this is an optimization on top of
-        it, never the only path.
-
-        The resolved-skills list itself is never persisted anywhere: it is a computed
-        projection, recovered on demand from the index the caller already loaded
-        (:meth:`resolved_skills_for_role`), not a cache this hook refreshes. What this
-        recomputes and writes is the *backend pointer* — the one materialised artifact that
-        still carries the list, because a non-human agent host reads it as a file rather than
-        running a command.
-
-        The backend pointer is only regenerated when the role is **live** — scoping a
-        skill to a retired role must not resurrect its withdrawn projection.
+        """Recompute and rewrite one role's backend pointer, the incremental path for ``sq skill
+        link-role``/``unlink-role``; other pointers are untouched and a full ``sq sync`` stays
+        authoritative. The resolved-skills list is computed on demand and only the pointer carries
+        it, since a non-human host reads a file. Only a live role is regenerated, so scoping a skill
+        to a retired role does not resurrect it.
         """
         role = await self.roster_item(ROSTER_ROLE, slug)
         if role is None:
@@ -407,44 +323,12 @@ class RosterProjection:
                 await backend.generate_role_entry(role_ctx, role, role_def)
 
     async def project_item(self, item: Item, ctx: BackendContext) -> list[str]:
-        """Materialise or withdraw *item*'s own per-entry backend artifact: an entry is
-        materialised iff its status carries the ``live`` flag; every other status is
-        withdrawn. The single place the materialise-or-withdraw predicate and the backend
-        calls it drives are expressed — shared by the single-item transition path
-        (:meth:`project_transition`) and ``sync``'s roster sweep
-        (`MaintenanceMixin.sync`), so the two cannot disagree on either the
-        predicate or the context they hand the backend.
-
-        The materialise-or-withdraw predicate itself is
-        :func:`is_live_roster_entry` — shared verbatim with ``sq
-        check``'s ``backend_reconciled`` rule and ``sync``'s own regeneration report
-        (both in :mod:`squads._services`), so none of the three can drift onto a different
-        notion of "live" than the others. For a ``SKILL`` item its second clause requires the
-        slug to still name a type the active spec declares: a dropped or renamed built-in's
-        stale ``sq-<type>`` skill is withdrawn right alongside a manually-retired one, with no
-        separate mechanism — and re-materialises on its own the moment the type comes back,
-        since this is a pure per-call derivation, never a stored flag. This is what keeps a
-        drop's generated-skill residue from outliving the type it described.
-
-        A no-op for an operator item (no per-entry file — only a row in a compiled region);
-        the caller's own managed-region recompile is what represents it. *ctx* must already
-        carry the resolved preload map (:meth:`role_skills_map`) for a role item — this
-        method never resolves it itself, so a caller processing many items resolves the map
-        once and reuses this same *ctx* for all of them rather than once per item.
-
-        Fans out over every active backend (:meth:`_backends`, already empty-safe: with
-        ``active_backends = []`` there is nothing to project). Materialise calls
-        ``generate_role_entry``/``generate_skill_entry``; withdraw calls the existing
-        ``remove_artifacts`` (missing-tolerant and idempotent by its own contract, so
-        withdrawing against a never-scaffolded backend is a clean no-op).
-
-        Returns the WARN-only notices the per-entry writes surfaced (``Artifact.warning`` —
-        e.g. a declared model the host's own frontmatter cannot express, dropped from the
-        rendered pointer), for the caller to report alongside its own. Empty in the normal
-        case. Never gates anything: this is the same "the write went through, but you should
-        know what it did" channel :meth:`refresh_managed` already bubbles up for the compiled
-        regions, extended to the per-entry files — without it, the only record of the drop is
-        the absence of a line in a generated file.
+        """Materialise or withdraw *item*'s per-entry backend artifact: materialised iff
+        :func:`is_live_roster_entry`, withdrawn otherwise (a withdrawn skill re-materialises when
+        its type returns). The one place the predicate and backend calls live, shared by
+        :meth:`project_transition` and ``MaintenanceMixin.sync``; an operator is a no-op, and *ctx*
+        must carry the preload map (:meth:`role_skills_map`) for a role. It returns the WARN-only
+        notices from the writes (``Artifact.warning``), which never gate.
         """
         if item.type not in (ROSTER_ROLE, ROSTER_SKILL):
             return []
@@ -469,29 +353,11 @@ class RosterProjection:
         return warnings
 
     async def project_transition(self, item: Item) -> list[str]:
-        """Materialise or withdraw *item*'s backend projection after a single roster item's
-        status transition commits — the projection write happens outside the transaction,
-        same ordering the roster create verbs already use, since a generated file is
-        regenerable cache rather than a markdown item.
-
-        Resolves the whole roster's preload map in one index read
-        (:meth:`role_skills_map`) — even though only one entry is transitioning, the map
-        is a single-load computation over every live role, never a per-role read — and hands
-        it to :meth:`project_item` so a role's ``scopes``-derived skills survive a
-        retire/reactivate round trip exactly as a first creation would.
-
-        Every transition, in either direction, ends by recompiling the managed regions
-        (:meth:`refresh_managed`): withdrawal changes generated *prose* beyond the roster
-        table (the default-role line, the developer-gated per-item-type skill text), so the
-        compiled regions must be rewritten every time, not only the entry's own file. This
-        also covers an operator transition, which has no per-entry file at all and so skips
-        straight to this region refresh.
-
-        Returns the WARN-only notices both halves surfaced — the entry's own
-        (:meth:`project_item`) followed by the region recompile's
-        (:meth:`refresh_managed`) — so a caller that has somewhere to print them can, and one
-        that has not is unchanged. The full ``sq sync`` sweep is the surface that always
-        reports; a single transition is the incremental path onto the same files.
+        """Materialise or withdraw *item*'s backend projection after a roster status transition
+        commits, outside the transaction since a generated file is regenerable. It resolves the
+        preload map in one read (:meth:`role_skills_map`) so a role's ``scopes``-derived skills
+        survive a retire/reactivate round trip, and always recompiles the managed regions
+        (:meth:`refresh_managed`), as withdrawal changes prose beyond the roster table.
         """
         role_skills = await self.role_skills_map()
         ctx = BackendContext(

@@ -1,12 +1,9 @@
 """Helpers for emitting valid Claude Code config."""
 
-#: The model names Claude Code's own agent frontmatter accepts. A backend-local set, not a
-#: shared one: it describes what *this host tool* can express, so a second backend is free to
-#: know a different vocabulary. ``_roles._loader.VALID_MODELS`` (the catalog/override
-#: whitelist) happens to carry the same four names today and is a separate question — what
-#: squads will *store*, versus what this host can *render*. Keeping them separate is why
-#: :func:`model_drop_warning` exists: whenever the two disagree, the value survives storage
-#: and then silently fails to render, and that gap is reported rather than validated twice.
+#: The model names Claude Code's agent frontmatter accepts, a backend-local set: it is what this
+#: host can render, whereas ``_roles._loader.VALID_MODELS`` is what squads will store. Where the
+#: two disagree a value survives storage and fails to render, which :func:`model_drop_warning`
+#: reports rather than validating twice.
 _VALID_MODELS = {"sonnet", "opus", "haiku", "inherit"}
 
 
@@ -22,19 +19,16 @@ def normalize_model(model: str | None) -> str | None:
 
 
 def model_drop_warning(slug: str, model: str | None) -> str | None:
-    """The WARN-only report for a role whose declared *model* this backend cannot express —
-    ``None`` (the overwhelmingly common case) when there is nothing to report.
+    """The WARN-only report for a role whose declared *model* this backend cannot express.
 
-    A role's ``model`` reaches here from the role item's own ``model`` attribute, which several
-    paths can fill: a project role override (refused at load when it names a model outside the
-    catalog whitelist), ``sq dev add --model`` (free-form), an imported or hand-migrated
-    corpus. Whatever the path, the failure mode is identical and invisible: the value is
-    durable in frontmatter, :func:`normalize_model` maps it to ``None``, the pointer template
-    omits ``model:`` entirely, and the agent runs on the session default while the adopter
-    reads their own declaration back from the item and believes otherwise.
-
-    This is the write-time backstop for exactly that gap, not a second validator: it reports
-    what this backend just failed to render, and refuses nothing.
+    ``None`` (the common case) when there is nothing to report. A role's ``model`` comes from its
+    item attribute, which several paths fill: a project role override (refused at load outside
+    the catalog whitelist), ``sq dev add --model`` (free-form), an imported or hand-migrated
+    corpus. Whatever the path, the failure is invisible: the value stays in frontmatter,
+    :func:`normalize_model` maps it to ``None``, the template omits ``model:``, and the agent
+    runs on the session default while the adopter believes otherwise. This is the write-time
+    backstop for that gap, not a second validator: it reports what this backend failed to render
+    and refuses nothing.
     """
     if model is None or model in _VALID_MODELS:
         return None

@@ -96,12 +96,9 @@ role_app = typer.Typer(
 def _catalog_squad_dir() -> Path | None:
     """The active squad directory for ``sq role catalog``, or ``None`` outside a squad.
 
-    This command has never required an initialized squad — the bundled catalog alone was
-    always a valid answer to "what could I activate". Outside a squad there is no
-    ``.overrides/roles.toml`` to read, so the bundled catalog stays the honest answer; inside
-    one, resolving it lets the listing merge in a project's own catalog-document declarations.
-    Mirrors ``_cli._common.working_language_notice``'s own not-a-squad handling (resolve, treat
-    ``SquadsError`` as "no squad" rather than a failure).
+    The command needs no initialized squad: outside one the bundled catalog is the answer, and
+    inside one the squad directory lets the listing merge the project's own catalog declarations.
+    A ``SquadsError`` from the resolve means "no squad", as in ``working_language_notice``.
     """
     ctx = get_context()
     try:
@@ -454,10 +451,9 @@ def _require_id(ctx: typer.Context) -> str:
 
 
 def _role_empty_body_hint(hint_state: views.EmptyBodyHintState, slug: str) -> str:
-    """The ``sq role <slug> show`` empty-body hint for *hint_state*. ``body`` is refused while
-    the role's view is declared (``--force`` does not lift it), so the default "set it with
-    `body`" hint is replaced by the remedy the state calls for; ``sq sync`` is named only where
-    it converges an empty body onto its tag. *slug* fills in the real command."""
+    """The ``sq role <slug> show`` empty-body hint for *hint_state*. The remedy follows the
+    view's state; ``sq sync`` is named only where it converges an empty body onto its tag.
+    *slug* fills in the real command."""
     name = ROLE_DEFINITION_VIEW_NAME
     if hint_state == "disabled":
         return f"(disabled — `sq role {slug} view add {name}` re-enables it)"
@@ -553,10 +549,9 @@ async def show_role(
     ]
     console.print(Panel("\n".join(rows), expand=False))
 
-    # The definition — styled markdown on a TTY, plain with --raw or when piped — read the
-    # same way any other item's body is (`read_body`, tag-expanded), not rendered from `r`
-    # directly: the item's own `sq:body` carries the `sq:view:role_definition` tag seeded at
-    # activation, and reading it resolves and renders fresh on every call.
+    # The definition is read like any item body (`read_body`, tag-expanded), not rendered
+    # from `r`: the item's `sq:body` carries the `sq:view:role_definition` tag seeded at
+    # activation, which renders fresh on every read.
     if it is not None:
         if not base_resolves:
             console.print()
@@ -719,16 +714,9 @@ register_status_verb(_addr, _require_id)
 
 # --------------------------------------------------------------------------- view add/disable
 
-# The ``sq role <addr> view add|disable <name>`` group: place, re-enable or disable an unpaired
-# ``sq:view:<name>`` tag in the role's ``sq:body`` region.
-# Mirrors ``_cli._items._cmd_view``'s shape (the generic per-type group's own view verb) over
-# ``ServiceCore.add_view``/``disable_view`` — the same item-type-agnostic mutation, addressed
-# here through the role group's own slug/ID/number resolution rather than the generic group.
-# ``view disable`` is the recovery for a role whose body already carries a tag naming a view
-# the active spec no longer declares: it is ungated — no ``spec.views`` check, deliberately,
-# because a tag once placed must stay recoverable even for a view that no longer exists — and
-# only an operator invoking it ever clears one; nothing in this codebase does it automatically.
-# ``view rm`` is retired outright, with no alias: a tag is disabled, never deleted.
+# ``sq role <addr> view add|disable <name>``, as ``_cli._items._cmd_view`` but addressed by the
+# role's slug/ID/number. ``view disable`` is ungated (no ``spec.views`` check) so a tag naming
+# a view the spec no longer declares stays recoverable.
 _view_app = typer.Typer(
     no_args_is_help=True, help="Show or hide declared views in the role's body."
 )

@@ -209,28 +209,14 @@ def check_roster_lifecycle_floor(
     roles: dict[str, RoleSpec],
     errors: list[str],
 ) -> None:
-    """The additional floor a lifecycle bound to a ``category = "roster"`` type must satisfy
-    on top of the universal floor above, restated against the ``live`` flag — never a role
-    *name* (the same name-locking the engine forbids one layer down, on the status axis).
-
-    R1 — at least one status whose role is live: zero means no entry of this type could
-    ever be materialised, so the squad's generated config could never present an agent.
-
-    R1' — if the lifecycle's ``initial`` status is not itself live, exactly one status is
-    live: the narrow uniqueness the engine genuinely needs, so ``live_initial`` stays
-    total for the scaffolding path that must create an entry already on offer. When ``initial``
-    IS live there is no ambiguity to resolve and any number of further live statuses is
-    fine.
-
-    R2 — at least one settled, non-live status reachable from a live one: retirement must
-    be reachable, not merely from ``initial`` — the universal reachable-settled floor
-    (``check_reachable_settled``) only guarantees the latter, which a machine could satisfy
-    while never letting a live entry retire. Reachability is computed from the whole
-    live *set* (R1 does not guarantee a single status).
-
-    All three are derived from the role assignment and the ``initial`` the spec already
-    carries; a lifecycle whose ``initial``/transitions reference an undeclared status is
-    skipped here (already reported by ``check_item_refs``/``check_lifecycle_statuses``).
+    """The extra floor for a lifecycle bound to a ``category = "roster"`` type, restated against the
+    ``live`` flag, never a role name. R1: at least one live status, or no entry could be
+    materialised and generated config could present no agent. R1': if ``initial`` is not live,
+    exactly one status is live, keeping ``live_initial`` total for scaffolding that must create an
+    entry already on offer. R2: a settled, non-live status reachable from a live one (from the whole
+    live set), since the universal reachable-settled floor only guarantees reachability from
+    ``initial`` and a live entry might never retire. A lifecycle referencing an undeclared status is
+    skipped, being reported by ``check_item_refs``/``check_lifecycle_statuses``.
     """
     for t, ts in items.items():
         if ts.category != "roster":
@@ -548,12 +534,10 @@ def _check_validator_level(t: str, entry: str, bare: str, level: str, errors: li
 
 
 def _repeat_selection_message(item_type: str, bare: str, prior: str, entry: str) -> str:
-    """The refusal message for two ``validators``-list entries that share one
-    :func:`validator_selection_key`. *prior* and *entry* can differ in text while still keying
-    equal (a differing param on a :data:`SINGLE_SELECTION_VALIDATOR_NAMES` member, or a
-    differing ``@<level>`` on any member), so simply asserting they are "the same selection"
-    reads as self-contradictory to a reader looking at two visibly different strings — name the
-    actual reason and the remedy instead.
+    """The refusal message for two ``validators`` entries sharing one
+    :func:`validator_selection_key`. They can differ in text (a differing param on a
+    :data:`SINGLE_SELECTION_VALIDATOR_NAMES` member, or a differing ``@<level>``), so asserting "the
+    same selection" would read as self-contradictory; it names the actual reason and the remedy.
     """
     if prior == entry:
         return (
@@ -579,29 +563,17 @@ def _repeat_selection_message(item_type: str, bare: str, prior: str, entry: str)
 
 
 def check_validators_assignment(items: dict[str, ItemSpec], errors: list[str]) -> None:
-    """Plane-1 checks for each type's ``validators`` list, entry by entry: the bare name must
-    be a declared catalog member (fails closed on an unknown name); a ``:<param>`` suffix is
-    only well-formed on a name in ``PARAMETERIZED_VALIDATOR_NAMES`` (``subentity_title_max``,
-    ``ref_rule_target_present``; every other name on the assignment surface, ``parent_in``
-    among them, is bare) and, for ``subentity_title_max``, must itself parse as a positive
-    integer (:func:`_check_validator_param`); an ``@<level>`` suffix must name a declared level
-    at or above the member's declared floor, if it has one (:func:`_check_validator_level`); and
-    a type may not repeat the same *selection* in its own list (:func:`validator_selection_key`)
-    — for a member outside ``MULTI_SELECTION_VALIDATOR_NAMES`` (every non-parameterized name,
-    a parameterized name named with no param, and a :data:`SINGLE_SELECTION_VALIDATOR_NAMES`
-    member such as ``subentity_title_max`` regardless of param), that means its bare name
-    alone: nothing distinguishes two entries beyond the name, so a second one is ambiguous
-    (which value wins is not this loader's call to make, and letting a differently-parameterised
-    second entry load clean would make it silently, permanently inert instead — see
-    :data:`SINGLE_SELECTION_VALIDATOR_NAMES`) and refused here rather than silently letting the
-    last one win. For a member in ``MULTI_SELECTION_VALIDATOR_NAMES``, two entries naming
-    *different* params are independent selections and both are accepted — e.g.
-    ``ref_rule_target_present:contract`` and ``ref_rule_target_present:milestone`` on one type,
-    one obligation per target — only a repeat of the identical param is refused.
-
-    A ``ref_rule_target_present:<T>`` entry's own coherence — ``<T>`` naming a declared item
-    type, and this type declaring a rule targeting it — is a further check, run once every
-    ``[items.*]`` block is known: see :func:`check_ref_rule_targets`.
+    """Plane-1 checks for each type's ``validators`` list, entry by entry: the bare name must be a
+    declared catalog member; a ``:<param>`` is well-formed only on a
+    ``PARAMETERIZED_VALIDATOR_NAMES`` name and, for ``subentity_title_max``, a positive integer
+    (:func:`_check_validator_param`); an ``@<level>`` must name a declared level at or above the
+    member's floor (:func:`_check_validator_level`); and a type may not repeat a *selection*
+    (:func:`validator_selection_key`). Outside ``MULTI_SELECTION_VALIDATOR_NAMES`` the key is the
+    bare name alone, so a second entry is refused (which value wins is not the loader's call, and a
+    differently-parameterised second would load clean yet stay inert); on a multi-selection member
+    different params are independent and only an identical param is refused. A
+    ``ref_rule_target_present:<T>`` entry's coherence is checked once every ``[items.*]`` block is
+    known (:func:`check_ref_rule_targets`).
     """
     for t, ts in items.items():
         seen: dict[tuple[str, str | None], str] = {}
@@ -637,27 +609,14 @@ def check_validators_assignment(items: dict[str, ItemSpec], errors: list[str]) -
 
 
 def check_ref_rule_targets(items: dict[str, ItemSpec], errors: list[str]) -> None:
-    """Plane-1 referential validation for :attr:`RefRule.target` — run here, never inside
-    ``_parse_ref_rules``, because item types are known only once every ``[items.*]`` block has
-    parsed, while the ref-rule parser sees the declared ref *kinds* alone.
-
-    Three independent checks:
-
-    1. Every declared ``target`` must name an item type the merged spec declares — otherwise
-       the rule types an edge against a type that does not exist.
-    2. A ``ref_rule_target_present`` validator entry must carry a ``:<T>`` parameter at all.
-       The bare name is accepted by :func:`check_validators_assignment` (it *is* a declared
-       catalog member) and then builds an empty target set at runtime
-       (``_services/_validators.py`` reads the entry's own param via
-       :func:`parse_validator_entry`, empty when the entry carries none), so it is permanently
-       inert —
-       nothing ever fires, and nothing tells the adopter why. Refused here rather than
-       silently doing nothing forever, the same reasoning as check 3.
-    3. A type selecting ``ref_rule_target_present:<T>`` must itself declare at least one
-       ``ref_rules`` entry whose ``target`` is ``<T>``. Without this, ``<T>`` could be an
-       item type nothing points the check at (an accepted set empty by construction — every
-       settled item warns and no edge can ever clear it) or not a declared item type at all;
-       both are refused here rather than warning forever at runtime.
+    """Plane-1 referential validation for :attr:`RefRule.target`, run here and not in
+    ``_parse_ref_rules`` because item types are known only after every ``[items.*]`` block parses.
+    Three checks: every ``target`` names a declared item type; a ``ref_rule_target_present`` entry
+    carries a ``:<T>`` param, since the bare name is a catalog member yet builds an empty target set
+    (read via :func:`parse_validator_entry`) and is permanently inert; and a type selecting
+    ``ref_rule_target_present:<T>`` declares a ``ref_rules`` entry targeting ``<T>``, or ``<T>``
+    could be a type nothing points the check at or not a type at all. Each is refused rather than
+    doing nothing forever.
     """
     for t, ts in items.items():
         errors.extend(
@@ -701,15 +660,12 @@ def check_selections_that_cannot_fire(
     ref_kinds: dict[str, RefKindSpec],
     errors: list[str],
 ) -> None:
-    """Plane-1: a selected check that the spec's own declarations make unable to fire is
-    refused here, so it is never a silent no-op and never depends on what the corpus holds.
-    Each message names the type, the entry and the declaration that is missing.
-
-    A member of :data:`WORK_POLICY_VALIDATOR_NAMES` is about the work an item tracks, so naming
-    it on a ``roster`` type is refused. ``ref_rule_target_typed`` also needs a ref rule with a
-    target on the type, ``assignee_present`` a lifecycle holding a status of a live role, and
-    ``blocked_has_blocker`` a lifecycle holding a status of a blocked role plus a declared
-    dependency ref kind.
+    """Plane-1: a selected check the spec's own declarations make unable to fire is refused, so it
+    is never a silent no-op nor dependent on the corpus; each message names the type, the entry and
+    the missing declaration. A :data:`WORK_POLICY_VALIDATOR_NAMES` member is refused on a ``roster``
+    type; ``ref_rule_target_typed`` also needs a ref rule with a target, ``assignee_present`` a
+    lifecycle with a live-role status, and ``blocked_has_blocker`` a blocked-role status plus a
+    declared dependency ref kind.
     """
     for t, ts in items.items():
         for entry in ts.validators:
@@ -864,35 +820,19 @@ def _clause_parent_reachable(
     _kinds: dict[str, SubentityKindSpec],
     _ref_kinds: dict[str, RefKindSpec],
 ) -> list[str]:
-    """Guards ``parent_in``, and owns every arm about the parent declarations as a set.
+    """Guards ``parent_in`` and owns every arm about the parent declarations as a set. A declared
+    parent constraint is **contradicted** when the effective set includes ``no_parent`` (so
+    ``parents`` and ``parent_required`` cannot be satisfied, reachable by a ``work`` type adding
+    ``no_parent``) and **unenforced** when neither ``no_parent`` nor ``parent_in`` is effective
+    (only the empty ``roster`` bundle), leaving ``parents`` declared but unread. Two further
+    contradictions: ``parent_present`` with ``no_parent`` in one set refuses every item whichever
+    way it is created, and ``parent_required`` naming a type the ``parents`` allowlist excludes
+    makes ``subtask_story_mapping`` dead in both directions (an empty ``parents`` is the lenient
+    "any parent" and excludes nothing).
 
-    Two ways a declared parent constraint cannot be acted on. **Contradicted**: the effective
-    set includes ``no_parent``, which forbids any parent at all, so neither ``parents`` nor
-    ``parent_required`` can ever be satisfied — the records contract's own named example, and
-    reachable without any reassignment by a ``work`` type that adds ``no_parent`` to its own
-    ``validators``. **Unenforced**: neither ``no_parent`` nor ``parent_in`` is effective (today
-    only the ``roster`` bundle, which is empty), so the ``parents`` allowlist is declared and
-    nothing ever reads it.
-
-    Two further contradictions, both between declarations rather than between a declaration and
-    a bundle, and both silent before they were checked here:
-
-    - ``parent_present`` and ``no_parent`` in one effective set. One demands a parent, the other
-      forbids one, so *every* item of the type is refused whichever way it is created. Reachable
-      only by naming ``parent_present`` on a type whose category carries ``no_parent`` (or the
-      reverse), which is why it is the clause rather than the bundle that has to catch it.
-    - ``parent_required`` naming a type the ``parents`` allowlist excludes. ``parent_in`` refuses
-      the one parent type ``subtask_story_mapping`` then insists on, so the mapping capability is
-      dead in both directions while the loaded spec reports both fields — the same shape as a
-      contradictory category reassignment, arrived at without one. An empty ``parents`` is the
-      lenient "any parent", so it excludes nothing and is not a contradiction.
-
-    ``parent_required`` is deliberately absent from the *reachability* audit (only from it): it
-    has a live consumer under every category — the ``--parent`` example in generated agent prose
-    and the anchor-type score both read it — so there is no configuration in which declaring it
-    reaches nothing, and a reachability arm over it would fire on a correct spec. Its
-    enforcement half is opt-in (``parent_present``), which is why the two arms above are the
-    whole of what this clause can say about it.
+    ``parent_required`` is absent from the reachability audit because it has a live consumer under
+    every category (the generated ``--parent`` example and the anchor-type score), so such an arm
+    would fire on a correct spec; its enforcement is opt-in (``parent_present``).
     """
     declared = [
         f"{name}={value!r}"
@@ -936,16 +876,12 @@ def _clause_subentity_checked(
     _kinds: dict[str, SubentityKindSpec],
     _ref_kinds: dict[str, RefKindSpec],
 ) -> list[str]:
-    """Guards the sub-entity validators a bundle supplies; any of the
-    :data:`SUBENTITY_VALIDATOR_NAMES` satisfies it. A type declaring a ``subentity_kind``
-    must keep at least one validator whose subject is that kind. The ``records`` bundle carries
-    none, so a hosting type moved there keeps its sub-entities while every check on them stops
-    running.
-
-    "At least one" rather than "all four" deliberately: the ``validators`` list is extend-only
-    from the closed catalog, so an adopter who genuinely wants a record that hosts sub-entities
-    can say so by naming the checks they want back — the refusal is reachable, which is what
-    keeps this validation rather than prohibition.
+    """Guards the sub-entity validators a bundle supplies; any of :data:`SUBENTITY_VALIDATOR_NAMES`
+    satisfies it. A type declaring a ``subentity_kind`` must keep at least one validator whose
+    subject is that kind, as the ``records`` bundle carries none and a hosting type moved there
+    would lose every check on its sub-entities. It is "at least one", not all four, because the list
+    is extend-only, so an adopter can name the checks wanted back and the refusal stays reachable
+    (validation, not prohibition).
     """
     if ts.subentity_kind is None or (effective & SUBENTITY_VALIDATOR_NAMES):
         return []
@@ -965,17 +901,13 @@ def _clause_supersedes_checked(
     _kinds: dict[str, SubentityKindSpec],
     ref_kinds: dict[str, RefKindSpec],
 ) -> list[str]:
-    """Guards ``supersedes_incoming``, whose gate is a ref rule naming a declared
-    ``supersession``-role kind: the validator returns immediately for a type that declares
-    none, and it sits in the ``records`` bundle and nowhere else. So a type keeping its
-    ``supersession`` rule under any other category keeps the declaration and loses the only
-    check it drives — a record left in a superseded state with no incoming edge stops being
-    reported, on every gate.
-
-    Resolved through *ref_kinds* (mirrors the validator's own gate,
-    ``rr.kind in spec.supersession_ref_kinds()`` in ``_services/_validators.py``), never a
-    fixed ``"supersedes"`` spelling; the rest of a type's ``ref_rules`` drive hint text only,
-    which stays live under every category, so they need nothing here.
+    """Guards ``supersedes_incoming``, gated by a ref rule naming a declared ``supersession``-role
+    kind: it returns at once for a type declaring none and sits only in the ``records`` bundle, so a
+    type keeping its ``supersession`` rule under another category loses the only check it drives and
+    a record left superseded with no incoming edge stops being reported. It resolves through
+    *ref_kinds* (mirroring the validator's ``rr.kind in spec.supersession_ref_kinds()`` gate), never
+    a fixed ``"supersedes"``; the other ``ref_rules`` drive hint text only and stay live under every
+    category.
     """
     supersession_kinds = frozenset(k for k, ks in ref_kinds.items() if ks.role == "supersession")
     if not any(rr.kind in supersession_kinds for rr in ts.ref_rules) or "supersedes_incoming" in (
@@ -1027,10 +959,9 @@ _BUNDLED_SUBENTITY_VALIDATOR_NAMES: frozenset[str] = frozenset(
 )
 
 
-#: Each clause paired with the validator names whose *reachability* it guards. Declarative so
-#: the coverage assert below can hold, not decoration: the rule is defined over the validator
-#: set, so the audit that matters is per-validator, and every member of the closed catalog must
-#: be accounted for exactly once.
+#: Each clause paired with the validator names whose reachability it guards, declarative so the
+#: coverage assert below holds: every member of the closed catalog must be accounted for exactly
+#: once.
 CONSISTENCY_CLAUSES: tuple[tuple[frozenset[str], ConsistencyClause], ...] = (
     (frozenset({"parent_in"}), _clause_parent_reachable),
     (_BUNDLED_SUBENTITY_VALIDATOR_NAMES, _clause_subentity_checked),
@@ -1039,52 +970,27 @@ CONSISTENCY_CLAUSES: tuple[tuple[frozenset[str], ConsistencyClause], ...] = (
 )
 
 
-#: The audit's third bucket, and the one that has to be argued rather than derived: a catalog
-#: member no clause guards, because no *declaration* selects it.
+#: The audit's third bucket, argued rather than derived: catalog members no clause guards because
+#: no declaration selects them.
 #:
-#: - :data:`COMMON_CORE`'s members are effective for every type under every category, so nothing
-#:   a type declares can put one out of reach — there is no silent-loss shape to catch. That is
-#:   also why ``parent_acyclic`` lives there rather than in a bundle: an acyclic parent relation
-#:   is not a house convention a category could decline, and common-core placement means no
-#:   reachability clause is owed for it.
-#: - ``no_parent`` is the inverse of a declaration: it enforces the *absence* of a parent, so an
-#:   adopter declares nothing that it could stop enforcing. Its failure mode is the opposite one
-#:   — being on while a parent field is declared — which is
+#: - :data:`COMMON_CORE` members are effective for every type, so nothing a type declares can put
+#:   one out of reach (hence ``parent_acyclic`` is there, as a parent cycle is no house
+#:   convention a category could decline).
+#: - ``no_parent`` enforces the absence of a parent, so an adopter declares nothing it could stop
+#:   enforcing; its failure mode is being on while a parent field is declared, which is
 #:   :func:`_clause_parent_reachable`'s first arm.
-#: - ``parent_present`` sits in no :data:`CATEGORY_BUNDLES` entry at all, so the only way it is
-#:   ever effective is a type naming it in its own ``validators``. A name you wrote yourself
-#:   cannot be silently lost to a category, which is what a reachability clause exists to catch;
-#:   its failure mode is again the opposite one, contradiction with ``no_parent``, and again
-#:   :func:`_clause_parent_reachable` owns it.
-#: - ``ref_rule_target_present`` is the same shape as ``parent_present``: it sits in no
-#:   category bundle, so it is only ever effective when a type names it (with its param) in its
-#:   own ``validators`` — nothing a category reassignment can silently take away. Its own
-#:   coherence — the param must name a declared item type, and the declaring type's own
-#:   ``ref_rules`` must carry a rule targeting it — is a *referential*, not reachability, check
-#:   (:func:`check_ref_rule_targets`), because it is about what the declaration *means*, not
-#:   about which category turns it on.
-#: - ``item_skill_shadowed`` is the same shape again, one level narrower: it sits in no
-#:   category bundle *and* the ``roster`` category's own bundle is empty (:data:`CATEGORY_
-#:   BUNDLES`), so the only place it is ever selected is ``[items.skill]``'s own
-#:   ``validators`` — a name you wrote yourself, per the ``parent_present`` reasoning above.
-#:   ``skill`` is also one of the three roster keys ``_workflow/_loader.py`` locks to
-#:   ``category = "roster"`` permanently (an override may not move it to ``work``/``records``),
-#:   so there is no category reassignment for this member to be silently lost to in the first
-#:   place — a stronger guarantee than the ordinary "nobody happened to reassign it" the other
-#:   two entries above rely on.
-#: - ``no_status_banner`` and ``subentity_title_max`` are the same shape as ``parent_present``:
-#:   each sits in no category bundle and in no floor, so it is only ever effective when a type
-#:   names it, and no category reassignment can take it away. ``subentity_title_max`` is still
-#:   one of the :data:`SUBENTITY_VALIDATOR_NAMES` that satisfy :func:`_clause_subentity_checked`.
-#: - ``subentities_settled_with_parent`` is the same shape: in no bundle, effective only on a type
-#:   that names it. It is deliberately not one of the :data:`SUBENTITY_VALIDATOR_NAMES`: it judges
-#:   a policy about settled parents, not the sub-entities' own validity, so a type naming it must
-#:   not stand in for the checks :func:`_clause_subentity_checked` guards.
-#: - ``pronouns_valid`` is the roster category's whole bundle and judges one attribute no capability
-#:   depends on, so there is nothing for a clause to protect.
-#: - The members of :data:`WORK_POLICY_VALIDATOR_NAMES` are the same shape again: in no bundle
-#:   and no floor, effective only where a type names them, so no category reassignment can take
-#:   one away.
+#: - ``parent_present``, ``ref_rule_target_present``, ``no_status_banner``,
+#:   ``subentity_title_max``, ``subentities_settled_with_parent`` and the
+#:   :data:`WORK_POLICY_VALIDATOR_NAMES` members sit in no bundle or floor, so a type names them
+#:   itself and no category reassignment can take one away. ``parent_present`` fails by
+#:   contradiction with ``no_parent`` (:func:`_clause_parent_reachable`);
+#:   ``ref_rule_target_present``'s coherence is referential (:func:`check_ref_rule_targets`).
+#:   ``subentity_title_max`` still satisfies :func:`_clause_subentity_checked`, while
+#:   ``subentities_settled_with_parent`` judges a policy about settled parents and does not.
+#: - ``item_skill_shadowed`` is selected only in ``[items.skill]``'s own ``validators`` (the
+#:   ``roster`` bundle is empty), and ``skill`` is locked to ``category = "roster"`` by
+#:   ``_workflow/_loader.py``, so no reassignment can lose it.
+#: - ``pronouns_valid`` is the roster bundle and judges one attribute no capability depends on.
 UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
     {
         "no_parent",
@@ -1119,32 +1025,18 @@ def check_category_consistency(
     ref_kinds: dict[str, RefKindSpec],
     errors: list[str],
 ) -> None:
-    """Plane-1: every capability a type declares must be *reachable* under the validator set
-    its own category turns on.
+    """Plane-1: every capability a type declares must be reachable under the validator set its
+    category turns on. An override may move a built-in between ``work`` and ``records`` (validation,
+    not prohibition), but an inconsistency is silent on every other gate: moving ``task`` to
+    ``records`` while it declares ``parents = ["feature"]`` and ``parent_required = "feature"``
+    makes the constraint unreachable both ways, while the spec reports both fields.
 
-    An override may move a built-in between ``work`` and ``records`` — that is settled, and the
-    guardrail is validation, not prohibition. What this checks is whether the result is
-    internally consistent, since an inconsistency is silent on every other gate: ``sq list``
-    exit 0, ``sq workflow lint`` "no errors or warnings", ``sq check`` exit 0. Moving ``task``
-    to ``records`` while it still declares ``parents = ["feature"]`` and
-    ``parent_required = "feature"`` makes that constraint unreachable *in both directions* —
-    creating with no parent succeeds where a parent was required, and creating with the
-    declared parent is refused by the records rule — while the loaded spec goes on reporting
-    both fields.
-
-    The check is written against the **validator set**, not against the category name, because
-    the validator set is what a category actually *is*: nothing else in the engine branches on
-    ``work`` versus ``records``. That makes the rule category-agnostic — it catches a ``work``
-    type that adds ``no_parent`` to its own ``validators`` while declaring ``parents`` just as
-    it catches a reassignment — and it needs no second table to keep in step with the bundles.
-
-    Being defined over the validator set has a second consequence, which is why the clauses are
-    a registry rather than a run of ``if``s: the *complete* rule is one clause per validator
-    whose subject is a declared capability, and a clause set written against the fields that
-    came to mind instead leaves the rest silently unenforced. :data:`CONSISTENCY_CLAUSES` pairs
-    each clause with the names it guards and the assert above closes it against
-    :data:`VALIDATOR_NAMES`, so a validator added to a bundle later cannot skip the decision:
-    guard it, or name it in :data:`UNGUARDED_VALIDATOR_NAMES` with the reason.
+    The check is written against the validator set, which is what a category is (nothing else
+    branches on ``work`` versus ``records``), so it is category-agnostic and needs no second table.
+    The complete rule is one clause per validator whose subject is a declared capability, hence a
+    registry: :data:`CONSISTENCY_CLAUSES` pairs each clause with the names it guards and the assert
+    above closes it against :data:`VALIDATOR_NAMES`, so a new validator must be guarded or named in
+    :data:`UNGUARDED_VALIDATOR_NAMES` with the reason.
     """
     for t, ts in sorted(items.items()):
         effective = effective_bare_validators(ts)
@@ -1152,11 +1044,10 @@ def check_category_consistency(
             errors.extend(clause(t, ts, effective, kinds, ref_kinds))
 
 
-#: Field codes exempt from the reserved-key check below because this exact schema models
-#: them by field code on purpose — the bundled ``priority``/``severity`` fields keep the
-#: literal key their axis has always used (``Item.priority``/``Item.severity``/
-#: ``SubEntity.severity`` are themselves the badge-code storage, not a shadow of it), so
-#: frontmatter keeps round-tripping unchanged.
+#: Field codes exempt from the reserved-key check below because this schema models them by field
+#: code on purpose: ``priority``/``severity`` keep their literal key (``Item.priority``,
+#: ``Item.severity`` and ``SubEntity.severity`` are the badge-code storage itself), so frontmatter
+#: round-trips unchanged.
 _FIELD_ELIGIBLE_ITEM_KEYS: frozenset[str] = frozenset({"priority", "severity"})
 
 
@@ -1216,10 +1107,10 @@ def check_field_codes(
                 )
 
 
-#: The attributes the engine materialises into agent-host files, by roster type, with the kind
-#: each must be declared with. A resolved spec may add attributes to a roster type but may not
-#: drop or re-kind one of these. Every pin is required the same way: an override merges over the
-#: bundled spec, which declares them all, so only a spec built whole by hand must restate them.
+#: The attributes the engine materialises into agent-host files, by roster type, with the kind each
+#: is declared with. A resolved spec may add attributes to a roster type but not drop or re-kind
+#: these; an override merges over the bundled spec, which declares them all, so only a spec built
+#: whole by hand restates them.
 PINNED_ROSTER_ATTRIBUTES: dict[str, dict[str, str]] = {
     ROSTER_ROLE: {
         AttributeKey.IS_DEFAULT: "bool",
@@ -1278,10 +1169,9 @@ def check_field_collections(
     resolvable default is rejected."""
     for code, coll in collections.items():
         if not coll.ordered:
-            # Ordered-only for now. The flag stays in the schema (reserved for a future
-            # unordered kind), but nothing downstream (sort/--min-<field>) reads it —
-            # accepting ordered=false here would rank badges by declaration order
-            # silently, a meaningless-but-quiet result. Fail closed instead.
+            # Ordered-only for now: the flag stays in the schema for a future unordered kind, but
+            # nothing downstream (sort, --min-<field>) reads it, so accepting ordered=false would
+            # rank badges by declaration order silently. Fail closed.
             errors.append(f"collection {code!r}: unordered collections are not supported yet")
         if coll.default is not None and coll.default not in coll.badge_codes:
             errors.append(f"collection {code!r}: default {coll.default!r} not a declared badge")
@@ -1350,22 +1240,15 @@ def check_views(
     ref_kinds: dict[str, RefKindSpec],
     errors: list[str],
 ) -> None:
-    """Referential floor over ``[views]``, run on the **merged** mapping so it lands on the
-    exact same collect-all pass every other cross-reference here does (``sq workflow lint``
-    reports a broken view alongside every other violation in one run, never only the first).
-
-    A view's ``source.name`` must name a declared entry of the vocabulary its ``source.kind``
-    points at (``[ref_kinds]``/``[subentity_kinds]``/``[items]`` — ``role``/``self`` take none,
-    ``playbook``'s is optional against ``[items]``) — the same shape ``_parse_ref_rules``
-    already refuses a rule naming an undeclared kind for, applied to the view axis: a source
-    that can never resolve is refused here rather than carried as an inert declaration.
-
-    Two more checks run in the same collect-all pass, both by design rather than by
-    ``ViewSpec``'s own pydantic validation, so a bad ``position`` and a bad name both land in
-    one ``sq workflow lint`` run instead of the load aborting at the first one found: the view's
-    *key* must be a bare TOML key (:data:`_BARE_TOML_KEY_RE`) other than
-    :data:`RESERVED_VIEW_NAME`, and its declared ``position`` must parse
-    (:func:`parse_view_position`)."""
+    """Referential floor over ``[views]``, run on the merged mapping so ``sq workflow lint`` reports
+    a broken view with every other violation in one pass. A view's ``source.name`` must name a
+    declared entry of the vocabulary its ``source.kind`` points at
+    (``[ref_kinds]``/``[subentity_kinds]``/``[items]``; ``role``/``self`` take none, ``playbook``'s
+    is optional), as ``_parse_ref_rules`` does for kinds, so a source that can never resolve is
+    refused. In the same pass (not via ``ViewSpec``'s pydantic validation, which would abort at the
+    first) the view's key must be a bare TOML key (:data:`_BARE_TOML_KEY_RE`) other than
+    :data:`RESERVED_VIEW_NAME`, and its ``position`` must parse (:func:`parse_view_position`).
+    """
     for name, v in sorted(views.items()):
         tag = f"view {name!r}"
         if name == RESERVED_VIEW_NAME or not _BARE_TOML_KEY_RE.fullmatch(name):
@@ -1443,26 +1326,15 @@ _BARE_TOML_KEY_RE = re_compile(r"^[A-Za-z0-9_-]+$")
 
 
 def check_ref_kinds_floor(ref_kinds: dict[str, RefKindSpec], errors: list[str]) -> None:
-    """The per-capability floor over ``[ref_kinds]`` (plus the ``default`` role, folded onto
-    this same floor) — checked here, on the merged mapping, so a
-    violation surfaces as an ordinary ``_build_spec`` finding: visible to ``sq workflow lint``
-    on the exact path every other structural failure already takes, not only at first use
-    inside an accessor like :meth:`WorkflowSpec.default_ref_kind`/
-    :meth:`WorkflowSpec.preload_ref_kind`. This is
-    what keeps lint and a mutating command in agreement on a spec neither should bless.
-
-    - Every key must be a bare TOML key (see :data:`_BARE_TOML_KEY_RE`).
-    - Exactly one kind carries ``role = "default"`` — mandatory; a bare ``"ID"`` ref is
-      undecodable without exactly one.
-    - Exactly one kind carries ``role = "preload"`` — mandatory; zero strands every custom
-      skill from the role that scopes it, two make the resolver's inversion ambiguous.
-    - At most one kind per ``dependency`` direction (``"blocker"``/``"dependent"``) — zero is
-      legal per direction; two spelling the same direction would make the normalisation the
-      graph traversal relies on ambiguous. A kind declaring ``role = "dependency"`` with no
-      direction at all is refused outright — it would silently resolve through neither bucket.
-    - ``supersession`` has no upper bound and no floor: zero is a stated choice (an empty
-      incoming-supersedes check), any number above zero is fine — the validator sites this
-      task converts read the full declared set, not a single kind.
+    """The per-capability floor over ``[ref_kinds]`` (with the ``default`` role), checked on the
+    merged mapping so a violation is an ordinary ``_build_spec`` finding visible to ``sq workflow
+    lint``, not only at first use in an accessor, which keeps lint and a mutating command in
+    agreement. Every key must be a bare TOML key. Exactly one kind has ``role = "default"`` (a bare
+    ``"ID"`` ref is undecodable otherwise) and exactly one ``role = "preload"`` (zero strands custom
+    skills, two make the inversion ambiguous). At most one kind per ``dependency`` direction
+    (``"blocker"``/``"dependent"``; zero is legal, two make normalisation ambiguous), and a
+    ``dependency`` kind with no direction is refused as it would resolve through neither.
+    ``supersession`` has no bound or floor, as the validators read the full declared set.
     """
     errors.extend(
         f"ref_kinds {code!r}: not a bare TOML key (must match [A-Za-z0-9_-]+) — this keeps "

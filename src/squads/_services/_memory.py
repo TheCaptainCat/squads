@@ -1,11 +1,5 @@
-"""Agent memory: thin service-layer wrapper over :mod:`squads._memory._store`.
-
-Deliberately outside the ``IndexStore``/counter machinery every other mixin builds on — memory
-is off the global counter and outside ``.squads.json`` (see the module docstring on
-``_memory/_store.py``). This mixin only exists so the ``sq memory ...`` CLI commands call
-through the service layer like every other command, per the ``_cli -> _services -> ...``
-architecture; it adds no behaviour of its own beyond passing ``self.paths`` to the storage
-functions.
+"""Thin service-layer wrapper over :mod:`squads._memory._store`: memory sits outside the index and
+the global counter, so this mixin only routes the `sq memory` commands through the service layer.
 """
 
 from squads._memory import _store as memory_store

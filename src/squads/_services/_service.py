@@ -219,13 +219,9 @@ def compose_first_of(
 
 
 def _init_time_spec(sources: SpecSources) -> WorkflowSpec:
-    """The spec ``init``/``adopt`` must scaffold against: the squad's, from *sources*.
-
-    The override lives *inside* the squad directory these two callers are creating/populating,
-    so a pre-placed override is validated here, before anything is written, exactly as
-    ``open_service`` loads it later (fail-closed, pointing at ``sq workflow lint``). Every
-    scaffolding decision is then made against the spec every subsequent command will load. With
-    no override this is the cached bundled spec.
+    """The spec ``init``/``adopt`` scaffold against: the squad's, from *sources*. A pre-placed
+    override is validated here, before anything is written, as ``open_service`` will load it (fail-
+    closed, pointing at ``sq workflow lint``).
     """
     try:
         return sources.workflow()
@@ -245,29 +241,19 @@ async def init(
     sources: SpecSources | None = None,
     _skip_skill_seed: bool = False,
 ) -> InitResult:
-    """Initialise a new squad.
-
-    ``names`` maps role slug → full name for any roles that should have a custom name at
-    creation time (combines ``--name`` flags and ``[init.names]`` config).  Slugs not in
-    ``names`` fall through to the bundled pool / PREDEFINED.
-
-    ``sources`` carries the documents the caller already read; ``roles_spec`` is resolved against
-    the squad's own role catalog, so a bundle or role its ``.overrides/roles.toml`` declares is
-    accepted.
-
-    ``_skip_skill_seed`` is an **internal testing hook** — production callers must never
-    set it.  When ``True``, the bundled-skill id-stamping step is omitted so existing tests
-    that pre-date skill seeding are not disrupted by the shifted global counter.
+    """Initialise a new squad. ``names`` maps role slug to full name for custom names (``--name``
+    flags and ``[init.names]``); other slugs fall through to the bundled pool. ``sources`` carries
+    the documents the caller already read and ``roles_spec`` is resolved against the squad's own
+    role catalog. ``_skip_skill_seed`` is an internal testing hook that omits bundled-skill id
+    stamping to keep the global counter still; production callers must not set it.
     """
     root = (root or process_dir()).resolve()
     config_path = root / CONFIG_FILENAME
     if await _aio.path_exists(config_path) and not force:
         raise AlreadyInitializedError(f"{config_path} already exists (use --force to overwrite)")
 
-    # Validate a pre-placed override before any state is written: the override path is
-    # derivable from root/squad_dir alone, so a malformed or floor-violating override means
-    # init never starts (no config, no scaffolding) rather than wedging a half-created squad
-    # a retry can neither finish nor cleanly restart from.
+    # Validate a pre-placed override before any state is written, so a bad one means init never
+    # starts rather than leaving a half-created squad.
     sources = sources if sources is not None else spec_sources(root / squad_dir)
     effective_spec = _init_time_spec(sources)
     role_defs = resolve_roles(roles_spec, sources.catalog()) if roles_spec else []
@@ -309,11 +295,8 @@ async def init(
     warnings: list[str] = []
     if not no_claude:
         warnings += await svc.refresh_managed()
-        # After refresh_managed has written the skill body files (with sq:body markers),
-        # stamp each managed skill as a first-class SKILL item in lexical-by-slug order.
-        # `_init_time_spec` resolves the merged (possibly overridden) spec, so `init` sees
-        # custom types just as well as bundled ones — seed both here rather than leaving
-        # custom-type skills unindexed until the first `sq sync`.
+        # Stamp each managed skill as a SKILL item in slug order, bundled and custom types alike,
+        # rather than leaving them unindexed until the first `sq sync`.
         if not _skip_skill_seed:
             await svc.seed_bundled_skills()
             await svc.seed_custom_skills()
@@ -338,18 +321,11 @@ async def adopt(
     roles_spec: str = "all",
     no_claude: bool = False,
 ) -> AdoptResult:
-    """Bring an existing squad-structured folder under sq management (non-destructive).
-
-    Unlike ``init``, this tolerates a pre-existing ``.squads.toml``/folder and **imports** any
-    squads-native ``.md`` files already present (building the index + counter from them), then
-    ensures the backend scaffolding and bundled roles without clobbering.
-
-    The import runs through :meth:`Service.repair`, which is also the corpus sweep — so this
-    verb rewrites the content of the files it is importing. The whole ``RepairResult`` is
-    carried out on :class:`~squads._services._results.AdoptResult` rather than reduced to a
-    count so the CLI can announce that diff: a folder of squads-native markdown meeting sq for
-    the first time is behind no schema stamp sq can migrate, so this is the only route that
-    population takes and its only chance to be told.
+    """Bring an existing squad-structured folder under sq management without destroying anything: it
+    imports the squads-native ``.md`` files already present (through :meth:`Service.repair`, so it
+    rewrites their content), then ensures the backend scaffolding and bundled roles. The whole
+    ``RepairResult`` rides on :class:`~squads._services._results.AdoptResult` so the CLI can
+    announce that diff, since no migration will ever tell this population.
     """
     root = (root or process_dir()).resolve()
     config_path = root / CONFIG_FILENAME
@@ -399,10 +375,8 @@ async def adopt(
     warnings: list[str] = []
     if not no_claude:
         warnings += await svc.refresh_managed()
-        # Mirrors init()'s seeding step. adopt is the other path that can create a squad's
-        # config, so it has to seed both halves — bundled and custom — exactly as init does:
-        # without them a generated skill file sits on disk with no SKILL item indexing it,
-        # and stays that way until the first `sq sync` seeds it.
+        # As in init(): seed bundled and custom skills so a generated skill file is never left
+        # without a SKILL item until the first `sq sync`.
         await svc.seed_bundled_skills()
         await svc.seed_custom_skills()
         warnings += await svc.candidate_orphans()
@@ -416,14 +390,11 @@ def open_service(
     resolved_spec: WorkflowSpec | None = None,
     sources: SpecSources | None = None,
 ) -> Service:
-    """Resolve the active squad and compose its service in :attr:`Mode.NORMAL`.
-
-    A workflow spec that fails to load or conflicts with the live index raises ``SquadsError``
-    pointing to ``sq workflow lint``; a playbook that fails to load raises
-    :class:`~squads._errors.PlaybookConfigError`. ``client_cwd`` is the requesting client's
-    working directory (``None`` is the process cwd), ``resolved_spec`` is a spec the caller
-    already resolved and checked for this squad, which replaces the load, and ``sources`` the
-    documents it already read.
+    """Resolve the active squad and compose its service in :attr:`Mode.NORMAL`. A workflow spec that
+    fails to load or conflicts with the index raises ``SquadsError`` pointing to ``sq workflow
+    lint``; a playbook that fails raises :class:`~squads._errors.PlaybookConfigError`.
+    ``client_cwd`` is the requesting client's directory (``None`` is the process cwd);
+    ``resolved_spec`` and ``sources`` are what the caller already resolved and read.
     """
     return compose_service(
         resolve(client_cwd=client_cwd), resolved_spec=resolved_spec, sources=sources

@@ -86,5 +86,7 @@ async def test_the_body_help_states_the_rule_for_every_kind(group, slug, squad, 
     helped = await invoke([group, slug, "body", "--help"])
 
     text = " ".join(helped.output.split())
-    assert "a role, a system or per-type skill" in text
+    assert "a role takes prose beside its generated definition" in text.lower()
+    assert "a system or per-type skill" in text
+    assert "a role, a system" not in text
     assert "an operator body is never refused" in text

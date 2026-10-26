@@ -127,12 +127,10 @@ def _print_empty_or_hidden_hint(hidden_count: int) -> None:
 def _tree_label(it: Item, spec: WorkflowSpec, *, path_only: bool, anchor: bool) -> Text:
     """One line of the human ``sq tree`` rendering.
 
-    The two flags are independent states that **combine**, not alternatives: a cycle anchor
-    under a filter matching something below the cycle is a path-only node as well. The anchor
-    marker is therefore appended after the path-only dim, so the disclosure stays readable on a
-    dimmed line — a dimmed anchor marker is easy to produce and hard to read. Its wording has to
-    land on a reader who has never heard of this: the item is not a root anybody wrote, it was
-    picked to make an otherwise invisible parent loop visible.
+    The anchor and path-only flags combine (a cycle anchor can also be path-only), so the anchor
+    marker is appended after the path-only dim and stays readable on a dimmed line. Its wording
+    must work for a reader who has never met it: the item is not a root anybody wrote, it was
+    picked to make a parent loop visible.
     """
     badge = _field_badge(it.type, "priority", it.priority, spec) if it.priority else ""
     prio = f"{e(badge)} · " if badge else ""
@@ -224,14 +222,11 @@ def _item_table(
     *,
     matched: dict[str, list[SubEntity]] | None = None,
 ) -> Table:
-    """The shared item table (shared by `list`, `search`, `mine`) — escape all dynamic strings.
+    """The item table shared by `list`, `search` and `mine`; all dynamic strings are escaped.
 
-    The Status cell is coloured by the status's role intent (``status_text``) — join
-    status -> role -> colour, per client, never a hardcoded status-name check.
-
-    ``matched`` (keyed by item id) is `mine`'s roll-up of which sub-entities matched the
-    queried slug — when supplied, an extra "Matched" column names them, so a roll-up row
-    is never indistinguishable from a direct item assignment.
+    The Status cell is coloured by the status's role intent (``status_text``), never by a
+    status-name check. ``matched`` (item id to matched sub-entities, from `mine`) adds a "Matched"
+    column so a roll-up row is distinguishable from a direct assignment.
     """
     table = Table(box=None, pad_edge=False)
     cols = ("ID", "Type", "Status", "Priority", "Title", "Parent", "Assignee")
@@ -380,11 +375,8 @@ async def init(
             # Parenthesized (not PEP 758 bare-tuple) so `vulture` can still parse this file;
             # ruff's py314-target formatter would otherwise strip the parens back off.
             except (typer.Abort, EOFError):  # fmt: skip
-                # On Windows, sys.stdin.isatty() may report a console even inside a
-                # subprocess with a closed/empty stdin pipe, causing typer.prompt to
-                # raise EOFError (or typer.Abort) on the first read. Degrade gracefully:
-                # fall back to bundled defaults and stop prompting rather than aborting
-                # the whole init.
+                # On Windows, isatty() can report a console on a closed stdin pipe, so the first
+                # prompt raises: fall back to bundled defaults rather than aborting the init.
                 break
             if typed:
                 combined_names[slug] = typed
@@ -462,26 +454,22 @@ async def adopt(
         f"[bold]roles activated:[/bold] {new_roles}",
     ]
     console.print(Panel("\n".join(lines), title="squads adopted", expand=False))
-    # The import sweep is also the corpus sweep, and this is the only route an existing folder
-    # of squads-native markdown takes — no schema stamp to migrate, no repair anyone ran. So
-    # the content diff is announced here too, in the same sentence `sq repair` prints; the
-    # panel above counts what was imported, which says nothing about what was rewritten.
+    # The import sweep is also the corpus sweep and the only route a folder of native
+    # markdown takes, so announce the content diff as `sq repair` does; the panel above
+    # counts imports, not rewrites.
     notice = result.repair.strip_notice()
     if notice:
         console.print(notice, soft_wrap=True)
     _print_scaffold_warnings(result.warnings)
-    # Same channel `sq repair` reports at error level for the identical corpus state, in its
-    # own wording — an unreadable file whose previous index entry (if any) was carried forward
-    # unrefreshed. Reported here rather than left to `sq check`, which has no model for it:
-    # this sweep is the only pass an adopted folder ever gets, so an operator who never runs
-    # `sq repair` by hand must still be told.
+    # An unreadable file whose previous index entry was carried forward unrefreshed, as
+    # `sq repair` reports it. `sq check` has no model for it and this sweep is the only pass
+    # an adopted folder gets, so report it here.
     for msg in result.repair.unreadable:
         console.print(common.unreadable_report(msg), soft_wrap=True)
     if result.repair.unreadable:
-        # Same partial-completion condition `sq repair` itself exits 1 for, over the same
-        # rebuild — a caller gating on `$?` must see the same answer from either route. Skip
-        # the generic closing hint below: the loop above already names `sq repair` as the
-        # next step, and `sq check` cannot see this state to suggest it.
+        # The partial-completion condition `sq repair` exits 1 for, so a caller gating on
+        # `$?` gets the same answer either way. The generic hint below is skipped: the loop
+        # above names `sq repair`, and `sq check` cannot see this state.
         raise typer.Exit(1)
     console.print(
         "Migrate legacy docs with [cyan]sq --at <date> create …[/cyan] to preserve history; "
@@ -699,10 +687,8 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
 
         def node(tn: TreeNode) -> dict[str, Any]:
             it = tn.item
-            # `anchor` is additive, and deliberately asymmetric with `path_only`, which is not
-            # on the wire and is not being put there as a rider. The disclosure a fabricated
-            # root needs stands on its own for a JSON consumer: without this field the
-            # consumer cannot tell an invented root from one somebody wrote.
+            # `anchor` is additive and not mirrored by `path_only`, which stays off the wire:
+            # without it a JSON consumer cannot tell an invented root from a written one.
             return build_item_row_json(
                 ItemRowFields(
                     id=it.id,
@@ -763,11 +749,8 @@ async def repair(
     console.print(f"rebuilt index: {len(result.db.items)} items, counter={result.db.counter}")
     notice = result.strip_notice()
     if notice:
-        # Announced, not prevented: repair's advertised job is the index, and the sweep also
-        # rewrites content. Saying so here is what makes the resulting diff stated rather
-        # than discovered by an operator who ran this to reconcile an index. The sentence
-        # itself comes from the result so `sq migrate up`, which reaches the same sweep,
-        # prints the same one.
+        # Repair's advertised job is the index but the sweep also rewrites content, so say so.
+        # The sentence comes from the result so `sq migrate up` prints the same one.
         console.print(notice, soft_wrap=True)
     for mid in result.missing_ids:
         console.print(
@@ -828,13 +811,11 @@ async def renumber(
 
 
 def _empty_result_note(empty: str, unreadable: UnreadableItems) -> str:
-    """The human-mode line for an empty result — *empty* when the corpus was fully read, an
-    explicitly partial one when it was not.
+    """The human-mode line for an empty result: empty if fully read, explicitly partial if not.
 
-    "no matches" is a claim about the corpus, and on a degraded read the command has not seen
-    the whole corpus, so it is not in a position to make it. The named files follow immediately
-    below either way, but the headline is what a reader acts on, and a confident negative is
-    the one shape that stops them looking further.
+    "no matches" is a claim about the whole corpus, which a degraded read has not seen, and a
+    confident negative is what stops a reader looking further. The named files follow either
+    way.
     """
     if not unreadable:
         return empty
@@ -982,15 +963,11 @@ async def blocked(
 
 
 def _graph_edge_label(edge_kind: str, edge_semantic: str | None, direction: str) -> str:
-    """Return the human-readable branch label for a graph edge.
+    """The human-readable branch label for a graph edge.
 
-    Branches on ``edge_semantic``, never ``edge_kind`` — the declared kind's spelling is
-    display-only. A ``"dependency"``-semantic edge is surfaced as a two-way binding:
-
-    - ``direction="out"`` → the expanded node depends on the child → ``"depends on"``
-    - ``direction="in"``  → the child depends on the expanded node → ``"required by"``
-
-    Every other (navigational) kind shows its own declared key verbatim (e.g. ``"related"``,
+    Branches on ``edge_semantic``, never ``edge_kind``, whose spelling is display-only. A
+    ``"dependency"`` edge reads ``"depends on"`` for ``direction="out"`` and ``"required by"`` for
+    ``direction="in"``; any other kind shows its declared key verbatim (``"related"``,
     ``"fixes"``).
     """
     if edge_semantic == "dependency":
@@ -1513,24 +1490,14 @@ async def check(
     sp = resolve(client_cwd=ctx.client_cwd)
     workflow_issues: list[CheckIssue] = []
 
-    # Open the service the normal way (``open_service``, which merges any override and runs
-    # the live-index cross-check). This IS the ground truth for "does the workflow config
-    # actually load" — unlike scanning `sq workflow lint`'s findings for any error level, it
-    # cannot be tripped by a finding (e.g. the stamp obligation) that is deliberately reported
-    # rather than load-blocking. Only a genuine load failure falls back, so the remaining checks
-    # (marker scan, dangling links, etc.) still run. The stamp finding reaches the issue list on
-    # its own through the override walk, so a config that loads is never also reported as invalid.
-    #
-    # Which mode the fallback composes in is `check_fallback`'s table: a broken playbook keeps the
-    # merged workflow spec (the playbook is what failed, and falling back to the bundled spec
-    # would make any item of a project-declared type look undeclared and drown the real finding
-    # in a false corpus error), and anything else falls back to the bundled spec. The playbook
-    # finding is worded apart from the workflow one: `sq workflow lint` does not read the
-    # playbook and no command lints it, so it names the loader's violation and the file.
+    # `open_service` is the ground truth for "does the workflow config load": unlike a lint
+    # finding it is not tripped by one reported without blocking load (the stamp obligation,
+    # which reaches the issue list through the override walk). Only a load failure falls back.
     try:
         svc = get_service()
     except SquadsError as exc:
         if isinstance(exc, PlaybookConfigError):
+            # No command lints the playbook, so name the loader's violation and the file.
             workflow_issues.append(
                 CheckIssue("error", "playbook", f"playbook config invalid: {exc}", "playbook_loads")
             )
@@ -1543,6 +1510,8 @@ async def check(
                     "workflow_loads",
                 )
             )
+        # `check_fallback`'s table: a broken playbook keeps the merged workflow spec (the
+        # bundled one would make project-declared types look undeclared); else bundled.
         svc = compose_service(
             sp,
             check_fallback(exc),
@@ -1550,14 +1519,10 @@ async def check(
             sources=common.invocation_sources(sp.squad_dir),
         )
 
-    # The corpus scan runs against whichever spec survived above, and that spec may be unable to
-    # load the index at all: both fallbacks can land on a spec that does not declare a type the
-    # board still carries (both overrides broken, or a workflow override that drops a type with
-    # live items — the latter reachable with no playbook override in play). Letting that propagate
-    # discards every config finding collected above and prints one unrelated corpus error in their
-    # place, which is the failure mode this command exists to avoid: a reporter that stops at the
-    # first problem fails exactly when it is needed most. So the scan's own failure becomes its
-    # own finding and the collected ones still print — report and stop, never report nothing.
+    # The surviving spec may be unable to load the index: a fallback can land on a spec that
+    # does not declare a type the board still carries (both overrides broken, or a workflow
+    # override dropping a type with live items). Propagating that would discard the config
+    # findings collected above, so the scan's own failure becomes a finding and they still print.
     collected: list[CheckIssue] = list(workflow_issues)
     try:
         collected += await svc.check()

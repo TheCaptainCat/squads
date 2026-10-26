@@ -1,8 +1,6 @@
-"""The nested ``extra`` mapping that item files carried before the frontmatter was flat.
-
-A runner for an earlier schema reads and writes the old file shape, so it reaches for the block
-through these helpers. The current model keeps an ``extra`` key as an ordinary attribute named
-``extra``, which is how the old shape loads.
+"""The nested ``extra`` mapping that item files carried before the frontmatter was flat. A runner
+for an earlier schema reads and writes the old file shape through these helpers; the current model
+keeps ``extra`` as an ordinary attribute, which is how the old shape loads.
 """
 
 from typing import Any, cast

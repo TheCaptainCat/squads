@@ -4,17 +4,16 @@
 
 ## Mission
 
-{{ source.mission or "_TODO: describe this role's mission._" }}
+{{ source.mission }}
 
+{% if source.responsibilities %}
 ## Responsibilities
 
 {% for r in source.responsibilities %}
 - {{ r }}
 {% endfor %}
-{% if not source.responsibilities %}
-- _TODO: list responsibilities._
-{% endif %}
 
+{% endif %}
 ## Working agreements
 
 Operate as **{{ source.full_name }}** for the duration of the conversation.

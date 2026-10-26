@@ -17,16 +17,13 @@ _DEFAULT_BADGE = "⚪"
 def resolve_badges(
     spec: WorkflowSpec, type_or_kind: str, badge_value: Callable[[str], str | None]
 ) -> dict[str, str]:
-    """Every declared badge field *type_or_kind* carries, resolved generically — the
-    type/sub-entity-kind's actual axes (e.g. a custom impact/urgency pair) rather than the
-    fixed ``priority``/``severity`` attributes, keyed by field code, non-null values only.
+    """Every declared badge field *type_or_kind* carries, keyed by field code, non-null values only.
 
-    ``badge_value`` is the entity's own getter (``Item.badge_value`` / ``SubEntity.badge_value``)
-    so this stays agnostic of which model it's resolving for — an item or a sub-entity.
-
-    This is the shape ``sq graph --json`` already ships (``GraphNode.badges``); every other
-    item-bearing ``--json`` surface (``tree``/``list``/``show`` + its ``subentities``) reuses it
-    rather than re-deriving the same map.
+    Generic over the type's or kind's actual axes (e.g. a custom impact/urgency pair), not a
+    fixed ``priority``/``severity``. ``badge_value`` is the entity's own getter
+    (``Item.badge_value``/``SubEntity.badge_value``), so it serves items and sub-entities alike. It
+    is the map ``sq graph --json`` ships as ``GraphNode.badges`` and every other item-bearing
+    ``--json`` surface reuses.
     """
     return {
         f.code: value
@@ -36,18 +33,12 @@ def resolve_badges(
 
 
 def first_ordered_field(spec: WorkflowSpec) -> Field | None:
-    """The first declared field — scanned across every non-roster type in declaration order
-    (``ItemSpec.order``, type name), not just one arbitrary type — whose bound collection is
-    ``ordered`` (squads' own "priority" axis is the bundled example, but this is generic over
-    whatever axis a project's spec marks ordered).
+    """The first declared field, across every non-roster type, whose collection is ``ordered``.
 
-    Generated prose that wants to teach "the ordered axis" (e.g. the squads skill's
-    ``--priority`` line) must not probe a single hardcoded type for it: dropping that one
-    type would silently delete the axis from the prose even though every other type still
-    declares the identical field. Scanning every type instead means the axis survives as
-    long as *any* surviving type carries it.
-
-    Returns ``None`` when no non-roster type declares an ordered-collection field at all.
+    Types are scanned in declaration order (``ItemSpec.order``, type name); squads' "priority" is
+    the bundled example. Generated prose that teaches "the ordered axis" (the squads skill's
+    ``--priority`` line) must not probe one hardcoded type: dropping it would delete the axis from
+    the prose while other types still declare it. ``None`` when no non-roster type declares one.
     """
     for item_type in sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t)):
         for f in spec.fields_for(item_type):
@@ -70,42 +61,36 @@ def status_badge(status_value: str, spec: WorkflowSpec) -> str:
 
 
 def primary_field_code(kind: str, spec: WorkflowSpec, *, default: str = "severity") -> str:
-    """The first field a sub-entity *kind* (or item type) declares — the axis an item template
-    shows beside its sub-entity container (e.g. review's finding severity legend/example).
+    """The first field a sub-entity *kind* (or item type) declares, shown beside its container.
 
-    Templates must not hardcode which field code that is (``'severity'``): a spec that relabels
-    or replaces the kind's field (e.g. ``finding`` → ``impact``) still has SOME declared field,
-    and this is it. Falls back to *default* only when the kind declares no field at all — the
-    same graceful posture as :func:`field_label`/:func:`field_default`, so a spec that dropped
-    the field entirely still renders something rather than crashing the template.
+    Templates must not hardcode the code (``'severity'``): a spec that replaces the kind's field
+    (``finding`` to ``impact``) still has a first field. Falls back to *default* only when the
+    kind declares none, as :func:`field_label`/:func:`field_default` do, so the template still
+    renders.
     """
     fields = spec.fields_for(kind)
     return fields[0].code if fields else default
 
 
 def declared_collection(type_or_kind: str, field_code: str, spec: WorkflowSpec) -> str | None:
-    """The collection code *type_or_kind* binds *field_code* to, or ``None`` when it declares
-    no such field — the **strict** resolver, with no same-name fallback.
+    """The collection code *type_or_kind* binds *field_code* to, or ``None``: the strict resolver.
 
-    This is the one to call when the answer decides whether a surface is *offered* or a value
-    is *accepted*. :func:`resolve_collection`'s fallback exists for rendering a value that is
-    already stored, and using it for a decision instead advertises a flag that can only ever
-    error: a type declaring only ``urgency`` "resolves" ``priority`` to the same-named bundled
-    collection, so the CLI offers ``--priority urgent|high|medium|low`` on a type whose own
-    service gate refuses every one of those codes.
+    There is no same-name fallback. Use it when the answer decides whether a surface is offered or
+    a value accepted: :func:`resolve_collection`'s fallback is for rendering stored values, and
+    deciding with it would advertise a flag that can only error (a type declaring only ``urgency``
+    would "resolve" ``priority`` to the bundled collection, and the CLI would offer ``--priority``
+    while the service gate refuses every code).
     """
     field = next((f for f in spec.fields_for(type_or_kind) if f.code == field_code), None)
     return field.collection if field else None
 
 
 def field_badge_codes(field_code: str, spec: WorkflowSpec) -> list[str]:
-    """Every badge code any declared non-roster type's binding of *field_code* accepts, in
-    type-declaration order, de-duplicated.
+    """Every badge code any declared non-roster type's binding of *field_code* accepts.
 
-    The vocabulary for a **cross-type** door — ``sq list``/``tree``'s ``--priority`` filter
-    runs over every type at once, so no single type's bound collection is the right authority
-    and the bundled ``priority`` collection is merely one of them. Returns ``[]`` when no
-    declared type binds *field_code* at all.
+    In type-declaration order, de-duplicated; ``[]`` when no type binds the field. It is the
+    vocabulary for a cross-type door, such as the ``--priority`` filter of ``sq list``/``tree``,
+    where no single type's collection is the authority.
     """
     codes: list[str] = []
     for item_type in sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t)):
@@ -120,15 +105,12 @@ def field_badge_codes(field_code: str, spec: WorkflowSpec) -> list[str]:
 def resolve_collection(type_or_kind: str, field_code: str, spec: WorkflowSpec) -> str:
     """The collection code a declared field is bound to (``fields_for(type_or_kind)``).
 
-    Falls back to *field_code* itself when the field isn't declared (graceful — e.g. a
-    dropped/renamed field, or a frozen migration-era call with no live field to resolve) so
-    the bundled ``priority``/``severity`` fields (whose code equals their collection code)
-    keep working with no spec in hand.
-
-    **Rendering only.** The fallback makes an already-stored value keep rendering after its
-    field is dropped or renamed; it must never decide whether a flag is advertised or a value
-    is valid, because a same-named collection then answers for a field the type does not
-    declare. Use :func:`declared_collection` for any of those decisions.
+    Falls back to *field_code* itself when the field is not declared (a dropped or renamed field,
+    or a frozen migration-era call), so the bundled ``priority``/``severity`` fields keep working
+    with no spec in hand. Rendering only: the fallback keeps a stored value rendering after its
+    field is dropped, and must never decide whether a flag is advertised or a value valid, since a
+    same-named collection would answer for an undeclared field. Use :func:`declared_collection`
+    for those.
     """
     return declared_collection(type_or_kind, field_code, spec) or field_code
 
@@ -145,14 +127,12 @@ def field_label(kind: str, field_code: str, spec: WorkflowSpec) -> str:
 
 
 def field_default(kind: str, field_code: str, spec: WorkflowSpec) -> str | None:
-    """A valid example/fallback value for *field_code* on *kind*.
+    """A valid example or fallback value for *field_code* on *kind*.
 
-    The field's own ``default``, else its bound collection's ``default``, else the collection's
-    first badge. Mirrors ``Service.field_default`` (the add-<kind> CLI's own omitted-flag
-    fallback) so a template hint shows the same value the CLI would actually apply. Falls back
-    to resolving *field_code* directly as a collection code when the field itself isn't
-    declared (mirrors :func:`resolve_collection`'s fallback), so a dropped/renamed field with a
-    same-named collection still yields a usable example.
+    The field's own ``default``, else its collection's ``default``, else the collection's first
+    badge, as ``Service.field_default`` (the add-<kind> CLI's omitted-flag fallback) gives, so a
+    template hint shows the value the CLI would apply. An undeclared field is resolved directly as a
+    collection code, as in :func:`resolve_collection`.
     """
     field = next((f for f in spec.fields_for(kind) if f.code == field_code), None)
     if field and field.default:
@@ -192,13 +172,12 @@ def badge_parts(collection_code: str, code: str, spec: WorkflowSpec) -> tuple[st
 def badge_render(
     collection_code: str, code: str, spec: WorkflowSpec, *, as_label: bool = False
 ) -> str:
-    """One generic badge renderer for every flat presentation axis (priority/severity/…).
+    """One badge renderer for every flat presentation axis (priority, severity, …).
 
-    ``as_label=False`` (the default) renders ``emoji + raw code`` — the list/panel/summary
-    convention. ``as_label=True`` renders ``emoji + Title-case label`` — the head/pane-title
-    convention. Resolves from *collection_code* in the given (or bundled, or active) spec via
-    :func:`badge_parts`; a missing collection/badge degrades gracefully rather than crashing
-    (mirrors :func:`status_badge`).
+    ``as_label=False`` renders emoji plus raw code (list/panel/summary); ``as_label=True`` emoji
+    plus Title-case label (head/pane title). It resolves *collection_code* in the given, bundled
+    or active spec via :func:`badge_parts`, and degrades on a missing collection or badge rather
+    than crashing, like :func:`status_badge`.
     """
     emoji, raw_code, label = badge_parts(collection_code, code, spec)
     text = label if as_label else raw_code

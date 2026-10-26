@@ -1,42 +1,36 @@
-"""Load and validate the bundled role catalog, merging a project's whole-document
-``.overrides/roles.toml`` override — the fourth spec override document, on the same shape as
-the workflow and playbook loaders.
+"""Load and validate the bundled role catalog, merging a project's ``.overrides/roles.toml``.
 
-``load_role_catalog(squad_dir=None)`` is the single entry point. With no *squad_dir* it reads
-``roles.toml`` from the ``squads._specs`` package via ``importlib.resources`` (offline, no
-filesystem assumption), parses with stdlib ``tomllib``, constructs the pydantic models, runs
-fail-closed validation, and returns a ``RoleCatalogSpec``. A corrupt or invalid bundled catalog
-raises ``SquadsError`` — fail closed.
+That is the fourth spec override document, shaped like the workflow and playbook loaders.
+``load_role_catalog(squad_dir=None)`` is the single entry point. Without *squad_dir* it reads
+``roles.toml`` from the ``squads._specs`` package (``importlib.resources``, parsed with
+``tomllib``), builds the pydantic models, validates fail-closed and returns a
+``RoleCatalogSpec``; a corrupt bundled catalog raises ``SquadsError``.
 
-With a *squad_dir* given, ``<squad_dir>/.overrides/roles.toml`` — when present — is merged over
-the bundled default via the shared, loader-agnostic engine (``squads._specmerge``), entirely at
-the **raw parsed-TOML mapping** layer, before any model is built: splat-refs resolve against the
-bundled mapping, the override deep-merges over it leaf-by-leaf, ``[selected]`` shrinks ``roles``
-and ``bundles`` to their surviving key set, and the document's top-level key space is closed to
-``{roles, bundles, templates, defaults}`` (plus the engine's own reserved ``selected``).
+With a *squad_dir*, ``<squad_dir>/.overrides/roles.toml``, when present, is merged over the
+bundled default by the shared engine ``squads._specmerge`` at the raw parsed-TOML layer,
+before any model is built: splat-refs resolve against the bundled mapping, the override
+deep-merges leaf by leaf, ``[selected]`` shrinks ``roles`` and ``bundles`` to the surviving
+keys, and the top-level key space is closed to ``{roles, bundles, templates, defaults}`` plus
+the engine's reserved ``selected``.
 
-**One shape adaptation, done here and nowhere else:** the bundled document declares ``roles`` as
-a TOML array of tables (``[[roles]]``) — a plain list, with no key of its own for the merge
-engine's field-wise dict-merge or ``[selected]`` deselect to operate on. Before either mapping
-ever reaches the engine, :func:`_keyed_for_merge` re-keys a present ``roles`` list by each
-entry's own ``slug`` field; :func:`_unkeyed_from_merge` turns the merged, slug-keyed table back
-into the plain list :func:`_build_catalog` expects, once merging is done. This is what lets a
-catalog-document ``[[roles]]`` entry field-merge onto its bundled counterpart by slug — the same
-field-wise behaviour a per-slug ``.overrides/roles/<slug>.toml`` file gets — and what lets
-``[selected].roles`` name a slug to drop. The engine itself stays entirely list-of-tables-blind;
-this reshaping is the loader's own job, mirroring how the playbook loader reshapes its raw
-mapping before merging (see ``_interactions._loader._base_raw_for``).
+One shape adaptation lives here and nowhere else. The bundled ``roles`` is a TOML array of
+tables (``[[roles]]``), a plain list with no key for the engine's field-wise merge or
+``[selected]`` to act on. Before either mapping reaches the engine, :func:`_keyed_for_merge`
+re-keys a present ``roles`` list by each entry's ``slug``, and :func:`_unkeyed_from_merge`
+turns the merged table back into the list :func:`_build_catalog` expects. That lets a
+catalog-document ``[[roles]]`` entry field-merge onto its bundled counterpart by slug, as a
+per-slug ``.overrides/roles/<slug>.toml`` file does, and lets ``[selected].roles`` drop a
+slug. The engine stays list-of-tables-blind, as the playbook loader's reshaping
+(``_interactions._loader._base_raw_for``) keeps it.
 
-**Precedence: bundled base, then the catalog document, then a per-slug
-``.overrides/roles/<slug>.toml`` file** — most specific last, the same direction template
-resolution already runs. This module resolves only the first two layers; the per-slug layer is
-layered on top by :mod:`squads._roles._resolver`, which threads *squad_dir* into every role
-resolution and so picks up a catalog-document change with no call-site changes of its own.
+Precedence, most specific last: bundled base, then the catalog document, then a per-slug file.
+This module resolves the first two; :mod:`squads._roles._resolver` layers the per-slug file
+and threads *squad_dir* into every resolution, so a catalog-document change needs no
+call-site change.
 
-``[bundles]`` and ``[templates]`` are ordinary dict-shaped tables and need no reshaping: a bundle
-or template name the override declares replaces its bundled counterpart field-wise, and a new
-name is simply added. Both are keyed collections, so ``[selected]`` can drop a name from either.
-A legacy ``[dev]`` table is refused with the rename to ``[templates.dev]``.
+``[bundles]`` and ``[templates]`` are dict-shaped and need no reshaping: a declared name
+replaces its bundled counterpart field-wise, a new name is added, and ``[selected]`` can drop
+either. A legacy ``[dev]`` table is refused with the rename to ``[templates.dev]``.
 """
 
 import re
@@ -187,29 +181,23 @@ def bundled_roles_raw() -> RawMapping:
 def load_role_catalog(
     squad_dir: Path | None = None, files: OverrideFiles | None = None
 ) -> RoleCatalogSpec:
-    """Read, parse, merge (if a project catalog-document override is present), validate, and
-    return the role catalog.
+    """Read, parse, merge (if a project override is present), validate and return the catalog.
 
-    With *squad_dir* ``None`` (the module-level singleton's own call) or
-    ``<squad_dir>/.overrides/roles.toml`` absent, this builds the catalog straight from the
-    bundled raw mapping — byte-identical to today's bundled-only load.
+    With *squad_dir* ``None`` (the module-level singleton's call) or no
+    ``<squad_dir>/.overrides/roles.toml``, it builds from the bundled raw mapping. With the file,
+    the override is merged over it first (shared engine, fail-fast: ``SquadsError`` on the first
+    violation), then the merged mapping is built and validated as the bundled one is, including
+    :func:`_validate`'s referential and floor checks (bundle integrity, at-most-one-default),
+    which is why a ``[selected]`` deselect that empties a bundle or removes the default agent
+    needs no guard of its own.
 
-    When the override file is present, it is merged over the bundled raw mapping first (shared
-    engine, fail-fast — raises ``SquadsError`` on the first violation), then the merged mapping
-    is built and validated exactly as the bundled-only path validates the bundled mapping —
-    including the referential/floor checks in :func:`_validate` (bundle referential integrity,
-    at-most-one-default), which is what makes a ``[selected]`` deselect that empties a bundle or
-    removes the default agent fail with no deselect-specific guard of its own.
+    It is called once in ``_catalog.py`` (no *squad_dir*) for the bundled singleton, and
+    per request wherever a squad's catalog is needed, chiefly :mod:`squads._roles._resolver`,
+    which layers a per-slug file on top.
 
-    Called once at module level in ``_catalog.py`` (no *squad_dir*) to build the bundled
-    singleton, and per-request wherever a squad's own catalog is needed — most directly by
-    :mod:`squads._roles._resolver`, which layers a per-slug file on top of whatever this
-    returns. Raises ``SquadsError`` on any violation.
-
-    A validation failure is reported against whichever document is actually at fault: the
-    bundled catalog when no project override was merged in, or the override file by path when
-    one was — never the other way around, so a refusal never asserts a cause the reader can
-    open the named file and disprove (see :func:`_catalog_error_prefix`).
+    A validation failure is reported against the document actually at fault: the bundled catalog
+    when no override was merged, else the override file by path, so a refusal never asserts a
+    cause the reader can disprove by opening the named file (see :func:`_catalog_error_prefix`).
     """
     raw = _bundled_raw()
     loaded = load_override(_DOCUMENT, squad_dir, lambda: raw, files)
@@ -223,12 +211,10 @@ def load_role_catalog(
 def _catalog_error_prefix(origin: str | None) -> str:
     """The role-catalog validation-error prefix, naming the document actually at fault.
 
-    ``origin`` is ``None`` on the bundled-only path (no *squad_dir*, or no override file
-    present) — the only case in which "bundled" is a claim the reader can verify by opening
-    the shipped ``roles.toml``. Once a project override has been merged in, every failure is
-    reported against *that* file by path instead: the merged mapping is what actually failed
-    to validate, and the bundled document alone may be perfectly valid (a ``[selected]``
-    deselect is the common case — see :func:`_check_bundles`'s hint).
+    ``origin`` is ``None`` on the bundled-only path, the one case where "bundled" is a claim the
+    reader can verify in the shipped ``roles.toml``. Once an override is merged, every failure is
+    reported against that file by path: the merged mapping failed, and the bundled document alone
+    may be valid (a ``[selected]`` deselect is the usual cause; see :func:`_check_bundles`).
     """
     if origin is None:
         return "Invalid bundled role catalog"

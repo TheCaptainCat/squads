@@ -120,11 +120,9 @@ async def migrate_up():
     notice = run.repair.strip_notice() if run.repair else None
     if notice:
         console.print(notice, soft_wrap=True)
-    # The same sweep's third channel: a file that could not be read or parsed during the
-    # rebuild. `sq repair` reports this at error level and exits 1 for the identical input
-    # (`_cli/_main.py`'s `repair` command); the exit check just below already includes
-    # `unreadable`, so printing nothing here would leave an operator with a failing exit
-    # code and no stated cause — the one combination this route must not produce.
+    # Files that could not be read or parsed during the rebuild, reported as `sq repair`
+    # does. The exit check below includes them, so printing nothing would leave a failing
+    # exit code with no stated cause.
     for msg in run.repair.unreadable if run.repair else []:
         console.print(common.unreadable_report(msg), soft_wrap=True)
     if any(m.manual for m in applied):
@@ -133,13 +131,9 @@ async def migrate_up():
             f"[yellow]manual steps remain[/yellow] — read them with `sq migrate chlog {span}`",
             soft_wrap=True,
         )
-    # Same condition `sq repair` itself exits 1 for (`_cli/_main.py`'s `repair` command,
-    # `if result.unreadable`) — this command's trailing repair is the same rebuild over the
-    # same corpus, so a caller gating on `$?` must see the same partial-vs-clean answer
-    # whichever of the two verbs it ran. Never true when `applied` is empty (this function
-    # already returned above); the loop above already reports every `unreadable` message this
-    # condition can fire on. The body-tag-convergence sweep is strict unconditionally and has
-    # no skip channel of its own to gate on.
+    # The condition `sq repair` exits 1 for: the trailing repair is the same rebuild, so a
+    # caller gating on `$?` gets the same partial-vs-clean answer from either verb. The
+    # body-tag-convergence sweep is strict and has no skip channel to gate on.
     if run.repair and run.repair.unreadable:
         raise typer.Exit(1)
 
@@ -261,19 +255,13 @@ def _parse_span(span: str) -> tuple[str, str]:
 
 
 def _manual_chlog_span(applied: list[Migration]) -> str:
-    """The release span guaranteed to hold every migration in ``applied`` under
-    ``migrate_chlog``'s ``lo < version <= hi`` filter.
+    """The release span ``(lo, hi]`` holding every migration in ``applied``, for ``migrate_chlog``.
 
-    Derived from ``applied`` and the ordered :data:`MIGRATIONS` registry, so the span is never
-    structurally empty (the filter is open at ``lo``).
-
-    ``hi`` is the last applied migration's own version — ``applied`` is a suffix of
-    ``MIGRATIONS`` in registry (chronological) order, per ``run_pending_migrations``. ``lo``
-    is the version of the registry entry immediately preceding the first applied one, so that
-    entry is the sole thing excluded and every applied entry lands inside ``(lo, hi]``. When
-    the first applied migration is ``MIGRATIONS[0]`` there is no preceding entry, so ``lo``
-    falls back to ``"0"`` — a sentinel ``_parse_span``/``version_tuple`` both accept and that
-    sorts below every real release version.
+    ``hi`` is the last applied migration's version (``applied`` is a suffix of ``MIGRATIONS``, in
+    registry order). ``lo`` is the version of the entry just before the first applied one, so the
+    open-at-``lo`` filter never yields an empty span; when the first applied migration is
+    ``MIGRATIONS[0]``, ``lo`` is ``"0"``, which ``_parse_span``/``version_tuple`` accept and which
+    sorts below every release.
     """
     hi = applied[-1].version
     first_index = MIGRATIONS.index(applied[0])

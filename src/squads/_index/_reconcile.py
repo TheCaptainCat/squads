@@ -1,15 +1,12 @@
-"""Rebuild the index from the item files alone, before any migration runner reads it.
-
-The routine resolves no vocabulary, and nothing declared reaches it. With a readable previous
-index a file is the squad's item only where the index keeps items of its prefix: a *location*
-is the directory and file-name prefix of an entry's recorded path, and nothing outside a
-location's directory is opened, indexed, reported, counted or written. With no readable previous
-index there are no locations, so the tree is walked and every file with an item's name and a
-well-formed ``id`` is recognised. It carries forward and never fabricates: a file's own
-frontmatter replaces its entry, a file with no entry gains one, an entry whose file is gone is
-dropped and named, and a file it cannot index leaves its previous entry as it was. It builds the
-index and reports; it refuses nothing and writes no markdown file, and the caller decides
-whether the built index is kept.
+"""Rebuild the index from the item files alone, before any migration runner reads it. It resolves no
+vocabulary. With a readable previous index a file is the squad's item only where that index keeps
+items of its prefix: a *location* is the directory and file-name prefix of an entry's recorded path,
+and nothing outside a location's directory is opened, indexed, reported, counted or written; with
+none, the tree is walked and every file with an item's name and a well-formed ``id`` is recognised.
+It carries forward and never fabricates (a file's frontmatter replaces its entry, a file with no
+entry gains one, an entry whose file is gone is dropped and named, an unindexable file keeps its
+previous entry), refuses nothing, and writes no markdown; the caller decides whether the built index
+is kept.
 """
 
 import os
@@ -32,10 +29,9 @@ from squads._models._item import (
 from squads._paths import number_for_id
 from squads._sections import split_frontmatter
 
-#: The shape of an item file name in the tree walk, which is the only place a prefix is read
-#: by pattern: ``<PREFIX>-<digits>-<slug>.md``, a prefix being hyphen-joined segments of letters,
-#: digits and underscores that each hold a character other than a digit, so the first segment of
-#: digits alone is the number even when the slug starts with digits.
+#: The item file name shape in the tree walk, the only place a prefix is read by pattern:
+#: ``<PREFIX>-<digits>-<slug>.md``, a prefix being hyphen-joined segments each holding a non-digit,
+#: so the first all-digit segment is the number even when the slug starts with digits.
 _SEGMENT = r"[A-Za-z0-9_]*[A-Za-z_][A-Za-z0-9_]*"
 _WALK_NAME_RE = re.compile(
     rf"^(?P<prefix>{_SEGMENT}(?:-{_SEGMENT})*)-(?P<digits>\d+)-(?P<slug>.+)\.md$"

@@ -17,19 +17,9 @@ from squads._models import _markers as markers
 
 _FRONTMATTER_RE = re.compile(r"^---\r?\n(.*?)\r?\n---(?:\r?\n)?", re.DOTALL)
 
-#: A well-formed sq marker comment, capturing its tag.
-#:
-#: The tag grammar is ``sq:`` + a word-character-initial run of word characters, ``:``
-#: separators and hyphens. ``\w`` is Unicode-aware and therefore case-blind, which is the whole
-#: point: a sub-entity region's tag embeds its ``local_id`` (``story:US<n>``, ``subtask:ST<n>``,
-#: ``finding:F<n>``), and every declared ``local_prefix`` — bundled or adopter-declared — is
-#: free to be uppercase or mixed-case. A lowercase-only class silently matched none of them, so
-#: every consumer of :func:`find_markers` went blind to every sub-entity marker in the corpus.
-#:
-#: It stays strict about *well-formedness*, which is the other half of the contract: the
-#: documentation placeholders that appear in agent-facing prose — ``<!-- sq:* -->`` in a role
-#: file, ``<!-- sq:… -->`` in this project's own marker-rejection error message — carry
-#: characters no real tag can contain and still do not lint as markers.
+#: A well-formed sq marker comment, capturing its tag. ``\w`` is case-blind on purpose: a
+#: sub-entity tag embeds its ``local_id`` (``story:US<n>``), whose prefix may be mixed-case.
+#: Prose placeholders (``<!-- sq:* -->``) hold characters no real tag can, so never match.
 MARKER_RE = re.compile(r"<!--\s*(sq:\w[\w:-]*)\s*-->")
 
 
@@ -37,13 +27,11 @@ MARKER_RE = re.compile(r"<!--\s*(sq:\w[\w:-]*)\s*-->")
 
 
 def split_frontmatter(text: str, *, source: str | None = None) -> tuple[dict[str, Any], str]:
-    """Return (frontmatter_dict, body). Empty dict if there is no frontmatter block.
+    """Return (frontmatter_dict, body); an empty dict if there is no frontmatter block.
 
-    Raises :class:`SquadsError` when the block between intact ``---`` delimiters is not
-    valid YAML — a hand-edit, an unresolved merge conflict, a file restored from a partial
-    patch. ``source`` names the offending file in that message when the caller has a path;
-    callers that only hold text (no path in scope) leave it unset and the message degrades
-    to the parse failure alone.
+    Raises :class:`SquadsError` when the block between intact ``---`` delimiters is not valid YAML
+    (a hand-edit, an unresolved merge conflict). *source* names the file in the message; a caller
+    holding only text leaves it unset and the message is the parse failure alone.
     """
     m = _FRONTMATTER_RE.match(text)
     if not m:
@@ -128,42 +116,32 @@ def with_discussion_region(text: str) -> str:
 def find_markers(text: str) -> list[str]:
     """All sq marker tags present (open and close), in file order, for lint/repair.
 
-    Matches *every* well-formed tag (:data:`MARKER_RE`) **wherever it appears**, including the
-    mixed-case sub-entity region tags (``sq:finding:F<n>:body``) that make up the bulk of the
-    markers in a real item file.
+    Matches every well-formed tag (:data:`MARKER_RE`) wherever it appears, including mixed-case
+    sub-entity tags (``sq:finding:F<n>:body``). Position is irrelevant: a tag in prose, wrapped in
+    backticks or inside a fenced code block is still matched, since backticks and fences sit
+    outside ``MARKER_RE``. The documented ``sq:*`` form is safe in prose only because ``*`` is not
+    in the tag's character class (word characters, ``:`` and ``-``); quoting a real tag
+    neutralises nothing.
 
-    **Position is irrelevant.** A reference "written in prose" is still matched as a real
-    marker: a bare well-formed tag matches, the identical tag wrapped in backticks matches, and
-    so does one inside a fenced code block — backticks and fences sit outside ``MARKER_RE`` in
-    both directions and neutralise nothing. What makes the documented ``sq:*`` form safe to write
-    in prose is the ``*`` alone, which is not in the tag's character class (word characters, ``:``
-    and ``-``); quoting a *real* tag leaves it fully matched.
-
-    **What keeps authored content free of live markers is a different mechanism**:
+    What keeps authored content free of live markers is
     :func:`~squads._services._base.reject_markers`, which every prose input entering a marker
-    region passes through before any write (ten call sites — item and sub-entity bodies, titles,
-    comment messages, and the importer's equivalents). It refuses marker-shaped text at the door,
-    and its own message says backtick-wrapping does not help.
-
-    The distinction is load-bearing rather than pedantic, and it is why this paragraph is here at
-    all: someone widening the sweep's frozen region-tag list
-    (:func:`~squads._services._maintenance._retired_region_tags`) reasons from the recorded
-    argument. "A quoted tag is not matched" invites the belief that a corpus is safe because its
-    authors quoted; it is safe because a guard refused it at the door. Those two readings agree
-    everywhere the guard runs and diverge exactly where it does not — a corpus adopted from
-    outside squads, whose files never passed through any write path.
+    region passes through before a write (item and sub-entity bodies, titles, comment messages and
+    the importer's equivalents); it refuses marker-shaped text and says backticks do not help. A
+    corpus is safe because that guard refused live markers at the door, not because authors
+    quoted them: a quoted tag is still matched here. The two diverge for a corpus adopted from
+    outside squads, whose files never passed through a write path, so anyone widening the sweep's
+    frozen region-tag list (:func:`~squads._services._maintenance._retired_region_tags`) must not
+    reason from "a quoted tag is not matched".
     """
     return MARKER_RE.findall(text)
 
 
 def iter_marker_spans(text: str) -> list[tuple[str, int, int]]:
-    """Every well-formed marker tag in *text*, in file order, as ``(tag, start, end)`` —
-    the positional counterpart to :func:`find_markers`.
+    """Every well-formed marker tag in *text*, in file order, as ``(tag, start, end)``.
 
-    For a caller that must substitute matches without re-scanning the substituted text (e.g.
-    read-time view-tag expansion): the spans are computed once, against *text* exactly as
-    given, so building the result from these positions — rather than re-matching after each
-    replacement — is what keeps a substitution from ever being scanned a second time.
+    The positional counterpart to :func:`find_markers`, for a caller that substitutes matches (such
+    as read-time view-tag expansion): the spans are computed once against *text* as given, so a
+    substitution is never scanned a second time.
     """
     return [(m.group(1), m.start(), m.end()) for m in MARKER_RE.finditer(text)]
 
@@ -207,15 +185,13 @@ def replace_section(text: str, tag: str, new_inner: str) -> str:
 
 
 def remove_section(text: str, tag: str) -> str:
-    """Excise a whole section: its open marker through the matching close marker, inclusive.
+    """Excise a whole section, its open marker through the matching close marker inclusive.
 
-    The complement to :func:`replace_section` — drops a scaffolded region wholesale (e.g. a
-    removed sub-entity block, whose nested ``:head``/``:body``/``:discussion`` sub-regions live
-    between the same open/close pair) rather than editing its inner content. Also absorbs a
-    single blank separator line immediately above the block, if present — every scaffolded block
-    owns the blank line *before* it (see ``templates/subentities/block.md.j2``), so without this
-    a removed middle block would leave a doubled blank line behind. Raises ``KeyError`` if the
-    section isn't present (mirrors :func:`get_section`/:func:`replace_section`).
+    The complement to :func:`replace_section`: it drops a scaffolded region wholesale (such as a
+    removed sub-entity block with its nested ``:head``/``:body``/``:discussion``). It also absorbs
+    the single blank separator line above the block, since every scaffolded block owns the blank
+    line before it (``templates/subentities/block.md.j2``), so a removed middle block leaves no
+    doubled blank. Raises ``KeyError`` if the section is absent, like :func:`get_section`.
     """
     o, c = markers.open_marker(tag), markers.close_marker(tag)
     oi = text.find(o)

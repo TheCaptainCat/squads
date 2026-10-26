@@ -84,28 +84,16 @@ def print_json_clean(s: str) -> None:
 
 
 def report_omissions(omissions: list[Omission], *, json_out: bool) -> None:
-    """The shared tail of every command in the partial-read class: name what a partial read
-    left out, then exit ``4`` — after the command's own results have already been printed.
+    """The shared tail of every partial-read command: name what the read left out, then exit ``4``.
 
-    One code path decides this for all five bound commands (``inbox``, ``search``,
-    ``board list``, ``memory list``, ``memory search``) so a listing added later inherits the
-    contract by calling this rather than by re-deriving it. A no-op — no output, no raise — when
-    *omissions* is empty, so a clean read is unaffected by this function ever having been called.
-
-    Human mode (``json_out=False``) keeps today's prose, one ``error: <message>`` line per
-    omission on stderr, unchanged from before this contract existed. ``--json`` mode instead
-    emits the omissions report: one compact line on stderr holding a single JSON object,
-    ``{"omitted": [{"code", "source", "message"}, ...]}``, written with plain ``print()`` (like
-    :func:`print_json_clean`) so no ANSI codes can land in it and a consumer can find it by "the
-    one line of stderr that parses as a JSON object" even with a prose co-tenant (the
-    ``sq sync`` version notice) also on the stream. The report replaces the human prose in
-    ``--json`` mode rather than accompanying it — the same fact twice on one stream is two
-    things to keep in agreement.
-
-    Exit code ``4`` means: the command did what was asked, stdout carries a valid payload in
-    its documented shape, and entries are missing. Callers only reach this function after
-    printing a successful result, so ``1``/``2``/``3`` (a prior ``SquadsError``, a usage error,
-    ``sq check`` findings) already outrank it by construction — they raise before this point.
+    Used by ``inbox``, ``search``, ``board list``, ``memory list`` and ``memory search`` after
+    their own results are printed; a no-op when *omissions* is empty. Human mode prints one
+    ``error: <message>`` line per omission on stderr. ``--json`` mode instead prints one compact
+    line of stderr holding ``{"omitted": [{"code", "source", "message"}, ...]}`` via plain
+    ``print()`` (no ANSI), so a consumer can find it as the one stderr line that parses as a JSON
+    object; it replaces the prose rather than accompanying it. Exit ``4`` means the command did
+    what was asked and stdout is a valid payload with entries missing; ``1``/``2``/``3`` raise
+    before this point and outrank it.
     """
     if not omissions:
         return
@@ -232,16 +220,12 @@ def set_active_spec(spec: WorkflowSpec | None) -> None:
 def get_active_spec() -> WorkflowSpec:
     """Return the per-invocation spec, or the bundled spec if none has been bound yet.
 
-    Raises ``SquadsError`` when the squad **has** a workflow override that failed to resolve
-    (``RequestContext.spec_error``). Answering from the bundled spec there would describe
-    vocabulary the project did not declare — the failure mode the hard-stop-at-load rule exists
-    to prevent — and the caller has no way to tell that answer apart from a correct one. Every
-    read surface that consults the spec therefore refuses with the *same* text
-    ``open_service`` raises (``_workflow._loader.spec_refusal``), rather than each deciding for
-    itself. ``sq workflow lint`` never calls this and never opens a service, which is what
-    keeps the diagnostic reachable while everything else is stopped; ``sq check`` and
-    ``sq repair`` take the refusal from ``open_service`` and degrade around it, reporting it
-    as a finding — reporting the failure is the contract, not dying on it.
+    Raises ``SquadsError`` when the squad has a workflow override that failed to resolve
+    (``RequestContext.spec_error``): the bundled spec would describe vocabulary the project did not
+    declare, indistinguishably from a correct answer. Every read surface refuses with the text
+    ``open_service`` raises (``_workflow._loader.spec_refusal``). ``sq workflow lint`` never calls
+    this, so the diagnostic stays reachable; ``sq check`` and ``sq repair`` take the refusal from
+    ``open_service`` and report it as a finding.
     """
     ctx = get_context()
     if ctx.spec_error is not None:
@@ -275,29 +259,15 @@ _RESOLVED_SPEC_META_KEY = "squads.resolved_spec_memo"
 
 
 def resolve_spec_for_ctx(ctx: Any) -> WorkflowSpec:
-    """Resolve the ``WorkflowSpec`` for the current Click context, on the completion/help
-    path where the root callback hasn't necessarily run yet.
+    """Resolve the spec for a Click context where the root callback may not have run.
 
-    Tries, in order:
+    Tries, in order: the already-bound spec (:func:`get_active_spec`); the squad found from the
+    root group's own ``-C`` values (``sq --help`` and shell completion walk the tree without
+    invoking the callback chain); the bundled spec. The disk read is memoised on the root context.
 
-    1. The already-bound per-invocation spec (:func:`get_active_spec`) — set by the root
-       callback's :func:`bind_active_spec`, and the fast path for ordinary subcommand dispatch
-       (the callback fires before subcommand resolution).
-    2. The squad found from the root group's own ``-C`` values, parsed before its callback
-       fires (covers ``sq --help`` and shell completion, where Click walks the command tree
-       via ``list_commands``/``get_command`` without ever invoking the callback chain).
-    3. The bundled spec, so a non-customized squad's ``--help``/completion stays
-       byte-identical to before this existed.
-
-    The disk read is memoised on the root context: one invocation reads it at most once.
-
-    Never raises — every resolution step is fail-soft, matching the two call sites this
-    consolidates (``_cli/__init__.py``'s ``_CustomTypeGroup`` and ``_cli/_create.py``'s
-    ``_CustomCreateGroup``). That stays true under a broken override: this function only ever
-    shapes ``--help`` text and the command table, and a *shell completion* that raised would
-    be a worse failure than one listing the built-in set. The refusal belongs to the surfaces
-    that answer questions about the squad — :func:`get_active_spec` and ``open_service`` — not
-    to the parser that decides whether a word is a command.
+    Never raises, even under a broken override: this only shapes help text and the command table,
+    and a completion that raised is worse than one listing the built-in set. The refusal belongs
+    to the answering surfaces, :func:`get_active_spec` and ``open_service``.
     """
     try:
         if ctx is None or _root_callback_ran(ctx):
@@ -342,16 +312,11 @@ def _read_spec_from_disk(ctx: Any) -> WorkflowSpec:
 
 
 def stale_static_aliases(spec: WorkflowSpec) -> frozenset[str]:
-    """Every statically-registered type alias whose owner type is still declared but no longer
-    declares that alias — a rename the static Click table never heard about.
+    """Static type aliases whose owner is still declared but no longer declares them.
 
-    A *dropped* owner type is deliberately excluded: its aliases keep dispatching, into the
-    canonical membership gate whose "unknown item type 'bug'" is the one refusal that owns the
-    dropped-type message, named by the type rather than by whichever alias was typed (see
-    ``_dropped_static_names``). Only the rename case has no such downstream answer.
-
-    Empty for every non-customized squad — the bundled arrangement is exactly "each owner
-    declares its own aliases".
+    That is a rename. A dropped owner type is excluded: its aliases keep dispatching into the
+    membership gate, whose "unknown item type" message names the type rather than the alias typed
+    (see ``_dropped_static_names``). Empty for a non-customized squad.
     """
     return frozenset(
         alias
@@ -361,24 +326,13 @@ def stale_static_aliases(spec: WorkflowSpec) -> frozenset[str]:
 
 
 def static_alias_is_stale(ctx: Any, cmd_name: str) -> bool:
-    """True when *cmd_name* is a statically-registered type ALIAS that the resolved active
-    spec no longer declares — the caller must then refuse to dispatch it.
+    """True when *cmd_name* is a static type alias the resolved spec no longer declares.
 
-    The root command table binds every bundled alias (``feat``/``f``/``t``/…) unconditionally
-    at import time, so an override that renames ``feature``'s aliases to ``["ft"]`` leaves
-    ``sq feat 9 show`` and ``sq f 9 show`` dispatching happily into the feature command tree
-    and exiting 0 — an alias the spec does not declare, answering as though it did.
-
-    Unlike a dropped *type name* (whose command is deliberately left reachable so the read
-    path's own "unknown item type" refusal fires — see ``_dropped_static_names``), a stale
-    alias has no accurate downstream refusal available: the type it routes to is usually
-    still perfectly valid, so every layer below answers as if nothing were wrong. The caller
-    substitutes :func:`stale_alias_command`, which supplies the missing refusal.
-
-    Only ever *narrows* dispatch for a squad whose override touched those aliases: the owner
-    type declaring the alias is the bundled arrangement, so a non-customized squad never takes
-    the refusal branch. Fail-soft — any spec-resolution error returns ``False`` (dispatch as
-    before), never a crash in ``--help``/completion.
+    The root table binds every bundled alias at import time, so after an override renames
+    ``feature``'s aliases, ``sq feat 9 show`` would still dispatch and exit 0. Unlike a dropped
+    type name, a stale alias has no accurate downstream refusal (its type is usually still
+    valid), so the caller substitutes :func:`stale_alias_command`. Any spec-resolution error
+    returns ``False``.
     """
     if reserved_alias_owner(cmd_name) is None:
         return False
@@ -390,17 +344,11 @@ def static_alias_is_stale(ctx: Any, cmd_name: str) -> bool:
 
 
 def stale_alias_command(ctx: Any, cmd_name: str) -> _click.Command:
-    """A one-off Click command that refuses a stale static alias, exit 1, naming the fix.
+    """A one-off Click command that refuses a stale static alias with exit 1, naming the fix.
 
-    Returning ``None`` from ``get_command`` instead would hand the refusal to Typer's own
-    unknown-command handler, whose did-you-mean is built from the *raw registered command
-    table* (``self.commands`` — not ``list_commands``, so no amount of hiding reaches it) and
-    therefore suggests the exact stale string the user just typed. Dispatching into a real
-    refusal is the same "advertise vs dispatch" split the dropped-type path already uses:
-    the command stays reachable precisely so the one accurate message is the one that fires.
-
-    Swallows every trailing token (``sq feat 9 show``) and its own ``--help``, so the refusal
-    is what the user sees regardless of how the stale alias was invoked.
+    Returning ``None`` from ``get_command`` would hand the refusal to Typer's did-you-mean, which is
+    built from the raw ``self.commands`` table and would suggest the stale string just typed. The
+    command swallows every trailing token and its own ``--help``.
     """
     owner = reserved_alias_owner(cmd_name) or ""
     try:
@@ -441,32 +389,18 @@ def stale_alias_command(ctx: Any, cmd_name: str) -> _click.Command:
 
 
 def bind_active_spec(client_cwd: Path | None) -> tuple[WorkflowSpec | None, str | None]:
-    """Resolve the WorkflowSpec for this invocation (does not bind it — the caller does, as
-    part of the single per-invocation ``RequestContext``).
+    """Resolve the spec for this invocation, merging the squad's override as ``open_service`` does.
 
-    Resolves and merges the squad-level workflow override (if present) exactly as
-    ``open_service`` does, so parse_type/parse_status and display helpers all see the
-    same spec. Returns ``(spec, spec_error)``:
+    Returns ``(spec, spec_error)`` without binding it; the caller binds it in the per-invocation
+    ``RequestContext``.
 
-    - **no squad / no override file** — ``(bundled spec, None)``, or ``(None, None)`` when
-      even ``resolve()`` failed. Both mean "use the bundled spec", which is the honest answer:
-      nothing was declared, so nothing is being substituted for.
-    - **an override file that will not load** — ``(None, refusal)``. This is *not* a fall back
-      to bundled. Falling soft here is what let ``sq workflow types/statuses/roles`` and the
-      cheatsheet exit 0 describing the bundled vocabulary — the project's own declared type
-      absent from all of them, with a client unable to detect it (exit 0, well-formed payload,
-      empty stderr) — while ``sq list`` beside them exited 1 naming the very same error.
-      A spec that fails to load is a hard stop at load, by rule: the type catalog is the only
-      honest answer to "what types do I have", and a catalog rendered from a spec the project
-      did not declare is not that answer.
+    - No squad or no override file: ``(bundled spec, None)``, or ``(None, None)`` when
+      ``resolve()`` itself failed; both mean "use the bundled spec".
+    - An override file that will not load: ``(None, refusal)``, never a fall back to bundled. A
+      catalog rendered from a spec the project did not declare is not an honest answer to "what
+      types do I have", and a client could not tell it apart from a correct one.
 
-    Lives here rather than in the root module so the two spec-resolution helpers sit
-    together and the dependency runs one way: ``_cli/__init__`` already imports this
-    module, and :func:`_pending_spec_error` needs the same resolution at the root group,
-    where the callback that would have bound it has not run yet.
-
-    ``client_cwd`` is threaded straight into ``resolve()``, so every spec-resolution path
-    agrees on its resolution base.
+    ``client_cwd`` goes straight to ``resolve()``, so every resolution path shares one base.
     """
     from squads._paths import resolve
     from squads._workflow import bundled_spec
@@ -496,19 +430,11 @@ def bind_active_spec(client_cwd: Path | None) -> tuple[WorkflowSpec | None, str 
 def _pending_spec_error(ctx: Any) -> str | None:
     """The workflow-override refusal in force for this invocation, or ``None``.
 
-    Reads the bound :class:`~squads._context.RequestContext` first — the root callback has
-    already resolved the override for every dispatch below the root group (``sq create
-    widget``), so that is the whole answer there and costs nothing.
-
-    At the *root* group it is not, and the ordering is the reason this helper exists: Click
-    resolves a subcommand name before invoking the group's own callback, so ``sq widget 19
-    show`` reaches ``get_command`` with nothing bound yet — the same "callback may not have run"
-    path :func:`resolve_spec_for_ctx` was written for. Only then is the override resolved here,
-    through :func:`bind_active_spec` itself rather than a second copy of its logic, so the refusal
-    text is the one every other surface prints and cannot drift from it.
-
-    Fail-soft throughout: a squad with no override, or one that cannot even be located, yields
-    ``None`` and the caller falls back to Click's own handling.
+    Reads the bound ``RequestContext`` first; below the root group the root callback has already
+    resolved it. At the root group Click resolves a subcommand name before the callback runs, so
+    ``sq widget 19 show`` reaches ``get_command`` with nothing bound: the override is then resolved
+    through :func:`bind_active_spec` itself, so the refusal text is the one every surface prints. A
+    squad with no override, or one that cannot be located, yields ``None``.
     """
     from squads._context import get_context
 
@@ -523,30 +449,15 @@ def _pending_spec_error(ctx: Any) -> str | None:
 
 
 def spec_error_command(cmd_name: str, ctx: Any = None) -> _click.Command | None:
-    """A refusal command for a name the parser cannot classify because the squad's workflow
-    override did not load — or ``None`` when the spec is fine and the name is simply unknown.
+    """A refusal command for a name the parser cannot classify because the override failed to load.
 
-    The command table was the last surface still answering from bundled vocabulary. Every
-    command that opens a service or reads the active spec refuses with the shared text, but a
-    name the static table does not carry was resolved against the *bundled* spec (the parser
-    must never raise, so :func:`resolve_spec_for_ctx` falls back), found absent, and handed to
-    Click — which exits 2 with ``No such command 'widget'``. For a squad whose own override
-    declares ``widget`` and whose board holds live ``WID-*`` items, that is not a degraded
-    answer but a wrong one: "no such command" is a claim about *this squad's* vocabulary, made
-    from a document this squad did not declare, and it points the adopter at their spelling
-    instead of at the file that failed to load.
-
-    So when — and only when — the override is known to have failed
-    (``RequestContext.spec_error``, set by the root callback), an unclassifiable name dispatches
-    into the same refusal ``sq list`` gives, at the same exit code. Same "advertise vs dispatch"
-    split :func:`stale_alias_command` uses, for the same reason: returning ``None`` hands the
-    answer to Click's unknown-command handler, whose did-you-mean is built from the raw static
-    table and would suggest a bundled type name in place of the adopter's own.
-
-    ``None`` whenever no refusal is in force, so a genuine typo on a healthy squad keeps
-    Click's "No such command" — the accurate answer *there*, and the reason this is not simply
-    a blanket refusal. See :func:`_pending_spec_error` for how the refusal is found at the root
-    group, where the callback that would have bound it has not run yet.
+    Returns ``None`` when the spec is fine. A name absent from the static table is checked
+    against the bundled spec (the parser must not raise); for a squad whose override declares
+    ``widget``, "No such command" would be a wrong claim about that squad's vocabulary. So when
+    the override is known to have failed (``RequestContext.spec_error``), the name dispatches
+    into the refusal ``sq list`` gives, at the same exit code, not to Click's did-you-mean, which
+    would suggest a bundled type. On a healthy squad a typo keeps Click's message. See
+    :func:`_pending_spec_error` for how the refusal is found at the root group.
     """
     message = _pending_spec_error(ctx)
     if message is None:
@@ -614,10 +525,13 @@ def message_option(help: str = PARAGRAPH_HELP) -> Any:
 #: The two `--file` wordings of the role verbs: a full definition to create a role from, and a
 #: field-wise delta to edit one with.
 ROLE_DEFINITION_FILE_HELP = (
-    "A role definition in the `.overrides/roles/<slug>.toml` grammar; flags win over it."
+    "A role definition in the `.overrides/roles/<slug>.toml` grammar; flags win over it. "
+    "The `responsibilities` and `agreements` lists are set only here."
 )
 ROLE_DELTA_FILE_HELP = (
-    "A definition delta in the `.overrides/roles/<slug>.toml` grammar, merged field by field."
+    "A definition delta in the `.overrides/roles/<slug>.toml` grammar, merged field by field. "
+    '`responsibilities` and `agreements` are set only here: `["$(*self)", "more"]` appends, '
+    "`[]` clears."
 )
 
 
@@ -744,15 +658,13 @@ def e(value: object) -> str:
 def view_disable_result_message(
     item_id: str, name: str, *, was_present: bool, changed: bool
 ) -> str:
-    """The ``view disable`` verb's one print line, worded for what actually happened rather
-    than a single static "disabled" for every ``changed=True`` outcome. ``disable_view`` is
-    ungated (any name, declared or not) and collapses three different prior shapes into one
-    write: a genuinely absent tag gets *placed*, freshly, disabled; an enabled tag gets *turned*
-    off; a conflicting pair *collapses* into the single disabled copy it settles on. Only the
-    first of those is not, in any sense, a disable — nothing was there to disable — so
-    ``was_present`` (read by the caller, via :meth:`~squads._services._views.ViewsMixin
-    .view_tag_present`, before the write that would change the answer) is what tells that shape
-    apart from the other two, which both still read as "disabled" correctly."""
+    """The one print line of ``view disable``, worded for what happened.
+
+    ``disable_view`` is ungated and writes one of three outcomes: a fresh disabled tag where none
+    was placed, an enabled tag turned off, or a conflicting pair collapsed to one disabled copy.
+    ``was_present`` (read before the write, via ``ViewsMixin.view_tag_present``) tells the first
+    apart, since nothing was there to disable.
+    """
     if not changed:
         return f"{item_id}: view {e(name)} already disabled, unchanged"
     if not was_present:
@@ -760,11 +672,8 @@ def view_disable_result_message(
     return f"{item_id}: view {e(name)} disabled in sq:body"
 
 
-#: Concrete `rich` colour per semantic colour intent (the closed palette declared as
-#: ``squads._workflow._models.COLOR_INTENTS``) — the CLI's own per-client rendering of the
-#: role's colour axis: colour is single-sourced as an intent in the spec, mapped to a
-#: concrete colour per client. A total map over the palette plus a ``"neutral"`` (no colour)
-#: entry that also serves as the fallback for any intent this build doesn't recognise.
+#: Concrete `rich` colour per colour intent in ``COLOR_INTENTS``: a total map plus a
+#: ``"neutral"`` entry that is also the fallback for an unrecognised intent.
 INTENT_COLORS: dict[str, str] = {
     "positive": "green",
     "danger": "red",
@@ -868,13 +777,11 @@ def print_comments(comments: list[discussion.Comment]) -> None:
 
 
 def _milestone_target_date_row(it: Item) -> str | None:
-    """The one-off panel row for a milestone's ``target_date``, or ``None`` when unset.
+    """The panel row for a milestone's ``target_date``, or ``None`` when unset.
 
-    Not a generic attributes-on-panel rendering — a type's declared `attributes`
-    (e.g. review's `target_ref`, guide's `tags`/`tech`) is a bare list of keys with no
-    declared label/formatting, so a generic renderer would need spec vocabulary this
-    codebase doesn't carry yet. `target_date` alone is worth the one-off: it is a
-    milestone's one distinguishing attribute and docs/workflow.md teaches setting it."""
+    A one-off: declared attributes carry no label or formatting in the spec, so a generic renderer
+    would need vocabulary the codebase does not have.
+    """
     if it.type != "milestone":
         return None
     target_date = it.attribute(AttributeKey.TARGET_DATE)
@@ -1041,15 +948,11 @@ def _render_body(body_text: str, *, styled: bool, empty_hint: str | None = None)
 
 
 def render_body_text(body_text: str, *, raw: bool = False, empty_hint: str | None = None) -> None:
-    """Render a body string to the console: styled Markdown on a TTY, plain otherwise.
+    """Render a body to the console: styled Markdown on a TTY, plain otherwise.
 
-    Computes the styled/plain decision via :func:`_is_styled` + ``raw``.  Use this from
-    role/skill/operator ``show`` commands; :func:`_print_item_content` uses :func:`_render_body`
-    directly with a pre-computed ``styled`` flag.
-    Always emits a leading blank line before the content.
-    Pass ``empty_hint`` to override the default empty-body hint (e.g. for groups without a
-    ``body`` verb — role/skill/operator bodies are template-managed, so ``sq sync`` is the
-    right pointer, not ``body``).
+    Always starts with a blank line. For role/skill/operator ``show``; item output passes a
+    precomputed ``styled`` flag to :func:`_render_body`. ``empty_hint`` overrides the empty-body
+    hint, e.g. ``sq sync`` for groups whose bodies are template-managed and have no ``body`` verb.
     """
     _render_body(body_text, styled=_is_styled() and not raw, empty_hint=empty_hint)
 
@@ -1144,13 +1047,11 @@ async def _raw_subentity_sections(svc: Service, it: Item) -> list[str]:
 
 
 async def _print_item_raw(svc: Service, it: Item, *, comments: bool, full: bool) -> None:
-    """The ``--raw`` dossier: a deterministic, markdown-preview-clean markdown document.
+    """The ``--raw`` dossier: a markdown document with no Rich chrome.
 
-    ``# TYPE-N — <title>``, a metadata bullet block, a blank line, then the body markdown
-    verbatim; ``--full`` appends one section per sub-entity, ``--comments`` appends a Discussion
-    section — zero Rich chrome (no box-panel header, no summary table, no ``=== … ===``
-    separators). Printed via a single ``console.print(..., markup=False, soft_wrap=True)`` so
-    nothing is escaped or reflowed (see the ``sq docs`` raw-markdown path for the same pattern).
+    ``# TYPE-N — <title>``, a metadata bullet block, then the body verbatim; ``--full`` appends one
+    section per sub-entity and ``--comments`` a Discussion section. Printed once with
+    ``markup=False, soft_wrap=True`` so nothing is escaped or reflowed.
     """
     lines = [
         f"# {it.id} — {it.title}",
@@ -1183,16 +1084,12 @@ async def print_item(
     comments: bool = False,
     full: bool = False,
 ) -> None:
-    """Render an item's metadata + body (for ``sq <type> <num> show``).
+    """Render an item's metadata and body for ``sq <type> <num> show``.
 
-    ``--raw`` renders the clean-markdown dossier (:func:`_print_item_raw`) — no Rich chrome at
-    all, suitable for piping straight into a markdown viewer. Any other invocation (TTY or
-    piped, styled or not) keeps the existing Rich panel + summary table rendering unchanged:
-    on a TTY (with color) the body is styled Rich Markdown, piped / ``NO_COLOR`` falls back to
-    plain text.
-    ``--comments`` appends the discussion as per-comment panes. ``--full`` adds one pane per
-    sub-entity (body, badges); combined with ``--comments`` each sub-entity pane embeds its own
-    comments and the main discussion closes the output.
+    ``--raw`` prints the clean-markdown dossier (:func:`_print_item_raw`); otherwise a Rich panel
+    and summary table, with the body as styled Markdown on a color TTY and plain text when piped
+    or under ``NO_COLOR``. ``--comments`` appends the discussion as per-comment panes; ``--full``
+    adds one pane per sub-entity, which embeds its own comments when combined with ``--comments``.
     """
     if raw:
         await _print_item_raw(svc, it, comments=comments, full=full)
@@ -1234,8 +1131,7 @@ def print_subentity(detail: SubentityDetail, kind: str) -> None:
     meta = [f"status: {e(info.status)}"]
     if info.assignee:
         meta.append(f"assignee: {e(info.assignee)}")
-    # Every declared field for this kind (severity today; any custom axis on a custom kind
-    # tomorrow) — not just the severity-only slot, so a custom badge field actually shows up.
+    # Every declared field for this kind, so a custom badge field shows up too.
     for field in get_active_spec().fields_for(kind):
         value = info.badge_value(field.code)
         if value:
@@ -1293,14 +1189,12 @@ def resolve_body(messages: list[str] | None, file: str | None) -> str:
 
 
 def resolve_comment_messages(messages: list[str] | None, file: str | None) -> list[str]:
-    """Comment content from repeatable -m messages or a --file path ('-' = stdin).
+    """Comment content from repeatable ``-m`` messages or a ``--file`` path (``-`` is stdin).
 
-    Mirrors resolve_body's mutual-exclusion and stdin/file handling via the same
-    :func:`_read_source_file`, but a file is exactly one comment — never joined or split — so
-    it comes back as a single-element list and ``format_comment`` renders it as one bullet
-    whose continuation lines carry the file verbatim (blank lines and fenced code blocks
-    included). An empty or whitespace-only file is refused outright rather than slipping
-    through as a blank bullet — unlike a body, a comment has no meaningful empty form.
+    Shares :func:`_read_source_file` and the mutual exclusion with ``resolve_body``, but a file is
+    exactly one comment, returned as a single-element list whose continuation lines carry the file
+    verbatim, blank lines and code fences included. An empty or whitespace-only file is refused,
+    since a comment has no meaningful empty form.
     """
     if messages and file:
         raise SquadsError("provide the comment via -m or --file, not both")
@@ -1339,12 +1233,11 @@ def build_item_row_json(
     anchor: bool = False,
     children: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """One row of ``sq tree --json``'s per-node shape: ``id``/``type``/``title``/``status``/
-    ``priority``/``assignee``/``blocked``/``badges``/``anchor``/``children`` — the one
-    definition ``sq tree``'s own node builder and a ``ref``/``subtree`` view's ``--json``
-    dispatch both build from, instead of two independently-typed field lists that could drift
-    apart. ``anchor``/``children`` default to the flat-record answer (no forced-root, no
-    nesting) — the right default for a source that resolved no hierarchy of its own."""
+    """One node of ``sq tree --json``, built by both ``sq tree`` and the ``--json`` of a view.
+
+    A ``ref``/``subtree`` view shares the field list so the two cannot drift. ``anchor`` and
+    ``children`` default to the flat-record answer (no forced root, no nesting).
+    """
     return {
         "id": fields.id,
         "type": fields.type,
@@ -1386,16 +1279,11 @@ def build_subentity_row_json(
 
 
 def build_subentity_json(spec: WorkflowSpec, kind: str, detail: SubentityDetail) -> dict[str, Any]:
-    """The one sub-entity JSON object shape — shared by each ``subentities`` entry in
-    :func:`build_item_json` and the standalone ``sq <type> <n> <kind> <k> show --json``
-    (:func:`squads._cli._items._register_sub_verbs`), so the two surfaces are built from one
-    path and cannot drift into two different shapes.
+    """The sub-entity JSON object, shared by ``build_item_json`` and a sub-entity ``show --json``.
 
-    Frontmatter fields (``local_id``/``title``/``status``/``assignee``/``severity``/
-    ``story``/``extra``) plus ``body``, the generic per-field ``badges`` map, and an additive
-    ``discussion`` array (ordered ``{author, author_slug, ts, edited_ts, hash, short_hash,
-    body}``, same shape/order as the item-level one) — generic across every sub-entity kind,
-    since sub-entity discussion is not per-kind.
+    Frontmatter fields (``local_id``/``title``/``status``/``assignee``/``severity``/``story``/
+    ``extra``), ``body``, the per-field ``badges`` map and a ``discussion`` array shaped like the
+    item-level one.
     """
     data: dict[str, Any] = json.loads(detail.info.model_dump_json())
     data["body"] = detail.body
@@ -1405,17 +1293,14 @@ def build_subentity_json(spec: WorkflowSpec, kind: str, detail: SubentityDetail)
 
 
 async def build_item_json(svc: Service, it: Item) -> str:
-    """The ``show --json`` payload: frontmatter fields plus body/discussion — additive only.
+    """The ``show --json`` payload: frontmatter fields plus additive keys.
 
-    Adds top-level ``body`` (the stored body markdown, view tags left as tags), ``views`` (the
-    transform output of each placed, enabled view that declares one, keyed by view name),
-    ``discussion`` (ordered ``{author, author_slug,
-    ts, edited_ts, hash, short_hash, body}`` list), and ``badges`` (the generic per-item badge
-    map, keyed by field code — see :func:`squads._badges.resolve_badges`); plus, per
-    ``subentities`` entry, the shared shape built by :func:`build_subentity_json` (adds
-    ``body``, ``badges``, and ``discussion``). Added unconditionally — not gated by
-    ``--comments``/``--full`` — so the existing invariant that ``show --json`` is byte-identical
-    across ``--raw``/``--comments``/``--full`` still holds. Nothing existing is renamed or removed.
+    Adds ``body`` (stored markdown, view tags left as tags), ``views`` (the transform output of
+    each placed, enabled view that declares one), ``discussion`` (``{author, author_slug, ts,
+    edited_ts, hash, short_hash, body}`` list), ``badges`` (keyed by field code), and per
+    ``subentities`` entry the shape from :func:`build_subentity_json`. Always present, not gated
+    by ``--comments``/``--full``, so the payload is identical across ``--raw``/``--comments``/
+    ``--full``.
     """
     spec = get_active_spec()
     payload: dict[str, Any] = it.to_row()
@@ -1434,14 +1319,11 @@ async def build_item_json(svc: Service, it: Item) -> str:
 
 
 def role_base_for_show(slug: str, it: Item | None, catalog: CatalogSource) -> RoleDef | None:
-    """The merge base for a role card: the base the item in hand stores
-    (:func:`~squads._roles._resolver.materialised_base`, which falls back to what the item stores
-    when its base does not resolve); a slug with no item has no base and resolves through the
-    catalog.
+    """The merge base for a role card: the base the item in hand stores (``materialised_base``).
 
-    Shared by ``sq role <slug> show`` (:func:`squads._cli._role.show_role`) and a ``role``
-    source's ``--json`` dispatch (:func:`squads._cli._workflow_cmd._view_json_payload`) — the
-    same base a role card is built from either way, never two independent resolutions."""
+    A slug with no item has no base and resolves through the catalog. Shared by ``sq role <slug>
+    show`` and a ``role`` source's ``--json`` dispatch so both build from the same base.
+    """
     if it is not None:
         return materialised_base(it, catalog)
     return None
@@ -1468,18 +1350,12 @@ async def build_role_json_payload(
     base_role: RoleDef | None,
     addr: str,
 ) -> dict[str, object]:
-    """The ``--json`` payload for a resolved role definition. The one builder both
-    ``sq role <slug> show --json`` (:func:`squads._cli._role.show_role`) and a ``role``
-    source's ``--json`` dispatch
-    (:func:`squads._cli._workflow_cmd._view_json_payload`) call, so the two surfaces can never
-    describe one role definition two different ways.
+    """The ``--json`` payload for a resolved role, shared by ``sq role <slug> show`` and a view.
 
-    ``skills`` is resolved once, ahead of the branch below, and carried into both outcomes:
-    it is a computed projection over the index (:meth:`Service.resolved_skills_for_role`),
-    never a field of the resolved ``RoleDef`` or the stored item, so neither branch's own
-    resolution touches it. Live-only by the same method's own design — an activated role
-    resolves its full preload set (system membership plus every ``preload``-scoped skill), a
-    bundled-only or retired slug resolves to the system-only fallback.
+    ``skills`` is resolved once, ahead of the branch, because it is a projection over the index
+    (:meth:`Service.resolved_skills_for_role`), never a field of the ``RoleDef`` or the stored
+    item. It is live-only: an activated role resolves its full preload set, a bundled-only or
+    retired slug the system-only fallback.
     """
     data: dict[str, object] = {"slug": slug, "id": item_id, "activated": item_id is not None}
     data.update(origin_json(role_origin(slug) if it is None else attrs.origin(it)))
@@ -1513,22 +1389,16 @@ async def build_role_json_payload(
     return data
 
 
-#: ``click.Context.meta`` key: presence means *this* CLI invocation's read scope was opened
-#: by an earlier ``command``-wrapped call in the same dispatch tree and is still open, so a
-#: later call must not open a second one. Prefixed per Click's own convention for ``meta``
-#: keys (avoid colliding with another extension's).
+#: ``click.Context.meta`` key marking that an earlier ``command``-wrapped call in this
+#: invocation opened the read scope and it is still open, so a later call must not open another.
 _READ_SCOPE_META_KEY = "squads.read_scope_token"
 
-#: ``click.Context.meta`` key for the invocation-scoped ``Service`` memo (see
-#: :func:`get_service`). Populated only by the *plain* (``open_service``, cross-checked)
-#: construction path — never by the bypass path below — so a plain caller can never be handed
-#: a bypass-built instance by reading this key.
+#: ``click.Context.meta`` key for the ``Service`` memo of :func:`get_service`, filled only by the
+#: cross-checked ``open_service`` path so a plain caller is never handed a bypass-built instance.
 _SERVICE_META_KEY = "squads.service_memo"
 
-#: ``click.Context.meta`` key for the bypass-built ``Service`` memo (see
-#: :func:`get_service_bypassing_index_cross_check`). Populated only when the plain path has
-#: actually raised, so a caller that asked for the cross-check never ends up with an instance
-#: that skipped it.
+#: ``click.Context.meta`` key for the bypass-built ``Service`` memo, filled only once the plain
+#: path has raised (see :func:`get_service_bypassing_index_cross_check`).
 _BYPASS_SERVICE_META_KEY = "squads.service_memo_bypass"
 
 
@@ -1565,20 +1435,11 @@ def _click_root_context() -> _click.core.Context | None:
 def get_service() -> Service:
     """Build (or reuse) the invocation's ``Service``.
 
-    ``sq <type> <n> <verb>`` crosses the sync/async bridge twice for one user-facing
-    invocation — the Typer group's id-resolving callback and the leaf verb, as two sequential
-    ``anyio.run`` calls (see :func:`command`) — and both must share one ``Service`` and
-    one ``IndexStore``, so the read scope's per-store cache is shared across them and the
-    request-scoped read design's "one invocation observes one index state" promise holds for
-    that form.
-
-    Memoized on the same anchor the read scope already uses — the Click root context's
-    ``meta`` — and gated on the *same* condition that opens the scope
-    (:data:`_READ_SCOPE_META_KEY` present), not merely on a root context existing. That gate is
-    what keeps ``sq ui`` — a sync command that never passes through :func:`command`, so no
-    scope is ever opened for it — from also getting a Service pinned for its session: it opts
-    out of both for the same reason, on the same check, rather than needing a second one to
-    remember.
+    ``sq <type> <n> <verb>`` crosses the sync/async bridge twice (the group's id-resolving callback,
+    then the leaf verb; see :func:`command`) and both must share one ``Service`` and ``IndexStore``,
+    so the read scope's per-store cache holds and one invocation observes one index state. The memo
+    lives on the Click root context's ``meta`` and is gated on :data:`_READ_SCOPE_META_KEY`, the
+    marker that opens the scope; ``sq ui`` never passes through :func:`command`, so it gets neither.
     """
     root = _click_root_context()
     if root is not None and _READ_SCOPE_META_KEY in root.meta:
@@ -1607,21 +1468,15 @@ def _build_plain_service() -> Service:
 
 
 def get_service_bypassing_index_cross_check(*, bundled_fallback: bool = True) -> Service:
-    """Like :func:`get_service`, but for the one class of caller that must never be blocked by
-    ``open_service``'s live-index cross-check: a maintenance command whose entire job is fixing
-    exactly what that cross-check can refuse over — a corpus/spec conflict, or (just as often) a
-    rebuildable index merely stale relative to the frontmatter it should mirror. A validation
-    gate that locks out its own recovery path is not a recovery path.
+    """Like :func:`get_service`, for a command that must not be blocked by the index cross-check.
 
-    Falls back through :data:`~squads._services._service.BYPASS_FALLBACKS` when the normal path
-    raises a ``SquadsError``: the merged spec without the index check, then the bundled spec. With
-    ``bundled_fallback=False`` (``sq migrate up``, which must run under the vocabulary the squad
-    declared or not at all) the only fallback is
-    :data:`~squads._services._service.MIGRATE_FALLBACKS`, which refuses with the file and cause.
-
-    The fallback instance is memoized under its own key (:data:`_BYPASS_SERVICE_META_KEY`),
-    separate from :func:`get_service`'s, so a plain caller can never observe a cross-check-skipping
-    instance and this memo never masks a genuine, still-current refusal behind a stale success.
+    A maintenance command exists to fix what ``open_service``'s cross-check refuses over (a
+    corpus/spec conflict, or an index stale against the frontmatter). On a ``SquadsError`` it
+    falls back through :data:`BYPASS_FALLBACKS`: the merged spec without the index check, then
+    the bundled spec. With ``bundled_fallback=False`` (``sq migrate up``, which must run under
+    the declared vocabulary or not at all) the only fallback is :data:`MIGRATE_FALLBACKS`, which
+    refuses with the file and cause. The fallback instance is memoized under
+    :data:`_BYPASS_SERVICE_META_KEY`, so a plain caller never sees a cross-check-skipping one.
     """
     root = _click_root_context()
     if root is not None and _READ_SCOPE_META_KEY in root.meta:
@@ -1664,37 +1519,19 @@ def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:
 
 
 def command[**P](fn: Callable[P, Awaitable[None]]) -> Callable[P, None]:
-    """The single sync→async bridge for CLI commands.
+    """The single sync-to-async bridge for CLI commands.
 
-    Wraps an ``async def`` Typer command so Typer sees a sync callable, there is exactly one
-    ``anyio.run`` per invocation, and ``SquadsError`` becomes a clean message + ``typer.Exit(1)``
-    (subsuming the old ``@handle_errors``).
+    Wraps an ``async def`` Typer command so Typer sees a sync callable with one ``anyio.run`` per
+    call, and a ``SquadsError`` becomes a clean message and ``typer.Exit(1)``.
 
-    Also where a request-scoped index read (:func:`squads._index._store.read_scope`'s
-    underlying ``enter_read_scope``/``exit_read_scope`` pair) is opened for the invocation, and
-    where the invocation-scoped ``Service`` memo (:func:`get_service`) becomes live — both hang
-    off the same root-context marker (:data:`_READ_SCOPE_META_KEY`), one anchor for both.
-    ``sq <type> <n> <verb>`` crosses *this* bridge twice for one invocation the user thinks
-    of as one command — once for the Typer group's own id-resolving ``@item.callback()``
-    (e.g. ``_resolve`` in ``_cli/_items.py``), and again for the leaf verb — two separate,
-    sequential ``anyio.run`` calls, not one nested inside the other, so a scope opened inside
-    the first call's own coroutine is already closed before the second call's coroutine
-    starts. Both calls share exactly one Click root ``Context`` for the one real invocation
-    they're both part of (Click builds it once per dispatch, before resolving anything), so
-    the *first* ``command``-wrapped call in the tree opens the scope and records that on the
-    root context's ``meta`` (:data:`_READ_SCOPE_META_KEY`); every later call in the same tree
-    sees that marker, leaves the existing scope alone, and — because ``get_service()`` gates
-    its own memo on that same marker — reuses the first call's ``Service`` instead of minting a
-    second one. That is what takes the addressed-item form from two index reads to one: before
-    this, each crossing built its own ``Service``/``IndexStore``, so the read scope's
-    store-identity-keyed cache never actually had a store to share. The root context's own
-    ``call_on_close`` — which Click fires exactly once, after every nested command in the
-    tree has finished, success or error — is what closes it, so teardown happens once, at the
-    true end of the invocation, not at the end of whichever call happened to open it.
-
-    ``sq ui`` is a sync command that never passes through here at all, so it opts out for
-    free and keeps today's always-fresh behaviour — no scope, no memoized ``Service``, both on
-    the one gate.
+    It also opens the invocation's request-scoped index read (``enter_read_scope`` and
+    ``exit_read_scope``) and makes the :func:`get_service` memo live, both keyed on one marker on
+    the Click root context's ``meta`` (:data:`_READ_SCOPE_META_KEY`). ``sq <type> <n> <verb>``
+    crosses this bridge twice, in two sequential ``anyio.run`` calls (the group's
+    ``@item.callback()``, then the leaf verb) that share one root ``Context``: the first call
+    opens the scope and records the marker, later calls reuse the scope and the ``Service``, so
+    the addressed form reads the index once. The root context's ``call_on_close``, fired once
+    after every nested command, closes the scope.
     """
 
     @functools.wraps(fn)
@@ -1916,14 +1753,10 @@ def _mismatch_msg(label: str, actual_id: str, actual_type: str, expected_type: s
 
 
 def _parse_item_token(token: str) -> tuple[int, str | None]:
-    """Parse a CLI item token into ``(sequence_number, prefix_or_None)``.
+    """Parse an item token into ``(sequence_number, prefix_or_None)``.
 
-    Accepts bare numbers (``"35"``, ``"000035"``) and full IDs (``"PREFIX-000035"``).
-    Returns ``(seq, None)`` for bare numbers and ``(seq, head_upper)`` for full IDs.
-    Raises :class:`SquadsError` on unparseable input.
-
-    Used by :func:`resolve_item_id_typed` and :func:`resolve_item_id_any` to avoid
-    duplicating the lexical munging.
+    A bare number (``"35"``, ``"000035"``) gives ``(seq, None)``; a full ID (``"PREFIX-000035"``)
+    gives ``(seq, head_upper)``. Raises :class:`SquadsError` on unparseable input.
     """
     t = token.strip()
     if t.isdigit():
@@ -1937,19 +1770,12 @@ def _parse_item_token(token: str) -> tuple[int, str | None]:
 
 
 async def resolve_item_id_typed(token: str, item_type: str, svc: Service) -> str:
-    """Resolve a CLI token and verify the item's **actual type** in the live DB.
+    """Resolve a token (``35``, ``000035``, ``PREFIX-000035``) and verify the item's type.
 
-    Accepts ``35`` / ``000035`` / ``PREFIX-000035``.  Raises a friendly
-    :class:`SquadsError` on type mismatch (naming the real item and type) or on an
-    unknown item (mentioning both accepted forms — full ID and bare number).
-
-    ``item_type`` is a plain string — every type (built-in or custom) resolves the same
-    way.  The prefix is resolved from the per-invocation spec (``get_active_spec()``) so
-    custom types that declare their own prefix in ``.overrides/workflow.toml`` get the
-    correct validation.
-
-    Mirrors :func:`resolve_slug_or_raise` in shape — takes ``svc`` as a second argument.
-    One DB read per call.
+    Raises :class:`SquadsError` naming the real item and type on a mismatch, or naming both
+    accepted forms on an unknown item. The prefix comes from the per-invocation spec, so custom
+    types that declare their own prefix validate correctly. Takes ``svc`` like
+    :func:`resolve_slug_or_raise`; one DB read per call.
     """
     # Resolve the prefix from the active spec — the sole vocabulary source.
     from squads._models._vocab import prefix_for
@@ -1957,11 +1783,9 @@ async def resolve_item_id_typed(token: str, item_type: str, svc: Service) -> str
 
     spec = get_active_spec()
     if item_type not in spec.items and dropped_via_selected(item_type, spec):
-        # `prefix_for`'s own "declare it or check for a typo" message is accurate for a type
-        # that was never bundled or declared, but false for one an adopter's own override
-        # dropped — this is the read-path counterpart of the create-path membership gate in
-        # `_services/_base.py`, which the CLI's own dispatch already lets reach this message
-        # for the analogous case (`sq create <type>`).
+        # `prefix_for`'s "declare it or check for a typo" message is false for a type the
+        # adopter's override dropped; this is the read-path twin of the create-path gate in
+        # `_services/_base.py`.
         raise SquadsError(
             f"unknown item type {item_type!r}: {item_type!r} was dropped from a "
             "[selected] list (selected.items) in .overrides/workflow.toml, not left "
@@ -1990,15 +1814,11 @@ async def resolve_item_id_typed(token: str, item_type: str, svc: Service) -> str
 
 
 async def resolve_item_id_any(token: str, svc: Service) -> str:
-    """Resolve a CLI token to the full ID of **whatever item owns that sequence number**.
+    """Resolve a token to the full ID of whatever item owns that sequence number.
 
-    Accepts a bare number (``35`` / ``000035``) or a full ID (``PREFIX-000035``).  The type
-    word in a full ID is validated against the item that actually owns the number; a
-    mismatched prefix raises a :class:`SquadsError`.  Unknown items mention both accepted
-    forms in the error.
-
-    Used by type-less surfaces (``sq tree``, ``--parent``, ``ref add`` targets, …) where the
-    command has no intrinsic item type.  One DB read per call.
+    A bare number or a full ID is accepted; the type word of a full ID is validated against the
+    actual owner. For type-less surfaces (``sq tree``, ``--parent``, ``ref add`` targets). One DB
+    read.
     """
     seq, given_prefix = _parse_item_token(token)
     db = await svc.store.load()
@@ -2023,14 +1843,11 @@ def is_full_id_shape(token: str) -> bool:
 
 
 async def resolve_agent_addr(token: str, item_type: str, svc: Service) -> str:
-    """Resolve a CLI address token for role/skill/operator to a full item ID.
+    """Resolve a role/skill/operator address to a full item ID, by exact match only.
 
-    Resolution order (exact match only — no fuzzy):
-    1. Full-ID shape (``ROLE-000001``) → ``resolve_item_id_typed``
-    2. Bare number (``"1"``) → ``resolve_item_id_typed``
-    3. Exact slug match via the service's per-type slug lookup
-
-    Raises :class:`SquadsError` with a descriptive message when nothing matches.
+    In order: a full-ID shape (``ROLE-000001``) and a bare number go through
+    :func:`resolve_item_id_typed`; anything else is an exact slug in the service's per-type lookup.
+    Raises :class:`SquadsError` when nothing matches.
     """
     t = token.strip()
     # Paths 1 and 2: numeric or full-ID token — let the typed resolver handle it.
@@ -2135,21 +1952,13 @@ def address_epilog(group: str, noun: str, examples: Sequence[str], group_verbs: 
 
 
 class AddressDispatchGroup(typer.core.TyperGroup):
-    """A TyperGroup that routes unknown command tokens to a hidden ``_addr`` subgroup.
+    """A TyperGroup that routes an unknown command token to a hidden ``_addr`` subgroup.
 
-    Named commands (e.g. ``catalog``, ``activate``, ``add``) dispatch normally.
-    Any other token is treated as an item address (slug / full-ID / bare number)
-    and routed to ``_addr`` with the full original args list so the subgroup's
-    callback can consume the address token as its ``ADDR`` positional argument.
-
-    Used by ``role_app``, ``skill_app``, and ``operator_app`` to provide the
-    ``sq role <addr> <verb>`` surface alongside group-level verbs. The verbs named in the
-    missing-verb error are the ``_addr`` subgroup's registered, non-hidden commands.
-
-    Note: a role/skill/operator slugged exactly like a named group verb (``add``,
-    ``catalog``, ``activate``) is unaddressable by slug — the named verb wins in
-    ``get_command`` before ``_addr`` is tried.  Number/full-ID always work as the
-    escape hatch.
+    Named commands (``catalog``, ``activate``, ``add``) dispatch normally; any other token (slug,
+    full ID or bare number) goes to ``_addr`` with the original args, so its callback consumes it
+    as ``ADDR``. Used by ``role_app``, ``skill_app`` and ``operator_app``. A slug equal to a named
+    verb is unaddressable by slug (the verb wins in ``get_command``); the number or full ID still
+    works.
     """
 
     def _click_resolve_command(self, ctx: Any, args: list[str]) -> Any:  # type: ignore[override]
@@ -2194,35 +2003,18 @@ def addr_verbs(addr_app: typer.Typer, sep: str = "|") -> str:
 def spec_aware_command_cls(
     refresh_help: Callable[[list[Any]], None],
 ) -> type[typer.core.TyperCommand]:
-    """Build a one-off ``TyperCommand`` subclass whose ``--help`` re-derives specific
-    parameters' help text from the *live* per-invocation spec at render time, instead of
-    whatever spec was active when the command object was constructed.
+    """Build a ``TyperCommand`` subclass that re-derives chosen parameters' help at render time.
 
-    Statically-registered built-in commands (``sq <type> update``, ``sq <type> retype``,
-    the per-type ``sq create <type>``) are built once, at import time — before any squad
-    or override is known — so a plain ``help=`` string computed then is permanently the
-    bundled spec's answer (e.g. ``--priority``'s enumerated codes, retype's target list).
-    Click always renders ``--help`` through ``get_params(ctx)``, which fires only once the
-    root callback has already bound the per-invocation spec (the group-callback chain
-    resolves — and so runs ``main_callback`` — before the leaf command's own ``--help``
-    short-circuits), so refreshing there — and only there — makes a statically-registered
-    command's help as spec-aware as the lazily-built custom-type equivalent, without moving
-    *when* or *from which spec* it's registered. A non-customized squad resolves the same
-    (bundled) spec at render time as at import time, so output stays byte-identical.
+    A statically registered command is built at import time, before any squad is known, so a
+    plain ``help=`` string is the bundled spec's answer. Click renders ``--help`` through
+    ``get_params(ctx)`` after the root callback has bound the per-invocation spec, so refreshing
+    there makes the help spec-aware without changing when the command is registered.
+    *refresh_help* receives the resolved parameter list and mutates the ``.help`` of the ones it
+    recognises, by ``.name``.
 
-    *refresh_help* receives the command's already-resolved parameter list and mutates the
-    ``.help`` of whichever ones it recognizes (by ``.name``) in place.
-
-    **The refresh is fail-soft, and it has to be.** ``get_params`` runs during Click's own
-    parameter resolution — before the command body, and therefore outside the ``@handle_errors``
-    / ``@command`` boundary that turns a ``SquadsError`` into a clean message. A refresh that
-    raised there escaped as a traceback, which is the one thing the refusal contract rules out;
-    it surfaced the moment ``get_active_spec`` started refusing on an unresolvable override,
-    because ``sq create <type>``'s ``--priority`` help reads the active spec. Help text is
-    presentation, not an answer about the squad: when the spec cannot be resolved the baked
-    text simply stands, and the real refusal fires from the command body a moment later, once
-    there is somewhere to report it. Same division as :func:`resolve_spec_for_ctx` — the parser
-    degrades, the answering surfaces refuse.
+    The refresh is fail-soft: ``get_params`` runs outside the ``@command`` boundary that turns a
+    ``SquadsError`` into a message, so a raise would escape as a traceback. Help is presentation,
+    so on an unresolvable spec the baked text stands and the command body issues the refusal.
     """
 
     class _SpecAwareCommand(typer.core.TyperCommand):
@@ -2241,20 +2033,13 @@ def register_status_verb(
 ) -> None:
     """Register a ``status`` verb on an addressed roster subgroup (``role``/``skill``/``operator``).
 
-    Mirrors ``_cmd_status`` in ``_cli/_items.py`` verb-for-verb (a ``STATUS`` positional,
-    ``--force``, the ``{id} → {status}`` confirmation line) but is shared across the three
-    roster modules instead of copied, since it needs no work-item-only machinery — it drives
-    ``Service.set_roster_status`` instead of the generic ``Service.set_status``, the roster
-    entry point that also reports what ``--unlink`` severed.
-
-    ``--unlink`` is offered here and nowhere else: only a roster-category type carries the
-    config-integrity clauses (``_services/_retirement.py``) it satisfies, and every caller of
-    this helper is already one of the three roster types.
-
-    ``id_from_ctx`` extracts the resolved item id from ``ctx.obj`` using the caller's own
-    convention: role's ``_require_id`` (raises the "activate it first" error for a
-    bundled-only slug) vs skill/operator's strict ``ctx.obj["id"]``. This keeps that
-    per-module fallback logic out of this shared helper.
+    Mirrors ``_cmd_status`` in ``_cli/_items.py`` (``STATUS`` positional, ``--force``, the
+    ``{id} → {status}`` line) but drives ``Service.set_roster_status``, which also reports what
+    ``--unlink`` severed. ``--unlink`` is offered only here, since only roster types carry the
+    config-integrity clauses (``_services/_retirement.py``) it satisfies. ``id_from_ctx``
+    extracts the resolved id from ``ctx.obj`` by the caller's convention: role's
+    ``_require_id`` raises the "activate it first" error for a bundled-only slug, skill and
+    operator read ``ctx.obj["id"]``.
     """
 
     @addr_app.command("status")
@@ -2350,8 +2135,9 @@ def register_body_verb(addr_app: typer.Typer, id_from_ctx: Callable[[typer.Conte
         """Set or append to the body.
 
         Replacing a body someone has already written is refused unless `--force`.
-        A body generated from a declared view (a role, a system or per-type skill)
-        is refused even with `--force`; an operator body is never refused for it.
+        A role takes prose beside its generated definition. A body generated from a
+        declared view (a system or per-type skill) is refused even with `--force`;
+        an operator body is never refused for it.
         """
         item_id = id_from_ctx(ctx)
         text = resolve_body(message or None, file)
@@ -2655,26 +2441,15 @@ async def apply_edit_actor(as_: str | None, svc: Service) -> None:
 
 
 async def resolve_slug_or_raise(slug: str, svc: Service, *, live_only: bool = True) -> str:
-    """Validate ``slug`` against the roster (agents + operators) and return it normalised.
+    """Validate ``slug`` against the roster (agents and operators) and return it normalised.
 
-    Mirrors :func:`resolve_item_id` in shape: one validation idiom for slugs, one for item IDs.
-    Raises :class:`SquadsError` (exit 1) naming valid slugs when the slug is unknown.
-    ``"operator"`` is the legacy anonymous sentinel — it is not validated (kept for compat).
-
-    ``live_only`` (default ``True``) is what makes a retired entry stop being **live**
-    while its history stays intact: the interactive entry points that *write* a
-    participant — ``--as``/``--author``/``--assignee`` on create/comment/update — accept only
-    a live slug, which this default gives them for free by reading ``svc.roster()`` /
-    ``svc.operators()`` (already live-only). Pass ``live_only=False`` for a caller that
-    *reads* or *filters* by a participant slug rather than attributing new authorship to one —
-    ``--assignee`` on `sq list`/`sq tree`, `sq mine`, `sq inbox` — since a retired role's
-    already-assigned items and past @mentions must stay reachable; those read
-    ``svc.roster_all()``/``svc.operators_all()`` instead.
-
-    A slug that is well known but merely retired reads as retired, not unknown: when
-    ``live_only`` rejects it, a second lookup against the full roster names the entry and the
-    one command that undoes it, rather than sending the operator after a typo or a missing
-    activation (see :func:`_retired_participant_hint`).
+    Raises :class:`SquadsError` naming the valid slugs when it is unknown; the legacy anonymous
+    ``"operator"`` sentinel is not validated. With ``live_only`` (default) a retired entry is
+    rejected, which the write paths (``--as``/``--author``/``--assignee`` on create, comment and
+    update) need; callers that read or filter by a participant (``--assignee`` on ``sq list`` and
+    ``sq tree``, ``sq mine``, ``sq inbox``) pass ``live_only=False`` so a retired role's items
+    and mentions stay reachable. A rejected slug that is retired rather than unknown names the
+    entry and the command that undoes it (:func:`_retired_participant_hint`).
     """
     normalised = slug.lstrip("@").lower()
     if normalised == ANONYMOUS_SLUG:
@@ -2772,8 +2547,7 @@ def parse_badge_code(collection_code: str, value: str, spec: WorkflowSpec | None
     """Validate/normalize *value* against the named collection's badge codes.
 
     The one generic value-parser for every flat badge axis (priority/severity/a project's
-    own custom axis) — replaces the former hand-written pair of per-axis parsers.
-    ``collection_code`` is usually a field's own ``.collection`` (resolved via
+    own custom axis). ``collection_code`` is usually a field's own ``.collection`` (resolved via
     :func:`squads._badges.resolve_collection` at the call site).
     """
     active_spec = spec if spec is not None else get_active_spec()
@@ -2786,17 +2560,12 @@ def parse_badge_code(collection_code: str, value: str, spec: WorkflowSpec | None
 
 
 def parse_filter_badge_code(field_code: str, value: str, spec: WorkflowSpec | None = None) -> str:
-    """Validate/normalize a **cross-type filter** value for badge field *field_code*.
+    """Validate a cross-type filter value for badge field *field_code*.
 
-    ``sq list``/``sq tree`` filter over every type at once, so there is no single bound
-    collection to validate against — accept any code declared by *any* type's binding of
-    the field (:func:`squads._badges.field_badge_codes`) and let ``ItemFilter`` do the
-    per-item, per-type match. Validating against the collection literally *named*
-    ``priority`` instead made the filter unusable for a squad that binds task's priority to a
-    ``tshirt`` collection: ``--priority m`` was refused outright.
-
-    For the bundled spec the union is exactly the ``priority`` collection, so the accepted
-    values and the refusal text are unchanged.
+    ``sq list``/``sq tree`` filter every type at once, so any code declared by any type's
+    binding of the field is accepted (:func:`squads._badges.field_badge_codes`) and
+    ``ItemFilter`` matches per item. Validating against a collection named ``priority`` would
+    refuse ``--priority m`` for a squad that binds task priority to a ``tshirt`` collection.
     """
     active_spec = spec if spec is not None else get_active_spec()
     codes = badges.field_badge_codes(field_code, active_spec)

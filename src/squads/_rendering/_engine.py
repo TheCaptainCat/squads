@@ -1,17 +1,14 @@
 """Jinja2 environment for generating item files and Claude Code artifacts.
 
-Templates are package data under ``templates/``. ``StrictUndefined`` makes a missing variable a
-loud error rather than a silent blank.
+Templates are package data under ``templates/``. ``StrictUndefined`` makes a missing variable
+a loud error rather than a silent blank.
 
-Squad-aware lookup
-------------------
 Every entry point takes the squad directory whose templates may override the bundled ones
-(``from_squad``). Templates in ``<squad_dir>/.overrides/templates/`` shadow bundled templates by
-name; every other template resolves to the bundled package default, and ``None`` means the
-bundled templates alone.
-
-The Environment is cached per squad directory, LRU-bounded so a long-lived process serving many
-distinct squads doesn't retain one per squad forever; :func:`invalidate_squad_dir` evicts one.
+(``from_squad``): templates in ``<squad_dir>/.overrides/templates/`` shadow bundled ones by
+name, every other template resolves to the bundled default, and ``None`` means the bundled
+templates alone. The Environment is cached per squad directory, LRU-bounded so a long-lived
+process serving many squads does not keep one per squad forever; :func:`invalidate_squad_dir`
+evicts one.
 """
 
 from collections.abc import Callable, Iterable, Mapping
@@ -48,23 +45,17 @@ from squads._workflow._models import WorkflowSpec
 #: :func:`~squads._views.skill_authoring_surface`) never hand-spells it differently.
 TEMPLATES_OVERRIDE_DIR = ".overrides/templates"
 
-#: Cap on distinct squad dirs (+ the bundled-only ``None`` key) kept warm at once. A CODE
-#: cache (compiled templates), so unbounded growth is a resource leak, not a correctness bug —
-#: bound it so a long-lived multi-squad process doesn't retain an Environment (and its
-#: per-squad override loader) for every squad it has ever touched.
+#: Cap on distinct squad dirs (plus the bundled-only ``None`` key) kept warm. Unbounded growth
+#: of this compiled-template cache would leak an Environment per squad ever touched.
 _ENV_CACHE_MAX_SIZE = 16
 
-# Per-squad-dir Environment cache, LRU-bounded at _ENV_CACHE_MAX_SIZE. None is the
-# bundled-only environment. A plain dict (not OrderedDict) is enough: a dict's insertion
-# order already gives LRU semantics as long as a hit is re-inserted (pop + set) to move it
-# to the most-recently-used end — see _env() below.
+# Per-squad-dir Environment cache, LRU-bounded at _ENV_CACHE_MAX_SIZE; None is the bundled-only
+# environment. Insertion order gives LRU if a hit is re-inserted (pop + set), see _env().
 #
-# NOT thread-safe: _env()'s pop+reinsert (hit) and insert+del (evicting miss) are each two
-# steps against this shared dict with no lock. Safe today only because the project's async
-# model is pinned to one event loop / one OS thread (anyio_backend="asyncio", no `await`
-# inside _env() to interleave on) — the same single-thread assumption IndexStore's Layer 2
-# `_proc_mutex` documents. A future thread-pool-backed server calling render() from multiple
-# OS threads MUST add a lock around _env() before that model change lands.
+# NOT thread-safe: _env()'s hit and evicting-miss paths are each two steps on this dict with no
+# lock. That holds only while the async model is one event loop on one OS thread, with no
+# `await` inside _env() (the assumption IndexStore's `_proc_mutex` documents). A server that
+# calls render() from several OS threads MUST add a lock around _env() first.
 _env_cache: dict[Path | None, Environment] = {}
 
 
@@ -109,24 +100,16 @@ def _make_env(squad_dir: Path | None) -> Environment:
     env.filters["open_marker"] = markers.open_marker
     env.filters["close_marker"] = markers.close_marker
     env.filters["idnum"] = _idnum  # "PREFIX-000007" | idnum → "7", for `sq task 7 …` hints
-    # "InProgress" | badge → "🟡 In Progress" — squads._badges.status_badge reused rather than
-    # reimplemented in Jinja (the source-widening decision's guard: a join/lookup arrives as a
-    # registered filter or a new source kind, never as logic accreting inside a template).
-    # Callable with a second arg for a project's own overridden spec ({{ status | badge(spec) }});
-    # with none it degrades to the bundled vocabulary, so a project template written without the
-    # spec keeps rendering.
+    # "InProgress" | badge → "🟡 In Progress", reusing squads._badges.status_badge: a join or
+    # lookup arrives as a registered filter or a new source kind, never as template logic. A
+    # second arg ({{ status | badge(spec) }}) selects an overridden spec; without it the
+    # bundled vocabulary applies, so a template written without the spec keeps rendering.
     env.filters["badge"] = _badge
-    # workflow helper — callable as {{ spec.machine_for(type) | linearize_lifecycle }} in
-    # templates. A filter, per the sanctioned extension point for render-time logic (a pure
-    # function of the spec, exposed to templates rather than reimplemented in Jinja) — not a
-    # global, so every registered playbook-derivation helper shares one calling convention.
+    # {{ spec.machine_for(type) | linearize_lifecycle }}: a filter, the extension point for
+    # render-time logic, so every playbook-derivation helper shares one calling convention.
     env.filters["linearize_lifecycle"] = linearize_lifecycle  # pyright: ignore[reportArgumentType]
-    # DEPRECATED one-release compatibility alias for the global-callable form this filter
-    # replaced (0.15.0) — the same callable under both entry points, not a second
-    # implementation of anything. An adopter who scaffolded workflow.md.j2 on 0.14.x and
-    # changed nothing still calls it as {{ linearize_lifecycle(x) }}; removing the global
-    # outright breaks that override's render with no recovery but hand-editing the override.
-    # Drop this line (and only this line) once 0.15.x is no longer a supported upgrade source.
+    # DEPRECATED alias kept for scaffolded overrides that call {{ linearize_lifecycle(x) }};
+    # drop it only when the project decides such overrides are unsupported.
     env.globals["linearize_lifecycle"] = linearize_lifecycle  # pyright: ignore[reportArgumentType]
     # per-item-type skill helpers — pure functions reachable from
     # templates/views/item_skill.md.j2 (and any adopter override) as filters, never
@@ -225,17 +208,15 @@ def has_template(template_name: str, *, from_squad: Path | None) -> bool:
 
 
 def creation_template_name(item_type: str, spec: WorkflowSpec, *, from_squad: Path | None) -> str:
-    """The Jinja2 template path *item_type*'s creation writes from — the one resolution the
-    create path (:meth:`~squads._services._base.ServiceCore._template_for`, a thin wrapper
-    over this) and the template-seeded-view derivation
-    (:func:`~squads._views.template_seeded_view_names`) both read, so the two can never
-    disagree about which file "the creation template" names.
+    """The Jinja2 template path *item_type*'s creation writes from.
 
-    A roster type (role/skill/operator) always resolves to its dedicated
-    ``agents/<type>.md.j2``. Every other declared type resolves to its dedicated
-    ``items/<type>.md.j2`` when one exists (checked via :func:`has_template`, so a project
-    override shadowing a bundled per-type template is honoured), else the generic
-    ``items/_default.md.j2`` fallback that lets a custom type render at all.
+    The create path (:meth:`~squads._services._base.ServiceCore._template_for`, a thin wrapper)
+    and the template-seeded-view derivation (:func:`~squads._views.template_seeded_view_names`)
+    both read it, so they cannot disagree about which file "the creation template" names. A
+    roster type always resolves to ``agents/<type>.md.j2``. Any other declared type resolves to
+    ``items/<type>.md.j2`` when one exists (:func:`has_template`, so an override shadowing a
+    bundled per-type template is honoured), else to ``items/_default.md.j2``, which lets a custom
+    type render at all.
     """
     if spec.item_is_roster(item_type):
         return f"agents/{item_type}.md.j2"
@@ -265,13 +246,12 @@ def scaffold_body(item: Item, spec: WorkflowSpec, *, from_squad: Path | None) ->
 
 
 def template_source(template_name: str, *, from_squad: Path | None) -> str:
-    """*template_name*'s raw source text, resolved through the same override-aware loader
-    :func:`render` uses — never rendered, since a caller reading a template's own authored
-    content (which ``sq:view:<name>`` tags its creation scaffold seeds statically) has no item
-    to render against and a render would need a context this question does not have.
+    """*template_name*'s raw source text, through the override-aware loader :func:`render` uses.
 
-    Raises :class:`SquadsError` wrapping ``jinja2.TemplateNotFound`` when *template_name*
-    doesn't resolve — the same failure :func:`render` converts, for the same reason.
+    It is never rendered: a caller reading a template's authored content (which ``sq:view:<name>``
+    tags its creation scaffold seeds) has no item to render against. Raises :class:`SquadsError`
+    wrapping ``jinja2.TemplateNotFound`` when *template_name* does not resolve, as :func:`render`
+    does.
     """
     from jinja2 import TemplateNotFound
 
@@ -302,23 +282,18 @@ class _FlatItem:
 
 
 def render(template_name: str, /, *, from_squad: Path | None, **context: object) -> str:
-    """Render *template_name* against *context* through the one Jinja2 environment (the one
-    *from_squad* selects) every rendering path in the codebase uses (item-file scaffolds,
-    backend artifacts, declared-view presentation, roster entries, …).
+    """Render *template_name* against *context* through the one Jinja2 environment.
 
-    A ``jinja2.TemplateError`` — a missing template, a syntax error, or (the common case) an
-    undefined-variable failure under ``StrictUndefined`` — is translated into
-    :class:`~squads._errors.SquadsError` **here**, once, rather than at each consumer:
-    translating per-consumer instead lets two consumers disagree about the same failure, and
-    leaves every other renderer propagating the raw jinja2 exception. The adopter-visible
-    property this gives: a typo in an overridden item-creation template and the identical typo
-    in a view template surface identically — the same clean message, not one clean message and
-    one traceback. A consumer that wants a more specific message catches this
-    :class:`SquadsError` and re-raises with its own context (see
-    :func:`~squads._views.render_resolved_source_or_raise`); a consumer that wants to swallow
-    a rendering
-    failure entirely catches it and returns its own sentinel (see
-    :func:`scaffold_body`).
+    *from_squad* selects it. Every rendering path uses it (item scaffolds, backend artifacts,
+    view presentation, roster entries, …). A ``jinja2.TemplateError`` (missing template, syntax
+    error, or commonly an undefined variable under ``StrictUndefined``) becomes a
+    :class:`~squads._errors.SquadsError` here, once: per-consumer translation would let
+    consumers disagree about one failure and leave others raising the raw exception. So a typo
+    in an overridden creation template and the same typo in a view template give the same clean
+    message, not one message and one traceback. A consumer wanting more context catches the
+    :class:`SquadsError` and re-raises (see
+    :func:`~squads._views.render_resolved_source_or_raise`); one that swallows a failure returns
+    its own sentinel (see :func:`scaffold_body`).
     """
     from jinja2 import TemplateError
 

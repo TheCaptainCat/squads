@@ -1,12 +1,8 @@
 """`sq create <type> TITLE …` — one command per item type, sharing one implementation.
 
-Built-in types are registered statically at import time (unchanged from before).
-Custom types declared in ``.overrides/workflow.toml`` are dispatched lazily by
-``_CustomCreateGroup``, which follows the same pattern as ``_CustomTypeGroup`` in
-``_cli/__init__.py``.  Startup ordering: ``_CustomCreateGroup``
-resolves the active spec via ``common.get_active_spec()`` at Click dispatch time
-(``get_command`` / ``list_commands``), after ``common.bind_active_spec`` has already run in
-the root callback — so the same spec that the resource groups see is also visible here.
+Built-in types are registered statically at import time; custom types declared in
+``.overrides/workflow.toml`` are dispatched lazily by ``_CustomCreateGroup``, which resolves the
+active spec at Click dispatch time, after the root callback has bound it.
 """
 
 import contextlib
@@ -42,19 +38,10 @@ from squads._workflow._models import Field, WorkflowSpec
 async def _resolve_parent_option(parent: str | None, svc: Service) -> str | None:
     """Resolve a create command's ``--parent`` option to a full item ID, or ``None``.
 
-    The single parent door for every ``sq create`` command: the built-in types, the
-    lazily-built custom types, and ``guide``.  Resolving once here means a fix lands in
-    one place and the next create-shaped command reuses it instead of copying one.
-
-    ``is not None``, not truthiness: ``--parent ""`` is a value the caller supplied, and
-    testing it for truth sent it down the no-parent branch — the command created an item
-    with no parent and reported plain success, so the only way to notice was to read the
-    item back.  Empty and whitespace-only are refused here rather than handed to
-    :func:`resolve_item_id_any`, which would answer about an empty token instead of about
-    the flag; ``sq <type> <n> update`` tests the same argument with the same ``is not None``
-    and leads with the same sentence.  The remedy differs and is deliberately not copied:
-    ``create`` has no ``--no-parent``, because omitting ``--parent`` is how a parentless item
-    is made.
+    The single parent door for every ``sq create`` command (built-in, custom and ``guide``). It
+    tests ``is not None``, not truthiness: ``--parent ""`` is a supplied value, and an empty or
+    whitespace-only one is refused here rather than silently creating a parentless item.
+    ``create`` has no ``--no-parent``: omitting ``--parent`` is how a parentless item is made.
     """
     if parent is None:
         return None
@@ -64,19 +51,13 @@ async def _resolve_parent_option(parent: str | None, svc: Service) -> str | None
 
 
 def _priority_help(item_type: str) -> str:
-    """``--priority`` help text for ``create <item_type>``, derived from the priority
-    collection *item_type* actually binds in the resolved active spec.
+    """``--priority`` help for ``create <item_type>``, from the collection *item_type* binds.
 
-    Read directly at command-registration time this is the bundled spec for the
-    statically-registered types (registered at import time, before ``common.bind_active_spec``
-    runs) — byte-identical to the previous hardcoded text there for a non-customized squad.
-    Statically-registered commands additionally re-derive this at ``--help`` render time via
-    :func:`common.spec_aware_command_cls`, so an override's replaced priority collection is
-    reflected there too, not just at construction.
-
-    Resolves strictly (:func:`squads._badges.declared_collection`): a type declaring no
-    ``priority`` field enumerates nothing rather than borrowing the same-named collection —
-    the flag is hidden outright in that case, see :func:`_refresh_priority_help`."""
+    Read at registration time this is the bundled spec; statically registered commands re-derive
+    it at ``--help`` render time through :func:`common.spec_aware_command_cls`. It resolves
+    strictly (:func:`squads._badges.declared_collection`): a type declaring no ``priority`` field
+    enumerates nothing and the flag is hidden (see :func:`_refresh_priority_help`).
+    """
     spec = common.get_active_spec()
     # sanctioned field-code literal: `--priority` is the flag *for* this field code
     coll_code = badges.declared_collection(item_type, "priority", spec)
@@ -87,14 +68,12 @@ def _priority_help(item_type: str) -> str:
 
 
 def _refresh_priority_help(item_type_str: str) -> Callable[[list[object]], None]:
-    """A ``spec_aware_command_cls`` refresh callback that re-derives ``--priority``'s help
-    for *item_type_str* from the live per-invocation spec at ``--help`` render time, and
-    hides the flag entirely on a type that declares no ``priority`` field.
+    """A spec_aware_command_cls refresh re-deriving --priority's help from the live spec.
 
-    Hiding rather than removing keeps the "advertise vs dispatch" split the rest of this
-    module uses: the flag still parses, so the service's own declared-field gate
-    (``ServiceCore._check_priority``) owns the one accurate refusal — but a flag that can
-    only ever error is never offered in ``--help``."""
+    On a type declaring no ``priority`` field the flag is hidden from ``--help`` but still
+    parses, so the service's declared-field gate (``ServiceCore._check_priority``) owns the one
+    accurate refusal.
+    """
 
     def _refresh(params: list[object]) -> None:
         text = _priority_help(item_type_str)
@@ -178,20 +157,13 @@ def _given_fields(ctx: typer.Context) -> dict[str, str] | None:
 
 
 def _build_create_cmd(item_type_str: str) -> _click.Command:
-    """Build a Click command for ``sq create <item_type_str> TITLE …``.
+    """Build a Click command for ``sq create <item_type_str> TITLE …``, for ``_CustomCreateGroup``.
 
-    Used by ``_CustomCreateGroup`` to lazily build per-custom-type create commands.
-    The approach mirrors the static ``_make`` / ``create_app.command(...)`` path:
-    register the function in a temporary Typer app as a named command, convert the
-    app to a Click group, then extract the named subcommand so the caller gets a
-    ``click.Command`` (not a group).  This way ``sq create incident TITLE`` dispatches
-    correctly — ``incident`` is a leaf command, not another group.
+    Registers the function in a temporary Typer app, converts it to a Click group and extracts
+    the named subcommand, so ``incident`` is a leaf command rather than another group.
     """
-    # Register the function as the sole command in a fresh Typer app.  When there is
-    # exactly one command, ``typer.main.get_command`` returns the command directly (a
-    # ``TyperCommand``, which is a ``click.Command``), not a group — so the caller gets a
-    # leaf command.  This ensures ``sq create incident TITLE`` dispatches ``TITLE`` as
-    # an argument to the command, not as a subcommand of a group.
+    # With exactly one command, ``typer.main.get_command`` returns the command itself, not a
+    # group, so ``TITLE`` dispatches as its argument.
     _tmp_app = typer.Typer()
     _tmp_app.command(
         item_type_str,
@@ -204,48 +176,24 @@ def _build_create_cmd(item_type_str: str) -> _click.Command:
 
 
 class _CustomCreateGroup(typer.core.TyperGroup):
-    """Typer group that lazily dispatches ``sq create <custom-type>`` commands.
+    """Typer group that lazily builds ``sq create <custom-type>`` for types the spec declares.
 
-    Built-in types are registered statically by the loop at the bottom of this file
-    (unchanged, byte-identical to the previous implementation for non-custom squads).
-    When Click calls ``get_command(ctx, name)`` for an *unknown* name, this group
-    checks whether the resolved spec declares that name as a custom work type and, if
-    so, builds and returns a per-type create command on the fly.
-
-    Reconciliation with ``_CustomTypeGroup`` (root-level resource groups):
-    - ``_CustomTypeGroup`` handles ``sq <type> <num> <verb>`` (resource operations).
-    - ``_CustomCreateGroup`` handles only ``sq create <type> TITLE`` (creation entry).
-    - Both call ``common.get_active_spec()`` which is bound once per invocation by
-      ``common.bind_active_spec`` in the root callback, so they always see the same spec.
-    - The ``_custom_cmd_cache`` is scoped to this class (``ClassVar``) and keyed on the spec
-      each command was built for, independent of the resource-group cache.
+    Built-in types are registered statically by the loop at the bottom of this file. Unlike
+    ``_CustomTypeGroup`` (the ``sq <type> <num> <verb>`` groups) it handles only the create
+    entry; both read the spec bound once per invocation by ``common.bind_active_spec``. Its
+    ``_custom_cmd_cache`` is a ``ClassVar`` keyed on the spec each command was built for.
     """
 
     _custom_cmd_cache: ClassVar[common.SpecKeyedCache[_click.Command]] = common.SpecKeyedCache()
 
     def _dropped_static_names(self, ctx: Any) -> frozenset[str]:
-        """Statically-registered command/alias names whose canonical built-in type has been
-        dropped from the resolved active spec (via ``[selected]``, or any other means).
+        """Static command and alias names whose built-in type the resolved spec dropped.
 
-        Resolves via ``common.resolve_spec_for_ctx(ctx)``, not ``common.get_active_spec()``
-        alone — on the shell-completion path the root callback never runs, so a plain
-        ``get_active_spec()`` here would silently see only the bundled spec (the same gap
-        fixed for ``_CustomTypeGroup`` at the root level).
-
-        These names still exist as real Click commands in the app built at import time — that
-        registration is unconditional and only reflects the *bundled* spec — so without this
-        check they would keep being offered by ``--help``/completion: a dropped type must not
-        be advertised. **Advertising only** — ``get_command`` deliberately does NOT consult
-        this set. Hiding a name from ``get_command`` would make Click's own unknown-command
-        handler answer instead of the command itself, and that handler's did-you-mean
-        suggestion still sees the (now merely help-hidden) name and would suggest the exact
-        string the user typed, reading as a bug in ``sq`` rather than a refusal. Leaving the
-        real command reachable lets it dispatch normally into ``svc.create``, whose own
-        membership gate is the one accurate, ``[selected]``-aware refusal — one call site
-        owns the message instead of two disagreeing ones. Fail-soft: any error resolving the
-        active spec returns the empty set (same degrade-gracefully contract as
-        ``_custom_non_roster_types``), so a dropped type simply falls back to being offered,
-        never to a crash in ``--help``/completion.
+        Resolves via ``common.resolve_spec_for_ctx`` because the completion path never runs the root
+        callback. Advertising only: ``get_command`` does not consult this set, so the command still
+        dispatches into ``svc.create``, whose membership gate is the one ``[selected]``-aware
+        refusal; a hidden name would fall to Click's did-you-mean, which suggests the string just
+        typed. Any resolution error returns the empty set.
         """
         try:
             spec = common.resolve_spec_for_ctx(ctx)
@@ -265,13 +213,10 @@ class _CustomCreateGroup(typer.core.TyperGroup):
         return frozenset(dropped)
 
     def _custom_non_roster_types(self, ctx: Any) -> frozenset[str]:
-        """Return custom creatable/trackable (non-roster) type names from the resolved spec.
+        """Non-roster type names the resolved spec adds beyond ``_STATIC_CREATE_TYPES``.
 
-        "Custom" here means "not already registered by the static import-time loop"
-        (``_STATIC_CREATE_TYPES``) — i.e. anything a project's own workflow override adds
-        on top of the bundled spec. Safe to call at any time; returns the empty set on any
-        error. Resolves via ``common.resolve_spec_for_ctx`` — see
-        :meth:`_dropped_static_names` for why (this is the completion path too).
+        Resolves via ``common.resolve_spec_for_ctx`` like :meth:`_dropped_static_names`; empty on
+        error.
         """
         try:
             spec = common.resolve_spec_for_ctx(ctx)
@@ -280,11 +225,7 @@ class _CustomCreateGroup(typer.core.TyperGroup):
             return frozenset()
 
     def list_commands(self, ctx: Any) -> list[str]:
-        """Built-in commands first, then custom non-roster types alphabetically.
-
-        For a non-custom squad the custom set is empty, so this is byte-identical
-        to the previous implementation.
-        """
+        """Built-in commands first, then custom non-roster types alphabetically."""
         dropped = self._dropped_static_names(ctx)
         base: list[str] = [c for c in super().list_commands(ctx) if c not in dropped]
         custom = sorted(self._custom_non_roster_types(ctx))
@@ -305,11 +246,9 @@ class _CustomCreateGroup(typer.core.TyperGroup):
             # the completion path, where the root callback hasn't run.
             spec = common.resolve_spec_for_ctx(ctx)
 
-            # Resolve alias → canonical (mirrors _CustomTypeGroup.get_command). The canonical
-            # type may itself be statically registered — a spec that gives a bundled type a
-            # NEW alias (`feature.aliases = ["ft"]`) declares a name the import-time loop
-            # never saw, and `sq create ft` has to reach the same command `sq ft` already
-            # does; only the *type* being static short-circuits above, not its aliases.
+            # Alias → canonical, as in _CustomTypeGroup.get_command. The type may be static:
+            # an override can give a bundled type a new alias the import-time loop never saw,
+            # and `sq create ft` must reach the command `sq ft` does.
             canonical = cmd_name
             if cmd_name not in spec.non_roster_types():
                 resolved = spec.alias_to_type.get(cmd_name)
@@ -328,13 +267,9 @@ class _CustomCreateGroup(typer.core.TyperGroup):
         if common.static_alias_is_stale(ctx, cmd_name):
             return common.stale_alias_command(ctx, cmd_name)
 
-        # Fast path: try the statically-built built-in commands first (canonical + hidden
-        # aliases) — deliberately including one whose canonical type has been dropped from
-        # the active spec (see _dropped_static_names' docstring for why hiding it here would
-        # be worse than dispatching it: Click's own unknown-command handler would answer
-        # instead, and its did-you-mean would name the very string the user typed). The
-        # dispatched command runs through to `svc.create`, whose membership gate is the one
-        # refusal that actually names the type as dropped rather than as a typo.
+        # Fast path: the static commands, including one whose type the spec dropped (see
+        # _dropped_static_names): it dispatches to `svc.create`, whose membership gate names
+        # the type as dropped rather than as a typo.
         cmd = super().get_command(ctx, cmd_name)
         if cmd is not None:
             return cmd
@@ -362,12 +297,9 @@ create_app = typer.Typer(
     cls=_CustomCreateGroup,
 )
 
-# The bundled spec is the source of truth for the STATIC (import-time) registration loop,
-# mirroring the resource-group loop in _cli/__init__.py: one generic `_make` per creatable
-# work type, ordered by each type's explicit ItemSpec.order (ascending, type name breaking
-# ties) — no hand-maintained type tuple. `guide` is excluded — it gets its own command below
-# with extra --tech/--tag options; role/skill/operator are roster types with their own
-# dedicated commands, never `sq create`.
+# Static registration from the bundled spec, like the resource-group loop in _cli/__init__.py:
+# one generic `_make` per creatable type, in ItemSpec.order. `guide` gets its own command below
+# (--tech/--tag); role/skill/operator are roster types with dedicated commands.
 _create_spec = bundled_spec()
 _CREATABLE: tuple[str, ...] = tuple(
     t
@@ -418,10 +350,8 @@ def _make(item_type_str: str):
             labels=label or None,
             refs=resolved_refs,
             assignee=validated_assignee,
-            # No pre-parse here: the collection `priority` binds is per-type, and the
-            # service's `_check_priority` already resolves it from the type's own declared
-            # field. A second CLI-side parse against a literally-named collection is the
-            # third door into a two-door axis, and the one that gets it wrong.
+            # No pre-parse: the collection `priority` binds is per-type, and the service's
+            # `_check_priority` resolves it from the type's own declared field.
             priority=priority,
             fields=_given_fields(ctx),
             body=resolve_body_optional(message or None, file),
@@ -447,10 +377,8 @@ for _t in _CREATABLE:
         cls=_create_command_cls(_t),
     )(_make(_t))
 
-# Register hidden aliases for the _CREATABLE types so `sq create feat TITLE` dispatches
-# identically to `sq create feature TITLE`.  Aliases come from the bundled spec (the single
-# source of truth, same as the resource-group loop in _cli/__init__.py).  Hidden = not shown
-# in --help, preserving byte-identical output.
+# Hidden aliases from the bundled spec, so `sq create feat TITLE` dispatches like
+# `sq create feature TITLE`; hidden keeps them out of --help.
 for _t in _CREATABLE:
     for _alias in _create_spec.items[_t].aliases:
         create_app.command(_alias, hidden=True, cls=_create_command_cls(_t))(_make(_t))

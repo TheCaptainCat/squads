@@ -1,19 +1,17 @@
-"""Thin async IO helpers — ``to_thread``-wrapped awaitables over blocking file operations,
-the *only* awaitables that touch the filesystem below the CLI edge.
+"""Thin async IO helpers: ``to_thread``-wrapped awaitables over blocking file operations.
 
-Call sites pass zero-arg lambdas or ``functools.partial`` so the return type ``T`` stays pinned
-under pyright strict (positional forms widen ``T`` to ``Any``).
+They are the only awaitables that touch the filesystem below the CLI edge. Call sites pass
+zero-arg lambdas or ``functools.partial`` so the return type ``T`` stays pinned under pyright
+strict (positional forms widen it to ``Any``). ``anyio.Path`` is not used: its methods widen
+results to ``Any``, and ``_store._atomic_write`` needs ``os.fsync`` and ``os.replace`` on one
+thread hop with no ``await`` between them.
 
-**Not ``anyio.Path``**: its methods widen results to ``Any`` under pyright strict, and
-``_store._atomic_write`` needs ``os.fsync`` + ``os.replace`` on one thread hop (no ``await``
-between them), which ``anyio.Path`` cannot express.
-
-**Two write shapes, on purpose.** :func:`write_text` is a bare truncate-in-place — legal only
-for *regenerable* artifacts (backend pointer files, managed-region files, the squad
-``.gitignore``, override stamps): things ``sq sync`` reproduces, where a killed process costs
-at worst a re-sync. Every write to squad **data** — item ``.md`` files, board notices, memory
-entries, ``.squads.toml`` — must go through :func:`atomic_write_text` instead, so a killed
-process can never truncate the one artifact ``sq repair`` has no way to rebuild.
+There are two write shapes on purpose. :func:`write_text` is a bare truncate-in-place, legal
+only for regenerable artifacts (backend pointers, managed-region files, the squad
+``.gitignore``, override stamps) that ``sq sync`` reproduces. Every write to squad data (item
+``.md`` files, board notices, memory entries, ``.squads.toml``) goes through
+:func:`atomic_write_text`, so a killed process never truncates what ``sq repair`` cannot
+rebuild.
 """
 
 import os
@@ -38,23 +36,18 @@ async def to_thread[T](fn: Callable[[], T]) -> T:
 async def read_text(path: Path, *, verbatim: bool = False) -> str:
     """Read *path* as UTF-8 text on a worker thread, with every line ending read as LF.
 
-    No reader of content sees a CR. A writer that must put untouched lines back byte for byte
-    passes ``verbatim=True`` to get the file's own endings (the item-file write seam compares
-    its new text with them).
+    A writer that must restore untouched lines byte for byte passes ``verbatim=True`` to get the
+    file's own endings (the item-file write seam compares its new text with them).
 
-    Raises :class:`~squads._errors.UndecodableFileError` (a ``SquadsError`` naming *path* and
-    the decoder's failing byte/offset) when the on-disk bytes aren't valid UTF-8, and
-    :class:`~squads._errors.UnreadableFileError` (same shape, naming the OS error) when the
-    file exists but the OS refuses the read for any other reason — permission denied, an I/O
-    error. This is the one shared read helper nearly every reader in the product goes through
-    — item files, board notices, memory entries, override templates, the reflog, the migration
-    runners — so one guard here covers all of them.
+    Raises :class:`~squads._errors.UndecodableFileError` (naming *path* and the failing byte
+    offset) on invalid UTF-8, and :class:`~squads._errors.UnreadableFileError` (naming the OS
+    error) when the file exists but the read is refused. Nearly every reader in the product (item
+    files, board notices, memory entries, override templates, the reflog, migration runners) goes
+    through here, so one guard covers them.
 
-    Deliberately does **not** catch ``FileNotFoundError``: a few callers
-    (``_services/_check.py``'s confirm round, ``_services/_import.py``'s
-    pre-pass) read a missing file as a signal, not a failure, and rely on it propagating
-    unchanged. Callers that want a clean not-found error convert it themselves at their own
-    read seam, where "missing" has one meaning instead of several.
+    It does not catch ``FileNotFoundError``: ``_services/_check.py``'s confirm round and
+    ``_services/_import.py``'s pre-pass read a missing file as a signal and rely on it
+    propagating. Callers wanting a clean not-found error convert it at their own seam.
     """
     try:
         return await to_thread(
@@ -86,16 +79,12 @@ async def write_text(path: Path, text: str) -> None:
 
 
 def atomic_replace_sync(path: Path, text: str) -> None:
-    """Sync core of the atomic replace: write a temp file in *path*'s own directory, flush,
-    ``os.fsync``, then ``os.replace`` onto *path*, with no gap between the fsync and the replace.
+    """Sync core of the atomic replace: temp file beside *path*, flush, fsync, ``os.replace``.
 
-    Exposed (not underscored) because a handful of call sites are sync end to end — e.g. the
-    override stamp writers, which touch adopter-authored files from a sync CLI command chain,
-    and ``IndexStore._atomic_write_sync``, the no-event-loop bootstrap path — and must not have
-    to go async just to reach this shape. :func:`atomic_write_text` is this same core, run on a
-    worker thread for the async mutation path; both the index and every item ``.md`` write
-    funnel through one of these two, so there is exactly one place the temp+fsync+replace shape
-    is written down.
+    There is no gap between the fsync and the replace. It is public because some call sites are
+    sync end to end (the override stamp writers, ``IndexStore._atomic_write_sync`` on the
+    no-event-loop bootstrap path). :func:`atomic_write_text` runs this same core on a worker thread,
+    so the index and every item ``.md`` write share this one temp+fsync+replace shape.
     """
     tmp = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
     try:
@@ -105,25 +94,20 @@ def atomic_replace_sync(path: Path, text: str) -> None:
             os.fsync(fh.fileno())
         tmp.replace(path)
     except BaseException:
-        # An exception escaping the write (disk full, permission denied, an injected fault)
-        # is in-model per the crash model — clean up the temp sibling before re-raising so a
-        # failed write doesn't leave a permanent `*.tmp` behind. Process death proper can't
-        # run this handler either way; this only helps the cases that *can* run Python.
+        # A failure that can still run Python (disk full, permission denied, an injected fault)
+        # must not leave a permanent `*.tmp` behind; process death never reaches this handler.
         tmp.unlink(missing_ok=True)
         raise
 
 
 async def atomic_write_text(path: Path, text: str) -> None:
-    """Atomically replace *path* with *text* — the async wrapper over :func:`atomic_replace_sync`,
-    run inside ONE thread hop so no coroutine can interleave between the durability barrier and
-    the rename. ``IndexStore._atomic_write`` delegates to this for the index commit; every item
-    ``.md`` write goes through it too (via ``_itemfile.py``) — one primitive, not two.
+    """Atomically replace *path* with *text*, in one thread hop over :func:`atomic_replace_sync`.
 
-    Contract: after this returns, *path* holds either the complete new text or its complete
-    previous bytes — **never** a prefix of either. Does not create parent directories (callers
-    needing a new one call :func:`mkdir` first — this primitive has exactly one job) and does
-    not collide with a concurrent writer of the same target: the temp name carries the pid and
-    thread id.
+    No coroutine can interleave between the durability barrier and the rename.
+    ``IndexStore._atomic_write`` and every item ``.md`` write (via ``_itemfile.py``) use it. After
+    it returns, *path* holds either the complete new text or its complete previous bytes, never a
+    prefix. It does not create parent directories (call :func:`mkdir` first) and does not collide
+    with a concurrent writer of the same target, since the temp name carries the pid and thread id.
     """
     await to_thread(lambda: atomic_replace_sync(path, text))
 
@@ -134,16 +118,13 @@ async def path_exists(path: Path) -> bool:
 
 
 async def path_is_symlink(path: Path) -> bool:
-    """Return ``True`` if *path* is itself a symlink dirent — **not** whether its target
-    exists (``Path.is_symlink()`` checks the link itself via ``lstat``, so it is ``True`` for
-    a *broken* symlink, unlike :func:`path_exists`, which follows the link and would report
-    ``False`` for the same dirent).
+    """Whether *path* is itself a symlink dirent, not whether its target exists.
 
-    The distinguisher a caller reaches for after ``read_text`` raises ``FileNotFoundError`` on
-    a dirent its own glob just saw: a broken symlink is a *present* file (the read failed on
-    what it points at, not on whether it's there), while a dirent that has genuinely vanished
-    between the glob and the read is not — see the call sites in ``_services/_maintenance.py``,
-    ``_board/_store.py``, and ``_memory/_store.py``.
+    ``Path.is_symlink()`` uses ``lstat``, so it is ``True`` for a broken symlink, unlike
+    :func:`path_exists`, which follows the link. A caller uses it after ``read_text`` raises
+    ``FileNotFoundError`` on a dirent its own glob just saw: a broken symlink is a present file
+    (the read failed on its target), while a dirent that vanished between glob and read is not.
+    See ``_services/_maintenance.py``, ``_board/_store.py`` and ``_memory/_store.py``.
     """
     return await to_thread(lambda: path.is_symlink())
 

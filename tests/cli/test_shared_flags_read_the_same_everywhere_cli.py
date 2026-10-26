@@ -14,8 +14,11 @@ WORDINGS: dict[str, set[str]] = {
     "--file": {
         "Read the text from a file instead of `-m`; `-` reads stdin.",
         "Read the memory's body from a file; `-` reads stdin.",
-        "A role definition in the `.overrides/roles/<slug>.toml` grammar; flags win over it.",
-        "A definition delta in the `.overrides/roles/<slug>.toml` grammar, merged field by field.",
+        "A role definition in the `.overrides/roles/<slug>.toml` grammar; flags win over it. "
+        "The `responsibilities` and `agreements` lists are set only here.",
+        "A definition delta in the `.overrides/roles/<slug>.toml` grammar, merged field by field. "
+        '`responsibilities` and `agreements` are set only here: `["$(*self)", "more"]` appends, '
+        "`[]` clears.",
     },
     "--message": {
         "A paragraph of text; repeat for several.",

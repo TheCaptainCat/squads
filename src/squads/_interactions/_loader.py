@@ -1,51 +1,38 @@
 """Load and validate the playbook spec, merging a project override over the bundled base.
 
-``load_playbook(catalog, spec, squad_dir)`` is the single entry point.  With no ``squad_dir``
-(or none present on disk) it reads ``playbook.toml`` from the ``squads._specs`` package via
-``importlib.resources`` (offline, no filesystem assumption), parses with stdlib ``tomllib``,
-constructs the pydantic models, runs fail-closed validation against the already-loaded role
-catalog and the given ``WorkflowSpec`` (the bundled spec by default), and returns a
-``PlaybookSpec``.  A corrupt or invalid playbook raises ``SquadsError``.
+``load_playbook(catalog, spec, squad_dir)`` is the single entry point. It reads
+``playbook.toml`` from the ``squads._specs`` package (``importlib.resources``, parsed with
+``tomllib``), builds the pydantic models, validates fail-closed against the role catalog and
+*spec* (the bundled ``WorkflowSpec`` by default) and returns a ``PlaybookSpec``; a corrupt or
+invalid playbook raises ``SquadsError``.
 
-With a ``squad_dir`` given, ``<squad_dir>/.overrides/playbook.toml`` — when present — is merged
-over the bundled default via the shared, loader-agnostic engine (``squads._specmerge``), entirely
-at the **raw parsed-TOML mapping** layer, before any model is built — the same
-splat/deep-merge mechanics the workflow loader uses (see that module's docstring). Two things are
-deliberately narrower here than the workflow override, both settled by the governing decision:
+With a ``squad_dir``, ``<squad_dir>/.overrides/playbook.toml``, when present, is merged over
+the bundled default at the raw parsed-TOML layer, before any model is built, by the shared
+engine ``squads._specmerge`` (the splat and deep-merge mechanics the workflow loader uses).
+Two things are narrower than the workflow override:
 
-- **Single-file, keyed-table delta, one top-level section (``types``).** The playbook is one
-  referentially-coupled document — an entry names role slugs and a type — so it takes the
-  workflow override's addressing shape, not the roles override's per-slug-file shape.
-- **No independent deselect.** The playbook's active type set is *derived*, not declarable:
-  :func:`_check_coverage` already requires exactly one entry per *spec*'s non-roster type, so
-  dropping a type from the workflow spec drops its playbook entry as a consequence, with no
-  ``[selected]`` key of its own. Passing an empty ``frozenset()`` as the engine's deselectable
-  ``section_names`` makes this a *refusal*, not a silent no-op: an override that writes
-  ``[selected]`` at all is rejected as naming an unknown section, rather than being accepted and
-  quietly doing nothing.
+- It is a single file with a keyed-table delta and one top-level section (``types``). The
+  playbook is one referentially-coupled document (an entry names role slugs and a type), so
+  it takes the workflow override's addressing shape, not the roles override's per-slug files.
+- It has no independent deselect. The active type set is derived: :func:`_check_coverage`
+  requires one entry per non-roster type of *spec*, so dropping a type from the workflow spec
+  drops its entry. An empty ``frozenset()`` as the engine's deselectable ``section_names``
+  makes any ``[selected]`` in the override a refusal (unknown section), not a silent no-op.
 
-Coverage — and every other structural/referential check — always validates against *spec*, the
-caller-supplied ``WorkflowSpec``. On the per-request path that is the **merged, active** spec,
-never the bundled one — this is what makes a workflow override's dropped/renamed/added type
-correctly drop, rename, or newly require a playbook entry, with no separate wiring: passing the
-active spec through is the entire mechanism.
+Every structural and referential check validates against the caller's *spec*, on the
+per-request path the merged active one, so a workflow override's dropped, renamed or added
+type drops, renames or newly requires a playbook entry with no separate wiring.
 
-**Known limitation: guide prose is text, and coverage is the only thing checked against the
-spec.** Everything above is *structural* — which types have an entry, which role slugs an entry
-names. A guide's guidance is free prose, and the bundled document's prose sometimes names another
-type by name, because the guidance would not otherwise be runnable ("create tasks with this
-feature as parent (``sq create task … --parent FEAT-<n>``)" in ``feature``'s product-owner guide).
-A workflow override that drops or renames a type correctly withdraws *that* type's own skill and
-entry, and leaves such a line standing in a **surviving** type's skill — so the generated
-instruction is confidently wrong rather than absent, and nothing reports it.
-
-This is a limitation with a supported remedy, not a defect awaiting a fix: the remedy is to
-override the playbook alongside the workflow, which is what makes it the fourth overridable
-document. Templating the prose was considered and declined — a placeholder in place of the type
-name costs an actionable command an agent cannot reconstruct, which is worse than a stale one it
-can adapt. The bundled prose is instead kept deliberately sparse in cross-type references, so
-that an adopter who renames a type has as little to rewrite as possible; adding a gratuitous one
-back is a regression against this paragraph.
+Known limitation: coverage is the only thing checked against the spec; guide prose is text.
+The bundled prose sometimes names another type where the guidance would not otherwise be
+runnable (``feature``'s product-owner guide: ``sq create task … --parent FEAT-<n>``). A
+workflow override that drops or renames a type withdraws that type's own skill and entry but
+leaves such a line in a surviving type's skill, so the instruction is confidently wrong and
+nothing reports it. The supported remedy is to override the playbook alongside the workflow.
+Templating the prose was declined: a placeholder costs an agent a command it cannot
+reconstruct, which is worse than a stale one it can adapt. The bundled prose is kept sparse
+in cross-type references, so an adopter who renames a type has little to rewrite; adding a
+gratuitous reference is a regression against this paragraph.
 """
 
 import functools
@@ -88,23 +75,18 @@ from squads._workflow._models import WorkflowSpec
 #: Canonical location for the project playbook override (relative to squad_dir).
 PLAYBOOK_OVERRIDE_FILENAME = ".overrides/playbook.toml"
 
-#: The playbook document's closed top-level section-key space — enforced at the raw-mapping
-#: layer by the merge engine before any model is built. ``selected`` is accepted unconditionally
-#: by the engine (see ``_specmerge`` docstring) but needs no entry here since it is never a valid
-#: deselect target for this document (see :data:`PLAYBOOK_SELECTED_SECTIONS`).
+#: The playbook's closed top-level section keys, enforced by the merge engine on the raw mapping.
+#: ``selected`` is accepted by the engine itself and needs no entry, since it is never a valid
+#: deselect target here (:data:`PLAYBOOK_SELECTED_SECTIONS`).
 PLAYBOOK_TOP_LEVEL_SECTIONS: frozenset[str] = frozenset({"types"})
 
-#: The playbook's deselectable ``[selected]`` section names — deliberately empty. The active
-#: type set derives from the workflow spec's coverage rule, not an independent declaration, so
-#: any ``[selected]`` table an override writes names no valid section and is refused outright
-#: (see the module docstring).
+#: The playbook's deselectable ``[selected]`` sections, empty on purpose: the active type set
+#: derives from the workflow spec's coverage rule, so any ``[selected]`` table is refused.
 PLAYBOOK_SELECTED_SECTIONS: frozenset[str] = frozenset()
 
-#: The fix hint the merge engine reports for a ``[selected]`` table in a playbook override —
-#: :data:`PLAYBOOK_SELECTED_SECTIONS` being empty means the generic "use one of the accepted
-#: [selected] sections: []" template would offer an empty menu, so this document supplies the
-#: actual reason instead: there is nothing to deselect here because coverage is derived, not
-#: declared (see the module docstring).
+#: The fix hint for a ``[selected]`` table in a playbook override. The generic "use one of the
+#: accepted sections: []" would offer an empty menu, so this gives the reason: coverage is
+#: derived, so there is nothing to deselect.
 PLAYBOOK_NO_SELECTED_HINT = (
     "the playbook has no [selected] sections to deselect — its active type set is derived "
     "from .overrides/workflow.toml's coverage, not declared here; drop a type there instead"
@@ -142,17 +124,13 @@ def bundled_playbook_toml_text() -> str:
 
 
 def _base_raw_for(spec: WorkflowSpec) -> RawMapping:
-    """The bundled raw mapping's ``[types]`` table, with any entry for a type *spec* no longer
-    declares as a non-roster type silently dropped — this is the mechanism that makes playbook
-    coverage *derived*, not just checked: a type a workflow override dropped must not surface as
-    an "extra" playbook entry to refuse (coverage's own docstring), and the only way to keep
-    that entry from ever reaching the merge/validation layer at all is to never carry it into
-    *this* call's base in the first place. The merge engine itself stays entirely spec-blind —
-    this filtering happens strictly before the engine ever sees the mapping.
+    """The bundled raw ``[types]`` table without entries for types *spec* lacks as non-roster.
 
-    A no-op whenever *spec*'s non-roster type set equals the bundled document's own — which is
-    exactly the untouched (no workflow override) case, so this changes nothing for a squad with
-    no override at all: the bundled-only load stays byte-identical.
+    This is what makes playbook coverage derived, not just checked: an entry for a type a
+    workflow override dropped must not reach the merge and validation layer as an "extra" entry
+    to refuse, so it is never carried into this call's base. The merge engine stays spec-blind;
+    the filtering happens strictly before it. It is a no-op when *spec*'s non-roster set equals
+    the bundled document's, the no-override case.
     """
     raw = _bundled_raw()
     types_raw = raw.get("types", {})
@@ -174,23 +152,18 @@ def load_playbook(
 ) -> PlaybookSpec:
     """Read, parse, merge (if a project override is present), and validate the playbook.
 
-    Takes a ``WorkflowSpec`` as the type authority: every one of *spec*'s
-    ``non_roster_types()`` must have a playbook entry, and no entry may name anything else.
-    Passing the *active* (possibly merged) workflow spec here — not the bundled one — is what
-    makes a workflow override's dropped/renamed/added type correctly change the playbook's
-    coverage requirement, with no separate wiring.
+    *spec* is the type authority: every one of its ``non_roster_types()`` needs a playbook entry
+    and no entry may name anything else. Passing the active (possibly merged) workflow spec, not
+    the bundled one, is what makes a workflow override's dropped, renamed or added type change
+    the coverage requirement.
 
-    When *squad_dir* is ``None`` or ``<squad_dir>/.overrides/playbook.toml`` is absent, this
-    builds the playbook straight from the bundled raw mapping — byte-identical to today's
-    bundled-only load whenever *spec* is also the bundled spec.
+    With *squad_dir* ``None`` or no ``<squad_dir>/.overrides/playbook.toml``, the playbook is
+    built from the bundled raw mapping. Otherwise the override is merged over it first (shared
+    engine, fail-fast: ``SquadsError`` on the first violation), then the merged mapping is built
+    and validated as the bundled one is.
 
-    When the override file is present, it is merged over the bundled raw mapping first (shared
-    engine, fail-fast — raises ``SquadsError`` on the first violation), then the merged mapping
-    is built and validated exactly as the bundled-only path validates the bundled mapping.
-
-    Called once, on first use, by ``_playbook.get_playbook_spec`` (no ``squad_dir``) to build the
-    bundled singleton, and by the squad's document resolver for the active/merged playbook.
-    Raises ``SquadsError`` on any violation.
+    It is called once, on first use, by ``_playbook.get_playbook_spec`` (no ``squad_dir``) for
+    the bundled singleton, and by the squad's document resolver for the active playbook.
     """
     raw = _base_raw_for(spec)
     loaded = load_override(_DOCUMENT, squad_dir, lambda: raw, files)
@@ -278,13 +251,11 @@ def _check_slugs(
 def _check_duplicate_slugs(types: dict[str, ItemPlaybookSpec], errors: list[str]) -> None:
     """Refuse a role slug that appears more than once in one type's ``roles`` array.
 
-    ``roles`` is semantically keyed by slug — the generated skill renders exactly one H2
-    section per slug (see ``_backends._claude_code._backend._write_item_skills``) — so a
-    second guide for the same slug is not a second voice for that role, it silently produces
-    a truncated second section directly under the first bundled one. The idiom this most often
-    catches: ``roles = ["$(*self)", { slug = "<already-bundled>", ... }]`` spreads a slug the
-    bundled array already carries. Fail closed here rather than let it through to a document
-    the renderer has no merge-by-slug behaviour for.
+    ``roles`` is keyed by slug: the generated skill renders one H2 section per slug (see
+    ``_backends._claude_code._backend._write_item_skills``), so a second guide for a slug is
+    not a second voice but a truncated second section under the first. The usual cause is
+    ``roles = ["$(*self)", { slug = "<already-bundled>", ... }]``, which spreads a slug the
+    bundled array already carries. The renderer has no merge-by-slug behaviour, so fail closed.
     """
     for item_type, entry in types.items():
         first_seen: dict[str, int] = {}
@@ -311,26 +282,19 @@ def bundled_type_names() -> frozenset[str]:
 def _check_coverage(
     types: dict[str, ItemPlaybookSpec], spec: WorkflowSpec, errors: list[str]
 ) -> None:
-    """Every *bundled* non-roster type still active in *spec* needs a playbook entry; nothing
-    outside *spec*'s non-roster set may have one.
+    """Every bundled non-roster type active in *spec* needs an entry; no other type may have one.
 
-    *spec* is the sole authority on which types exist and which are roster — on the per-request
-    path this is the *merged*, active workflow spec, so a type a workflow override dropped stops
-    being required here (and stops being coverable at all: an entry naming a type absent from
-    *spec* fails the second check below).
+    *spec* is the sole authority on which types exist; on the per-request path it is the merged
+    active spec, so a type a workflow override dropped stops being required (and cannot be
+    covered: an entry for a type absent from *spec* fails the second check).
 
-    The "missing" direction is deliberately scoped to *bundled* type names only, never to a
-    project-declared (or renamed-into) one: a custom type with no playbook entry is not a
-    coverage violation — it is the existing, sanctioned thin-skill fallback every custom type
-    already gets, regardless of whether this feature exists. Requiring an entry for every
-    project-declared type would turn "add a custom type via a workflow override" (already legal,
-    predates this feature) into a hard failure the moment a project doesn't ALSO write a
-    matching playbook entry — breaking that existing, unrelated capability. In practice this
-    scoping never actually narrows anything the bundled-document self-check would have caught:
-    a bundled type still active in *spec* already has its entry, by construction (the loader's
-    own base-filtering step keeps it), so this direction only ever fires for the true bundled
-    document validating against itself — the maintainer safety net a missing bundled entry
-    needs, preserved unchanged.
+    The "missing" direction covers bundled type names only. A custom or renamed-into type with
+    no entry gets the sanctioned thin-skill fallback; requiring one would turn "add a custom
+    type via a workflow override", already legal, into a hard failure for any project that does
+    not also write an entry. This never narrows what the bundled self-check catches: a bundled
+    type still active already has its entry, since the loader's base filtering keeps it, so this
+    direction fires only for the bundled document validating against itself, the maintainer
+    safety net for a missing bundled entry.
     """
     creatable_types = spec.non_roster_types()
     bundled_names = bundled_type_names()
@@ -381,9 +345,8 @@ def _validate(types: dict[str, ItemPlaybookSpec], spec: WorkflowSpec) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Drift stamping — whether a playbook override shadows the bundled spec: a raw key-set
-# intersection, no merge required. Mirrors ``_workflow._loader``'s equivalent so `sq check`
-# and a future `sq playbook lint` (if ever added) never disagree about the same file.
+# Drift stamping: whether a playbook override shadows the bundled spec, a raw key-set
+# intersection with no merge. Mirrors ``_workflow._loader``'s equivalent.
 # ---------------------------------------------------------------------------
 
 
@@ -415,14 +378,12 @@ def playbook_override_shadows_bundled(squad_dir: Path, files: OverrideFiles | No
 
 
 def _declared_guide_slugs(entry: Any) -> list[str]:
-    """The role slugs one raw ``[types.<name>]`` table declares **literally** in its ``roles``
-    array.
+    """The role slugs one raw ``[types.<name>]`` table declares literally in its ``roles`` array.
 
-    Skips a splat-ref entry (the string ``"$(*self)"`` and friends): it names no slug of its own
-    and spreads the bundled array by reference, so the guides it pulls in are still squads' own.
-    Skips anything that is not a mapping with a string ``slug`` too — the loader's own validation
-    is what reports a malformed guide; this reader answers only "which slugs did the adopter
-    write", and must never raise for a shape it did not expect.
+    It skips a splat-ref entry (``"$(*self)"`` and friends), which names no slug of its own and
+    spreads the bundled array, and anything that is not a mapping with a string ``slug``; the
+    loader's validation reports a malformed guide. It answers only "which slugs did the adopter
+    write" and never raises for an unexpected shape.
     """
     if not isinstance(entry, dict):
         return []
@@ -440,20 +401,17 @@ def _declared_guide_slugs(entry: Any) -> list[str]:
 def playbook_override_guide_pairs(
     squad_dir: Path, files: OverrideFiles | None = None
 ) -> frozenset[tuple[str, str]]:
-    """Every ``(item_type, role_slug)`` guide ``<squad_dir>/.overrides/playbook.toml`` declares —
-    read from the **raw** override mapping, before any merge with the bundled base.
+    """Every ``(item_type, role_slug)`` guide ``.overrides/playbook.toml`` declares, read raw.
 
-    The question this answers is *who wrote this guide*, which the merged ``PlaybookSpec`` cannot
-    answer: the merged document is bundled-plus-override and holds no provenance. That distinction
-    is what separates an actionable dropped-guide report from an unactionable one — a guide the
-    adopter declared here is theirs to remove, whereas one that exists only in the bundled
-    document is squads' own graceful degradation, which no adopter can edit and should therefore
-    not be told about (see :func:`~squads._interactions._playbook.orphaned_playbook_guides`).
+    It reads the override mapping before any merge, because the question is who wrote the guide
+    and the merged ``PlaybookSpec`` holds no provenance. That separates an actionable
+    dropped-guide report from an unactionable one: an adopter's own guide is theirs to remove,
+    while a guide only in the bundled document is squads' own graceful degradation, which no
+    adopter can edit (see :func:`~squads._interactions._playbook.orphaned_playbook_guides`).
 
-    Returns an empty set when the override is absent, unreadable, or malformed TOML — the same
-    tolerance :func:`playbook_override_shadows_bundled` keeps, for the same reason: the callers
-    are ``sq check``/``sq sync``, neither of which may fail over this question, and a file that
-    cannot be parsed has declared nothing.
+    The result is empty when the override is absent, unreadable or malformed TOML, with the same
+    tolerance as :func:`playbook_override_shadows_bundled`: ``sq check`` and ``sq sync`` must not
+    fail over this, and an unparseable file declared nothing.
     """
     return frozenset(
         (item_type, slug)
@@ -500,18 +458,15 @@ def _override_types(squad_dir: Path, files: OverrideFiles | None) -> dict[str, A
 def playbook_stamp_finding(
     squad_dir: Path, stamp: str | None, files: OverrideFiles | None = None
 ) -> tuple[str, str] | None:
-    """The stamp obligation for the playbook override. Returns ``(level, message)``, or
-    ``None`` when nothing is owed:
+    """The playbook override's stamp obligation: ``(level, message)``, or ``None`` if none is owed.
 
-    - shadowing **and** unstamped -> ``("error", ...)`` — a shadowing override has stopped
-      tracking the bundled spec and so carries the provenance obligation every other
-      shadowing override kind carries.
-    - stamped, older than running, **and the bundled playbook.toml actually changed** since
-      that stamp -> ``("warn", ...)``. Drift is content-gated: an old stamp alone is never a
-      warning, so an add-only override with no bundled change behind it reports clean, not
-      "may be stale".
-    - stamped at the running version, content unchanged since the stamp, or add-only and
-      unstamped -> ``None``.
+    - Shadowing and unstamped gives ``("error", ...)``: a shadowing override stopped tracking the
+      bundled spec, so it carries the provenance obligation every shadowing override kind does.
+    - Stamped, older than running, and the bundled ``playbook.toml`` changed since the stamp gives
+      ``("warn", ...)``. Drift is content-gated: an old stamp alone is never a warning, so an
+      add-only override with no bundled change behind it reports clean.
+    - Stamped at the running version, unchanged since the stamp, or add-only and unstamped gives
+      ``None``.
     """
 
     from squads import __version__

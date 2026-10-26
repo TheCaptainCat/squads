@@ -1,14 +1,14 @@
 """The team playbook: the bundled document, who authors and interacts with each item type, and
 the checks that a project's guides still name live roles.
 
-Drives the per-item-type managed skills (one role-directed section per interacting role) and the
-reverse mapping (which skills each role's pointer preloads). A role that does not interact with an
-item type does not get that item's skill.
+It drives the per-item-type managed skills (one role-directed section per interacting role)
+and the reverse mapping (which skills each role's pointer preloads). A role that does not
+interact with an item type does not get that item's skill.
 
-Membership is spec-driven and checked (a type the active workflow spec does not declare has no
-entry and no skill); guide **prose** is not, and a surviving type's guidance can go on naming a
-type that a workflow override dropped or renamed. See ``_loader``'s module docstring for the full
-statement of that limitation and its remedy.
+Membership is spec-driven and checked (a type the active workflow spec does not declare has
+no entry and no skill); guide prose is not, so a surviving type's guidance can keep naming a
+type a workflow override dropped or renamed. See ``_loader``'s module docstring for that
+limitation and its remedy.
 """
 
 import contextlib
@@ -130,55 +130,40 @@ def orphaned_playbook_guides(
     live_roles: Iterable[RoleLike],
     override_guides: Container[tuple[str, str]],
 ) -> list[tuple[str, str]]:
-    """Every ``(item_type, role_slug)`` playbook guide the generated ``sq-<type>`` skill will
-    **silently drop**, because *role_slug* names no live role **and** the adopter is the one who
-    wrote the guide.
+    """Every adopter guide ``(item_type, role_slug)`` the ``sq-<type>`` skill drops silently.
 
-    The playbook loader's slug authority is deliberately permissive — the bundled catalog union
-    whatever ``.overrides/roles/*.toml`` files exist, read by filename because those files must
-    be readable before the index is (coupling the loader to the roster would refuse every guide
-    in a squad whose index is mid-repair). The *renderer* is not permissive: it gates each guide
-    on live roster membership and drops the rest with ``continue``. Where the two sets differ the
-    adopter's guidance evaporates with nothing reported, so this is the predicate that reports
-    it — the loader stays permissive and ``check``/``sync`` carry the news, which is also where
-    the skill side of the same event is already reported.
+    A guide is dropped when *role_slug* names no live role. The loader's slug authority is
+    permissive: the bundled catalog plus the ``.overrides/roles/*.toml`` stems, read by filename
+    because they must be readable before the index (coupling it to the roster would refuse every
+    guide while an index is mid-repair). The renderer gates each guide on live roster membership
+    and drops the rest, so where the sets differ the adopter's guidance evaporates unreported.
+    This predicate reports it; ``check`` and ``sync`` carry the news, as they do for the skill
+    side of the same event.
 
-    Three shapes reach it, all driven: a role not yet created (a guide written before
-    ``sq role add`` has made the role is the natural order); a role activated and later
-    retired, the guide left behind; and a stray or malformed file in ``.overrides/roles/``
-    whose stem the loader accepts as a slug but which never becomes a role at all.
+    Three shapes reach it: a role not yet created (a guide written before ``sq role add``), a
+    role activated and later retired with the guide left behind, and a stray or malformed file in
+    ``.overrides/roles/`` whose stem the loader accepts as a slug but which never becomes a role.
 
-    Two exemptions, both deliberate:
+    Two exemptions:
 
-    * a guide addressed to a capability (``*<name>``) that is bundled, not one an override
-      declares — it renders only while a live role holds the capability, so a squad without a
-      holder carries no guidance for an actor that cannot act;
-    * a guide whose ``(item_type, slug)`` pair *override_guides* does not carry — i.e. one that
-      exists only in the **bundled** playbook document. This keys the exemption on **who wrote
-      the guide**, which is what decides whether the report is actionable at all: a guide the
-      adopter declared in ``.overrides/playbook.toml`` is theirs and the remedy can name the file
-      and table it sits in, whereas the bundled document is package data sq never writes and no
-      adopter can edit. For a bundled guide the reported remedy would name a file the squad may
-      not even have, and the only way to clear it would be to undo the roster change — so a
-      warning nobody can act on, produced by a first-class reversible operation (retirement).
-      That is squads' own graceful degradation, and it stays silent, exactly as it already did
-      for a bundled role a ``--roles minimal`` squad never installed.
+    * A guide addressed to a bundled capability (``*<name>``), which renders only while a live
+      role holds it, so a squad without a holder has no guidance for an actor that cannot act.
+    * A guide whose pair *override_guides* does not carry, i.e. one only in the bundled playbook.
+      The exemption keys on who wrote the guide because that decides whether the report is
+      actionable: an adopter's guide is theirs, and the remedy can name its file and table;
+      the bundled document is package data no adopter can edit, and its only remedy would be to
+      undo a reversible roster change (retirement). That is squads' own graceful degradation and
+      stays silent, as it does for a bundled role a ``--roles minimal`` squad never installed.
 
-    Deliberately **not** the discriminator: whether this squad has a roster entry for the slug.
-    That tells never-installed apart from retired, but those two are the same event from the
-    adopter's side — the bundled document names a role they do not have — with the same
-    non-remedy. Retiring a bundled role the bundled playbook names (six of them do) would
-    otherwise mint a permanent, unclearable warning.
+    Whether the squad has a roster entry for the slug is not the discriminator: it separates
+    never-installed from retired, which are the same event for the adopter. Retiring a bundled
+    role that the bundled playbook names (six do) would otherwise mint an unclearable warning.
 
-    A type the active spec no longer declares is skipped: its whole ``sq-<type>`` skill is
-    withdrawn, which :func:`orphaned_skill_item_type` already reports, and re-reporting each of
-    its guides would bury that one line under a per-role pile. Belt and braces, verified by
-    driving it: a merged playbook is *already* spec-filtered (dropping ``bug`` from a workflow
-    override removes ``types.bug`` from the merged playbook), so no caller reaches this branch
-    today — it holds the property for a caller that pairs the **bundled** playbook with an
-    overridden spec, which is a legal call and the same defence ``_write_item_skills`` keeps.
-
-    Pure, and returns sorted pairs so every caller's output is deterministic.
+    A type *spec* no longer declares is skipped: its whole ``sq-<type>`` skill is withdrawn,
+    which :func:`orphaned_skill_item_type` reports, and reporting each guide would bury that line.
+    A merged playbook is already spec-filtered, so no caller reaches this branch; it holds
+    the property for a caller pairing the bundled playbook with an overridden spec, the defence
+    ``_write_item_skills`` also keeps. Pure, and returns sorted pairs.
     """
     out: list[tuple[str, str]] = []
     roles = list(live_roles)
@@ -197,30 +182,22 @@ def orphaned_playbook_guides(
 def orphaned_playbook_guide_message(
     item_type: str, slug: str, *, retired: bool, live_status: str, in_catalog: bool = False
 ) -> str:
-    """The one wording for a dropped playbook guide, shared by ``sq check`` and ``sq sync`` so
-    the two surfaces cannot drift into describing the same event differently.
+    """The one wording for a dropped playbook guide, shared by ``sq check`` and ``sq sync``.
 
-    States the condition and both ways out, because either is legitimate depending on which of
-    the reachable shapes produced it: make the role live, or drop the guide.
+    It states the condition and both ways out, make the role live or drop the guide. Both are
+    nameable only because of the exemption in :func:`orphaned_playbook_guides`: every guide
+    reaching this wording is the adopter's own in ``.overrides/playbook.toml``, so the file and
+    ``[types.<type>]`` table exist and removing the guide clears the report.
 
-    Both remedies are only nameable because of the exemption in
-    :func:`orphaned_playbook_guides`: every guide that reaches this wording is one the adopter
-    declared in ``.overrides/playbook.toml``, so the file exists, the ``[types.<type>]`` table is
-    theirs, and removing the guide genuinely clears the report. A message that also fired for a
-    bundled guide could not honestly say either sentence.
-
-    *retired* selects between the **two different commands** that make a role live, because they
-    are not interchangeable and naming the wrong one is naming a remedy that cannot work.
-    ``activate`` is a create verb: ``activate_role`` refuses an existing entry that is not live
-    (with this same ``sq role <slug> status <live_status>`` hint), so pointing a retired role's
-    warning at ``sq role activate <slug>`` would hand the reader a command that errors out.
-    A slug with a roster entry is revived by a status transition (``sq role <slug> status
-    <live_status>``, the spelling ``_retired_participant_hint`` already uses for the same
-    situation); a slug with no entry yet — the write-the-guide-first order — is created.
-    *in_catalog* says the catalog declares the slug, so activating it is the command that
-    works; any other slug is created with ``sq role add`` or built from a template.
-    *live_status* is the roster role type's own live initial status, never a hard-coded
-    ``Active``, so a project that renamed its roster lifecycle reads its own vocabulary.
+    *retired* selects between two commands that are not interchangeable. ``activate`` is a create
+    verb: ``activate_role`` refuses an existing non-live entry with the ``sq role <slug> status
+    <live_status>`` hint, so pointing a retired role at ``sq role activate <slug>`` would hand
+    the reader a command that errors. A slug with a roster entry is revived by that status
+    transition (as ``_retired_participant_hint`` does); a slug with no entry yet, the
+    guide-first order, is created. *in_catalog* says the catalog declares the slug, so activating
+    it works; any other slug is created with ``sq role add`` or from a template. *live_status*
+    is the roster role type's live initial status, not a hard-coded ``Active``, so a renamed
+    roster lifecycle reads its own vocabulary.
     """
     if slug.startswith(CAPABILITY_SUBJECT_PREFIX):
         return (
@@ -254,11 +231,10 @@ def unheld_capability_tokens(
     override_guides: Container[tuple[str, str]],
     override_commands: Container[tuple[str, str]] = (),
 ) -> list[tuple[str, str]]:
-    """Every ``(item_type, capability)`` pair for which a guide or command line the adopter
-    declared uses an ``@*<capability>`` token that no live role holds, so the generated skill
-    renders it as ``*<capability>`` and mentions nobody.
+    """Every ``(item_type, capability)`` an adopter guide or command uses as an unheld ``@*<cap>``.
 
-    Only a guide *override_guides* carries, and a command line *override_commands* carries, is
+    No live role holds it, so the generated skill renders ``*<capability>`` and mentions nobody.
+    Only a guide *override_guides* carries and a command line *override_commands* carries are
     read: the same token in the bundled playbook degrades silently, as no adopter can edit it. A
     type *spec* no longer declares is skipped. Pure, and returns sorted, unique pairs.
     """
@@ -297,37 +273,25 @@ def authoring_owners(
     playbook: PlaybookSpec,
     role_titles: Mapping[str, str] | None = None,
 ) -> list[tuple[str, str]]:
-    """The ``(slug, display title)`` of every in-lane role that authors *item_type*, in the
-    order the type's own playbook guides declare them (a capability guide expands to the
-    roster's holders in place).
+    """The ``(slug, display title)`` of every in-lane role that authors *item_type*.
 
-    *item_type* is the plain type-name string (e.g. ``"feature"``, ``"task"`` — the
-    same string keys ``spec.items`` and the template loop over them use).
+    They come in the order the type's playbook guides declare them, a capability guide expanding
+    to the roster's holders in place. *item_type* is the plain type-name string. Empty when the
+    type has no lane owner. An owner is dropped when it has no resolvable display title, or, with
+    *roster* given, when it is not on the live roster; a capability guide needs the roster to
+    name anyone. *roster* is opt-in (``None`` skips the check): the playbook and bundled catalog
+    cannot know who is active, so a bundled reference render gets the unfiltered answer, while
+    CLAUDE.md and the squads skill pass the live roster so the cheatsheet never assigns authorship
+    to a role the squad lacks. An entry is a ``RoleView`` or a mapping with ``slug`` and
+    optionally ``capabilities``.
 
-    Empty when the type has no lane owner. An owner is left out when it has no resolvable
-    display title (an as-yet-uncataloged slug) or — when *roster* is given — when it isn't
-    actually on this squad's live roster. A guide addressed to a capability names the roster's
-    holders, so it needs the roster to name anyone. *roster* is opt-in (``None`` skips the
-    roster check): the playbook and the bundled catalog have no notion of who's actually
-    active, so a caller with no roster in hand (e.g. a bundled reference render) gets the
-    unfiltered answer; a caller that *does* have the live roster (CLAUDE.md, the squads skill)
-    should pass it, so the cheatsheet never assigns authorship to a role that doesn't exist in
-    this squad. A roster entry is a ``RoleView`` or a mapping with ``slug`` and optionally
-    ``capabilities``.
-
-    *role_titles* is the live slug→title map and is consulted **first**, because it is the only
-    one of the two sources that can see a project override. A roster entry's ``title`` is the
-    role *title* — the same value in the same casing the bundled catalog carries, only resolved
-    through the project's role overrides; the person's display-cased name is ``full_name``, a
-    different field this function never reads. So on a squad with no override the two sources
-    agree and the ordering is invisible, and on one that retitles a role only the live map is
-    right — with the catalog first, one compiled managed region rendered a role's title two
-    different ways, the roster line resolved and the authoring bullet not.
-
-    The bundled catalog is the fallback, for a caller that threads no live roster at all (a
-    bundled reference render). Past it, a project role declared solely in ``.overrides/roles/``
-    that is also absent from the map has no title in hand, and loses its authoring bullet rather
-    than naming a role by its slug.
+    *role_titles*, the live slug-to-title map, is consulted first because only it sees a project
+    override. A roster entry's ``title`` is the role title in the catalog's casing, resolved
+    through the overrides; the display-cased name is ``full_name``, which this never reads. With
+    the catalog first, a managed region rendered a retitled role two ways: the roster line
+    resolved and the authoring bullet did not. The bundled catalog is the fallback for a caller
+    with no live roster. A project role declared only in ``.overrides/roles/`` and absent from the
+    map has no title and loses its bullet rather than being named by its slug.
     """
     roles = None if roster is None else [role_like(r) for r in roster]
     owners = in_lane_owner(item_type, playbook, roles or ())

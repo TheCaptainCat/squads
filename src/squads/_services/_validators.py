@@ -1,42 +1,11 @@
-"""Pluggable-validator dispatch engine.
+"""Pluggable-validator dispatch engine: the sole source of ``sq check``'s per-item and squad-global
+issues and of the create/update fail-closed gate. A type's effective set is ``COMMON_CORE`` plus its
+category's ``CATEGORY_BUNDLES`` entry plus its own ``validators`` list (``_workflow/_models.py``),
+and ``gate()`` runs only error-level members, aborting on the first finding.
 
-Lives in ``_services/``, not ``_models/``/``_workflow/`` — a validator reads live item and index
-state (parent lookups, incoming-supersedes edges, the registered-slug set, on-disk body text),
-which is what the two context objects below carry. ``_workflow/_models.py`` stays pure value
-objects, owning only the ``category`` field itself, the closed validator-NAME registries
-(``VALIDATOR_NAMES``/``SQUAD_GLOBAL_VALIDATOR_NAMES``), and the Plane-1 load-time spec-validity
-checks that read them.
-
-This engine is the sole source of both ``sq check``'s **per-item and squad-global** issues and
-the create/update fail-closed gate — never of ``sq check``'s issues as a whole (the always-on
-file checks described below sits outside it). A type's effective set is ``COMMON_CORE`` plus
-its category's
-``CATEGORY_BUNDLES`` entry plus its own ``validators`` list — both tables live in
-``_workflow/_models.py``, so the Plane-1 spec-validity pass resolves the same effective set this
-engine runs. ``no_parent`` shows both routes: a ``records`` type gets it from the category
-bundle, and ``epic`` — a ``work`` type — declares it itself. One catalog member,
-``parent_present``, sits in no bundle at all and is reachable only through a type's own
-``validators`` list — see its docstring for why that is the decision and not an omission.
-``gate()`` runs only the members whose resolved level for the item's type is ``error`` and
-aborts on their first finding; a warn-level member (``agent_registered``, ``no_status_banner``,
-…) is advisory everywhere, mirroring ``sq check``'s own error-only exit code, and is never
-evaluated on a write.
-
-**The file checks sit beside the validator catalog and are not part of it.**
-``CheckMixin._scan_for_check`` (``_services/_check.py``) reads each file's raw text and reports
-four kinds of finding, all errors: unbalanced or duplicated sq markers, a ``sq:view:<name>`` tag
-that cannot resolve against its host (undeclared, an unresolvable template, or a source that
-cannot apply to the host's type), a host missing the placement tag a seeded view requires, and a
-role or skill file whose ``sq:body`` marker pair is absent. None is a catalog member and none
-will be. A file check applies per file, cannot be selected or deselected, and is still reported
-when the file's frontmatter cannot be read, so a file too broken to become an item keeps its
-findings. A catalog member takes a resolved ``Item`` and is selected per type. A consumer that
-needs every ``sq check`` finding reads both; the rules that are not catalog members are
-registered in ``_services/_check_rules.py``.
-
-``ItemSpec`` carries only the bare ``category`` name — the effective per-item validator set
-(common core + category default bundle + the type's own additions) is resolved here, at call
-time, never pre-baked onto the spec.
+The file checks (:meth:`CheckMixin._scan_for_check`) are not catalog members: they apply per file,
+cannot be selected, and are reported even when the frontmatter is unreadable (rules in
+``_services/_check_rules.py``).
 """
 
 import dataclasses
@@ -117,11 +86,9 @@ from squads._workflow._validator_names import (
 #: confirm pass both thread through — ``report()`` takes it for the same reason.
 type OnDiskMap = dict[int, tuple[str, Path, dict[str, Any]]]
 
-# A leading status/lifecycle banner: "STATUS:" / "**STATUS…**" opening a line, or a
-# hand-written "## Status" / "### Status" heading. Anchored so it only matches at the very
-# start of the text being checked — never a bare keyword found anywhere in the middle.
-# This is the only status-banner detector in the tree: `no_status_banner` below is the sole
-# consumer, so a change to what counts as a banner is a change here and nowhere else.
+# A leading status/lifecycle banner: "STATUS:" / "**STATUS…**" opening a line, or a hand-written "##
+# Status" heading, anchored to the start of the checked text. The only banner detector;
+# `no_status_banner` is its sole consumer.
 _STATUS_BANNER_RE = re.compile(r"^\*{0,2}status\*{0,2}\s*:", re.IGNORECASE)
 _STATUS_HEADING_RE = re.compile(r"^#{2,3}\s*status\s*:?\s*$", re.IGNORECASE)
 
@@ -140,24 +107,11 @@ def _opens_with_status_banner(text: str | None) -> bool:
 
 
 class ContextRequirement(StrEnum):
-    """One piece of :class:`ValidatorContext` a caller may or may not be able to supply.
-
-    The two members here are the fields whose availability depends on the call path rather
-    than on the item. ``report()`` supplies both — it has scanned the whole index and read the
-    corpus — though ``raw_text`` still comes up absent for an item whose file it could not
-    read, which is the same answer for the same reason. ``gate()`` supplies neither: it gates
-    an ``Item`` built in memory, before any file for it exists, and does not pay a full-index
-    scan per mutation.
-
-    Naming them is what makes a validator's non-participation on a given path a **declared**
-    property. Without that it would be an accident: a reader that guards itself into
-    returning nothing reads identically whether the
-    member was designed to sit that path out or had simply never been considered on it. The
-    difference matters because a member that stays silent for want of context is not gating
-    anything, whatever level its findings carry.
-
-    Each member's value is the field's own name on :class:`ValidatorContext`, so the
-    declaration and the field cannot drift apart.
+    """One piece of :class:`ValidatorContext` a caller may not supply, because its availability
+    depends on the call path: ``report()`` supplies both, while ``gate()`` supplies neither, gating
+    an in-memory ``Item`` with no file and paying no full-index scan per mutation. Naming them makes
+    a member's non-participation on a path declared, and each value is the field's own name on
+    :class:`ValidatorContext`.
     """
 
     RAW_TEXT = "raw_text"
@@ -166,27 +120,11 @@ class ContextRequirement(StrEnum):
 
 @dataclass(frozen=True)
 class ValidatorContext:
-    """Everything one per-item validator reads: the item under test, the active spec, a
-    read-only handle on the live index (parent/ref lookups — an O(1) ``.get()``, not a
-    rescan), and precomputed squad-global aggregates (registered-slug set, incoming-
-    ``supersedes`` sequence numbers, the set of item types with at least one corpus member)
-    plus the item's own on-disk markdown text.
-
-    ``dependency_incoming`` is the same shape for the dependency-role ref kinds, and is carried on
-    both call paths: an empty set is a real answer (a squad with no dependency edge), so it is
-    not a :class:`ContextRequirement`.
-
-    ``type_present`` backs ``ref_rule_target_present``'s inertness precondition: computed once
-    per ``report()`` run, alongside ``supersedes_incoming``, from a full index scan — never
-    rescanned per item. ``gate()`` leaves it at its empty default rather than paying that scan
-    on every single create/update.
-
-    ``raw_text`` is the single current item's full on-disk text (or ``None`` when its file was
-    not found), not a squad-wide body map: a validator is already scoped to *one* item, and it
-    extracts whichever marker section it cares about via ``_sections.get_section``.
-
-    Those two are exactly the :class:`ContextRequirement` members: a member declaring one runs
-    only where this context carries it (:meth:`held_context`).
+    """Everything one per-item validator reads: the item, the active spec, a read-only index handle,
+    precomputed aggregates (registered slugs, incoming ``supersedes`` and dependency numbers, item
+    types with a corpus member) and the item's on-disk text. ``type_present`` is empty on ``gate()``
+    and ``raw_text`` is ``None`` when no file was found; :class:`ContextRequirement` members run
+    only where the context carries them (:meth:`held_context`).
     """
 
     item: Item
@@ -220,16 +158,9 @@ class ValidatorContext:
 @dataclass(frozen=True)
 class SquadGlobalContext:
     """Everything one squad-global validator reads: the whole index, the on-disk scan map, the
-    active spec, and the squad's resolved paths — the last two let ``backend_reconciled`` build
-    the ``BackendContext`` its backend lookups need.
-
-    ``playbook`` is read by two validators: ``roster_config_integrity`` threads it to
-    ``config_integrity.check_all`` so a project's merged playbook, not the bundled one, decides
-    the always-on skill floor, and ``playbook_guide_role_live`` reads its per-type guides
-    directly. ``report()``'s own construction supplies ``Service.playbook``.
-
-    ``now`` is the run's single clock instant, read once by ``report()``; the members that
-    measure time read it from here and call no clock themselves.
+    active spec, the squad's paths (for ``backend_reconciled``'s ``BackendContext``) and
+    ``playbook``, which ``roster_config_integrity`` and ``playbook_guide_role_live`` read. ``now``
+    is the run's single clock instant, read once by ``report()``.
     """
 
     index: SquadsDB
@@ -253,37 +184,21 @@ class Validator(Protocol):
 
 
 class SquadGlobalValidator(Protocol):
-    """One named whole-squad check: runs once per ``sq check``/gate invocation, independent
-    of any type's ``category`` — its subject is the squad as a whole, not one item, so it
-    attaches to no type's bundle and cannot be deselected.
-
-    Standing requirement: a validator that is **cross-source** — any claim that compares the
-    on-disk scan against the index snapshot, as ``index_reconciled`` does — must be evaluable
-    for a single item id, or it cannot be confirmed by ``check``'s one-round confirm pass and
-    does not belong in this catalog. Shape a new cross-source check as a
-    small ``(single item, freshly observed pair) -> CheckIssue | None`` predicate (see
-    ``on_disk_not_indexed``/``not_on_disk`` below) that the whole-scan pass and the confirm
-    pass both call unchanged — never inline the comparison in the squad-global loop itself,
-    or the two passes will have their own copies to drift apart. A validator that only reads
-    the disk (``backend_reconciled``) carries no such requirement — nothing racing a
-    concurrent item mutation can make it flicker.
+    """One named whole-squad check, run once per ``sq check`` regardless of any type's ``category``,
+    in no bundle and not deselectable. A cross-source validator (on-disk scan versus index) must be
+    a ``(single item, freshly observed pair) -> CheckIssue | None`` predicate that the scan and
+    confirm passes both call, or ``check`` cannot confirm it; one reading only the disk
+    (``backend_reconciled``) needs none of that.
     """
 
     def __call__(self, ctx: SquadGlobalContext) -> list[CheckIssue]: ...
 
 
 def _resolved_level(ctx: ValidatorContext, name: str) -> str:
-    """The effective level a catalog member *name* reports for ``ctx.item``'s type: the
-    type's own ``@<level>`` override when its ``validators`` list names *name* with one
-    (already Plane-1-checked to be no lower than any declared floor), else the bundled
-    :data:`~squads._workflow._validator_names.DEFAULT_VALIDATOR_LEVEL`.
-
-    Every catalog member calls this instead of writing ``"error"``/``"warn"`` into its own
-    ``CheckIssue(...)`` — the level lives in exactly one place, the declared table, so a
-    member's bundled behaviour and its declared default cannot say two different things.
-    Mirrors ``_ref_rule_target_present``'s own pattern of reading its parameter straight off
-    the type's ``validators`` entries rather than through a value threaded from the dispatch
-    engine.
+    """The effective level catalog member *name* reports for ``ctx.item``'s type: the type's own
+    ``@<level>`` override in its ``validators`` list (already checked against any declared floor),
+    else :data:`~squads._workflow._validator_names.DEFAULT_VALIDATOR_LEVEL`. Every member calls this
+    rather than hardcoding a level, so the level lives in one table.
     """
     item_spec = ctx.spec.items.get(ctx.item.type)
     if item_spec is not None:
@@ -314,10 +229,10 @@ def squad_global_level(spec: WorkflowSpec, name: str) -> str:
 
 
 def _parent_in(ctx: ValidatorContext) -> list[CheckIssue]:
-    """Parent-eligibility ← ``_check_items``'s dangling-parent + ``parent_allowed`` branch.
+    """Parent eligibility: a dangling parent, or one ``parent_allowed`` rejects.
 
     Reads the structured ``parents`` field via ``spec.parent_allowed`` — no duplicated param.
-    An empty ``parents`` list (and no ``no_parent``) is today's lenient "any parent or none".
+    An empty ``parents`` list (and no ``no_parent``) means "any parent or none".
     """
     item = ctx.item
     if not item.parent:
@@ -347,24 +262,11 @@ def _no_parent(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _parent_present(ctx: ValidatorContext) -> list[CheckIssue]:
-    """Requires a parent — the mandatory half of the parent vocabulary, which ``parents`` and
-    ``no_parent`` between them could not express.
-
-    ``parents`` is an *eligibility* allowlist: it says which type a parent may be, never that
-    there must be one, so ``parents = ["feature"]`` reads as "a feature or nothing". This is the
-    validator that closes that gap, and the only one defined over ``parent_required``'s
-    requiredness: with it effective, an item created with no parent is refused, naming the
-    declared type when the spec declares one.
-
-    **In no** :data:`CATEGORY_BUNDLES` **entry, deliberately.** A type
-    turns it on by naming it in its own ``validators`` — the same extend-only opt-in the
-    sub-entity clause documents. The bundled spec does not, and that is a decision rather than an
-    oversight: ``gate()`` and ``report()`` run one effective name set, so a validator that
-    refuses a parentless item at create also errors on every parentless item already on disk.
-    Putting this in the ``work`` bundle would therefore not be "new items must have a parent", it
-    would be "every historical bare item is now a ``sq check`` error", with no migration able to
-    invent a parent for them. Opt-in keeps the declaration honest for the adopter who wants it
-    and leaves every existing corpus alone.
+    """Requires a parent, the mandatory half of the parent vocabulary: ``parents`` is only an
+    eligibility allowlist, so ``parents = ["feature"]`` reads "a feature or nothing". It is in no
+    :data:`CATEGORY_BUNDLES` entry and a type opts in via ``validators``, since ``gate()`` and
+    ``report()`` share one effective set and a bundle entry would make every historical parentless
+    item a ``sq check`` error no migration could fix.
     """
     item = ctx.item
     if item.parent:
@@ -378,35 +280,13 @@ def _parent_present(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _parent_acyclic(ctx: ValidatorContext) -> list[CheckIssue]:
-    """Refuses a parent chain that revisits an item — a self-parent, a mutual pair, or a
-    longer chain that closes on itself.
-
-    **In** :data:`~squads._workflow._validator_names.COMMON_CORE`, so it is effective for every type
-    under every category. The parent relation is the squad's hierarchy and every consumer of it
-    walks upward or downward assuming the walk terminates; a cycle is not a house convention a
-    category could legitimately decline, so it is floor behaviour rather than a bundle member.
-    Common-core placement is also what makes one member cover all four parent-setting entry
-    points — item create, the shared update core the bulk importer routes through, the link verb
-    and the retype prospective all gate through :meth:`ValidatorEngine.gate` — instead of an
-    inline check repeated at each and forgotten at the fifth.
-
-    Identity in the visited set is the **sequence number**, never the raw id string: a stored
-    ``parent`` may carry a different zero-pad width than the item's own ``id`` (the state
-    ``sq migrate repad`` leaves behind), so the same item has two spellings and a set of id
-    strings would walk straight past the repeat. ``SquadsDB.get`` is keyed on the sequence
-    number for the same reason, which is what makes the lookup below width-tolerant.
-
-    A parent that resolves to nothing is not this validator's finding — it stops the walk and
-    leaves the report to ``parent_in``'s dangling-parent branch, so a single broken edge is
-    reported once rather than twice.
-
-    Because this is error-level and on the floor, an item already sitting in a cycle cannot be
-    updated at all — a status change on it is refused too. That is deliberate fail-closed
-    behaviour, and it is safe because ``clear_parent`` nulls ``item.parent`` before the gate
-    reads it, so ``update --no-parent`` still succeeds on an item inside a cycle. The message
-    therefore names the closing edge's owner: clearing *that* item's parent always breaks the
-    cycle, including when the item under test merely inherits a cyclic ancestor chain rather
-    than sitting in the cycle itself.
+    """Refuses a parent chain that revisits an item. It is in
+    :data:`~squads._workflow._validator_names.COMMON_CORE`, so one member covers every parent-
+    setting entry point through :meth:`ValidatorEngine.gate`. The visited set holds sequence numbers
+    (a stored ``parent`` may differ in zero-pad width) and a dangling parent is left to
+    ``parent_in``. An item in a cycle cannot be updated, but ``update --no-parent`` works because
+    ``_update_model`` applies ``clear_parent`` before the gate reads the parent; the message names
+    the closing edge's owner.
     """
     item = ctx.item
     if not item.parent or ctx.index is None:
@@ -420,10 +300,9 @@ def _parent_acyclic(ctx: ValidatorContext) -> list[CheckIssue]:
             return []  # dangling parent — `parent_in` owns that report
         chain.append(node.id)
         if node.sequence_id in seen:
-            # The chain can close on the item under test while the index still spells that
-            # item differently — a reclassification gates the item as it *would* look, so its
-            # prospective id heads the chain and its stored id closes it. Both ends are the
-            # same item; left unsaid, one loop reads as two.
+            # The chain can close on the item under test while the index spells that item
+            # differently (a reclassification gates the prospective id, the stored id closes it);
+            # both ends are the same item and the message says so.
             restyled = node.sequence_id == item.sequence_id and node.id != item.id
             level = _resolved_level(ctx, "parent_acyclic")
             return [
@@ -440,18 +319,11 @@ def _parent_acyclic(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _parent_cycle_message(chain: list[str], ctx: ValidatorContext, *, restyled: bool) -> str:
-    """The refusal an operator reads at the moment they are confused: the whole chain, with the
-    revisited item at both ends, plus the one command that breaks it.
-
-    The remedy clears the parent of ``chain[-2]`` — the item whose own parent edge closes the
-    loop. That edge is what has to go: clearing the parent of the item under test only detaches
-    it, which is not the same thing when its chain reaches a cycle it is not part of. The lookup
-    is by sequence number, so a chain head carrying a prospective id still resolves to the item
-    the index holds.
-
-    ``restyled`` says the closing endpoint is the head item under an id it does not carry on
-    disk. The endpoint is then named as the head, with the stored spelling alongside, so the
-    two ends of the loop read as the one item they are.
+    """The refusal message: the whole chain with the revisited item at both ends plus the command
+    that breaks it. The remedy clears the parent of ``chain[-2]``, the item whose edge closes the
+    loop, since clearing the item under test only detaches it from a cycle it may not be in.
+    ``restyled`` means the closing endpoint is the head under an id it does not carry on disk, so it
+    is named as the head with the stored spelling.
     """
     closer = ctx.index.get(chain[-2]) if ctx.index is not None else None
     remedy = (
@@ -468,8 +340,7 @@ def _parent_cycle_message(chain: list[str], ctx: ValidatorContext, *, restyled: 
 
 
 def _item_status_valid(ctx: ValidatorContext) -> list[CheckIssue]:
-    """← ``_check_items``'s "status invalid for type" branch (named here for the first time —
-    it was an unnamed inline check in the hardcoded set)."""
+    """The item's status is not a state of its type's workflow."""
     item = ctx.item
     if item.status not in ctx.spec.workflow_for(item.type).states:
         level = _resolved_level(ctx, "item_status_valid")
@@ -485,7 +356,7 @@ def _item_status_valid(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _dangling_ref(ctx: ValidatorContext) -> list[CheckIssue]:
-    """← ``_check_items``'s ref loop, dangling-target half."""
+    """A ref whose target is not in the index."""
     if ctx.index is None:
         return []
     level = _resolved_level(ctx, "dangling_ref")
@@ -500,7 +371,7 @@ def _dangling_ref(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _ref_kind_valid(ctx: ValidatorContext) -> list[CheckIssue]:
-    """← ``_check_items``'s ref loop, unknown-kind half.
+    """A ref whose spelled kind the spec does not declare.
 
     A bare/unspelled kind (``""``) is always valid by construction — it names whichever
     declared entry carries ``role = "default"`` — so only a *spelled* kind is checked against
@@ -522,7 +393,7 @@ def _ref_kind_valid(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _agent_registered(ctx: ValidatorContext) -> list[CheckIssue]:
-    """← ``_check_items``'s author/assignee branch: both must resolve to a registered
+    """Author and assignee must both resolve to a registered
     role or operator slug (``ctx.registered_slugs``, precomputed by the engine). A skill
     authored by its own slug has no actor to check."""
     level = _resolved_level(ctx, "agent_registered")
@@ -544,7 +415,7 @@ def _agent_registered(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _subtask_story_mapping(ctx: ValidatorContext) -> list[CheckIssue]:
-    """← ``_check_subtask_stories``: a subtask maps to one of its parent's declared stories."""
+    """A subtask maps to one of its parent's declared stories."""
     item = ctx.item
     kind = ctx.spec.item_subentity_kind(item.type)
     ks = ctx.spec.subentity_kinds.get(kind) if kind is not None else None
@@ -581,7 +452,7 @@ def _subtask_story_mapping(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _subentity_status_valid(ctx: ValidatorContext) -> list[CheckIssue]:
-    """← ``_check_subentity_status``."""
+    """A sub-entity's status is a state of its kind's own lifecycle."""
     item = ctx.item
     kind = ctx.spec.item_subentity_kind(item.type)
     if kind is None:
@@ -694,21 +565,11 @@ def _subentities_settled_with_parent(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _subentity_container_marker(ctx: ValidatorContext) -> list[CheckIssue]:
-    """The item's on-disk container marker still matches the plural its kind declares.
-
-    ``subentity_kinds.<kind>.plural`` is the persisted container-marker name, so it is a
-    corpus-alignment field exactly like a type's ``prefix`` or ``folder`` — but unlike those
-    two it leaves no witness in the index, so the loader's live-index cross-check cannot see
-    it and ``sq workflow lint`` (which never opens an item file) has no way to. This is the
-    only plane that can: ``sq check`` already holds each item's on-disk text.
-
-    Renaming the plural against an existing corpus half-bricks it rather than breaking it,
-    which is why it needs its own report. ``add-<kind>`` fails — it looks for a container the
-    files do not carry — while sub-entity *body* writes keep succeeding, because those address
-    their own per-block markers. So the corpus stays usable enough to look fine, and both
-    gates said clean. Both directions are covered, because the plural can move either way:
-    declaring one over an existing corpus, and removing the declaration afterwards. A file with
-    no container at all is not reported: the first ``add-<kind>`` writes one.
+    """The item's on-disk container marker still matches the plural its kind declares. The plural is
+    a persisted corpus-alignment field like ``prefix`` or ``folder`` but leaves no witness in the
+    index, so only ``sq check``, which holds each item's text, can see a mismatch. A rename half-
+    bricks a corpus (``add-<kind>`` fails while body writes succeed), so both directions are
+    reported; a file with no container is not, since the first ``add-<kind>`` writes one.
     """
     item = ctx.item
     kind = ctx.spec.item_subentity_kind(item.type)
@@ -717,13 +578,9 @@ def _subentity_container_marker(ctx: ValidatorContext) -> list[CheckIssue]:
     plural = ctx.spec.subentity_plural(kind)
     if sections.has_section(ctx.raw_text, plural):
         return []
-    # Name the tag the file DOES carry: that is the difference between "your override renamed
-    # this" and "this file is malformed", and it is the fact that tells the adopter which way
-    # to fix it. A container is the only top-level marker in an item file that is not one of
-    # the three fixed structural tags and not a sub-entity block tag (those are ``kind:LOCAL``,
-    # so they carry a colon) — derived that way rather than matched against the *declared*
-    # plurals, because the whole point is that the file carries an UNdeclared one, and the old
-    # name it carries need not be declared anywhere any more.
+    # Name the tag the file does carry, which tells the adopter which way to fix it. A container is
+    # the only top-level marker that is neither a structural tag nor a sub-entity block tag (those
+    # have a colon), as the file may carry an undeclared old name.
     stale = discussion.stale_container_tags(ctx.raw_text, plural)
     if not stale:
         return []  # no container at all: `add-<kind>` writes one
@@ -743,7 +600,7 @@ def _subentity_container_marker(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _subentity_body_written(ctx: ValidatorContext) -> list[CheckIssue]:
-    """← ``_check_unwritten_subentity_bodies``: flags a sub-entity body still at its
+    """Flags a sub-entity body still at its
     kind's placeholder stub, read from ``ctx.raw_text``."""
     item = ctx.item
     kind = ctx.spec.item_subentity_kind(item.type)
@@ -767,7 +624,7 @@ def _subentity_body_written(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _subentity_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
-    """← ``_check_subentity_title_lengths``. The threshold is resolved from the spec —
+    """A sub-entity title over the type's maximum. The threshold is resolved from the spec —
     ``WorkflowSpec.item_subentity_title_max`` — never a module constant, so a type's own
     ``subentity_title_max:<n>`` selection actually changes what fires. A type whose effective
     set does not hold the member has no threshold and reports nothing."""
@@ -950,7 +807,7 @@ def _external_id_not_in_title(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _no_status_banner(ctx: ValidatorContext) -> list[CheckIssue]:
-    """← ``_check_status_banners``: an item whose body or description opens with a
+    """An item whose body or description opens with a
     self-declared status/lifecycle banner. Body text comes from ``ctx.raw_text``;
     description comes straight from the item."""
     item = ctx.item
@@ -980,7 +837,7 @@ def _no_status_banner(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _supersedes_incoming(ctx: ValidatorContext) -> list[CheckIssue]:
-    """← ``_check_decisions``: a Superseded record with no incoming ``supersession``-semantic
+    """A Superseded record with no incoming ``supersession``-semantic
     edge. Only types that declare a ref rule naming a declared ``supersession`` kind are
     checked — resolved through :meth:`WorkflowSpec.supersession_ref_kinds`, never a fixed
     ``"supersedes"`` spelling."""
@@ -1013,21 +870,12 @@ def _outgoing_refs(item: Item, spec: WorkflowSpec) -> list[tuple[str, str]]:
 
 
 def _ref_rule_target_present(ctx: ValidatorContext) -> list[CheckIssue]:
-    """A settled item (status resolving to the ``done`` role — never ``InReview``, which
-    shares the ``active`` role with every in-flight status, and never the broader ``settled``
-    property, which would also warn on a delivered-nothing Cancelled item) with no outgoing
-    ref matching one of its own type's ``target``-typed ``ref_rules``, whose resolved edge
-    actually points at an item of that target type.
-
-    The selected target type(s) come from the declaring type's own ``validators`` entries —
-    read here, not from the stripped ``:<param>`` the dispatch engine already discarded before
-    this catalog lookup — a ``ref_rule_target_present:<T>`` entry **selects** ``<T>`` as an
-    obligation; the matching ``ref_rules`` entry (``target == <T>``) **types** the edge. Two
-    rules targeting the same ``<T>`` simply widen the accepted kinds.
-
-    Inert while the corpus holds no item of the selected target type at all — ``ctx.
-    type_present``, empty by construction on the single-item gate path (see
-    :class:`ValidatorContext`)."""
+    """A settled item (status resolving to the ``done`` role) with no outgoing ref matching one of
+    its type's ``target``-typed ``ref_rules`` whose edge points at an item of that target type. A
+    ``ref_rule_target_present:<T>`` entry in ``validators`` selects ``<T>`` (read here, as dispatch
+    strips the param) and the ``ref_rules`` entry types the edge; two rules for one ``<T>`` widen
+    the kinds. Inert while the corpus has no item of the target type (``ctx.type_present``).
+    """
     item = ctx.item
     if ctx.spec.status_role(item.status) != "done":
         return []
@@ -1267,23 +1115,10 @@ CATALOG: dict[str, Validator] = {
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
 
-#: What each catalog member needs from the context beyond the item and the spec — the
-#: declaration :meth:`ValidatorEngine._run_per_item` filters on, so a member that cannot be
-#: evaluated on a call path is skipped by name rather than by running and finding nothing.
-#:
-#: A member absent from this table requires nothing and therefore runs everywhere. The entries
-#: are the exceptions, and they are the whole point: ``gate()`` holds neither requirement, so
-#: everything listed here sits the create/update gate out — including
-#: ``subentity_container_marker``, which reports at **error** level and so would otherwise look
-#: like a write-blocker on a path it has never once blocked. The reason it does not gate is on
-#: the record (its condition is a corpus/spec disagreement no create or update causes and none
-#: can cure, and gating would refuse ordinary edits on every item of the type at once); what
-#: this table adds is that the fact is stated where the member is registered rather than
-#: inferred from a sentinel three call frames away.
-#:
-#: ``tests/meta`` re-derives this table from what each member's body actually reads and fails
-#: on any disagreement, so a new member cannot join the catalog reading a field it never
-#: declared — which is exactly how the last one got here unnoticed.
+#: What each catalog member needs from the context beyond the item and spec, so a member that
+#: cannot run on a path is skipped by name. Listed members sit the gate out; error-level
+#: ``subentity_container_marker`` does because no edit causes or cures its corpus/spec mismatch,
+#: so gating would block every edit on the type.
 VALIDATOR_CONTEXT: dict[str, frozenset[ContextRequirement]] = {
     "subentity_container_marker": frozenset({ContextRequirement.RAW_TEXT}),
     "subentity_body_written": frozenset({ContextRequirement.RAW_TEXT}),
@@ -1324,7 +1159,7 @@ def not_on_disk(item: Item, *, on_disk: bool, level: str) -> CheckIssue | None:
 
 
 def _index_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
-    """← ``_check_reconciliation``: index and on-disk files agree, compared by sequence
+    """Index and on-disk files agree, compared by sequence
     number (width-tolerant across a repad). The whole-scan pass over the pair; ``check``'s
     confirm pass re-runs ``on_disk_not_indexed``/``not_on_disk`` directly, one candidate at
     a time, rather than calling this function again — a full rescan would reintroduce the
@@ -1348,16 +1183,11 @@ def _index_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
 
 
 def live_roster_slugs(ctx: SquadGlobalContext) -> tuple[frozenset[str], frozenset[str]]:
-    """The roster-scoped ``(live role slugs, live skill slugs)`` pair
-    :func:`backend_entry_candidates` hands to each backend's ``managed_entry_paths`` — derived
-    from ``ctx.index`` via :func:`is_live_roster_entry`, the exact
-    predicate ``RosterProjection.project_item`` uses to materialise/withdraw. Never a fixed
-    or historical slug list, so a retire/reactivate cycle can never leave a false positive (the
-    retired side) or a false negative (the reactivated side) on either backend.
-
-    Not underscored: :meth:`CheckMixin._confirm_cross_source` calls this a second time,
-    against a freshly reloaded index, to recompute the live set a per-entry candidate is
-    confirmed against — see :func:`backend_entry_missing`.
+    """The ``(live role slugs, live skill slugs)`` pair :func:`backend_entry_candidates` hands to
+    each backend's ``managed_entry_paths``, derived from ``ctx.index`` via
+    :func:`is_live_roster_entry`, the predicate ``RosterProjection.project_item`` uses. It is public
+    because :meth:`CheckMixin._confirm_cross_source` calls it again on a freshly reloaded index (see
+    :func:`backend_entry_missing`).
     """
     roles = frozenset(
         slug
@@ -1373,19 +1203,10 @@ def live_roster_slugs(ctx: SquadGlobalContext) -> tuple[frozenset[str], frozense
 
 
 def _backend_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
-    """← ``_check_backends``: each active backend's fixed top-level managed files exist on
-    disk — reported at **error**, since nothing short of ``sq sync`` explains their absence
-    away. Reads only ``ctx.paths.config.active_backends`` and the disk, never ``ctx.index``,
-    so — unlike the per-entry roster pointer check below — nothing racing a concurrent item
-    mutation can make this one flicker; it needs no confirm round.
-
-    A per-entry roster pointer (``managed_entry_paths``) is a *different* claim, reported at
-    **warn** for reasons stated where it lives: :func:`backend_entry_candidates` and
-    :func:`backend_entry_missing`, confirmed through ``check``'s one confirm round exactly like
-    ``index_reconciled``'s two directions (see :meth:`CheckMixin._confirm_cross_source`).
-    It needs that round because a per-entry pointer is roster- and therefore index-derived,
-    which makes it a cross-source claim; a rule reading only config and disk, like this one, is
-    not, and that is the whole difference between the two.
+    """Each active backend's fixed top-level managed files exist on disk, at **error**, since only
+    ``sq sync`` explains their absence. It reads only the config and the disk, never ``ctx.index``,
+    so it is not cross-source and needs no confirm round, unlike the per-entry pointer claim
+    (:func:`backend_entry_candidates`, :func:`backend_entry_missing`), which is index-derived.
     """
     bctx = BackendContext(
         paths=ctx.paths, spec=ctx.spec, playbook=ctx.playbook, catalog=ctx.catalog
@@ -1407,26 +1228,10 @@ def _backend_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
 
 
 def backend_entry_candidates(ctx: SquadGlobalContext) -> list[tuple[str, str]]:
-    """Per-entry backend pointers absent right now, against *ctx.index* — the scan-time
-    candidate set for ``check``'s confirm round, never reported directly.
-
-    This reads ``ctx.index`` (via :func:`live_roster_slugs`) as well as the disk, so — unlike
-    :func:`_backend_reconciled`'s top-level check — it is cross-source: a mutation racing the
-    scan (concretely, a retirement withdrawing the very pointer a candidate names) can make a
-    path here transiently absent for a reason that is not a defect. Each ``(backend name,
-    rel_path)`` pair is confirmed by :func:`backend_entry_missing` against a freshly reloaded
-    index before ever becoming a :class:`CheckIssue` — see
-    :meth:`CheckMixin._confirm_cross_source`.
-
-    Reported at **warn**, not error — and not because gitignoring this backend's directory is a
-    supported choice. An adopter who gitignores the whole directory does *not* escape
-    ``sq check`` over that choice: ``_backend_reconciled``'s top-level ``managed_paths`` entry
-    for the same backend (e.g. ``claude_code``'s ``.claude/settings.json``) is **error**, so a
-    fully gitignored directory fails the gate on that entry alone. The shape this rule reaches
-    is the narrower one ``_backend_reconciled`` does not look at: a per-entry pointer gone while
-    the top-level files are present. Warn is the level that surfaces it without changing the
-    exit code a squad in that shape gets: ``sq check`` exits non-zero on error-level issues
-    only.
+    """Per-entry backend pointers absent right now against *ctx.index*: scan-time candidates for
+    ``check``'s confirm round, never reported directly. Each ``(backend, rel_path)`` is confirmed by
+    :func:`backend_entry_missing` against a fresh index. It reports at **warn**, as a gitignored
+    backend directory already fails on :func:`_backend_reconciled`'s error-level top-level entry.
     """
     live_role_slugs, live_skill_slugs = live_roster_slugs(ctx)
     bctx = BackendContext(
@@ -1450,15 +1255,10 @@ def backend_entry_candidates(ctx: SquadGlobalContext) -> list[tuple[str, str]]:
 def backend_entry_missing(
     backend_name: str, rel_path: str, *, root: Path, fresh_live_paths: frozenset[str]
 ) -> CheckIssue | None:
-    """Re-observe one per-entry-pointer candidate (see :func:`backend_entry_candidates`)
-    against a freshly reloaded index's own recomputed live-roster set and the disk right now —
-    the single-candidate confirm predicate, same shape as :func:`on_disk_not_indexed`/
-    :func:`not_on_disk`.
-
-    *fresh_live_paths* is this one backend's ``managed_entry_paths`` recomputed from the fresh
-    index (never the stale scan-time one) — if the slug behind *rel_path* was retired between
-    the scan and this confirm, the fresh set no longer names it and the candidate resolves
-    (``None``) rather than being reported; likewise if the file has since been created.
+    """Re-observe one per-entry-pointer candidate (see :func:`backend_entry_candidates`) against the
+    fresh index's recomputed live set and the disk. *fresh_live_paths* is one backend's
+    ``managed_entry_paths`` from the fresh index; if the slug was retired or the file created since
+    the scan, the candidate resolves to ``None``.
     """
     if rel_path not in fresh_live_paths:
         return None
@@ -1481,14 +1281,12 @@ def backend_entry_path(
     kind: str,
     slug: str,
 ) -> str | None:
-    """The one declared path for a single live role/skill *slug* — never a second
-    path-construction rule of this module's own: reuses :meth:`~squads._backends._base.
-    AgentBackend.managed_entry_paths` scoped down to just this one slug (an empty
-    ``BackendContext`` otherwise), which is this backend's only declared source of a per-entry
-    path. ``None`` when *backend* declares no path for a slug of this *kind* (e.g. ``agents_md``,
-    which declares none at all). Shared by :func:`backend_entry_drift_candidates` (scan) and the
-    currency confirm round (:class:`~squads._services._check.CheckMixin`), so a
-    candidate and its confirmation are always compared against the identical path."""
+    """The one declared path for a single live role/skill *slug*, via
+    :meth:`~squads._backends._base.AgentBackend.managed_entry_paths` scoped to that slug (an empty
+    ``BackendContext`` otherwise), so there is no second path rule. ``None`` when *backend* declares
+    none for that *kind* (e.g. ``agents_md``). Shared by :func:`backend_entry_drift_candidates` and
+    the currency confirm round, so both compare the same path.
+    """
     ctx = (
         BackendContext(
             paths=paths,
@@ -1522,45 +1320,16 @@ def backend_entry_drift(  # noqa: PLR0913 — one keyword per input of the re-re
     role_skills: dict[str, list[str]],
     rel_path: str,
 ) -> CheckIssue | None:
-    """Re-observe one currency candidate: render *item* fresh (question 5) and compare it
-    against *rel_path*'s content on disk right now. This is the checker reading generated
-    output as the **subject under test** — every declaration still comes from *item*, and the
-    fresh render is the expectation, never a value recovered *from* the file — so it does not
-    breach ``tests/meta/test_a_backend_never_reads_back_its_own_generated_output.py``'s guard
-    (that guard forbids a *backend* recovering a *declaration* from its own output; this is the
-    checker comparing two renders).
+    """Re-observe one currency candidate: render *item* fresh and compare it with *rel_path* on
+    disk. The render is the expectation, never recovered from the file. ``None`` when the file is
+    gone, the render matches, or the resolver refuses the role override (reported elsewhere).
+    Otherwise **error** when the drift is in the containment fragment
+    :meth:`~squads._backends._base.AgentBackend.restriction_fragment` requires (a stale pointer
+    still granting revoked authority), else **warn**.
 
-    ``None`` (no finding) when the file has gone since the caller's own existence check (a race,
-    resolved the same way an absent path resolves for presence), or when the fresh render
-    agrees with disk byte-for-byte. Otherwise **error** when the drift sits inside the
-    containment fragment *backend*'s own :meth:`~squads._backends._base.AgentBackend
-    .restriction_fragment` (question 4) currently requires present — a stale pointer still
-    granting authority the squad revoked, unrepairable from inside the session it governs — and
-    **warn** for any other content drift.
-
-    *role_skills* must already carry this role's **freshly resolved** preload-skill list when
-    *kind* is ``"role"`` (the caller resolves it against the same fresh index the confirm round
-    reloaded — see ``MaintenanceMixin``) — an empty/stale map would make a role using a
-    ``scopes``-preloaded skill read as permanently drifted, since the pure system-membership
-    fallback (:meth:`~squads._backends._base.BackendContext.resolved_skills_for`) does not know
-    about it.
-
-    A role's expectation is resolved through the catalog (:func:`~squads._roles._resolver.
-    resolve_role_for_item`), not read off *item*'s stored attributes — so a pointer that has
-    genuinely drifted from a project override reads as drifted even when the item's own mirror
-    has not caught up with that override yet (it stays fresh only from the next ``sq sync``
-    on). Reading the mirror here would make this currency check only ever as current as the
-    last sync, which is exactly the gap this resolves.
-
-    A role override the resolver itself refuses to load (an unknown key, a blank field, …)
-    also refuses here — resolution is the same seam, not a re-implemented check — and is
-    reported as ``None`` (no finding): there is no valid expectation to render, so this
-    currency comparison has nothing to say. The refusal itself is already a check finding in
-    its own right (:func:`~squads._overrides._service._check_role_override_resolves`, run
-    over every declared override regardless of drift), so surfacing it a second time here
-    would duplicate that report rather than add to it — and letting it propagate would abort
-    the whole scan for one broken role's sake, which is the opposite of what a reporter whose
-    job is finding every problem should do.
+    *role_skills* must carry the role's freshly resolved preload list, or a ``scopes``-preloaded
+    skill reads as drift, and a role's expectation is resolved through
+    :func:`~squads._roles._resolver.resolve_role_for_item`, not stored attributes.
     """
     disk_path = paths.root / rel_path
     try:
@@ -1605,19 +1374,12 @@ def backend_entry_drift(  # noqa: PLR0913 — one keyword per input of the re-re
 
 
 def _roster_config_integrity(ctx: SquadGlobalContext) -> list[CheckIssue]:
-    """The config-integrity clauses (``no_live_role``/``preloaded_skill``), evaluated against
-    state already on disk rather than gating a transition: the roster status verb shipped
-    before any clause refused these
-    transitions, so a squad already sitting in a state a fresh retirement would refuse (or one
-    reached some other way) keeps it silently, and `sq sync` faithfully projects the breakage.
-    Delegates to ``_config_integrity.check_all``, the module the retirement gate also calls, so
-    neither restates the clauses. Reads the index and the config only — never the on-disk scan
-    — so it carries none of ``SquadGlobalValidator``'s cross-source single-item-evaluability
-    obligation.
-
-    Renders each finding's condition plus its remedy when one exists, via
-    ``config_integrity.render_finding`` — the one place condition and remedy are ever composed,
-    so this line never duplicates a phrase the finding's own ``message`` already states."""
+    """The config-integrity clauses (``no_live_role``/``preloaded_skill``) evaluated against state
+    already on disk rather than gating a transition, so a squad already in a state a retirement
+    would refuse is reported. It delegates to ``_config_integrity.check_all``, which the retirement
+    gate also calls, and renders each finding through ``render_finding``. It reads the index and
+    config only, so it has no cross-source obligation.
+    """
     findings = config_integrity.check_all(
         ctx.index,
         ctx.spec,
@@ -1639,24 +1401,11 @@ def _roster_config_integrity(ctx: SquadGlobalContext) -> list[CheckIssue]:
 
 
 def _default_designation_duplicated(ctx: SquadGlobalContext) -> list[CheckIssue]:
-    """More than one **live** ``role`` item holding the default-role designation — an error
-    naming the holders, with ``sq role <addr> set-default`` as the remedy.
-
-    A holder is found through :func:`~squads._roles._resolver.holds_default_designation`, not
-    by reading the stored ``is_default``. The stored key is an override on a designation the
-    role catalog also answers, so the catalog's own designated role holds it with nothing
-    stored on its item — and a raw read reports one holder for a roster that is generating config
-    with two, which is precisely the ambiguity this exists to name.
-
-    Report-only, deliberately: this predicate is never folded into
-    ``config_integrity.check_all``, so the retirement gate (``_retirement.py::enforce``) never
-    evaluates it. Delta scoping would fire it on *reactivating* a non-live role that still
-    carries the key while a live role also carries it — and no remedy exists in that direction:
-    ``Service.set_default_role`` refuses a non-live target, and no interactive command clears
-    the key off a non-live role. That is exactly the lock-out the withdrawn ``no_default_role``
-    clause was withdrawn for, so this stays a reporter-only fact about state already reached
-    (today, only through the bulk importer's ``update`` event — the one path outside
-    ``set_default_role`` that writes the key), never a gate clause.
+    """More than one live ``role`` item holding the default-role designation: an error naming the
+    holders, with ``sq role <addr> set-default`` as the remedy, found through
+    :func:`~squads._roles._resolver.holds_default_designation`, not the stored key. It is report-
+    only and outside ``config_integrity.check_all``, as on a reactivation it would fire with no
+    available remedy.
     """
     live = ctx.spec.live_statuses(ROSTER_ROLE)
     holders = sorted(
@@ -1779,10 +1528,10 @@ def _view_transform_resolves(ctx: SquadGlobalContext) -> list[CheckIssue]:
 
 def _role_base_resolves(ctx: SquadGlobalContext) -> list[CheckIssue]:
     """A live role whose base does not resolve: a catalog role the catalog no longer declares, a
-    template role naming an undeclared template or missing (or carrying) the `tech` its template
-    takes, a role that defines itself without its job title or description, or a role storing both
-    a template and a mission. `sq sync` keeps materialising such a role from what it stores, and
-    this finding is what reports it."""
+    template role naming an undeclared template or missing (or carrying) the `tech` it takes, a
+    self-defining role without its job title or description, or a role storing both a template and a
+    mission. `sq sync` keeps materialising such a role from what it stores, and this reports it.
+    """
     try:
         catalog = ctx.catalog()
     except SquadsError:  # the broken catalog override is its own finding
@@ -1841,27 +1590,11 @@ def _role_definition_shadowed(ctx: SquadGlobalContext) -> list[CheckIssue]:
 
 
 def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
-    """A playbook guide whose role slug names no live role — a warning per dropped guide.
-
-    The gap the playbook override's permissive slug authority leaves open: the loader accepts a
-    project role slug by filename (it must, being readable before the index), the generated
-    skill drops it unless the role is live, and nothing in between says so. This is the same
-    event as the orphaned ``sq-<type>`` skill the reporter already flags, one level down — a
-    guide the renderer will drop must never validate silently.
-
-    Warning, not error, and never a gate clause: both remedies (activate the role, or edit
-    ``.overrides/playbook.toml``) are outside any single transition, and a squad mid-scaffold is
-    legitimately in this state for as long as the adopter takes to run ``sq role activate``.
-    Refusing the retirement instead — the shape the *skill* side uses, where ``--unlink`` is a
-    performable step — would offer no equivalent escape here, since sq never rewrites an
-    adopter's override file. See :func:`orphaned_playbook_guides` for the
-    predicate and its two deliberate exemptions.
-
-    Scoped to guides the adopter actually wrote, which is why the raw override document is read
-    here (:func:`~squads._interactions._loader.playbook_override_guide_pairs`) rather than only
-    the merged playbook the context carries: the merged document holds no provenance, and a
-    report an adopter cannot act on is worse than silence for a squad whose only "fault" is
-    having retired a bundled role.
+    """A playbook guide whose role slug names no live role, a warning per dropped guide: the
+    override accepts a project role slug by filename and the generated skill drops it unless the
+    role is live. It is never a gate clause, since both remedies are outside a transition, and it
+    reads the raw override (:func:`~squads._interactions._loader.playbook_override_guide_pairs`) to
+    scope to guides the adopter wrote.
     """
     live = ctx.spec.live_statuses(ROSTER_ROLE)
     roles = [it for it in ctx.index.items.values() if it.type == ROSTER_ROLE]
@@ -2355,22 +2088,11 @@ def types_present(index: SquadsDB) -> frozenset[str]:
 # why the vocabulary half lives low and this module only supplies the behaviour.
 @dataclass(frozen=True)
 class ValidatorEngine:
-    """Runs the catalog over live item + index state — one engine, two call sites, per the
-    accepted category/validator decision. Constructed with the active, per-request ``spec``
-    (never a module singleton — rides the same seam as ``Service.spec``).
-
-    ``report()`` collects every issue across both validator classes, for ``sq check``.
-    ``gate()`` runs the one item's own effective per-item members whose resolved level is
-    ``error`` and whose declared context it holds, and aborts on the first finding, for
-    create/update. A member at ``warn`` is advisory everywhere, exactly like ``sq check``'s
-    exit code (error-only): it is reported, never evaluated on a write.
-    Squad-global validators never run in gate mode — they are a report-only, once-per-
-    invocation check, not a create/update gate.
-
-    ``paths`` and ``role_catalog`` are required once ``squad_global`` is non-empty
-    (``backend_reconciled`` needs them to build a ``BackendContext``); ``report()``'s default
-    construction (``ValidatorEngine(spec=..., playbook=..., paths=..., role_catalog=...)``)
-    always supplies them.
+    """Runs the catalog over live item and index state: one engine, two call sites, built with the
+    request's ``spec``. ``report()`` collects every issue for ``sq check``; ``gate()`` runs the one
+    item's error-level members whose context it holds and aborts on the first finding. Warn-level
+    members are never evaluated on a write and squad-global validators never run in gate mode.
+    ``paths`` and ``role_catalog`` are required once ``squad_global`` is non-empty.
     """
 
     spec: WorkflowSpec
@@ -2421,22 +2143,15 @@ class ValidatorEngine:
             # key is bare (Plane-1 already validated both suffixes on entry, and each member
             # resolves its own effective level/param straight off `ctx.spec`, not off `name`).
             bare = parse_validator_entry(name)[0]
-            # `names` can hold more than one entry for the same bare member — a
-            # `MULTI_SELECTION_VALIDATOR_NAMES` member selected with two different params, e.g.
-            # `ref_rule_target_present:contract` and `ref_rule_target_present:milestone`, both
-            # survive `effective_validator_names`' de-duplication as independent selections. The
-            # member's own function reads every one of its type's matching entries back off
-            # `ctx.spec`/`item_spec.validators` itself (never off `name`), so calling it more
-            # than once per bare name would only repeat the same issue(s) — run each bare member
-            # at most once regardless of how many selections of it survived.
+            # `names` can hold several selections of one bare member (e.g.
+            # `ref_rule_target_present:contract` and `:milestone`); the member reads every matching
+            # entry from `ctx.spec` itself, so run each bare member once.
             if bare in run:
                 continue
             run.add(bare)
-            # A member runs only where this caller carries what it declared it needs. Skipping
-            # it by name is the same outcome as running it against a context it cannot read —
-            # each such member returns nothing — but it is the outcome by decision instead of
-            # by coincidence, and it is why no docstring here has to claim anything about what
-            # the rest of the catalog happens to contain.
+            # A member runs only where the caller carries what it declared it needs: skipping by
+            # name is the same outcome as running against a context it cannot read, but by decision
+            # rather than coincidence.
             if not VALIDATOR_CONTEXT.get(bare, frozenset()) <= held:
                 continue
             if error_level_only and _resolved_level(ctx, bare) != "error":
@@ -2452,12 +2167,10 @@ class ValidatorEngine:
         bodies: dict[int, str] | None = None,
         only: frozenset[str] | None = None,
     ) -> list[CheckIssue]:
-        """Collect every issue: every item's effective per-item set, plus every squad-global
-        validator (run once). *bodies* maps sequence number -> the item's on-disk markdown
-        text (the caller already read it scanning ``on_disk``); absent/``None`` entries mean
-        body-reading validators (``subentity_body_written``, ``no_status_banner``) see no text
-        for that item and stay silent, same as when the file could not be resolved. *only*, when
-        given, limits the per-item members to the items with those ids.
+        """Collect every issue: every item's effective per-item set plus every squad-global
+        validator (once). *bodies* maps sequence number to the item's on-disk text; a missing entry
+        leaves body-reading validators silent for that item. *only*, when given, limits the per-item
+        members to those item ids.
         """
         registered = registered_slugs(index, self.spec)
         incoming = incoming_edges(index, self.spec)
@@ -2508,22 +2221,11 @@ class ValidatorEngine:
         return issues
 
     def gate(self, item: Item, index: SquadsDB) -> None:
-        """Abort on the first finding of an effective per-item member whose resolved level for
-        *item*'s type is ``error``. A member at ``warn`` is not evaluated here at all.
-
-        This path holds neither :class:`ContextRequirement`, and both absences are structural
-        rather than an economy. There is no ``raw_text`` to thread: a create gates an ``Item``
-        built in memory *before* its markdown is rendered and written, so for the door where
-        the check would matter most there is no file to read; supplying it on the update door
-        alone would leave one member acting on some gated doors and not others. And a
-        ``type_present`` scan is a full index walk this path would pay on every single
-        create/update.
-
-        What that means for the catalog is not asserted here — it is read off
-        :data:`VALIDATOR_CONTEXT` by :meth:`_run_per_item`, which skips every member declaring
-        a requirement this context does not carry. A member that sits this path out therefore
-        does so by its own declaration, whatever level its findings carry, and this docstring
-        makes no claim about the rest of the catalog that could quietly stop being true.
+        """Abort on the first finding of an error-level per-item member for *item*'s type; warn-
+        level members are not evaluated. This path holds neither :class:`ContextRequirement`, since
+        a create gates an in-memory ``Item`` before any file exists and ``type_present`` is a full
+        index scan per write; :meth:`_run_per_item` skips members requiring them
+        (:data:`VALIDATOR_CONTEXT`).
         """
         registered = registered_slugs(index, self.spec)
         incoming = incoming_edges(index, self.spec)
