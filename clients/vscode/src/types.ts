@@ -147,6 +147,16 @@ export interface SqRosterIdentity {
   readonly pronouns?: string | null;
 }
 
+/** One `sq role list --json` row. `full_name` is the role's name, `status` its lifecycle status
+ * (archived roles are listed too), and `description` the resolved one-line description (empty
+ * when the role has none). A generic `sq list --json` row has no `full_name`, so it is not one. */
+export interface SqRoleListRow extends SqRosterIdentity {
+  readonly id: string;
+  readonly full_name: string;
+  readonly status: string;
+  readonly description?: string;
+}
+
 /** One entry of `sq workflow statuses --json`. `role` names the status's declared semantic role
  * (e.g. `"active"`, `"superseded"`) — a reference into the separate `sq workflow roles --json`
  * catalog (`SqRoleCatalogEntry`), not a behaviour in itself. A client joins `status` -> `role` ->

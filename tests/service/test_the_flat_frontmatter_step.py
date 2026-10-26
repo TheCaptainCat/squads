@@ -311,28 +311,29 @@ ROLE_ROWS = [
 async def _own_pool_developer(project):
     (project.squad_dir / ".overrides").mkdir(exist_ok=True)
     (project.squad_dir / ".overrides" / "roles.toml").write_text(
-        '[dev]\nname_pool = ["Zed", "Yan"]\n', encoding="utf-8"
+        '[templates.dev]\nname_pool = ["Zed", "Yan"]\n', encoding="utf-8"
     )
-    return await reopen(project.root).add_dev("rust")
+    return await reopen(project.root).activate_role(None, from_template="dev", tech="rust")
 
 
 async def _project_defined_role(svc, project):
-    override = project.squad_dir / ".overrides" / "roles"
-    override.mkdir(parents=True, exist_ok=True)
-    (override / "compliance.toml").write_text(
-        'full_name = "Sam Security"\ntitle = "security"\ndescription = "Keeps it safe."\n'
-        'mission = "Find issues."\n',
-        encoding="utf-8",
+    return await svc.add_role(
+        "compliance",
+        name="Sam Security",
+        job_title="security",
+        description="Keeps it safe.",
+        mission="Find issues.",
     )
-    return await svc.activate_role("compliance")
 
 
 async def _role(svc, project, how: str):
     makers = {
         "bundled": lambda: svc.activate_role("architect"),
         "chosen-bundled": lambda: svc.activate_role("qa", name="Sam Lee"),
-        "developer": lambda: svc.add_dev("python"),
-        "chosen-developer": lambda: svc.add_dev("go", name="Ada Gopher"),
+        "developer": lambda: svc.activate_role(None, from_template="dev", tech="python"),
+        "chosen-developer": lambda: svc.activate_role(
+            None, from_template="dev", tech="go", name="Ada Gopher"
+        ),
         "own-pool": lambda: _own_pool_developer(project),
         "project": lambda: _project_defined_role(svc, project),
     }
@@ -415,7 +416,7 @@ async def test_a_migrated_file_round_trips_through_the_model_and_a_second_run_ch
     project, svc
 ) -> None:
     await svc.activate_role("architect")
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     await add_legacy_operator(svc, "Imp Orted", "op-imp", stored_name="Real Name")
     guide = (await svc.create("guide", "Notes", author="manager")).item
     legacy_shape(item_file(svc.paths, guide), extra={"tags": ["a"], "tech": "go"})
@@ -460,7 +461,7 @@ async def _legacy_file(svc, kind: str) -> Path:
         path = item_file(svc.paths, role)
         legacy_shape(path, move=("slug", "is_dev", "tech", "model", "is_default"))
     elif kind == "developer":
-        role = await svc.add_dev("python")
+        role = await svc.activate_role(None, from_template="dev", tech="python")
         path = item_file(svc.paths, role)
         legacy_shape(path, move=("slug", "is_dev", "tech", "model", "is_default"))
     elif kind == "operator":

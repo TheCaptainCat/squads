@@ -23,7 +23,7 @@ async def roster(svc: Service) -> None:
     """A role of each kind (bundled, developer, retired, renamed after a comment), an operator
     with an accent, a retired operator, and two entries that share the name ``Sam Lee``."""
     await svc.activate_role("reviewer")
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     await svc.activate_role("devops")
     await _retire(svc, "role", "devops")
     await svc.activate_role("qa", name="Sam Lee")

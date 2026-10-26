@@ -164,6 +164,7 @@ _COMMANDS = {
     "repair": ["repair"],
     "lint": ["workflow", "lint"],
     "adopt": ["adopt"],
+    "init": ["init", "--force", "--default-names", "--no-claude", "--roles", "manager"],
 }
 
 

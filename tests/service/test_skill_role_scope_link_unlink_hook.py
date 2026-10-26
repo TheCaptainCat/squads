@@ -135,7 +135,7 @@ async def test_one_skill_scoped_to_several_roles_at_once_preloads_all_and_only_t
     manager = await svc.activate_role("manager")
     devops = await svc.activate_role("devops")
     writer = await svc.activate_role("tech-writer")
-    outsider = await svc.add_dev("python")
+    outsider = await svc.activate_role(None, from_template="dev", tech="python")
     skill = await svc.add_skill("Release Runbook")
 
     for role in (manager, devops, writer):

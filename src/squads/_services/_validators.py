@@ -74,6 +74,7 @@ from squads._interactions._role_guidance import (
 )
 from squads._interactions._skills import item_type_for_skill_slug
 from squads._language import resolve_working_language
+from squads._models import _attributes as attrs
 from squads._models import _markers as markers
 from squads._models._attributes import ORIGIN_VALUES, AttributeKey
 from squads._models._config import CONFIG_FILENAME
@@ -87,7 +88,10 @@ from squads._rendering._engine import scaffold_body
 from squads._roles._catalog import get_catalog
 from squads._roles._models import CatalogSource
 from squads._roles._resolver import (
+    base_problems,
     holds_default_designation,
+    model_problem,
+    override_file_keys,
     resolve_role_for_item,
     resolve_role_tolerantly,
 )
@@ -1168,6 +1172,8 @@ def _attribute_valid(ctx: ValidatorContext) -> list[CheckIssue]:
         problem = value_problem(spec, value)
         if problem is None and name == AttributeKey.ORIGIN and value not in ORIGIN_VALUES:
             problem = f"expected one of {', '.join(ORIGIN_VALUES)}, got {value!r}"
+        if problem is None and name == AttributeKey.MODEL and ctx.item.type == ROSTER_ROLE:
+            problem = model_problem(value)
         if problem is not None:
             issues.append(
                 CheckIssue(
@@ -1700,7 +1706,7 @@ def _slug_breach_remedy(
             f"then sq skill {breach.item.id} remove --purge"
         )
     return (
-        "rename the project role file to a compliant slug, run sq role activate <slug>, "
+        "create the role again under a compliant slug with sq role add <slug>, "
         f"then sq role {breach.item.id} remove --purge"
     )
 
@@ -1771,6 +1777,69 @@ def _view_transform_resolves(ctx: SquadGlobalContext) -> list[CheckIssue]:
     ]
 
 
+def _role_base_resolves(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """A live role whose base does not resolve: a catalog role the catalog no longer declares, a
+    template role naming an undeclared template or missing (or carrying) the `tech` its template
+    takes, a role that defines itself without its job title or description, or a role storing both
+    a template and a mission. `sq sync` keeps materialising such a role from what it stores, and
+    this finding is what reports it."""
+    try:
+        catalog = ctx.catalog()
+    except SquadsError:  # the broken catalog override is its own finding
+        return []
+    level = squad_global_level(ctx.spec, "role_base_resolves")
+    live = ctx.spec.live_statuses(ROSTER_ROLE)
+    return [
+        CheckIssue(level, it.id, f"role {it.slug!r} {problem}", rule="role_base_resolves")
+        for it in sorted(ctx.index.items.values(), key=lambda i: i.sequence_id)
+        if it.type == ROSTER_ROLE and it.status in live and it.slug
+        for problem in base_problems(it, catalog)
+    ]
+
+
+#: A per-slug file key -> where a role that defines itself stores that field: an attribute, or the
+#: item's own ``description``.
+_FILE_KEY_STORED_AS: tuple[tuple[str, str], ...] = (
+    ("title", AttributeKey.JOB_TITLE),
+    ("description", "description"),
+    ("mission", AttributeKey.MISSION),
+    ("responsibilities", AttributeKey.RESPONSIBILITIES),
+    ("agreements", AttributeKey.AGREEMENTS),
+    ("color", AttributeKey.COLOR),
+    ("can_spawn", AttributeKey.CAN_SPAWN),
+    ("capabilities", AttributeKey.CAPABILITIES),
+)
+
+
+def _role_definition_shadowed(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """A per-slug file that sets a field a role defining itself stores in its item: the file wins,
+    so `sq role <slug> update` of that field has no effect. Names the file and the fields."""
+    level = squad_global_level(ctx.spec, "role_definition_shadowed")
+    issues: list[CheckIssue] = []
+    for it in sorted(ctx.index.items.values(), key=lambda i: i.sequence_id):
+        if it.type != ROSTER_ROLE or not it.slug or attrs.mission(it) is None:
+            continue
+        keys = override_file_keys(it.slug, ctx.paths.squad_dir)
+        fields = sorted(
+            key
+            for key in keys
+            if (stored := dict(_FILE_KEY_STORED_AS).get(key)) is not None
+            and (it.description.strip() if stored == "description" else it.attribute(stored))
+        )
+        if fields:
+            issues.append(
+                CheckIssue(
+                    level,
+                    it.id,
+                    f".overrides/roles/{it.slug}.toml sets {', '.join(fields)}, which role "
+                    f"{it.slug!r} stores in its item: the file wins, so `sq role {it.slug} "
+                    "update` of those fields has no effect — delete the file or those keys",
+                    rule="role_definition_shadowed",
+                )
+            )
+    return issues
+
+
 def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
     """A playbook guide whose role slug names no live role — a warning per dropped guide.
 
@@ -1805,9 +1874,17 @@ def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
         if it.status in live and it.slug
     ]
     override_guides = playbook_override_guide_pairs(ctx.paths.squad_dir, ctx.files)
+    try:
+        catalog_slugs = {r.slug for r in ctx.catalog().roles}
+    except SquadsError:  # the broken catalog override is its own finding
+        catalog_slugs = set[str]()
     messages = [
         orphaned_playbook_guide_message(
-            item_type, slug, retired=slug in known, live_status=live_initial
+            item_type,
+            slug,
+            retired=slug in known,
+            live_status=live_initial,
+            in_catalog=slug in catalog_slugs,
         )
         for item_type, slug in orphaned_playbook_guides(
             ctx.playbook,
@@ -1910,7 +1987,7 @@ def _type_has_live_author(ctx: SquadGlobalContext) -> list[CheckIssue]:
                 if it.slug
             },
         },
-        developer_capabilities=frozenset(catalog.dev.capabilities),
+        developer_capabilities=catalog.developer_capabilities(),
     )
     level = squad_global_level(ctx.spec, "type_has_live_author")
     issues: list[CheckIssue] = []
@@ -2188,6 +2265,8 @@ SQUAD_GLOBAL_CATALOG: dict[str, SquadGlobalValidator] = {
     "roster_config_integrity": _roster_config_integrity,
     "default_designation_duplicated": _default_designation_duplicated,
     "roster_slug_valid": _roster_slug_valid,
+    "role_base_resolves": _role_base_resolves,
+    "role_definition_shadowed": _role_definition_shadowed,
     "playbook_guide_role_live": _playbook_guide_role_live,
     "display_config_valid": _display_config_valid,
     "working_language_valid": _working_language_valid,

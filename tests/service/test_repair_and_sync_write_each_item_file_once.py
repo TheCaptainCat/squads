@@ -39,7 +39,7 @@ def _damage(svc: Any, item: Any, *, tag: bool, frontmatter: bool) -> None:
     if frontmatter:
         data = read_frontmatter(text=text, source=str(path))
         if item.type == "role":
-            data.update({"mission": "stored", "color": "blue"})
+            data.update({"full_name": "Stored Name", "skills": ["squads"], "is_dev": True})
         else:
             data["refs"] = [
                 f"{ref.split(':')[0]}:{svc.spec.default_ref_kind()}" for ref in data["refs"]

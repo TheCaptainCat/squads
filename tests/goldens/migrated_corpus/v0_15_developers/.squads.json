@@ -9,7 +9,7 @@
       "title": "Catherine Manager",
       "slug": "manager",
       "status": "Active",
-      "description": "Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done — keeping everything tracked in squads.",
+      "description": "",
       "parent": null,
       "author": "manager",
       "assignee": null,
@@ -35,7 +35,7 @@
       "title": "Elias Python",
       "slug": "python-dev",
       "status": "Active",
-      "description": "Implement assigned tasks in Python, following the project's guides, with tests.",
+      "description": "",
       "parent": null,
       "author": "python-dev",
       "assignee": null,
@@ -52,7 +52,8 @@
       "attributes": {
         "model": "opus",
         "tech": "python",
-        "origin": "system"
+        "origin": "system",
+        "template": "dev"
       },
       "slug_in_file": true,
       "id": "ROLE-2"
@@ -63,7 +64,7 @@
       "title": "Ada Go",
       "slug": "go-dev",
       "status": "Active",
-      "description": "Implement assigned tasks in Go, following the project's guides, with tests.",
+      "description": "",
       "parent": null,
       "author": "go-dev",
       "assignee": null,
@@ -80,7 +81,8 @@
       "attributes": {
         "model": "sonnet",
         "tech": "go",
-        "origin": "system"
+        "origin": "system",
+        "template": "dev"
       },
       "slug_in_file": true,
       "id": "ROLE-3"
@@ -91,7 +93,7 @@
       "title": "Linus Rust",
       "slug": "rust-dev",
       "status": "Archived",
-      "description": "Implement assigned tasks in Rust, following the project's guides, with tests.",
+      "description": "",
       "parent": null,
       "author": "rust-dev",
       "assignee": null,
@@ -108,7 +110,8 @@
       "attributes": {
         "model": "sonnet",
         "tech": "rust",
-        "origin": "system"
+        "origin": "system",
+        "template": "dev"
       },
       "slug_in_file": true,
       "id": "ROLE-4"
@@ -119,7 +122,7 @@
       "title": "Lena Legacy",
       "slug": "legacy-dev",
       "status": "Active",
-      "description": "Do the legacy engineer work.",
+      "description": "Legacy engineer role.",
       "parent": null,
       "author": "legacy-dev",
       "assignee": null,
@@ -134,7 +137,9 @@
       "created_session": null,
       "modified_session": null,
       "attributes": {
-        "origin": "project"
+        "origin": "project",
+        "job_title": "legacy engineer",
+        "mission": "Do the legacy engineer work."
       },
       "slug_in_file": true,
       "id": "ROLE-5"
@@ -145,7 +150,7 @@
       "title": "Otto Old",
       "slug": "old-dev",
       "status": "Archived",
-      "description": "Do the retired engineer work.",
+      "description": "Retired engineer role.",
       "parent": null,
       "author": "old-dev",
       "assignee": null,
@@ -160,7 +165,9 @@
       "created_session": null,
       "modified_session": null,
       "attributes": {
-        "origin": "project"
+        "origin": "project",
+        "job_title": "retired engineer",
+        "mission": "Do the retired engineer work."
       },
       "slug_in_file": true,
       "id": "ROLE-6"
@@ -171,7 +178,7 @@
       "title": "Bea Builder",
       "slug": "builder",
       "status": "Active",
-      "description": "Do the builder work.",
+      "description": "Builder role.",
       "parent": null,
       "author": "builder",
       "assignee": null,
@@ -186,7 +193,9 @@
       "created_session": null,
       "modified_session": null,
       "attributes": {
-        "origin": "project"
+        "origin": "project",
+        "job_title": "builder",
+        "mission": "Do the builder work."
       },
       "slug_in_file": true,
       "id": "ROLE-7"

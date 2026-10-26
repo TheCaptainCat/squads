@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import bundled_migration_context, catalog_of, create_item, make_service
+from _helpers import bundled_migration_context, create_item, make_service
 from squads import __version__, _aio
 from squads import _sections as sections
 from squads._models import _markers as markers
@@ -43,7 +43,7 @@ async def _downgraded(project) -> Service:
     return make_service(
         paths,
         spec=spec,
-        playbook=resolve_playbook(spec, paths.squad_dir, catalog_of(paths.squad_dir)),
+        playbook=resolve_playbook(spec, paths.squad_dir),
     )
 
 

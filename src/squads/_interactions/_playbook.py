@@ -30,7 +30,7 @@ from squads._interactions._role_guidance import (
     in_lane_owner,
     role_like,
 )
-from squads._roles._catalog import get_catalog, role_by_slug
+from squads._roles._catalog import role_by_slug
 from squads._roles._projection import RoleView
 from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
@@ -38,7 +38,7 @@ from squads._workflow._models import WorkflowSpec
 
 @functools.cache
 def _bundled_playbook() -> PlaybookSpec:
-    return load_playbook(get_catalog(), bundled_spec())
+    return load_playbook(bundled_spec())
 
 
 def get_playbook_spec() -> PlaybookSpec:
@@ -143,11 +143,10 @@ def orphaned_playbook_guides(
     it — the loader stays permissive and ``check``/``sync`` carry the news, which is also where
     the skill side of the same event is already reported.
 
-    Three shapes reach it, all driven: a role scaffolded but not yet activated (``sq override
-    scaffold --new <slug>`` prints activation as its *next* step, so writing the guide first is
-    the natural order); a role activated and later retired, the guide left behind; and a stray or
-    malformed file in ``.overrides/roles/`` whose stem the loader accepts as a slug but which
-    never becomes a role at all.
+    Three shapes reach it, all driven: a role not yet created (a guide written before
+    ``sq role add`` has made the role is the natural order); a role activated and later
+    retired, the guide left behind; and a stray or malformed file in ``.overrides/roles/``
+    whose stem the loader accepts as a slug but which never becomes a role at all.
 
     Two exemptions, both deliberate:
 
@@ -196,7 +195,7 @@ def orphaned_playbook_guides(
 
 
 def orphaned_playbook_guide_message(
-    item_type: str, slug: str, *, retired: bool, live_status: str
+    item_type: str, slug: str, *, retired: bool, live_status: str, in_catalog: bool = False
 ) -> str:
     """The one wording for a dropped playbook guide, shared by ``sq check`` and ``sq sync`` so
     the two surfaces cannot drift into describing the same event differently.
@@ -217,7 +216,9 @@ def orphaned_playbook_guide_message(
     warning at ``sq role activate <slug>`` would hand the reader a command that errors out.
     A slug with a roster entry is revived by a status transition (``sq role <slug> status
     <live_status>``, the spelling ``_retired_participant_hint`` already uses for the same
-    situation); a slug with no entry yet — the scaffold-then-forget order — is activated.
+    situation); a slug with no entry yet — the write-the-guide-first order — is created.
+    *in_catalog* says the catalog declares the slug, so activating it is the command that
+    works; any other slug is created with ``sq role add`` or built from a template.
     *live_status* is the roster role type's own live initial status, never a hard-coded
     ``Active``, so a project that renamed its roster lifecycle reads its own vocabulary.
     """
@@ -231,7 +232,12 @@ def orphaned_playbook_guide_message(
     revive = (
         f"reactivate the role (`sq role {slug} status {live_status}`)"
         if retired
-        else f"activate the role (`sq role activate {slug}`)"
+        else (
+            f"activate the role (`sq role activate {slug}`)"
+            if in_catalog
+            else f"create the role (`sq role add {slug} …`, or `sq role activate {slug} --from "
+            "<template>`)"
+        )
     )
     return (
         f"playbook guide for role {slug!r} on type {item_type!r} names no live role, so its "

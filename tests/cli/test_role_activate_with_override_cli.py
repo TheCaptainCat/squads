@@ -18,14 +18,21 @@ async def test_activate_a_bundled_slug_reports_the_toml_override_name(project, i
     assert "Helen Reviewer" in result.output
 
 
-async def test_activate_a_brand_new_project_defined_slug(project, invoke):
+async def test_activate_refuses_a_slug_only_a_role_file_declares_and_add_creates_it(
+    project, invoke
+):
     override_dir = project.squad_dir / ".overrides" / "roles"
     override_dir.mkdir(parents=True, exist_ok=True)
-    (override_dir / "security-expert.toml").write_text(
+    file = override_dir / "security-expert.toml"
+    file.write_text(
         'full_name = "Sam Security"\ntitle = "security expert"\n'
         'description = "Keeps the system secure."\nmission = "Find and fix security issues."\n',
         encoding="utf-8",
     )
-    result = await invoke(["role", "activate", "security-expert"])
-    assert result.exit_code == 0
-    assert "Sam Security" in result.output
+    refused = await invoke(["role", "activate", "security-expert"])
+    assert refused.exit_code == 1
+    assert "sq role add security-expert --file" in " ".join(refused.output.split())
+
+    added = await invoke(["role", "add", "security-expert", "--file", str(file)])
+    assert added.exit_code == 0, added.output
+    assert "Sam Security" in added.output

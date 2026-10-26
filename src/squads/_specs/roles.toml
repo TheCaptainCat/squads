@@ -22,13 +22,13 @@ core = ["manager", "architect", "tech-lead", "reviewer"]
 minimal = ["manager"]
 
 # ---------------------------------------------------------------------------
-# Dev-role factory defaults (pool + model/color)
+# Role templates (instantiated by sq role activate --from <name>)
+# Placeholders: {tech}, {Tech} and, in name only, {first}; {{ and }} escape a brace.
 # ---------------------------------------------------------------------------
 
-[dev]
-model = "sonnet"
-color = "green"
-capabilities = ["dev"]
+[templates.dev]
+slug = "{tech}-dev"
+name = "{first} {Tech}"
 name_pool = [
   "Elias",
   "Ada",
@@ -43,6 +43,17 @@ name_pool = [
   "Radia",
   "Donald",
 ]
+title = "{Tech} developer"
+description = "Implements {Tech} code following the project's guides and standards."
+mission = "Implement assigned tasks in {Tech}, following the project's guides, with tests."
+responsibilities = [
+  "Implement tasks in {Tech}",
+  "Write tests for changes",
+  "Follow the relevant guides; ask the architect when unsure",
+]
+model = "sonnet"
+color = "green"
+capabilities = ["dev"]
 
 # ---------------------------------------------------------------------------
 # Bundled roles (declaration order preserved — matches PREDEFINED tuple)

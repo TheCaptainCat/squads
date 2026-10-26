@@ -386,8 +386,7 @@ class ClaudeCodeBackend(AgentBackend):
         .is_system_skill`), ``write_managed``'s own compiled-description call
         (:meth:`_write_managed_skill`/:meth:`_write_item_skills`) is what runs *last* in a full
         ``sync`` and so is this slug's real current content, not *item*'s own (possibly
-        seed-time-stale — nothing refreshes a ``SKILL`` item's ``description`` the way
-        ``_refresh_catalog_attributes`` refreshes a role's) description. :meth:`render_skill_entry`
+        seed-time-stale) description. :meth:`render_skill_entry`
         (question 5) must answer with whichever of the two is actually this slug's last writer,
         or a system skill whose bundled description text moved since it was seeded would read
         as permanently drifted. An author-defined (non-system) skill has only one writer

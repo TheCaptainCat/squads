@@ -63,13 +63,13 @@ def _write_slug_file(slug: str, preamble: str = "") -> Callable[[Path, str], Non
 
 
 def _write_dev_table(squad_dir: Path, line: str) -> None:
-    (_overrides(squad_dir) / "roles.toml").write_text(f"[dev]\n{line}", encoding="utf-8")
+    (_overrides(squad_dir) / "roles.toml").write_text(f"[templates.dev]\n{line}", encoding="utf-8")
 
 
 _SITES: dict[str, _Site] = {
     "catalog-roles-entry": _Site((), "roles.toml", "auditor", _write_catalog_role, False),
-    "slug-file-new-role": _Site(
-        (), "roles/auditor.toml", "auditor", _write_slug_file("auditor", _NEW_ROLE), False
+    "slug-file-item-defined-role": _Site(
+        (), "roles/auditor.toml", "auditor", _write_slug_file("auditor"), True
     ),
     "slug-file-bundled-role": _Site(
         (), "roles/architect.toml", "architect", _write_slug_file("architect"), True
@@ -77,7 +77,7 @@ _SITES: dict[str, _Site] = {
     "slug-file-templated-developer": _Site(
         ("dev",), "roles/rust-dev.toml", "rust-dev", _write_slug_file("rust-dev"), True
     ),
-    "catalog-dev-table": _Site(("dev",), "roles.toml", "rust-dev", _write_dev_table, False),
+    "catalog-dev-template": _Site(("dev",), "roles.toml", "rust-dev", _write_dev_table, False),
 }
 
 #: shape -> (the declaration line, the resolved list given the site's base; ``None`` = refused)
@@ -97,12 +97,20 @@ _SHAPES: dict[str, tuple[str, Callable[[tuple[str, ...]], tuple[str, ...] | None
 }
 
 #: A new role has no base to splat against, so the append form is refused there.
-_NO_BASE_REFUSES_SPLAT = {"catalog-roles-entry", "slug-file-new-role"}
+_NO_BASE_REFUSES_SPLAT = {"catalog-roles-entry"}
 
 
 async def _bring_onto_roster(svc, site: _Site):
     if site.slug == "rust-dev":
-        return await svc.add_dev("rust")
+        return await svc.activate_role(None, from_template="dev", tech="rust")
+    if site.slug == "auditor" and site.after:
+        return await svc.add_role(
+            "auditor",
+            name="Ava Auditor",
+            job_title="auditor",
+            description="Audits the work.",
+            mission="Audit the work.",
+        )
     return await svc.activate_role(site.slug)
 
 
@@ -147,7 +155,7 @@ async def test_the_declared_capabilities_resolve_onto_the_role_and_its_view(
 
 async def test_every_live_role_view_carries_what_the_resolver_computes(project, svc) -> None:
     await svc.activate_role("architect")
-    await svc.add_dev("rust")
+    await svc.activate_role(None, from_template="dev", tech="rust")
     for item in await svc.list_items(item_type=ROSTER_ROLE):
         assert (
             svc.roster_projection.role_view(item).capabilities
@@ -174,7 +182,7 @@ def _snapshot(project) -> dict[str, str]:
 async def test_declaring_a_capability_stores_nothing_on_any_item_or_in_the_index(
     project, svc, invoke
 ) -> None:
-    await svc.add_dev("rust")
+    await svc.activate_role(None, from_template="dev", tech="rust")
     await svc.activate_role("architect")
     first = await invoke(["sync"])
     assert first.exit_code == 0, first.output
@@ -182,7 +190,7 @@ async def test_declaring_a_capability_stores_nothing_on_any_item_or_in_the_index
 
     (project.squad_dir / ".overrides").mkdir(exist_ok=True)
     (project.squad_dir / ".overrides" / "roles.toml").write_text(
-        '[dev]\ncapabilities = ["dev", "extra"]\n', encoding="utf-8"
+        '[templates.dev]\ncapabilities = ["dev", "extra"]\n', encoding="utf-8"
     )
     (project.squad_dir / ".overrides" / "roles").mkdir(exist_ok=True)
     (project.squad_dir / ".overrides" / "roles" / "architect.toml").write_text(
@@ -212,8 +220,8 @@ async def test_a_malformed_capability_name_is_refused_and_names_the_file(
     assert "architect.toml" in result.output.replace("\n", "")
 
 
-#: [dev] capabilities declared after the developer exists -> what the developer resolves to.
-_DEV_TABLE_CHANGES = {
+#: [templates.dev] capabilities declared after the developer exists -> what it resolves to.
+_DEV_TEMPLATE_CHANGES = {
     "emptied": ("[]", ()),
     "replaced": ('["builder"]', ("builder",)),
     "repeated": ('["builder", "builder"]', ("builder",)),
@@ -221,12 +229,12 @@ _DEV_TABLE_CHANGES = {
 }
 
 
-@pytest.mark.parametrize("change", list(_DEV_TABLE_CHANGES))
-async def test_an_existing_developer_follows_a_later_change_to_the_dev_table_capabilities(
+@pytest.mark.parametrize("change", list(_DEV_TEMPLATE_CHANGES))
+async def test_an_existing_developer_follows_a_later_change_to_the_dev_template_capabilities(
     change: str, project, svc, invoke
 ) -> None:
-    value, expected = _DEV_TABLE_CHANGES[change]
-    item = await svc.add_dev("rust")
+    value, expected = _DEV_TEMPLATE_CHANGES[change]
+    item = await svc.activate_role(None, from_template="dev", tech="rust")
     assert resolve_role_for_item(
         item, project.squad_dir, catalog=catalog_of(project.squad_dir)
     ).capabilities == ("dev",)
@@ -262,7 +270,7 @@ async def test_the_two_malformed_name_messages_read_alike(project, svc) -> None:
     architect = await svc.activate_role("architect")
     _write_dev_table(project.squad_dir, 'capabilities = ["Bad"]\n')
     with pytest.raises(SquadsError) as catalog_error:
-        await svc.add_dev("rust")
+        await svc.activate_role(None, from_template="dev", tech="rust")
     (project.squad_dir / ".overrides" / "roles.toml").unlink()
     _write_slug_file("architect")(project.squad_dir, 'capabilities = ["Bad"]\n')
     with pytest.raises(SquadsError) as file_error:

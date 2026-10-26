@@ -13,9 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import resolved_skill_definition
+from _helpers import add_role_from_file, resolved_skill_definition, write_role_file
 from squads._interactions._skills import item_skill_name
-from squads._overrides._service import scaffold_new_role
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -39,32 +38,11 @@ roles = [
 """
 
 
-def _fill_in_role_stub(path: Path) -> None:
-    text = path.read_text(encoding="utf-8")
-    text = text.replace(
-        'full_name = "TODO: full name (e.g. \\"Sam Security\\")"',
-        'full_name = "Sam Reliability"',
-    )
-    text = text.replace(
-        'title = "TODO: one-line title (e.g. \\"security analyst\\")"', 'title = "SRE"'
-    )
-    text = text.replace(
-        'description = "TODO: one-line description for the Claude pointer frontmatter"',
-        'description = "Keeps the lights on."',
-    )
-    text = text.replace(
-        'mission = "TODO: what this role is responsible for accomplishing"',
-        'mission = "Own incident response and rollback."',
-    )
-    path.write_text(text, encoding="utf-8")
-
-
 async def test_check_accepts_a_playbook_guide_for_a_live_project_role(project) -> None:
-    role_toml = scaffold_new_role(project.squad_dir, slug="sre")
-    _fill_in_role_stub(role_toml)
+    write_role_file(project.squad_dir, "sre")
 
     svc = service.open_service(client_cwd=project.squad_dir)
-    await svc.activate_role("sre")
+    await add_role_from_file(svc, "sre")
 
     _write_playbook_override(project.squad_dir, _GIVE_SRE_TASK_GUIDANCE)
 
@@ -78,11 +56,10 @@ async def test_check_accepts_a_playbook_guide_for_a_live_project_role(project) -
 async def test_generated_task_skill_carries_the_project_roles_guidance(project) -> None:
     """Not just accepted — actually usable: the generated ``sq-task`` skill renders a real
     section for the project role, resolved off the live roster (full name + guide text)."""
-    role_toml = scaffold_new_role(project.squad_dir, slug="sre")
-    _fill_in_role_stub(role_toml)
+    write_role_file(project.squad_dir, "sre")
 
     svc = service.open_service(client_cwd=project.squad_dir)
-    await svc.activate_role("sre")
+    await add_role_from_file(svc, "sre")
 
     _write_playbook_override(project.squad_dir, _GIVE_SRE_TASK_GUIDANCE)
 
@@ -95,16 +72,12 @@ async def test_generated_task_skill_carries_the_project_roles_guidance(project) 
     assert "Coordinate the rollback" in body
 
 
-async def test_an_explicit_dev_tech_slug_is_also_accepted_once_it_has_an_override_file(
-    project,
+async def test_an_explicit_dev_tech_slug_is_accepted_once_the_developer_exists(
+    project, svc
 ) -> None:
-    """The same root cause blocked an explicit ``<tech>-dev`` slug too (``*dev`` being
-    all-or-nothing). A dev slug is generated on the fly with no override file by default, but
-    once a project creates one — even a near-empty customisation — the union picks it up the
-    same way, so two devs CAN get distinct playbook guidance."""
-    overrides_dir = project.squad_dir / ".overrides" / "roles"
-    overrides_dir.mkdir(parents=True, exist_ok=True)
-    (overrides_dir / "python-dev.toml").write_text('color = "green"\n', encoding="utf-8")
+    """Two developers can get distinct playbook guidance: a guide naming a developer's slug loads
+    and, with that developer live, is not reported."""
+    await svc.activate_role(None, from_template="dev", tech="python")
 
     _write_playbook_override(
         project.squad_dir,
@@ -122,12 +95,11 @@ roles = [
     assert not any("playbook" in f.item or "catalog" in f.message for f in findings)
 
 
-async def test_an_explicit_dev_tech_slug_with_no_override_file_is_still_refused(project) -> None:
-    """The boundary the fix does NOT cross: a generated dev slug with no override file on
-    disk is not a live, discoverable project role — refusing it is still correct, and the
-    refusal must remain the same clear catalog message, not a crash."""
-    from squads._errors import PlaybookConfigError
-
+async def test_a_guide_naming_a_dev_slug_with_no_role_loads_and_is_reported_by_check(
+    project,
+) -> None:
+    """The loader no longer decides whether a role holds a guide's slug: it loads, and `sq
+    check` warns that the guide names no live role."""
     _write_playbook_override(
         project.squad_dir,
         """
@@ -139,6 +111,9 @@ roles = [
 """,
     )
 
-    with pytest.raises(PlaybookConfigError) as exc_info:
-        service.open_service(client_cwd=project.squad_dir)
-    assert "role slug 'python-dev' not in role catalog" in str(exc_info.value)
+    reopened = service.open_service(client_cwd=project.squad_dir)
+    findings = await reopened.check()
+
+    assert any(
+        f.rule == "playbook_guide_role_live" and "'python-dev'" in f.message for f in findings
+    )

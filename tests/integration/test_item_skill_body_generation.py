@@ -55,7 +55,7 @@ async def test_active_role_sections_reflect_only_actually_active_roles(svc, proj
 
 
 async def test_actor_guidance_is_structured_not_free_prose(svc, project):
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     await svc.activate_role("reviewer")
     await svc.refresh_managed()
     task = await _item_skill_body(svc, "task")
@@ -69,7 +69,7 @@ async def test_actor_guidance_is_structured_not_free_prose(svc, project):
 
 async def test_the_dev_section_is_gated_on_an_active_dev_role(svc, project):
     assert "## For `*dev`:" not in await _item_skill_body(svc, "task")
-    await svc.add_dev("rust")
+    await svc.activate_role(None, from_template="dev", tech="rust")
     await svc.refresh_managed()
     assert "## For `*dev`:" in await _item_skill_body(svc, "task")
 
@@ -125,7 +125,7 @@ async def test_a_dropped_type_resolves_to_no_definition_rather_than_crashing(pro
 
 
 async def test_item_skills_teach_the_full_comments_briefing_in_their_enter_section(svc):
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     for it in managed_item_types(get_playbook_spec()):
         body = await _item_skill_body(svc, it)
         assert "--full --comments" in body, f"sq-{it} skill missing --full --comments briefing"
@@ -136,7 +136,7 @@ async def test_per_type_skills_carry_role_specific_scoped_comment_guidance(svc, 
     await svc.activate_role("reviewer")
     await svc.activate_role("product-owner")
     await svc.activate_role("tech-lead")
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     await svc.refresh_managed()
 
     review = await _item_skill_body(svc, "review")

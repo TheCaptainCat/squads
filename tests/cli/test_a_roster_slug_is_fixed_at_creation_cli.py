@@ -76,6 +76,10 @@ RESERVED = [
 ]
 
 
+def _role_file_path(project, slug: str):
+    return project.squad_dir / ".overrides" / "roles" / f"{slug}.toml"
+
+
 def _project_role_file(project, slug: str) -> None:
     folder = project.squad_dir / ".overrides" / "roles"
     folder.mkdir(parents=True, exist_ok=True)
@@ -93,7 +97,9 @@ def _catalog_entry(project, slug: str) -> None:
 
 
 @pytest.mark.parametrize(("slug", "reason"), RESERVED)
-@pytest.mark.parametrize("source", ["project-role-file", "catalog-entry", "bulk-import"])
+@pytest.mark.parametrize(
+    "source", ["role-add-file", "role-add-flags", "activate-from", "catalog-entry", "bulk-import"]
+)
 async def test_role_creation_refuses_a_reserved_slug_and_writes_nothing(
     project, invoke, tmp_path_factory, source, slug, reason
 ) -> None:
@@ -105,8 +111,19 @@ async def test_role_creation_refuses_a_reserved_slug_and_writes_nothing(
             encoding="utf-8",
         )
         argv = ["import", str(events), "--as", slug]
+    elif source == "role-add-file":
+        _project_role_file(project, slug)
+        before = _tree(project.root)
+        argv = ["role", "add", slug, "--file", str(_role_file_path(project, slug))]
+    elif source == "role-add-flags":
+        argv = [
+            *["role", "add", slug, "--name", "Imposter", "--job-title", "t"],
+            *["--desc", "d", "--mission", "m"],
+        ]
+    elif source == "activate-from":
+        argv = ["role", "activate", slug, "--from", "dev", "--tech", "python"]
     else:
-        (_project_role_file if source == "project-role-file" else _catalog_entry)(project, slug)
+        _catalog_entry(project, slug)
         before = _tree(project.root)
         argv = ["role", "activate", slug]
 
@@ -151,7 +168,15 @@ async def test_an_ordinary_project_role_and_an_operator_slug_are_still_created(
 ) -> None:
     _project_role_file(project, "security-expert")
 
-    role = await invoke(["role", "activate", "security-expert"])
+    role = await invoke(
+        [
+            "role",
+            "add",
+            "security-expert",
+            "--file",
+            str(_role_file_path(project, "security-expert")),
+        ]
+    )
     operator = await invoke(["operator", "add", "Anna Lee", "--slug", "op-anna"])
 
     assert role.exit_code == 0, role.output

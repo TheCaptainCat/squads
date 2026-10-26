@@ -99,7 +99,7 @@ async def test_a_role_is_named_at_creation_and_no_later_change_renames_it(
     if row.kind == "bundled":
         role = await svc.activate_role(slug, name=name)
     else:
-        role = await svc.add_dev("python", name=name)
+        role = await svc.activate_role(None, from_template="dev", tech="python", name=name)
     expected = row.created_as or role.title
     assert role.title == expected
 

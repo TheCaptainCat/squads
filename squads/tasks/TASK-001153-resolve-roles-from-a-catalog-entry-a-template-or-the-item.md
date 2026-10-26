@@ -3,8 +3,9 @@ id: TASK-1153
 sequence_id: 1153
 type: task
 title: Resolve roles from a catalog entry, a template or the item
-status: Ready
+status: InReview
 author: tech-lead
+assignee: python-dev
 priority: medium
 refs:
 - MILE-1051:targets
@@ -18,33 +19,40 @@ description: 'ADR-1151: three role bases, [templates.<name>], sq role add, per-k
 subentities:
 - local_id: ST1
   title: Declare role templates as data in the role catalog
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST2
   title: Resolve the base from stored facts and let stored values win
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST3
   title: Create roles through activate --from, role add and dev add
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST4
   title: Edit an item-defined role with update, refuse it elsewhere
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST5
   title: Extend the 0.17 migration and refuse a legacy [dev] table
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST6
   title: Report unresolved bases and shadowing files in sq check
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST7
   title: Check playbook guide slugs for grammar only at load
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST8
   title: Read the mention hover description from sq role list --json
-  status: Todo
+  status: Done
 - local_id: ST9
   title: Document role bases, templates, role add and the [dev] rename
-  status: Todo
+  status: Done
 created_at: '2026-10-25T22:01:52Z'
-updated_at: '2026-10-25T22:07:45Z'
+updated_at: '2026-10-26T03:25:09Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -117,6 +125,17 @@ Owner: python-dev. First. Implements ADR-1151 decision 2.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-25T23:28:55Z] `python-dev` Elias Python:
+  - Role templates are data.
+    
+    - The bundled `[dev]` table is now `[templates.dev]` in `_specs/roles.toml` with the title, description, mission and responsibilities that were Python literals (`dev_role_from_pool` is gone; `instantiate_template` in `_roles/_catalog.py` reads only the table).
+    - `_roles/_models.py` has `RoleTemplateSpec` (closed key space; `RoleCatalogSpec.templates`, `developer_capabilities()`); `_roles/_templates.py` holds the placeholder grammar (`{tech}`, `{Tech}`, `{first}` in `name`, `{{`/`}}`) and the substitution; `_roles/_loader.py` validates a template at load (required keys named in one message, `full_name`/`is_default` refused with their owner, placeholders, pool, model, capabilities) and takes `templates` as a top-level and `[selected]` section.
+    - A legacy `[dev]` fails with the exact message of the ADR (`LEGACY_DEV_TABLE_MESSAGE`).
+    - The slug pattern substitutes slugified values; the creation path also checks the earlier slug rule.
+    
+    Tests (new): `tests/unit/test_a_role_template_is_data_with_three_placeholders.py` (scanner, instantiation, parameter detection, 17 refusal rows, override shapes, legacy `[dev]`); the sync leg is `test_a_template_override_reaches_an_existing_developer_on_the_next_sync` in `tests/cli/test_a_roles_definition_follows_its_stored_base_cli.py`. Golden `tests/goldens/role_catalog_spec.json` rewritten by hand from the ADR, manifest and content store regenerated for 0.17.0 only.
+    
+    Reds seen then restored: legacy `[dev]` accepted (1), placeholder check off (4), `full_name` allowed (1), required-key message off (3), `[selected]` cannot drop templates (1), escape broken (1), pool does not wrap (1), template mission hard-coded (5).
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -148,6 +167,18 @@ Owner: python-dev. After ST1. Implements ADR-1151 decisions 1, 3 and 7 (the read
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-25T23:28:57Z] `python-dev` Elias Python:
+  - The base is chosen from stored facts; stored values win.
+    
+    - `attrs.template(item)` replaces `is_templated`; role attributes `template`, `job_title`, `mission`, `responsibilities`, `agreements`, `color`, `can_spawn`, `capabilities` are declared in `[items.role.attributes]` (`settable = false`).
+    - `_roles/_resolver.py`: `role_base_from_item` picks `template`, then `mission`, then the catalog and never looks the catalog up to decide the kind; `materialised_base` falls back to what the item stores; `resolve_role_with_base` merges the per-slug file over the base and then applies `StoredRoleValues` (name, default, model). A per-slug file alone is no base. This closes BUG-1075 and BUG-1065.
+    - Removed: `to_attributes`/`to_item_fields`/`_ITEM_FIELD_PROJECTION`, `dev_base_from_item`, `resolve_dev_role`, `_refresh_catalog_attributes` (nothing left for sync to write), and the skew exemption (`PERMITTED_ATTRIBUTE_SKEW`): `model` is now an operator setting on every role, so a hand edit ahead of the index refuses like any other field. `RETIRED_ROLE_KEYS` is `full_name`, `skills`, `is_dev`.
+    - `role_origin(slug, template=, item_defined=)`; a model outside the whitelist is refused at every write (`activate/add/dev add/update`, `update --set`, `sq import`); `model` joins `ROSTER_UPDATE_EXEMPT`.
+    - `sq role list --json` rows carry `description`; `sq list -t role --json` shows the stored one only. `show` prints an advisory when a role's base does not resolve.
+    
+    Tests (new): `tests/unit/test_a_role_resolves_from_one_base_chosen_by_its_stored_facts.py`, and in `tests/cli/test_a_roles_definition_follows_its_stored_base_cli.py` the tables for kind by layer, kind stored not looked up, stored default (item-defined, previous default archived, bundled, moved away), stored model (incl. `opuss`, `Sonnet`, a long name by import: refused, nothing written), JSON surfaces, origin. Reworked: the role/dev/skew/sync tests that asserted the removed mirror, helpers `add_role_from_toml`, `write_role_file`, `add_role_from_file` in `tests/_helpers.py`.
+    
+    Reds seen then restored: catalog consulted first (3), stored values dropped (22), stored default dropped (8), stored model dropped (11), description stored on catalog roles (2), origin ignoring the template (3).
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -177,6 +208,15 @@ Owner: python-dev. After ST2. Implements ADR-1151 decision 4 and the scaffold re
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-10-25T23:29:00Z] `python-dev` Elias Python:
+  - One creation path.
+    
+    - `RosterMixin.activate_role(slug, name=, model=, pronouns=, from_template=, tech=)`, `add_role(...)`, `_create_role` (blank-name check, `create`, pointer): `add_dev` and `resolve_dev_role` are gone. Reserved slug (`check_role_slug`), catalog-declared slug, duplicate check (a retired role names `status <live>`), name precedence (`--name`, a per-slug `full_name`, the `name` pattern at the count of roles storing that template), `--tech` required or refused by whether the template uses it.
+    - CLI: `sq role activate [<slug>] --from <template> --tech --name --model --pronouns`, `sq role add <slug> --file/--name/--job-title/--desc/--mission/--capabilities/--model/--pronouns` (flags win over the file; every missing field named in one message; `is_default` refused), `sq dev add` calls the same body and `--tech` is optional so the missing-tech refusal is identical. `sq dev list` re-keys on the capabilities `[templates.dev]` declares. `sq role activate <slug>` for a file-only slug names `sq role add <slug> --file ...`. `sq override scaffold --new` exits 1 pointing at `sq role add` (option hidden, `--can-spawn` removed, `scaffold_new_role` deleted). `add` joins `ROLE_GROUP_VERBS`.
+    
+    Tests (new): `tests/cli/test_roles_are_created_through_activate_add_and_dev_add_cli.py` (creation, pool position, name precedence, duplicates, alias equivalence on two fresh squads, dropped template, `role add` shapes, reserved slugs for `add` and `activate --from` including rows only an early check answers, pointers). Reworked: the slug-grammar, group-verb, blank-name, scaffold and roster fixtures.
+    
+    Reds seen then restored: reserved check removed from `add` (5) and from the template path (5), name precedence (2), pool position by any template (1), alias diverging (2), `--tech` accepted on a catalog role (1), missing fields unreported (3).
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 
@@ -202,6 +242,15 @@ Owner: python-dev. After ST2; beside ST3. Implements ADR-1151 decision 5.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-10-25T23:29:02Z] `python-dev` Elias Python:
+  - `update` per kind.
+    
+    - `RosterMixin.update_role` writes the name, pronouns, model and (for a role that defines itself) job title, description, mission, capabilities, colour, spawn authority or a `--file` delta in one transaction after every check has passed. The delta goes through `merge_definition_delta` (the override engine, `$(*self)` against the item's current definition); `slug`, `full_name`, `is_default` are refused naming `update --title` and `set-default`; `tech`/`template` are not options and not file keys.
+    - Catalog and template roles refuse the definition flags: exit 1, nothing written, the message names `.overrides/roles/<slug>.toml` and `sq override scaffold --role <slug>`, and for a template role `[templates.<name>]` of `.overrides/roles.toml`. A role whose catalog entry is gone becomes self-defining with `--job-title --desc --mission` together. A write to a field the per-slug file also sets happens and warns that the file wins. A blank `--model` clears. Import events setting definition fields are refused by the same gate.
+    
+    Tests (new): `tests/cli/test_role_update_per_kind_and_field_cli.py` (every flag on every kind, refusal text and untouched tree, `--file` deltas and refused keys, `--tech`/`--template`, shadowing warning, orphan made self-defining, import refusal).
+    
+    Reds seen then restored: catalog refusal off (7), template refusal off (7), identity keys allowed in a delta (3), blank model not clearing (2), warning dropped (1).
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 
@@ -228,6 +277,21 @@ Owner: python-dev. After ST3 and ST4. Implements ADR-1151 decisions 6 and 7 (the
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
+- [2026-10-26T01:18:15Z] `python-dev` Elias Python:
+  - Migration additions are in the unreleased 0.16 to 0.17 runner (`_migrations/_v0_16_to_v0_17.py`) and the pre-runner check in `run_pending_migrations`.
+    
+    - Developers: `template: dev` is stamped on every role storing `tech`; the stored `model` stays; the stored `description` goes.
+    - A catalog role (including a project `[[roles]]` entry) loses its `description` and any mirrored `model`. A role built from a template loses its `description`.
+    - A role with no `tech`, no catalog entry and a per-slug file that loads as a complete role takes the file's title (as `job_title`), description, mission, responsibilities, agreements, colour, spawn authority, capabilities and model into its item. The name and the file are untouched.
+    - A broken file and an orphan are listed in the run's report and left as they were.
+    - A `[dev]` table in `.overrides/roles.toml` stops `sq migrate up` before the index is reconciled: exit 1, the ADR message plus "Nothing was changed", no file touched, schema not stamped. MANUAL tells adopters to rename it first.
+    - Tests: `tests/cli/test_the_0_17_migration_moves_roles_onto_their_base_cli.py` (file-only role, developer, catalog role, project catalog entry, broken file, orphan, repair and second run, `[dev]`) plus the F1 rows. Reds seen then restored: template stamp, description clear, definition move, model drop, legacy refusal, report.
+    
+    How the extended steps reach a squad already stamped 0.17: they do not, by design. `run_pending_migrations` applies the migrations whose target schema is above the stamp, so at 0.17 nothing runs, and ADR-1151 rules out a schema bump. Proposal, no new code: the runner is idempotent, so the operator (or an adopter on a pre-release build) sets `schema_version = "0.16"` in `.squads.toml` and runs `sq migrate up`; only the 0.17 step runs and the run stamps 0.17 again. The extended steps are not in the released tool, so the run needs a build that has them (the dev tree, or the release once cut). A dedicated flag to re-run a step was considered and left out: it adds a surface for a situation that only exists before the release.
+    
+    This repo, simulated on a copy (nothing was run here): after the edit above, `uv run sq migrate up` (dev build, from the repo) changes 10 role files and nothing else apart from the index and the reflog. The 8 catalog roles lose `description`; the two developers (ROLE-9 python-dev, ROLE-426 typescript-dev) gain `template: dev` and lose `description` (their `model`, if any, is kept). Nothing else differs, and `.squads.toml` ends at 0.17 again. Expected diff matches the expectation except that the developers also lose their stored description, which the subtask asks for on template roles.
+- [2026-10-26T02:02:21Z] `python-dev` Elias Python:
+  - Update: the step is now safe to re-apply. A catalog role's stored model is dropped only when it equals the resolved one, a different one is kept and reported, and orphans keep theirs. Re-apply procedure unchanged: set schema_version = "0.16" in .squads.toml and run sq migrate up from a build with the extended runner. Simulated diff for this repo stays 10 role files.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
 
@@ -253,6 +317,14 @@ Owner: python-dev. After ST5. Implements ADR-1151 decision 8.
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
+- [2026-10-26T01:18:18Z] `python-dev` Elias Python:
+  - `role_base_resolves` (error) and `role_definition_shadowed` (warn) are squad-global members, always on, registered in `_validator_names.py` and implemented in `_services/_validators.py`; the pure part is `base_problems` in `_roles/_resolver.py`, which reads only the documents in hand.
+    
+    - `role_base_resolves`, for each live role: a catalog slug the catalog no longer declares; an undeclared template; a template that takes `tech` and none stored, or `tech` stored where the template takes none; a role defining itself without `job_title` or `description`; a role storing both `template` and `mission`. Each message ends with its remedy.
+    - `role_definition_shadowed`: a per-slug file setting a field the role stores in its item (title, description, mission, responsibilities, agreements, colour, spawn authority, capabilities); model is excluded because the stored model wins.
+    - One rule per condition: a file with no role under it stays at `override_loads` (the earlier reporting is that rule, with the wording "no role under it ... `sq role add <slug> --file`"); the stamp is owed only over a base the bundled document declares (`override_stamped`); a legacy `[dev]` is `override_loads` with the rename.
+    - `role show`'s advisory now says `sq check` reports why, under `role_base_resolves`. The `playbook_guide_role_live` remedy for a slug with no role now names `sq role add <slug>` or, for a catalog role, `sq role activate <slug>`.
+    - Tests: `tests/service/test_check_reports_a_role_whose_base_does_not_resolve.py`, one table per rule (7 broken states, 4 clean, shadow rows, layer-with-no-base rows, 7 stamp rows by base origin). The old corpora tests tolerate the orphan error (`check_is_clean_but_for_orphaned_roles`). Reds seen then restored: catalog-slug check, template tech check, shadow file read, layer-with-no-base.
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
 
@@ -275,6 +347,9 @@ Owner: python-dev. After ST6 (the finding that replaces the load-time check). Im
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
+- [2026-10-26T01:18:20Z] `python-dev` Elias Python:
+  - The playbook loader checks a guide's subject for grammar only (`is_valid_slug`, or a well-formed `*<capability>`), reads no role file and takes no catalog: `project_role_slugs` and the `catalog` and `project_catalog` parameters of `load_playbook`/`resolve_playbook` are gone. `playbook_guide_role_live` reports a guide whose role nobody holds, as it already did for the slug that no role item holds.
+    - Tests: `tests/integration/test_a_playbook_guide_may_name_a_role_that_exists_only_in_its_item.py` (an item-defined role named by a guide loads and preloads the skill in the pointer and `role show`, a typo'd slug loads and is reported once, a bad subject is refused, a `*capability` guide reaches an item-defined holder). The per-slug-file workarounds are removed from the playbook tests; the loader tests that expected "not in role catalog" now expect the grammar refusal or a loading playbook. Red with the old restriction restored (2 of the rows).
 <!-- sq:subtask:ST7:discussion:end -->
 <!-- sq:subtask:ST7:end -->
 
@@ -294,6 +369,10 @@ Owner: typescript-dev. After ST2 lands `description` on `sq role list --json`; s
 #### Discussion
 
 <!-- sq:subtask:ST8:discussion -->
+- [2026-10-26T02:35:25Z] `typescript-dev` Ada Typescript:
+  - Done. The @mention hover now reads name (full_name) and description from sq role list --json; the sq list -t role fetch is gone from itemPreviewManager. Changed: roleDirectory.ts (buildRoleDirectory takes SqRosterIdentity rows, skips rows without id/full_name, doc comment names the new source), types.ts + sqAdapter.ts (SqRosterIdentity and isSqRosterIdentity gain optional full_name/description), itemPreviewManager.ts. Tests in roleDirectory.test.ts: an it.each table over a catalog, a template and an item-defined role, an empty description and an omitted one; plus a canary feeding the sq list -t role row shape, which yields no entry and no description. markdown/previewDocument test fixtures moved to the roster row shape. Gates in clients/vscode: npm run lint clean, npm test 742 passed, tsc --noEmit and prettier clean.
+- [2026-10-26T02:45:00Z] `typescript-dev` Ada Typescript:
+  - REV-1157 findings F1-F3 fixed in clients/vscode: hidden-status roles excluded from the mention directory, role-row type and guard, canary and guard tests. lint clean, npm test 746 passed, role-list canary passes on the dev build.
 <!-- sq:subtask:ST8:discussion:end -->
 <!-- sq:subtask:ST8:end -->
 
@@ -316,6 +395,13 @@ Owner: tech-writer. Last, against the merged behaviour of ST1 to ST8. Implements
 #### Discussion
 
 <!-- sq:subtask:ST9:discussion -->
+- [2026-10-26T02:54:38Z] `tech-writer` Theo Writer:
+  - Docs updated against the behaviour I drove on scratch squads with the dev build: docs/roles.md (three bases, role templates, sq role add, update per kind, dev add as an alias), docs/overrides.md (a per-slug file is a layer, layer-with-no-base error, scaffold --new retired, [templates.<name>] and [selected] templates, stamp rule, eleven always-on checks), docs/stability.md (Role bases frozen bullet, catalog top-level keys, stored role keys, repair set full_name/skills/is_dev, CLI creation and update), docs/migration.md (0.17 section rewritten: [dev] rename first, what the step rewrites, re-apply on a squad a pre-release stamped 0.17), internals, adoption, faq, workflow, README.
+  - CHANGELOG 0.17.0: fixed the orphaned-guide remedy (catalog slug names sq role activate <slug>; otherwise sq role add / activate --from), the show trailer, the scaffold --role note, the migration model report (dropped when equal, kept and named when different); added the sq import refusal and the layer-with-no-base check. Doc guards and tests/meta pass (1004).
+  - Behaviour that looks off, not fixed (no source edits): (1) the remedy text `sq role add <slug> --file .overrides/roles/<slug>.toml` in sq check and in the activate refusal does not work from the project root or with -C: --file resolves against the process cwd, so the path must be squads/.overrides/...; (2) sq override scaffold --role <slug> for a slug with no role writes a file that sq check then reports at error; (3) the show trailer on catalog and template roles still sends the model to an override file although a stored model wins over it; (4) sq role --help epilog lists group verbs (catalog, activate, list) without add; (5) the migration report for a broken file quotes the old "role override for new slug ... missing required fields" wording. @manager
+- [2026-10-26T03:19:56Z] `tech-writer` Theo Writer:
+  - Docs aligned with the five fixes, each re-driven on a scratch squad: remedy path relative to cwd (overrides.md quotes and the workaround sentence), scaffold --role refusal for a slug with no role (overrides.md, CHANGELOG), the new show trailer (roles.md, CHANGELOG). The migration report and role --help epilog are not quoted anywhere.
+  - Narration sweep: overrides.md "is now stored" -> "is stored", "can no longer be activated" -> "cannot be activated", "a catalog role the catalog no longer declares" -> "whose slug the catalog does not declare"; _services/_maintenance.py docstring "the [dev] table the catalog document no longer has" -> "a [dev] table, which is not a key of the catalog document". No ticket ids or phase/round language found; migration runner and CHANGELOG history left as is. Guards pass, sq check clean. @manager
 <!-- sq:subtask:ST9:discussion:end -->
 <!-- sq:subtask:ST9:end -->
 <!-- sq:subtasks:end -->
@@ -327,4 +413,40 @@ Owner: tech-writer. Last, against the merged behaviour of ST1 to ST8. Implements
   - Drafted from ADR-1151 (Accepted; op-pierre: ships in 0.17). No open feature fits as parent (FEAT-986, ADR-984's feature, is Done in 0.16), so the task targets MILE-1051 with no parent.
   - TASK-1137 ST1/ST2 are carried by ST2 and ST4 by ST3, with their test tables and bug refs; TASK-1137 keeps ST3 alone, because init --roles is a different surface that ADR-1151 does not touch.
   - ST1 to ST7 are one python-dev pass in order (shared _roles/, _services/_roster.py, role CLI). ST5 hands the live-squad migrate command back to the operator rather than running it. Draft until dispatch.
+- [2026-10-25T23:29:15Z] `python-dev` Elias Python:
+  - ST1 to ST4 are in the working tree, uncommitted, for review. ST5 to ST7 are untouched. Gates: pyright, `ruff check .` and `ruff format --check .` clean; the unit, service, cli, integration, meta and tui directories pass (the slow scale tests are skipped by default). Generated agent files on a pinned roster with a developer: `.claude/` and CLAUDE.md are byte-identical before and after; only the role item files differ (the stored `description` is gone from every role, and the developer stores `template: dev` and no `model`).
+    
+    Where the ADR is not buildable as written, or I chose:
+    - The skew exemption in `_itemfile.py` is removed, not re-keyed on `template`: its only writer (`_refresh_catalog_attributes`) is gone and `model` is an operator setting on every role, so exempting it would mask a real hand edit.
+    - Nothing is left for sync to write on a role, so `_refresh_catalog_attributes` is deleted. That also drops the old healing of a blank stored name; a blank name now reads as unset in every resolver.
+    - Until ST5 stamps `template: dev`, a squad migrated from 0.16 has developers that store `tech` only and resolve as an unresolved catalog role (no capabilities). One migrate test now stamps the template by hand.
+    - Until ST7, a playbook guide naming a role that exists only in its item is refused at load; the tests that need one keep a per-slug file beside the role. The playbook-guide check still says `sq role activate <slug>` for a slug with no role.
+    - A layer with no base already reports at `override_loads` (error) from `_check_role_override_resolves`, and the stamp is no longer owed over a role that defines itself; the rest of ST6 is untouched.
+    - `dev add --tech` is optional at the CLI so the missing-tech refusal matches `activate --from dev` exactly; `add` becomes a reserved role slug.
+    - The VS Code hover reads `description` from `sq list -t role --json`, which is empty for catalog and template roles now: ST8 must land with this.
+    - docs/overrides.md loses only the `--new ... --can-spawn` example line (the documented-commands meta test); the rest is ST9.
+    
+    Gate for the second increment: ST5 must stamp `template: dev` and clear the stored `description` on catalog and template roles, or migrated squads lose their developers' capabilities.
+    
+    @reviewer ST1 to ST4 are ready for review.
+- [2026-10-26T00:04:21Z] `reviewer` Paul Reviewer:
+  - REV-1155 is open on ST1 to ST4: two medium findings (F1 legacy mirrored model survives migration, F2 activate on a live non-catalog role) and seven low ones. F1 needs a step in the ST5 runner. @python-dev
+- [2026-10-26T03:17:18Z] `python-dev` Elias Python:
+  - Five defects found while driving the documented commands:
+    - The remedy `sq role add <slug> --file .overrides/roles/<slug>.toml` fails from the project root and under `-C`.
+    - `sq override scaffold --role <slug>` for a slug with no role writes a file that `sq check` reports as a layer with no role.
+    - The `show` trailer on catalog and template roles points at an override file for the model, but a stored `--model` wins.
+    - The `sq role --help` epilog omits `add` from the group verbs.
+    - The migration report for a role file that does not load says "role override for new slug ... is missing required fields".
+- [2026-10-26T03:17:20Z] `python-dev` Elias Python:
+  - All five fixed, not committed. Each has a test that goes red when the change is reverted.
+    - The remedy path is now spelled relative to the process directory (`path_from_process_dir` in `_paths.py`), used by the activate refusal and the check finding. Tested from the project root, the squad dir and under `-C`.
+    - `override scaffold --role` refuses a slug with no role item and no catalog entry, naming `sq role add` and `sq role activate`; nothing is written.
+    - The show trailer now adds "To change its model: `sq role <slug> update --model …`".
+    - The epilog verb list is derived from `ROLE_GROUP_VERBS`.
+    - The unloadable-file message now reads "the file for 'x' is a layer with no base (no role or catalog entry holds it) and lacks the required fields: …".
+    - New row in the import-edge table: `_overrides -> _paths top`.
+    - Gates and `sq check` clean.
+- [2026-10-26T03:25:09Z] `manager` Catherine Manager:
+  - All nine subtasks are Done; REV-1155, REV-1156 and REV-1157 are Approved; full suite 15160 passed at the last commit. Left InReview for @op-pierre: the VS Code mention hover (now read from sq role list --json, archived roles excluded) wants a dev-host look, and running the 0.17 role step on this repo's squad (set schema_version = 0.16, then sq migrate up; simulated twice on a copy: 10 role files change) is his call.
 <!-- sq:discussion:end -->

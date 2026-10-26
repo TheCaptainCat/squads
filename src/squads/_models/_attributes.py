@@ -35,8 +35,17 @@ class AttributeKey:
     # agent roles
     MODEL = "model"
     IS_DEFAULT = "is_default"
-    # developers
+    # a role built from a template: the template's name and its parameter
+    TEMPLATE = "template"
     TECH = "tech"
+    # a role defined in its own item
+    JOB_TITLE = "job_title"
+    MISSION = "mission"
+    RESPONSIBILITIES = "responsibilities"
+    AGREEMENTS = "agreements"
+    COLOR = "color"
+    CAN_SPAWN = "can_spawn"
+    CAPABILITIES = "capabilities"
     # roles and skills
     ORIGIN = "origin"
     # roles and operators
@@ -131,9 +140,9 @@ def parse_invocable_choice(raw: str) -> bool | None:
     return INVOCABLE_CHOICES[raw]
 
 
-def is_templated(item: Item) -> bool:
-    """Whether *item* is a templated role: one created from a technology (``sq dev add``)."""
-    return tech(item) is not None
+def template(item: Item) -> str | None:
+    """The name of the role template *item* was built from, ``None`` for any other role."""
+    return string_attribute(item, AttributeKey.TEMPLATE)
 
 
 def origin(item: Item) -> str | None:
@@ -153,3 +162,31 @@ def tech(item: Item) -> str | None:
 
 def model(item: Item) -> str | None:
     return string_attribute(item, AttributeKey.MODEL)
+
+
+def job_title(item: Item) -> str | None:
+    return string_attribute(item, AttributeKey.JOB_TITLE)
+
+
+def mission(item: Item) -> str | None:
+    return string_attribute(item, AttributeKey.MISSION)
+
+
+def responsibilities(item: Item) -> list[str] | None:
+    return list_attribute(item, AttributeKey.RESPONSIBILITIES)
+
+
+def agreements(item: Item) -> list[str] | None:
+    return list_attribute(item, AttributeKey.AGREEMENTS)
+
+
+def color(item: Item) -> str | None:
+    return string_attribute(item, AttributeKey.COLOR)
+
+
+def can_spawn(item: Item) -> bool | None:
+    return flag_attribute(item, AttributeKey.CAN_SPAWN)
+
+
+def capabilities(item: Item) -> list[str] | None:
+    return list_attribute(item, AttributeKey.CAPABILITIES)

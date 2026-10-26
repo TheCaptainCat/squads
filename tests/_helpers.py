@@ -397,11 +397,20 @@ async def plant_attribute(svc: Any, item_id: str, key: str, value: Any) -> None:
 
 
 def dev_role(tech: str, *, name: str | None = None, seq: int = 0, model: str | None = None) -> Any:
-    """A developer role built from the bundled catalog's ``[dev]`` table."""
-    from squads._roles._catalog import dev_role_from_pool
-    from squads._roles._loader import load_role_catalog
+    """A developer role built from the bundled catalog's ``dev`` template."""
+    from dataclasses import replace
 
-    return dev_role_from_pool(tech, load_role_catalog().dev, name=name, seq=seq, model=model)
+    from squads._roles._catalog import instantiate_template
+    from squads._roles._loader import load_role_catalog
+    from squads._roles._templates import proposed_name, proposed_slug
+
+    template = load_role_catalog().templates["dev"]
+    slug = proposed_slug(template, tech)
+    chosen = name if name is not None else proposed_name(template, tech, seq)
+    assert slug is not None
+    assert chosen is not None
+    role = instantiate_template(template, tech=tech, slug=slug, full_name=chosen)
+    return replace(role, model=model or role.model)
 
 
 def role_of(slug: str, *capabilities: str) -> Any:
@@ -432,3 +441,59 @@ def hold_lock(lock_path: Path, seconds: float) -> subprocess.Popen[str]:
     assert proc.stdout is not None
     assert proc.stdout.readline().strip() == "held"
     return proc
+
+
+async def add_role_from_toml(svc: Any, slug: str, body: str) -> Any:
+    """Create the role *slug* that defines itself from *body*, a role definition in the
+    per-slug file grammar (comments allowed)."""
+    import tomllib
+
+    return await svc.add_role(slug, definition=tomllib.loads(body))
+
+
+def write_role_file(squad_dir: Path, slug: str) -> Path:
+    """Write a complete role definition (the per-slug file grammar) beside the squad, outside
+    ``.overrides/``, for ``sq role add --file``, and return its path."""
+    path = squad_dir.parent / f"{slug}.role.toml"
+    path.write_text(
+        'full_name = "Sam Reliability"\ntitle = "SRE"\n'
+        'description = "Keeps the lights on."\nmission = "Own incident response and rollback."\n',
+        encoding="utf-8",
+    )
+    return path
+
+
+async def add_role_from_file(svc: Any, slug: str) -> Any:
+    """Create the role *slug* that defines itself from the file :func:`write_role_file` wrote."""
+    import tomllib
+
+    path = svc.paths.squad_dir.parent / f"{slug}.role.toml"
+    return await svc.add_role(slug, definition=tomllib.loads(path.read_text(encoding="utf-8")))
+
+
+def orphaned_role_slugs(findings: list[dict[str, Any]]) -> set[str]:
+    """The slugs of the roles a ``sq check --json`` payload reports at ``role_base_resolves``."""
+    import re
+
+    return {
+        match.group(1)
+        for f in findings
+        if f["rule"] == "role_base_resolves"
+        and (match := re.search(r"role '([^']+)'", f["message"]))
+    }
+
+
+async def check_is_clean_but_for_orphaned_roles(invoke: Any, expected_orphans: Any = ()) -> None:
+    """Assert ``sq check`` reports no error other than the roles nothing backs, and that exactly
+    *expected_orphans* are those roles: a role of an old corpus that no catalog entry or role
+    file defines is reported after migration, never guessed into a definition, and any other
+    role without a base is a defect."""
+    import json
+
+    result = await invoke(["check", "--json"])
+    findings = json.loads(result.output)
+    unexpected = [
+        f for f in findings if f["level"] == "error" and f["rule"] != "role_base_resolves"
+    ]
+    assert not unexpected, unexpected
+    assert orphaned_role_slugs(findings) == set(expected_orphans)

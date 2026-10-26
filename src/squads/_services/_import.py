@@ -77,7 +77,7 @@ from squads._services._results import (
 )
 from squads._services._subentities import SubentitiesMixin
 from squads._services._validators import ValidatorEngine
-from squads._workflow._models import Field, WorkflowSpec
+from squads._workflow._models import ROSTER_ROLE, Field, WorkflowSpec
 
 #: Exception types the per-event dispatch treats as a collectible validation problem rather
 #: than a bug: every check a ``_X_model``/pre-pass helper raises is a ``SquadsError`` (or one
@@ -400,6 +400,12 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             fields=resolved_fields,
             now=ev.at,
         )
+        if item.type == ROSTER_ROLE:
+            raise SquadsError(
+                f"an import does not create the role {item.slug!r}: a role needs a base. Create "
+                "it with `sq role add <slug> …`, `sq role activate <slug>` or "
+                "`sq role activate --from <template>`"
+            )
         if event.handle:
             handles.items[event.handle] = item.id
 

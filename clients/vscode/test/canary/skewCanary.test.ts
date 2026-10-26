@@ -43,6 +43,7 @@ import {
   isSqGraphNode,
   isSqListItem,
   isSqRoleCatalogEntry,
+  isSqRoleListRow,
   isSqRosterIdentity,
   isSqStatusCatalogEntry,
   isSqSubEntityKindCatalogEntry,
@@ -953,6 +954,7 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
           color: 'positive',
           live: true,
           blocked: false,
+          deferred: false,
         });
         // Required here on purpose: the canary describes what the current `sq` emits, while the
         // client guard tolerates an older `sq` that omits the key.
@@ -980,6 +982,7 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
         'full_name',
         'pronouns',
         'title',
+        'description',
         'is_default',
         'capabilities',
         'status',
@@ -995,9 +998,35 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
         expect(roles.length).toBeGreaterThan(0);
         for (const row of roles) {
           expect(Object.keys(row).sort()).toEqual([...ROLE_LIST_KEYS].sort());
-          expect(isSqRosterIdentity(row)).toBe(true);
+          expect(isSqRoleListRow(row)).toBe(true);
         }
         expect(roles.find((row) => row.slug === 'manager')?.pronouns).toBe('she/her');
+        // The hover reads the resolved description: non-empty on a catalog, a template and an
+        // item-defined role.
+        runSq(['dev', 'add', '--tech', 'python']);
+        runSq([
+          'role',
+          'add',
+          'release-captain',
+          '--name',
+          'Rhea Captain',
+          '--job-title',
+          'Release captain',
+          '--desc',
+          'Cuts the release.',
+          '--mission',
+          'Cut the release.',
+        ]);
+        const described = JSON.parse(runSq(['role', 'list', '--json'])) as Record<
+          string,
+          unknown
+        >[];
+        expect(described.map((row) => row.slug)).toEqual(
+          expect.arrayContaining(['manager', 'python-dev', 'release-captain']),
+        );
+        for (const row of described) {
+          expect(row.description).toEqual(expect.stringMatching(/\S/));
+        }
 
         const operators = JSON.parse(runSq(['operator', 'list', '--json'])) as Record<
           string,

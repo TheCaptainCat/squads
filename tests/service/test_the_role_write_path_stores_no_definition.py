@@ -29,13 +29,13 @@ pytestmark = pytest.mark.anyio
 #: Every ``extra`` key a role's definition used to be mirrored under.
 _DEFINITION_KEYS = (
     "full_name",
-    "title",
+    "job_title",
     "mission",
     "responsibilities",
     "agreements",
     "color",
     "can_spawn",
-    "description",
+    "capabilities",
 )
 
 
@@ -47,7 +47,7 @@ async def _drive_the_write_path(svc):
     """A fresh squad taken through every verb that creates or reconciles a role."""
     await svc.activate_role("architect")
     await svc.activate_role("qa", name="Grace Tester")
-    await svc.add_dev("rust")
+    await svc.activate_role(None, from_template="dev", tech="rust")
     await svc.sync()
 
 
@@ -57,9 +57,10 @@ async def test_no_role_file_stores_any_definition_key(svc):
     paths = await _role_paths(svc)
     assert len(paths) >= 4  # sanity: an empty roster would make every assertion below vacuous
     for path in paths:
-        extra = read_frontmatter(path=path).get("extra", {})
+        front = read_frontmatter(path=path)
         for key in _DEFINITION_KEYS:
-            assert key not in extra, f"{path.name} stores {key!r}"
+            assert key not in front, f"{path.name} stores {key!r}"
+        assert not front.get("description"), f"{path.name} stores a description"
 
 
 async def test_no_role_file_stores_its_rendered_definition(svc):
@@ -92,9 +93,8 @@ async def test_the_definition_is_still_answerable_for_every_role(svc):
 
 async def test_what_a_role_does_still_store(svc):
     """The residue, stated positively so a future removal has to argue with a test rather than
-    with an absence: the dispatch slug for every role, and the developer identity — including
-    a ``model`` a bundled role does not carry, because ``sq dev add --model`` is an operator
-    setting with no catalog answer."""
+    with an absence: the dispatch slug for every role, the template and its parameter for a
+    template role, and a ``model`` only where ``--model`` set one."""
     await _drive_the_write_path(svc)
 
     bundled = await svc.roster_item("role", "architect")
@@ -106,8 +106,10 @@ async def test_what_a_role_does_still_store(svc):
     assert dev is not None
     assert dev.slug == "rust-dev"
     assert "is_dev" not in dev.attributes
-    assert dev.attribute(X.TECH) == "rust"
-    assert dev.attribute(X.MODEL)  # a dev's model is stored; a bundled role's is not
+    assert dev.attributes == {X.TEMPLATE: "dev", X.TECH: "rust", X.ORIGIN: "system"}
+
+    chosen = await svc.activate_role("reviewer", model="haiku")
+    assert chosen.attributes == {X.MODEL: "haiku", X.ORIGIN: "system"}
 
 
 async def test_a_repair_then_a_sync_restores_nothing(svc):

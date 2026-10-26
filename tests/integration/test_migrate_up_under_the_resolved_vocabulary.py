@@ -16,7 +16,7 @@ from typing import Any
 
 import pytest
 
-from _helpers import catalog_of, make_service
+from _helpers import make_service
 from squads import __version__, _aio
 from squads._models._config import SquadsConfig
 from squads._models._schema import SCHEMA_VERSION
@@ -181,7 +181,7 @@ def _service_for(paths: SquadPaths) -> Service:
     return make_service(
         paths,
         spec=spec,
-        playbook=resolve_playbook(spec, paths.squad_dir, catalog_of(paths.squad_dir)),
+        playbook=resolve_playbook(spec, paths.squad_dir),
     )
 
 

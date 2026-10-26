@@ -1,61 +1,102 @@
 import { describe, expect, it } from 'vitest';
 
+import { NO_PRONOUNS_CONTEXT } from '../src/domain/pronouns';
 import { buildRoleDirectory, NO_ROLE_DIRECTORY } from '../src/domain/roleDirectory';
-import type { SqListItem } from '../src/types';
+import { buildRoleCatalogMap, buildStatusRoleMap } from '../src/domain/statusRole';
+import type { SqRoleListRow } from '../src/types';
 
-function makeRole(overrides: Partial<SqListItem> = {}): SqListItem {
+function makeRole(overrides: Partial<SqRoleListRow> = {}): SqRoleListRow {
   return {
     id: 'ROLE-1',
-    sequence_id: 1,
-    type: 'role',
-    title: 'Catherine Manager',
     slug: 'manager',
+    full_name: 'Catherine Manager',
+    pronouns: null,
     status: 'Active',
     description: 'Delegates work to the right specialists.',
-    parent: null,
-    author: 'manager',
-    assignee: null,
-    priority: null,
-    severity: null,
-    labels: [],
-    refs: [],
-    path: 'agents/roles/ROLE-000001-manager.md',
-    created_at: '2026-01-01T00:00:00Z',
-    updated_at: '2026-01-01T00:00:00Z',
     ...overrides,
   };
 }
 
 describe('buildRoleDirectory', () => {
-  it('resolves a known slug to its role item id and a hover text with name, slug, and mission', () => {
-    const dir = buildRoleDirectory([makeRole()]);
-    const mention = dir.get('manager');
-    expect(mention?.id).toBe('ROLE-1');
-    expect(mention?.hoverText).toBe(
-      'Catherine Manager (manager) — Delegates work to the right specialists.',
-    );
+  it.each([
+    {
+      kind: 'a catalog role',
+      row: makeRole(),
+      id: 'ROLE-1',
+      hover: 'Catherine Manager (manager) — Delegates work to the right specialists.',
+    },
+    {
+      kind: 'a template role',
+      row: makeRole({
+        id: 'ROLE-9',
+        slug: 'python-dev',
+        full_name: 'Elias Python',
+        description: 'Writes and reviews Python code.',
+      }),
+      id: 'ROLE-9',
+      hover: 'Elias Python (python-dev) — Writes and reviews Python code.',
+    },
+    {
+      kind: 'an item-defined role',
+      row: makeRole({
+        id: 'ROLE-12',
+        slug: 'release-captain',
+        full_name: 'Rhea Captain',
+        description: 'Cuts the release.',
+      }),
+      id: 'ROLE-12',
+      hover: 'Rhea Captain (release-captain) — Cuts the release.',
+    },
+    {
+      kind: 'a role with an empty description',
+      row: makeRole({ description: '' }),
+      id: 'ROLE-1',
+      hover: 'Catherine Manager (manager)',
+    },
+    {
+      kind: 'a role whose row omits the description',
+      row: { id: 'ROLE-1', slug: 'manager', full_name: 'Catherine Manager', status: 'Active' },
+      id: 'ROLE-1',
+      hover: 'Catherine Manager (manager)',
+    },
+  ])('resolves $kind to its id and hover text', ({ row, id, hover }) => {
+    const mention = buildRoleDirectory([row]).get(row.slug);
+    expect(mention?.id).toBe(id);
+    expect(mention?.hoverText).toBe(hover);
   });
 
-  it('omits the mission suffix when a role has no description', () => {
-    const dir = buildRoleDirectory([makeRole({ description: '' })]);
-    expect(dir.get('manager')?.hoverText).toBe('Catherine Manager (manager)');
+  it('leaves out a role whose status resolves to a hidden role', () => {
+    const vocabulary = {
+      statusRoles: buildStatusRoleMap([
+        { status: 'Active', role: 'active', badge: null },
+        { status: 'Archived', role: 'retired', badge: null },
+      ]),
+      roles: buildRoleCatalogMap([
+        { role: 'active', settled: false, hidden: false, color: 'positive', live: true },
+        { role: 'retired', settled: true, hidden: true, color: 'muted', live: false },
+      ]),
+    };
+    const dir = buildRoleDirectory(
+      [makeRole(), makeRole({ id: 'ROLE-7', slug: 'old-role', status: 'Archived' })],
+      NO_PRONOUNS_CONTEXT,
+      vocabulary,
+    );
+    expect([...dir.keys()]).toEqual(['manager']);
+  });
+
+  it('keeps every role when the status vocabulary is unavailable', () => {
+    const dir = buildRoleDirectory([makeRole({ slug: 'old-role', status: 'Archived' })]);
+    expect(dir.has('old-role')).toBe(true);
   });
 
   it('returns an empty directory for an empty role list', () => {
     expect(buildRoleDirectory([]).size).toBe(0);
   });
 
-  it('skips a non-role row rather than asserting against it', () => {
-    const dir = buildRoleDirectory([
-      makeRole({ type: 'operator', slug: 'op-pierre', title: 'Pierre Chat' }),
-    ]);
-    expect(dir.size).toBe(0);
-  });
-
   it('carries one entry per role, keyed by slug', () => {
     const dir = buildRoleDirectory([
       makeRole(),
-      makeRole({ id: 'ROLE-3', slug: 'tech-lead', title: 'Olivia Lead' }),
+      makeRole({ id: 'ROLE-3', slug: 'tech-lead', full_name: 'Olivia Lead' }),
     ]);
     expect(dir.size).toBe(2);
     expect(dir.get('tech-lead')?.id).toBe('ROLE-3');

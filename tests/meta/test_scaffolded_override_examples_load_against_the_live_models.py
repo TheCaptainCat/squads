@@ -17,13 +17,11 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import catalog_of, role_of
+from _helpers import role_of
 from squads._interactions import _role_guidance as role_guidance
 from squads._interactions._loader import load_playbook
 from squads._language import WorkingLanguage
 from squads._overrides import _service as overrides
-from squads._roles._catalog import get_catalog
-from squads._roles._resolver import resolve_role
 from squads._workflow import bundled_spec
 from squads._workflow._loader import load_workflow_spec
 
@@ -156,7 +154,7 @@ def test_the_playbook_scaffolds_worked_example_loads(tmp_path) -> None:
     assert "[types.task]" in activated, "the activator no longer finds the worked example"
     _write_override(tmp_path, "playbook.toml", activated)
 
-    playbook = load_playbook(get_catalog(), spec=load_workflow_spec(), squad_dir=tmp_path)
+    playbook = load_playbook(spec=load_workflow_spec(), squad_dir=tmp_path)
 
     slugs = [guide.slug for guide in playbook.types["task"].roles]
     assert "architect" in slugs
@@ -166,28 +164,3 @@ def test_the_playbook_scaffolds_worked_example_loads(tmp_path) -> None:
     # must actually be the one the engine derives, or the scaffold teaches a no-op.
     assert "[types.bug]" in activated, "the create-lane example is missing from the scaffold"
     assert "bug" in role_guidance.allowed_create_types(role_of("devops"), bundled_spec(), playbook)
-
-
-@pytest.mark.parametrize("can_spawn", [False, True])
-def test_the_new_role_scaffold_resolves_with_every_advanced_field_activated(
-    tmp_path, can_spawn: bool
-) -> None:
-    """The new-role scaffold has no ruled example block — its advanced fields are individually
-    commented — so activate those instead. Both ``can_spawn`` emissions are covered because
-    ``--can-spawn`` swaps one line for another."""
-    body = overrides._NEW_ROLE_SCAFFOLD_TPL.format(
-        slug="security-expert",
-        can_spawn_line=overrides._CAN_SPAWN_ACTIVE if can_spawn else overrides._CAN_SPAWN_COMMENTED,
-    )
-    activated = "\n".join(
-        line[2:] if line.startswith("# ") and "=" in line else line for line in body.splitlines()
-    )
-    _write_override(tmp_path, "roles/security-expert.toml", activated + "\n")
-
-    role = resolve_role("security-expert", tmp_path, catalog=catalog_of(tmp_path))
-
-    assert role.slug == "security-expert"
-    assert role.model == "sonnet"
-    assert role.color == "teal"
-    assert role.responsibilities and role.agreements
-    assert role.can_spawn is can_spawn

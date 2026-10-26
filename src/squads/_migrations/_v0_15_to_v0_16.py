@@ -45,7 +45,8 @@ from squads._models._attributes import AttributeKey
 from squads._models._index import SquadsDB
 from squads._models._item import Item, slug_from_stem
 from squads._models._participants import roster_slug_breaches
-from squads._roles._resolver import resolve_role_with_base
+from squads._roles._models import DEV_TEMPLATE_NAME
+from squads._roles._resolver import resolve_role_with_base, role_defined_by_file
 from squads._sections import (
     find_markers,
     has_section,
@@ -643,7 +644,7 @@ def _origin_of(ctx: MigrationContext, flat: dict[str, Any], file_slug: str) -> s
     slug = str(flat.get("slug") or file_slug)
     if item_type == ROSTER_SKILL:
         return skill_origin(slug, ctx.spec)
-    return role_origin(slug, templated=bool(flat.get(AttributeKey.TECH)))
+    return role_origin(slug, template=DEV_TEMPLATE_NAME if flat.get(AttributeKey.TECH) else None)
 
 
 def _skill_text(text: str, item_type: object) -> str:
@@ -813,16 +814,18 @@ def _held_capabilities(
     ctx: MigrationContext, front: dict[str, Any], developer: frozenset[str]
 ) -> tuple[str, ...] | None:
     """The capabilities the role whose flat frontmatter is *front* holds, or ``None`` when no
-    definition is left to say. A templated role holds the ``[dev]`` table's."""
+    definition is left to say. A templated role holds the ``dev`` template's."""
     slug = cast("str", front["slug"])
     if front.get("tech"):
         return tuple(developer)
     try:
-        return resolve_role_with_base(
-            slug, ctx.paths.squad_dir, base=None, catalog=ctx.catalog
-        ).capabilities
-    except RoleNotFoundError:
-        return None
+        try:
+            return resolve_role_with_base(
+                slug, ctx.paths.squad_dir, base=None, catalog=ctx.catalog
+            ).capabilities
+        except RoleNotFoundError:
+            defined = role_defined_by_file(slug, ctx.paths.squad_dir)
+            return None if defined is None else defined.capabilities
     except SquadsError:
         return ()
 
@@ -835,7 +838,7 @@ async def _plan_developer_capability(ctx: MigrationContext, db: SquadsDB) -> Pla
     A role file is read as the flatten step will leave it, since this plans before that writer.
     """
     live = ctx.spec.live_statuses(ROSTER_ROLE)
-    developer = frozenset(ctx.catalog().dev.capabilities)
+    developer = ctx.catalog().developer_capabilities()
     default_kind = ctx.spec.default_ref_kind()
     reported: list[str] = []
     for it in sorted(db.items.values(), key=lambda i: i.sequence_id):

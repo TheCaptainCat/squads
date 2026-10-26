@@ -22,6 +22,7 @@ import type {
   SqMemoryListRow,
   SqOmission,
   SqRoleCatalogEntry,
+  SqRoleListRow,
   SqRosterIdentity,
   SqSearchHit,
   SqSearchHitRegion,
@@ -421,6 +422,22 @@ export function isSqRosterIdentity(value: unknown): value is SqRosterIdentity {
   return (
     typeof entry.slug === 'string' &&
     (entry.pronouns === undefined || entry.pronouns === null || typeof entry.pronouns === 'string')
+  );
+}
+
+/** Shape guard for one `sq role list --json` row: the roster identity plus the `id`, `full_name`
+ * and `status` the mention directory needs and an optional string `description`. Exported so the
+ * skew canary reuses it. */
+export function isSqRoleListRow(value: unknown): value is SqRoleListRow {
+  if (!isSqRosterIdentity(value)) {
+    return false;
+  }
+  const entry = value as unknown as Record<string, unknown>;
+  return (
+    typeof entry.id === 'string' &&
+    typeof entry.full_name === 'string' &&
+    typeof entry.status === 'string' &&
+    (entry.description === undefined || typeof entry.description === 'string')
   );
 }
 
@@ -850,19 +867,13 @@ export function getRolesCatalog(
   );
 }
 
-/** `sq role list --json` — the roles' resolved pronouns, joined by slug. */
+/** `sq role list --json` — the roles' resolved pronouns and one-line descriptions, joined by slug. */
 export function getRoleIdentities(
   runner: ProcessRunner,
   invocation: SqInvocation,
   workspaceRoot: string,
-): Promise<SqOutcome<SqRosterIdentity[]>> {
-  return runSqJson(
-    runner,
-    invocation,
-    workspaceRoot,
-    ['role', 'list', '--json'],
-    isSqRosterIdentity,
-  );
+): Promise<SqOutcome<SqRoleListRow[]>> {
+  return runSqJson(runner, invocation, workspaceRoot, ['role', 'list', '--json'], isSqRoleListRow);
 }
 
 /** `sq operator list --json` — the operators' resolved pronouns, joined by slug. */

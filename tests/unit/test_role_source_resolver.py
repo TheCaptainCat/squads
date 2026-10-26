@@ -40,7 +40,7 @@ async def test_resolve_role_source_delegates_to_the_documented_seam(svc) -> None
 
 
 async def test_a_developer_role_resolves_the_activated_definition(svc) -> None:
-    item = await svc.add_dev("python", name="Test Dev")
+    item = await svc.activate_role(None, from_template="dev", tech="python", name="Test Dev")
 
     resolved = views._resolve_role_source(
         item, svc.paths.squad_dir, catalog=catalog_of(svc.paths.squad_dir)

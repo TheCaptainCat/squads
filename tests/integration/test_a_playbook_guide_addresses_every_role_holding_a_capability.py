@@ -16,7 +16,6 @@ import pytest
 from squads import __version__
 from squads._errors import SquadsError
 from squads._interactions._loader import load_playbook
-from squads._roles._catalog import get_catalog
 from squads._services._service import open_service
 from squads._workflow import bundled_spec
 
@@ -81,11 +80,11 @@ async def _arrange(cell: _Cell, project, svc) -> list[str]:
                     project.squad_dir, f"roles/{slug}.toml", f'capabilities = ["{capability}"]\n'
                 )
     if capability == "dev":
-        # The bundled guide: templated developers hold the capability the [dev] table declares.
+        # The bundled guide: templated developers hold the capability the dev template declares.
         roles = {}
         if cell.live != -1:
             for tech in ("rust", "go"):
-                roles[f"{tech}-dev"] = await svc.add_dev(tech)
+                roles[f"{tech}-dev"] = await svc.activate_role(None, from_template="dev", tech=tech)
     holders = list(roles)
     live_holders = holders[: max(cell.live, 0)] if cell.live >= 0 else []
     for slug in holders[len(live_holders) :]:
@@ -140,7 +139,7 @@ async def test_a_malformed_capability_subject_is_refused_naming_the_file(
 ) -> None:
     _write(project.squad_dir, "playbook.toml", _guide(subject, False))
     with pytest.raises(SquadsError) as excinfo:
-        load_playbook(get_catalog(), squad_dir=project.squad_dir, spec=bundled_spec())
+        load_playbook(squad_dir=project.squad_dir, spec=bundled_spec())
     assert "playbook.toml" in str(excinfo.value).replace("\\", "/")
     assert subject in str(excinfo.value)
 
@@ -153,7 +152,7 @@ async def test_the_bundled_dev_guides_are_silent_in_a_squad_with_no_developer(
     assert "names no live role" not in " ".join(checked.output.split())
 
 
-@pytest.mark.parametrize("subject", ["*Dev", "nobody"])
+@pytest.mark.parametrize("subject", ["*Dev", "Nobody"])
 async def test_a_refused_playbook_names_its_file_once(subject: str, project, invoke) -> None:
     _write(project.squad_dir, "playbook.toml", _guide(subject, False))
     checked = await invoke(["check"])

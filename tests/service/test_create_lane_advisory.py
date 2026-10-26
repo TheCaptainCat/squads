@@ -15,7 +15,7 @@ pytestmark = pytest.mark.anyio
 async def test_an_out_of_lane_create_returns_an_advisory_warning_naming_actor_and_owner(
     svc, frozen_time
 ) -> None:
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     actor.set_actor("python-dev")
     res = await svc.create("feature", "Oops", author="python-dev")
     assert res.lane_warning is not None
@@ -51,7 +51,7 @@ async def test_a_dev_creating_a_bug_still_gets_the_advisory_warning_not_a_hard_b
 ) -> None:
     """The dev lane is empty (bug is owned by qa) — dev-authored bugs proceed with a warning,
     not a hard --author qa requirement."""
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     actor.set_actor("python-dev")
     res = await svc.create("bug", "Found a defect", author="python-dev")
     assert res.lane_warning is not None
@@ -70,7 +70,7 @@ async def test_qa_creating_a_bug_gets_no_warning(svc, frozen_time) -> None:
 async def test_the_reflog_delta_for_an_out_of_lane_create_carries_the_lane_warning_tag(
     svc, frozen_time
 ) -> None:
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     actor.set_actor("python-dev")
     res = await svc.create("feature", "Bad feature", author="python-dev")
     lines = await read_lines(reflog_path(svc.paths.squad_dir))

@@ -88,7 +88,10 @@ async def _build(shape, tmp_path, monkeypatch, frozen_time, invoke):
     kind = SHAPES[shape][0]
     if shape.startswith("declared"):
         _override(paths.squad_dir, "roles/security-analyst.toml", _ROLE_FILE)
-        assert (await invoke(["role", "activate", "security-analyst"])).exit_code == 0
+        role_file = paths.squad_dir / ".overrides" / "roles" / "security-analyst.toml"
+        added = await invoke(["role", "add", "security-analyst", "--file", str(role_file)])
+        assert added.exit_code == 0
+        role_file.unlink()
     if kind == "operator":
         assert (await invoke(["operator", "add", "Alice Tester"])).exit_code == 0
     if shape in DROP_VIEW:

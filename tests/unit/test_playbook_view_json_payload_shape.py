@@ -80,7 +80,7 @@ async def test_a_declared_but_unlaned_types_json_is_the_no_lane_case_not_a_raise
     squad_dir = svc.paths.squad_dir
     _write_renamed_guide_override(squad_dir)
     merged_spec = load_workflow_spec(squad_dir=squad_dir)
-    merged_playbook = resolve_playbook(merged_spec, squad_dir, catalog_of(squad_dir))
+    merged_playbook = resolve_playbook(merged_spec, squad_dir)
     project_svc = make_service(svc.paths, spec=merged_spec, playbook=merged_playbook)
     doc_item = (await create_item(project_svc, "doc", "D")).item
 

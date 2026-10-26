@@ -13,7 +13,7 @@ the bundled default via the shared, loader-agnostic engine (``squads._specmerge`
 the **raw parsed-TOML mapping** layer, before any model is built: splat-refs resolve against the
 bundled mapping, the override deep-merges over it leaf-by-leaf, ``[selected]`` shrinks ``roles``
 and ``bundles`` to their surviving key set, and the document's top-level key space is closed to
-``{roles, bundles, dev, defaults}`` (plus the engine's own reserved ``selected``).
+``{roles, bundles, templates, defaults}`` (plus the engine's own reserved ``selected``).
 
 **One shape adaptation, done here and nowhere else:** the bundled document declares ``roles`` as
 a TOML array of tables (``[[roles]]``) — a plain list, with no key of its own for the merge
@@ -33,13 +33,13 @@ resolution already runs. This module resolves only the first two layers; the per
 layered on top by :mod:`squads._roles._resolver`, which threads *squad_dir* into every role
 resolution and so picks up a catalog-document change with no call-site changes of its own.
 
-``[bundles]`` and ``[dev]`` are ordinary dict-shaped tables and need no reshaping: a bundle name
-or a dev-pool field the override declares replaces its bundled counterpart field-wise, and a new
-bundle name is simply added. ``dev`` carries no ``[selected]`` entry — it is one object, not a
-keyed collection, so there is nothing in it to shrink (mirrors the playbook document's own
-empty-``[selected]``-menu treatment of a field that isn't a keyed collection).
+``[bundles]`` and ``[templates]`` are ordinary dict-shaped tables and need no reshaping: a bundle
+or template name the override declares replaces its bundled counterpart field-wise, and a new
+name is simply added. Both are keyed collections, so ``[selected]`` can drop a name from either.
+A legacy ``[dev]`` table is refused with the rename to ``[templates.dev]``.
 """
 
+import re
 from pathlib import Path
 from typing import Any, cast
 
@@ -48,11 +48,12 @@ from squads._pronouns import pronouns_problem
 from squads._roles._models import (
     CAPABILITY_NAME_PATTERN,
     DefaultsSpec,
-    DevPoolSpec,
     RoleCatalogSpec,
     RoleSpec,
+    RoleTemplateSpec,
     malformed_capability_names,
 )
+from squads._roles._templates import NAME_PLACEHOLDER, placeholder_problems, placeholders
 from squads._specload import (
     OverrideFiles,
     OverrideMessages,
@@ -70,11 +71,16 @@ ROLES_OVERRIDE_FILENAME = ".overrides/roles.toml"
 
 #: The role catalog document's closed top-level key space — enforced at the raw-mapping layer
 #: by the merge engine before any model is built.
-ROLES_TOP_LEVEL_KEYS: frozenset[str] = frozenset({"roles", "bundles", "dev", "defaults"})
+ROLES_TOP_LEVEL_KEYS: frozenset[str] = frozenset({"roles", "bundles", "templates", "defaults"})
 
-#: The catalog document's deselectable ``[selected]`` section names. ``dev`` is deliberately
-#: absent — see the module docstring.
-ROLES_SELECTED_SECTIONS: frozenset[str] = frozenset({"roles", "bundles"})
+#: The catalog document's deselectable ``[selected]`` section names.
+ROLES_SELECTED_SECTIONS: frozenset[str] = frozenset({"roles", "bundles", "templates"})
+
+#: The refusal of a ``[dev]`` table, which an earlier catalog document declared.
+LEGACY_DEV_TABLE_MESSAGE = (
+    f"{ROLES_OVERRIDE_FILENAME}: [dev] is not a key of the role catalog; rename it to "
+    "[templates.dev] (its name_pool, model, color and capabilities keys are unchanged)"
+)
 
 
 def _role_entry_slug(entry: Any, *, origin: str, index: int) -> str:
@@ -129,9 +135,12 @@ def _unkeyed_from_merge(raw: RawMapping) -> RawMapping:
 
 
 def _check_override_shape(raw: RawMapping, origin: str) -> None:
+    if "dev" in raw:
+        raise SquadsError(LEGACY_DEV_TABLE_MESSAGE)
     for key, kind, expected in (
         ("roles", (list, dict), "an array or a table"),
         ("bundles", dict, "a table"),
+        ("templates", dict, "a table"),
     ):
         if key in raw and not isinstance(raw[key], kind):
             raise SquadsError(
@@ -259,23 +268,18 @@ def _build_catalog(
         name: list(slugs) for name, slugs in raw.get("bundles", {}).items()
     }
 
-    # --- dev pool ---
-    dev_raw: dict[str, Any] = raw.get("dev", {})
-    try:
-        # model_validate so extra="forbid" fires on unknown keys.
-        dev = DevPoolSpec.model_validate(dev_raw)
-    except Exception as exc:
-        raise SquadsError(
-            f"{_catalog_error_prefix(origin)} [dev]: {describe_spec_error(exc, DevPoolSpec)}"
-        ) from exc
+    templates = {
+        name: _parse_template(name, tdata, origin)
+        for name, tdata in raw.get("templates", {}).items()
+    }
 
     defaults = _parse_defaults(raw.get("defaults", {}), origin)
 
     # --- validation ---
-    _validate(roles, bundles, dev, origin=origin, bundled_slugs=bundled_slugs)
+    _validate(roles, bundles, templates, origin=origin, bundled_slugs=bundled_slugs)
 
     try:
-        spec = RoleCatalogSpec(roles=roles, bundles=bundles, dev=dev, defaults=defaults)
+        spec = RoleCatalogSpec(roles=roles, bundles=bundles, templates=templates, defaults=defaults)
     except Exception as exc:
         raise SquadsError(f"{_catalog_error_prefix(origin)}: {exc}") from exc
 
@@ -325,6 +329,38 @@ def _parse_role(data: dict[str, Any], idx: int, origin: str | None) -> RoleSpec:
         raise SquadsError(
             f"{where}Invalid role entry {ctx}: {describe_spec_error(exc, RoleSpec)}"
         ) from exc
+
+
+def _refused_template_key_reason(key: str) -> str | None:
+    """Why *key* is not a template key, naming what owns the value; ``None`` for any other."""
+    if key == "full_name":
+        return "the name is chosen at activation: `--name`, or the template's `name` pattern"
+    if key == "is_default":
+        return "the default designation belongs to a role item: `sq role <slug> set-default`"
+    return None
+
+
+_TEMPLATE_REQUIRED_KEYS: tuple[str, ...] = ("title", "description", "mission")
+
+
+def _parse_template(name: str, data: Any, origin: str | None) -> RoleTemplateSpec:
+    where = f"{origin}: " if origin is not None else ""
+    ctx = f"{where}Invalid role template [templates.{name}]"
+    if not isinstance(data, dict):
+        raise SquadsError(f"{ctx}: must be a table")
+    raw = cast("RawMapping", data)
+    refuse_pronouns_key(raw, ctx)
+    for key in raw:
+        reason = _refused_template_key_reason(key)
+        if reason is not None:
+            raise SquadsError(f"{ctx}: {key!r} is not a template key — {reason}")
+    missing = [k for k in _TEMPLATE_REQUIRED_KEYS if k not in raw]
+    if missing:
+        raise SquadsError(f"{ctx}: missing required key(s): {', '.join(missing)}")
+    try:
+        return RoleTemplateSpec.model_validate(raw)
+    except Exception as exc:
+        raise SquadsError(f"{ctx}: {describe_spec_error(exc, RoleTemplateSpec)}") from exc
 
 
 def _check_slugs(roles: list[RoleSpec], errors: list[str]) -> set[str]:
@@ -395,30 +431,49 @@ def _check_bundles(
             errors.append(msg)
 
 
-def _check_dev(dev: DevPoolSpec, errors: list[str]) -> None:
-    """Dev pool well-formed."""
-    if not dev.name_pool:
-        errors.append("dev.name_pool is empty")
-    elif len(dev.name_pool) != len(set(dev.name_pool)):
-        dupes = sorted({n for n in dev.name_pool if dev.name_pool.count(n) > 1})
-        errors.append(f"dev.name_pool has duplicates: {dupes}")
-    if not dev.model.strip():
-        errors.append("dev.model is empty")
-    if not dev.color.strip():
-        errors.append("dev.color is empty")
-    if dev.model not in VALID_MODELS:
-        errors.append(f"dev.model {dev.model!r} not in allowed set {sorted(VALID_MODELS)}")
-
-
-def _check_capabilities(roles: list[RoleSpec], dev: DevPoolSpec, errors: list[str]) -> None:
-    """Capability names well-formed, for every role and for the dev pool."""
-    errors.extend(
-        f"{owner}: capabilities entry {name!r} must match {CAPABILITY_NAME_PATTERN}"
-        for owner, names in (
-            *((f"role {r.slug!r}", r.capabilities) for r in roles),
-            ("dev", dev.capabilities),
+def _check_templates(templates: dict[str, RoleTemplateSpec], errors: list[str]) -> None:
+    """Every template well-formed: name, required text, placeholders, pool, model, capabilities."""
+    for name, t in templates.items():
+        owner = f"template {name!r}"
+        if re.fullmatch(CAPABILITY_NAME_PATTERN, name) is None:
+            errors.append(f"{owner}: the name must match {CAPABILITY_NAME_PATTERN}")
+        errors.extend(f"{owner}: {problem}" for problem in placeholder_problems(t))
+        errors.extend(
+            f"{owner}: required field {field!r} is empty"
+            for field in ("title", "description", "mission")
+            if not getattr(t, field).strip()
         )
-        for name in malformed_capability_names(names)
+        for field in ("slug", "name", "model", "color"):
+            value: str | None = getattr(t, field)
+            if value is not None and not value.strip():
+                errors.append(f"{owner}: {field!r} is blank")
+        if t.model is not None and t.model not in VALID_MODELS:
+            errors.append(f"{owner}: model {t.model!r} not in allowed set {sorted(VALID_MODELS)}")
+        _check_template_pool(owner, t, errors)
+        errors.extend(
+            f"{owner}: capabilities entry {cap!r} must match {CAPABILITY_NAME_PATTERN}"
+            for cap in malformed_capability_names(t.capabilities)
+        )
+
+
+def _check_template_pool(owner: str, t: RoleTemplateSpec, errors: list[str]) -> None:
+    """The ``name_pool`` is non-empty where ``name`` draws from it, and holds no duplicate or
+    blank entry."""
+    if t.name is not None and NAME_PLACEHOLDER in placeholders(t.name) and not t.name_pool:
+        errors.append(f"{owner}: `name` uses {{first}} but name_pool is empty")
+    if len(t.name_pool) != len(set(t.name_pool)):
+        dupes = sorted({n for n in t.name_pool if t.name_pool.count(n) > 1})
+        errors.append(f"{owner}: name_pool has duplicates: {dupes}")
+    if any(not n.strip() for n in t.name_pool):
+        errors.append(f"{owner}: name_pool has a blank entry")
+
+
+def _check_capabilities(roles: list[RoleSpec], errors: list[str]) -> None:
+    """Capability names well-formed, for every role."""
+    errors.extend(
+        f"role {r.slug!r}: capabilities entry {name!r} must match {CAPABILITY_NAME_PATTERN}"
+        for r in roles
+        for name in malformed_capability_names(r.capabilities)
     )
 
 
@@ -434,7 +489,7 @@ def _check_models(roles: list[RoleSpec], errors: list[str]) -> None:
 def _validate(
     roles: list[RoleSpec],
     bundles: dict[str, list[str]],
-    dev: DevPoolSpec,
+    templates: dict[str, RoleTemplateSpec],
     *,
     origin: str | None = None,
     bundled_slugs: frozenset[str] | None = None,
@@ -443,9 +498,9 @@ def _validate(
     all_slugs = _check_slugs(roles, errors)
     _check_defaults(roles, errors)
     _check_bundles(bundles, all_slugs, errors, bundled_slugs=bundled_slugs)
-    _check_dev(dev, errors)
+    _check_templates(templates, errors)
     _check_models(roles, errors)
-    _check_capabilities(roles, dev, errors)
+    _check_capabilities(roles, errors)
     if errors:
         raise SquadsError(
             f"{_catalog_error_prefix(origin)}:\n" + "\n".join(f"  - {e}" for e in errors)

@@ -111,7 +111,7 @@ class TestDiffOverride:
     async def test_diff_shows_the_customisation_against_the_bundled_document(self, project) -> None:
         path = scaffold_roles_catalog(project.squad_dir)
         path.write_text(
-            f'# squads:override-base:{__version__}\n[dev]\ncolor = "magenta"\n',
+            f'# squads:override-base:{__version__}\n[templates.dev]\ncolor = "magenta"\n',
             encoding="utf-8",
         )
         result = diff_override(project.squad_dir, "roles", "roles")
@@ -182,11 +182,11 @@ class TestCheckDrift:
         assert issues[0][0] == "error"
 
     async def test_check_reports_an_error_for_an_unstamped_dev_shadow(self, project) -> None:
-        """`[dev]` is one object, not a keyed collection — declaring it at all redeclares the
-        bundled dev pool, so it shadows even with no slug or bundle name in common."""
+        """Declaring a template the bundled catalog declares redeclares it, so it shadows even
+        with no slug or bundle name in common."""
         override_path = project.squad_dir / ROLES_OVERRIDE_FILENAME
         override_path.parent.mkdir(parents=True, exist_ok=True)
-        override_path.write_text('[dev]\nmodel = "opus"\n', encoding="utf-8")
+        override_path.write_text('[templates.dev]\nmodel = "opus"\n', encoding="utf-8")
 
         issues = check_override_issues(project.squad_dir, catalog=catalog_of(project.squad_dir))
         assert len(issues) == 1
@@ -195,7 +195,7 @@ class TestCheckDrift:
     async def test_check_reports_nothing_for_an_add_only_override_with_no_stamp(
         self, project
     ) -> None:
-        """A brand-new, non-bundled bundle name — no shadowed slug, bundle, or `[dev]` — has
+        """A brand-new, non-bundled bundle name — no shadowed slug, bundle or template — has
         nothing to have drifted from yet."""
         override_path = project.squad_dir / ROLES_OVERRIDE_FILENAME
         override_path.parent.mkdir(parents=True, exist_ok=True)

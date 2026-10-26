@@ -18,7 +18,6 @@ from squads._interactions._playbook import (
     get_playbook_spec,
     spec_to_item_playbook,
 )
-from squads._roles._catalog import get_catalog
 from squads._workflow import bundled_spec
 
 GOLDEN_PATH = Path(__file__).parents[1] / "goldens" / "playbook_spec.json"
@@ -42,7 +41,7 @@ class TestFailsClosedOnUnknownKeys:
             }
         }
         with pytest.raises(Exception, match=r"(?i)(extra|commandz|invalid|unknown|forbidden)"):
-            _build_spec(raw, {r.slug for r in get_catalog().roles}, bundled_spec())
+            _build_spec(raw, bundled_spec())
 
     def test_unknown_key_in_a_role_guide_entry_raises(self) -> None:
         raw: dict[str, Any] = {
@@ -65,7 +64,7 @@ class TestFailsClosedOnUnknownKeys:
             }
         }
         with pytest.raises(Exception, match=r"(?i)(extra|entr|invalid|unknown|forbidden)"):
-            _build_spec(raw, {r.slug for r in get_catalog().roles}, bundled_spec())
+            _build_spec(raw, bundled_spec())
 
 
 class TestSpecIsAPinnedArtifact:

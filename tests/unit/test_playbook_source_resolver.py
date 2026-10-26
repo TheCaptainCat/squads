@@ -73,7 +73,7 @@ async def test_a_declared_type_with_no_lane_resolves_an_empty_lane_not_a_raise(s
     squad_dir = svc.paths.squad_dir
     _write_renamed_guide_override(squad_dir)
     merged_spec = load_workflow_spec(squad_dir=squad_dir)
-    merged_playbook = resolve_playbook(merged_spec, squad_dir, catalog_of(squad_dir))
+    merged_playbook = resolve_playbook(merged_spec, squad_dir)
     project_svc = make_service(svc.paths, spec=merged_spec, playbook=merged_playbook)
     doc_item = (await create_item(project_svc, "doc", "D")).item
 

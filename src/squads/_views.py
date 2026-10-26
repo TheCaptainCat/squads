@@ -120,7 +120,7 @@ class PlaybookSource:
     roster: list[RoleView]
     playbook: PlaybookSpec
     developer_slugs: tuple[str, ...] = ()
-    """The slugs of the live roles holding a capability the resolved catalog's ``[dev]`` table
+    """The slugs of the live roles holding a capability the resolved catalog's ``dev`` template
     declares — what a generated example prefers as an assignee."""
 
 

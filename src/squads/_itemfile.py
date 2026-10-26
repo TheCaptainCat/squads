@@ -31,42 +31,8 @@ from typing import Any
 
 from squads import _aio
 from squads._errors import SquadsError
-from squads._models import _attributes as attrs
 from squads._models._item import INVENTED_WHEN_ABSENT, Item
-from squads._roles._catalog import RoleDef
 from squads._sections import join_frontmatter, replace_frontmatter, split_frontmatter
-from squads._workflow._models import ROSTER_ROLE
-
-#: The durability model's permitted skew, as a property of the *field* rather than of whichever
-#: writer happens to persist it: the attribute keys a role item's own catalog merge writes
-#: (:meth:`RoleDef.attribute_keys`). Derived from the role tables so a field later added to
-#: them is exempt automatically.
-#:
-#: The set is small: a role's definition resolves from the catalog on every read, so what is
-#: left to forgive is the residue the merge still writes. The exemption is kept for a squad
-#: whose index already lags on these keys, where comparing them would refuse the very sync that
-#: converges them. Narrowing it is the safe direction: a key that leaves it is compared like
-#: any other field, which can only produce a repair-clearable refusal, never a masked skew.
-PERMITTED_ATTRIBUTE_SKEW: frozenset[str] = frozenset(RoleDef.attribute_keys())
-
-
-def _exempt_attribute_keys(item: Item) -> frozenset[str]:
-    """The subset of :data:`PERMITTED_ATTRIBUTE_SKEW` that applies to *item*.
-
-    - A developer role gets none of it: no writer persists a developer's attributes outside a
-      transaction, so there is no permanent lag to tolerate, and its ``model`` is an operator
-      setting compared like any other field.
-    - Any other role gets the whole set. A role is identified by ``item.type == ROSTER_ROLE``,
-      not by whether its slug resolves in the bundled catalog: this module has no ``squad_dir``
-      to replicate that resolution, and under-exempting only yields a spurious, repair-clearable
-      refusal while over-exempting could mask a real skew.
-    - Anything else gets none of it.
-    """
-    if attrs.is_templated(item):
-        return frozenset()
-    if item.type == ROSTER_ROLE:
-        return PERMITTED_ATTRIBUTE_SKEW
-    return frozenset()
 
 
 def read_frontmatter(
@@ -87,16 +53,6 @@ def read_frontmatter(
 
 def _label(path: Path | None) -> str | None:
     return str(path) if path is not None else None
-
-
-def _without_permitted_attribute_skew(data: dict[str, Any], item: Item) -> dict[str, Any]:
-    """*data* (a ``to_frontmatter_dict()`` output) without *item*'s own
-    :func:`_exempt_attribute_keys` — the mechanics behind ``frontmatter_skew``'s unconditional
-    exclusion. Returns *data* itself when none of the exempt keys is present."""
-    exempt = _exempt_attribute_keys(item)
-    if not (data.keys() & exempt):
-        return data
-    return {k: v for k, v in data.items() if k not in exempt}
 
 
 @dataclass(frozen=True, slots=True)
@@ -148,18 +104,12 @@ def frontmatter_skew(text: str, base: Item, *, default_kind: str) -> list[SkewKe
     In the normal case the two sides are identical — the last successful mutation wrote both
     from one item — so an empty return is the expected result.
 
-    Whichever of :data:`PERMITTED_ATTRIBUTE_SKEW` applies to *base* (see
-    :func:`_exempt_attribute_keys`) is excluded from every comparison for every caller: those
-    keys are written to the file by a role's catalog merge, so an index loaded before that
-    merge landed lags them even in the healthy case.
     """
     disk_data, _ = split_frontmatter(text, source=base.path)
     disk_dict = Item.from_frontmatter(
         disk_data, path=base.path, default_kind=default_kind
     ).to_frontmatter_dict()
     base_dict = base.to_frontmatter_dict()
-    disk_dict = _without_permitted_attribute_skew(disk_dict, base)
-    base_dict = _without_permitted_attribute_skew(base_dict, base)
     keys = (disk_dict.keys() | base_dict.keys()) - _invented_timestamps(disk_data)
     diverging = sorted(k for k in keys if disk_dict.get(k) != base_dict.get(k))
     return [_classify_skew(k, disk_data, base_dict) for k in diverging]
@@ -201,11 +151,7 @@ def ensure_no_skew(text: str, base: Item, *, default_kind: str) -> None:
 
     Writing over it now — substituting the whole frontmatter block from an index-derived
     item — would silently discard whatever survived on disk since the index last saw it.
-    Every single-mutation write seam calls this before every rewrite; the two roster-regen
-    writers that persist an ADR-named never-mirrored-into-the-index value get the same
-    exemption everyone else does, since :func:`frontmatter_skew` excludes
-    `PERMITTED_ATTRIBUTE_SKEW` unconditionally rather than by caller opt-in — that permitted,
-    permanent skew is never mistaken for a real one at *any* seam. Batch paths call
+    Every single-mutation write seam calls this before every rewrite. Batch paths call
     :func:`frontmatter_skew` directly instead, since their response is not a plain refusal.
 
     *default_kind* is threaded straight through to :func:`frontmatter_skew` — a **required**

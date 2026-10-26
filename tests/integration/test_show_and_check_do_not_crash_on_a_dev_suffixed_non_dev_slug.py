@@ -4,14 +4,16 @@ wholly custom ``data-dev`` role, unrelated to ``sq dev add``) used to crash both
 documented exit-1/exit-3 contract. Both now resolve it through the ordinary path, exactly as
 they did before the dev-role-override change that introduced the regression.
 
-The gating-logic shape table (including the two ``is_dev_slug`` boundary slugs a CLI invocation
-can never actually reach) lives at tests/unit/test_dev_base_gating_reads_the_stored_fact_first.py;
-this file is the CLI-level confirmation for the realistic shapes.
+The base-selection table lives at
+tests/unit/test_a_role_resolves_from_one_base_chosen_by_its_stored_facts.py; this file is the
+CLI-level confirmation for the realistic shapes.
 """
 
 import json
 
 import pytest
+
+from _helpers import add_role_from_toml
 
 pytestmark = pytest.mark.anyio
 
@@ -19,14 +21,13 @@ pytestmark = pytest.mark.anyio
 async def test_an_activated_non_dev_dev_suffixed_role_shows_and_checks_without_a_traceback(
     project, svc, invoke
 ) -> None:
-    (project.squad_dir / ".overrides" / "roles").mkdir(parents=True, exist_ok=True)
-    (project.squad_dir / ".overrides" / "roles" / "data-dev.toml").write_text(
+    await add_role_from_toml(
+        svc,
+        "data-dev",
         'full_name = "Dana Analyst"\ntitle = "data steward"\n'
         'description = "Curates the project\'s datasets."\n'
         'mission = "Keep the data catalog accurate."\n',
-        encoding="utf-8",
     )
-    await svc.activate_role("data-dev")
 
     shown = await invoke(["role", "data-dev", "show"])
     shown_json = await invoke(["role", "data-dev", "show", "--json"])
@@ -49,7 +50,7 @@ async def test_a_genuine_dev_role_still_shows_and_checks_cleanly_alongside_the_f
 ) -> None:
     """Regression guard: the fix narrows the dev-base gate, so a real developer role must keep
     getting one."""
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
 
     shown = await invoke(["role", "python-dev", "show"])
     checked = await invoke(["check"])

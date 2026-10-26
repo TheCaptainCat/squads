@@ -1,6 +1,7 @@
 """The roster projection a backend compiles from: one row per role shape, each field of the
 ``RoleView`` ``Service.roster()`` returns, and the same for ``Service.operators()``."""
 
+import tomllib
 from dataclasses import asdict
 from pathlib import Path
 
@@ -69,7 +70,7 @@ async def test_a_per_slug_override_that_renames_a_bundled_role_reaches_the_proje
 
 
 async def test_a_templated_developer_projects_the_generated_definition(svc):
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     assert await _fields(svc, "python-dev") == {
         "slug": "python-dev",
         "full_name": "Elias Python",
@@ -87,9 +88,11 @@ async def test_a_templated_developer_projects_the_generated_definition(svc):
     }
 
 
-async def test_a_project_role_declared_by_a_role_file_projects_that_file(project, svc):
-    _role_file(project, "guardian", _CUSTOM)
-    await svc.activate_role("guardian")
+async def test_an_item_defined_role_projects_what_it_stores(project, svc):
+    await svc.add_role(
+        "guardian",
+        definition=tomllib.loads(_CUSTOM),
+    )
     assert await _fields(svc, "guardian") == {
         "slug": "guardian",
         "full_name": "Gwen Guardian",
@@ -103,9 +106,16 @@ async def test_a_project_role_declared_by_a_role_file_projects_that_file(project
 
 
 async def test_a_role_whose_backing_definition_is_gone_projects_what_the_item_stored(project, svc):
-    path = _role_file(project, "guardian", _CUSTOM)
-    await svc.activate_role("guardian")
-    path.unlink()
+    item = (
+        await svc.create(
+            "role",
+            "Gwen Guardian",
+            description="Guard the gate.",
+            slug="guardian",
+            author="guardian",
+        )
+    ).item
+    assert item.attribute("mission") is None
     assert await _fields(svc, "guardian") == {
         "slug": "guardian",
         "full_name": "Gwen Guardian",

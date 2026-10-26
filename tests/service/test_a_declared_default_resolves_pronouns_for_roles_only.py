@@ -5,6 +5,7 @@ table crosses each roster shape with each declaration state and reads the resolv
 item's frontmatter and the roster ``--json``."""
 
 import json
+import tomllib
 from typing import Any
 
 import pytest
@@ -35,7 +36,7 @@ SHAPES: list[tuple[str, str, str]] = [
     ("bundled", "role", "architect"),
     ("templated-developer", "role", "python-dev"),
     ("declared-developer", "role", "rustacean"),
-    ("project-role", "role", "chef"),
+    ("item-defined-role", "role", "chef"),
     ("operator", "operator", "op-alex"),
 ]
 # (state, default declared, own value, removed again after a sync)
@@ -72,7 +73,9 @@ async def _create(svc: Service, kind: str, slug: str, own: str | None) -> Any:
     if kind == "operator":
         return await svc.add_operator("Alex Rivera", pronouns=own)
     if slug == "python-dev":
-        return await svc.add_dev("python", pronouns=own)
+        return await svc.activate_role(None, from_template="dev", tech="python", pronouns=own)
+    if slug in _ROLE_FILES:
+        return await svc.add_role(slug, definition=tomllib.loads(_ROLE_FILES[slug]), pronouns=own)
     return await svc.activate_role(slug, pronouns=own)
 
 

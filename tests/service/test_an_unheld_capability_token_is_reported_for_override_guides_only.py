@@ -2,6 +2,7 @@
 When the guide is one the adopter declared, `sq check` and `sq sync` report it once, naming the
 capability, the type and both remedies; the same token in the bundled playbook stays silent."""
 
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -72,7 +73,9 @@ async def test_an_unheld_token_in_an_override_command_line_is_reported(project) 
 async def test_a_held_token_in_an_override_guide_is_silent(project) -> None:
     _declare_guide_mentioning_audit(project.squad_dir)
     _write(project.squad_dir, "roles/auditor.toml", _ROLE)
-    await service.open_service(client_cwd=project.squad_dir).activate_role("auditor")
+    await service.open_service(client_cwd=project.squad_dir).add_role(
+        "auditor", definition=tomllib.loads(_ROLE)
+    )
     assert await _reports(project.squad_dir) == ([], [])
     assert "ask `@auditor` to look" in await _skill(project.squad_dir)
 
@@ -83,7 +86,7 @@ async def test_a_token_whose_only_holder_is_retired_is_reported_and_renders_unhe
     _declare_guide_mentioning_audit(project.squad_dir)
     _write(project.squad_dir, "roles/auditor.toml", _ROLE)
     svc = service.open_service(client_cwd=project.squad_dir)
-    auditor = await svc.activate_role("auditor")
+    auditor = await svc.add_role("auditor", definition=tomllib.loads(_ROLE))
     await svc.set_status(auditor.id, "Archived")
     synced, checked = await _reports(project.squad_dir)
     assert len(checked) == 1
@@ -94,7 +97,7 @@ async def test_an_unheld_token_in_the_bundled_playbook_is_silent_and_renders_unh
     project,
 ) -> None:
     svc = service.open_service(client_cwd=project.squad_dir)
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     skipped = await svc.sync()
     issues = [i.message for i in await svc.check()]
     assert not [m for m in [*skipped, *issues] if "no live role holds the capability" in m]

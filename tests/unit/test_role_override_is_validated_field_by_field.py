@@ -18,10 +18,10 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import catalog_of
+from _helpers import catalog_of, dev_role
 from squads._errors import SquadsError
 from squads._roles._models import RoleSpec
-from squads._roles._resolver import resolve_dev_role, resolve_role
+from squads._roles._resolver import resolve_role, resolve_role_with_base, role_defined_by_file
 
 
 def _place(tmp_path: Path, slug: str, body: str) -> None:
@@ -143,15 +143,15 @@ def test_the_append_idiom_spreads_the_bundled_list_instead_of_writing_the_token(
     assert not any("$(" in r for r in role.responsibilities)
 
 
-def test_the_append_idiom_also_works_for_a_generated_dev_role(tmp_path) -> None:
-    """A dev role's base is generated rather than catalogued, so its bundled list is only a
-    splat target if the resolver composes against the generated definition."""
-    base = resolve_dev_role("python", squad_dir=None, catalog=catalog_of(None)).responsibilities
+def test_the_append_idiom_also_works_for_a_template_role(tmp_path) -> None:
+    """A template role's base is instantiated rather than catalogued, so its list is only a
+    splat target if the resolver composes against the instantiated definition."""
+    base = dev_role("python")
     _place(tmp_path, "python-dev", 'responsibilities = ["$(*self)", "Own the migrations"]\n')
 
-    role = resolve_dev_role("python", squad_dir=tmp_path, catalog=catalog_of(tmp_path))
+    role = resolve_role_with_base("python-dev", tmp_path, base=base, catalog=catalog_of(tmp_path))
 
-    assert role.responsibilities == (*base, "Own the migrations")
+    assert role.responsibilities == (*base.responsibilities, "Own the migrations")
 
 
 def test_a_splat_ref_on_a_brand_new_slug_dangles_rather_than_appending_nothing(
@@ -167,7 +167,7 @@ def test_a_splat_ref_on_a_brand_new_slug_dangles_rather_than_appending_nothing(
     )
 
     with pytest.raises(SquadsError) as excinfo:
-        resolve_role("security-expert", tmp_path, catalog=catalog_of(tmp_path))
+        role_defined_by_file("security-expert", tmp_path)
     assert "self" in str(excinfo.value)
 
 

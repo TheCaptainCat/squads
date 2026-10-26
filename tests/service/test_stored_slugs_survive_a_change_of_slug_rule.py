@@ -29,7 +29,7 @@ def earlier_rule():
     for target in (
         "squads._util.slugify",
         "squads._services._roster.slugify",
-        "squads._roles._catalog.slugify",
+        "squads._roles._templates.slugify",
         "squads._memory._store.slugify",
     ):
         patch.setattr(target, _util.legacy_slugify)
@@ -42,7 +42,7 @@ def _errors(issues):
 
 
 async def test_a_dev_role_keeps_its_stored_slug_and_pointer_through_sync(svc, earlier_rule):
-    item = await svc.add_dev("Élixir")
+    item = await svc.activate_role(None, from_template="dev", tech="Élixir")
     assert item.slug == "lixir-dev"
     pointer = svc.paths.root / ".claude" / "agents" / "lixir-dev.md"
     assert pointer.is_file()
@@ -102,7 +102,7 @@ async def _add(svc, verb: str, name: str):
         return await svc.add_operator(name)
     if verb == "skill":
         return await svc.add_skill(name)
-    return await svc.add_dev(name)
+    return await svc.activate_role(None, from_template="dev", tech=name)
 
 
 @pytest.mark.parametrize(("verb", "first", "again", "stored"), _REFUSED)
@@ -130,7 +130,7 @@ async def test_creation_reads_the_override_under_the_slug_the_role_is_stored_wit
     roles_dir.mkdir(parents=True)
     (roles_dir / "node-js-dev.toml").write_text('full_name = "Custom Nodeperson"\n')
 
-    item = await svc.add_dev("Node.js")
+    item = await svc.activate_role(None, from_template="dev", tech="Node.js")
 
     assert item.slug == "node-js-dev"
     assert item.title == "Custom Nodeperson"

@@ -6,6 +6,7 @@ list.
 """
 
 import json
+import tomllib
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -46,14 +47,20 @@ def _write_role_file(squad_dir: Path, slug: str, capabilities: list[str]) -> Pat
 
 async def _build_roster(project, svc) -> None:
     await svc.activate_role("architect")
-    await svc.add_dev("rust")
-    _write_role_file(project.squad_dir, "auditor", ["review-work"])
-    await svc.activate_role("auditor")
-    _write_role_file(project.squad_dir, "inspector", ["review-work", "triage"])
-    await svc.activate_role("inspector")
-    gone = _write_role_file(project.squad_dir, "ghost", ["vanishing"])
-    await svc.activate_role("ghost")
-    gone.unlink()
+    await svc.activate_role(None, from_template="dev", tech="rust")
+    for slug, capabilities in (
+        ("auditor", ["review-work"]),
+        ("inspector", ["review-work", "triage"]),
+    ):
+        await svc.add_role(
+            slug,
+            definition=tomllib.loads(
+                _NEW_ROLE.format(name=slug.title(), slug=slug)
+                + f"capabilities = {capabilities!r}\n".replace("'", '"')
+            ),
+        )
+    # A role no catalog entry, template or stored definition backs.
+    await svc.create("role", "Ghost", description="A declared role.", slug="ghost", author="ghost")
     invalidate_squad_dir(project.squad_dir)
 
 
@@ -154,11 +161,12 @@ async def test_the_catalog_json_outside_any_squad_carries_capabilities_for_a_bun
 async def test_a_role_with_no_definition_left_answers_an_empty_list_in_the_show_fallback(
     project, svc, invoke
 ) -> None:
-    """The fallback branch of the show payload (no catalog entry, no dev base, no file)."""
+    """A role no catalog entry, template or stored definition backs materialises from what the
+    item stores, which holds no capability."""
     await _build_roster(project, svc)
     payload = await _show(invoke, "ghost")
     assert isinstance(payload, dict)
-    assert payload["title"] == ""  # the fallback branch, not the resolved one
+    assert payload["title"] == "Ghost"  # the item's own name stands in for the job title
     assert payload["capabilities"] == []
 
 
@@ -181,11 +189,8 @@ async def test_the_text_outputs_show_capabilities(
 
     card = await invoke(["role", slug, "show"])
     assert card.exit_code == 0, card.output
-    if shape == "definition-gone":
-        assert "capabilities:" not in card.output
-    else:
-        line = next(ln for ln in card.output.splitlines() if "capabilities:" in ln)
-        assert line.strip("│ ").strip() == f"capabilities: {', '.join(expected) or '—'}"
+    line = next(ln for ln in card.output.splitlines() if "capabilities:" in ln)
+    assert line.strip("│ ").strip() == f"capabilities: {', '.join(expected) or '—'}"
 
 
 async def test_the_catalog_lists_the_document_value_and_the_roster_surfaces_the_resolved_one(

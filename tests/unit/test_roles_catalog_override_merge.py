@@ -49,19 +49,19 @@ def test_no_override_file_is_identical_even_when_squad_dir_exists_but_empty(
     assert merged.model_dump(mode="json") == bundled.model_dump(mode="json")
 
 
-# --------------------------------------------------------------------------- [dev] and [bundles]
+# ------------------------------------------------------------------ [templates] and [bundles]
 # merge field-wise, no reshaping needed — both are already dict-shaped in raw TOML
 
 
-def test_dev_pool_field_merges_over_the_bundled_default_leaving_siblings_untouched(
+def test_a_template_field_merges_over_the_bundled_default_leaving_siblings_untouched(
     tmp_path: Path,
 ) -> None:
-    _write_roles_override(tmp_path, '[dev]\nmodel = "opus"\n')
+    _write_roles_override(tmp_path, '[templates.dev]\nmodel = "opus"\n')
     catalog = load_role_catalog(tmp_path)
     bundled = load_role_catalog()
-    assert catalog.dev.model == "opus"
-    assert catalog.dev.color == bundled.dev.color
-    assert catalog.dev.name_pool == bundled.dev.name_pool
+    assert catalog.templates["dev"].model == "opus"
+    assert catalog.templates["dev"].color == bundled.templates["dev"].color
+    assert catalog.templates["dev"].name_pool == bundled.templates["dev"].name_pool
 
 
 def test_a_new_bundle_name_is_added_leaving_bundled_bundles_untouched(tmp_path: Path) -> None:
@@ -287,7 +287,7 @@ def test_a_genuinely_invalid_bundled_catalog_still_says_bundled(
     bad_raw = {
         "roles": [],
         "bundles": {"all": ["ghost"]},
-        "dev": {"name_pool": ["A"], "model": "sonnet", "color": "blue"},
+        "templates": {},
     }
     monkeypatch.setattr(_loader, "_bundled_raw", lambda: bad_raw)
     with pytest.raises(SquadsError, match=r"^Invalid bundled role catalog:") as exc_info:
@@ -305,7 +305,7 @@ def test_a_genuinely_invalid_bundled_catalog_still_says_bundled_even_with_squad_
     bad_raw = {
         "roles": [],
         "bundles": {"all": ["ghost"]},
-        "dev": {"name_pool": ["A"], "model": "sonnet", "color": "blue"},
+        "templates": {},
     }
     monkeypatch.setattr(_loader, "_bundled_raw", lambda: bad_raw)
     with pytest.raises(SquadsError, match=r"^Invalid bundled role catalog:"):

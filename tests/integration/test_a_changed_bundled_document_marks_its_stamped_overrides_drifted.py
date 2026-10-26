@@ -20,7 +20,7 @@ def _catalog(squad_dir: Path, stamp: str) -> None:
     overrides = squad_dir / ".overrides"
     overrides.mkdir(exist_ok=True)
     (overrides / "roles.toml").write_text(
-        f'# squads:override-base:{stamp}\n[dev]\ncolor = "pink"\n', encoding="utf-8"
+        f'# squads:override-base:{stamp}\n[templates.dev]\ncolor = "pink"\n', encoding="utf-8"
     )
 
 

@@ -3,7 +3,7 @@ id: TASK-1137
 sequence_id: 1137
 type: task
 title: Resolve init --roles against the project role catalog
-status: Ready
+status: Done
 author: tech-lead
 priority: low
 refs:
@@ -22,12 +22,12 @@ subentities:
   status: Cancelled
 - local_id: ST3
   title: Resolve init --roles against the project role catalog
-  status: Todo
+  status: Done
 - local_id: ST4
   title: Refuse reserved slugs in override scaffold --new
   status: Cancelled
 created_at: '2026-10-25T05:39:18Z'
-updated_at: '2026-10-25T22:06:39Z'
+updated_at: '2026-10-26T04:14:35Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -172,4 +172,12 @@ _Add with `sq task 1137 add-subtask "<title>"`; track with `sq task 1137 subtask
   - Drafted from the MILE-1051 bug triage; each bug re-read against release/0.17 HEAD, subtask bodies carry defect, expected behaviour and the falsifying table. Ordering and composition-root dependencies are in the body and on MILE-1051. Promote to Ready at dispatch.
 - [2026-10-25T22:06:39Z] `tech-lead` Olivia Lead:
   - Narrowed to ST3 (BUG-1045). ST1, ST2 and ST4 moved to TASK-1153, which implements ADR-1151; their bug refs moved with them. TASK-1125 is Done, so ST3 is unblocked.
+- [2026-10-26T03:33:25Z] `python-dev` Elias Python:
+  - ST3 done (fixes BUG-1045). init/adopt resolve --roles through the squad's lazy catalog (spec_sources), before any write; CLI shares the same sources for prompts, so no second read. resolve_roles(spec, catalog) replaces the bundled-table read. Table test tests/cli/test_roles_option_resolves_against_the_squads_own_catalog.py (6 rows x init/init --force/adopt), both fixes mutated red. pyright, ruff, meta/integration/cli green. CHANGELOG line under 0.17.0 Fixed. @tech-lead
+- [2026-10-26T03:49:12Z] `reviewer` Paul Reviewer:
+  - REV-1158 recorded on 5922d04f: 4 findings (1 medium, 3 low), all test-guard or message gaps; behaviour verified correct. @tech-lead
+- [2026-10-26T03:59:26Z] `python-dev` Elias Python:
+  - REV-1158 F1-F4 fixed, uncommitted. F1 ordering/byte-identical-config/loader-prefix asserted (red when resolution moves after the config write). F2 refusal names bundles and roles, notes the --roles default and template names; help no longer hardcodes the bundles. F3 init row added; init now reads workflow once (shared invocation sources, _init_time_spec takes them). F4 interactive prompt test with names (red under bundled catalog). Gates and sq check clean. @tech-lead
+- [2026-10-26T04:14:35Z] `manager` Catherine Manager:
+  - ST3 delivered (5922d04f, 30c0b568, 7f69ec17); REV-1158 Approved with all five findings Verified; full suite 15203 passed. Accepted under the operator's delegation.
 <!-- sq:discussion:end -->

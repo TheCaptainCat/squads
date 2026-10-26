@@ -1,10 +1,10 @@
 """``resolve_role`` — the role-override merge for a bundled slug: only the fields a project
 TOML actually sets change, everything else falls through to the bundled default; tuple-valued
 fields (responsibilities/agreements) merge correctly; identity comes from the filename, so a
-``slug`` key must agree with it; an unknown key is refused by name; a brand-new (non-bundled)
-slug can be defined entirely by its own TOML; a new slug missing a required field raises;
-malformed TOML raises; an unknown slug with no override raises; and ``squad_dir=None`` returns
-the bundled entry unchanged.
+``slug`` key must agree with it; an unknown key is refused by name; a complete file defines a
+role (``role_defined_by_file``, what ``sq role add --file`` reads); a file missing a required
+field raises; malformed TOML raises; an unknown slug with no override raises; and
+``squad_dir=None`` returns the bundled entry unchanged.
 
 This document is held to the same standard as the workflow override, not a looser one — same
 merge engine, same typed validation, same closed top-level key space. The asymmetry that used
@@ -20,7 +20,7 @@ import pytest
 from _helpers import catalog_of
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._roles._catalog import PREDEFINED
-from squads._roles._resolver import resolve_role
+from squads._roles._resolver import resolve_role, role_defined_by_file
 
 
 def _place_role_toml(squad_dir: Path, slug: str, content: str) -> Path:
@@ -106,7 +106,8 @@ def test_a_brand_new_slug_can_be_defined_entirely_by_its_own_toml(tmp_path) -> N
         'description = "Keeps the system secure."\nmission = "Find and fix security issues."\n'
         'model = "opus"\n',
     )
-    r = resolve_role("security-expert", tmp_path, catalog=catalog_of(tmp_path))
+    r = role_defined_by_file("security-expert", tmp_path)
+    assert r is not None
     assert r.slug == "security-expert"
     assert r.full_name == "Sam Security"
     assert r.model == "opus"
@@ -114,8 +115,8 @@ def test_a_brand_new_slug_can_be_defined_entirely_by_its_own_toml(tmp_path) -> N
 
 def test_a_new_slug_missing_a_required_field_raises(tmp_path) -> None:
     _place_role_toml(tmp_path, "new-role", 'full_name = "New Person"\n')  # missing title etc.
-    with pytest.raises(SquadsError, match="missing required fields"):
-        resolve_role("new-role", tmp_path, catalog=catalog_of(tmp_path))
+    with pytest.raises(SquadsError, match="lacks the required fields"):
+        role_defined_by_file("new-role", tmp_path)
 
 
 def test_malformed_toml_raises_squads_error(tmp_path) -> None:

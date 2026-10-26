@@ -1237,7 +1237,8 @@ puts it. A role's body, a permanently-system skill's body and a per-item-type `s
 body take no writes while their view is declared — replace and append are both refused, and
 `--force` does not lift it. Their content is authored elsewhere:
 
-- a role: `.overrides/roles.toml`, or `.overrides/roles/<slug>.toml` for a project-defined role;
+- a role: `.overrides/roles.toml` or `.overrides/roles/<slug>.toml`, or `sq role <slug> update`
+  for a role that defines itself;
 - a per-item-type skill: that type's `[types.<type>]` lane in `.overrides/playbook.toml`;
 - `squads`: `.overrides/playbook.toml`;
 - `greeting` and `sq-memory`: the view's template override,

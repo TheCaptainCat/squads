@@ -73,8 +73,6 @@ async def _broken_roles(paths: SquadPaths) -> None:
 
 
 async def _broken_roles_beside_a_playbook(paths: SquadPaths) -> None:
-    """The one shape where composing forces the lazy catalog: the playbook load asks it for the
-    project's role slugs."""
     _put(paths, "roles.toml", "[[roles\nnot toml")
     _put(paths, "playbook.toml", '[types.task]\noverview = "Overridden."\n')
 
@@ -107,10 +105,10 @@ _ROWS = {
     ),
     "roles override that fails to load beside a playbook override": _Row(
         _broken_roles_beside_a_playbook,
-        PlaybookConfigError,
-        Mode.PLAYBOOK_UNAVAILABLE,
+        None,
+        Mode.NORMAL,
         "bundled",
-        "bundled",
+        "merged",
         catalog_loads=False,
     ),
 }

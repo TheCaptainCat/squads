@@ -6,10 +6,12 @@ title: Otto Old
 slug: old-dev
 status: Archived
 author: old-dev
-description: Do the retired engineer work.
+description: Retired engineer role.
 created_at: '2025-05-20T11:23:00Z'
 updated_at: '2025-05-20T11:26:00Z'
 origin: project
+job_title: retired engineer
+mission: Do the retired engineer work.
 ---
 <!-- sq:body -->
 <!-- sq:view:role_definition -->

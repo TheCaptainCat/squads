@@ -573,11 +573,19 @@ ref_rules = []
 # parent_required absent → None
 
 [items.role.attributes]
+agreements = { kind = "list", settable = false }
+can_spawn = { kind = "bool", settable = false }
+capabilities = { kind = "list", settable = false }
+color = { kind = "str", settable = false }
 is_default = { kind = "bool", settable = false }
+job_title = { kind = "str", settable = false }
+mission = { kind = "str", settable = false }
 model = { kind = "str" }
 origin = { kind = "str", required = true, settable = false }
 pronouns = { kind = "str", settable = false }
+responsibilities = { kind = "list", settable = false }
 tech = { kind = "str", settable = false }
+template = { kind = "str", settable = false }
 
 [items.skill]
 prefix = "SKILL"

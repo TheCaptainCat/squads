@@ -5,6 +5,7 @@ first ``.squads.toml`` and use its ``squad_dir``. ``init`` and ``adopt`` create 
 working directory instead, defaulting the folder to ``squads/``.
 """
 
+import os
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,6 +21,12 @@ from squads._workflow._models import WorkflowSpec
 def process_dir() -> Path:
     """The process working directory, the default base for callers outside the CLI."""
     return Path.cwd()
+
+
+def path_from_process_dir(path: Path) -> str:
+    """*path* spelled relative to the process directory, so a command a remedy names with it
+    works from wherever the user runs it (the project root, or under ``-C``)."""
+    return os.path.relpath(path, process_dir())
 
 
 def find_config(start: Path) -> Path | None:

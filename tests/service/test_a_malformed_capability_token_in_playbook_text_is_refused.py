@@ -6,7 +6,6 @@ import pytest
 from squads import __version__
 from squads._errors import SquadsError
 from squads._interactions._loader import load_playbook
-from squads._roles._catalog import get_catalog
 from squads._workflow import bundled_spec
 
 
@@ -21,7 +20,7 @@ async def test_a_malformed_token_is_refused_naming_the_file(token: str, project)
         encoding="utf-8",
     )
     with pytest.raises(SquadsError) as excinfo:
-        load_playbook(get_catalog(), squad_dir=project.squad_dir, spec=bundled_spec())
+        load_playbook(squad_dir=project.squad_dir, spec=bundled_spec())
     assert "playbook.toml" in str(excinfo.value).replace("\\", "/")
     assert "capability token" in str(excinfo.value)
     assert token in str(excinfo.value)

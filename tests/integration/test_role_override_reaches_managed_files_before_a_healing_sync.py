@@ -154,7 +154,7 @@ async def test_falsifying_the_is_default_carry_reproduces_the_revert(tmp_path, m
     qa_predefined = next(r for r in PREDEFINED if r.slug == "qa")
     assert qa_predefined.is_default is False  # sanity: qa is not the bundled catalog's default
 
-    # The pre-fix base: only full_name carried, is_default always the catalog's stale answer —
+    # Without the stored values, is_default is the catalog's stale answer —
     # reproduces the sync-reverts-set-default defect, at the resolver level rather than the CLI.
     pre_fix_base = replace(qa_predefined, full_name=qa_item.title)
     reverted = resolve_role_with_base(
@@ -162,12 +162,17 @@ async def test_falsifying_the_is_default_carry_reproduces_the_revert(tmp_path, m
     )
     assert reverted.is_default is False  # the operator's designation is lost — the revert
 
-    # The fixed base (what role_base_from_item now builds) carries the operator's designation.
-    from squads._roles._resolver import role_base_from_item
+    # The stored values are applied after the layers (what every reader of a role item passes);
+    # they carry the operator's designation.
+    from squads._roles._resolver import role_base_from_item, stored_values
 
-    fixed_base = role_base_from_item(qa_item, catalog_of(paths.squad_dir))
-    assert fixed_base is not None
+    base = role_base_from_item(qa_item, catalog_of(paths.squad_dir))
+    assert base is not None
     resolved = resolve_role_with_base(
-        "qa", paths.squad_dir, base=fixed_base, catalog=catalog_of(paths.squad_dir)
+        "qa",
+        paths.squad_dir,
+        base=base,
+        catalog=catalog_of(paths.squad_dir),
+        stored=stored_values(qa_item),
     )
     assert resolved.is_default is True  # restored — the carry holds

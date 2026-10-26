@@ -12,7 +12,7 @@ pytestmark = pytest.mark.anyio
 
 
 async def test_out_of_lane_create_prints_the_warning_and_exits_0(project, svc, invoke) -> None:
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     r = await invoke(["create", "feature", "Bad Feature", "--author", "python-dev"])
     assert r.exit_code == 0, r.output
     assert "advisory" in r.output
@@ -35,7 +35,7 @@ async def test_manager_is_exempt_no_warning_on_the_cli(project, invoke) -> None:
 
 
 async def test_create_guide_out_of_lane_also_prints_the_warning(project, svc, invoke) -> None:
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     r = await invoke(["create", "guide", "My Guide", "--author", "python-dev"])
     assert r.exit_code == 0, r.output
     assert "advisory" in r.output
@@ -44,7 +44,7 @@ async def test_create_guide_out_of_lane_also_prints_the_warning(project, svc, in
 async def test_json_output_carries_the_lane_warning_field_when_out_of_lane(
     project, svc, invoke
 ) -> None:
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     r = await invoke(["create", "feature", "JSON Feature", "--author", "python-dev", "--json"])
     data = json.loads(r.output)
     assert data["lane_warning"] is not None
@@ -58,7 +58,7 @@ async def test_json_output_has_no_lane_warning_when_in_lane(project, svc, invoke
 
 
 async def test_advisory_wording_makes_no_enforcement_grade_claims(project, svc, invoke) -> None:
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     r = await invoke(["create", "feature", "Test Feature", "--author", "python-dev"])
     out = r.output.lower()
     assert "advisory" in out or "best-effort" in out
@@ -86,7 +86,7 @@ class TestRoleShowSurfacesCreateLane:
         assert set(data["create_lane"]) == {"feature", "epic", "contract", "milestone"}
 
     async def test_json_create_lane_is_empty_for_a_dev(self, project, svc, invoke) -> None:
-        await svc.add_dev("python")
+        await svc.activate_role(None, from_template="dev", tech="python")
         r = await invoke(["role", "python-dev", "show", "--json"])
         assert json.loads(r.output)["create_lane"] == []
 

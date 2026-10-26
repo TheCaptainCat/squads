@@ -650,6 +650,15 @@ class RosterStatusResult:
 
 
 @dataclass(frozen=True)
+class RoleUpdateResult:
+    """Outcome of ``Service.update_role()``: the role, and the notices the update raised (a
+    per-slug file that also sets a field the update wrote)."""
+
+    item: Item
+    warnings: list[str]
+
+
+@dataclass(frozen=True)
 class DefaultRoleMoveResult:
     """Outcome of ``Service.set_default_role()`` — the ``is_default`` designation move: a move,
     not a set.

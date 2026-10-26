@@ -12,29 +12,18 @@ import {
   renderMarkdownToHtml,
 } from '../src/domain/markdown';
 import { buildRoleDirectory } from '../src/domain/roleDirectory';
-import type { SqListItem, SqTypeCatalogEntry } from '../src/types';
+import type { SqRoleListRow, SqTypeCatalogEntry } from '../src/types';
 
 const ITEM_ID_PATTERN = DEFAULT_ITEM_ID_MATCHER.inline;
 
-function makeRole(overrides: Partial<SqListItem> = {}): SqListItem {
+function makeRole(overrides: Partial<SqRoleListRow> = {}): SqRoleListRow {
   return {
     id: 'ROLE-1',
-    sequence_id: 1,
-    type: 'role',
-    title: 'Catherine Manager',
     slug: 'manager',
+    full_name: 'Catherine Manager',
+    pronouns: null,
     status: 'Active',
     description: 'Runs the work loop.',
-    parent: null,
-    author: 'manager',
-    assignee: null,
-    priority: null,
-    severity: null,
-    labels: [],
-    refs: [],
-    path: 'agents/roles/ROLE-000001-manager.md',
-    created_at: '2026-01-01T00:00:00Z',
-    updated_at: '2026-01-01T00:00:00Z',
     ...overrides,
   };
 }
@@ -314,7 +303,7 @@ describe('item-id anchors carry the referenced item’s hover text', () => {
 describe('MENTION_PATTERN / linkifyPlainText role mentions', () => {
   const roles = buildRoleDirectory([
     makeRole(),
-    makeRole({ id: 'ROLE-3', slug: 'tech-lead', title: 'Olivia Lead', description: '' }),
+    makeRole({ id: 'ROLE-3', slug: 'tech-lead', full_name: 'Olivia Lead', description: '' }),
   ]);
 
   it('matches a lowercase, hyphenated slug after an @', () => {

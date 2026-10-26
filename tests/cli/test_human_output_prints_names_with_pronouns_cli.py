@@ -59,7 +59,9 @@ async def test_a_name_surface_prints_the_name_with_pronouns_under_the_setting(
     forbidden: str,
 ) -> None:
     await svc.activate_role("architect", pronouns=pronouns)
-    await svc.add_dev("python", name="Elias Python", pronouns=pronouns)
+    await svc.activate_role(
+        None, from_template="dev", tech="python", name="Elias Python", pronouns=pronouns
+    )
     await svc.add_operator("Alex Rivera", pronouns=pronouns)
     _set_display(svc, on)
 

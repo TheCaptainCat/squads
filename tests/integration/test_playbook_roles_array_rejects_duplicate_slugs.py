@@ -12,7 +12,6 @@ import pytest
 from squads._errors import SquadsError
 from squads._interactions._loader import load_playbook
 from squads._overrides._service import scaffold_playbook
-from squads._roles._catalog import get_catalog
 from squads._workflow import load_workflow_spec
 
 pytestmark = pytest.mark.anyio
@@ -31,7 +30,7 @@ def test_spreading_a_slug_the_bundled_array_already_carries_is_refused(tmp_path:
     )
     spec = load_workflow_spec()
     with pytest.raises(SquadsError) as exc_info:
-        load_playbook(get_catalog(), spec=spec, squad_dir=tmp_path)
+        load_playbook(spec=spec, squad_dir=tmp_path)
     assert "slug 'qa' appears twice" in str(exc_info.value)
 
 
@@ -45,7 +44,7 @@ def test_two_wholly_new_guides_for_the_same_new_slug_is_also_refused(tmp_path: P
     )
     spec = load_workflow_spec()
     with pytest.raises(SquadsError) as exc_info:
-        load_playbook(get_catalog(), spec=spec, squad_dir=tmp_path)
+        load_playbook(spec=spec, squad_dir=tmp_path)
     assert "slug 'architect' appears twice" in str(exc_info.value)
 
 
@@ -73,6 +72,6 @@ async def test_the_shipped_scaffold_example_no_longer_duplicates_a_bundled_guide
         f"# squads:override-base:0.0.0\n{example}\n", encoding="utf-8"
     )
     spec = load_workflow_spec()
-    merged = load_playbook(get_catalog(), spec=spec, squad_dir=project.squad_dir)  # must not raise
+    merged = load_playbook(spec=spec, squad_dir=project.squad_dir)  # must not raise
     slugs = [g.slug for g in merged.types["task"].roles]
     assert len(slugs) == len(set(slugs))  # no duplicate section

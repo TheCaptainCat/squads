@@ -18,12 +18,12 @@ def _collapse_whitespace(text: str) -> str:
     return re.sub(r"\s+", " ", text)
 
 
-async def test_catalog_plain_output_points_at_the_scaffold_new_command(project, invoke) -> None:
+async def test_catalog_plain_output_points_at_role_add_and_templates(project, invoke) -> None:
     r = await invoke(["role", "catalog"])
     assert r.exit_code == 0, r.output
     output = _collapse_whitespace(r.output)
-    assert "sq override scaffold --new" in output
-    assert "sq role activate" in output
+    assert "sq role add <slug>" in output
+    assert "sq role activate --from <template>" in output
 
 
 async def test_catalog_json_output_is_unaffected_bundled_roles_only(project, invoke) -> None:
@@ -49,8 +49,11 @@ async def test_catalog_json_output_is_unaffected_bundled_roles_only(project, inv
     assert "scaffold" not in r.output
 
 
-async def test_activate_help_mentions_the_custom_role_scaffold_path(project, invoke) -> None:
+async def test_activate_help_points_at_role_add_for_a_role_that_defines_itself(
+    project, invoke
+) -> None:
     r = await invoke(["role", "activate", "--help"])
     assert r.exit_code == 0, r.output
     output = _collapse_whitespace(r.output)
-    assert "sq override scaffold --new" in output or ".overrides/roles" in output
+    assert "sq role add" in output
+    assert "--from" in output

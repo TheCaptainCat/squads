@@ -172,8 +172,10 @@ async def plant_banner_items(svc: service.Service, row: TypeRow) -> dict[str, st
             kwargs["slug"] = f"{row.slug}-{name}"
         # A role's description is set at creation: a later update of it is refused.
         at_creation = row.type == "role" and description is not None
-        if at_creation:
-            kwargs["description"] = description
+        if row.type == "role":
+            # A role that defines itself, so its base resolves and `sq check` stays quiet about it.
+            kwargs["description"] = description or "A role."
+            kwargs["attributes"] = {"job_title": "role", "mission": "Do the work."}
         item = (await create_item(svc, row.type, f"{row.type} {name}", **kwargs)).item
         if body is not None:
             await svc.set_body(item.id, body)

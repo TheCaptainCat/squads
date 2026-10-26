@@ -22,6 +22,8 @@ _ALWAYS_ON_LEVELS = {
     "roster_config_integrity": "error",
     "default_designation_duplicated": "error",
     "roster_slug_valid": "error",
+    "role_base_resolves": "error",
+    "role_definition_shadowed": "warn",
     "playbook_guide_role_live": "warn",
     "display_config_valid": "warn",
     "working_language_valid": "warn",

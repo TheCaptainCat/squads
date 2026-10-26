@@ -5,7 +5,7 @@ import re
 
 import pytest
 
-from _helpers import catalog_of
+from _helpers import add_role_from_toml, catalog_of
 from squads._roles._models import RoleSpec
 from squads._roles._resolver import resolve_role_with_base, role_base_from_item
 from squads._workflow import ROSTER_ROLE
@@ -18,7 +18,7 @@ _FIELD = re.compile(r"^# (\w+) = ", re.MULTILINE)
 async def test_a_templated_developer_gets_its_template_fields_commented_out(
     project, svc, invoke
 ) -> None:
-    await svc.add_dev("python")
+    await svc.activate_role(None, from_template="dev", tech="python")
     result = await invoke(["override", "scaffold", "--role", "python-dev"])
     assert result.exit_code == 0, result.output
     path = project.squad_dir / ".overrides" / "roles" / "python-dev.toml"
@@ -49,12 +49,18 @@ async def test_a_templated_developer_gets_its_template_fields_commented_out(
     ("slug", "expected"),
     [
         ("reviewer", "uncomment the fields to override"),
-        ("auditor", "add fields to override"),
+        ("auditor", "uncomment the fields to override"),
     ],
 )
 async def test_the_closing_message_matches_what_the_file_holds(
-    slug: str, expected: str, project, invoke
+    slug: str, expected: str, project, svc, invoke
 ) -> None:
+    if slug == "auditor":
+        await add_role_from_toml(
+            svc,
+            slug,
+            'full_name = "Ada"\ntitle = "Auditor"\ndescription = "Audits."\nmission = "Audit."\n',
+        )
     result = await invoke(["override", "scaffold", "--role", slug])
     assert result.exit_code == 0, result.output
     assert expected in " ".join(result.output.split())

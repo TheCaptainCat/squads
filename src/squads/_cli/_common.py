@@ -51,10 +51,10 @@ from squads._paths import SquadPaths, resolve
 from squads._roles._catalog import RoleDef
 from squads._roles._models import CatalogSource
 from squads._roles._resolver import (
-    pinned_name_of,
+    materialised_base,
     resolve_pronouns,
     resolve_role_with_base,
-    role_base_from_item,
+    stored_values,
 )
 from squads._services._results import BlockResult, SelfRemedied, SubentityDetail
 from squads._services._service import (
@@ -608,6 +608,16 @@ def message_option(help: str = PARAGRAPH_HELP) -> Any:
     return typer.Option(None, "-m", "--message", help=help)
 
 
+#: The two `--file` wordings of the role verbs: a full definition to create a role from, and a
+#: field-wise delta to edit one with.
+ROLE_DEFINITION_FILE_HELP = (
+    "A role definition in the `.overrides/roles/<slug>.toml` grammar; flags win over it."
+)
+ROLE_DELTA_FILE_HELP = (
+    "A definition delta in the `.overrides/roles/<slug>.toml` grammar, merged field by field."
+)
+
+
 def file_option(help: str = FILE_HELP) -> Any:
     return typer.Option(None, "--file", help=help)
 
@@ -661,6 +671,14 @@ def depth_option(default: int | None, *flags: str) -> Any:
 
 def tech_option(default: Any = None) -> Any:
     return typer.Option(default, "--tech", help="Technology, such as `python` or `react`.")
+
+
+def model_option() -> Any:
+    return typer.Option(
+        None,
+        "--model",
+        help="Model the agent runs on, for example `sonnet`, `opus`, `haiku` or `inherit`.",
+    )
 
 
 def pronouns_option() -> Any:
@@ -1409,16 +1427,16 @@ async def build_item_json(svc: Service, it: Item) -> str:
 
 
 def role_base_for_show(slug: str, it: Item | None, catalog: CatalogSource) -> RoleDef | None:
-    """The merge base for a role card: an item in hand's own operator-settable fields
-    (:func:`~squads._roles._resolver.role_base_from_item` — a bundled role's ``full_name``, a
-    developer role's tech/name/model, plus this squad's own catalog-document override merged
-    into a bundled role's base); a slug with no item has no base.
+    """The merge base for a role card: the base the item in hand stores
+    (:func:`~squads._roles._resolver.materialised_base`, which falls back to what the item stores
+    when its base does not resolve); a slug with no item has no base and resolves through the
+    catalog.
 
     Shared by ``sq role <slug> show`` (:func:`squads._cli._role.show_role`) and a ``role``
     source's ``--json`` dispatch (:func:`squads._cli._workflow_cmd._view_json_payload`) — the
     same base a role card is built from either way, never two independent resolutions."""
     if it is not None:
-        return role_base_from_item(it, catalog)
+        return materialised_base(it, catalog)
     return None
 
 
@@ -1443,10 +1461,9 @@ async def build_role_json_payload(
     base_role: RoleDef | None,
     addr: str,
 ) -> dict[str, object]:
-    """The ``--json`` payload for a resolved role definition: the full catalog-plus-override
-    shape, or an item-field fallback for a slug with no bundled catalog entry, no dev base, and
-    no override file. The one builder both ``sq role <slug> show --json``
-    (:func:`squads._cli._role.show_role`) and a ``role`` source's ``--json`` dispatch
+    """The ``--json`` payload for a resolved role definition. The one builder both
+    ``sq role <slug> show --json`` (:func:`squads._cli._role.show_role`) and a ``role``
+    source's ``--json`` dispatch
     (:func:`squads._cli._workflow_cmd._view_json_payload`) call, so the two surfaces can never
     describe one role definition two different ways.
 
@@ -1467,51 +1484,25 @@ async def build_role_json_payload(
             svc.paths.squad_dir,
             base=base_role,
             catalog=svc.catalog,
-            pinned_name=pinned_name_of(it),
-        )
-        data.update(
-            {
-                "full_name": r.full_name,
-                "pronouns": pronouns,
-                "title": r.title,
-                "mission": r.mission,
-                "model": r.model,
-                "is_default": r.is_default,
-                "can_spawn": r.can_spawn,
-                "capabilities": list(r.capabilities),
-                "create_lane": sorted(allowed_create_types(r, svc.spec, svc.playbook)),
-                "responsibilities": list(r.responsibilities),
-                "skills": skills,
-            }
+            stored=stored_values(it),
         )
     except RoleNotFoundError:
-        # Narrow deliberately: this fallback exists for a slug with no bundled catalog entry,
-        # no dev base, and no override file — and only that. A broader catch also swallowed an
-        # *invalid* project role override — the refusal disappeared and the card rendered from
-        # the stored item, so a squad answered as though the broken override were not there.
-        # Nothing resolves for this shape, so what can be rebuilt comes from the item's own
-        # fields (`title`, `description`, the stored `model` and `is_default`) and the card
-        # reports the absence of the rest honestly rather than inventing a catalog answer
-        # there is none of.
-        if it is None:
-            raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None
-        data.update(
-            {
-                "full_name": it.title,
-                "pronouns": pronouns,
-                "title": "",
-                "mission": it.description,
-                "model": attrs.model(it),
-                "is_default": attrs.is_default(it) is True,
-                "can_spawn": False,
-                "capabilities": [],
-                "create_lane": sorted(
-                    allowed_create_types(RoleDef.from_item(it), svc.spec, svc.playbook)
-                ),
-                "responsibilities": [],
-                "skills": skills,
-            }
-        )
+        raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None
+    data.update(
+        {
+            "full_name": r.full_name,
+            "pronouns": pronouns,
+            "title": r.title,
+            "mission": r.mission,
+            "model": r.model,
+            "is_default": r.is_default,
+            "can_spawn": r.can_spawn,
+            "capabilities": list(r.capabilities),
+            "create_lane": sorted(allowed_create_types(r, svc.spec, svc.playbook)),
+            "responsibilities": list(r.responsibilities),
+            "skills": skills,
+        }
+    )
     return data
 
 

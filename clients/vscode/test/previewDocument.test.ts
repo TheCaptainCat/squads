@@ -25,27 +25,16 @@ import {
   UPDATE_CONTENT_COMMAND,
 } from '../src/domain/previewMessages';
 import { buildRoleDirectory } from '../src/domain/roleDirectory';
-import type { SqListItem, SqSubEntity } from '../src/types';
+import type { SqRoleListRow, SqSubEntity } from '../src/types';
 
-function makeRole(overrides: Partial<SqListItem> = {}): SqListItem {
+function makeRole(overrides: Partial<SqRoleListRow> = {}): SqRoleListRow {
   return {
     id: 'ROLE-1',
-    sequence_id: 1,
-    type: 'role',
-    title: 'Catherine Manager',
     slug: 'manager',
+    full_name: 'Catherine Manager',
+    pronouns: null,
     status: 'Active',
     description: 'Runs the work loop.',
-    parent: null,
-    author: 'manager',
-    assignee: null,
-    priority: null,
-    severity: null,
-    labels: [],
-    refs: [],
-    path: 'agents/roles/ROLE-000001-manager.md',
-    created_at: '2026-01-01T00:00:00Z',
-    updated_at: '2026-01-01T00:00:00Z',
     ...overrides,
   };
 }

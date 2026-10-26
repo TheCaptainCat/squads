@@ -47,8 +47,12 @@ async def test_a_role_slug_equal_to_a_role_verb_is_refused_and_writes_nothing(
 ) -> None:
     if path == "bulk-import":
         argv = _import(tmp_path, "role", verb)
+    elif path == "project-role-file":
+        _project_role_file(project, verb)
+        file = project.squad_dir / ".overrides" / "roles" / f"{verb}.toml"
+        argv = ["role", "add", verb, "--file", str(file)]
     else:
-        (_project_role_file if path == "project-role-file" else _catalog_entry)(project, verb)
+        _catalog_entry(project, verb)
         argv = ["role", "activate", verb]
     before = squad_tree(project.root)
 
@@ -79,8 +83,8 @@ async def test_a_skill_slug_equal_to_a_skill_verb_is_refused_and_writes_nothing(
 @pytest.mark.parametrize(
     ("item_type", "slug"),
     [
-        pytest.param("role", "add", id="role-takes-the-skill-verb"),
-        pytest.param("role", "lister", id="role-near-a-verb"),
+        pytest.param("role", "adds", id="role-near-a-verb"),
+        pytest.param("role", "lister", id="role-near-another-verb"),
         pytest.param("skill", "list", id="skill-takes-the-role-verb"),
         pytest.param("skill", "adds", id="skill-near-a-verb"),
     ],
@@ -90,7 +94,8 @@ async def test_only_the_verbs_of_its_own_group_are_reserved(
 ) -> None:
     if item_type == "role":
         _project_role_file(project, slug)
-        argv = ["role", "activate", slug]
+        file = project.squad_dir / ".overrides" / "roles" / f"{slug}.toml"
+        argv = ["role", "add", slug, "--file", str(file)]
     else:
         argv = ["skill", "add", slug]
 
