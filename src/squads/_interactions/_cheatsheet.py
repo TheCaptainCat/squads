@@ -9,20 +9,13 @@ from squads._workflow._models import Field, WorkflowSpec
 
 
 def cheatsheet_anchor_type(spec: WorkflowSpec) -> str | None:
-    """The single non-roster type used to build a "Common commands" example block (the
-    squads skill, AGENTS.md) — chosen generically from *spec* so a squad that drops or
-    renames ``"task"`` still gets a fully runnable,
-    representative example instead of one built from a type that no longer exists.
+    """The one non-roster type that anchors a "Common commands" example (squads skill, AGENTS.md).
 
-    Scored by how much of the example surface a type can actually demonstrate: a
-    sub-entity kind (for ``add-<kind>``), a required parent (for ``--parent``), and an
-    ordered badge field (for ``--priority``-shaped metadata) each add a point. The
-    highest-scoring type wins; ties break by declared registration order
-    (``ItemSpec.order``, then type name) for determinism — on the bundled spec this
-    reproduces ``"task"`` exactly, since it's the only type that scores on all three axes.
-
-    ``None`` only when *spec* has no non-roster type at all (every work/records type
-    dropped) — there is nothing left to anchor an example on.
+    It is chosen from *spec*, so a squad that drops or renames ``"task"`` still gets a runnable
+    example. A type scores a point each for a sub-entity kind (``add-<kind>``), a required parent
+    (``--parent``) and an ordered badge field (``--priority``); the highest score wins and ties
+    break by ``ItemSpec.order`` then type name. On the bundled spec that is ``"task"``, the only
+    type scoring on all three. ``None`` only when *spec* has no non-roster type.
     """
     types = sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t))
     if not types:
@@ -56,21 +49,15 @@ class CheatsheetAnchorContext(TypedDict):
 
 
 def cheatsheet_anchor_context(spec: WorkflowSpec) -> CheatsheetAnchorContext:
-    """Bundle of spec-derived values a "Common commands" example block needs to build a
-    fully runnable, representative example: the anchor type
-    (:func:`cheatsheet_anchor_type`) plus everything about it an example command might
-    show — its prefix, sub-entity kind, required-parent prefix, first active/settled
-    status — and the ordered "priority" field/values any surviving type carries (never
-    just the anchor's own, since :func:`squads._badges.first_ordered_field` scans every
-    type — see its docstring for why one type can't be trusted to answer for all of them).
+    """The spec-derived values a "Common commands" example needs to be runnable.
 
-    Shared by the squads skill and AGENTS.md templates (registered as a Jinja global) and
-    by the ``agents_md`` backend's Python-side ``also_creatable_types`` computation, so
-    the two render paths derive this from one place rather than independently.
-
-    Every value degrades to ``None`` (or, where a string is unavoidable in-line, a
-    generic placeholder like ``"TYPE"``) when *spec* has no non-roster type left to
-    anchor on at all.
+    The anchor type (:func:`cheatsheet_anchor_type`) plus its prefix, sub-entity kind,
+    required-parent prefix and first active/settled status, and the ordered "priority"
+    field/values any surviving type carries (:func:`squads._badges.first_ordered_field` scans
+    every type, since one type cannot answer for all). The squads skill and AGENTS.md templates
+    (a Jinja global) and the ``agents_md`` backend's ``also_creatable_types`` share it, so both
+    render paths derive it from one place. Every value degrades to ``None``, or a placeholder
+    like ``"TYPE"`` where a string is needed in-line, when *spec* has no non-roster type.
     """
     anchor = cheatsheet_anchor_type(spec)
     anchor_parent = spec.item_parent_required(anchor) if anchor else None

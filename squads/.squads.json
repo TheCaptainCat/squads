@@ -1,6 +1,6 @@
 {
   "schema_version": "0.17",
-  "counter": 1163,
+  "counter": 1170,
   "padding": 6,
   "items": {
     "12": {
@@ -8721,7 +8721,7 @@
       ],
       "path": "features/FEAT-001054-operator-profile-in-the-body-prose-allowed-in-roster-bodies.md",
       "created_at": "2026-10-16T11:34:59Z",
-      "updated_at": "2026-10-17T00:56:31Z",
+      "updated_at": "2026-10-26T12:47:14Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -8936,7 +8936,7 @@
       ],
       "path": "features/FEAT-001096-rebuild-the-test-suite-from-the-ground-up.md",
       "created_at": "2026-10-17T07:56:25Z",
-      "updated_at": "2026-10-26T09:30:49Z",
+      "updated_at": "2026-10-26T14:05:31Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -32322,7 +32322,10 @@
         "TASK-1123:depends-on",
         "TASK-1124:depends-on",
         "TASK-1125:depends-on",
-        "TASK-1126:depends-on"
+        "TASK-1126:depends-on",
+        "TASK-1127:depends-on",
+        "TASK-1165:depends-on",
+        "BUG-1167:depends-on"
       ],
       "subentities": [
         {
@@ -32358,7 +32361,7 @@
       ],
       "path": "tasks/TASK-001111-inventory-the-old-suite-parity-ledger-and-falsification-audi.md",
       "created_at": "2026-10-24T13:42:12Z",
-      "updated_at": "2026-10-26T09:26:33Z",
+      "updated_at": "2026-10-26T15:11:06Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -32707,7 +32710,7 @@
       ],
       "path": "tasks/TASK-001116-close-the-rebuild-and-measure-per-os-ci-against-the-targets.md",
       "created_at": "2026-10-24T13:42:20Z",
-      "updated_at": "2026-10-26T09:30:13Z",
+      "updated_at": "2026-10-26T14:05:35Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -33008,7 +33011,7 @@
       "type": "task",
       "title": "Apply the comment rule to source docstrings and comments",
       "slug": "apply-the-comment-rule-to-source-docstrings-and-comments",
-      "status": "Ready",
+      "status": "Done",
       "description": "REV-956 F18: per-package prose sweep of src/ against the comment rule, plus a release-version guard.",
       "parent": "FEAT-1092",
       "author": "tech-lead",
@@ -33024,7 +33027,7 @@
         {
           "local_id": "ST1",
           "title": "Re-run the comment scan and add the version guard",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -33034,7 +33037,7 @@
         {
           "local_id": "ST2",
           "title": "Sweep the services package",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -33044,7 +33047,7 @@
         {
           "local_id": "ST3",
           "title": "Sweep workflow, overrides, index, models and migrations",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -33054,7 +33057,7 @@
         {
           "local_id": "ST4",
           "title": "Sweep the CLI and TUI, leaving help docstrings",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -33064,7 +33067,7 @@
         {
           "local_id": "ST5",
           "title": "Sweep the remaining packages and report the after-count",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -33074,7 +33077,7 @@
       ],
       "path": "tasks/TASK-001127-apply-the-comment-rule-to-source-docstrings-and-comments.md",
       "created_at": "2026-10-24T21:54:04Z",
-      "updated_at": "2026-10-24T21:55:45Z",
+      "updated_at": "2026-10-26T15:37:09Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -33762,7 +33765,7 @@
       "type": "task",
       "title": "Resolve roles from a catalog entry, a template or the item",
       "slug": "resolve-roles-from-a-catalog-entry-a-template-or-the-item",
-      "status": "InReview",
+      "status": "Done",
       "description": "ADR-1151: three role bases, [templates.<name>], sq role add, per-kind update, migration, checks, playbook, client hover",
       "parent": null,
       "author": "tech-lead",
@@ -33872,7 +33875,7 @@
       ],
       "path": "tasks/TASK-001153-resolve-roles-from-a-catalog-entry-a-template-or-the-item.md",
       "created_at": "2026-10-25T22:01:52Z",
-      "updated_at": "2026-10-26T08:51:57Z",
+      "updated_at": "2026-10-26T14:03:06Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -37699,7 +37702,7 @@
       "type": "bug",
       "title": "check reports false duplicate id during a retitle",
       "slug": "check-reports-false-duplicate-id-during-a-retitle",
-      "status": "Fixed",
+      "status": "Verified",
       "description": "",
       "parent": "MILE-1051",
       "author": "qa",
@@ -37711,7 +37714,7 @@
       "subentities": [],
       "path": "bugs/BUG-001154-check-reports-false-duplicate-id-during-a-retitle.md",
       "created_at": "2026-10-25T22:05:02Z",
-      "updated_at": "2026-10-26T09:44:38Z",
+      "updated_at": "2026-10-26T12:15:07Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -39526,7 +39529,7 @@
       "subentities": [],
       "path": "adrs/ADR-000776-derived-views-one-computed-projection-and-no-body-sink.md",
       "created_at": "2026-08-22T09:28:29Z",
-      "updated_at": "2026-10-25T21:42:17Z",
+      "updated_at": "2026-10-26T12:47:13Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -39686,7 +39689,7 @@
       "subentities": [],
       "path": "adrs/ADR-000880-views-as-a-source-plus-a-template-rendered-at-a-document-tag.md",
       "created_at": "2026-09-02T12:23:01Z",
-      "updated_at": "2026-10-25T21:47:49Z",
+      "updated_at": "2026-10-26T13:01:40Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -40317,7 +40320,7 @@
       "subentities": [],
       "path": "adrs/ADR-001151-roles-resolve-from-a-catalog-entry-a-template-or-the-item-it.md",
       "created_at": "2026-10-25T20:43:13Z",
-      "updated_at": "2026-10-25T22:06:44Z",
+      "updated_at": "2026-10-26T12:49:55Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -59640,6 +59643,546 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "REV-1163"
+    },
+    "1164": {
+      "sequence_id": 1164,
+      "type": "review",
+      "title": "Review the services comment sweep and version guard",
+      "slug": "review-the-services-comment-sweep-and-version-guard",
+      "status": "Approved",
+      "description": "Commit 62518566: TASK-1127 ST1 version guard and ST2 services docstring sweep.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1127"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "remove_block docstring now claims a freed local id is never reissued; next_local_id reissues the highest",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "_offset_plan lost the disjoint-range invariant that makes the single-pass rewrite_ids order-independent",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "_parent_acyclic lost the ordering that keeps update --no-parent working: clear_parent before the gate",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "read_body lost its caller contract: writers never read through it, so expanded views never reach disk",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Import module docstring lost why the pre-pass reads files: a mid-apply refusal leaves a partial batch",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Pure model halves dropped the throwaway-copy note that squares the importer's allocation with invariant 2",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "VALIDATOR_CONTEXT lost why error-level subentity_container_marker deliberately never gates writes",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "ItemFilter.category comment mangled: stray prefix before #: and continuation lines lost the #: marker",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Deprecated linearize_lifecycle alias lost its removal trigger; record it on the board or CHANGELOG",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "History residue left in swept services files: 12 references to removed _check_* functions, today phrasing",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "Version guard is blind to major-1 versions and to attribute docstrings",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "Several rewrites are now less precise than the code or wrong (alignment fallback, retype carry, others)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "Fix collateral: _create_model lost the fields-after-priority rule; vocab comment misstates the except",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "Residue: _repair_held comment still cites the removed _check_reconciliation",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "Widened version guard flags legitimate prose numbers: 0.5 ratios, in 2.5 seconds, TOML version 1.0",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F16",
+          "title": "Narrowed version guard catches 6 of the 15 real historical hits; a safe middle ground catches 11",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001164-review-the-services-comment-sweep-and-version-guard.md",
+      "created_at": "2026-10-26T12:44:43Z",
+      "updated_at": "2026-10-26T13:17:48Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1164"
+    },
+    "1165": {
+      "sequence_id": 1165,
+      "type": "task",
+      "title": "Role bodies take prose beside the definition",
+      "slug": "role-bodies-take-prose-beside-the-definition",
+      "status": "Done",
+      "description": "ADR-880 §8 and ADR-1151 §11: role body write on every role, empty responsibilities render nothing",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-1051:targets",
+        "ADR-880:implements",
+        "ADR-1151:implements",
+        "TASK-1153:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Admit body writes on every role",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Render no section for empty responsibilities",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Document role body prose and list keys",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001165-role-bodies-take-prose-beside-the-definition.md",
+      "created_at": "2026-10-26T13:05:15Z",
+      "updated_at": "2026-10-26T16:13:11Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1165"
+    },
+    "1166": {
+      "sequence_id": 1166,
+      "type": "review",
+      "title": "Review the workflow, overrides, index, models and migrations sweep",
+      "slug": "review-the-workflow-overrides-index-models-and-migrations-sw",
+      "status": "Approved",
+      "description": "Commit aabe10f7: TASK-1127 ST3 docstring and comment sweep of the integrity-core packages.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1127"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Reflog-append site now carries the read-scope comment from the finally block; the append comment is gone",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "v0_5_to_v0_7 docstring: escaped \\\\b became \\b, a backspace character the AST check cannot see",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Rewritten prose keeps nonexistent _check_* and _check_views names; LEVEL_RANK called private but imported",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Six rewrites now ambiguous or wrong: global spec, effective_prefix, repad, read scope, vocab, ruling",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "History residue in rewritten docstrings and comments in models, loader and overrides",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Rewrap collateral: list continuations unindented in three docstrings; Layer naming dropped in store",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "F6 fix indented only the first line of the artifact-key paragraph in the manifest docstring",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001166-review-the-workflow-overrides-index-models-and-migrations-sw.md",
+      "created_at": "2026-10-26T13:42:37Z",
+      "updated_at": "2026-10-26T13:57:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1166"
+    },
+    "1167": {
+      "sequence_id": 1167,
+      "type": "bug",
+      "title": "Level-suffixed ref_rule_target_present survives a type drop",
+      "slug": "level-suffixed-ref-rule-target-present-survives-a-type-drop",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "severity": "high",
+      "labels": [],
+      "refs": [
+        "MILE-1051:targets"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001167-level-suffixed-ref-rule-target-present-survives-a-type-drop.md",
+      "created_at": "2026-10-26T13:45:16Z",
+      "updated_at": "2026-10-26T14:20:27Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "BUG-1167"
+    },
+    "1168": {
+      "sequence_id": 1168,
+      "type": "review",
+      "title": "Review of the BUG-1167 level-suffixed strip fix",
+      "slug": "review-of-the-bug-1167-level-suffixed-strip-fix",
+      "status": "Approved",
+      "description": "Parser-based strip of ref_rule_target_present entries for dropped types",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-1167"
+      ],
+      "subentities": [],
+      "path": "reviews/REV-001168-review-of-the-bug-1167-level-suffixed-strip-fix.md",
+      "created_at": "2026-10-26T14:18:59Z",
+      "updated_at": "2026-10-26T14:19:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1168"
+    },
+    "1169": {
+      "sequence_id": 1169,
+      "type": "review",
+      "title": "Review the CLI, TUI and remaining packages comment sweep",
+      "slug": "review-the-cli-tui-and-remaining-packages-comment-sweep",
+      "status": "Approved",
+      "description": "Commit 3d5ef16b: TASK-1127 ST4 and ST5 docstring and comment sweep.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1127"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "find_markers docstring: the two readings lost their antecedent when the defining sentence was cut",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "_role_source_applies docstring split mid-sentence: an orphan ROSTER_ROLE parenthetical opens the body",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "History residue in swept _cli/_common.py: parse_badge_code replaces the former per-axis parsers",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001169-review-the-cli-tui-and-remaining-packages-comment-sweep.md",
+      "created_at": "2026-10-26T14:58:12Z",
+      "updated_at": "2026-10-26T15:01:09Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1169"
+    },
+    "1170": {
+      "sequence_id": 1170,
+      "type": "review",
+      "title": "Review: role bodies take prose beside the definition",
+      "slug": "review-role-bodies-take-prose-beside-the-definition",
+      "status": "Approved",
+      "description": "Commit 633c735a, TASK-1165 ST1 and ST2",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1165"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Body verb help still says a role body is refused, and a test pins it",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Role refusal tail still says drop the view from [selected] to author the body",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "migration.md and overrides.md still say a role body refuses writes",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "set_body docstring lists a role as both refused and admitted",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "CHANGELOG and a test name claim an empty-mission state no input can produce",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Foreign view tag in a role body write names view verbs the role refuses",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001170-review-role-bodies-take-prose-beside-the-definition.md",
+      "created_at": "2026-10-26T15:40:59Z",
+      "updated_at": "2026-10-26T16:12:46Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1170"
     }
   }
 }

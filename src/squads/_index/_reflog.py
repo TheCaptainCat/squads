@@ -1,56 +1,28 @@
-"""Append-only JSONL operation log (reflog) — writer, line model, and path.
+"""Append-only JSONL operation log (reflog): writer, line model and path. One line per mutating
+``sq`` operation, written after the index ``os.replace`` commit while still holding the file lock,
+so applied-without-logged is the tolerated failure and logged-without-applied is designed out.
 
-One line per mutating ``sq`` operation, written **after** the index ``os.replace``
-commit while still holding the file lock.  Applied-without-logged is the tolerated
-failure mode; logged-without-applied is designed out by the strict ordering.
-
-Line shape, including the optional session lineage fields:
+Line shape (``v`` is the dotted ``SCHEMA_VERSION``, ``ts`` an ISO-8601 UTC string from
+``clock.iso(clock.now())``, ``actor`` a bare slug string from :func:`squads._actor.current_actor`,
+``target`` the formatted item id, ``delta`` a before/after summary whose shape depends on ``op``):
 
 .. code-block:: json
 
-    {"v": "0.4", "ts": "2026-06-15T10:00:00Z", "actor": "python-dev",
+    {"v": "<schema>", "ts": "2026-06-15T10:00:00Z", "actor": "python-dev",
      "session_id": "sid-abc", "parent_session_id": "sid-xyz",
      "op": "status", "target": "TASK-XXXXXX", "delta": {"status": ["Draft", "InProgress"]}}
 
-Fields
-------
-- ``v``                  — schema version (``SCHEMA_VERSION`` dotted string), present from line 1.
-- ``ts``                 — ISO-8601 UTC timestamp, from ``clock.iso(clock.now())``.
-- ``actor``              — acting identity slug (flat string), from
-                           :func:`squads._actor.current_actor`.  **Kept as a bare string for
-                           back-compat.**
-- ``session_id``         — *optional*, omitted when ``None``.  Best-effort, untrusted opaque id
-                           for the current session, read from ``SQUADS_SESSION_ID`` env var if
-                           present.  squads does **not** mint, inject, or verify this value.
-- ``parent_session_id``  — *optional*, omitted when ``None``.  Best-effort, untrusted id for the
-                           immediate parent session, from ``SQUADS_PARENT_SESSION_ID``.  The full
-                           ancestor chain is reconstructable by walking ``parent_session_id`` edges;
-                           only the immediate parent is stored.
-- ``op``                 — operation name from the closed vocabulary :data:`REFLOG_OPS`, which is
-                           where the names live.  Enumerating them here too was how the
-                           vocabulary drifted: this docstring, ``sq reflog --op``'s help and the
-                           workflow guide's table each carried a hand-maintained copy, all three
-                           were incomplete, and their union still missed one.
-- ``target``             — the affected item ID (formatted, e.g. ``"TASK-XXXXXX"``).
-- ``delta``              — compact before→after summary; shape depends on ``op``.
+``op`` is from the closed vocabulary :data:`REFLOG_OPS`, which is the only place the names are
+listed, since hand-kept copies drifted. ``session_id`` and ``parent_session_id`` are optional
+(omitted when ``None``), best-effort, untrusted and observability-only: squads reads
+``SQUADS_SESSION_ID`` and ``SQUADS_PARENT_SESSION_ID`` from its own invocation and never mints,
+injects or verifies them, so a forged or absent id is indistinguishable from a real one. Only the
+immediate parent is stored.
 
-**Session lineage guarantee: best-effort, untrusted, observability-only.**
-squads is a passive tool, never in the spawn path.  It reads optional env vars
-from its own invocation and records them.  A forged, copied, or absent session
-id is indistinguishable from a real one.
-
-Append semantics
-----------------
-One ``O_APPEND`` ``write`` of a single newline-terminated JSON line.  A single
-``write`` under ``O_APPEND`` is atomic on POSIX for our line sizes.  No fsync —
-the reflog is advisory; fsyncing the index is sufficient.
-
-Reader tolerance
-----------------
-A trailing partial/unparseable line is skipped silently; interior bad lines are
-warn-skipped.  A missing file is an empty log — never an error.
-**Legacy slug-only lines** (no ``session_id``/``parent_session_id`` fields) parse
-with both fields as ``None`` — no forced rewrite.
+Append is one ``O_APPEND`` ``write`` of a newline-terminated line, atomic on POSIX at these sizes,
+with no fsync since the reflog is advisory. A reader skips a trailing partial line silently and
+warn-skips interior bad lines, a missing file is an empty log, and lines without the session fields
+parse with both as ``None``.
 """
 
 import json
@@ -61,22 +33,12 @@ from typing import Any
 
 from squads._models._schema import SCHEMA_VERSION
 
-#: The closed ``op`` vocabulary — **the** list, not one of several.  Every surface that names the
-#: reflog's operations (this module's docstring, ``sq reflog --op``'s help text, the workflow
-#: guide's op table) reads or is checked against this tuple, so a new op cannot be documented in
-#: one place and missed in the others.
-#:
-#: Ordered narrative-first — the ops an item accumulates through its life, then the squad-level
-#: maintenance ops — because ``sq reflog --help`` prints it verbatim and alphabetical order would
-#: scatter related verbs.
-#:
-#: Hand-maintained, because a ``store.log(...)`` call site is a bare string literal at an
-#: arbitrary depth in ``_services/`` and no import-time registry sees them.  ``tests/meta`` pins
-#: this tuple against every such literal in the source tree, in both directions — that AST guard,
-#: not this comment, is what makes "closed" a true claim.
-#:
-#: ``link`` has no CLI verb today (an item's parent moves through ``update`` from the CLI); it is
-#: reachable on the service and emitted by its own tests, so it is vocabulary, not dead weight.
+#: The closed ``op`` vocabulary, the one list every surface naming reflog operations (this
+#: docstring, ``sq reflog --op``'s help, the workflow guide's table) reads or is checked against. It
+#: is ordered narrative-first (item-life ops, then squad maintenance) because ``sq reflog --help``
+#: prints it verbatim, and hand-maintained because ``store.log(...)`` call sites are bare literals;
+#: an AST guard in ``tests/meta`` pins it in both directions, which is what makes "closed" true.
+#: ``link`` has no CLI verb but is emitted by the service, so it stays.
 REFLOG_OPS: tuple[str, ...] = (
     "create",
     "status",
@@ -104,9 +66,8 @@ REFLOG_OPS: tuple[str, ...] = (
 class ReflogLine:
     """One parsed reflog entry.
 
-    ``session_id`` and ``parent_session_id`` are ``None`` for legacy lines
-    (schema < 0.4) that carry no session fields.  Both absence and ``None`` map
-    to the same in-memory value — no rewrite is needed.
+    ``session_id`` and ``parent_session_id`` are ``None`` for lines that carry no
+    session fields; absence and ``None`` map to the same in-memory value.
     """
 
     v: str
@@ -135,15 +96,10 @@ async def append_line(
     session_id: str | None = None,
     parent_session_id: str | None = None,
 ) -> None:
-    """Append one compact JSON line to the reflog file (IO runs on a worker thread).
-
-    ``session_id`` and ``parent_session_id`` are omitted from the written record
-    when ``None`` to keep lines small; the reader defaults both to ``None`` on
-    absence so legacy lines parse cleanly.
-
-    The swallow of ``(OSError, TypeError, ValueError)`` is kept **inside** the
-    threaded closure so no exception ever crosses the loop boundary
-    (reflog never-raise contract).
+    """Append one compact JSON line to the reflog file on a worker thread. ``session_id`` and
+    ``parent_session_id`` are omitted when ``None``, and the reader defaults both to ``None``. The
+    swallow of ``(OSError, TypeError, ValueError)`` stays inside the threaded closure so no
+    exception crosses the loop boundary (the reflog never-raise contract).
     """
     from squads import _aio
 
@@ -223,7 +179,7 @@ async def read_lines(path: Path) -> list[ReflogLine]:
                     op=str(data.get("op", "")),
                     target=str(data.get("target", "")),
                     delta=data.get("delta", {}),
-                    # Legacy lines (schema < 0.4) have no session fields → None.
+                    # A line without session fields reads as None.
                     session_id=str(raw_sid) if raw_sid is not None else None,
                     parent_session_id=str(raw_pid) if raw_pid is not None else None,
                 )

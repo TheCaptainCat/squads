@@ -1,12 +1,9 @@
-"""The memory-entry model — deliberately NOT the ``Item`` model.
+"""The memory-entry model, deliberately not the ``Item`` model.
 
-A memory is a small, agent-authored fact: light frontmatter (a one-line summary,
-``created_at``, optional tags) over a freeform, agent-owned body. There is no schema-version,
-status/workflow machinery, sub-entities, or refs — memory is a lighter tier than an item,
-and no global-counter id is ever allocated for one.
-
-Content files are marker-free: a memory's body carries no ``<!-- sq:... -->`` markers, since
-nothing inside it is regenerated.
+A memory is a small agent-authored fact: light frontmatter (a one-line summary,
+``created_at``, optional tags) over a freeform agent-owned body. It has no schema version,
+workflow, sub-entities or refs, and no counter id is allocated for it. Content files are
+marker-free: nothing in a body is regenerated, so it carries no ``<!-- sq:... -->`` markers.
 """
 
 from dataclasses import dataclass, field

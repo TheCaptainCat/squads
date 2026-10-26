@@ -1,28 +1,20 @@
-"""WorkflowSpec pydantic v2 value objects.
+"""WorkflowSpec pydantic v2 value objects. The loaded spec is the sole vocabulary authority on both
+axes: TOML type keys and status keys stay plain ``str`` (no enum, no closed set). The reserved
+surface is exactly the three roster types (``ROSTER_TYPES``) with their fixed ``category =
+"roster"``; no status name is reserved. Behaviour needing lifecycle semantics resolves through a
+declared status role, never a literal name: ``WorkflowSpec.live_statuses``/``live_initial`` are the
+accessors, and a lifecycle bound to a roster type must meet the floor in ``_validate`` (R1 at least
+one live status; R1' exactly one live status if ``initial`` is not live; R2 a settled, non-live
+status reachable from a live one).
 
-The loaded spec is the sole vocabulary authority for both axes: TOML type keys AND status
-keys stay plain ``str`` (no enum coercion, no closed set). The reserved surface is exactly
-the three roster types (``ROSTER_TYPES``) plus their fixed ``category = "roster"`` — no
-status name is reserved. Instead, engine behaviour that needs lifecycle semantics resolves
-through a declared status *role*, never a literal status name: ``WorkflowSpec.live_statuses``/
-``live_initial`` are the read/create-target accessors, and a lifecycle bound to a
-``category = "roster"`` type must satisfy the additional floor enforced in ``_validate``
-(R1 — at least one live status; R1' — if the lifecycle's ``initial`` is not itself live,
-exactly one status is live; R2 — at least one settled, non-live status reachable from a
-live one).
-
-The capability flags declared here (``category``, ``subentity_kind``, ``parent_required``,
-``ref_rules``) are additive; ``SubentityKindSpec.completion`` is consumed by the sub-entity/
-finding done-toggle (``_services/_subentities.py``). ``StatusSpec.role`` is the sole explicit
-status axis — a reference into the ``RoleSpec`` catalog (``WorkflowSpec.roles``) that carries
-``settled``/``hidden``/``color``; ``is_open``/``terminal_set``/``hidden_by_default`` are all
-derived from the referenced role, never stored directly. They are encoded in
-``workflow.toml``.
-
-``Badge``/``Collection``/``Field`` are the badge-vocabulary schema: ``ItemSpec.fields`` /
-``SubentityKindSpec.fields`` bind a type or sub-entity kind to a reusable ``Collection`` of
-``Badge``s — "does type/kind X carry field Y" is a ``fields_for(X)`` lookup, replacing the old
-closed-set ``Priority``/``Severity`` enums.
+The capability flags (``category``, ``subentity_kind``, ``parent_required``, ``ref_rules``) are
+additive, and ``SubentityKindSpec.completion`` drives the done-toggle
+(``_services/_subentities.py``). ``StatusSpec.role`` is the sole status axis, a reference into the
+``RoleSpec`` catalog (``WorkflowSpec.roles``) carrying ``settled``/``hidden``/``color``;
+``is_open``/``terminal_set``/``hidden_by_default`` are derived from it, never stored.
+``Badge``/``Collection``/``Field`` are the badge schema:
+``ItemSpec.fields``/``SubentityKindSpec.fields`` bind a type or kind to a ``Collection`` of
+``Badge``s, so "does X carry field Y" is a ``fields_for(X)`` lookup.
 """
 
 import math
@@ -42,32 +34,24 @@ from squads._workflow._validator_names import (
     parse_validator_entry,
 )
 
-#: The three roster types the engine binds by literal name — the irreducible
-#: structural minimum: the roster, the backends (which write role/skill files), and the
-#: agent lifecycle genuinely reference these by name. NOT a closed type vocabulary — every
-#: other type (built-in or custom) is ordinary, droppable/renamable spec vocabulary.
+#: The three roster types the engine binds by literal name, the irreducible structural minimum (the
+#: roster, the backends that write role/skill files, and the agent lifecycle reference them by
+#: name). It is not a closed type vocabulary: every other type is ordinary, droppable, renamable
+#: spec vocabulary.
 ROSTER_ROLE = "role"
 ROSTER_SKILL = "skill"
 ROSTER_OPERATOR = "operator"
 ROSTER_TYPES: frozenset[str] = frozenset({ROSTER_ROLE, ROSTER_SKILL, ROSTER_OPERATOR})
 
-#: Top-level CLI verbs a declared item type's name or alias must never collide with — every
-#: name here is a Click command registered at ``sq``'s root (``sq <this>``) that is NOT itself
-#: derived from an item type, so a type claiming one permanently loses its own `sq <type> <n>
-#: <verb>` surface to the built-in (Click dispatches the shorter/first-registered match; the
-#: type's item-level verbs — status/update/body/comment/ref/retype/remove — become unreachable,
-#: with no traceback, just a clean-looking `sq <type>` running the wrong command).
+#: Top-level CLI verbs a declared type's name or alias must never collide with: each is a Click
+#: command at ``sq``'s root not derived from an item type, so a type claiming one would lose its
+#: ``sq <type> <n> <verb>`` surface to the built-in, with no traceback.
+#: ``role``/``skill``/``operator`` are excluded, as they are item types whose command group
+#: legitimately shares the name (the roster floor already makes that key un-droppable).
 #:
-#: ``role``/``skill``/``operator`` are deliberately NOT in this set: those ARE item types (the
-#: fixed roster, ``ROSTER_TYPES``) whose own dedicated command group is expected to share the
-#: name — that is not a collision, it's the same identity, and the roster floor check above
-#: already makes that key un-droppable/un-reassignable.
-#:
-#: This list is intentionally maintained by hand, NOT imported live from `_cli/` — `_workflow`
-#: sits below `_cli` in the module layering (`_cli → _services → _models`/`_workflow`), so it
-#: cannot import the Typer app without an import cycle. `tests/meta` pins this list against the
-#: live registered command set so it cannot silently drift (a new built-in top-level command
-#: added to `_cli/` without a matching entry here would fail that guard, not this one).
+#: It is hand-maintained, not imported from ``_cli/``, since ``_workflow`` sits below ``_cli``
+#: (``_cli -> _services -> _models``/``_workflow``) and cannot import the Typer app without a
+#: cycle; a ``tests/meta`` guard pins it against the live registered command set.
 RESERVED_CLI_VERBS: frozenset[str] = frozenset(
     {
         "adopt",
@@ -99,22 +83,17 @@ RESERVED_CLI_VERBS: frozenset[str] = frozenset(
     }
 )
 
-#: Every alias string the CLI's import-time registration loop binds into the root Click table,
-#: paired with the bundled type whose command group it routes to (``sq feat …`` -> the bundled
-#: ``feature`` group). Registration is unconditional and reads the BUNDLED spec, so these ten
-#: names are live root commands in every squad no matter what the active spec declares — which
-#: makes them exactly as collision-prone as the fixed verbs above, and for the same reason:
-#: Click answers from its own table, so a declared type or alias wearing one of these names is
-#: silently served by the bundled type's command tree instead of its own.
+#: Every alias the CLI's import-time registration binds into the root Click table, paired with
+#: the bundled type whose group it routes to (``sq feat ...`` -> ``feature``). Registration reads
+#: the bundled spec unconditionally, so these ten names are live root commands in every squad, as
+#: collision-prone as the fixed verbs above: a declared type or alias wearing one would be
+#: silently served by the bundled type's tree. Owning the alias is not a collision, so the check
+#: refuses a name only when the declaring type differs from the owner recorded here
+#: (:func:`reserved_alias_owner`).
 #:
-#: Owning the alias is not a collision — the bundled ``feature`` type declaring ``feat`` IS the
-#: static table's entry, not a conflict with it — so the check below refuses a name only when
-#: the *declaring* type differs from the owner recorded here (see :func:`reserved_alias_owner`).
-#:
-#: Hand-maintained for the same layering reason as ``RESERVED_CLI_VERBS`` (``_workflow`` sits
-#: below ``_cli``, and this table is consulted while the bundled spec is still being built, so
-#: it cannot read that spec either). ``tests/meta`` pins it against both the bundled spec's own
-#: alias declarations and the live registered command table, in both directions.
+#: It is hand-maintained for the same layering reason as ``RESERVED_CLI_VERBS`` (and because it
+#: is consulted while the bundled spec is still being built); a ``tests/meta`` guard pins it
+#: against the bundled aliases and the live command table in both directions.
 RESERVED_CLI_ALIASES: tuple[tuple[str, str], ...] = (
     ("b", "bug"),
     ("c", "contract"),
@@ -147,21 +126,19 @@ def reserved_alias_owner(name: str) -> str | None:
 #: shown, so a custom status is fail-safe-visible until its author assigns one.
 FALLBACK_ROLE_NAME = "pending"
 
-#: The closed semantic colour-intent palette a role's ``color`` must be a member of (Plane-1,
-#: enforced in ``WorkflowSpec._validate``). Roles themselves are an OPEN vocabulary — an adopter
-#: may declare custom roles — but colour intent is closed so every client (CLI/TUI/VS Code) can
-#: map any role to a concrete colour with a neutral fallback for one it doesn't recognise.
+#: The closed semantic colour-intent palette a role's ``color`` must belong to (Plane-1, in
+#: ``WorkflowSpec._validate``). Roles are an open vocabulary, but colour intent is closed so every
+#: client (CLI/TUI/VS Code) can map any role to a concrete colour, with a neutral fallback for an
+#: unrecognised one.
 COLOR_INTENTS: frozenset[str] = frozenset(
     {"positive", "danger", "warning", "muted", "neutral", "info"}
 )
 
 
-#: What a bare ``subentity_title_max`` selection resolves to; a type's own
-#: ``subentity_title_max:<n>`` entry names a different number. Callers that want "the bundled
-#: number" without touching validator machinery (e.g. a test fixture building an over-threshold
-#: title) read this constant; nothing reads it as a live threshold --
-#: :meth:`WorkflowSpec.item_subentity_title_max` is the only resolver ``sq check`` and the
-#: create-time advisory use, and it answers ``None`` for a type that does not select the check.
+#: What a bare ``subentity_title_max`` selection resolves to; a type's ``subentity_title_max:<n>``
+#: names another number. Callers wanting the bundled number without validator machinery read this,
+#: but nothing reads it as a live threshold: :meth:`WorkflowSpec.item_subentity_title_max` is the
+#: only resolver (``None`` for a type not selecting the check).
 DEFAULT_SUBENTITY_TITLE_MAX: int = 120
 
 
@@ -228,43 +205,23 @@ class Lifecycle(BaseModel):
 
 
 class RefRule(BaseModel):
-    """A declared ref-kind rule for a type.
+    """A declared ref-kind rule for a type, e.g. ``task`` -> ``fixes``/``addresses`` (drives the
+    parent hint) or ``decision`` -> ``supersedes`` (gates the superseded-record warning). It is a
+    rule about a kind, never a permission: :meth:`WorkflowSpec.parent_hint` appends the declared
+    ``hint``, and ``sq check``'s ``supersedes_incoming`` runs only for a type declaring a
+    ``supersedes`` rule, so dropping ``decision`` takes the check with it. It is not an allowlist of
+    the kinds a type may carry (the navigational kinds are carried by every type and declared by
+    none), and the accepted ``--kind`` vocabulary is declared spec vocabulary
+    (``WorkflowSpec.ref_kinds``). What is enforced is that it can apply: the loader refuses a
+    ``kind`` not in ``[ref_kinds]``, as the rule could never fire.
 
-    Examples:
-    - task → fixes / addresses (drives the parent_hint suffix)
-    - decision → supersedes (gates the sq check superseded-record warning)
-
-    **What a rule does and does not do.** It is a *rule about* a kind, never a permission for
-    one. Two consumers read it today, both keyed on the declaring type:
-    :meth:`WorkflowSpec.parent_hint` appends the declared ``hint`` text, and ``sq check``'s
-    ``supersedes_incoming`` validator only runs for a type that declares a ``supersedes``
-    rule — so a project that renames or drops ``decision`` takes that check with it.
-
-    It is **not** an allowlist of the kinds a type may carry, and reading it as one would be a
-    change of meaning rather than an enforcement of the existing one: the bundled document
-    declares rules on two types only, while the navigational kinds (``related``,
-    ``depends-on``, ``blocks``, ``implements``, ``duplicates``, ``scopes``) are carried by
-    every type and declared by none. The accepted ``--kind`` vocabulary is declared spec
-    vocabulary (``WorkflowSpec.ref_kinds``), not a fixed set in code, so an adopter-declared
-    kind is an ordinary ``ref_rules`` target too, on the same terms as any bundled kind;
-    scoping ``ref add`` per type would still need a rule of its own, this one just validates
-    against the merged spec instead of a frozenset.
-
-    What *is* enforced about a declaration is that it can actually apply: the loader refuses a
-    rule whose ``kind`` isn't a declared entry of ``[ref_kinds]``, because every ref surface
-    would reject that kind and the rule could never fire.
-
-    ``target`` (optional) **types** the rule: an edge of this kind, declared by this type, is
-    expected to point at an item of the named type — e.g. ``feature``'s ``implements`` rule
-    targets ``contract``, disambiguating a kind reused for more than one relationship. It is
-    **not** an allowlist and restricts nothing on its own (a ``feature`` carrying
-    ``implements`` to a ``decision`` is unaffected unless its type selects
-    ``ref_rule_target_typed``, which reports such an edge); requiredness stays with
-    ``ref_rule_target_present``. Referential validation (Plane-1,
-    ``check_ref_rule_targets``) checks ``target`` names a declared item type —
-    ``_parse_ref_rules`` cannot: item types are known only after every ``[items.*]`` block has
-    parsed, while it sees the declared ref *kinds* alone. Carried on the same declared-
-    vocabulary, nothing-published terms as ``kind``/``hint``."""
+    ``target`` (optional) types the rule: an edge of this kind from this type is expected to point
+    at the named type (``feature``'s ``implements`` targets ``contract``, disambiguating a reused
+    kind). It restricts nothing by itself (``ref_rule_target_typed`` reports a mismatch if selected;
+    requiredness is ``ref_rule_target_present``), and Plane-1 ``check_ref_rule_targets`` checks it
+    names a declared item type, which ``_parse_ref_rules`` cannot since types are known only after
+    every ``[items.*]`` block parses.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -279,30 +236,17 @@ class RefRule(BaseModel):
 
 
 class RefKindSpec(BaseModel):
-    """One declared entry of ``[ref_kinds]`` — a navigational or semantically-bound ref kind.
-
-    Identity is the dict key on ``WorkflowSpec.ref_kinds``, never restated on the value — the
-    convention ``ItemSpec``/``StatusSpec``/``Lifecycle``/``Collection`` already follow.
-
-    ``role`` binds engine behaviour to a declared semantic instead of a spelling, so a project
-    may rename or drop any kind without silently losing the behaviour bound to it. A kind
-    declaring no ``role`` is purely navigational (display + graph traversal only) — the
-    default, and what an adopter-declared kind gets unless it says otherwise. Three of the four
-    values (``dependency``, ``preload``, ``supersession``) are read by engine sites elsewhere,
-    not by anything here; nothing in this module branches on them.
-
-    The fourth, ``default``, is the one the ref primitives (``split_ref``/``make_ref``) already
-    consume: exactly one declared kind must carry it (mandatory — a bare ``"ID"`` ref decodes
-    to whichever kind does, so a spec declaring none would turn existing on-disk data into a
-    load failure), and the bundled spec declares it on ``related``. Renaming the kind that
-    carries it is permitted and safe: the bare wire form binds to the semantic, never a
-    spelling, so a rename relabels the same edges instead of re-pointing them. Because ``role``
-    is one field, the kind carrying ``default`` can never simultaneously carry ``dependency``,
-    ``preload`` or ``supersession`` — that reassignment is unrepresentable, not merely checked.
-
-    ``direction`` only ever accompanies ``role = "dependency"`` (``"blocker"`` or
-    ``"dependent"``) — carried here, alongside ``role``, so the catalog command can emit it
-    without a second per-kind table.
+    """One declared entry of ``[ref_kinds]``, a navigational or semantically-bound ref kind;
+    identity is the dict key, never restated on the value, as for
+    ``ItemSpec``/``StatusSpec``/``Lifecycle``/``Collection``. ``role`` binds engine behaviour to a
+    declared semantic, not a spelling, so a project may rename or drop a kind without silently
+    losing it; no ``role`` means purely navigational. ``dependency``, ``preload`` and
+    ``supersession`` are read by engine sites elsewhere. ``default`` is consumed by the ref
+    primitives (``split_ref``/``make_ref``): exactly one kind must carry it, since a bare ``"ID"``
+    decodes to it and none would turn existing data into a load failure (the bundled spec puts it on
+    ``related``), and renaming it is safe as the bare form binds to the semantic. As ``role`` is one
+    field, the ``default`` kind can never also carry another role. ``direction``
+    (``"blocker"``/``"dependent"``) accompanies only ``role = "dependency"``.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -406,12 +350,12 @@ class SubentityKindSpec(BaseModel):
 
 
 class LabelSpec(BaseModel):
-    """Optional per-type display-label overrides: four independently-optional,
-    named forms — ``singular``/``plural``/``singular_lower``/``plural_lower``. Each omitted
-    form falls back to a value computed from the type-name string (``label_for`` in
-    ``_models/_vocab.py`` — the sole fallback authority); a regular type needs no ``labels``
-    table at all, an acronym/irregular type pins only the forms derivation gets wrong (e.g. an
-    acronym's ``*_lower`` forms must stay capitalized, never a lowercased ``singular``)."""
+    """Optional per-type display-label overrides, four independently optional forms
+    (``singular``/``plural``/``singular_lower``/``plural_lower``). An omitted form falls back to a
+    value computed from the type name (``label_for`` in ``_models/_vocab.py``, the sole fallback
+    authority); a regular type needs no table, and an acronym or irregular type pins only the forms
+    derivation gets wrong (an acronym's ``*_lower`` forms must stay capitalized).
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -422,14 +366,12 @@ class LabelSpec(BaseModel):
 
 
 class ItemSpec(BaseModel):
-    """Vocabulary for one item type: prefix, folder, lifecycle, parents, aliases.
-
-    Capability flags are additive and default to the ``False``/``None`` values
-    that represent the common case (a non-roster work item with no special spine).
-    They are consumed by the engine: ``category`` selects the type's validator bundle
-    (:data:`CATEGORY_BUNDLES`), ``subentity_kind``/``parent_required``/``ref_rules`` are each
-    read by a named validator, and :func:`check_category_consistency` refuses a declaration
-    whose enforcing validator the type's own category does not turn on.
+    """Vocabulary for one item type: prefix, folder, lifecycle, parents, aliases. The capability
+    flags are additive and default to the common case (a non-roster work item): ``category`` selects
+    the validator bundle (:data:`CATEGORY_BUNDLES`),
+    ``subentity_kind``/``parent_required``/``ref_rules`` are each read by a named validator, and
+    :func:`check_category_consistency` refuses a declaration whose enforcing validator the type's
+    category does not turn on.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -524,38 +466,24 @@ class ItemSpec(BaseModel):
     (:func:`effective_validator_names`'s de-duplication)."""
 
 
-#: The fixed, closed three-member category catalog — read off ``ItemSpec.category``'s own
-#: ``Literal`` annotation (single-sourced) rather than a hand-duplicated tuple, so a caller
-#: validating a ``--category`` value (or enumerating the axis for a filter/help text) never
-#: drifts from the type actually declared above. Not spec vocabulary: an adopter cannot add,
-#: rename, or remove a category — the catalog is closed, only its per-type assignment is open.
+#: The fixed three-member category catalog, read off ``ItemSpec.category``'s ``Literal`` (single-
+#: sourced) so a caller validating ``--category`` or enumerating the axis cannot drift. It is not
+#: spec vocabulary: an adopter cannot add, rename or remove a category, only assign one per type.
 CATEGORIES: tuple[str, ...] = get_args(ItemSpec.model_fields["category"].annotation)
 
 
 class ViewSource(BaseModel):
-    """What a derived view resolves against — six shapes, named by *kind*. The first three are
-    relations (a join over other items); the last three resolve without one:
+    """What a derived view resolves against, six shapes by *kind*; the first three are relations,
+    the rest resolve without one. ``"ref"``: refs of the declared kind ``name`` (in ``[ref_kinds]``)
+    pointing at the host, recovered by inverting stored forward edges. ``"subentity"``: the host's
+    own sub-entity collection of kind ``name`` (in ``[subentity_kinds]``, which the host must host).
+    ``"subtree"``: the host's descendants of type ``name`` (in ``[items]``). ``"role"``: the host's
+    own merged role definition (catalog, overrides, item fields), no ``name``. ``"playbook"``: the
+    playbook lane of type ``name`` (in ``[items]``) or of the host's type when absent. ``"self"``:
+    the host itself, no ``name``.
 
-    - ``"ref"`` — refs of the declared kind named by ``name`` pointing at the item the view is
-      resolved against, recovered by inverting stored forward edges. ``name`` must be a
-      declared entry of ``[ref_kinds]``.
-    - ``"subentity"`` — the projecting item's own sub-entity collection of the kind named by
-      ``name``. ``name`` must be a declared entry of ``[subentity_kinds]``, and the item the
-      view resolves against must itself host that kind.
-    - ``"subtree"`` — the projecting item's descendants whose type is the one named by
-      ``name``. ``name`` must be a declared entry of ``[items]``.
-    - ``"role"`` — the projecting item's own merged role definition (catalog + overrides +
-      item fields). Takes no ``name``: a role source always reads the host, never another
-      declared role.
-    - ``"playbook"`` — the playbook lane of the type named by ``name``, or the projecting
-      item's own type when ``name`` is absent. ``name``, when given, must be a declared entry
-      of ``[items]``.
-    - ``"self"`` — the projecting item itself, with no join at all. Takes no ``name``.
-
-    ``name`` is checked against the merged spec by the same referential pass every other
-    workflow-spec cross-reference goes through (see ``check_views``); it is never a Python
-    literal at the resolving end (``squads._views``), which reads it off the declared source
-    instead.
+    ``name`` is checked against the merged spec by ``check_views`` and is never a Python literal at
+    the resolving end (``squads._views``), which reads it off the declared source.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -569,17 +497,12 @@ class ViewSource(BaseModel):
     strictly required or strictly forbidden."""
 
 
-#: A view name is a bare TOML key and nothing else — reuses
-#: :data:`_BARE_TOML_KEY_RE`'s own grammar (defined below, alongside ``[ref_kinds]``'s
-#: identical floor) rather than a second copy of the same pattern; enforced at load in
-#: :func:`check_views` rather than by ``ViewSpec`` itself, since the dict *key* is what is
-#: being constrained, not any field on the value. Two reasons, both load-bearing: the
-#: disabled-state suffix is colon-delimited (``squads._models._markers._DISABLED_SUFFIX``), so a
-#: colon inside the name itself would make that suffix ambiguous; and a character outside
-#: :data:`~squads._sections.MARKER_RE`'s class (word characters, ``:``, ``-``) would make the
-#: tag invisible to ``find_markers``/``reject_markers``, the property this whole family depends
-#: on. ``end`` is refused too: ``sq:view:end`` spells a close marker, and the marker-pairing
-#: scan would count it as one.
+#: A view name is a bare TOML key and nothing else, reusing :data:`_BARE_TOML_KEY_RE`; enforced in
+#: :func:`check_views`, not ``ViewSpec``, since the dict key is constrained. A colon would make the
+#: colon-delimited disabled suffix (``squads._models._markers._DISABLED_SUFFIX``) ambiguous, and a
+#: character outside :data:`~squads._sections.MARKER_RE`'s class would hide the tag from
+#: ``find_markers``/``reject_markers``. ``end`` is refused too, as ``sq:view:end`` spells a close
+#: marker.
 RESERVED_VIEW_NAME = "end"
 
 
@@ -600,17 +523,13 @@ _AFTER_POSITION_RE = re_compile(r"^after\((?P<pattern>.*)\)$")
 
 
 def parse_view_position(raw: str) -> ViewPosition:
-    """*raw* (a ``[views.<name>]`` entry's ``position`` string) parsed into a
-    :class:`ViewPosition` — the one place the grammar (``"top"``, ``"bottom"``,
-    ``"after(<regex>)"``) is recognised, so :func:`check_views` (validating) and the
-    placement routine (``squads._views``, consuming) can never disagree about what a position
-    string means. Dispatches on shape rather than growing an ``if/elif`` chain callers repeat,
-    so a later grammar value adds one branch here, never a second parser.
-
-    Raises :class:`ValueError` — never a bare string return — for an unrecognised value or an
-    ``after(...)`` pattern that fails to compile, so callers that must defer the failure into a
-    collect-all report (:func:`check_views`) catch it, and a runtime caller that only ever
-    sees an already-validated spec is free not to."""
+    """*raw* (a ``[views.<name>]`` ``position`` string) parsed into a :class:`ViewPosition`: the one
+    place the grammar (``"top"``, ``"bottom"``, ``"after(<regex>)"``) is recognised, so
+    :func:`check_views` and the placement routine (``squads._views``) cannot disagree, and a new
+    value adds one branch. It raises :class:`ValueError` for an unrecognised value or an
+    ``after(...)`` pattern that does not compile, so :func:`check_views` can defer it into its
+    collect-all report.
+    """
     if raw == "top":
         return ViewPosition("top")
     if raw == "bottom":
@@ -639,30 +558,20 @@ class ViewTransform(BaseModel):
 
 
 class ViewSpec(BaseModel):
-    """One declared entry of ``[views]`` — a source, and where its tag is placed.
+    """One declared entry of ``[views]``: a source and where its tag is placed. Identity is the dict
+    key, not restated on the value, and the presentation template resolves from that key
+    (``templates/views/<name>.md.j2``), so no ``presentation`` field exists. Grouping and ordering
+    are not spec grammar: a template does its own with Jinja against the source's unflattened shape
+    (``squads._views``).
 
-    Identity is the dict key on ``WorkflowSpec.views``, never restated on the value (the
-    convention ``ItemSpec``/``StatusSpec``/``Lifecycle``/``Collection``/``RefKindSpec`` already
-    follow); a view's presentation template resolves from that same key
-    (``templates/views/<name>.md.j2``), so no ``presentation`` field is declared either — the
-    template path *is* the declared identity, the same way the dict key already is.
-
-    Grouping and ordering are not spec grammar — a presentation template does its own with
-    Jinja's ``groupby``/``sort``/``selectattr`` under ``StrictUndefined``, against the source's
-    own unflattened shape (see ``squads._views``).
-
-    ``position`` says where the placement routine re-inserts
-    this view's tag on every body write: ``"top"`` (the region's first line), ``"bottom"`` (the
-    default — its last line), or ``"after(<regex>)"`` (its own line after the line where the
-    pattern's first match against the region's prose ends; no match falls back to ``"bottom"``
-    silently). Kept here as the **raw string** — ``extra="forbid"`` on this model only checks
-    it is a string, never that it parses — so an unrecognised value or a pattern that fails to
-    compile is reported through :func:`check_views`'s collect-all pass rather than aborting
-    the whole load at the first bad view; :func:`parse_view_position` is where it turns into a
-    typed :class:`ViewPosition`, called both by that check and by the placement routine, never
-    hand-parsed a second way at either call site. ``position`` carries no order key: several
-    views resolving to the same place go in the declared order of the merged ``[views]``
-    mapping (``squads._views``'s placement routine)."""
+    ``position`` says where the placement routine re-inserts the tag on every body write: ``"top"``,
+    ``"bottom"`` (default) or ``"after(<regex>)"`` (its own line after the first match's line,
+    falling back to ``"bottom"`` silently). It is kept as the raw string, as ``extra="forbid"``
+    checks only that it is a string, so a bad value is reported by :func:`check_views`'s collect-all
+    pass instead of aborting the load; :func:`parse_view_position` types it for both that check and
+    the placement routine. Several views resolving to one place go in the declared order of the
+    merged ``[views]``.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -672,36 +581,18 @@ class ViewSpec(BaseModel):
 
 
 class RoleSpec(BaseModel):
-    """A first-class status ROLE object — the sole explicit status axis.
-
-    A status references one role by name (``StatusSpec.role``); the role object carries the
-    behaviour that governs how a status is treated:
-
-    - ``settled`` — is this a resting/end state?
-    - ``hidden`` — hidden from the default (non-``--all``) view?
-    - ``color`` — a semantic colour intent (one client-agnostic vocabulary word, not a
-      concrete colour); must be a member of ``COLOR_INTENTS`` (Plane-1, enforced at load).
-    - ``live`` — is an entity resting in a status with this role the current, in-force instance
-      of itself, and therefore available to be spawned, loaded, cited, and assigned? This is a
-      **declared** property of the role, stated per status role rather than derived from
-      ``settled`` — it is deliberately *narrower* than not-settled. Three bundled roles
-      (``pending``, ``attention``, ``blocked``) are themselves non-settled without being live:
-      "not at rest" and "on offer" are different questions, and a suspended or provisional entry
-      should not be treated as live merely because it isn't settled. Defaults ``False``,
-      deliberately the opposite direction from ``hidden``'s default: wrongly hiding an item is
-      recoverable, wrongly treating one as live writes an agent into a host's config, which is
-      the worse mistake. Materialisation into a backend's generated files is the downstream
-      *consequence* of this flag for the roster, not what it names — the flag lives in
-      vocabulary every item type shares, so it has to read sensibly on an ordinary work status
-      too, not only a roster one.
-    - ``blocked`` — do the role's statuses mean the item is waiting on something else? Defaults
-      ``False``; unlike the other booleans it accepts only a TOML boolean.
-    - ``deferred`` — is the work of an entity resting in this role's statuses carried by another
-      item that the entity names? Defaults ``False`` and accepts only a TOML boolean. Only a
-      sub-entity lifecycle may reach such a status.
-
-    Roles are an OPEN vocabulary (an adopter may declare custom roles); colour intent is a
-    CLOSED palette so every client can render any role safely with a neutral fallback.
+    """A first-class status ROLE object, the sole explicit status axis: a status references one by
+    name (``StatusSpec.role``) and the role carries the behaviour. ``settled`` is a resting/end
+    state; ``hidden`` is hidden from the default (non-``--all``) view; ``color`` is a semantic
+    colour intent from ``COLOR_INTENTS`` (Plane-1). ``live`` declares that an entity resting there
+    is the current, in-force instance, available to be spawned, loaded, cited and assigned; it is
+    narrower than not-settled (the bundled ``pending``, ``attention`` and ``blocked`` roles are
+    neither), defaults ``False`` because wrongly treating an item as live writes an agent into a
+    host's config, and, living in vocabulary every type shares, reads sensibly on a work status too.
+    ``blocked`` (the statuses mean waiting on something else) and ``deferred`` (the work is carried
+    by another item the entity names; only a sub-entity lifecycle may reach it) default ``False``
+    and accept only a TOML boolean. Roles are an open vocabulary and colour intent a closed palette
+    with a neutral fallback.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -715,13 +606,11 @@ class RoleSpec(BaseModel):
 
 
 class StatusSpec(BaseModel):
-    """A role reference + optional sub-entity badge for one status name.
-
-    ``role`` names an entry in ``WorkflowSpec.roles`` — the single source for this status's
-    settled/hidden/colour behaviour (``terminal``/``is_open`` are derived, never stored here).
-    An absent role resolves to the bundled ``FALLBACK_ROLE_NAME`` ("pending") role, so a custom
-    status is fail-safe-visible until its author assigns one. ``badge`` stays independent — the
-    sub-entity glyph is orthogonal to the role's colour/settled/hidden behaviour.
+    """A role reference plus an optional sub-entity badge for one status. ``role`` names an entry in
+    ``WorkflowSpec.roles``, the single source of settled/hidden/colour behaviour
+    (``terminal``/``is_open`` are derived); an absent role resolves to the bundled
+    ``FALLBACK_ROLE_NAME`` ("pending"), so a custom status is fail-safe-visible until assigned one.
+    ``badge`` is independent, the sub-entity glyph being orthogonal to the role.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -735,11 +624,10 @@ class StatusSpec(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-# Bundled sub-entity container headings, keyed by kind and paired with the PLURAL that
-# heading belongs to — see WorkflowSpec.subentity_container_heading. The plural is what makes
-# the entry conditional rather than absolute: keyed by kind code alone, this table outranked an
-# adopter's declared plural for the three bundled kind names, rendering "## User Stories" above
-# a container marked `sq:outcomes`.
+# Bundled sub-entity container headings, keyed by kind and paired with the plural they belong to
+# (see WorkflowSpec.subentity_container_heading), so an adopter's declared plural wins over the
+# bundled wording: a story plural renamed to `outcomes` must not render "## User Stories" above a
+# container marked `sq:outcomes`.
 _BUNDLED_CONTAINER_HEADINGS: dict[str, tuple[str, str]] = {
     "story": ("stories", "User Stories"),
     "subtask": ("subtasks", "Subtasks"),
@@ -761,14 +649,10 @@ class SquadSpec(BaseModel):
 
 
 class WorkflowSpec(BaseModel):
-    """The full loaded workflow specification.
-
-    Built by ``load_workflow_spec()``. A module-level singleton is used via
-    the free-function shims; equivalent methods are provided for callers that
-    hold an explicit spec.
-
-    ``extra="forbid"``: unknown TOML keys are rejected at construction time,
-    matching the roles/playbook loaders.
+    """The full loaded workflow specification, built by ``load_workflow_spec()`` and carried by the
+    caller (``Service.spec``); there is no process-global mutable or active spec (the bundled spec
+    is loaded once and read-only). ``extra="forbid"`` rejects unknown TOML keys at construction, as
+    the roles and playbook loaders do.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -803,13 +687,11 @@ class WorkflowSpec(BaseModel):
     # ------------------------------------------------------------------ convenience accessors
 
     def machine_for(self, item_type: str) -> Lifecycle:
-        """The lifecycle machine bound to *item_type*.
-
-        Raises ``KeyError`` when *item_type* isn't declared (or, on a corrupt spec, when its
-        declared lifecycle name doesn't resolve) — there is no sensible empty ``Lifecycle`` to
-        degrade to, the same shape as :meth:`collection`. Callers that must survive a
-        dropped/renamed type gate first (``item_type in spec.items``) or go through a
-        degrading wrapper like :meth:`live_statuses` instead of calling this directly.
+        """The lifecycle machine bound to *item_type*. It raises ``KeyError`` when *item_type* is
+        undeclared (or a corrupt spec's lifecycle name does not resolve), as there is no sensible
+        empty ``Lifecycle``, like :meth:`collection`; a caller that must survive a dropped type
+        gates on ``item_type in spec.items`` first or uses a degrading wrapper such as
+        :meth:`live_statuses`.
         """
         return self.lifecycles[self.items[item_type].lifecycle]
 
@@ -820,14 +702,13 @@ class WorkflowSpec(BaseModel):
         return self.machine_for(item_type).can_transition(src, dst)
 
     def role_for(self, status: str) -> RoleSpec:
-        """The resolved role object for *status* — never raises, on a validated spec or not.
-
-        An absent ``StatusSpec.role`` falls back to ``FALLBACK_ROLE_NAME`` ("pending"); an
-        undeclared *status* itself (a dropped/renamed status) degrades the same way, treated
-        exactly like a declared status with no role assigned — mirrors the validation-time
-        ``_status_settled``/``_status_live`` helpers' ``.get()`` idiom. The single derivation
-        site every settled/hidden/colour/live read routes through; ``_validate`` guarantees the
-        fallback role itself is declared, so the final ``roles[...]`` lookup is total."""
+        """The resolved role object for *status*; it never raises, validated spec or not. An absent
+        ``StatusSpec.role`` falls back to ``FALLBACK_ROLE_NAME`` ("pending"), and an undeclared
+        status (dropped or renamed) is treated as one with no role, like the ``.get()`` idiom of
+        ``_status_settled``/``_status_live``. Every settled/hidden/colour/live read routes through
+        it, and ``_validate`` guarantees the fallback role is declared, so the final ``roles[...]``
+        lookup is total.
+        """
         spec = self.statuses.get(status)
         role_name = (spec.role if spec else None) or FALLBACK_ROLE_NAME
         return self.roles[role_name]
@@ -836,18 +717,12 @@ class WorkflowSpec(BaseModel):
         return not self.role_for(status).settled
 
     def hidden_by_default(self, item_type: str, status: str) -> bool:
-        """True when an item of *item_type* carrying *status* is hidden from the default
-        (non-``--all``) ``sq list``/``sq tree`` view.
-
-        Purely role-derived — ``role_for(status).hidden`` — no category branch: the role
-        object alone encodes whether an item at this status stays visible. A ``done`` role
-        (e.g. ``Done``, ``Verified``) hides; an ``in_force`` role (e.g. ``Accepted``,
-        ``Published``) is settled but stays visible — that split is what a single role object
-        expresses that a bare ``terminal`` flag could not.
-
-        Never raises — inherits ``role_for``'s total degrade for an undeclared *status*; a
-        dropped/renamed status defaults to not-hidden (the ``pending`` fallback role's own
-        setting), same as any other roleless status.
+        """True when an item of *item_type* at *status* is hidden from the default (non-``--all``)
+        ``sq list``/``sq tree``, purely role-derived (``role_for(status).hidden``) with no category
+        branch: a ``done`` role (``Done``, ``Verified``) hides while an ``in_force`` role
+        (``Accepted``, ``Published``) is settled yet visible, which a bare ``terminal`` flag could
+        not express. It never raises: an undeclared status defaults to not-hidden via the
+        ``pending`` fallback.
         """
         return self.role_for(status).hidden
 
@@ -919,13 +794,12 @@ class WorkflowSpec(BaseModel):
         return ts.parent_required if ts else None
 
     def item_subentity_title_max(self, item_type: str) -> int | None:
-        """The ``subentity_title_max`` threshold *item_type* runs, or ``None`` when its
-        effective validator set does not hold the member (or the type is not declared). A
-        selection carrying ``:<n>`` gives ``n``; a bare selection gives
-        :data:`DEFAULT_SUBENTITY_TITLE_MAX`. The one resolver both ``sq check``
+        """The ``subentity_title_max`` threshold *item_type* runs, or ``None`` when its effective
+        validator set lacks the member (or the type is undeclared): a ``:<n>`` selection gives ``n``
+        and a bare one :data:`DEFAULT_SUBENTITY_TITLE_MAX`. It is the one resolver for ``sq check``
         (``_services/_validators.py::_subentity_title_max``) and the create-time advisory
-        (``_services/_subentities.py``) ask, so the two never disagree on whether the check
-        runs or at what number."""
+        (``_services/_subentities.py``), so they agree on whether the check runs and at what number.
+        """
         ts = self.items.get(item_type)
         if ts is None or "subentity_title_max" not in effective_bare_validators(ts):
             return None
@@ -975,14 +849,11 @@ class WorkflowSpec(BaseModel):
         return list(ts.ref_rules) if ts else []
 
     def default_ref_kind(self) -> str:
-        """The one declared ``[ref_kinds]`` entry carrying ``role = "default"`` — what a bare
-        ``"ID"`` ref (:func:`~squads._models._item.split_ref`'s unspelled ``""``) actually
-        means.
-
-        Raises ``SquadsError`` when the merged spec declares zero or more than one — a
-        per-capability floor clause elsewhere is meant to keep this total at merge time,
-        landing alongside the rest of that floor; this accessor still fails closed rather than
-        guessing, since a bare ref is undecodable without exactly one.
+        """The one declared ``[ref_kinds]`` entry carrying ``role = "default"``, which a bare
+        ``"ID"`` ref (:func:`~squads._models._item.split_ref`'s unspelled ``""``) means. It raises
+        ``SquadsError`` when the merged spec declares zero or several: the per-capability floor
+        keeps it total at merge time, but a bare ref is undecodable without exactly one, so the
+        accessor fails closed rather than guessing.
         """
         defaults = [k for k, ks in self.ref_kinds.items() if ks.role == "default"]
         if len(defaults) != 1:
@@ -1000,13 +871,10 @@ class WorkflowSpec(BaseModel):
         return {k: ks for k, ks in self.ref_kinds.items() if ks.role == role}
 
     def preload_ref_kind(self) -> str:
-        """The one declared ``[ref_kinds]`` entry carrying ``role = "preload"`` — a skill's
-        forward edge to the role that preloads it, inverted by the roster resolver.
-
-        Raises ``SquadsError`` when the merged spec declares zero or more than one — the
-        per-capability floor (:func:`check_ref_kinds_floor`) keeps this total at merge time;
-        this accessor still fails closed rather than guessing, the same shape as
-        :meth:`default_ref_kind`.
+        """The one declared ``[ref_kinds]`` entry carrying ``role = "preload"``, a skill's forward
+        edge to the role that preloads it, inverted by the roster resolver. Like
+        :meth:`default_ref_kind` it raises ``SquadsError`` for zero or several, which
+        :func:`check_ref_kinds_floor` prevents at merge time, rather than guessing.
         """
         preloads = sorted(self.ref_kinds_with_role("preload"))
         if len(preloads) != 1:
@@ -1063,15 +931,12 @@ class WorkflowSpec(BaseModel):
         return spec.role if spec else None
 
     def live_statuses(self, item_type: str) -> frozenset[str]:
-        """States of *item_type*'s own lifecycle whose resolved role carries the ``live``
-        flag — the read predicate every "is this entry on offer" caller uses instead of naming
-        a status literal or a role name: ``item.status in spec.live_statuses(item.type)``.
-        Fallback resolution (an undeclared ``StatusSpec.role`` resolves to
-        ``FALLBACK_ROLE_NAME``, itself not live) applies, via ``role_for``.
-
-        Also ``frozenset()`` when *item_type* isn't declared — a dropped/renamed type has no
-        lifecycle to report live states for, so this gates before calling :meth:`machine_for`
-        (which would otherwise raise) rather than crash the caller."""
+        """States of *item_type*'s own lifecycle whose resolved role carries the ``live`` flag: the
+        predicate every "is this entry on offer" caller uses instead of a status or role literal
+        (``item.status in spec.live_statuses(item.type)``), with fallback resolution via
+        ``role_for`` (the fallback role is not live). It is ``frozenset()`` for an undeclared type,
+        gating before :meth:`machine_for` so a dropped type does not crash the caller.
+        """
         if item_type not in self.items:
             return frozenset()
         machine = self.machine_for(item_type)
@@ -1090,15 +955,14 @@ class WorkflowSpec(BaseModel):
     def _first_status_matching(
         self, item_type: str, predicate: Callable[[RoleSpec], bool]
     ) -> str | None:
-        """Shared walk for :meth:`first_active_status`/:meth:`first_settled_status`: the
-        first status on *item_type*'s own lifecycle **spine** — :func:`lifecycle_spine`'s
-        happy-path chain, not full BFS reachability order — whose resolved role satisfies
-        *predicate*. The spine specifically (not BFS order) matters: an exception branch
-        like ``Cancelled`` can resolve to a settled role at a shallower BFS depth than the
-        actual happy-path terminal and would otherwise be matched first. *item_type* may also
-        be a sub-entity kind (:meth:`_machine_for_type_or_kind`'s dual namespace) — the derived
-        views engine walks a sub-entity record's own kind through the same accessor. ``None``
-        when *item_type* names neither, or no status on its spine matches."""
+        """Shared walk for :meth:`first_active_status`/:meth:`first_settled_status`: the first
+        status on *item_type*'s lifecycle spine (:func:`lifecycle_spine`) whose role satisfies
+        *predicate*. It uses the spine, not BFS order, since an exception branch like ``Cancelled``
+        can resolve settled at a shallower depth than the happy-path terminal. *item_type* may also
+        be a sub-entity kind (:meth:`_machine_for_type_or_kind`'s dual namespace), as the views
+        engine walks a record's own kind; ``None`` when it names neither or nothing on the spine
+        matches.
+        """
         machine = self._machine_for_type_or_kind(item_type)
         if machine is None:
             return None
@@ -1108,64 +972,42 @@ class WorkflowSpec(BaseModel):
         return None
 
     def first_active_status(self, item_type: str) -> str | None:
-        """The first status in *item_type*'s own lifecycle whose resolved role carries the
-        ``live`` flag — "the state you move an item to once you actually start working it",
-        as a concrete example status derived from the spec rather than a literal like
-        ``"InProgress"`` that only happens to be right for the bundled ``work`` lifecycle.
-
-        Returns ``None`` when *item_type* isn't declared, or its lifecycle has no live
-        status at all (a fully static lifecycle) — a caller building a "move it forward"
-        example should fall back to describing the concept rather than naming a status.
+        """The first status in *item_type*'s lifecycle whose role carries ``live``: "the state you
+        move an item to once you start working it", derived from the spec rather than a literal like
+        ``"InProgress"`` that suits only the bundled ``work`` lifecycle. ``None`` when the type is
+        undeclared or has no live status, and a caller building a "move it forward" example should
+        then describe the concept rather than name a status.
         """
         return self._first_status_matching(item_type, lambda r: r.live)
 
     def first_settled_status(self, item_type: str) -> str | None:
-        """The first status in *item_type*'s own lifecycle whose resolved role is
-        ``settled`` — "the happy-path terminal state", generalizing a literal like
-        ``"Done"`` (right only for the bundled ``work``/``bug`` lifecycles) to any
-        lifecycle's own closing state, whatever it's named (e.g. ``"Accepted"`` for a
-        decision, ``"Published"`` for a guide). *item_type* may also be a sub-entity kind,
-        resolved against its own declared ``lifecycle`` the same way — the axis the derived
-        views engine reads to tell a genuinely delivered record from one that merely settled.
-
-        Returns ``None`` when *item_type* isn't declared, or its lifecycle reaches no
-        settled status at all (shouldn't happen on a valid spec, but this is a read
-        helper for generated prose, not a validator — it degrades rather than raises).
+        """The first status in *item_type*'s lifecycle whose role is ``settled``: "the happy-path
+        terminal state", generalising ``"Done"`` to a lifecycle's own closing state (``"Accepted"``
+        for a decision, ``"Published"`` for a guide). *item_type* may be a sub-entity kind, resolved
+        against its declared ``lifecycle``, which the views engine uses to tell a delivered record
+        from one that merely settled. ``None`` when undeclared or no settled status is reached; it
+        degrades, as a read helper for generated prose rather than a validator.
         """
         return self._first_status_matching(item_type, lambda r: r.settled)
 
     def is_delivered(self, item_type: str, status: str) -> bool:
-        """Whether *status* is *item_type*'s own delivery target — the happy-path settled
-        terminal :meth:`first_settled_status` names, not merely a settled status. Tells a
-        genuinely finished record (``Done``, ``Accepted``, ``Verified`` — whatever a
-        lifecycle's own spine terminal is named) from one that settled some *other* way
-        (``Cancelled``, ``Superseded`` — off the spine): both are settled, only one is
-        delivered.
-
-        Takes a bare ``(item_type, status)`` pair — no resolved record required — so a
-        template can call it directly (``{{ spec.is_delivered(item.type, item.status) }}``,
-        e.g. from ``templates/views/milestone_rollup.md.j2``) the same way
-        :meth:`first_settled_status` itself needs nothing but the two strings.
-
-        ``False`` (never a raise) when *item_type* isn't declared, or its lifecycle reaches no
-        settled status at all — the same total-degrade contract :meth:`first_settled_status`
-        already has, since neither case legitimately has a delivered record to report.
+        """Whether *status* is *item_type*'s delivery target, the happy-path settled terminal
+        :meth:`first_settled_status` names, telling a finished record (``Done``, ``Accepted``,
+        ``Verified``) from one settled another way (``Cancelled``, ``Superseded``, off the spine).
+        It takes a bare ``(item_type, status)`` pair so a template can call it (``{{
+        spec.is_delivered(item.type, item.status) }}``, as
+        ``templates/views/milestone_rollup.md.j2`` does), and returns ``False``, never raising, when
+        the type is undeclared or no settled status is reached.
         """
         return status == self.first_settled_status(item_type)
 
     def first_dropped_status(self, item_type: str) -> str | None:
-        """The first settled status of *item_type*'s lifecycle that is **off the spine** —
-        the "considered, then dropped" exit, generalizing the bundled ``"Cancelled"`` literal
-        to whatever a lifecycle names that state.
-
-        The spine (:func:`lifecycle_spine`) is the happy path, so its own settled terminal
-        (``Done``/``Accepted``/``Published``) is excluded by construction: what is left is the
-        abandonment branch. Walked in :func:`lifecycle_states_in_order` (deterministic BFS)
-        so generated text is byte-stable across process runs.
-
-        ``None`` when *item_type* isn't declared, or its lifecycle has no off-spine settled
-        state at all — a caller writing generated prose falls back to describing the concept
-        rather than naming a status.
+        """The first settled status of *item_type*'s lifecycle that is off the spine: the
+        "considered, then dropped" exit, generalising ``"Cancelled"``. The spine's own settled
+        terminal is excluded by construction, and the walk is :func:`lifecycle_states_in_order`
+        (deterministic BFS) so generated text is byte-stable across runs. ``None`` when the type is
+        undeclared or has no off-spine settled state, and a caller writing prose should then
+        describe the concept.
         """
         if item_type not in self.items:
             return None
@@ -1193,12 +1035,12 @@ class WorkflowSpec(BaseModel):
         ]
 
     def live_initial(self, item_type: str) -> str:
-        """The status an entry of *item_type* squads *itself* scaffolds is created at: the
-        lifecycle's ``initial`` when that status is itself live, otherwise the sole live
-        status. R1' (enforced in ``_validate``) is what makes this total for every roster type;
-        raises a clean ``SquadsError`` naming the type when the spec handed to it does not
-        satisfy the floor, never an ``IndexError``/bare ``StopIteration``, so a caller cannot
-        get a silent wrong answer."""
+        """The status an entry of *item_type* that squads itself scaffolds is created at: the
+        lifecycle's ``initial`` when live, otherwise the sole live status, which R1' (in
+        ``_validate``) makes total for every roster type. It raises a clean ``SquadsError`` naming
+        the type when the spec does not satisfy the floor, never an
+        ``IndexError``/``StopIteration``, so a caller cannot get a silent wrong answer.
+        """
         initial = self.initial_status(item_type)
         live = self.live_statuses(item_type)
         if initial in live:
@@ -1257,16 +1099,12 @@ class WorkflowSpec(BaseModel):
         return self._subentity_machine(kind).can_transition(src, dst)
 
     def subentity_completion(self, kind: str) -> str:
-        """The sub-entity/finding kind's designated completion status.
-
-        This is what the done-toggle resolves to instead of a hardcoded ``Done``/``Fixed``
-        literal. An O(1) lookup — ``check_completion_status`` guarantees at load time that
-        a validated spec's ``completion`` names a reachable, non-initial status.
-
-        Raises ``KeyError`` for an undeclared *kind* — same shape as :meth:`collection`: a
-        vocabulary lookup by a caller-supplied code with no sensible universal default.
-        Every reachable call site resolves *kind* from ``item_subentity_kind`` first, which
-        only ever hands back a declared kind or ``None``.
+        """The sub-entity/finding kind's designated completion status, which the done-toggle
+        resolves to instead of a hardcoded ``Done``/``Fixed``. An O(1) lookup, since
+        ``check_completion_status`` guarantees at load that ``completion`` names a reachable,
+        non-initial status. It raises ``KeyError`` for an undeclared *kind*, like
+        :meth:`collection`; callers resolve *kind* from ``item_subentity_kind`` first, which yields
+        only a declared kind or ``None``.
         """
         return self.subentity_kinds[kind].completion
 
@@ -1282,27 +1120,15 @@ class WorkflowSpec(BaseModel):
         return self.subentity_kinds[kind].plural
 
     def subentity_container_heading(self, kind: str) -> str:
-        """The ``## <heading>`` line above *kind*'s container block.
-
-        The three bundled kinds keep their exact bundled wording (``_BUNDLED_CONTAINER_
-        HEADINGS`` — "User Stories" isn't derivable from ``plural``: ``"stories".title()`` is
-        ``"Stories"``, not ``"User Stories"``) **only while they still carry their bundled
-        plural**; every other case — a renamed bundled kind, or a wholly custom one — falls
-        back to the declared ``plural`` title-cased (e.g. ``"actions"`` -> ``"Actions"``).
-
-        That condition is the whole point of the pairing. The bundled wording is an
-        irregularity of one specific plural, not a property of the kind *name*: a project that
-        renames story's plural to ``"outcomes"`` has said what the container is called, and
-        keying the heading off the kind code alone answered "User Stories" above a container
-        marked ``sq:outcomes`` — the declared value losing to a bundled default, which is what
-        this docstring already promised would not happen.
-
-        Used by every item template that hosts a container (instead of a hardcoded heading) and
-        by :func:`squads._services._base.ensure_subentity_container_text`, so a rename can never
-        make the two disagree.
-
-        Raises ``KeyError`` for an undeclared *kind* — same shape as
-        :meth:`subentity_plural`/:meth:`collection`.
+        """The ``## <heading>`` line above *kind*'s container block. The three bundled kinds keep
+        their bundled wording (``_BUNDLED_CONTAINER_HEADINGS``; "User Stories" is not derivable from
+        ``plural``) only while they still carry their bundled plural; otherwise it falls back to the
+        declared ``plural`` title-cased (``"actions"`` -> ``"Actions"``). The wording is an
+        irregularity of one plural, not of the kind name, so a project renaming story's plural to
+        ``"outcomes"`` must not get "User Stories" above a container marked ``sq:outcomes``. It is
+        shared by item templates and :func:`squads._services._base.ensure_subentity_container_text`,
+        so a rename cannot make them disagree, and raises ``KeyError`` for an undeclared *kind* like
+        :meth:`subentity_plural`.
         """
         plural = self.subentity_kinds[kind].plural
         bundled = _BUNDLED_CONTAINER_HEADINGS.get(kind)
@@ -1311,16 +1137,11 @@ class WorkflowSpec(BaseModel):
         return plural.title()
 
     def parent_hint(self, child: str) -> str:
-        """Human guidance for an invalid parent (used in error messages).
-
-        Appends the spec-declared ``RefRule.hint`` text(s) instead of re-detecting a
-        literal ``fixes``/``addresses`` ref kind and emitting bundled "bug or review"
-        prose — a renamed type or a custom ref rule gets its own declared hint verbatim.
-
-        Never raises: this only ever runs to explain a refusal already in flight, so an
-        undeclared *child* (``parents`` empty, no ref rules) still returns a message rather
-        than crashing while building one — degrades the same way
-        :meth:`item_parent_required`/:meth:`item_ref_rules` do.
+        """Human guidance for an invalid parent, for error messages: it appends the spec-declared
+        ``RefRule.hint`` text(s) rather than re-detecting a literal ``fixes``/``addresses`` kind
+        with bundled prose, so a renamed type or custom rule gets its own hint. It never raises,
+        since it only explains a refusal in flight: an undeclared *child* still yields a message,
+        degrading like :meth:`item_parent_required`/:meth:`item_ref_rules`.
         """
         ts = self.items.get(child)
         names = (" or ".join(sorted(ts.parents)) if ts else "") or "none"
@@ -1376,10 +1197,9 @@ class WorkflowSpec(BaseModel):
         # Every lifecycle must be able to reach a status with a settled role.
         check_reachable_settled(self.lifecycles, self.statuses, self.roles, errors)
 
-        # Additional floor for a lifecycle bound to a category="roster" type: R1 (at least one
-        # live status), R1' (exactly one live status when the initial isn't live),
-        # and R2 (a settled, non-live status reachable from a live one) — the create-at
-        # target and the retirement path the engine needs.
+        # Additional roster floor: R1 (a live status), R1' (exactly one live status when initial is
+        # not live) and R2 (a settled, non-live status reachable from a live one), the create-at
+        # target and retirement path the engine needs.
         check_roster_lifecycle_floor(self.items, self.lifecycles, self.statuses, self.roles, errors)
 
         check_item_lifecycles_avoid_deferred(
@@ -1441,11 +1261,10 @@ class WorkflowSpec(BaseModel):
         # vocabulary.
         check_views(self.views, self.items, self.subentity_kinds, self.ref_kinds, errors)
 
-        # Reserved-vocab floor — the spec must declare the three roster types, each with
-        # category = "roster". This is the ONLY type-axis floor: every other type
-        # (built-in or custom) is ordinary spec vocabulary that may be omitted, renamed, or
-        # re-prefixed. A missing roster type OR one declared without category = "roster" fails
-        # closed.
+        # Reserved-vocab floor: the spec must declare the three roster types, each with category =
+        # "roster". It is the only type-axis floor, every other type being ordinary vocabulary that
+        # may be omitted, renamed or re-prefixed; a missing roster type or one without that category
+        # fails closed.
         spec_types = set(self.items)
         missing_roster = ROSTER_TYPES - spec_types
         if missing_roster:

@@ -1,5 +1,6 @@
 """Every content-changing write on a role or skill whose body is generated is refused, through
-the classification the body refusal already uses; lifecycle and comment verbs stay open.
+the classification the body refusal already uses, except a role's body, which takes prose beside
+its definition; lifecycle and comment verbs stay open.
 
 One table: shape by verb. A refusal is exit 1, an error naming the authoring surface, and the
 file's bytes unchanged; `--force` changes nothing. A role is refused whatever its origin and keeps
@@ -170,12 +171,11 @@ def _refused(verb: str, kind: str, generated: bool) -> bool:
         return kind == "skill"
     if verb in {"update-field", "update-project-and-pinned-attribute"}:
         return kind == "skill"  # a role's model is an operator setting, not generated content
+    if verb in {"body", "body-force", "body-append"}:
+        return kind == "skill"  # a role takes prose beside its definition
     return verb in {
         "update-description",
         "update-title-and-description",
-        "body",
-        "body-force",
-        "body-append",
         "view-disable",
         "view-add-foreign",
     }

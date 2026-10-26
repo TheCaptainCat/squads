@@ -1,139 +1,69 @@
-"""Schema 0.14 → 0.15 runner: seed every non-roster type's own creation-template-seeded view
-tag onto existing items of that type, and reclaim a pre-0.14 role/permanently-system-skill or
-per-item-type-skill body still carrying legacy rendered text.
+"""Schema 0.14 → 0.15 runner: seed every non-roster type's creation-template-seeded view tag onto
+its existing items, and reclaim a pre-0.14 role, permanently-system skill or per-item-type skill
+body still carrying legacy rendered text.
 
-The architecture ruling behind this runner retires the milestone roll-up's old
-type-attachment (``items.milestone.views``) in favour of the general ``sq:view:<name>`` tag
-mechanism: a milestone created
-after this change gets the tag for free, straight from ``templates/items/milestone.md.j2``
-(``ServiceCore._create_core``, unrelated to this runner) — but type-attachment applied
-retroactively to every existing item of a type, and a tag does not. Without this one-time
-pass, every milestone already on disk would quietly lose its roll-up the moment the type
-attachment is dropped, because its body carries no tag and nothing else places one.
+The milestone roll-up's old type attachment (``items.milestone.views``) is replaced by the general
+``sq:view:<name>`` tag. A new milestone gets the tag from ``templates/items/milestone.md.j2``, but
+the attachment applied retroactively to every item of a type and a tag does not, so without this
+one-time pass existing milestones would lose their roll-up. Both steps call
+:func:`~squads._view_tags.place_view_tags`, the routine every other ``sq:body`` writer drives, so a
+tag-only or ``bottom``-positioned region comes out byte-identical to a fresh write. The runner
+drives the primitives under ``view add`` (``_sections``, ``_itemfile``, ``_views``) directly rather
+than the verb, because it needs one open ``store.transaction()`` for every eligible item (the bulk
+importer's precedent) rather than one per item, avoiding N lock acquisitions and N index commits.
 
-**Placement is the one re-placement routine, not a bespoke insert.** Both steps below call
-:func:`~squads._view_tags.place_view_tags`, the same function every
-other ``sq:body`` writer drives, so the bytes this migration produces for a tag-only or
-``bottom``-positioned region are identical to what a fresh write would produce. This runner
-does not call ``ServiceCore._locked_section_edit``/the ``view add`` verb directly — the reason
-is narrower than an import cycle: the *static* cycle (``squads._services`` reaching this module
-through the migration registry) is real, but a deferred import inside a function body is not
-blocked by it — this codebase uses that pattern freely elsewhere. What the verb genuinely
-cannot provide is this runner's own transaction shape: one open ``store.transaction()`` for
-every eligible item, not one per item. So this runner drives the same primitives the verb is
-built from (``_sections``, ``_itemfile``, ``_views``) directly, rather than inventing a second
-spelling of any of the properties they already guarantee.
+**Step one: every non-roster type whose creation template seeds a view tag** (today
+milestone/``milestone_rollup``). :func:`~squads._views.template_seeded_view_names` is the one
+derivation this runner and the sibling ``sq check`` finding both read, and the runner restricts
+itself to :meth:`WorkflowSpec.non_roster_types`, since a roster type's body belongs to the standing
+convergence sweep (``MaintenanceMixin._backfill_roster_body_tags``/``_converge_body_tag``), and this
+step must not extend into that territory. A custom non-roster type whose override seeds a tag is
+migrated the same way, and a project that dropped the bundled tag is untouched, the derivation
+answering empty.
 
-**Scope, step one: every non-roster type whose creation template seeds a view tag** — today
-that is exactly milestone/``milestone_rollup``.
-:func:`~squads._views.template_seeded_view_names` is the one derivation this runner and the
-sibling ``sq check`` finding both read (never a second implementation of "which view names a
-type's creation template places"); this runner restricts its own iteration to
-:meth:`WorkflowSpec.non_roster_types` deliberately, on top of that shared derivation, because a
-roster type's body is owned by a wholly different, already-existing convergence sweep
-(``MaintenanceMixin._backfill_roster_body_tags``/``_converge_body_tag``,
-``_services/_maintenance.py``) that already keeps a role's/system-skill's own seeded tag
-current on every ``sq repair``/``sq sync`` — extending that machinery, or this runner, onto the
-other's territory is exactly what that ruling fences off ("not a convergence sweep"). A project
-whose own override seeds a tag on a *custom* non-roster type is migrated by the same pass the
-derivation resolves it through; a project that dropped the bundled tag is not touched, since
-the derivation then answers empty for that type.
+**Step two: the legacy-body reclaim.** At 0.13.1 ``_write_managed_skill`` wrote the rendered body
+into the ``sq:body`` of every managed skill, ``sq-<type>`` included, so every squad initialised
+before 0.14 carries that text. ``_converge_body_tag``'s standing sweep once held a wide convergence
+licence for a role's and a permanently-system skill's body, on the premise that ``set_body`` refused
+both unconditionally. The roster write refusal now narrows that premise (a role or system skill
+whose view was dropped from ``[selected]`` admits an authored body), so the sweep is strict from
+here on and leaves a marker-free non-empty region untouched. A genuine pre-0.14 rendering still
+needs reclaiming once, and a migration is where that release-scoped licence belongs, since it knows
+which release the corpus comes from.
 
-**Scope, step two: the pre-0.14 legacy-body reclaim, covering per-item-type skills too.**
-At v0.13.1,
-``_write_managed_skill`` wrote the rendered body into the ``sq:body`` of **every** managed
-skill, ``sq-<type>`` included (``_write_item_skills`` calls it) — not only the three
-permanently-system slugs, as the original scope assumed. Every squad initialised before 0.14
-therefore carries that legacy text in each per-item-type skill too. Before this release,
-``_converge_body_tag``'s standing sweep (``_services/_maintenance.py``) held a *wide*
-convergence licence for a role's and a permanently-system skill's body — reasoning that
-``set_body`` refused both unconditionally, so no code path could have authored either region.
-This release's roster write refusal narrows that premise (a role or permanently-system skill
-whose view is dropped from ``[selected]`` now admits an ordinary authored body), so the
-standing sweep is strict unconditionally from here on and leaves a marker-free non-empty
-region untouched. The one real shape that wide licence existed for — a genuine pre-0.14 legacy
-rendering — still needs reclaiming exactly once, and a migration is where that closed,
-release-scoped licence belongs: it knows which release a corpus is arriving from, so it can
-know a role's or a permanently-system skill's own marker-free content is a superseded
-rendering rather than authored prose, a fact the standing sweep cannot ever re-derive on its
-own. A per-item-type skill's classification depends on which type the *active spec* currently
-declares rather than on anything fixed at creation, but that distinction changes nothing about
-what this reclaim does with it: every roster-classified body is in scope alike, next.
+The reclaim set is the roster classification and nothing narrower: a role, permanently-system skill
+or ``sq-<type>`` skill is in scope exactly when :func:`~squads._views.roster_body_view_name` names a
+declared view for it, and its marker-free non-empty body is overwritten onto its tag whatever it
+holds. No on-disk signal separates a pre-0.14 rendering from an author's runbook sharing a slug with
+a later-declared type (a skill from ``sq import``, ``sq adopt`` or by hand has the identical shape),
+so a provenance test would be wrong on exactly the files that matter. A custom skill matching no
+declared type classifies to ``None`` and is never in scope.
 
-**The legacy reclaim set is the roster classification itself, and nothing narrower.** A role, a
-permanently-system skill, or a per-item-type ``sq-<type>`` skill is in scope exactly when
-:func:`~squads._views.roster_body_view_name` names a declared view for it, with no further test
-applied — its marker-free, non-empty body is overwritten onto its tag unconditionally, whatever
-that body holds. There is no sound signal on disk that tells a genuine pre-0.14 rendering apart
-from an author's own runbook that happens to share a slug with a type declared later: a skill
-created by ``sq import``, ``sq adopt``, or by hand carries the identical shape a tool-seeded one
-does, so a provenance test would only be a heuristic wrong on exactly the files it matters most
-to get right. Before 1.0, this reclaim does not try. A custom skill matching no declared type is
-never in scope, because ``roster_body_view_name`` already answers ``None`` for it.
+**Mid-chain skew: judged against the on-disk file alone.** Both steps read the file's own
+frontmatter fresh at write time (:func:`_write_body_change`), not the ``db``-loaded ``Item``, which
+can be stale because ``run_pending_migrations`` runs each migration in its own transaction before
+the trailing ``repair()`` reconciles the index, and an older runner may have rewritten the file
+earlier in the chain. Comparing against that stale snapshot would make this step a silent no-op for
+every role and system skill from an old corpus (0.1 through 0.7). Writing back the frontmatter it
+just read cannot clobber a value it did not observe (only ``updated_at``/``modified_session`` and
+the body region change), and ``db`` supplies only identity facts (type, slug, file path).
 
-**Mid-chain skew: judged against the on-disk file alone.** Both steps read the
-file's own frontmatter fresh at write time (:func:`_write_body_change`) rather than trusting
-the ``db``-loaded ``Item`` this transaction opened with — that in-memory item can be stale
-relative to disk, because ``run_pending_migrations`` runs every applied migration inside its
-own transaction *before* the trailing corpus-wide ``repair()`` ever reconciles the index
-against what earlier steps in the same chain rewrote on disk. An older runner earlier in the
-same chain rewriting a file's frontmatter without also rebuilding this transaction's index
-snapshot is exactly that mid-chain skew, and comparing this step's own write against that stale
-in-memory snapshot instead of the file's own on-disk frontmatter would make this step a silent
-no-op for every role/system-skill coming from an old corpus (v0_1 through v0_7): the comparison
-would always find a mismatch, so the write would always be skipped. Reading the frontmatter to
-write straight off the text this step
-itself just read removes the possibility of that mismatch by construction — this step can never
-clobber a real on-disk value it did not itself just observe, since it is the value it writes
-back verbatim (touching only ``updated_at``/``modified_session`` and the body region). ``db`` is
-still used to find candidate items (type, slug) and to know their file path — identity facts
-that do not drift mid-chain — never to source what gets written back.
+**Every condition declined is a skip reported by item id**, each a skip rather than a refusal: an
+unresolvable ``(type, name)`` pair (step one; :func:`~squads._views.resolve_view_target`, the
+predicate ``view add`` gates on, asked once per pair so the whole pair is skipped, since an adopter
+who dropped a bundled view through ``[selected].views`` is no defect to halt on); a body with no
+``sq:body`` region (either step; hand-adopted or hand-edited files carry that shape); the tag
+already present outside ``sq:body`` (step one; the routine works only inside the region, so seeding
+would add a second copy that ``sq check``'s duplicate-marker finding reports as an error, and the
+remedy is to place or disable the tag explicitly); and marker-shaped content in a roster body (step
+two; another tag, a nested region or corruption, where, like the standing strict convergence, it
+will not guess at overwriting something structured). What it calls can still raise (say a file
+becoming unreadable), and re-running ``sq migrate up`` resumes, rebuilding the index from the files
+first; an unparseable item file refuses the run before any runner.
 
-**Transaction shape: one open transaction for the whole run**, mirroring the bulk importer's
-own precedent (``ImportMixin._apply_import`` opening one ``store.transaction()`` and driving
-``_section_edit_core`` per event) rather than the ``view add`` verb's one-transaction-per-item
-shape — chosen deliberately, not forced by any cycle, because it inlines the identical read →
-mutate → write sequence itself and avoids N separate lock acquisitions and N separate index
-commits for what is, in practice, a handful of items.
-
-**Every condition this runner declines to act on is a skip, reported by item id.** What it calls
-can still raise (a file that becomes unreadable during the run, say); a run stopped that way is
-resumed by re-running ``sq migrate up``, which rebuilds the index from the files first. An item
-file that cannot be parsed never reaches this runner: the run is refused before any runner.
-
-Conditions this runner meets and does not act on, each a skip rather than a refusal:
-
-- **An unresolvable ``(type, name)`` pair** (step one) — :func:`~squads._views
-  .resolve_view_target` names a reason (undeclared, no resolvable template, or a source that
-  cannot apply to *item_type*). Asked once per pair, before any item of that type is visited,
-  the same predicate the ``view add`` verb itself gates its own single write on — only the
-  consequence differs: this runner skips the whole pair and moves to the next one, rather than
-  raising for the entire run. An adopter who dropped a bundled view through
-  ``[selected].views`` is not a corpus defect to halt on; they said they do not want that view.
-- **A body with no ``sq:body`` region** (either step) — :func:`~squads._sections.get_section`
-  answers ``None``. Turned into a per-item skip: a hand-adopted corpus, or a hand-edited item,
-  can carry that shape without it being a defect this migration should decide anything about.
-  The index is rebuilt from the files before this runner, so an entry whose file is gone is
-  already dropped; a file that cannot be read after that is skipped the same way.
-- **The tag already present, but outside ``sq:body``** (step one) — the placement routine only
-  ever reads and writes inside the region, so a copy an author moved outside it by hand is
-  invisible to it; asked here, once, before the routine ever runs, so this runner never seeds a
-  second, in-region copy alongside one already live elsewhere in the file (which `sq check`'s
-  duplicate-marker finding would then report). Skipping here, rather than inserting blindly,
-  keeps a migration's own write from leaving the corpus failing `sq check` the moment it is
-  current enough to run — the same disposition as an unreadable file, and the same remedy once the
-  squad is current: place or disable the tag explicitly.
-- **A role/permanently-system-skill/per-item-type-skill body carrying marker-shaped content**
-  (step two only) — this reclaim has no model for what that is (another tag, a nested region,
-  corruption) and, like the standing sweep's own strict convergence, skips rather than guess at
-  overwriting something structured.
-
-The reclaim is a corpus-wide sweep, not a single-item mutation gated the ordinary way, so it
-belongs in a migration, and the runner's own skip-messaging rule is what ``_cli/_migrate.py``'s
-skip text follows.
-
-Invoked by ``sq migrate up`` via ``_migrations._registry`` — never run directly (this module is
-private).
+The reclaim is a corpus-wide sweep, not a single-item mutation gated the ordinary way, which is why
+it belongs in a migration; ``_cli/_migrate.py``'s skip text follows this runner's skip-messaging
+rule. It runs only through ``sq migrate up`` via ``_migrations._registry``.
 """
 
 from pathlib import Path
@@ -228,15 +158,11 @@ as a stand-in for the four-step remedy above.
 
 
 def _tag_present_outside_region(text: str, region_tag: str, name: str) -> bool:
-    """Whether view *name*'s tag (either state) appears somewhere in *text* but not inside
-    *region_tag*'s own section — the shape a hand-moved tag produces (see module docstring).
-    Deliberately a runner-local question, asked before the placement routine (which only ever
-    reads/writes inside the region) ever runs, so this runner never seeds a second, in-region
-    copy alongside one already live elsewhere in the file.
-
-    ``False`` when *region_tag*'s section is absent — that shape is the missing-region skip the
-    caller reaches separately (:func:`~squads._sections.get_section` answering ``None``), not
-    this one, so this function never doubles as that check."""
+    """Whether view *name*'s tag (either state) appears in *text* outside *region_tag*'s section,
+    the shape a hand-moved tag produces. It is a runner-local question asked before the placement
+    routine (which works only inside the region), so no second in-region copy is seeded. ``False``
+    when the section is absent, which is the missing-region skip the caller reaches separately.
+    """
     inner = get_section(text, region_tag)
     if inner is None:
         return False
@@ -246,17 +172,12 @@ def _tag_present_outside_region(text: str, region_tag: str, name: str) -> bool:
 
 
 async def _write_body_change(path: Path, text: str, new_inner: str) -> str:
-    """*text* with its ``sq:body`` region replaced by *new_inner*, and ``updated_at`` bumped on
-    the file's **own** frontmatter — read fresh from *text* itself, never from a possibly
-    mid-chain-stale index-derived ``Item`` (see the module docstring's mid-chain-skew
-    paragraph). Writes the result and returns it.
-
-    ``modified_session`` is set only when there is a real session id to record — the same
-    convention ``Item.to_frontmatter_dict`` follows (``_models/_item.py``: "Session fields are
-    omitted when unset to keep legacy files unchanged"). Outside a session, *sid* is ``None``,
-    and this leaves the key exactly as it already reads in *data* — present with its stored
-    value if one is already there, absent otherwise — rather than writing a stray
-    ``modified_session: null`` onto a file no session ever touched."""
+    """*text* with its ``sq:body`` region replaced by *new_inner* and ``updated_at`` bumped on the
+    file's own frontmatter, read fresh from *text* and not from a possibly mid-chain-stale ``Item``
+    (see the module docstring). It writes the result and returns it. ``modified_session`` is set
+    only when *sid* is real, as ``Item.to_frontmatter_dict`` does, so a file no session touched does
+    not gain ``modified_session: null``.
+    """
     data = read_frontmatter(text=text, source=str(path))
     data["updated_at"] = clock.iso(clock.now())
     sid, _ = current_session()
@@ -268,30 +189,21 @@ async def _write_body_change(path: Path, text: str, new_inner: str) -> str:
 
 
 async def migrate(ctx: MigrationContext) -> MigrationOutcome:
-    """Two independent steps, one run, one transaction, one reported outcome (see the module
-    docstring for why each belongs here):
-
-    - Seed every resolvable ``sq:view:<name>`` a non-roster type's creation template declares
-      onto every existing item of that type — today that is milestone/``milestone_rollup``
-      alone.
-    - Reclaim a pre-0.14 role's, permanently-system skill's, or per-item-type skill's legacy
-      plain-prose body onto its own view tag — the one-time licence
-      :func:`~squads._services._maintenance._converge_body_tag`'s standing sweep gave up in
-      this same release.
-
-    ``count`` is the number of bodies either step actually changed — ``0`` on a corpus with
-    nothing eligible for either, or one already fully converged (a re-run's own idempotent-skip
-    result). ``skipped`` names, by id, every item either step left untouched rather than acting
-    on — a missing indexed file, no ``sq:body`` region, the tag already present outside it, or
-    (the second step only) marker-shaped content it has no model for — always empty when
-    ``count`` alone tells the whole story."""
+    """Two independent steps in one run, transaction and reported outcome (see the module
+    docstring): seed every resolvable ``sq:view:<name>`` a non-roster type's creation template
+    declares onto its existing items (today milestone/``milestone_rollup``), and reclaim a pre-0.14
+    role's, system skill's or per-item-type skill's plain-prose body onto its view tag, the one-time
+    licence :func:`~squads._services._maintenance._converge_body_tag`'s standing sweep gave up.
+    ``count`` is the bodies either step changed (``0`` for nothing eligible or a re-run);
+    ``skipped`` names by id every item left untouched (missing file, no ``sq:body``, tag already
+    outside it, or marker-shaped content in step two).
+    """
     paths, spec, playbook = ctx.paths, ctx.spec, ctx.playbook
 
-    # (item_type, view names to seed) — resolved once against the shared derivation and
-    # restricted to non-roster types — never against a hand-pinned "milestone"/"milestone_rollup"
-    # literal, so a project's own re-templated non-roster type is migrated the same way. Only a
-    # name that can actually resolve against its host type is placed (the same gate the `view
-    # add` verb itself asks); an unresolvable one skips the whole pair, not the run.
+    # (item_type, view names to seed), resolved once from the shared derivation and restricted to
+    # non-roster types, never a pinned "milestone" literal, so a re-templated custom type migrates
+    # too. Only a name that resolves against its host type is placed (the gate `view add` uses); an
+    # unresolvable one skips the pair, not the run.
     seeded_by_type: dict[str, frozenset[str]] = {}
     for item_type in sorted(spec.non_roster_types()):
         names = frozenset(
@@ -322,11 +234,9 @@ async def migrate(ctx: MigrationContext) -> MigrationOutcome:
                     skipped.append(it.id)
                     continue
                 if any(_tag_present_outside_region(text, markers.BODY, n) for n in names):
-                    # A copy already lives outside sq:body (an author moved it by hand). The
-                    # placement routine only ever reads/writes inside the region and would not
-                    # see it, so calling it unconditionally would seed a second, in-region
-                    # copy — a duplicate marker `sq check` reports at error level. Skip rather
-                    # than risk it; see module docstring.
+                    # A copy already lives outside sq:body (an author moved it). The routine works
+                    # only inside the region, so calling it would seed a second copy, a duplicate
+                    # marker `sq check` reports as an error. Skip (see module docstring).
                     skipped.append(it.id)
                     continue
                 region = get_section(text, markers.BODY)
@@ -335,12 +245,10 @@ async def migrate(ctx: MigrationContext) -> MigrationOutcome:
                     # file). Same disposition as the unreadable-file case above.
                     skipped.append(it.id)
                     continue
-                # `get_section` returns the region padded with its own opening/closing
-                # newline; the placement routine never pads its output that way (its own
-                # spacing rule keeps the region's edges bare), so the no-op comparison below
-                # strips that padding first — otherwise an already-seeded region would never
-                # compare equal to its own re-placement and every idempotent re-run would
-                # report a change it did not make.
+                # `get_section` pads the region with an opening/closing newline that the placement
+                # routine never emits, so the no-op comparison below strips it first; otherwise an
+                # already-seeded region never equals its re-placement and every re-run reports a
+                # change it did not make.
                 region = region.strip("\n")
                 new_inner = place_view_tags(
                     region,
@@ -355,9 +263,8 @@ async def migrate(ctx: MigrationContext) -> MigrationOutcome:
                 text = await _write_body_change(path, text, new_inner)
                 changed += 1
 
-        # Second step, same transaction: reclaim a pre-0.14 role's, permanently-system skill's,
-        # or per-item-type skill's legacy plain-prose body — see the module docstring's
-        # "second step" paragraph and :func:`_reclaim_legacy_roster_bodies`.
+        # Second step, same transaction: the legacy-body reclaim (see the module docstring and
+        # :func:`_reclaim_legacy_roster_bodies`).
         step_changed, step_skipped = await _reclaim_legacy_roster_bodies(db, spec, paths)
         changed += step_changed
         skipped.extend(step_skipped)
@@ -367,16 +274,14 @@ async def migrate(ctx: MigrationContext) -> MigrationOutcome:
 async def _reclaim_legacy_roster_bodies(
     db: SquadsDB, spec: WorkflowSpec, paths: SquadPaths
 ) -> tuple[int, list[str]]:
-    """``(changed, skipped)`` for the pre-0.14 role/permanently-system-skill/per-item-type-skill
-    legacy-body reclaim — see the module docstring's "second step" paragraph. Split out of
-    :func:`migrate` purely to keep that function under the complexity ceiling; every write
-    happens inside the caller's already-open transaction, over the same ``db`` and *spec*.
-
-    :func:`~squads._views.roster_body_view_name` is the same classification the roster write
-    refusal and ``sq check``'s finding both read — the legacy reclaim set **is** that
-    classification, with no further test applied: every marker-free, non-empty roster body is
-    overwritten onto its tag, whatever it holds, and a custom skill matching no declared type is
-    never in scope at all, because it classifies to ``None``."""
+    """``(changed, skipped)`` for the legacy-body reclaim (module docstring), split out of
+    :func:`migrate` to keep it under the complexity ceiling; every write is in the caller's open
+    transaction over the same ``db`` and *spec*. The reclaim set is
+    :func:`~squads._views.roster_body_view_name`'s classification, the one the roster write refusal
+    and ``sq check`` read: every marker-free non-empty roster body is overwritten onto its tag
+    whatever it holds, and a custom skill matching no declared type classifies to ``None`` and is
+    out of scope.
+    """
     changed = 0
     skipped: list[str] = []
     roster_items = sorted(
@@ -396,11 +301,9 @@ async def _reclaim_legacy_roster_bodies(
             continue
         region = get_section(text, markers.BODY)
         if region is None:
-            # The region itself is absent, not merely empty — the module docstring's "a body
-            # with no sq:body region (either step)" condition, reported here the same way step
-            # one already reports it: this reclaim is not the standing sweep, and is not the
-            # place to decide whether a hand-edited or corrupted file's missing region is safe
-            # to reinstate either — that is `_converge_body_tag`'s own, separate licence.
+            # The region is absent, not merely empty: reported as step one reports it. This reclaim
+            # is not the standing sweep and is not the place to decide whether reinstating a missing
+            # region is safe, which is `_converge_body_tag`'s separate licence.
             skipped.append(it.id)
             continue
         current = region.strip()
@@ -410,10 +313,9 @@ async def _reclaim_legacy_roster_bodies(
             # write. Neither is this one-time pass's to act on.
             continue
         if find_markers(current):
-            # Marker-shaped content this reclaim has no model for (another tag, a nested
-            # region, corruption) — skip rather than guess at overwriting something
-            # structured, the same posture the standing sweep's own strict convergence takes
-            # for the identical shape.
+            # Marker-shaped content this reclaim has no model for (another tag, a nested region,
+            # corruption): skip rather than guess at overwriting something structured, as the
+            # standing strict convergence does.
             skipped.append(it.id)
             continue
         # The legacy rendering is converged onto its tag, not kept beside it: the edit clears

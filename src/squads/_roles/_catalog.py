@@ -52,27 +52,19 @@ class RoleDef:
     pronouns: str | None = None  # the item's own value, else the catalog's declared default
 
     def __post_init__(self) -> None:
-        """Refuse a blank/whitespace-only ``full_name`` at the one point every construction
-        path actually goes through: the override merge (:func:`~squads._roles._resolver.
-        _apply_override`, via :func:`role_spec_to_def`), ``sq role activate --name`` (via
-        ``dataclasses.replace``, which re-invokes ``__post_init__`` on a frozen dataclass same
-        as the constructor), and ``sq dev add --name`` (via :func:`instantiate_template`'s
-        constructor call). All three end in a ``RoleDef`` whose ``full_name`` is the
-        operator-supplied string, so this is the single seam that closes the hole for every one
-        of them at once rather than a check repeated at each call site.
+        """Refuse a blank ``full_name`` at the one seam every construction path uses.
 
-        Only ``full_name`` is checked here — the only field an operator can set directly
-        through those two CLI flags. The override path's other string fields (``title``,
-        ``description``, ``mission``, …) are declared-in-a-file values with no CLI equivalent,
-        and stay validated where they already are, by
-        :func:`~squads._roles._resolver._refuse_blank_strings`, which runs *before* this
-        constructor and produces a message naming the offending override file — a message
-        this generic check has no file to name and must not blur.
+        Those paths are the override merge (:func:`~squads._roles._resolver._apply_override`, via
+        :func:`role_spec_to_def`), ``sq role activate --name`` (``dataclasses.replace`` re-invokes
+        ``__post_init__``) and ``sq dev add --name`` (:func:`instantiate_template`). Only
+        ``full_name`` is checked: it is the only field an operator sets from the CLI. The override
+        path's other strings (``title``, ``description``, ``mission``, …) come from a file and are
+        validated by :func:`~squads._roles._resolver._refuse_blank_strings` before this runs, with a
+        message naming the override file that this generic check could not give.
 
-        Leading/trailing whitespace around real content (``"  Ada Lovelace  "``) is accepted
-        and stored verbatim, not trimmed — ``.strip()`` is used only to decide blankness,
-        exactly as :func:`~squads._roles._resolver._refuse_blank_strings` already treats the
-        override path's own fields, so the two seams agree on what counts as a real value.
+        Surrounding whitespace around real content (``"  Ada Lovelace  "``) is accepted and stored
+        verbatim; ``.strip()`` only decides blankness, as :func:`_refuse_blank_strings` does, so the
+        two seams agree on what counts as a real value.
         """
         refuse_blank_name(self.full_name)
 

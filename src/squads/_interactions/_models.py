@@ -54,9 +54,7 @@ class PlaybookSpec(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    # Mapping, not dict: ``frozen=True`` blocks reassigning this attribute, but a dict-typed
-    # field is still a plain, mutable dict at runtime — ``spec.types["x"] = ...`` would succeed
-    # and corrupt every holder of this spec (the bundled singleton included) process-wide.
-    # ``Mapping`` has no ``__setitem__``, so that same statement is a pyright error instead —
-    # every read site here (``.items()``, ``.keys()``, indexing, ``in``) is unaffected.
+    # Mapping, not dict: ``frozen=True`` blocks reassignment but not ``spec.types["x"] = ...``,
+    # which would corrupt every holder of the spec (the bundled singleton included).
+    # ``Mapping`` has no ``__setitem__``, so pyright rejects that statement instead.
     types: Mapping[str, ItemPlaybookSpec]  # keyed by item-type name; work types only

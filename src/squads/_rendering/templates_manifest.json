@@ -380,14 +380,14 @@
     "_rendering/templates/views/item_skill.md.j2": "96de99cfcc1f080a5b0af03068804a3ac4040b6745db05a44ab82155e37e0fbc",
     "_rendering/templates/views/memory_skill.md.j2": "d1030ff2de40151dbb95bb67e36fdfdee97b5e8b0422f0aa26069f9d172f0363",
     "_rendering/templates/views/milestone_rollup.md.j2": "c4c4c4c6737650fedb126a81ad7c9429e55823a2d57bc5cc5fd3b59b09f20a8e",
-    "_rendering/templates/views/role_definition.md.j2": "1a3e3f46e67ba4192c737f7722316c818155c6756770754a6373c8b602c11e2e",
+    "_rendering/templates/views/role_definition.md.j2": "71d9a8daa351f7ed29130843cf0d29cfd1e386445743f89057d98c48c45f40de",
     "_rendering/templates/views/squads_skill.md.j2": "41491c5f55128f2045959bd4947cacce83392456e7499803eb1149c24ecbd832",
     "_rendering/templates/workflow.md.j2": "12097e2f9ab6f514e040cde0dad26a69c82cfe78fad73c3555e7e2331329bc1b",
     "_rendering/templates/workflow_static.md.j2": "42a6707b57c79ee25fad1539167089e6f3deeeb6183fcb2c01e14b5f7f859708",
     "_rendering/templates/working_language.md.j2": "cf5ce9439d3f9d569882868708e110990349dcd304ef33e6f9191bad0a643316",
     "_specs/playbook.toml": "42fda9118c5d46fa344fdcd024df1bf3bc7e0701fef79069df3bdb5a4a483231",
     "_specs/roles.toml": "4915028527ed18455e35866cae12e27165825c13aa1a00e570e10c0cecce1011",
-    "_specs/workflow.toml": "633b2d904718ecc1f02d88d6d74b61090dab34b46b7f1fda5572315ac2f4d5b4"
+    "_specs/workflow.toml": "f2bfe108b75620ba8e620cac9ef50c8e389d6bc034ae8e9a27c6af0f51539760"
   },
   "0.4.0": {
     "_rendering/templates/agents/greeting_skill.md.j2": "ead65be126550ae3826abd2a0f401d3c911e336f41500e97762eab5bd024e4dc",

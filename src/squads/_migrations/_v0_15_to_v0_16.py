@@ -1,30 +1,19 @@
-"""Schema 0.15 → 0.16 runner: the release's one migration step, built as a list of contributions.
+"""Schema 0.15 → 0.16 runner: the release's one migration step, built as a list of contributions. A
+contribution has a name, a read-only planning function, a ``MANUAL`` section and a summary clause;
+the planner takes the run's context and the transaction's ``db`` and returns a :class:`Planned` (the
+failures found, report lines for a completed run, notes after a failure count, and optionally a
+writing closure over its plan). :func:`run_contributions` plans every contribution first, refuses
+with one error listing every failure if any reported one, and only then runs the writers in order,
+so a refused run writes nothing. A later contributor appends one :class:`Contribution` to
+:data:`CONTRIBUTIONS` and one row to the runner's test table and changes nothing else.
 
-A **contribution** has a name, a planning function, a ``MANUAL`` section and a summary clause. The
-planning function is read-only: it takes the run's context and the index transaction's ``db`` and
-returns a :class:`Planned` value holding the failures it found, the report lines for a run that
-completes, the notes that follow a failure count, and (optionally) a writing closure over its own
-plan. :func:`run_contributions` plans every contribution first, refuses with one error listing
-every failure when any contribution reported one, and only then runs the writers in order, so a
-refused run writes nothing.
-
-A later contributor appends one :class:`Contribution` to :data:`CONTRIBUTIONS` and one row to the
-runner's test table; nothing else in this module, the registry or the CLI changes.
-
-The comment-header contribution rewrites each comment header from ``- [<ts>] <name>:`` to
-``- [<ts>] `<slug>` <name>:``. Every legacy name is resolved to the slug of the roster entry that
-holds it across the whole corpus before any file is written. The patterns below are frozen copies
-of the live header grammar and the grammar it replaces: a migration reads what it reads at this
-schema, whatever the live parser later becomes.
-
-The flat-frontmatter contribution lifts the nested ``extra`` block of every item file to
-top-level keys, folds the operator's ``full_name`` into its ``title``, gives every roster file a
-top-level ``slug``. Its per-file transform,
-:func:`flatten_frontmatter`, is a pure function over a frontmatter mapping, so a contribution
-that follows plans against the shape this one writes.
-
-Invoked by ``sq migrate up`` via ``_migrations._registry`` — never run directly (this module is
-private).
+The comment-header contribution rewrites ``- [<ts>] <name>:`` to ``- [<ts>] `<slug>` <name>:``,
+resolving each legacy name to the slug of the roster entry holding it across the whole corpus before
+any write; its patterns are frozen copies of the old and new header grammar. The flat-frontmatter
+contribution lifts each item file's nested ``extra`` block to top-level keys, folds an operator's
+``full_name`` into ``title`` and gives every roster file a top-level ``slug``; its per-file
+:func:`flatten_frontmatter` is a pure function over a mapping, so a later contribution plans against
+the shape this one writes. It runs only through ``sq migrate up`` via ``_migrations._registry``.
 """
 
 import re
@@ -389,7 +378,7 @@ _CORE_ORDER: tuple[str, ...] = (
 )
 
 #: The keys an earlier release mirrored onto a role from its resolved definition, which no writer
-#: produces any more. They are dropped, not lifted.
+#: produces any more; they are dropped, not lifted.
 _RETIRED_ROLE_KEYS: frozenset[str] = frozenset(
     {
         "title",
@@ -429,8 +418,9 @@ class FlatFrontmatter:
 
 
 def _fold_ref_kinds(refs: list[str], legacy: dict[str, str], default_kind: str) -> list[str]:
-    """*refs* with each id's kind from the pre-0.2 ``{id: kind}`` map written inline as
-    ``ID:kind``; the squad's default kind is written bare."""
+    """*refs* with each id's kind from the pre-0.2 ``{id: kind}`` map written inline as ``ID:kind``,
+    the squad's default kind written bare.
+    """
     out: list[str] = []
     for ref in refs:
         rid, _, kind = ref.partition(":")
@@ -520,16 +510,14 @@ class _Lift:
 def flatten_frontmatter(
     data: dict[str, Any], *, file_slug: str, default_kind: str, source: str
 ) -> FlatFrontmatter:
-    """The flat form of the frontmatter mapping *data* of one item file.
-
-    Each ``extra`` key is lifted to the top level with its value unchanged, except ``ref_kinds``
-    (folded into inline refs), ``severity`` (the top-level value wins), ``slug`` (the file's slug,
-    written for every roster file), a skill's ``description`` (dropped when the top-level one is
-    non-empty, else kept unless it equals the title), an operator's ``full_name`` (dropped, and
-    ``title`` takes its value when they differ) and the keys listed in ``_RETIRED_ROLE_KEYS`` on
-    a role (dropped). The top-level ``path`` a skill file carries is removed, and ``extra`` with
-    it. *file_slug* is the slug the file name spells; *source* names the file in a problem.
-    Never raises: a file that cannot be flattened comes back with ``problems`` and its input.
+    """The flat form of one item file's frontmatter mapping *data*. Each ``extra`` key is lifted to
+    the top level unchanged, except ``ref_kinds`` (folded into inline refs), ``severity`` (the
+    top-level value wins), ``slug`` (the file's slug, written for every roster file), a skill's
+    ``description`` (dropped when the top-level one is non-empty, else kept unless it equals the
+    title), an operator's ``full_name`` (dropped, ``title`` taking its value when they differ) and a
+    role's ``_RETIRED_ROLE_KEYS`` (dropped); a skill's top-level ``path`` is removed, and ``extra``
+    with it. *file_slug* is the slug the file name spells and *source* names the file in a problem.
+    It never raises: an unflattenable file comes back with ``problems`` and its input.
     """
     item_type = data.get("type")
     raw_extra = data.get("extra")

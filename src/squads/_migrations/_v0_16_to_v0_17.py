@@ -1,21 +1,14 @@
-"""Schema 0.16 → 0.17 runner.
-
-The 0.17 schema adds the Noted and Deferred finding states, which no 0.16 file can hold; the bump
-exists so an older release stops at the schema gate with an upgrade message once a squad is
-stamped 0.17. The runner also moves each role onto the base that now defines it:
-
-- a role that stores ``tech`` is a developer: it stores ``template: dev``;
-- a role the catalog declares, and a role built from a template, stores no ``description``, since
-  its one-line description is resolved;
-- a role no catalog declares whose per-slug file loads as a complete role takes the file's
-  definition into its own item (the file is not touched and now layers over identical values);
-- a catalog role stores no ``model`` equal to the one its definition resolves to, which is what
-  earlier releases mirrored onto every role; a different model is an operator setting, kept and
-  reported, so the step is safe to apply again to a squad already at 0.17.
-
-A role whose file does not load, and a role nothing backs, are listed in the run's report and never
-guessed into a definition. Invoked by ``sq migrate up`` via ``_migrations._registry`` — never run
-directly (this module is private).
+"""Schema 0.16 → 0.17 runner. The 0.17 schema adds the Noted and Deferred finding states, which no
+0.16 file can hold; the bump makes an older release stop at the schema gate with an upgrade message
+once a squad is stamped 0.17. The runner also moves each role onto the base that now defines it: a
+role storing ``tech`` is a developer and stores ``template: dev``; a catalog role or a
+template-built role stores no ``description`` (it is resolved); a role no catalog declares whose
+per-slug file loads as a complete role takes the file's definition into its own item (the file is
+untouched and now layers over identical values); and a catalog role stores no ``model`` equal to the
+one its definition resolves to (what earlier releases mirrored), a different model being an operator
+setting that is kept and reported, so re-applying to a squad already at 0.17 is safe. A role whose
+file does not load, and a role nothing backs, are listed in the report and never guessed into a
+definition. It runs only through ``sq migrate up`` via ``_migrations._registry``.
 """
 
 from pathlib import Path

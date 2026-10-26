@@ -1,49 +1,32 @@
-"""Schema 0.11 → 0.14 runner: two new bundled item types join the vocabulary.
+"""Schema 0.11 → 0.14 runner: two new bundled item types join the vocabulary. Both are declared
+entirely in the bundled workflow spec (one ``[items.<type>]`` and one ``[lifecycles.<type>]`` block
+each), which this runner does not own. It owes an existing squad what a declaration alone never
+produces on disk: the type's folder and its generated agent-facing surface (a managed ``sq-<type>``
+skill item, its ``.claude`` pointer, and the compiled ``CLAUDE.md``/``AGENTS.md`` regions
+referencing it), which ``sq init``/``sq adopt`` write for a squad created after the declaration. The
+skill's definition text is not among them, as a system skill renders from its template on every read
+off the ``sq:view:item_skill`` tag in its ``sq:body`` (``squads._view_tags.expand_view_tags``, via
+``ItemsMixin.read_body``).
 
-Both types are declared entirely in the bundled workflow spec (one ``[items.<type>]`` block
-plus one ``[lifecycles.<type>]`` block each) — this runner owns none of that declaration. What
-it owes an existing squad is the two things a declaration alone never produces on disk: the
-type's own folder, and its generated agent-facing surface (a managed ``sq-<type>`` skill item,
-that skill's ``.claude`` pointer, and the compiled ``CLAUDE.md``/``AGENTS.md`` regions that
-reference it) — every one of which ``sq init``/``sq adopt`` already write for a squad created
-after the declaration landed, and none of which a squad created *before* it ever gets on its
-own. The skill's definition text is not among them: a system skill's definition renders from
-its template on every read, off the ``sq:view:item_skill`` tag its ``sq:body`` carries
-(``squads._view_tags.expand_view_tags``, via ``ItemsMixin.read_body``), so nothing stores it and
-nothing here writes it.
+No existing item data is rewritten, every write creating a path that did not exist. It follows
+``init``'s order, writing the managed surface first (as ``Service.refresh_managed``) and then
+stamping any newly created skill file as a ``SKILL`` item (as ``Service.seed_bundled_skills``), both
+idempotent.
 
-No existing item data is rewritten: every write this runner performs creates a path that did
-not exist. Ordering mirrors ``init``'s own: the managed surface is (re)written first (mirroring
-``Service.refresh_managed``), then any not-yet-indexed skill file just created is stamped as a
-``SKILL`` item (mirroring ``Service.seed_bundled_skills``) — both idempotent, so a squad that
-already carries this content sees no further writes at either step.
+It is deliberately narrower than ``Service.sync()``: it calls the same backend methods
+(``ensure_scaffold``, ``write_managed``) with the live roster read off the index, but touches no
+existing role's per-entry pointer (its resolved preload list, including project skills scoped by a
+``scopes`` edge), since that convergence is an ongoing ``sq sync`` duty, not owed by a type's folder
+and skill appearing. An existing role interacting with either new type does carry a stale preload
+list that ``sq check`` reports, so ``MANUAL`` names ``sq sync`` as the remedy rather than promising
+a convergence this runner does not perform.
 
-**Deliberately narrower than a full ``Service.sync()``.** This runner regenerates exactly the
-surface a type declaration grows — the two new skills' files/pointers and the compiled
-``CLAUDE.md``/``AGENTS.md`` regions — by calling the same backend methods ``sync`` calls
-(``ensure_scaffold``, ``write_managed``) with the squad's current live roster read straight off
-the index. It does **not** touch any existing role's own per-entry pointer (each role's resolved
-preload-skill list, including any project-declared skill scoped to that role via a ``scopes``
-ref edge) — that convergence is an ongoing ``sq sync`` responsibility independent of any schema
-migration, not owed by the one-time act of a type's own folder/skill appearing. Running `sq
-sync` after this migration remains the right move on a squad that customises role/skill scoping;
-it converges to the identical result on one that does not, since the two live-roster reads
-resolve to the same roster either way. Deliberately not the same as saying no action is needed:
-an existing role that interacts with either new type genuinely does still carry a stale
-preload list, and ``sq check`` will say so — MANUAL below names ``sq sync`` as the remedy rather
-than promising a convergence this runner does not perform.
-
-**Frozen against no wire-encoded corpus vocabulary, because none is read.** Every id/ref/status
-literal this runner touches is either freshly minted (a new ``SKILL`` item's own id, allocated
-the same way every other runner allocates one) or read from the *live* declared type/playbook
-vocabulary — which is exactly the vocabulary the type declaration this runner depends on already
-put in place, not a corpus-era value at risk of drifting out from under a frozen literal. See
-``tests/meta/test_migrations_never_import_a_vocabulary_folded_primitive.py`` for the boundary
-this still respects: no id/ref/padding *formatting* primitive is imported from ``_models``
-regardless.
-
-Invoked by ``sq migrate up`` via ``_migrations._registry`` — never run directly (this module is
-private).
+Every id, ref and status literal it touches is freshly minted (a new ``SKILL`` item's id, allocated
+as other runners do) or read from the live declared type and playbook vocabulary that the
+declaration put in place, so there is no corpus-era value to freeze. It still imports no id, ref or
+padding formatting primitive from ``_models`` (see
+``tests/meta/test_migrations_never_import_a_vocabulary_folded_primitive.py``). It runs only through
+``sq migrate up`` via ``_migrations._registry``.
 """
 
 from pathlib import Path
@@ -66,10 +49,10 @@ from squads._sections import join_frontmatter, split_frontmatter
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL
 from squads._workflow._models import WorkflowSpec
 
-#: The two type names this runner is chartered to bring onto an existing squad's disk. Declared
-#: by the workflow spec, not invented here — this tuple only names *which* declared entries this
-#: runner's own folder/surface step applies to; every value it uses to act on them (folder,
-#: prefix, lifecycle) is read from the active spec at call time, never pinned locally.
+#: The two type names this runner brings onto an existing squad's disk. They are declared by the
+#: workflow spec; this tuple only names which declared entries the folder/surface step applies to,
+#: and every value used to act on them (folder, prefix, lifecycle) is read from the active spec at
+#: call time, never pinned.
 _NEW_TYPES: tuple[str, ...] = ("contract", "milestone")
 
 MANUAL = """\
@@ -145,10 +128,10 @@ and a sub-entity's status through `sq <type> <n> show` or `sq list`.
 
 
 async def _ensure_type_folders(paths: SquadPaths, spec: WorkflowSpec) -> int:
-    """Create each new type's folder if missing — idempotent, matching what ``init``/``adopt``
-    do per declared type at creation time. A type an override has dropped from *spec* is skipped
-    outright: this runner cannot, and must not, create a folder for a type the active squad no
-    longer declares."""
+    """Create each new type's folder if missing, idempotently, as ``init``/``adopt`` do per declared
+    type. A type an override dropped from *spec* is skipped: this runner must not create a folder
+    for a type the active squad no longer declares.
+    """
     created = 0
     for item_type in _NEW_TYPES:
         if item_type not in spec.items:
@@ -163,27 +146,17 @@ async def _ensure_type_folders(paths: SquadPaths, spec: WorkflowSpec) -> int:
 async def _live_roster(
     paths: SquadPaths, spec: WorkflowSpec
 ) -> tuple[list[RoleView], list[OperatorView], dict[str, Path]]:
-    """The live-roster views ``write_managed`` needs, read straight off the index.
-
-    The operator and skill-path halves are the projection :meth:`Service.operators` and
-    :meth:`Service._skill_paths` apply, field for field. **The role half is not**
-    :meth:`Service.roster`'s: that one resolves every role through the catalog
-    (:func:`~squads._roles._resolver.resolve_role_for_item`, which merges a project role
-    override), while this reads each role's stored ``extra`` mirror. That is deliberate — a
-    runner is frozen against the corpus vocabulary of the version it transforms, and that
-    corpus carries the mirror.
-
-    The consequence is visible, because this projection is handed to the same
-    ``write_managed`` ``sync`` calls with the resolved list: on a squad carrying a project role
-    override the mirror has not caught up with, the runner's projection yields the bundled
-    field value and ``sq sync``'s yields the override's, so the managed region ``sq migrate up``
-    writes differs from the one the very next ``sq sync`` writes. ``MANUAL``'s instruction to
-    run ``sq sync`` next is what closes that window.
-
-    Kept local rather than delegating: ``_services`` imports the migration registry to run this
-    module, so calling ``Service`` from a runner is a real import cycle.
-
-    Empty when the index does not exist yet (defensive; every real migrate target has one)."""
+    """The live-roster views ``write_managed`` needs, read straight off the index. The operator and
+    skill-path halves are the projection :meth:`Service.operators` and :meth:`Service._skill_paths`
+    apply, but the role half is not :meth:`Service.roster`'s: that resolves each role through the
+    catalog (:func:`~squads._roles._resolver.resolve_role_for_item`, merging a project role
+    override), while this reads each role's stored ``extra`` mirror, because a runner is frozen
+    against the corpus vocabulary of the version it transforms and that corpus carries the mirror.
+    On a squad with a role override the mirror has not caught up with, the managed region ``sq
+    migrate up`` writes therefore differs from the next ``sq sync``'s, which ``MANUAL``'s
+    instruction to run ``sq sync`` closes. It is local because ``_services`` imports the migration
+    registry, so calling ``Service`` here would be an import cycle. Empty when no index exists.
+    """
     if not paths.index_path.is_file():
         return [], [], {}
     db = await IndexStore(paths.index_path, paths.lock_path, spec=spec).load()
@@ -222,13 +195,12 @@ async def _live_roster(
 async def _regenerate_surface(
     paths: SquadPaths, spec: WorkflowSpec, playbook: PlaybookSpec, catalog: CatalogSource
 ) -> None:
-    """(Re)write every active backend's roster/version-dependent files — scaffolding plus
-    ``write_managed`` — exactly the two calls ``Service.sync``'s own backend loop makes, so the
-    two new types' skill files, their ``.claude`` pointers, and the compiled
-    ``CLAUDE.md``/``AGENTS.md`` regions appear the same way they would on a fresh ``sq init``.
-    Every *other* declared type's managed skill passes through too — ``write_managed`` has no
-    narrower entry point — but a skill file that already exists is left byte-untouched, so an
-    existing squad sees no change to anything but the two new types' files."""
+    """(Re)write every active backend's roster- and version-dependent files with the two calls
+    ``Service.sync``'s backend loop makes (scaffolding and ``write_managed``), so the new types'
+    skill files, ``.claude`` pointers and compiled ``CLAUDE.md``/``AGENTS.md`` regions appear as on
+    a fresh ``sq init``. Every other type's managed skill passes through too, as ``write_managed``
+    has no narrower entry point, but an existing skill file is left byte-untouched.
+    """
     roster, operators, skill_paths = await _live_roster(paths, spec)
     ctx = BackendContext(
         paths=paths, skill_paths=skill_paths, spec=spec, playbook=playbook, catalog=catalog
@@ -243,15 +215,11 @@ async def _regenerate_surface(
 async def _seed_new_type_skills(
     paths: SquadPaths, spec: WorkflowSpec, playbook: PlaybookSpec, catalog: CatalogSource
 ) -> int:
-    """Stamp a ``SKILL`` item onto each new type's skill file ``_regenerate_surface`` just
-    created, the same allocate → stamp → rewrite-pointer shape every prior runner that seeds a
-    skill uses. Scoped to exactly the two slugs this runner is chartered to introduce —
-    narrower than ``Service.seed_bundled_skills``' full bundled-slug sweep, which is a standing
-    ``sq sync`` responsibility this runner does not need to duplicate.
-
-    Idempotent per slug: a convention-named file (``SKILL-<NNNNNN>-sq-<type>.md``) already
-    present is left untouched, matching what a squad synced after the type was declared but
-    before this runner shipped already carries.
+    """Stamp a ``SKILL`` item onto each new type's skill file :func:`_regenerate_surface` just
+    created (allocate, stamp, rewrite the pointer, as every prior skill-seeding runner does), scoped
+    to the two slugs this runner introduces rather than ``Service.seed_bundled_skills``' full sweep,
+    which stays a ``sq sync`` duty. It is idempotent per slug: an existing convention-named file
+    (``SKILL-<NNNNNN>-sq-<type>.md``) is untouched.
     """
     if not paths.index_path.is_file():
         return 0
@@ -296,11 +264,9 @@ async def _seed_new_type_skills(
             await _aio.write_text(new_path, stamped_text)
             await _aio.path_unlink(legacy_path)
             db.add(item)
-        # Rewrite each backend's pointer to reflect the now-indexed skill — mirrors
-        # seed_bundled_skills' own closing step. For these two system skills the pointer's
-        # content does not actually depend on the item (its description is the compiled one,
-        # not item.extra), so this is defensive symmetry with every other seeding runner
-        # rather than a fix for a real drift.
+        # Rewrite each backend's pointer to reflect the now-indexed skill, as seed_bundled_skills'
+        # closing step does; for these system skills the pointer does not depend on the item, so
+        # this is defensive symmetry with other seeding runners, not a drift fix.
         ctx = BackendContext(paths=paths, spec=spec, playbook=playbook, catalog=catalog)
         for backend_name in paths.config.active_backends:
             await get_backend(backend_name).generate_skill_entry(ctx, item)

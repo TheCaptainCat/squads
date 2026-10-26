@@ -1,24 +1,15 @@
 """Request-scoped ambient context: the one seam ambient values live in.
 
-**Triage rule** (the durable classification the engine's static-state inventory proves
-against, generalizing the workflow-spec threading decision to every ambient value): a
-module-level binding is
+Triage rule for a module-level binding (the engine's static-state inventory proves against
+it): DATA varies per request, per squad or per test (forged time, acting actor and session
+lineage, the active spec and dir, the client cwd) and lives in ``RequestContext``, never a
+module global; CODE is an immutable definition loaded once and safe to share (the bundled
+workflow spec, the role catalog, backend classes, compiled template environments) and may stay
+module-level and be cached process-wide.
 
-- **DATA** — its value varies per request, per squad, or per test (forged time, acting
-  actor + session lineage, the active spec/dir, the client cwd) — it must live here, in
-  ``RequestContext``, never in a module global.
-- **CODE/definition** — an immutable spec, class, or definition loaded once and safe to
-  share across every request (the bundled workflow spec, the role catalog, backend
-  classes, compiled template environments) — it may stay module-level, and caching it
-  process-wide is fine.
-
-One task-local value, seeded/rebound only at the CLI edge (or a future server handler) and
-read only through the accessor functions below — nothing below ``open_service`` reads
-the ``ContextVar`` directly.
-
-Additive by design: new ambient fields (the active spec/dir, the client cwd, …) are
-added to ``RequestContext`` with a default, so adding one never touches existing call
-sites or existing fields.
+It is one task-local value, seeded or rebound only at the CLI edge and read only through the
+accessors below; nothing below ``open_service`` reads the ``ContextVar`` directly. New ambient
+fields are added with a default, so existing call sites and fields are untouched.
 """
 
 from contextvars import ContextVar
@@ -28,10 +19,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    # _context sits below _clock/_actor (both import it); _workflow._models sits above them
-    # (its model_validator lazily imports _models._item, which imports _clock) — a real runtime
-    # import here would cycle back to this module mid-init. Type-only, per the project's
-    # documented cycle-break convention.
+    # _context sits below _clock/_actor; _workflow._models sits above them, and a runtime
+    # import here would cycle back to this module mid-init, so it is type-only.
     from squads._workflow._models import WorkflowSpec
 
 
@@ -48,13 +37,9 @@ class RequestContext:
     #: Whether the caller chose the working directory with ``-C`` (names it in errors).
     client_cwd_chosen: bool = False
 
-    #: Why the squad's workflow override could not be resolved this invocation, already
-    #: phrased as the refusal the user reads. Set only when an override file **exists** and
-    #: failed — being outside a squad, or having no override, leaves it ``None`` with
-    #: ``active_spec`` falling back to the bundled spec as before. Its presence is what turns
-    #: every spec-consuming surface into a refusal instead of an answer drawn from bundled
-    #: vocabulary the project did not declare: a spec that failed to load has no honest
-    #: substitute, so there is nothing to fall back *to*.
+    #: The refusal text when the squad's workflow override exists but failed to resolve; ``None``
+    #: outside a squad or with no override. Its presence turns every spec-consuming surface into
+    #: a refusal, since a spec that failed to load has no honest bundled substitute.
     spec_error: str | None = None
 
 

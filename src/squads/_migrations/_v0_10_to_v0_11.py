@@ -1,23 +1,14 @@
-"""Schema 0.10 → 0.11 runner: a schema-stamp-only no-op.
+"""Schema 0.10 → 0.11 runner: a schema-stamp-only no-op, existing to gate the new ``scopes`` ref
+kind (custom-skill role scoping). No frontmatter shape changed: system versus custom skill is
+derived from the slug against the active spec and never stamped, and the ``scopes`` edge reuses the
+``ID:kind`` ref shape supported since schema 0.2. The hazard is forward compatibility: a pre-0.11
+client reading a 0.11 repo would warn "unknown ref kind 'scopes'" and silently ignore the scoping,
+so bumping ``SCHEMA_VERSION`` makes the root CLI callback hard-stop it with "run `sq migrate up`".
 
-This migration exists purely to gate the new ``scopes`` ref kind (custom-skill role scoping):
-no frontmatter **shape** changed. The classification of a skill as system vs. custom is derived
-from its slug against the active spec, never stamped, so there is nothing to backfill; the
-``scopes`` edge reuses the existing ``ID:kind`` ref shape supported since schema 0.2.
-
-The one forward-compatibility hazard is the new ``scopes`` kind itself: a pre-0.11 client
-reading a 0.11 repo would ``sq check``-warn "unknown ref kind 'scopes'" and silently ignore the
-scoping. Bumping ``SCHEMA_VERSION`` makes the root CLI callback hard-stop that old client with
-"run `sq migrate up`" instead of letting it mishandle the edge.
-
-**No existing file needs to be modified** — this runner touches no files and returns 0.
-``run_pending_migrations`` (``_services/_maintenance.py``) still runs ``repair()`` and stamps
-0.11 as usual; that alone reconstructs a correct index from unmodified frontmatter, including any
-pre-existing ``scopes`` edges and authored custom-skill bodies (repair never reads or rewrites
-body regions).
-
-Invoked by ``sq migrate up`` via ``_migrations._registry`` — never run directly (this module is
-private).
+It touches no file and returns 0; ``run_pending_migrations`` still runs ``repair()`` and stamps
+0.11, which rebuilds a correct index from unmodified frontmatter, existing ``scopes`` edges and
+authored custom-skill bodies included (repair never reads or rewrites body regions). It runs only
+through ``sq migrate up`` via ``_migrations._registry``.
 """
 
 from squads._paths import SquadPaths

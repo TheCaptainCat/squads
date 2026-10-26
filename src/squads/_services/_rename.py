@@ -1,11 +1,6 @@
-"""Bulk-rename every item of one type to another, in a single transaction.
-
-A rename is a **vocabulary** change (same semantic type, new label/prefix), not a
-reclassification: unlike :mod:`squads._services._retype`, sub-entities carry over unchanged
-and status always carries over. It reuses ``_retype.py``'s per-item primitive
-(``apply_type_change``) and edge-resync primitive (``resync_edges``) under its own
-validation, batching both the id-rewrite and the edge-resync into one pass across every
-renamed item instead of once per item.
+"""Bulk-rename every item of one type to another, in a single transaction. A rename is a vocabulary
+change, so sub-entities and status always carry over; it reuses ``_retype``'s per-item and edge-
+resync primitives, batching the id rewrite and the resync into one pass.
 """
 
 from collections.abc import Iterable
@@ -90,17 +85,9 @@ def _validate_rename_status(spec: WorkflowSpec, item_type: str, new_status: str)
 
 
 async def _snapshot_files(paths: SquadPaths, db: SquadsDB) -> dict[int, tuple[Path, str]]:
-    """Read every item's current (path, text) before any mutation.
-
-    The index's own atomicity comes for free from ``IndexStore.transaction()`` (nothing is
-    written until the body returns normally) — but ``apply_type_change``/``rewrite_ids``
-    write ``.md`` files eagerly, ahead of that commit. This snapshot is what lets a mid-flight
-    failure restore the filesystem, not just the index, to exactly its pre-call state.
-
-    This is a board-wide pre-flight read, not a single item's — so a stale indexed path
-    (an interrupted title-changing update/retype elsewhere on the board, unrelated to this
-    call's own affected set) must report cleanly rather than crash the whole verb on a raw
-    ``FileNotFoundError``: see :func:`~squads._itemfile.read_item_text`.
+    """Read every item's current (path, text) before any mutation, so a mid-flight failure can
+    restore the filesystem as well as the index. A stale indexed path is reported cleanly rather
+    than raised as ``FileNotFoundError`` (see :func:`~squads._itemfile.read_item_text`).
     """
     snap: dict[int, tuple[Path, str]] = {}
     for it in db.items.values():
@@ -112,15 +99,9 @@ async def _snapshot_files(paths: SquadPaths, db: SquadsDB) -> dict[int, tuple[Pa
 def _check_batch_skew(
     items: Iterable[Item], snapshot: dict[int, tuple[Path, str]], *, default_kind: str
 ) -> None:
-    """Refuse before any write if any of *items* has diverged from its own on-disk
-    frontmatter — the batch shape of the guard every single mutation write seam enforces
-    (see :func:`~squads._itemfile.ensure_no_skew`), run once for the whole affected set,
-    before the mutation loop's first write, so a bulk op can never partially apply over an
-    unrepaired item. *items* are still their as-loaded (pre-delta) selves at the point every
-    caller here runs this — no extra read: *snapshot* already holds each item's disk text,
-    taken for the existing rollback safety net.
-
-    *default_kind* is resolved once by the caller for the whole batch, not per item.
+    """Refuse before any write if any of *items* has diverged from its on-disk frontmatter: the
+    batch form of :func:`~squads._itemfile.ensure_no_skew`, so a bulk op never partially applies
+    over an unrepaired item. *default_kind* is resolved once for the batch.
     """
     problems = [
         skew_message(item, diverging)
@@ -147,25 +128,11 @@ async def _rollback_files(
 
 class RenameMixin(ServiceCore):
     async def rename_type(self, old_type: str, new_type: str) -> RenameResult:
-        """Bulk-move every item of *old_type* to *new_type* in one transaction.
-
-        - Both types must be declared, non-roster types (``spec.non_roster_types()``);
-          *new_type* must already exist in the active spec — this call never declares it.
-        - Refuses (actionable :class:`~squads._errors.SquadsError`) when any live child of a
-          renamed item would become invalid under *new_type*.
-        - Sub-entities carry over unchanged and status always carries over (``carry_status=True``
-          on the shared per-item primitive) — deliberately unlike ``retype()``, which refuses on
-          sub-entities and may reset status.
-        - Every renamed item's id/file/frontmatter is rewritten first, then one combined
-          ``{old_id: new_id}`` remap drives a single ``rewrite_ids`` pass across every file and
-          a single edge resync, so the whole operation is O(N) rather than O(N²).
-        - Each renamed item gets one reflog line (``op="rename-type"``) and one system comment,
-          mirroring ``retype()``'s audit trail.
-
-        A failure anywhere in the mutation phase — including mid-flight, after some items'
-        files have already been moved/rewritten on disk — restores every squad file to its
-        pre-call bytes and path before re-raising, so the index (never written until the
-        transaction body returns) and the filesystem both end up untouched.
+        """Bulk-move every item of *old_type* to *new_type* in one transaction. Both must be
+        declared non-roster types, and a live child that would become invalid under *new_type* is
+        refused. Every item is rewritten first, then one ``{old_id: new_id}`` remap drives a single
+        ``rewrite_ids`` pass and edge resync, with a reflog line and system comment per item. Any
+        failure restores every squad file to its pre-call bytes and path.
         """
         old_type = str(old_type)  # coerce StrEnum members to plain str
         new_type = str(new_type)
@@ -186,10 +153,8 @@ class RenameMixin(ServiceCore):
             # item — so a spec declaring the wrong number of default ref kinds fails as one
             # clean refusal naming the spec rather than partway through the rename.
             default_kind = self.spec.default_ref_kind()
-            # Pre-flight the whole affected set before the first write: a mid-flight refusal
-            # here would leave every item already processed renamed/rewritten and the rest
-            # untouched — a partially applied bulk rename, worse than the overwrite this guard
-            # exists to prevent. Reuses the snapshot just taken; no extra read.
+            # Pre-flight the whole set before the first write: a mid-flight refusal would leave a
+            # partially applied bulk rename. Reuses the snapshot just taken.
             _check_batch_skew(old_items, snapshot, default_kind=default_kind)
             try:
                 # Per-item self-rewrite (id/prefix/file/frontmatter; status carried
@@ -220,10 +185,8 @@ class RenameMixin(ServiceCore):
                 ]
                 changed = set(await rewrite_ids(other_paths, remap))
 
-                # Not excluding the renamed items themselves: two renamed items of the same
-                # old_type may ref each other, and that cross-reference needs remapping too
-                # (retype's single-pair exclude is a no-op there since an item can't ref
-                # itself; a multi-entry bulk remap has no such guarantee).
+                # Renamed items are not excluded: two of them may ref each other, and that needs
+                # remapping too.
                 resync_edges(db, remap, exclude=set())
 
                 ids: list[tuple[str, str]] = []
@@ -259,25 +222,11 @@ class RenameMixin(ServiceCore):
         return RenameResult(renamed=len(pairs), ids=ids, rewritten=rewritten_names)
 
     async def rename_status(self, item_type: str, old_status: str, new_status: str) -> RenameResult:
-        """Bulk-move every *item_type* item at *old_status* to *new_status*, in one transaction.
-
-        Scoped to one type's own lifecycle by construction: status names are global
-        vocabulary shared across many lifecycles, so this only validates and touches
-        *item_type*'s own machine and items — never a spec-wide status rename.
-
-        - *item_type* must be a declared, non-roster type.
-        - *new_status* must be a member of ``spec.workflow_for(item_type).states`` — a valid
-          state, not a valid ``can_transition`` edge (this is a relabel, not a workflow move).
-          Terminal/open classification and any completion badge are inherited from whatever
-          *new_status* already declares; this only moves the ``status:`` value.
-        - Frontmatter-only: no id, file, or folder changes. Sub-entity status vocabulary
-          (``Item.subentities``) is a separate axis and is never touched.
-        - Each moved item gets one reflog line (``op="rename-status"``) and one system
-          comment, mirroring ``rename_type()``'s audit trail.
-
-        A failure anywhere in the mutation phase — including mid-flight, after some items'
-        frontmatter has already been rewritten on disk — restores every squad file to its
-        pre-call bytes before re-raising, same discipline as ``rename_type()``.
+        """Bulk-move every *item_type* item at *old_status* to *new_status* in one transaction,
+        scoped to that type's own lifecycle. *new_status* must be a state of that workflow (not a
+        ``can_transition`` edge) and brings its terminal/open classification. Frontmatter-only; sub-
+        entity statuses are untouched. Each item gets a reflog line and system comment, and any
+        failure restores every squad file to its pre-call bytes.
         """
         item_type = str(item_type)  # coerce StrEnum members to plain str
         old_status = str(old_status)

@@ -1,42 +1,19 @@
-"""Schema 0.8 → 0.10 runner: make ``sq-memory`` a tracked ``SKILL`` item like every other
-bundled skill.
+"""Schema 0.8 → 0.10 runner: make ``sq-memory`` a tracked ``SKILL`` item like every other bundled
+skill. It is the last bundled skill predating the ``SKILL-<NNNNNN>-<slug>.md`` convention from the
+0.4→0.5 migration (``_v0_4_to_v0_5.py``), having shipped later as a plain ``write_managed`` body
+file never re-seeded; fresh ``sq init``/``sq sync`` already stamp it, so this serves only existing
+squads with the legacy untracked file.
 
-``sq-memory`` is the last bundled skill that predates the ``SKILL-<NNNNNN>-<slug>.md``
-convention introduced by the 0.4→0.5 migration (see ``_v0_4_to_v0_5.py``): it shipped later,
-as a plain ``write_managed``-written body file, never re-run through seeding.  Fresh
-``sq init``/``sq sync`` already stamp it correctly (``MEMORY_SKILL`` is in
-``bundled_skill_slugs()`` and ``seed_bundled_skills()`` handles it) — this runner exists only
-for **existing squads** carrying the legacy untracked file.
-
-Scoped to the single ``sq-memory`` slug (unlike the general 0.4→0.5 sweep, which walked every
-bundled skill). Three-branch idempotency, identical in shape to ``_v0_4_to_v0_5``:
-
-1. A convention file ``SKILL-<NNNNNN>-sq-memory.md`` already exists → no-op (already tracked,
-   by fresh-init seeding or a prior run of this migration).
-
-2. A legacy ``sq-memory.md`` with **no frontmatter id** exists → allocate a new ``SKILL-…`` id
-   through ``IndexStore.transaction()``, stamp sq frontmatter, rename to the convention name,
-   and rewrite the ``.claude/skills/sq-memory/SKILL.md`` pointer.
-
-3. A legacy ``sq-memory.md`` that **already carries a frontmatter id** (partially migrated)
-   exists → rename to the convention name and rewrite the pointer; no id is (re)allocated.
-
-If neither file exists (the skill body was never written — e.g. a squad initialised before
-``sq sync`` ran), this is a no-op; run ``sq sync`` first.
-
-**Frozen vocabulary.** Like every other runner in this package, the type/prefix/folder/status
-literals and the skill's description are pinned locally as of this schema version, never read
-from the live spec/enum/registry — a migration is a point-in-time snapshot that must stay
-immune to future drift. The ``.claude`` pointer is likewise rendered from a frozen point-in-time
-template (``claude/pointer_skill.md.j2``, same as ``_v0_4_to_v0_5``), not via a call into the
-live backend registry.
-
-**What happens after this runner returns:** ``run_pending_migrations``
-(``_services/_maintenance.py``) calls ``repair()``, which rebuilds ``.squads.json`` from
-scratch — the counter high-water mark is recovered from ``max(sequence_id)``.
-
-Invoked by ``sq migrate up`` via ``_migrations._registry`` — never run directly (this module is
-private).
+Scoped to the ``sq-memory`` slug, with the same three-branch idempotency as ``_v0_4_to_v0_5``: a
+``SKILL-<NNNNNN>-sq-memory.md`` already present is a no-op; a legacy ``sq-memory.md`` with no
+frontmatter id gets a new id through ``IndexStore.transaction()``, sq frontmatter, the convention
+name and a rewritten ``.claude/skills/sq-memory/SKILL.md`` pointer; one already carrying an id is
+renamed and re-pointed without allocating; and with neither file it is a no-op (run ``sq sync``
+first). The type/prefix/folder/status literals and the skill's description are pinned locally, and
+the pointer is rendered from the frozen ``claude/pointer_skill.md.j2``, not the live backend
+registry. Afterwards ``run_pending_migrations`` calls ``repair()``, which rebuilds ``.squads.json``
+and recovers the counter from ``max(sequence_id)``. It runs only through ``sq migrate up`` via
+``_migrations._registry``.
 """
 
 from squads import _aio
@@ -50,10 +27,9 @@ from squads._models._item import Item
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import render
 
-# Frozen v0.8/v0.10 "skill" vocabulary — the type-name/prefix/folder/status literals and this
-# skill's description, as they existed at this schema version. NEVER derive these from the live
-# spec/enum/registry: a migration is a point-in-time snapshot — the live spec/enum must never be
-# re-introduced here.
+# Frozen v0.8/v0.10 "skill" vocabulary (type-name, prefix, folder and status literals and this
+# skill's description at this schema). Never derive it from the live spec, enum or registry: a
+# migration is a point-in-time snapshot.
 _SKILL_TYPE = "skill"
 _SKILL_PREFIX = "SKILL"
 _SKILL_FOLDER = "agents/skills"
@@ -101,13 +77,10 @@ def _convention_name(item_id: str, padding: int) -> str:
 
 
 async def _rewrite_pointer(paths: SquadPaths, new_body_rel: str) -> None:
-    """Rewrite the ``.claude/skills/sq-memory/SKILL.md`` pointer to today's shape.
-
-    ``new_body_rel`` is kept as a parameter for call-site compatibility with the callers below,
-    which still track the renamed body's location for their own frontmatter/index work, but the
-    pointer itself no longer names a path — a migration runner is frozen against the corpus
-    vocabulary of the schema version it transforms, never against a regenerable artifact like
-    this pointer, so it renders today's template rather than pinning a historical copy.
+    """Rewrite the ``.claude/skills/sq-memory/SKILL.md`` pointer to today's shape. ``new_body_rel``
+    stays a parameter for call-site compatibility, but the pointer no longer names a path: a runner
+    is frozen against the schema's corpus vocabulary, not a regenerable artifact, so it renders
+    today's template rather than pinning a historical copy.
     """
     pointer = paths.root / _CLAUDE_DIR / _SKILLS / _SLUG / _SKILL_FILE
     if not pointer.parent.is_dir():

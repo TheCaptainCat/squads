@@ -1,19 +1,16 @@
-"""The ordered schema migrations, applied by ``sq migrate up`` and surfaced by ``sq migrate
-help`` / ``sq migrate chlog``.
+"""The ordered schema migrations, applied by ``sq migrate up`` and listed by ``sq migrate
+help``/``sq migrate chlog``. Each :class:`Migration` ties the schema transition (what drives ``up``
+against a squad's on-disk ``schema_version``), the release that shipped it (the axis
+``help``/``chlog`` report on), a one-line ``summary``, the deterministic ``run`` step and any
+``manual`` (LLM-assisted) steps. Adding one means dropping a ``_vNtoM.py`` runner, appending it here
+and bumping ``_models._schema.SCHEMA_VERSION``; a step may be a tuple of contributions, so a later
+change to the same release appends one rather than adding a runner.
 
-Each :class:`Migration` ties together the **schema** transition (drives ``up`` against a squad's
-on-disk ``schema_version``), the **release** that shipped it (the axis ``help``/``chlog`` report
-on), a one-line ``summary``, the deterministic ``run`` step, and any ``manual`` (LLM-assisted)
-steps that ``up`` can't do. Adding a step = drop a ``_vNtoM.py`` runner, append it here, and bump
-``_models._schema.SCHEMA_VERSION``. A step may be built as a list of contributions: a later
-change to the same release appends a contribution to the step's tuple instead of adding a runner.
-
-Runner functions are async — ``Callable[[MigrationContext], Awaitable[MigrationOutcome]]``, and
-receive the one :class:`~squads._migrations._context.MigrationContext` the run resolved. A sync
-runner that only walks files (and so takes ``SquadPaths``) is wrapped with :func:`_wrap_sync`;
-an async runner that returns a plain ``int`` is wrapped with :func:`_wrap_async` at its
-``MIGRATIONS`` entry instead of widening its own return type — see
-:class:`~squads._migrations._outcome.MigrationOutcome`.
+Runners are async, ``Callable[[MigrationContext], Awaitable[MigrationOutcome]]``, taking the one
+:class:`~squads._migrations._context.MigrationContext` the run resolved. A sync runner that only
+walks files (taking ``SquadPaths``) is wrapped with :func:`_wrap_sync` and an async one returning a
+plain ``int`` with :func:`_wrap_async` at its ``MIGRATIONS`` entry, rather than widening its return
+type (see :class:`~squads._migrations._outcome.MigrationOutcome`).
 """
 
 from collections.abc import Awaitable, Callable

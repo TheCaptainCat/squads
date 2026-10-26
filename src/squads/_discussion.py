@@ -1,16 +1,14 @@
 """Build collaboration content: comments, and the presentation of sub-entity blocks.
 
-Each sub-entity's **machine state** (status / assignee / severity / mapped story) lives in the
-parent item's frontmatter — see :class:`squads._models._subentity.SubEntity`. This module owns its
-**prose and presentation**, scaffolded as marker-scoped regions in the parent's body:
+A sub-entity's machine state (status, assignee, severity, mapped story) lives in the parent
+item's frontmatter, see :class:`squads._models._subentity.SubEntity`. This module owns its
+prose and presentation, scaffolded as marker-scoped regions in the parent's body:
   - a heading line (``### US<n> — title``), rendered from the stored title,
-  - an sq-owned ``…:head`` region — a human-readable badge mirror of the state,
-  - a ``…:body`` region the **agent** writes freely, and
+  - an sq-owned ``…:head`` region, a human-readable badge mirror of the state,
+  - a ``…:body`` region the agent writes freely, and
   - a ``…:discussion`` region ``sq`` appends comments to.
-The parent's sq-managed ``:summary`` table rolls up its children's state.
-
-The legacy body-stored ``:meta`` regions are gone from the live path; only the migrations still
-touch them, via the frozen ``_migrations._meta_compat`` helpers.
+The parent's sq-managed ``:summary`` table rolls up its children's state. Only the migrations
+touch the legacy body-stored ``:meta`` regions, via ``_migrations._meta_compat``.
 """
 
 import hashlib
@@ -42,8 +40,8 @@ _MENTION_RE = re.compile(r"(?<![A-Za-z0-9_])@([a-z0-9][a-z0-9-]*)")
 
 _TS = r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z"
 
-# The one comment-header pattern, anchored at column 0 and never applied to a stripped line. The
-# optional ``, edited <ts>`` records the last edit and is not part of the comment's hash:
+# The one comment-header pattern, anchored at column 0 and never applied to a stripped line.
+# The optional ``, edited <ts>`` is not part of the comment's hash:
 #   - [2026-06-07T10:00:00Z] `architect` Robert Architect:
 #   - [2026-06-07T10:00:00Z, edited 2026-06-08T09:00:00Z] `architect` Robert Architect:
 _COMMENT_HEADER_RE = re.compile(rf"^- \[({_TS})(?:, edited ({_TS}))?\] `({SLUG_PATTERN})` (.+):$")
@@ -131,20 +129,18 @@ def comment_hash(sequence_id: int, scope: str, slug: str, timestamp: str, text: 
 
 
 def split_discussion(region: str, *, sequence_id: int, scope: str = "") -> list[Comment]:
-    """Parse a discussion region (the content between sq:discussion markers) into Comment objects.
+    """Parse a discussion region (the content between sq:discussion markers) into Comments.
 
     Each comment starts with ``- [TIMESTAMP] `slug` Author:`` (``- [TIMESTAMP, edited TIMESTAMP]
-    ...`` once edited) and is followed by indented bullet lines (``  - text`` or continuation
-    lines ``    text``).  The body field preserves the bullets
-    as-is (including any fenced code blocks), stripping only the leading 2-space indent level so
-    it reads as standalone markdown.
+    ...`` once edited) and is followed by indented bullet lines (``  - text``) or continuation
+    lines (``    text``). The body keeps the bullets as-is, fenced code blocks included, stripping
+    only the leading 2-space indent so it reads as standalone markdown. Lines that do not start
+    a new header join the current comment; an empty or whitespace-only region gives an empty
+    list. This is the inverse of :func:`format_comment`.
 
-    ``sequence_id`` is the owning item's sequence number and ``scope`` the discussion's (``""``
-    for the item's own, ``<kind>:<local_id>`` for a sub-entity's); with the header and the text
-    they give each comment its ``hash``.
-
-    Empty or whitespace-only regions return an empty list.  Lines that do not start a new header
-    are accumulated as the current comment's body.  This is the inverse of :func:`format_comment`.
+    ``sequence_id`` is the owning item's sequence number and ``scope`` the discussion's (``""`` for
+    the item's own, ``<kind>:<local_id>`` for a sub-entity's); with the header and text they give
+    each comment its ``hash``.
     """
     lines = _region_lines(region)
     heads = [(i, m) for i, ln in enumerate(lines) if (m := _COMMENT_HEADER_RE.match(_content(ln)))]
@@ -366,13 +362,11 @@ def local_id_for(kind: str, token: str, spec: WorkflowSpec) -> str:
 def next_local_id(subentities: list[SubEntity], kind: str, spec: WorkflowSpec) -> str:
     """The next free local id for ``kind``, computed from the parent's stored sub-entities.
 
-    This recomputes from the **live** set's max, not a persisted high-water mark (unlike the
-    item-level global counter, which is stored and never rewinds). Practically: removing a
-    sub-entity that is *not* the highest-numbered one leaves its id a genuinely sanctioned gap
-    (the max is unaffected, so it's never reissued). Removing the *highest*-numbered one does
-    free its number back up for reissue to the next one added — a sub-entity local id is a
-    within-parent label, not a durable cross-repo identity like an item id, so this is accepted
-    as-is rather than adding persisted state to close it (see ``remove_block``).
+    It uses the live set's max, not a persisted high-water mark (unlike the item-level counter).
+    Removing a sub-entity that is not the highest leaves a gap that is never reissued; removing the
+    highest frees its number for the next one added. That is accepted: a local id is a
+    within-parent label, not a durable cross-repo identity, so no persisted state closes it (see
+    ``remove_block``).
     """
     prefix = spec.subentity_kinds[kind].local_prefix
     nums = [
@@ -469,15 +463,12 @@ def set_head(  # noqa: PLR0913 — the head's whole state, passed by keyword
 ) -> str:
     """(Re)render the human-readable ``:head`` region under a block's heading.
 
-    A presentation mirror of the frontmatter state: status/severity as colored badges, the
-    implemented story as ``USn — title``, the assignee's full name. The layout lives in
-    ``templates/subentities/head.md.j2`` — add an attribute by passing a value here + a line there.
-    New blocks ship the region empty (from ``block.md.j2``); on a legacy block that lacks it (the
-    migration path) it's created lazily, just before the block's ``:body`` marker.
-
-    ``spec`` is the active workflow spec, used to resolve the status badge and the severity
-    axis's declared label (see :func:`squads._badges.status_badge` /
-    :func:`squads._badges.field_label`).
+    A presentation mirror of the frontmatter state: status and severity as coloured badges, the
+    implemented story as ``USn — title``, the assignee's full name. The layout is
+    ``templates/subentities/head.md.j2``; add an attribute by passing a value here and a line
+    there. New blocks ship the region empty (from ``block.md.j2``); a legacy block that lacks it
+    gets it created just before the block's ``:body`` marker. ``spec`` resolves the status badge and
+    the severity axis's label (:func:`squads._badges.status_badge`, :func:`field_label`).
     """
     head_tag = _head_tag(kind, local_id)
     inner = render(
@@ -510,11 +501,10 @@ def set_head(  # noqa: PLR0913 — the head's whole state, passed by keyword
 def summary_columns(kind: str, spec: WorkflowSpec) -> list[str]:
     """The header row for *kind*'s summary/list table.
 
-    Fixed base (local-id column headed by the kind name, then Status/Assignee/Title) + one
-    column per declared ``Field`` (headed by its ``label`` — e.g. Severity — inserted right
-    after the local-id column) + a trailing Story column iff the kind declares
-    ``maps_parent_story``. This is the single column-derivation shared by the body summary
-    table and the CLI list/show tables — never re-rolled per caller.
+    A fixed base (local-id column headed by the kind name, then Status/Assignee/Title), one column
+    per declared ``Field`` headed by its ``label`` and inserted right after the local-id column, and
+    a trailing Story column iff the kind declares ``maps_parent_story``. The body summary table and
+    the CLI list/show tables share this derivation.
     """
     field_labels = [f.label for f in spec.fields_for(kind)]
     cols = [kind.title(), *field_labels, "Status", "Assignee", "Title"]
@@ -534,13 +524,10 @@ def summary_row(kind: str, sub: SubEntity, spec: WorkflowSpec) -> list[str]:
     """One row aligned to :func:`summary_columns`: local id, field badges, base, then story.
 
     A field cell renders through :func:`~squads._badges.badge_render`'s default
-    (``as_label=False``) — emoji + raw code (``"🔴 critical"``), the list/panel/summary
-    convention that badge function's own docstring names. A project's own derived view over
-    this same sub-entity data reads the badge value directly off the resolved ``SubEntity``
-    (``sub.badge_value(code)``) and renders it however its own template chooses — the
-    emoji + label form the registered ``badge`` filter gives a *status* value included — so a
-    roll-up template is free to render the identical badge differently from this summary row,
-    on purpose."""
+    (``as_label=False``), emoji plus raw code (``"🔴 critical"``). A project's own view over the
+    same data may render the badge differently, so a roll-up template is free to differ from this
+    row.
+    """
     field_cells = [
         badges.badge_render(badges.resolve_collection(kind, f.code, spec), value, spec)
         if (value := _field_value(sub, f.code))
@@ -629,12 +616,13 @@ def _local_number(local_id: str) -> int:
 def restore_regions(
     text: str, item: Item, kind: str | None, spec: WorkflowSpec, *, from_squad: Path | None
 ) -> str:
-    """*text* with every region a write may need, and that the file lacks outright, added empty:
-    a non-roster item's discussion (with its heading, at the end of the file), and for each
-    declared sub-entity of *kind* its container (before the discussion), its block in id order,
-    and the block's body (before its discussion) and discussion (after its body). A region goes
-    only between existing regions, never inside one, and a heading that survived is not looked
-    for; a half-present pair is left to the marker check."""
+    """*text* with every missing region a write may need added empty.
+
+    That is a non-roster item's discussion (with its heading, at the end of the file) and, for each
+    declared sub-entity of *kind*, its container (before the discussion), its block in id order, and
+    the block's body and discussion. A region goes only between existing regions, never inside one;
+    a surviving heading is not looked for, and a half-present pair is left to the marker check.
+    """
     if not spec.item_is_roster(item.type) and _pair_absent(text, markers.DISCUSSION):
         text = text.rstrip("\n") + f"\n\n## Discussion\n\n{_pair(markers.DISCUSSION)}"
     if kind is None or not item.subentities:

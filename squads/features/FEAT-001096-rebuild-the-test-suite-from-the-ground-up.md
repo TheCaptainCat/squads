@@ -42,7 +42,7 @@ subentities:
   title: Measure per-OS CI times and test count
   status: Todo
 created_at: '2026-10-17T07:56:25Z'
-updated_at: '2026-10-26T09:30:49Z'
+updated_at: '2026-10-26T14:03:08Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -415,4 +415,6 @@ rebuild is cited.
     3. No CI baseline exists for 0.17. I recommend pulling TASK-1111 ST3's on-demand trigger forward as a small devops change, so we get one run per OS now.
     4. The same suite on the same day took 39 and 59 min on Windows. I recommend judging the targets on at least two runs per OS; TASK-1116 ST2 records one.
     5. FEAT-1096 does not say whether the client's TypeScript tests are in scope. I recommend adding them to Out of scope explicitly.
+- [2026-10-26T14:03:08Z] `op-pierre` Pierre Chat:
+  - Validated Olivia's recommendations 1, 3, 4 and 5: the rebuild depends on the open 0.17 work; add a manual CI trigger for a 0.17 baseline; judge the targets on two runs per OS; client TypeScript tests are out of scope.
 <!-- sq:discussion:end -->

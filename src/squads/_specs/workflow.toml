@@ -719,10 +719,10 @@ transform = { module = "squads._view_transforms", function = "milestone_rollup" 
 # role.md.j2` (the role item's creation scaffold) seeds the tag naming this view into every
 # newly-activated role's `sq:body`; `sq repair`'s corpus sweep backfills it onto every
 # already-activated role from an earlier release.
-# Seeded: a role's body IS the slot this view renders into — its write path refuses replace
-# and append alike, unconditionally (declare the definition in `.overrides/roles.toml`, or
-# `.overrides/roles/<slug>.toml`, to author one instead).
+# Seeded: the tag sits at the top of a role's body and authored prose follows it; `body`
+# replace and append keep the tag in place.
 source = { kind = "role" }
+position = "top"
 
 [views.squads_skill]
 # Source: the playbook lane of the projecting item's own type — `name` is deliberately unset,

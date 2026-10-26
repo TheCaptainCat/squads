@@ -109,7 +109,7 @@ def _trim_release(nums: list[int]) -> tuple[int, ...]:
 
 def version_tuple(version: str) -> VersionKey:
     """A comparable key ordered by PEP 440: ``X.devN < X.aN < X.bN < X.rcN < X < X.postN``, with
-    the release numbers compared as their own tuple (any length, ``0.14 == 0.14.0``). Text that
+    the release numbers compared as their own tuple (any length, trailing zeros ignored). Text that
     is not a version falls back to each dotted segment's leading digits (0 when it has none),
     never joining digits across a suffix."""
     text = version.strip()

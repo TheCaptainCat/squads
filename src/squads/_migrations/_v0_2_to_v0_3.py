@@ -1,27 +1,20 @@
-"""Schema 0.2 → 0.3 runner. Per item file:
+"""Schema 0.2 → 0.3 runner, per item file: backfill the integer ``sequence_id`` into frontmatter
+(derived once from the id); lift each sub-entity's machine state out of its body ``:meta`` region
+into a typed ``subentities`` frontmatter list and delete the redundant ``:meta`` markers; and
+(re)render the ``:head`` region under every story, subtask and finding (status, assignee, severity
+and story badges, resolving the assignee's full name from role files and a subtask's story title
+from its parent feature). State is thus single-sourced in frontmatter, while
+``:body``/``:discussion`` prose and the ``:summary`` roll-up stay in the body. It is deterministic,
+marker-safe and idempotent (a file whose blocks carry no ``:meta`` is already at 0.3), run only
+through ``sq migrate`` via ``_migrations._registry``, and threads no active spec like every runner
+here.
 
-  - backfill the integer ``sequence_id`` into frontmatter (derived once from the id),
-  - **lift each sub-entity's machine state out of its body ``:meta`` region into a typed
-    ``subentities`` frontmatter list**, then delete the now-redundant ``:meta`` markers, and
-  - (re)render the human-readable ``:head`` region under every story / subtask / finding — status /
-    assignee / severity / story badges — resolving the assignee's full name (from role files) and a
-    subtask's story title (from its parent feature).
-
-Sub-entity state thus becomes single-sourced in frontmatter (visible to the index); the prose
-(``:body`` / ``:discussion``) and the rolled-up ``:summary`` stay in the body. Deterministic,
-marker-safe, idempotent (a file whose blocks carry no ``:meta`` is already at 0.3). Invoked by
-``sq migrate`` via ``_migrations._registry`` — never run directly (module is private), matching
-every other runner in this package (none of them thread the active spec).
-
-A carried-forward legacy meta status is written into ``subentities:`` unchanged, exactly as read
-— this runner never invents or remaps a value. If a project's active lifecycle for that kind no
-longer declares it (e.g. an override replaced the lifecycle after the file was written), that is
-already caught downstream by ``sq check`` (``_services/_validators.py::_subentity_status_valid``,
-which runs against the same active/override-aware spec) — see ``MANUAL`` below.
-
-Note on ``.squads.toml``: ``run_pending_migrations`` regenerates the file when it carries the
-legacy ``default_backend`` or ``default_role`` key (``_config_text.plan_config_rewrite``), so no
-explicit toml rewrite is needed in this runner.
+A legacy meta status is written to ``subentities:`` unchanged, never remapped; if the active
+lifecycle no longer declares it, ``sq check``
+(``_services/_validators.py::_subentity_status_valid``) catches it (see ``MANUAL``).
+``run_pending_migrations`` regenerates ``.squads.toml`` when it carries the legacy
+``default_backend`` or ``default_role`` key (``_config_text.plan_config_rewrite``), so this runner
+needs no toml rewrite.
 """
 
 from pathlib import Path
@@ -48,9 +41,8 @@ sq <type> <n> <kind> <k> update --status <a-valid-status-for-your-lifecycle>
 ```
 """
 
-# Frozen v0.2/v0.3 type vocabulary — the type-name/prefix/folder literals as they existed at
-# this schema version. NEVER derive this from the live spec/enum: a migration is a
-# point-in-time snapshot — the live spec/enum must never be re-introduced here.
+# Frozen v0.2/v0.3 type vocabulary (type-name, prefix and folder literals at this schema). Never
+# derive it from the live spec: a migration is a point-in-time snapshot.
 _TYPES: tuple[tuple[str, str, str], ...] = (
     ("epic", "EPIC", "epics"),
     ("feature", "FEAT", "features"),

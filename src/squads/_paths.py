@@ -44,10 +44,9 @@ def load_config(config_path: Path) -> SquadsConfig:
         with config_path.open("rb") as fh:
             data = tomllib.load(fh)
     except (tomllib.TOMLDecodeError, UnicodeDecodeError) as exc:  # fmt: skip
-        # tomllib decodes the bytes internally (before the TOML grammar is ever reached), so
-        # a stray non-UTF-8 byte raises UnicodeDecodeError here rather than TOMLDecodeError —
-        # config resolution runs before command dispatch, so an unguarded config read fails
-        # every command, including the ones an operator would run to diagnose it.
+        # tomllib decodes the bytes first, so a stray non-UTF-8 byte raises UnicodeDecodeError,
+        # not TOMLDecodeError. Config resolution runs before dispatch, so an unguarded read
+        # would fail every command, including the ones that diagnose it.
         raise SquadsError(f"malformed {config_path}: {exc}") from exc
     try:
         return SquadsConfig.from_toml_dict(data)

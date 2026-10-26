@@ -12,12 +12,11 @@ if TYPE_CHECKING:
     from squads._workflow._models import ItemSpec
 
 
-#: The closed per-item validator NAME catalog — the vocabulary half of the pluggable-validator
-#: decision. Behaviour (the actual check functions) lives high, in
-#: ``_services/_validators.py::CATALOG``, which asserts ``set(CATALOG) == VALIDATOR_NAMES`` at
-#: import time so impl can never drift from this declared contract. Living here (not in
-#: ``_services``) lets ``WorkflowSpec._validate``'s Plane-1 catalog-membership check read the
-#: valid names without ``_workflow`` importing up into ``_services`` (an inverted, cyclic edge).
+#: The closed per-item validator NAME catalog, the vocabulary half of the pluggable-validator
+#: design. The check functions live in ``_services/_validators.py::CATALOG``, which asserts
+#: ``set(CATALOG) == VALIDATOR_NAMES`` at import so they cannot drift. It lives here so
+#: ``WorkflowSpec._validate``'s Plane-1 membership check reads the names without ``_workflow``
+#: importing up into ``_services``.
 VALIDATOR_NAMES: frozenset[str] = frozenset(
     {
         "parent_in",
@@ -153,52 +152,36 @@ ACTIVE_ITEM_SQUAD_GLOBAL_NAMES: frozenset[str] = frozenset(
 )
 
 
-#: Validator names that legitimately carry a ``:<param>`` suffix, each read back by the
-#: validator itself from the type's own ``validators`` entries — the dispatch engine strips the
-#: suffix before the catalog lookup (``ValidatorEngine._run_per_item``), same as every other
-#: name. ``subentity_title_max``'s param is its title-length threshold
-#: (``WorkflowSpec.item_subentity_title_max``); ``ref_rule_target_present``'s is the item type
-#: it selects an obligation for (``_services/_validators.py::_ref_rule_target_present``);
-#: ``item_title_max``'s is its title-length threshold and ``external_id_not_in_title``'s a
-#: regular expression (``WorkflowSpec.item_title_max``/``item_external_id_pattern``).
+#: Validator names that carry a ``:<param>`` suffix, each read back by the validator itself from the
+#: type's ``validators`` entries (dispatch strips the suffix before the catalog lookup, as for every
+#: name): a title-length threshold for ``subentity_title_max`` and ``item_title_max``, the item type
+#: for ``ref_rule_target_present``, a regular expression for ``external_id_not_in_title``.
 PARAMETERIZED_VALIDATOR_NAMES: frozenset[str] = frozenset(
     {"subentity_title_max", "ref_rule_target_present", "item_title_max", "external_id_not_in_title"}
 )
 
 
-#: The subset of :data:`PARAMETERIZED_VALIDATOR_NAMES` whose own runtime resolver **unions**
-#: every matching entry it finds in a type's own ``validators`` list — so two entries naming
-#: *different* params are independent, additive selections (one obligation per param), not a
-#: repeat. ``ref_rule_target_present`` is the only member with this property today: its
-#: ``targets`` set (``_services/_validators.py::_ref_rule_target_present``) is built from a
-#: comprehension over every matching entry.
-#:
-#: "Is parameterized" and "accepts multiple selections" are two different properties — a name
-#: can take a ``:<param>`` and still resolve to exactly one effective value (see
-#: :data:`SINGLE_SELECTION_VALIDATOR_NAMES`). Keying the duplicate-selection identity
-#: (:func:`validator_selection_key`) on parameterization alone conflates the two; this set is
-#: the declared answer to the question that conflation skipped.
+#: The subset of :data:`PARAMETERIZED_VALIDATOR_NAMES` whose resolver unions every matching entry in
+#: a type's ``validators`` list, so entries with different params are independent additive
+#: selections, not a repeat; today only ``ref_rule_target_present``. "Parameterized" and "accepts
+#: multiple selections" differ (see :data:`SINGLE_SELECTION_VALIDATOR_NAMES`), which keying
+#: :func:`validator_selection_key` on parameterization alone would conflate.
 MULTI_SELECTION_VALIDATOR_NAMES: frozenset[str] = frozenset({"ref_rule_target_present"})
 
 
-#: The complement within :data:`PARAMETERIZED_VALIDATOR_NAMES`: a member whose own resolver
-#: returns on the **first** matching entry it finds rather than unioning every one —
-#: ``subentity_title_max``'s is ``WorkflowSpec.item_subentity_title_max``, first match, single
-#: value. A second, differently-parameterised entry of one of these names is therefore not an
-#: independent selection: nothing decides which value the resolver would have picked instead,
-#: so it is refused at Plane-1 the same as a same-param repeat — the alternative is a second
-#: entry that loads clean and does nothing, forever, which is exactly what
-#: :func:`_check_ref_rule_targets` refuses on principle for its own member ("refused here rather
-#: than silently doing nothing forever").
+#: The complement within :data:`PARAMETERIZED_VALIDATOR_NAMES`: a member whose resolver returns the
+#: first matching entry (``subentity_title_max``, via ``WorkflowSpec.item_subentity_title_max``). A
+#: second, differently-parameterised entry is not an independent selection, as nothing picks which
+#: value applies, so Plane-1 refuses it like a same-param repeat rather than load an entry that does
+#: nothing forever (as :func:`check_ref_rule_targets` does for its member).
 SINGLE_SELECTION_VALIDATOR_NAMES: frozenset[str] = frozenset(
     {"subentity_title_max", "item_title_max", "external_id_not_in_title"}
 )
 
 
-#: The opt-in per-item policy checks about the work an item tracks. A type of the ``roster``
-#: category (a role, a skill, an operator) is configuration, not tracked work, so naming one of
-#: these on it is refused at load by :func:`_check_selections_that_cannot_fire` instead of
-#: loading and reporting every roster entry.
+#: The opt-in per-item policy checks about tracked work. A ``roster``-category type (role, skill,
+#: operator) is configuration, not tracked work, so :func:`check_selections_that_cannot_fire`
+#: refuses naming one on it at load rather than reporting every roster entry.
 WORK_POLICY_VALIDATOR_NAMES: frozenset[str] = frozenset(
     {
         "item_title_max",
@@ -220,38 +203,29 @@ REQUIRED_PARAM_VALIDATOR_NAMES: frozenset[str] = frozenset(
 )
 
 
-#: The two levels a validator finding may carry — matches :class:`~squads._services._results.
-#: CheckIssue`'s own closed ``level`` contract (``"error"`` aborts create/update at the gate;
-#: ``"warn"`` is advisory everywhere, mirroring ``sq check``'s error-only exit code). A
-#: selection's ``@<level>`` suffix (see :func:`parse_validator_entry`) is Plane-1-checked
-#: against this set, so an adopter cannot invent a third severity the rest of the engine has no
-#: meaning for.
+#: The two levels a finding may carry, matching :class:`~squads._services._results.CheckIssue`'s
+#: ``level`` (``"error"`` aborts create/update at the gate, ``"warn"`` is advisory, as ``sq check``
+#: exits non-zero on errors only). A selection's ``@<level>`` suffix (:func:`parse_validator_entry`)
+#: is checked against this set so no third severity can be invented.
 VALIDATOR_LEVELS: frozenset[str] = frozenset({"error", "warn"})
 
 
-#: Total order over :data:`VALIDATOR_LEVELS`, low to high — the comparison
-#: :data:`VALIDATOR_LEVEL_FLOOR` needs to tell "raise" from "lower". Not exposed beyond this
-#: module: every external caller asks a yes/no question (does this selection clear the floor),
-#: never a rank.
+#: Total order over :data:`VALIDATOR_LEVELS`, low to high, which :data:`VALIDATOR_LEVEL_FLOOR` needs
+#: to tell "raise" from "lower"; only the Plane-1 level check (``_check_validator_level``) reads
+#: it, and other callers ask whether a selection clears the floor, never a rank.
 LEVEL_RANK: dict[str, int] = {"warn": 0, "error": 1}
 
 
-#: The separator between a validator name (with its optional ``:<param>``) and an optional
-#: declared level. ``@`` rather than a second ``:`` — ``:`` is already the param separator, and
-#: reusing it would make ``name:param:level`` ambiguous about which half is which. ``@`` cannot
-#: appear in a validator name (plain identifiers) or in a title-length threshold (an integer,
-#: enforced by :func:`_check_validator_param`), is refused in an ``external_id_not_in_title``
-#: pattern (a literal ``@`` is written ``\x40``), and it is a different namespace from
-#: the unrelated place a bare ``@`` already means something in this codebase (an ``@mention``
-#: inside discussion prose — comment text, never spec vocabulary).
+#: The separator between a validator name (with its optional ``:<param>``) and a declared level.
+#: It is ``@`` because ``:`` is the param separator and reusing it would make
+#: ``name:param:level`` ambiguous; ``@`` cannot appear in a validator name, in a title-length
+#: threshold (an integer, :func:`_check_validator_param`) or in an ``external_id_not_in_title``
+#: pattern (write ``\x40``).
 #:
-#: It is **not** ruled out of ``ref_rule_target_present``'s own param, an item-type name:
-#: unlike a ``[ref_kinds]`` key (:data:`_BARE_TOML_KEY_RE`), nothing restricts an
-#: ``[items.<type>]`` TOML key's character set. A type declared with ``@`` in its own name
-#: would mis-split when selected as a target — :func:`parse_validator_entry` cuts on the first
-#: ``@`` regardless of which half it came from, so the piece after it is read as the level and
-#: refused at Plane-1 as an unknown level rather than as the intended (but wrong) target type.
-#: Fails closed, with a message naming the wrong half of the entry.
+#: It is not ruled out of ``ref_rule_target_present``'s param, an item-type name, as nothing
+#: restricts an ``[items.<type>]`` key's characters. A type named with ``@`` would mis-split,
+#: since :func:`parse_validator_entry` cuts on the first ``@``, and fails closed at Plane-1 as an
+#: unknown level, naming the wrong half of the entry.
 _LEVEL_SEP = "@"
 
 
@@ -259,19 +233,13 @@ _PARAM_SEP = ":"
 
 
 def parse_validator_entry(entry: str) -> tuple[str, str | None, str | None]:
-    """Split one ``validators``-list *entry* into ``(bare name, param, level)`` — the single
-    parser every consumer of the assignment grammar (Plane-1 validation, the effective-set
-    composition, the dispatch engine's catalog lookup, and a parameterised validator reading
-    its own argument back) uses, so the grammar is defined once rather than re-partitioned at
-    each call site with room for the definitions to disagree.
-
-    Grammar, in the one order this parses: ``name``, ``name:param``, ``name@level``, or
-    ``name:param@level`` — a param, when present, always precedes a level. The level is split
-    off first (rightmost-meaningful cut, via the first ``@``), then a param is split off the
-    remainder. A reversed composition (``name@level:param``) does not parse as intended: the
-    ``:`` lands inside what this function treats as the level string, which is not a member of
-    :data:`VALIDATOR_LEVELS`, so it fails the Plane-1 level check with a clear message rather
-    than silently accepting an unintended parameter.
+    """Split one ``validators``-list *entry* into ``(bare name, param, level)``: the single parser
+    every consumer of the grammar uses (Plane-1 validation, effective-set composition, dispatch
+    lookup, a validator reading its own argument), so the definitions cannot disagree. The grammar
+    is ``name``, ``name:param``, ``name@level`` or ``name:param@level``, the level split off first
+    at the first ``@`` and then the param from the remainder. A reversed ``name@level:param`` leaves
+    the ``:`` inside the level string, so it fails the Plane-1 level check rather than silently
+    accepting a parameter.
     """
     head, has_level, level_part = entry.partition(_LEVEL_SEP)
     level = level_part if has_level else None
@@ -281,25 +249,13 @@ def parse_validator_entry(entry: str) -> tuple[str, str | None, str | None]:
 
 
 def validator_selection_key(entry: str) -> tuple[str, str | None]:
-    """The de-duplication identity of one ``validators``-list *entry* — what makes two entries
-    "the same selection" rather than two different ones. Used identically by
-    :func:`_check_validators_assignment`'s repeat-selection refusal and by
-    :func:`effective_validator_names`'s composition, so both agree on what counts as a
-    duplicate.
-
-    A member in :data:`MULTI_SELECTION_VALIDATOR_NAMES` is keyed on its bare name *and* its
-    param: its runtime (e.g. ``_ref_rule_target_present``) unions every matching entry it
-    finds in a type's own list, so two entries naming different params are independent,
-    additive selections — one target type each — not a repeat. Two entries naming the *same*
-    param are a genuine duplicate (nothing decides which one "wins").
-
-    Any other member — a non-parameterized name, a parameterized one selected with no param,
-    or a :data:`SINGLE_SELECTION_VALIDATOR_NAMES` member (param or not) — is keyed on its bare
-    name alone: nothing besides the name distinguishes two entries of it, so a repeat is always
-    a duplicate regardless of a differing param or ``@<level>`` suffix. This is the property
-    that keeps ``subentity_title_max:50`` and ``subentity_title_max:80`` on one type a refused
-    duplicate rather than two selections whose second silently never resolves — see
-    :data:`SINGLE_SELECTION_VALIDATOR_NAMES`.
+    """The de-duplication identity of one ``validators`` entry, used identically by
+    :func:`check_validators_assignment`'s repeat refusal and :func:`effective_validator_names`. A
+    :data:`MULTI_SELECTION_VALIDATOR_NAMES` member is keyed on bare name and param (different params
+    are independent selections; the same param is a duplicate). Any other member, including a
+    :data:`SINGLE_SELECTION_VALIDATOR_NAMES` one, is keyed on its bare name alone, so a repeat is a
+    duplicate whatever its param or ``@<level>``; that is what makes ``subentity_title_max:50`` plus
+    ``:80`` a refusal, not a second selection that never resolves.
     """
     bare, param, _level = parse_validator_entry(entry)
     if bare in MULTI_SELECTION_VALIDATOR_NAMES and param is not None:
@@ -307,12 +263,11 @@ def validator_selection_key(entry: str) -> tuple[str, str | None]:
     return bare, None
 
 
-#: Each catalog member's bundled default level, read by ``_services/_validators.py`` instead of
-#: a level literal inline in the member's own ``CheckIssue(...)`` calls — the single place that
-#: number lives, so a member's default cannot say one thing here and do another at runtime.
-#: Lives in the spec layer for the same reason :data:`VALIDATOR_NAMES` does: a selection's
-#: ``@<level>`` override is Plane-1-validated against it (and against
-#: :data:`VALIDATOR_LEVEL_FLOOR` below) without ``_workflow`` importing up into ``_services``.
+#: Each catalog member's bundled default level, read by ``_services/_validators.py`` instead of an
+#: inline literal in the member's ``CheckIssue(...)`` calls, so the number lives in one place. It
+#: sits in the spec layer, like :data:`VALIDATOR_NAMES`, so a selection's ``@<level>`` is
+#: Plane-1-validated against it and :data:`VALIDATOR_LEVEL_FLOOR` without ``_workflow`` importing up
+#: into ``_services``.
 DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "parent_in": "error",
     "no_parent": "error",
@@ -347,66 +302,40 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
 }
 
 
-#: The declared floor: a selection may raise a member's level but never lower it below this,
-#: for the members whose level is load-bearing for the *engine's own correctness* rather than a
-#: policy preference a project may reasonably decline. Applied with the same placement test that
-#: decides catalog placement, one level down: can a competent squad sit in this state on
-#: purpose, indefinitely, with nothing else in the engine misbehaving because of it? A "yes"
-#: means the member is not floor, however undesirable the state is.
+#: The declared floor: a selection may raise a member's level but never lower it below this, for
+#: members whose level is load-bearing for the engine's own correctness rather than a policy a
+#: project may decline. The test: can a competent squad sit in this state indefinitely with
+#: nothing else in the engine misbehaving? If so the member is not floor, however undesirable the
+#: state.
 #:
-#: Applying that test to every error-level member, only two hold a floor:
+#: Only two error-level members hold a floor. ``parent_acyclic``: a cycle makes every
+#: ancestor/descendant walk non-terminating, and demoted to warn it would let a whole-squad hang
+#: pass ``sq check``'s exit code. ``subentity_container_marker``: its corpus/spec desync leaves
+#: no witness the loader, ``sq workflow lint`` or the index can see, and demoted, ``add-<kind>``
+#: keeps failing on every item of the type while body writes succeed and the one report that
+#: explains it is silenced.
 #:
-#: - ``parent_acyclic``: a parent cycle makes every ancestor/descendant walk in the engine
-#:   non-terminating — a live hang reproduced and fixed on its own, not a house convention a
-#:   project could decline. Demoted to warn, a project's own choice would let a whole-squad hang
-#:   slip past ``sq check``'s exit code, which stays 0 on a warn-only finding.
-#: - ``subentity_container_marker``: the corpus/spec desync it reports leaves no witness the
-#:   loader, ``sq workflow lint``, or the index can see — its own docstring: ``sq check`` is the
-#:   only plane that can. Demoted to warn, ``add-<kind>`` keeps failing on every item of the
-#:   type while sub-entity body writes keep succeeding, and the one report able to say why is
-#:   silenced by the project's own choice.
+#: The rest are not load-bearing. ``parent_in``/``no_parent``: nothing downstream relies on
+#: parent-type eligibility, only on the chain terminating. ``item_status_valid``: rendering reads
+#: the global status catalog, not the per-type graph, and ``--force`` on a status update is a
+#: designed recovery. ``subtask_story_mapping``: it affects grouping display only and stays
+#: visible where rendered. ``subentity_status_valid``: the same as ``item_status_valid``, since
+#: the sub-entity vocabulary gate runs first and unconditionally, so a non-member stays
+#: recoverable.
 #:
-#: The rest are NOT load-bearing, each for a reason specific to it rather than a blanket
-#: "everything else is fine to dial down":
-#:
-#: - ``parent_in``/``no_parent``: nothing downstream assumes the constraint already holds in
-#:   order to function — no walk or transition depends on parent-type eligibility, only on the
-#:   parent existing and the chain terminating (:data:`parent_acyclic`'s own job). A team mid
-#:   reorganisation, or one that wants a looser hierarchy than the bundled default, can hold
-#:   this state on purpose without anything else in the engine misbehaving.
-#: - ``item_status_valid``: flags a status absent from the *type's own* lifecycle graph, not an
-#:   undeclared status altogether — badge/role resolution reads the global status catalog, not
-#:   the per-type graph, so rendering is unaffected. The engine already ships a designed
-#:   recovery for exactly this state: an ordinary status update's ``--force`` short-circuits the
-#:   transition-table lookup and only re-checks target-vocabulary membership, so an item outside
-#:   its lifecycle graph is one recognised, documented escape away rather than genuinely stuck —
-#:   unlike a parent cycle, which has no equivalent designed recovery short of clearing the
-#:   parent.
-#: - ``subtask_story_mapping``: an unresolved mapping affects grouping/rollup display only;
-#:   nothing gates or walks on it resolving, and it is visible wherever the mapping is rendered
-#:   rather than invisible the way the container-marker desync is.
-#: - ``subentity_status_valid``: the same shape and the same reasoning as
-#:   ``item_status_valid``, one level down — the sub-entity status-update path documents the
-#:   identical designed-recovery property in its own code: the vocabulary gate runs first and
-#:   unconditionally, so a sub-entity already carrying a non-member status stays recoverable
-#:   regardless of ``--force``.
-#:
-#: ``parent_present`` is deliberately absent and must stay absent: it sits in no
-#: :data:`CATEGORY_BUNDLES` entry at all, so the only way it is ever effective is a type naming
-#: it — its level, not its rule, is what a project dials, and a floor here would defeat the
-#: entire point of making it selectable at warn.
+#: ``parent_present`` must stay absent: it is in no :data:`CATEGORY_BUNDLES` entry, so it is
+#: effective only when a type names it, its level being what a project dials, and a floor would
+#: defeat making it selectable at warn.
 VALIDATOR_LEVEL_FLOOR: dict[str, str] = {
     "parent_acyclic": "error",
     "subentity_container_marker": "error",
 }
 
 
-#: Per-item validators every type runs regardless of category — cross-cutting item hygiene.
-#: Lives here rather than in ``_services`` for the same reason :data:`VALIDATOR_NAMES` does:
-#: the Plane-1 spec-validity pass below has to resolve a type's *effective* validator set to
-#: check that its declared capability fields are reachable at all, and ``_workflow`` must not
-#: import up into ``_services``. ``_services/_validators.py`` reads these names from here,
-#: so there is one definition of what a category turns on.
+#: Per-item validators every type runs regardless of category (cross-cutting hygiene). It lives
+#: here, as :data:`VALIDATOR_NAMES` does, because the Plane-1 pass must resolve a type's effective
+#: set to check its declared capability fields are reachable and ``_workflow`` must not import up
+#: into ``_services``; ``_services/_validators.py`` reads the names from here.
 COMMON_CORE: tuple[str, ...] = (
     "item_status_valid",
     "dangling_ref",
@@ -417,10 +346,9 @@ COMMON_CORE: tuple[str, ...] = (
 )
 
 
-#: Per-category default per-item validator-name bundle — the category's *behaviour*, since
-#: nothing else in the engine branches on ``work`` vs ``records`` (every other category
-#: consumer asks only "roster or not"). A type's own ``validators`` list extends this floor and
-#: may never subtract from it.
+#: Per-category default validator-name bundle, the category's behaviour (nothing else branches on
+#: ``work`` versus ``records``; other consumers ask only "roster or not"). A type's own
+#: ``validators`` list extends this floor and never subtracts from it.
 CATEGORY_BUNDLES: dict[str, tuple[str, ...]] = {
     "roster": ("pronouns_valid",),
     "work": (
@@ -435,13 +363,12 @@ CATEGORY_BUNDLES: dict[str, tuple[str, ...]] = {
 }
 
 
-#: The validators whose subject is a type's declared ``subentity_kind``. A type that declares a
-#: kind but whose effective set holds none of these has declared sub-entities nothing can check
-#: — see :func:`_check_category_consistency`. ``subentity_title_max`` is a member although no
-#: bundle supplies it: a hosting type may satisfy the clause by naming it alone.
-#: ``subtask_story_mapping`` is deliberately absent: it is specific to one kind's
-#: ``maps_parent_story`` capability, not to hosting a kind at all, so it is guarded by its own
-#: clause (:func:`_clause_story_mapping_reachable`) instead.
+#: The validators whose subject is a type's declared ``subentity_kind``: a type that declares a kind
+#: but whose effective set holds none has sub-entities nothing can check
+#: (:func:`check_category_consistency`). ``subentity_title_max`` is a member although no bundle
+#: supplies it, so a type may satisfy the clause by naming it alone. ``subtask_story_mapping`` is
+#: absent, as it belongs to one kind's ``maps_parent_story`` capability and has its own clause
+#: (:func:`_clause_story_mapping_reachable`).
 SUBENTITY_VALIDATOR_NAMES: frozenset[str] = frozenset(
     {
         "subentity_status_valid",
@@ -460,41 +387,19 @@ def effective_validator_names(
     category_bundles: dict[str, tuple[str, ...]] | None = None,
     extra: tuple[str, ...] = (),
 ) -> tuple[str, ...]:
-    """A type's effective per-item validator-name set: common core + its category's default
-    bundle + its own additions (the "extend-only floor" — a type may add to a bundle, never
-    subtract from it).
+    """A type's effective per-item validator-name set: common core, its category's default bundle
+    and its own additions (extend-only: a type may add to a bundle, never subtract). *extra* is the
+    per-type ``ItemSpec.validators`` list; *common_core* and *category_bundles* are parameters
+    (``None`` meaning :data:`CATEGORY_BUNDLES`) so a test can use a stub bundle.
 
-    *extra* is the per-type ``ItemSpec.validators`` field (the assignment surface) —
-    ``_run_per_item`` passes the item's own list; every other caller defaults to none.
-
-    De-duplicated by :func:`validator_selection_key`, last occurrence of a given key winning —
-    the same "same selection, not same bare name" identity :func:`_check_validators_assignment`
-    refuses a repeat of. *common_core* and *category_bundles* entries are always bare (module
-    constants, never carrying a ``:<param>``/``@<level>`` suffix, so their key is always
-    ``(bare, None)``); the ordinary way a key recurs is a type naming an already-bundled member
-    in its own *extra* with a suffix and no param — e.g. ``subentity_body_written@error`` overriding
-    the level of a category's bare ``subentity_body_written`` — and keeping only the last occurrence
-    makes that override the member's one authoritative entry instead of running it twice under
-    two spellings of the same name. A type's own *extra* naming a
-    :data:`MULTI_SELECTION_VALIDATOR_NAMES` member with two *different* params (e.g.
-    ``ref_rule_target_present:contract`` and ``ref_rule_target_present:milestone``) keys
-    differently for each and both survive as independent selections; the dispatch engine
-    (``ValidatorEngine._run_per_item``) still calls the member's catalog function only once per
-    bare name regardless, since this member's own resolver unions every one of its own entries
-    back off the spec itself rather than off what survived here. A
-    :data:`SINGLE_SELECTION_VALIDATOR_NAMES` member (``subentity_title_max``) keys on its bare
-    name alone no matter the param, so it never reaches this function with two surviving
-    entries in the first place — :func:`_check_validators_assignment` refuses a second,
-    differently-parameterised entry outright, because that member's own resolver reads only its
-    first matching entry rather than unioning. Keeping the *first*-seen key's position is what
-    "extend-only" still means positionally — a type's own addition cannot reorder what the
-    bundle already turned on.
-
-    Parameterised on *common_core*/*category_bundles* — not hardcoded to the module
-    constants — so a caller (or a test) can exercise the composition against a stub bundle.
-    *category_bundles* defaults to ``None`` (resolved to the module-level
-    :data:`CATEGORY_BUNDLES` below) rather than binding the mutable dict itself as a parameter
-    default.
+    It de-duplicates by :func:`validator_selection_key`, the last occurrence of a key winning (so
+    ``subentity_body_written@error`` in *extra* overrides a bundle's bare entry's level instead of
+    running the member twice) while the first-seen key keeps its position, so an addition cannot
+    reorder what the bundle turned on. Two different params on a multi-selection member
+    (``ref_rule_target_present:contract`` and ``:milestone``) both survive, and dispatch still calls
+    the member once per bare name since its resolver unions its own entries from the spec. A
+    single-selection member never arrives with two entries, as :func:`check_validators_assignment`
+    refuses a second.
     """
     bundles = category_bundles if category_bundles is not None else CATEGORY_BUNDLES
     combined = common_core + bundles.get(category, ()) + extra

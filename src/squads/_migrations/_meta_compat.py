@@ -1,10 +1,8 @@
-"""Frozen helpers for the legacy body-stored sub-entity ``:meta`` regions.
-
-Sub-entity state used to live in an sq-owned ``…:meta`` marker region inside the parent's body.
-Only the migrations touch it now — ``_v0_1_to_v0_2`` builds it from pre-2 headings, and
-``_v0_2_to_v0_3`` reads it to lift the state into frontmatter (then deletes the region). These
-helpers are kept here, decoupled from the live ``_discussion`` module, so historical migration
-chains stay self-contained as the live format moves on.
+"""Frozen helpers for the legacy body-stored sub-entity ``:meta`` regions (sub-entity state once
+lived in an sq-owned ``…:meta`` marker region in the parent's body). Only migrations use them:
+``_v0_1_to_v0_2`` builds the region from pre-2 headings and ``_v0_2_to_v0_3`` lifts its state into
+frontmatter and deletes it. They stay decoupled from the live ``_discussion`` module so historical
+chains remain self-contained.
 """
 
 import re

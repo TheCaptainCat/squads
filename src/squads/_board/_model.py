@@ -1,13 +1,10 @@
-"""The board-notice model — deliberately NOT the ``Item`` model.
+"""The board-notice model, deliberately not the ``Item`` model.
 
-A notice is a short, prescriptive team broadcast: light frontmatter (author, posted-at, an
-optional ``until`` expiry) over a freeform, author-owned body — the notice text itself. There
-is no schema-version, status/workflow machinery, sub-entities, or refs, and no global-counter
-id is ever allocated for one; it is identified by a stable short-hash id derived from its
-content (see :mod:`squads._board._store`).
-
-Content files are marker-free: nothing inside a notice body is regenerated, so it carries no
-``<!-- sq:... -->`` markers.
+A notice is a short prescriptive team broadcast: light frontmatter (author, posted-at, an
+optional ``until`` expiry) over a freeform author-owned body, the notice text. It has no schema
+version, workflow, sub-entities or refs, and no counter id; it is identified by a stable
+short-hash id derived from its content (see :mod:`squads._board._store`). Content files are
+marker-free: nothing in a body is regenerated, so it carries no ``<!-- sq:... -->`` markers.
 """
 
 from dataclasses import dataclass

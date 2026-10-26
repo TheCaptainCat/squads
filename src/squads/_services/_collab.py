@@ -35,33 +35,11 @@ _SNIPPET_LEAD = 40
 
 
 async def _read_or_report(paths: SquadPaths, item: Item, unreadable: UnreadableItems) -> str | None:
-    """*item*'s file text, or ``None`` after recording why it could not be obtained.
-
-    The per-file guard both corpus walks in this module go through, so one bad item costs its
-    own results and nothing else (see :data:`UnreadableItems`).
-
-    It takes the **item**, not a resolved path, deliberately. Turning the item's stored ``path``
-    into an absolute one is itself a failing step: ``SquadPaths.abspath`` resolves symlinks and
-    raises :class:`~squads._errors.InvalidIdError` (a ``SquadsError``) for anything landing
-    outside the squad folder — reachable from an item file replaced by a symlink to an
-    out-of-squad target, and from a tampered or badly-imported index ``path`` with no symlink
-    involved at all. Resolving in the caller's argument list put that call *outside* the guard,
-    so it aborted the whole walk exactly the way an unguarded read would, on shapes this
-    function was believed to cover. Owning both halves of "get me this item's text" is what
-    makes "one bad item is one reported line" true rather than nearly true.
-
-    The reported/skipped cases, mirroring the board store's split because they are the same
-    questions:
-
-    - a path that will not resolve inside the squad folder — reported, named by item id, since
-      there is no trustworthy path to name it by;
-    - a decode failure or an OS refusal (permission, I/O) from ``_aio.read_text``, which
-      surfaces as a :class:`SquadsError` naming the file — reported;
-    - a ``FileNotFoundError`` is present-vs-absent, not another unreadable shape. A broken
-      symlink is a *present* dirent whose target read failed, and is reported like any other
-      unreadable file; a file the index still lists but that is genuinely gone is skipped with
-      nothing said here — the missing direction is ``repair``'s report to make, and saying it
-      again on every search would just be noise.
+    """*item*'s file text, or ``None`` after recording why it could not be obtained: the per-file
+    guard for both corpus walks, so one bad item costs only its own results
+    (:data:`UnreadableItems`). It takes the item, not a path, since resolving the path can raise
+    (:class:`~squads._errors.InvalidIdError` outside the squad). Unreadable files and broken
+    symlinks are reported; a missing file is skipped.
     """
     try:
         path = item_file(paths, item)
@@ -93,16 +71,9 @@ def _frontmatter_end_line(text: str) -> int:
 @dataclass
 class _Region:
     """A named, line-bounded region of an item file, used to attribute a search hit.
-
-    ``comment_headers`` (only populated for discussion regions) is ``(line_no, timestamp,
-    author, hash)`` for each comment header found in the region, in file order — the basis for
-    naming *which* comment a hit landed in.
-
-    ``is_subentity`` is set at construction by :func:`_build_regions` (``True`` for every
-    region added inside its sub-entity loop, ``False`` for the three top-level ones) — the
-    authoritative sub-entity-vs-item-level signal a caller reads instead of re-deriving it from
-    the ``region`` string's shape (e.g. testing for a colon), which is only safe by the
-    accident that no item-level region name happens to contain one.
+    ``comment_headers`` (discussion regions only) is ``(line_no, timestamp, author, hash)`` per
+    comment header, in file order. ``is_subentity`` is set by :func:`_build_regions` and is the
+    authoritative sub-entity-vs-item signal, not the shape of the ``region`` string.
     """
 
     start: int
@@ -172,22 +143,10 @@ def _build_regions(text: str, item: Item, spec: WorkflowSpec) -> list[_Region]:
 
 
 def _authored_field_lines(item: Item, needle: str) -> list[InboxLine]:
-    """Mention hits in the item's *own authored* frontmatter fields, as item-level lines.
-
-    ``title``, ``description`` and ``labels`` are first-class authored input (``sq create``,
-    ``sq update --desc``/``--label``) whose only copy in the file is inside the frontmatter
-    block — which the line scan excludes. So they are surfaced here explicitly, exactly the way
-    :meth:`CollabMixin.search` surfaces the same fields, and item-level (``region=None``)
-    because that is genuinely what they are.
-
-    The exclusion is right for a *sub-entity's* title, which recurs in its own heading region
-    and is therefore already attributed there; an item's own title has no second occurrence
-    anywhere, so excluding the block removed its only copy. That asymmetry is the whole reason
-    this exists — the two must not be treated as one thing.
-
-    Everything else in the frontmatter block is sq-managed machine metadata (ids, statuses,
-    slugs, the ``extra`` config map), where an ``@`` token is not a mention anyone authored.
-    See :meth:`CollabMixin.inbox` for what that means for admission.
+    """Mention hits in the item's own authored frontmatter fields (``title``, ``description``,
+    ``labels``), as item-level lines (``region=None``). Their only copy is inside the frontmatter
+    block the line scan excludes, unlike a sub-entity's title, which recurs in its own heading
+    region. The rest of the frontmatter is sq-managed metadata, where ``@`` is not a mention.
     """
     values = [item.title, item.description, *item.labels]
     return [InboxLine(text=v.strip(), region=None) for v in values if needle in v.lower()]
@@ -638,36 +597,11 @@ class CollabMixin(ServiceCore):
         return markers.DISCUSSION
 
     async def inbox(self, slug: str) -> tuple[list[InboxHit], UnreadableItems]:
-        """Open items whose body/discussion mentions ``@slug``, with the matching lines.
-
-        Attribution only — mention-driven, not assignee-driven: it answers "who was called
-        out", not "who owns this" (a different, out-of-scope view). Each matched line carries
-        the sub-entity region it falls in, when any — ``region=None`` for an item-level mention,
-        so the two are distinguishable. This is narrower than `search`'s locator vocabulary,
-        not the same one: a sub-entity hit is spelled identically
-        (``<kind>:<local_id>[:discussion#<n>]``), but every item-level region `search`
-        distinguishes (``body``, ``discussion``, ``discussion#<n>``, ``other``) collapses here
-        to the single ``None``, because attributing sub-entity-vs-item is the only distinction
-        this surface makes.
-
-        The raw frontmatter block is excluded from the *line scan* — a sub-entity's own
-        ``title`` lives there, and would otherwise surface as an unattributed item-level
-        mention, never authored text a human wrote in place. The item's own authored
-        frontmatter fields are not sq-managed and *are* reported — see
-        :func:`_authored_field_lines`, which surfaces them explicitly rather than by line.
-
-        **An item is reported only if it contributes at least one line.** A hit with no lines is
-        not a report, it is a puzzle: the human render prints the item with nothing under it and
-        no clue what called the reader out, and a per-line ``--json`` consumer renders an empty
-        entry. That is what you get whenever the admission gate is wider than what the scan can
-        emit, so the gate is the emit itself — ``extract_mentions`` (which reads the whole file,
-        frontmatter included) stays only as the cheap prefilter that skips the region build.
-        The residual case it admits and nothing emits is a mention inside sq-managed metadata,
-        which is not a mention at all; the item is left out, never listed empty.
-
-        Returns the hits plus one message per item file that could not be read (see
-        :data:`UnreadableItems`) — a corrupt or unreadable item costs its own mentions, never
-        the whole inbox.
+        """Open items whose body/discussion mentions ``@slug``, with the matching lines (mention-
+        driven, not assignee-driven). Each line carries its sub-entity region or ``None`` for an
+        item-level mention; the frontmatter is excluded except authored fields
+        (:func:`_authored_field_lines`), and an item is reported only if it contributes a line. Also
+        returns one message per unreadable file (:data:`UnreadableItems`).
         """
         slug = slug.lstrip("@").lower()
         out: list[InboxHit] = []
@@ -708,15 +642,10 @@ class CollabMixin(ServiceCore):
         self, text: str, *, item_type: str | None = None, status: str | None = None
     ) -> tuple[list[SearchResult], UnreadableItems]:
         """Items whose title, summary, or body/discussion contains ``text`` (case-insensitive).
-
-        ``item_type``/``status`` AND-compose with the query (the same filter dimensions
-        ``list_items`` exposes to ``sq list``/``sq tree``). Each result's hits carry the
-        region they matched — see :class:`SearchHit`.
-
-        Returns the results plus one message per item file that could not be read (see
-        :data:`UnreadableItems`). Such an item still contributes whatever the *index* already
-        knows — a title or description match needs no file read — so it drops out of the
-        answer only as far as it actually has to.
+        ``item_type``/``status`` AND-compose with the query, and each hit carries its region (see
+        :class:`SearchHit`). Returns the results plus one message per unreadable item file (see
+        :data:`UnreadableItems`); such an item still matches on the title or description the index
+        knows.
         """
         needle = text.strip().lower()
         if not needle:

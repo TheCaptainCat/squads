@@ -1,18 +1,16 @@
 """agents_md backend: writes/refreshes a single AGENTS.md at the project root.
 
-``write_managed`` compiles the whole file — roster, workflow cheatsheet, per-role
-mission/responsibilities — entirely from the ``RoleView``s/``OperatorView``s it is passed.
-``generate_role_entry``/``generate_skill_entry`` write nothing: they exist to satisfy the
-``AgentBackend`` ABC's per-entry method contract, which this backend has no per-entry file to
-back — an external agent tool reads ``AGENTS.md`` itself, so there is nothing per entry for one
-to discover.
+``write_managed`` compiles the whole file (roster, workflow cheatsheet, per-role
+mission/responsibilities) from the ``RoleView``s/``OperatorView``s it is passed.
+``generate_role_entry``/``generate_skill_entry`` write nothing: they satisfy the
+``AgentBackend`` ABC, and an external agent tool reads ``AGENTS.md`` itself, so there is no
+per-entry file to discover.
 
-Both of them, and ``remove_artifacts``, opportunistically delete a leftover ``.agents_md/`` file
-for the role or skill they are handed, so a squad carrying leftovers from an older layout empties
-out over its next ``sq sync`` — for every role/skill still known to the roster, live or retired
-alike. Only a leftover whose owning role or skill was removed outright survives, because nothing
-in the roster sweep visits it; ``candidate_orphans`` reports that one the next time ``sq adopt``
-runs.
+Both of them, and ``remove_artifacts``, delete a leftover ``.agents_md/`` file for the role or
+skill they are handed, live or retired, so a squad with leftovers from an older layout empties
+out over its next ``sq sync``. Only a leftover whose role or skill was removed outright
+survives, since the roster sweep never visits it; ``candidate_orphans`` reports it on the next
+``sq adopt``.
 """
 
 from squads import _aio
@@ -33,14 +31,13 @@ _SKILLS_DIR = "skills"
 
 
 def _also_creatable_types(spec: WorkflowSpec, anchor_type: str | None) -> str:
-    """The ``# also: ...`` list on the ``sq create <anchor>`` example line — every other
-    non-roster type the active spec declares, in its own display order, never a hardcoded
-    bundled list: a dropped type simply does not appear, and a renamed one appears under its
-    new name, with nothing left pointing at the old one.
+    """The ``# also: ...`` list on the ``sq create <anchor>`` example line.
 
-    ``anchor_type`` is the same generically-derived (:func:`cheatsheet_anchor_type`)
-    type the ``sq create`` example line itself is built from — excluded here so it isn't listed
-    against itself, whatever it happens to be."""
+    Every other non-roster type the active spec declares, in its display order and never from a
+    hardcoded list, so a dropped type does not appear and a renamed one appears under its new
+    name. ``anchor_type`` is the generically derived type (:func:`cheatsheet_anchor_type`) the
+    example line is built from, excluded so it is not listed against itself.
+    """
     others = sorted(
         (t for t, ts in spec.items.items() if t != anchor_type and ts.category != "roster"),
         key=lambda t: (spec.items[t].order, t),
@@ -49,26 +46,19 @@ def _also_creatable_types(spec: WorkflowSpec, anchor_type: str | None) -> str:
 
 
 class AgentsMdBackend(AgentBackend):
-    """Question 1: **not knowably** — this is the answer, not a gap. ``AGENTS.md`` targets
-    tools whose command-execution capability is declared by whoever builds a backend for them,
-    not by us; not knowing a host's capabilities is the normal condition for every backend an
-    adopter brings, not a hole in our knowledge to work around. That is why this backend keeps
-    compiled roster prose (full name, slug, title, mission, responsibilities) instead of a
-    fetch command: clause 2 asks whether a runtime fetch can substitute, and a host that cannot
-    run a command has no fetch available.
-    Question 2: the expressible set is identity plus prose only — no ``model``, no ``color``, no
-    capability-boundary field, no preload list, and no place for a skill's ``operator_invocable``
-    (no slash menu, no per-skill entry): the compiled document has no per-entry frontmatter at
-    all, only the roster/mission text ``write_managed`` renders.
-    Question 3: not applicable — there is no per-entry file for a host to discover and dispatch;
-    ``AGENTS.md`` is one whole document, found the way the host finds any file.
-    Question 4: no capability boundary is expressed (:meth:`restriction_fragment`'s inherited
-    ``None`` default is the honest answer, not an oversight) — the compiled document carries no
-    field a host could read as a spawn restriction.
-    Question 5: no per-entry artifact to render (:meth:`render_role_entry`/
-    :meth:`render_skill_entry`'s inherited ``None`` default) — ``write_managed`` compiles the
-    whole document from the roster view in one pass; see the module docstring for why
-    ``generate_role_entry``/``generate_skill_entry`` write nothing to render a pure copy of.
+    """Answers to the five per-host questions of ``AgentBackend``.
+
+    1. Command execution is not knowably available: ``AGENTS.md`` targets tools whose capability
+       is declared by whoever builds a backend for them. So this backend keeps compiled roster
+       prose (full name, slug, title, mission, responsibilities) instead of a fetch command.
+    2. The expressible set is identity plus prose only: no ``model``, ``color``, capability
+       boundary or preload list, and no place for a skill's ``operator_invocable``, since the
+       document has no per-entry frontmatter.
+    3. Not applicable: there is no per-entry file for a host to discover.
+    4. No capability boundary is expressed, so the inherited :meth:`restriction_fragment`
+       default (``None``) is correct.
+    5. No per-entry artifact to render (the inherited :meth:`render_role_entry`/
+       :meth:`render_skill_entry` default); ``write_managed`` compiles the whole document.
     """
 
     name = "agents_md"
@@ -90,12 +80,9 @@ class AgentsMdBackend(AgentBackend):
     ) -> list[Artifact]:
         """Compile roster, workflow cheatsheet, and role missions/responsibilities into AGENTS.md.
 
-        Every role field rendered here comes from the ``RoleView`` the service passes in —
-        never from text this backend produced a step earlier. ``generate_role_entry``/
-        ``generate_skill_entry`` write nothing (see the module docstring), and no field is
-        recovered by parsing rendered markdown: a declaration reaches this method as a view
-        field or not at all. See ``RoleView`` for why that direction is a rule and not a
-        convenience.
+        Every role field comes from the ``RoleView`` the service passes in, never from text this
+        backend rendered earlier: a declaration reaches this method as a view field or not at all
+        (see ``RoleView`` for why that direction is a rule).
         """
         squad_dir = ctx.paths.config.squad_dir
         roles_data = [
@@ -150,13 +137,11 @@ class AgentsMdBackend(AgentBackend):
     async def generate_role_entry(self, ctx: BackendContext, item: Item, role: RoleDef) -> Artifact:
         """Write nothing; return the pathless ``Artifact`` this ABC method must return.
 
-        ``write_managed`` builds AGENTS.md from the ``RoleView`` roster alone (see the module
-        docstring), so this backend has no per-entry file to produce. It still deletes any
-        leftover ``.agents_md/roles/<slug>.md``: materialising and withdrawing a roster entry
-        clean up the same way, so a *live* role's leftover file disappears by the next
-        ``sq sync`` exactly as fast as a retired one's does via :meth:`remove_artifacts`.
-        ``item``/``ctx.resolved_skills_for`` are unused: nothing here renders a role's skills,
-        and the compiled section carries none.
+        ``write_managed`` builds AGENTS.md from the ``RoleView`` roster alone, so there is no
+        per-entry file to produce. It still deletes a leftover ``.agents_md/roles/<slug>.md``, so a
+        live role's leftover goes by the next ``sq sync`` as a retired one's does via
+        :meth:`remove_artifacts`. ``item`` and ``ctx.resolved_skills_for`` are unused: the compiled
+        section carries no skills.
         """
         legacy = ctx.root / _STAGING_DIR / _ROLES_DIR / f"{role.slug}.md"
         await _aio.path_unlink(legacy, missing_ok=True)
@@ -189,14 +174,13 @@ class AgentsMdBackend(AgentBackend):
     async def candidate_orphans(
         self, ctx: BackendContext, roster: list[RoleView], skill_slugs: set[str]
     ) -> list[str]:
-        """Leftover ``.agents_md/roles/*.md``/``.agents_md/skills/*.md`` files whose slug names
-        no role/skill item at all.
+        """Leftover ``.agents_md/roles/*.md``/``skills/*.md`` files naming no role/skill item.
 
-        One naming an item still in the roster — live or retired — never reaches here: the
-        ordinary materialise/withdraw cycle every ``sq sync`` already runs deletes it first
-        (see :meth:`generate_role_entry`/:meth:`generate_skill_entry`/:meth:`remove_artifacts`).
-        Only a fully-removed item's own orphaned file, which no sync pass ever visits, survives
-        long enough to be reported here. See the ABC docstring for the general semantics.
+        A file naming an item still in the roster, live or retired, never reaches here: the regular
+        materialise/withdraw cycle of every ``sq sync`` deletes it first (see
+        :meth:`generate_role_entry`, :meth:`generate_skill_entry`, :meth:`remove_artifacts`). Only
+        the orphan of a fully removed item survives long enough to be reported. See the ABC
+        docstring.
         """
         known_roles = {r.slug for r in roster}
         staging = ctx.root / _STAGING_DIR
@@ -217,7 +201,5 @@ class AgentsMdBackend(AgentBackend):
         """Root-relative paths owned by this backend (present-only check; read-only)."""
         return [ctx.rel(ctx.root / _AGENTS_MD)]
 
-    # managed_entry_paths: no override — this backend declares no per-entry pointers (see the
-    # module docstring), which is exactly what the ABC default (an empty list) means. So
-    # neither `sq check`'s backend_reconciled rule nor `sq sync`'s regeneration report names a
-    # per-entry file for this backend.
+    # managed_entry_paths is not overridden: this backend declares no per-entry pointers, which
+    # is the ABC default (an empty list), so neither `sq check` nor `sq sync` names one.

@@ -16,36 +16,19 @@ from squads._models._subentity import SubEntity
 from squads._paths import SquadPaths, number_for_id
 from squads._services._retirement import Severance
 
-#: What a tree surface prints beside a root it invented to reveal a parent cycle (see
-#: ``TreeNode.anchor``). One wording, shared by every terminal renderer, so the disclosure reads
-#: the same everywhere. It has to stop a reader concluding this is the top of a hierarchy
-#: somebody wrote, and point at where the full edge set lives — a tree drawing of a cycle must
-#: drop the edge closing back to the anchor, so the tree under-reports the relation it draws.
+#: What a tree surface prints beside a root it invented for a parent cycle (see
+#: ``TreeNode.anchor``), shared by every terminal renderer: the root is not a hierarchy anyone
+#: wrote, and the full edge set lives elsewhere, since a tree drops the closing edge.
 TREE_ANCHOR_MARKER = "[cycle anchor — not a real root; see sq check]"
 
 
 @dataclass(frozen=True)
 class TreeNode:
-    """One node in the filtered/pruned hierarchy returned by ``ServiceCore.tree_view()``.
-
-    ``path_only=True`` marks an ancestor that is kept solely to anchor a descendant match —
-    it did not itself pass the ``ItemFilter``.  This flag drives dimmed rendering at the CLI
-    edge; it is **not** serialised in ``--json`` output (path-only ancestors appear as
-    ordinary nodes in JSON consumers).
-
-    ``anchor=True`` marks a root the bare tree chose for itself: the item is on a parent cycle,
-    so it has a parent and no forest of parentless items would ever have rooted at it.  Every
-    member of that cycle is an equally good root, which makes the choice a tiebreak rather than
-    a truth — a fabrication, acceptable only because it is disclosed.  Both surfaces must
-    therefore say so (a marker in the terminal rendering, a field in ``--json``); a consumer
-    that ignores the flag renders an invented root as one somebody wrote.  Never set on an
-    explicitly rooted tree, where the root is the caller's own choice.
-
-    The two flags are **independent and can both be true**: under a filter matching something
-    below the cycle, the members enter the keep set as ancestors, so the chosen anchor is a
-    path-only node as well.  Render them as combining states, not alternatives.
-
-    ``children`` lists the surviving child nodes after filter + depth pruning.
+    """One node in the hierarchy returned by ``ServiceCore.tree_view()``. ``path_only=True`` marks
+    an ancestor kept only to anchor a descendant match (dimmed in rendering, not serialised in
+    ``--json``). ``anchor=True`` marks a root the bare tree chose for an item on a parent cycle, a
+    tiebreak that both the terminal rendering and ``--json`` must disclose; it is never set on an
+    explicitly rooted tree. The flags are independent and can both be true.
     """
 
     item: Item
@@ -56,43 +39,12 @@ class TreeNode:
 
 @dataclass(frozen=True)
 class GraphNode:
-    """One node in the ego-centric ref graph returned by ``RefsMixin.graph()``.
-
-    Two fields describe the edge that reached this node, or ``None``/``None`` for the root —
-    each answers a different question, and a consumer wanting to know *what kind of thing* an
-    edge is (a dependency, worth following for "what's blocking this") branches on
-    ``edge_semantic``, never ``edge_kind``:
-
-    - ``edge_kind`` is the **declared kind key** — a project's own spelling, never a fixed
-      sentinel. Both raw spellings of a dependency edge normalize to one declared key: the
-      kind carrying the ``dependency`` semantic in the DEPENDENT direction, or the
-      BLOCKER-direction kind when a project declares only that half
-      (:meth:`~squads._workflow._models.WorkflowSpec.canonical_dependency_ref_kind`). Every
-      other kind keeps its own literal key.
-    - ``edge_semantic`` is the edge kind's **declared semantic role** (``"dependency"``,
-      ``"preload"``, ``"supersession"``), or ``None`` for the root, for a navigational kind
-      (declared, no role), **or for a kind the merged spec does not declare at all** — an
-      undeclared-kind edge still traverses and is still emitted (never silently dropped); only
-      ``edge_kind``'s stored spelling distinguishes it from a navigational one, since both
-      report ``edge_semantic=None``. This is the field a consumer branches on: testing
-      ``edge_kind == "depends-on"`` breaks the moment a project renames its dependency kind,
-      the exact declared-but-found-by-literal defect this decision removes from the engine
-      itself.
-
-    ``direction`` disambiguates a dependency edge's two ends:
-
-    - ``edge_semantic="dependency"``, ``direction="out"`` → this node is the blocker; the
-      expanded item depends on it → display label "depends on"
-    - ``edge_semantic="dependency"``, ``direction="in"`` → this node is the dependent; the
-      expanded item is required by it → display label "required by"
-
-    For a navigational kind the label is the kind name; ``direction`` records the traversal
-    direction for callers that care.
-
-    ``seen=True`` marks a node that was already emitted higher in the tree; the traversal does
-    not recurse into it (cycle / breadth-first revisit termination).
-
-    ``children`` is empty when ``seen=True`` or when the depth limit was reached.
+    """One node in the ego-centric ref graph from ``RefsMixin.graph()``. ``edge_kind`` is the
+    declared kind key that reached it (``None`` for the root), both dependency spellings normalized
+    to one; ``edge_semantic`` is the kind's declared role (``"dependency"``, ``"preload"``,
+    ``"supersession"``) or ``None`` for the root, a navigational or an undeclared kind, and
+    consumers branch on it. For a dependency, ``direction="out"`` means this node is the blocker and
+    ``"in"`` the dependent. ``seen=True`` marks a revisit, not recursed into.
     """
 
     id: str
@@ -195,22 +147,17 @@ class SubentityDetail:
 class InitResult:
     paths: SquadPaths
     roles: list[Item]
-    # WARN-only board-debt-shaped notices from the backend scaffold/managed-write pass — a
-    # pre-existing CLAUDE.md/AGENTS.md with unmanaged content, or a candidate orphan
-    # pointer/skill file this run did not generate. Never gates the run; the CLI only prints
-    # these.
+    # WARN-only notices from the backend scaffold and managed-write pass (unmanaged content in a
+    # CLAUDE.md/AGENTS.md, candidate orphan files). They never gate the run; the CLI only prints
+    # them.
     warnings: list[str] = field(default_factory=list[str])
 
 
 @dataclass
 class AdoptResult:
-    """Outcome of ``adopt()``.
-
-    ``repair`` is the :class:`RepairResult` of the import sweep adopt runs over the folder it
-    is adopting. It is carried out rather than reduced to a count because that sweep is also
-    the corpus sweep: adopt rewrites the content of the very files it is importing, and this
-    is the population with no other route — an existing folder of squads-native markdown
-    reaching sq for the first time never runs a migration.
+    """Outcome of ``adopt()``. ``repair`` is the :class:`RepairResult` of the import sweep over the
+    adopted folder, carried out whole because that sweep rewrites the content of the files it
+    imports and no migration will ever report it.
     """
 
     paths: SquadPaths
@@ -259,21 +206,10 @@ class RemoveResult:
 
 
 def strip_notice(stripped: Sequence[str]) -> str | None:
-    """The one-line announcement of the content diff a corpus sweep produced — ``None`` when it
-    rewrote nothing.
-
-    Built here rather than at any call site because **four** commands reach the sweep and all
-    four owe the operator the same sentence: ``sq repair`` runs it directly, ``sq migrate up``
-    runs it as the tail of the migration, ``sq adopt`` runs it to import an existing folder,
-    and ``sq renumber`` reaches it through the shared index rebuild. The announcement is the
-    whole mitigation for verbs whose advertised job is the index rewriting content, so a route
-    that reached the sweep and said nothing would leave the diff to be discovered rather than
-    stated. One constructor is what keeps them from drifting into different wording, or into
-    one of them being forgotten again — the two that were.
-
-    Every result a sweep-reaching command returns therefore exposes it as ``strip_notice()``,
-    reading its own ``stripped`` list; a new such command wires its result to this function
-    rather than phrasing the sentence again.
+    """The one-line announcement of the content diff a corpus sweep produced, ``None`` when it
+    rewrote nothing. ``sq repair``, ``sq migrate up``, ``sq adopt`` and ``sq renumber`` all reach
+    the sweep, so one constructor keeps their wording identical; a sweep-reaching result exposes it
+    as ``strip_notice()`` over its own ``stripped`` list.
     """
     if not stripped:
         return None
@@ -285,34 +221,11 @@ def strip_notice(stripped: Sequence[str]) -> str | None:
 
 @dataclass
 class RepairResult:
-    """Outcome of ``Service.repair()``.
-
-    ``missing_ids`` holds item IDs that were present in the index *before* repair but whose
-    markdown files could not be found on disk — a deletion event worth surfacing to the operator.
-
-    ``unreadable`` holds one message per file whose content could not be read or parsed during
-    the rebuild — a merge conflict, invalid UTF-8, an OS permission error. Distinct from
-    ``missing_ids``: an unreadable file's *previous* index entry (when one exists) is carried
-    forward unchanged rather than dropped, so its item stays resolvable and never appears in
-    ``missing_ids`` — only in this list, naming the file so the operator knows the carried
-    entry is stale until the file is fixed.
-
-    ``canonicalized`` holds the ID of every item whose file was rewritten because its on-disk
-    ref encoding (a spelled ref that folds to a different literal) differed from the folded
-    frontmatter stored — the file, not only the index, made canonical. Empty when the corpus
-    needed no correction; a corpus already canonical triggers no write at all.
-
-    ``stripped`` holds the ID of every item whose file was rewritten because it still stored a
-    retired region — a derived rendering whose writer has retired and whose replacement is
-    computed on every read. Repair's advertised job is the index, and this is content: the
-    operator who ran it to reconcile an index gets a content diff they did not ask for, so it
-    is reported here (and in the reflog delta) to be stated rather than discovered. Empty on a
-    corpus that carries none, which writes no file at all. An item can appear in both this
-    list and ``canonicalized``: a file needing both corrections gets both, in one write.
-
-    There is no ``skipped`` field: the body-tag-convergence sweep's non-strict licence, the one
-    channel that could ever decline a region rather than converge or leave it alone, is
-    retired. ``unreadable`` is the surviving report of a file this command could not act on.
+    """Outcome of ``Service.repair()``. ``missing_ids`` are indexed ids whose files are gone.
+    ``unreadable`` has one message per file that could not be read or parsed; its previous entry is
+    carried forward stale, so it is not in ``missing_ids``. ``canonicalized`` and ``stripped`` list
+    items whose files were rewritten for a ref encoding or a retired region, content changes
+    reported rather than discovered; an item can be in both.
     """
 
     db: SquadsDB
@@ -329,52 +242,18 @@ class RepairResult:
 
 
 class SyncSkips(list[str]):
-    """``MaintenanceMixin.sync()``'s return value: every deduplicated skip/notice message the
-    run reports, in the same ``list[str]`` shape every existing caller already treats it as
-    (iterate, index, ``in``, ``len()``, equality with a plain list).
-
-    The body-tag convergence this covers never declines a region — it either fills a genuinely
-    empty one or leaves a non-empty one untouched, silently — so it never has anything of its
-    own to add here."""
+    """``MaintenanceMixin.sync()``'s return value: the deduplicated skip/notice messages, usable as
+    a plain ``list[str]``. Body-tag convergence never declines a region, so it adds none.
+    """
 
 
 @dataclass(frozen=True)
 class MigrationRun:
-    """Outcome of ``Service.run_pending_migrations()`` — what ``sq migrate up`` reports.
-
-    ``applied`` holds the :class:`~squads._migrations._registry.Migration` records that ran, in
-    order, and is empty when the squad was already at the current stamp.
-
-    ``changed`` carries each applied migration's own returned count (its ``to_schema`` ->
-    the ``int`` its ``run`` awaitable resolved to), keyed rather than positional so a caller
-    never has to zip it back against ``applied`` by index. Every runner already returns this
-    count (``Migration.run``'s ``Callable[[SquadPaths], Awaitable[int]]`` contract), and this
-    is what stops it from being computed and then thrown away: ``run_pending_migrations``
-    keeps it, so a migration whose own write is otherwise easy to miss in a large corpus diff
-    (seeding one line onto every existing milestone, say) can report how many files it
-    actually touched.
-
-    ``repair`` is the :class:`RepairResult` of the rebuild that follows the runners, and is
-    ``None`` exactly when ``applied`` is empty (no runner applies, so nothing rebuilds). It is
-    carried out of the service rather than discarded because the rebuild is also the corpus
-    sweep: on this route the operator gets a content diff from a command whose own output
-    otherwise says only "index rebuilt", and the migration is the only route a squad behind the
-    current schema takes.
-
-    ``skipped`` is each applied migration's own reported skip list (its ``to_schema`` -> the
-    item ids its :class:`~squads._migrations._outcome.MigrationOutcome` named), keyed the same
-    way as ``changed`` and from the same single construction site — extending that one
-    per-runner reporting channel rather than adding a second one. Empty for every migration
-    that has nothing to skip (every one but the milestone tag seed): a runner that never raises
-    has nothing that needed skipping instead of aborting.
-
-    ``reports`` is each applied migration's printable report lines, keyed like ``changed``.
-
-    ``config_dropped`` names the ``.squads.toml`` keys a regeneration of the file left out, because
-    the config model does not carry them.
-
-    ``reconcile`` is what the index rebuild before the first runner did (ids newly indexed, ids
-    dropped because no file backs them); ``None`` exactly when ``applied`` is empty.
+    """Outcome of ``Service.run_pending_migrations()``. ``applied`` are the migrations run, in
+    order; ``changed``, ``skipped`` and ``reports`` are keyed by each migration's ``to_schema``.
+    ``repair`` is the rebuild after the runners and ``reconcile`` the one before the first, both
+    ``None`` exactly when nothing applied. ``config_dropped`` names ``.squads.toml`` keys a
+    regeneration left out because the config model does not carry them.
     """
 
     applied: list[Migration]
@@ -390,17 +269,11 @@ class MigrationRun:
 
 @dataclass
 class RenumberResult:
-    """Outcome of ``Service.renumber()`` — the pre-merge block-shift verb.
-
-    ``remap`` maps each shifted item's old (unpadded) display id to its new one; empty when
-    no local item had ``sequence_id >= from_seq`` (nothing to shift). ``db`` is the rebuilt
-    index reflecting the shift, including the counter bumped to the new post-shift maximum.
-    ``warning`` is set on the ``--by`` (no ``--onto``) path: sq cannot certify the shift
-    clears the *other* branch's counter without it — that guarantee is the operator's.
-
-    ``stripped`` names every item whose file the shift's index rebuild also rewrote to remove a
-    retired region — the same corpus sweep ``repair`` reports, reached here through the shared
-    rebuild. Empty on the no-op path, where nothing shifts and no rebuild runs.
+    """Outcome of ``Service.renumber()``. ``remap`` maps each shifted item's old display id to its
+    new one (empty when nothing shifted); ``db`` is the rebuilt index with the counter at the new
+    maximum. ``warning`` is set on the ``--by`` path, where only the operator can guarantee the
+    shift clears the other branch's counter. ``stripped`` names items the rebuild also rewrote to
+    remove a retired region.
     """
 
     remap: dict[str, str]
@@ -415,13 +288,10 @@ class RenumberResult:
 
 @dataclass
 class WorkloadRow:
-    """Per-assignee work counts for `sq workload` (None assignee = unassigned).
-
-    ``open``/``closed``/``total`` count **items** only, exactly as published before
-    sub-entity assignments were counted at all. ``subentity_open``/``subentity_closed``/
-    ``subentity_total`` are separate, additive counts of that assignee's sub-entity
-    (story/subtask/finding) assignments — never folded into the item counts, so an actor
-    owning both a parent item and one of its sub-entities is counted once in each set.
+    """Per-assignee work counts for `sq workload` (``None`` assignee = unassigned).
+    ``open``/``closed``/``total`` count items only;
+    ``subentity_open``/``subentity_closed``/``subentity_total`` separately count the assignee's sub-
+    entity assignments, never folded into the item counts.
     """
 
     assignee: str | None
@@ -449,14 +319,9 @@ class MineRow:
 
 @dataclass(frozen=True)
 class InboxLine:
-    """One matched line in `sq inbox`: the raw stripped text plus the sub-entity region it
-    falls in, when any — ``None`` for an item-level mention (in the item's own body/
-    discussion, or anywhere else outside a sub-entity's block), so the two are
-    distinguishable. When set, ``region`` is spelled the same way `search` spells a sub-entity
-    locator (``"<kind>:<local_id>"`` or ``"<kind>:<local_id>:discussion#<n>"``) — but this is
-    narrower than `search`'s full vocabulary: every item-level region name `search` publishes
-    (``body``, ``discussion``, ``discussion#<n>``, ``other``) collapses to ``None`` here,
-    because sub-entity-vs-item is the only distinction `inbox` makes.
+    """One matched line in `sq inbox`: the stripped text plus the sub-entity region it falls in
+    (``"<kind>:<local_id>"`` or ``"<kind>:<local_id>:discussion#<n>"``), ``None`` for any item-level
+    mention. Narrower than `search`'s region vocabulary, which it collapses to ``None``.
     """
 
     text: str
@@ -475,14 +340,10 @@ class InboxHit:
 
 @dataclass(frozen=True)
 class SearchHit:
-    """One matching line within an item, located precisely enough to jump straight to it.
-
-    ``region`` is the compact, machine-stable locator: ``"title"``, ``"description"``,
-    ``"body"``, ``"discussion"`` (or ``"discussion#<n>"`` naming the *n*-th comment when the
-    match falls inside one), or a named sub-entity (``"<kind>:<local_id>"`` for its
-    heading/body, or ``"<kind>:<local_id>:discussion#<n>"`` for its *n*-th comment).
-    ``location`` is the same thing spelled out for humans; ``snippet`` is in-context text
-    around the match — not the bare stripped line.
+    """One matching line within an item. ``region`` is the machine-stable locator: ``"title"``,
+    ``"description"``, ``"body"``, ``"discussion"`` or ``"discussion#<n>"``, or a sub-entity
+    (``"<kind>:<local_id>"`` or ``"<kind>:<local_id>:discussion#<n>"``). ``location`` is the human
+    spelling and ``snippet`` the text around the match.
     """
 
     region: str
@@ -500,17 +361,9 @@ class SearchResult:
     hits: list[SearchHit]
 
 
-#: One :class:`~squads._models._omission.Omission` per item file a corpus-walking read had to
-#: skip — the same skipped-file channel ``check``/``repair``/``board list``/``memory list``
-#: already report on, returned alongside the results rather than replacing them.
-#:
-#: The posture it encodes: **one unreadable file degrades that file, never the answer**. A
-#: reader that lets the error propagate discards every result it had already accumulated from
-#: files it *could* read, which is both less useful and less honest than naming the one file
-#: and returning the rest — and it makes the failure look arbitrary next to ``list``/``tree``/
-#: ``blocked``/``show``/``graph``, which walk the same corpus and are unaffected. A caller whose
-#: command emits a usable-but-short result pairs this with exit code ``4`` so a script still
-#: learns the answer was partial.
+#: One :class:`~squads._models._omission.Omission` per item file a corpus-walking read skipped,
+#: returned alongside the results: one unreadable file degrades that file, never the answer. A
+#: usable-but-short result is paired with exit code ``4``.
 type UnreadableItems = list[Omission]
 
 
@@ -557,20 +410,11 @@ class ImportPlan:
 
 @dataclass
 class ImportApplyResult:
-    """The real-apply outcome of a bulk import's single-transaction apply pass.
-
-    ``findings`` carries, **with its level intact**, every issue the same catalog ``sq check``
-    reports (unwritten sub-entity bodies, over-long titles, a stale sub-entity container, …)
-    that lands on an item this import touched. Apply does not bypass the catalog, so these ride
-    back for the CLI to render and to pick an exit code from. The level has to survive this far:
-    it is the only thing that separates "tidy this up when you get to it" from a violation any
-    gated door would have refused, and once it is dropped no output mode can recover it.
-
-    ``warnings`` is the human-readable **warn-level** stream: the apply pass's own advisories
-    (an over-long sub-entity title, an out-of-lane author) as they were raised, followed by the
-    warn-level half of ``findings`` rendered as ``"<item>: <message>"``. Error-level findings are
-    deliberately absent from it — they are reported through ``findings``, at their own level, and
-    they are what earns the command a non-zero exit.
+    """The outcome of a bulk import's apply pass. ``findings`` carries, level intact, every ``sq
+    check`` catalog issue landing on an item the import touched, so the CLI can render them and pick
+    an exit code. ``warnings`` is the human-readable warn-level stream: the apply pass's own
+    advisories followed by the warn-level findings as ``"<item>: <message>"``; error-level findings
+    are only in ``findings`` and earn the non-zero exit.
     """
 
     op_counts: ImportOpCount
@@ -601,19 +445,10 @@ class ImportResult:
 
 @dataclass
 class ReflogEntry:
-    """One parsed reflog line, surfaced by ``sq reflog``.
-
-    The ``delta`` field is a free-form ``dict`` whose shape depends on ``op``; see
-    the reflog schema documentation for the full field reference.  The ``v`` field
-    carries the schema version so readers can handle future additions gracefully.
-
-    ``session_id`` and ``parent_session_id`` are ``None`` for entries written before
-    schema 0.4.  They record **best-effort, untrusted** lineage only — squads is a
-    passive tool that reads optional env vars and records them; it does not mint,
-    spawn, or verify.  Never use these fields as an authorisation input.
-
-    Stability note: the *command shape* and the fields listed here are documented;
-    the exact ``delta`` sub-fields are additive and evolve independently.
+    """One parsed reflog line, surfaced by ``sq reflog``. ``delta`` is a free-form ``dict`` whose
+    shape depends on ``op``, and ``v`` carries the schema version. ``session_id`` and
+    ``parent_session_id`` are ``None`` when the entry records no lineage; they are best-effort and
+    untrusted, read from optional env vars, and never an authorisation input.
     """
 
     v: str
@@ -660,15 +495,10 @@ class RoleUpdateResult:
 
 @dataclass(frozen=True)
 class DefaultRoleMoveResult:
-    """Outcome of ``Service.set_default_role()`` — the ``is_default`` designation move: a move,
-    not a set.
-
-    ``item`` is the role now carrying the designation. ``cleared`` lists the ids of every
-    *other* role whose ``is_default`` was found set and cleared in the same transaction — not
-    just one, so re-running the move against a squad where two roles already carry the
-    designation converges it to a single holder in one call. ``changed`` is ``False`` only
-    when *item* already was the designation's sole holder and nothing else needed clearing —
-    a reported no-op, not an error.
+    """Outcome of ``Service.set_default_role()``. ``item`` is the role now carrying the designation,
+    ``cleared`` the ids of every other role whose ``is_default`` was cleared in the same
+    transaction, and ``changed`` is ``False`` only when *item* already was the sole holder (a
+    reported no-op).
     """
 
     item: Item
@@ -690,8 +520,9 @@ class FoundComment:
 
 @dataclass(frozen=True)
 class EditedComment:
-    """The outcome of ``comment <hash> edit``: the comment before, the one now stored (same as
-    before when the text did not change) and whether anything was written."""
+    """The outcome of ``comment <hash> edit``: the comment before, the one now stored, and whether
+    anything was written.
+    """
 
     item: Item
     scope: str

@@ -1,35 +1,16 @@
-"""Schema 0.3 → 0.4 runner: additive session lineage fields.
+"""Schema 0.3 → 0.4 runner: additive session lineage fields, a no-op that touches no file.
+``_actor.py`` gains an optional session pair seeded once from
+``SQUADS_SESSION_ID``/``SQUADS_PARENT_SESSION_ID`` at the CLI root callback (not settable by
+``--as``, ``--author`` or any later flag). Every reflog line carries optional top-level
+``session_id`` and ``parent_session_id`` (omitted when ``None``; ``actor`` stays a flat slug and
+slug-only legacy lines parse with both as ``None``). Item frontmatter gains optional
+``created_session`` and ``modified_session``, absent meaning legacy; ``sq repair`` of legacy items
+needs no rewrite.
 
-This migration is a **no-op runner** — it returns 0 touched files.
-
-What changed (additive, back-compatible):
-
-- ``_actor.py`` gains an optional session pair seeded once from
-  ``SQUADS_SESSION_ID`` / ``SQUADS_PARENT_SESSION_ID`` environment variables at
-  the CLI root callback.  Session fields are **not** settable by ``--as`` /
-  ``--author`` or any later CLI flag.
-
-- Every reflog line now carries optional top-level sibling fields
-  ``session_id`` and ``parent_session_id`` (omitted when ``None``).  The
-  ``actor`` field stays a flat slug string for back-compat.  Legacy
-  slug-only lines parse with both fields as ``None``.
-
-- Item frontmatter gains two optional fields, ``created_session`` and
-  ``modified_session``, each holding the ``SQUADS_SESSION_ID`` string at
-  creation / last mutation time.  Absent means legacy (no session env was set).
-  ``sq repair`` of legacy items works unchanged — no rewrite is forced.
-
-**No existing file needs to be modified** — all new fields are optional and
-default to ``None`` / absent.  ``sq repair`` re-reads files and rebuilds the
-index; the new fields simply won't be present on older items, which is the
-correct "absent == legacy" state.
-
-Guarantee (mandatory in any surface that presents these fields):
-  squads is a passive tool, never in the spawn path.  It reads optional env
-  vars from its own invocation and records them.  The recorded session pair is
-  **best-effort, untrusted, observability-only** — not tamper-evident, not
-  signed, never a basis for authorisation.  A forged, copied, or absent session
-  id is indistinguishable from a real one.
+Guarantee, mandatory in any surface presenting these fields: squads is a passive tool, never in the
+spawn path, reading optional env vars from its own invocation and recording them. The pair is
+best-effort, untrusted and observability-only, not tamper-evident or signed and never a basis for
+authorisation; a forged, copied or absent id is indistinguishable from a real one.
 """
 
 from squads._paths import SquadPaths
@@ -63,10 +44,8 @@ check):**
 
 
 def migrate(paths: SquadPaths) -> int:
-    """No-op — all 0.4 fields are additive and require no file rewrite.
-
-    Old item files and reflog lines remain valid; ``sq repair`` rebuilds the
-    index from the unmodified frontmatter.  Returns 0 (no files changed).
+    """No-op: every 0.4 field is additive, so old item files and reflog lines stay valid and ``sq
+    repair`` rebuilds the index from the unmodified frontmatter. Returns 0.
     """
     _ = paths  # unused — kept for the ``Migration.run`` signature
     return 0

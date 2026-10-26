@@ -1,12 +1,7 @@
-"""Coercion and validation of attribute values against their declared kind.
-
-Which attributes a type declares, and their kinds, come from the workflow spec; callers pass
-the type's declarations in (``WorkflowSpec.item_attributes``). This module imports no spec
-(``_models`` stays free of ``_workflow``).
-
-Global fields (title/status/parent/author/assignee/labels) are dedicated `update` flags, and an
-item-level badge (priority/severity or a custom field) is routed to its own setter; this module
-covers only the type-declared attributes.
+"""Coercion and validation of attribute values against their declared kind. The type's declarations
+come from the workflow spec (``WorkflowSpec.item_attributes``) and are passed in, since ``_models``
+imports no spec. Global fields are dedicated ``update`` flags and item-level badges route to their
+own setter, so this covers only type-declared attributes.
 """
 
 from collections.abc import Mapping
@@ -41,7 +36,7 @@ _ROLE_DEFINITION_KEYS: frozenset[str] = frozenset(
 #: --name`` / ``sq dev add --name``, and the item's own top-level ``title`` is where it lives.
 _ROLE_NAME_KEY: str = "full_name"
 
-#: The developer marker an earlier release stored on a role; a developer is the role that holds a
+#: The developer marker stored on a role, which is retired: a developer is the role that holds a
 #: capability the ``dev`` template declares.
 _RETIRED_ROLE_DEV_KEY: str = "is_dev"
 

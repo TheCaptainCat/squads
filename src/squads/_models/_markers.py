@@ -1,9 +1,5 @@
-"""sq section markers.
-
-Every sq-managed file carries invisible HTML-comment anchors so the CLI can locate and
-update specific sections without disturbing agent-authored prose. Agents must never alter
-these marker lines.
-
+"""sq section markers: every sq-managed file carries invisible HTML-comment anchors so the CLI can
+update specific sections without disturbing agent-authored prose, and agents must never alter them.
 A section ``tag`` is delimited by::
 
     <!-- sq:<tag> -->
@@ -41,21 +37,16 @@ def discussion_tag(base: str | None = None) -> str:
     return f"{base}:{DISCUSSION}" if base else DISCUSSION
 
 
-#: Namespace of the unpaired view-placement tag family: ``sq:view:<name>`` marks where a
-#: declared view renders on read. **Deliberately has no `close_marker` counterpart
-#: and none may ever be added** — every other tag in this module is a pair, and a pair defines
-#: a span for something to be written into. This one names a view and nothing else; there is
-#: no span, so there is no code path that could write rendered content into it. A view tag's
-#: bytes carry a name and a state, neither of which has a freshness dimension to lose — that is
-#: what separates it from the stored regions (``SUMMARY``, a sub-entity's ``:head``) this design
-#: refuses. Any future proposal to give this tag a body or a paired form is the proposal to
-#: rebuild a stored region, and should be read and refused as exactly that.
+#: Namespace of the unpaired view-placement tag family: ``sq:view:<name>`` marks where a declared
+#: view renders on read. It deliberately has no ``close_marker`` and none may be added: a pair
+#: defines a span something is written into, while this tag names a view and has no span, so no code
+#: path can write rendered content into it. Giving it a body or paired form would rebuild a stored
+#: region this design refuses.
 VIEW = "view"
 
-#: The disabled-state suffix, colon-delimited so it stays inside :data:`~squads._sections
-#: .MARKER_RE`'s character class (word characters, ``:`` and ``-``) — a bracketed spelling would
-#: fall outside that class and make a disabled tag invisible to ``find_markers``/
-#: ``reject_markers``, the one property this whole family depends on.
+#: The disabled-state suffix, colon-delimited so it stays inside
+#: :data:`~squads._sections.MARKER_RE`'s character class; a bracketed spelling would make a disabled
+#: tag invisible to ``find_markers``/``reject_markers``, which this family depends on.
 _DISABLED_SUFFIX = ":disabled"
 
 
@@ -71,37 +62,23 @@ class ViewTagParts:
 
 
 def view_tag(name: str, *, disabled: bool = False) -> str:
-    """The bare tag (``sq:`` prefix stripped, no HTML-comment wrapper) naming *name*'s
-    unpaired view-placement marker, e.g. ``"view:milestone_rollup"`` or, disabled,
-    ``"view:milestone_rollup:disabled"``. Composed the same way
-    :func:`subentity_tag` composes its own — feed it to
-    :func:`open_marker` for the on-disk form. There is deliberately no matching
-    ``close_marker`` counterpart; see :data:`VIEW`. The disabled suffix is spelled here only —
-    no other call site composes it by hand."""
+    """The bare tag (``sq:`` stripped, no wrapper) for *name*'s unpaired view marker, e.g.
+    ``"view:milestone_rollup"`` or ``"view:milestone_rollup:disabled"``, composed like
+    :func:`subentity_tag` and fed to :func:`open_marker`. It has no ``close_marker`` (see
+    :data:`VIEW`), and the disabled suffix is spelled only here.
+    """
     return f"{VIEW}:{name}{_DISABLED_SUFFIX if disabled else ''}"
 
 
 def view_tag_parts(tag: str) -> ViewTagParts | None:
-    """*tag* if it belongs to the unpaired view-tag family — its name and state
-    (:class:`ViewTagParts`) — else ``None``.
-
-    Accepts **either** the bare form (``"view:milestone_rollup"``, what :func:`view_tag`
-    composes) **or** the full on-disk form with its ``sq:`` prefix still attached
-    (``"sq:view:milestone_rollup"`` — the exact string :func:`~squads._sections.find_markers`
-    and :func:`~squads._sections.iter_marker_spans` actually emit, since neither strips
-    :data:`PREFIX` before returning a tag). A recogniser that only accepted the bare form
-    rejected the one form its only producers ever hand it, and did so the worst possible way
-    — silently, by returning ``None``, which every caller reads as "not a view tag". Accepting
-    both means every caller (read-time expansion, ``sq check``'s marker-balance exemption and
-    its view-target finding) can pass a producer's raw tag straight through, with no hand-strip
-    at the call site re-deriving :data:`PREFIX` on its own.
-
-    A close-marker spelling (a tag ending in ``:end``) never matches, in either form: this
-    family has no closing counterpart by design (see :data:`VIEW`), so "unpaired" is a property
-    of the tag's own shape, not an artifact of how a caller happens to have found it. That
-    check runs *before* the disabled-suffix strip, so ``sq:view:end`` (a view literally named
-    ``end``, refused at spec load — see the view-name alphabet) and ``sq:view:end:disabled``
-    both correctly fail to match rather than being read as a disabled view named ``end``."""
+    """*tag*'s name and state (:class:`ViewTagParts`) if it belongs to the unpaired view-tag family,
+    else ``None``. It accepts the bare form (``"view:milestone_rollup"``) and the on-disk form with
+    ``sq:`` attached (what :func:`~squads._sections.find_markers` emits), so callers pass a
+    producer's raw tag straight through (a bare-only recogniser would return ``None``, read as "not
+    a view tag", for every real producer's output). A close-marker spelling (``:end``) never matches
+    in either form, checked before the disabled-suffix strip, so ``sq:view:end`` (a name refused at
+    spec load) is not read as a disabled view named ``end``.
+    """
     if tag.endswith(":end"):
         return None
     if tag.startswith(PREFIX):

@@ -1,13 +1,8 @@
-"""Sub-entities: user stories, subtasks, and review findings (scaffold + status machine).
-
-Their machine state (status/assignee/severity/story) lives in the parent item's frontmatter as
-``Item.subentities``; this layer mutates that model (atomically, via the index transaction) and
-re-renders the block's own ``### <local_id> — title`` heading. It materialises no
-presentation mirror of that state into the body: the ``:head`` badge line and the parent's
-``:summary`` roll-up table are computed on request instead (``_cli._common._subentity_badge_line``
-and a declared ``subentity``-source view, respectively) — see ``_discussion.set_head``/
-``ensure_summary`` for why those renderers still exist as migration-only machinery. Each
-sub-entity's prose (``:body`` + ``:discussion``) stays marker-owned in the body.
+"""Sub-entities (user stories, subtasks, review findings): scaffold and status machine. Their state
+lives in the parent's frontmatter as ``Item.subentities``; this layer mutates that model atomically
+and re-renders the block's ``### <local_id> — title`` heading. The ``:head`` badge line and
+``:summary`` roll-up are computed on request, and each sub-entity's prose (``:body`` +
+``:discussion``) stays marker-owned in the body.
 """
 
 from collections.abc import Callable
@@ -35,14 +30,10 @@ from squads._services._results import BlockResult, SubentityDetail
 
 class SubentitiesMixin(ServiceCore):
     def _checked_field_values(self, kind: str, fields: dict[str, str] | None) -> dict[str, str]:
-        """One validated badge code per given field code, refusing a code *kind* does not
-        declare — the sub-entity mirror of the item axis's ``_create_model`` gate.
-
-        Without it the generic ``fields=`` door wrote whatever it was handed: on a spec whose
-        ``finding`` kind declares only ``impact``, ``add_block(fields={"severity": "high"})``
-        stored ``severity`` into frontmatter for a field the spec no longer declares, where
-        it rendered nowhere (the spec-driven badges map is derived from ``fields_for``) and
-        ``sq check`` reported nothing. One gate for both doors, same as the item axis.
+        """One validated badge code per field code, refusing a code *kind* does not declare: the
+        sub-entity mirror of the item axis's ``_create_model`` gate, so the generic ``fields=`` door
+        cannot store a field the spec does not declare, which would render nowhere and pass ``sq
+        check``.
         """
         checked: dict[str, str] = {}
         for code, value in (fields or {}).items():
@@ -93,10 +84,8 @@ class SubentitiesMixin(ServiceCore):
         deferred_to: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
-        # Omit the field entirely when the active spec's `finding` kind declares no
-        # `severity` — a hardcoded last-resort value here would be exactly the undeclared
-        # write `_checked_field_values` refuses. An explicit `severity=` on such a spec is
-        # still refused, by that gate, with the declared codes named.
+        # Omit the field when the spec's `finding` kind declares no `severity`: a hardcoded
+        # default would be the undeclared write `_checked_field_values` refuses.
         resolved_severity = severity or self.field_default("finding", "severity")
         return await self.add_block(
             review_id,
@@ -109,12 +98,8 @@ class SubentitiesMixin(ServiceCore):
             body=body,
         )
 
-    # ------------------------------------------------------------------ public kind-taking surface
-    # The generic surface below (add_block/list_blocks/get_block/update_block/set_block_body/
-    # set_block_status) takes an arbitrary declared kind string, including a project-declared
-    # custom one — it is the surface a future CLI dispatch drives directly instead of the
-    # per-kind wrappers. The wrappers above stay thin delegators over it for their existing
-    # (test) call sites.
+    # Public kind-taking surface: these methods take any declared kind, including project-declared
+    # ones, and the per-kind wrappers above delegate to them.
 
     async def add_block(  # noqa: PLR0913 — the sub-entity scaffold entry point
         self,
@@ -160,26 +145,19 @@ class SubentitiesMixin(ServiceCore):
         body: str | None = None,
         now: datetime | None = None,
     ) -> tuple[Item, SubEntity, Item]:
-        """The PURE half of scaffolding a sub-entity: every check, the local-id allocation, and
-        the ``SubEntity`` itself — no file I/O. Returns ``(item, sub, base)``.
-
-        ``base`` is *item* as loaded, before this call's own delta — for the write seam's skew
-        guard (see :func:`~squads._itemfile.ensure_no_skew`).
-
-        Shared by :meth:`_add_block_core` (the interactive/apply path, which appends the
-        rendered block to the item's file text around this) and the bulk importer's pre-pass,
-        which calls this directly against a throwaway ``db`` copy with ``now=ev.at``.
+        """The pure half of scaffolding a sub-entity: every check, the local-id allocation and the
+        ``SubEntity`` itself, with no file I/O. Returns ``(item, sub, base)``, *base* being *item*
+        as loaded for the write seam's skew guard (:func:`~squads._itemfile.ensure_no_skew`). Shared
+        by :meth:`_add_block_core` and the bulk importer's pre-pass, which runs it on a throwaway
+        ``db`` copy.
         """
         title = subentity_title(title)
         reject_markers(title, "title")
         if body is not None:
             reject_markers(body)
-        # _require_parent's _check_type validates `kind` against the item's declared
-        # subentity_kind FIRST — an unknown/mismatched kind raises a clean SquadsError here.
-        # Resolving _resolve_add_status before this would KeyError on a bogus kind instead
-        # (self.spec.subentity_kinds[kind] has no fallback), which the bulk importer's
-        # pre-pass cannot collect as an ImportIssue (KeyError isn't in _COLLECTIBLE) — it
-        # would abort the whole validate-first pass instead of reporting one bad line.
+        # _require_parent validates `kind` against the item's declared subentity_kind first, so a
+        # bad kind raises a SquadsError the bulk importer can collect; resolving the status first
+        # would KeyError and abort the pre-pass.
         item = self._require_parent(db, item_id, kind)
         base = item.model_copy(deep=True)
         initial_status = self._resolve_add_status(kind, status)
@@ -251,10 +229,9 @@ class SubentitiesMixin(ServiceCore):
         )
         text = sections.append_to_section(text, container, block)
         await self._write_block_file(item, path, text=text, sub=sub, base=base)
-        # Advisory title-length check. The threshold is the same resolved, type-aware value
-        # `sq check`'s `subentity_title_max` reads, and is `None` for a type that does not select
-        # that check, so create time and check time never disagree on whether or at what number.
-        # The warning rides back on the result for the CLI edge to render; the service never prints.
+        # Advisory title-length check against the same type-aware threshold `sq check`'s
+        # `subentity_title_max` reads (`None` when the type does not select it), so create and check
+        # agree. The warning rides back on the result; the service never prints.
         body_cmd = f'sq {item.type} {item.sequence_id} {kind} {local_id} body -m "…"'
         title_advisory: str | None = None
         threshold = self.spec.item_subentity_title_max(item.type)
@@ -313,7 +290,7 @@ class SubentitiesMixin(ServiceCore):
         await self.set_block_status(feature_id, "story", local_id, status, **kw)
 
     async def set_subtask_done(self, task_id: str, local_id: str, *, done: bool = True) -> None:
-        # convenience toggle (forces past intermediate states, like the old checkbox).
+        # convenience toggle (forces past intermediate states).
         # Resolves the subtask machine's designated completion status / start state by
         # its role in the state machine rather than a hardcoded status literal.
         target = (
@@ -464,18 +441,10 @@ class SubentitiesMixin(ServiceCore):
         )
 
     def _require_declared_status(self, kind: str, status: str) -> str:
-        """*status* itself, provided it names one of *kind*'s OWN declared lifecycle states.
-
-        The vocabulary gate both sub-entity status doors share — the seed path (``add-<kind>``)
-        and the transition path (``<kind> <k> update --status``). Scoped to the kind's machine
-        rather than the spec's global status set, so a status that exists only on a different
-        kind's lifecycle is rejected; resolved from the active spec, never a literal list, so a
-        project that redeclares a lifecycle moves this gate with it.
-
-        Membership is not transition: this asks whether the kind declares the value at all,
-        which is why it is unconditional. ``--force`` overrides an illegal *edge* between two
-        declared states (see :meth:`_apply_subentity_status`); it never admits a value the kind
-        does not declare, because a stored non-member is what ``sq check`` reports as an error.
+        """*status* itself, provided it names one of *kind*'s own declared lifecycle states: the
+        vocabulary gate shared by ``add-<kind>`` and ``<kind> <k> update --status``, resolved from
+        the active spec. It is unconditional, unlike the edge gate ``--force`` waives
+        (:meth:`_apply_subentity_status`), because a stored non-member is a ``sq check`` error.
         """
         valid = self.spec.subentity_workflow(kind).states
         if status not in valid:
@@ -495,19 +464,11 @@ class SubentitiesMixin(ServiceCore):
     def _apply_subentity_status(
         self, kind: str, sub: SubEntity, status: str, *, force: bool
     ) -> None:
-        """Move *sub* to *status*, in two separable gates.
-
-        **Vocabulary**, unconditional: the target must be one of the kind's own declared
-        states. **Transition**, waivable: the edge ``current → status`` must be one the
-        kind's machine permits, unless *force*. That split is what ``--force`` means one
-        layer up as well, where the item ``update`` path applies its delta and then runs the
-        validator engine, so a legal value on an illegal edge passes and an undeclared value
-        does not.
-
-        Ordering the vocabulary gate first is also what keeps a sub-entity already carrying a
-        non-member status recoverable. ``current`` is only read by the transition gate, and
-        ``force`` short-circuits it before the lookup, so forcing such a sub-entity back to a
-        declared state does not depend on its stored origin being a node on the machine.
+        """Move *sub* to *status* through two gates. The vocabulary gate is unconditional: the
+        target must be one of the kind's declared states. The transition gate is waivable by
+        *force*: the edge ``current -> status`` must be one the machine permits. Checking vocabulary
+        first keeps a sub-entity already holding a non-member status recoverable, since ``force``
+        skips the lookup of ``current``.
         """
         # Defensive str() — status is spec vocabulary (a plain string), no enum involved.
         status = str(status)
@@ -704,16 +665,11 @@ class SubentitiesMixin(ServiceCore):
     def _block_body_mutate(
         self, kind: str, local_id: str, body: str, *, append: bool, force: bool = False
     ) -> Callable[[str, Item], tuple[str, bool]]:
-        """Build the ``mutate(text, item)`` closure :meth:`set_block_body` applies via the
-        shared section-edit core — factored out so the bulk importer's ``sub-body`` op can
-        drive the exact same logic through
-        :meth:`~squads._services._base.ServiceCore._section_edit_core`.
-
-        A sub-entity body is authored prose with no regeneration path, exactly like an item
-        body, so it carries the same replace guard (see
-        :func:`~squads._services._base.reject_body_overwrite`). The "nothing written yet" value
-        here is the block's own placeholder line rather than a rendered template — the same one
-        ``--append`` already steps over — so the distinction needs no render.
+        """Build the ``mutate(text, item)`` closure :meth:`set_block_body` applies through the
+        shared section-edit core, so the bulk importer's ``sub-body`` op runs the same logic. Sub-
+        entity prose has no regeneration path, so it carries the item body's replace guard
+        (:func:`~squads._services._base.reject_body_overwrite`), with the block's placeholder line
+        as the "nothing written yet" value.
         """
         reject_markers(body)
         btag = discussion.body_tag(kind, local_id)
@@ -763,23 +719,11 @@ class SubentitiesMixin(ServiceCore):
         await self._locked_section_edit(parent_id, mutate)
 
     async def remove_block(self, parent_id: str, kind: str, local_id: str) -> None:
-        """Hard-delete a story/subtask/finding sub-entity: drop it from ``item.subentities`` and
-        excise its whole body/discussion span marker-safely (:func:`sections.remove_section` on
-        the block's own tag removes the nested regions too — they all live between its open and
-        matching ``:end`` marker). The parent's roll-up is a declared view, computed fresh on
-        request — nothing here re-renders it.
-
-        Mirrors ``remove_work_item``'s hard-delete contract (guard/confirmation lives at the CLI
-        edge): atomic within one ``store.transaction()``, reflog'd, and the freed local id is
-        never reissued to a *different* future sub-entity added later in the same run — see the
-        note on :func:`discussion.next_local_id` for the one case that isn't fully covered.
-
-        **Dangling story map:** removing a sub-entity of a kind that some other kind's
-        ``maps_parent_story`` mapping targets refuses (``SquadsError``) while any subtask in
-        a child task still maps to it — findings/subtasks have no such inbound mapping, so
-        the check is gated by :meth:`_kind_is_story_target` (derived from the spec's
-        ``maps_parent_story`` flag, the same one :meth:`_check_maps_parent_story` gates on),
-        not a ``kind == "story"`` literal, so a renamed story-equivalent kind stays covered.
+        """Hard-delete a sub-entity: drop it from ``item.subentities`` and excise its span
+        (:func:`sections.remove_section`, marker-safe), atomically in one ``store.transaction()``
+        with a reflog entry. A removed id below the highest stays a gap, but removing the highest
+        frees its number for reissue (:func:`discussion.next_local_id`). Removing a kind another
+        kind's ``maps_parent_story`` targets is refused while a subtask still maps to it.
         """
         async with self.store.transaction() as db:
             item = self._require_parent(db, parent_id, kind)
@@ -857,15 +801,10 @@ class SubentitiesMixin(ServiceCore):
         sub: SubEntity,
         base: Item,
     ) -> None:
-        """Persist the item's frontmatter from the model and re-render *sub*'s own block heading.
-
-        Its ``:head`` badge line and the parent's ``:summary`` roll-up are computed on request
-        (``_cli._common._subentity_badge_line``, a declared ``subentity``-source view) — this no
-        longer maintains a materialised mirror of either.
-
-        ``base`` is *item* as loaded before the caller's own delta — checked against the
-        on-disk frontmatter (already in ``text``, whether read here or supplied by the caller)
-        before it is substituted for the index-derived one.
+        """Persist the item's frontmatter from the model and re-render *sub*'s block heading; the
+        ``:head`` and ``:summary`` renderings are computed on request. *base* is *item* as loaded
+        before the caller's delta, checked against the on-disk frontmatter in ``text`` before it is
+        replaced.
         """
         kind = self.subentity_kind[item.type]
         await self._refuse_duplicated_ids(item)
@@ -923,14 +862,11 @@ class SubentitiesMixin(ServiceCore):
             raise SquadsError(f"{kind} sub-entities don't map to a parent story")
 
     def _kind_is_story_target(self, item_type: str) -> bool:
-        """True when some other item type's hosted sub-entity kind declares
-        ``maps_parent_story`` and maps onto *item_type*'s own hosted kind — i.e. removing one
-        of those sub-entities could orphan a mapped child's reference.
-
-        ``maps_parent_story`` is declared on the mapping (child) kind, e.g. ``subtask``, not
-        on the target (parent) kind, e.g. ``story`` — this walks every declared item type
-        looking for one whose hosted kind maps up, and whose required parent is
-        *item_type*, so the check stays correct however either kind is named."""
+        """True when some other item type's hosted sub-entity kind declares ``maps_parent_story``
+        and maps onto *item_type*'s hosted kind, so removing one of those could orphan a mapped
+        child's reference. The flag is on the mapping (child) kind, so this walks every declared
+        type, however either kind is named.
+        """
         for other_type, ts in self.spec.items.items():
             child_kind = ts.subentity_kind
             if child_kind is None:

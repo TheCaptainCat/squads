@@ -77,21 +77,11 @@ from squads._workflow._models import WorkflowSpec
 
 
 def _missing_timestamp_issues(name: str, data: dict[str, Any]) -> list[CheckIssue]:
-    """Report a frontmatter that carries no ``created_at``/``updated_at``.
-
-    Absent, those load as an invented ``clock.now()`` that differs on every read (see
-    :data:`~squads._models._item.INVENTED_WHEN_ABSENT`) — so the file's own reported dates are
-    fiction until something writes them, and every date-ordered view of it is wrong meanwhile.
-    A warning rather than an error: the file is perfectly usable and any mutation heals it, but
-    it is the one part of a loaded item that is not a function of what the file says, so it is
-    reported rather than left to be silently re-invented per read.
-
-    The message names the index as the source the heal will use, and says so in those words.
-    It must not promise "the real value": what a mutation writes back is whatever the index
-    currently holds for the key, which is the item's true original only for as long as the
-    index still has it (:meth:`MaintenanceMixin._rebuild_index_from_disk` carries it
-    across a rebuild for exactly that reason). Over-promising here would make the warning read
-    as reassurance in the one case where the operator most needs to act.
+    """Report a frontmatter with no ``created_at``/``updated_at``, which load as an invented
+    ``clock.now()`` that differs on every read (see
+    :data:`~squads._models._item.INVENTED_WHEN_ABSENT`). It warns because any mutation heals the
+    file. The message names the index as the heal's source without promising "the real value", which
+    the index holds only while it still has it.
     """
     missing = sorted(k for k in INVENTED_WHEN_ABSENT if data.get(k) is None)
     if not missing:
@@ -108,19 +98,10 @@ def _missing_timestamp_issues(name: str, data: dict[str, Any]) -> list[CheckIssu
 
 
 def _marker_issues(text: str) -> list[str]:
-    """Detect unbalanced or duplicated sq markers in a file.
-
-    The declared unpaired view-tag family (:func:`~squads._models._markers.view_tag_parts`)
-    is exempt from the open/close **pairing** count entirely — by design it has no
-    ``close_marker`` counterpart (see :data:`~squads._models._markers.VIEW`), so demanding one
-    would flag a correctly placed tag as broken, in either state (enabled or disabled — a
-    close-marker spelling never matches either form), and a **duplicate** of one — same state
-    or cross-state (``x`` and ``x:disabled``, a different raw tag to this Counter, so never
-    caught as a duplicate here regardless) — is deferred whole to
-    :func:`_seeded_view_issues`'s own "duplicate by name" condition, the one place that can
-    name the real ``view add``/``view disable`` remedy alongside it. Every other tag family
-    (``sq:body`` and the rest) has no such richer report to defer to, so its own duplicate is
-    still reported here, exactly like unbalanced pairing.
+    """Detect unbalanced or duplicated sq markers in a file. The unpaired view-tag family
+    (:func:`~squads._models._markers.view_tag_parts`, no ``close_marker``) is exempt from the
+    pairing count, and its duplicates are left to :func:`_seeded_view_issues`, which can name the
+    ``view add``/``view disable`` remedy; every other tag family reports its own duplicates here.
     """
     opens: Counter[str] = Counter()
     closes: Counter[str] = Counter()
@@ -132,11 +113,9 @@ def _marker_issues(text: str) -> list[str]:
             opens[tag] += 1
     problems: list[str] = []
     for tag, n in opens.items():
-        # A same-state view-tag duplicate is deferred to `_seeded_view_issues`'s own
-        # "duplicate by name" report — the one place that can name the real `view
-        # add`/`view disable` remedy (it alone carries item_type/slug/spec); reporting it
-        # again here, with no remedy, would be the exact double report neither of the two
-        # docstrings wants.
+        # A same-state view-tag duplicate is left to `_seeded_view_issues`, the one place that
+        # names the `view add`/`view disable` remedy; reporting it here would double-report it with
+        # no remedy.
         if n > 1 and markers.view_tag_parts(tag) is None:
             problems.append(f"duplicate marker <!-- sq:{tag} -->")
         if markers.view_tag_parts(tag) is None and closes[tag] < n:
@@ -209,13 +188,12 @@ _TAG_FRAGMENT_RE = re.compile(rf"<!--\s*{re.escape(markers.PREFIX)}")
 def _seeded_view_issues(
     text: str, item_type: str, slug: str, n: int | None, spec: WorkflowSpec, *, from_squad: Path
 ) -> list[str]:
-    """Every seeded view (:func:`~squads._views.seeded_view_names`) present exactly once and no
-    view name duplicated, checked directly against *text* on disk — each violation reported
-    with its real, runnable remedy. A role body holding prose in place of its tag is a
-    supported state and reports nothing; a skill with prose beside a missing tag names moving
-    the prose to a new skill before clearing it, since it may be an author's real runbook. An
-    entirely absent region defers to :func:`_absent_body_region_issues`. Reports only, never
-    repairs."""
+    """Every seeded view (:func:`~squads._views.seeded_view_names`) present exactly once and no view
+    name duplicated, checked against *text* on disk, each violation with its runnable remedy. A role
+    body with prose in place of its tag reports nothing; a skill with prose beside a missing tag is
+    told to move the prose to a new skill first. An entirely absent region defers to
+    :func:`_absent_body_region_issues`. It never repairs.
+    """
     seeded = views.seeded_view_names(item_type, slug, spec, from_squad=from_squad)
     counts: Counter[str] = Counter()
     for raw in sections.find_markers(text):
@@ -225,12 +203,9 @@ def _seeded_view_issues(
     is_roster = item_type in (ROSTER_ROLE, ROSTER_SKILL)
     addr: int | str = slug if is_roster else (n if n is not None else "<n>")
     region = sections.get_section(text, markers.BODY) if is_roster else None
-    # A roster host whose `sq:body` marker pair is entirely absent is a different, narrower
-    # shape than a present-but-tagless region (`_absent_body_region_issues`, immediately below,
-    # is the one that reports it) — `view add`/`view disable` both need an existing region to
-    # place a tag into, so neither remedy this loop would otherwise name can work on such a
-    # file. Deferring to that finding here, rather than also naming a remedy that fails, is what
-    # keeps one broken file from ever carrying two findings that disagree on what to run.
+    # A roster host with no `sq:body` marker pair is reported by `_absent_body_region_issues`: `view
+    # add`/`view disable` need an existing region, so the remedies named here would fail and the two
+    # findings would disagree.
     region_absent = (
         region is None
         if is_roster
@@ -304,12 +279,11 @@ def _seeded_view_issues(
 def _absent_body_region_issues(
     text: str, item_type: str, slug: str, spec: WorkflowSpec
 ) -> list[str]:
-    """One error when a file's ``sq:body`` marker pair is entirely absent (both markers
-    missing, not just one — that's :func:`_marker_issues`'s job). Any other type is told to
-    restore the pair; a role or skill names ``view add``/``view disable`` when
-    :func:`~squads._view_tags.reinstate_absent_body_region` says the region can be safely
-    reinstated, or manual recovery when real prose is in the way and neither verb can help
-    without guessing."""
+    """One error when a file's ``sq:body`` marker pair is entirely absent (one missing is
+    :func:`_marker_issues`'s job). Any other type is told to restore the pair; a role or skill is
+    told ``view add``/``view disable`` when :func:`~squads._view_tags.reinstate_absent_body_region`
+    says the region can be reinstated safely, else manual recovery because real prose is in the way.
+    """
     if markers.open_marker(markers.BODY) in text or markers.close_marker(markers.BODY) in text:
         return []
     generic = [
@@ -358,12 +332,10 @@ def _blocks_outside_container_issues(text: str, item_type: str, spec: WorkflowSp
 
 
 def _drift_direction(item: Item, fdata: dict[str, Any]) -> str | None:
-    """Which side is ahead when the two ``updated_at`` values order the pair:
-    ``"markdown"`` is the expected, repairable skew; ``"index"`` means the ordering rule was
-    violated, or the failure was out of the stated crash model. ``None`` when the clock's
-    whole-second truncation (or a missing/unparseable frontmatter value) leaves the pair
-    unordered — say nothing about direction then, rather than reaching for a second input to
-    force an answer.
+    """Which side is ahead when the two ``updated_at`` values order the pair: ``"markdown"`` is the
+    expected, repairable skew; ``"index"`` means the ordering rule or the crash model was violated.
+    ``None`` when whole-second truncation or a missing/unparseable value leaves them unordered, and
+    nothing is said about direction then.
     """
     raw = fdata.get("updated_at")
     if isinstance(raw, datetime):
@@ -383,9 +355,9 @@ def _drift_direction(item: Item, fdata: dict[str, Any]) -> str | None:
 
 
 def _drift_message(fields: list[SkewKey], item: Item, fdata: dict[str, Any]) -> str:
-    """The ``sq check`` finding text for a confirmed skew — the same two-clause split as
-    :func:`~squads._itemfile.skew_message`: a real divergence keeps today's wording (with its
-    direction suffix), a stale index encoding gets
+    """The ``sq check`` finding text for a confirmed skew, the same two-clause split as
+    :func:`~squads._itemfile.skew_message`: a real divergence keeps the write seam's wording (with
+    its direction suffix), a stale index encoding gets
     :func:`~squads._itemfile.stale_encoding_clause` instead, in the same words as the write
     seam's own refusal. A mixed item reports both clauses."""
     diverged = [k.name for k in fields if not k.stale_encoding]
@@ -411,27 +383,11 @@ def _drift_message(fields: list[SkewKey], item: Item, fdata: dict[str, Any]) -> 
 def _value_skew_issue(
     item: Item, text: str, fdata: dict[str, Any], *, default_kind: str
 ) -> CheckIssue | None:
-    """The general frontmatter/index value-divergence candidate: every top-level field on
-    which *text*'s on-disk frontmatter diverges from *item*, not only ``status``/``parent`` —
-    what were ``_status_drift``/``_parent_drift`` fold into this as the two-field special
-    case of the same rule, so the two predicates' own coverage (and their direction-naming in
-    the message) is not lost, only generalised.
-
-    Confirmable for a single item id from a freshly re-observed ``(item, text, fdata)``
-    triple, exactly like its predecessors, so ``check``'s scan pass (to detect the candidate)
-    and its one confirm pass (to decide whether it still holds) both call this same function
-    — never two copies of the comparison to drift apart.
-
-    Reuses :func:`~squads._itemfile.frontmatter_skew` *verbatim*: check reports exactly the
-    set the item-file write seam (:func:`~squads._itemfile.ensure_no_skew`) would refuse on
-    — no more (an operator told to repair a state nothing objects to) and no less (the gap
-    this replaces) — and inherits its exemptions (:data:`~squads._itemfile.PERMITTED_EXTRA_SKEW`)
-    and its round-trip normalisation for free, so a pre-fix corpus carrying only a
-    permanently-exempt skew reports nothing here either.
-
-    ``warn``, matching both predicates this replaces: a value divergence is the drift
-    family's class, not the reconciliation family's — the entry exists on both sides and one
-    side is simply older — so ``sq check``'s exit code is unchanged.
+    """The frontmatter/index value-divergence candidate: every top-level field where *text*'s
+    frontmatter diverges from *item*. It is confirmable from a freshly re-observed ``(item, text,
+    fdata)``, so the scan and confirm passes share it, and it reuses
+    :func:`~squads._itemfile.frontmatter_skew` so it flags what the write seam would refuse
+    (:func:`~squads._itemfile.ensure_no_skew`), at ``warn``.
     """
     diverging = frontmatter_skew(text, item, default_kind=default_kind)
     if not diverging:
@@ -471,22 +427,19 @@ def _report_and_third_state(
     spec: WorkflowSpec,
     issue: CheckIssue,
 ) -> bool:
-    """Report *issue* against *md* and third-state the file — the shared body of
-    every "this file is present but cannot be evaluated" branch in
-    :meth:`CheckMixin._scan_for_check`.
-
-    Both lists are mutated in place. Returns ``True`` when even the filename stem does not parse,
-    so there is no safe sequence number to subtract and the caller must set ``suppress_missing``;
-    callers fold it in with ``|=`` so one branch can never clear another's decision.
+    """Report *issue* against *md* and third-state the file: the shared body of every "present but
+    cannot be evaluated" branch in :meth:`CheckMixin._scan_for_check`. Both lists are mutated in
+    place. Returns ``True`` when even the filename stem does not parse, so the caller must set
+    ``suppress_missing``; callers fold it in with ``|=`` so one branch never clears another's
+    decision.
     """
     issues.append(issue)
     return _unparseable_seq_or_suppress(md, item_type, spec, unparseable_seqs)
 
 
-# (live role slugs, live skill slugs, role slug -> Item, skill slug -> Item, role slug ->
-# freshly-resolved preload-skill list) — one loaded index's roster-currency state, built by
-# ``CheckMixin._roster_drift_state`` and shared by the scan and confirm halves of
-# per-entry pointer currency detection.
+# (live role slugs, live skill slugs, role slug -> Item, skill slug -> Item, role slug -> resolved
+# preload list): one index's roster-currency state from ``CheckMixin._roster_drift_state``, shared
+# by the scan and confirm halves.
 type _RosterDriftState = tuple[
     frozenset[str], frozenset[str], dict[str, Item], dict[str, Item], dict[str, list[str]]
 ]
@@ -494,27 +447,11 @@ type _RosterDriftState = tuple[
 
 class CheckMixin(ServiceCore):
     async def check(self) -> list[CheckIssue]:
-        """Report the squad board as of one point in time.
-
-        ``check`` takes no lock: it never blocks a mutation, is never blocked by one, and
-        never writes. Its per-item/squad-global catalog issues and single-source scan issues
-        (marker damage, a missing frontmatter ``id``, the two override checks, the fixed
-        top-level backend files ``_backend_reconciled`` checks) are each as true as the one
-        read that produced them, and are reported as-is. Its **cross-source** issues —
-        status/parent drift, both directions of index/disk reconciliation, and a per-entry
-        backend pointer's absence (:func:`~squads._services._validators.
-        backend_entry_candidates`) — each a claim comparing the on-disk scan against the index
-        snapshot loaded above — are candidates, not findings: they are confirmed by exactly
-        one cheap re-read (:meth:`_confirm_cross_source`) before being reported, so a mutation
-        racing the scan cannot produce a false drift warning, a false reconciliation
-        error, or a false per-entry-pointer warning (and cannot make ``sq check`` exit 3
-        for a board that was never actually wrong).
-
-        A reported drift or reconciliation issue therefore means a **real, durable**
-        inconsistency that ``sq repair`` heals. What this may **not** claim is quiescence —
-        an empty/warn-only result means "no confirmed inconsistency was observed", not "the
-        board is consistent now"; another transaction may commit the instant after this
-        returns.
+        """Report the squad board as of one point in time, without a lock or a write. Cross-source
+        claims (drift, reconciliation, a missing per-entry pointer) are candidates confirmed by one
+        re-read (:meth:`_confirm_cross_source`), so a racing mutation cannot cause a false finding;
+        a reported drift is durable and ``sq repair`` heals it. A clean result means no confirmed
+        inconsistency was observed, not that the board is consistent now.
         """
         from squads._overrides._service import check_override_issues
 
@@ -600,13 +537,10 @@ class CheckMixin(ServiceCore):
         return issues
 
     def _orphaned_skill_issues(self, index: SquadsDB) -> list[CheckIssue]:
-        """A live ``SKILL`` item whose ``sq-<type>`` slug names a type the active spec no
-        longer declares — the drop or rename left its generated pointer/body withdrawn
-        (:meth:`RosterProjection.project_item`), but the item itself is still sitting at a
-        live status, which would otherwise read as a going concern with no ``sq check``
-        complaint at all. ``warn``, not ``error``: nothing is broken (the withdrawal already
-        happened), and the fix is reversible either way — restore the type, or retire the
-        skill by hand.
+        """A live ``SKILL`` item whose ``sq-<type>`` slug names a type the active spec no longer
+        declares: its pointer and body were withdrawn (:meth:`RosterProjection.project_item`) but
+        the item still reads as live. ``warn``, because nothing is broken and the fix is reversible:
+        restore the type or retire the skill.
         """
         issues: list[CheckIssue] = []
         for item in index.items.values():
@@ -638,14 +572,11 @@ class CheckMixin(ServiceCore):
         *,
         default_kind: str,
     ) -> list[CheckIssue]:
-        """Re-observe one drift candidate at the freshly-loaded index's path (falling back to
-        the scan's own path when that one's gone — see the inline comment below) and re-run
-        the drift predicate; factored out of :meth:`_confirm_cross_source` so that function's
-        own branch count stays readable. Empty when the candidate cannot be confirmed at all:
-        removed from the index since the scan, gone from disk entirely, or unparseable on this
-        read (a race between the scan and this confirm, or a file that only became unparseable
-        since — either way the run already reports the parse failure once it is next seen at
-        scan time, and stacking a speculative drift claim on top of it helps nobody).
+        """Re-observe one drift candidate at the fresh index's path (falling back to the scan's
+        path, see the inline comment) and re-run the drift predicate; split out of
+        :meth:`_confirm_cross_source` for readability. Empty when the candidate cannot be confirmed:
+        removed from the index, gone from disk, or unparseable on this read (the parse failure is
+        reported at scan time).
         """
         fresh_item = fresh_index.items.get(seq)
         if fresh_item is None:
@@ -654,11 +585,9 @@ class CheckMixin(ServiceCore):
         try:
             text = await _aio.read_text(confirm_path)
         except FileNotFoundError:
-            # The fresh index's own path field can itself be the stale side: an interrupted
-            # rename leaves the file at its new path while the index still holds the old one.
-            # Fall back to the path the scan actually found this sequence at before giving up
-            # on the candidate — only skip when neither path has the file, the genuine
-            # "gone since the scan" case.
+            # The fresh index's path can itself be stale (an interrupted rename leaves the file at
+            # its new path, the index at the old one), so fall back to the scan's path; skip only
+            # when neither has the file.
             confirm_path = on_disk[seq][1]
             try:
                 text = await _aio.read_text(confirm_path)
@@ -682,54 +611,11 @@ class CheckMixin(ServiceCore):
         backend_entry_candidates: list[tuple[str, str]] | None = None,
         backend_entry_drift_candidates: list[tuple[str, str, str]] | None = None,
     ) -> list[CheckIssue]:
-        """The one confirm round for cross-source claims.
-
-        Partitions the frontmatter/index value-skew candidates (every top-level field, not
-        only status/parent) and both index/disk reconciliation directions into
-        *candidates* from the ``(index, on_disk, bodies)`` scan triple, then — only when the
-        candidate set is non-empty — re-loads the index exactly once and re-observes exactly
-        those candidates (never a full rescan, which would reintroduce the cost the
-        lock-free design exists to avoid) at the path the freshly loaded index gives for each
-        one, before re-running the same predicate against that fresh pair. A candidate
-        produced by a transaction that commits between the scan and this reload resolves
-        here and is never reported; a durable inconsistency reproduces on the fresh pair and
-        is reported below, still naming its skew direction when the two ``updated_at``
-        values order it.
-
-        A clean board pays nothing: no candidates, no second index load, no second file read.
-        ``bodies`` is the same raw-text map :meth:`_scan_for_check` already built for the
-        validator engine — passed in, never re-read, so the value-skew candidate costs no new
-        I/O over what the two predicates it replaces already paid for.
-
-        The reload is ``store.load(fresh=True)`` — this false-positive suppression depends on
-        genuinely re-reading disk, so it must bypass any request-scoped snapshot the same
-        invocation already filed (see ``squads._index._store.read_scope``); the scan's own
-        ``index`` a few lines up is deliberately left as whatever the ambient scope served.
-
-        ``unparseable_seqs``/``suppress_missing`` come from :meth:`_scan_for_check`'s
-        present-but-unparseable third state: a file that exists but could not be parsed is
-        never a *missing* candidate (the file is right there — see the module's durability
-        contract), and when even its filename stem could not be resolved to a sequence number,
-        ``suppress_missing`` drops the missing-direction claim for the whole run rather than
-        risk reporting one that might be false.
-
-        ``backend_entry_candidates`` is a fourth candidate set, of a different shape: ``(backend
-        name, rel_path)`` pairs a per-entry roster pointer is missing for, computed by
-        :func:`~squads._services._validators.backend_entry_candidates` against the same *index*
-        the scan used. It counts toward "is there anything to confirm" alongside the other
-        three, and each pair is re-observed by
-        :func:`~squads._services._validators.backend_entry_missing` against the one fresh index
-        reload below — never a second reload of its own.
-
-        ``backend_entry_drift_candidates`` is a fifth candidate set, currency's own: ``(backend
-        name, kind, slug)`` triples this round's caller (``check()``) has ALREADY confirmed
-        genuinely drift at scan time (:meth:`_scan_backend_entry_drift`, run against the very
-        *index* this method was handed — never a second load of its own). Unlike the other four
-        candidate sets, whose scan-time detection is cheap (an in-memory comparison or a
-        ``stat``), a drift claim's own detection cost — a render plus a file read per live
-        entry — is already paid before this method is ever called, so re-observing it here
-        again below is solely about the same race window the other four close: a mutation
-        between the scan and this confirm.
+        """The one confirm round for cross-source claims: from the scan triple ``(index, on_disk,
+        bodies)`` it takes the value-skew, reconciliation and backend-entry candidates and, only if
+        any exist, reloads the index once with ``store.load(fresh=True)`` (bypassing the request-
+        scoped snapshot), re-running each predicate on those alone.
+        ``unparseable_seqs``/``suppress_missing`` keep an unparseable file from being *missing*.
         """
         # Resolved once for the whole confirm round — before any scan or confirm — rather
         # than per candidate: a spec declaring the wrong number of default ref kinds must
@@ -753,10 +639,8 @@ class CheckMixin(ServiceCore):
         if not anything_to_confirm:
             return []
 
-        # fresh=True: this round's whole point is "re-read the index right now" — a
-        # request-scoped snapshot filed earlier in this invocation (see
-        # ``squads._index._store.read_scope``) would reintroduce exactly the false-positive
-        # window this confirm round exists to close.
+        # fresh=True: this round exists to re-read the index now; a request-scoped snapshot
+        # (``squads._index._store.read_scope``) would reopen the false-positive window.
         fresh_index = await self.store.load(fresh=True)
         issues: list[CheckIssue] = []
         reconciled_level = squad_global_level(self.spec, "index_reconciled")
@@ -795,14 +679,11 @@ class CheckMixin(ServiceCore):
     def _roster_drift_state(
         self, index: SquadsDB, on_disk: dict[int, tuple[str, Path, dict[str, Any]]]
     ) -> _RosterDriftState:
-        """Everything a per-entry currency comparison needs from one loaded *index*: the live
-        role/skill slug sets, each slug's own ``Item``, and every live role's **freshly
-        resolved** preload-skill list (:meth:`RosterProjection.resolve_role_skills`, run against
-        this same *index* — never the pure system-membership fallback, which would misread a
-        role using a ``scopes``-preloaded skill as permanently drifted). Shared by
-        :meth:`_scan_backend_entry_drift` (against the scan-time index) and
-        :meth:`_confirm_backend_entry_drift_candidates` (against a freshly reloaded one) so the
-        two build this state the identical way, off whichever index each is handed.
+        """Everything a per-entry currency comparison needs from one loaded *index*: live role/skill
+        slug sets, each slug's ``Item``, and every live role's freshly resolved preload list
+        (:meth:`RosterProjection.resolve_role_skills`, since the system-membership fallback would
+        misread a ``scopes``-preloaded role as drifted). Both :meth:`_scan_backend_entry_drift` and
+        :meth:`_confirm_backend_entry_drift_candidates` build it, off their own index.
         """
         g_ctx = SquadGlobalContext(
             now=clock.now(),
@@ -827,22 +708,11 @@ class CheckMixin(ServiceCore):
     def _scan_backend_entry_drift(
         self, index: SquadsDB, on_disk: dict[int, tuple[str, Path, dict[str, Any]]]
     ) -> list[tuple[str, str, str]]:
-        """The scan-time half of currency detection: a full render-and-compare
-        (:func:`~squads._services._validators.backend_entry_drift`) against *index* **exactly
-        as ``check()`` already loaded it — never a second ``store.load()``** — for every live
-        per-entry pointer every active backend declares. Only a genuine mismatch becomes a
-        ``(backend name, kind, slug)`` candidate for the confirm round, mirroring how
-        frontmatter value-skew's own ``drift_seqs`` is built in
-        :meth:`_confirm_cross_source`: a clean board — the overwhelmingly common case — costs
-        this one render-and-compare pass per live entry and nothing more, in particular no
-        second index load and no re-read of any file this pass already read once (see
-        ``tests/service/test_check_confirms_cross_source_claims.py``'s own pin on both).
-
-        A live slug with no rendered path (this backend declares none for it, or this backend
-        has no per-entry role/skill artifact at all — see
-        :meth:`~squads._backends._base.AgentBackend.managed_entry_paths`) is silently skipped:
-        there is nothing to compare. An absent file is skipped too — that is presence's finding
-        (:func:`~squads._services._validators.backend_entry_candidates`), not this one's.
+        """The scan-time half of currency detection: render-and-compare
+        (:func:`~squads._services._validators.backend_entry_drift`) against the *index* ``check()``
+        loaded, never a second ``store.load()``, for each live per-entry pointer. Only a mismatch
+        becomes a ``(backend, kind, slug)`` candidate; a slug with no path or an absent file is
+        skipped, absence being :func:`~squads._services._validators.backend_entry_candidates`'s.
         """
         live_role_slugs, live_skill_slugs, role_items, skill_items, role_skills = (
             self._roster_drift_state(index, on_disk)
@@ -883,17 +753,11 @@ class CheckMixin(ServiceCore):
         fresh_index: SquadsDB,
         on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
     ) -> list[CheckIssue]:
-        """The currency half of :meth:`_confirm_cross_source`'s confirm round, factored out for
-        the same readability reason as :meth:`_confirm_backend_entry_candidates`: re-resolves
-        each candidate's live status, item, and (for a role) freshly-resolved preload-skill list
-        against *fresh_index* — never the scan-time state — before handing it to
-        :func:`~squads._services._validators.backend_entry_drift` again.
-
-        A candidate whose slug was retired, or whose item was removed outright, since the scan
-        resolves silently (absent from the fresh live sets, or no item at that slug any more) —
-        the same race presence's own confirm resolves. Empty *candidates* costs nothing beyond
-        the one (potentially empty) roster-state build, mirroring the caller's own
-        empty-candidates short circuit.
+        """The currency half of :meth:`_confirm_cross_source`'s confirm round: re-resolves each
+        candidate's live status, item and preload-skill list against *fresh_index*, never the scan-
+        time state, then calls :func:`~squads._services._validators.backend_entry_drift` again. A
+        candidate whose slug was retired or removed since the scan resolves silently. Empty
+        *candidates* costs only the roster-state build.
         """
         if not candidates:
             return []
@@ -935,12 +799,9 @@ class CheckMixin(ServiceCore):
         fresh_index: SquadsDB,
         on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
     ) -> list[CheckIssue]:
-        """The per-entry-pointer half of :meth:`_confirm_cross_source`'s confirm round,
-        factored out to keep that method's own branch count readable — recomputes each
-        backend's ``managed_entry_paths`` from *fresh_index*'s own live-roster set (never the
-        stale scan-time one) and re-checks every candidate against it via
-        :func:`~squads._services._validators.backend_entry_missing`. Empty *candidates* costs
-        nothing (the caller already gates the reload on a non-empty candidate set).
+        """The per-entry-pointer half of :meth:`_confirm_cross_source`'s confirm round: recomputes
+        each backend's ``managed_entry_paths`` from *fresh_index*'s live roster and re-checks every
+        candidate via :func:`~squads._services._validators.backend_entry_missing`.
         """
         if not candidates:
             return []
@@ -989,50 +850,15 @@ class CheckMixin(ServiceCore):
         frozenset[int],
         bool,
     ]:
-        """Scan every item file for marker issues, frontmatter, and raw body text.
+        """Scan every item file for marker issues, frontmatter and raw text, returning ``(issues,
+        on_disk, bodies, unparseable_seqs, suppress_missing)`` keyed by sequence number. The file
+        checks are errors outside the validator catalog, and a skill file with no ``id`` is legacy
+        and skipped unless it is ``SKILL-*.md``.
 
-        **The file checks of ``sq check``** are the findings that do not come from the validator
-        catalog (``CATALOG`` in ``_services/_validators.py``, dispatched by ``ValidatorEngine``):
-        :func:`_marker_issues`, :func:`_view_target_issues`, :func:`_seeded_view_issues` and
-        :func:`_absent_body_region_issues`, all errors. Each applies per file, cannot be
-        selected, and is still reported when the frontmatter cannot be read; the module docstring
-        of ``_services/_validators.py`` says why they are not catalog members.
-
-        Returns ``(issues, on_disk, bodies, unparseable_seqs, suppress_missing)``.
-        ``on_disk``/``bodies`` are keyed by the item's **sequence number** (int) so
-        reconciliation comparisons are width-tolerant — frontmatter ``id`` fields keep their
-        old width after ``sq migrate repad`` while the index reports the new width. ``on_disk``'s
-        stored tuple is ``(fid, path, frontmatter_data)`` so error messages can still name the
-        original frontmatter ID; ``bodies`` is the file's full raw text, read once here and
-        threaded straight into :meth:`ValidatorEngine.report` so no validator re-reads the file
-        itself.
-
-        Skill files with no ``id`` in their frontmatter are silently skipped (pre-migration
-        body files that have not yet been stamped as SKILL items).  Only ID-prefixed skill
-        files (``SKILL-*.md``) without a valid frontmatter id are reported as errors.
-
-        **A file that cannot be read, parsed, or built into an item is a third state, not a
-        skip.** Reading or parsing it raises :class:`SquadsError` (the read-path guards this
-        module depends on turn a raw decode/permission/YAML failure into one), and so does
-        :meth:`Item.from_frontmatter` for frontmatter that parses as YAML but carries a
-        type-invalid field — that is the load boundary check must cross too, or a file
-        ``repair`` cannot rebuild passes here as clean. Every one of those is caught per file
-        so one bad file never aborts the scan for the other hundreds. The failing file is
-        reported as an error-level issue and goes into neither ``on_disk`` nor ``bodies``
-        (there is no usable content to compare), but it is **present on disk**, so treating it
-        as "missing" would be a phantom claim (see :meth:`_confirm_cross_source`). It is
-        instead keyed into ``unparseable_seqs`` — by the frontmatter ``id`` itself when that
-        parsed (the type-invalid-field case), or otherwise best-effort by the sequence number
-        recovered from its **filename** stem alone (the same stem-parsing :meth:`repad` already
-        relies on) — which the caller subtracts from the missing-direction reconciliation
-        candidates. When even the stem does not parse, ``suppress_missing`` is set instead:
-        there is no safe seq to subtract, so the caller drops the whole missing-direction claim
-        for this run rather than risk reporting one that might be false.
-
-        A ``FileNotFoundError`` on a dirent this same call's own glob just saw gets the same
-        absent-vs-unreadable split as :meth:`_rebuild_index_from_disk`: a broken symlink is
-        present-but-unreadable (reported, third-stated), a genuinely vanished dirent is skipped
-        outright with nothing reported.
+        A file that cannot be read, parsed or built into an item is a third state: its
+        :class:`SquadsError` is caught per file and reported, and it is keyed into
+        ``unparseable_seqs`` (by ``id`` or filename stem) so it is never a phantom missing claim; an
+        unparseable stem sets ``suppress_missing``.
         """
         issues: list[CheckIssue] = []
         on_disk: dict[int, tuple[str, Path, dict[str, Any]]] = {}

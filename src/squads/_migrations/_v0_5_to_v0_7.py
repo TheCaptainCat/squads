@@ -1,45 +1,21 @@
-"""Schema 0.5 → 0.7 runner: unpad every human-facing ID.
+"""Schema 0.5 → 0.7 runner: unpad every human-facing ID. Display padding is fixed at 0
+(:data:`_DISPLAY_ID_PADDING`, this runner's frozen copy), so frontmatter ``id:``, ``refs:``,
+``parent:`` and ID mentions in body prose read ``PREFIX-nnn``; filenames stay padded at the squad's
+stored width and are never renamed.
 
-Display padding is fixed at 0 (:data:`_DISPLAY_ID_PADDING`, this runner's own frozen copy —
-see its definition below) — every human-facing surface (frontmatter ``id:``, ``refs:``,
-``parent:``, and ID mentions in body prose) should read ``PREFIX-nnn`` rather than
-``PREFIX-000nnn``. Filenames are unaffected: they stay padded at the squad's stored (filename)
-width and are never renamed by this runner.
+Two passes. Discovery reads every file once and builds ``{old literal id -> new unpadded id}`` from
+each item's own frontmatter ``id:``, whatever width repad left on disk. Rewrite then (structurally)
+reformats each ``id:`` from ``(item_type.prefix, sequence_id)`` and unpads every
+``refs:``/``parent:`` entry by re-parsing the trailing digits, the width-tolerant identity
+``ref_id_matches`` uses, and (in prose, best effort) substitutes the exact old-form literals
+whole-word (``\\bOLD\\b``) across the body and ``subentities[*].title``, never a blind
+zero-collapsing regex. Fenced code and inline code spans are left alone (an ID there may be an
+example), as :func:`squads._itemfile.rewrite_ids` does, as is a padded id followed by a filename
+tail (``-slug.md``), which stays padded and would otherwise become a path that does not exist.
 
-Two passes over the corpus:
-
-1. **Discovery.** Read every item file once and build a single ``{old literal id → new unpadded
-   id}`` map from each item's *own* current frontmatter ``id:`` string — the "old form" this
-   migration already knows, whatever width it happens to be on disk (repad may have widened it
-   past the historical default of 6).
-
-2. **Rewrite.**
-   - *Structural* (deterministic): reformat each file's own frontmatter ``id:`` from
-     ``(item_type.prefix, sequence_id)`` and unpad every ``refs:`` entry / ``parent:`` field by
-     re-parsing the trailing digits of the stored ref string — the same width-tolerant identity
-     ``ref_id_matches`` already relies on, so no cross-file lookup is needed for refs.
-   - *Prose* (bounded, best-effort): substitute occurrences of the exact old-form literals from
-     the discovery map, whole-word (``\\bOLD\\b``), across the body **and** sub-entity
-     (``subentities[*].title``) frontmatter fields — never a blind zero-collapsing regex.
-     Fenced code blocks and inline code spans are left untouched (an ID inside one may be a
-     literal example, not a real mention), matching how the renumber path scopes its own
-     mention rewrites (:func:`squads._itemfile.rewrite_ids`). A padded id immediately followed
-     by a filename tail (``-slug.md``) is also left alone — it is the stem of an on-disk
-     filename reference, which stays padded; unpadding it would corrupt a valid path into
-     one that doesn't exist.
-
-Filenames are untouched (already width-padded and stay so — no renames, no path-index churn
-beyond what the trailing ``sq repair`` already does after every migration batch runs).
-
-Custom (spec-declared) item types are **not** covered — :func:`_iter_files` only walks the
-built-in type folders (frozen local constants, not the live spec), matching the other
-file-walking runners. See ``MANUAL`` below.
-
-Idempotent: once every id/ref/parent/mention is unpadded, the discovery map is empty and the
-second pass is a no-op.
-
-Invoked by ``sq migrate up`` via ``_migrations._registry`` — never run directly (this module is
-private).
+Custom spec-declared types are not covered, since :func:`_iter_files` walks only the built-in type
+folders (frozen constants; see ``MANUAL``). It is idempotent, as once everything is unpadded the
+discovery map is empty, and runs only through ``sq migrate up`` via ``_migrations._registry``.
 """
 
 import re
@@ -49,18 +25,15 @@ from typing import Any, cast
 from squads._paths import SquadPaths
 from squads._sections import join_frontmatter, split_frontmatter
 
-#: Frozen: the declared-default ref kind at schema 0.5/0.7, the same literal the 0.1-to-0.2
-#: runner freezes as ``_DEFAULT_KIND``. NEVER re-derive this from
-#: ``WorkflowSpec.default_ref_kind()`` — a migration is a point-in-time snapshot of the schema
-#: version it transforms, and the active spec's declared default can be renamed or re-declared
-#: by a project this runner has no business knowing about.
+#: Frozen: the declared-default ref kind at schema 0.5/0.7, the literal the 0.1-to-0.2 runner
+#: freezes as ``_DEFAULT_KIND``. Never re-derive it from ``WorkflowSpec.default_ref_kind()``: a
+#: migration is a snapshot of the schema it transforms.
 _DEFAULT_KIND = "related"
 
-#: Frozen: the display padding width at schema 0.5/0.7, matching
-#: ``squads._models._item.DISPLAY_ID_PADDING``'s value at the time this runner was written.
-#: NEVER import the live constant — see
-#: ``tests/meta/test_migrations_never_import_a_vocabulary_folded_primitive.py`` for why a live
-#: value, not only a live function, can move a frozen runner's on-disk output.
+#: Frozen: the display padding width at schema 0.5/0.7
+#: (``squads._models._item.DISPLAY_ID_PADDING``'s then-current value). Never import the live
+#: constant: see ``tests/meta/test_migrations_never_import_a_vocabulary_folded_primitive.py`` for
+#: why a live value can also move a frozen runner's output.
 _DISPLAY_ID_PADDING = 0
 
 
@@ -72,9 +45,10 @@ def _split_ref(ref: str) -> tuple[str, str]:
 
 
 def _make_ref(item_id: str, kind: str) -> str:
-    """Frozen, private copy of the pre-0.14 ``squads._models._item.make_ref`` collapse
-    behaviour: an edge whose kind is unspelled or resolves to :data:`_DEFAULT_KIND` is written
-    bare; any other kind is spelled out. Never imported live — see the module docstring."""
+    """Frozen, private copy of the pre-0.14 ``squads._models._item.make_ref`` collapse: an edge
+    whose kind is unspelled or is :data:`_DEFAULT_KIND` is written bare and any other kind spelled
+    out. Never imported live (see the module docstring).
+    """
     return item_id if kind in ("", _DEFAULT_KIND) else f"{item_id}:{kind}"
 
 
@@ -88,9 +62,8 @@ def _format_item_id(prefix: str, sequence_id: int) -> str:
 #: single line). Tried in this order so a fenced block is not mistaken for two inline spans.
 _CODE_SPAN_RE = re.compile(r"(```.*?```|`[^`\n]*`)", re.DOTALL)
 
-# Frozen v0.5/v0.7 built-in type vocabulary — the prefix/folder literals as they existed at
-# this schema version. NEVER derive this from the live spec/enum: a migration is a
-# point-in-time snapshot — the live spec/enum must never be re-introduced here.
+# Frozen v0.5/v0.7 built-in type vocabulary (prefix and folder literals at this schema). Never
+# derive it from the live spec: a migration is a point-in-time snapshot.
 _TYPES: tuple[tuple[str, str], ...] = (
     ("EPIC", "epics"),
     ("FEAT", "features"),
@@ -159,11 +132,10 @@ def _unpad_ref(ref: str) -> str:
     return _make_ref(_format_item_id(prefix, int(digits)), kind)
 
 
-#: A padded id immediately followed by a filename tail (``-slug.md``) is the stem of an
-#: on-disk filename reference, not a bare mention — filenames stay padded, so unpadding
-#: here would rewrite a valid path into one that doesn't exist. Skip those: a missed bare
-#: mention is a harmless best-effort miss, but corrupting a valid filename reference is
-#: active, silent, one-way damage — skipping is the safe direction.
+#: A padded id followed by a filename tail (``-slug.md``) is the stem of an on-disk filename
+#: reference, and filenames stay padded, so unpadding it would corrupt a valid path. Skip those: a
+#: missed bare mention is a harmless best-effort miss, while corrupting a filename reference is
+#: silent, one-way damage.
 _FILENAME_TAIL = r"(?!-[a-z0-9][a-z0-9-]*\.md)"
 
 

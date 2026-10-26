@@ -888,35 +888,34 @@ that is what is missing:
 error MILE-000021-ship-1-0.md: missing seeded view tag <!-- sq:view:milestone_rollup --> — restore it with `sq milestone 21 view add milestone_rollup`, or disable it with `sq milestone 21 view disable milestone_rollup`
 ```
 
-**A role or skill that still holds old generated text.** A role or generated-skill body refuses
-writes while its view is declared, so its old text cannot be edited away in place, and `view add`
-alone would render the old text and the live definition together. For a skill, `sq check` names
-the remedy in full, filled in for the document:
+**A role or skill that still holds old generated text.** On a role, one command replaces it:
+`sq role <slug> body -m "" --force` clears the old text, marker-shaped content included, and puts
+the role's definition tag back at the top of the body. A role body may hold prose, so `sq check`
+accepts a role left holding old text, and `show` prints that text in place of the live definition
+until you clear it.
+
+A generated-skill body refuses writes while its view is declared, so its old text cannot be
+edited away in place, and `view add` alone would render the old text and the live definition
+together. `sq check` names the remedy in full, filled in for the document:
 
 ```
 error SKILL-000009-greeting.md: missing seeded view tag <!-- sq:view:greeting_skill --> — the body already carries prose; the remedy that converges to a single live rendering: (1) drop 'greeting_skill' from [selected] in .overrides/workflow.toml; (2) clear the text with `sq skill greeting body -m "" --force`; (3) restore 'greeting_skill' to [selected]; (4) `sq skill greeting view add greeting_skill`
 ```
 
-A role body may hold prose, so `sq check` accepts a role left holding old text, and `show` prints
-that text in place of the live definition. The same four steps replace it, with
-`role_definition` as the view.
-
 1. Drop the view from `[selected]` in `.overrides/workflow.toml`, listing every view you keep:
 
    ```toml
    [selected]
-   views = ["milestone_rollup", "squads_skill", "greeting_skill", "memory_skill", "item_skill"]
+   views = ["milestone_rollup", "role_definition", "squads_skill", "memory_skill", "item_skill"]
    ```
 
-2. Clear the body: `sq skill greeting body -m "" --force`, or `sq role dev-agent body -m ""
-   --force` for a role. Marker-shaped content is cleared along with the rest.
+2. Clear the body: `sq skill greeting body -m "" --force`. Marker-shaped content is cleared along
+   with the rest.
 3. Put the view back in `[selected]` (or delete the `[selected]` table if it lists every view).
-4. Run `sq role dev-agent view add role_definition`, or `sq skill <slug> view add <name>` for a
-   skill.
+4. Run `sq skill greeting view add greeting_skill`.
 
-The document then renders only its live definition, and `sq check` is clean for it.
-`view disable` is refused on a role or a generated skill, so only these four steps remove the old
-text.
+The skill then renders only its live definition, and `sq check` is clean for it. `view disable`
+is refused on a generated skill, so only these four steps remove the old text.
 
 **An `sq-<type>` skill you wrote yourself.** A custom skill whose slug a type declared later
 now names, such as `sq-widget` once you declare `widget`, keeps its text, and `sq check` names

@@ -405,6 +405,12 @@ The role stores `job_title`, `description`, `mission` and whichever of `responsi
 `agreements`, `color`, `can_spawn` and `capabilities` it was given. Its origin is `project`, and
 `add` writes the role's pointer as `activate` does.
 
+`responsibilities` and `agreements` are lists, and only `--file` sets them: no flag does. A role
+created from flags alone has no responsibilities, and its definition then shows no
+Responsibilities section; the mission and the working agreements always show. Anything you want
+the agent to know that has no key in the definition goes in the role's body (see
+[Updating and commenting](#updating-and-commenting-on-roles-skills-and-operators)).
+
 A custom role's slug follows the role rules: lowercase letters, digits and hyphens, neither
 `operator`, `squads` nor anything that starts with `op-`, and not a verb of `sq role`
 (`activate`, `add`, `catalog`, `list`), so `sq role <slug> show` always reaches it. A slug the role
@@ -428,7 +434,9 @@ base:
 
 `--file` takes a delta in the `.overrides/roles/<slug>.toml` grammar, merged field by field over
 the role's current definition, and `$(*self)` in a list stands for the role's current list:
-`responsibilities = ["$(*self)", "Run the incident review"]` adds one. It refuses `slug`,
+`responsibilities = ["$(*self)", "Run the incident review"]` adds one, and
+`responsibilities = []` clears the list, which removes the Responsibilities section from the
+definition. `agreements` takes the same two forms. It refuses `slug`,
 `full_name` and `is_default`, naming `update --title` and `set-default`. `tech` and `template`
 are never updatable: they choose the base, and a different base is a different role.
 
@@ -556,17 +564,34 @@ On a role it names `--title, --pronouns, --model, --job-title, --desc, --mission
 - **An operator** is always writable, retired or not. Its body is its profile (see
   "The operator profile" below). The first write replaces the seeded operator text without
   `--force`; replacing a profile you have written needs `--force`, and `--append` adds to it.
-- **A role** is refused while its `role_definition` view is in `[selected]`, `--force` or not,
-  with the error naming the role override. Once the project drops the view, `body` writes; then
-  clear each role's leftover tag with `sq role <slug> view disable role_definition`, or `sq check`
-  reports it as an undeclared view. A role not on the roster is refused with
-  `activate it first`.
+- **A role**, any role (catalog, template or one made with `sq role add`), takes prose beside its
+  generated definition, replace and `--append` alike. The `role_definition` tag survives every
+  write and stays at the top of the body, so the definition comes first and your prose follows.
+  The first write needs no `--force`, since a body holding only the tag has no prose to lose;
+  replacing prose you have written needs `--force`, and `--append` never does.
+  `body -m "" --force` clears the prose and keeps the definition. A role not on the roster is
+  refused with `activate it first`.
 - **A skill** you added takes `body` like any item. A generated skill is refused, naming the
   playbook or the view's template override.
 
-A role or operator body may hold prose, and `sq check` accepts it: a role whose body holds prose
-and no view tag prints that prose in place of its generated definition. `sq check` reports a role
-body only when it holds neither prose nor a tag, or holds a damaged `sq:view:` tag.
+```bash
+sq role reviewer body -m "Our reviews block on missing tests."
+sq role reviewer body --append -m "Ping the author on Slack."
+sq role reviewer body -m "" --force          # back to the definition alone
+```
+
+A role's prose is for anything its definition has no key for: house conventions, where things
+live, who to ask. It is shown beside the definition, never parsed, and overrides no field of it;
+the mission, responsibilities and the rest still come from the role's base. The agent reads it
+through `sq role <slug> show`, the command its pointer names, which prints the definition and
+then the prose. The `.claude/agents/<slug>.md` pointer, the roster in the managed `CLAUDE.md` or
+`AGENTS.md` section and the `sq role <slug> show --json` card do not carry it; `sq show <ID>
+--json` has it in `body`, after the view tag.
+
+A role or operator body may hold prose, and `sq check` accepts it, with the role's view tag or
+without it: a role whose body holds prose and no view tag prints that prose in place of its
+generated definition. `sq check` reports a role body only when it holds neither prose nor a tag,
+or holds a damaged `sq:view:` tag.
 
 `comment` and `comments` work as on any item, on a generated role or skill too. Every skill file
 has a `## Discussion` region for them, as role and operator files do. A comment's `@mention`
@@ -686,12 +711,14 @@ error SKILL-22: attribute 'origin': expected one of system, project, got 'System
 
 ### What a generated role or skill refuses
 
-A role's body is generated from its definition, and so is a `system` skill's, through the view
-tag in the body. While that view is declared, the content of such an entry is written where its
+A role's definition is generated through the view tag in its body, and so is a `system` skill's
+whole body. While that view is declared, the content of such an entry is written where its
 definition lives, not on the entry, and these writes are refused with exit `1`, nothing written,
 `--force` or not:
 
-- a body replace or append: `sq role <slug> body` or `sq skill <slug> body`, or a `body` event of `sq import`;
+- on a `system` skill, a body replace or append: `sq skill <slug> body`, or a `body` event of
+  `sq import`. A role takes both, as prose beside its definition (see
+  [Updating and commenting](#updating-and-commenting-on-roles-skills-and-operators));
 - `sq skill <slug> update --title|--desc|--when-to-use` (a command that adds
   `--operator-invocable` to one of them is refused whole), and an `update` event of `sq import` that sets the description, sets
   or unsets an attribute the bundled spec declares for the type (`fields`, `unset_fields`), or
@@ -701,7 +728,7 @@ definition lives, not on the entry, and these writes are refused with exit `1`, 
 The error names the place to edit instead:
 
 ```
-line 1: ROLE-3's body renders through its declared sq:view:role_definition tag, and its content already has one validated authoring surface: `.overrides/roles.toml` (or `.overrides/roles/<slug>.toml`), or `sq role tech-lead update` for a role that defines itself. An update is refused — `--force` does not lift this. Drop the view from `[selected]` to author this directly instead, then clear its leftover tag with `sq role tech-lead view disable role_definition`.
+line 1: ROLE-3's body renders through its declared sq:view:role_definition tag, and its content already has one validated authoring surface: `.overrides/roles.toml` (or `.overrides/roles/<slug>.toml`), or `sq role tech-lead update` for a role that defines itself. An update is refused — `--force` does not lift this. To add prose beside the definition, use `sq role tech-lead body`. To replace the generated definition itself, drop the view from `[selected]`, then clear its leftover tag with `sq role tech-lead view disable role_definition`.
 ```
 
 For a catalog or template role, that is the role catalog override or its per-slug file, followed
@@ -709,13 +736,15 @@ by `sq sync`; for a role that defines itself, `sq role <slug> update`. A role's 
 `update --model` on any role. For a skill, it is the playbook override, or for
 `greeting` and `sq-memory` the view's template override.
 
-Every role is covered, a `project` one too, because every role's body is generated; a skill you
-added with `sq skill add` takes every write. The rest stays open on every role and skill: a role's
-title, pronouns and model (`sq role <slug> update --title|--pronouns|--model`), a skill's operator-invocable
-choice (`sq skill <slug> update --operator-invocable`), labels, assignee and an attribute your workflow override
-declares (through an `update` event of `sq import`), `status`, `remove --purge`, `comment`, `regen`,
-and `view add` of the entry's own view, which is how `sq check`'s
-remedies put a missing tag back. To write such an entry yourself, drop its view from `[selected]`
+Every role is covered, a `project` one too, because every role's definition is generated; a skill
+you added with `sq skill add` takes every write. The rest stays open on every role and skill: a
+role's body, its title, pronouns and model (`sq role <slug> body`, `sq role <slug> update
+--title|--pronouns|--model`), a skill's operator-invocable choice (`sq skill <slug> update
+--operator-invocable`), labels, assignee and an attribute your workflow override declares (through
+an `update` event of `sq import`), `status`, `remove --purge`, `comment`, `regen`, and `view add`
+of the entry's own view, which is how `sq check`'s remedies put a missing tag back. To write a
+generated skill's body yourself, or to replace a role's generated definition with text of your
+own, drop the view from `[selected]`
 (see [overrides.md § "Authoring a role or skill body by hand"](overrides.md#authoring-a-role-or-skill-body-by-hand)):
 the entry then takes every write, and keeps its `origin`.
 

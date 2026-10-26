@@ -20,6 +20,9 @@ refs:
 - TASK-1124:depends-on
 - TASK-1125:depends-on
 - TASK-1126:depends-on
+- TASK-1127:depends-on
+- TASK-1165:depends-on
+- BUG-1167:depends-on
 description: Parity ledger, per-module falsification audit and per-OS CI baseline;
   read-only on tests and src.
 subentities:
@@ -37,7 +40,7 @@ subentities:
   assignee: devops
   story: US10
 created_at: '2026-10-24T13:42:12Z'
-updated_at: '2026-10-26T09:26:33Z'
+updated_at: '2026-10-26T14:03:14Z'
 ---
 <!-- sq:body -->
 Inventory what the old suite protects before any of it is rebuilt: the parity ledger (US1), the falsification audit (US2) and the per-OS CI baseline every later increment is measured against (US10). Read-only on `tests/` and `src/`: no old test is deleted or edited here. The one file this task adds to the repo is the ledger, `tests_next/LEDGER.md`, which starts the new root; the rest of that root is set up by the next task.

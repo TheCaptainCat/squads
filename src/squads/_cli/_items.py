@@ -1,11 +1,10 @@
 """Resource-oriented item commands: ``sq <type> <num> <verb> …`` (sub-entities nest one level).
 
-One Typer group is built per work-item type by :func:`build_item_app`. The group callback resolves
-``<num>`` to a full item id (validating the type) into the Click context; each verb reads it back.
-A type that declares a sub-entity kind (spec-resolved, built-in or custom) additionally gets
-``add-<kind>`` + a ``<plural>`` list verb + a nested ``<kind> <n> <verb>`` subgroup, all built
-generically from the resolved ``SubentityKindSpec`` (see :func:`_register_subentity`) — no
-per-kind closures. Every verb is a thin wrapper over an existing ``svc.*`` method.
+:func:`build_item_app` builds one Typer group per work-item type. The group callback resolves
+``<num>`` to a full item id (validating the type) into the Click context; each verb reads it
+back and wraps an existing ``svc.*`` method. A type that declares a sub-entity kind also gets
+``add-<kind>``, a ``<plural>`` list verb and a nested ``<kind> <n> <verb>`` subgroup, built
+generically from the resolved ``SubentityKindSpec`` (see :func:`_register_subentity`).
 """
 # Commands are nested closures registered via Typer decorators (side effect), so they read as
 # "unused" to static analysis — disable that one check for this factory module.
@@ -110,13 +109,12 @@ def _guard_update(*, has_any: bool, assignee: str | None, clear_assignee: bool) 
 
 
 def _priority_help(item_type: str, spec: WorkflowSpec, template: str) -> str:
-    """``--priority`` help text, derived from the priority collection *item_type* actually
-    binds — the spec-pointing phrase (no enumeration) when the type declares no ``priority``
-    field at all.
+    """``--priority`` help from the collection *item_type* binds, or a spec pointer if it has none.
 
-    Strict resolution (:func:`squads._badges.declared_collection`): the graceful
-    same-name fallback would enumerate the bundled ``priority`` collection's codes on a type
-    that never declared the field, advertising a flag that can only error."""
+    Resolution is strict (:func:`squads._badges.declared_collection`): the same-name fallback
+    would list the bundled ``priority`` codes for a type that never declared the field,
+    advertising a flag that can only error.
+    """
     # sanctioned field-code literal: `--priority` is the flag *for* this field code
     coll_code = badges.declared_collection(item_type, "priority", spec)
     coll = spec.collections.get(coll_code) if coll_code else None
@@ -138,16 +136,14 @@ type KindSignature = tuple[str, str, bool, tuple[_FieldSignature, ...]] | None
 
 
 def _kind_signature(item_type: str, spec: WorkflowSpec) -> KindSignature:
-    """Everything about *item_type*'s hosted sub-entity kind that ``_register_subentity``
-    bakes into the generated commands: the kind name, its plural (the list verb), whether it
-    maps a parent story (the ``--story`` options), and every declared field's code, label,
-    bound collection, requiredness and default (the ``--<field-code>`` options, their help
-    text, and the omitted-flag fallback).
+    """What ``_register_subentity`` bakes into the generated commands for *item_type*'s kind.
 
-    Two specs producing the same signature produce the identical command tree, so comparing
-    it is the exact test for "does the statically-built tree still describe this spec?" —
-    strictly wider than the kind-name comparison it replaces, which missed a field swap.
-    ``None`` when the type hosts no kind at all.
+    The kind name, its plural (the list verb), whether it maps a parent story (``--story``), and
+    every declared field's code, label, bound collection, requiredness and default (the
+    ``--<field-code>`` options, their help and the omitted-flag fallback). Equal signatures
+    produce identical command trees, so comparing them tests whether the static tree still
+    describes a spec; a name-only comparison would miss a field swap. ``None`` when the type
+    hosts no kind.
     """
     kind = spec.item_subentity_kind(item_type)
     ks = spec.subentity_kinds.get(kind) if kind else None
@@ -160,32 +156,17 @@ def _kind_signature(item_type: str, spec: WorkflowSpec) -> KindSignature:
 
 
 def _dynamic_subentity_group_cls(item_type: str) -> type[typer.core.TyperGroup]:
-    """A one-off ``TyperGroup`` subclass for *item_type*'s ``sq <type> <n> …`` command
-    group, falling back to a freshly-built sub-entity command (built from the resolved
-    per-invocation spec) when a requested command isn't found in the statically-built
-    tree — the same shape as ``_CustomTypeGroup``'s dynamic fallback in ``_cli/__init__.py``,
-    one level deeper: a *statically-registered* built-in type's sub-entity KIND is itself
-    baked in at import time from the bundled spec (``build_item_app`` has no per-invocation
-    spec to read yet), so a squad that renames the kind (e.g. feature's ``story`` ->
-    ``scenario``) still only gets ``add-story`` from the static tree — never
-    ``add-scenario`` — until this rebuilds the missing command against the live spec.
+    """A ``TyperGroup`` for *item_type* that rebuilds stale sub-entity commands from the live spec.
 
-    The OLD (bundled-baked) kind's commands stay reachable — ``get_command`` deliberately
-    doesn't hide them — so ``sq feature N add-story`` still dispatches into the accurate
-    "features host scenarios, not storys" refusal rather than Click's own did-you-mean
-    (the same "advertise vs dispatch" split as ``_dropped_static_names`` elsewhere in this
-    module). ``list_commands`` DOES hide them, though: once the live spec has a different
-    kind for this type, the old kind's verbs are stale and would otherwise sit right next
-    to the correct ones in ``--help``/completion.
+    A built-in type's sub-entity kind and its ``--<field-code>`` options are baked in at import
+    time from the bundled spec. When the live spec renames the kind (``story`` -> ``scenario``)
+    or replaces its fields (``severity`` -> a required ``impact``), the static tree would offer
+    the old verbs and options, so a missing command is built from the live spec instead. The
+    trigger is the whole :func:`_kind_signature`, not just the kind name.
 
-    A kind's NAME is not the only thing baked in at import time: ``_register_add``/
-    ``_register_update`` also bake one ``--<field-code>`` option per ``fields_for(kind)``
-    into the Typer parameter list. A spec that keeps the kind's name but replaces its fields
-    (``finding``'s ``severity`` -> a required ``impact``) therefore left the static tree
-    offering ``--severity`` — accepting and storing a value for a field the spec no longer
-    declares — and never offering ``--impact`` or applying its required default. So the
-    trigger for rebuilding is the kind's whole command-shaping SIGNATURE
-    (:func:`_kind_signature`), not just its name.
+    ``get_command`` leaves the old kind's commands reachable, so ``sq feature N add-story``
+    reaches the accurate "features host scenarios" refusal rather than Click's did-you-mean;
+    ``list_commands`` hides them so stale verbs do not sit beside the correct ones in help.
     """
     from squads._workflow import bundled_spec
 
@@ -194,9 +175,8 @@ def _dynamic_subentity_group_cls(item_type: str) -> type[typer.core.TyperGroup]:
 
     _bundled_spec = bundled_spec()
     bundled_kind = _bundled_spec.item_subentity_kind(item_type)
-    # The stale (bundled-baked) verb names, computed once from the BUNDLED spec — never
-    # from the live/resolved one, which may no longer declare this kind at all (fully
-    # dropped, not just unbound from this type) and would raise on a plural lookup.
+    # The stale verb names come from the bundled spec: the live one may no longer declare
+    # this kind at all and would raise on a plural lookup.
     stale_verb_names: set[str] = (
         _kind_verb_names(bundled_kind, _bundled_spec) if bundled_kind else set()
     )
@@ -211,9 +191,8 @@ def _dynamic_subentity_group_cls(item_type: str) -> type[typer.core.TyperGroup]:
             except Exception:  # pylint: disable=broad-except
                 return super().get_command(ctx, cmd_name)
 
-            # Anything the live spec shapes differently from the bundled one — a renamed
-            # kind, or the SAME kind with different declared fields — is served from a
-            # freshly-built app so the parameter list matches what the spec declares today.
+            # A renamed kind, or the same kind with different fields, is served from a fresh
+            # app so the parameters match the live spec.
             if rebuild:
                 fresh = build_item_app(item_type, spec=spec, dynamic_subentity=False)
                 fresh_click = cast(typer.core.TyperGroup, typer.main.get_command(fresh))
@@ -221,9 +200,8 @@ def _dynamic_subentity_group_cls(item_type: str) -> type[typer.core.TyperGroup]:
                 if fresh_cmd is not None:
                     return fresh_cmd
 
-            # Fall back to the statically-built tree: for an unchanged squad that IS the
-            # answer (byte-identical), and under a rename it keeps the old kind's verbs
-            # reachable so they dispatch into the accurate refusal rather than a did-you-mean.
+            # Fall back to the static tree: the answer for an unchanged squad, and under a
+            # rename it keeps the old kind's verbs reachable for the accurate refusal.
             cmd = super().get_command(ctx, cmd_name)
             if cmd is not None:
                 return cmd
@@ -240,10 +218,8 @@ def _dynamic_subentity_group_cls(item_type: str) -> type[typer.core.TyperGroup]:
                 kind = spec.item_subentity_kind(item_type)
             except Exception:  # pylint: disable=broad-except
                 return base
-            # The common (non-renamed) case returns `base` completely untouched, in its
-            # original registration order — `TyperGroup.list_commands` promises creation
-            # order, and a plain `sorted()` merge (even a no-op set union) would silently
-            # reshuffle every command's --help position for every non-customized squad.
+            # Return `base` untouched in registration order: `list_commands` promises creation
+            # order, and a `sorted()` merge would reshuffle `--help` for every squad.
             if kind is None or kind == bundled_kind:
                 return base
             visible = [c for c in base if c not in stale_verb_names]
@@ -256,27 +232,17 @@ def _dynamic_subentity_group_cls(item_type: str) -> type[typer.core.TyperGroup]:
 def build_item_app(
     item_type: str, spec: WorkflowSpec | None = None, *, dynamic_subentity: bool = True
 ) -> typer.Typer:
-    """A ``sq <type> <num> …`` group for one work-item type.
+    """A ``sq <type> <num> …`` group for one work-item type (a plain string name).
 
-    Accepts a plain string type name (``"task"``, ``"incident"`` …) — every type, built-in
-    or custom, is ordinary spec vocabulary.
+    Capability flags (sub-entity kind, retype/remove eligibility) come from *spec*, defaulting
+    to ``get_active_spec()``. A caller that already resolved the ctx-appropriate spec, such as
+    the root group's custom-type dispatch, passes it so the build uses the spec that decided
+    the type exists, not whatever is bound before the root callback runs.
 
-    Capability flags (subentity kind, retype/remove eligibility) are resolved from *spec*
-    (defaulting to ``get_active_spec()`` at call time) so a custom type's spec-declared
-    capabilities are honoured without any enum membership requirement. Callers that have
-    already resolved the ctx-appropriate spec (e.g. the root group's lazy custom-type
-    dispatch, which must build from the *same* spec it used to decide the type exists —
-    not whatever ``get_active_spec()`` happens to hold before the root callback binds it)
-    should pass it explicitly.
-
-    ``dynamic_subentity`` (default ``True``) wraps the returned group in
-    :func:`_dynamic_subentity_group_cls`, so a renamed sub-entity kind (e.g. feature's
-    ``story`` -> ``scenario``) is reachable even on a statically-registered built-in type,
-    whose sub-entity verbs (``add-<kind>``, the ``<kind>s`` list, the nested ``<kind> <n>``
-    group) are otherwise baked in at import time from the *bundled* kind name. Pass
-    ``False`` only for the fresh, spec-resolved rebuild the fallback itself performs —
-    that one already IS the resolved kind, so it needs no further fallback (and enabling
-    it there would recurse).
+    ``dynamic_subentity`` (default ``True``) wraps the group in
+    :func:`_dynamic_subentity_group_cls` so a renamed sub-entity kind is reachable on a built-in
+    type. Pass ``False`` only for the spec-resolved rebuild that fallback performs; it already
+    has the resolved kind, and enabling it there would recurse.
     """
     item = typer.Typer(
         no_args_is_help=True,
@@ -284,10 +250,8 @@ def build_item_app(
         cls=_dynamic_subentity_group_cls(item_type) if dynamic_subentity else common.HelpAwareGroup,
     )
 
-    # Resolved once, up front (unless the caller already resolved it), so every command
-    # builder below (retype's target-type help, update's --priority help) derives its help
-    # text from the same spec used to decide eligibility — help and enforcement can never
-    # disagree.
+    # Resolved once, so every builder below (retype's target help, update's --priority help)
+    # derives its help from the same spec that decides eligibility.
     if spec is None:
         spec = common.get_active_spec()
 
@@ -315,11 +279,8 @@ def build_item_app(
     if subentity_kind is not None:
         _register_subentity(item, subentity_kind, spec)
 
-    # retype/remove: available for all non-roster types (spec-derived).
-    # item_is_roster() degrades to False for a type unknown to the spec (pre-callback
-    # edge case) rather than raising — role/skill/operator are locked by key identity and
-    # can never be dropped, so an undeclared type is never roster; no by-name fallback
-    # vocabulary is needed here (mirrors the item_subentity_kind() comment above).
+    # retype/remove: available for all non-roster types. item_is_roster() is False for a type
+    # unknown to the spec rather than raising; role/skill/operator can never be dropped.
     if not spec.item_is_roster(item_type):
         _cmd_retype(item)
         _cmd_remove(item)
@@ -394,10 +355,8 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
         as_: str | None = common.edit_as_option(),
     ):
         """Change the item's title, status, parent, assignee, labels or attributes."""
-        # `is not None`, not truthiness: an empty `--parent ""` is a value the user supplied,
-        # and testing it for truth let it fall through both this guard and the resolution
-        # below — the command then reported "updated <ID>" for a parent it never wrote. The
-        # same shape on the priority pair, guarded the same way.
+        # `is not None`, not truthiness: `--parent ""` is a supplied value, and a truth test
+        # let it through and report "updated" for a parent never written. Same for priority.
         if parent is not None and no_parent:
             raise SquadsError("use either --parent or --no-parent, not both")
         if priority is not None and no_priority:
@@ -667,13 +626,12 @@ def _cmd_refs(item: typer.Typer) -> None:
 
 
 def _cmd_view(item: typer.Typer) -> None:
-    """The ``sq <type> <n> view add|disable <name>`` group: place, re-enable or disable an
-    unpaired ``sq:view:<name>`` tag in the item's ``sq:body`` region. ``view rm`` is retired
-    outright, with no alias — a tag is disabled, never deleted.
+    """The ``sq <type> <n> view add|disable <name>`` group for an unpaired ``sq:view:<name>`` tag.
 
-    A distinct verb group, not a flag on ``body`` — placement and body editing stay visibly
-    separate surfaces, and ``reject_markers`` keeps refusing a hand-typed tag in ``body -m``/
-    ``--file`` unchanged (this is the only door a tag enters or leaves through).
+    ``add`` places or re-enables the tag in the item's ``sq:body`` region and ``disable`` turns it
+    off; a tag is never deleted. It is a verb group, not a ``body`` flag, because it is the only
+    door a view tag enters or leaves through: ``reject_markers`` still refuses a hand-typed tag
+    in ``body -m``/``--file``.
     """
     view_app = typer.Typer(
         no_args_is_help=True, help="Show or hide declared views in the item's body."
@@ -718,10 +676,8 @@ def _cmd_view(item: typer.Typer) -> None:
 
 
 # --------------------------------------------------------------------------- sub-entities
-#
-# Everything below is built from the resolved SubentityKindSpec (spec.subentity_kinds[kind]) —
-# no per-kind ("story"/"subtask"/"finding") branches. A project-declared custom kind gets the
-# identical add-<kind>/<plural>/<kind> <n> <verb> surface for free.
+# Everything below is built from the resolved SubentityKindSpec, with no per-kind branches, so
+# a custom kind gets the same add-<kind>/<plural>/<kind> <n> <verb> surface.
 
 
 def _edit_as_param() -> inspect.Parameter:

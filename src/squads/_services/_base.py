@@ -100,23 +100,14 @@ from squads._workflow import (
 from squads._workflow._models import Field, ItemSpec, WorkflowSpec
 
 
-# Body-local sub-entities: kind <-> parent item type, and the kind's container marker.
-#
-# These are derived from the ACTIVE spec's per-type `subentity_kind` (forward edge, invariant
-# #4) rather than a hand-maintained literal dict, and rather than the bundled default — a
-# project-declared type/kind must be visible here too. Free functions (not module constants)
-# because the active spec is per-service, not global; ServiceCore exposes them as instance
-# properties below so mixins read `self.subentity_parent`/`self.subentity_kind`/
-# `self.subentity_container` and non-mixin callers (e.g. retype) pass a spec explicitly.
+# Body-local sub-entities: kind <-> parent type and the container marker, derived from the active
+# spec's `subentity_kind` (forward edge, invariant #4) so project-declared types are visible. Free
+# functions because the spec is per-service; ServiceCore exposes them as properties.
 def subentity_parent_map(spec: WorkflowSpec) -> dict[str, str]:
-    """Sub-entity kind -> ONE hosting item type, inverted from the spec's declared
-    ``ItemSpec.subentity_kind``.
-
-    The type<->kind relation is 1:many (two item types may declare the same kind, e.g.
-    a project-declared type mirroring ``task``'s ``subentity_kind="subtask"``) — this
-    inversion collapses that to a single representative type per kind, so it is only a
-    naming HINT (e.g. for a help string) and must never back an ownership/validation
-    decision. Use ``spec.item_subentity_kind(item.type) == kind`` (forward, 1:1) for that.
+    """Sub-entity kind to one hosting item type, inverted from the spec's
+    ``ItemSpec.subentity_kind``. Two types may declare the same kind, so the result is a naming hint
+    only and must never back an ownership or validation decision; use
+    ``spec.item_subentity_kind(item.type) == kind`` for that.
     """
     return {ts.subentity_kind: t for t, ts in spec.items.items() if ts.subentity_kind}
 
@@ -134,17 +125,10 @@ def subentity_container_map(spec: WorkflowSpec) -> dict[str, str]:
 
 
 def ensure_subentity_container_text(spec: WorkflowSpec, item_type: str, text: str) -> str:
-    """Append an empty sub-entity container block to *text* when *item_type* hosts a
-    sub-entity kind and the block is not already present (idempotent — see
-    :func:`squads._discussion.ensure_container`).
-
-    The single primitive behind every path that can produce an item file for a
-    sub-entity-hosting type: item creation (``_create_core`` below, so a type with no
-    per-type template — or a renamed kind on one that has a stale hardcoded tag — still
-    gets a working container) and retype (``_services._retype``, which appends this to an
-    existing file after moving it to its new type). Tag and heading both come from the
-    *active* spec (``subentity_plural``/``subentity_container_heading``), never from a
-    template's own hardcoded literal.
+    """Append an empty sub-entity container block to *text* when *item_type* hosts a sub-entity kind
+    and the block is absent (idempotent, see :func:`squads._discussion.ensure_container`). It is the
+    one primitive behind item creation (``_create_core``) and retype (``_services._retype``); tag
+    and heading come from the active spec, never a template literal.
     """
     kind = subentity_kind_map(spec).get(item_type)
     if kind is None:
@@ -169,10 +153,9 @@ class ItemFilter:
     parent: str | None = None
     label: str | None = None
     assignee: str | None = None
-    #: Category filter (``roster``/``work``/``records``) — matches when the item's type
-    #: declares this category. Needs ``spec`` to resolve (graceful no-match without it,
-    #: mirroring ``badge_min``); the value itself is validated at the CLI edge against the
-    #: fixed category catalog (``squads._workflow.CATEGORIES``), not here.
+    #: Category filter (``roster``/``work``/``records``): matches when the item's type
+    #: declares it, and never matches without ``spec``, like ``badge_min``. The value is
+    #: validated at the CLI edge against ``squads._workflow.CATEGORIES``.
     category: str | None = None
     #: Exact badge-field filters, keyed by field CODE (e.g. ``priority``, or a project's own
     #: custom axis) — generic over ``fields_for()``, not a hand-written priority-only param.
@@ -244,18 +227,11 @@ def _compute_keep_set(
     id_map: dict[str, Item],
     seq_to_id: dict[int, str],
 ) -> set[str]:
-    """Return match_set UNION all ancestors of each matched item.
-
-    Walks parent links upward through the candidate set (width-tolerant via sequence
-    numbers).  Items whose parent is not in the candidate set are treated as roots.
-
-    Each walk carries its own visited set of sequence numbers, so a parent relation holding a
-    cycle terminates instead of alternating between the same items forever.  Identity is the
-    sequence number rather than the id string for the same width-tolerance reason the
-    ``seq_to_id`` resolution above exists: a stored parent may carry a different zero-pad
-    width than the item's own id, and comparing id strings would walk straight past the
-    repeat.  The revisited ancestor is still added to the keep set before the walk stops, so a
-    cyclic pair renders as the hierarchy someone actually wrote rather than half of it.
+    """Return match_set UNION all ancestors of each matched item, walking parent links upward
+    through the candidate set by sequence number so a stored parent's zero-pad width does not
+    matter. Items whose parent is outside the set are roots. Each walk has its own visited set so a
+    parent cycle terminates, and the revisited ancestor is still kept so a cyclic pair renders
+    whole.
     """
     keep_set: set[str] = set(match_set)
     for mid in match_set:
@@ -285,28 +261,11 @@ def _walk_tree(
     ancestors: frozenset[int] = frozenset(),
     anchor: bool = False,
 ) -> TreeNode | None:
-    """Recursive downward walk that prunes to *keep_set* and bounds to *depth*.
-
-    Returns ``None`` when the node should be dropped (not in keep set, already on the path
-    from the root, or a path-only anchor with no surviving children).  ``depth`` is measured
-    from the root (root = level 0); ``None`` means unbounded.
-
-    *ancestors* is the set of sequence numbers already on the path from the root — the
-    cycle guard.  A parent relation holding a cycle would otherwise recurse until
-    ``RecursionError``: this is a second, independent cycle-unsafe walk from the upward one in
-    :func:`_compute_keep_set`, not the same fault seen twice, and it is reachable through the
-    public path whenever the tree is rooted inside the cycle.  Truncating (dropping the repeat)
-    rather than rendering it again is what keeps an item from appearing twice on one path,
-    which the renderer's indentation would present as a real, deeper node.
-
-    Identity is the **sequence number**, not the id string, for the same width-tolerance reason
-    :func:`_build_tree_children` resolves parents that way: a stored parent may carry a
-    different zero-pad width than the item's own id.
-
-    *anchor* is passed by the caller for a root the bare form invented to reveal a parent cycle
-    (:func:`_cycle_anchor_ids`) and is carried onto that node alone — the recursion never
-    propagates it, because the fabricated-root disclosure is about this node's standing in the
-    forest, not about its descendants.
+    """Recursive downward walk pruning to *keep_set* and bounding to *depth* (root = 0, ``None``
+    unbounded); ``None`` drops the node (not kept, already on the path, or a path-only anchor with
+    no survivors). *ancestors* (sequence numbers, width-tolerant) is the cycle guard; *anchor* marks
+    a root invented for a parent cycle (:func:`_cycle_anchor_ids`) and is carried onto that node
+    only.
     """
     if it.id not in keep_set or it.sequence_id in ancestors:
         return None
@@ -332,37 +291,11 @@ def _walk_tree(
 
 
 def _cycle_anchor_ids(listed: list[Item]) -> set[str]:
-    """Return one anchor id per parent cycle in *listed*: the lowest sequence number on it.
-
-    A bare tree roots at the forest of items with no resolvable parent *in view*.  Every member
-    of a parent cycle has one — another member — so without an anchor the whole component, and
-    everything hanging below it, is absent from the bare tree while ``list`` still returns it.
-    This picks one member per cycle for the forest to root at; the descent from it already
-    renders the component, truncated at the repeat.
-
-    **The anchor comes from the items on the cycle**, never from "the lowest item not rendered
-    yet".  The two rules agree on most corpora and differ where it hurts: an item hanging
-    *below* the cycle with a lower sequence number satisfies the second rule, so it would anchor
-    itself and then render a second time as a child when the descent reaches it through the
-    cycle — one item at two places in one tree, which the indentation presents as two nodes.
-
-    One anchor per cycle is sufficient rather than hopeful.  Each item has at most one
-    resolvable parent, so the graph is functional: every upward walk either reaches an item with
-    no resolvable parent (a root the forest already carries) or runs into exactly one cycle,
-    cycles are disjoint, and nothing in a component sits *above* its cycle because a cycle
-    member's parent is always another cycle member.  The descent from any single member
-    therefore reaches the whole component, and no item is reachable from two anchors.
-
-    Computed on the **candidate set the roots come from**, never on the whole index.  A cycle in
-    the corpus is not necessarily a cycle in the view: filter one member out and the survivors
-    are an ordinary chain whose top already has no resolvable parent, already becomes a root and
-    already renders.  Detecting against the index would invent an anchor for a component that is
-    not broken, or name one that is not in the view at all.
-
-    Identity is the sequence number, not the id string, for the same width-tolerance reason
-    :func:`_build_tree_children` resolves parents that way: a stored parent may carry a different
-    zero-pad width than the item's own id, and comparing id strings walks straight past the
-    repeat.
+    """Return one anchor id per parent cycle in *listed*: its lowest sequence number, so a bare tree
+    does not lose a cycle whose members all have parents. The anchor comes from the cycle's own
+    items, not "the lowest item not rendered", which would render an item below the cycle twice. One
+    per cycle suffices since cycles are disjoint, and it is computed on the candidate set the roots
+    come from, not the whole index.
     """
     seq_to_id: dict[int, str] = {number_for_id(i.id): i.id for i in listed}
     parent_of: dict[int, int] = {}
@@ -395,14 +328,9 @@ def _cycle_anchor_ids(listed: list[Item]) -> set[str]:
 def _build_tree_children(
     listed: list[Item],
 ) -> dict[str | None, list[Item]]:
-    """Group items by their canonical parent ID (width-tolerant).
-
-    ``item.parent`` may store an old zero-pad width after ``sq migrate repad`` while
-    ``item.id`` uses the current width.  Resolving via sequence number makes the tree
-    correct across a repad boundary.
-
-    Used by ``tree_view`` and shared by any future caller that needs the same
-    parent-resolution logic; keeps parent resolution in one place.
+    """Group items by their canonical parent id. ``item.parent`` may keep an old zero-pad width
+    after ``sq migrate repad``, so resolving by sequence number keeps the tree correct;
+    ``tree_view`` and any caller needing it share this one parent resolution.
     """
     all_ids = {i.id for i in listed}
     seq_to_id: dict[int, str] = {number_for_id(i.id): i.id for i in listed}
@@ -441,21 +369,11 @@ def subentity_title(title: str) -> str:
 
 
 def reject_markers(text: str, what: str = "body") -> None:
-    """Raise ``SquadsError`` when *text* contains a well-formed sq marker tag.
-
-    All prose inputs that land inside marker-delimited regions must pass through this guard
-    before any file write. The ``what`` label appears in the message (e.g. ``"body"``,
-    ``"comment message"``, ``"title"``).
-
-    **Every label gets the remediation guidance**, including the default ``"body"`` one, which is
-    the busiest path: ``body`` is the default, so the item body, both sub-entity body writers
-    and the shared section-edit core all take it.
-
-    The guidance is what makes the refusal defensible rather than merely strict. The
-    tag class recognises mixed-case sub-entity region tags, the likeliest way to trip this
-    guard is quoting one while *writing about* the marker system — and an author who does that
-    reaches for backticks first, which do not help. Telling them what to write instead is the
-    difference between a guard and an obstacle.
+    """Raise ``SquadsError`` when *text* contains a well-formed sq marker tag. Every prose input
+    landing inside a marker region passes through it before a write; *what* names the input in the
+    message (``"body"``, ``"comment message"``, ``"title"``). Every label gets the remediation
+    guidance, since an author writing about the marker system reaches for backticks first, which do
+    not help, and so must be told what to write instead.
     """
     if not sections.find_markers(text):
         return
@@ -484,24 +402,11 @@ ROSTER_UPDATE_EXEMPT: Mapping[str, frozenset[str]] = MappingProxyType(
 
 
 def reject_body_overwrite(target: str, current: str) -> None:
-    """Raise ``SquadsError`` rather than let a plain ``body`` write discard authored prose.
-
-    ``body`` replaces, and until this guard existed it replaced silently: one
-    ``sq <type> <n> body -m "probe"`` against an occupied body destroyed the prose with a
-    success line and no way to get it back short of git.
-
-    The refusal — not a prompt — is the deliberate choice.  Agents are the primary caller here
-    and cannot answer an interactive confirmation; a prompt would either hang/abort every
-    non-interactive body write or immediately grow a skip flag that is passed reflexively.  A
-    refusal is a clean, scriptable exit that costs nothing on the common path (a first write
-    against an unwritten template scaffold never trips it) and, when it does fire, hands back
-    the line count and the opening lines of what was at stake **before** anything is written.
-    That also makes the default invocation its own dry run: "would this be permitted here?"
-    is answerable without performing the destruction.
-
-    *target* is how the message names the thing being written — an item id on its own for an
-    item body, the item id plus the block's local id for a sub-entity's; *current* is the body
-    region content that would be discarded.
+    """Raise ``SquadsError`` rather than let a plain ``body`` write discard authored prose. It
+    refuses instead of prompting because agents cannot answer a prompt and a skip flag would be
+    passed reflexively; a first write over the template scaffold is unaffected, and the message
+    gives the line count and opening lines at stake. *target* names the thing written and *current*
+    is the body that would be discarded.
     """
     lines = current.splitlines()
     head = "\n".join(f"    {line}" for line in lines[:BODY_OVERWRITE_PREVIEW_LINES])
@@ -693,20 +598,11 @@ class ServiceCore:
         return resolve_role_tolerantly(item, self.paths.squad_dir, catalog=self.catalog)
 
     def _default_role_slug(self, db: SquadsDB) -> str | None:
-        """This squad's own ``is_default`` role slug, read from the live roster in *db*.
-
-        The lane exemption belongs to whichever role this squad designates as its
-        coordinator, not to a slug spelled in the engine — ``sq role <slug> set-default`` moves
-        that designation, and the exemption has to move with it. Returns ``None`` when no live
-        role holds it, which is what a squad that retired its coordinator gets — a legitimate
-        state, not a gap to paper over; the caller falls back to the designation of the catalog this
-        squad resolves (:func:`~squads._interactions._role_guidance.catalog_default_slug`).
-
-        The designation goes through :func:`~squads._roles._resolver
-        .holds_default_designation`, not a raw ``is_default`` attribute read: the stored key is an
-        override on an answer the role catalog also gives, so a role designated by a project's
-        own ``.overrides/roles.toml`` carries no stored attribute and a raw read would hand
-        the exemption to the bundled catalog's role instead of this squad's.
+        """This squad's own ``is_default`` role slug from the live roster in *db*, which the lane
+        exemption follows, or ``None`` when no live role holds it (the caller then uses
+        :func:`~squads._interactions._role_guidance.catalog_default_slug`). It uses
+        :func:`~squads._roles._resolver.holds_default_designation`, not the stored attribute, which
+        only overrides the catalog's answer.
         """
         live = self.spec.live_statuses(ROSTER_ROLE)
         for it in db.items.values():
@@ -742,15 +638,12 @@ class ServiceCore:
         fields: Collection[str] | None = None,
         allow_view: str | None = None,
     ) -> None:
-        """Raise when *item* is a role or skill whose body renders through a declared view: its
-        content already has one validated authoring surface, and *verb* would be a second.
-
-        The one place a write verb asks the question, so the body write, the metadata update, the
-        view edit and the bulk importer's simulation never disagree. ``--force`` does not lift it;
-        dropping the view from ``[selected]`` takes the document out of the classification.
-        *allow_view* names the one view the verb may place: the host's own. *fields* names what a
-        metadata update changes: the write passes when every one is in the type's
-        :data:`ROSTER_UPDATE_EXEMPT` set (identity the operator sets, not generated content).
+        """Raise when *item* is a role or skill whose body renders through a declared view, so its
+        one validated authoring surface is not duplicated by *verb*. Metadata updates, view verbs
+        and skill body writes ask this, and ``--force`` does not lift it; dropping the view from
+        ``[selected]`` does.
+        *allow_view* is the one view the verb may place; *fields* passes when all are in the type's
+        :data:`ROSTER_UPDATE_EXEMPT` set.
         """
         if fields is not None and set(fields) <= ROSTER_UPDATE_EXEMPT.get(item.type, frozenset()):
             return
@@ -764,12 +657,21 @@ class ServiceCore:
             else views.skill_authoring_surface(roster_view, item.slug, self.spec, self.playbook)
         )
         tag = f"{markers.PREFIX}{markers.view_tag(roster_view)}"
-        raise SquadsError(
+        head = (
             f"{item_id}'s body renders through its declared {tag} tag, and "
             f"its content already has one validated authoring surface: {authoring_surface}. "
-            f"{verb} is refused — `--force` does not lift this. Drop the view from "
-            "`[selected]` to author this directly instead, then clear its leftover tag with "
-            f"`{view_placement_invocation(item.type, item.slug, 'disable', roster_view)}`."
+            f"{verb} is refused — `--force` does not lift this."
+        )
+        disable = view_placement_invocation(item.type, item.slug, "disable", roster_view)
+        if item.type == ROSTER_ROLE:
+            raise SquadsError(
+                f"{head} To add prose beside the definition, use `sq role {item.slug} body`. "
+                "To replace the generated definition itself, drop the view from `[selected]`, "
+                f"then clear its leftover tag with `{disable}`."
+            )
+        raise SquadsError(
+            f"{head} Drop the view from `[selected]` to author this directly instead, then "
+            f"clear its leftover tag with `{disable}`."
         )
 
     def _create_model(  # noqa: PLR0913 — mirrors `create`'s own keyword surface
@@ -792,45 +694,21 @@ class ServiceCore:
         fields: dict[str, str] | None = None,
         now: datetime | None = None,
     ) -> tuple[Item, str | None]:
-        """The PURE half of create: every check, the id allocation, and the ``Item`` itself —
-        no file I/O. Returns ``(item, lane_warning)``.
-
-        Shared by :meth:`_create_core` (the interactive/apply path, which renders + writes the
-        file around this) and the bulk importer's validate-first pre-pass (which calls this
-        directly against a throwaway, never-persisted ``db`` copy to *simulate* a create —
-        including the id allocation, invariant #2's "simulate only" contract — with the exact
-        same checks the real path runs, rather than a parallel hand-duplicated validator).
-
-        ``now`` lets the pre-pass supply the event's own forged ``at`` explicitly instead of
-        reading the ambient clock — the apply path leaves it ``None`` and rides the ambient
-        clock the per-event ``RequestContext`` rebind already set.
-
-        ``fields`` is a generic badge-code map (e.g. ``{"priority": "high", "severity": "…"}``)
-        applied via :meth:`~squads._models._item.Item.set_badge_value` after the dedicated
-        ``priority`` kwarg — additive, so a code also present in ``fields`` simply wins.
-
-        ``author`` has no default: attribution is only knowable at the call site, so a caller
-        that omits it fails here rather than silently acquiring the squad's configured default
-        role. Kept keyword-with-default (rather than a hard-required parameter) only because
-        the wider test suite has hundreds of unrelated call sites that don't yet pass one —
-        making it syntactically required would turn every one of those into a static (pyright)
-        error instead of the same runtime one; every *production* caller (CLI, the roster
-        mixin, the bulk importer) already supplies it explicitly.
+        """The pure half of create: every check, the id allocation and the ``Item``, with no file
+        I/O, returning ``(item, lane_warning)``. Shared by :meth:`_create_core` and the bulk
+        importer's pre-pass, which runs it on a throwaway ``db`` copy so the allocation stays within
+        invariant #2, passing the event's ``at`` as *now*. ``fields`` (a badge-code map) is applied
+        after ``priority``, so it wins on a repeated code. ``author`` is required in practice and
+        keyword-with-default only to keep test call sites type-correct.
         """
         item_type = str(item_type)  # coerce StrEnum members to plain str
-        # Membership gate: every downstream lookup below (`item_is_roster`, `initial_status`,
-        # `prefix_for`, …) indexes `self.spec.items[item_type]` unguarded, so a type absent
-        # from the active spec — dropped via `[selected]`, or simply never declared — must be
-        # refused right here rather than surfacing as a raw KeyError from whichever lookup
-        # happens to run first. Mirrors the read path's existing "unknown item type" refusal —
-        # and is also the CLI's own refusal for this case (`sq create <type>` keeps the type's
-        # command registered and dispatches into it rather than hiding it from Click's own
-        # unknown-command handling, precisely so this message is what the caller sees).
+        # Membership gate: later lookups index `self.spec.items[item_type]` unguarded, so a type
+        # absent from the active spec is refused here with the read path's "unknown item type"
+        # message, not a raw KeyError.
         if item_type not in self.spec.items:
-            # `dropped_via_selected` is the shared "was this a bundled type the active spec no
-            # longer declares" check (`_workflow/__init__.py`) — the same reasoning the loader's
-            # deselection-provenance annotation already applies to floor violations, and the
-            # read path's own refusal (`resolve_item_id_typed` in `_cli/_common.py`) uses too.
+            # `dropped_via_selected` is the shared "bundled type the active spec no longer
+            # declares" check (`_workflow/__init__.py`), also used by the loader and
+            # `resolve_item_id_typed`.
             if dropped_via_selected(item_type, self.spec):
                 raise SquadsError(
                     f"unknown item type {item_type!r}: {item_type!r} was dropped from a "
@@ -847,13 +725,9 @@ class ServiceCore:
         _check_roster_slug(item_type, is_roster, slug)
         self._check_operator_slug_free(db, item_type, slug)
         if refs:
-            # Validate every declared kind, then rewrite the set to the canonical wire form —
-            # the same normalisation `add_ref`/the bulk importer's `_resolve_refs` already
-            # apply: an edge whose kind is the declared default is always written bare, never
-            # spelled out (the encoding invariant), so a caller-supplied "ID:<default-kind>"
-            # never reaches the file or the index spelled. Both halves happen here, at the one
-            # PURE seam every create path (CLI, direct `Service.create()`, and the bulk
-            # importer's simulate/apply pair) shares — never re-derived per caller.
+            # Validate every declared kind, then rewrite to the canonical wire form, as `add_ref`
+            # does: an edge of the default kind is written bare. Done at the one pure seam every
+            # create path shares.
             default_kind = self.spec.default_ref_kind()
             normalised_refs: list[str] = []
             for ref_str in refs:
@@ -917,13 +791,9 @@ class ServiceCore:
         # Fail-closed on the new item's first error-level catalog violation (parent
         # type-eligibility, item status validity, …) — the same engine `sq check` reports.
         ValidatorEngine(spec=self.spec, playbook=self.playbook).gate(item, db)
-        # Advisory lane check, keyed on the declared author slug. Exempt before lookup.
-        # Service must NOT print — warning rides back in the result.
-        # Only types some playbook guide declares an author for participate in the lane
-        # domain; everything else (the roster types, and any type whose guidance names no
-        # author) is never lane-checked. Resolved through the ACTIVE spec and playbook, so a
-        # project-declared type with an override-declared authoring guide is laned like a
-        # bundled one, and the exemption follows this squad's own default-role designation.
+        # Advisory lane check on the declared author slug, exempting the default role first; the
+        # service never prints, the warning rides back in the result. Only types some playbook guide
+        # declares an author for are lane-checked, resolved through the active spec and playbook.
         lane_warning: str | None = None
         if (
             item_type in laned_types(self.playbook)
@@ -1003,12 +873,9 @@ class ServiceCore:
             fields=fields,
         )
         item_type = item.type
-        # ``agents/role.md.j2`` is this item type's file scaffold only — the frame (the
-        # panel-adjacent markers, the ``## Discussion`` heading) plus a `sq:body` that already
-        # seeds the ``sq:view:role_definition`` placement tag as static text. It reads no
-        # ``role.<field>`` at all: the resolved definition itself renders at read time, off
-        # this same tag, through the general view mechanism (`squads._view_tags.expand_view_tags`,
-        # via `ItemsMixin.read_body`) — never from anything computed here.
+        # ``agents/role.md.j2`` is only the file scaffold: a `sq:body` seeding the
+        # ``sq:view:role_definition`` tag. The definition renders at read time
+        # (`squads._view_tags.expand_view_tags`), not from anything computed here.
         rendered = render(
             self._template_for(item_type),
             item=item,
@@ -1016,31 +883,13 @@ class ServiceCore:
             spec=self.spec,
             from_squad=self.paths.squad_dir,
         )
-        # Belt-and-suspenders: guarantee a working sub-entity container regardless of which
-        # template rendered — a custom/renamed type falls back to `_default.md.j2` (no
-        # container at all), and a bundled template whose sub-entity kind was renamed still
-        # hardcodes its old container tag. Idempotent no-op when the template already emitted
-        # the current kind's container correctly.
+        # Guarantee a working sub-entity container whatever template rendered: a custom type falls
+        # back to `_default.md.j2` (none) and a renamed kind's bundled template hardcodes its old
+        # tag. A no-op when the template already emitted it.
         rendered = ensure_subentity_container_text(self.spec, item_type, rendered)
-        # The one re-placement routine runs on creation too: the template's own `sq:body`
-        # region (static text, including a role's hand-written `role_definition` tag in
-        # `agents/role.md.j2`) is treated as ordinary prose input, so a seeded view lands at
-        # its declared position regardless of what the template's raw text happened to
-        # contain — belt-and-suspenders the same way the container guarantee above is. *body*
-        # is the caller's explicit prose, when given; otherwise the template's own rendered
-        # prose is kept and only its tags are re-placed.
-        #
-        # Every view tag the template's own static text carries is stripped first, never fed
-        # to the routine as "already there": the template is bundled and never revisited, so a
-        # tag it hardcodes for a view later dropped from `[selected]` (`role_definition` in
-        # `agents/role.md.j2`, `milestone_rollup` in `templates/items/milestone.md.j2`) is not
-        # an author's placement to preserve — it is stale scaffolding the "hand-placed tags
-        # survive" guarantee was never meant to cover. What actually lands is decided
-        # entirely by `seeded`, the same derivation the roster refusal and `sq check`'s
-        # finding read: a still-seeded view's tag reappears at its own position (byte-identical
-        # to keeping the template's copy, since position is the view's own declared property,
-        # never the document's), and a dropped view's does not, matching "a view dropped from
-        # `[selected]` seeds nothing anywhere" for creation too, not only for existing hosts.
+        # The re-placement routine runs on creation too, so a seeded view lands at its declared
+        # position. Template-hardcoded view tags are stripped first as stale scaffolding, so
+        # `seeded` alone decides what lands.
         host_slug = item.slug
         addr: int | str = (
             host_slug if item_type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item.id)
@@ -1096,13 +945,9 @@ class ServiceCore:
         _check_roster_slug(ROSTER_ROLE, True, slug)
 
     async def get(self, item_id: str) -> Item:
-        """Return *item_id*, always as a deep copy.
-
-        Guarantees that no two callers ever share an object. With one snapshot
-        potentially served to many callers in the same invocation (see
-        ``squads._index._store.read_scope``), the copy at this seam is what keeps that true —
-        an in-place mutation of a returned item can never contaminate a later read of the same
-        snapshot.
+        """Return *item_id* as a deep copy, so no two callers share an object: one snapshot may
+        serve many callers in an invocation (``squads._index._store.read_scope``), and an in-place
+        mutation must not contaminate a later read.
         """
         item = require_item(await self.store.load(), item_id)
         return item.model_copy(deep=True)
@@ -1172,21 +1017,11 @@ class ServiceCore:
             )
 
     async def _read_item_file(self, item: Item, path: Path) -> str:
-        """Read *item*'s file at *path*, converting a missing file into a clean, actionable
-        error — the item-read seam every show/body/discussion/comment path, and every
-        mutating write seam that needs the on-disk text first, shares.
-
-        An interrupted title-changing update or retype (see
-        ``_services/_retype.py::apply_type_change``) can physically move the file before the
-        index commits, leaving *path* (built from the index-loaded ``item``) stale. Delegates
-        to :func:`~squads._itemfile.read_item_text`, which is unlike
-        :func:`~squads._aio.read_text` in the one respect that matters here: it converts
-        ``FileNotFoundError`` into a message naming the item and pointing at ``sq repair``,
-        for callers that already want the content and have no fallback of their own to try —
-        as opposed to the two callers that read it as a signal instead (the ``check`` confirm
-        round's stale-path fallback, the bulk importer's pre-pass), which keep calling
-        ``_aio.read_text`` directly and must never be routed through here. Inside a hold, a
-        file the hold already has is read from it.
+        """Read *item*'s file at *path*, turning a missing file into an actionable error: the read
+        seam for show/body/discussion/comment and for write seams needing the text. An interrupted
+        title-changing update or retype can leave *path* stale. It uses
+        :func:`~squads._itemfile.read_item_text`, whose message names the item and points at ``sq
+        repair``; callers reading the file as a signal keep using ``_aio.read_text``.
         """
         held = self.store.held_item_files()
         if held is None:
@@ -1315,14 +1150,10 @@ class ServiceCore:
         badges: dict[str, str] | None = None,
         badge_min: dict[str, str] | None = None,
     ) -> list[Item]:
-        """List items matching every given filter dimension.
-
-        ``category`` narrows to one of the fixed ``roster``/``work``/``records`` axis
-        (validated at the CLI edge — unvalidated here, matching ``item_type``/``status``).
-        ``badges``/``badge_min`` are keyed by badge field CODE (e.g. ``"priority"``, or a
-        project's own custom axis) — generic over ``fields_for()``, not a dedicated param
-        per axis. ``badge_min`` only matches ordered collections
-        (see :meth:`ItemFilter._meets_min`).
+        """List items matching every given filter dimension. ``category`` narrows to one of
+        ``roster``/``work``/``records`` (validated at the CLI edge). ``badges``/``badge_min`` are
+        keyed by badge field code, generic over ``fields_for()``; ``badge_min`` only matches ordered
+        collections (:meth:`ItemFilter._meets_min`).
         """
         f = ItemFilter(
             item_type=str(item_type) if item_type is not None else None,
@@ -1350,25 +1181,11 @@ class ServiceCore:
         depth: int | None = None,
         include_closed: bool = False,
     ) -> list[TreeNode]:
-        """Return the filtered, depth-bounded item hierarchy as a list of root ``TreeNode`` s.
-
-        Algorithm:
-
-        1. Load candidate set — all items; drop closed ones unless ``include_closed``.
-        2. Build parent→children map and id→item map via ``_build_tree_children``.
-        3. Determine roots: explicit ``root_id`` → that item; else the forest of items with no
-           resolvable parent in view, plus one anchor per parent cycle (see
-           ``_cycle_anchor_ids``) — every member of a cycle has a parent, so without an anchor
-           the whole component would be absent from the bare tree at exit 0.
-        4. Compute match set = items that satisfy ``filter`` (all items when filter is
-           None/empty).
-        5. Compute keep set = match set UNION all ancestors of each matched item.
-           Ancestors not themselves in the match set are flagged ``path_only=True``.
-        6. Single downward walk: include a node iff it is in the keep set; stop recursing
-           when the next level would exceed ``depth`` (depth measured from each root = 0).
-           Depth wins — a match deeper than the cut is not shown.
-        7. Drop empty/orphaned roots (roots with no kept descendants and not themselves a
-           match).
+        """Return the filtered, depth-bounded item hierarchy as root ``TreeNode`` s. Closed items
+        are dropped unless ``include_closed``; roots are ``root_id``, else parentless items in view
+        plus one anchor per cycle (``_cycle_anchor_ids``). The keep set is the matches plus their
+        ancestors (``path_only=True``), walked down to ``depth``, and roots with no kept descendants
+        and no match are dropped.
         """
         db = await self.store.load()
         all_items_list = list(db.items.values())
@@ -1526,29 +1343,13 @@ class ServiceCore:
     async def _section_edit_core(
         self, db: SquadsDB, item_id: str, mutate: Callable[[str, Item], tuple[str, bool]]
     ) -> tuple[Item, bool]:
-        """The section-edit mutation core: takes an already-open transaction's ``db``. A region
-        the file lacks outright (the discussion, a sub-entity's block, body or discussion) is
-        added empty before ``mutate`` runs, so a write never fails on a file written by hand.
-
-        ``mutate(text, item)`` returns ``(new_text, changed)`` (sync callable — may raise to
-        abort before any write). When ``changed`` is ``False`` the file is never rewritten and
-        ``updated_at``/``modified_session`` never bump — a no-op call (an idempotent insert
-        already present, a removal of an absent marker) leaves the item file untouched. The
-        transaction still commits the index on exit regardless, so ``.squads.json`` may be
-        rewritten with identical content under a fresh mtime; only the markdown write is
-        conditional on ``changed``. Every body/comment/sub-body
-        ``mutate`` closure always has something to write and returns ``changed=True``; only a
-        marker-safe placement op (:meth:`~squads._services._views.ViewsMixin.add_view`/
-        ``disable_view``) can turn out to be a no-op, which is exactly why this core takes the
-        decision from the callback instead of writing unconditionally.
-
-        Shared by :meth:`_locked_section_edit` (body/comment/sub-body/placement's common core)
-        and the bulk importer.
-
-        This is the second of the two write seams that rewrite an item's frontmatter from an
-        index-derived ``Item`` (the other is :func:`~squads._itemfile.update_frontmatter`) —
-        ``base`` is captured here, before ``mutate`` runs, and the on-disk text already read
-        below is reused for the skew guard at no extra I/O cost.
+        """The section-edit core: takes an already-open transaction's ``db`` and adds any region the
+        file lacks before ``mutate(text, item)`` runs. ``mutate`` (a sync callable that may raise to
+        abort before any write) returns ``(new_text, changed)``; when ``changed`` is ``False`` the
+        file is not rewritten and ``updated_at`` does not bump. ``base`` is captured before
+        ``mutate``, this being the second write seam, after
+        :func:`~squads._itemfile.update_frontmatter`, that rewrites frontmatter from an index-
+        derived ``Item``.
         """
         it = require_item(db, item_id)
         await self._refuse_duplicated_ids(it)
@@ -1706,20 +1507,10 @@ class ServiceCore:
 
     # ------------------------------------------------------------------ scan helpers
     def _iter_item_files(self) -> Iterator[tuple[str, Path]]:
-        """Yield (item_type, markdown path) for every item file across the type folders.
-
-        Every type declared in the active spec — built-in or custom — is scanned uniformly
-        (one generic path, no static/dynamic split), ordered by each type's
-        ``ItemSpec.order`` (the same deterministic-not-alphabetical axis the CLI/playbook
-        registration already uses), tie-broken by type name. This reproduces the exact
-        built-in scan order (epic, feature, task, bug, decision, review, guide,
-        role, skill, operator) byte-for-byte, which matters for collision resolution when
-        two items share a sequence number pre-renumber (`sq repair --renumber`).
-
-        Skill files follow the ``SKILL-<NNNNNN>-<slug>.md`` convention so they are scanned
-        with the same ``PREFIX-*.md`` glob as every other type.  Legacy slug-named files
-        (pre-migration) are also yielded so callers can detect them; files without an ``id``
-        in their frontmatter are silently skipped by the repair/check callers.
+        """Yield (item_type, markdown path) for every item file, for every type the active spec
+        declares in ``ItemSpec.order`` then type name, which fixes the scan order collision
+        resolution relies on. Skill files match the ``PREFIX-*.md`` glob and legacy slug-named files
+        are yielded too, for the repair/check callers to skip when they lack an ``id``.
         """
         for item_type, ts, folder in self._type_folders():
             prefix = ts.prefix

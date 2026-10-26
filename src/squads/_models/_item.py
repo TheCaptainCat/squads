@@ -26,11 +26,9 @@ REF_SEP = ":"
 #: Never used for display — see :data:`DISPLAY_ID_PADDING`.
 DEFAULT_ID_PADDING: int = 6
 
-#: Display padding is fixed at 0 (JIRA-style, e.g. ``PREFIX-7``) — it is a constant, never a
-#: stored or configurable field. Every human-facing surface (frontmatter ``id:``,
-#: refs, prose, CLI output) formats at this width. Filenames stay padded at
-#: :data:`DEFAULT_ID_PADDING` / the squad's stored ``SquadsDB.padding`` — that divergence is
-#: deliberate; format filenames explicitly via
+#: Display padding is fixed at 0 (``PREFIX-7``): a constant, never stored or configurable, used by
+#: every human-facing surface (frontmatter ``id:``, refs, prose, CLI output). Filenames stay padded
+#: at :data:`DEFAULT_ID_PADDING` or the squad's ``SquadsDB.padding``, deliberately; format them with
 #: ``format_item_id(prefix, sequence_id, db.padding)``, never from ``item.id``.
 DISPLAY_ID_PADDING: int = 0
 
@@ -43,28 +41,20 @@ def format_item_id(prefix: str, sequence_id: int, padding: int = DEFAULT_ID_PADD
     return f"{prefix}-{sequence_id:0{padding}d}"
 
 
-#: Obviously-synthetic sentinel for "no real prefix resolved yet" — never a real prefix, and
-#: never mistaken for one. Real vocabulary resolution (``prefix_for``) always raises on an
-#: unknown/absent type rather than guessing; this sentinel is strictly the last-resort stand-in
-#: for the handful of acyclic formatters/matchers below that cannot raise (they render ids for
-#: reprs, logs, filenames, and ref-matching) and cannot import ``_workflow`` to resolve real
-#: vocabulary (the acyclic invariant). A leaked pre-resolution id then reads e.g.
-#: ``UNRESOLVED-42`` — loud and test-visible — never a plausible-but-wrong ``type.upper()``
-#: guess (which would silently mis-render e.g. decision -> "DECISION" instead of "ADR").
+#: Obviously-synthetic stand-in for "no real prefix resolved yet", used only by the acyclic
+#: formatters and matchers that cannot raise or import ``_workflow``; real resolution
+#: (``prefix_for``) raises on an unknown type. A leaked pre-resolution id reads ``UNRESOLVED-42``,
+#: loud and test-visible, never a plausible-but-wrong ``type.upper()`` guess (decision would render
+#: "DECISION", not "ADR").
 UNRESOLVED_PREFIX = "UNRESOLVED"
 
 
 def effective_prefix(prefix: str) -> str:
-    """Return *prefix* if set, else the diagnosable :data:`UNRESOLVED_PREFIX` sentinel.
-
-    The one shared "best prefix we have right now, without resolving real vocabulary" helper —
-    every acyclic formatter/matcher that needs a prefix without resolving vocabulary (Item.id,
-    ``SquadsDB.format_id``, the ref-matching helpers in ``_services``/``_cli``) routes through
-    this instead.
-
-    In production this branch should never actually run: ``prefix`` is spec-resolved at
-    create/retype time and backfilled at every load boundary before ``.id``/matching is
-    consumed. It exists purely as a never-should-happen guard, never a vocabulary source.
+    """Return *prefix* if set, else the diagnosable :data:`UNRESOLVED_PREFIX`: the one shared "best
+    prefix without resolving vocabulary" helper for ``Item.id``, ``SquadsDB.format_id`` and the
+    ref-matching helpers. The fallback branch never runs in production, since ``prefix`` is stamped
+    at create/retype and backfilled at every load boundary; it is a guard, never a vocabulary
+    source.
     """
     return prefix or UNRESOLVED_PREFIX
 
@@ -82,14 +72,10 @@ def prefix_from_id(item_id: str) -> str:
 
 
 def split_ref(ref: str) -> tuple[str, str]:
-    """``"ID"`` → ``(ID, "")``; ``"ID:kind"`` → ``(ID, kind)``. IDs never contain ``:``.
-
-    Structural, not vocabulary: ``_models/`` resolves no ref-kind vocabulary (the acyclic
-    import invariant — see ``_workflow``'s own module docstring), so a bare ref decodes to an
-    **unspelled** kind (``""``) rather than a resolved name. Which declared kind an unspelled
-    ref actually means is the ``role = "default"`` entry of the active spec's ``ref_kinds``
-    (``WorkflowSpec.default_ref_kind``) — resolved by a caller where that spec is already in
-    hand, never here.
+    """``"ID"`` -> ``(ID, "")``; ``"ID:kind"`` -> ``(ID, kind)``; IDs never contain ``:``. It is
+    structural: ``_models/`` resolves no ref-kind vocabulary (the acyclic import invariant), so a
+    bare ref decodes to an unspelled kind (``""``), and a caller holding the spec resolves it to the
+    ``role = "default"`` entry (``WorkflowSpec.default_ref_kind``).
     """
     rid, _, kind = ref.partition(REF_SEP)
     return rid, kind
@@ -106,15 +92,11 @@ def make_ref(item_id: str, kind: str = "") -> str:
 
 
 def ref_id_matches(stored_ref_id: str, prefix: str, seq: int) -> bool:
-    """Return True when *stored_ref_id* refers to the same item as *(prefix, seq)*.
-
-    Comparison is width-tolerant: a stored ref may carry an old zero-pad width after a
-    ``sq migrate repad`` while *seq* is the canonical integer identity.  Type-prefix
-    matching prevents false positives when two items share a sequence number (collision
-    state during renumber).
-
-    Alongside :func:`split_ref` and :func:`make_ref` as the shared ref-ID primitive; import
-    from here rather than duplicating in service modules.
+    """Return True when *stored_ref_id* refers to the same item as *(prefix, seq)*. The comparison
+    is width-tolerant, since a stored ref keeps its old zero-pad width after ``sq migrate repad``,
+    and prefix-matched, so two items sharing a sequence number (during renumber) do not collide.
+    With :func:`split_ref` and :func:`make_ref` it is the shared ref-ID primitive; import it rather
+    than duplicating it.
     """
     head, _, digits = stored_ref_id.rpartition("-")
     if not digits.isdigit():
@@ -167,11 +149,9 @@ class Item(BaseModel):
     path: NonEmpty
     created_at: datetime
     updated_at: datetime
-    #: Session id at creation time.  **Best-effort, untrusted, observability-only.**
-    #: squads reads ``SQUADS_SESSION_ID`` from its own invocation environment and records it here
-    #: when present.  Absent == legacy item (no session env was set).  This is a self-declaration
-    #: from the invocation environment — squads never mints, injects, spawns, or verifies it.
-    #: Must NOT be used as an authorisation input.
+    #: Session id at creation time: best-effort, untrusted, observability-only. squads records
+    #: ``SQUADS_SESSION_ID`` from its own invocation environment when present and never mints,
+    #: injects or verifies it; absent means no session env was set. Never an authorisation input.
     created_session: str | None = None
     #: Session id at last mutation time.  Same untrusted guarantee as
     #: :attr:`created_session`.  Updated on every frontmatter-touching mutation (status, update,
@@ -183,12 +163,10 @@ class Item(BaseModel):
     #: Whether ``slug`` is a key of the item's file: always for a roster item, and for any other
     #: item whose file carried it. The file name spells the slug otherwise.
     slug_in_file: bool = False
-    #: The resolved ID prefix for this item (e.g. ``"TASK"``, ``"INC"``), for EVERY type
-    #: (built-in or custom). Set at create/retype time from the active spec (explicit
-    #: constructors pass it directly); otherwise re-derived from a persisted ``id`` by
-    #: :meth:`_derive_prefix_from_id` — see that validator for the two read paths it covers.
-    #: Not itself written to frontmatter or the JSON index; recoverable from ``id`` alone,
-    #: so ``_models`` stays spec-decoupled and never imports ``_workflow``.
+    #: The resolved ID prefix (e.g. ``"TASK"``) for every type. Set at create/retype from the
+    #: active spec, else re-derived from a persisted ``id`` by :meth:`_derive_prefix_from_id`. It is
+    #: not written to frontmatter or the index, being recoverable from ``id``, so ``_models`` stays
+    #: spec-decoupled.
     prefix: str = Field(default="", exclude=True, repr=False)
 
     model_config = {"use_enum_values": False}
@@ -196,27 +174,13 @@ class Item(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def _derive_prefix_from_id(cls, data: Any) -> Any:
-        """Populate ``prefix`` from a persisted ``id`` string, when one is given.
-
-        Covers both read paths that carry a durable ``id`` but no ``prefix``: the JSON
-        index round-trip (``id`` is a computed field, included in the dump but not itself
-        assignable, so it reappears here as plain input data) and ``from_frontmatter``
-        (which passes the frontmatter's own ``id:`` line through under this same key).
-        Explicit constructors that resolve ``prefix`` directly at creation time (and never
-        pass ``id``) are left untouched.
-
-        Always wins over the input's own ``prefix`` key when ``id`` is present — this is
-        what lets a stray legacy ``prefix:`` frontmatter line be tolerated rather than
-        trusted: it is silently overwritten with the value re-derived from ``id``, never
-        read.
-
-        A non-string ``id`` (a hand-edited ``id: 5``, a merge artifact leaving ``id: [a, b]``)
-        raises here rather than being skipped: the id is a durable frontmatter field, and
-        silently ignoring a corrupt one would mint an item whose ``prefix`` never resolved and
-        whose ``.id`` then rendered as the :data:`UNRESOLVED_PREFIX` sentinel. Raising
-        ``ValueError`` from a ``before`` validator makes it a ``ValidationError``, i.e. the
-        single failure channel ``from_frontmatter`` reports — not a raw ``AttributeError``
-        from ``prefix_from_id``.
+        """Populate ``prefix`` from a persisted ``id`` string when one is given, on the two read
+        paths that carry ``id`` but no ``prefix`` (the JSON index round trip and
+        ``from_frontmatter``); explicit constructors that pass ``prefix`` are untouched. The derived
+        value always wins over an input ``prefix`` key, so a stray legacy ``prefix:`` line is
+        overwritten, never trusted. A non-string ``id`` (``id: 5``, ``id: [a, b]``) raises
+        ``ValueError``, surfacing as the single ``ValidationError`` channel ``from_frontmatter``
+        reports, since skipping it would mint an item rendering as ``UNRESOLVED``.
         """
         if not isinstance(data, dict):
             return data
@@ -231,15 +195,10 @@ class Item(BaseModel):
     @field_validator("type", "status", mode="before")
     @classmethod
     def _coerce_str_fields(cls, v: object) -> str:
-        """Coerce StrEnum members to plain str so pydantic stores a clean string.
-
-        ``use_enum_values=False`` prevents auto-coercion; a caller may still pass a StrEnum
-        member (assignment-compatible, since StrEnum IS a str subclass) which must be stored
-        as plain ``str`` to keep YAML serialisation and identity checks clean.
-
-        Only ``str`` (and subclasses such as ``StrEnum``) are accepted.  Anything else
-        — ``int``, ``None``, etc. — raises ``ValueError`` so Pydantic surfaces a
-        ``ValidationError`` rather than silently stringifying the bad value.
+        """Coerce ``str`` subclasses such as ``StrEnum`` members to plain ``str`` so YAML
+        serialisation and identity checks stay clean. Anything that is not a ``str`` (``int``,
+        ``None``) raises ``ValueError``, surfacing as a ``ValidationError`` rather than being
+        stringified.
         """
         if not isinstance(v, str):
             raise ValueError(f"expected str, got {type(v).__name__!r}: {v!r}")  # noqa: TRY004
@@ -248,23 +207,12 @@ class Item(BaseModel):
     @computed_field
     @property
     def id(self) -> str:
-        """The formatted id (``PREFIX-7``) — derived from ``prefix`` + ``sequence_id``.
-
-        Display width is always :data:`DISPLAY_ID_PADDING` (0) — every human-facing
-        surface (frontmatter ``id:``, refs, prose, CLI output) reads unpadded, regardless of the
-        squad's stored filename width (``SquadsDB.padding``). Written to frontmatter as the
-        durable human id; reconstructed via ``from_frontmatter``.
-
-        ``prefix`` is either stamped at create/retype time by the service (which holds the
-        spec) or, on any read path that hands the model a persisted ``id`` (the JSON index,
-        ``from_frontmatter``), re-derived from it by :meth:`_derive_prefix_from_id` — pure
-        string parsing, never a vocabulary lookup.
-
-        If ``prefix`` is empty (e.g. a bare ``Item(...)`` constructed in a test with neither
-        an ``id`` nor a ``prefix``), the id degrades to the :data:`UNRESOLVED_PREFIX`
-        sentinel rather than crashing or guessing — the model itself never derives real
-        vocabulary (that would require importing ``_workflow``, breaking the acyclic
-        invariant).
+        """The formatted id (``PREFIX-7``), derived from ``prefix`` and ``sequence_id`` at
+        :data:`DISPLAY_ID_PADDING` (0) whatever the squad's filename width, and written to
+        frontmatter as the durable human id. ``prefix`` is stamped by the service or re-derived from
+        a persisted ``id`` by :meth:`_derive_prefix_from_id` (string parsing, never a vocabulary
+        lookup); if it is empty the id degrades to :data:`UNRESOLVED_PREFIX`, because the model must
+        not import ``_workflow``.
         """
         return format_item_id(effective_prefix(self.prefix), self.sequence_id, DISPLAY_ID_PADDING)
 
@@ -328,52 +276,23 @@ class Item(BaseModel):
 
     @classmethod
     def from_frontmatter(cls, data: dict[str, Any], *, path: str, default_kind: str) -> Item:
-        """Reconstruct an Item from parsed frontmatter — used by ``sq repair``.
+        """Reconstruct an Item from parsed frontmatter, as ``sq repair`` does. ``type`` and
+        ``status`` stay plain strings; vocabulary validation happens at the service load boundary.
+        *default_kind* is the active spec's ``role = "default"`` ref kind, a required keyword so
+        omitting it is a type error; it goes to :func:`_read_refs`/:func:`normalise_ref_kinds`,
+        which fold an edge of the default kind to the bare wire form, so ``_models/`` still resolves
+        no vocabulary. ``prefix`` is derived from the frontmatter ``id:`` (``"INC-49"`` ->
+        ``"INC"``) and a legacy ``prefix:`` key is never read.
 
-        ``type`` and ``status`` are stored as plain strings; the vocabulary
-        validation (against WorkflowSpec) runs at the service load boundary, not here.
-
-        *default_kind* is the active spec's declared ``role = "default"`` ref kind
-        (``WorkflowSpec.default_ref_kind()``) — a **required** keyword, not a default
-        parameter, so omitting it is a type error rather than a silent regression. It is
-        handed straight to :func:`_read_refs`/:func:`normalise_ref_kinds`, which is the one
-        point every ``refs`` value passes through on its way into an ``Item``: an edge whose
-        kind is the declared default is always folded to the bare wire form here, never left
-        (or produced) spelled out. ``_models/`` still resolves no vocabulary itself — this
-        parameter is data handed in by a caller that already has the active spec, exactly the
-        split :func:`make_ref`/:func:`split_ref` already draw.
-
-        ``prefix`` is derived from the frontmatter's own ``id:`` line (rsplit on the last
-        ``-``, e.g. ``"INC-49"`` -> ``"INC"``) by :meth:`Item._derive_prefix_from_id` — the
-        ``id`` key below is passed through for that validator to consume; it is not a
-        settable field, so it never surfaces on the constructed ``Item`` itself. A stray
-        legacy ``prefix:`` key in *data* (written by an older build) is tolerated: it is
-        simply never read here, and the derived value always wins if both are present.
-
-        This is the load boundary between parsed-but-untrusted frontmatter and a validated
-        ``Item``: whatever is wrong with the file's data, every caller learns the same one
-        thing — *this file's data cannot become an* ``Item`` — as a single
-        :class:`~squads._errors.SquadsError` naming *path*, never as a raw
-        third-party/builtin exception. Callers that scan many files (``sq check``/``sq
-        repair``) catch ``SquadsError`` once per file and degrade; a caller loading a single
-        known-good file still fails just as hard, only with a clean message instead of a
-        traceback.
-
-        Exactly two things can fail here, and both raise ``SquadsError``:
-
-        * a **required key** (:data:`REQUIRED_FRONTMATTER_KEYS`) missing outright — checked by
-          name up front, so the message names the key and ``KeyError`` never has to be caught
-          at this boundary. Catching it would have swallowed a class of *internal* bug too:
-          ``KeyError`` is this codebase's usual symptom of a spec-lookup miss, and reporting
-          one as "invalid item data in <path>" would send an operator to hand-edit a file that
-          is perfectly fine.
-        * a **type-invalid value** anywhere, reported by ``model_validate``. It is the only
-          validator: :func:`_frontmatter_payload` is deliberately non-raising and every fold it
-          applies passes an unexpected shape through untouched for pydantic to reject. Coercing
-          in the payload instead (``list(...)``/``dict(...)``/``fromisoformat``) is what put
-          half a dozen ``TypeError``/``ValueError`` raisers *outside* this ``except`` clause.
-          Its text is rendered by :func:`_validation_message`, not ``str(exc)`` — see there for
-          why the raw dump is not what an operator should be shown.
+        This is the load boundary: whatever is wrong with the data, callers get one
+        :class:`~squads._errors.SquadsError` naming *path*, never a raw third-party exception, so
+        scanning callers (``sq check``, ``sq repair``) catch it once per file and degrade. Exactly
+        two things fail. A missing **required key** (:data:`REQUIRED_FRONTMATTER_KEYS`) is checked
+        by name up front, because catching ``KeyError`` would also swallow an internal spec-lookup
+        bug and send an operator to edit a good file. A **type-invalid value** is rejected by
+        ``model_validate`` alone, since :func:`_frontmatter_payload` never raises (coercing there
+        would raise ``TypeError``/``ValueError`` outside the ``except``); its text comes from
+        :func:`_validation_message`.
         """
         return cls._build(data, path=path, default_kind=default_kind)
 
@@ -397,43 +316,15 @@ class Item(BaseModel):
 
 
 def _validation_message(exc: ValidationError) -> str:
-    """One clause per rejected frontmatter field, in project vocabulary — the text
-    :meth:`Item.from_frontmatter` reports for a type-invalid value.
-
-    ``str(exc)`` is a pydantic *internal* dump and three parts of it are actively unhelpful to
-    the operator holding the bad file: a link to ``errors.pydantic.dev`` (naming a library they
-    did not install and cannot act on), the ``[type=…, input_value=…, input_type=…]`` machine
-    tail, and — for a model-level validator — a truncated ``repr`` of *every other field in the
-    file*, which buries the one field that is actually wrong. Making ``model_validate`` the
-    single failure channel was the right call; paying this small formatting cost is what keeps
-    that from regressing the message, since this is the text every degrade-per-file surface
-    (``sq check``, ``sq repair``, and every single-item verb on a corrupt file) prints.
-
-    ``exc.errors()`` gives the three usable parts directly:
-
-    * ``loc`` — the dotted field path (``labels``, ``subentities.0.status``). Empty for a
-      model-level ``before`` validator, whose own message already names its field, so no path is
-      prefixed and no ``(got …)`` suffix is added: that error's ``input`` is the whole payload,
-      and its type (``dict``) would be noise.
-    * ``msg`` — pydantic's human sentence, minus the ``Value error, ``/``Assertion failed, ``
-      prefix it stamps on messages raised from a custom validator (internal provenance, not
-      information about the file).
-    * ``input`` — the offending value, reported as its *type name* rather than its ``repr``: the
-      type is what makes the message actionable, and a ``repr`` is what produced the truncated
-      payload dump in the first place. Appended only when ``type`` names a genuine type mismatch
-      (a kind ending in ``_type`` or ``_parsing``, e.g. ``string_type``, ``int_parsing``,
-      ``datetime_from_date_parsing``) — what matters is whether the type is the missing
-      information, not who raised the error. That one predicate keeps out both of the kinds it
-      would otherwise misdescribe: a ``missing`` error's ``input`` is the *enclosing mapping*,
-      not the absent field's value (the field has none, that being the fault, so
-      ``(got dict)`` would describe a value the operator never wrote), and a
-      ``string_too_short``/``string_too_long`` already names the value as a string in its own
-      sentence, so repeating the type is a stutter. It also naturally excludes a
-      ``value_error``/``assertion_error`` from one of this module's own validators, whose message
-      already names what it got (``expected str, got 'int': 5``) — no separate carve-out needed.
-
-    Falls back to ``str(exc)`` for the (unreachable in pydantic v2) empty error list rather than
-    reporting an empty message: a degraded message still beats no message.
+    """One clause per rejected frontmatter field, in project vocabulary: the text
+    :meth:`Item.from_frontmatter` reports, in place of ``str(exc)``, whose pydantic internals (a
+    docs link, the ``[type=…]`` tail, a truncated ``repr`` of every other field) bury the one bad
+    field. From ``exc.errors()`` it uses ``loc`` (the dotted path, empty for a model-level validator
+    that names its own field), ``msg`` (minus the ``Value error, ``/``Assertion failed, `` prefix)
+    and ``input`` as a type name, appended only for a genuine type mismatch (kind ending ``_type``
+    or ``_parsing``), which excludes ``missing`` (whose input is the enclosing mapping),
+    string-length errors and this module's own validators. It falls back to ``str(exc)`` on an empty
+    error list.
     """
     parts: list[str] = []
     for err in exc.errors():
@@ -445,49 +336,30 @@ def _validation_message(exc: ValidationError) -> str:
     return "; ".join(parts) or str(exc)
 
 
-#: The frontmatter keys an item cannot be reconstructed without — there is no defensible
-#: default for any of them, unlike every other field. Read by name in
-#: :meth:`Item.from_frontmatter` before the payload is built; see that docstring for why the
-#: boundary reads them explicitly rather than catching ``KeyError``.
+#: The frontmatter keys an item cannot be reconstructed without, having no defensible default;
+#: :meth:`Item.from_frontmatter` reads them by name before building the payload rather than catching
+#: ``KeyError``.
 REQUIRED_FRONTMATTER_KEYS: tuple[str, ...] = ("type", "sequence_id", "status")
 
 
-#: The frontmatter keys whose absent-value default is *invented* at load time rather than
-#: derived from the file (:func:`_parse_dt` falls back to ``clock.now()``
-#: so a legacy or hand-authored ``.md`` loads at all).
-#:
-#: They are the one part of the ``from_frontmatter`` round trip that is not a function of the
-#: file's own bytes: load the same absent-timestamp file twice and you get two different
-#: values. A skew comparison that includes them therefore reports a divergence on a key the
-#: file says *nothing* about — and does so on every read, so the item is refused for good, with
-#: a "run `sq repair`" pointer that repair structurally cannot honour (repair rebuilds the
-#: index from markdown; it never rewrites markdown, so the key stays absent and the next read
-#: invents a new value again).
-#:
-#: The absence itself is not lost, only left out of the comparison: every write seam persists
-#: the whole ``to_frontmatter_dict()`` (see ``update_frontmatter`` and the service's
-#: section-edit core), so the first successful mutation writes the index's value into the file
-#: and heals it permanently. Excluding them is what makes that first mutation possible.
-#:
-#: This is narrow on purpose. It applies only when the raw on-disk frontmatter has no value for
-#: the key at all; a timestamp the file *does* carry is compared like any other field, and one
-#: it carries unparseably still fails the load boundary as a ``SquadsError``.
+#: The frontmatter keys whose absent-value default is invented at load (:func:`_parse_dt` falls back
+#: to ``clock.now()``), so two loads of the same file differ. A skew comparison must leave them out
+#: when the file has no value, or it would report a divergence on every read that ``sq repair``
+#: cannot clear (repair never rewrites markdown); the first write persists the whole
+#: ``to_frontmatter_dict()`` and heals it. A timestamp the file does carry is compared normally, and
+#: an unparseable one still fails the load boundary.
 INVENTED_WHEN_ABSENT: frozenset[str] = frozenset({"created_at", "updated_at"})
 
 
 def _frontmatter_payload(
     data: dict[str, Any], path: str, *, default_kind: str | None
 ) -> dict[str, Any]:
-    """The ``model_validate`` payload for :meth:`Item.from_frontmatter` — **never raises**.
-
-    Every value is either passed straight through or folded by a helper that returns an
-    unexpected shape *unchanged*, so ``model_validate`` is the single thing that can reject a
-    type-invalid frontmatter field. Nothing here may iterate, subscript, index or parse an
-    untrusted value: doing so raises outside the boundary's ``except`` clause, which is
-    precisely the escape this replaced.
-
-    Callers must have checked :data:`REQUIRED_FRONTMATTER_KEYS` first — the three ``data[...]``
-    subscripts below are the only ones in this function, and they are safe only because of it.
+    """The ``model_validate`` payload for :meth:`Item.from_frontmatter`, which never raises: each
+    value passes through or is folded by a helper that returns an unexpected shape unchanged, so
+    ``model_validate`` is the one thing that rejects a type-invalid field. Nothing here may iterate,
+    subscript or parse an untrusted value, as that would raise outside the boundary's ``except``.
+    Callers must check :data:`REQUIRED_FRONTMATTER_KEYS` first, which is what makes the three
+    ``data[...]`` subscripts safe.
     """
     raw_id = data.get("id")
     return {
@@ -535,18 +407,11 @@ def _json_form(value: Any) -> Any:
 
 
 def _empty_list_if_unset(value: Any) -> Any:
-    """``None`` (absent, or an explicit ``labels:`` with nothing after it) and ``""`` both mean
-    "no entries" and become ``[]``; every other value is passed through for ``model_validate``.
-
-    The empty string is here purely to preserve compatibility: the coercion this replaced spelled
-    the default ``list(data.get(key, []) or [])``, whose ``or`` swallowed ``""`` too, so a file
-    carrying ``labels: ''`` loaded. Tightening that would mean a file that loaded yesterday
-    failing today — the wrong direction for a boundary whose job is to keep legacy files
-    readable. A *non-empty* string is a different matter and is rejected rather than silently
-    exploded into one entry per character, as ``list("abc")`` would do.
-
-    The same rule covers every list-valued frontmatter key: ``labels``, ``refs`` and
-    ``subentities``.
+    """``None`` (absent, or a bare ``labels:``) and ``""`` become ``[]``; every other value passes
+    through for ``model_validate``. The empty string is kept so a legacy file
+    with ``labels: ''`` keeps loading, while a non-empty string is rejected rather than exploded
+    into characters. The rule covers ``labels``,
+    ``refs`` and ``subentities``.
     """
     return [] if value is None or value == "" else value
 
@@ -611,15 +476,12 @@ def _add_optional_frontmatter_fields(data: dict[str, Any], item: Item) -> None:
 
 
 def slug_from_stem(stem: str, prefix: str) -> str:
-    """Derive a filename stem's slug segment (``PREFIX-NNNNNN-<slug>`` -> ``<slug>``) given an
-    already-resolved *prefix* — the one primitive both :func:`_slug_from_path` (below, prefix
-    from the frontmatter ``id``) and ``_services._maintenance._stem_slug`` (prefix from the
-    file's own type folder, read before frontmatter ever parses) share, so a hand-renamed
-    skill's slug is derived by the identical string surgery regardless of which caller's prefix
-    source it agrees or disagrees with — see :func:`_slug_from_path`'s own docstring for which
-    one wins when they diverge. Falls back to the bare stem (never a corrupt front-hyphen
-    split) when *prefix* is empty or the stem doesn't actually start with it (a legacy or
-    hand-edited file)."""
+    """Derive a filename stem's slug segment (``PREFIX-NNNNNN-<slug>`` -> ``<slug>``) from an
+    already-resolved *prefix*, the primitive shared by :func:`_slug_from_path` (prefix from the
+    frontmatter ``id``) and ``_services._maintenance._stem_slug`` (prefix from the type folder, read
+    before frontmatter parses; see :func:`_slug_from_path` for which wins). It falls back to the
+    bare stem when *prefix* is empty or the stem does not start with it.
+    """
     if not prefix or not stem.startswith(f"{prefix}-"):
         return stem
     remainder = stem.removeprefix(f"{prefix}-")
@@ -628,21 +490,12 @@ def slug_from_stem(stem: str, prefix: str) -> str:
 
 
 def _slug_from_path(path: str, item_id: str | None) -> str:
-    """Derive the filename's slug segment (``PREFIX-NNNNNN-<slug>.md`` -> ``<slug>``).
-
-    ``item_id`` (the frontmatter's own ``id:``, when present — it always is for a
-    convention-written file) is the shared primitive's input: :func:`prefix_from_id` finds
-    the prefix boundary with ``rpartition`` on the LAST hyphen, so a hyphenated prefix (e.g.
-    ``"RUN-BOOK"``) is stripped whole via ``removeprefix`` rather than re-derived by counting
-    hyphens from the front — the same shape as ``_services._maintenance._scan_records``.
-    Falls back to the bare stem (never a corrupt front-hyphen split) when *item_id* is
-    missing or the stem doesn't actually start with its prefix (a legacy/hand-edited file).
-
-    **Which source wins on a hand-renamed skill file.** This function's prefix
-    comes from *item_id* — the frontmatter's own declared identity. The file checks
-    (``_services._maintenance._stem_slug``) cannot read frontmatter yet when it asks the same
-    question (it runs before ``read_frontmatter``), so its prefix comes from the file's type
-    *folder* instead. The two agree on every file ``sq`` itself writes.
+    """Derive the filename's slug segment (``PREFIX-NNNNNN-<slug>.md`` -> ``<slug>``) using the
+    frontmatter ``id:`` as input: :func:`prefix_from_id` splits on the last hyphen, so a hyphenated
+    prefix (``"RUN-BOOK"``) is stripped whole by ``removeprefix``. It falls back to the bare stem
+    when *item_id* is missing or the stem does not start with its prefix. On a hand-renamed skill
+    file this prefix is the frontmatter's declared identity, while ``_stem_slug`` runs before
+    frontmatter can be read and uses the type folder; the two agree on every file ``sq`` writes.
     """
     name = path.rsplit("/", 1)[-1].removesuffix(".md")
     prefix = prefix_from_id(item_id) if item_id else ""
@@ -650,31 +503,14 @@ def _slug_from_path(path: str, item_id: str | None) -> str:
 
 
 def _parse_dt(value: object) -> Any:
-    """A frontmatter timestamp, normalised to a tz-aware UTC ``datetime``.
-
-    Absent or ``null`` means "this file predates the field" and defaults to
-    :func:`clock.now`, which is what lets a legacy or hand-authored file load at all. Two
-    consequences of that default the callers must respect, because it is the one value here
-    that is *invented* rather than read:
-
-    - It goes through the injectable clock, never ``datetime.now()`` directly, so a frozen-time
-      test or a ``--at`` migration sees the timestamp it forged rather than wall-clock now.
-    - It is **not stable across reads** — each load of the same absent-timestamp file invents a
-      later value. Anything that compares two loads of the same file (or a load against an
-      index-derived item) must therefore exclude a key the file does not actually carry, or it
-      compares against a value the file never said: see
-      :data:`INVENTED_WHEN_ABSENT`, which is what stops such a file from being
-      permanently refused as skewed. A write heals it, since every write seam persists the
-      whole frontmatter dict.
-
-    A ``datetime`` (PyYAML resolves an unquoted timestamp to one) or an ISO-8601 string
-    (including the ``Z`` spelling ``fromisoformat`` needs help with) is normalised here.
-
-    Anything else — including a string that does not parse — is returned **unchanged** for
-    ``model_validate`` to accept or reject. An unparseable timestamp must surface as a
-    ``ValidationError`` at the single load boundary, not as a raw ``ValueError`` thrown from
-    outside it; and a value pydantic *does* accept (it reads a number as a Unix timestamp) is
-    at least derived from what the file actually says, rather than a silently invented ``now``.
+    """A frontmatter timestamp normalised to a tz-aware UTC ``datetime``: a ``datetime`` (PyYAML's
+    reading of an unquoted timestamp) or an ISO-8601 string, ``Z`` included. Absent or ``null``
+    defaults to :func:`clock.now` (never ``datetime.now()``, so frozen-time tests and ``--at`` see
+    the forged value), which is invented rather than read and not stable across loads, so
+    comparisons exclude it (:data:`INVENTED_WHEN_ABSENT`) and a write heals it. Anything else,
+    including an unparseable string, is returned unchanged for ``model_validate`` to accept or
+    reject, so it surfaces as a ``ValidationError`` at the boundary and a value pydantic accepts is
+    at least what the file says.
     """
     if value is None:
         return clock.now()

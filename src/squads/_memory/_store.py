@@ -1,12 +1,10 @@
 """File I/O for agent memory: one slug-named ``.md`` per memory under
 ``squads/agents/memory/<role-slug>/``.
 
-Memory is **off the global counter and outside ``.squads.json``**: nothing here allocates a
-counter id, opens ``IndexStore``, or touches an index — ``sq repair`` has nothing to rebuild
-because there is nothing here for it to know about. Content files are marker-free (freeform,
-agent-owned body — see :mod:`squads._memory._model`). Storage is plain slug-named ``.md``
-files only, no roll-up; every read (`list_entries`/`search`/`read`) computes what it needs
-live by globbing and reading those files directly.
+Memory is off the global counter and outside ``.squads.json``: nothing here allocates an id,
+opens ``IndexStore`` or touches an index, so ``sq repair`` has nothing to rebuild. Content
+files are marker-free (see :mod:`squads._memory._model`). There is no roll-up; every read
+(`list_entries`/`search`/`read`) globs and reads the files live.
 """
 
 from pathlib import Path
@@ -96,17 +94,13 @@ async def add(
     tags: list[str] | None = None,
     slug: str | None = None,
 ) -> MemoryEntry:
-    """Write a new memory: ``<slug>.md``.
+    """Write a new memory, ``<slug>.md``.
 
-    *fact* is the frontmatter one-line ``summary`` (and the default slug source). *body*
-    supplies the freeform markdown body (``--file`` content at the CLI edge); it defaults to
-    *fact* itself so a bare ``add "<fact>"`` still yields a readable memory. No counter id is
-    allocated and ``.squads.json`` is never touched.
-
-    The slug is a short handle, not a restatement of the fact: by default it's derived from
-    *fact*'s leading words (:func:`_short_slug`); pass *slug* to name the handle explicitly
-    instead (it is slugified for safety). Either way, :func:`_unique_slug` disambiguates a
-    collision with ``-2``, ``-3``, ...
+    *fact* is the frontmatter one-line ``summary`` and the default slug source. *body* is the
+    freeform body (``--file`` content at the CLI edge), defaulting to *fact* so a bare
+    ``add "<fact>"`` is readable. The slug is a short handle derived from *fact*'s leading words
+    (:func:`_short_slug`) or, if *slug* is passed, that name slugified; :func:`_unique_slug`
+    disambiguates a collision with ``-2``, ``-3``, …
     """
     fact = fact.strip()
     if not fact:
@@ -140,20 +134,16 @@ async def read(paths: SquadPaths, role_slug: str, slug: str) -> MemoryEntry:
 async def list_entries(
     paths: SquadPaths, role_slug: str
 ) -> tuple[list[MemoryEntry], UnreadableMemories]:
-    """All memories in a role's pool, in filename (slug) order, plus one message per memory
-    file that could not be read or parsed. Empty pool -> ``([], [])``, no error.
+    """All memories in a role's pool in slug order, plus one message per unreadable file.
 
-    A bad memory — a merge conflict, invalid UTF-8, an OS permission error — raises
-    :class:`SquadsError` (the read-path guards this module depends on); caught here per file so
-    one bad memory never takes the whole pool's listing down, the same
-    reporter-stops-at-the-first-problem shape ``sq check`` rejects. This project's own agents
-    run ``sq memory <role> list`` at the start of every session.
+    An empty pool gives ``([], [])``. A bad memory (merge conflict, invalid UTF-8, an OS
+    permission error) raises :class:`SquadsError` from the read-path guards and is caught per
+    file, so one bad memory never takes the whole listing down, the reporter-stops-at-the-first-
+    problem shape ``sq check`` rejects; agents run ``sq memory <role> list`` every session.
 
-    A ``FileNotFoundError`` on a dirent this same call's own glob just saw is a present-vs-
-    absent question, not another unreadable shape: a broken symlink is a *present* dirent (the
-    read failed on its target, not on whether it's there) and is reported the same way a decode
-    failure is; a dirent that genuinely vanished between the glob and the read is skipped with
-    nothing reported.
+    A ``FileNotFoundError`` on a dirent this call's glob just saw is a present-versus-absent
+    question: a broken symlink is present (the read failed on its target) and is reported like a
+    decode failure, while a dirent that vanished between glob and read is skipped silently.
     """
     folder = role_folder(paths, role_slug)
     out: list[MemoryEntry] = []
@@ -180,11 +170,10 @@ async def search(
 ) -> tuple[list[tuple[MemoryEntry, list[str]]], UnreadableMemories]:
     """Memories whose summary or body contains *query* (case-insensitive substring).
 
-    A plain content grep over the role's ``.md`` files — mirrors
-    :meth:`squads._services._collab.CollabMixin.search`'s shape (entry, matching lines).
-    An unknown/empty role pool simply yields no matches, consistent with :func:`list_entries`.
-    Degrades the same way :func:`list_entries` does — a memory it could not read contributes
-    no hits and is named in the second return value, rather than aborting the search.
+    A plain content grep over the role's ``.md`` files, shaped like
+    :meth:`squads._services._collab.CollabMixin.search` (entry, matching lines). An unknown or
+    empty pool yields no matches. Like :func:`list_entries`, an unreadable memory contributes no
+    hits and is named in the second return value instead of aborting the search.
     """
     needle = query.strip().lower()
     if not needle:

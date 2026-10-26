@@ -1,11 +1,6 @@
-"""The check before the first migration runner: does the reconciled index fit the vocabulary the
-run resolved?
-
-It writes nothing and refuses only what the completed run would refuse. It asks whether every
-indexed file sits where a declared type lives, whether every file named for an item where a
-declared type lives has an entry, and whether the corpus fits the declared vocabulary. A runner
-that renames or retires vocabulary declares the names it consumes on its migration record and the
-check is blind to them; no shipped runner does.
+"""The check before the first migration runner: whether the reconciled index fits the vocabulary the
+run resolved (file locations, unindexed files, declared values). It writes nothing and refuses only
+what the completed run would refuse; vocabulary a runner declares it consumes is not checked.
 """
 
 import os

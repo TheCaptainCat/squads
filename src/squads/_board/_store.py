@@ -1,15 +1,14 @@
 """File I/O for the team bulletin board: one short-hash-named ``.md`` per notice under
 ``squads/board/``.
 
-The board is **off the global counter and outside ``.squads.json``**: nothing here allocates a
-counter id, opens ``IndexStore``, or touches an index — ``sq repair`` has nothing to rebuild
-because there is nothing here for it to know about (mirrors :mod:`squads._memory._store`).
-Content files are marker-free (freeform, author-owned body — see :mod:`squads._board._model`).
+The board is off the global counter and outside ``.squads.json``: nothing here allocates an
+id, opens ``IndexStore`` or touches an index, so ``sq repair`` has nothing to rebuild (as in
+:mod:`squads._memory._store`). Content files are marker-free (see
+:mod:`squads._board._model`).
 
-Unlike memory (addressed by a durable, meaningful slug), the board is addressed by an
-**ephemeral positional ordinal** that is the notice's position in the freshly-computed live
-listing (:func:`list_notices`, sorted and unexpired, read straight from the ``.md`` files) —
-there is no committed roll-up backing that ordinal.
+Unlike memory, which has a durable slug, a notice is addressed by an ephemeral positional
+ordinal: its position in the freshly computed live listing (:func:`list_notices`, sorted and
+unexpired, read from the ``.md`` files), with no committed roll-up behind it.
 """
 
 import hashlib
@@ -124,21 +123,16 @@ async def post(
 
 
 async def _all_notices(paths: SquadPaths) -> tuple[list[BoardNotice], UnreadableNotices]:
-    """Every notice on disk (expired or not), in no particular order, plus one message per
-    notice file that could not be read or parsed.
+    """Every notice on disk (expired or not), unordered, plus one message per unreadable file.
 
-    A bad notice — a merge conflict, invalid UTF-8, an OS permission error — raises
-    :class:`SquadsError` (the read-path guards this module depends on); caught here per file so
-    one bad notice never takes the whole board down, the same reporter-stops-at-the-first-
-    problem shape ``sq check`` rejects. This project's own agents run ``sq board list`` at the
-    start of every session, so a corrupt notice greeting them with nothing at all is worse than
-    its size suggests.
+    A bad notice (merge conflict, invalid UTF-8, an OS permission error) raises
+    :class:`SquadsError` from the read-path guards and is caught per file, so one bad notice never
+    takes the board down, the reporter-stops-at-the-first-problem shape ``sq check`` rejects;
+    agents run ``sq board list`` every session.
 
-    A ``FileNotFoundError`` on a dirent this same call's own glob just saw is a present-vs-
-    absent question, not another unreadable shape: a broken symlink is a *present* dirent (the
-    read failed on its target, not on whether it's there) and is reported the same way a decode
-    failure is; a dirent that genuinely vanished between the glob and the read is skipped with
-    nothing reported — it was never really there for this listing to report on.
+    A ``FileNotFoundError`` on a dirent this call's glob just saw is a present-versus-absent
+    question: a broken symlink is present (the read failed on its target) and is reported like a
+    decode failure, while a dirent that vanished between glob and read is skipped silently.
     """
     out: list[BoardNotice] = []
     unreadable: list[Omission] = []
@@ -160,16 +154,13 @@ async def _all_notices(paths: SquadPaths) -> tuple[list[BoardNotice], Unreadable
 
 
 async def list_notices(paths: SquadPaths) -> tuple[list[BoardNotice], UnreadableNotices]:
-    """Unexpired notices, in listing order: chronological by posted-at, then id as a tiebreak.
+    """Unexpired notices in listing order: by posted-at, then id as a tiebreak.
 
-    ``posted_at`` has one-second resolution (the shared clock, project-wide), so two notices
-    posted within the same second by a low-frequency, effectively single-writer board tie on
-    it; the id tiebreak keeps the order deterministic across re-reads even then, though it has
-    no chronological meaning in that rare case.
-
-    A read never mutates anything — expiry is filtered here, not physically removed (see
-    :func:`clear`). Empty/never-posted board -> ``([], [])``, no error. The second element
-    names every notice file :func:`_all_notices` could not read — see its docstring.
+    ``posted_at`` has one-second resolution, so two notices posted in the same second tie on it;
+    the id tiebreak keeps the order deterministic across re-reads, with no chronological meaning.
+    A read never mutates anything: expiry is filtered here, not removed (see :func:`clear`). An
+    empty board gives ``([], [])``; the second element names every file :func:`_all_notices` could
+    not read.
     """
     now = clock.now()
     all_notices, unreadable = await _all_notices(paths)

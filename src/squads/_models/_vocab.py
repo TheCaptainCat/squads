@@ -1,29 +1,13 @@
-"""Single authoritative resolver for per-type vocabulary (prefix, display labels).
+"""Single authoritative resolver for per-type vocabulary (prefix, display labels), kept in
+``_models`` so model-layer and service-layer code import it without a cycle while the model never
+derives vocabulary itself. The loaded workflow spec is the sole authority: ``prefix_for`` is a thin
+spec lookup, and an unknown type or missing spec is an ordinary "unknown item type" error, never a
+``type.upper()`` guess. Folder resolution stays in ``SquadPaths.folder_for``/``squad_relative``; do
+not fold it in here without a dedicated design decision.
 
-Keeps ``_models`` spec-decoupled: callers hand the resolved values *to* the model;
-the model never derives vocabulary itself.  The resolver lives in ``_models`` so
-both model-layer code and service-layer code can import it without a cycle.
-
-The loaded workflow spec is the SOLE vocabulary authority — there is no
-reserved built-in prefix/folder map any more.  ``prefix_for`` is a thin spec lookup;
-an unknown type (or a call with no spec at all) is an ordinary "unknown item type"
-error, never a silent ``type.upper()`` guess.
-
-Design note:
-- ``prefix_for`` returns a prefix string.  It is intentionally *not* extended with
-  a ``folder_for`` overload here — folder resolution already routes through
-  ``SquadPaths.folder_for``/``squad_relative`` which consults the spec. Do NOT
-  fold folder resolution in here without a dedicated design decision.
-- A future ``subentity_plural`` accessor could be added to this module when the
-  spec gains that vocabulary; it is not needed before then.
-
-``label_for`` is a second, independent resolver on the same module: a type's
-human-readable display name, in one of four named forms (``singular`` / ``plural`` /
-``singular_lower`` / ``plural_lower``). Unlike ``prefix_for``, an undeclared type or a missing
-``spec`` is not an error here — a display label is always derivable from the bare type-name
-string, so ``label_for`` degrades to the computed fallback instead of raising. The fallback
-formula lives in exactly one place (``_fallback_label``); ``label_for`` is the only call site
-consumers use.
+``label_for`` resolves a type's display name in one of four forms
+(``singular``/``plural``/``singular_lower``/``plural_lower``) and, unlike ``prefix_for``, degrades
+to a computed fallback (``_fallback_label``, its one home) for an undeclared type or missing spec.
 """
 
 from typing import Any, Literal, cast
@@ -34,21 +18,10 @@ type LabelForm = Literal["singular", "plural", "singular_lower", "plural_lower"]
 
 
 def prefix_for(type_str: str, spec: object) -> str:
-    """Return the canonical ID prefix for *type_str*.
-
-    Resolution: ``spec.items[type_str].prefix`` — the loaded spec is the only
-    vocabulary source, for every type (built-in or custom). Raises
-    :class:`~squads._errors.SquadsError` when the spec
-    does not declare *type_str*; never falls back to a ``type.upper()`` guess.
-
-    ``spec`` is typed as ``object`` so this module stays spec-decoupled
-    (no import of ``WorkflowSpec``).  The caller is responsible for passing the
-    correct type; duck-typed access is used with explicit ``cast`` to satisfy
-    pyright strict mode.
-
-    Designed so a ``subentity_plural`` accessor can be added beside this one
-    without restructuring: just add ``subentity_plural_for(type_str, spec)``
-    following the same pattern.
+    """Return the canonical ID prefix for *type_str*, from ``spec.items[type_str].prefix`` for every
+    type. It raises :class:`~squads._errors.SquadsError` when the spec does not declare it and never
+    guesses. ``spec`` is typed ``object`` (duck-typed with a ``cast``) so this module imports no
+    ``WorkflowSpec``.
     """
     if spec is not None:
         try:
@@ -117,15 +90,10 @@ def labels_for(type_str: str, spec: object = None) -> dict[str, str]:
 
 
 def label_for(type_str: str, form: LabelForm, spec: object = None) -> str:
-    """Return *type_str*'s display label in the requested *form*.
-
-    Resolution: the pinned ``spec.items[type_str].labels.<form>`` when present and non-empty,
-    else the computed fallback for that form (see :func:`_fallback_label`). Unlike
-    :func:`prefix_for`, a missing ``spec`` or an undeclared type is not an error — the fallback
-    needs only *type_str* itself, so ``label_for`` always returns a usable string.
-
-    ``spec`` is typed as ``object`` so this module stays spec-decoupled (no import of
-    ``WorkflowSpec``); duck-typed access mirrors ``prefix_for``.
+    """Return *type_str*'s display label in *form*: the pinned
+    ``spec.items[type_str].labels.<form>`` when present and non-empty, else the computed fallback
+    (:func:`_fallback_label`). Unlike :func:`prefix_for` a missing ``spec`` or undeclared type is
+    not an error, since the fallback needs only *type_str*; ``spec`` is typed ``object`` as there.
     """
     pinned = _pinned_label(type_str, form, spec)
     return pinned if pinned else _fallback_label(type_str, form)

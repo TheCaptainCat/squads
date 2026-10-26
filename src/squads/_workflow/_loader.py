@@ -1,56 +1,36 @@
-"""Load and validate the workflow spec, merging a project override that may **shadow** (not
-only add to) the bundled vocabulary.
+"""Load and validate the workflow spec, merging a project override that may shadow (not only add to)
+the bundled vocabulary. ``load_workflow_spec()`` is the single entry point: with no ``squad_dir`` it
+reads the bundled ``workflow.toml`` via ``importlib.resources``, parses it with ``tomllib`` (type
+and status keys stay plain ``str``), builds the derived indexes and runs
+``WorkflowSpec.validate()``; an invalid bundled spec raises ``SquadsError`` (fail closed).
 
-``load_workflow_spec()`` is the single entry point.  With no ``squad_dir`` it reads
-``workflow.toml`` from the ``squads._specs`` package via ``importlib.resources`` (offline, no
-filesystem assumption), parses with stdlib ``tomllib`` (both item type keys and status keys
-stay plain ``str`` — neither vocabulary enum survives), builds the derived reverse indexes, and
-runs ``WorkflowSpec.validate()`` (the pydantic ``model_validator``).  A corrupt or invalid
-bundled spec raises ``SquadsError`` — fail closed.
+With a ``squad_dir``, ``<squad_dir>/.overrides/workflow.toml`` is merged over the bundled default by
+the loader-agnostic engine (``squads._specmerge``) at the raw parsed-TOML layer, before any model is
+built: splats resolve against the bundled mapping, the override deep-merges leaf by leaf (a
+hand-written value replaces its counterpart, which is what makes it shadowing), and ``[selected]``
+shrinks named sections and is stripped. The engine owns no floor, so these stay here:
 
-With a ``squad_dir`` given, ``<squad_dir>/.overrides/workflow.toml`` — when present — is merged
-over the bundled default via the shared, loader-agnostic engine (``squads._specmerge``), entirely
-at the **raw parsed-TOML mapping** layer, before any model is built — this is what lets the
-override shadow rather than only add to the bundled vocabulary: splat-refs
-resolve against the bundled mapping, the override deep-merges over it leaf-by-leaf (a hand-written
-value replaces its bundled counterpart — this is what makes the override *shadowing* rather than
-additive-only), ``[selected]`` shrinks named sections to their surviving key set and is stripped.
-The merge itself carries no floor of its own — the engine's own docstring is explicit that it owns
-no roster-locked rule, no lifecycle floor, no category catalog, no drift stamping, no live-index
-cross-check. Every one of those stays here:
+1. The roster type-key lock (``_collect_floor_violations``), on the raw merged mapping before any
+   model: the roster keys (``role``/``skill``/``operator``) must survive with
+   ``category = "roster"`` and no other key may claim it. It rests on the key set and ``category``
+   immobility only, never ``prefix``, which is ordinary customisation.
+2. Structural and referential validation (``_build_spec`` -> ``WorkflowSpec._validate``): the
+   universal lifecycle floor and the roster R1/R1'/R2 clauses apply to the merged mapping, and a
+   violation tracing to a ``[selected]`` drop is annotated with that provenance
+   (``_annotate_deselections``), since an adopter cannot fix a cause they cannot see.
+3. The live-index cross-check (``validate_against_index`` and ``..._fail_closed``), last, so a drop
+   stranding a live item fails closed listing the IDs. It also gates prefix/folder and
+   badge-collection changes against a live corpus (declared ``prefix``/``folder`` must match what
+   the items were written under, and each stored badge value must still name a code in its
+   collection), on a walk that already exists, since such a spec is valid in the abstract and wrong
+   only for this corpus.
 
-1. **The roster type-key lock** (``_collect_floor_violations``) — checked on the raw
-   merged mapping, before any model is built: the three roster type keys (``role``/``skill``/
-   ``operator``) must survive the merge and keep ``category = "roster"``; no other key may claim
-   that category.  Written on the key set plus ``category`` immobility only — **never** on
-   ``prefix``, which is ordinary field-mergeable customisation like any other type's.
-2. **Structural + referential validation** (``_build_spec`` → ``WorkflowSpec._validate``) — the
-   universal lifecycle floor and the roster R1/R1'/R2 clauses apply to
-   the *merged* mapping, not only the bundled one, so a shadowed lifecycle that
-   violates them fails exactly the same way a bundled one always has.  A violation that traces
-   back to a ``[selected]`` drop is annotated with that provenance (``_annotate_deselections``) —
-   an adopter who cannot see their own line caused a violation cannot fix it.
-3. **The live-index cross-check** (``validate_against_index`` / ``..._fail_closed``) — runs last,
-   after the merge, the deselect, and the spec's own validation, so a drop that strands a live
-   item still fails closed listing the offending IDs. Also carries the corpus-alignment check
-   gating a prefix/folder/badge-collection change against a live corpus: for every type with at
-   least one live item, the merged spec's declared ``prefix``/``folder`` must still match what
-   those items were written under, and every stored badge-field value (``priority``,
-   ``severity``, …) must still name a code in its bound collection — fields on a walk that
-   already exists, not a new floor clause, because a re-prefixing or collection-shrinking spec
-   is valid in the abstract and wrong only against *this* corpus.
-
-``lint_workflow_spec(squad_dir)`` runs every one of the above in collect-all-errors mode for
-``sq workflow lint`` — pure-spec validation plus the live-index cross-check.  Returns a list of
-``(level, location, message, fix_hint)`` 4-tuples; never raises.
-
+``lint_workflow_spec(squad_dir)`` runs all of this in collect-all mode for ``sq workflow lint``,
+returning ``(level, location, message, fix_hint)`` tuples and never raising.
 ``validate_against_index_fail_closed(spec, squad_dir, bundled=...)`` is the enforcement point
-called by ``open_service``.  It reads the index synchronously (bypassing the async layer) and
-raises
-``SquadsError`` listing every offending item ID when the merged spec drops a type or status
-still used by live items, or when a type's prefix/folder no longer matches its own corpus.
-``sq workflow lint`` bypasses this by calling ``lint_workflow_spec`` directly,
-which reports the same findings in collect mode without aborting.
+``open_service`` calls: it reads the index synchronously and raises ``SquadsError`` listing every
+offending ID when the spec drops a type or status live items use or misaligns a type's
+prefix/folder; lint reports the same findings without aborting.
 """
 
 import tomllib
@@ -64,15 +44,11 @@ from pydantic import BaseModel
 
 from squads._errors import SquadsError
 
-# Import-direction note: `_overrides/_service.py` imports from this module, so `_workflow` and
-# `_overrides` form a cycle at *package* granularity. At *module* granularity there is no cycle:
-# `_overrides._manifest` (where `artifact_changed_since` lives) imports nothing beyond
-# `squads._util`, so it never imports this module back, directly or transitively. Python resolves
-# this import by first running `_overrides/__init__.py` (a docstring only, no imports) and then
-# loading `_overrides/_manifest` as a leaf — no partially-initialised module is ever observed.
-# `_interactions/_loader.py` already takes this same module-granular edge into `_overrides`
-# for the playbook's identical stamp obligation, so this follows established precedent rather
-# than opening a new one.
+# Import-direction note: `_overrides/_service.py` imports this module, so `_workflow` and
+# `_overrides` form a package-level cycle but no module-level one: `_overrides._manifest` (home of
+# `artifact_changed_since`) imports only `squads._util`, so loading it as a leaf never observes a
+# partially-initialised module. `_interactions/_loader.py` takes the same edge for the playbook's
+# stamp obligation.
 from squads._overrides._manifest import WORKFLOW_KEY, artifact_changed_since
 from squads._specload import (
     OverrideFiles,
@@ -112,15 +88,15 @@ from squads._workflow._models import (
     ViewSpec,
     WorkflowSpec,
 )
+from squads._workflow._validator_names import parse_validator_entry
 
 #: Canonical location for the project workflow override (relative to squad_dir).
 WORKFLOW_OVERRIDE_FILENAME = ".overrides/workflow.toml"
 
-#: The workflow document's closed top-level section-key space — closing what an override may
-#: declare at all — enforced at the raw-mapping layer by the merge engine before any model is
-#: built. ``[selected]`` may name
-#: every one of them but ``squad`` (:data:`WORKFLOW_SELECTABLE_SECTIONS`). ``selected`` itself is
-#: accepted unconditionally by the engine and needs no entry here (``_specmerge`` docstring).
+#: The workflow document's closed top-level section-key space, enforced on the raw mapping by the
+#: merge engine before any model is built. ``[selected]`` may name every one but ``squad``
+#: (:data:`WORKFLOW_SELECTABLE_SECTIONS`), and ``selected`` itself is accepted by the engine and
+#: needs no entry here.
 WORKFLOW_TOP_LEVEL_SECTIONS: frozenset[str] = frozenset(
     {
         "items",
@@ -147,13 +123,11 @@ _ROSTER_LOCK_FIX_HINT = (
     "the change in .overrides/workflow.toml."
 )
 
-#: The retired view-declaration keys, each with its own reason — what it did is the
-#: presentation template's own job, but *which* job differs per key, so one shared "grouping
-#: and ordering" sentence would misdescribe ``fields`` (a column list) as a sort/group concern.
-#: A ``[views.<name>]`` table declares only ``source``. Scanned at any nesting depth under
-#: a view's own table, not just its top level — a retired key can also be written nested under
-#: ``source`` (a hand-typed mistake, not a supported shape), which a top-level-only scan would
-#: miss and let fall through to ``ViewSource``'s own generic ``extra="forbid"`` instead.
+#: The retired view-declaration keys, each with its own reason, since what each did is the
+#: template's job but which job differs (one shared sentence would misdescribe ``fields``, a column
+#: list, as sort/group). A ``[views.<name>]`` table declares only ``source``. They are scanned at
+#: any depth under a view's table, since one written under ``source`` would otherwise fall through
+#: to ``ViewSource``'s generic ``extra="forbid"``.
 _RETIRED_VIEW_KEY_REASONS: dict[str, str] = {
     "fields": (
         "choosing and labelling which columns render is the presentation template's own job "
@@ -259,18 +233,12 @@ def _drop_bundled_module_where_override_sets_path(merged: RawMapping) -> None:
 
 
 def _retired_view_grammar_violations(raw_override: RawMapping, origin: str) -> list[MergeViolation]:
-    """Every retired-grammar key still declared in *raw_override* — the four keys retired
-    (``fields``, ``group_by``, ``order_by`` on a view; ``views`` on an item type), scanned on
-    the raw, pre-merge, pre-splat document.
-
-    Deliberately run before :func:`~squads._specmerge.merge_override`: splat resolution and
-    the deep merge both run before either spec model ever sees the key, and by the time a
-    retired key reaches ``ViewSpec``'s or ``ItemSpec``'s own ``extra="forbid"`` it is
-    indistinguishable from a genuinely unknown one — the generic refusal calls it ``"unknown"``,
-    and a self-splat position (``fields = ["$(*self)", ...]``) calls it ``"brand-new"``, which
-    is backwards for a key that was declared, shipped, and then removed. This check wins that
-    race on purpose, so the message says what actually happened: the key was retired, and what
-    replaces it.
+    """Every retired-grammar key still declared in *raw_override* (``fields``, ``group_by`` and
+    ``order_by`` on a view, ``views`` on an item type), scanned on the raw, pre-merge, pre-splat
+    document. It runs before :func:`~squads._specmerge.merge_override` because afterwards a retired
+    key reaching ``ViewSpec``'s or ``ItemSpec``'s ``extra="forbid"`` is indistinguishable from an
+    unknown one (and a self-splat makes it "brand-new"), whereas this says the key was retired and
+    what replaces it.
     """
     violations: list[MergeViolation] = []
     views_section = raw_override.get("views")
@@ -344,20 +312,13 @@ def _without_selected_squad(raw_override: RawMapping) -> RawMapping:
 
 
 def spec_refusal(override_path: Path | str, cause: object) -> str:
-    """The one refusal text every surface prints when the declared workflow override will not
-    resolve — composed here, where the file and the loader's own cause are both in hand, so
-    ``open_service``'s hard stop and the CLI's per-invocation binding say the same thing.
-
-    Worth three lines rather than one. This failure changes ``sq`` from answering *wrongly* to
-    not answering at all, so the message has to carry everything needed to act: **which file**
-    (an adopter may not know an override exists at all — it can be inherited with the repo),
-    **what is actually wrong** (the loader's own key-level cause, not a generic "invalid
-    spec"), and **what to do**. A hard stop that does not say what to fix is a worse defect
-    than the quiet wrong answer it replaces.
-
-    Does *not* claim to be the one command that still runs while this stands — driven, it
-    isn't: ``sq repair`` (through its documented bypass) and ``sq check`` (through its
-    documented bundled-spec fallback) both run too, disprovable in one line by running either.
+    """The one refusal text every surface prints when the workflow override will not resolve,
+    composed where the file and the loader's cause are both in hand, so ``open_service``'s hard stop
+    and the CLI's per-invocation binding agree. It carries which file (an adopter may not know an
+    override exists, as it can be inherited with the repo), the loader's key-level cause, and what
+    to do, because a hard stop that does not say what to fix is worse than the quiet wrong answer it
+    replaces. It does not claim to be the one command that still runs: ``sq repair`` (documented
+    bypass) and ``sq check`` (bundled-spec fallback) run too.
     """
     return (
         f"this squad's workflow override could not be loaded, so no command can answer with "
@@ -384,21 +345,14 @@ def refusal_cause(refusal: str) -> str:
 def load_workflow_spec(
     squad_dir: Path | None = None, files: OverrideFiles | None = None
 ) -> WorkflowSpec:
-    """Read, parse, merge (if a project override is present), and validate the workflow spec.
-
-    When ``squad_dir`` is ``None`` (the default), returns the fully-validated bundled-only
-    ``WorkflowSpec`` singleton exactly as before (no filesystem access beyond
-    ``importlib.resources``).
-
-    When ``squad_dir`` is given and ``<squad_dir>/.overrides/workflow.toml`` exists, the override
-    is merged over the bundled default with **shadowing** semantics: a hand-written
-    key replaces its bundled counterpart, a new key is added, and ``[selected]`` drops any key by
-    name — the only floor is the roster type-key lock (module docstring) plus whatever the
-    spec's own structural/referential validation and the live-index cross-check catch. With no
-    override file present the bundled spec is returned unchanged — not a single byte differs.
-
-    Raises ``SquadsError`` on any violation, naming the offending key/item and pointing to
-    ``sq workflow lint`` for the full diagnostic where the caller (``open_service``) adds that.
+    """Read, parse, merge (if a project override is present) and validate the workflow spec. With
+    ``squad_dir`` ``None`` it returns the validated bundled-only ``WorkflowSpec`` with no filesystem
+    access beyond ``importlib.resources``. With ``<squad_dir>/.overrides/workflow.toml`` present,
+    the override is merged with shadowing semantics (a key replaces its counterpart, a new key is
+    added, ``[selected]`` drops one by name), the only floor being the roster type-key lock plus the
+    spec's own validation and the live-index cross-check; with no override the bundled spec is
+    returned unchanged. It raises ``SquadsError`` naming the offending key or item, pointing to ``sq
+    workflow lint`` where the caller (``open_service``) adds that.
     """
     loaded = load_override(_DOCUMENT, squad_dir, _bundled_raw, files)
     if loaded is None:
@@ -467,20 +421,16 @@ def _load_bundled_spec() -> WorkflowSpec:
     return _build_spec(_bundled_raw())
 
 
-# ---------------------------------------------------------------------------
-# Raw-mapping -> model (shared by the bundled-only load and the merged load — one parser
-# family, run once over whichever raw mapping the caller hands it).
-# ---------------------------------------------------------------------------
+# Raw mapping -> model, shared by the bundled-only and merged loads: one parser family run once over
+# whichever mapping the caller hands it.
 
 
 def _pop_legacy_is_meta(name: str, data: dict[str, Any]) -> dict[str, Any]:
-    """One-release read-compat shim, per the accepted back-compat policy: translate a
-    deprecated ``is_meta`` key before ``model_validate`` sees it, so ``ItemSpec``'s
-    ``extra="forbid"`` stays intact.
-
-    ``is_meta`` absent or ``false`` is a no-op (``category`` falls to its ``"work"`` default).
-    ``is_meta = true`` on a type outside the closed, locked roster set is refused — roster
-    membership isn't adopter-declarable. Dropped at 1.0 (see CHANGELOG).
+    """Compatibility shim that translates a deprecated ``is_meta`` key before ``model_validate``
+    sees it, so ``ItemSpec``'s ``extra="forbid"`` stays intact; it is dropped at 1.0 (see
+    CHANGELOG). ``is_meta`` absent or ``false`` is a no-op (``category`` defaults to ``"work"``),
+    and ``is_meta = true`` on a type outside the locked roster set is refused, as roster membership
+    is not adopter-declarable.
     """
     if "is_meta" not in data:
         return data
@@ -495,16 +445,12 @@ def _pop_legacy_is_meta(name: str, data: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
-# ---------------------------------------------------------------------------
-# Shape guards. The merged mapping is adopter-authored data, not a trusted document: TOML
-# happily produces `items = "oops"` or `[items] task = "oops"`, and every walk below then
-# calls `.items()`/`.get()` on a `str`. Those escaped as a raw `AttributeError`/`TypeError`
-# carrying internal file paths — including out of `sq workflow lint`, whose contract is that
-# it never raises and reports every problem as a finding, so the one diagnostic an adopter
-# has died on exactly the shape it exists to diagnose. Every section, entry and inline list
-# is shape-checked here, and a mismatch becomes the same clean `SquadsError` a type error
-# inside an entry already produced.
-# ---------------------------------------------------------------------------
+# Shape guards. The merged mapping is adopter-authored data: TOML happily yields `items = "oops"`,
+# and every walk then calls `.items()`/`.get()` on a `str`, escaping as a raw
+# AttributeError/TypeError carrying internal paths, even out of `sq workflow lint`, whose contract
+# is to never raise and report every problem. Every section, entry and inline list is shape-checked
+# here, and a mismatch becomes the clean `SquadsError` a type error inside an entry already
+# produced.
 
 
 def as_table(value: Any, what: str) -> dict[str, Any]:
@@ -577,14 +523,11 @@ def _parse_lifecycle(name: str, data: dict[str, Any]) -> Lifecycle:
 
 
 def _parse_ref_rules(raw_rules: Any, ctx: str, declared_kinds: frozenset[str]) -> list[RefRule]:
-    """Parse a list of ref-rule dicts into ``RefRule`` objects.
-
-    Passes the raw dict directly to ``model_validate`` so ``extra="forbid"`` rejects
-    any unknown keys in a ref-rule table. Each rule's ``kind`` must name an entry of
-    *declared_kinds* — the document's own ``[ref_kinds]`` section, parsed before this is ever
-    called: a rule declared for a kind no ref surface accepts can never fire, so it is a
-    declaration that silently does nothing — refused here rather than carried as an inert
-    hint. This validates a declaration *against* the declared set; it never widens it.
+    """Parse a list of ref-rule dicts into ``RefRule`` objects, passing each raw dict to
+    ``model_validate`` so ``extra="forbid"`` rejects unknown keys. Each rule's ``kind`` must name an
+    entry of *declared_kinds* (the document's own ``[ref_kinds]``, parsed first), since a rule for a
+    kind no ref surface accepts can never fire; it validates against the declared set and never
+    widens it.
     """
     rules: list[RefRule] = []
     for i, rule_data in enumerate(as_entry_list(raw_rules, f"{ctx}.ref_rules")):
@@ -676,16 +619,12 @@ def _parse_ref_kind(code: str, data: dict[str, Any]) -> RefKindSpec:
 
 
 def _parse_view(name: str, data: dict[str, Any]) -> ViewSpec:
-    """Parse one ``[views.<name>]`` table into a ``ViewSpec``.
-
-    ``source`` is required and itself a table (``{kind, name}``); ``required`` is an optional
-    bool, defaulting false, flowing through in *data* verbatim like every other key. Anything
-    else in *data* — including the retired ``fields``/``group_by``/``order_by`` grammar —
-    reaches ``ViewSpec.model_validate`` verbatim via ``**data`` below and is refused by its
-    ``extra="forbid"``, naming the offending key
-    (:func:`~squads._specmerge.describe_spec_error`). ``source.name`` is cross-referenced
-    against the merged spec once every vocabulary section has been parsed (``_check_views``,
-    run from ``WorkflowSpec._validate``) — this function only builds the typed value.
+    """Parse one ``[views.<name>]`` table into a ``ViewSpec``. ``source`` is required and a table
+    (``{kind, name}``); ``required`` is an optional bool defaulting false. Anything else, the
+    retired ``fields``/``group_by``/``order_by`` included, reaches ``ViewSpec.model_validate``
+    verbatim and is refused by its ``extra="forbid"``
+    (:func:`~squads._specmerge.describe_spec_error`). ``source.name`` is cross-referenced later by
+    ``check_views``; this only builds the typed value.
     """
     ctx = f"views.{name}"
     raw_source = as_table(data.get("source", {}), f"{ctx}.source")
@@ -750,15 +689,12 @@ def _parse_item(name: str, data: dict[str, Any], declared_ref_kinds: frozenset[s
 
 
 def _build_spec(raw: dict[str, Any], *, collect: bool = False) -> WorkflowSpec:
-    """Build and validate a ``WorkflowSpec`` from a raw parsed-TOML mapping — the bundled one,
-    or a bundled-plus-override mapping the merge engine has already produced. One parser
-    family, run once, regardless of which raw mapping it is handed.
-
-    Every section and entry is read through :func:`_section`/:func:`as_entry_list`, so a
-    malformed shape anywhere in the document is refused as a clean ``SquadsError`` — the shape
-    guards' own comment above says why that matters more than the message quality suggests.
-    The first malformed entry is refused, unless *collect* is set: then every malformed entry
-    is parsed past and the failures are raised together as one :class:`SpecShapeErrors`."""
+    """Build and validate a ``WorkflowSpec`` from a raw parsed-TOML mapping (the bundled one or a
+    merged one) through one parser family. Every section and entry is read through
+    :func:`_section`/:func:`as_entry_list`, so a malformed shape is a clean ``SquadsError`` (see the
+    shape-guards comment). The first malformed entry is refused unless *collect* is set, which
+    parses past each and raises them together as one :class:`SpecShapeErrors`.
+    """
     raw = as_table(raw, "workflow spec")
     problems: list[str] = []
 
@@ -840,28 +776,19 @@ def _build_spec(raw: dict[str, Any], *, collect: bool = False) -> WorkflowSpec:
     return spec
 
 
-# ---------------------------------------------------------------------------
-# The loader's own floor: the roster type-key lock.
-#
-# Everything else the floor needs — the universal lifecycle floor, the roster R1/R1'/R2
-# clauses, every referential-integrity cross-reference — already lives in
-# WorkflowSpec._validate and simply runs against the merged mapping via _build_spec above.
-# This is the one clause that has to run BEFORE a model is even built: nothing in the typed
-# models stops a non-roster type from declaring category="roster", because a bare Literal
-# check has no idea the roster's three names are reserved.
-# ---------------------------------------------------------------------------
+# The loader's own floor, the roster type-key lock. It must run before any model is built, since
+# nothing in the typed models stops a non-roster type declaring category="roster" (a Literal check
+# does not know the three names are reserved); every other floor clause lives in
+# WorkflowSpec._validate and runs on the merged mapping.
 
 
 def _collect_floor_violations(merged: RawMapping, origin: str) -> list[str]:
-    """The roster type-key lock: the three roster type keys (``role``/``skill``/``operator``)
-    must exist in *merged* with ``category = "roster"``, and no other key may claim that
-    category. Written on the key set plus ``category`` immobility only — **never** on
-    ``prefix``, which is ordinary field-mergeable customisation under the same full floor
-    every other type faces (``WorkflowSpec._validate``, run afterwards by ``_build_spec``).
-
-    Collects every violation regardless of caller — the caller decides whether to raise on
-    the first (fail-fast) or report all (collect-all), mirroring ``merge_override``'s own
-    two-mode contract. Returns an empty list when the lock holds.
+    """The roster type-key lock: the three roster type keys (``role``/``skill``/``operator``) must
+    exist in *merged* with ``category = "roster"``, and no other key may claim it. It rests on the
+    key set and ``category`` immobility only, never ``prefix``, which is ordinary customisation
+    under the full floor (``WorkflowSpec._validate``). It collects every violation, the caller
+    choosing to raise on the first or report all, as ``merge_override`` does, and returns an empty
+    list when the lock holds.
     """
 
     raw_items = merged.get("items", {})
@@ -903,22 +830,15 @@ def _raise_on_floor_violation(merged: RawMapping, origin: str) -> None:
 def _strip_ref_rule_targets_of_dropped_types(
     merged: RawMapping, deselections: tuple[Deselection, ...]
 ) -> None:
-    """Take a surviving type's declarations that name a type ``[selected].items`` just
-    dropped.
-
-    ``RefRule.target`` and a ``ref_rule_target_present:<T>`` validator entry both name another
-    item type by string, from the *targeting* type's own block — dropping ``<T>`` leaves that
-    block referring to vocabulary that no longer exists, and both
-    :func:`~squads._workflow._validity.check_ref_rule_targets` clauses refuse it. Dropping
-    ``contract`` hits both: the bundled ``feature`` entry declares an ``implements`` rule
-    targeting it, and a project that opted into requiring that edge also carries
-    ``ref_rule_target_present:contract`` there (nothing bundled selects it). Without this, an
-    adopter dropping a non-reserved type through ``[selected].items`` bricks the whole squad
-    until they also find and edit the unrelated-looking type block that targets it.
-
-    Scoped to declarations that *target* a dropped type only — never ``parents``, which is the
-    pre-existing, deliberately-unchanged coupling between ``epic`` and ``feature``. Mutates
-    *merged* in place, at the same raw-mapping layer ``[selected]`` itself operates at.
+    """Remove a surviving type's declarations that name a type ``[selected].items`` just dropped:
+    ``RefRule.target`` and a ``ref_rule_target_present:<T>`` entry both name another type by string
+    from the targeting type's own block, and both
+    :func:`~squads._workflow._validity.check_ref_rule_targets` clauses would refuse the dangling
+    name (dropping ``contract`` hits the bundled ``feature`` ``implements`` rule and any opted-in
+    ``ref_rule_target_present:contract``). Without this, dropping a non-reserved type bricks the
+    squad until the adopter finds the unrelated-looking block. It targets declarations only, never
+    ``parents`` (the standing ``epic``/``feature`` coupling), and mutates *merged* in place at the
+    raw-mapping layer.
     """
     dropped_types = {d.key for d in deselections if d.section == "items"}
     if not dropped_types:
@@ -942,24 +862,19 @@ def _strip_ref_rule_targets_of_dropped_types(
                 for v in cast("list[Any]", validators)
                 if not (
                     isinstance(v, str)
-                    and v.startswith("ref_rule_target_present:")
-                    and v.partition(":")[2] in dropped_types
+                    and parse_validator_entry(v)[0] == "ref_rule_target_present"
+                    and parse_validator_entry(v)[1] in dropped_types
                 )
             ]
 
 
-# ---------------------------------------------------------------------------
-# Deselection provenance — annotate a structural-validation error that traces back to a
-# `[selected]` drop, so the message says "dropped from a selected list" rather than "never
-# declared" — the same ruling that lets a shadowing override drop a key by name.
-# ---------------------------------------------------------------------------
+# Deselection provenance: annotate a structural-validation error that traces to a `[selected]` drop,
+# so the message says "dropped from a selected list" rather than "never declared".
 
-#: Matches a single-quoted identifier the way every WorkflowSpec._validate error message
-#: names one (``f"...{name!r}..."`` on a plain str always renders as ``'name'``). Used only to
-#: recover the LAST such identifier in one error line — by convention, every check in
-#: WorkflowSpec._validate names the *missing* key last (the referrer first, the dangling
-#: reference last), so this is a mechanical, uniform way to spot it without re-deriving each
-#: check's own wording.
+#: Matches a single-quoted identifier as every WorkflowSpec._validate message names one (``!r`` on a
+#: str). It recovers the last such identifier in an error line, since by convention every check
+#: names the missing key last (referrer first, dangling reference last), a uniform way to spot it
+#: without re-deriving each wording.
 _QUOTED_IDENTIFIER_RE = re_compile(r"'([^']*)'")
 
 _BULLET_PREFIX = "  - "
@@ -1021,41 +936,24 @@ def _expected_folder(item: Any) -> str:
 
 
 def _normalized_folder(folder: str) -> str:
-    """Normalise a declared ``ItemSpec.folder`` string for comparison against
-    :func:`_expected_folder`, which is always ``PurePosixPath``-normalised.
-
-    ``ItemSpec.folder`` is a bare, unconstrained ``str`` — a hand-written override is free to
-    spell the same directory as ``"guides/"``, ``"./guides"``, or ``"guides//sub"``, and every
-    one of those is textually different from the normalised form the item's own stored path
-    produces, even though the two name the same directory. Folding both sides through
-    ``PurePosixPath`` before comparing (trailing slash, redundant ``./``/``//`` all collapse)
-    is what makes the comparison a real *alignment* check rather than a string diff.
-
-    Deliberately NOT folded here: letter case. Unlike separator syntax, "same directory" under
-    case is a filesystem property, not a path-syntax one — a case-insensitive filesystem (the
-    typical macOS/Windows default) would tolerate ``Guides`` vs ``guides``, but a case-sensitive
-    one (the typical Linux default, and the one CI runs on) would not, so folding case here
-    would turn a real mismatch on a case-sensitive filesystem into a silently-accepted override.
+    """Normalise a declared ``ItemSpec.folder`` for comparison with :func:`_expected_folder`, which
+    is ``PurePosixPath``-normalised: ``"guides/"``, ``"./guides"`` and ``"guides//sub"`` spell one
+    directory differently, and folding through ``PurePosixPath`` makes the comparison a real
+    alignment check. Case is deliberately not folded, because it is a filesystem property, and
+    folding it would silently accept a mismatch on a case-sensitive filesystem (Linux, where CI
+    runs).
     """
     return PurePosixPath(folder).as_posix()
 
 
 def _collect_corpus_alignment_errors(spec: WorkflowSpec, db: Any) -> list[str]:
-    """The corpus-alignment check: for every type in *spec* with at least one live item, the
-    declared ``prefix``/``folder`` must equal what those items were actually written under.
-
-    Stores nothing new — the expected prefix is recovered from each item's own derived
-    ``.prefix`` (parsed from its ``id``), the expected folder from its stored ``.path`` — so no
-    per-type prefix/folder ever enters the index, which is forbidden to hold what the ``.md``
-    files already carry. A mismatch fails closed, grouped per type, listing every offending
-    item ID, and naming only the two performable ways forward — revert the field, or change it
-    only while the type has no items — never a migration: no shipped verb realigns an existing
-    corpus (``repad`` renames files for a padding change only; ``retype`` moves one item while
-    also changing its type).
-
-    An item whose type is not declared in *spec* at all is skipped here — already reported by
-    the type-name check above; there is no ``ItemSpec`` left to compare its prefix/folder
-    against.
+    """The corpus-alignment check: for every type in *spec* with a live item, the declared
+    ``prefix``/``folder`` must equal what those items were written under, recovered from each item's
+    own derived ``.prefix`` and stored ``.path`` so nothing new enters the index. A mismatch fails
+    closed, grouped per type listing every item ID, and names only the two performable ways forward
+    (revert the field, or change it only while the type has no items), since no shipped verb
+    realigns a corpus (``repad`` renames for padding only; ``retype`` moves one item while changing
+    its type). An item whose type is undeclared is skipped, being reported by the type-name check.
     """
 
     prefix_mismatch: dict[str, list[str]] = {}
@@ -1088,34 +986,20 @@ def _collect_corpus_alignment_errors(spec: WorkflowSpec, db: Any) -> list[str]:
 
 
 def _collect_ref_kind_alignment_errors(spec: WorkflowSpec, db: Any) -> list[str]:
-    """The ref-kind counterpart to :func:`_collect_corpus_alignment_errors`: a ref kind is
-    durable on-disk data no scan re-derives, on exactly the terms the type/prefix/folder
-    alignment check above already uses. For every kind the merged spec drops or
-    renames, list the items whose ``refs`` still spell it literally.
+    """The ref-kind counterpart of :func:`_collect_corpus_alignment_errors`: for every kind the
+    merged spec drops or renames, the items whose ``refs`` still spell it literally, the expected
+    set recovered from the corpus (each edge carries its kind inline). It is not part of
+    :func:`validate_against_index`, so it never gates the load boundary, since an undeclared kind on
+    a live edge is bounded (every item loads, ``sq graph`` reports a null semantic); it is called by
+    ``sq workflow lint`` and by the write-boundary gates (``_services/_refs.py``,
+    ``_services/_base.py::create``, the bulk importer) checking a new ref's kind. An empty corpus is
+    unaffected, which is the adoption-time case.
 
-    Unlike the type/prefix/folder/badge families, this collector is **not** part of
-    :func:`validate_against_index` and so never gates the load boundary — an undeclared ref
-    kind on a live edge is bounded (every item still loads, every edge is still readable, `sq
-    graph` reports it with a null semantic). It is called directly by ``sq workflow lint``
-    (which does refuse) and is what the write-boundary gates (``_services/_refs.py``,
-    ``_services/_base.py::create``, the bulk importer) check a *new* ref's kind against.
-
-    Stores nothing new — the expected set is recovered from the corpus itself, since every
-    edge carries its own kind inline. An empty corpus (no live ref spells the kind) is
-    unaffected — that is the case the capability was actually asked for: choosing your own
-    ref-kind vocabulary at adoption time.
-
-    A **bare** (unspelled) ref carries no literal kind at all — it decodes through the merged
-    spec's own declared ``default`` (:meth:`WorkflowSpec.default_ref_kind`), so renaming which
-    kind carries that role relabels those edges rather than stranding them; only a kind
-    actually spelled here can ever appear in the result. That is "spelled by hand".
-
-    ``spec`` is accessed duck-typed for ``ref_kinds`` (``getattr`` with an empty default),
-    matching :func:`_collect_badge_alignment_errors`'s own contract of accepting a minimal
-    object that only carries ``items``/``statuses`` in the narrower call sites that don't
-    exercise this axis at all — a real ``WorkflowSpec`` never has an empty ``ref_kinds`` (the
-    per-capability floor requires at least the ``default`` role), so an empty mapping here
-    always means "nothing to check against", never a genuinely empty declared vocabulary.
+    A bare ref carries no literal kind and decodes through the spec's declared ``default``
+    (:meth:`WorkflowSpec.default_ref_kind`), so renaming that role relabels those edges instead of
+    stranding them. ``spec`` is read duck-typed for ``ref_kinds`` (``getattr`` with an empty
+    default) like :func:`_collect_badge_alignment_errors`, since a real spec always has the
+    ``default`` kind and an empty mapping means "nothing to check against".
     """
     from squads._models._item import split_ref
 
@@ -1146,10 +1030,11 @@ def _collect_ref_kind_alignment_errors(spec: WorkflowSpec, db: Any) -> list[str]
 def _badge_field_mismatches(
     obj: Any, fields: list[Any], collections: dict[str, Any]
 ) -> list[tuple[str, str, str]]:
-    """``(field_code, collection_code, bad_value)`` for every *fields* entry whose value on
-    *obj* (an ``Item`` or ``SubEntity``, read via the shared ``badge_value`` accessor both
-    carry) is no longer a member of its bound collection's badge codes. A field with no stored
-    value is skipped — unset is always valid; only a live, stale code is a mismatch."""
+    """``(field_code, collection_code, bad_value)`` for every *fields* entry whose value on *obj*
+    (an ``Item`` or ``SubEntity``, via the shared ``badge_value`` accessor) is no longer a member of
+    its bound collection. A field with no stored value is skipped, unset being valid; only a stale
+    code is a mismatch.
+    """
     mismatches: list[tuple[str, str, str]] = []
     for f in fields:
         value = obj.badge_value(f.code)
@@ -1164,16 +1049,12 @@ def _badge_field_mismatches(
 def _code_removed_by_override(
     coll_code: str, bad_value: str, collections: dict[str, Any], bundled_collections: dict[str, Any]
 ) -> bool:
-    """Whether *bad_value*, found on a live item's field bound to *coll_code*, can be honestly
-    attributed to the override — per **value**, not per collection: the code must actually
-    have been valid under the bundled collection and must actually be missing from the merged
-    one. A collection that only ever *grew* relative to bundled still has every one of its
-    original codes accepted, so a stale value that was never valid under bundled OR under the
-    merged spec either is a plain corpus/frontmatter data problem, not something this
-    cross-check plane (which exists to catch an override regressing a live corpus) has any
-    business reporting — that is the load-boundary vocab check's job
-    (``_index/_store.py::_validate_badge_codes``), whose message stays cause-agnostic for
-    exactly this reason.
+    """Whether *bad_value*, on a live item's field bound to *coll_code*, can be attributed to the
+    override, per value: the code must have been valid under the bundled collection and be missing
+    from the merged one. A stale value never valid under either is a plain data problem, not what
+    this plane (catching an override regressing a live corpus) should report; that is the
+    load-boundary check's job (``_index/_store.py::_validate_badge_codes``), whose message stays
+    cause-agnostic.
     """
     bundled_coll = bundled_collections.get(coll_code)
     if bundled_coll is None or not bundled_coll.declares(bad_value):
@@ -1187,34 +1068,19 @@ def _code_removed_by_override(
 def _collect_badge_alignment_errors(
     spec: WorkflowSpec, db: Any, bundled: WorkflowSpec
 ) -> list[str]:
-    """The badge-vocabulary counterpart to :func:`_collect_corpus_alignment_errors`, on the
-    same live-index cross-check plane as the type/status/prefix/folder walks: for every live
-    item (and sub-entity) whose stored badge-field value no longer names a code in its bound
-    collection **and whose specific code the override actually removed** — this fails closed
-    here, at load, rather than surfacing only later at the load-boundary vocab check
-    (``_index/_store.py::_validate_badge_codes``) every ordinary command already runs.
+    """The badge-vocabulary counterpart of :func:`_collect_corpus_alignment_errors`, on the same
+    live-index plane: every live item or sub-entity whose stored badge value no longer names a code
+    in its collection and whose specific code the override removed fails closed here, at load,
+    rather than later at the load-boundary vocab check. The per-value attribution
+    (:func:`_code_removed_by_override`) is load-bearing: treating any mismatch against the current
+    spec as override-caused would blame configuration for a corrupted or stale-index value and block
+    ``sq repair``, the command that fixes it.
 
-    The per-**value** attribution (:func:`_code_removed_by_override`) is load-bearing, not an
-    optimisation: this plane's whole justification is catching an override regressing a
-    *live* corpus, so it must only report what the override actually did. Reading a live
-    item's stored code and treating any mismatch against the *current* spec as override-caused
-    would blame configuration for a plain corpus data problem whenever the two disagree for
-    any other reason (a hand-edited or otherwise corrupted stored value, most notably a
-    rebuildable-index entry stale relative to the frontmatter it should mirror, or a
-    collection that only ever grew and so never stopped accepting the stale code) —
-    asserting a cause this check cannot actually establish, and refusing to load over a
-    problem ``sq repair`` exists to fix, blocking the very command whose job is fixing it.
-
-    Stores nothing new: the mismatched codes are the item's/sub-entity's own already-persisted
-    values. Grouped per (owning type or sub-entity kind, field code, offending code) so one
-    override change that strands several items on the same removed code reports as one
-    finding, not one per item.
-
-    ``spec`` is accessed duck-typed for ``collections``/``item_subentity_kind``/
-    ``subentity_kinds`` (``getattr`` with an empty/``None`` default), matching this module's own
-    ``validate_against_index`` contract of accepting a minimal object that only carries
-    ``items``/``statuses`` in the narrower call sites that don't exercise badge fields at all —
-    a real ``WorkflowSpec`` always has every one of these populated.
+    It stores nothing new and groups per (owning type or sub-entity kind, field code, offending
+    code) so one override change reports one finding. ``spec`` is read duck-typed for
+    ``collections``/``item_subentity_kind``/``subentity_kinds`` (``getattr`` with an empty default),
+    as ``validate_against_index`` accepts a minimal object in narrower call sites; a real spec
+    populates all of them.
     """
     collections: dict[str, Any] = getattr(spec, "collections", {})
     subentity_kinds: dict[str, Any] = getattr(spec, "subentity_kinds", {})
@@ -1266,14 +1132,11 @@ def _collect_badge_alignment_errors(
 
 
 def _collect_type_status_errors(spec: WorkflowSpec, db: Any) -> list[str]:
-    """Every live item's/sub-entity's ``type``/``status`` still named in the merged spec.
-
-    The **fail-closed** family, and deliberately the weaker of the two status questions: it
-    asks whether the merged spec can still *read* this corpus at all. A status the spec no
-    longer declares anywhere leaves the item unreadable, so refusing to load is the only safe
-    answer. A status that is declared but unreachable in the entity's own machine is a
-    different question with a different remedy — see :func:`_collect_unreachable_status_errors`,
-    which reports it rather than refusing.
+    """Every live item's or sub-entity's ``type``/``status`` still named in the merged spec: the
+    fail-closed family and the weaker status question, whether the spec can still read this corpus.
+    A status declared nowhere leaves an item unreadable, so refusing to load is the only safe
+    answer; one declared but unreachable in the entity's own machine is a different question with a
+    different remedy (:func:`_collect_unreachable_status_errors`, which reports it).
     """
     errors: list[str] = []
     known_types: frozenset[str] = frozenset(spec.items)
@@ -1313,23 +1176,14 @@ def _machine_states(spec: WorkflowSpec, lifecycle_name: str | None) -> frozenset
 
 
 def _collect_unreachable_status_errors(spec: WorkflowSpec, db: Any) -> list[str]:
-    """Every live item/sub-entity resting on a status its own machine cannot reach — declared
-    somewhere in the spec, but not a state of the lifecycle that entity is actually driven by.
-
-    This is the **reporting** family, not a load refusal, and the split is the point. Judging a
-    status against the flat, spec-wide set (:func:`_collect_type_status_errors`) accepts an
-    entity parked on a state it can never transition out of, which is how ``sq workflow lint``
-    said a corpus was clean while ``sq check`` — which has always validated per lifecycle, via
-    ``_services._validators._item_status_valid`` / ``_subentity_status_valid`` — called the
-    same item an error. Asking the question against the *declaring* scope rather than a global
-    set is what makes the two agree.
-
-    It stays a report on both planes rather than becoming a fifth fail-closed clause, because
-    the remedy is per item and needs the tool to keep working: ``sq <type> <n> status <s>
-    --force`` moves the item off, and it is reachable only while commands still run. The
-    fail-closed families refuse for the opposite reason — a dropped type, a re-prefixed folder
-    or a stranded badge code leave the corpus genuinely unreadable, and no per-item verb fixes
-    those from inside.
+    """Every live item or sub-entity resting on a status its own machine cannot reach (declared in
+    the spec but not a state of the lifecycle driving the entity). This is the reporting family, not
+    a load refusal: it judges against the declaring lifecycle, not the flat spec-wide set, so
+    ``sq workflow lint`` agrees with ``sq check``, which validates per lifecycle
+    (``_item_status_valid``/``_subentity_status_valid``). It stays a report because the remedy is
+    per item and needs the tool running (``sq <type> <n> status <s> --force``), unlike the
+    fail-closed families, where a dropped type, re-prefixed folder or stranded badge code leaves
+    the corpus unreadable.
     """
     errors: list[str] = []
     subentity_kinds: dict[str, Any] = getattr(spec, "subentity_kinds", {})
@@ -1366,47 +1220,25 @@ def _collect_unreachable_status_errors(spec: WorkflowSpec, db: Any) -> list[str]
 def validate_against_index(
     spec: WorkflowSpec, db: Any, *, bundled: WorkflowSpec, alignment: bool = True
 ) -> list[str]:
-    """Cross-check live index items against the merged workflow spec.
+    """Cross-check live index items against the merged workflow spec, returning human-readable error
+    strings (empty means clean). It checks that every item's ``type``, and every item's and
+    sub-entity's ``status``, is declared; that each type with a live item still has its
+    ``prefix``/``folder`` matching what the items were written under; and that stored badge values
+    still name a code in their bound collection when the active collection differs from bundled.
+    Each error lists the item IDs, and removing a still-used status or type, re-prefixing or
+    re-foldering a type, or shrinking a collection against a non-empty corpus fails closed.
 
-    Returns a list of human-readable error strings (empty = clean).
+    A dropped or renamed ref kind still spelled on a live edge is deliberately not one of these: it
+    is a ``sq check`` finding, never a load failure, since nothing vanishes from the scan and ``sq
+    graph``/``refs`` report a null semantic; :func:`_collect_ref_kind_alignment_errors` still gates
+    ``sq workflow lint`` and every write of such a ref. *alignment* ``False`` omits the
+    prefix/folder half, which exists to blame an override, for a caller with none. ``db`` is typed
+    ``Any`` because ``_workflow`` must not import ``_models._index`` at module level.
 
-    Checks:
-    - Any item whose ``type`` is not declared in ``spec.items`` → error listing the item ID.
-    - Any item whose ``status`` is not declared in ``spec.statuses`` → error listing the item ID.
-    - Any sub-entity whose ``status`` is not declared in ``spec.statuses`` → error.
-    - For every type with at least one live item, its declared ``prefix``/``folder`` still
-      matches what those items were written under → error listing the item IDs.
-    - Any item's/sub-entity's stored badge-field value (``priority``, ``severity``, …) still
-      names a code in its bound collection, when the active spec's collection actually
-      differs from bundled → error listing the item IDs.
-
-    A dropped/renamed ref kind still spelled on a live edge is deliberately **not** one of
-    these checks, unlike the other durable-on-disk axes above: an undeclared ref kind is a
-    ``sq check`` finding, never a load failure — nothing vanishes from the on-disk scan the way
-    a re-prefixed type does, and `sq graph`/`refs` already traverse such an edge and report a
-    null semantic rather than dropping it. ``_collect_ref_kind_alignment_errors`` still exists
-    and still gates ``sq workflow lint`` and every *write* of a ref of that kind — it is simply
-    not one of the families that locks the whole squad at load. See its own docstring.
-
-    Removing a status/type from the override that is still referenced by live items, or
-    re-prefixing/re-foldering a type, or shrinking/replacing a badge collection a live item's
-    field value still names, against a non-empty corpus fails closed, listing the offending
-    item IDs.
-
-    *alignment* ``False`` leaves out the prefix/folder alignment half, which exists to catch an
-    override that re-prefixes or re-folders a type: a caller with no override to blame asks only
-    the families the store's own load refuses.
-
-    ``db`` is a ``SquadsDB`` instance; typed ``Any`` here to avoid an import cycle
-    (``_workflow`` must not import ``_models._index`` at module level).
-
-    This is the combined contract every call site outside this module uses (the fail-closed
-    raise, and every pre-existing test) — one flat list, cause-blind about which of the three
-    families below produced which entry. ``lint_workflow_spec`` needs to tell them apart (each
-    family's fix is different, and it additionally runs the ref-kind axis this function does
-    not), so it calls the collectors (:func:`_collect_type_status_errors`,
+    This is the combined, cause-blind contract every outside call site uses; ``lint_workflow_spec``
+    needs each family's own fix, so it calls the collectors (:func:`_collect_type_status_errors`,
     :func:`_collect_corpus_alignment_errors`, :func:`_collect_badge_alignment_errors`,
-    :func:`_collect_ref_kind_alignment_errors`) directly instead of this function.
+    :func:`_collect_ref_kind_alignment_errors`) directly.
     """
     return [
         *_collect_type_status_errors(spec, db),
@@ -1415,11 +1247,9 @@ def validate_against_index(
     ]
 
 
-# ---------------------------------------------------------------------------
-# Drift stamping — whether a workflow override shadows the bundled spec: a raw
-# key-set intersection, no merge required. Shared by `sq check` and `sq workflow lint` so the
-# two never disagree about the same file.
-# ---------------------------------------------------------------------------
+# Drift stamping: whether a workflow override shadows the bundled spec is a raw key-set intersection
+# needing no merge, shared by `sq check` and `sq workflow lint` so they never disagree about one
+# file.
 
 
 def _raw_shadows_bundled(bundled_raw: RawMapping, override_raw: RawMapping) -> bool:
@@ -1454,22 +1284,13 @@ def workflow_override_shadows_bundled(squad_dir: Path, files: OverrideFiles | No
 def workflow_stamp_finding(
     squad_dir: Path, stamp: str | None, files: OverrideFiles | None = None
 ) -> tuple[str, str] | None:
-    """The stamp obligation for the workflow override, evaluated once so ``sq check`` and
-    ``sq workflow lint`` always agree. Returns ``(level, message)``, or ``None``
-    when nothing is owed:
-
-    - shadowing **and** unstamped → ``("error", ...)`` — a shadowing override has stopped
-      tracking the bundled spec and so inherits the provenance obligation every other
-      shadowing override kind already carries.
-    - stamped, older than running, **and the bundled workflow.toml actually changed** since
-      that stamp → ``("warn", ...)``. Drift is content-gated: an old stamp alone is never a
-      warning, so an add-only override with no bundled change behind it reports clean, not
-      "may be stale".
-    - stamped at the running version, content unchanged since the stamp, or add-only and
-      unstamped → ``None``.
-
-    Absent provenance never changes whether the merged spec satisfies the floor — this is
-    reported, never a load-time refusal; the floor's own refusals stay hard stops.
+    """The stamp obligation for the workflow override, evaluated once so ``sq check`` and ``sq
+    workflow lint`` agree; it returns ``(level, message)`` or ``None`` when nothing is owed.
+    Shadowing and unstamped is an ``"error"``, as it has stopped tracking the bundled spec and
+    carries the provenance obligation of every shadowing kind. Stamped, older than running and with
+    the bundled ``workflow.toml`` actually changed since is a ``"warn"``: drift is content-gated, so
+    an old stamp alone never warns. Stamped at the running version, unchanged since the stamp, or
+    add-only and unstamped is ``None``. Absent provenance is reported, never a load-time refusal.
     """
 
     from squads import __version__
@@ -1538,43 +1359,18 @@ def lint_workflow_spec(  # noqa: PLR0911 — one return per gate below
     files: OverrideFiles | None = None,
     loaded: WorkflowSpec | None = None,
 ) -> list[LintFinding]:
-    """Run ALL workflow spec checks in collect-all-errors mode.
-
-    Returns a (possibly empty) list of ``(level, location, message, fix_hint)``
-    4-tuples.  Never raises — all errors are captured as findings.
-
-    Designed for ``sq workflow lint``: reports every error and warning with
-    context so the spec author sees everything at once.  Because this function
-    is called directly (not through ``open_service``), a spec that would cause
-    ``open_service`` to hard-stop is still fully diagnosed here — the
-    "self-blocking" problem does not apply.
-
-    *files* and *loaded* are what the caller already read and built for this squad: the override
-    text, and the merged spec when it loaded, which then is not built a second time.
-
-    Phases:
-
-    1. **The stamp obligation** (``workflow_stamp_finding``) — always evaluated when an
-       override file exists, independent of whether it merges cleanly; a raw key-set
-       intersection needs no valid merge to compute.
-    2. **Retired view-grammar keys** (``_retired_view_grammar_violations``) — checked on the
-       raw, pre-merge document, before splat resolution can mistake a retired key for a
-       brand-new one. Blocks the same downstream phases when found, the same as phase 3.
-    3. **Engine-level failures** (splat/merge/``[selected]`` violations from
-       ``squads._specmerge.merge_override``, run in collect-all mode) block the merge — one
-       finding per violation, all of them, not just the first. If any are found, the
-       structural validation and the index cross-check below are skipped: there is no valid
-       merged mapping to run them against.
-    4. **The roster type-key lock** (``_collect_floor_violations``) — the loader's own floor,
-       run on the merged mapping. Any violation here blocks the same downstream phases.
-    5. **Structural + referential validation** (``_build_spec``). If it still raises (e.g. an
-       unknown lifecycle reference, or a status the merge dropped that a surviving lifecycle
-       still names), each bullet becomes its own finding, annotated with ``[selected]``
-       provenance where it applies; the index cross-check is skipped (no valid spec to
-       cross-check).
-    6. **The live-index cross-check** (``validate_against_index``) — only runs when every
-       phase above is clean. Index is read synchronously via ``_load_index_sync``; if the
-       index is absent or unreadable the cross-check is skipped.
+    """Run all workflow spec checks in collect-all mode and return ``(level, location, message,
+    fix_hint)`` tuples; it never raises, so a spec that would hard-stop ``open_service`` is still
+    fully diagnosed. *files* and *loaded* are what the caller already read and built (the override
+    text and the merged spec if it loaded, not built twice). Phases: (1) the stamp obligation,
+    always evaluated since a raw key-set intersection needs no valid merge; (2) retired view-grammar
+    keys on the raw pre-merge document, before splat resolution can mistake one for brand-new; (3)
+    engine failures (``squads._specmerge.merge_override`` in collect-all mode), one finding each;
+    (4) the roster type-key lock on the merged mapping; (5) ``_build_spec``, each failure its own
+    finding annotated with ``[selected]`` provenance; (6) the live-index cross-check
+    (``validate_against_index``) via ``_load_index_sync``, skipped if the index is absent or
+    unreadable. A failure in phases 2 to 5 blocks the later phases, as there is no valid mapping or
+    spec to run them on.
     """
     findings: list[LintFinding] = []
 
@@ -1650,11 +1446,10 @@ def lint_workflow_spec(  # noqa: PLR0911 — one return per gate below
         findings.extend(_spec_failure_findings(exc, result.deselections))
         return findings
 
-    # Phase 6 — live-index cross-check. Each family gets its OWN fix hint (called separately
-    # rather than through the combined validate_against_index) — a dropped type/status, a
-    # re-prefixed/re-foldered type, a stale badge code, and a dropped/renamed ref kind each
-    # have a genuinely different remedy, and `sq <type> <n> status <new>` (a status transition)
-    # is nonsensical advice for, say, a badge-field mismatch it can never fix.
+    # Phase 6, the live-index cross-check: each family gets its own fix hint (the collectors are
+    # called separately, not through the combined validate_against_index), since a dropped
+    # type/status, a re-prefixed type, a stale badge code and a dropped ref kind need different
+    # remedies and a status transition is nonsense for a badge mismatch.
     db_raw = _load_index_sync(squad_dir)
     if db_raw is not None:
         from squads._workflow import bundled_spec
@@ -1695,10 +1490,9 @@ def lint_workflow_spec(  # noqa: PLR0911 — one return per gate below
             ("error", "index cross-check", msg, ref_kind_fix)
             for msg in _collect_ref_kind_alignment_errors(spec, db_raw)
         )
-        # The one family here that is NOT a fail-closed clause: an entity resting on a status
-        # its own machine cannot reach is reported, never refused (see the collector). Lint
-        # missed it entirely while `sq check` reported it, which is the disagreement this
-        # closes; the fix hint names the per-item verb, since no override edit moves an item.
+        # The one family here that is not fail-closed: an entity on a status its machine cannot
+        # reach is reported, never refused (see the collector), so lint agrees with `sq check`; the
+        # hint names the per-item verb, since no override edit moves an item.
         unreachable_fix = (
             "Move the affected item(s) onto a status the type's/kind's own lifecycle declares "
             "with `sq <type> <n> status <declared> --force`, or declare the status in that "
@@ -1712,11 +1506,9 @@ def lint_workflow_spec(  # noqa: PLR0911 — one return per gate below
     return findings
 
 
-#: Mirrors ``_overrides._stamp``'s TOML stamp regex exactly (same format: a
-#: ``# squads:override-base:<version>`` comment). Duplicated rather than imported: ``_workflow``
-#: has no dependency on ``_overrides`` today (``_overrides`` depends on ``_workflow``, not the
-#: reverse), and this loader needs only the read side of a two-line regex — not worth inverting
-#: that layering for.
+#: Mirrors ``_overrides._stamp``'s TOML stamp regex (a ``# squads:override-base:<version>``
+#: comment), duplicated because ``_workflow`` has no dependency on ``_overrides`` (the reverse
+#: holds) and a two-line read-side regex is not worth inverting the layering.
 _TOML_STAMP_RE = re_compile(r"^#\s*squads:override-base:([A-Za-z0-9._-]+)\s*$", MULTILINE)
 
 
@@ -1748,15 +1540,10 @@ def _read_raw_override(
 
 
 def _load_index_sync(squad_dir: Path) -> Any:
-    """Read and parse the squad index synchronously.
-
-    Returns a ``SquadsDB``-like object (has ``.items`` dict) on success, or
-    ``None`` if the index is absent or unreadable.  Used by ``lint_workflow_spec``
-    to avoid the async ``store.load()`` path.
-
-    NOTE: this bypasses ``_validate_item_vocab`` — intentionally.  Lint needs
-    to see items with unknown statuses/types so it can report them; the normal
-    load-boundary check would suppress them.
+    """Read and parse the squad index synchronously, returning a ``SquadsDB``-like object (with
+    ``.items``) or ``None`` if absent or unreadable; it spares ``lint_workflow_spec`` the async
+    ``store.load()``. It bypasses ``_validate_item_vocab`` on purpose, since lint must see items
+    with unknown statuses or types to report them.
     """
     from squads._models._index import SquadsDB
 
@@ -1782,23 +1569,14 @@ def _load_index_sync(squad_dir: Path) -> Any:
 def validate_against_index_fail_closed(
     spec: WorkflowSpec, squad_dir: Path, *, bundled: WorkflowSpec
 ) -> None:
-    """Raise ``SquadsError`` if the merged spec drops types/statuses still
-    referenced by live index items, re-prefixes/re-folders a type against a non-empty corpus,
-    or shrinks/replaces a badge collection a live value still names — see
-    :func:`validate_against_index` for the full list. A dropped/renamed ref kind live refs
-    still spell is deliberately **not** one of these: it refuses at ``sq workflow lint`` and
-    at the write boundary, never here.
-
-    Called by ``open_service`` after ``load_workflow_spec`` succeeds, before the spec
-    is passed to ``Service``.  Reads the index synchronously so no async context
-    is required.
-
-    Raises ``SquadsError`` listing every offending item ID and pointing to
-    ``sq workflow lint`` for the full diagnostic.  If the index is absent, empty,
-    or unreadable, this is a no-op (nothing to cross-check).
-
-    This is NOT called by ``sq workflow lint`` — lint calls ``lint_workflow_spec``
-    directly, which reports the same errors in collect mode without aborting.
+    """Raise ``SquadsError`` if the merged spec drops types or statuses live items reference,
+    re-prefixes or re-folders a type against a non-empty corpus, or shrinks a badge collection a
+    live value still names (see :func:`validate_against_index`); a dropped ref kind live refs still
+    spell is not one, refusing at ``sq workflow lint`` and the write boundary instead.
+    ``open_service`` calls it after ``load_workflow_spec`` succeeds, reading the index
+    synchronously, and the error lists every offending ID and points to ``sq workflow lint``. It is
+    a no-op if the index is absent, empty or unreadable, and lint calls ``lint_workflow_spec``
+    instead, which reports without aborting.
     """
     db = _load_index_sync(squad_dir)
     if db is None:

@@ -10,7 +10,7 @@ refs:
 description: Retire the projection layer; keep and widen sources; a content-free tag
   marks where a view renders on read
 created_at: '2026-09-02T12:23:01Z'
-updated_at: '2026-10-25T21:47:49Z'
+updated_at: '2026-10-26T13:01:40Z'
 ---
 <!-- sq:body -->
 ## The operator's model
@@ -273,40 +273,66 @@ the file scan reports it while it cannot render.
   and `view disable` is refused, since it would hide the generated definition. The escape is the
   spec-level one: drop the view from `[selected]`, and the document leaves the classification.
 
-### 8. Roster bodies hold no prose
+### 8. A role's body takes prose beside its tag; a skill's body holds none
 
-A body write, replace and append alike, is refused on any document whose roster classification
-(`roster_body_view_name`) names a declared view: a role, a permanently-system skill, and a
-per-item-type skill. `--force` does not lift it, and the rule is keyed on that one predicate, asked
-once (`_refuse_classified_roster_write`), never on a type literal; the body write, the metadata
-update, the view verbs and the bulk importer's simulation ask the same question.
+**Role bodies.** `sq role <slug> body` writes on every role, catalog, template and item-defined
+alike, replace and `--append` both (op-pierre, 2026-10-26). The write is the §6 routine, so:
 
-- **Why:** the content already has one declared, validated authoring surface; body prose would be a
-  second, unvalidated source of what agents read. A template-seeded view such as `milestone_rollup`
-  has no second surface, so those documents stay writable.
+- **The tag survives every write.** The prose input passes `reject_markers`, the tags are stripped
+  and re-placed, and an absent `role_definition` tag is re-inserted enabled. `body -m ""` clears
+  the prose and leaves the tag.
+- **`--force` keeps its one meaning**, consent to overwrite prose. A tag-only body is unwritten, so
+  the first replace needs no `--force`; a replace over written prose does; an append never does.
+- **The definition renders first.** `[views.role_definition]` declares `position = "top"`, so
+  the prose follows the definition after a replace or an append alike.
+- **The prose is beside the definition, never part of it.** Nothing parses it and it overrides no
+  field of the resolved `RoleDef`; the definition stays in the catalog, a template or the item's
+  fields (ADR-1151).
+- **It reaches the agent through the command the pointer already names.** `sq role <slug> show`
+  prints the read-time body: the definition, then the prose. The `.claude/agents/<slug>.md`
+  pointer, the generated `CLAUDE.md`/`AGENTS.md` roster and the `sq role <slug> show --json` card
+  do not carry it: the host needs none of it before an agent runs (invariant 5). `sq show ROLE-<n>
+  --json` carries it in `body`, with the tag, as for every item.
+- **The rest of a role's classification holds.** The tag is seeded at activation, the convergence
+  sweep leaves a region holding prose alone (§9), `view disable` is refused and `view add` admits
+  only `role_definition` (§7), and the metadata update is gated as before.
+
+**Skill bodies.** A body write, replace and append alike, is refused on a permanently-system skill
+and a per-item-type skill while its classification (`roster_body_view_name`) names a declared view.
+`--force` does not lift it. The rule is keyed on that one predicate, asked once
+(`_refuse_classified_roster_write`), never on a slug or a non-roster type literal: the body write and
+the bulk importer's body op ask it for skills, and the metadata update and the view verbs ask it for
+roles and skills alike.
+
+- **Why:** a skill's whole text is its view's rendering of a declared, validated surface; prose
+  beside it would be a second, unvalidated half of one instruction set. A template-seeded view such
+  as `milestone_rollup` has no second surface, so those documents stay writable.
 - **The refusal names the authoring surface**, resolved from the view's declared source and the
   active playbook, never from the slug:
 
   | Document | Authoring surface |
   |---|---|
-  | role | `.overrides/roles.toml`, or `.overrides/roles/<slug>.toml` for a project-defined role |
   | skill whose view has a `self` source (`greeting_skill`, `memory_skill`) | its own view template override, `views/<name>.md.j2` |
   | skill whose view has a `playbook` source and whose resolved subject has a lane | that type's lane in the playbook override |
   | skill whose view has a `playbook` source and no lane (`squads_skill`, or `item_skill` for a type with no lane) | the playbook override |
 
+  A role's metadata update, refused for the same reason, names `.overrides/roles.toml`,
+  `.overrides/roles/<slug>.toml`, or `sq role <slug> update` for a role that defines itself.
+
 - **A body region is tool-owned because something the tool maintains renders into it.** Drop the
-  view from `[selected]` and the document leaves the classification: its body is authored prose,
-  written with `body`, displayed by every read surface, and left alone by `sq sync` and `sq repair`.
-  Re-adding the view makes it a host again; the file scan reports a missing tag, and `view add`
-  places it keeping the prose.
-- **Rejected:** treating roster bodies as ordinary documents (agents would read an override-declared
-  definition and unvalidated prose side by side), and refusing append while admitting replace
+  view from `[selected]` and the document leaves the classification: its body is authored prose
+  only, written with `body`, displayed by every read surface, and left alone by `sq sync` and
+  `sq repair`. Re-adding the view makes it a host again; the file scan reports a missing tag on a
+  skill, and `view add` places it keeping the prose.
+- **Rejected:** prose on item-defined roles only (an adopter could not tell which roles take a body
+  without knowing each role's base); and, for skills, refusing append while admitting replace
   (incoherent, since a replace can produce every body an append can).
 
 ### 9. Convergence, and the one migration licence
 
-- **The standing convergence sweep is strict.** `_converge_body_tag` converges only an empty or
-  already-tagged region; any other region is left untouched, silently. It never re-enables or
+- **The standing convergence sweep is strict.** `_converge_body_tag` converges only an empty region or
+  one holding its tag alone; any other region, a role's prose beside its tag included, is left
+  untouched, silently. It never re-enables or
   rewrites a disabled tag. A standing sweep runs forever and cannot tell authored prose from a
   legacy rendering, so it may not guess.
 - **The one write squads made into authored regions is the 0.14 to 0.15 migration**, under a closed,
@@ -494,4 +520,26 @@ resolved `Item` and keep firing on a file too broken to parse. None is a selecta
   - 2026-10-25 audit: body rewritten in present tense; decision unchanged. Seven amendments folded; required, view rm and the catalog advisory removed as retired. Two later facts folded: the out-of-region tag handling built for BUG-957 (view_tag_in_region warn, verbs refuse), and FEAT-976 US3 (op-pierre ruling): on a classified roster host view disable is refused and view add admits only its own view, replacing the 2026-09-25 Q5 ruling. @manager please confirm that second fold with op-pierre.
 - [2026-10-25T21:47:49Z] `manager` Catherine Manager:
   - Confirmed: the FEAT-976 US3 rule (view disable refused on a classified roster host) is what holds.
+- [2026-10-26T12:41:05Z] `op-pierre` Pierre Chat:
+  - A role body must accept authored prose in addition to its role_definition view: today sq role <slug> body (replace and --append) is refused on every role. Keep the view; let the operator write beside it.
+- [2026-10-26T12:47:11Z] `architect` Robert Architect:
+  - Amended §8 and one §9 clause in place on op-pierre's 2026-10-26 ruling: a role's body takes authored prose beside its `role_definition` tag. Narrowed at the other end in ADR-776 §5. Status unchanged. @op-pierre @manager
+    
+    - Driven on a scratch squad with the dev build: `role <slug> body` (replace and `--append`, with or without `--force`) is refused on catalog, template and item-defined roles alike. With prose placed by hand beside the tag, `sq role <slug> show` already prints definition then prose, `sync`/`repair` leave the file byte-identical, `sq check` is clean, and neither the pointer nor `CLAUDE.md` carries the prose. So the change is the body write gate only. Nothing else moves.
+    - The rule: the §6 routine as for any document. The tag survives every write (an absent one is re-inserted enabled). `--force` only consents to overwrite prose (a tag-only body is unwritten). Skills, the metadata update gate and the view verbs are unchanged.
+    - Superseded for roles: the 2026-09-25 F7 ruling (option A, no prose on roster bodies), the binding ruling on FEAT-1054 that a role body is writable only once its view is dropped, and the body clause of FEAT-976 US3 for system roles. Stands: the 2026-10-16 REV-1047 F8 ruling (prose in place of a role's tag is not reported), so `sq check` gains nothing. The 0.14 to 0.15 reclaim is released and frozen.
+    - Migration: none. No stored shape changes, and a tag-only region is the same bytes under `top` and `bottom`.
+    
+    Questions for @op-pierre. The body is written to each recommendation.
+    1. Which roles? Recommend every role, catalog, template and item-defined. The alternative is item-defined only, but then an adopter cannot tell which roles take a body without knowing each one's base.
+    2. Where does the prose sit? Recommend `position = "top"` on `[views.role_definition]`, so the definition (it opens with the role's H1) renders first and the prose follows. Alternative: keep `bottom`, which puts the prose above the H1.
+    3. Skills? Recommend no change: system and per-item-type skill bodies still refuse prose, as you asked only about roles and FEAT-976 left editable system skills out of scope. Alternative: apply the same rule to skills.
+- [2026-10-26T12:49:57Z] `architect` Robert Architect:
+  - Question 4 for @op-pierre, beside 1-3 above. It is recorded in ADR-1151 §11, written to the recommendation.
+    
+    4. Where do an item-defined role's responsibilities come from? `sq role add --file` and `update --file` already set `responsibilities` (driven); no flag does, and an empty list renders a `_TODO: list responsibilities._` placeholder. Recommend: keep the list `--file`-only, name it in the `--file` help, and drop the placeholder so an empty list renders no section. Alternatives: (a) a repeatable `--responsibility` flag, which then needs its own append/clear spelling and asks for `--agreement` too; (b) treat ADR-880 §8 body prose as the home, which splits one definition across two stores and was rejected in ADR-1151.
+- [2026-10-26T13:00:41Z] `op-pierre` Pierre Chat:
+  - Q4: no TODO in the generated view. When a role has no responsibilities, the section is not shown; the adopter can use the body prose for whatever they want.
+- [2026-10-26T13:01:40Z] `op-pierre` Pierre Chat:
+  - Q1-Q3 validated as recommended: prose beside the view on every role; the prose sits after the definition; system skills unchanged.
 <!-- sq:discussion:end -->

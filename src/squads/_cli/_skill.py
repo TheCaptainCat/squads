@@ -190,19 +190,10 @@ async def skill_show(
     if when_to_use:
         rows.append(f"[bold]when to use:[/bold] {e(when_to_use)}")
     console.print(Panel("\n".join(rows), expand=False))
-    # Every skill's body reads through the same shared boundary (`read_body`, tag-expanded for
-    # a system-owned body off its seeded `sq:view:<name>` tag; authored content unchanged for a
-    # custom one — there is no branch on `system` here any more). Five reasons a system skill's
-    # body can read empty, and they are not the same fact: its item type (or, for a per-item-type
-    # skill, the type its slug documents) is no longer declared (`orphaned_skill_item_type` — the
-    # same predicate `sq check`/`sync` already use for this exact question, so this hint can
-    # never disagree with them about which case applies); or the type is live but the *view* this
-    # slug would render — `SYSTEM_SKILL_VIEW_NAMES[slug]` for one of the three permanent slugs,
-    # `ITEM_SKILL_VIEW_NAME` for every other per-type skill — is itself not declared in
-    # `self.spec.views` (`views.empty_body_hint_state`'s first question, matching the same
-    # condition `MaintenanceMixin._repair_body_tag`'s classifier gates the backfill on); or the
-    # view is declared and `sq sync` has not populated the body yet. A custom skill's
-    # body reads empty for a sixth reason entirely — nobody has written it yet.
+    # `read_body` expands a system skill's `sq:view:<name>` tag. An empty system body has
+    # three causes with distinct hints: the documented item type is no longer declared
+    # (`orphaned_skill_item_type`), the view is not in `spec.views`, or `sq sync` has not
+    # filled it yet. A custom skill is empty only because nobody wrote it.
     dropped_type = orphaned_skill_item_type(slug, svc.spec) if system else None
     view_name = SYSTEM_SKILL_VIEW_NAMES.get(slug) or (ITEM_SKILL_VIEW_NAME if system else None)
     if dropped_type is not None:

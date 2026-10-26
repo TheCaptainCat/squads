@@ -1,11 +1,10 @@
 """Populate a Textual `Tree` from `Service.tree_view()`'s `TreeNode` forest.
 
-Role/Operator leaves under Roster additionally carry their memory pool as UI-only children —
-a glance-level count + most-recent-entry age on the parent label, each entry as a child leaf.
-This is layered on **after** the service-level `TreeNode` forest is built and sorted
-(`squads._tui._browse.sort_siblings` only ever sees real `TreeNode`s, never a memory entry),
-using a typed `NodeData` discriminator so `BrowseScreen.on_tree_node_highlighted` never
-mistakes a memory entry for an item id.
+Role/Operator leaves under Roster also carry their memory pool as UI-only children: a count
+and most-recent-entry age on the parent label, each entry as a child leaf. It is layered on
+after the service forest is built and sorted, so `squads._tui._browse.sort_siblings` only
+sees real `TreeNode`s, and a typed `NodeData` discriminator keeps
+`BrowseScreen.on_tree_node_highlighted` from mistaking a memory entry for an item id.
 """
 
 from collections.abc import Mapping
@@ -36,10 +35,8 @@ _GROUP_LABELS: dict[str, str] = {
 }
 _GROUP_ORDER: tuple[str, ...] = ("work", "records", "roster")
 
-#: Concrete Rich/Textual style per semantic colour intent — this client's own rendering of a
-#: status role's colour axis (mirrors the CLI's colour choices where sensible, but is its own
-#: mapping). "neutral" (no colour override) also serves as the fallback for an intent this
-#: build doesn't recognise.
+#: Rich/Textual style per colour intent, this client's own mapping of a status role's colour
+#: axis. "neutral" (no override) is also the fallback for an unrecognised intent.
 _ROLE_STYLES: dict[str, str] = {
     "positive": "green",
     "danger": "red",
@@ -74,15 +71,11 @@ type MemoryBySlug = Mapping[str, tuple[list[MemoryEntry], list[Omission]]]
 
 
 def _memory_eligible(item_type: str) -> bool:
-    """Whether *item_type* carries a memory notebook — Role and Operator only.
+    """Whether *item_type* carries a memory notebook: Role and Operator only.
 
-    The one reserved-type check the whole memory-attachment engine keys eligibility off of.
-    `roster_identity_slugs` (sizing the eager fetch) and `_attach` (deciding what the render
-    side actually shows) both call this rather than each keeping — and risking drifting from —
-    its own notion of "eligible": a Skill carries a `slug` just as a Role or
-    Operator does (`_services._roster.add_skill`), so a render-side lookup keyed on the slug
-    alone, with no type gate, picks up another identity's notebook the moment a skill happens
-    to share its slug.
+    `roster_identity_slugs` (sizing the eager fetch) and `_attach` (the render side) both call
+    this. A Skill also has a `slug` (`_services._roster.add_skill`), so a slug-only lookup would
+    pick up another identity's notebook when a skill shares its slug.
     """
     return item_type in (ROSTER_ROLE, ROSTER_OPERATOR)
 
@@ -219,22 +212,15 @@ def _attach(
     pronouns: Mapping[str, str | None],
     show_pronouns: bool,
 ) -> None:
-    """Attach *node* (and its subtree) under *parent*, layering a Role/Operator's memory pool
-    onto its own label and children — **independent** of whether the node also carries real
-    item children (gating this on `not node.children` would silently drop the memory signal
-    the moment an identity has any).
+    """Attach *node* and its subtree under *parent*, layering a Role/Operator's memory pool on.
 
-    Eligibility is `_memory_eligible(node.item.type)` alone, reusing the exact reserved-type
-    check `roster_identity_slugs` sizes the fetch with — never a slug-only lookup, which
-    would let a same-slugged Skill pick up a Role's notebook.
+    The memory signal is independent of real item children; gating on `not node.children` would
+    drop it once an identity has any. Eligibility is `_memory_eligible(node.item.type)` alone.
 
-    A branch (rather than a leaf) is created whenever there is something to disclose: real item
-    children, at least one memory entry, or at least one unreadable memory file. A pool that
-    fetched clean and empty — no entries, nothing unreadable — collapses to a leaf instead: a
-    `memory: 0` you could nonetheless expand invites a click that answers nothing. A pool that
-    is empty *because* every file in it was unreadable is not that case and keeps its branch,
-    so the "listing partial" child stays reachable rather than hidden behind a `(0)` that
-    misreports why the count reads zero.
+    A branch is created when there is something to disclose: real item children, a memory entry,
+    or an unreadable memory file. A pool that fetched clean and empty collapses to a leaf, since
+    an expandable `memory: 0` answers nothing. A pool empty because every file was unreadable
+    keeps its branch so the "listing partial" child stays reachable.
     """
     label = _label(
         node.item,
@@ -273,14 +259,13 @@ def populate_tree(
     pronouns: Mapping[str, str | None] | None = None,
     show_pronouns: bool = False,
 ) -> None:
-    """Build the tree, fully expanded, from the roots returned by `svc.tree_view()`, grouped
-    under three synthetic top-level nodes — Work, Records (decisions/guides/etc.), and Roster
-    (roles/operators/skills) — in that fixed order, each always present even when empty.
+    """Build the fully expanded tree from the roots of `svc.tree_view()`.
 
-    *memory* is the eager, already-fetched `memory_list()` result for every Role/Operator
-    identity in *nodes* (see `roster_identity_slugs`) — this function never calls the service.
-    *pronouns* maps a role's or operator's slug to its resolved pronouns, shown after the name
-    when *show_pronouns* is set.
+    Nodes sit under three synthetic top-level groups in fixed order, each present even when
+    empty: Work, Records (decisions/guides/etc.) and Roster (roles/operators/skills). *memory* is
+    the already-fetched `memory_list()` result for every Role/Operator identity in *nodes* (see
+    `roster_identity_slugs`); this function never calls the service. *pronouns* maps a slug to its
+    resolved pronouns, shown after the name when *show_pronouns* is set.
     """
     groups = {
         category: tree.root.add(Text(_GROUP_LABELS[category], style="bold"), None, expand=True)

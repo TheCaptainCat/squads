@@ -9,18 +9,13 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class MigrationOutcome:
-    """``count`` is the changed-body count every runner returns, carried in a
-    field rather than as the awaitable's own bare value.
-
-    ``skipped`` is the item ids a runner chose to leave untouched rather than raise on —
-    empty for every runner that never skips (every existing runner: :func:`_wrap_sync`/
-    :func:`~squads._migrations._registry._wrap_async` produce this shape from one that still
-    speaks the plain ``int`` contract, so none of them had to widen their own return type to
-    report it). ``sq migrate up`` prints these by id alongside the count; ``sq check``'s own
-    advisories are the standing backstop for whatever this list under-reports.
-
-    ``report`` is printable lines a step that completed adds under its own line in ``sq migrate
-    up`` (counts, notes); empty for a runner with nothing to add.
+    """``count`` is the changed-body count every runner returns, carried in a field rather than as
+    the awaitable's bare value. ``skipped`` is the item ids a runner left untouched rather than
+    raise on, empty for every runner that never skips
+    (:func:`_wrap_sync`/:func:`~squads._migrations._registry._wrap_async` produce this shape from a
+    plain-``int`` runner); ``sq migrate up`` prints them by id, and ``sq check`` is the backstop for
+    what the list under-reports. ``report`` is printable lines a completed step adds under its own
+    line, empty for a runner with nothing to add.
     """
 
     count: int

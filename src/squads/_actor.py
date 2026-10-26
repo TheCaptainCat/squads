@@ -1,26 +1,20 @@
 """Ambient per-invocation actor identity.
 
-Mirrors :mod:`squads._clock`: one ambient override, set once at the CLI root
-callback (from ``--as`` / ``--author`` or the invoking agent's slug). The
-override lives in the ambient :class:`~squads._context.RequestContext` (per
-request), not a module global — see :mod:`squads._context` for why — so it
-never leaks between requests without needing a ``try/finally``.
-
-Default: ``"system"`` — the machine itself, when no human or agent set a slug.
+Like :mod:`squads._clock`, one ambient override set once at the CLI root callback (from
+``--as``/``--author`` or the invoking agent's slug). It lives in the ambient
+:class:`~squads._context.RequestContext`, not a module global (see :mod:`squads._context`), so
+it never leaks between requests. Default: ``"system"``, when no human or agent set a slug.
 
 Session lineage
 ---------------
-An optional session pair is read **once** at the CLI root callback from two
-environment variables, ``SQUADS_SESSION_ID`` and ``SQUADS_PARENT_SESSION_ID``,
-and carried alongside the slug for the duration of the invocation.
+An optional session pair is read once at the CLI root callback from ``SQUADS_SESSION_ID`` and
+``SQUADS_PARENT_SESSION_ID`` and carried with the slug for the invocation.
 
-**Guarantee: best-effort, untrusted, observability-only.**  squads is a passive
-tool, never in the spawn path.  It only *reads* whatever its own invocation
-environment happens to carry and *records* it.  It does not mint, inject,
-spawn, or verify.  A copied, forged, or absent session id is indistinguishable
-from a real one.  The recorded session pair is **not tamper-evident**, **not
-signed**, and must never be used as an authorisation input.  Its sole value is
-forensic visibility of declared lineage.
+It is best-effort, untrusted and observability-only. squads only reads whatever its
+environment carries and records it; it does not mint, inject, spawn or verify, so a copied,
+forged or absent id is indistinguishable from a real one. The pair is not tamper-evident or
+signed and must never be an authorisation input; its value is forensic visibility of declared
+lineage.
 """
 
 import os
@@ -62,15 +56,11 @@ def seed_session(
 ) -> None:
     """Seed the ambient session pair for this invocation.
 
-    With ``from_env=True`` the values are read from ``SQUADS_SESSION_ID`` /
-    ``SQUADS_PARENT_SESSION_ID``; otherwise the caller may pass explicit values
-    (used in tests to simulate env-set ids without actually setting env vars).
-
-    Session fields are **not** settable by ``--as`` / ``--author`` or any later
-    CLI flag — that slug-override path calls :func:`set_actor` only.
-
-    Pass both arguments as ``None`` (the default) to clear the session state
-    between invocations / tests.
+    With ``from_env=True`` the values come from ``SQUADS_SESSION_ID``/
+    ``SQUADS_PARENT_SESSION_ID``; otherwise the caller passes explicit ones (tests simulate env-set
+    ids this way). ``--as``/``--author`` never set session fields; that path calls
+    :func:`set_actor` only. Passing both as ``None`` (the default) clears the session state between
+    invocations or tests.
     """
     if from_env:
         session_id, parent_session_id = session_from_env()

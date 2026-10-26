@@ -139,13 +139,14 @@ def _region_view_tags(region: str) -> tuple[str, list[markers.ViewTagParts]]:
 
 
 def reinstate_absent_body_region(text: str) -> str | None:
-    """*text* with a fresh ``sq:body``/``sq:body:end`` pair inserted right after the
-    frontmatter, when *text* carries neither marker at all. Reclaims only the leading run of
-    view tags, plus — if present — exactly one heading line immediately followed by the real
-    ``sq:discussion`` marker; anything else (real prose, or a heading not immediately bounding
-    that marker) refuses by returning ``None`` rather than guessing, the same as when there is
-    no frontmatter to anchor the search from. A caller getting ``None`` back must leave the
-    file untouched and never raise."""
+    """*text* with a fresh ``sq:body`` pair after the frontmatter, if it has neither marker.
+
+    It reclaims only the leading run of view tags plus, if present, exactly one heading line
+    immediately followed by the real ``sq:discussion`` marker. Anything else (real prose, or a
+    heading not bounding that marker) refuses by returning ``None`` rather than guessing, as it
+    does when there is no frontmatter to anchor on. A caller getting ``None`` leaves the file
+    untouched and never raises.
+    """
     if get_section(text, markers.BODY) is not None:
         return None
     _fm, rest = split_frontmatter(text)
@@ -166,14 +167,9 @@ def reinstate_absent_body_region(text: str) -> str | None:
         next_marker_start = len(rest)
     after = rest[pos:next_marker_start].strip("\n \t")
     if after:
-        # A heading is only ever the discussion region's own — never accepted on the strength
-        # of its text or its mere presence — when *after* reduces to exactly **one** non-blank
-        # line, that line is a heading, and the very next marker reached is that region's own
-        # open tag. An author's own body can itself start with a heading and run on for several
-        # more lines before a real "## Discussion" of its own — the single-line requirement is
-        # what tells "just the discussion heading, nothing else in between" apart from that
-        # shape, which the first-character check alone cannot: it would otherwise pass on the
-        # strength of the trailing "## Discussion" a role's own multi-line prose still ends in.
+        # Accept a heading only when *after* is one non-blank line, a heading, and the next
+        # marker is the discussion open tag: a body can start with a heading and run on before
+        # its own "## Discussion", which the first-character check alone would accept.
         after_lines = [line for line in after.splitlines() if line.strip()]
         is_discussion_heading = (
             len(after_lines) == 1
@@ -212,14 +208,16 @@ def place_view_tags(
     addr: int | str,
     force: tuple[str, bool] | None = None,
 ) -> str:
-    """The one re-placement routine every ``sq:body`` writer drives: strips every view tag out
-    of *region*, applies the prose edit, and re-inserts one tag per view at its declared
-    position and prior state, plus any *seeded* view that was missing — so no caller inserts,
-    removes or moves a tag on its own. A tag mirrors whatever separator already sat at its
-    landing spot (never manufacturing a blank line), which is what makes stripping it back out
-    the exact inverse; conflicting states raise :class:`ConflictingViewStateError`, and *force*
-    is how ``view add``/``view disable`` settle that without tripping it. The result has LF line
-    endings whatever *region* had; the write seam gives the file's own back."""
+    """The one re-placement routine every ``sq:body`` writer drives.
+
+    It strips every view tag out of *region*, applies the prose edit, and re-inserts one tag per
+    view at its declared position and prior state, plus any *seeded* view that was missing, so no
+    caller inserts, removes or moves a tag itself. A tag mirrors the separator already at its
+    landing spot (never manufacturing a blank line), which makes stripping it back out the exact
+    inverse. Conflicting states raise :class:`ConflictingViewStateError`; *force* is how ``view
+    add``/``view disable`` settle one. The result has LF line endings whatever *region* had; the
+    write seam restores the file's own.
+    """
     prose, existing = _region_view_tags(region.replace("\r\n", "\n"))
     prose = prose.strip("\n")
     if edit is not None:
@@ -257,13 +255,14 @@ def _resolve_final_states(
     item_type: str,
     addr: int | str,
 ) -> tuple[dict[str, bool], dict[str, int]]:
-    """The final ``name -> disabled`` state map :func:`place_view_tags` re-inserts, plus each
-    name's first-seen index in *existing* (used only to order the undeclared tags among
-    themselves) — split out purely to keep that function under the complexity ceiling.
+    """The final ``name -> disabled`` map :func:`place_view_tags` re-inserts, plus indexes.
 
-    Collapses same-state duplicates, raises :class:`ConflictingViewStateError` for a name
-    carrying both states (unless *force* names it), inserts every *seeded* name absent so far
-    as enabled, then applies *force* last so it always wins."""
+    The indexes are each name's position in *existing*, used only to order undeclared tags among
+    themselves. It collapses same-state duplicates, raises :class:`ConflictingViewStateError` for
+    a name in both states unless *force* names it, adds every absent *seeded* name as enabled, then
+    applies *force* last so it wins. Split out to keep :func:`place_view_tags` under the complexity
+    ceiling.
+    """
     states: dict[str, set[bool]] = {}
     first_seen: dict[str, int] = {}
     for i, part in enumerate(existing):

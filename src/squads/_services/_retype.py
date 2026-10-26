@@ -59,12 +59,9 @@ def _validate_refusals(
             "Clear or move all sub-entities first, then retype."
         )
     if item_parent:
-        # Deliberately overlaps the `parent_in` validator the later `ValidatorEngine.gate()`
-        # call runs on the prospective item (same `spec.parent_allowed(new_type, ...)` verdict)
-        # — kept because this branch has the old_id/current-parent context to raise the more
-        # actionable retype-specific message; the gate's own message is the generic per-item
-        # one shared with create/update and would be a worse error here. Not re-encoded logic:
-        # same predicate, message-quality duplication only.
+        # Overlaps the later `parent_in` gate (same `spec.parent_allowed` verdict) on purpose:
+        # this branch has the old_id/current-parent context for a more actionable retype-specific
+        # message.
         parent_item = db.get(item_parent)
         if parent_item is not None and not spec.parent_allowed(new_type, parent_item.type):
             raise SquadsError(
@@ -107,24 +104,12 @@ def _carry_or_reset_status(
 
 class RetypeMixin(ServiceCore):
     async def retype(self, item_id: str, new_type: str) -> RetypeResult:
-        """Reclassify *item_id* to *new_type* in place.
-
-        - Both the current type and *new_type* must be non-roster types
-          (``spec.non_roster_types()``).
-        - Refuses (actionable :class:`~squads._errors.SquadsError`) when the item has
-          sub-entities, when the existing parent would be invalid for the new type, when any
-          current child would become invalid under the new type, or when the new type's own
-          category rules (e.g. the records bundle's ``no_parent``) reject the item as it would
-          look post-change — enforced by the same
-          :class:`~squads._services._validators.ValidatorEngine` gate create/update use.
-        - Status is carried when old and new share the same
-          :class:`~squads._workflow._models.Workflow`
-          object **and** the current status is a valid state of the new workflow; otherwise the
-          status is reset to the new type's initial status.
-        - All incoming edges (other items' ``refs``, children's ``parent``, and prose
-          ``@``/ID mentions) are rewritten to the new ID via
-          :func:`~squads._itemfile.rewrite_ids`.
-        - A system comment recording the retype is appended to the item's discussion.
+        """Reclassify *item_id* to *new_type* in place. Both must be non-roster types, and it
+        refuses an item with sub-entities, a parent or child invalid for the new type, or a result
+        the :class:`~squads._services._validators.ValidatorEngine` gate rejects. Status is carried
+        when both types share a workflow and it is a state of the new one, else reset to the
+        initial status. Incoming edges are rewritten via :func:`~squads._itemfile.rewrite_ids` and a
+        system comment is appended.
         """
         new_type = str(new_type)  # coerce StrEnum members to plain str
         async with self.store.transaction() as db:
@@ -143,11 +128,8 @@ class RetypeMixin(ServiceCore):
                 self.spec, old_type, new_type, old_status
             )
 
-            # Post-change conformance: gate the item as it would look right after the retype
-            # (new type/status/prefix, same parent) through the same per-item validator engine
-            # create/update use — so a category rule like the records bundle's `no_parent`
-            # fails closed here, before any file is touched, rather than being re-encoded as a
-            # bespoke retype-only check.
+            # Gate the item as it would look after the retype through the per-item validator
+            # engine, so category rules (e.g. `no_parent`) fail closed before any file is touched.
             prospective = item.model_copy(
                 update={
                     "type": new_type,
@@ -159,11 +141,8 @@ class RetypeMixin(ServiceCore):
                 prospective, db
             )
 
-            # Check the skew BEFORE any file moves — apply_type_change renames the file to
-            # its new-type path before rewriting the frontmatter, and a refusal raised only
-            # at that later point would leave the file sitting at the new filename with its
-            # old (skewed) frontmatter still inside: a strictly worse intermediate state than
-            # refusing here, before anything on disk has moved.
+            # Check the skew before any file moves: apply_type_change renames the file first, so a
+            # later refusal would leave the new filename holding old, skewed frontmatter.
             default_kind = self.spec.default_ref_kind()
             base = item.model_copy(deep=True)
             current_text = await self._read_item_file(item, item_file(self.paths, item))
@@ -181,10 +160,8 @@ class RetypeMixin(ServiceCore):
             text = self._rescaffolded_body(text, item, base)
             new_id = item.id  # @computed_field formats from item.prefix (now correct); unpadded
 
-            # Rewrite all incoming edges (refs, parent links, prose mentions). A single-pair
-            # remap here — the bulk rename path builds one combined {old:new} across every
-            # renamed item and drives the same two calls once instead of once per item. The
-            # retyped file's own text is remapped in memory and written once, below.
+            # Rewrite all incoming edges with a single-pair remap (rename builds one combined
+            # remap). The retyped file's own text is remapped in memory and written once, below.
             remap = {old_id: new_id}
             remapped = remap_ids_text(text, remap)
             await write_text(
@@ -242,26 +219,11 @@ async def apply_type_change(
     carry_status: bool,
     text: str,
 ) -> tuple[Path, str]:
-    """Mutate *item* in place for a type change: new prefix/id, moved file, status. Returns
-    the new file path and the item's new text, composed from *text* (its current on-disk text,
-    already skew-checked by the caller): new frontmatter plus the sub-entity container the new
-    type hosts. The caller writes that text once, to the returned path. Body bytes stay verbatim.
-
-    This is the per-item self-rewrite core shared by ``retype()`` (which resolves
-    *carry_status* itself, via :func:`_carry_or_reset_status`) and the bulk rename path
-    (which always passes ``carry_status=True``). It does *not* touch other items' edges —
-    that is the separate, batchable pass in :func:`~squads._itemfile.rewrite_ids` /
-    :func:`resync_edges`, so a bulk caller can run it once across every renamed item
-    instead of once per item.
-
-    Rename-then-write, not write-then-rename: the file moves to its new path first, and only
-    then does the caller write its text there. A crash in that window leaves the item at its
-    new path with its old frontmatter while the index — not yet committed either — still names
-    the old path, so a reader resolving the item from the index looks for a file that has
-    already moved: ``show``/``get`` hard-fail with ``FileNotFoundError`` until ``sq repair``
-    re-indexes from the file's new location. This is rougher than a non-renaming write, which
-    stays readable at its one unchanging path throughout, but it is still the skew-direction
-    rule's permitted markdown-ahead outcome for a retype/rename, not a violation of it.
+    """Mutate *item* in place for a type change (new prefix/id, moved file, status) and return the
+    new path and text, composed from *text* (skew-checked) with body bytes verbatim; the caller
+    writes it once. Shared by ``retype()`` and the bulk rename, other items' edges being
+    :func:`resync_edges`'s. The file moves before the text is written, so a crash between leaves old
+    frontmatter at the new path until ``sq repair``: the permitted markdown-ahead outcome.
     """
     old_path = item_file(paths, item)
     if not carry_status:
@@ -285,12 +247,8 @@ async def apply_type_change(
 
 def resync_edges(db: SquadsDB, remap: dict[str, str], *, exclude: set[int]) -> None:
     """Update in-memory index entries whose parent, refs or sub-entity ``deferred_to`` point at any
-    old ID in *remap*.
-
-    Bulk-capable by construction: one pass over ``db.items`` applies every ``{old: new}``
-    pair in *remap*, so a multi-item rename resyncs edges once instead of once per renamed
-    item. *exclude* holds the sequence IDs of the items being changed themselves (already
-    self-consistent via :func:`apply_type_change`).
+    old ID in *remap*, in one pass. *exclude* holds the sequence IDs of the items being changed
+    themselves.
     """
     for other in db.items.values():
         if other.sequence_id in exclude:

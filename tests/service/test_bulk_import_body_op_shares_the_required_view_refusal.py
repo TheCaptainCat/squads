@@ -14,28 +14,44 @@ def _lines(*events: dict[str, object]) -> str:
     return "\n".join(json.dumps(e) for e in events)
 
 
-async def test_a_replace_on_a_role_is_refused_in_the_pre_pass(svc) -> None:
-    role = await svc.roster_item("role", "manager") or await svc.activate_role("manager")
+async def test_a_replace_on_a_system_skill_is_refused_in_the_pre_pass(svc) -> None:
+    skill = (await svc.seed_bundled_skills())[0]
 
     result = await svc.import_events(
-        _lines({"op": "body", "target": role.id, "body": "a doomed replace", "as": "manager"})
+        _lines({"op": "body", "target": skill.id, "body": "a doomed replace", "as": "manager"})
     )
 
     assert not result.plan.ok
     assert result.applied is None
     assert any("renders through its declared sq:view:" in i.message for i in result.plan.issues)
-    assert any("roles.toml" in i.message for i in result.plan.issues)
     assert any("Drop the view from `[selected]`" in i.message for i in result.plan.issues)
 
 
-async def test_an_append_on_a_role_is_refused_in_the_pre_pass(svc) -> None:
+@pytest.mark.parametrize(
+    ("append", "force"),
+    [(False, False), (True, False), (False, True)],
+    ids=["replace", "append", "force"],
+)
+async def test_a_role_body_op_writes_the_same_bytes_as_the_verb(svc, append, force) -> None:
     role = await svc.roster_item("role", "manager") or await svc.activate_role("manager")
+    other = await svc.roster_item("role", "tech-lead") or await svc.activate_role("tech-lead")
+    await svc.set_body(other.id, "Prose.", append=append, force=force)
+
+    event = {"op": "body", "target": role.id, "body": "Prose.", "as": "manager"}
+    result = await svc.import_events(_lines({**event, "append": append, "force": force}))
+
+    assert result.plan.ok, [i.message for i in result.plan.issues]
+    assert await svc.read_stored_body(role.id) == await svc.read_stored_body(other.id)
+
+
+async def test_an_append_on_a_system_skill_is_refused_in_the_pre_pass(svc) -> None:
+    skill = (await svc.seed_bundled_skills())[0]
 
     result = await svc.import_events(
         _lines(
             {
                 "op": "body",
-                "target": role.id,
+                "target": skill.id,
                 "body": "a doomed append",
                 "append": True,
                 "as": "manager",
@@ -89,14 +105,14 @@ async def test_the_refusal_message_matches_the_single_item_commands_exactly(svc)
     """The importer's refusal message matches the single-item command's exactly."""
     from squads._errors import SquadsError
 
-    role = await svc.roster_item("role", "manager") or await svc.activate_role("manager")
+    skill = (await svc.seed_bundled_skills())[0]
 
     with pytest.raises(SquadsError) as excinfo:
-        await svc.set_body(role.id, "a doomed replace")
+        await svc.set_body(skill.id, "a doomed replace")
     single_item_message = str(excinfo.value)
 
     result = await svc.import_events(
-        _lines({"op": "body", "target": role.id, "body": "a doomed replace", "as": "manager"})
+        _lines({"op": "body", "target": skill.id, "body": "a doomed replace", "as": "manager"})
     )
 
     assert any(i.message == single_item_message for i in result.plan.issues), [

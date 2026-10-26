@@ -1,17 +1,10 @@
-"""The single global index: ``<squad-dir>/.squads.json``.
-
-Holds the global monotonic counter, the ID-padding width, and every item, **keyed by the item's
-integer sequence number** (``Item.sequence_id`` — a stored field; the formatted ``id`` is derived
-from it + ``type``).  The ``.md`` frontmatter is the durable truth (it persists both ``id`` and
-``sequence_id``); this file is an authoritative-at-runtime index rebuildable from those files
-(``sq repair``).
-
-``padding`` is a squad-wide **filename**-width parameter: reconstructed by ``sq repair`` as
-``max(stored_padding, max_filename_width)`` — like the counter, it is carried forward and never
-shrinks. It is consumed only at the filename-building seam
-(:meth:`SquadsDB.format_id`); display always renders unpadded (``Item.id`` formats at
-:data:`~squads._models._item.DISPLAY_ID_PADDING`, a constant 0 — never this stored value).
-Default is :data:`~squads._models._item.DEFAULT_ID_PADDING` (6) for pre-existing squads.
+"""The single global index, ``<squad-dir>/.squads.json``: the global monotonic counter, the
+ID-padding width and every item, keyed by integer sequence number (``Item.sequence_id``; the
+formatted ``id`` is derived from it and ``type``). The ``.md`` frontmatter is the durable truth and
+this file is rebuildable from it (``sq repair``). ``padding`` is a squad-wide filename width,
+rebuilt as ``max(stored_padding, max_filename_width)`` and never shrinking like the counter,
+defaulting to :data:`~squads._models._item.DEFAULT_ID_PADDING` (6); it is consumed only by
+:meth:`SquadsDB.format_id`, while display is always unpadded.
 """
 
 from typing import Any, cast
@@ -84,33 +77,20 @@ class SquadsDB(BaseModel):
         return d
 
     def format_id(self, item_type: str, sequence_id: int, *, prefix: str = "") -> str:
-        """Format a **filename stem** at this squad's current padding width.
-
-        Display never calls this — ``Item.id`` always formats unpadded via
-        :data:`~squads._models._item.DISPLAY_ID_PADDING`. This is the filename-building seam:
-        used by :meth:`allocate_id` (create path) and by any other call site that needs the
-        padded on-disk stem.
-
-        ``prefix`` is the resolved ID prefix (e.g. ``"TASK"``, ``"INC"``).  When supplied
-        it is used directly; when absent (empty string) this degrades to the diagnosable
-        :data:`~squads._models._item.UNRESOLVED_PREFIX` sentinel — never a vocabulary source
-        in its own right, and never a plausible-but-wrong ``item_type.upper()`` guess.
-
-        Callers that hold a spec should resolve the prefix via
-        :func:`~squads._models._vocab.prefix_for` and pass it explicitly.
+        """Format a filename stem at this squad's padding width: the filename-building seam used by
+        :meth:`allocate_id` and any caller needing the padded on-disk stem (display never calls it,
+        ``Item.id`` being unpadded). *prefix* is the resolved ID prefix
+        (:func:`~squads._models._vocab.prefix_for`); empty degrades to
+        :data:`~squads._models._item.UNRESOLVED_PREFIX`, never a ``item_type.upper()`` guess.
         """
         return format_item_id(effective_prefix(prefix), sequence_id, self.padding)
 
     def allocate_id(self, item_type: str, *, prefix: str = "") -> str:
-        """Bump the global counter and return the next ID for ``item_type``.
-
-        ``prefix`` is the resolved ID prefix for this type (from the spec via
-        :func:`~squads._models._vocab.prefix_for`).  When omitted, degrades to the
-        :data:`~squads._models._item.UNRESOLVED_PREFIX` sentinel (see :meth:`format_id`).
-
-        Raises :class:`~squads._errors.SquadsError` when the counter would exceed the capacity for
-        the current padding (e.g. 999 999 at width 6).  Run ``sq migrate repad <width>`` to raise
-        the padding and continue.
+        """Bump the global counter and return the next ID for ``item_type``, with *prefix* resolved
+        by the caller (empty degrades to the :data:`~squads._models._item.UNRESOLVED_PREFIX`
+        sentinel). Raises :class:`~squads._errors.SquadsError` when the counter would exceed the
+        current padding's capacity (999 999 at width 6); raising the padding (``sq migrate repad
+        <width>``) lifts it.
         """
         capacity = 10**self.padding - 1
         if self.counter >= capacity:
@@ -143,13 +123,10 @@ class SquadsDB(BaseModel):
         return sorted(i.id for i in self.items.values() if i.parent == item_id)
 
     def backrefs(self, item_id: str) -> list[str]:
-        """Compute (never store) the items whose forward refs point at ``item_id``.
-
-        Comparison is by (prefix, sequence-number) so old-width ref strings
-        (``"PREFIX-000007"``) and new-width item IDs (``"PREFIX-0000007"``) are treated as equal
-        — file contents are never rewritten by ``sq migrate repad``, so refs keep their
-        original width forever.  Type-prefix matching prevents false positives when two items
-        share a sequence number (collision state during renumber).
+        """Compute (never store) the items whose forward refs point at ``item_id``, comparing by
+        (prefix, sequence number) so an old-width ref (``"PREFIX-000007"``) matches a new-width id,
+        since ``sq migrate repad`` never rewrites file contents, and so items sharing a sequence
+        number (during renumber) do not collide.
         """
         target_seq = _seq(item_id)
         # Extract the type prefix from item_id (e.g. "PREFIX" from "PREFIX-000007").

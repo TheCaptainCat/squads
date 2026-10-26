@@ -3,24 +3,16 @@
 The ``.md`` frontmatter is the durable source of truth; ``sq`` rewrites only the frontmatter
 (and marker sections), never the agent-authored body.
 
-**Atomic by construction.** Every writer here (``write_new``, ``update_frontmatter``,
-``write_text``, ``rewrite_ids``) goes through :func:`squads._aio.atomic_write_text` — temp file
-+ fsync + ``os.replace`` in one thread hop — so a process killed mid-write leaves the file
-complete-or-previous, never a truncated prefix. This is the *only* place a mutation core should
-reach for; a bare ``_aio.write_text`` on an item ``.md`` reintroduces the truncation hazard.
+Every writer here (``write_new``, ``update_frontmatter``, ``write_text``, ``rewrite_ids``)
+goes through :func:`squads._aio.atomic_write_text` (temp file, fsync, ``os.replace``), so a
+killed process leaves the file complete-or-previous, never truncated. A mutation core reaches
+for this module only; a bare ``_aio.write_text`` on an item ``.md`` reintroduces the hazard.
 
-**Ordering rule this module's callers must keep.** Within a transaction, every write to an
-item's markdown — via this module's functions — happens inside the transaction body, before it
-returns; the index commit (``IndexStore``'s own atomic replace) is always the transaction's
-last write. A markdown write may never run after the commit — a killed process must always
-leave the markdown ahead of (or equal to) the index, never behind, so ``sq repair`` can
-converge on the file's state.
-
-A transaction that writes several markdown files this way is still not atomic *across* those
-files — there is no cross-file barrier, only the per-file one above. That is fine: each file is
-durable, on its own, before the index commits, so the skew a crash between two of them leaves
-is the same one-sided, repair-safe shape as a single-file write, just with more files on the
-ahead side.
+Ordering rule callers must keep: within a transaction every markdown write happens before the
+body returns and the index commit is the last write, so a crash leaves the markdown ahead of
+or equal to the index and ``sq repair`` converges on the file. Several files in one
+transaction are not atomic across files, but each is durable before the index commits, so a
+crash between two leaves the same one-sided, repair-safe skew.
 """
 
 import contextlib
@@ -63,13 +55,11 @@ def _label(path: Path | None) -> str | None:
 
 @dataclass(frozen=True, slots=True)
 class SkewKey:
-    """One frontmatter key on which :func:`frontmatter_skew` found disk and index to
-    disagree, classified so a refusal never asserts a cause the reader can
-    disprove.
+    """One frontmatter key on which :func:`frontmatter_skew` found disk and index disagreeing.
 
-    ``stale_encoding`` is true when the *raw* on-disk value for this key (before the load round
-    trip) already equals what the index holds, so the round trip alone produced the diverging
-    value.
+    Classified so a refusal never asserts a cause the reader can disprove: ``stale_encoding`` is
+    true when the raw on-disk value (before the load round trip) already equals what the index
+    holds, so the round trip alone produced the diverging value.
     """
 
     name: str
@@ -93,23 +83,16 @@ def stale_encoding_clause(fields: Iterable[str]) -> str:
 
 
 def frontmatter_skew(text: str, base: Item, *, default_kind: str) -> list[SkewKey]:
-    """The frontmatter keys on which *text*'s on-disk frontmatter diverges from what *base*
-    — the item as loaded before the pending mutation's own delta — would itself serialize,
-    each classified as :class:`SkewKey` (a real divergence, or a stale index encoding).
+    """The keys on which *text*'s on-disk frontmatter diverges from what *base* would serialize.
 
-    The disk side is put through the load round trip
-    (``Item.from_frontmatter(...).to_frontmatter_dict()``), which collapses every load-time
-    correction (a spelled-default ref folded to bare against *default_kind*, a padded id
-    recomputed from prefix and sequence number, key order, absent-versus-``None``), so a
-    non-empty result means a real skew. Unknown keys take part on both sides. *base* is
-    serialized directly and never re-run through ``from_frontmatter``, which is why
-    *default_kind* is folded in on the disk side. *base*'s ``path`` is passed to
-    ``from_frontmatter`` only because the reconstruction needs one; it is not part of
-    ``to_frontmatter_dict()``'s output.
-
-    In the normal case the two sides are identical — the last successful mutation wrote both
-    from one item — so an empty return is the expected result.
-
+    *base* is the item as loaded before the pending mutation's own delta; each key is a
+    :class:`SkewKey` (a real divergence, or a stale index encoding). The disk side goes through
+    the load round trip (``Item.from_frontmatter(...).to_frontmatter_dict()``), which collapses
+    every load-time correction (a spelled-default ref folded to bare, a padded id recomputed, key
+    order, absent versus ``None``), so a non-empty result is a real skew. Unknown keys take part on
+    both sides. *base* is serialized directly, so *default_kind* is folded in on the disk side
+    only; *base*'s ``path`` is passed to ``from_frontmatter`` because reconstruction needs one. An
+    empty return is the normal case, since the last mutation wrote both from one item.
     """
     disk_data, _ = split_frontmatter(text, source=base.path)
     disk_dict = Item.from_frontmatter(
@@ -133,15 +116,13 @@ def _invented_timestamps(disk_data: dict[str, Any]) -> frozenset[str]:
 
 
 def skew_message(base: Item, diverging: list[SkewKey]) -> str:
-    """The shared, human-readable report for a confirmed skew on *base* — reused by the
-    refusal raised at a single-mutation write seam, the skip-and-report line ``sq sync``
-    emits for a drifted roster item, and the ``ImportIssue`` the bulk importer's pre-pass
-    collects for a drifted pre-existing target.
+    """The human-readable report for a confirmed skew on *base*.
 
-    A real divergence keeps today's wording unchanged; a stale index encoding gets
-    :func:`stale_encoding_clause` instead, never the divergence wording it would falsify. A
-    mixed item — one key of each — reports both clauses, neither describing the other's
-    state."""
+    Shared by the refusal at a single-mutation write seam, the skip line ``sq sync`` emits for a
+    drifted roster item, and the ``ImportIssue`` the bulk importer's pre-pass collects. A real
+    divergence and a stale index encoding (:func:`stale_encoding_clause`) get their own wording,
+    never one describing the other; a mixed item reports both.
+    """
     diverged = [k.name for k in diverging if not k.stale_encoding]
     stale = [k.name for k in diverging if k.stale_encoding]
     clauses: list[str] = []
@@ -155,15 +136,12 @@ def skew_message(base: Item, diverging: list[SkewKey]) -> str:
 def ensure_no_skew(text: str, base: Item, *, default_kind: str) -> None:
     """Raise :class:`SquadsError` when *text*'s on-disk frontmatter has drifted from *base*.
 
-    Writing over it now — substituting the whole frontmatter block from an index-derived
-    item — would silently discard whatever survived on disk since the index last saw it.
-    Every single-mutation write seam calls this before every rewrite. Batch paths call
-    :func:`frontmatter_skew` directly instead, since their response is not a plain refusal.
-
-    *default_kind* is threaded straight through to :func:`frontmatter_skew` — a **required**
-    keyword, resolved by the caller (a ``Service`` mixin with ``self.spec`` in hand) once per
-    pass rather than per item, so a spec declaring the wrong number of default ref kinds fails
-    as one clean refusal naming the spec instead of raising partway through a rebuild.
+    Writing over it would discard whatever survived on disk since the index last saw it, so every
+    single-mutation write seam calls this before a rewrite; batch paths call
+    :func:`frontmatter_skew` directly, since their response is not a plain refusal.
+    *default_kind* is a required keyword, resolved once per pass by the caller (a ``Service`` mixin
+    with ``self.spec``), so a spec declaring the wrong number of default ref kinds fails as one
+    refusal naming the spec, not partway through a rebuild.
     """
     diverging = frontmatter_skew(text, base, default_kind=default_kind)
     if diverging:
@@ -182,18 +160,14 @@ def missing_file_error(item_id: str) -> SquadsError:
 
 
 async def read_item_text(path: Path, item_id: str) -> str:
-    """Read *item_id*'s file at *path*, converting a missing file into :func:`missing_file_error`.
+    """Read *item_id*'s file at *path*, turning a missing file into :func:`missing_file_error`.
 
-    An interrupted title-changing update or retype can physically move a file before the
-    index commits, leaving *path* (built from the index-loaded item) stale. Unlike
-    :func:`~squads._aio.read_text`, which propagates ``FileNotFoundError`` unchanged for the
-    two callers that read it as a signal rather than a failure — ``check``'s confirm round
-    stale-path fallback and the bulk importer's pre-pass skew guard, both in ``_services/`` —
-    every other reader of an item's file wants the content outright and has no fallback of
-    its own to try, so the exception becomes a message naming the item and pointing at
-    ``sq repair``. This is the read side of the write seams that already refuse cleanly on a
-    real skew (see :func:`ensure_no_skew`): both directions of "can't safely proceed on this
-    item until it's repaired" report the same way.
+    An interrupted title-changing update or retype can move a file before the index commits,
+    leaving *path* stale. :func:`~squads._aio.read_text` propagates ``FileNotFoundError`` for the
+    two callers that read it as a signal (``check``'s confirm round and the bulk importer's pre-pass
+    skew guard, both in ``_services/``); every other reader wants the content, so the error becomes
+    a message naming the item and pointing at ``sq repair``, the read side of the clean refusals in
+    :func:`ensure_no_skew`.
     """
     try:
         return await _aio.read_text(path)
@@ -216,14 +190,12 @@ async def write_new(path: Path, item: Item, rendered_body: str) -> None:
 
 
 async def update_frontmatter(path: Path, item: Item, base: Item, *, default_kind: str) -> None:
-    """Rewrite the frontmatter from the item; body is preserved verbatim.
+    """Rewrite the frontmatter from the item; the body is preserved verbatim.
 
-    The read is :func:`read_item_text`, so a stale index-derived *path* (an interrupted
-    rename/retype) reports cleanly instead of a raw ``FileNotFoundError``. Refuses
-    (:class:`SquadsError`) if the on-disk frontmatter has diverged from what *base* — the item
-    as loaded before this mutation's own delta, captured by the caller's pure half — would
-    itself have serialized: see :func:`ensure_no_skew`. *default_kind* passes straight
-    through to it.
+    It reads through :func:`read_item_text`, so a stale index-derived *path* reports cleanly.
+    Refuses with :class:`SquadsError` when the on-disk frontmatter diverges from what *base* (the
+    item before this mutation's delta) would serialize; see :func:`ensure_no_skew`, which
+    receives *default_kind*.
     """
     text = await read_item_text(path, item.id)
     ensure_no_skew(text, base, default_kind=default_kind)
@@ -231,16 +203,12 @@ async def update_frontmatter(path: Path, item: Item, base: Item, *, default_kind
 
 
 async def write_text(path: Path, text: str) -> None:
-    """Atomically overwrite an *existing* item file with fully-formed new text.
+    """Atomically overwrite an existing item file with fully-formed new text.
 
-    The item-file layer's general-purpose exit for callers that have already built the whole
-    new file contents themselves (a section edit, a sub-entity block rewrite, a retype's
-    frontmatter+body rewrite, …) rather than growing a bespoke ``_aio.atomic_write_text`` import
-    at each such call site — so every write of an item ``.md`` funnels through this module and
-    "the item-file layer exposes only the atomic primitive" stays structurally true.
-
-    The text takes the on-disk file's line endings (:func:`~squads._sections.conform_line_endings`):
-    lines it shares with the file keep theirs, added or changed lines use the file's dominant one.
+    The exit for callers that built the whole new contents themselves (a section edit, a
+    sub-entity block rewrite, a retype), so every write of an item ``.md`` funnels through this
+    module. The text takes the file's line endings (:func:`~squads._sections.conform_line_endings`):
+    shared lines keep theirs, added or changed lines use the dominant one.
     """
     with contextlib.suppress(FileNotFoundError):
         text = conform_line_endings(await _aio.read_text(path, verbatim=True), text)

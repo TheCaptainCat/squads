@@ -67,7 +67,7 @@ on its provenance read the same file once.
     │   └── templates/ roles/    # template and per-role overrides
     ├── operators/        # OP-*.md (the humans on the project)
     └── agents/
-        ├── roles/        # ROLE-*.md — a role's identity; its body holds only its view tag
+        ├── roles/        # ROLE-*.md — a role's identity; its body holds its view tag and any prose
         └── skills/       # SKILL-*.md — an authored skill's body; a managed skill's body holds only its view tag
 ```
 

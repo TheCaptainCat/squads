@@ -58,17 +58,10 @@ class RosterMixin(ServiceCore):
         tech: str | None = None,
     ) -> Item:
         """Activate a role the catalog declares, or build one from a role template
-        (``from_template``, with the ``tech`` the template takes).
-
-        ``name`` overrides the name that would otherwise be used: the catalog entry's (with any
-        per-slug file's ``full_name``), or the template's ``name`` pattern. ``model`` and
-        ``pronouns`` are stored on the new item; a blank ``pronouns`` stores nothing.
-
-        **Postcondition: the returned role is live.**  An existing *live* catalog role is
-        returned untouched (activating twice is a no-op, which `init`/`adopt` rely on). An
-        existing *retired* one is refused, because this is a create verb, not a transition
-        verb: reviving a retired entry is what ``sq role <slug> status <live-initial>`` is for.
-        A role built from a template is refused when its slug is taken.
+        (``from_template``, with its ``tech``); ``name`` overrides the catalog or template name. The
+        returned role is live: an existing live catalog role is returned untouched
+        (``init``/``adopt`` rely on that), a retired one is refused (revive it with ``sq role <slug>
+        status``), and a template role whose slug is taken is refused.
         """
         own_pronouns = checked_pronouns(pronouns)
         self._refuse_invalid_model(model)
@@ -352,14 +345,12 @@ class RosterMixin(ServiceCore):
         definition: RawMapping | None = None,
         source: str = "the role definition",
     ) -> RoleUpdateResult:
-        """Edit a role. The name, pronouns and model are editable on every role (a blank
-        *model* clears it). The definition fields (job title, description, mission,
-        capabilities, colour, spawn authority, or *definition*, a per-slug-file-grammar delta)
-        are editable on a role that defines itself; on a role from the catalog or a template they
-        are refused, naming the file that holds them. A role whose catalog entry has vanished is
-        made self-defining by giving it a job title, description and mission together.
-
-        Every check runs before the first write.
+        """Edit a role. Name, pronouns and model are editable on every role (a blank *model* clears
+        it); the definition fields (job title, description, mission, capabilities, colour, spawn
+        authority, *definition*) only on a self-defining role, being refused on a catalog or
+        template role with the file that holds them. A role whose catalog entry vanished becomes
+        self-defining given a job title, description and mission. Every check runs before the first
+        write.
         """
         item = await self.get(item_id)
         if item.type != ROSTER_ROLE:
@@ -523,8 +514,9 @@ class RosterMixin(ServiceCore):
             )
 
     def _definition_fields(self, role: RoleDef) -> dict[str, Any]:
-        """Every definition key a self-defining role stores for *role*, ``None`` removing a key
-        the role no longer holds."""
+        """Every definition key a self-defining role stores for *role*, ``None`` removing a key the
+        role no longer holds.
+        """
         optional = self._definition_attributes(role)
         keys = (
             AttributeKey.RESPONSIBILITIES,
@@ -698,49 +690,20 @@ class RosterMixin(ServiceCore):
         return await self.list_items(item_type=ROSTER_ROLE)
 
     async def default_role_slug(self) -> str | None:
-        """The slug of the live role this squad currently designates as its default, or
-        ``None`` when no live role carries the designation.
-
-        Reads :meth:`~ServiceCore.roster` — the same live-filtered, catalog-resolved
-        projection the backend compiles the managed region's default-role line from, taking
-        the first holder exactly as that line does — so a display surface asking "who is the
-        default *here*" gets the same answer the generated agent files were written with,
-        rather than the bundled catalog's shipped designation. ``None`` is a legitimate
-        answer, not a gap: a squad that retired its designated role has no default until one
-        is designated again, and the generated line omits itself in that state too.
+        """The slug of the live role this squad designates as its default, or ``None`` when no live
+        role carries the designation. It reads :meth:`~ServiceCore.roster`, the projection the
+        generated default-role line is compiled from, so a display surface gets the same answer as
+        the agent files.
         """
         return next((r.slug for r in await self.roster() if r.is_default), None)
 
     async def set_default_role(self, item_id: str) -> DefaultRoleMoveResult:
-        """Move the ``is_default`` designation onto a live role — a move, not a set. The
-        projection resolves the designation by first match over the roster and
-        nothing validates a single holder at item level, so a plain set could silently leave
-        two holders and an arbitrary winner; this clears **every** other holder found — not
-        just the one it happens to know about — in the same transaction, so it also converges
-        a squad that already carries two (the state the bulk importer's ``update`` event can
-        reach, since it is the only path that writes this key today outside this method).
-
-        **A holder is found by resolving, never by reading the stored ``is_default`` raw.** The
-        stored key is an *override* on a designation the role catalog also answers
-        (:func:`~squads._roles._resolver.role_base_from_item` falls back to the catalog's own
-        ``is_default``), and a role item stores the key only when something wrote it —
-        so the catalog's designated role holds the designation with nothing stored on its item
-        at all. A raw read finds no holder there, clears nothing, and leaves the squad with two
-        live defaults: the one this call just wrote and the one the catalog still names. That
-        is the same failure as the sync revert, reached from the other end, and resolving is
-        what closes both. Clearing writes an explicit ``False``, which is the only thing that
-        can override a designation the catalog (or a project override document) declares.
-
-        Refuses a non-live target: a designation the projection cannot read is not a
-        designation, and the generated default-role line already omits itself when no live
-        role carries it. Designating the role that already holds it — with nothing else to
-        clear — is a reported no-op, not an error.
-
-        The projection is refreshed after commit (:meth:`~ServiceCore.refresh_managed`) —
-        the same path a roster status transition already uses — because ``is_default`` never
-        appears in a role's own generated pointer, only in the compiled managed region (the
-        default-role line and the orchestration prose that reads the same value), so there is
-        nothing else to re-materialise. Skipped when nothing changed.
+        """Move the ``is_default`` designation onto a live role: a move, not a set, since the
+        projection takes the first holder, so every other holder is cleared in the same transaction.
+        Holders are found by resolving (:func:`~squads._roles._resolver.role_base_from_item`), not
+        the stored key, which only overrides the catalog; clearing writes an explicit ``False``. A
+        non-live target is refused, the current holder is a reported no-op, and the projection is
+        refreshed after commit when something changed.
         """
         async with self.store.transaction() as db:
             item = require_item(db, item_id)
@@ -794,36 +757,12 @@ class RosterMixin(ServiceCore):
         return DefaultRoleMoveResult(item=item, cleared=cleared, changed=changed)
 
     async def workload(self) -> list[WorkloadRow]:
-        """Open/closed/total work-item counts per assignee (busiest first; unassigned last),
-        plus each assignee's separate, additive sub-entity assignment counts.
-
-        Sub-entity counts are resolved through the same spec predicate (`is_open`) applied to
-        the sub-entity's own status — never folded into the item counts (see
-        :class:`~squads._services._results.WorkloadRow`). Roster-category items (and their
-        sub-entities, since a roster type declares none) stay excluded, as they are today.
-
-        **Deliberately a different predicate from :meth:`mine`'s default filter.** This is a
-        census — "how much active work does this slug carry" — so it reads the role's
-        ``settled`` flag (`is_open`, unchanged since before the role-object model): a settled
-        status is closed regardless of whether it stays visible elsewhere. `mine` answers a
-        different question — "does this row belong in a default listing" — so it reads
-        ``hidden`` instead (`hidden_by_default`, matching `sq list`/`sq tree`): an ``in_force``
-        status (e.g. `Accepted`, `Published`) is settled yet stays visible there. The two flags
-        coincide for every bundled lifecycle except `in_force`, which is why the split is easy
-        to miss; see :meth:`mine`'s docstring for the same note from the other surface. Neither
-        docstring is a substitute for stating this in the adopter-facing docs.
-
-        **Sub-entity counts never fold in the parent item's status either** — a `Todo` subtask
-        under a `Cancelled` or `Done` task still counts in `subentity_open`, purely on the
-        sub-entity's own status. That is internally consistent with the item columns beside it
-        (a closed item's own children get counted the same way regardless of the item's status),
-        but it means `sq mine <slug>` and `sq workload` can disagree about whether the same
-        slug has open work: `mine` has a deliberate per-reason rule where a settled sub-entity
-        under an open parent still isn't the slug's queue (and vice versa); `workload` has no
-        such rule because folding parent state in would change what these columns mean relative
-        to the item columns next to them. Not a defect — a census answers "how much is on this
-        status" per entity, not "is this actionable" — but worth knowing before comparing the
-        two commands' numbers for the same slug.
+        """Open/closed/total work-item counts per assignee (busiest first, unassigned last) plus
+        separate sub-entity counts judged by the sub-entity's own status
+        (:class:`~squads._services._results.WorkloadRow`); roster-category items are excluded. As a
+        census it reads ``settled`` (``is_open``), unlike :meth:`mine`, which reads ``hidden``, so
+        an ``in_force`` status counts closed here yet stays visible there, and ``sq mine`` and ``sq
+        workload`` can disagree.
         """
         counts: dict[str | None, list[int]] = {}
         sub_counts: dict[str | None, list[int]] = {}
@@ -867,29 +806,11 @@ class RosterMixin(ServiceCore):
         return sorted(rows, key=lambda r: (-r.open, -r.total, r.assignee or "~"))
 
     async def mine(self, slug: str, *, include_closed: bool = False) -> list[MineRow]:
-        """Items assigned to ``slug`` directly, or via one of their sub-entities.
-
-        Default (``include_closed=False``) visibility is evaluated per matched reason: an
-        item-level match is judged on the item's own status, a sub-entity match on that
-        sub-entity's own status (`spec.hidden_by_default` applied at sub-entity granularity —
-        the same role-derived predicate items use, not a parallel visibility concept). The row
-        shows if at least one matching reason is open. ``include_closed=True`` bypasses the
-        predicate entirely, exactly as it does for item-level matches today.
-
-        **Deliberately reads `hidden_by_default`, not `is_open`.** This filter answers "does
-        this row belong in a default listing", the same question `sq list`/`sq tree` ask — so
-        it reads the role's ``hidden`` flag, under which a settled-but-``in_force`` status
-        (`Accepted`, `Published`) stays visible without ``--all``, exactly as it does in those
-        two commands. :meth:`workload`'s open/closed columns ask a different question — a
-        census of active work — and read ``settled`` (`is_open`) instead, so an `in_force`
-        status counts closed there while showing here. Both are correct for what they answer;
-        keep this predicate in sync with `sq list`'s, not with `workload`'s, if you touch it.
-
-        Roster-category items are excluded, matching :meth:`workload`'s own guard — no CLI verb
-        sets ``assignee`` on a role/skill/operator today, so this is a consistency fix rather
-        than a reachable behaviour change, but the two functions sit adjacent and answer the
-        same question, so they should agree on it rather than one stating the exclusion and the
-        other omitting it.
+        """Items assigned to ``slug`` directly or via a sub-entity. Unless ``include_closed``,
+        visibility is judged per matched reason (the item's or sub-entity's own status, via
+        ``spec.hidden_by_default``) and the row shows if any is open; roster-category items are
+        excluded, as in :meth:`workload`. It reads ``hidden_by_default``, not ``is_open``, because
+        it asks what belongs in a default listing, so keep it in step with ``sq list``.
         """
         rows: list[MineRow] = []
         for it in await self.list_items():

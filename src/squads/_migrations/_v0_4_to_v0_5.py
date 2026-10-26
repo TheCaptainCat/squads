@@ -1,38 +1,14 @@
-"""Schema 0.4 → 0.5 runner: stamp SKILL ids onto existing ``agents/skills/`` body files
-and rename them to the ``SKILL-<NNNNNN>-<slug>.md`` convention.
-
-This migration retrofits squads whose skill files predate that convention.  For each
-bundled skill slug, in lexical order:
-
-1. If a **convention-correct** file ``agents/skills/SKILL-<NNNNNN>-<slug>.md`` already
-   exists, it is completely skipped (idempotent — re-running after a successful migration
-   is a no-op).
-
-2. If a **legacy slug-named** file ``agents/skills/<slug>.md`` exists:
-
-   - If it **has no frontmatter id** (unstamped legacy file): allocate a new ``SKILL-…``
-     id through ``IndexStore.transaction()``, stamp sq frontmatter, rename the file to the
-     convention name, and rewrite the ``.claude/skills/<slug>/SKILL.md`` pointer to
-     reference the renamed path.
-
-   - If it **already carries a frontmatter id** (stamped but still slug-named — a
-     partially-migrated repo): extract the id from frontmatter, rename to the convention
-     name, and rewrite the pointer.  No new id is allocated.
-
-3. If neither file exists, skip (skill body not written yet; run ``sq sync`` first).
-
-**Ordering parity:** skills are processed in the same lexical-by-slug order as
-``seed_bundled_skills()`` (used by ``sq init``).
-
-**Idempotent:** ids are never reallocated; re-running is a no-op.
-
-**What happens after this runner returns:**
-``run_pending_migrations`` (``_services/_maintenance.py``) calls ``repair()`` which
-re-reads all ``.md`` files and rebuilds ``.squads.json`` from scratch — the counter
-high-water mark is recovered from ``max(sequence_id)`` across all items.
-
-Invoked by ``sq migrate up`` via ``_migrations._registry`` — never run directly
-(this module is private).
+"""Schema 0.4 → 0.5 runner: stamp SKILL ids onto existing ``agents/skills/`` body files and rename
+them to the ``SKILL-<NNNNNN>-<slug>.md`` convention, for squads whose skill files predate it. For
+each bundled skill slug in lexical order (the order ``seed_bundled_skills()`` uses): a
+convention-named file already present is skipped, so a re-run is a no-op and ids are never
+reallocated; a legacy ``<slug>.md`` with no frontmatter id gets a new ``SKILL-…`` id through
+``IndexStore.transaction()``, sq frontmatter, the convention name and a rewritten
+``.claude/skills/<slug>/SKILL.md`` pointer; one that already carries an id (a partial migration) is
+renamed and re-pointed without allocating; and a slug with neither file is skipped (run ``sq sync``
+first). Afterwards ``run_pending_migrations`` calls ``repair()``, which rebuilds ``.squads.json``
+and recovers the counter from ``max(sequence_id)``. It runs only through ``sq migrate up`` via
+``_migrations._registry``.
 """
 
 from pathlib import Path, PurePath
@@ -54,9 +30,8 @@ _CLAUDE_DIR = ".claude"
 _SKILLS = "skills"
 _SKILL_FILE = "SKILL.md"
 
-# Frozen v0.4/v0.5 "skill" vocabulary — the type-name/prefix/folder/status literals as they
-# existed at this schema version. NEVER derive this from the live spec/enum: a migration is a
-# point-in-time snapshot — the live spec/enum must never be re-introduced here.
+# Frozen v0.4/v0.5 "skill" vocabulary (type-name, prefix, folder and status literals at this
+# schema). Never derive it from the live spec: a migration is a point-in-time snapshot.
 _SKILL_TYPE = "skill"
 _SKILL_PREFIX = "SKILL"
 _SKILL_FOLDER = "agents/skills"
@@ -98,13 +73,10 @@ def _convention_name(slug: str, item_id: str, padding: int) -> str:
 
 
 def _posix_rel(path: PurePath, root: PurePath) -> str:
-    """*path*'s location relative to *root*, POSIX-separated regardless of host platform.
-
-    ``str(some_path.relative_to(root))`` renders with the **OS separator** — a backslash on
-    Windows — which would land in a committed pointer/frontmatter value that must be the same
-    for the same corpus on every platform. ``.as_posix()`` is the fix; typed on ``PurePath``
-    (not ``Path``) so this is exercised directly against ``PureWindowsPath`` inputs in tests,
-    with no real filesystem or host OS involved.
+    """*path*'s location relative to *root*, POSIX-separated on every platform:
+    ``str(path.relative_to(root))`` uses the OS separator (a backslash on Windows) and would put a
+    platform-dependent value in a committed pointer or frontmatter. It is typed on ``PurePath`` so
+    tests exercise it against ``PureWindowsPath`` with no real filesystem.
     """
     return path.relative_to(root).as_posix()
 
@@ -115,13 +87,10 @@ async def _rewrite_pointer(
     description: str,
     new_body_rel: str,
 ) -> None:
-    """Rewrite the ``.claude/skills/<slug>/SKILL.md`` pointer to today's shape.
-
-    ``new_body_rel`` is kept as a parameter for call-site compatibility with the callers below,
-    which still track the renamed body's location for their own frontmatter/index work, but the
-    pointer itself no longer names a path — a migration runner is frozen against the corpus
-    vocabulary of the schema version it transforms, never against a regenerable artifact like
-    this pointer, so it renders today's template rather than pinning a historical copy.
+    """Rewrite the ``.claude/skills/<slug>/SKILL.md`` pointer to today's shape. ``new_body_rel``
+    stays a parameter for call-site compatibility, but the pointer no longer names a path: a runner
+    is frozen against the schema's corpus vocabulary, not a regenerable artifact, so it renders
+    today's template rather than pinning a historical copy.
     """
     pointer = root.root / _CLAUDE_DIR / _SKILLS / slug / _SKILL_FILE
     if not pointer.parent.is_dir():
@@ -198,17 +167,11 @@ async def _rename_stamped_legacy(
 
 
 async def migrate(ctx: MigrationContext) -> int:
-    """Stamp SKILL ids and rename legacy slug-named files to the convention.
-
-    Walks ``agents/skills/`` in lexical-by-slug order (shared ordering primitive),
-    allocates a new ``SKILL-…`` id per unstamped file through ``IndexStore.transaction()``,
-    stamps sq frontmatter, renames the file to ``SKILL-<NNNNNN>-<slug>.md``, and rewrites
-    the ``.claude`` pointer.
-
-    If a convention file already exists but has an empty description, backfills the
-    description from the registry.
-
-    Returns the count of files acted on (stampings + renames + backfills).
+    """Stamp SKILL ids and rename legacy slug-named files to the convention: walk ``agents/skills/``
+    in lexical-by-slug order, allocate an id per unstamped file through
+    ``IndexStore.transaction()``, stamp sq frontmatter, rename to ``SKILL-<NNNNNN>-<slug>.md`` and
+    rewrite the ``.claude`` pointer; a convention file with an empty description gets it backfilled
+    from the registry. Returns the count of stampings, renames and backfills.
     """
     paths = ctx.paths
     skills_folder = paths.squad_dir / _SKILL_FOLDER

@@ -1,28 +1,8 @@
-"""Bulk event import engine (``sq import``): validate-first pre-pass + single-
-transaction apply. The command itself is ``sq import`` (``_cli/_import.py``); this module
-exposes the whole engine as one service entry point, :meth:`ImportMixin.import_events`.
-
-**Two passes, one op set.** Every op's real mutation lives in exactly one place — the
-``_X_model``/``_X_core`` pure/IO split each interactive mutation method already exposes
-(:mod:`squads._services._base`, :mod:`_items`, :mod:`_collab`, :mod:`_refs`,
-:mod:`_subentities`). The pre-pass (:meth:`ImportMixin._plan_import`) calls the PURE
-``_X_model`` half against a throwaway, never-persisted deep copy of the index — including the
-id allocation, so a create's simulated id comes from the exact same ``db.allocate_id`` the real
-apply uses, just against a copy invariant #2 never lets reach a real transaction. The apply
-pass (:meth:`ImportMixin._apply_import`) calls the full ``_X_core`` (model + file I/O + reflog)
-against the real ``db``, inside ONE open transaction, rebinding the ambient clock/actor per
-event via the ``RequestContext`` seam so every event's own ``at``/``as`` drives its
-``created_at``/``updated_at``/authorship exactly as an interactive ``--at``/``--as`` call would.
-
-**The pre-pass is not file-I/O-free.** It simulates every event against an
-in-memory shadow copy and touches no files for its own sake — but it also reads, once per
-*targeted pre-existing item* (never per event, and never for a handle created within the same
-import), that item's ``.md`` to pre-flight the same skew guard the single-mutation write seams
-enforce (see :func:`squads._itemfile.ensure_no_skew`). This keeps a mid-apply refusal — which
-would leave the batch partially applied, since the markdown writes of everything already
-applied stand per the write-path ordering rule — off the table entirely: a drifted target is
-reported as a pre-pass issue instead, and the apply pass never runs. The extra reads are
-bounded by the affected set (N reads for N distinct pre-existing targets), not by the board.
+"""Bulk event import engine (``sq import``): a validate-first pre-pass and a single-transaction
+apply (:meth:`ImportMixin.import_events`). The pre-pass runs each op's pure ``_X_model`` half, id
+allocation included, on a throwaway deep copy of the index and pre-flights the skew guard
+from each targeted ``.md``, since an apply-time refusal would leave the batch partly applied; the
+apply runs ``_X_core`` on the real ``db`` in one transaction, rebinding clock and actor per event.
 """
 
 from dataclasses import dataclass, field
@@ -79,10 +59,9 @@ from squads._services._subentities import SubentitiesMixin
 from squads._services._validators import ValidatorEngine
 from squads._workflow._models import ROSTER_ROLE, Field, WorkflowSpec
 
-#: Exception types the per-event dispatch treats as a collectible validation problem rather
-#: than a bug: every check a ``_X_model``/pre-pass helper raises is a ``SquadsError`` (or one
-#: of its subclasses); a pydantic ``ValidationError`` surfaces from constructing an ``Item``/
-#: ``SubEntity`` with a bad value (e.g. an empty title) the event models don't already reject.
+#: Exception types the per-event dispatch collects as validation problems rather than bugs:
+#: ``SquadsError`` subclasses, and the pydantic ``ValidationError`` from building an
+#: ``Item``/``SubEntity`` with a bad value.
 _COLLECTIBLE: tuple[type[Exception], ...] = (SquadsError, ValidationError)
 
 
@@ -104,12 +83,10 @@ class HandleMap:
         return self.items.get(token, token)
 
     def resolve_local(self, parent_id: str | None, token: str) -> str:
-        """The real local id for *token*: a registered sub-entity handle resolves to its local
-        id (raising if it's known to belong to a DIFFERENT parent than *parent_id*); anything
-        else passes through unchanged (assumed to already be a literal local id, e.g. a
-        story's own displayed number).
-        ``parent_id=None`` skips the cross-check (the caller has no confirmed parent yet — the
-        model-level check downstream reports the real problem)."""
+        """The real local id for *token*: a registered sub-entity handle resolves to its local id
+        (raising if it belongs to a different parent than *parent_id*); anything else passes through
+        as a literal local id. ``parent_id=None`` skips the cross-check.
+        """
         entry = self.subentities.get(token)
         if entry is None:
             return token
@@ -179,15 +156,9 @@ def _resolve_fields(
 
 
 class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
-    """The bulk-import engine: :meth:`import_events` is the whole entry point the CLI task
-    wraps. Both passes share one op-name dispatch table shape; see the module docstring.
-
-    Inherits every mutation mixin it drives (rather than just ``ServiceCore``, like every
-    other single-concern mixin does) because it is the one place that reuses ANOTHER mixin's
-    ``_X_model``/``_X_core`` pair — an intentional, sole exception to the one-concern-per-file
-    convention, not a precedent for the rest of ``_services/``. ``Service`` already composes
-    all of these directly; this repeats them so the type checker (and this file in isolation)
-    sees the exact same method set ``self`` really has at runtime.
+    """The bulk-import engine; :meth:`import_events` is its entry point. It inherits every mutation
+    mixin whose ``_X_model``/``_X_core`` pair it reuses, the one exception to one-concern-per-file,
+    so the type checker sees the method set ``self`` has at runtime.
     """
 
     # ------------------------------------------------------------------ entry point
@@ -199,17 +170,11 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         default_as: str | None = None,
         dry_run: bool = False,
     ) -> ImportResult:
-        """Parse, validate, and (unless *dry_run* or the pre-pass found any issue) apply a
-        JSONL event stream.
-
-        ``default_at``/``default_as`` are the file-level fallbacks an event without its own
-        ``at``/``as`` inherits when there is no PRIOR event to inherit from either — the CLI
-        task's ``--at``/``--as``. Left ``None``, ``default_at`` defaults to "now"; ``default_as``
-        has **no** fallback — attribution is only knowable at the moment the event was written
-        or the command typed, never invented from a config default, so an event that reaches the
-        chain with no actor at all (no ``as`` of its own, no prior event's, no ``--as``) becomes
-        a validation issue naming the missing actor instead of silently attributing to whoever
-        the squad happens to be configured to default to.
+        """Parse, validate, and (unless *dry_run* or the pre-pass found an issue) apply a JSONL
+        event stream. ``default_at``/``default_as`` are the file-level fallbacks for an event with
+        no ``at``/``as`` of its own and no prior event to inherit from; ``default_at`` falls back to
+        now, while ``default_as`` has none, so an event with no actor becomes an issue naming the
+        missing actor.
         """
         effective_default_at = default_at if default_at is not None else utc_now_floor()
 
@@ -233,16 +198,10 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
 
     # ------------------------------------------------------------------ validate-first pre-pass
     async def _plan_import(self, events: list[ResolvedEvent]) -> ImportPlan:
-        """Resolve every handle, simulate id allocation, and check every event against the
-        active spec — writing nothing, collecting EVERY error (never stopping at the first).
-
-        ``shadow`` is a throwaway, never-persisted deep copy of the loaded index: mutating it
-        (including bumping its counter) is exactly invariant #2's "simulate only" — the real
-        counter lives in ``self.store`` and is untouched until (and unless) :meth:`_apply_import`
-        opens its own transaction.
-
-        Also pre-flights the frontmatter-skew guard against disk, once per targeted
-        pre-existing item — see the module docstring's "not file-I/O-free" note.
+        """Resolve every handle, simulate id allocation, and check every event against the active
+        spec, writing nothing and collecting every error. ``shadow`` is a throwaway deep copy of the
+        index, so bumping its counter leaves the real one in ``self.store`` untouched. It also pre-
+        flights the skew guard once per targeted pre-existing item.
         """
         shadow = (await self.store.load()).model_copy(deep=True)
         pre_existing_seqs = set(shadow.items)
@@ -250,10 +209,8 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         counts = ImportOpCount()
         issues: list[ImportIssue] = []
         skew_checked: set[int] = set()
-        # Resolved once for the whole pass, before the per-event loop's own try/except —
-        # never inside it, or a spec declaring the wrong number of default ref kinds would
-        # be caught and re-reported as a separate per-event ImportIssue instead of failing
-        # this call as one clean refusal naming the spec.
+        # Resolved once, outside the per-event try/except: a spec declaring the wrong number of
+        # default ref kinds must fail the call once, not be re-reported as a per-event ImportIssue.
         default_kind = self.spec.default_ref_kind()
         for ev in events:
             counts.bump(ev.event.op)
@@ -308,16 +265,10 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         *,
         default_kind: str,
     ) -> None:
-        """The batch shape of the skew guard: once per *pre-existing* item an event targets,
-        never per event and never for a handle created within this same import (no prior file
-        to diverge from). After an item's first targeting event, any further divergence from
-        disk is the import's own simulated-but-not-yet-applied doing, not a real skew — so a
-        second check would false-refuse on the import's own pending first delta.
-
-        Runs BEFORE :meth:`_simulate_one` for the same event, so ``shadow.get(target)`` is
-        still the unmutated base the moment this is the item's first touch. Any problem here
-        (item not found, file missing) is left for the real per-op validation/reconciliation
-        to report — this only ever adds a skew issue, never masks or duplicates another one.
+        """Skew-check each *pre-existing* item once, on the first event that targets it (never for a
+        handle created in this import). Later divergence from disk is the import's own pending
+        delta, so a second check would false-refuse. It runs before :meth:`_simulate_one`, so
+        ``shadow.get(target)`` is still the unmutated base, and only ever adds a skew issue.
         """
         token = _event_target_token(ev.event)
         if token is None:
@@ -525,15 +476,10 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
 
     # ------------------------------------------------------------------ apply
     async def _apply_import(self, events: list[ResolvedEvent]) -> ImportApplyResult:
-        """Apply every event inside ONE open transaction: real ids from the real counter, each
-        touched file written once when the deferred block closes after the last event, and a
-        per-event reflog entry under that event's own actor/clock (rebound via the
-        ``RequestContext`` seam, restored right after).
-
-        Only called once :meth:`_plan_import` reports a fully clean pre-pass — an apply-time
-        failure here can therefore only be I/O: the store's own ``transaction()``
-        preserves the files-then-index safe-failure order, so a mid-flush crash simply leaves
-        the index uncommitted for ``sq repair`` to reconcile.
+        """Apply every event in one open transaction: real ids from the real counter, each touched
+        file written once when the deferred block closes, and a reflog entry per event under that
+        event's actor and clock. Only called after a clean pre-pass, so a failure here is I/O, and
+        the store's files-then-index order leaves the index uncommitted for ``sq repair``.
         """
         handles = HandleMap()
         counts = ImportOpCount()
@@ -561,20 +507,10 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         )
 
     async def _board_debt_findings(self, touched_ids: set[str]) -> list[CheckIssue]:
-        """The same catalog ``sq check`` reports (unwritten sub-entity bodies, over-long
-        titles, …), scoped to just the items THIS import touched — read post-commit, since
-        the files now exist on disk. Squad-global validators (index/backend reconciliation)
-        are irrelevant to one import run, so they're excluded from this engine entirely.
-
-        The findings come back in the order ``sq check`` prints them, whatever order the type's
-        validators run in.
-
-        The ``CheckIssue`` objects are returned whole, level and all. Flattening them to
-        strings here would make an error-level finding indistinguishable from an
-        advisory one at every surface above: the caller cannot restore a level this function
-        did not return. Nothing here is filtered by level either — which members of the catalog
-        can reach this point is a property of the effective spec (any type naming an
-        error-level rule reaches it), not something this engine should assume.
+        """The ``sq check`` catalog (unwritten bodies, over-long titles, ...) scoped to the items
+        this import touched, read post-commit and in ``sq check`` print order. Squad-global
+        validators are excluded. The ``CheckIssue`` objects are returned whole and unfiltered, so an
+        error-level finding stays distinguishable from an advisory one.
         """
         if not touched_ids:
             return []
