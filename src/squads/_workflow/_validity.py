@@ -285,9 +285,9 @@ def check_completion_status(
     errors: list[str],
 ) -> None:
     """Each declared sub-entity kind's ``completion`` must name a reachable, non-initial
-    state of its own ``lifecycle`` — the done-toggle target ``subentity_completion(kind)``
-    resolves to. An undeclared ``lifecycle`` is caught separately by
-    ``check_subentity_kinds``; skipped here to avoid a duplicate error.
+    state of its own ``lifecycle`` — the status a mark-done action targets. An undeclared
+    ``lifecycle`` is caught separately by ``check_subentity_kinds``; skipped here to avoid a
+    duplicate error.
     """
     for kind, ks in subentity_kinds.items():
         machine = lifecycles.get(ks.lifecycle)

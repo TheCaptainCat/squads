@@ -1,6 +1,6 @@
 {
   "schema_version": "0.17",
-  "counter": 1214,
+  "counter": 1216,
   "padding": 6,
   "items": {
     "12": {
@@ -8733,7 +8733,7 @@
       "type": "feature",
       "title": "Structural cleanup of engine layering and cohesion",
       "slug": "structural-cleanup-of-engine-layering-and-cohesion",
-      "status": "Ready",
+      "status": "Done",
       "description": "Home for the 13 open REV-956 findings: roster, spec threading, file splits, check registry, DI decision, comment rule.",
       "parent": null,
       "author": "product-owner",
@@ -8749,7 +8749,7 @@
         {
           "local_id": "US1",
           "title": "Roster cluster and policy hub extraction (F3, F5)",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -8759,7 +8759,7 @@
         {
           "local_id": "US2",
           "title": "Spec threading and loader unification (F6, F8, F15)",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -8769,7 +8769,7 @@
         {
           "local_id": "US3",
           "title": "Split the oversized files (F9, F10, F12, F7)",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -8779,7 +8779,7 @@
         {
           "local_id": "US4",
           "title": "Name every sq check finding by a registered rule (F11)",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -8789,7 +8789,7 @@
         {
           "local_id": "US5",
           "title": "Decide on a DI container (F14)",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -8799,7 +8799,7 @@
         {
           "local_id": "US6",
           "title": "Apply the comment rule to source and tests (F18, F19)",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -8809,7 +8809,7 @@
       ],
       "path": "features/FEAT-001092-structural-cleanup-of-engine-layering-and-cohesion.md",
       "created_at": "2026-10-17T03:49:43Z",
-      "updated_at": "2026-10-24T21:59:26Z",
+      "updated_at": "2026-10-28T12:48:10Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -9015,7 +9015,7 @@
       "type": "feature",
       "title": "Adopter field-report fixes: errors, round-trips, checks, guidance",
       "slug": "adopter-field-report-fixes-errors-round-trips-checks-guidanc",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Fixes for the triaged findings of REV-1099: defects, new checks, docs and bundled guidance.",
       "parent": null,
       "author": "product-owner",
@@ -9031,7 +9031,7 @@
         {
           "local_id": "US1",
           "title": "Writes fail cleanly under index-lock contention",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -9041,7 +9041,7 @@
         {
           "local_id": "US2",
           "title": "Milestone bodies round-trip and create sets every declared field",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -9051,7 +9051,7 @@
         {
           "local_id": "US3",
           "title": "Generated files report the truth after a team or version change",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -9061,7 +9061,7 @@
         {
           "local_id": "US4",
           "title": "Operator subtasks close without --force",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -9070,8 +9070,8 @@
         },
         {
           "local_id": "US5",
-          "title": "sq check flags Approved reviews with Open findings and unowned types",
-          "status": "Todo",
+          "title": "sq check flags Approved reviews with unsettled findings and unowned types",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -9081,7 +9081,7 @@
         {
           "local_id": "US6",
           "title": "Findings can be Deferred or Noted",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -9091,7 +9091,7 @@
         {
           "local_id": "US7",
           "title": "Adopters can find how to import, override and change roles",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -9101,7 +9101,7 @@
         {
           "local_id": "US8",
           "title": "Bundled guidance names the right owners and asks the right questions",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -9111,7 +9111,7 @@
         {
           "local_id": "US9",
           "title": "sq list has a compact one-line form",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -9121,7 +9121,7 @@
       ],
       "path": "features/FEAT-001101-adopter-field-report-fixes-errors-round-trips-checks-guidanc.md",
       "created_at": "2026-10-24T09:39:06Z",
-      "updated_at": "2026-10-24T19:44:05Z",
+      "updated_at": "2026-10-28T12:12:29Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -31811,7 +31811,7 @@
       ],
       "path": "tasks/TASK-001103-fix-lock-contention-milestone-round-trip-create-fields-sync.md",
       "created_at": "2026-10-24T10:04:00Z",
-      "updated_at": "2026-10-24T20:58:01Z",
+      "updated_at": "2026-10-28T12:11:17Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -31987,7 +31987,7 @@
       ],
       "path": "tasks/TASK-001105-add-noted-and-deferred-finding-states-with-a-carrier-pointer.md",
       "created_at": "2026-10-24T10:04:03Z",
-      "updated_at": "2026-10-25T11:35:11Z",
+      "updated_at": "2026-10-28T12:11:18Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -32095,7 +32095,7 @@
       ],
       "path": "tasks/TASK-001106-role-ergonomics-bundled-handoffs-and-a-compact-sq-list.md",
       "created_at": "2026-10-24T10:04:05Z",
-      "updated_at": "2026-10-24T23:41:53Z",
+      "updated_at": "2026-10-28T12:11:19Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -32174,7 +32174,7 @@
       ],
       "path": "tasks/TASK-001107-document-import-events-role-splat-refs-and-the-review-questi.md",
       "created_at": "2026-10-24T10:04:07Z",
-      "updated_at": "2026-10-25T16:06:55Z",
+      "updated_at": "2026-10-28T12:11:21Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -32878,7 +32878,7 @@
       ],
       "path": "tasks/TASK-001124-move-the-roster-thread-the-spec-and-split-oversized-modules.md",
       "created_at": "2026-10-24T21:53:25Z",
-      "updated_at": "2026-10-25T05:29:44Z",
+      "updated_at": "2026-10-28T12:46:03Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -32947,7 +32947,7 @@
       ],
       "path": "tasks/TASK-001125-build-service-at-one-composition-root-without-module-state.md",
       "created_at": "2026-10-24T21:53:44Z",
-      "updated_at": "2026-10-25T15:58:32Z",
+      "updated_at": "2026-10-28T12:46:04Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -32998,7 +32998,7 @@
       ],
       "path": "tasks/TASK-001126-name-every-sq-check-finding-by-a-registered-rule.md",
       "created_at": "2026-10-24T21:53:55Z",
-      "updated_at": "2026-10-25T21:16:20Z",
+      "updated_at": "2026-10-28T12:46:05Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -33076,7 +33076,7 @@
       ],
       "path": "tasks/TASK-001127-apply-the-comment-rule-to-source-docstrings-and-comments.md",
       "created_at": "2026-10-24T21:54:04Z",
-      "updated_at": "2026-10-26T15:37:09Z",
+      "updated_at": "2026-10-28T12:46:06Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -51450,7 +51450,7 @@
         {
           "local_id": "F3",
           "title": "Roster projection is 400 lines of ServiceCore, used by six mixins",
-          "status": "WontFix",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -51470,7 +51470,7 @@
         {
           "local_id": "F5",
           "title": "_interactions/__init__.py is an undeclared 1k-line policy hub",
-          "status": "WontFix",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -51480,7 +51480,7 @@
         {
           "local_id": "F6",
           "title": "48 parameters silently default a missing spec to the bundled one",
-          "status": "WontFix",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -51490,17 +51490,17 @@
         {
           "local_id": "F7",
           "title": "Bundled sub-entity vocabulary survives as test-only API and tags",
-          "status": "WontFix",
+          "status": "Deferred",
           "assignee": null,
           "severity": "low",
           "story": null,
-          "deferred_to": null,
+          "deferred_to": "TASK-1215",
           "extra": {}
         },
         {
           "local_id": "F8",
           "title": "Three spec loaders hand-write one load shape",
-          "status": "WontFix",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -51510,7 +51510,7 @@
         {
           "local_id": "F9",
           "title": "WorkflowSpec methods are fine; its file holds three other things",
-          "status": "WontFix",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -51520,7 +51520,7 @@
         {
           "local_id": "F10",
           "title": "_maintenance.py is two modules: the rebuild corridor and check",
-          "status": "WontFix",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -51530,7 +51530,7 @@
         {
           "local_id": "F11",
           "title": "sq check has eight finding sources and names none of them",
-          "status": "WontFix",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -51540,7 +51540,7 @@
         {
           "local_id": "F12",
           "title": "View layout is right; _views.py itself holds five jobs",
-          "status": "WontFix",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -51570,7 +51570,7 @@
         {
           "local_id": "F15",
           "title": "Service is built at eight sites; three omit the playbook",
-          "status": "WontFix",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -51600,7 +51600,7 @@
         {
           "local_id": "F18",
           "title": "Comment rule: 95 of 127 source files fail a mechanical check",
-          "status": "WontFix",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -51610,7 +51610,7 @@
         {
           "local_id": "F19",
           "title": "Comment rule: 414 of 566 test files fail a mechanical check",
-          "status": "WontFix",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -51620,7 +51620,7 @@
       ],
       "path": "reviews/REV-000956-structural-review-of-the-engine-layering-and-cohesion.md",
       "created_at": "2026-09-15T09:01:18Z",
-      "updated_at": "2026-10-25T19:36:10Z",
+      "updated_at": "2026-10-28T12:23:15Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -60188,7 +60188,7 @@
       "type": "bug",
       "title": "Operator-identity guard never scans operator names",
       "slug": "operator-identity-guard-never-scans-operator-names",
-      "status": "Fixed",
+      "status": "Verified",
       "description": "Guard reads full_name: but operators store title:, so a first-name leak in a template passes.",
       "parent": null,
       "author": "qa",
@@ -60202,7 +60202,7 @@
       "subentities": [],
       "path": "bugs/BUG-001171-operator-identity-guard-never-scans-operator-names.md",
       "created_at": "2026-10-26T17:36:27Z",
-      "updated_at": "2026-10-26T19:48:44Z",
+      "updated_at": "2026-10-28T12:16:19Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -62580,6 +62580,130 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "TASK-1214"
+    },
+    "1215": {
+      "sequence_id": 1215,
+      "type": "task",
+      "title": "Delete the per-kind sub-entity service wrappers",
+      "slug": "delete-the-per-kind-sub-entity-service-wrappers",
+      "status": "Done",
+      "description": "Remove the 16 test-only per-kind sub-entity wrappers and comment selectors; port two fixtures to the generic API.",
+      "parent": "FEAT-1092",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-956:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Port the two CLI fixture builders to the generic API",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Delete the 16 wrappers and their exemptions",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Route comment selectors through the generic sub pair",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001215-delete-the-per-kind-sub-entity-service-wrappers.md",
+      "created_at": "2026-10-28T12:22:42Z",
+      "updated_at": "2026-10-28T12:48:07Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1215"
+    },
+    "1216": {
+      "sequence_id": 1216,
+      "type": "review",
+      "title": "Review the per-kind sub-entity wrapper removal",
+      "slug": "review-the-per-kind-sub-entity-wrapper-removal",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1215"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Import comment selectors and their refusal have no test",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Stale prose about the deleted done-toggle and interactive path",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Multi-selector refusal names CLI flags, omits sub",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Comment selector tests never name a sub-entity by handle",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001216-review-the-per-kind-sub-entity-wrapper-removal.md",
+      "created_at": "2026-10-28T12:33:49Z",
+      "updated_at": "2026-10-28T12:48:04Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1216"
     }
   }
 }

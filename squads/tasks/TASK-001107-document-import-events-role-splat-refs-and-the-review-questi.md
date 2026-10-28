@@ -40,7 +40,7 @@ subentities:
   assignee: tech-writer
   story: US7
 created_at: '2026-10-24T10:04:07Z'
-updated_at: '2026-10-25T16:06:55Z'
+updated_at: '2026-10-28T12:11:21Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -49,7 +49,7 @@ The doc-only fixes from REV-1099: F1 (the `sq import` event reference), F12 (spl
 
 ## Approach
 
-- **F1** (`docs/adoption.md`, section "3. Bulk import from JSONL"). Add a reference table of every op in `src/squads/_services/_import_model.py`: `create`, `status`, `body`, `comment`, `ref`, `add-sub`, `add-story`, `add-subtask`, `add-finding`, `sub-status`, `sub-body`, `assign`, `update`. List required and optional fields per op, read from the pydantic models rather than guessed (for example `target` rather than `id`, `message`, `force`), and give one JSONL example line per op. Verify every example by importing it into a scratch squad outside the repo tree (`uv run --project <repo> sq -C <scratch> import -`). The review counted fourteen ops, and the model's `Literal` ops are the authority. Note in the table what this release changes: `create` stores a declared field's default when `fields` omits it (TASK-1103), and `sub-status` takes `deferred_to` (TASK-1105). Both land first (depends-on).
+- **F1** (`docs/adoption.md`, section "3. Bulk import from JSONL"). Add a reference table of every op in `src/squads/_services/_import_model.py`: `create`, `status`, `body`, `comment`, `ref`, `add-sub`, `add-story`, `add-subtask`, `add-finding`, `sub-status`, `sub-body`, `assign`, `update`. List required and optional fields per op, read from the pydantic models rather than guessed (for example `target` rather than `id`, `message`, `force`), and give one JSONL example line per op. Verify every example by importing it into a scratch squad outside the repo tree (`uv run --project <repo> sq -C <scratch> import -`). The model's `Literal` ops are the authority. Note in the table what this release changes: `create` stores a declared field's default when `fields` omits it (TASK-1103), and `sub-status` takes `deferred_to` (TASK-1105).
 - **F1 guard** (ST2, python-dev). A `tests/meta` test reads every `op` `Literal` from the event models and asserts each appears as a row in the `docs/adoption.md` table, and that each field the model declares appears in its row. Prove it against a known positive: remove a row and watch it fail.
 - **F12** (`docs/overrides.md`: the "Role overrides merge by field" paragraph at about line 151, and the section "The override grammar: shadow, append, and drop"). State that the same grammar applies to role overrides. Add a `responsibilities = ["$(*self)", "…"]` example to the role section, and a sentence in the grammar section that the deep merge, plain-array and splat-ref rules hold for `roles.toml` and `roles/<slug>.toml` as for `workflow.toml`. Verify the example in a scratch squad.
 - **F11** (`docs/agents.md`, "What is worth asking"). Add a question, under 3 (Quality bar) or 6 (Structure and records lifecycle), on how the repository decides when to open a review item rather than comment a verdict on the work item. Add no bundled rule and no recommended answer (op-pierre ruling on F11). Keep the count in "Seven areas" right if the question becomes its own area.

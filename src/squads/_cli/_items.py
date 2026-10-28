@@ -785,8 +785,8 @@ def _resolve_add_fields(
     svc: Service, kind: str, spec: WorkflowSpec, fields: list[Field], kwargs: dict[str, object]
 ) -> dict[str, str]:
     """One resolved+validated badge value per declared field, applying the field's own default
-    when the flag is omitted (generalizes ``add_finding``'s old severity-default fallback to
-    every declared field via the generic ``SubEntity.set_badge_value`` store)."""
+    when the flag is omitted (every declared field resolves through the generic
+    ``SubEntity.set_badge_value`` store)."""
     values: dict[str, str] = {}
     for field in fields:
         raw = _kw_str(kwargs, field.code)

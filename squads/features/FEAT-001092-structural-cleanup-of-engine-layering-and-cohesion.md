@@ -3,7 +3,7 @@ id: FEAT-1092
 sequence_id: 1092
 type: feature
 title: Structural cleanup of engine layering and cohesion
-status: Ready
+status: Done
 author: product-owner
 priority: medium
 refs:
@@ -14,32 +14,30 @@ description: 'Home for the 13 open REV-956 findings: roster, spec threading, fil
 subentities:
 - local_id: US1
   title: Roster cluster and policy hub extraction (F3, F5)
-  status: Todo
+  status: Done
 - local_id: US2
   title: Spec threading and loader unification (F6, F8, F15)
-  status: Todo
+  status: Done
 - local_id: US3
   title: Split the oversized files (F9, F10, F12, F7)
-  status: Todo
+  status: Done
 - local_id: US4
   title: Name every sq check finding by a registered rule (F11)
-  status: Todo
+  status: Done
 - local_id: US5
   title: Decide on a DI container (F14)
-  status: Todo
+  status: Done
 - local_id: US6
   title: Apply the comment rule to source and tests (F18, F19)
-  status: Todo
+  status: Done
 created_at: '2026-10-17T03:49:43Z'
-updated_at: '2026-10-24T21:59:26Z'
+updated_at: '2026-10-28T12:48:10Z'
 ---
 <!-- sq:body -->
-The structural review of the engine layering and cohesion (REV-956) held thirteen
-findings back from the 0.16 disposition pass, by the operator's 2026-10-09
-ruling: F3, F5, F6, F7, F8, F9, F10, F11, F12, F14, F15, F18 and F19. The import
-guard, the role moves and the write-count guard shipped in 0.16. The rest is one
-coherent piece of structural work, not a set of leftovers to defer one by one,
-and it lands in 0.17.
+This feature carries thirteen findings of the structural review of the engine
+layering and cohesion (REV-956), by the operator's 2026-10-09 ruling: F3, F5,
+F6, F7, F8, F9, F10, F11, F12, F14, F15, F18 and F19. Together they are one
+coherent piece of structural work.
 
 **The problem.** The engine works, but its seams are in the wrong places.
 Role-roster logic sits inside `ServiceCore`, and `_interactions/__init__.py` is
@@ -54,14 +52,12 @@ The review, with the per-finding evidence and sizes, is the reference for every
 story below. Counts in the stories are the review's; the first act of each story
 is to re-measure them.
 
-**Approach.** Each story is one coherent group of findings. Stories are
-sequenced so that spec threading comes before the splits that touch the same
-signatures, and the roster extraction informs the DI decision.
+**Approach.** Each story is one coherent group of findings.
 
 **Out of scope**
 
-- Findings already Fixed in 0.16 (F1, F2, F16, F17) and the two closed as
-WontFix (F4, F13).
+- The review's other findings: F1, F2, F16 and F17 (Fixed) and F4 and F13
+(WontFix).
 - The `-dev` retirement ADR, which takes this review's F1, F2, F3 and F5 as
 inputs but is its own decision.
 - Behaviour changes. Every story is a move, a split or a rule, with no change to
@@ -108,7 +104,7 @@ Extract the roster projection (about 400 lines, 19 methods in ServiceCore, used 
 ### US2 — Spec threading and loader unification (F6, F8, F15)
 
 <!-- sq:story:US2:body -->
-Make the spec and playbook required parameters instead of silently defaulting to the bundled one (48 parameters and about 39 production bundled_spec() calls at last count, plus unused bundled shims). Fold the three hand-written spec loaders into one document descriptor plus one load function. Build Service at one site so no construction omits the playbook, and retire the module-global active-squad-dir and backend registry state. Findings F6, F8 and F15. Size: medium-large (F6), medium (F8), medium (F15); the renderer squad-dir step wants the architect. Acceptance: no production call falls back to the bundled spec silently, Service has one construction site, and the suite passes unchanged.
+Make the spec and playbook required parameters instead of silently defaulting to the bundled one (48 parameters and about 39 production bundled_spec() calls plus unused bundled shims). Fold the three hand-written spec loaders into one document descriptor plus one load function. Build Service at one site so no construction omits the playbook, and retire the module-global active-squad-dir and backend registry state. Findings F6, F8 and F15. Size: medium-large (F6), medium (F8), medium (F15); the renderer squad-dir step wants the architect. Acceptance: no production call falls back to the bundled spec silently, Service has one construction site, and the suite passes unchanged.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -121,7 +117,7 @@ Make the spec and playbook required parameters instead of silently defaulting to
 ### US3 — Split the oversized files (F9, F10, F12, F7)
 
 <!-- sq:story:US3:body -->
-Move the validator registries, load-time validity checks and lifecycle linearisation out of `_workflow/_models.py` (F9, small-medium). Separate `_maintenance.py` into the rebuild corridor and a check mixin of about 1100 lines, with a shared per-file classification primitive (F10, medium-large). Split `_views.py` into its five jobs and fix the two stale insert_view/remove_view names (F12, small). Drop the test-only sub-entity tags, constants and legacy branch (F7, small; the per-kind wrapper port rides the test rebuild).
+Move the validator registries, load-time validity checks and lifecycle linearisation out of `_workflow/_models.py` (F9, small-medium). Separate `_maintenance.py` into the rebuild corridor and a check mixin of about 1100 lines, with a shared per-file classification primitive (F10, medium-large). Split `_views.py` into its five jobs and fix the two stale insert_view/remove_view names (F12, small). Drop the test-only sub-entity tags, constants, legacy branch and per-kind service wrappers (F7, small).
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -147,7 +143,7 @@ Give each of the eight `sq check` finding sources a rule name, carried as an add
 ### US5 — Decide on a DI container (F14)
 
 <!-- sq:story:US5:body -->
-Decide whether to adopt a DI container, as op-pierre ruled on 2026-10-09. The reviewer measured the object graph (six nodes, 0.17 ms construction) and recommends no at today's size, to be reopened if the service is decomposed into collaborators or a long-lived daemon process arrives. The daemon in this milestone is the second condition, so the decision is made with the roster extraction and spec threading in view, and recorded as an architect decision. Finding F14. Size: small, a decision.
+Decide whether to adopt a DI container, as op-pierre ruled on 2026-10-09. The object graph measures six nodes and 0.17 ms construction; at that size the review recommends against one, to be reopened if the service is decomposed into collaborators or a long-lived daemon process arrives. The milestone's daemon is the second condition, so the decision weighs the roster extraction and spec threading, and is recorded as an architect decision. Finding F14. Size: small, a decision.
 <!-- sq:story:US5:body:end -->
 
 #### Discussion
@@ -160,7 +156,7 @@ Decide whether to adopt a DI container, as op-pierre ruled on 2026-10-09. The re
 ### US6 — Apply the comment rule to source and tests (F18, F19)
 
 <!-- sq:story:US6:body -->
-Bring source and test docstrings and comments under the project comment rule: 95 of 137 source files carry a docstring over five non-blank lines (627 docstrings), and the test files carry 1431 docstrings that fail the check (counts to be re-measured). One per-package sweep with the reviewer per-file tables as the worklist, not one item per file. The source sweep (F18) is large. The test sweep (F19) is large and rides the test-suite rebuild (FEAT-1096). Acceptance: the mechanical check passes on every swept file, and no behaviour changes.
+Bring source and test docstrings and comments under the project comment rule: 95 of 137 source files carry a docstring over five non-blank lines (627 docstrings), and the test files carry 1431 docstrings that fail the check. One per-package sweep with the review's per-file tables as the worklist, not one item per file. The source sweep (F18) is large. The test sweep (F19) is large and rides the test-suite rebuild (FEAT-1096). Acceptance: the mechanical check passes on every swept file, and no behaviour changes.
 <!-- sq:story:US6:body:end -->
 
 #### Discussion
@@ -187,4 +183,8 @@ Bring source and test docstrings and comments under the project comment rule: 95
     TASK-1124 also depends on TASK-1106 (new `_interactions` token resolver) and TASK-1077 (validator wording in the same files). TASK-1126 depends on TASK-1104, whose new check warnings it names.
 - [2026-10-24T21:59:26Z] `architect` Robert Architect:
   - US5 (REV-956 F14) is ADR-1128, Proposed with options A/B and a recommendation for A; awaiting @op-pierre.
+- [2026-10-28T12:20:41Z] `op-pierre` Pierre Chat:
+  - 2026-10-28: the F7 remainder (the per-kind sub-entity wrappers left in _services/_subentities.py) gets a small task under this feature, in 0.17: delete the wrappers, move the two test helpers to the generic API, drop the exemptions.
+- [2026-10-28T12:48:09Z] `manager` Catherine Manager:
+  - Closed: TASK-1124..1127 and TASK-1215 Done with Approved reviews; REV-956 settled (F7 via TASK-1215, F14 WontFix per ADR-1128); narration sweep and CHANGELOG done.
 <!-- sq:discussion:end -->

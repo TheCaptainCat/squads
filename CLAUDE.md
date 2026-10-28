@@ -262,7 +262,7 @@ and triage its output by hand, the same way you'd read a linter report someone h
 run stays near-pure signal: `ignore_decorators` covers every Typer command/callback shape,
 and `ignore_names` lists identifiers vulture can't see used because the call site is a
 runtime `getattr(obj, f"...")` dispatch rather than a static reference (pydantic's
-`model_config`, and the sub-entity `Service` methods dispatched from `_cli/_items.py`).
+`model_config`).
 When a new run surfaces an intentional false positive, add its exact name to `ignore_names`
 (or a decorator pattern to `ignore_decorators`) with a one-line reason — don't silence it by
 editing the flagged code, and prefer a real pattern only when one exists without masking

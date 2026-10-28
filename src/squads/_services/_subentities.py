@@ -46,60 +46,8 @@ class SubentitiesMixin(ServiceCore):
             checked[code] = self._parse_badge_code(field, value)
         return checked
 
-    async def add_story(
-        self,
-        feature_id: str,
-        title: str = "",
-        *,
-        assignee: str | None = None,
-        status: str | None = None,
-        body: str | None = None,
-    ) -> BlockResult:
-        return await self.add_block(
-            feature_id, "story", title, assignee=assignee, status=status, body=body
-        )
-
-    async def add_subtask(
-        self,
-        task_id: str,
-        title: str = "",
-        *,
-        story: str | None = None,
-        assignee: str | None = None,
-        status: str | None = None,
-        body: str | None = None,
-    ) -> BlockResult:
-        return await self.add_block(
-            task_id, "subtask", title, story=story, assignee=assignee, status=status, body=body
-        )
-
-    async def add_finding(
-        self,
-        review_id: str,
-        title: str = "",
-        *,
-        severity: str | None = None,
-        assignee: str | None = None,
-        status: str | None = None,
-        deferred_to: str | None = None,
-        body: str | None = None,
-    ) -> BlockResult:
-        # Omit the field when the spec's `finding` kind declares no `severity`: a hardcoded
-        # default would be the undeclared write `_checked_field_values` refuses.
-        resolved_severity = severity or self.field_default("finding", "severity")
-        return await self.add_block(
-            review_id,
-            "finding",
-            title,
-            fields={"severity": resolved_severity} if resolved_severity is not None else None,
-            assignee=assignee,
-            status=status,
-            deferred_to=deferred_to,
-            body=body,
-        )
-
     # Public kind-taking surface: these methods take any declared kind, including project-declared
-    # ones, and the per-kind wrappers above delegate to them.
+    # ones.
 
     async def add_block(  # noqa: PLR0913 — the sub-entity scaffold entry point
         self,
@@ -265,125 +213,10 @@ class SubentitiesMixin(ServiceCore):
             body_command=body_cmd,
         )
 
-    async def list_stories(self, feature_id: str) -> list[SubEntity]:
-        return await self.list_blocks(feature_id, "story")
-
-    async def list_subtasks(self, task_id: str) -> list[SubEntity]:
-        return await self.list_blocks(task_id, "subtask")
-
-    async def list_findings(self, review_id: str) -> list[SubEntity]:
-        return await self.list_blocks(review_id, "finding")
-
     async def list_blocks(self, parent_id: str, kind: str) -> list[SubEntity]:
         item = await self.get(parent_id)
         self._check_type(item, kind)
         return item.subentities
-
-    async def set_subtask_status(
-        self, task_id: str, local_id: str, status: str, **kw: bool
-    ) -> None:
-        await self.set_block_status(task_id, "subtask", local_id, status, **kw)
-
-    async def set_story_status(
-        self, feature_id: str, local_id: str, status: str, **kw: bool
-    ) -> None:
-        await self.set_block_status(feature_id, "story", local_id, status, **kw)
-
-    async def set_subtask_done(self, task_id: str, local_id: str, *, done: bool = True) -> None:
-        # convenience toggle (forces past intermediate states).
-        # Resolves the subtask machine's designated completion status / start state by
-        # its role in the state machine rather than a hardcoded status literal.
-        target = (
-            self.spec.subentity_completion("subtask")
-            if done
-            else self.spec.subentity_initial("subtask")
-        )
-        await self.set_block_status(task_id, "subtask", local_id, target, force=True)
-
-    async def set_subtask_assignee(self, task_id: str, local_id: str, assignee: str | None) -> None:
-        await self._set_block_assignee(task_id, "subtask", local_id, assignee)
-
-    async def set_subtask_body(
-        self, task_id: str, local_id: str, body: str, *, append: bool = False, force: bool = False
-    ) -> None:
-        await self.set_block_body(task_id, "subtask", local_id, body, append=append, force=force)
-
-    async def set_story_body(
-        self,
-        feature_id: str,
-        local_id: str,
-        body: str,
-        *,
-        append: bool = False,
-        force: bool = False,
-    ) -> None:
-        await self.set_block_body(feature_id, "story", local_id, body, append=append, force=force)
-
-    async def update_subtask(  # noqa: PLR0913 — full metadata entry point for a subtask
-        self,
-        task_id: str,
-        local_id: str,
-        *,
-        title: str | None = None,
-        story: str | None = None,
-        clear_story: bool = False,
-        assignee: str | None = None,
-        clear_assignee: bool = False,
-        status: str | None = None,
-        force: bool = False,
-    ) -> None:
-        await self.update_block(
-            task_id,
-            "subtask",
-            local_id,
-            title=title,
-            story=story,
-            clear_story=clear_story,
-            assignee=assignee,
-            clear_assignee=clear_assignee,
-            status=status,
-            force=force,
-        )
-
-    async def update_finding(  # noqa: PLR0913 — mirrors `update_block`'s keyword surface
-        self,
-        review_id: str,
-        local_id: str,
-        *,
-        title: str | None = None,
-        severity: str | None = None,
-        assignee: str | None = None,
-        clear_assignee: bool = False,
-        status: str | None = None,
-        deferred_to: str | None = None,
-        force: bool = False,
-    ) -> None:
-        await self.update_block(
-            review_id,
-            "finding",
-            local_id,
-            title=title,
-            fields={"severity": severity} if severity is not None else None,
-            assignee=assignee,
-            clear_assignee=clear_assignee,
-            status=status,
-            deferred_to=deferred_to,
-            force=force,
-        )
-
-    async def get_subtask(self, task_id: str, local_id: str) -> SubentityDetail:
-        return await self.get_block(task_id, "subtask", local_id)
-
-    async def get_story(self, feature_id: str, local_id: str) -> SubentityDetail:
-        return await self.get_block(feature_id, "story", local_id)
-
-    async def set_block_status(
-        self, parent_id: str, kind: str, local_id: str, status: str, *, force: bool = False
-    ) -> None:
-        """Opens its own transaction, then delegates to :meth:`_set_block_status_core` — the
-        bulk importer calls that core directly (its own transaction is already open)."""
-        async with self.store.transaction() as db:
-            await self._set_block_status_core(db, parent_id, kind, local_id, status, force=force)
 
     def _set_block_status_model(
         self,
@@ -400,7 +233,7 @@ class SubentitiesMixin(ServiceCore):
         """The PURE half of a sub-entity status transition: no file I/O.
 
         Returns ``(item, sub, old_status, base)`` — ``base`` is *item* as loaded, before this
-        call's own delta. Shared by :meth:`_set_block_status_core` (the interactive/apply path)
+        call's own delta. Shared by :meth:`_set_block_status_core` (the apply path)
         and the bulk importer's pre-pass, which calls this directly against a throwaway ``db``
         copy with ``now=ev.at``.
         """
@@ -531,14 +364,6 @@ class SubentitiesMixin(ServiceCore):
                 "work; pass --deferred-to <ID> (import: deferred_to)"
             )
 
-    async def _set_block_assignee(
-        self, parent_id: str, kind: str, local_id: str, assignee: str | None
-    ) -> None:
-        """Opens its own transaction, then delegates to :meth:`_set_block_assignee_core` —
-        the bulk importer calls that core directly (its own transaction is already open)."""
-        async with self.store.transaction() as db:
-            await self._set_block_assignee_core(db, parent_id, kind, local_id, assignee)
-
     def _set_block_assignee_model(
         self,
         db: SquadsDB,
@@ -552,7 +377,7 @@ class SubentitiesMixin(ServiceCore):
         """The PURE half of a sub-entity assignee change: no file I/O. Returns ``(item, sub,
         base)`` — ``base`` is *item* as loaded, before this call's own delta.
 
-        Shared by :meth:`_set_block_assignee_core` (the interactive/apply path) and the bulk
+        Shared by :meth:`_set_block_assignee_core` (the apply path) and the bulk
         importer's pre-pass, which calls this directly against a throwaway ``db`` copy.
         """
         self._check_assignee(db, assignee)

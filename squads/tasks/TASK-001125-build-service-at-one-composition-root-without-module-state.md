@@ -31,7 +31,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-10-24T21:53:44Z'
-updated_at: '2026-10-25T15:58:32Z'
+updated_at: '2026-10-28T12:46:04Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -81,7 +81,7 @@ Sources:
 
 The existing suite is the net, with no assertion edited.
 
-- **One table, "service composition by mode"**, with only these rows: normal; index cross-check skipped; playbook override that fails to load; workflow override that fails to load (bundled fallback); roles override that fails to load (a command that never reads the catalog still runs). Each row checks which spec and playbook the service holds and that it opens the squad given. The rows cover the four ad-hoc ladders this replaces. Add a row for a squad with a playbook override running `sq repair` after a cross-check refusal, which REV-956 inferred but never drove, so the behaviour is pinned rather than assumed.
+- **One table, "service composition by mode"**, with only these rows: normal; index cross-check skipped; playbook override that fails to load; workflow override that fails to load (bundled fallback); roles override that fails to load (a command that never reads the catalog still runs). Each row checks which spec and playbook the service holds and that it opens the squad given. The rows cover the four ad-hoc ladders this replaces. Add a row for a squad with a playbook override running `sq repair` after a cross-check refusal, so that behaviour is pinned by a driven test.
 - **One table, "document loads per invocation"**: rows `--version`, `--help`, `show`, `list` and `check`, each without and with workflow, roles and playbook overrides. Each row counts packaged parses, override reads and model builds per document and asserts at most one of each per model (none for `--version`). The `check` row with a roster of several roles is the boundary that today reads 170.
 - **Rendering under two squads in one process:** one test where two squads with different template overrides render in turn and each gets its own. This is the case the ambient squad directory exists for, and it must stay right without it.
 - `tests/meta`: drop the `_REGISTRY` allowlist entry so the mutable-state guard enforces the removal.
@@ -95,10 +95,6 @@ None. Generated files are byte-identical before and after on a pinned roster in 
 ## CHANGELOG substance
 
 No adopter-visible behaviour change; `sq check` on a large roster gets faster. Report that to the writer. CLAUDE.md's architecture section changes: the composition function, the inits, and the removal of the ambient render state.
-
-## Order
-
-After the structural task (it needs required parameters and the roster collaborator) and ADR-1128. Before the check-rule task, because both edit the `sq check` fallbacks in `_cli/_main.py`, and before the test-rebuild inventory (TASK-1111): the CLI gate and `-C` differential tables the rebuild ports run through exactly this construction path.
 <!-- sq:body:end -->
 
 ## Subtasks

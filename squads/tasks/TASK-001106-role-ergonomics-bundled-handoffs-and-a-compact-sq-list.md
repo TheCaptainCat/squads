@@ -48,7 +48,7 @@ subentities:
   status: Done
   story: US8
 created_at: '2026-10-24T10:04:05Z'
-updated_at: '2026-10-24T23:41:53Z'
+updated_at: '2026-10-28T12:11:19Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -86,7 +86,7 @@ One table per behaviour. A row exists only if breaking the fix turns it red, so 
 
 ## Generated output
 
-Regenerate `tests/goldens/claude_md_section.txt`, `agents_md_section.txt`, the role and skill goldens, and the template manifest. F17 also regenerates the `sq-<type>` skills of epic, feature, task, bug, decision, milestone, review and guide, the role catalog golden, the playbook golden lock (`tests/unit/test_playbook_spec_artifact.py`) and the content store (`scripts/seed_content_store.py`); it does not change the CLAUDE.md or AGENTS.md sections. TASK-1103 (F16) touches the same CLAUDE.md template, and TASK-1105 edits `playbook.toml`, so sequence the regenerations. This repository has no role override, so its own tech-writer pointer moves to `sonnet` on the next `sq sync` after release.
+Regenerate `tests/goldens/claude_md_section.txt`, `agents_md_section.txt`, the role and skill goldens, and the template manifest. F17 also regenerates the `sq-<type>` skills of epic, feature, task, bug, decision, milestone, review and guide, the role catalog golden, the playbook golden lock (`tests/unit/test_playbook_spec_artifact.py`) and the content store (`scripts/seed_content_store.py`); it does not change the CLAUDE.md or AGENTS.md sections. This repository has no role override, so its own tech-writer pointer moves to `sonnet` on the next `sq sync` after release.
 
 ## CHANGELOG substance (0.17.0)
 

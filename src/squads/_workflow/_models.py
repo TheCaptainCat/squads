@@ -8,8 +8,8 @@ one live status; R1' exactly one live status if ``initial`` is not live; R2 a se
 status reachable from a live one).
 
 The capability flags (``category``, ``subentity_kind``, ``parent_required``, ``ref_rules``) are
-additive, and ``SubentityKindSpec.completion`` drives the done-toggle
-(``_services/_subentities.py``). ``StatusSpec.role`` is the sole status axis, a reference into the
+additive, and ``SubentityKindSpec.completion`` names the status a mark-done action
+targets. ``StatusSpec.role`` is the sole status axis, a reference into the
 ``RoleSpec`` catalog (``WorkflowSpec.roles``) carrying ``settled``/``hidden``/``color``;
 ``is_open``/``terminal_set``/``hidden_by_default`` are derived from it, never stored.
 ``Badge``/``Collection``/``Field`` are the badge schema:
@@ -341,10 +341,9 @@ class SubentityKindSpec(BaseModel):
     built-in ``subtask`` kind."""
 
     completion: str
-    """The done-toggle target status inside this kind's own ``lifecycle`` — what
-    ``subentity_completion(kind)`` resolves to instead of a hardcoded ``Done``/``Fixed``
-    literal. Must name a reachable, non-initial state of that lifecycle (enforced at load
-    by ``check_completion_status``)."""
+    """The status a mark-done action should target inside this kind's own ``lifecycle``:
+    ``Done``/``Fixed`` for the bundled kinds. Must name a reachable, non-initial state of that
+    lifecycle (enforced at load by ``check_completion_status``)."""
 
     fields: list[Field] = []
 
@@ -1098,24 +1097,13 @@ class WorkflowSpec(BaseModel):
         raise."""
         return self._subentity_machine(kind).can_transition(src, dst)
 
-    def subentity_completion(self, kind: str) -> str:
-        """The sub-entity/finding kind's designated completion status, which the done-toggle
-        resolves to instead of a hardcoded ``Done``/``Fixed``. An O(1) lookup, since
-        ``check_completion_status`` guarantees at load that ``completion`` names a reachable,
-        non-initial status. It raises ``KeyError`` for an undeclared *kind*, like
-        :meth:`collection`; callers resolve *kind* from ``item_subentity_kind`` first, which yields
-        only a declared kind or ``None``.
-        """
-        return self.subentity_kinds[kind].completion
-
     def subentity_plural(self, kind: str) -> str:
         """The kind's declared plural — the CLI list-verb name and container marker tag.
 
         Retires the static ``_SUBENTITY_PLURAL`` CLI table (kind -> plural was the last
         piece of hand-maintained sub-entity vocabulary).
 
-        Raises ``KeyError`` for an undeclared *kind* — same shape as :meth:`collection` and
-        :meth:`subentity_completion`.
+        Raises ``KeyError`` for an undeclared *kind* — same shape as :meth:`collection`.
         """
         return self.subentity_kinds[kind].plural
 
