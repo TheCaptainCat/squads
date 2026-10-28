@@ -3,7 +3,7 @@ id: BUG-1171
 sequence_id: 1171
 type: bug
 title: Operator-identity guard never scans operator names
-status: Fixed
+status: Verified
 author: qa
 priority: low
 severity: low
@@ -12,7 +12,7 @@ refs:
 description: 'Guard reads full_name: but operators store title:, so a first-name leak
   in a template passes.'
 created_at: '2026-10-26T17:36:27Z'
-updated_at: '2026-10-26T19:48:44Z'
+updated_at: '2026-10-28T12:16:19Z'
 ---
 <!-- sq:body -->
 The meta guard `tests/meta/test_bundled_templates_carry_no_operator_identity.py` is meant to fail when a bundled template names one of this squad's operators. It reads each operator's name with `_FULL_NAME_RE = ^\s*full_name:\s*(.+?)\s*$`, but the operator files under `squads/operators/` carry the name under `title:` (for example `title: Pierre Chat`) and have no `full_name:` key.
@@ -27,4 +27,6 @@ Expected: the guard reads the name from `title:` as well, and a first-name leak 
 <!-- sq:discussion -->
 - [2026-10-26T19:48:42Z] `manager` Catherine Manager:
   - Fixed in 47efa336 (TASK-1112 ST2): the guard, now in tests_next/meta, reads title: as well as full_name:, and its floor requires a non-slug name; a planted first name turns it red. Needs QA verification.
+- [2026-10-28T12:16:18Z] `manager` Catherine Manager:
+  - Verified at 982e3dc6: the guard now lives in tests/meta and reads title: as well as full_name:. Clean tree passes (3 passed); appending the first name to workflow.md.j2 turns test_no_bundled_template_names_one_of_this_squads_operators red (1 failed); reverted.
 <!-- sq:discussion:end -->

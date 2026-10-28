@@ -181,3 +181,119 @@ async def test_an_event_refused_while_applying_undoes_the_events_before_it(proje
         "Nothing was written. Add to it with `--append`, or pass `--force` to replace it.\n",
     )
     assert await listed(invoke) == ONLY_ROLE
+
+
+def _host(
+    op: str, handle: str, kind: str, title: str, sub_handle: str | None = None
+) -> list[dict[str, Any]]:
+    host = {"op": "create", "type": op, "title": title, "handle": handle, "as": "manager"}
+    return [
+        host,
+        {"op": "add-sub", "target": handle, "kind": kind, "title": "Part"}
+        | ({"handle": sub_handle} if sub_handle else {}),
+    ]
+
+
+HOSTS = [
+    *_host("feature", "f", "story", "Feature"),
+    *_host("task", "t", "subtask", "Task"),
+    *_host("review", "r", "finding", "Review"),
+]
+HOST_IDS = {
+    "story": ("feature", "2", "f"),
+    "subtask": ("task", "3", "t"),
+    "finding": ("review", "4", "r"),
+}
+LOCAL = {"story": "US1", "subtask": "ST1", "finding": "F1"}
+TOO_MANY = "a comment event names at most one of story / subtask / finding / sub"
+
+
+def _comment(kind: str, **selectors: Any) -> dict[str, Any]:
+    return {"op": "comment", "target": HOST_IDS[kind][2], "message": "note", **selectors}
+
+
+async def _discussion(invoke, kind: str) -> list[str]:
+    type_, number, _handle = HOST_IDS[kind]
+    shown = await invoke([type_, number, kind, LOCAL[kind], "show", "--json"])
+    assert shown.exit_code == 0, shown.output
+    return [c["body"] for c in json.loads(shown.output)["discussion"]]
+
+
+@pytest.mark.covers("import", "FILE")
+@pytest.mark.parametrize("kind", ["story", "subtask", "finding"])
+@pytest.mark.parametrize("spelled", ["field", "sub"])
+async def test_a_comment_event_selector_lands_in_that_sub_entity(
+    project, invoke, kind, spelled
+) -> None:
+    selector = {kind: LOCAL[kind]} if spelled == "field" else {"sub": [kind, LOCAL[kind]]}
+    result = await invoke(["import", _events(*HOSTS, _comment(kind, **selector))])
+    assert result.exit_code == 0, result.output
+    assert await _discussion(invoke, kind) == ["- note"]
+    for other in set(HOST_IDS) - {kind}:
+        assert await _discussion(invoke, other) == []
+
+
+@pytest.mark.covers("import", "FILE")
+@pytest.mark.parametrize("kind", ["story", "subtask", "finding"])
+@pytest.mark.parametrize("spelled", ["field", "sub"])
+async def test_a_comment_event_selector_can_name_an_add_sub_handle(
+    project, invoke, kind, spelled
+) -> None:
+    hosts = [
+        *_host("feature", "f", "story", "Feature", sub_handle="hs"),
+        *_host("task", "t", "subtask", "Task", sub_handle="hst"),
+        *_host("review", "r", "finding", "Review", sub_handle="hf"),
+    ]
+    handle = {"story": "hs", "subtask": "hst", "finding": "hf"}[kind]
+    selector = {kind: handle} if spelled == "field" else {"sub": [kind, handle]}
+    result = await invoke(["import", _events(*hosts, _comment(kind, **selector))])
+    assert result.exit_code == 0, result.output
+    assert await _discussion(invoke, kind) == ["- note"]
+    for other in set(HOST_IDS) - {kind}:
+        assert await _discussion(invoke, other) == []
+
+
+@pytest.mark.covers("import", "FILE")
+async def test_a_comment_event_without_a_selector_lands_on_the_item(project, invoke) -> None:
+    result = await invoke(["import", _events(*HOSTS, _comment("subtask"))])
+    assert result.exit_code == 0, result.output
+    shown = await invoke(["task", "3", "show", "--json"])
+    assert [c["body"] for c in json.loads(shown.output)["discussion"]] == ["- note"]
+    assert await _discussion(invoke, "subtask") == []
+
+
+@pytest.mark.covers("import", "FILE")
+@pytest.mark.parametrize(
+    "selectors",
+    [
+        {"story": "US1", "subtask": "ST1"},
+        {"subtask": "ST1", "sub": ["subtask", "ST1"]},
+        {"story": "US1", "subtask": "ST1", "finding": "F1"},
+    ],
+)
+async def test_a_comment_event_naming_two_selectors_is_refused_and_writes_nothing(
+    project, invoke, selectors
+) -> None:
+    result = await invoke(["import", _events(*HOSTS, _comment("subtask", **selectors))])
+    assert (result.exit_code, result.output) == (
+        1,
+        f"line 7: {TOO_MANY}\n1 issue(s) found — nothing written.\n",
+    )
+    assert await listed(invoke) == ONLY_ROLE
+
+
+@pytest.mark.covers("import", "FILE")
+@pytest.mark.parametrize(
+    ("kind", "selector"),
+    [("subtask", {"subtask": "ST9"}), ("story", {"sub": ["story", "US9"]})],
+)
+async def test_a_comment_event_naming_an_unknown_sub_entity_is_refused(
+    project, invoke, kind, selector
+) -> None:
+    result = await invoke(["import", _events(*HOSTS, _comment(kind, **selector))])
+    missing = "ST9 in TASK-3" if kind == "subtask" else "US9 in FEAT-2"
+    assert (result.exit_code, result.output) == (
+        1,
+        f"line 7: no {kind} {missing}\n1 issue(s) found — nothing written.\n",
+    )
+    assert await listed(invoke) == ONLY_ROLE

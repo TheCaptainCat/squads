@@ -23,8 +23,8 @@ async def _populate(root: Path) -> None:
     feature = await create_item(
         svc, "feature", "Search", priority="high", labels=["core"], assignee="manager"
     )
-    await svc.add_story(feature.item.id, "Query the index")
-    await svc.add_story(feature.item.id, "Rank the results")
+    await svc.add_block(feature.item.id, "story", "Query the index")
+    await svc.add_block(feature.item.id, "story", "Rank the results")
     parser = await create_item(
         svc,
         "task",
@@ -35,9 +35,9 @@ async def _populate(root: Path) -> None:
         assignee="manager",
     )
     await svc.set_status(parser.item.id, "InProgress", force=True)
-    await svc.add_subtask(parser.item.id, "Tokenise the input", story="US1")
-    await svc.add_subtask(parser.item.id, "Parse the operators")
-    await svc.update_subtask(parser.item.id, "ST2", status="Done", force=True)
+    await svc.add_block(parser.item.id, "subtask", "Tokenise the input", story="US1")
+    await svc.add_block(parser.item.id, "subtask", "Parse the operators")
+    await svc.update_block(parser.item.id, "subtask", "ST2", status="Done", force=True)
     ranking = await create_item(svc, "task", "Rank results", parent=feature.item.id, priority="low")
     await svc.add_ref(ranking.item.id, parser.item.id, kind="depends-on")
     await create_item(svc, "decision", "Pick an index", description="Why an inverted index")
@@ -45,10 +45,12 @@ async def _populate(root: Path) -> None:
     await svc.update(crash.item.id, assignee="manager")
     await svc.set_status(crash.item.id, "Verified", force=True)
     review = await create_item(svc, "review", "Review the parser", labels=["parser"])
-    await svc.add_finding(review.item.id, "Unbounded recursion", severity="High")
+    await svc.add_block(
+        review.item.id, "finding", "Unbounded recursion", fields={"severity": "High"}
+    )
     await svc.add_ref(ranking.item.id, review.item.id, kind="related")
     await svc.add_ref(review.item.id, crash.item.id, kind="related")
-    await svc.update_finding(review.item.id, "F1", assignee="manager")
+    await svc.update_block(review.item.id, "finding", "F1", assignee="manager")
     await svc.comment(parser.item.id, ["@manager please look at the tokeniser"], as_slug="manager")
 
 

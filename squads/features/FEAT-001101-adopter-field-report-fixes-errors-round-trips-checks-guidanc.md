@@ -3,7 +3,7 @@ id: FEAT-1101
 sequence_id: 1101
 type: feature
 title: 'Adopter field-report fixes: errors, round-trips, checks, guidance'
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - MILE-1051:targets
@@ -13,33 +13,33 @@ description: 'Fixes for the triaged findings of REV-1099: defects, new checks, d
 subentities:
 - local_id: US1
   title: Writes fail cleanly under index-lock contention
-  status: Todo
+  status: Done
 - local_id: US2
   title: Milestone bodies round-trip and create sets every declared field
-  status: Todo
+  status: Done
 - local_id: US3
   title: Generated files report the truth after a team or version change
-  status: Todo
+  status: Done
 - local_id: US4
   title: Operator subtasks close without --force
-  status: Todo
+  status: Done
 - local_id: US5
-  title: sq check flags Approved reviews with Open findings and unowned types
-  status: Todo
+  title: sq check flags Approved reviews with unsettled findings and unowned types
+  status: Done
 - local_id: US6
   title: Findings can be Deferred or Noted
-  status: Todo
+  status: Done
 - local_id: US7
   title: Adopters can find how to import, override and change roles
-  status: Todo
+  status: Done
 - local_id: US8
   title: Bundled guidance names the right owners and asks the right questions
-  status: Todo
+  status: Done
 - local_id: US9
   title: sq list has a compact one-line form
-  status: Todo
+  status: Done
 created_at: '2026-10-24T09:39:06Z'
-updated_at: '2026-10-24T19:44:05Z'
+updated_at: '2026-10-28T12:12:29Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -47,8 +47,8 @@ updated_at: '2026-10-24T19:44:05Z'
 An adopter project upgraded to 0.15.0 and ran eight agents for a day, up to four
 writing to `sq` at once. Its field report (REV-1099) was net positive: no work
 data lost, concurrent writers never corrupted the index. It also surfaced real
-defects, missing checks and guidance gaps. The review triaged them and the
-operator ruled to fix every finding as recommended.
+defects, missing checks and guidance gaps. This feature fixes each triaged
+finding.
 
 ## Scope
 
@@ -70,8 +70,7 @@ tampering. With the stored version gone, sync cannot tell an older release's
 output from a hand edit, so it words the case as "out of date or edited by
 hand", and the post-migrate line says sync regenerates the agent files.
 - **BUG-1120** A repeated `init --force` over an existing squad leaves skills out
-of the index and `sq check` fails. Carried by the same task as the defects above
-because it is the same kind of defect.
+of the index and `sq check` fails.
 
 ### New sq check rules
 - **F10** Warn on an Approved review that holds a finding that is not settled
@@ -208,7 +207,7 @@ Covers F6. A subtask assigned to an operator for a manual step, and a story, go 
 <!-- sq:story:US4:end -->
 
 <!-- sq:story:US5 -->
-### US5 — sq check flags Approved reviews with Open findings and unowned types
+### US5 — sq check flags Approved reviews with unsettled findings and unowned types
 
 <!-- sq:story:US5:body -->
 Covers F10 and F3. check warns on an Approved review that still holds an unsettled finding (Fixed included), and on a type that holds open items while no active role authors it, naming the catalog role to activate. Both stay silent when the squad is sound.
@@ -292,4 +291,6 @@ Covers F8. A compact option prints one line per item with a truncated title so l
   - FEAT-1101 is still Draft while TASK-1103 goes Ready; promote it once the F2 wording is settled.
 - [2026-10-24T19:42:17Z] `product-owner` Nina Product:
   - @tech-lead F2 reworded to ADR-1119 (out of date or edited by hand, no version); BUG-1120 added to scope as carried by TASK-1103 ST8; F6 now covers stories; F10/F3/F4 follow op-pierre's rulings. Feature moved to Ready.
+- [2026-10-28T12:12:29Z] `manager` Catherine Manager:
+  - Closed: tasks 1103-1107 Done, reviews REV-1122/1129/1130/1131 Approved, narration sweep done on the feature and task bodies; sq check clean. US5 retitled to match the rule (unsettled findings, Fixed included).
 <!-- sq:discussion:end -->

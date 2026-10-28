@@ -175,24 +175,4 @@ ignore_names = [
     # functions (_cli/_items.py's add-<kind>/update builders) at runtime.
     "__signature__",
     "__doc__",
-    # Per-kind sub-entity service wrappers (thin delegators over the generic
-    # add_block/list_blocks/get_block/update_block/set_block_body/set_block_status
-    # surface) — the CLI dispatches generically now, so these are test-only public
-    # service API, kept as delegators for their existing test call sites.
-    "add_story",
-    "add_subtask",
-    "add_finding",
-    "list_stories",
-    "list_subtasks",
-    "list_findings",
-    "get_subtask",
-    "get_story",
-    "set_subtask_body",
-    "set_story_body",
-    "set_subtask_status",
-    "set_story_status",
-    "set_subtask_done",
-    "set_subtask_assignee",
-    "update_subtask",
-    "update_finding",
 ]

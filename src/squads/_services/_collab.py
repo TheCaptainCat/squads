@@ -275,9 +275,6 @@ class CollabMixin(ServiceCore):
         messages: list[str],
         *,
         as_slug: str = ANONYMOUS_SLUG,
-        story: str | None = None,
-        subtask: str | None = None,
-        finding: str | None = None,
         sub: tuple[str, str] | None = None,
     ) -> Item:
         """Opens its own transaction, then delegates to :meth:`_comment_core` — the bulk
@@ -288,9 +285,6 @@ class CollabMixin(ServiceCore):
                 item_id,
                 messages,
                 as_slug=as_slug,
-                story=story,
-                subtask=subtask,
-                finding=finding,
                 sub=sub,
             )
 
@@ -301,9 +295,6 @@ class CollabMixin(ServiceCore):
         messages: list[str],
         *,
         as_slug: str = ANONYMOUS_SLUG,
-        story: str | None = None,
-        subtask: str | None = None,
-        finding: str | None = None,
         sub: tuple[str, str] | None = None,
     ) -> Item:
         """The comment mutation core: takes an already-open transaction's ``db`` (so the author
@@ -314,7 +305,7 @@ class CollabMixin(ServiceCore):
             raise SquadsError("a comment needs at least one -m message")
         for msg in messages:
             reject_markers(msg, "comment message")
-        tag = self._discussion_tag(story, subtask, finding, sub)
+        tag = self._discussion_tag(sub)
         scope = "" if tag == markers.DISCUSSION else tag.removesuffix(f":{markers.DISCUSSION}")
         now_iso = clock.iso(clock.now())
         entry = discussion.format_comment(
@@ -571,30 +562,12 @@ class CollabMixin(ServiceCore):
             )
 
     @staticmethod
-    def _discussion_tag(
-        story: str | None,
-        subtask: str | None,
-        finding: str | None,
-        sub: tuple[str, str] | None = None,
-    ) -> str:
-        """Resolve the discussion region to append to.
-
-        ``story``/``subtask``/``finding`` are the built-in kinds' named params;
-        ``sub`` is the generic ``(kind, local_id)`` pair the CLI's
-        spec-driven sub-entity comment verb uses for any kind, built-in or custom.
-        """
-        if sum(bool(t) for t in (story, subtask, finding, sub)) > 1:
-            raise SquadsError("target only one of --story / --subtask / --finding")
-        if sub is not None:
-            kind, local_id = sub
-            return markers.discussion_tag(markers.subentity_tag(kind, local_id))
-        if story:
-            return markers.discussion_tag(markers.subentity_tag("story", story))
-        if subtask:
-            return markers.discussion_tag(markers.subentity_tag("subtask", subtask))
-        if finding:
-            return markers.discussion_tag(markers.subentity_tag("finding", finding))
-        return markers.DISCUSSION
+    def _discussion_tag(sub: tuple[str, str] | None = None) -> str:
+        """The discussion region of the ``(kind, local_id)`` sub-entity, else of the item."""
+        if sub is None:
+            return markers.DISCUSSION
+        kind, local_id = sub
+        return markers.discussion_tag(markers.subentity_tag(kind, local_id))
 
     async def inbox(self, slug: str) -> tuple[list[InboxHit], UnreadableItems]:
         """Open items whose body/discussion mentions ``@slug``, with the matching lines (mention-

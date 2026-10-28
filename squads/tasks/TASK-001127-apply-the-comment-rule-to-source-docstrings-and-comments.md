@@ -34,7 +34,7 @@ subentities:
   status: Done
   story: US6
 created_at: '2026-10-24T21:54:04Z'
-updated_at: '2026-10-26T15:37:09Z'
+updated_at: '2026-10-28T12:46:06Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -43,7 +43,7 @@ Bring the docstrings and comments under `src/squads/` within the project comment
 
 ## Measure first
 
-REV-956 drove the checks on 2026-10-09 and re-drove the docstring check on 2026-10-17: 627 docstrings over five non-blank lines in 95 of 137 files. The structural tasks before this one split and move the largest files, so ST1 re-runs the review's mechanical scan on the tree as it stands then. The scan uses `ast` plus `tokenize` over whole docstrings and comment runs with whitespace collapsed, so a line-wrapped token is not missed. Its checks: a docstring over five non-blank lines, a comment run over three lines, a release version outside `_migrations/`, a ticket-id shape, history phrasing. The re-run per-file table is the worklist and is posted as a comment here. The review's table (largest first: `_services/`, `_workflow/`, `_cli/`, `_interactions/`) is only the seed.
+REV-956's docstring check counted 627 docstrings over five non-blank lines in 95 of 137 files on 2026-10-17. ST1 re-runs the review's mechanical scan on the tree as it stands. The scan uses `ast` plus `tokenize` over whole docstrings and comment runs with whitespace collapsed, so a line-wrapped token is not missed. Its checks: a docstring over five non-blank lines, a comment run over three lines, a release version outside `_migrations/`, a ticket-id shape, history phrasing. The re-run per-file table is the worklist and is posted as a comment here. The review's table (largest first: `_services/`, `_workflow/`, `_cli/`, `_interactions/`) is only the seed.
 
 ## Approach
 
@@ -65,10 +65,6 @@ None. Help text is excluded, so no CLI output changes, and no template is touche
 ## CHANGELOG substance
 
 None for adopters; report that to the writer.
-
-## Order
-
-After the check-rule task, so every file is swept once, after it has moved. Nothing in the test rebuild waits on this task, and the two can run side by side: this one edits only `src/` prose, which moves no seam the rebuild ports.
 <!-- sq:body:end -->
 
 ## Subtasks

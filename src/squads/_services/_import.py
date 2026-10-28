@@ -125,6 +125,29 @@ def _event_target_token(event: ImportEvent) -> str | None:
     return None if isinstance(event, CreateEvent) else event.target
 
 
+def _comment_selector(
+    handles: HandleMap, target: str, event: CommentEvent
+) -> tuple[str, str] | None:
+    """The one ``(kind, local_id)`` a comment event addresses, or ``None`` for the item itself.
+    The import format's per-kind selectors fold into the generic pair; naming more than one is
+    refused."""
+    named = [
+        (kind, handles.resolve_local(target, local))
+        for kind, local in (
+            ("story", event.story),
+            ("subtask", event.subtask),
+            ("finding", event.finding),
+        )
+        if local
+    ]
+    if event.sub is not None:
+        sub_kind, local_or_handle = event.sub
+        named.append((sub_kind, handles.resolve_local(target, local_or_handle)))
+    if len(named) > 1:
+        raise SquadsError("a comment event names at most one of story / subtask / finding / sub")
+    return named[0] if named else None
+
+
 def _field_for(spec: WorkflowSpec, type_or_kind: str, code: str) -> Field | None:
     return next((f for f in spec.fields_for(type_or_kind) if f.code == code), None)
 
@@ -381,22 +404,9 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             raise SquadsError("a comment needs at least one message")
         for msg in messages:
             reject_markers(msg, "comment message")
-        story = handles.resolve_local(target, event.story) if event.story else None
-        subtask = handles.resolve_local(target, event.subtask) if event.subtask else None
-        finding = handles.resolve_local(target, event.finding) if event.finding else None
-        sub: tuple[str, str] | None = None
-        if event.sub is not None:
-            sub_kind, local_or_handle = event.sub
-            sub = (sub_kind, handles.resolve_local(target, local_or_handle))
-        self._discussion_tag(story, subtask, finding, sub)  # raises on a multi-selector conflict
+        sub = _comment_selector(handles, target, event)
         if sub is not None:
             self._find(item, sub[0], sub[1])
-        elif story is not None:
-            self._find(item, "story", story)
-        elif subtask is not None:
-            self._find(item, "subtask", subtask)
-        elif finding is not None:
-            self._find(item, "finding", finding)
 
     def _sim_add_sub(
         self, shadow: SquadsDB, handles: HandleMap, ev: ResolvedEvent, event: AddSubEvent
@@ -605,21 +615,12 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         self, db: SquadsDB, handles: HandleMap, event: CommentEvent, actor_slug: str
     ) -> str:
         target = handles.resolve_item(event.target)
-        story = handles.resolve_local(target, event.story) if event.story else None
-        subtask = handles.resolve_local(target, event.subtask) if event.subtask else None
-        finding = handles.resolve_local(target, event.finding) if event.finding else None
-        sub: tuple[str, str] | None = None
-        if event.sub is not None:
-            sub_kind, local_or_handle = event.sub
-            sub = (sub_kind, handles.resolve_local(target, local_or_handle))
+        sub = _comment_selector(handles, target, event)
         item = await self._comment_core(
             db,
             target,
             event.all_messages(),
             as_slug=actor_slug,
-            story=story,
-            subtask=subtask,
-            finding=finding,
             sub=sub,
         )
         return item.id

@@ -47,7 +47,7 @@ subentities:
   title: Rebuild the index when init --force runs over an existing squad
   status: Done
 created_at: '2026-10-24T10:04:00Z'
-updated_at: '2026-10-24T20:58:01Z'
+updated_at: '2026-10-28T12:11:17Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -80,7 +80,7 @@ One table per behaviour. A row exists only if breaking the fix turns it red, so 
 
 ## Generated output
 
-F6 changes the bundled lifecycle, and F16 changes the CLAUDE.md, AGENTS.md and `sq workflow` renderings. Regenerate the goldens that pin them (`tests/goldens/claude_md_section.txt`, `agents_md_section.txt` and any lifecycle-rendering golden) and the template manifest (`scripts/gen_template_manifest.py`). After release this repo's own CLAUDE.md gains a guides bullet on its next `sq sync`. TASK-1106 (F14) also changes `claude_section.md.j2`, so sequence goldens and manifest regeneration rather than running them in parallel.
+F6 changes the bundled lifecycle, and F16 changes the CLAUDE.md, AGENTS.md and `sq workflow` renderings. Regenerate the goldens that pin them (`tests/goldens/claude_md_section.txt`, `agents_md_section.txt` and any lifecycle-rendering golden) and the template manifest (`scripts/gen_template_manifest.py`). After release this repo's own CLAUDE.md gains a guides bullet on its next `sq sync`.
 
 ## CHANGELOG substance (0.17.0)
 

@@ -27,23 +27,11 @@ _ALLOWED: dict[tuple[str, str], str] = {
     ("src/squads/_models/_subentity.py", "story"): "the `story` frontmatter field key",
     ("src/squads/_services/_validators.py", "story"): "the fallback kind of a missing declaration",
     **{
-        ("src/squads/_services/_collab.py", kind): (
-            "the legacy per-kind `--story`/`--subtask`/`--finding` comment targets"
-        )
-        for kind in ("story", "subtask", "finding")
-    },
-    **{
         ("src/squads/_services/_import.py", kind): "the per-kind events of the import format"
         for kind in ("story", "subtask", "finding")
     },
     **{
         ("src/squads/_services/_import_model.py", kind): "the per-kind events of the import format"
-        for kind in ("story", "subtask", "finding")
-    },
-    **{
-        ("src/squads/_services/_subentities.py", kind): (
-            "the per-kind service wrappers kept for the tests that call them"
-        )
         for kind in ("story", "subtask", "finding")
     },
     **{

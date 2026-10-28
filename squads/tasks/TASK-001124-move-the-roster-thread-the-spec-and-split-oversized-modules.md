@@ -48,7 +48,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-10-24T21:53:25Z'
-updated_at: '2026-10-25T05:29:44Z'
+updated_at: '2026-10-28T12:46:03Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -69,20 +69,20 @@ Move engine code to where it belongs, with no change to what `sq` does: the rost
 | `_views.py` | 1199 lines | 1271 lines; command builders `:735`, `:749`; tag text engine `:759-1240`; stale `insert_view`/`remove_view` at `_views.py:29` and `_services/_base.py:1502` |
 | sub-entity literals | as reported | `STORIES`/`SUBTASKS`/`FINDINGS` and `story_tag`/`subtask_tag`/`finding_tag` in `_models/_markers.py:22-47`; legacy branch `_services/_collab.py:631-635` |
 
-The other FEAT-1101 tasks are still editing some of these files, so re-measure at the start of each subtask.
+Re-measure at the start of each subtask.
 
-## Approach, in subtask order
+## Approach
 
-The order follows the feature: the roster extraction comes first because it informs the DI decision, and spec threading comes before the splits that touch the same signatures. Each subtask is its own commit and leaves the full suite, pyright, ruff and `sq check` clean.
+Each subtask is its own commit and leaves the full suite, pyright, ruff and `sq check` clean.
 
 1. **Roster collaborator (ST1, F3).** Move the cluster into one class in its own service-layer module, for example `src/squads/_services/_roster_projection.py`. It is built from `paths`, `spec`, `playbook`, `store` and the backends, and held as a field on `ServiceCore`. The six mixins that use it call the field. Methods the CLI, the TUI or tests call on the service (`roster`, `roster_all`, `operators`, `author`, `resolved_skills_for_role`, `refresh_managed`, ...) stay on the façade as one-line delegates, so no caller changes.
 2. **Empty the interactions init (ST2, F5).** Split along the consumers that already exist: playbook data, the bundled-playbook accessor, lanes, `authoring_owners`, `parent_chain` and orphan-guide detection go to `_interactions/_playbook.py`; skill naming, descriptions, slug vocabularies and origins go to `_interactions/_skills.py`; cheatsheet anchoring goes to `_interactions/_cheatsheet.py`; `is_live_roster_entry` goes to `_roles/`. The view-name constants go beside the code that writes and repairs those views; the import-edge table decides the module. Load the bundled playbook on first use (a cached function), not at import. Update every importer, with no re-export. Leave the init empty and drop it from CLAUDE.md's non-empty-init list; the import-edge guard (`inits_with_code`) and the mutable-state allowlist (`tests/meta/test_no_unallowlisted_module_level_mutable_state.py`) follow the moved names.
-3. **Required documents (ST3, F6).** Delete the bundled shims in `_workflow/__init__.py` that have no production caller; tests that use them call `bundled_spec().<method>` instead. Make all 41 parameters required, starting with `ServiceCore.__init__` and `BackendContext`, and let pyright list the sites. A site that wants the bundled document passes it explicitly. That includes today's four `Service(...)` constructions without a playbook (`_cli/_common.py:1623`, `:1632`, `_cli/_main.py:1544`, `:1551`): they pass the bundled playbook explicitly, which is today's behaviour, and the composition-root task revisits them. Each remaining production `bundled_spec()` call is either threaded or listed in the commit as a deliberate bundled read (fail-soft help fallback, migrations). Test constructions of `Service` (381 in 136 files) go through one helper in `tests/_helpers.py` rather than being edited one by one.
+3. **Required documents (ST3, F6).** Delete the bundled shims in `_workflow/__init__.py` that have no production caller; tests that use them call `bundled_spec().<method>` instead. Make all 41 parameters required, starting with `ServiceCore.__init__` and `BackendContext`, and let pyright list the sites. A site that wants the bundled document passes it explicitly. That includes today's four `Service(...)` constructions without a playbook (`_cli/_common.py:1623`, `:1632`, `_cli/_main.py:1544`, `:1551`): they pass the bundled playbook explicitly, which is today's behaviour. Each remaining production `bundled_spec()` call is either threaded or listed in the commit as a deliberate bundled read (fail-soft help fallback, migrations). Test constructions of `Service` (381 in 136 files) go through one helper in `tests/_helpers.py` rather than being edited one by one.
 4. **One load path (ST4, F8).** Write one document descriptor (bundled file name, override file name, top-level keys, selected sections, build function, caching rule) and one `load(document, squad_dir)` that owns the bundled read, the override read, error wrapping and the unreachable-merge guard. It replaces the three copies of `_read_bundled_bytes`/`_bundled_raw`/`bundled_<doc>_toml_text`/`_read_raw_override` in `_workflow/_loader.py`, `_roles/_loader.py` and `_interactions/_loader.py`. Each loader keeps its own validation and its exact user-facing messages; the roles loader's raise-versus-tuple contract is unified behind the descriptor without changing what the user reads. The new module's place, for example a top-level `src/squads/_specload.py` beside `_specmerge.py`, is a row in the import-edge table.
 5. **Split `_workflow/_models.py` (ST5, F9).** The validator name registries go to `_workflow/_validator_names.py`, the load-time validity checks to `_workflow/_validity.py`, and lifecycle ordering to `_workflow/_lifecycle_order.py`. `WorkflowSpec._validate` calls the validity module through a function-local import, the cycle break this file already uses. The models' public surface and methods stay.
 6. **Split `_services/_maintenance.py` (ST6, F10).** First lift the per-file classification both loops write (item, unreadable, unparseable, missing id, legacy skill body, vanished) into one corpus-reading primitive that yields a tagged record per file. Build `_rebuild_index_from_disk` and `_scan_for_check` on it, and fold in `ServiceCore._all_item_files` (`_services/_base.py:1077`) and the ad-hoc folder globs where they walk the same set. Then move `check`, its drift-confirmation methods and its own helpers into a `CheckMixin` in `src/squads/_services/_check.py`, added to `Service`'s bases. Break `sync` into named steps in place. Update CLAUDE.md's mixin count and MRO list.
 7. **Split `_views.py` (ST7, F12).** The tag placement and expansion engine goes next to `_sections.py`, as `src/squads/_view_tags.py`. `view_placement_invocation` and `clear_roster_body_cmd` build remedy text for `_services/_validators.py`, `_services/_maintenance.py` and `_services/_base.py`, so they move to a remedy module in `_services/`. Fix the two stale method names to `ViewsMixin.add_view`/`disable_view`, after verifying those names. `_views.py` keeps source resolution, projection, rendering and view data.
-8. **Bundled sub-entity literals (ST8, F7).** Add `subentity_tag(kind, local_id)` to `_models/_markers.py` and use it in both branches of `CollabMixin._discussion_tag`. Delete the three per-kind tag functions. Inline `STORIES`/`SUBTASKS`/`FINDINGS` into the one migration runner that reads them; its behaviour stays identical. Add a `tests/meta` guard, shaped like the ref-kind literal guard, that keeps bundled sub-entity kind literals out of `src/` outside the spec and migrations. The per-kind `SubentitiesMixin` wrappers stay: their test callers are ported by the test rebuild, and TASK-1114 deletes them.
+8. **Bundled sub-entity literals (ST8, F7).** Add `subentity_tag(kind, local_id)` to `_models/_markers.py` and use it in both branches of `CollabMixin._discussion_tag`. Delete the three per-kind tag functions. Inline `STORIES`/`SUBTASKS`/`FINDINGS` into the one migration runner that reads them; its behaviour stays identical. Add a `tests/meta` guard, shaped like the ref-kind literal guard, that keeps bundled sub-entity kind literals out of `src/` outside the spec and migrations. The per-kind `SubentitiesMixin` wrappers are out of scope.
 
 ## Tests
 
@@ -102,10 +102,6 @@ None should change. Before ST1 and after ST8, init a scratch squad outside this 
 ## CHANGELOG substance
 
 No adopter-visible change. Report "internal restructuring, no behaviour change" to the writer, who decides whether it earns a line. Contributor docs change in CLAUDE.md (architecture section: modules, mixins, non-empty inits) and `docs/internals.md` where it names moved modules.
-
-## Order
-
-This task starts after the FEAT-916 task and TASK-1106 (which adds a mention-token resolver under `_interactions/`), and after TASK-1077 (validator wording in `_maintenance.py` and `_workflow/_models.py`). It precedes the composition-root task, the check-rule task, and the test-rebuild inventory (TASK-1111): the rebuild's ledger names seams by module and function, so the modules move before the ledger is written.
 <!-- sq:body:end -->
 
 ## Subtasks
@@ -209,7 +205,7 @@ Move the view tag placement and expansion engine out of `src/squads/_views.py` i
 ### ST8 — Replace bundled sub-entity tags with one generic helper
 
 <!-- sq:subtask:ST8:body -->
-Add `subentity_tag(kind, local_id)` to `_models/_markers.py`, use it in both branches of `CollabMixin._discussion_tag`, and delete `story_tag`/`subtask_tag`/`finding_tag`. Inline `STORIES`/`SUBTASKS`/`FINDINGS` into the migration runner that reads them. Add a `tests/meta` guard, with a liveness row, that keeps bundled sub-entity kind literals out of `src/` outside the spec and migrations. The per-kind service wrappers stay for the test rebuild to delete.
+Add `subentity_tag(kind, local_id)` to `_models/_markers.py`, use it in both branches of `CollabMixin._discussion_tag`, and delete `story_tag`/`subtask_tag`/`finding_tag`. Inline `STORIES`/`SUBTASKS`/`FINDINGS` into the migration runner that reads them. Add a `tests/meta` guard, with a liveness row, that keeps bundled sub-entity kind literals out of `src/` outside the spec and migrations. The per-kind service wrappers are out of scope.
 <!-- sq:subtask:ST8:body:end -->
 
 #### Discussion

@@ -27,7 +27,7 @@ subentities:
   assignee: tech-writer
   story: US4
 created_at: '2026-10-24T21:53:55Z'
-updated_at: '2026-10-25T21:16:20Z'
+updated_at: '2026-10-28T12:46:05Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -37,7 +37,7 @@ Every `sq check` finding names the rule that produced it, and adopters can see w
 ## Re-measured on 2026-10-24 (working tree, read)
 
 - `CheckIssue` is still `level`, `item`, `message` (`src/squads/_services/_results.py:145`).
-- 72 `CheckIssue(` constructions: 54 in `_services/_validators.py`, 14 in `_services/_maintenance.py`, 3 in `_cli/_main.py` and 1 in `_workflow/_models.py`. The check mixin split in the structural task moves the `_maintenance.py` ones.
+- 72 `CheckIssue(` constructions: 54 in `_services/_validators.py`, 14 in `_services/_maintenance.py`, 3 in `_cli/_main.py` and 1 in `_workflow/_models.py`.
 - `check` still matches a finding by message text: `message.startswith("on disk but not in index")` (`_services/_maintenance.py:3207`).
 - The eight sources REV-956 F11 lists stand: the raw-text scan, the per-file load boundary, override checks, orphaned skills, duplicate ids, the per-item catalog, the squad-global catalog, and confirmed cross-source candidates, plus the three config-load findings `_cli/_main.py` adds.
 
@@ -63,10 +63,6 @@ No generated agent file changes. The `sq check --json` shape gains one key.
 ## CHANGELOG substance (the writer authors the entry)
 
 Added: every finding in `sq check --json` carries a `rule` naming the check that produced it. The docs now list the findings that are always on and cannot be deselected, and why. Tools reading `--json` can match findings by rule instead of by message text.
-
-## Order
-
-After the composition-root task (both edit the `sq check` fallbacks in `_cli/_main.py`), the structural task (the check mixin split), TASK-1077 (the validator wording) and TASK-1104 (new check warnings that this names). Before the test-rebuild inventory (TASK-1111), so the rebuilt check tables can assert rule names rather than message text.
 <!-- sq:body:end -->
 
 ## Subtasks

@@ -41,7 +41,7 @@ subentities:
   assignee: tech-writer
   story: US6
 created_at: '2026-10-24T10:04:03Z'
-updated_at: '2026-10-25T11:35:11Z'
+updated_at: '2026-10-28T12:11:18Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -91,7 +91,7 @@ One table per behaviour. A row exists only if breaking the fix turns it red, so 
 
 ## Generated output
 
-The bundled `workflow.toml` and `playbook.toml` change. Regenerate the goldens pinning `sq workflow` output, the `sq-review` skill and the lifecycle renderings, plus the template manifest (`scripts/gen_template_manifest.py`). TASK-1103 (F6) and TASK-1106 (F17) also edit these two TOML files, so sequence them.
+The bundled `workflow.toml` and `playbook.toml` change. Regenerate the goldens pinning `sq workflow` output, the `sq-review` skill and the lifecycle renderings, plus the template manifest (`scripts/gen_template_manifest.py`).
 
 ## CHANGELOG substance (0.17.0)
 

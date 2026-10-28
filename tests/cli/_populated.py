@@ -17,14 +17,20 @@ REVIEW = 4
 async def _populate(root: Path) -> None:
     svc = make_service(paths_of(root))
     feature = await create_item(svc, "feature", "Search")
-    await svc.add_story(feature.item.id, "Query the index")
-    await svc.add_story(feature.item.id, "Rank the results")
+    await svc.add_block(feature.item.id, "story", "Query the index")
+    await svc.add_block(feature.item.id, "story", "Rank the results")
     task = await create_item(svc, "task", "Build the query parser", parent=feature.item.id)
-    await svc.add_subtask(task.item.id, "Tokenise the input", story="US1")
-    await svc.add_subtask(task.item.id, "Parse the operators")
+    await svc.add_block(task.item.id, "subtask", "Tokenise the input", story="US1")
+    await svc.add_block(task.item.id, "subtask", "Parse the operators")
     review = await create_item(svc, "review", "Review the query parser")
-    await svc.add_finding(review.item.id, "Unbounded recursion", severity="High")
-    await svc.add_finding(review.item.id, "Misleading error text")
+    await svc.add_block(
+        review.item.id, "finding", "Unbounded recursion", fields={"severity": "High"}
+    )
+    severity = svc.field_default("finding", "severity")
+    assert severity is not None
+    await svc.add_block(
+        review.item.id, "finding", "Misleading error text", fields={"severity": severity}
+    )
 
 
 def init_populated(root: Path) -> None:

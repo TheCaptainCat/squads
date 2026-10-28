@@ -21,7 +21,7 @@ subentities:
   severity: medium
 - local_id: F3
   title: Roster projection is 400 lines of ServiceCore, used by six mixins
-  status: WontFix
+  status: Verified
   severity: medium
 - local_id: F4
   title: 'The mixin composition is a type-checked star: leave it'
@@ -29,35 +29,36 @@ subentities:
   severity: info
 - local_id: F5
   title: _interactions/__init__.py is an undeclared 1k-line policy hub
-  status: WontFix
+  status: Verified
   severity: medium
 - local_id: F6
   title: 48 parameters silently default a missing spec to the bundled one
-  status: WontFix
+  status: Verified
   severity: medium
 - local_id: F7
   title: Bundled sub-entity vocabulary survives as test-only API and tags
-  status: WontFix
+  status: Deferred
   severity: low
+  deferred_to: TASK-1215
 - local_id: F8
   title: Three spec loaders hand-write one load shape
-  status: WontFix
+  status: Verified
   severity: medium
 - local_id: F9
   title: WorkflowSpec methods are fine; its file holds three other things
-  status: WontFix
+  status: Verified
   severity: low
 - local_id: F10
   title: '_maintenance.py is two modules: the rebuild corridor and check'
-  status: WontFix
+  status: Verified
   severity: medium
 - local_id: F11
   title: sq check has eight finding sources and names none of them
-  status: WontFix
+  status: Verified
   severity: medium
 - local_id: F12
   title: View layout is right; _views.py itself holds five jobs
-  status: WontFix
+  status: Verified
   severity: low
 - local_id: F13
   title: '_cli/_common.py: nothing breaks today, leave it whole'
@@ -69,7 +70,7 @@ subentities:
   severity: medium
 - local_id: F15
   title: Service is built at eight sites; three omit the playbook
-  status: WontFix
+  status: Verified
   severity: medium
 - local_id: F16
   title: Layering is stated in three places and guarded by no test
@@ -81,14 +82,14 @@ subentities:
   severity: medium
 - local_id: F18
   title: 'Comment rule: 95 of 127 source files fail a mechanical check'
-  status: WontFix
+  status: Verified
   severity: medium
 - local_id: F19
   title: 'Comment rule: 414 of 566 test files fail a mechanical check'
-  status: WontFix
+  status: Verified
   severity: low
 created_at: '2026-09-15T09:01:18Z'
-updated_at: '2026-10-25T19:36:10Z'
+updated_at: '2026-10-28T12:23:15Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -430,6 +431,8 @@ That is 6 marker reads and 12 spelling sites across 10 modules and one template 
   - Still open at 7fd3bfd1. The roster cluster is still in ServiceCore (_services/_base.py:1496-1903, 19 methods, now about 400 of a 1903-line file). ADR-984 left it out of scope (Order of work). Size: medium, one extraction with no behaviour change; part of the 0.17 structural work per op-pierre 2026-10-09.
 - [2026-10-17T03:50:37Z] `manager` Catherine Manager:
   - Moved to FEAT-1092 (0.17) per op-pierre's 2026-10-09 ruling: structural work beyond the import guard, role moves and write guard belongs to 0.17.
+- [2026-10-28T12:18:32Z] `reviewer` Paul Reviewer:
+  - Fixed in d04467ad (TASK-1124). Read at 982e3dc6: the roster cluster is `RosterProjection` in `_services/_roster_projection.py` (371 lines), held as `ServiceCore.roster_projection`; the core keeps one-line delegators only.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -480,6 +483,8 @@ Because pyright runs in strict mode, a mixin that called an undeclared sibling's
   - Partly addressed at 7fd3bfd1: the role derivations moved to _interactions/_role_guidance.py (1fd45be5), is_dev_slug is gone, and CLAUDE.md now declares _interactions/__init__ and _workflow/__init__ as non-empty inits, so the convention is citeable again. Remains: the init is still 810 lines of policy (skill naming, view-name constants, roster liveness, orphan guides, cheatsheet anchoring) and still loads the bundled playbook at import. Size: medium, mechanical moves; TASK-989 scoped the rest out.
 - [2026-10-17T03:50:39Z] `manager` Catherine Manager:
   - Moved to FEAT-1092 (0.17) per op-pierre's 2026-10-09 ruling: structural work beyond the import guard, role moves and write guard belongs to 0.17.
+- [2026-10-28T12:18:35Z] `reviewer` Paul Reviewer:
+  - Fixed in d04467ad (TASK-1124). Read at 982e3dc6: `_interactions/__init__.py` is empty; its policy lives in `_playbook`, `_skills`, `_cheatsheet` and `_role_guidance`, and CLAUDE.md's init list matches.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -504,6 +509,8 @@ Because pyright runs in strict mode, a mixin that called an undeclared sibling's
   - Still open at 7fd3bfd1. TASK-990 made the role-derivation path require its documents, so 41 None-defaulted spec/playbook/catalog parameters remain (was 48; _badges 10, _discussion 9, _services/_base 3 incl. ServiceCore.__init__, _paths 3, BackendContext 2, ...), 36 production bundled_spec() calls, and all 22 bundled shims in _workflow/__init__.py with no production caller. Size: medium-large, mostly mechanical once ServiceCore.__init__ and BackendContext go required.
 - [2026-10-17T03:50:41Z] `manager` Catherine Manager:
   - Moved to FEAT-1092 (0.17) per op-pierre's 2026-10-09 ruling: structural work beyond the import guard, role moves and write guard belongs to 0.17.
+- [2026-10-28T12:18:39Z] `reviewer` Paul Reviewer:
+  - Fixed in d04467ad and 12fd2afa (TASK-1124, TASK-1125). Driven (AST): None-defaulted spec/playbook parameters 48 -> 11, all CLAUDE.md-listed exceptions or composition entry points; `ServiceCore.__init__` requires spec and playbook; the 22 `_workflow/__init__` shims are gone.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -529,6 +536,10 @@ Because pyright runs in strict mode, a mixin that called an undeclared sibling's
   - Still open at 7fd3bfd1, unchanged: STORIES/SUBTASKS/FINDINGS and story_tag/subtask_tag/finding_tag in _models/_markers.py, the legacy branch in _services/_collab.py:631-635, and 14 per-kind wrappers in _subentities.py kept for tests. Size: small for the tag and constants; the wrapper port rides the test rebuild.
 - [2026-10-17T03:50:43Z] `manager` Catherine Manager:
   - Moved to FEAT-1092 (0.17) per op-pierre's 2026-10-09 ruling: structural work beyond the import guard, role moves and write guard belongs to 0.17.
+- [2026-10-28T12:19:11Z] `reviewer` Paul Reviewer:
+  - Partly delivered in d04467ad: one generic `subentity_tag`, constants moved into the migration. Not delivered: the 16 per-kind wrappers in `_services/_subentities.py` and the per-kind params of `CollabMixin.comment` (no src callers; tests/cli still call the wrappers). Its carrier, TASK-1116 ST3, is Cancelled; no live carrier.
+- [2026-10-28T12:23:15Z] `tech-lead` Olivia Lead:
+  - Deferred to TASK-1215 per op-pierre 2026-10-28 (FEAT-1092). Forced: WontFix to Deferred is not a declared transition.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -556,6 +567,8 @@ Because pyright runs in strict mode, a mixin that called an undeclared sibling's
   - Still open at 7fd3bfd1, unchanged: _read_bundled_bytes/_bundled_raw/bundled_*_toml_text and _read_raw_override still exist once per loader (_workflow, _roles, _interactions), with the two error contracts, and resolve_playbook is still in _services/_service.py:56. Size: medium, a document descriptor plus one load function.
 - [2026-10-17T03:50:45Z] `manager` Catherine Manager:
   - Moved to FEAT-1092 (0.17) per op-pierre's 2026-10-09 ruling: structural work beyond the import guard, role moves and write guard belongs to 0.17.
+- [2026-10-28T12:18:42Z] `reviewer` Paul Reviewer:
+  - Fixed in d04467ad (TASK-1124). Read: `_specload.py` (`SpecDocument`) is the one bundled-read/override-read path, the per-loader helpers are one-line delegators, and `resolve_playbook` moved to `_spec_documents.py`.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -583,6 +596,8 @@ A reader looking for what a spec *is* has to skip 1500 lines of what makes one *
   - Still open at 7fd3bfd1: _workflow/_models.py has grown to 3434 lines and still holds the validator registries, the load-time validity checks and lifecycle linearisation beside the models; _workflow/ has no new module. Size: small-medium, a file split with one function-local import.
 - [2026-10-17T03:50:47Z] `manager` Catherine Manager:
   - Moved to FEAT-1092 (0.17) per op-pierre's 2026-10-09 ruling: structural work beyond the import guard, role moves and write guard belongs to 0.17.
+- [2026-10-28T12:18:46Z] `reviewer` Paul Reviewer:
+  - Fixed in d04467ad (TASK-1124). Read: `_workflow/_validator_names.py`, `_validity.py` and `_lifecycle_order.py` hold what was beside the models; `_models.py` is 1283 lines (was 3434).
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -609,6 +624,8 @@ So the module is two things, not four: the rebuild corridor, and the read-only r
   - Still open at 7fd3bfd1: _maintenance.py is 3769 lines; check (:3165) and _scan_for_check (:3621) still sit in MaintenanceMixin with the rebuild corridor, and the per-file classification is still written in both loops. Size: medium-large (shared classification primitive, then a check mixin of about 1100 lines).
 - [2026-10-17T03:50:49Z] `manager` Catherine Manager:
   - Moved to FEAT-1092 (0.17) per op-pierre's 2026-10-09 ruling: structural work beyond the import guard, role moves and write guard belongs to 0.17.
+- [2026-10-28T12:18:49Z] `reviewer` Paul Reviewer:
+  - Fixed in d04467ad (TASK-1124). Read: `check` lives in `_services/_check.py` (975 lines); both loops classify files through `_corpus_files.read_corpus_file`; `_maintenance.py` is 1904 lines (was 3769).
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -645,6 +662,8 @@ Only 6 and 7 are selectable. `_cli/_main.py` adds three more of its own for a co
   - Still open at 7fd3bfd1: CheckIssue is still level/item/message (_services/_results.py), so no finding names its rule in --json and no registry says which are binding; the adopter docs do not list them. Size: medium, additive --json key plus registry, guard and a docs paragraph.
 - [2026-10-17T03:50:51Z] `manager` Catherine Manager:
   - Moved to FEAT-1092 (0.17) per op-pierre's 2026-10-09 ruling: structural work beyond the import guard, role moves and write guard belongs to 0.17.
+- [2026-10-28T12:18:53Z] `reviewer` Paul Reviewer:
+  - Fixed in 61b1f474, 12ce57b2 and ab6cfbfa (TASK-1126). Driven: a planted unclosed marker in a scratch squad gives `"rule": "markers_balanced"` in `sq check --json`; `BINDING_RULES` in `_services/_check_rules.py`; the registered-rule guard passes; docs/overrides.md lists the binding rules and the key.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -676,6 +695,8 @@ It is no longer a leaf mechanism: it imports `_backends._base`, `_interactions`,
   - Still open at 7fd3bfd1: _views.py is 1199 lines with the tag text engine and the two command builders (:718, :732) still inside, and the stale insert_view/remove_view names remain at _views.py:29 and _services/_base.py:1467. Size: small; the two stale names are a one-line fix each.
 - [2026-10-17T03:50:53Z] `manager` Catherine Manager:
   - Moved to FEAT-1092 (0.17) per op-pierre's 2026-10-09 ruling: structural work beyond the import guard, role moves and write guard belongs to 0.17.
+- [2026-10-28T12:18:56Z] `reviewer` Paul Reviewer:
+  - Fixed in d04467ad (TASK-1124). Read: the tag engine is `_view_tags.py`, the command builders `_view_remedies.py`; `_views.py` is 725 lines (was 1199); `insert_view`/`remove_view` have 0 hits in src.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 
@@ -742,6 +763,8 @@ Two observations a later change should know about, neither a reason to split now
   - Moved to FEAT-1092 (0.17) per op-pierre's 2026-10-09 ruling: structural work beyond the import guard, role moves and write guard belongs to 0.17.
 - [2026-10-25T10:53:43Z] `manager` Catherine Manager:
   - Closed by ADR-1128 (Accepted): no DI container, one composition function.
+- [2026-10-28T12:19:10Z] `reviewer` Paul Reviewer:
+  - Stays WontFix as a decision: ADR-1128 (Accepted) chose no DI container and one composition function; that alternative is delivered under F15 (12fd2afa).
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 
@@ -782,6 +805,8 @@ Each step stands alone and none changes behaviour. Step 3 is the one with a desi
   - Still open at 7fd3bfd1. The normal bypass path now resolves the playbook (_cli/_common.py:1501), but four constructions still omit it (_cli/_common.py:1487, :1496; _cli/_main.py:1615, :1622), ServiceCore.__init__ still calls set_active_squad_dir (_services/_base.py:541) with the two re-asserts in _cli/_common.py, and the backend registry is still a module-global dict behind global _loaded. Size: medium; step 3 (renderer squad dir) wants the architect.
 - [2026-10-17T03:50:58Z] `manager` Catherine Manager:
   - Moved to FEAT-1092 (0.17) per op-pierre's 2026-10-09 ruling: structural work beyond the import guard, role moves and write guard belongs to 0.17.
+- [2026-10-28T12:19:00Z] `reviewer` Paul Reviewer:
+  - Fixed in 12fd2afa (TASK-1125, per ADR-1128). Read: one `Service(` site (`build_service`, `_services/_service.py`), modes in `compose_service`; store and backends passed in; no `set_active_squad_dir` in src; the backend registry is a literal read-only table.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
 
@@ -988,6 +1013,8 @@ Not driven, from reading: `rename_type` runs the same `apply_type_change` per it
   - Still open at 7fd3bfd1. Re-driven on the docstring-length check only: 95 of 137 source files carry a docstring over 5 non-blank lines (627 docstrings, was 638). Not re-driven: comment runs, versions, history phrases. Size: large, a per-package prose sweep.
 - [2026-10-17T03:51:00Z] `manager` Catherine Manager:
   - Moved to FEAT-1092 (0.17) per op-pierre's 2026-10-09 ruling: structural work beyond the import guard, role moves and write guard belongs to 0.17.
+- [2026-10-28T12:19:03Z] `reviewer` Paul Reviewer:
+  - Fixed in 62518566, aabe10f7 and 40c4cd7e (TASK-1127; REV-1164/1166/1169 approved). Driven: the release-version guard passes; 276 docstrings over five lines remain in src (was 638), kept as stated contracts, and no length guard was added (80bad1f7).
 <!-- sq:finding:F18:discussion:end -->
 <!-- sq:finding:F18:end -->
 
@@ -1032,6 +1059,8 @@ Not driven, from reading: `rename_type` runs the same `apply_type_change` per it
   - Still open at 7fd3bfd1. Re-driven on the docstring check only: 431 of 759 test files carry a test docstring over one line or another over 5 lines (1431 docstrings). The suite grew, so this rides the deferred test rebuild as recommended. Size: large.
 - [2026-10-17T03:51:02Z] `manager` Catherine Manager:
   - Moved to FEAT-1092 (0.17) per op-pierre's 2026-10-09 ruling: structural work beyond the import guard, role moves and write guard belongs to 0.17.
+- [2026-10-28T12:19:07Z] `reviewer` Paul Reviewer:
+  - Fixed by b9fde75d: the old suite is deleted, and `tests/meta/test_new_root_prose_follows_the_comment_rule.py` holds tests/ to one-line test docstrings with no ids or versions (passes). Driven: 0 over-long docstrings in 130 test files; comment-run length is not guarded (37 runs over three lines).
 <!-- sq:finding:F19:discussion:end -->
 <!-- sq:finding:F19:end -->
 <!-- sq:findings:end -->
@@ -1115,4 +1144,6 @@ Not driven, from reading: `rename_type` runs the same `apply_type_change` per it
   - Disposition pass at 7fd3bfd1: F1, F2, F16, F17 Fixed (code and guards verified, not task claims). F3, F5-F12, F14, F15, F18, F19 remain Open with what is left and its size on each finding; per op-pierre 2026-10-09 they belong to the 0.17 structural work. Review stays ChangesRequested. @manager
 - [2026-10-17T03:50:21Z] `product-owner` Nina Product:
   - FEAT-1092 (targets MILE-1051) is the home for the 13 open findings F3, F5-F12, F14, F15, F18 and F19, one story per group; F14 is the DI decision story. The feature stays Draft.
+- [2026-10-28T12:19:22Z] `reviewer` Paul Reviewer:
+  - Disposition at 982e3dc6 (code read or driven, not task claims): F3, F5, F6, F8-F12, F15, F18, F19 Fixed then Verified (forced past WontFix, the placeholder for "moved to FEAT-1092"), each citing its commit. F14 stays WontFix per ADR-1128. F7 is only partly delivered: the per-kind wrappers lost their carrier when TASK-1116 was cancelled, so it stays WontFix pending a decision. Review status left as is. @manager
 <!-- sq:discussion:end -->
