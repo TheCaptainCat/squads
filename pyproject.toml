@@ -78,6 +78,7 @@ anyio_mode = "auto"
 # Keep only the latest run's tmp dirs: /tmp is a small tmpfs that a full run can fill.
 tmp_path_retention_count = 1
 markers = [
+    "breaches(*declarations): declares the sq check rules, `rule:param` cases and `rule@level` cases a test breaches; read by ast by the guard in tests/meta and checked against the findings the test's check_json runs report",
     "covers(key, *params): declares the CLI (command key, parameter) pairs a test exercises; read by ast by the coverage guard in tests/meta and checked against the calls the test makes",
     "slow: marks tests that generate large data sets or have wall-clock bounds (skipped by default, opt in with --run-slow)",
     "gate_for(site): declares that this test's own falsification proves a gated view-tag writer site (module-relative-path::function); collected by tests/meta's writer-scan citation check instead of a hand-maintained dict",

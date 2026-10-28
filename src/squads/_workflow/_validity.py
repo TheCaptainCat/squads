@@ -44,7 +44,7 @@ from squads._workflow._validator_names import (
     COMMON_CORE,
     LEVEL_RANK,
     PARAMETERIZED_VALIDATOR_NAMES,
-    REQUIRED_PARAM_VALIDATOR_NAMES,
+    REQUIRED_PARAM_SHAPE,
     SELECTABLE_SQUAD_GLOBAL_NAMES,
     SQUAD_GLOBAL_PARAM_MINIMUM,
     SQUAD_GLOBAL_VALIDATOR_NAMES,
@@ -492,10 +492,10 @@ def _check_validator_param(
     """The meaningful params: a title-length threshold (``subentity_title_max:<n>``,
     ``item_title_max:<n>``) must parse as a positive integer, ``external_id_not_in_title``'s
     must compile as a regular expression, and a member in
-    :data:`REQUIRED_PARAM_VALIDATOR_NAMES` must carry one at all. Resolvable without the whole
+    :data:`REQUIRED_PARAM_SHAPE` must carry one at all. Resolvable without the whole
     ``[items.*]`` table (nothing here needs a cross-type lookup)."""
-    if bare in REQUIRED_PARAM_VALIDATOR_NAMES and not (param and param.strip()):
-        shape = "<regex>" if bare == "external_id_not_in_title" else "<n>"
+    if bare in REQUIRED_PARAM_SHAPE and not (param and param.strip()):
+        shape = REQUIRED_PARAM_SHAPE[bare]
         errors.append(
             f"item {t!r}: validators entry {entry!r} is missing its required parameter — "
             f"name it as '{bare}:{shape}', or drop the validator; "
@@ -611,9 +611,7 @@ def check_validators_assignment(items: dict[str, ItemSpec], errors: list[str]) -
 def check_ref_rule_targets(items: dict[str, ItemSpec], errors: list[str]) -> None:
     """Plane-1 referential validation for :attr:`RefRule.target`, run here and not in
     ``_parse_ref_rules`` because item types are known only after every ``[items.*]`` block parses.
-    Three checks: every ``target`` names a declared item type; a ``ref_rule_target_present`` entry
-    carries a ``:<T>`` param, since the bare name is a catalog member yet builds an empty target set
-    (read via :func:`parse_validator_entry`) and is permanently inert; and a type selecting
+    Two checks: every ``target`` names a declared item type; and a type selecting
     ``ref_rule_target_present:<T>`` declares a ``ref_rules`` entry targeting ``<T>``, or ``<T>``
     could be a type nothing points the check at or not a type at all. Each is refused rather than
     doing nothing forever.
@@ -630,13 +628,8 @@ def check_ref_rule_targets(items: dict[str, ItemSpec], errors: list[str]) -> Non
             bare, param, _level = parse_validator_entry(entry)
             if bare != "ref_rule_target_present":
                 continue
-            if param is None:
-                errors.append(
-                    f"item {t!r}: validators entry {entry!r} is missing its required target "
-                    "type parameter — name it as 'ref_rule_target_present:<type>', or drop "
-                    "the validator; without a parameter it never fires"
-                )
-                continue
+            if param is None or not param.strip():
+                continue  # _check_validator_param refuses a missing target type
             if param not in items:
                 errors.append(
                     f"item {t!r}: validators entry {entry!r} names target type {param!r}, "

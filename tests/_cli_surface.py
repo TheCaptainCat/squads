@@ -6,7 +6,6 @@ hidden `_addr` dispatcher dropped; the root callback is the empty key. A paramet
 first long flag, or by the usage name of an argument.
 """
 
-import ast
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
@@ -216,27 +215,6 @@ def reached_pairs(args: list[str], spec: WorkflowSpec) -> set[Pair]:
         path = (*path, name)
         ctx = Context(child, info_name=name, parent=ctx)
         command = child
-
-
-def covers_arguments(call: ast.Call) -> tuple[str, ...] | None:
-    """The literal string arguments of a ``covers`` marker call, ``None`` when any is not one."""
-    values = [
-        a.value for a in call.args if isinstance(a, ast.Constant) and isinstance(a.value, str)
-    ]
-    if len(values) != len(call.args) or call.keywords or not values:
-        return None
-    return tuple(values)
-
-
-def is_covers_call(node: ast.AST) -> bool:
-    """Whether *node* is a ``pytest.mark.covers(...)`` call."""
-    return (
-        isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr == "covers"
-        and isinstance(node.func.value, ast.Attribute)
-        and node.func.value.attr == "mark"
-    )
 
 
 def declared_pairs(arguments: tuple[str, ...]) -> set[Pair]:

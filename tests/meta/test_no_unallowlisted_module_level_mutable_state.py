@@ -39,6 +39,7 @@ ALLOWLIST: dict[str, frozenset[str]] = {
             "DEFAULT_SQUAD_GLOBAL_LEVEL",  # fixed squad-global member -> default level table
             "SQUAD_GLOBAL_PARAM_MINIMUM",  # fixed selectable member -> least parameter value
             "VALIDATOR_LEVEL_FLOOR",  # fixed catalog-member -> floor level table
+            "REQUIRED_PARAM_SHAPE",  # fixed required-param member -> refusal shape table
             "LEVEL_RANK",  # fixed level -> rank lookup (warn < error) for the floor comparison
         }
     ),
