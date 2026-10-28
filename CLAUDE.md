@@ -234,7 +234,9 @@ module per command group, run in-process on a squad copied per test) and their s
 (`tests/conftest.py`, which copies a squad built once per module into each test's `tmp_path`);
 all file generation stays in temp. A CLI test declares its (command, parameter) pairs with
 `@pytest.mark.covers(...)`, and the coverage and verb-parity guards in `tests/meta` fail on an
-undeclared or stale pair; `CONTRIBUTING.md` has the full rules. Process-wide rendering pins live in the root `conftest.py`.
+undeclared or stale pair. The check rule tests (`tests/check/`, one breach test per `sq check`
+rule) declare each rule with `@pytest.mark.breaches(...)`, guarded the same way against the rule
+tables; `CONTRIBUTING.md` has the full rules. Process-wide rendering pins live in the root `conftest.py`.
 
 `uv run pytest` runs under `pytest-xdist` (`-n auto` in `addopts`) by default — every test is
 isolated in its own `tmp_path`, so distributing tests across worker processes is safe. Use `-n0`

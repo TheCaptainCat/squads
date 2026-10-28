@@ -1113,9 +1113,9 @@ without one the check can never fire, so the loader refuses it rather than let i
 nothing:
 
 ```
-item 'feature': validators entry 'ref_rule_target_present' is missing its required target type
-parameter — name it as 'ref_rule_target_present:<type>', or drop the validator; without a
-parameter it never fires
+item 'feature': validators entry 'ref_rule_target_present' is missing its required parameter —
+name it as 'ref_rule_target_present:<type>', or drop the validator; without a parameter it never
+fires
 ```
 
 The target you name must also be one this type declares a `ref_rules` entry for, and the message

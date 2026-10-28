@@ -18,12 +18,11 @@ from tests._cli_surface import (
     EXCLUDED_PARAMS,
     Pair,
     Surface,
-    covers_arguments,
     declared_pairs,
-    is_covers_call,
     surface_of,
 )
 from tests._help_tree import command_nodes
+from tests._marker_ast import marker_calls, string_arguments
 from tests.meta._roots import REPO_ROOT
 
 CLI_TESTS = REPO_ROOT / "tests" / "cli"
@@ -38,59 +37,6 @@ class Declarations:
     ignored: tuple[str, ...] = ()
 
 
-#: The marks that keep a test from running in a default run.
-NOT_RUN_MARKS = frozenset({"skip", "skipif", "xfail", "slow"})
-
-type Function = ast.FunctionDef | ast.AsyncFunctionDef
-
-
-def _marks(expressions: list[ast.expr]) -> list[tuple[str, ast.Call | None]]:
-    """The ``pytest.mark.<name>`` marks among *expressions*, each with its call when it is one."""
-    found: list[tuple[str, ast.Call | None]] = []
-    for expression in expressions:
-        call = expression if isinstance(expression, ast.Call) else None
-        target = call.func if call else expression
-        if (
-            isinstance(target, ast.Attribute)
-            and isinstance(target.value, ast.Attribute)
-            and target.value.attr == "mark"
-        ):
-            found.append((target.attr, call))
-    return found
-
-
-def _collected_functions(tree: ast.Module) -> list[Function]:
-    """The functions pytest collects from *tree*: ``test*`` functions, and the ``test*`` methods
-    of ``Test*`` classes."""
-    functions: list[Function] = []
-    for node in tree.body:
-        if isinstance(node, ast.ClassDef) and node.name.startswith("Test"):
-            functions += [
-                m
-                for m in node.body
-                if isinstance(m, ast.FunctionDef | ast.AsyncFunctionDef)
-                and m.name.startswith("test")
-            ]
-        elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name.startswith(
-            "test"
-        ):
-            functions.append(node)
-    return functions
-
-
-def _module_marks(tree: ast.Module) -> list[tuple[str, ast.Call | None]]:
-    """The marks a module-level ``pytestmark`` assignment carries."""
-    marks: list[tuple[str, ast.Call | None]] = []
-    for node in tree.body:
-        if isinstance(node, ast.Assign) and any(
-            isinstance(t, ast.Name) and t.id == "pytestmark" for t in node.targets
-        ):
-            value = node.value
-            items = value.elts if isinstance(value, ast.List | ast.Tuple) else [value]
-            marks += _marks(items)
-    return marks
-
-
 def read_declarations(sources: dict[str, str]) -> Declarations:
     """The pairs declared by the ``covers`` markers in *sources* (module name to source text).
 
@@ -101,37 +47,18 @@ def read_declarations(sources: dict[str, str]) -> Declarations:
     pairs: set[Pair] = set()
     unreadable: list[str] = []
     ignored: list[str] = []
-
-    def take(name: str, call: ast.Call, counts: bool) -> None:
-        arguments = covers_arguments(call)
-        if arguments is None:
-            unreadable.append(f"{name}:{call.lineno}")
-        elif counts:
-            pairs.update(declared_pairs(arguments))
-        else:
-            ignored.append(f"{name}:{call.lineno}")
-
     for name, source in sorted(sources.items()):
-        tree = ast.parse(source)
-        module_marks = _module_marks(tree)
-        module_runs = not NOT_RUN_MARKS & {m for m, _ in module_marks}
-        collected = {id(f) for f in _collected_functions(tree)}
-        claimed: set[int] = set()
-        for function in _collected_functions(tree):
-            marks = _marks(function.decorator_list)
-            runs = module_runs and not NOT_RUN_MARKS & {m for m, _ in marks}
-            for mark, call in marks:
-                if mark == "covers" and call is not None:
-                    claimed.add(id(call))
-                    take(name, call, runs)
-        for mark, call in module_marks:
-            if mark == "covers" and call is not None:
-                claimed.add(id(call))
-                take(name, call, module_runs and bool(collected))
-        for node in ast.walk(tree):
-            if is_covers_call(node) and id(node) not in claimed:
-                assert isinstance(node, ast.Call)
-                take(name, node, False)
+        found = marker_calls(ast.parse(source), "covers")
+        for call in found.running:
+            arguments = string_arguments(call)
+            if arguments is None:
+                unreadable.append(f"{name}:{call.lineno}")
+            else:
+                pairs.update(declared_pairs(arguments))
+        for call in found.ignored:
+            (ignored if string_arguments(call) is not None else unreadable).append(
+                f"{name}:{call.lineno}"
+            )
     return Declarations(frozenset(pairs), tuple(unreadable), tuple(ignored))
 
 
@@ -290,6 +217,15 @@ def test_a_marker_that_is_not_made_of_string_literals_is_reported(source: str, l
         '@pytest.mark.skipif(True, reason="r")\n@pytest.mark.covers("a", "--x")\ndef test_x(): ...',
         '@pytest.mark.xfail\n@pytest.mark.covers("a", "--x")\ndef test_x(): ...',
         '@pytest.mark.slow\n@pytest.mark.covers("a", "--x")\ndef test_x(): ...',
+        (
+            "@pytest.mark.skip\nclass TestM:\n"
+            '    @pytest.mark.covers("a", "--x")\n    def test_x(self): ...'
+        ),
+        (
+            "class TestM:\n    pytestmark = pytest.mark.skip\n"
+            '    @pytest.mark.covers("a", "--x")\n    def test_x(self): ...'
+        ),
+        '@pytest.mark.covers("a", "--x")\ndef test_x(): ...\ndef test_x(): ...',
         '@pytest.mark.covers("a", "--x")\ndef helper(): ...',
         '@pytest.mark.covers("a", "--x")\ndef _test_x(): ...',
         'pytestmark = [pytest.mark.skip, pytest.mark.covers("a", "--x")]\ndef test_x(): ...',

@@ -196,11 +196,18 @@ WORK_POLICY_VALIDATOR_NAMES: frozenset[str] = frozenset(
 )
 
 
-#: Members whose ``:<param>`` is required: a bare entry loads nothing to check, so it is refused
-#: at load (:func:`_check_validator_param`) rather than selecting a check that never fires.
-REQUIRED_PARAM_VALIDATOR_NAMES: frozenset[str] = frozenset(
-    {"item_title_max", "external_id_not_in_title"}
-)
+#: Members whose ``:<param>`` is required, each with the shape its refusal names: a bare entry
+#: loads nothing to check, so it is refused at load (:func:`_check_validator_param`) rather than
+#: selecting a check that never fires.
+REQUIRED_PARAM_SHAPE: dict[str, str] = {
+    "item_title_max": "<n>",
+    "external_id_not_in_title": "<regex>",
+    "ref_rule_target_present": "<type>",
+}
+
+
+#: The names of :data:`REQUIRED_PARAM_SHAPE`.
+REQUIRED_PARAM_VALIDATOR_NAMES: frozenset[str] = frozenset(REQUIRED_PARAM_SHAPE)
 
 
 #: The two levels a finding may carry, matching :class:`~squads._services._results.CheckIssue`'s

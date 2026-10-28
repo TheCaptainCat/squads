@@ -172,7 +172,7 @@ in that test's `LONG_BODIES` list.
 ## Tests
 
 `tests/` holds the repository guards (`tests/meta/`, described above), the CLI surface tests
-(`tests/cli/`) and the fixtures they share.
+(`tests/cli/`), the check rule tests (`tests/check/`) and the fixtures they share.
 
 `tests/cli/` has one module per command group. Each test runs `sq` in-process through the `invoke`
 fixture, on its own copy of a squad built once per module, under the frozen clock. The rules:
@@ -194,6 +194,39 @@ Two guards enforce these rules: `test_every_cli_parameter_is_declared_by_a_cover
 on a pair or leaf no test declares and on a marker naming one the tree no longer has, and
 `test_every_work_item_type_and_comment_host_exposes_the_reference_verbs.py` fails when a host's
 verbs or parameter signatures drift from the reference host's.
+
+`tests/check/` has one breach test per rule `sq check` reports: each member of `CATALOG` and
+`SQUAD_GLOBAL_CATALOG`, and each rule of `BINDING_RULES`. Modules are grouped by what the rules
+guard (`test_parent_rules.py`, `test_ref_rules.py`, …), and the tests carry no `covers` marker.
+The rules:
+
+- A test starts from the `minimal` squad, which `test_baseline.py` holds clean, and adds only what
+  its breach needs. It runs the report through the `check_json` fixture twice: on the arranged
+  state, asserting `[]`, then after one breaching change, asserting the expected issues. Where a
+  member has a boundary, keep a sibling item at it that must not be reported.
+- Assert the whole JSON array (build each entry with `issue(...)` from `_arrange.py`) and the exit
+  code: 3 when an issue is an error, 0 otherwise. Only `sq check` output counts: a gate refusal or
+  an `sq import` finding does not. Arrange a breach the gate refuses by writing the item file and
+  running `sq repair`; age items with the frozen clock.
+- A member that takes a param gets a `name:param` case, with a value the default would judge
+  differently (when the param is required, that case is the breach test); a member selectable at
+  another level than its default gets a `name@level` case. Never cross them. Enable an opt-in
+  member with `select_validators`, which writes the minimal `.overrides/workflow.toml` and keeps
+  the bundled selection by reference.
+- Declare what a test breaches with `@pytest.mark.breaches("<rule>")`, `"<rule>:param"` or
+  `"<rule>@<level>"`, literal strings only. At teardown `check_json` fails the test if no run
+  reported the rule after a run that did not, or, for `:param`, if the member was not selected
+  with a param when it did.
+- Use the helpers in `tests/check/_arrange.py` (`create`, `add_ref`, `edit_item_file`, `repair`,
+  …) rather than writing new ones per module.
+- Show each new test red three ways when you write it, then restore: make the member report
+  nothing (the breach assertion fails), make it report always (the pre-state assertion fails),
+  and, for a param or level case, make it ignore the selection (the case fails).
+
+`test_every_check_rule_is_declared_by_a_breach_test.py` enforces the markers. The required
+declarations are derived in `tests/_check_surface.py` from the rule tables and the validator name,
+param and level tables, with no stored list of rules; the guard fails on a rule, param or level
+case no test declares, and on a marker naming one the tables no longer have.
 
 The suite runs under `pytest-xdist` by default, which is safe because every test owns its own temp
 directory; pass `-n0` to force serial (for `--pdb`, say). Redirect a run to a file and read the

@@ -1,6 +1,6 @@
 {
   "schema_version": "0.17",
-  "counter": 1200,
+  "counter": 1214,
   "padding": 6,
   "items": {
     "12": {
@@ -61584,6 +61584,1002 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "BUG-1200"
+    },
+    "1201": {
+      "sequence_id": 1201,
+      "type": "decision",
+      "title": "Check rule tests: one breach per rule, guarded coverage",
+      "slug": "check-rule-tests-one-breach-per-rule-guarded-coverage",
+      "status": "Accepted",
+      "description": "Every sq check rule gets a CLI breach test with an in-test clean pre-state, param and level cases from the catalog tables, and a breaches-marker guard",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1172",
+        "MILE-1051"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001201-check-rule-tests-one-breach-per-rule-guarded-coverage.md",
+      "created_at": "2026-10-28T08:31:55Z",
+      "updated_at": "2026-10-28T09:12:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1201"
+    },
+    "1202": {
+      "sequence_id": 1202,
+      "type": "feature",
+      "title": "Check rule test suite",
+      "slug": "check-rule-test-suite",
+      "status": "Done",
+      "description": "Breach tests for every sq check rule, with param and level cases and a guarded coverage marker.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-1051:targets",
+        "ADR-1201"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Harness, guard and baseline",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Parent and ref rules",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Sub-entity and prose rules",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Attribute and roster item rules",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Roster config rules",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "Work policy rules",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US7",
+          "title": "Corpus integrity rules",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US8",
+          "title": "Config load rules",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001202-check-rule-test-suite.md",
+      "created_at": "2026-10-28T08:34:00Z",
+      "updated_at": "2026-10-28T10:41:23Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1202"
+    },
+    "1203": {
+      "sequence_id": 1203,
+      "type": "task",
+      "title": "Check tests: harness, breaches guard and baseline",
+      "slug": "check-tests-harness-breaches-guard-and-baseline",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-1202",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "check_json, select_validators and teardown",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Check surface derivation and breaches guard",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Baseline test",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Show the guard and teardown red",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001203-check-tests-harness-breaches-guard-and-baseline.md",
+      "created_at": "2026-10-28T08:37:57Z",
+      "updated_at": "2026-10-28T10:31:31Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1203"
+    },
+    "1204": {
+      "sequence_id": 1204,
+      "type": "task",
+      "title": "Check tests: parent and ref rules",
+      "slug": "check-tests-parent-and-ref-rules",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-1202",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1203:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Parent rule tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Ref rule tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Falsify each test three ways",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001204-check-tests-parent-and-ref-rules.md",
+      "created_at": "2026-10-28T08:37:58Z",
+      "updated_at": "2026-10-28T10:41:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1204"
+    },
+    "1205": {
+      "sequence_id": 1205,
+      "type": "task",
+      "title": "Check tests: sub-entity and prose rules",
+      "slug": "check-tests-sub-entity-and-prose-rules",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-1202",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1203:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Sub-entity rule tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Prose rule tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Falsify each test three ways",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001205-check-tests-sub-entity-and-prose-rules.md",
+      "created_at": "2026-10-28T08:37:59Z",
+      "updated_at": "2026-10-28T10:41:07Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1205"
+    },
+    "1206": {
+      "sequence_id": 1206,
+      "type": "task",
+      "title": "Check tests: attribute and roster item rules",
+      "slug": "check-tests-attribute-and-roster-item-rules",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-1202",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1203:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Field and attribute rule tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Roster item rule tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Falsify each test three ways",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001206-check-tests-attribute-and-roster-item-rules.md",
+      "created_at": "2026-10-28T08:38:00Z",
+      "updated_at": "2026-10-28T10:41:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1206"
+    },
+    "1207": {
+      "sequence_id": 1207,
+      "type": "task",
+      "title": "Check tests: roster config rules",
+      "slug": "check-tests-roster-config-rules",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-1202",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1203:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Roster member tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Display, language and view member tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Falsify each test two ways",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001207-check-tests-roster-config-rules.md",
+      "created_at": "2026-10-28T08:38:01Z",
+      "updated_at": "2026-10-28T10:41:09Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1207"
+    },
+    "1208": {
+      "sequence_id": 1208,
+      "type": "task",
+      "title": "Check tests: work policy rules",
+      "slug": "check-tests-work-policy-rules",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-1202",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1203:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Selectable squad-wide member tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Per-item work policy tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Falsify each test three ways",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001208-check-tests-work-policy-rules.md",
+      "created_at": "2026-10-28T08:38:02Z",
+      "updated_at": "2026-10-28T10:41:10Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1208"
+    },
+    "1209": {
+      "sequence_id": 1209,
+      "type": "task",
+      "title": "Check tests: corpus integrity rules",
+      "slug": "check-tests-corpus-integrity-rules",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-1202",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1203:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Reconciliation and duplicate-id tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Raw-text scan tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "File load and orphaned skill tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Falsify each test two ways",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001209-check-tests-corpus-integrity-rules.md",
+      "created_at": "2026-10-28T08:38:03Z",
+      "updated_at": "2026-10-28T10:41:12Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1209"
+    },
+    "1210": {
+      "sequence_id": 1210,
+      "type": "task",
+      "title": "Check tests: config load rules",
+      "slug": "check-tests-config-load-rules",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-1202",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1203:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Override check tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Config load tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Empty the pending list",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Falsify each test two ways",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001210-check-tests-config-load-rules.md",
+      "created_at": "2026-10-28T08:38:04Z",
+      "updated_at": "2026-10-28T10:41:13Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1210"
+    },
+    "1211": {
+      "sequence_id": 1211,
+      "type": "review",
+      "title": "Check rule test harness and first rule modules",
+      "slug": "check-rule-test-harness-and-first-rule-modules",
+      "status": "Approved",
+      "description": "Review of the check rule harness, breaches guard and the parent, ref, sub-entity and prose rule modules",
+      "parent": "FEAT-1202",
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1203",
+        "TASK-1204",
+        "TASK-1205",
+        "ADR-1201"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "rule:param is honoured by selection alone, with no report and even after the selection was overwritten",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "select_validators cannot select a member the bundled list already names: duplicate entry, spec fails to load",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "select_validators overwrites on each call, clobbers overrides, and cannot carry ref_rules or other keys",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Marker reader counts tests skipped at class level and shadowed redefinitions; residual blind spots undeclared",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Guard and teardown do not enforce ADR-1201 §2 shapes for required-param and multi-selection members",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "ref_rule_target_present requires a param at load but is missing from REQUIRED_PARAM_VALIDATOR_NAMES",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Teardown accepts a rule reported in the pre-state run; the clean pre-state rests on each test body",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "File write plus repair used for breaches the CLI can arrange (ref rm, update --title/--desc, body)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Two diverging helper patterns, hard-coded ids and paths tied to the minimal squad counter",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "covers_arguments duplicates _marker_ast.string_arguments verbatim after the extraction",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "Missing-param refusal for ref_rule_target_present splits across two sites via a literal-name early return",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001211-check-rule-test-harness-and-first-rule-modules.md",
+      "created_at": "2026-10-28T09:04:13Z",
+      "updated_at": "2026-10-28T10:19:16Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1211"
+    },
+    "1212": {
+      "sequence_id": 1212,
+      "type": "task",
+      "title": "Fix the check rule harness review findings",
+      "slug": "fix-the-check-rule-harness-review-findings",
+      "status": "Done",
+      "description": "Teardown, guard, select_validators, helper API and production table fixes for the REV-1211 findings",
+      "parent": "FEAT-1202",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1211:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Teardown and guard holes: F1, F4, F5, F7, F10",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "select_validators: F2, F3",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Shared helpers and CLI arrangement: F8, F9",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Required-param table entry: F6",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001212-fix-the-check-rule-harness-review-findings.md",
+      "created_at": "2026-10-28T09:10:36Z",
+      "updated_at": "2026-10-28T10:19:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1212"
+    },
+    "1213": {
+      "sequence_id": 1213,
+      "type": "review",
+      "title": "Check rule modules: attributes, roster, work policy, corpus, config load",
+      "slug": "check-rule-modules-attributes-roster-work-policy-corpus-conf",
+      "status": "Approved",
+      "description": "Review of the remaining check rule modules, their arrange helpers and the final breaches guard",
+      "parent": "FEAT-1202",
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1211",
+        "ADR-1201",
+        "TASK-1206",
+        "TASK-1207",
+        "TASK-1208",
+        "TASK-1209",
+        "TASK-1210"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Override stamp and drift rules have no near-miss: both decisive conditions can be deleted green",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Harness crashes on an override that is not valid TOML, so the syntax-error load path is untested",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "check_json drops stderr: noise printed in --json mode can no longer fail any check test",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "frontmatter_parses pins PyYAML's message text and the task template's line numbers verbatim",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "_arrange helper overlaps: rewrite vs edit_item_file, two override writers, bundled-only addressing",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "backend_reconciled tests take their expected paths from the backend under test",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Check messages mix absolute and squad-relative file paths; the tests now pin both",
+          "status": "Noted",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001213-check-rule-modules-attributes-roster-work-policy-corpus-conf.md",
+      "created_at": "2026-10-28T10:17:02Z",
+      "updated_at": "2026-10-28T10:31:45Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1213"
+    },
+    "1214": {
+      "sequence_id": 1214,
+      "type": "task",
+      "title": "Fix the final check rule review findings",
+      "slug": "fix-the-final-check-rule-review-findings",
+      "status": "Done",
+      "description": "Near-miss, malformed override, stderr, oracle and helper fixes for the REV-1213 findings",
+      "parent": "FEAT-1202",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1213:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Override stamp and drift near-misses: F1",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Harness: malformed override and stderr: F2, F3",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Independent oracles for corpus rules: F4, F6",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "One _arrange helper per job: F5",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001214-fix-the-final-check-rule-review-findings.md",
+      "created_at": "2026-10-28T10:20:38Z",
+      "updated_at": "2026-10-28T10:31:46Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1214"
     }
   }
 }
