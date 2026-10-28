@@ -1,13 +1,6 @@
-"""Repo-hygiene gate: ``squads._workflow._models.RESERVED_CLI_ALIASES`` — the alias ->
-owning-type table the spec loader refuses collisions against, and the CLI refuses *stale*
-dispatch against — must stay in lockstep with what the CLI actually registers.
-
-It cannot be derived live for two reasons: ``_workflow`` sits below ``_cli`` in the layering
-(same import-cycle bar as ``RESERVED_CLI_VERBS``), and it is consulted while the bundled spec
-is still being validated, so it cannot read that spec either. Hand-maintained, pinned here,
-in both directions: an alias added to (or renamed in) ``workflow.toml`` without a matching
-entry fails, and a stale entry naming an alias nothing registers fails too.
-"""
+"""Repo-hygiene gate: ``squads._workflow._models.RESERVED_CLI_ALIASES`` — the alias -> owning-type
+table the spec loader refuses collisions against, and the CLI refuses *stale* dispatch against —
+must stay in lockstep with what the CLI actually registers."""
 
 import typer.main
 
@@ -35,8 +28,7 @@ def test_the_table_is_exactly_the_bundled_specs_own_alias_declarations() -> None
 
 
 def test_every_listed_alias_is_a_live_root_command() -> None:
-    """The whole reason the table exists: these names ARE registered at ``sq``'s root by the
-    import-time loop, so they answer before any spec resolution does."""
+    """These names are registered at the root by the import-time loop, before any spec resolves."""
     click_app = typer.main.get_command(app)
     registered = set(click_app.commands.keys())  # type: ignore[attr-defined]
     missing = {alias for alias, _owner in RESERVED_CLI_ALIASES if alias not in registered}

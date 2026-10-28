@@ -1,27 +1,7 @@
 """Repo-hygiene gate: none of the bundled ``[ref_kinds]`` names — ``related``, ``blocks``,
 ``depends-on``, ``implements``, ``fixes``, ``addresses``, ``supersedes``, ``duplicates``,
 ``scopes``, ``targets`` — may appear as a bare Python string-constant literal anywhere under
-``src/squads/`` outside two legitimate exceptions:
-
-- ``_specs/`` — where the bundled vocabulary is actually declared (``workflow.toml``, not
-  even Python, but the whole package is exempted for symmetry with the other scans' shape).
-- ``_migrations/`` — a migration runner legitimately pins the vocabulary of the schema
-  version it transforms, never the live spec.
-
-Everywhere else, the three engine behaviours a ref kind can drive — the dependency graph/
-``sq blocked``, the roster preload resolver, and ``sq check``'s incoming-supersedes rule — must
-resolve through a kind's **declared semantic role** (``WorkflowSpec.dependency_ref_kind``/
-``dependency_ref_kinds``/``canonical_dependency_ref_kind``, ``WorkflowSpec.preload_ref_kind``,
-``WorkflowSpec.supersession_ref_kinds``), never by naming ``blocks``/``depends-on``/``scopes``/
-``supersedes`` directly. This is the same shape as the other ``tests/meta`` guards
-(the roster-status-literal scan this one mirrors, the mutable-state guard): a cheap, readable
-AST scan, not a new framework.
-
-Scoped to a bare ``ast.Constant`` whose value is *exactly* one of the ten names — a longer
-string merely containing one (a docstring paragraph, a ``--kind`` example) never matches, so
-prose citing e.g. "the declared ``preload`` kind (bundled as ``scopes``)" is left alone without
-needing an allowlist entry for it.
-"""
+``src/squads/`` outside two legitimate exceptions:"""
 
 import ast
 from pathlib import Path
@@ -99,11 +79,7 @@ def test_no_bundled_ref_kind_literal_appears_outside_the_spec_layer() -> None:
 
 
 def test_ref_kind_literals_are_pinned_to_the_bundled_spec() -> None:
-    """``_REF_KIND_LITERALS`` must equal the bundled spec's declared ``[ref_kinds]`` codes,
-    exactly — not a superset. A kind the spec declares and this set is missing gets no
-    literal-scan coverage at all, silently. A literal the spec no longer declares means the scan
-    is guarding a name that does not exist while the real one goes unguarded — also a defect,
-    not a harmless extra."""
+    """``_REF_KIND_LITERALS`` must equal the bundled spec's declared ``[ref_kinds]`` codes."""
     declared = frozenset(bundled_spec().ref_kinds)
     missing = sorted(declared - _REF_KIND_LITERALS)
     extra = sorted(_REF_KIND_LITERALS - declared)
@@ -134,8 +110,7 @@ def test_the_scan_exempts_the_spec_layer_directories(tmp_path: Path, exempt_dir:
 def test_the_scan_never_flags_a_longer_string_merely_containing_the_substring(
     tmp_path: Path,
 ) -> None:
-    """Docstring/prose text discussing the declared semantic ("the preload kind, bundled as
-    scopes") is not a bare ref-kind-literal comparison and must never trip this gate."""
+    """Docstring/prose text discussing the declared semantic ("the preload kind."""
     planted = tmp_path / "src" / "squads" / "_example.py"
     planted.parent.mkdir(parents=True)
     planted.write_text(
@@ -149,11 +124,7 @@ def test_the_scan_never_flags_a_longer_string_merely_containing_the_substring(
 def test_an_allowlisted_hit_does_not_mask_a_second_unallowlisted_literal_on_the_same_line(
     tmp_path: Path,
 ) -> None:
-    """Two distinct constants on the same line are two distinct AST nodes — allowlisting one
-    (path, lineno, value) triple never suppresses a different value at the same location. The
-    production allowlist is empty today, so this exercises a synthetic one built the same shape
-    the real allowlist would use — otherwise, with nothing allowlisted, this test would pass
-    without ever exercising the masking property its name claims to test."""
+    """Two distinct constants on the same line are two distinct AST nodes — allowlisting one."""
     planted = tmp_path / "src" / "squads" / "_cli" / "_example.py"
     planted.parent.mkdir(parents=True)
     planted.write_text('cols = ("scopes", "supersedes")\n', encoding="utf-8")
@@ -165,11 +136,7 @@ def test_an_allowlisted_hit_does_not_mask_a_second_unallowlisted_literal_on_the_
 
 
 def test_every_allowlisted_hit_is_still_produced_by_the_scan_without_it() -> None:
-    """A dead allowlist entry — one the scan would no longer actually produce — is worse than
-    no entry at all: it silently starts excusing whatever new code later lands on that exact
-    (path, line). Removing each entry one at a time and re-scanning the real tree must
-    reproduce exactly that hit, proving the entry is still live rather than a stale
-    line-numbered exemption nobody has re-checked since the line moved."""
+    """A dead allowlist entry — one the scan would no longer actually produce."""
     root = _repo_root()
     for entry in _ALLOWED_HITS:
         without_this_entry = _ALLOWED_HITS - {entry}

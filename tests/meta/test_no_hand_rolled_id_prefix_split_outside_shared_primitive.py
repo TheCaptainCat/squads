@@ -1,17 +1,5 @@
-"""Repo-hygiene gate: an item id's (or a ``PREFIX-<digits>-<slug>`` filename's) prefix must
-never be hand-parsed by splitting on a *fixed small hyphen count* — ``"...".split("-", 1)``
-or ``.split("-", 2)`` — because the workflow spec's own grammar allows a hyphen inside a
-declared ``prefix`` (a path segment is a TOML bare key, ``A-Za-z0-9_-``, so ``"RUN-BOOK"`` is a
-legal prefix), and a fixed-count split then breaks inside the prefix itself instead of at its
-boundary, corrupting the id/filename it was meant to parse.
-
-The one correct, shared way to recover a prefix from a formatted id is
-:func:`squads._models._item.prefix_from_id` (``rpartition`` on the LAST hyphen); recovering a
-digit-run/slug from a filename stem whose prefix is already known should ``removeprefix`` that
-known prefix and ``partition`` the remainder — never re-derive the prefix by counting hyphens
-from the front. This is the same shape as the other ``tests/meta`` guards (the roster-status
-literal scan, the mutable-state guard): a cheap, readable AST scan, not a new framework.
-"""
+"""Repo-hygiene gate: an item id's prefix is never hand-parsed by a fixed small hyphen split.
+A declared prefix may itself hold a hyphen, so ``split("-", 1)`` breaks inside the prefix."""
 
 import ast
 from pathlib import Path
@@ -93,8 +81,7 @@ def test_the_scan_would_catch_a_planted_split_on_a_fixed_hyphen_count(tmp_path: 
 def test_the_scan_would_catch_a_planted_split_two_not_immediately_subscripted(
     tmp_path: Path,
 ) -> None:
-    """The bug shape need not be an immediate ``[...]`` subscript on the same line — the real
-    ``_slug_from_path`` instance assigns to a variable first, then subscripts it later."""
+    """The bug shape need not be an immediate ``[...]`` subscript on the same line."""
     planted = tmp_path / "src" / "squads" / "_example.py"
     planted.parent.mkdir(parents=True)
     planted.write_text(
@@ -106,8 +93,7 @@ def test_the_scan_would_catch_a_planted_split_two_not_immediately_subscripted(
 
 
 def test_the_scan_never_flags_a_different_split_count_or_separator(tmp_path: Path) -> None:
-    """``split("-")`` (no count), ``split("-", 3)``, and ``split("_", 1)`` are not this bug
-    shape — only the count-1/count-2, hyphen-separator combination is."""
+    """A split without a count, or on another separator, is not this bug shape."""
     planted = tmp_path / "src" / "squads" / "_example.py"
     planted.parent.mkdir(parents=True)
     planted.write_text(
@@ -119,9 +105,7 @@ def test_the_scan_never_flags_a_different_split_count_or_separator(tmp_path: Pat
 
 
 def test_every_allowlisted_hit_is_still_produced_by_the_scan_without_it() -> None:
-    """A dead allowlist entry is worse than none — it would silently excuse whatever new code
-    later lands on that exact (path, line). Removing each entry and re-scanning the real tree
-    must reproduce exactly that hit, proving it is still live."""
+    """A dead allowlist entry is worse than none."""
     root = _repo_root()
     for entry in _ALLOWED_HITS:
         without_this_entry = _ALLOWED_HITS - {entry}

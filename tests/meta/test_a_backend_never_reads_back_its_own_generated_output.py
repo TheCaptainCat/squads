@@ -1,23 +1,4 @@
-"""Repo-hygiene gate: a backend must not recover data by reading back a file it generated.
-
-A backend's generated files are *output*. When one of them becomes an input, a rendering
-choice silently turns into a data contract: the agents_md backend had no ``mission`` on its
-roster view, so ``write_managed`` recovered each role's mission by matching the literal
-``**Mission:**`` prefix on a line of the per-role staging markdown ``generate_role_entry`` had
-rendered from a template one step earlier. Relabelling that line — an edit to presentation,
-over a template meant to be editable — emptied every mission out of the compiled AGENTS.md,
-with no warning and ``sq check`` clean. The same re-parse never recovered ``responsibilities``
-at all: it returned an unconditional empty list, so the section template's responsibilities
-block was dead code that had never once rendered, and nothing noticed because dead code that
-emits nothing looks exactly like a role with nothing to say.
-
-The fix is a field on the view; the guard is that the staging directory stays write-only.
-
-Scoped narrowly and by *directory*, not by "no reads in backends": several backend reads are
-legitimate and must stay — merging a pre-existing ``.claude/settings.json``, and reading an
-item's own durable ``.md`` to preserve its frontmatter. Those read user/squad data. What is
-forbidden here is a read whose path is built from a backend's own staging-output constant.
-"""
+"""Repo-hygiene gate: a backend must not recover data by reading back a file it generated."""
 
 import ast
 from pathlib import Path
@@ -76,9 +57,7 @@ def test_no_backend_reads_from_a_directory_it_generates_into() -> None:
 
 
 def test_the_roster_view_carries_every_role_field_the_compiled_section_renders() -> None:
-    """The other half of the same property: the re-parse existed because the view was missing
-    fields. If a field the AGENTS.md section renders is not on ``RoleView``, something has to
-    go and fetch it, and this whole class reopens."""
+    """The other half of the same property: the re-parse existed."""
     from squads._roles._projection import RoleView
 
     section = (

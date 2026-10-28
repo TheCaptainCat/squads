@@ -1,28 +1,8 @@
-"""Repo-hygiene gate: a concrete squad-item ID reference (``FEAT-<n>``-shaped, ``US<n>``-shaped,
-a bare sub-entity local id like ``F<n>``, …) must never leak into ``src/`` or ``docs/`` (full
-file text — production code and shipped docs have no legitimate reason to cite a real backlog
-number) other than the designated illustrative-walkthrough docs, which cite fictional
-self-consistent ids by design. It must also never appear in a test file's own *name* or
-*docstring* (a test's assertion *data* legitimately manufactures items and asserts on rendered
-ids or local sub-entity ids — that's the feature under test, not a citation, so plain assertion
-data is deliberately left alone; only the identifier/documentation surface is scanned), nor in
-a `#` comment anywhere under ``src/`` or ``tests/`` (comments, unlike assertion-data strings,
-never have a legitimate reason to cite a real backlog number either — this is a
-``tokenize``-based scan, so it can walk ``tests/`` too without ever touching a string literal).
-Placeholder shapes and incidental substrings never match any of the three scans.
-
-The bare ``F<n>`` shape (a review-finding local id) collides with ruff/pyflakes' own family of
-``F``-prefixed lint-rule codes, which this repo suppresses legitimately via ``# noqa: ...``
-comments. Every scan strips a ``noqa:`` directive's code list before matching, so a real linter
-suppression is never mistaken for a finding-id citation — see ``_without_noqa_directives``.
-
-This is the new-suite's own permanent home for the invariant the pre-rebuild
-``tests/test_squad_ref_hygiene.py`` protected for ``src/``+``docs/`` (that file also
-allowlisted all of ``tests/`` wholesale, since the old flat suite predated this rule; it and
-the flat suite are gone now, so the identifier/docstring scan below is no longer scoped to a
-subset of ``tests/`` either — the old flat filename violations it was carved around no longer
-exist).
-"""
+"""Repo-hygiene gate: a concrete squad-item ID reference (``FEAT-<n>``-shaped, ``US<n>``-shaped, a
+bare sub-entity local id like ``F<n>``, …) must never leak into ``src/`` or ``docs/`` (full file
+text — production code and shipped docs have no legitimate reason to cite a real backlog number)
+other than the designated illustrative-walkthrough docs, which cite fictional self-consistent ids
+by design."""
 
 import ast
 import io
@@ -55,7 +35,7 @@ def _without_noqa_directives(text: str) -> str:
 _FULL_TEXT_ROOTS: tuple[str, ...] = ("src", "docs")
 
 #: Designated illustrative walkthroughs under docs/ — self-consistent fictional examples that
-#: legitimately cite item-shaped ids by design (mirrors the pre-rebuild scan's own allowlist).
+#: legitimately cite item-shaped ids by design.
 #:
 #: The override provenance content store is here for a different reason: it is a byte-for-byte
 #: archive of every past bundled template/spec-document revision the manifest retains — data,
@@ -230,8 +210,7 @@ def test_the_pattern_ignores_placeholder_shapes_and_incidental_substrings() -> N
 def test_the_full_text_scan_would_catch_a_bare_finding_id_reference_planted_in_src(
     tmp_path: Path,
 ) -> None:
-    """A bare sub-entity local id (a review finding, shaped ``F<n>``) is exactly as stale a
-    citation as a full item id once the review is archived — it must be caught too."""
+    """A bare sub-entity local id (a review finding."""
     planted = tmp_path / "src" / "squads" / "_example.py"
     planted.parent.mkdir(parents=True)
     planted.write_text("# see F4 for context\n", encoding="utf-8")
@@ -284,8 +263,7 @@ def test_the_comment_scan_would_catch_a_bare_finding_id_reference_in_a_source_co
 
 
 def test_the_comment_scan_never_flags_a_real_noqa_linter_suppression(tmp_path: Path) -> None:
-    """Ruff's own pyflakes ``F``-prefixed rule codes share the bare ``F<n>`` shape a
-    review-finding id takes; a real ``# noqa: ...`` suppression must never trip the gate."""
+    """A real `# noqa: F401` suppression never trips the ticket-id gate."""
     planted = tmp_path / "src" / "squads" / "_example.py"
     planted.parent.mkdir(parents=True)
     planted.write_text(
@@ -299,8 +277,7 @@ def test_the_comment_scan_never_flags_a_real_noqa_linter_suppression(tmp_path: P
 def test_the_noqa_exclusion_never_masks_a_real_finding_id_on_the_same_comment(
     tmp_path: Path,
 ) -> None:
-    """The exclusion strips only the ``noqa:`` code list itself — a genuine finding-id
-    reference elsewhere on the same comment is still caught."""
+    """The exclusion strips only the ``noqa:`` code list itself."""
     planted = tmp_path / "src" / "squads" / "_example.py"
     planted.parent.mkdir(parents=True)
     planted.write_text("import os  # noqa: F401 -- see F9 for why\n", encoding="utf-8")
@@ -338,8 +315,7 @@ def test_the_identifier_scan_would_catch_a_reference_in_a_docstring_but_not_in_a
 def test_an_allowlisted_token_never_masks_a_later_non_allowlisted_token_on_the_same_surface(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A second, non-allowlisted ticket ref appended after an allowlisted one in the same
-    docstring must still be caught — the allowlist checks every match, not just the first."""
+    """A second."""
     import sys
 
     rel = "tests/unit/test_multi_ref_docstring.py"

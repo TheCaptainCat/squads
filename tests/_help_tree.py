@@ -61,8 +61,9 @@ class Node:
         return " ".join(("sq", *self.path))
 
 
-def command_nodes() -> list[Node]:
-    """Every listed command of the tree for the squad in the current directory."""
+def command_nodes(*, include_hidden: bool = False) -> list[Node]:
+    """Every listed command of the tree for the squad in the current directory, the hidden ones
+    too when *include_hidden* is set (the address dispatcher is always walked)."""
     root = typer.main.get_command(app)
     nodes: list[Node] = []
 
@@ -72,7 +73,7 @@ def command_nodes() -> list[Node]:
             return
         for name in sorted(command.list_commands(ctx)):
             child = command.get_command(ctx, name)
-            if child is None or (child.hidden and name != "_addr"):
+            if child is None or (child.hidden and not include_hidden and name != "_addr"):
                 continue
             walk(child, Context(child, info_name=name, parent=ctx), (*path, name))
 

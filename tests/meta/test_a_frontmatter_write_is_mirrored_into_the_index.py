@@ -1,21 +1,5 @@
 """Repo-hygiene gate: a service that writes an item's frontmatter commits the same item to the
-index, unless it is on a named list of writers that deliberately do not.
-
-Invariant 1 says the frontmatter is the source of truth and ``.squads.json`` is a rebuildable
-index. It does not say the index may disagree with it indefinitely — and nearly everything that
-reads a squad reads the index. ``sync``'s catalog merge is where that bit: it wrote a project
-role override's title (and model, and mission) onto the role item's ``.md`` and stopped there,
-so ``roster()`` — which both backends compile ``CLAUDE.md`` and ``AGENTS.md`` from, off the
-index — kept rendering the bundled value. Durable and invisible at the same time, with
-``sq check`` clean the whole way, until some unrelated ``sq repair`` rebuilt the index and the
-*next* sync changed the generated roster for no visible reason.
-
-Structurally, a write is mirrored when it happens inside a transaction. Two shapes count:
-opening one (``async with self.store.transaction()``) and being handed an already-open one
-(a ``db`` parameter — the mutation cores the mixins share). Anything else must be listed in
-:data:`_UNMIRRORED_BY_DESIGN` with the reason, which is the point: the list is short, and
-adding to it is a decision rather than an oversight.
-"""
+index, unless it is on a named list of writers that deliberately do not."""
 
 import ast
 from pathlib import Path

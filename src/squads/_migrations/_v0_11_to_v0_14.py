@@ -25,8 +25,8 @@ Every id, ref and status literal it touches is freshly minted (a new ``SKILL`` i
 as other runners do) or read from the live declared type and playbook vocabulary that the
 declaration put in place, so there is no corpus-era value to freeze. It still imports no id, ref or
 padding formatting primitive from ``_models`` (see
-``tests/meta/test_migrations_never_import_a_vocabulary_folded_primitive.py``). It runs only through
-``sq migrate up`` via ``_migrations._registry``.
+``tests/meta/test_migrations_never_import_a_vocabulary_folded_primitive.py``). It runs only
+through ``sq migrate up`` via ``_migrations._registry``.
 """
 
 from pathlib import Path

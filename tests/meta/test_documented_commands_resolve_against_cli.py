@@ -244,8 +244,7 @@ def test_a_leaf_commands_real_flags_and_positionals_still_resolve() -> None:
 
 
 def test_a_bare_root_level_flag_resolves_instead_of_being_read_as_unresolved() -> None:
-    """A bare root-level flag consuming the whole line resolves, for every flag this app
-    actually declares."""
+    """A bare root-level flag consuming the whole line resolves."""
     assert _resolve(["--version"]) == "--version"
     assert _resolve(["--install-completion"]) == "--install-completion"
     assert _resolve(["--show-completion"]) == "--show-completion"
@@ -265,8 +264,7 @@ def test_a_flag_this_cli_never_declared_still_fails_to_resolve() -> None:
 
 
 def test_no_documented_override_base_stamp_is_a_stale_version() -> None:
-    """A concrete `override-base:<x.y.z>` literal in the docs must not be behind the installed
-    version; the placeholder forms are exempt."""
+    """A concrete `override-base:<x.y.z>` literal in the docs is never behind the install."""
     installed = tuple(int(part) for part in __version__.split(".")[:3])
     stale: list[str] = []
     for doc in sorted((_repo_root() / "docs").glob("*.md")):

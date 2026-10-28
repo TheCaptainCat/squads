@@ -10,10 +10,10 @@ from typing import Any
 
 import pytest
 
-import _write_guard
-from _helpers import create_item
 from squads import _aio
 from squads._index._resolver import item_file
+from tests import _write_guard
+from tests._helpers import create_item
 
 pytestmark = pytest.mark.anyio
 

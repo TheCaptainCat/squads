@@ -1,33 +1,6 @@
-"""Repo-hygiene gate: a command that walks the whole item corpus must not reach for an item's
-file inline — neither the read nor the path resolution that feeds it. Both go to a helper that
-guards and reports per file.
-
-An unguarded read inside a corpus loop fails in the worst possible shape. The error escapes
-mid-walk, so every result already accumulated from files that *could* be read is thrown away
-and the command reports nothing at all — with ``--json``, not even an empty array, so the
-consumer gets a parse failure on top of the non-zero exit. Sibling commands over the same
-corpus are unaffected, which makes the failure look arbitrary rather than diagnostic.
-
-It is also invisible until someone happens to have a corrupt file: the loop is correct on every
-healthy corpus, which is every corpus a test builds unless it sets out to break one. So the
-rule is structural rather than symptom-driven, and it is stated as *delegate the read* rather
-than *wrap it in a try* — an inline ``try`` is easy to write as a bare ``continue`` that
-swallows the file silently, which leaves the caller unable to tell a small corpus from a broken
-one. A helper that returns the skipped-file channel cannot swallow it by accident.
-
-Both halves of "reach for the file" are covered, because covering only one is the exact way
-this gate was first defeated. Resolving the item's stored ``path`` is itself a failing step —
-``SquadPaths.abspath`` refuses anything landing outside the squad folder — and an earlier
-version of this guard asked only whether the walk delegated its ``read_text``. It did; the
-throwing call was ``item_file``, evaluated in the argument list that produced the path, one
-call *outside* the try. The walk aborted whole-corpus exactly as before, and the gate reported
-green. So the rule is about the operation, not one of its steps.
-
-Scoped to the corpus walk specifically (a function that enumerates items via ``list_items``),
-not to every read in the tree: a migration runner, a one-file read, or a write path that reads
-before rewriting are all different questions with different right answers, and sweeping them in
-here would need an allowlist longer than the rule.
-"""
+"""Repo-hygiene gate: a command that walks the whole item corpus must not reach for an item's file
+inline — neither the read nor the path resolution that feeds it. Both go to a helper that guards
+and reports per file."""
 
 import ast
 import inspect
@@ -103,8 +76,7 @@ def test_no_corpus_walk_reaches_for_an_item_file_inline() -> None:
 
 
 def test_every_exempt_walk_is_still_produced_by_the_scan_without_it() -> None:
-    """A dead exemption silently blesses whatever later takes that name. Removing each and
-    re-scanning the real tree must reproduce exactly that entry."""
+    """A dead exemption silently blesses whatever later takes that name."""
     root = _repo_root()
     for entry in _ALLOWED:
         without = frozenset(_ALLOWED) - {entry}
@@ -130,8 +102,7 @@ def test_the_scan_would_catch_a_planted_inline_corpus_read(tmp_path: Path) -> No
 def test_the_scan_would_catch_a_guarded_read_fed_by_an_inline_path_resolution(
     tmp_path: Path,
 ) -> None:
-    """The shape that defeated the first version of this gate: the read *is* delegated, and the
-    throwing call is the path helper in the argument list. Green before, flagged now."""
+    """The shape that defeated the first version of this gate: the read *is* delegated."""
     planted = tmp_path / "src" / "squads" / "_example.py"
     planted.parent.mkdir(parents=True)
     planted.write_text(
@@ -164,8 +135,7 @@ def test_the_scan_accepts_a_corpus_walk_that_delegates_the_read(tmp_path: Path) 
 
 
 def test_the_scan_ignores_a_read_with_no_corpus_walk(tmp_path: Path) -> None:
-    """A single-file read has no accumulated answer to lose — failing outright is the right
-    behaviour there, and this gate must not push it toward degrading silently."""
+    """A single-file read has no accumulated answer to lose."""
     planted = tmp_path / "src" / "squads" / "_example.py"
     planted.parent.mkdir(parents=True)
     planted.write_text("async def one(path):\n    return await _aio.read_text(path)\n", "utf-8")
@@ -174,8 +144,6 @@ def test_the_scan_ignores_a_read_with_no_corpus_walk(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("name", ["search", "inbox"])
 def test_each_corpus_walking_command_returns_a_skipped_file_channel(name: str) -> None:
-    """The behavioural half: a guard that catches and says nothing is no better than no guard —
-    the caller still cannot tell a small corpus from a broken one, and the non-zero exit that
-    tells a script the answer was partial has nothing to fire on."""
+    """The behavioural half: a guard that catches and says nothing is no better than no guard."""
     annotation = str(inspect.signature(getattr(CollabMixin, name)).return_annotation)
     assert "UnreadableItems" in annotation, f"{name} returns {annotation!r}"

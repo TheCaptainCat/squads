@@ -3,7 +3,7 @@ id: TASK-1116
 sequence_id: 1116
 type: task
 title: Close the rebuild and measure per-OS CI against the targets
-status: Ready
+status: Cancelled
 parent: FEAT-1096
 author: tech-lead
 assignee: devops
@@ -28,7 +28,7 @@ subentities:
   status: Todo
   story: US9
 created_at: '2026-10-24T13:42:20Z'
-updated_at: '2026-10-26T09:30:13Z'
+updated_at: '2026-10-27T20:16:27Z'
 ---
 <!-- sq:body -->
 Close the rebuild: retire what is left of the old root, rename the new one, finish the parity record (US9), and measure CI per OS against the binding targets (US10).
@@ -42,7 +42,7 @@ Close the rebuild: retire what is left of the old root, rename the new one, fini
 - No file remains under the old root; `tests_next/` is renamed to `tests/` and is the only `testpaths` entry; every path that names either root is updated: `pyproject.toml` (pytest, pyright `include` and execution environment, ruff per-file ignores, markers), the CI workflows, `CLAUDE.md`, `CONTRIBUTING.md`, and the conventions document and ledger themselves.
 - `uv run --all-extras pytest`, pyright, ruff and `sq check` are clean.
 - The ledger shows every entry with an owner and a recorded red, or a recorded gap in the old suite.
-- One CI run per OS after the rename is recorded in a comment: wall time, worker count, test count, run link, compared to the targets and to the inventory baseline. There is no test-count ceiling; CI time is the bound. Every job is under 10 minutes and Windows at most 15; a miss is reported with its `--durations` profile and is not closed as met.
+- At least two CI runs per OS after the rename are recorded in a comment: per run, wall time, worker count, test count and run link, compared to the targets and to the inventory baseline. A target is met on an OS only when every one of those runs is under it. There is no test-count ceiling; CI time is the bound. Every job is under 10 minutes and Windows at most 15; a miss is reported with its `--durations` profile and is not closed as met.
 - Windows runs the full suite, as macOS and Ubuntu do; no subset or new marker split buys it its time (the `slow` scale tests stay skipped by default on every OS, as today).
 <!-- sq:body:end -->
 
@@ -69,7 +69,7 @@ Prove the entries of every test file still under the old root red in the new roo
 ### ST2 — Record one CI run per OS against the binding targets
 
 <!-- sq:subtask:ST2:body -->
-Run the full suite in the CI test job once per OS, Windows included, after the rename and record wall time, worker count, test count and the run link against the binding targets and the inventory baseline. Report any miss with its `--durations` profile.
+Run the full suite in the CI test job at least twice per OS, Windows included, after the rename and record per run wall time, worker count, test count and the run link against the binding targets and the inventory baseline. A target is met on an OS only when every one of those runs is under it; one run alone does not settle it. Report any miss with its `--durations` profile.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

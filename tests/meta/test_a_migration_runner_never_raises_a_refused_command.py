@@ -1,13 +1,6 @@
-"""A migration runner raises no message that names a command the schema gate refuses on a squad
-that is behind, and imports neither the write seam's skew guard nor its message. The scan is
-scoped to ``raise`` because the rest of a runner's text describes steps taken after the run. The
-commands the gate lets past are read from the grants the commands declare, not written here.
-
-The guard reads string literals inside ``raise`` in the runner modules, including ones reached
-through a name assigned a literal in the same module and placeholder-shaped commands. It cannot
-see text built by a helper, imported from another module, or raised by code a runner calls; the
-behavioural table over ``sq migrate up`` is what covers those.
-"""
+"""A migration runner raises no message that names a command the schema gate refuses on a squad that
+is behind, and imports neither the write seam's skew guard nor its message. The scan is scoped to
+``raise`` because the rest of a runner's text describes steps taken after the run."""
 
 import ast
 import re

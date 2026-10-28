@@ -1,24 +1,7 @@
-"""Repo-hygiene gate: the dedicated ``priority`` kwarg on item create/update must never reach
-the model as a raw, unchecked passthrough — it has to go through the same declared-field gate
-as the generic ``--set priority=<code>`` door (:meth:`ServiceCore._check_priority`, itself built
-from :meth:`ServiceCore._badge_field`/:meth:`ServiceCore._parse_badge_code`).
-
-The bug this guards against had exactly two shapes, both a bare, unvalidated ``priority`` local
-reaching the model unchanged:
-
-- ``Item(..., priority=priority, ...)`` — the model constructor called with the raw kwarg,
-  in :meth:`ServiceCore._create_model`.
-- ``item.priority = priority`` — a direct attribute assignment, in
-  :meth:`~squads._services._items.ItemsMixin._update_model`.
-
-A type declaring no ``priority`` field (``fields = []``) still had its value written and
-rendered as though the type declared it, because the field-eligibility gate only ran on the
-sibling ``--set`` door. This is the same shape as the other ``tests/meta`` guards: a cheap,
-readable AST scan, not a new framework. It does not forbid the *thin passthrough* between
-``create``/``update`` and their `_core`/`_model` halves (``priority=priority`` as a kwarg to
-those helper calls is fine and expected) — only the two shapes above, where the value lands
-directly on the model with no gate in between.
-"""
+"""Repo-hygiene gate: the dedicated ``priority`` kwarg on item create/update must never reach the
+model as a raw, unchecked passthrough — it has to go through the same declared-field gate as the
+generic ``--set priority=<code>`` door (:meth:`ServiceCore._check_priority`, itself built from
+:meth:`ServiceCore._badge_field`/:meth:`ServiceCore._parse_badge_code`)."""
 
 import ast
 from pathlib import Path
@@ -99,8 +82,7 @@ def test_the_scan_would_catch_a_planted_attribute_assign_passthrough(tmp_path: P
 
 
 def test_the_scan_never_flags_a_gated_assignment_or_a_passthrough_kwarg(tmp_path: Path) -> None:
-    """A validated value under a different name (``checked_priority``), and a kwarg-name
-    passthrough between wrapper and core (not into ``Item(...)`` itself), are both fine."""
+    """A validated value under a different name (``checked_priority``)."""
     planted = tmp_path / "src" / "squads" / "_example.py"
     planted.parent.mkdir(parents=True)
     planted.write_text(

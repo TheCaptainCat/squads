@@ -1,24 +1,7 @@
 """Repo-hygiene gate closing the same class of correspondence
 ``test_validator_context_requirements_match_what_each_member_reads.py`` closes for declared
 context — applied here to the level/floor declaration table (``DEFAULT_VALIDATOR_LEVEL``,
-``VALIDATOR_LEVEL_FLOOR``) each catalog member's default and floor live in.
-
-The mechanism chosen here removes the duplication outright rather than checking two numbers
-against each other: every catalog member resolves its own effective level from
-``DEFAULT_VALIDATOR_LEVEL``/a type's own ``@<level>`` override (via ``_resolved_level``) and
-passes that value into ``CheckIssue(...)``, so there is no second, hand-maintained level literal
-anywhere in a member's body left to drift from the declared table — the declared table *is* the
-level. What could silently reintroduce the failure shape the correspondence test above guards
-against (a member's actual behaviour disagreeing with what the catalog claims) is a future edit
-that writes ``"error"``/``"warn"`` straight into a ``CheckIssue(...)`` call again, bypassing the
-resolver. This test is a static scan that fails on exactly that: a literal level string passed
-to ``CheckIssue`` from inside a catalog member's own body.
-
-Static, for the same reason the context scanner is: the property is about what the code says,
-not about one run of it — a member that reads the argument correctly today for every input this
-suite happens to construct could still carry a hardcoded fallback that only a future selection
-would ever reach.
-"""
+``VALIDATOR_LEVEL_FLOOR``) each catalog member's default and floor live in."""
 
 import ast
 from pathlib import Path

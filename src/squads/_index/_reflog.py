@@ -37,7 +37,7 @@ from squads._models._schema import SCHEMA_VERSION
 #: docstring, ``sq reflog --op``'s help, the workflow guide's table) reads or is checked against. It
 #: is ordered narrative-first (item-life ops, then squad maintenance) because ``sq reflog --help``
 #: prints it verbatim, and hand-maintained because ``store.log(...)`` call sites are bare literals;
-#: an AST guard in ``tests/meta`` pins it in both directions, which is what makes "closed" true.
+#: an AST guard in ``tests/meta`` pins it in both directions, which makes "closed" true.
 #: ``link`` has no CLI verb but is emitted by the service, so it stays.
 REFLOG_OPS: tuple[str, ...] = (
     "create",

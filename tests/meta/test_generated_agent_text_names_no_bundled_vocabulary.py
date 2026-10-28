@@ -1,21 +1,5 @@
-"""Repo gate: every agent-facing surface squads generates must be built from the ACTIVE spec,
-the ACTIVE playbook and the LIVE roster — never from a bundled literal.
-
-Two halves, because neither alone is enough:
-
-* a **behavioural probe** that renders each surface against a squad sharing no vocabulary with
-  the bundled documents at all — different squad dir, different roster slugs, a renamed retired
-  status, a renamed superseded status, a renamed sub-entity local prefix — and asserts that not
-  one bundled literal survives into the output. This is the half that catches the real defect
-  shape: a literal sitting inside a runnable command, right beside spec-derived text on the same
-  line, which hands an agent a command that exits 1;
-* a **text scan** for the bundled anchor type name, which no probe can catch when the literal
-  and the derived value happen to agree on the bundled spec.
-
-The literals scanned for are the ones a squad can legitimately not have: ``sq init --roles
-minimal`` gives a roster with no ``qa``; a lifecycle override renames ``Cancelled``; a sub-entity
-kind declares its own ``local_prefix``; ``sq init --squad-dir team`` moves the squad folder.
-"""
+"""Repo gate: every agent-facing surface squads generates must be built from the ACTIVE spec, the
+ACTIVE playbook and the LIVE roster — never from a bundled literal."""
 
 import re
 from datetime import UTC, datetime
@@ -242,9 +226,7 @@ def test_no_bundled_vocabulary_literal_survives_a_renamed_squad(
 
 
 def test_the_probe_squad_actually_renders_its_own_vocabulary() -> None:
-    """Falsification floor: without this, every assertion above passes on an empty render —
-    a roster with no in-lane author renders no authoring bullet at all, so the very lines the
-    scan is meant to read would simply be missing."""
+    """Falsification floor: without this, every assertion above passes on an empty render."""
     renders = _probe_renders(_FULL_ROSTER)
     assert "status Abandoned" in renders["workflow.md.j2"]
     assert "--story SRn" in renders["claude/claude_section.md.j2"]

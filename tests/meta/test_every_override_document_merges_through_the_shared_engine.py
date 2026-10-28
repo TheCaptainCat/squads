@@ -1,24 +1,4 @@
-"""Repo-hygiene gate: every override document kind resolves through the shared merge engine.
-
-Three documents are overridable — the workflow spec, the playbook, and a role — and the whole
-point of ``squads._specmerge`` is that all three get the *same* semantics: splat-refs resolved
-against the bundled base, a leaf-granular deep merge, a closed top-level key space, and the
-``[selected]`` deselect refused where it has no meaning. A loader that hand-rolls its own merge
-instead gets none of that, and it gets it silently: the document still loads, so nothing
-downstream reports the difference.
-
-That is not hypothetical. The role resolver assigned raw TOML values straight into a plain
-dataclass — unknown keys discarded without a word, no typed validation, splat-refs never
-resolved — so ``can_spawn = "false"`` was a truthy string that *granted* spawn authority and
-``responsibilities = ["$(*self)", …]`` wrote the literal token into the generated agent
-definition. Every one of those is a class the shared engine plus a typed model already handles
-for the other two documents.
-
-So this scan asserts the routing structurally, per loader: the module calls ``merge_override``,
-and it does not define a merge of its own. Structural rather than behavioural on purpose — a
-behavioural probe passes as soon as one path happens to be wired, while a fourth override kind
-added later would sail past it.
-"""
+"""Repo-hygiene gate: every override document kind resolves through the shared merge engine."""
 
 import ast
 from pathlib import Path
@@ -92,8 +72,7 @@ def test_no_override_loader_defines_its_own_merge_primitive() -> None:
 
 
 def test_the_listed_loaders_all_exist() -> None:
-    """Keeps the map honest: a renamed or deleted loader must update this list rather than
-    quietly reducing the scan's coverage to whatever still happens to be on disk."""
+    """A renamed or deleted loader must update this list, not shrink the scan's coverage."""
     root = _repo_root()
     missing = [rel for rel in OVERRIDE_LOADERS if not (root / rel).is_file()]
     assert not missing, f"listed override loader no longer exists: {missing}"

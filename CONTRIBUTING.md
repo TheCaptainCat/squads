@@ -59,7 +59,7 @@ and the host smoke test are documented in that package's README along with how t
 
 ### Guard tests (`tests/meta/`)
 
-Beyond the unit suite, a small set of repo-hygiene tests fail on things a reviewer would otherwise
+The tests are a small set of repo-hygiene guards that fail on things a reviewer would otherwise
 have to catch by eye: a tracked-item id appearing in source or config, new module-level mutable
 state, a documented CLI command that no longer resolves, a stale override manifest or template
 stamp. If one of them fails, read its docstring — each explains the rule it enforces and the
@@ -165,27 +165,39 @@ in that test's `LONG_BODIES` list.
 - **An item type** → declare it in the bundled workflow spec (`squads/_specs/workflow.toml`):
   prefix, folder, category, lifecycle, and any parent/ref rules. Add its item template, and — if
   agents author it — a `[types.<name>]` entry in `squads/_specs/playbook.toml` so the type gets its
-  managed `sq-<type>` skill. Both TOMLs are golden-locked by a test under `tests/unit/`; update the
-  golden in the same change. (A *project* adds its own types through `.overrides/workflow.toml`
+  managed `sq-<type>` skill. (A *project* adds its own types through `.overrides/workflow.toml`
   instead — see [docs/overrides.md](docs/overrides.md) — and needs no code change at all.)
 - **A backend** → see [docs/backends.md](docs/backends.md).
 
 ## Tests
 
-`pytest` with `typer.testing.CliRunner`. The `project`/`svc` fixtures (`tests/conftest.py`) init a
-squad in a `tmp_path` and `chdir` into it — **all file generation stays in temp**. Cover behaviour
-through the service/CLI and assert on the generated files (valid frontmatter, intact markers,
-preserved body). When you add a feature, add a service-level test and a CLI smoke test. Time is
-frozen via the `frozen_time` fixture; the `_reset_clock_override` autouse fixture stops a forged
-`--at` from leaking between tests.
+`tests/` holds the repository guards (`tests/meta/`, described above), the CLI surface tests
+(`tests/cli/`) and the fixtures they share.
 
-The suite is laid out by kind — `tests/unit/`, `tests/service/`, `tests/cli/`, `tests/integration/`,
-`tests/tui/`, plus the `tests/meta/` guards above; [tests/CONVENTIONS.md](tests/CONVENTIONS.md) sets
-out how tests are named and where a new one belongs. It runs under `pytest-xdist` by default, which
-is safe because every test owns its own `tmp_path`; pass `-n0` to force serial (for `--pdb`, say).
-The scale-bound tests marked `slow` are skipped unless you pass `--run-slow`, so a bare run stays
-quick. Redirect a full run to a file and read the file rather than re-running the suite to see a
-different slice of its output.
+`tests/cli/` has one module per command group. Each test runs `sq` in-process through the `invoke`
+fixture, on its own copy of a squad built once per module, under the frozen clock. The rules:
+
+- One case per (command, parameter) pair where the value takes effect, plus its boundary refusals.
+  Combine parameters only when they genuinely interact, and name the test for the interaction.
+- A verb set that one builder or registrar mounts on several hosts is tested once, on a reference
+  host (`task` for the work-item, sub-entity and comment verbs). The other hosts are held by a guard.
+- Declare what a test covers with `@pytest.mark.covers("<key>", "<param>")`, literal strings only.
+  The key is the command path with `<type>`, `<kind>` and `<host>` placeholders
+  (`"<type> update"`, `"<host> comment edit"`); the root callback is `""`. An option is named by its
+  first long flag (`-m` is `--message`), and a leaf with no parameters is declared by its key alone
+  (`covers("sync")`). At teardown `invoke` fails the test if a declared pair was never reached.
+- Assert the exit code and the whole output line or JSON object, never a substring, and read state
+  back through the CLI (`show --json` or the command's `--json` form), not from item files.
+- Check each new test once when you write it: break the effect it asserts, watch it fail, restore it.
+
+Two guards enforce these rules: `test_every_cli_parameter_is_declared_by_a_covering_test.py` fails
+on a pair or leaf no test declares and on a marker naming one the tree no longer has, and
+`test_every_work_item_type_and_comment_host_exposes_the_reference_verbs.py` fails when a host's
+verbs or parameter signatures drift from the reference host's.
+
+The suite runs under `pytest-xdist` by default, which is safe because every test owns its own temp
+directory; pass `-n0` to force serial (for `--pdb`, say). Redirect a run to a file and read the
+file rather than re-running it to see a different slice of its output.
 
 ## Commits / PRs
 

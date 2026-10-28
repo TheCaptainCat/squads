@@ -17,7 +17,7 @@ description: 'Closes the sq workflow --json catalog family at one command per de
   WorkflowSpec map: adds subentity-kinds and lifecycles under a single row grammar,
   plus two reference keys on ADR-459''s type row.'
 created_at: '2026-08-03T15:34:51Z'
-updated_at: '2026-10-25T21:46:29Z'
+updated_at: '2026-10-27T21:05:30Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -69,7 +69,7 @@ catalog in this grammar; it does not get to invent a shape.
 
 1. A dedicated sub-command. Human Rich table by default, `--json` emits a bare array.
 2. One row per declared entry, in a documented deterministic order.
-3. A module-level frozen field-set tuple, drift-tested against the model and golden-locked.
+3. A module-level frozen field-set tuple that matches the row the model emits.
 4. Every key present on every row — `null` for absent, never omitted.
 5. **The identity key is the spec's own name for the thing, and every reference to it from another
    row uses that identical key name** (`status.role` joins `role.role`; `field.collection` joins
@@ -230,8 +230,7 @@ permitted under rule 6, and the adopter-facing docs say plainly that it has no c
   `subentity` by two kinds).
 - The family is closed and auditable: one catalog per declared map, one grammar. A reviewer checks
   completeness by listing `WorkflowSpec`'s map fields.
-- Each catalog is a pinned shape under the golden and drift-test discipline, the intended cost of a
-  contract.
+- Each catalog is a frozen shape that only grows additively, the intended cost of a contract.
 - `SubentityKindSpec.plural` has three consumers: CLI list verb, persisted container marker, and a
   published catalog value (ADR-348 records the coupling).
 - A client can resolve which kind a type hosts, its local-id prefix, what its declared axes are
@@ -286,4 +285,6 @@ permitted under rule 6, and the adopter-facing docs say plainly that it has no c
   - 2026-10-16: one dated note added after section 8 for ADR-1025 (ref-kinds row discharged; value classes); nothing else in the body changed.
 - [2026-10-25T21:46:29Z] `architect` Robert Architect:
   - 2026-10-25 audit: partly stale, targeted present-tense edits; the rule, row grammar and the two catalogs are unchanged. §1 now lists the family as it stands, including ref-kinds (ADR-775) and views (ADR-1109) added under the same rule; §7 no longer lists extra_fields as unpublished (attributes is on the type row, ADR-1007); folded the ADR-1025 note into §8; §9 states the by-consumer/by-row delivery rule without the 0.13/0.14 plan; Consequences drop the F22/F23 closure narrative and the stale 8-lifecycles/10-types count.
+- [2026-10-27T21:05:30Z] `architect` Robert Architect:
+  - Removed the test-suite clauses (op-pierre ruling 2026-10-27, FEAT-1096); the decision is unchanged.
 <!-- sq:discussion:end -->

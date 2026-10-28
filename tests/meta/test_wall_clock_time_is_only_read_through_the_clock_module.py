@@ -1,22 +1,5 @@
-"""Repo-hygiene gate: ``squads._clock`` is the only module under ``src/squads`` that reads
-wall-clock time.
-
-Everything else asks it, so a forged ``--at`` run and a frozen-time test both see the instant
-they set. A second, unhooked source of "now" is invisible rather than wrong-looking: it returns
-a perfectly plausible timestamp, so nothing fails loudly — the override is simply ignored at
-whichever seam still reads it.
-
-The instance that motivated this guard was worse than a wrong timestamp. A frontmatter
-timestamp the file did not carry defaulted to a direct ``datetime.now(UTC)``, so every load of
-that file produced a *different* value. The skew check round-trips both of its inputs through
-that same loader, so the on-disk side could never equal the index side, and the item was
-refused for good — with a "run ``sq repair``" pointer repair cannot honour, because it rebuilds
-the index from markdown and never rewrites markdown. Non-determinism at a load boundary is the
-sharp edge here, not the offset.
-
-The scan is deliberately blunt: any direct wall-clock call under ``src/squads``, whatever it is
-for. The clock module itself is the one exempt implementation.
-"""
+"""Repo-hygiene gate: ``squads._clock`` is the only module under ``src/squads`` that reads wall-
+clock time."""
 
 import ast
 from pathlib import Path
@@ -97,8 +80,7 @@ def test_the_scan_would_catch_every_planted_wall_clock_shape(tmp_path: Path) -> 
 
 
 def test_the_scan_never_flags_the_sanctioned_seam_or_a_lookalike(tmp_path: Path) -> None:
-    """``clock.now()``, a parse of a *stored* timestamp, and an unrelated ``.now`` attribute
-    are all fine — only a direct wall-clock read is the bug shape."""
+    """``clock.now()``, a parse of a *stored* timestamp."""
     planted = tmp_path / "src" / "façade.py"
     planted.parent.mkdir(parents=True)
     (tmp_path / "src" / "squads").mkdir()
@@ -114,8 +96,7 @@ def test_the_scan_never_flags_the_sanctioned_seam_or_a_lookalike(tmp_path: Path)
 
 
 def test_the_sanctioned_seam_actually_honours_an_override() -> None:
-    """A scan alone would pass on a clock that ignores its own override, which would make every
-    call site it forced traffic through equally unhooked."""
+    """A scan alone would pass on a clock that ignores its own override."""
     from datetime import UTC, datetime
 
     forged = datetime(2011, 11, 11, 11, 11, 11, tzinfo=UTC)

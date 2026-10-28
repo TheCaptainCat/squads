@@ -131,4 +131,4 @@ def test_dry_run_prints_the_plan_and_makes_no_file_or_subprocess_side_effects(
     out = capsys.readouterr().out
     assert "dry run" in out
     assert "999.999.999" in out
-    assert "[8/8] summary" in out
+    assert "[7/7] summary" in out

@@ -1,11 +1,5 @@
-"""Bundled TOML assets ship as package data: accessible via importlib.resources and present
-in the built wheel at the path their own package implies. One parametrized test over the
-asset list — covers the playbook, role catalog, and workflow TOMLs — rather than a
-near-duplicate test per asset; the wheel itself is built exactly once per test session
-(``built_wheel_names`` below) and every asset check reads that one manifest, since a wheel
-build failure isn't asset-specific — rebuilding per asset would only slow the suite down,
-not buy any real independence between the checks.
-"""
+"""Bundled TOML assets ship as package data: accessible via importlib.resources and present in the
+built wheel at the path their own package implies."""
 
 import shutil
 import subprocess

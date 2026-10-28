@@ -14,7 +14,7 @@ refs:
 - ADR-323
 - ADR-696
 created_at: '2026-06-26T09:45:13Z'
-updated_at: '2026-10-25T21:36:58Z'
+updated_at: '2026-10-27T21:05:27Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -24,8 +24,7 @@ the `ItemType` / `Status` enums, the vocabulary stayed closed: frontmatter with 
 `type`/`status` raised at model construction, so custom vocabulary could not even be read.
 
 `FEAT-000208` relaxes that: a typed *engine* over a runtime-defined *vocabulary*. It is the
-highest-risk step in `EPIC-000206` — the typing inversion is pervasive — so a characterization suite
-and the spec golden locks are its standing guard (§6). Its scope is de-typing, capability-flag
+highest-risk step in `EPIC-000206`, because the typing inversion is pervasive. Its scope is de-typing, capability-flag
 reification, a protected core of reserved vocabulary, and fail-closed spec loading.
 
 ## Decision
@@ -96,18 +95,7 @@ Every workflow spec model carries `extra="forbid"` and the loader builds them th
 `model_validate`, so an unknown TOML key fails closed instead of being silently ignored — the same
 hardening the roles and playbook loaders have.
 
-### 6. Characterization gate (the standing guard)
-
-- **The existing test suite and the spec golden locks** (workflow ADR-214, role catalog ADR-221,
-  playbook ADR-226 including its skill-output layer) pass **unchanged** across the de-typing: an
-  existing test that needs editing signals a behavioral change to justify, not absorb.
-- **Characterization tests pin each former identity check's behavior** (e.g. "a `decision` with no
-  incoming `supersedes` and a superseded status warns in `sq check`"; "a `skill` file not prefixed
-  `SKILL-` is flagged"), so the reification is proven equivalent rather than assumed.
-- **Each capability field and the reserved-vocab check get direct unit tests**, including the
-  negative: a spec missing `role`/`skill`/`operator` must raise.
-
-### 7. The pyright-strict trade-off, on the record
+### 6. The pyright-strict trade-off, on the record
 
 Widening to `str` trades **compile-time enum exhaustiveness** for **load-time spec validation**.
 What we lose: pyright can no longer prove a `match item.type` / status handling is exhaustive; a
@@ -130,11 +118,9 @@ strings. The mitigations are the fail-closed spec loader (§4, §5) and `sq work
 - **Positive:** custom vocabulary is *readable*; the scattered identity checks are one declared
   capability table on `ItemSpec` (more honest, more testable); the workflow loader fails closed like
   the other two. "Additive over a protected core" is an enforced contract, not a convention.
-- **Cost / risk:** the typing inversion is irreversible, and the characterization gate (§6) is what
-  proves the reification faithful. The subtle hazards are (a) an identity check missed by the
+- **Cost / risk:** the typing inversion is irreversible. The subtle hazards are (a) an identity check missed by the
   inventory (e.g. an implicit reliance on enum ordering or membership), and (b) validation moving
-  from construction time to load time for malformed frontmatter — the characterization tests cover
-  the bad-value path.
+  from construction time to load time for malformed frontmatter.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -149,4 +135,6 @@ strings. The mitigations are the fail-closed spec loader (§4, §5) and `sq work
   - Section 5 is closed rather than stale: `extra="forbid"` is on the workflow spec models and the loader routes through `model_validate`. The migration carve-out in the tables last row is still correct and still honoured. Added `related` edges to ADR-322, ADR-541, ADR-323 and ADR-696 — this decision was the one all four narrowed, and none linked back.
 - [2026-10-25T21:36:58Z] `architect` Robert Architect:
   - 2026-10-25 audit: rewritten; the de-typing decision is unchanged. Folded in ADR-322 (no enums), ADR-541 (`category`), ADR-323 (`fields`) and ADR-696 (status roles, no reserved statuses). The capability table uses current names. Removed the dated notes.
+- [2026-10-27T21:05:26Z] `architect` Robert Architect:
+  - Removed the test-suite clauses (op-pierre ruling 2026-10-27, FEAT-1096); the decision is unchanged.
 <!-- sq:discussion:end -->

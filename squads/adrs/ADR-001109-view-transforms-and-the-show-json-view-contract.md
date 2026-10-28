@@ -11,7 +11,7 @@ refs:
 description: Spec-declared Python transforms feed a view's template and a views key
   in show --json; body returns the stored text
 created_at: '2026-10-24T13:07:46Z'
-updated_at: '2026-10-25T21:41:26Z'
+updated_at: '2026-10-27T21:05:32Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -32,7 +32,7 @@ Grounding: `src/squads/_views.py` (`resolve_source`, `render_source_view`, `expa
 - **Overrides cannot write `module`.** A pre-merge check on the raw override, of the same kind as `_retired_view_grammar_violations`, refuses any `views.<name>.transform` table the override writes that names `module`, and any such table that lacks either `path` or `function`. The refusal names `path` as the fix. A splat-ref that copies a bundled `transform` value is allowed, because it can only reach code squads ships.
 - **Override precedence on a bundled view.** The leaf merge keeps the bundled `module` leaf when an override writes `path` + `function` onto a bundled view. After the merge the loader drops `module` from any transform that also carries `path`, so a `path` always comes from the override and replaces the bundled transform.
 - **Load-time checks are shape only, with no filesystem access and no import.** They run in `_check_views`'s collect-all pass, so `sq workflow lint` lists them together. The checks: exactly one of `module`/`path`; `function` is an identifier that is not a keyword; `path` is relative, POSIX, ends in `.py` and has no `..` segment; `module` is a dotted identifier under `squads.`. Loading the spec on every command therefore costs no file stat and no import.
-- **Filesystem and code checks run in `sq check` and `sq workflow lint`, and again at render.** The file must exist, be a regular file, and still lie inside `.overrides/` after its symlinks are resolved. The module must import, `function` must be a callable that is not a coroutine function, and its signature must be accepted (see Call). Both commands import override transform files, which runs their top-level code; this is documented together with the trust rule. Bundled transforms are covered by the test suite, not by `sq check`.
+- **Filesystem and code checks run in `sq check` and `sq workflow lint`, and again at render.** The file must exist, be a regular file, and still lie inside `.overrides/` after its symlinks are resolved. The module must import, `function` must be a callable that is not a coroutine function, and its signature must be accepted (see Call). Both commands import override transform files, which runs their top-level code; this is documented together with the trust rule. `sq check` does not check bundled transforms.
 
 ### Path resolution
 
@@ -98,7 +98,6 @@ Grounding: `src/squads/_views.py` (`resolve_source`, `render_source_view`, `expa
 - Under a daemon, a transform runs on the event-loop thread, so a slow transform delays other requests. Transforms are documented as pure computation over their arguments.
 - The spec digest (ADR-970) covers the declaration, not the transform file's contents: editing a transform does not change the digest.
 - An override cannot remove a bundled view's transform, because leaf merge has no delete. It can replace the transform with its own `path`, or override the template to ignore `data`.
-- Tests that change: `test_show_json_body_field_carries_the_expanded_text_not_the_literal_tag` reverses; the skill `show --json` key-set and `body == read_body` assertions change; the `feature_show.json`/`task_show.json` goldens gain `views: {}`.
 - `docs/stability.md` needs a refresh by the tech writer: the Tier 3 `show --json` key list (`views`, the meaning of `body`), the attribute-name rule's list of row-added keys, the `sq workflow views --json` row (`transform`), the derived-views paragraph (the `self` payload gains `views`), and the override layout (transform files under `.overrides/`, and the trust rule). `docs/overrides.md` and `docs/workflow.md` need the declaration grammar and a worked transform example, and `sq override scaffold workflow` should show one.
 
 ## Consumer inventory: `show --json` `body`
@@ -112,7 +111,6 @@ Grounding: `src/squads/_views.py` (`resolve_source`, `render_source_view`, `expa
 - VS Code client (`clients/vscode/src/sqAdapter.ts`): `getShowJson` reads only `discussion`, `subentities` and `type` (`SqShowJson`, `isSqShowJson`), and the dossier body comes from `sq show --raw` (`getRaw`). Needs nothing. It can later read `views` for structured roll-ups.
 - TUI (`src/squads/_tui/_reader.py`): calls `svc.read_body` directly and never goes through JSON. Needs the rendered text and keeps it.
 - Text surfaces (`_cli/_common.py` styled and raw show, `_cli/_operator.py`, role/skill text show): `read_body`. Unaffected.
-- Tests: `tests/cli/test_view_tag_expansion_at_read_time_cli.py`, `tests/cli/test_skill_show_renders_a_system_definition_on_read.py`, `tests/cli/test_skill_item_surface.py`, and the `show` goldens under `tests/goldens/`.
 - Adopters' scripts (`show --json | jq -r .body`, as in the REV-1099 report): they now get tags. That is the fix, and it is stated in the CHANGELOG.
 
 ## Options rejected
@@ -146,4 +144,6 @@ Grounding: `src/squads/_views.py` (`resolve_source`, `render_source_view`, `expa
   - 2026-10-24: Loading bullet restated to the implemented rule (compile the bytes and `exec()` them, no bytecode under `.overrides/`, in `sys.modules` only while executing); `spec_from_file_location` + `exec_module` added to Options rejected (stale bytecode within one second). Per the accepted deviation on REV-1117.
 - [2026-10-25T21:41:26Z] `architect` Robert Architect:
   - Audited 2026-10-25: holds. _transform.py (ViewTransformError, exec of compiled bytes), read_stored_body, the views key in show --json and the milestone_rollup transform match the record.
+- [2026-10-27T21:05:32Z] `architect` Robert Architect:
+  - Removed the test-suite clauses (op-pierre ruling 2026-10-27, FEAT-1096); the decision is unchanged.
 <!-- sq:discussion:end -->

@@ -1,24 +1,4 @@
-"""Repo-hygiene gate: the import edges between the packages of ``src/squads`` are a recorded table.
-
-A node is the first path component under ``squads`` (a package such as ``_roles``, or a
-top-level module such as ``_views``, or ``__main__``); ``squads`` itself stands for the root
-``__init__``. Each import in each module becomes one edge, tagged with where it runs:
-
-- ``top``: at import time (module body, class body, ``try``/``except ImportError``);
-- ``local``: inside a function body, so it runs on call and can hold a cycle apart;
-- ``typing``: inside ``if TYPE_CHECKING:``, so it never runs.
-
-``EDGES`` is compared for equality with what the tree imports: an edge the table lacks fails and
-names the importing module, the line and the row to add; a row whose edge is gone fails too.
-Self edges (a package importing itself) are not recorded. ``from pkg import name`` resolves to
-``pkg.name`` when that is a module. A relative import, and a relative
-``importlib.import_module`` name, is refused. An ``importlib.import_module("squads....")`` with a
-literal argument counts as an import where it stands. Not seen: an ``import_module`` with a
-computed argument, ``__import__``, ``importlib.util`` and ``runpy``.
-
-Two further tables pin the package-level strongly connected component over the ``top`` edges and
-the package ``__init__`` files that hold code.
-"""
+"""Repo gate: the import edges between the packages of `src/squads` are a recorded table."""
 
 import ast
 import textwrap

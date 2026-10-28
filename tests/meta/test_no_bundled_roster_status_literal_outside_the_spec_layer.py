@@ -1,24 +1,6 @@
-"""Repo-hygiene gate: none of the bundled roster (role/skill/operator) lifecycle's status
-names — ``Draft``, ``Active``, ``Archived`` — may appear as a bare Python string-constant
-literal anywhere under ``src/squads/`` outside two legitimate exceptions:
-
-- ``_specs/`` — where the bundled vocabulary is actually declared (``workflow.toml``, not
-  even Python, but the whole package is exempted for symmetry with the other scans' shape).
-- ``_migrations/`` — a migration runner legitimately pins the vocabulary of the schema
-  version it transforms, never the live spec; see each runner's own frozen ``_STATUS_ACTIVE``
-  module constant.
-
-Everywhere else, engine behaviour must resolve "is this entry on offer" through
-``WorkflowSpec.live_statuses``/``live_initial`` (both keyed by item type alone — no
-role-*name* argument at all), never by naming ``Draft``/``Active``/``Archived`` directly. This
-is the same shape as the other ``tests/meta`` guards (the stray-ticket-reference scan, the
-mutable-state guard): a cheap, readable AST scan, not a new framework.
-
-Scoped to a bare ``ast.Constant`` whose value is *exactly* one of the three names — a longer
-string merely containing the substring (a docstring paragraph, a playbook lifecycle-summary
-line) never matches, so the existing legitimate prose citing "Draft" for the work/guide
-lifecycles is left alone without needing an allowlist entry for it.
-"""
+"""Repo-hygiene gate: none of the bundled roster (role/skill/operator) lifecycle's status names —
+``Draft``, ``Active``, ``Archived`` — may appear as a bare Python string-constant literal
+anywhere under ``src/squads/`` outside two legitimate exceptions:"""
 
 import ast
 from pathlib import Path
@@ -106,8 +88,7 @@ def test_the_scan_exempts_the_spec_layer_directories(tmp_path: Path, exempt_dir:
 def test_the_scan_never_flags_a_longer_string_merely_containing_the_substring(
     tmp_path: Path,
 ) -> None:
-    """Docstring/prose text citing the work or guide lifecycle ("Draft → Ready → …") is not a
-    bare status-literal comparison and must never trip this gate."""
+    """Docstring/prose text citing the work or guide lifecycle."""
     planted = tmp_path / "src" / "squads" / "_example.py"
     planted.parent.mkdir(parents=True)
     planted.write_text(
@@ -120,11 +101,7 @@ def test_the_scan_never_flags_a_longer_string_merely_containing_the_substring(
 def test_an_allowlisted_hit_does_not_mask_a_second_unallowlisted_literal_on_the_same_line(
     tmp_path: Path,
 ) -> None:
-    """Two distinct constants on the same line are two distinct AST nodes — allowlisting one
-    (path, lineno, value) triple never suppresses a different value at the same location. The
-    production allowlist is empty today, so this exercises a synthetic one built the same shape
-    the real allowlist would use — otherwise, with nothing allowlisted, this test would pass
-    without ever exercising the masking property its name claims to test."""
+    """Two distinct constants on the same line are two distinct AST nodes — allowlisting one."""
     planted = tmp_path / "src" / "squads" / "_cli" / "_role.py"
     planted.parent.mkdir(parents=True)
     planted.write_text('cols = ("Active", "Draft")\n', encoding="utf-8")
@@ -136,11 +113,7 @@ def test_an_allowlisted_hit_does_not_mask_a_second_unallowlisted_literal_on_the_
 
 
 def test_every_allowlisted_hit_is_still_produced_by_the_scan_without_it() -> None:
-    """A dead allowlist entry — one the scan would no longer actually produce — is worse than
-    no entry at all: it silently starts excusing whatever new code later lands on that exact
-    (path, line). Removing each entry one at a time and re-scanning the real tree must
-    reproduce exactly that hit, proving the entry is still live rather than a stale
-    line-numbered exemption nobody has re-checked since the line moved."""
+    """A dead allowlist entry — one the scan would no longer actually produce."""
     root = _repo_root()
     for entry in _ALLOWED_HITS:
         without_this_entry = _ALLOWED_HITS - {entry}

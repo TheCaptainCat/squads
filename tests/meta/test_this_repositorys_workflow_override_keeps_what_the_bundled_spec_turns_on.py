@@ -1,12 +1,8 @@
-"""This repository's own `squads/.overrides/workflow.toml` selects the two catalog-only checks
-on its types, at their strength, without dropping or re-levelling anything the bundled spec
-already turns on. A `validators` array replaces a type's bundled list whole, so a missing splat,
-a deleted line or a changed level loses a check silently: neither `sq check` nor
-`sq workflow lint` can report that, so this table does. Validators are compared as (name,
-parameter, level), the level taken from the entry or else from the member's default.
-
-A later selection adds a row or a column here.
-"""
+"""This repository's own `squads/.overrides/workflow.toml` selects the two catalog-only checks on
+its types, at their strength, without dropping or re-levelling anything the bundled spec already
+turns on. A `validators` array replaces a type's bundled list whole, so a missing splat, a
+deleted line or a changed level loses a check silently: neither `sq check` nor `sq workflow lint`
+can report that, so this table does."""
 
 from pathlib import Path
 

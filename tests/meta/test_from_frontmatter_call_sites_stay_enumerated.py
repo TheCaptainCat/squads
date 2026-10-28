@@ -1,19 +1,7 @@
-"""``Item.from_frontmatter`` takes the active spec's resolved default ref kind as a
-**required** keyword (``default_kind``) — the one seam every ``refs`` value is normalised
-on its way into an ``Item``, so a wrongly-encoded item is never constructed (see the
-function's own docstring, and :func:`squads._models._item.normalise_ref_kinds`). That property
-holds only because the call site count stays small and known: three, in ``src/squads/`` —
-``_itemfile.py`` (the disk side of the frontmatter/index skew guard), one in
-``_services/_maintenance.py`` (``sq repair``'s corpus rebuild) and one in
-``_services/_check.py`` (``sq check``'s scan).
-
-A **required** keyword makes an omission a ``pyright`` error, not a silent regression — but
-that only protects a call site that already exists. Nothing stops a *new* call site from being
-added with the keyword correctly supplied, quietly growing the set of places the fold's input
-must be reasoned about. This is the anti-drift half: a cheap, readable AST scan (the same shape
-as the other ``tests/meta`` guards — the roster-status literal scan, the hyphen-split scan)
-that fails the suite the moment a fourth site appears, known or not.
-"""
+"""``Item.from_frontmatter`` takes the active spec's resolved default ref kind as a **required**
+keyword (``default_kind``) — the one seam every ``refs`` value is normalised on its way into an
+``Item``, so a wrongly-encoded item is never constructed (see the function's own docstring, and
+:func:`squads._models._item.normalise_ref_kinds`)."""
 
 import ast
 from pathlib import Path
@@ -120,9 +108,7 @@ def test_the_scan_would_catch_a_planted_fourth_call_site(tmp_path: Path) -> None
 def test_the_scan_never_flags_the_classmethod_definition_or_a_different_models_method(
     tmp_path: Path,
 ) -> None:
-    """``cls.from_frontmatter`` (the definition body) and ``MemoryEntry.from_frontmatter``/
-    ``BoardNotice.from_frontmatter`` (a different class, same method name) are not this call
-    shape — only a literal ``Item.from_frontmatter(...)`` is."""
+    """``cls.from_frontmatter`` (the definition body)."""
     planted = tmp_path / "src" / "squads" / "_example.py"
     planted.parent.mkdir(parents=True)
     planted.write_text(

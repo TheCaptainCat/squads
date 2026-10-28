@@ -1,1 +1,0 @@
-"digraph {\n    \"FEAT-2\";\n    \"TASK-3\";\n    \"FEAT-2\" -> \"TASK-3\" [label=\"required by\"];\n}"

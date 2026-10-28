@@ -1,19 +1,5 @@
-"""Repo-hygiene gate: the bundled container-heading table's plural column matches the plural
-the bundled spec actually declares for that kind.
-
-``subentity_kinds.<kind>.plural`` is the persisted container-marker name, so it is the thing
-the heading sits above: ``## User Stories`` belongs over ``<!-- sq:stories -->``. The three
-bundled headings exist only because their wording is not derivable — ``"stories".title()`` is
-``"Stories"``, not ``"User Stories"`` — so the table is keyed by kind *and* pinned to the
-plural that irregularity belongs to.
-
-Keyed by kind alone, it outranked an adopter's declared plural: renaming story's plural to
-``outcomes`` produced a file with ``## User Stories`` written above a container marked
-``sq:outcomes``, a bundled default beating a declaration, which is the opposite of what the
-method's own docstring promised. The pairing is what fixes that, and this guard is what keeps
-the pairing true — a bundled plural changed in ``workflow.toml`` without updating the table
-would silently re-open the same gap for every squad, not just an overriding one.
-"""
+"""Repo-hygiene gate: the bundled container-heading table's plural column matches the plural the
+bundled spec actually declares for that kind."""
 
 from squads._workflow import bundled_spec
 from squads._workflow._models import _BUNDLED_CONTAINER_HEADINGS
@@ -44,8 +30,7 @@ def test_every_pinned_heading_matches_its_kinds_declared_plural() -> None:
 
 
 def test_a_declared_plural_that_differs_from_the_pinned_one_wins() -> None:
-    """The behavioural half. A structural match alone would still pass if the resolution order
-    were reversed back, so pin the direction: the declaration outranks the bundled wording."""
+    """The behavioural half."""
     spec = bundled_spec()
     assert spec.subentity_container_heading("story") == "User Stories"
 

@@ -1,23 +1,5 @@
 """Repo-hygiene gate: a stored badge value is read through ``badge_value``, never through
-``getattr(entity, field.code)``.
-
-Two of the declared badge field codes — ``priority`` and ``severity`` — happen to be real
-attributes on ``Item``; every other declared code, including every code an adopter declares,
-lives in the generic ``extra`` store. So ``getattr(obj, f.code, None)`` reads the two bundled
-ones and silently returns ``None`` for all the rest, which does not look like a bug at any call
-site: the loop runs, the two familiar fields validate, and the adopter's field is skipped.
-
-It cost the load boundary its whole purpose for adopter-declared fields. Driven on the same
-operation, both directions: shrinking the bundled ``priority`` collection under a live item
-made every command exit 1 naming the item; shrinking an override-declared ``impact``
-collection with ``extra.impact`` stored left ``sq list -a`` at exit 0, ``sq workflow lint``
-reporting OK and ``sq check`` silent, with the item keeping an undeclared code indefinitely.
-
-``Item.badge_value`` / ``SubEntity.badge_value`` exist for exactly this and read both stores.
-The scan is textual and narrow — a ``getattr`` whose attribute argument is a field's own
-``.code`` — because that is the precise returning shape, and a broader "no ``getattr`` here"
-rule would flag the many legitimate dynamic reads in the same files.
-"""
+``getattr(entity, field.code)``."""
 
 import re
 from pathlib import Path
@@ -56,8 +38,7 @@ def test_no_source_file_reads_a_badge_value_by_getattr_on_its_field_code() -> No
 
 
 def test_the_scan_recognises_the_shape_it_forbids() -> None:
-    """The guard's own liveness: a scan that matches nothing because its pattern is wrong
-    passes exactly as loudly as one with nothing to find."""
+    """The guard's own liveness: a scan that matches nothing."""
     planted = "        code = getattr(obj, f.code, None)\n"
     assert _GETATTR_BY_FIELD_CODE_RE.search(planted)
     assert _GETATTR_BY_FIELD_CODE_RE.search("value = getattr(sub, field.code, None)")
@@ -67,8 +48,7 @@ def test_the_scan_recognises_the_shape_it_forbids() -> None:
 
 
 def test_both_entity_types_expose_the_accessor_the_guard_points_at() -> None:
-    """Behavioural half: the scan is only meaningful while ``badge_value`` actually reads the
-    generic store, so pin that rather than assuming the name still means what it says."""
+    """The scan is only meaningful while `badge_value` reads the generic store."""
     from datetime import UTC, datetime
 
     from squads._models._item import Item
