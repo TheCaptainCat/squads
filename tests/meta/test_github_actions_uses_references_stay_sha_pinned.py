@@ -1,25 +1,5 @@
-"""Repo-hygiene gate: every third-party ``uses:`` reference under ``.github/workflows/`` names
-a full 40-character commit SHA followed by a human-readable version comment, of the form::
-
-    uses: owner/action@<40-hex-sha>  # vX.Y.Z
-
-A git tag is mutable — a moved upstream tag on a floating reference (``@v6``, ``@main``) would
-execute unreviewed code in a workflow that, for this repo's publish pipeline, holds the PyPI and
-Marketplace credentials. Pinning by commit SHA makes the reference immutable; the trailing
-comment keeps the human-readable version visible so a bump stays reviewable. This guard is the
-regression backstop for that hardening: without it, an edit that reverts a pin to a tag passes
-every other gate silently.
-
-A first-party local action (``uses: ./path/to/action``) is not a supply-chain surface — it is
-this repo's own code, checked out with the workflow — so it is never flagged.
-
-The scan parses each workflow's YAML into a node tree (via ``yaml.compose``, which preserves
-source line numbers) to find every ``uses:`` key structurally, rather than regexing whole file
-text — reordering, reformatting, or an anchor/alias would not confuse it the way a naive
-whole-file regex could. Only the trailing-comment check reads a single already-located raw
-line, since PyYAML's parser discards comments during composition and there is no comment-
-preserving YAML parser in this project's dependencies.
-"""
+"""Repo-hygiene gate: every third-party ``uses:`` reference under ``.github/workflows/`` names a
+full 40-character commit SHA followed by a human-readable version comment, of the form::"""
 
 import re
 from pathlib import Path
@@ -33,7 +13,7 @@ _WORKFLOWS_DIR = _REPO_ROOT / ".github" / "workflows"
 #: else after it.
 _SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 
-#: The trailing human-readable version comment, e.g. ``# v6.0.3``. Deliberately tolerant of
+#: The trailing human-readable version comment (a tag after the sha). Deliberately tolerant of
 #: however much space precedes the ``#`` — the form mandate is the SHA-plus-comment pairing,
 #: not exact whitespace.
 _VERSION_COMMENT_PATTERN = re.compile(r"#\s*v[0-9]+(?:\.[0-9]+){1,2}\s*$")
@@ -126,8 +106,7 @@ def test_a_bare_floating_major_version_is_flagged() -> None:
 
 
 def test_a_full_sha_with_no_version_comment_is_still_flagged() -> None:
-    """The SHA alone is not enough — a bump that drops the comment loses the reviewable
-    human-readable version, so it must be caught too."""
+    """The SHA alone is not enough."""
     text = (
         "jobs:\n"
         "  build:\n"

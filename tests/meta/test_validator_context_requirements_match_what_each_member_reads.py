@@ -1,27 +1,5 @@
-"""Repo-hygiene gate: every catalog validator's declared context requirements are exactly the
-call-path-dependent context its own body reads.
-
-Two fields of ``ValidatorContext`` depend on which call path built it — ``raw_text`` and
-``type_present`` — and ``ValidatorEngine.gate()`` carries neither. Before this gate existed the
-consequence was invisible: the gate handed those fields their empty values, every reader guarded
-itself into returning nothing, and a member that had been designed to sit the gate out looked
-exactly like one that had never been considered on it. One error-level member was in the second
-group, so it blocked no create or update on any door while its level said it would, and the
-engine carried a comment asserting that no such member existed.
-
-So the declaration is the mechanism and this is what holds it to the code:
-
-1. Those fields are read **only** inside catalog members (and inside the accessor that reports
-   which of them a context carries). A helper taking the context and reading one on a member's
-   behalf would put the read where the per-member scan below cannot see it, and the declaration
-   would go stale with nothing failing.
-2. Each member's declaration equals what its body reads. A member added tomorrow that reads the
-   item's text fails here until it says so — at which point the fact that it cannot gate is on
-   the record next to its registration, rather than three call frames away in a sentinel.
-
-Static, because the property is about what the code says rather than about one run of it: a
-behavioural test can only observe the members that happen to exist today.
-"""
+"""Repo-hygiene gate: every catalog validator's declared context requirements are exactly the call-
+path-dependent context its own body reads."""
 
 import ast
 from pathlib import Path

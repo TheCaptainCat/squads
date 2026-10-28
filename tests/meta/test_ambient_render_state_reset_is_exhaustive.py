@@ -1,91 +1,5 @@
-"""Durable enforcement that the CLI test harness resets *every* per-request ambient value a
-real process establishes fresh but a fixture can pre-seed as a side effect of its own setup.
-
-**Triage rule** (see ``squads._context``'s module docstring for the full statement): a
-module-level binding is either DATA (its value varies per request/squad/test — it belongs on
-the single ``RequestContext`` object) or CODE/definition (immutable, safe to share across every
-request). ``tests/meta/test_no_unallowlisted_module_level_mutable_state.py`` already enforces
-that split at the production-code level. This guard asks a narrower, harness-facing question:
-of the values that legitimately stay module-level, which ones are ambient per-request state a
-*fresh process* starts unset/empty, so that a fixture which builds a ``Service`` in-process
-(``project``/``svc``, via ``service.init``) can silently pre-seed it — the exact shape of the
-bug this whole task exists to close (see the bundled `squads` playbook's task/bug records for
-the mechanism, not repeated here). ``squads._rendering._engine._env_cache`` is a legitimate,
-correctly-allowlisted CODE cache by that first guard's own rule; it is keyed by the squad
-directory the renderer is handed, so with no ``ContextVar`` beside it it is no candidate here.
-
-The root callback (``squads._cli.__init__.main_callback``) is where a real process establishes
-its per-invocation ambient state. It binds one freshly-computed ``RequestContext`` — every
-field recomputed from this invocation's inputs, not merged into whatever was ambient — so
-anything living on that object is safe by construction (the sole deliberate exception,
-``clock_override``, is carried forward on purpose and is what ``frozen_time`` depends on). A
-per-request value living *outside* that binding is a candidate this guard must account for.
-
-Two constructs make a module-level binding such a candidate:
-
-1. a module-level ``ContextVar(...)`` declaration — DATA by definition, since a ``ContextVar``
-   only exists to vary per task/thread — unless it is exempted below with a reason (``ALLOWLIST``
-   the previous guard calls a "reason", this one calls it the same); a ``ContextVar`` set once at
-   construction and never restored is exactly the shape that leaks;
-2. any module-level mutable cache (dict/list/set literal, or a known mutable-factory call — the
-   same check ``test_no_unallowlisted_module_level_mutable_state.py`` runs) living in the *same
-   file* as a non-exempt ``ContextVar`` — presumed keyed off that ambient value.
-
-Diffed against ``RESET_TARGETS`` below — closed and enumerated to match today's tree exactly
-(empty: the renderer takes its squad directory as an argument) — so a candidate
-fails this guard until it is either exempted with a reason or added here
-*and* to ``tests/conftest.py``'s own ``_AMBIENT_RESET_TARGETS`` (checked separately below, so the
-registry describing the harness and the harness's actual reset code cannot silently drift apart).
-
-What construct 1 actually covers
---------------------------------
-The derivation is a syntactic AST match, not type inference, so its reach is worth stating
-exactly rather than as "any new ambient value". It is exhaustive over **names bound to a
-``ContextVar(...)`` call in the module's own namespace**:
-
-- under any spelling of the class — bare (``ContextVar(...)``), qualified
-  (``contextvars.ContextVar(...)``), or renamed on import
-  (``from contextvars import ContextVar as CV``);
-- at top level *or* nested in a module-scope ``if``/``try``/``with``/loop/``match`` block, in
-  any branch or handler — an optional-import ``try:`` or a version check binds in the module
-  namespace just the same;
-- through a single target, a chained ``a = b = ...``, or a tuple/list destructuring against a
-  literal sequence (``_a, _b = ContextVar(...), ContextVar(...)``).
-
-Function-local and class-body bindings are deliberately **outside** it: they are locals and
-class attributes, not module-level ambient state, and no harness reset could address them.
-
-Two shapes are outside it, and neither is a bug this guard should imply it catches:
-
-- **factory indirection** — ``_leak = _make_var("_leak")``, where the helper returns a
-  ``ContextVar``. The called name is the factory, and deciding that its return type is a
-  ``ContextVar`` needs type inference, which an ``ast`` match does not have. Nothing here
-  detects this shape; introducing one is a review question, not a guard question.
-- **a bare module-level cache in a file with no ``ContextVar``** — excluded by the
-  companion-cache rule of construct 2, by the judgment recorded immediately below.
-
-Construct 2's companion-cache rule is a judgment, stated either way
-------------------------------------------------------------------
-It stays a **companion heuristic**: a cache is a candidate here only when it shares a file with
-a non-exempt ``ContextVar``. The rule is a *proxy* for "keyed off ambient state", and the
-property it proxies for can hold with no ``ContextVar`` in the same module — a dict keyed by
-squad dir in a file that imports the active dir from elsewhere is ambient-keyed and would not be
-flagged here. That shape is the closest one to the original leak, so the control for it is named
-rather than assumed: ``tests/meta/test_no_unallowlisted_module_level_mutable_state.py`` reddens
-on any new module-level mutable binding under ``src/squads`` regardless of what else is in the
-file, and forces an ``ALLOWLIST`` entry carrying a written reason before it can go green.
-
-The residual gap, written down rather than papered over: that sibling guard routes the decision
-to a human answering **"is this CODE?"** — immutable, safe to share across requests — while the
-question that matters *here* is **"is this fixture-primable?"** — does an in-process fixture
-populate it as a side effect of its own setup. A template cache keyed off an ambient squad
-directory is the shape for which both can be true: a correctly-allowlisted CODE cache over there
-*and* a reset target over here. So a new bare ambient-keyed cache is never silent, but it can be
-allowlisted as CODE by someone who never considered the harness question — a wider construct 2
-(any module-level mutable cache, companion or not) would close that at the cost of making every
-sanctioned CODE cache in the tree a candidate needing an exemption here too. That trade was
-declined; if the allowlist reasons ever stop being read with this question in mind, revisit it.
-"""
+"""Durable enforcement that the CLI test harness resets *every* per-request ambient value a real
+process establishes fresh but a fixture can pre-seed as a side effect of its own setup."""
 
 import ast
 from collections.abc import Iterator, Sequence
@@ -121,8 +35,8 @@ CONTEXTVAR_EXEMPTIONS: dict[str, frozenset[str]] = {
 #: The closed set of ambient values a real `sq` process establishes fresh that
 #: tests/conftest.py's `invoke` fixture must reset per-call. Verified two ways below: against a
 #: static re-derivation from src/squads (this file must find no more, no less), and against
-#: tests/conftest.py's own `_AMBIENT_RESET_TARGETS` (the registry must describe what the harness
-#: actually does).
+#: tests/conftest.py's own `_AMBIENT_RESET_TARGETS` (the registry must describe what the
+#: harness actually does).
 RESET_TARGETS: dict[str, frozenset[str]] = {}
 
 
@@ -152,12 +66,10 @@ def _is_mutable_binding(value: ast.expr) -> bool:
 
 
 def _target_bindings(target: ast.expr, value: ast.expr) -> list[tuple[str, ast.expr]]:
-    """The (name, value) pairs one assignment *target* binds. A bare ``ast.Name`` binds the
-    whole value; a tuple/list target destructures elementwise against a tuple/list value
-    (``_a, _b = ContextVar(...), ContextVar(...)``), recursively, so each name is paired with
-    the expression it actually receives. A destructuring whose right-hand side is not a literal
-    sequence of matching length (``_a, _b = _make_pair()``, a starred target) binds nothing
-    this walk can attribute, so it yields no pair."""
+    """The (name, value) pairs one assignment *target* binds. A bare ``ast.Name`` binds the whole
+    value; a tuple/list target destructures elementwise against a tuple/list value (``_a, _b =
+    ContextVar(...), ContextVar(...)``), recursively, so each name is paired with the expression
+    it actually receives."""
     if isinstance(target, ast.Name):
         return [(target.id, value)]
     if (
@@ -191,13 +103,8 @@ def _module_scope_bindings(node: ast.stmt) -> list[tuple[str, ast.expr]]:
 def _module_scope_statements(body: Sequence[ast.stmt]) -> Iterator[ast.stmt]:
     """Every statement that executes in the module's own namespace, including ones nested in a
     module-level ``if``/``try``/``with``/loop/``match`` — a ``ContextVar`` declared under a
-    version check or an optional-import ``try:`` is every bit as module-level as a top-level
-    one, and iterating ``tree.body`` alone never sees it.
-
-    Deliberately *not* ``ast.walk``: that descends into function and class bodies too, where a
-    binding is a local or a class attribute rather than the module-level ambient state this
-    guard is about. ``FunctionDef``/``AsyncFunctionDef``/``ClassDef`` are simply absent from the
-    recursion below, so their bodies are yielded as statements but never entered."""
+    version check or an optional-import ``try:`` is every bit as module-level as a top-level one,
+    and iterating ``tree.body`` alone never sees it."""
     for node in body:
         yield node
         if isinstance(node, ast.If | ast.While | ast.For | ast.AsyncFor):
@@ -217,15 +124,7 @@ def _module_scope_statements(body: Sequence[ast.stmt]) -> Iterator[ast.stmt]:
 
 
 def _contextvar_aliases(tree: ast.Module) -> frozenset[str]:
-    """Every local name in *tree* that refers to ``contextvars.ContextVar``.
-
-    Always includes the plain spelling, which covers both ``ContextVar(...)`` after an ordinary
-    ``from contextvars import ContextVar`` and the qualified ``contextvars.ContextVar(...)``
-    form (``_call_target_name`` reports an attribute access by its final attribute). Any
-    ``as``-renaming of that import adds its local name, so ``from contextvars import ContextVar
-    as CV`` makes ``CV(...)`` recognised. Import statements are collected with ``ast.walk``
-    rather than the module-scope walk because an import nested inside a function only ever
-    *widens* the set of names treated as ``ContextVar`` — it cannot hide a declaration."""
+    """Every local name in *tree* that refers to ``contextvars.ContextVar``."""
     names = {"ContextVar"}
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom) and node.module == "contextvars":
@@ -339,7 +238,8 @@ def test_ambient_reset_targets_are_exhaustive_against_the_source_tree() -> None:
 def test_registered_reset_targets_match_what_conftest_actually_resets() -> None:
     declared_in_conftest = _read_ambient_reset_targets_from_conftest()
     assert declared_in_conftest == RESET_TARGETS, (
-        "tests/conftest.py's _AMBIENT_RESET_TARGETS has drifted from this guard's RESET_TARGETS "
+        "tests/conftest.py's _AMBIENT_RESET_TARGETS has drifted from this guard's "
+        "RESET_TARGETS "
         f"— keep them identical: {declared_in_conftest} != {RESET_TARGETS}"
     )
 
@@ -366,9 +266,7 @@ def test_the_wired_guard_reddens_on_a_planted_bare_contextvar_leak(tmp_path: Pat
 def test_the_wired_guard_pulls_in_a_companion_cache_sharing_the_leaking_contextvars_module(
     tmp_path: Path,
 ) -> None:
-    """The shape of a template cache keyed off an ambient squad directory: a plain module-level
-    dict living beside a leaking ContextVar, keyed off it — flagged as one candidate pair, not
-    just the ContextVar alone."""
+    """A module-level dict beside a leaking ContextVar is flagged as one candidate pair."""
     planted_root = tmp_path / "engine"
     planted_root.mkdir()
     (planted_root / "_leaky_module.py").write_text(
@@ -404,15 +302,7 @@ def test_an_exempted_contextvar_is_not_flagged_and_its_companion_cache_stays_cle
 def test_a_module_with_a_mutable_cache_and_no_contextvar_is_never_a_candidate(
     tmp_path: Path,
 ) -> None:
-    """A module-level cache is only a candidate when it shares a file with a leaking
-    ContextVar — an ordinary CODE cache (the common case the mutable-state guard already
-    allowlists on its own terms, e.g. a loaded-once catalog) is out of scope for this guard.
-
-    This pins the companion-cache judgment, not an oversight: a bare ambient-keyed cache in a
-    file with no ContextVar is not detected here, and the control for it is
-    test_no_unallowlisted_module_level_mutable_state.py, which reddens on any new module-level
-    mutable binding under src/squads. See this module's docstring for the residual gap that
-    leaves — that control asks "is this CODE?", not "is this fixture-primable?"."""
+    """A module-level cache is only a candidate when it shares a file with a leaking ContextVar."""
     planted_root = tmp_path / "engine"
     planted_root.mkdir()
     (planted_root / "_plain_cache_module.py").write_text("_cache: dict = {}\n", encoding="utf-8")
@@ -423,9 +313,7 @@ def test_a_module_with_a_mutable_cache_and_no_contextvar_is_never_a_candidate(
 
 
 def test_the_wired_guard_reddens_on_a_contextvar_imported_under_an_alias(tmp_path: Path) -> None:
-    """`from contextvars import ContextVar as CV` then `_leak = CV(...)`. The candidate test
-    matches the *called* name, so without alias resolution any renaming of the import defeats
-    it — the leak is identical, only its spelling differs."""
+    """`from contextvars import ContextVar as CV` then `_leak = CV(...)`."""
     planted_root = tmp_path / "engine"
     planted_root.mkdir()
     (planted_root / "_aliased_module.py").write_text(
@@ -442,9 +330,7 @@ def test_the_wired_guard_reddens_on_a_contextvar_imported_under_an_alias(tmp_pat
 def test_the_wired_guard_reddens_on_a_contextvar_declared_inside_a_module_level_try(
     tmp_path: Path,
 ) -> None:
-    """An optional-import `try:` at module level still binds in the module's own namespace, so
-    the value is ambient exactly as a top-level one is — but it lives in the `try` statement's
-    own body, which a `tree.body`-only walk never enters."""
+    """An optional-import `try:` at module level still binds in the module's own namespace."""
     planted_root = tmp_path / "engine"
     planted_root.mkdir()
     (planted_root / "_try_nested_module.py").write_text(
@@ -464,8 +350,7 @@ def test_the_wired_guard_reddens_on_a_contextvar_declared_inside_a_module_level_
 def test_the_wired_guard_reddens_on_a_contextvar_declared_inside_a_module_level_if(
     tmp_path: Path,
 ) -> None:
-    """Same nesting, under a version/platform check — including from the `else` branch, so the
-    walk cannot be satisfied by descending into `body` alone."""
+    """Same nesting, under a version/platform check — including from the `else` branch."""
     planted_root = tmp_path / "engine"
     planted_root.mkdir()
     (planted_root / "_if_nested_module.py").write_text(
@@ -484,10 +369,7 @@ def test_the_wired_guard_reddens_on_a_contextvar_declared_inside_a_module_level_
 
 
 def test_the_wired_guard_reddens_on_contextvars_bound_by_a_tuple_target(tmp_path: Path) -> None:
-    """`_a, _b = ContextVar(...), ContextVar(...)` binds two ambient values in one statement.
-    A target extractor that accepts only a single `ast.Name` returns nothing for it, so both
-    leak; destructuring elementwise pairs each name with the call it actually receives — note
-    `_not_a_leak`, which must stay out of the result."""
+    """`_a, _b = ContextVar(...), ContextVar(...)` binds two ambient values in one statement."""
     planted_root = tmp_path / "engine"
     planted_root.mkdir()
     (planted_root / "_tuple_target_module.py").write_text(
@@ -505,10 +387,7 @@ def test_the_wired_guard_reddens_on_contextvars_bound_by_a_tuple_target(tmp_path
 def test_a_contextvar_bound_in_a_function_or_class_body_is_not_module_level(
     tmp_path: Path,
 ) -> None:
-    """The boundary the nesting widening deliberately stops at, pinned so a later switch to a
-    bare `ast.walk` reddens here: a function-local binding and a class attribute are not the
-    module-level ambient state this guard accounts for, and flagging them would report names
-    that no harness reset could reach."""
+    """The boundary the nesting widening deliberately stops at, pinned."""
     planted_root = tmp_path / "engine"
     planted_root.mkdir()
     (planted_root / "_inner_scope_module.py").write_text(

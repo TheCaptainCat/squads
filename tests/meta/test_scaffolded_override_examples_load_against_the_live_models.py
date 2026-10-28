@@ -1,29 +1,17 @@
-"""Repo-hygiene gate: every worked example a ``sq override scaffold`` verb writes must still
-load against the models that are actually shipped.
-
-The scaffolded file is an adopter's *first contact* with the override mechanism, and it tells
-them to uncomment and edit to activate. The workflow example told them exactly that while
-declaring ``terminal = false`` on three statuses — a key ``StatusSpec`` had stopped having, and
-under ``extra="forbid"`` following the file's own instruction failed closed with a raw pydantic
-dump. One stale key, no test anywhere: the scaffold bodies are string constants, so nothing
-about a model change makes one of them fail, and nothing reads them except the adopter.
-
-So the examples are activated (comment prefix stripped inside the worked-example block) and run
-through the real loader for their document. A model field renamed or retired now reddens here
-instead of in the adopter's terminal.
-"""
+"""Repo-hygiene gate: every worked example a ``sq override scaffold`` verb writes must still load
+against the models that are actually shipped."""
 
 from pathlib import Path
 
 import pytest
 
-from _helpers import role_of
 from squads._interactions import _role_guidance as role_guidance
 from squads._interactions._loader import load_playbook
 from squads._language import WorkingLanguage
 from squads._overrides import _service as overrides
 from squads._workflow import bundled_spec
 from squads._workflow._loader import load_workflow_spec
+from tests._helpers import role_of
 
 #: The line that opens each scaffold's worked example, and the ruled line that closes it. Both
 #: are literal in the bodies; matching on them keeps the activator from touching the surrounding
@@ -75,9 +63,7 @@ def test_the_workflow_scaffolds_worked_example_builds_a_valid_spec(tmp_path) -> 
 
 
 def test_the_workflow_scaffolds_worked_example_declares_a_valid_view(tmp_path) -> None:
-    """The scaffold's ``[views]`` example must resolve against declared vocabulary the same
-    way the merged spec requires of any project-declared view — an example that failed this
-    would teach the adopter a shape ``sq workflow lint`` rejects on the very next run."""
+    """The scaffold's `[views]` example resolves against declared vocabulary."""
     activated = _activate_example(overrides._WORKFLOW_SCAFFOLD_BODY)
     assert "[views.related_incidents]" in activated, "the view example is missing"
     _write_override(tmp_path, "workflow.toml", activated)
@@ -94,12 +80,7 @@ def test_the_workflow_scaffolds_worked_example_declares_a_valid_view(tmp_path) -
 def test_the_workflow_scaffolds_worked_example_view_refuses_cleanly_without_a_template(
     tmp_path,
 ) -> None:
-    """Structural validity (the sibling test above) is not the same as usable end to end: the
-    scaffold's view example ships no presentation template, so rendering it is the one failure
-    ``load_workflow_spec`` can never see. The comment this scaffold now carries about needing
-    one exists because, before it did, an adopter who uncommented and rendered the example hit
-    a raw ``jinja2.TemplateNotFound`` traceback rather than a clean, actionable error — the
-    exact shape this asserts stays fixed."""
+    """Structural validity."""
     from squads import _clock as clock
     from squads import _views as views
     from squads._errors import SquadsError
@@ -136,9 +117,7 @@ def test_the_workflow_scaffolds_worked_example_view_refuses_cleanly_without_a_te
 def test_the_workflow_scaffolds_example_demonstrates_the_field_that_drives_status_behaviour(
     tmp_path,
 ) -> None:
-    """Not a style point. ``role`` is the field every status behaviour resolves through —
-    settled, hidden, colour, live — so an example that declares statuses without one teaches
-    the adopter to leave every custom status on the fallback role by omission."""
+    """Not a style point."""
     activated = _activate_example(overrides._WORKFLOW_SCAFFOLD_BODY)
     _write_override(tmp_path, "workflow.toml", activated)
 

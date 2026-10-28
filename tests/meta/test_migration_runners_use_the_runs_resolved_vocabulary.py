@@ -1,17 +1,7 @@
-"""Every migration runner reaches the index, and every other vocabulary question, under the
-one spec and playbook the run resolved: no runner opens an ``IndexStore`` without a real
-``spec=`` (it would validate under the bundled vocabulary instead of the squad's own), and none
-resolves or fetches a spec or playbook for itself.
-
-A static, name-based scan over ``src/squads/_migrations/`` (recursively). It flags an
-``IndexStore(...)`` call whose ``spec`` is missing or a literal ``None``, any use of
-``IndexStore`` other than calling it directly, any reference to a resolver or bundled-vocabulary
-entry point, and follows ``import ... as`` and plain rebinding of those names. It does not follow
-data flow: a helper with an optional ``spec`` default, a spec reached through an unlisted helper
-or a ``getattr`` is invisible to it, and the behavioural table in
-``tests/integration/test_migrate_up_under_the_resolved_vocabulary.py`` is what covers the
-existing runners. The one exemption is the single ``bundled_spec`` call in ``_meta_compat.py``.
-"""
+"""Every migration runner reaches the index, and every other vocabulary question, under the one spec
+and playbook the run resolved: no runner opens an ``IndexStore`` without a real ``spec=`` (it
+would validate under the bundled vocabulary instead of the squad's own), and none resolves or
+fetches a spec or playbook for itself."""
 
 import ast
 from pathlib import Path

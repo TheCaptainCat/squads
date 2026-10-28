@@ -1,21 +1,6 @@
-"""Every check finding under ``src`` is built with a ``rule`` that is a validator-catalog name or
-a registered binding rule, so a finding is always matchable by its rule rather than by its
-message text.
-
-Static, because the property is about what each construction site says: a site no suite input
-reaches would still ship an unregistered rule. A construction is a call to ``CheckIssue`` however
-the module spells it (plain, aliased on import, or as an attribute), a call to the override
-service's ``_issue``, or a ``replace(...)`` that sets ``rule=``; ``partial(CheckIssue, ...)`` is
-refused outright because it hides the rule from the call site. The rule must be a string literal
-(or a conditional between two), with one exception, ``check``, which forwards the override
-findings' rules. Which binding rule each non-catalog site files under is pinned by the per-source
-``--json`` table, not here.
-
-Two shapes cannot be read from a call site and are pinned by name instead. Inside a catalog
-member's function the rule must be that member's name. A helper outside a member that files
-under a catalog name must be listed in ``_HELPERS`` with that name, and may be called only from
-the member of the same name or from outside the catalog members.
-"""
+"""Every check finding under ``src`` is built with a ``rule`` that is a validator-catalog name or a
+registered binding rule, so a finding is always matchable by its rule rather than by its message
+text."""
 
 import ast
 from dataclasses import dataclass, field

@@ -1,18 +1,5 @@
-"""Source prose never names a release version under ``src/squads/``, outside ``_migrations/``
-where a runner legitimately names the release it belongs to. Four shapes count as a release
-version: a ``v``-prefixed number (``v1.2``), a three-part number (``0.4.0``) or one ending in
-``.x`` (``0.15.x``), and a two-part number right after ``squads``, ``release``, ``schema``,
-``since`` or ``until``, optionally with a comparison operator between (``schema < 0.4``).
-Prose is every
-comment, every docstring (module, class, function) and every bare string statement, which is how
-an attribute is documented. Docstrings are read whole with whitespace collapsed, so a version
-wrapped across a line break is still seen.
-
-Plain measurements and format versions ("0.5 of the rows", "in 2.5 seconds", "TOML version 1.0")
-are not versions and do not match. The guard deliberately does not catch a bare two-part number
-that names a release only by context, after "in", "from", "after" or "on" ("added in 0.15", "the
-1.2 release"); review catches those.
-"""
+"""Source prose never names a release version under ``src/squads/``, outside ``_migrations/`` where
+a runner legitimately names the release it belongs to."""
 
 import ast
 import io

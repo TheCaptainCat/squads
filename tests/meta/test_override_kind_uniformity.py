@@ -1,29 +1,7 @@
-"""Repo-hygiene gate: every override kind wires all five parts of the uniform severity
-contract for a shadowing override — a manifest entry for its bundled counterpart, a state
-classifier, a stamp-obligation finding, both diff deltas (Δ-mine, Δ-upgrade), and CLI
-reachability for its ``scaffold``/``diff``/``update`` verbs.
-
-In the shape of the routing guard that already exists
-(``test_every_override_document_merges_through_the_shared_engine.py``), but driven rather than
-structural: the first four elements are exercised against a real scratch squad through the
-service-layer entry points every ``sq override`` command eventually calls (``scan_overrides``,
-``check_override_issues``, ``diff_override``); the fifth is exercised one layer up, through the
-actual CLI runner, because a kind can satisfy every one of those service entry points and still
-be unreachable from the command line — the argument-parsing/routing layer above them is a
-separate surface with its own per-kind branches, and nothing below it can see a gap in it.
-
-Not hypothetical: the ``roles`` kind — the fifth override kind — has at various points had a
-manifest entry, a state classifier and both diff deltas while missing a stamp-obligation
-finding, and separately has had all four service-level parts while its CLI verbs fell through
-to the ``template`` kind's branch and named the wrong kind in every error. Both gaps were
-silent under a guard that either hand-enumerated the kind set or never looked past the service
-layer.
-
-The kind set itself is not hand-maintained: it is derived at run time from
-``scan_overrides`` (see ``test_the_kind_set_is_derived_from_scan_overrides`` below), so a kind
-wired into the service dispatchers and nowhere else is *seen* by this file by existing, not by
-someone remembering to add a row.
-"""
+"""Repo-hygiene gate: every override kind wires all five parts of the uniform severity contract for
+a shadowing override — a manifest entry for its bundled counterpart, a state classifier, a stamp-
+obligation finding, both diff deltas (Δ-mine, Δ-upgrade), and CLI reachability for its
+``scaffold``/``diff``/``update`` verbs."""
 
 import inspect
 import re
@@ -33,7 +11,6 @@ from typing import Protocol
 
 import pytest
 
-from _helpers import catalog_of
 from squads import __version__
 from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME
 from squads._overrides import _service as override_service
@@ -48,6 +25,7 @@ from squads._overrides._service import STATE_DRIFTED, OverrideEntry
 from squads._overrides._stamp import stamp_template_file, stamp_toml_file
 from squads._roles._loader import ROLES_OVERRIDE_FILENAME
 from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
+from tests._helpers import catalog_of
 
 pytestmark = pytest.mark.anyio
 
@@ -320,15 +298,8 @@ async def _cli_reachability_gap(
 
 
 async def _uniformity_gaps(kind: str, fixture: _KindFixture, squad_dir: Path, invoke) -> list[str]:
-    """Everything wrong with *kind*'s wiring, driven against *squad_dir* -- empty when every
-    one of the five parts is present. Elements 1-4 go through the service-layer dispatch every
-    ``sq override`` command eventually calls (``override_service.scan_overrides`` /
-    ``.check_override_issues`` / ``.diff_override``), called through the module object rather
-    than an imported name, so the removal tests below can monkeypatch the dispatcher itself and
-    have this function see it. Element 5 (CLI reachability) drives the actual CLI runner instead
-    -- the routing layer above those service entry points, and the one where a kind can pass
-    every service-level check while still being unreachable by anything a human would type.
-    """
+    """Everything wrong with *kind*'s wiring, driven against *squad_dir* -- empty when every one of
+    the five parts is present."""
     gaps: list[str] = []
 
     # 1. Manifest entry.
@@ -402,13 +373,7 @@ async def test_every_registered_kind_wires_all_five_parts(project, invoke) -> No
 
 
 async def test_the_kind_set_is_derived_from_scan_overrides(project, invoke) -> None:
-    """The kind set this file must cover is not a second hand-written list -- it is read back
-    from ``scan_overrides`` itself, against a squad carrying one override of every kind. A kind
-    wired into ``scan_overrides`` (i.e. an override kind at all) with no row in
-    ``_KIND_FIXTURES`` is wired into the service and nowhere else covered by this file; a row
-    with no matching scanned entry means that fixture's placement no longer produces a
-    scannable override. Either way the mismatch names which side is wrong, not just that they
-    differ."""
+    """The kind set this file must cover is not a second hand-written list."""
     squad_dir = project.squad_dir
     for fixture in _KIND_FIXTURES.values():
         fixture.place_shadowing(squad_dir)
@@ -427,11 +392,7 @@ async def test_the_kind_set_is_derived_from_scan_overrides(project, invoke) -> N
 
 
 def test_the_registry_covers_every_kind_the_docstring_names() -> None:
-    """A documentation-accuracy check, not the registry (the kind set above is derived, not
-    pinned here): ``OverrideEntry.kind``'s docstring comment (the ``name``/``kind`` field
-    comments directly above ``kind: str``) is prose naming the same five kinds, and prose goes
-    stale silently -- this keeps it matching the derived set so a kind added to the code and
-    left undocumented there is caught."""
+    """A documentation-accuracy check, not the registry (the kind set above is derived."""
     source = inspect.getsource(OverrideEntry)
     comment_block = source.split("kind: str")[0]
     named_in_docstring = set(re.findall(r'"([a-z-]+)"', comment_block))

@@ -1,18 +1,7 @@
-"""Repo-hygiene gate: ``squads._workflow._models.RESERVED_CLI_VERBS`` — the fixed set of
-top-level CLI command names a declared item type's own name/alias is refused for colliding
-with (``_check_item_refs``) — must stay in lockstep with the actual registered command table
-in ``squads._cli``.
-
-``_workflow`` sits below ``_cli`` in the module layering (`_cli → _services → _models`/
-`_workflow`), so the reserved set cannot be derived live at validation time without an import
-cycle; it is maintained by hand instead (see the constant's own docstring). This test is the
-guard against that drift: it builds the real Typer app, subtracts every name that is an item
-type or item-type alias from the *bundled* spec (those are expected/legitimate — a bundled
-type's own command IS the type, not a collision with something else), and asserts what is left
-matches the constant exactly in both directions — a new built-in top-level command added to
-``_cli/`` without updating the constant fails here, and a stale entry naming a since-removed
-command fails here too.
-"""
+"""Repo-hygiene gate: ``squads._workflow._models.RESERVED_CLI_VERBS`` — the fixed set of top-level
+CLI command names a declared item type's own name/alias is refused for colliding with
+(``_check_item_refs``) — must stay in lockstep with the actual registered command table in
+``squads._cli``."""
 
 import typer.main
 

@@ -1,7 +1,14 @@
-"""Layer-scoped fixtures for tests/cli/ only.
+"""Fixtures for tests/cli/ only; the shared ones (`project`, `seeded_project`, `copy_squad`,
+`runner`, `invoke`, the frozen clock and the leak guards) live in tests/conftest.py."""
 
-Cross-layer fixtures (frozen_time, project, svc, runner, invoke, the autouse leak-guards) live in
-the root tests/conftest.py and are already visible here via pytest's normal conftest inheritance
-— nothing needs re-importing. Add a fixture here only when it is cli-layer-specific, per
-tests/CONVENTIONS.md. Empty for now.
-"""
+import pytest
+
+from squads._paths import SquadPaths
+from tests.cli._populated import init_populated
+
+
+@pytest.fixture
+def populated_project(copy_squad) -> SquadPaths:
+    """A fresh copy of the squad with a feature and its stories, a task and its subtasks, and a
+    review and its findings, as the working directory."""
+    return copy_squad("populated", init_populated)

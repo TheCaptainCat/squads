@@ -1,23 +1,5 @@
-"""Repo-hygiene gate: ``squads._index._reflog.REFLOG_OPS`` is the *only* enumeration of the
-reflog's ``op`` vocabulary, and it is complete.
-
-The vocabulary used to be written out by hand in three places — the ``_reflog`` module
-docstring, ``sq reflog --op``'s help text, and the workflow guide's op table. All three were
-incomplete, in different ways, and their union still missed an op that had shipped. Two lists
-that must agree are the defect; the mismatch is only the symptom. So:
-
-* ``--op``'s help text now interpolates the constant and the module docstring points at it
-  rather than restating it — those copies are gone by construction, not by discipline.
-* The doc table is prose an adopter reads, so it keeps its per-op "triggered by" column and is
-  pinned here instead.
-* The constant itself is pinned against the source, because a ``store.log(...)`` op is a bare
-  string literal at arbitrary depth in ``_services/`` with no import-time registry to read.
-  The AST scan below is what lets the docstring keep calling the vocabulary *closed*.
-
-Both emitter shapes are scanned: the buffered ``self.store.log("<op>", target, delta)`` used
-inside a transaction, and the direct ``append_line(..., op="<op>", …)`` the three squad-level
-maintenance ops use because they write outside one.
-"""
+"""Repo-hygiene gate: ``squads._index._reflog.REFLOG_OPS`` is the *only* enumeration of the reflog's
+``op`` vocabulary, and it is complete."""
 
 import ast
 import re
@@ -98,8 +80,7 @@ def test_the_workflow_guide_op_table_covers_the_whole_vocabulary() -> None:
 
 
 def test_the_op_help_text_names_every_op() -> None:
-    """``sq reflog --op``'s help is generated from the constant, so this only has to prove the
-    generation is still wired up — a reverted f-string would show up as a missing op here."""
+    """``sq reflog --op``'s help is generated from the constant."""
     import typer.main
 
     from squads._cli import app

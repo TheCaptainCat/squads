@@ -74,8 +74,7 @@ def _consumer_sites(cli_root: Path) -> set[tuple[str, str]]:
 
 
 def test_the_ast_scan_finds_a_read_a_raw_substring_grep_would_miss() -> None:
-    """An AST walk finds a dotted attribute access wrapped across a line break, which a raw
-    substring grep would miss."""
+    """An AST walk finds a dotted attribute access wrapped across a line break."""
     adversarial = "def h() -> None:\n    x = (result\n        .skipped)\n"
     assert "result.skipped" not in adversarial, (
         "fixture no longer demonstrates a raw substring false zero"

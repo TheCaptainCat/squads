@@ -1,19 +1,5 @@
-"""The override provenance manifest + content store mechanics:
-the shipped index carries a current-version hash for every overridable bundled artifact — the
-24 bundled templates plus workflow.toml, roles.toml, playbook.toml (the manifest-freshness
-guard — an artifact edit without re-running the generator script fails loudly, not silently) —
-`artifact_changed_since` is content-gated and version-aware, the template/TOML stamp comment
-round-trips insert-vs-replace, and the retention guards (every index-named
-hash resolves in the store, every stored blob is referenced, the store stays under its in-wheel
-compressed ceiling) hold for the shipped documents. `sq override` command behaviour lives in
-tests/integration/test_override_scaffold_scan_diff_update_and_check.py.
-
-The ground-truth-rebuild section near the bottom drives ``scripts/gen_template_manifest.py``
-(its write mode and ``--check``) and ``scripts/seed_content_store.py`` (its ``--rebuild``)
-against a copied tree, the same way ``tests/meta/test_release_version_bump_script.py`` drives
-``scripts/bump_version.py`` — by extending ``sys.path`` and importing the script modules
-directly, since ``scripts/`` sits outside both pytest's ``testpaths`` and pyright's ``include``.
-"""
+"""The override provenance manifest and content store: freshness of every overridable artifact's
+hash, version-aware change detection, stamp round-trips, and the store's retention guards."""
 
 import hashlib
 import importlib
@@ -118,20 +104,7 @@ def test_the_index_has_a_current_version_hash_for_every_overridable_bundled_arti
 def test_a_content_only_edit_with_no_regeneration_is_caught(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Drives the exact state a template edit that forgets to re-run
-    ``scripts/gen_template_manifest.py`` leaves behind: the running version's manifest entry
-    still names an *earlier* release's hash for one key, while the artifact itself (read fresh
-    by :func:`current_artifact_hash`, untouched by this probe) is whatever is actually
-    installed. Presence stays intact — only the recorded hash is wrong — so this is exactly
-    the case the ``missing``/``extra`` sets above cannot see and only the restored
-    ``mismatched`` assertion catches — the case a manifest-widening pass silently dropped,
-    leaving this module's own docstring promise (an artifact edit without re-running the
-    generator script fails loudly, not silently) unmet until this assertion was restored.
-
-    The control below — the same key deleted from the entry outright — is caught by the
-    ``missing`` set instead, proving this probe is sound rather than the assertion being
-    vacuously satisfied some other way.
-    """
+    """A manifest entry naming an earlier release's hash for one key is reported as drift."""
     invalidate_cache()
     real_manifest = _load_manifest()
     victim = template_key("items/task.md.j2")
@@ -173,8 +146,7 @@ def test_template_changed_since_is_false_for_the_current_and_for_an_unknown_vers
 
 
 def test_artifact_changed_since_is_content_gated_for_every_kind() -> None:
-    """The generalized resolver underlies the drift check for every kind alike:
-    unknown history is silent, and the running version is never drifted from itself."""
+    """Unknown history is silent and the running version is never drifted from itself."""
     invalidate_cache()
     for key in (WORKFLOW_KEY, ROLES_KEY, PLAYBOOK_KEY):
         assert not artifact_changed_since(key, __version__)
@@ -209,8 +181,7 @@ def test_toml_stamp_comment_round_trips_insert_then_replace() -> None:
 
 
 def test_every_index_named_hash_resolves_in_the_store() -> None:
-    """The retention promise itself: every ``(version, artifact)`` pair the
-    index names, for every release it covers, resolves to bytes in the store."""
+    """The retention promise itself: every ``(version, artifact)`` pair the index names."""
     invalidate_cache()
     manifest = _load_manifest()
     store = _load_store()
@@ -224,11 +195,7 @@ def test_every_index_named_hash_resolves_in_the_store() -> None:
 
 
 def test_every_stored_blob_is_referenced_by_at_least_one_index_entry() -> None:
-    """Not an invariant the generator's write mode maintains — it never deletes, so it can
-    leave an orphan behind as ordinary development residue (exercised directly below). This
-    holds for the *shipped* documents because a release rebuilds the store from ground truth
-    (``scripts/seed_content_store.py --rebuild``) before the tag, which drops what write mode
-    alone would have left behind."""
+    """Not an invariant the generator's write mode maintains — it never deletes."""
     invalidate_cache()
     manifest = _load_manifest()
     store = _load_store()
@@ -238,8 +205,7 @@ def test_every_stored_blob_is_referenced_by_at_least_one_index_entry() -> None:
 
 
 def test_the_content_store_stays_under_its_in_wheel_compressed_ceiling() -> None:
-    """The 256 KB compressed-in-wheel ceiling, approximated with the same deflate
-    algorithm a zip member uses (``zlib`` at the max compression level)."""
+    """The 256 KB compressed-in-wheel ceiling."""
     ref = pkg_resources.files("squads._rendering") / "content_store.json"
     raw = ref.read_bytes()
     compressed = len(zlib.compress(raw, level=9))
@@ -250,8 +216,7 @@ def test_the_content_store_stays_under_its_in_wheel_compressed_ceiling() -> None
 
 
 def test_the_store_covers_every_release_the_index_covers_from_its_own_floor() -> None:
-    """Full retention: the store's version coverage matches the index's, back to
-    the index's own floor (0.4.0) — no version the index names is a gap in the store."""
+    """Full retention: the store's version coverage matches the index's."""
     invalidate_cache()
     versions = known_index_versions()
     assert versions, "index has no versions at all"
@@ -265,9 +230,7 @@ def test_the_store_covers_every_release_the_index_covers_from_its_own_floor() ->
 
 
 def test_a_spec_document_has_a_later_artifact_floor_than_a_template() -> None:
-    """``roles.toml``/``workflow.toml``/``playbook.toml`` were introduced partway through the
-    index's history (v0.13.0), so their own floor is later than a template overridable since
-    the index's own floor — this is exactly the "index did not then cover" case."""
+    """A document introduced after the index's floor has its own later floor."""
     invalidate_cache()
     templates_floor = artifact_floor(template_key("items/task.md.j2"))
     workflow_floor = artifact_floor(WORKFLOW_KEY)
@@ -279,10 +242,7 @@ def test_a_spec_document_has_a_later_artifact_floor_than_a_template() -> None:
 
 
 def test_regenerating_the_manifest_twice_at_the_same_version_is_stable() -> None:
-    """Re-running the generator at an unchanged version replaces the index entry
-    (a no-op when content is unchanged) and leaves the store byte-identical — nothing gained,
-    nothing lost. Exercised at the JSON-document level (not by invoking the release script) so
-    the test stays hermetic; the two writers share the same shipped documents as ground truth."""
+    """Re-running the generator at an unchanged version replaces the index entry."""
     invalidate_cache()
     manifest = json.loads(
         (pkg_resources.files("squads._rendering") / "templates_manifest.json").read_text(
@@ -315,24 +275,11 @@ def test_regenerating_the_manifest_twice_at_the_same_version_is_stable() -> None
 def rebuild_tree(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> Callable[[str], types.SimpleNamespace]:
-    """Factory: a copy of the real templates, spec TOMLs, and the *shipped* index + store,
-    wired to fresh imports of both ``scripts/gen_template_manifest`` (its write mode and
-    ``--check``) and ``scripts/seed_content_store`` (its ``--rebuild``), with their document
-    path constants monkeypatched onto the copy — so a run drives the real scripts against
-    isolated documents (multi-release history included) with the repo's own documents left
-    untouched. ``seed_content_store``'s git-reading calls are left pointed at the real
-    repository root, so a historic version's tag still resolves against real release history;
-    only the document paths and the disk-tree root for the running version move.
-
-    The one entry that would always be untagged noise here — the repository's own real running
-    version, copied verbatim into the index like every other entry — is dropped from the copy,
-    since it represents nothing about whatever synthetic version an individual test chooses.
-
-    Call the returned factory with the desired ``[project].version`` for the test. **The
-    version must differ from the repository's own** — the factory asserts this itself, so a
-    future accidental fallback to the running version fails loudly instead of quietly
-    exercising only the half of the argument that was always true.
-    """
+    """Factory: a copy of the real templates, spec TOMLs, and the *shipped* index + store, wired to
+    fresh imports of both ``scripts/gen_template_manifest`` (its write mode and ``--check``) and
+    ``scripts/seed_content_store`` (its ``--rebuild``), with their document path constants
+    monkeypatched onto the copy — so a run drives the real scripts against isolated documents
+    (multi-release history included) with the repo's own documents left untouched."""
     repo_root = _SCRIPTS_DIR.parent
     squads_root = repo_root / "src" / "squads"
 
@@ -400,8 +347,7 @@ def _run_write_mode(gen: types.ModuleType) -> str:
 def test_rebuild_tree_asserts_its_version_differs_from_the_repository(
     rebuild_tree: Callable[[str], types.SimpleNamespace],
 ) -> None:
-    """The fixture's own non-vacuity guarantee: calling it with the repository's own version
-    must fail loudly, not silently fall back and let every test built on it pass vacuously."""
+    """The fixture fails loudly when called with the repository's own version."""
     with pytest.raises(AssertionError, match="must differ from the repository's own"):
         rebuild_tree(__version__)
 
@@ -409,9 +355,7 @@ def test_rebuild_tree_asserts_its_version_differs_from_the_repository(
 def test_editing_and_regenerating_twice_leaves_the_orphan_unswept(
     rebuild_tree: Callable[[str], types.SimpleNamespace],
 ) -> None:
-    """Write mode never deletes: two regenerations of the same template at the same version
-    leave the first edit's blob in the store with nothing referencing it — ordinary development
-    residue, not a defect — while every index-named hash still resolves."""
+    """Write mode never deletes: a superseded blob stays while every index-named hash resolves."""
     built = rebuild_tree("9.9.9")
     gen = built.gen
     victim = gen._TEMPLATES_DIR / "agents" / "role.md.j2"
@@ -473,13 +417,12 @@ def test_deleting_a_bundled_artifact_and_regenerating_keeps_history_and_never_sw
 def test_write_mode_never_removes_a_blob_only_a_historic_entry_names(
     rebuild_tree: Callable[[str], types.SimpleNamespace],
 ) -> None:
-    """A hash the *current* version's entry does not name at all, while an older entry does,
-    must survive a write-mode run at that unreleased version. Write mode has no removal path at
-    all, so this must hold unconditionally: no run at an unreleased version may cost a blob an
-    older entry still names."""
+    """A hash the *current* version's entry does not name at all, while an older entry does."""
     built = rebuild_tree("9.9.9")
     gen = built.gen
-    manifest_before, store_before = _docs(gen)  # "9.9.9" has no entry yet — this is its first run
+    manifest_before, store_before = _docs(
+        gen
+    )  # the far-future version has no entry yet: its first run
 
     current_tree_hashes = {h for h, _text in gen._collect_current_tree().values()}
     historic_only_hash = next(
@@ -490,7 +433,9 @@ def test_write_mode_never_removes_a_blob_only_a_historic_entry_names(
     )
     assert historic_only_hash in store_before
 
-    _run_write_mode(gen)  # v9.9.9's first write-mode run — no historic entry is touched
+    _run_write_mode(
+        gen
+    )  # first write-mode run of the far-future version: no historic entry is touched
 
     _manifest, store = _docs(gen)
     assert historic_only_hash in store, "a blob only a historic entry names was removed"
@@ -499,11 +444,7 @@ def test_write_mode_never_removes_a_blob_only_a_historic_entry_names(
 def test_regenerating_at_an_already_indexed_version_keeps_its_prior_hashes(
     rebuild_tree: Callable[[str], types.SimpleNamespace],
 ) -> None:
-    """The exact scenario the withdrawn sweep got wrong: ``[project].version`` names a release
-    the index already carries, and the current tree's hashes differ from what is recorded for
-    it. Write mode still wholesale-replaces the entry (unchanged, sanctioned semantics) — but
-    every hash the *prior* entry named must still resolve in the store afterward. Every earlier
-    sweep test ran at the repository's own unreleased version and so could never reach this."""
+    """A version the index already carries, with differing current hashes, is reported."""
     built = rebuild_tree("0.9.0")
     gen = built.gen
     manifest_before, _store_before = _docs(gen)
@@ -523,21 +464,8 @@ def test_regenerating_at_an_already_indexed_version_keeps_its_prior_hashes(
 def test_seed_content_store_rebuild_prefers_the_tag_even_when_it_is_also_the_running_version(
     rebuild_tree: Callable[[str], types.SimpleNamespace],
 ) -> None:
-    """The critical case: a version that is BOTH already tagged AND the one
-    ``[project].version`` currently names — the state a release enters the moment its tag is
-    cut and stays in until the next bump. Publication, not "is this the running version", is
-    the discriminator: a tagged version is sourced from its own tag regardless of whether it is
-    also pinned as running, so the shipped blob must survive and the tag must win even though
-    no version is ever moved off it.
-
-    Driven end to end: pin the version to an already-shipped, already-tagged release and
-    regenerate — the mis-ordered regeneration, which now corrupts only the index entry (nothing
-    is deleted, the sweep is withdrawn) — then run the rebuild *without moving the version away
-    from the damaged release first*, and assert the damaged entry is corrected back to what its
-    tag actually ships, the shipped blob is still in the store, and the whole index resolves.
-    A tag that wins only while the running version happens to differ from it is not
-    publication-based discrimination at all, and this is the case that separates the two."""
-    built = rebuild_tree("0.9.0")  # 0.9.0 is a real, already-tagged release
+    """A version already tagged and also named by the project is checked against its entry."""
+    built = rebuild_tree("0.9.0")  # a real, already-tagged release
     gen, seed = built.gen, built.seed
 
     real_manifest = json.loads(
@@ -548,11 +476,11 @@ def test_seed_content_store_rebuild_prefers_the_tag_even_when_it_is_also_the_run
     assert real_manifest.get("0.9.0"), "fixture assumption: 0.9.0 is a real shipped entry"
     shipped_hashes = set(real_manifest["0.9.0"].values())
 
-    _run_write_mode(gen)  # the damage: 0.9.0's entry now reflects the *current* tree, not v0.9.0
+    _run_write_mode(gen)  # the damage: the tagged release's entry now reflects the current tree
     manifest_damaged, _store_damaged = _docs(gen)
     assert manifest_damaged["0.9.0"] != real_manifest["0.9.0"], "fixture setup: damage did not take"
 
-    # [project].version is still "0.9.0" here: the rebuild must correct the entry without the
+    # [project].version still names the tagged release: the rebuild must correct the entry
     # version being moved off the damaged release first.
     seed._rebuild_mode()
 
@@ -573,10 +501,7 @@ def test_seed_content_store_rebuild_prefers_the_tag_even_when_it_is_also_the_run
 def test_seed_content_store_rebuild_refuses_and_writes_nothing_for_an_untagged_version(
     rebuild_tree: Callable[[str], types.SimpleNamespace], capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """All-or-nothing, driven on a version whose tag is absent: the rebuild refuses rather than
-    silently dropping that version's history, names the version, points at ``git fetch --tags``
-    first, and — because it is all-or-nothing — writes nothing at all, not even the versions it
-    could have resolved."""
+    """All-or-nothing."""
     built = rebuild_tree("9.9.9")
     gen, seed = built.gen, built.seed
     _run_write_mode(gen)
@@ -606,11 +531,7 @@ def test_seed_content_store_rebuild_refuses_when_a_tag_resolves_but_lacks_an_art
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """The second all-or-nothing floor: a tag that exists locally but whose listing comes back
-    without the templates the index still records for it (a moved or emptied tag, a broken
-    ``git ls-tree``) must refuse exactly like a missing tag — never silently narrow that entry
-    to whatever it could find. Only one tag's listing is faked; every other version still
-    resolves against real release history, so this isolates the one broken tag."""
+    """The second all-or-nothing floor: a tag that exists locally."""
     built = rebuild_tree("9.9.9")
     gen, seed = built.gen, built.seed
     manifest_before, store_before = _docs(gen)
@@ -645,13 +566,12 @@ def test_seed_content_store_rebuild_refuses_when_a_tag_resolves_but_lacks_an_art
 def test_check_mode_fails_for_a_hash_missing_from_a_historic_entry(
     rebuild_tree: Callable[[str], types.SimpleNamespace], capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """The whole-index widening's own regression test: a hash missing from a *historic*
-    entry's store coverage — not the running version's — must fail ``--check``. Before the
-    widening this was invisible: ``--check`` verified store coverage for the running version's
-    own entry alone."""
+    """A hash missing from a historic entry's store coverage fails `--check`."""
     built = rebuild_tree("9.9.9")
     gen = built.gen
-    _run_write_mode(gen)  # gives v9.9.9 a fresh entry so `version in manifest` holds
+    _run_write_mode(
+        gen
+    )  # gives the far-future version a fresh entry so `version in manifest` holds
 
     manifest, store = _docs(gen)
     historic_version = next(v for v in manifest if v != "9.9.9")
@@ -669,9 +589,7 @@ def test_check_mode_fails_for_a_hash_missing_from_a_historic_entry(
 def test_check_mode_reports_an_orphan_without_failing_and_writes_nothing(
     rebuild_tree: Callable[[str], types.SimpleNamespace], capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """An ordinary ``--check`` reports an orphan but does not fail over it — between releases
-    an orphan is ordinary development residue the next rebuild clears — and still writes
-    nothing, exactly like every other ``--check`` outcome."""
+    """An ordinary ``--check`` reports an orphan but does not fail over it."""
     built = rebuild_tree("9.9.9")
     gen = built.gen
     _run_write_mode(gen)
@@ -695,9 +613,7 @@ def test_check_mode_reports_an_orphan_without_failing_and_writes_nothing(
 def test_release_gate_fails_on_an_orphan_and_still_writes_nothing(
     rebuild_tree: Callable[[str], types.SimpleNamespace], capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """The failure the ordinary check no longer performs moves here: ``--release-gate`` fails
-    on the same orphan an ordinary ``--check`` only reports — and, like every ``--check``
-    outcome, still writes nothing."""
+    """`--release-gate` fails on an orphan that `--check` only reports, and writes nothing."""
     built = rebuild_tree("9.9.9")
     gen = built.gen
     _run_write_mode(gen)
@@ -730,8 +646,7 @@ def _restored_and_dropped(reported: str) -> tuple[int, int]:
 def test_rebuild_reports_a_restore_only_run_as_restored_not_zero_dropped(
     rebuild_tree: Callable[[str], types.SimpleNamespace], capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """A run that only re-inserts a blob the closure still needs — recovery's headline case —
-    must report it as a restore, never as ``0 dropped`` reading as "nothing happened"."""
+    """A run that only re-inserts a blob the closure still needs — recovery's headline case."""
     built = rebuild_tree("9.9.9")
     gen, seed = built.gen, built.seed
     _run_write_mode(gen)
@@ -750,8 +665,7 @@ def test_rebuild_reports_a_restore_only_run_as_restored_not_zero_dropped(
 def test_rebuild_reports_a_drop_only_run_as_dropped_not_restored(
     rebuild_tree: Callable[[str], types.SimpleNamespace], capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """A run that only drops an orphan outside the closure must report it as a drop, with the
-    restore count at zero — the mirror of the restore-only case above."""
+    """A run that only drops an orphan outside the closure must report it as a drop."""
     built = rebuild_tree("9.9.9")
     gen, seed = built.gen, built.seed
     _run_write_mode(gen)
@@ -768,9 +682,7 @@ def test_rebuild_reports_a_drop_only_run_as_dropped_not_restored(
 def test_rebuild_reports_a_restore_and_a_drop_in_the_same_run_as_two_separate_counts(
     rebuild_tree: Callable[[str], types.SimpleNamespace], capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """A shipped release's blob restored and a stale orphan dropped in the same run. A net size
-    delta would print ``0 dropped`` here — the two changes cancel exactly — and read as though
-    nothing happened; set-based counting must report both independently."""
+    """A shipped release's blob restored and a stale orphan dropped in the same run."""
     built = rebuild_tree("9.9.9")
     gen, seed = built.gen, built.seed
     _run_write_mode(gen)
@@ -808,10 +720,7 @@ def rebuild_writer(request: pytest.FixtureRequest) -> types.ModuleType:
 def test_write_json_pair_stages_both_documents_before_replacing_either(
     rebuild_writer: types.ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A fault while serializing/fsyncing either document's temporary must leave BOTH targets
-    exactly as they were, with no stray temp file behind — proof that both documents are staged
-    in full before either replace runs, so an interruption during staging can never leave one
-    file new and the other old."""
+    """A fault while staging either document leaves both targets exactly as they were."""
     first_path = tmp_path / "first.json"
     second_path = tmp_path / "second.json"
     first_path.write_text('{"old": "first"}\n', encoding="utf-8")
@@ -842,10 +751,7 @@ def test_write_json_pair_stages_both_documents_before_replacing_either(
 def test_write_json_pair_interrupted_between_the_two_renames_never_truncates_the_second(
     rebuild_writer: types.ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Simulates the one window the fix narrows to but does not close: the first document's
-    rename lands, then the process dies before the second's. The first document must read as
-    the new value; the second must read as its complete previous value — never a truncated
-    document either way, which is the honest residual the durability prose now states."""
+    """Simulates the one window the fix narrows to."""
     first_path = tmp_path / "first.json"
     second_path = tmp_path / "second.json"
     first_path.write_text('{"old": "first"}\n', encoding="utf-8")
@@ -882,8 +788,7 @@ def test_load_json_diagnoses_a_truncated_document_instead_of_raising(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """A partially-written (truncated/corrupted) document must surface as a named diagnosis
-    with a recovery command — never an unhandled ``JSONDecodeError`` traceback."""
+    """A partially-written."""
     manifest_path = tmp_path / "templates_manifest.json"
     store_path = tmp_path / "content_store.json"
     monkeypatch.setattr(rebuild_writer, "_REPO_ROOT", tmp_path)
@@ -906,11 +811,7 @@ def test_load_json_diagnoses_a_truncated_document_instead_of_raising(
 def test_rebuild_interrupted_between_the_two_writes_leaves_a_diagnosable_not_corrupted_tree(
     rebuild_tree: Callable[[str], types.SimpleNamespace], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Drives an actual ``--rebuild`` run and kills it between the manifest rename and the
-    store rename — the exact window the durability fix narrows to but cannot close. The result
-    must be neither silently lost (both documents are git-tracked) nor a truncated document
-    (the atomic pattern); it must be exactly what the whole-index ``--check`` widening already
-    catches: an index naming a hash the store does not yet have."""
+    """Drives an actual ``--rebuild`` run and kills it between the manifest rename."""
     built = rebuild_tree("9.9.9")
     gen, seed = built.gen, built.seed
     _run_write_mode(gen)
@@ -958,10 +859,7 @@ def test_rebuild_interrupted_between_the_two_writes_leaves_a_diagnosable_not_cor
 def test_check_and_release_gate_success_lines_are_distinguishable(
     rebuild_tree: Callable[[str], types.SimpleNamespace], capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Driven on a clean tree (no orphans, nothing stale): the two modes' success lines must
-    differ, ``--release-gate``'s must state the orphan-free property only it verifies, and both
-    must word the coverage count as index references over stored blobs rather than an
-    unqualified ``hash(es)`` that cannot be reconciled against the store's own size."""
+    """Driven on a clean tree (no orphans."""
     built = rebuild_tree("9.9.9")
     gen = built.gen
     _run_write_mode(gen)

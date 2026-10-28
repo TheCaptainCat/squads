@@ -1,14 +1,6 @@
-"""Repo-hygiene gate: every dedicated create-time CLI flag that writes an attribute (e.g.
-``sq create guide --tech``) must back a key that the type declares settable, so the generic
-``sq <type> <n> update --set <field>=<value>`` door reaches it too.
-
-Without it, a create flag could write a key no attribute declaration names, which loses its only
-CLI path once a squad renames or replaces the type that carries the flag.
-
-This is a source-text scan: ``AttributeKey`` is a plain class of string constants, not an enum,
-so ``attributes[AttributeKey.TECH] = …`` has no runtime membership to introspect without
-executing the assignment.
-"""
+"""Repo-hygiene gate: every dedicated create-time CLI flag that writes an attribute (e.g. ``sq
+create guide --tech``) must back a key that the type declares settable, so the generic ``sq
+<type> <n> update --set <field>=<value>`` door reaches it too."""
 
 import re
 from pathlib import Path

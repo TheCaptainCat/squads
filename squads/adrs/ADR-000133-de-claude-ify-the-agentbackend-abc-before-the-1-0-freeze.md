@@ -13,21 +13,20 @@ description: Rename generate_*_pointer→generate_*_entry, move claude_dir/claud
   ownership into the Claude backend, and register built-in backends via an explicit
   import list. Apply CC-001/002/004 cosmetics alongside.
 created_at: '2026-06-15T13:16:56Z'
-updated_at: '2026-10-25T21:36:44Z'
+updated_at: '2026-10-27T21:05:28Z'
 ---
 <!-- sq:body -->
 ## Context
 
-The `AgentBackend` ABC (`src/squads/_backends/_base.py`) is 1.0 stability-contract material. The
-backend conformance suite (`tests/test_backend_conformance.py`), run against the first backend
-(`claude_code`), surfaced six Claude-isms in the contract, catalogued CC-001..CC-006 under TASK-131.
+The `AgentBackend` ABC (`src/squads/_backends/_base.py`) is 1.0 stability-contract material. It
+carries six Claude-isms from its first backend (`claude_code`), catalogued CC-001..CC-006 under
+TASK-131.
 
 Three are cosmetic (docstring/comment only); three are structural (method names, a path-ownership
 seam, and the registration story). Because the ABC freezes at 1.0, they are settled before the
 freeze, without a migration. This decision rules on all six.
 
-Constraints honoured: the import graph stays acyclic; the conformance suite stays green for every
-backend; nothing moves into `.squads.json` as a source of truth (Invariant 1); backends stay
+Constraints honoured: the import graph stays acyclic; nothing moves into `.squads.json` as a source of truth (Invariant 1); backends stay
 pluggable and nothing outside a backend reaches into `.claude/` (Invariant 6).
 
 ## Decision
@@ -57,10 +56,6 @@ differ in *shape* (Claude has a directory and a markdown file; AGENTS.md has one
 Renaming the properties in place was rejected because keeping agent-config paths in the shared
 module still lets non-backend code reach them, which is exactly the Invariant-6 leak this closes.
 
-The conformance suite stays backend-neutral: it never names `.claude` or `CLAUDE.md` and reaches
-files only through `ctx.root / artifact.path`. Tests of the concrete Claude backend may assert
-Claude's layout by composing paths from the root.
-
 ### CC-006 — Built-in backends are a literal registry table (STRUCTURAL)
 
 `_backends/_registry.py` maps each built-in backend's name to its class in a literal table; adding a
@@ -80,7 +75,7 @@ The ABC's comments and docstrings describe backend-neutral behaviour:
   backend-owned file references, not "for pointers".
 
 The `Artifact.kind` values a backend produces are not part of the ABC — `kind` is backend-specific
-vocabulary and the conformance suite asserts only that it is non-empty.
+vocabulary.
 
 ## Consequences
 
@@ -97,4 +92,6 @@ vocabulary and the conformance suite asserts only that it is non-empty.
 <!-- sq:discussion -->
 - [2026-10-25T21:36:44Z] `architect` Robert Architect:
   - 2026-10-25 audit: rewritten from edit instructions to the decision as it stands. CC-003 and CC-005 hold. For CC-006, the `register()` self-registration hook no longer exists: the registry is a literal table (ADR-1128). Dropped the line-number edit lists and the verification-gate step.
+- [2026-10-27T21:05:28Z] `architect` Robert Architect:
+  - Removed the test-suite clauses (op-pierre ruling 2026-10-27, FEAT-1096); the decision is unchanged.
 <!-- sq:discussion:end -->

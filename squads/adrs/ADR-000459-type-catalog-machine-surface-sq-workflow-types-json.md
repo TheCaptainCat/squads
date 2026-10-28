@@ -15,9 +15,9 @@ refs:
 - ADR-738
 description: 'New frozen --json type catalog on a dedicated subcommand (sq workflow
   types): bare array of {type, order|null, prefix, reserved} in resolved order; additive-superset
-  + golden-frozen; unblocks TASK-450 (REV-448 F1).'
+  frozen; unblocks TASK-450'
 created_at: '2026-07-17T14:04:05Z'
-updated_at: '2026-10-25T21:28:43Z'
+updated_at: '2026-10-27T21:06:28Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -58,8 +58,7 @@ the declared key set. The catalog reads the active spec throughout. It carries n
 on-disk internal the consumer contract keeps clients away from. The type catalog is one of the
 `sq workflow` catalog family; ADR-738 owns the family's completeness rule.
 
-**3. Evolution — additive only, pinned by a golden.** The JSON shape is pinned by a golden fixture
-and a test that the emitted key set equals the declared constant. Changes are additive: a key may
+**3. Evolution — additive only.** The emitted key set equals the declared constant. Changes are additive: a key may
 be added, never removed or renamed. A decision that adds a key to this catalog says so in its own
 body and names the catalog it extends; ADR-1025 sets what a listed key freezes.
 
@@ -70,7 +69,7 @@ body and names the catalog it extends; ADR-1025 sets what a listed key freezes.
 - `order` stays a single per-type fact exposed once.
 - Separate concerns keep their own surfaces: statuses, collections and roles have sibling catalogs
   (ADR-474, ADR-604), and the cheatsheet keeps `--raw`.
-- One more pinned shape to keep under the golden discipline, the intended cost of a contract.
+- One more frozen shape to keep additive, the intended cost of a contract.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -86,4 +85,6 @@ body and names the catalog it extends; ADR-1025 sets what a listed key freezes.
   - Added `related` edges to ADR-541, ADR-474 and ADR-646.
 - [2026-10-25T21:28:43Z] `architect` Robert Architect:
   - 2026-10-25 audit: partly stale, body rewritten in the present tense; the catalog decision is unchanged. The row has ten keys, not four or seven: added subentity_kind and lifecycle (ADR-738) and attributes (ADR-1007) to the list of later additions, pointing at TYPE_CATALOG_FIELDS as the declared set. Folded the is_meta citation fix and the "a decision adding a key says so" rule from the 2026-08-03 amendment into §2 and §3, and replaced "no status catalog, out of scope" with the sibling catalogs that exist.
+- [2026-10-27T21:05:29Z] `architect` Robert Architect:
+  - Removed the test-suite clauses (op-pierre ruling 2026-10-27, FEAT-1096); the decision is unchanged.
 <!-- sq:discussion:end -->

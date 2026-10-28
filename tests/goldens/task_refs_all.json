@@ -1,9 +1,0 @@
-{
-  "out": [
-    {
-      "id": "BUG-4",
-      "kind": "depends-on"
-    }
-  ],
-  "in": []
-}

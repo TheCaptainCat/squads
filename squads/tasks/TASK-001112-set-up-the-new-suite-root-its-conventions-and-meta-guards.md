@@ -3,34 +3,32 @@ id: TASK-1112
 sequence_id: 1112
 type: task
 title: Set up the new suite root, its conventions and meta guards
-status: Ready
+status: Cancelled
 parent: FEAT-1096
 author: tech-lead
 assignee: python-dev
 priority: high
-refs:
-- TASK-1111:depends-on
 description: New root beside the old one, conventions, naming and owner-layer guards,
   copy-per-row fixtures, golden mechanism.
 subentities:
 - local_id: ST1
   title: Write the conventions, layer policy and review checks for the new root
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST2
   title: Add meta guards for test naming and one owner layer per seam
-  status: Todo
+  status: Done
   story: US4
 - local_id: ST3
   title: Create the new root with copy-per-row fixtures and the golden mechanism
-  status: Todo
+  status: Done
   story: US5
 - local_id: ST4
   title: Hold the new root to the one-line test docstring rule
-  status: Todo
+  status: Done
   story: US4
 created_at: '2026-10-24T13:42:14Z'
-updated_at: '2026-10-26T09:27:28Z'
+updated_at: '2026-10-27T20:16:23Z'
 ---
 <!-- sq:body -->
 Set up the new suite's root, its rules and the guards that enforce them, so the area rebuilds that follow write to one standard. Covers US3 (conventions), US4 (meta guards) and US5 (fixtures and goldens). No old test is deleted here except the `tests/meta` guards that move to the new root.
@@ -66,6 +64,9 @@ Write `tests_next/CONVENTIONS.md` from the existing `tests/CONVENTIONS.md` (178 
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-26T18:35:33Z] `tech-lead` Olivia Lead:
+  - Wrote tests_next/CONVENTIONS.md (rules first: falsification, one composed assertion, one owner layer, boundary/failure tables with no cross product, guards over instances, risk tiers with their seams, copy-per-row squads, golden protocol naming pytest --regen-goldens, one-line test docstrings; then layers, a reviewer procedure with one answer, and worked examples: the -C differential 468 rows to about a dozen, the check selection table check x type x level to boundary rows, the 1,001-row view-tag fuzz). Pointed the CONTRIBUTING.md tests section at tests_next/ and dropped its "service test plus CLI smoke test" advice, which contradicted one owner layer. Uncommitted.
+  - @python-dev the layer table names layers, not directories, and the seam map the owner-layer guard reads is referenced but not located: name its path in section 2 when ST2 lands it.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -105,6 +106,8 @@ Hold the new root to the project comment rule from its first file: a test docstr
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-10-26T18:52:37Z] `op-pierre` Pierre Chat:
+  - Yes to the one-line test docstring guard in the new root.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 <!-- sq:subtasks:end -->
@@ -116,4 +119,13 @@ Hold the new root to the project comment rule from its first file: a test docstr
   - Re-read for Ready on 2026-10-24: added the two-roots constraint (top-level module names and --run-slow clash today), the pyproject wiring, tests_next/ paths for conventions and guards, the CONTRIBUTING pointer, and goldens ported by their area. Moved to Ready.
 - [2026-10-24T21:56:20Z] `tech-lead` Olivia Lead:
   - Added ST4: the new root is held to the one-line test docstring rule, carrying REV-956 F19 from FEAT-1092.
+- [2026-10-26T18:32:10Z] `op-pierre` Pierre Chat:
+  - Start TASK-1112 now, in parallel with the TASK-1111 audit: conventions, root, guards and fixtures don't need the ledger. Porting (TASK-1113 onward) still waits for the ledger.
+- [2026-10-26T18:50:15Z] `python-dev` Elias Python:
+  - ST3 and ST2 done. New root tests_next/ is a package beside tests/; root conftest.py holds the rendering pins, --run-slow and its hook once, plus --shuffle-seed. tests_next/conftest.py has the leak guards, the per-module template with copy-per-test (copy_squad, project, seeded_project) and the golden fixture (--regen-goldens). pyproject: testpaths, ruff src and per-file ignores, pyright include and an execution environment.
+  - Setup share on tests/cli/test_slug_validation_surfaces.py (23 tests, -n0): 61.9% of test time before (1.46s of 2.36s), 8.7% after (0.09s of 1.04s) with the copy-per-row project fixture. Isolation: tests_next passes under --shuffle-seed 11 and 12 at -n 3.
+  - Meta: 60 guards moved by git mv to tests_next/meta (518 tests), the five tree scanners now cover both roots, BUG-1171 fixed in place (reads title: as well; first-name append to a template goes red). New guards: test names without ticket ids or process words, and one owner layer per seam (meta/seams.toml, modules declare SEAM), each with planted-tree liveness tests. src and CLAUDE.md prose pointers moved to tests_next/meta.
+  - Open for the lead: CONTRIBUTING.md still says tests/meta (ST1 owns it). tests/conftest.py lost its pins and --run-slow to the root conftest.py. Gates: pyright 0 errors, ruff check and format clean, sq check clean; tests/service, migrations and help-width modules green at -n 3.
+- [2026-10-26T18:57:56Z] `python-dev` Elias Python:
+  - ST4 done. Guard tests_next/meta/test_new_root_prose_follows_the_comment_rule.py (ast plus tokenize, no allowlist, migration-named files exempt from the version rule) with planted-violation liveness tests. 171 over-long docstrings in the moved guards and ported helpers were cut to their first sentences (lossy for rationale prose; review the trims) and the ids and versions reworded. CONVENTIONS rule 9 states the thresholds, seams.toml now follows the section 3 tiers (tier key checked by the owner-layer guard) and is named in section 2, CONTRIBUTING points at tests_next/meta.
 <!-- sq:discussion:end -->

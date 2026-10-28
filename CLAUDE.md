@@ -68,8 +68,7 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   invocation: the entry points that start one (the CLI root callback, `--help` resolution,
   `init`/`adopt`) load, and code below them takes `Service.spec`/`.playbook`/`.catalog` and
   `Service.files` (`OverrideFiles`, the text of each override read once) instead of reading a
-  file or calling a loader with a squad directory. `tests/cli/test_each_spec_document_is_loaded_at_most_once_per_invocation.py`
-  counts file-level reads per document and command family.
+  file or calling a loader with a squad directory.
 - `_workflow/` — `_loader.py` + `_models.py`: `WorkflowSpec` and friends. The workflow capabilities
   are **methods on the spec**; `__init__` exposes `bundled_spec()`, which is **not** override-aware.
   Spec and playbook parameters are required: thread the active spec (`Service.spec`,
@@ -230,24 +229,18 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
 
 ## Testing
 
-`pytest` with `typer.testing.CliRunner`; the `project`/`svc` fixtures (`tests/conftest.py`) init a
-squad in a `tmp_path` and `chdir` into it — **all file generation stays in temp**. Cover behaviour
-through the service/CLI, and assert generated files (valid YAML frontmatter, intact markers,
-preserved body). When adding a feature, add a service-level test and a CLI smoke test.
+`tests/` holds the repository guards (`tests/meta/`), the CLI surface tests (`tests/cli/`, one
+module per command group, run in-process on a squad copied per test) and their shared fixtures
+(`tests/conftest.py`, which copies a squad built once per module into each test's `tmp_path`);
+all file generation stays in temp. A CLI test declares its (command, parameter) pairs with
+`@pytest.mark.covers(...)`, and the coverage and verb-parity guards in `tests/meta` fail on an
+undeclared or stale pair; `CONTRIBUTING.md` has the full rules. Process-wide rendering pins live in the root `conftest.py`.
 
 `uv run pytest` runs under `pytest-xdist` (`-n auto` in `addopts`) by default — every test is
-already isolated in its own `tmp_path` (frontmatter files, `.squads.json`, the clock override),
-so distributing tests across worker processes is safe with no per-test opt-in needed. Use `-n0`
+isolated in its own `tmp_path`, so distributing tests across worker processes is safe. Use `-n0`
 to force serial (not `-p no:xdist`, which unloads the plugin but leaves `-n auto` in `addopts`,
-so it errors as an unrecognized arg), e.g. under `--pdb`.
-
-The `slow`-marked scale-bound tests (`tests/test_scale.py`) are **skipped by default** (a
-`conftest.py` `pytest_collection_modifyitems` hook), so a bare `uv run pytest` is fast (~30s, not
-a hang). Pass `--run-slow` to opt in and run them too (adds ~2 minutes). Run either **once**,
-redirect to a file, and read the file (`uv run --all-extras pytest > "$CLAUDE_JOB_DIR/tmp/pytest.log" 2>&1`,
-then `tail`/`grep` the log) — never re-run the whole suite just to reslice its output. While
-iterating on a fix, use `--lf` / `-x` / a path selector instead of the full sweep (all compose
-fine with the default `-n auto`, and with `--run-slow`).
+so it errors as an unrecognized arg), e.g. under `--pdb`. Run it **once**, redirect to a file,
+and read the file — never re-run it just to reslice its output.
 
 **Do not add `-q` on the command line.** `addopts` already supplies it; a second `-q` drops pytest
 past the verbosity that prints the trailing `N passed` / `N failed` count, so the log ends in

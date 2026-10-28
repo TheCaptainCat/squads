@@ -1,15 +1,4 @@
-"""Observation of item-file writes per unit of work, for the autouse write-once guard.
-
-A *unit* is one ``IndexStore.transaction()`` or one repair rebuild. Within a committed unit
-every item file is written at most once, and every item-file write precedes the index commit.
-An item file is a ``.md`` file under a directory that holds a ``.squads.json``, outside any
-dot-directory; the index and regenerable backend output are not item files.
-
-The ledger is per test, carried by the fixture that installs it: it patches the write funnel
-(``_aio.atomic_replace_sync`` and ``_aio.write_text``), the rename primitive and the unit
-openers, and keeps the current unit on a stack it owns, so a write made on a worker thread is
-attributed to the unit its awaiting coroutine opened.
-"""
+"""Observation of item-file writes per unit of work, for the autouse write-once guard."""
 
 import contextlib
 import sys

@@ -1,22 +1,5 @@
 """Repo-hygiene gate: under ``src/squads`` the process working directory is read at exactly two
-places, and never changed.
-
-``sq -C <path>`` is "as if started in <path>" only because every resolution reads the client's
-directory from the request context. A third read of the process directory would resolve against
-a different "here" than the squad was found from, and an ``os.chdir`` would make that state
-process-global. The two sanctioned reads are the CLI's effective-directory helper and the one
-default that non-CLI callers share.
-
-A read has many spellings, so the scan matches shapes rather than one call: ``Path.cwd`` and
-``os.getcwd`` however they were imported, aliased or bound without a call, ``PosixPath`` and
-``WindowsPath`` too, ``os.chdir``, ``os.path.abspath`` and ``realpath``, a relative ``Path(...)``
-literal resolved or made absolute, argument-less ``os.listdir``/``os.scandir``, and the ``PWD``
-environment variable.
-
-What it cannot see, and review has to: a name reached through ``getattr`` or other dynamic
-lookup, and I/O on a relative path (``open("x")``, ``Path("x").read_text()``, ``glob``) or a
-subprocess that inherits the working directory, none of which names the directory at all.
-"""
+places, and never changed."""
 
 import ast
 import shutil

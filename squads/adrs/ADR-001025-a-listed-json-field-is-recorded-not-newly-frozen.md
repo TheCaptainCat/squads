@@ -16,7 +16,7 @@ refs:
 description: Listing a field in docs/stability.md records the existing Tier 3 freeze;
   no new tier, but each key's value is marked vocabulary, open set or display.
 created_at: '2026-10-15T21:48:00Z'
-updated_at: '2026-10-25T21:41:22Z'
+updated_at: '2026-10-27T21:05:31Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -26,8 +26,8 @@ FEAT-1024 US3 moves the `--json` field reference out of the help of `sq search`,
 What the contract says today (read):
 
 - Tier 3 freezes shapes by command. `list`, `tree`, `graph`, `inbox`, `search` and the others are named in the frozen surface, and `docs/stability.md` closes the section with: "The promise above covers the fields a shape emits either way, whether or not you find them enumerated here." Every key `search`, `tree` and `graph` emit is therefore frozen now, unlisted.
-- `sq workflow ref-kinds --json` is a catalog under ADR-738 (one catalog per declared spec map; ADR-775 names it as owed). ADR-738 §8 puts every catalog in Tier 3 and says the stability catalog table "gains a row per catalog". That table has seven rows and no `ref-kinds` row, and the payload has a golden (`tests/goldens/workflow_ref_kinds.json`). The row is owed, not new.
-- The same document names help as the authority for `search`, `tree` and `graph` ("document their shapes there in full"). That authority is already wrong in one place: `sq graph --json` emits `badges` on every node (golden `graph_feat_json.json`, read), and its help does not list it (driven, `sq graph --help`).
+- `sq workflow ref-kinds --json` is a catalog under ADR-738 (one catalog per declared spec map; ADR-775 names it as owed). ADR-738 §8 puts every catalog in Tier 3 and says the stability catalog table "gains a row per catalog". That table has seven rows and no `ref-kinds` row. The row is owed, not new.
+- The same document names help as the authority for `search`, `tree` and `graph` ("document their shapes there in full"). That authority is already wrong in one place: `sq graph --json` emits `badges` on every node (read), and its help does not list it (driven, `sq graph --help`).
 - Tier 3 promises a key's name, type and presence. It says nothing about the values a key may carry, and several keys carry values a consumer must not treat as a fixed set: `edge_kind` is the project's own spelling (ADR-775), the omissions report's `code` is an open set that grows additively (ADR-947 §3), and `source` there is a display token not to be parsed.
 
 ## Decision
@@ -40,7 +40,7 @@ The `ref-kinds` row discharges ADR-738 §8 for the one catalog its table omitted
 
 ### 2. The document is the authority, and it is written from the payload
 
-The sentence naming `sq <command> --help` as the authority for a shape is withdrawn. For every shape whose fields the document enumerates, the enumeration matches the live payload key for key, in emitted order, and is checked against the golden rather than copied from help. A shape the document does not enumerate (`list`, `blocked`, `workload`, `mine`) keeps the rule that its emitted fields are its contract.
+The sentence naming `sq <command> --help` as the authority for a shape is withdrawn. For every shape whose fields the document enumerates, the enumeration matches the live payload key for key, in emitted order, and is checked against the payload rather than copied from help. A shape the document does not enumerate (`list`, `blocked`, `workload`, `mine`) keeps the rule that its emitted fields are its contract.
 
 A new Tier 3 shape lands with its field reference in the document in the same change. Help carries the one-line `--json` description, any sentence a caller needs in order not to misuse the payload, and the pointer.
 
@@ -54,7 +54,7 @@ Every listed key is frozen in name, JSON type, presence (`null` rather than omit
 
 A key with no mark carries a fixed squads format, frozen with the key: an item id, a boolean, `direction`'s `in`/`out`, nested `children`.
 
-Applied to the four shapes US3 moves (read from the goldens and help; the doc writer verifies each against the live payload):
+Applied to the four shapes US3 moves (the doc writer verifies each against the live payload):
 
 | Shape | vocabulary | open set | display |
 |---|---|---|---|
@@ -88,4 +88,6 @@ A key moves to a stricter class (display to open set, open set to fixed) freely.
   - 2026-10-16: accepted.
 - [2026-10-25T21:41:22Z] `architect` Robert Architect:
   - Audited 2026-10-25: holds. docs/stability.md enumerates the search, tree, graph and ref-kinds fields with the vocabulary / open set / display classes.
+- [2026-10-27T21:05:31Z] `architect` Robert Architect:
+  - Removed the test-suite clauses (op-pierre ruling 2026-10-27, FEAT-1096); the decision is unchanged.
 <!-- sq:discussion:end -->

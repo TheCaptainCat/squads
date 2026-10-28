@@ -1,4 +1,0 @@
-# squads project configuration
-schema_version = "0.17"
-squad_dir = "."
-active_backends = ["claude_code"]

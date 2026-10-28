@@ -21,12 +21,8 @@ clear message):
      ``scripts/gen_template_manifest.py`` in write mode so a clean new-version
      entry appends. If tag ``v<prior>`` does not exist, the checkout is
      skipped with a clear note (first-run case).
-  6. Regenerate the version-embedding goldens:
-     ``UPDATE_GOLDENS=1 uv run --all-extras pytest
-     tests/cli/test_json_output_shape.py
-     tests/integration/test_migrate_up_output_is_unchanged_for_every_corpus.py -q -n0``.
-  7. ``sq sync`` to re-stamp this repo's managed files.
-  8. Print a summary of every file/step, old -> new.
+  6. ``sq sync`` to re-stamp this repo's managed files.
+  7. Print a summary of every file/step, old -> new.
 
 This script never edits CHANGELOG.md, and never runs ``git commit``,
 ``git tag``, or ``git push`` — those stay human (or the coordinating agent
@@ -34,7 +30,6 @@ loop, outside this script).
 """
 
 import argparse
-import os
 import re
 import subprocess
 import sys
@@ -45,10 +40,6 @@ _PYPROJECT_PATH = _REPO_ROOT / "pyproject.toml"
 _PACKAGE_JSON_PATH = _REPO_ROOT / "clients" / "vscode" / "package.json"
 _MANIFEST_REL_PATH = Path("src") / "squads" / "_rendering" / "templates_manifest.json"
 _GEN_MANIFEST_SCRIPT = Path("scripts") / "gen_template_manifest.py"
-_GOLDENS_TEST_PATHS = (
-    Path("tests") / "cli" / "test_json_output_shape.py",
-    Path("tests") / "integration" / "test_migrate_up_output_is_unchanged_for_every_corpus.py",
-)
 
 _VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:[.\-][0-9A-Za-z.]+)?$")
 
@@ -155,7 +146,7 @@ def _tag_exists(tag: str) -> bool:
 
 
 def _step(n: int, title: str) -> None:
-    print(f"\n[{n}/8] {title}")
+    print(f"\n[{n}/7] {title}")
 
 
 def _step1_read_current_version() -> tuple[str, str]:
@@ -217,26 +208,8 @@ def _step5_template_manifest(current_version: str, *, dry_run: bool) -> None:
     _run(["uv", "run", "python", str(_GEN_MANIFEST_SCRIPT)])
 
 
-def _step6_regen_goldens(*, dry_run: bool) -> None:
-    _step(6, "regenerate version-embedding goldens")
-    goldens_cmd = [
-        "uv",
-        "run",
-        "--all-extras",
-        "pytest",
-        *(str(path) for path in _GOLDENS_TEST_PATHS),
-        "-q",
-        "-n0",
-    ]
-    if dry_run:
-        print(f"  [dry-run] would run (with UPDATE_GOLDENS=1): {' '.join(goldens_cmd)}")
-        return
-    env = {**os.environ, "UPDATE_GOLDENS": "1"}
-    _run(goldens_cmd, env=env)
-
-
-def _step7_sq_sync(*, dry_run: bool) -> None:
-    _step(7, "sq sync")
+def _step6_sq_sync(*, dry_run: bool) -> None:
+    _step(6, "sq sync")
     if dry_run:
         print("  [dry-run] would run: uv run sq sync")
         return
@@ -259,10 +232,9 @@ def bump_version(new_version: str, *, dry_run: bool = False) -> None:
     _step3_bump_package_json(new_version, dry_run=dry_run)
     _step4_uv_sync(dry_run=dry_run)
     _step5_template_manifest(current_version, dry_run=dry_run)
-    _step6_regen_goldens(dry_run=dry_run)
-    _step7_sq_sync(dry_run=dry_run)
+    _step6_sq_sync(dry_run=dry_run)
 
-    _step(8, "summary")
+    _step(7, "summary")
     _print_summary(current_version, new_version, dry_run=dry_run)
 
 
@@ -277,7 +249,6 @@ def _print_summary(current_version: str, new_version: str, *, dry_run: bool) -> 
     for label, old, new in rows:
         print(f"  {label.ljust(width)}  {old} -> {new}")
     print(f"  {'template manifest'.ljust(width)}  new v{new_version} entry appended")
-    print(f"  {'version-embedding goldens'.ljust(width)}  regenerated")
     print(f"  {'managed files'.ljust(width)}  refreshed via sq sync")
 
 

@@ -1,10 +1,7 @@
-"""The set of commands that get past the schema gate on a mismatched squad is, for each
-direction, exactly the set whose declared grant covers that direction. Every top-level command
-and group of the app and every verb of ``sq migrate`` and ``sq override`` is invoked on a squad
-stamped behind and on one stamped ahead, and the ones the gate does not refuse are collected. The
-two literal sets below are the only place the expectation is written, so adding a grant is a
-visible change here.
-"""
+"""The set of commands that get past the schema gate on a mismatched squad is, for each direction,
+exactly the set whose declared grant covers that direction. Every top-level command and group of
+the app and every verb of ``sq migrate`` and ``sq override`` is invoked on a squad stamped behind
+and on one stamped ahead, and the ones the gate does not refuse are collected."""
 
 import shutil
 import sys

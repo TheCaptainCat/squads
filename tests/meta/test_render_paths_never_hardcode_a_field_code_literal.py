@@ -1,24 +1,4 @@
-"""Repo-hygiene gate: a render path must never pass a quoted field-code literal (e.g.
-``'severity'``) into ``field_label``/``field_default``/``resolve_collection``/
-``declared_collection`` — those calls exist precisely so a relabeled or renamed
-sub-entity-kind/item-type field renders correctly; hardcoding the code defeats that the moment
-a spec changes which field a kind actually declares (``review.md.j2`` used to pass the literal
-``'severity'`` while deriving everything else — the label, the legend and the CLI hint all
-silently kept describing a field the kind might no longer have; the TUI's ``_glance_line``
-hardcoded ``'priority'`` while the head line twelve lines below iterated ``fields_for``, so an
-adopter's declared axis was filterable and sortable in ``sq ui`` and invisible in its header).
-The field code must come from the spec instead — see ``squads._badges.primary_field_code``, or
-iterate ``spec.fields_for(...)``.
-
-**Scope.** The item templates, plus the two hand-written render surfaces that had the same
-defect: ``src/squads/_tui/`` and ``src/squads/_cli/``.
-
-**Sanctioned sites.** ``--priority``/``--min-priority`` are dedicated flags *named for* one
-field code, so their own help/validation resolution is the one place the literal is the
-subject rather than an assumption. Those sites are enumerated in :data:`SANCTIONED` with a
-reason, and the "no stale entry" test below keeps that list honest: an entry that no longer
-corresponds to a real hit fails, so the exemption cannot outlive the code it was written for.
-"""
+"""Repo-hygiene gate: a render path must never pass a quoted field-code literal (e.g."""
 
 import re
 from pathlib import Path
@@ -106,8 +86,7 @@ def test_the_sanctioned_list_has_no_stale_entry() -> None:
 
 
 def test_the_scan_covers_the_tui_and_cli_surfaces_that_had_the_defect() -> None:
-    """The guard used to scan only the item templates, which is why `_glance_line` was never
-    covered. Pin the widened scope so it cannot quietly shrink back."""
+    """The guard used to scan only the item templates."""
     scanned = {p.relative_to(_repo_root()).as_posix() for p in _scanned_files(_repo_root())}
     assert "src/squads/_tui/_reader.py" in scanned
     assert "src/squads/_cli/_items.py" in scanned
@@ -135,8 +114,7 @@ def test_the_scan_would_catch_a_planted_tui_literal(tmp_path: Path) -> None:
 
 
 def test_the_scan_would_catch_a_planted_strict_resolver_literal(tmp_path: Path) -> None:
-    """The strict sibling counts too — swapping `resolve_collection` for
-    `declared_collection` must not be a way out of the guard."""
+    """The strict sibling counts too."""
     planted = tmp_path / "src" / "squads" / "_cli" / "_example.py"
     planted.parent.mkdir(parents=True)
     planted.write_text(

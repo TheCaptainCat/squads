@@ -1,8 +1,7 @@
 """The index rebuild that runs before any migration resolves no vocabulary: its module imports
 nothing from the packages that hold or serve a spec, and no function in it takes a
 ``WorkflowSpec`` or ``PlaybookSpec``. A static, import-level scan: it cannot see a spec reached
-through a module the rebuild imports, and the behavioural table in
-``tests/service/test_index_reconcile_entry_rules.py`` is what covers that.
+through a module the rebuild imports.
 """
 
 import ast

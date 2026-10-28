@@ -32,7 +32,8 @@ _DEFAULT_KIND = "related"
 
 #: Frozen: the display padding width at schema 0.5/0.7
 #: (``squads._models._item.DISPLAY_ID_PADDING``'s then-current value). Never import the live
-#: constant: see ``tests/meta/test_migrations_never_import_a_vocabulary_folded_primitive.py`` for
+#: constant: see
+#: ``tests/meta/test_migrations_never_import_a_vocabulary_folded_primitive.py`` for
 #: why a live value can also move a frozen runner's output.
 _DISPLAY_ID_PADDING = 0
 

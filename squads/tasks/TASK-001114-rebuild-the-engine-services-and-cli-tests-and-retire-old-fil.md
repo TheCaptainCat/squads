@@ -3,7 +3,7 @@ id: TASK-1114
 sequence_id: 1114
 type: task
 title: Rebuild the engine, services and CLI tests and retire old files
-status: Ready
+status: Cancelled
 parent: FEAT-1096
 author: tech-lead
 assignee: python-dev
@@ -43,7 +43,7 @@ subentities:
   status: Todo
   story: US7
 created_at: '2026-10-24T13:42:16Z'
-updated_at: '2026-10-26T09:29:39Z'
+updated_at: '2026-10-27T20:16:25Z'
 ---
 <!-- sq:body -->
 Rebuild the spec engine, services and CLI in the new root (US7), then prove parity and delete the old files this area covers (US9). This is the bulk of the suite and the bulk of the duplicate coverage. It runs after the integrity-core increment and before the backend one.

@@ -1,52 +1,6 @@
-"""Durable enforcement that a single-line CLI advisory carrying a copy-pasteable `sq` command
-or an `error`/`warning` prefix stays `soft_wrap=True` -- the lasting output of the piped-error
-sweep is a guard, not a one-time pass over a hand-picked list of sites.
-
-**Why a per-site assertion list is not enough.** The residual this guard exists to catch arose
-because an earlier fix enumerated call sites by hand: it caught the three sites its own
-reproduction hit and missed every sibling with the same shape elsewhere in the CLI package
-(the schema-mismatch hard-stop's own two branches among them). A hand list only proves the
-sites *someone thought of* are fixed; a scan proves the *property* holds, so a new site added
-tomorrow -- in a file nobody was looking at when they wrote it -- is caught the same way a
-regression at an existing site would be.
-
-**The class, made syntactically decidable.** ``squads`` renders every single-line CLI advisory
-through a plain string or f-string built *inline* at the ``console.print``/``err_console.print``
-call site (a small template with 1-2 interpolated values) -- as opposed to a pre-built
-renderable (``Table``/``Panel``/``Tree``/``Markdown``) or a bound variable holding free-form
-prose a person wrote (an item title, a notice body, a memory summary, a comment) that is
-*meant* to reflow on a real terminal. That structural difference is exactly what AST already
-tells us: the first construct is an ``ast.Constant`` or ``ast.JoinedStr`` literal at the call
-site; the second is anything else (``Call``, ``Name``, ``Attribute``, ...). So restricting the
-scan to literal-text arguments already excludes every Rich construct and every "let it reflow"
-prose render *by construction* -- no allowlist entries needed for those, because they are never
-candidates in the first place.
-
-Within that literal-text universe, the specific shape this bug is about is one that carries an
-inline ``sq`` command reference (backtick-fenced or ``[cyan]``-styled) or opens with the
-``[red]error``/``[yellow]warning`` advisory prefix -- every site the reporting bug and its
-residual named shares one of these markers, and no title/body/summary/snippet render does.
-That is ``MARKERS`` below: a call whose literal text contains one of them must pass
-``soft_wrap=True``, full stop.
-
-``ALLOWLIST`` exists for a genuine, reasoned exception to that rule (a marker-matching literal
-that must deliberately NOT soft-wrap) -- empty today; add an entry with a one-line reason
-before quieting a real hit, never to make the scan pass without understanding why.
-
-**The remaining hole, and why it stays a hole.** A print whose advisory word is itself
-computed (``f"[{color}]{level}[/{color}]: ..."``) has no literal ``[red]error``/``[yellow]
-warning`` substring for ``MARKERS`` to match, so it is invisible to this scan the same way a
-non-literal argument is -- not wrong, just unchecked. Exactly one site in the package has this
-shape (the `sq check` issue line in `_main.py`), and it already carries ``soft_wrap=True`` by
-hand. Forbidding a *computed* style tag on any console print -- rather than trying to read
-one -- was considered and declined: it would need to distinguish an advisory's computed color
-from every other legitimate single-line colored render a console print can carry (a status/
-badge color chosen at runtime for prose that is not an advisory at all), which this guard
-currently excludes by construction via the literal-text check; turning that into a positive
-rule risks flagging those renders too and forcing allowlist entries for things that were never
-advisories, to close a hole with exactly one occupant that is already correct. Revisit if a
-second computed-marker site appears.
-"""
+"""Durable enforcement that a single-line CLI advisory carrying a copy-pasteable `sq` command or an
+`error`/`warning` prefix stays `soft_wrap=True` -- the lasting output of the piped-error sweep is
+a guard, not a one-time pass over a hand-picked list of sites."""
 
 import ast
 from pathlib import Path
@@ -179,8 +133,7 @@ def test_every_marker_matching_advisory_print_is_soft_wrapped() -> None:
 
 
 def test_the_allowlist_has_no_stale_entry() -> None:
-    """Every allowlisted (file, prefix) pair must still be a real, currently-unwrapped hit --
-    otherwise the entry is quieting nothing and should be deleted."""
+    """Every allowlisted (file, prefix) pair must still be a real, currently-unwrapped hit."""
     hits = _unwrapped_marker_hits(_cli_root(), _repo_root())
     stale: dict[str, list[str]] = {}
     for rel, prefixes in ALLOWLIST.items():
@@ -214,8 +167,7 @@ def test_the_wired_guard_reddens_on_a_planted_unwrapped_error_site(tmp_path: Pat
 
 
 def test_the_wired_guard_reddens_on_a_planted_unwrapped_command_reference(tmp_path: Path) -> None:
-    """The other marker family (an inline `sq` command reference), not just the error prefix --
-    covers the shape the override-scaffold guidance sites are."""
+    """The other marker family (an inline `sq` command reference), not just the error prefix."""
     planted_root = tmp_path / "_cli"
     planted_root.mkdir()
     (planted_root / "_leaky.py").write_text(
@@ -232,14 +184,7 @@ def test_the_wired_guard_reddens_on_a_planted_unwrapped_command_reference(tmp_pa
 
 
 def test_the_wired_guard_reddens_on_a_planted_attribute_receiver(tmp_path: Path) -> None:
-    """The shape the bare-name plant tests above cannot cover: a module-qualified receiver
-    (``common.err_console``), exactly how `_cli/__init__.py` and `_cli/_import.py` call
-    theirs. Before the attribute-widening this was silently invisible -- not merely
-    unmatched, never even collected as a candidate -- so this is the one plant test in the
-    file that can catch that hole reopening. Driven: reverting `_receiver_name` to the
-    bare-``ast.Name``-only form turns this assertion red (``missing`` reports ``{}`` instead
-    of the planted site), which is the proof the widening is what makes it pass, not an
-    unrelated allowance."""
+    """The shape the bare-name plant tests above cannot cover: a module-qualified receiver."""
     planted_root = tmp_path / "_cli"
     planted_root.mkdir()
     (planted_root / "_leaky.py").write_text(
@@ -289,10 +234,7 @@ def test_the_wired_guard_stays_green_on_a_planted_allowlisted_exception(tmp_path
 
 
 def test_a_prebuilt_renderable_or_bound_prose_variable_is_never_a_candidate() -> None:
-    """The structural exclusion this guard relies on instead of an allowlist: a `Table`/`Panel`
-    call, or a bound variable (a title/body/summary a person wrote, meant to reflow), is
-    neither an `ast.Constant` nor an `ast.JoinedStr` at the call site -- so it is never even
-    inspected for the markers, whatever text it happens to carry at runtime."""
+    """A `Table`, `Panel` or bound variable is not a constant, so it is never inspected."""
     source = (
         "from squads._cli._common import console\n\n\n"
         "def _show(table, title: str) -> None:\n"
@@ -311,9 +253,7 @@ def test_a_prebuilt_renderable_or_bound_prose_variable_is_never_a_candidate() ->
 
 
 def test_a_non_console_receiver_is_ignored() -> None:
-    """Only the declared advisory-console names are in scope -- an unrelated object's own
-    `.print(...)` method (a different library's client, a test double) is not console output
-    and must never be mistaken for it."""
+    """Only the declared advisory-console names are in scope."""
     source = 'def _use(logger) -> None:\n    logger.print(f"[red]error:[/red] `sq check` this")\n'
     tree = ast.parse(source)
     assert _print_calls(tree) == []

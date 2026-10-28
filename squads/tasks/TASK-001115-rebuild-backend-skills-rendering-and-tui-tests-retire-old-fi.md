@@ -3,7 +3,7 @@ id: TASK-1115
 sequence_id: 1115
 type: task
 title: Rebuild backend, skills, rendering and TUI tests, retire old files
-status: Ready
+status: Cancelled
 parent: FEAT-1096
 author: tech-lead
 assignee: python-dev
@@ -27,7 +27,7 @@ subentities:
   status: Todo
   story: US9
 created_at: '2026-10-24T13:42:18Z'
-updated_at: '2026-10-26T09:30:11Z'
+updated_at: '2026-10-27T20:16:26Z'
 ---
 <!-- sq:body -->
 Rebuild the backend, skills, rendering and TUI tests in the new root (US8), then prove parity and delete the old files this area covers (US9). Generated artifacts are checked by pinned goldens and `tests_next/meta` guards rather than per-instance tests. This is the last area increment, after the engine one.

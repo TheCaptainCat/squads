@@ -1,13 +1,6 @@
-"""Shared test-only constants and helpers with no production analogue.
-
-Kept separate from `conftest.py` (fixtures/autouse hooks) since these are plain importable
-values, not pytest fixtures.
-"""
+"""Plain helpers shared across the tests: service construction, roles, item creation."""
 
 import hashlib
-import re
-import subprocess
-import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -15,18 +8,17 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from squads._backends._base import AgentBackend
     from squads._interactions._models import PlaybookSpec
-    from squads._migrations._context import MigrationContext
     from squads._paths import SquadPaths
     from squads._roles._models import CatalogSource
     from squads._services._service import Service
     from squads._workflow._models import WorkflowSpec
 
-_ANSI_SGR = re.compile(r"\x1b\[[0-9;]*m")
+#: Author given to an item whose creation is setup, not the subject: a slug every fixture squad has.
+DEFAULT_TEST_AUTHOR = "manager"
 
 
 def squad_tree(root: Path) -> dict[str, str]:
-    """Every file under *root* (the git directory aside), keyed by relative path and valued by a
-    content hash, so a refusal can assert that nothing was written."""
+    """Every file under *root* (the git directory aside) keyed by relative path, valued by hash."""
     return {
         p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
         for p in sorted(root.rglob("*"))
@@ -34,281 +26,14 @@ def squad_tree(root: Path) -> dict[str, str]:
     }
 
 
-def strip_ansi(text: str) -> str:
-    """Drop ANSI SGR codes so width/flag assertions survive a color-forcing help console."""
-    return _ANSI_SGR.sub("", text)
-
-
-#: The exact badge glyph for each of the 9 built-in sub-entity statuses (subtask/story:
-#: Todo/InProgress/Blocked/Done/Cancelled; review finding: Open/Fixed/Verified/WontFix).
-#:
-#: This is the test-layer's own golden reference — it has no production counterpart. Production
-#: badge resolution is spec-driven (`WorkflowSpec.status_badge`, backed by the workflow TOML's
-#: per-status `badge` field), which also covers custom statuses with a graceful default. This
-#: dict exists purely so tests can pin the 9 built-in glyphs and catch accidental drift in the
-#: spec's declared badges; update it deliberately if a built-in badge is ever meant to change.
-EXPECTED_BUILTIN_STATUS_BADGES: dict[str, str] = {
-    "Todo": "⚪",
-    "InProgress": "🟡",
-    "Blocked": "🔴",
-    "Done": "🟢",
-    "Cancelled": "⚫",
-    "Open": "🔴",
-    "Fixed": "🟡",
-    "Verified": "🟢",
-    "WontFix": "⚫",
-}
-
-#: The closed set of `[selected]` section names the workflow spec's loader will pass to
-#: `squads._specmerge`'s merge engine — shared across the `test_specmerge_*` modules so the
-#: accepted-section set is pinned in exactly one place, not duplicated per test file.
-SPECMERGE_WORKFLOW_SECTIONS = frozenset(
-    {"items", "statuses", "lifecycles", "collections", "subentity_kinds", "roles"}
-)
-
-#: Built-in type -> ID prefix, mirroring the bundled ``workflow.toml`` exactly.
-#:
-#: Test-only (no production analogue): production resolves this from the loaded
-#: ``WorkflowSpec`` alone (the ``ItemType`` enum + reserved prefix map it used to
-#: read this from are deleted). Tests that need a literal prefix — constructing an ``Item``
-#: directly, or calling ``SquadsDB.allocate_id``/``format_id`` with an explicit prefix — use
-#: this shared dict instead of each hardcoding their own copy.
-BUILTIN_PREFIX: dict[str, str] = {
-    "epic": "EPIC",
-    "feature": "FEAT",
-    "task": "TASK",
-    "bug": "BUG",
-    "decision": "ADR",
-    "contract": "PRD",
-    "milestone": "MILE",
-    "review": "REV",
-    "guide": "GUIDE",
-    "role": "ROLE",
-    "skill": "SKILL",
-    "operator": "OP",
-}
-
-#: Built-in type -> squad-folder-relative subfolder, mirroring ``workflow.toml``.
-#: Test-only — see :data:`BUILTIN_PREFIX`.
-BUILTIN_FOLDER: dict[str, str] = {
-    "epic": "epics",
-    "feature": "features",
-    "task": "tasks",
-    "bug": "bugs",
-    "decision": "adrs",
-    "contract": "contracts",
-    "milestone": "milestones",
-    "review": "reviews",
-    "guide": "guides",
-    "role": "agents/roles",
-    "skill": "agents/skills",
-    "operator": "operators",
-}
-
-#: All 12 built-in type names, in the same order as :data:`BUILTIN_PREFIX`.
-BUILTIN_TYPES: tuple[str, ...] = tuple(BUILTIN_PREFIX)
-
-#: The 9 work-item types — excludes the 3 roster types (role/skill/operator).
-WORK_TYPES: tuple[str, ...] = (
-    "epic",
-    "feature",
-    "task",
-    "bug",
-    "decision",
-    "contract",
-    "milestone",
-    "review",
-    "guide",
-)
-
-#: The 3 roster types the engine binds by name.
-ROSTER_TYPES: tuple[str, ...] = ("role", "skill", "operator")
-
-#: All 23 built-in status names across every lifecycle (work/adr/review/bug/guide/agent +
-#: sub-entity/finding), mirroring the bundled ``workflow.toml`` exactly.
-#:
-#: Test-only (no production analogue): production resolves the status vocabulary from the
-#: loaded ``WorkflowSpec`` alone (the ``Status`` enum this used to enumerate is
-#: deleted). Tests that need "every built-in status" (golden-lock set equality, terminal/
-#: badge iteration) use this shared tuple instead of each hardcoding its own copy.
-BUILTIN_STATUSES: tuple[str, ...] = (
-    # work items
-    "Draft",
-    "Ready",
-    "InProgress",
-    "InReview",
-    "Done",
-    "Blocked",
-    "Cancelled",
-    # ADR / decision
-    "Proposed",
-    "Accepted",
-    "Superseded",
-    "Rejected",
-    "Deprecated",
-    # code review
-    "Requested",
-    "ChangesRequested",
-    "Approved",
-    # guide
-    "Published",
-    # role / skill / operator (agent lifecycle)
-    "Active",
-    "Archived",
-    # sub-entities (subtasks / user stories)
-    "Todo",
-    # review findings
-    "Open",
-    "Fixed",
-    "Verified",
-    "WontFix",
-)
-
-#: The three statuses the bundled agent (role/skill/operator) lifecycle used to require before
-#: the reserved-status floor was retired in favour of a role-keyed one — no status name is
-#: reserved any more; these three remain ordinary declared vocabulary (Draft is now owned by
-#: the work/guide lifecycles only, Active/Archived by the two-state agent lifecycle).
-FLOOR_STATUSES: tuple[str, ...] = ("Draft", "Active", "Archived")
-
-#: Default ``author`` for :func:`create_item` — a slug guaranteed present in every fixture-built
-#: squad (the ``project``/``svc`` fixtures always init with the ``minimal`` roles bundle, which
-#: registers only the manager role).
-DEFAULT_TEST_AUTHOR = "manager"
-
-
 async def create_item(svc: Any, item_type: str, title: str, **kwargs: Any) -> Any:
-    """``svc.create()`` for call sites that have no opinion about who authored the item.
-
-    ``Service.create()`` requires an explicit ``author`` — attribution is only knowable at the
-    call site, so a caller that omits it fails there rather than acquiring a silent default (see
-    ``_services/_base.py``). That is correct production behaviour, but it left several hundred
-    setup-only test call sites (``svc.create("task", "t")`` as bare scaffolding for an unrelated
-    assertion) with no attribution to give and no interest in one.
-
-    This is the one place that invents a default, and it is visible and overridable: pass
-    ``author=`` through ``kwargs`` to pick a specific slug (`setdefault` lets it win), or skip
-    this helper and call ``svc.create`` directly whenever the test's actual subject is
-    authorship, participation, or ``sq check``'s participant rules — those call sites should
-    name the honest slug inline, not hide behind this default.
-    """
+    """`svc.create()` defaulting the author, for setup that has no opinion about attribution."""
     kwargs.setdefault("author", DEFAULT_TEST_AUTHOR)
     return await svc.create(item_type, title, **kwargs)
 
 
-def throwaway_skill_item(slug: str, spec: Any) -> Any:
-    """A well-formed, never-persisted ``skill`` item standing in for *slug* when no such item
-    is (yet) on a service's live index — :func:`resolved_skill_definition`'s fallback when the
-    caller has not seeded one.
-
-    Test-only: production code has exactly one path to a skill's definition now
-    (``ItemsMixin.read_body`` off a real, seeded item's own placement tag), and never needs a
-    stand-in — a real skill item is seeded before a real read ever reaches one. This mirrors
-    what production's own throwaway once did (the ``playbook``/``self`` source kinds a
-    system-skill view declares constrain nothing beyond the host's *type*, and no bundled skill
-    template ever reads an ``item.*`` field), so a test that wants "what would this skill's
-    definition render as" without paying for a full seed still can.
-    """
-    from squads import _clock as clock
-    from squads._models._item import Item
-    from squads._workflow._models import ROSTER_SKILL
-
-    now = clock.now()
-    return Item(
-        sequence_id=0,
-        type=ROSTER_SKILL,
-        title=slug,
-        slug=slug,
-        status=spec.live_initial(ROSTER_SKILL),
-        path=f"agents/skills/{slug}.md",
-        created_at=now,
-        updated_at=now,
-    )
-
-
-async def resolved_skill_definition(svc: Any, slug: str) -> str:
-    """The definition text a read would resolve for the template-owned skill named *slug*,
-    against *svc*'s active spec/playbook/roster — the same source-resolution + presentation
-    dispatch a real read expands a placement tag through (``squads._views.resolve_source`` /
-    ``render_source_view``), against a real seeded item when one is on *svc*'s index and a
-    :func:`throwaway_skill_item` otherwise.
-
-    Test-only convenience: production never constructs this pair itself (:meth:`read_body`
-    always has a real item), so there is no method on ``Service`` this wraps — see
-    :func:`throwaway_skill_item` for why a stand-in is still test-legitimate.
-    """
-    from squads._views import (
-        ITEM_SKILL_VIEW_NAME,
-        SYSTEM_SKILL_VIEW_NAMES,
-        render_source_view,
-        resolve_source,
-    )
-    from squads._workflow._models import ROSTER_SKILL
-
-    # A permanently-system slug names its own view; every other template-owned slug is a
-    # per-item-type skill and shares ITEM_SKILL_VIEW_NAME — whether or not *slug* still names a
-    # declared type is resolved inside `resolve_source` itself (the emptiness case), never
-    # pre-checked here.
-    view_name = SYSTEM_SKILL_VIEW_NAMES.get(slug, ITEM_SKILL_VIEW_NAME)
-    db = await svc.store.load()
-    item = next(
-        (it for it in db.items.values() if it.type == ROSTER_SKILL and it.slug == slug),
-        None,
-    ) or throwaway_skill_item(slug, svc.spec)
-    view = svc.spec.views[view_name]
-    result = resolve_source(
-        view,
-        view_name,
-        item,
-        db,
-        svc.spec,
-        svc.playbook,
-        lambda: svc.roster_from_db(db),
-        svc.paths.squad_dir,
-        catalog=svc.catalog,
-    )
-    rendered = render_source_view(
-        view_name,
-        result,
-        item,
-        svc.spec,
-        svc.paths.config.squad_dir,
-        svc.working_language,
-        from_squad=svc.paths.squad_dir,
-    )
-    return rendered.strip("\n")
-
-
-def make_unreadable_by_the_os(path: Path) -> Callable[[], None]:
-    """Make every read of *path* fail at the OS layer, on any platform, and return an undo.
-
-    The obvious instrument -- ``path.chmod(0o000)`` -- is POSIX-only: on Windows ``os.chmod``
-    can only toggle the read-only attribute and cannot withdraw read access at all, so the file
-    stays perfectly readable, nothing degrades, and every assertion built on it reads a healthy
-    corpus. Worse, the read-only attribute it *does* set makes the file an illegal ``os.replace``
-    target, so a whole-corpus rewrite fails with a write error instead of the read error the
-    test meant to stage.
-
-    Replacing the file with a directory of the same name refuses the read everywhere instead:
-    opening a directory raises ``IsADirectoryError`` on POSIX and ``PermissionError`` on Windows,
-    both ``OSError``, both landing in the single ``except OSError`` arm of ``_aio.read_text`` and
-    coming back out as ``UnreadableFileError``. The name still matches the ``*.md`` globs every
-    corpus scan uses (``Path.glob`` does not filter directories), so the file is still *found*
-    and then refused -- which is the state these tests are about.
-    """
-    original = path.read_bytes()
-    path.unlink()
-    path.mkdir()
-
-    def _undo() -> None:
-        path.rmdir()
-        path.write_bytes(original)
-
-    return _undo
-
-
 def catalog_of(squad_dir: Path | None) -> CatalogSource:
-    """The role catalog source for a test that points a resolver at *squad_dir*: it reads the
-    squad's roles override each time it is called, and is the bundled catalog for ``None``."""
+    """The role catalog source reading *squad_dir*'s roles override per call (bundled for None)."""
     from squads._roles._catalog import get_catalog
     from squads._roles._loader import load_role_catalog
 
@@ -317,26 +42,12 @@ def catalog_of(squad_dir: Path | None) -> CatalogSource:
     return lambda: load_role_catalog(squad_dir)
 
 
-def backends_of(paths: SquadPaths) -> Callable[[], list[AgentBackend]]:
-    """The backends *paths* names, built fresh on each call."""
-    from squads._backends._registry import get_backend
+def role_of(slug: str, *capabilities: str) -> Any:
+    """A resolved role for *slug*; a `-dev` slug holds `dev` unless told otherwise."""
+    from squads._roles._projection import RoleView
 
-    return lambda: [get_backend(name) for name in paths.config.active_backends]
-
-
-def bundled_migration_context(paths: SquadPaths) -> MigrationContext:
-    """The context a runner is handed when a squad carries no override: the bundled workflow
-    spec and playbook beside *paths*."""
-    from squads._interactions._playbook import get_playbook_spec
-    from squads._migrations._context import MigrationContext
-    from squads._workflow import bundled_spec
-
-    return MigrationContext(
-        paths=paths,
-        spec=bundled_spec(),
-        playbook=get_playbook_spec(),
-        catalog=catalog_of(paths.squad_dir),
-    )
+    held = capabilities or (("dev",) if slug.endswith("-dev") else ())
+    return RoleView(slug=slug, full_name=slug, title=slug, is_default=False, capabilities=held)
 
 
 def make_service(
@@ -345,7 +56,7 @@ def make_service(
     playbook: PlaybookSpec | None = None,
     backends: Callable[[], list[AgentBackend]] | None = None,
 ) -> Service:
-    """A ``Service`` over *paths* with the bundled spec and playbook unless one is given."""
+    """A `Service` over *paths* with the bundled spec and playbook unless one is given."""
     from squads._interactions._playbook import get_playbook_spec
     from squads._services._service import build_service
     from squads._spec_documents import SpecDocuments
@@ -362,138 +73,3 @@ def make_service(
         ),
         backends,
     )
-
-
-def pinned_attributes(roster_type: str) -> dict[str, Any]:
-    """The attribute declarations a hand-built spec's *roster_type* must carry for the loader to
-    accept it: the pinned roster attributes, each with its pinned kind."""
-    from squads._models._attributes import AttributeSpec
-    from squads._workflow._validity import PINNED_ROSTER_ATTRIBUTES
-
-    return {
-        name: AttributeSpec(kind=kind)  # pyright: ignore[reportArgumentType]
-        for name, kind in PINNED_ROSTER_ATTRIBUTES.get(roster_type, {}).items()
-    }
-
-
-async def plant_attribute(svc: Any, item_id: str, key: str, value: Any) -> None:
-    """Write attribute *key* straight onto *item_id*'s file and index entry (``None`` removes
-    it), bypassing the verbs: for the stored states no command produces, such as two roles
-    carrying the default designation."""
-    from squads._index._resolver import item_file
-    from squads._itemfile import update_frontmatter
-
-    async with svc.store.transaction() as db:
-        item = db.get(item_id)
-        base = item.model_copy(deep=True)
-        if value is None:
-            item.attributes.pop(key, None)
-        else:
-            item.attributes[key] = value
-        await update_frontmatter(
-            item_file(svc.paths, item), item, base, default_kind=svc.spec.default_ref_kind()
-        )
-        db.add(item)
-
-
-def dev_role(tech: str, *, name: str | None = None, seq: int = 0, model: str | None = None) -> Any:
-    """A developer role built from the bundled catalog's ``dev`` template."""
-    from dataclasses import replace
-
-    from squads._roles._catalog import instantiate_template
-    from squads._roles._loader import load_role_catalog
-    from squads._roles._templates import proposed_name, proposed_slug
-
-    template = load_role_catalog().templates["dev"]
-    slug = proposed_slug(template, tech)
-    chosen = name if name is not None else proposed_name(template, tech, seq)
-    assert slug is not None
-    assert chosen is not None
-    role = instantiate_template(template, tech=tech, slug=slug, full_name=chosen)
-    return replace(role, model=model or role.model)
-
-
-def role_of(slug: str, *capabilities: str) -> Any:
-    """A resolved role for *slug*. A slug ending ``-dev`` holds the ``dev`` capability, the way a
-    templated developer does, unless *capabilities* are given."""
-    from squads._roles._projection import RoleView
-
-    held = capabilities or (("dev",) if slug.endswith("-dev") else ())
-    return RoleView(slug=slug, full_name=slug, title=slug, is_default=False, capabilities=held)
-
-
-_LOCK_HOLDER = (
-    "import sys, time, filelock\n"
-    "lock = filelock.FileLock(sys.argv[1])\n"
-    "lock.acquire()\n"
-    "print('held', flush=True)\n"
-    "time.sleep(float(sys.argv[2]))\n"
-)
-
-
-def hold_lock(lock_path: Path, seconds: float) -> subprocess.Popen[str]:
-    """Start a process that holds *lock_path* for *seconds*, returning once it holds it."""
-    proc = subprocess.Popen(
-        [sys.executable, "-I", "-c", _LOCK_HOLDER, str(lock_path), str(seconds)],
-        stdout=subprocess.PIPE,
-        text=True,
-    )
-    assert proc.stdout is not None
-    assert proc.stdout.readline().strip() == "held"
-    return proc
-
-
-async def add_role_from_toml(svc: Any, slug: str, body: str) -> Any:
-    """Create the role *slug* that defines itself from *body*, a role definition in the
-    per-slug file grammar (comments allowed)."""
-    import tomllib
-
-    return await svc.add_role(slug, definition=tomllib.loads(body))
-
-
-def write_role_file(squad_dir: Path, slug: str) -> Path:
-    """Write a complete role definition (the per-slug file grammar) beside the squad, outside
-    ``.overrides/``, for ``sq role add --file``, and return its path."""
-    path = squad_dir.parent / f"{slug}.role.toml"
-    path.write_text(
-        'full_name = "Sam Reliability"\ntitle = "SRE"\n'
-        'description = "Keeps the lights on."\nmission = "Own incident response and rollback."\n',
-        encoding="utf-8",
-    )
-    return path
-
-
-async def add_role_from_file(svc: Any, slug: str) -> Any:
-    """Create the role *slug* that defines itself from the file :func:`write_role_file` wrote."""
-    import tomllib
-
-    path = svc.paths.squad_dir.parent / f"{slug}.role.toml"
-    return await svc.add_role(slug, definition=tomllib.loads(path.read_text(encoding="utf-8")))
-
-
-def orphaned_role_slugs(findings: list[dict[str, Any]]) -> set[str]:
-    """The slugs of the roles a ``sq check --json`` payload reports at ``role_base_resolves``."""
-    import re
-
-    return {
-        match.group(1)
-        for f in findings
-        if f["rule"] == "role_base_resolves"
-        and (match := re.search(r"role '([^']+)'", f["message"]))
-    }
-
-
-async def check_is_clean_but_for_orphaned_roles(invoke: Any, expected_orphans: Any = ()) -> None:
-    """Assert ``sq check`` reports no error other than the roles nothing backs, and that exactly
-    *expected_orphans* are those roles: a role of an old corpus that no catalog entry or role
-    file defines is reported after migration, never guessed into a definition, and any other
-    role without a base is a defect."""
-    import json
-
-    result = await invoke(["check", "--json"])
-    findings = json.loads(result.output)
-    unexpected = [
-        f for f in findings if f["level"] == "error" and f["rule"] != "role_base_resolves"
-    ]
-    assert not unexpected, unexpected
-    assert orphaned_role_slugs(findings) == set(expected_orphans)

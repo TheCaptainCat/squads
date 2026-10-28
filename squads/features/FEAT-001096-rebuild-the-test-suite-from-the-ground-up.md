@@ -3,7 +3,7 @@ id: FEAT-1096
 sequence_id: 1096
 type: feature
 title: Rebuild the test suite from the ground up
-status: Ready
+status: Cancelled
 author: product-owner
 priority: high
 refs:
@@ -42,7 +42,7 @@ subentities:
   title: Measure per-OS CI times and test count
   status: Todo
 created_at: '2026-10-17T07:56:25Z'
-updated_at: '2026-10-26T14:03:08Z'
+updated_at: '2026-10-27T20:16:28Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -171,6 +171,8 @@ runs the full suite, not a platform subset. Targets are measured at the same
 test-job scope as today, on the same runners, with the worker counts recorded. 
 The test count is reported but not capped: these times are the only bound.
 
+Each target is judged on at least two CI runs per OS: it is met on an OS when every one of those runs is under it. One run alone neither meets nor misses a target, given the 39 to 59 min spread between two same-day Windows runs of one suite.
+
 ## Scope
 
 - Inventory the current behaviours and regression classes; build the parity 
@@ -192,6 +194,7 @@ setup-sharing design here.
 - New features' own tests while the rebuild runs: they follow the new 
 conventions as each lands.
 - CI runner or provider changes beyond what profiling shows.
+- The VS Code client's TypeScript tests (`clients/vscode`): they keep their own suite and are not rebuilt here.
 
 ## Acceptance
 
@@ -417,4 +420,6 @@ rebuild is cited.
     5. FEAT-1096 does not say whether the client's TypeScript tests are in scope. I recommend adding them to Out of scope explicitly.
 - [2026-10-26T14:03:08Z] `op-pierre` Pierre Chat:
   - Validated Olivia's recommendations 1, 3, 4 and 5: the rebuild depends on the open 0.17 work; add a manual CI trigger for a 0.17 baseline; judge the targets on two runs per OS; client TypeScript tests are out of scope.
+- [2026-10-27T20:16:21Z] `op-pierre` Pierre Chat:
+  - 2026-10-27: test-suite rebuild cancelled. tests/ and tests_next/ deleted; only the repository meta guards are kept, moved to tests/meta.
 <!-- sq:discussion:end -->

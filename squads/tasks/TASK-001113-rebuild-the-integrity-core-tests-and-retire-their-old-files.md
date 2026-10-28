@@ -3,13 +3,14 @@ id: TASK-1113
 sequence_id: 1113
 type: task
 title: Rebuild the integrity core tests and retire their old files
-status: Ready
+status: Cancelled
 parent: FEAT-1096
 author: tech-lead
 assignee: python-dev
 priority: high
 refs:
 - TASK-1112:depends-on
+- TASK-1111:depends-on
 description: Store, counter, markers, path guard, write-once, migrations and repair;
   parity then deletion.
 subentities:
@@ -30,7 +31,7 @@ subentities:
   status: Todo
   story: US6
 created_at: '2026-10-24T13:42:15Z'
-updated_at: '2026-10-26T09:29:18Z'
+updated_at: '2026-10-27T20:16:24Z'
 ---
 <!-- sq:body -->
 Rebuild the integrity core in the new root, deepest layering first: index store, global counter, transactions, markers and `reject_markers`, the `abspath` traversal guard, the write-once guard, preserved line endings on every file write (item files, skill files, managed regions and `.squads.toml`), sub-entity container restore, migrations, including the 0.16 to 0.17 role step, reconcile, corpus-fit, repair and renumber (US6), then prove parity and delete the old files this area covers (US9). This is the first of the three area increments; the engine and backend areas follow it one at a time, so each increment's CI measurement and deletion commit stands alone.

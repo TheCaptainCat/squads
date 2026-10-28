@@ -1,28 +1,6 @@
-"""Two load-bearing static properties of the three bundled TOML documents
-(``workflow.toml``, ``roles.toml``, ``playbook.toml``), both required by ``_specmerge``'s
-splat-ref grammar rather than merely convenient:
-
-1. **Every key, at every nesting level, is a TOML bare key** (``A-Za-z0-9_-``, one or more
-   characters). Splat-ref resolution addresses a bundled key by dotted path, and the dotted
-   path grammar cannot express a key that requires TOML quoting — most concretely, a
-   non-ASCII key. This is deliberately not a runtime check inside the engine: resolution is
-   base-only, so a path can only ever address a key the *bundled* document itself declares,
-   and this scan is what keeps that key set inside the addressable grammar in the first
-   place. Without it, a future bundled key requiring TOML quotes would not be rejected loudly
-   — it would be **unaddressable by any path**, and a splat-ref aimed at it would report a
-   plain dangling-path violation with no hint that the real problem is the bundled key's own
-   spelling. The guard is what turns "unaddressable" into "provably never attempted" instead
-   of "silently unreachable".
-2. **No bundled string value begins with an unescaped ``$(``.** A bundled document never
-   itself uses the splat-ref grammar — only an override does — so no bundled string should
-   ever need a leading ``$$(`` escape to survive a merge unchanged. This scan proves that
-   holds today, so no tool that ever writes a bundled string verbatim into an override file
-   (a scaffold command, a docs generator) owes an escaping duty it could easily forget.
-
-Both are read straight off the real bundled documents via ``tomllib`` — the same way
-``_specmerge``'s own tests exercise them — not re-derived from a private assumption about
-their shape.
-"""
+"""Two load-bearing static properties of the three bundled TOML documents (``workflow.toml``,
+``roles.toml``, ``playbook.toml``), both required by ``_specmerge``'s splat-ref grammar rather
+than merely convenient:"""
 
 import importlib.resources
 import tomllib

@@ -13,7 +13,7 @@ refs:
 description: 'The team''s runbook for cutting a squads release: gates, prep, and drafting
   the release (the operator publishes).'
 created_at: '2026-07-20T12:32:09Z'
-updated_at: '2026-08-26T09:06:52Z'
+updated_at: '2026-10-27T20:16:11Z'
 when_to_use: When preparing or cutting a squads release.
 allowed_tools: ''
 origin: project
@@ -59,8 +59,7 @@ actual GitHub publish. Never `git tag` or publish yourself.
 - **Bump the version**: `uv run python scripts/bump_version.py X.Y.Z` — bumps `pyproject.toml` and
   `clients/vscode/package.json` in lockstep, runs `uv sync --all-extras`, handles the
   template-manifest gotcha (restores the prior release's manifest entry from its tag before
-  regenerating so it stays byte-identical, then appends the new entry), re-stamps the
-  version-embedding goldens, and re-stamps this repo's own managed files (`sq sync` — the
+  regenerating so it stays byte-identical, then appends the new entry), and re-stamps this repo's own managed files (`sq sync` — the
   `.squads.toml` `squads_version`). Use `--dry-run` first to preview. Never edits the CHANGELOG or
   runs `git commit`/`tag`/push — those stay in this Prep section / the operator.
 - **Rebuild the content store from ground truth, then gate on it — in this exact order, and only

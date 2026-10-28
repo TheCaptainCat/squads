@@ -78,6 +78,7 @@ anyio_mode = "auto"
 # Keep only the latest run's tmp dirs: /tmp is a small tmpfs that a full run can fill.
 tmp_path_retention_count = 1
 markers = [
+    "covers(key, *params): declares the CLI (command key, parameter) pairs a test exercises; read by ast by the coverage guard in tests/meta and checked against the calls the test makes",
     "slow: marks tests that generate large data sets or have wall-clock bounds (skipped by default, opt in with --run-slow)",
     "gate_for(site): declares that this test's own falsification proves a gated view-tag writer site (module-relative-path::function); collected by tests/meta's writer-scan citation check instead of a hand-maintained dict",
 ]
@@ -124,11 +125,12 @@ max-args = 8
 # section-divider comments ("# Label: word", "# Label (word)") and the verbatim-quoted
 # docstring text in the backend-conformance findings catalogue
 # RUF029: async tests with no `await` run on the event loop under anyio_mode = "auto"; they are
-# left as written until the suite is rebuilt.
+# left as written.
 "tests/*" = ["PLR2004", "PLR0913", "S101", "ERA001", "RUF029"]
+"conftest.py" = ["ERA001"]
 
 [tool.pyright]
-include = ["src", "tests"]
+include = ["src", "tests", "conftest.py"]
 # Belt-and-suspenders alongside `include` above: clients/ is a self-contained TypeScript/Node
 # package with its own gate; a stray .ts/node_modules there must never fail pyright.
 exclude = ["clients"]
@@ -142,16 +144,13 @@ venv = ".venv"
 # that family for the tests subtree; every other strict check still applies.
 [[tool.pyright.executionEnvironments]]
 root = "tests"
+extraPaths = ["."]
 reportUnknownMemberType = "none"
 reportUnknownVariableType = "none"
 reportUnknownParameterType = "none"
 reportUnknownArgumentType = "none"
 reportUnknownLambdaType = "none"
 reportMissingParameterType = "none"
-# A test pinning another module's (or a third-party library's, e.g. Textual's widget
-# internals in tests/tui/) private attributes is deliberate whitebox coverage, not the
-# cross-module reach-in this rule targets in src/ — that rule stays at strict's error level
-# there. Off only for tests.
 reportPrivateUsage = "none"
 
 # vulture: periodic, non-gating dead-code scan (see CLAUDE.md). Suppresses framework

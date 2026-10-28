@@ -1,39 +1,5 @@
 """Durable enforcement for the engine's static-state precondition — the lasting output of the
-statelessness work is a guard, not a one-time sweep.
-
-**Triage rule** (see ``squads._context``'s module docstring for the full statement this
-mirrors): a module-level binding is either
-
-- **DATA** — its value varies per request/squad/test — it must live on the single
-  ``RequestContext`` object (one dataclass instance in one ``ContextVar``, never a per-field
-  ``ContextVar`` and never a bare module global), or
-- **CODE/definition** — an immutable spec/class/lookup-table loaded once and safe to share
-  across every request — it may stay module-level, allowlisted below.
-
-This test walks every module under ``src/squads`` with :mod:`ast` and flags two constructs at
-**module scope** (``ClassVar``s and function-local bindings are out of band by construction —
-only a module's own top-level statements are walked):
-
-1. an assignment binding a mutable-type value — a ``dict``/``list``/``set`` literal, a
-   dict/list/set comprehension, or a call to a known mutable-container factory
-   (``dict``/``list``/``set``/``defaultdict``/``OrderedDict``/``Counter``/``deque``, bare or
-   qualified as ``module.Factory(...)``) — any of these mutated in place needs no ``global``
-   statement, so the factory-call check matters as much as the literal check;
-2. a ``global`` statement anywhere in the module (flags the module-level name it mutates, e.g.
-   a lazily-populated cache guarded by a "loaded" flag).
-
-Every hit must be on ``ALLOWLIST`` below — the sanctioned CODE-cache/definition catalog,
-enumerated exactly and exhaustively so the guard is green on the current tree, not aspirational.
-``ALLOWLIST`` also carries a few names the two constructs above don't
-actually flag — immutable spec/catalog singletons built via a plain (non-mutable-factory)
-function call (``_BUNDLED_SPEC``, ``_spec``, ``_create_spec``, ``_CATALOG``, …) — included here
-anyway because they're the same sanctioned-CODE surface named in the triage audit; the
-"no stale entry" test below only requires that every allowlisted name
-refers to a real module-level binding, not that the mutable-binding check specifically flags it.
-
-Adding a convenient module global later fails the "matches the allowlist exactly" test below
-until it's either moved onto ``RequestContext`` or added here with a one-line reason.
-"""
+statelessness work is a guard, not a one-time sweep."""
 
 import ast
 from pathlib import Path
@@ -305,9 +271,7 @@ def test_the_wired_guard_reddens_on_a_planted_dict_literal_leak(tmp_path: Path) 
 
 
 def test_the_wired_guard_reddens_on_a_planted_defaultdict_factory_leak(tmp_path: Path) -> None:
-    """The exact false-negative class flagged in review: a module-scope cache built from a
-    non-{dict,list,set}-literal mutable-container factory and mutated in place — no `global`
-    statement needed, so only the broadened factory-call check catches it."""
+    """A module-scope cache from a mutable-container factory, mutated in place, is caught."""
     planted_root = tmp_path / "engine"
     planted_root.mkdir()
     (planted_root / "_leaky_module.py").write_text(
@@ -325,8 +289,7 @@ def test_the_wired_guard_reddens_on_a_planted_defaultdict_factory_leak(tmp_path:
 
 
 def test_the_wired_guard_reddens_on_a_qualified_ordereddict_factory_leak(tmp_path: Path) -> None:
-    """The qualified-call form (`collections.OrderedDict()`, not a bare imported name) is
-    caught the same way — the factory-name check looks at the attribute, not the module path."""
+    """The qualified-call form (`collections.OrderedDict()`."""
     planted_root = tmp_path / "engine"
     planted_root.mkdir()
     (planted_root / "_leaky_module.py").write_text(
@@ -366,9 +329,7 @@ def test_a_global_statement_on_an_unallowlisted_name_is_caught(tmp_path: Path) -
 
 
 def test_a_classvar_or_function_local_binding_is_out_of_band() -> None:
-    """ClassVar caches (e.g. the CLI's per-process custom-command-lookup caches) and ordinary
-    function-local variables are never module-scope bindings, so they're never flagged —
-    documented rationale for why they need no allowlist entry, per the guard's own scope."""
+    """ClassVar caches (e.g. the CLI's per-process custom-command-lookup caches)."""
     source = (
         "class _Group:\n"
         "    _custom_cmd_cache: dict = {}\n\n\n"

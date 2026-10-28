@@ -1,19 +1,7 @@
 """Repo-hygiene gate: none of the bundled sub-entity kind names — ``story``, ``subtask``,
 ``finding`` — nor their container plurals — ``stories``, ``subtasks``, ``findings`` — may appear
 as a bare Python string-constant literal anywhere under ``src/squads/`` outside two legitimate
-exceptions:
-
-- ``_specs/`` — where the bundled vocabulary is declared.
-- ``_migrations/`` — a migration runner pins the vocabulary of the schema version it transforms,
-  never the live spec.
-
-Everywhere else a sub-entity kind resolves from the spec (``WorkflowSpec.subentity_kinds``,
-``WorkflowSpec.item_subentity_kind``) and its anchor tag from
-:func:`squads._models._markers.subentity_tag`. The hits that remain are listed in
-``_ALLOWED`` with the reason each is not a leak into the generic path; a new literal anywhere else
-fails this scan. Same shape as the ref-kind literal scan: a cheap AST pass over bare
-``ast.Constant`` values that are *exactly* one of the six names, so prose never matches.
-"""
+exceptions:"""
 
 import ast
 from pathlib import Path
@@ -109,17 +97,14 @@ def test_no_bundled_subentity_kind_literal_appears_outside_the_spec_layer() -> N
 
 
 def test_kind_literals_are_pinned_to_the_bundled_spec() -> None:
-    """``_KIND_LITERALS`` must equal the bundled kinds and their plurals, exactly: a kind the
-    spec declares and this set lacks gets no coverage, and a name the spec dropped leaves the
-    real one unguarded."""
+    """``_KIND_LITERALS`` must equal the bundled kinds and their plurals."""
     kinds = bundled_spec().subentity_kinds
     declared = frozenset(kinds) | frozenset(spec.plural for spec in kinds.values())
     assert declared == _KIND_LITERALS
 
 
 def test_every_allowed_pair_is_still_produced_by_the_scan_without_it() -> None:
-    """A dead entry silently excuses whatever lands on that file later. Removing each in turn
-    and re-scanning the real tree must reproduce a hit for exactly that pair."""
+    """A dead entry silently excuses whatever lands on that file later."""
     root = _repo_root()
     for entry in _ALLOWED:
         hits = _scan(root, allowed=frozenset(_ALLOWED) - {entry})

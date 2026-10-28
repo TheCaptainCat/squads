@@ -1,26 +1,5 @@
 """Repo-hygiene gate: every entry point that writes managed skill bodies must call *both*
-``seed_bundled_skills`` and ``seed_custom_skills`` — ``init``, ``adopt`` and ``sync`` alike.
-
-The bug class, twice over. First ``init`` called only ``seed_bundled_skills``, so a squad with
-a custom or renamed type sat with an unstamped, un-indexed skill body on disk until someone
-happened to run ``sq sync``; ``adopt`` was worse and called neither, leaving an adopted
-project's roster incomplete from the very first command. Then the mirror image surfaced on the
-third entry point: ``sync`` called only ``seed_custom_skills``, and "custom" is defined by
-exclusion from the *bundled* playbook — so a bundled-playbook type whose body file first
-appeared after init was claimed by neither vocabulary and stayed bare forever, invisible to
-``sq check`` and beyond ``sq repair``'s reach (repair rebuilds the index *from* frontmatter,
-and the file has none).
-
-The guard is per-entry-point because the failures were per-entry-point: each of the three
-justified its own gap locally, in a docstring that had already gone stale. ``sync`` matters
-most of the three going forward — it is what a future release adding a bundled type relies on,
-instead of owing a hand-written migration to stamp the new skill.
-
-An AST scan (not a runtime test) so this stays a structural guard independent of any one
-override shape; the seeding behaviour itself is proven end to end in
-``tests/integration/test_custom_type_skill_generation.py`` and
-``tests/integration/test_a_skill_body_appearing_after_init_is_seeded_by_the_next_sync.py``.
-"""
+``seed_bundled_skills`` and ``seed_custom_skills`` — ``init``, ``adopt`` and ``sync`` alike."""
 
 import ast
 from pathlib import Path

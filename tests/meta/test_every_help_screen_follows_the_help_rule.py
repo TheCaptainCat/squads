@@ -1,13 +1,7 @@
 """Every ``--help`` screen of the live command tree meets the mechanical half of the help rule in
 CONTRIBUTING.md ("Writing ``--help`` text"): described options and arguments, a one-line summary,
 one markup dialect, lines that fit 80 columns, no truncated enumeration, and a short body unless
-a reviewer accepted a longer one.
-
-The tree is walked twice: for the bundled vocabulary, and for a project override declaring one
-custom type with a sub-entity kind and a ref kind, so a generated summary is held to the rule
-for a name the bundled spec never saw. Each check is also run against a synthetic bad screen, so
-a check that stops catching its violation fails here rather than passing silently.
-"""
+a reviewer accepted a longer one."""
 
 import re
 from collections.abc import Callable
@@ -16,7 +10,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from _help_tree import (
+from tests._help_tree import (
     CUSTOM_VOCABULARY_OVERRIDE,
     Node,
     command_nodes,
