@@ -3,7 +3,7 @@ id: TASK-1258
 sequence_id: 1258
 type: task
 title: Stability and adopter docs for the overridable vocabulary
-status: Draft
+status: Ready
 parent: FEAT-1249
 author: tech-lead
 assignee: tech-writer
@@ -30,7 +30,7 @@ subentities:
   status: Todo
   story: US7
 created_at: '2026-10-29T19:55:13Z'
-updated_at: '2026-10-29T19:56:33Z'
+updated_at: '2026-10-29T23:15:50Z'
 ---
 <!-- sq:body -->
 ## Goal
