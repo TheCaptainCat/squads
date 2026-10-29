@@ -635,7 +635,7 @@ GREETING_SKILL_SOURCE = {
     "spec": {
         "schema_version": "0.19",
         "override": False,
-        "digest": "763066bf35062c577c391af9959a9442e065ccfa2fbf066aae12210b200fcda1",
+        "digest": "e194337afd5234e8a7376fdb05c2c54868a65f4d6803e980b572093ac0e8646b",
     },
     "display": {
         "type": "Skill",
@@ -694,6 +694,10 @@ async def test_the_override_squad_checks_clean_and_lists_only_its_own_vocabulary
         "skill",
     ]
     assert sorted(k["subentity_kind"] for k in kinds) == ["action", "outcome"]
+    assert {k["subentity_kind"]: k["label"] for k in kinds} == {
+        "action": "Action",
+        "outcome": "Desired outcome",
+    }
 
 
 @pytest.mark.covers("workflow lint", "--json")

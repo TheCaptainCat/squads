@@ -498,7 +498,9 @@ def set_head(  # noqa: PLR0913 — the head's whole state, passed by keyword
             for f in spec.fields_for(kind)
             if held.get(f.code)
         ],
-        mapping={"label": target.title(), "value": mapping} if mapping and target else None,
+        mapping={"label": spec.kind_label(target), "value": mapping}
+        if mapping and target
+        else None,
         assignee=assignee_name,
     )
     if get_section(text, head_tag) is None:
@@ -523,10 +525,10 @@ def summary_columns(kind: str, spec: WorkflowSpec) -> list[str]:
     the CLI list/show tables share this derivation.
     """
     field_labels = [f.label for f in spec.fields_for(kind)]
-    cols = [kind.title(), *field_labels, "Status", "Assignee", "Title"]
+    cols = [spec.kind_label(kind), *field_labels, "Status", "Assignee", "Title"]
     target = spec.mapping_target_kind(kind)
     if target is not None:
-        cols.append(target.title())
+        cols.append(spec.kind_label(target))
     return cols
 
 

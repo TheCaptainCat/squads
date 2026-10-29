@@ -65,11 +65,22 @@ class Comment(DTO):
     body: str
 
 
+class KindDisplay(DTO):
+    """How a sub-entity kind is named: its code, its label, its plural and the heading above its
+    container in the item's body."""
+
+    name: str
+    label: str
+    plural: str
+    heading: str
+
+
 class SubentityDisplay(Display):
     """How a sub-entity is shown: the sub-entity it maps to when its kind maps, and the title of
     the item that carries its deferred work."""
 
     maps_to: str | None
+    maps_to_kind: KindDisplay | None
     carrier_title: str | None
 
 

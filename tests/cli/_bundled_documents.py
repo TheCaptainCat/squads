@@ -259,6 +259,7 @@ TYPES = [
 SUBENTITY_KINDS = [
     {
         "subentity_kind": "finding",
+        "label": "Finding",
         "lifecycle": "finding",
         "plural": "findings",
         "local_prefix": "F",
@@ -269,6 +270,7 @@ SUBENTITY_KINDS = [
     },
     {
         "subentity_kind": "story",
+        "label": "Story",
         "lifecycle": "subentity",
         "plural": "stories",
         "local_prefix": "US",
@@ -279,6 +281,7 @@ SUBENTITY_KINDS = [
     },
     {
         "subentity_kind": "subtask",
+        "label": "Subtask",
         "lifecycle": "subentity",
         "plural": "subtasks",
         "local_prefix": "ST",

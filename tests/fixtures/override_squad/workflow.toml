@@ -101,6 +101,7 @@ ref_rules = [{ kind = "replaces", hint = "" }]
 lifecycle = "subentity"
 completion = "Done"
 plural = "outcomes"
+label = "Desired outcome"
 heading = "Desired Outcomes"
 local_prefix = "OC"
 placeholder = "_Describe the outcome._"

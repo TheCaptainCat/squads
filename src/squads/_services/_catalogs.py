@@ -81,6 +81,7 @@ def subentity_kind_catalog(spec: WorkflowSpec) -> SubentityKindCatalog:
     rows = [
         SubentityKindRow(
             subentity_kind=kind,
+            label=spec.kind_label(kind),
             lifecycle=ks.lifecycle,
             plural=ks.plural,
             local_prefix=ks.local_prefix,

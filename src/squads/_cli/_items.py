@@ -733,7 +733,7 @@ def _mapping_help(spec: WorkflowSpec, kind: str, verb: str) -> str:
     """The help of the mapping option: the target kind and the local id it takes."""
     target = _target_kind(spec, kind)
     prefix = spec.subentity_kinds[target].local_prefix
-    return f"{target.title()} {verb}, as `{prefix}<n>` or `<n>`."
+    return f"{spec.kind_label(target)} {verb}, as `{prefix}<n>` or `<n>`."
 
 
 def _doc[F: Callable[..., object]](text: str) -> Callable[[F], F]:
@@ -946,7 +946,9 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
                 "no_maps_to",
                 inspect.Parameter.KEYWORD_ONLY,
                 default=typer.Option(
-                    False, f"--no-{_flag(target)}", help=f"Clear the {target} mapping."
+                    False,
+                    f"--no-{_flag(target)}",
+                    help=f"Clear the {spec.kind_label(target)} mapping.",
                 ),
                 annotation=bool,
             ),

@@ -518,6 +518,12 @@ def _subtask_json(local_id: str, title: str, story: str | None) -> dict[str, Any
             "badges": {},
             "assignee": None,
             "maps_to": story,
+            "maps_to_kind": {
+                "name": "story",
+                "label": "Story",
+                "plural": "stories",
+                "heading": "User Stories",
+            },
             "carrier_title": None,
         },
     }

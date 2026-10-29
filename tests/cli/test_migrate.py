@@ -853,7 +853,7 @@ async def test_a_target_kind_renamed_with_the_same_prefix_keeps_its_mappings(
     assert (checked.exit_code, checked.output) == (0, "[]\n")
     assert mapped.output.splitlines()[:2] == [
         "AC1 — Draft the outline  (action)",
-        "  status: Todo   impact: large   goal: OC1",
+        "  status: Todo   impact: large   Desired outcome: OC1",
     ]
     assert target.output.splitlines()[0] == "OC1 — Fifty active teams  (goal)"
 

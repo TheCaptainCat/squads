@@ -4,6 +4,7 @@ and discussion, and its sub-entities, each answering with its DTO."""
 from squads import _spans as spans
 from squads._api._dto._comments import Comments, CommentsRequest
 from squads._api._dto._graph import GraphNode, GraphRequest
+from squads._api._dto._items import KindDisplay
 from squads._api._dto._queues import (
     Blocked,
     BlockedRequest,
@@ -17,7 +18,6 @@ from squads._api._dto._queues import (
 from squads._api._dto._refs import Refs, RefsRequest
 from squads._api._dto._search import SearchRequest, SearchResults
 from squads._api._dto._subentities import (
-    KindDisplay,
     SubentitiesRequest,
     SubentityEntry,
     SubentityList,
@@ -30,14 +30,18 @@ from squads._api._response import Response
 from squads._errors import SquadsError
 from squads._models._item import Item
 from squads._services._base import ItemFilter
-from squads._services._item_dto import comment_dtos, participant_names, subentity_dto
+from squads._services._item_dto import (
+    comment_dtos,
+    kind_display,
+    participant_names,
+    subentity_dto,
+)
 from squads._services._item_ops import ItemOpsMixin, badge_pairs
 from squads._services._item_read_dto import (
     WORKLOAD_COLUMNS,
     blocked_entry,
     graph_node,
     inbox_entry,
-    kind_display,
     mine_columns,
     mine_row,
     ref_entry,
@@ -211,7 +215,6 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
         display = SubentityShowDisplay(
             **dict(full.display),
             kind=kind_display(kind, self.spec),
-            maps_to_kind=self._target_display(kind),
             discussion=unparsed,
         )
         return Response(data=SubentityShow.model_validate({**dict(full), "display": display}))

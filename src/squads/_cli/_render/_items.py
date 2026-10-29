@@ -154,7 +154,7 @@ def _render_raw(console: Console, show: ItemShow, *, comments: bool, full: bool)
     summary = show.display.summary
     if full and summary is not None:
         for sub in _blocks(show):
-            heading = f"## {summary.kind.title()} {sub.local_id} — {sub.title}"
+            heading = f"## {sub.display.type} {sub.local_id} — {sub.title}"
             lines += ["", heading, "", _badge_line(sub), "", sub.body]
     if comments:
         lines += ["", "## Discussion"]

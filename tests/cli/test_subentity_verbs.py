@@ -141,6 +141,12 @@ def _todo_display(story: str | None) -> dict[str, Any]:
         "badges": {},
         "assignee": None,
         "maps_to": story,
+        "maps_to_kind": {
+            "name": "story",
+            "label": "Story",
+            "plural": "stories",
+            "heading": "User Stories",
+        },
         "carrier_title": None,
     }
 
@@ -175,12 +181,6 @@ async def test_show_json_prints_the_subtask_as_one_object(populated_project, inv
         "display": {
             **_todo_display("US1"),
             "kind": kind,
-            "maps_to_kind": {
-                "name": "story",
-                "label": "Story",
-                "plural": "stories",
-                "heading": "User Stories",
-            },
             "discussion": None,
         },
     }
@@ -193,7 +193,7 @@ async def test_show_prints_the_status_story_body_and_discussion(populated_projec
     assert await _ran(invoke, ["task", str(TASK), "subtask", "1", "show"]) == (
         0,
         "ST1 — Tokenise the input  (subtask)\n"
-        "  status: Todo   story: US1\n\n"
+        "  status: Todo   Story: US1\n\n"
         f"{NO_BODY}\n\n"
         "Discussion\n(none)\n",
     )
@@ -926,18 +926,18 @@ def _written_subtask(title: str, body: str, **outcome: Any) -> str:
             "badges": {},
             "assignee": None,
             "maps_to": None,
+            "maps_to_kind": {
+                "name": "story",
+                "label": "Story",
+                "plural": "stories",
+                "heading": "User Stories",
+            },
             "carrier_title": None,
             "kind": {
                 "name": "subtask",
                 "label": "Subtask",
                 "plural": "subtasks",
                 "heading": "Subtasks",
-            },
-            "maps_to_kind": {
-                "name": "story",
-                "label": "Story",
-                "plural": "stories",
-                "heading": "User Stories",
             },
             "discussion": None,
         },
@@ -1060,25 +1060,25 @@ async def test_the_help_the_column_and_the_show_line_name_the_target_kind(
         in add_help
     )
     assert (
-        "│ --outcome              TEXT  Outcome it maps to, as `OC<n>` or `<n>`.        │"
+        "│ --outcome              TEXT  Desired outcome it maps to, as `OC<n>` or       │"
         in add_help
     )
     assert (
-        "│ --outcome               TEXT  Outcome to map it to, as `OC<n>` or `<n>`.     │"
+        "│ --outcome               TEXT  Desired outcome to map it to, as `OC<n>` or    │"
         in update_help
     )
     assert (
-        "│ --no-outcome                  Clear the outcome mapping.                     │"
+        "│ --no-outcome                  Clear the Desired outcome mapping.             │"
         in update_help
     )
     assert await _ok(invoke, ["job", "9", "actions"]) == (
-        "Action  Impact    Status    Assignee  Title                   Outcome\n"
-        "AC1     🔴 large  Todo                Draft the outline       OC1    \n"
-        "AC2               Deferred            Record the walkthrough         \n"
+        "Action  Impact    Status    Assignee  Title                   Desired outcome\n"
+        "AC1     🔴 large  Todo                Draft the outline       OC1            \n"
+        "AC2               Deferred            Record the walkthrough                 \n"
     )
     assert await _ok(invoke, ["job", "9", "action", "1", "show"]) == (
         "AC1 — Draft the outline  (action)\n"
-        "  status: Todo   impact: large   outcome: OC1\n"
+        "  status: Todo   impact: large   Desired outcome: OC1\n"
         "\n"
         "Outline.\n"
         "\n"
@@ -1137,7 +1137,7 @@ async def test_a_sub_entity_object_is_flat_with_its_mapping_always_present(
     kind = {"name": "action", "label": "Action", "plural": "actions", "heading": "Actions"}
     target = {
         "name": "outcome",
-        "label": "Outcome",
+        "label": "Desired outcome",
         "plural": "outcomes",
         "heading": "Desired Outcomes",
     }
@@ -1159,9 +1159,9 @@ async def test_a_sub_entity_object_is_flat_with_its_mapping_always_present(
             "badges": {"impact": large},
             "assignee": None,
             "maps_to": None,
+            "maps_to_kind": target,
             "carrier_title": None,
             "kind": kind,
-            "maps_to_kind": target,
             "discussion": None,
         },
     }

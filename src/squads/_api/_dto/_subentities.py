@@ -3,6 +3,7 @@
 from squads._api._dto._base import DTO
 from squads._api._dto._items import (
     ItemAddress,
+    KindDisplay,
     Subentity,
     SubentityDisplay,
     SubentityRow,
@@ -23,16 +24,6 @@ class SubentityRequest(SubentitiesRequest):
     local: str
 
 
-class KindDisplay(DTO):
-    """How a sub-entity kind is named: its code, its label, its plural and the heading above its
-    container in the item's body."""
-
-    name: str
-    label: str
-    plural: str
-    heading: str
-
-
 class SubentityEntry(SubentityRow):
     """A sub-entity as a listing row: its stored state and its display."""
 
@@ -49,12 +40,10 @@ class SubentityList(DTO):
 
 
 class SubentityShowDisplay(SubentityDisplay):
-    """How a shown sub-entity is displayed: its display plus its kind, the kind its mapping
-    targets (none when it does not map), and its stored discussion text when that holds no comment
-    the discussion list can carry."""
+    """How a shown sub-entity is displayed: its display plus its kind, and its stored discussion
+    text when that holds no comment the discussion list can carry."""
 
     kind: KindDisplay
-    maps_to_kind: KindDisplay | None
     discussion: str | None
 
 

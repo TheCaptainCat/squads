@@ -11,6 +11,7 @@ from squads._api._dto._items import (
     Comment,
     ItemRow,
     ItemShowDisplay,
+    KindDisplay,
     Subentity,
     SubentityDisplay,
     SubentitySummary,
@@ -113,6 +114,16 @@ def comment_dtos(comments: Sequence[discussion.Comment]) -> list[Comment]:
     return [Comment.model_validate(entry) for entry in discussion.comments_json(comments)]
 
 
+def kind_display(kind: str, spec: WorkflowSpec) -> KindDisplay:
+    """How sub-entity *kind* is named."""
+    return KindDisplay(
+        name=kind,
+        label=spec.kind_label(kind),
+        plural=spec.subentity_plural(kind),
+        heading=spec.subentity_container_heading(kind),
+    )
+
+
 def subentity_display(
     kind: str,
     sub: SubEntity,
@@ -124,11 +135,14 @@ def subentity_display(
     carries its deferred work."""
     kind_spec = spec.subentity_kinds.get(kind)
     return SubentityDisplay(
-        type=kind.title(),
+        type=spec.kind_label(kind),
         status=status_display(sub.status, spec),
         badges=badge_displays(spec, kind, sub.badge_value),
         assignee=names.get(sub.assignee) if sub.assignee else None,
         maps_to=sub.maps_to if kind_spec is not None and kind_spec.maps_to_parent else None,
+        maps_to_kind=kind_display(target, spec)
+        if (target := spec.mapping_target_kind(kind))
+        else None,
         carrier_title=carrier_title,
     )
 

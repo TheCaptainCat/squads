@@ -21,7 +21,7 @@ from squads._api._dto._queues import (
 )
 from squads._api._dto._refs import RefDisplay, RefEntry
 from squads._api._dto._search import SearchHit, SearchMatch
-from squads._api._dto._subentities import KindDisplay, SubentityEntry
+from squads._api._dto._subentities import SubentityEntry
 from squads._api._dto._tree import TreeNode, TreeNodeDisplay
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
@@ -233,16 +233,6 @@ def ref_entry(item_id: str, kind: str, spec: WorkflowSpec) -> RefEntry:
     declared = spec.ref_kinds.get(kind)
     label = declared.label if declared is not None else kind
     return RefEntry(id=item_id, kind=kind, display=RefDisplay(kind=label))
-
-
-def kind_display(kind: str, spec: WorkflowSpec) -> KindDisplay:
-    """How sub-entity *kind* is named."""
-    return KindDisplay(
-        name=kind,
-        label=kind.title(),
-        plural=spec.subentity_plural(kind),
-        heading=spec.subentity_container_heading(kind),
-    )
 
 
 def subentity_summary(kind: str, subs: list[SubEntity], spec: WorkflowSpec) -> SubentitySummary:

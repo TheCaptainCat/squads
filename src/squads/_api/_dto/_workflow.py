@@ -62,6 +62,7 @@ class SubentityKindRow(DTO):
     """A declared sub-entity kind."""
 
     subentity_kind: str
+    label: str
     lifecycle: str
     plural: str
     local_prefix: str

@@ -296,6 +296,10 @@ class SubentityKindSpec(BaseModel):
     """Scaffold prose shown for a freshly-created block with no body yet. ``None`` falls
     back to the generic kind-derived placeholder (``_discussion.body_placeholder``)."""
 
+    label: str | None = None
+    """How this kind is named for people (``"Story"``); ``None`` falls back to the kind's name
+    title-cased (:meth:`WorkflowSpec.kind_label`)."""
+
     heading: str | None = None
     """The ``## <heading>`` line above this kind's container block; ``None`` falls back to the
     title-cased ``plural``."""
@@ -1059,6 +1063,14 @@ class WorkflowSpec(BaseModel):
         Raises ``KeyError`` for an undeclared *kind* — same shape as :meth:`collection`.
         """
         return self.subentity_kinds[kind].plural
+
+    def kind_label(self, kind: str) -> str:
+        """The label of *kind*: the declared ``label``, else its name title-cased. Every surface
+        that names a kind for people takes it from here; it raises ``KeyError`` for an undeclared
+        *kind* like :meth:`subentity_plural`.
+        """
+        label = self.subentity_kinds[kind].label
+        return label if label is not None else kind.title()
 
     def subentity_container_heading(self, kind: str) -> str:
         """The ``## <heading>`` line above *kind*'s container block: the declared ``heading``, else
