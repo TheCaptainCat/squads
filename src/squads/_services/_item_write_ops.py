@@ -2,8 +2,8 @@
 verbs of every discussion host, and the sub-entity writes, each answering with the resource it
 wrote."""
 
-from collections.abc import Sized
-from typing import cast
+from collections.abc import Mapping, Sized
+from typing import Any, cast
 
 from squads import _actor as actor
 from squads import _badges as badges
@@ -57,6 +57,7 @@ from squads._api._dto._subentities import SubentityRequest, SubentityShow
 from squads._api._response import Response
 from squads._errors import SquadsError
 from squads._models._item import Item, make_ref, split_ref
+from squads._models._metadata import coerce, require_settable
 from squads._services._item_dto import comment_dtos, item_display, item_row
 from squads._services._item_ops import ItemOpsMixin
 from squads._services._item_read_ops import ItemReadOpsMixin
@@ -128,6 +129,18 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
 
     # ------------------------------------------------------------------------- items
 
+    def _coerced_create_attributes(
+        self, item_type: str, given: Mapping[str, str | list[str]]
+    ) -> dict[str, Any] | None:
+        """The attributes a create request carries, each checked as ``update --set`` checks it:
+        settable on the type and parsed to its kind (a list as its parts, a date as ISO)."""
+        declared = self.spec.item_attributes(item_type)
+        out: dict[str, Any] = {}
+        for key, value in given.items():
+            attribute = require_settable(item_type, key, declared)
+            out[key] = value if isinstance(value, list) else coerce(key, attribute, value)
+        return out or None
+
     async def create_item(self, req: ItemCreateRequest) -> Response[ItemCreated]:
         """Create the item, written by its author, who must be a live participant."""
         author = await self.resolve_participant(req.author)
@@ -149,7 +162,7 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
             assignee=assignee,
             priority=req.priority,
             fields=req.fields or None,
-            attributes=dict(req.attributes) or None,
+            attributes=self._coerced_create_attributes(req.type, req.attributes),
             body=req.body,
         )
         names = await self.display_names()

@@ -212,9 +212,18 @@ async def test_add_scaffolds_a_todo_subtask_with_the_given_title(populated_proje
 @pytest.mark.covers("<type> add-<kind>", "TITLE")
 async def test_add_refuses_a_missing_or_blank_title(populated_project, invoke) -> None:
     before = (await _ran(invoke, ["task", str(TASK), "show", "--full"]))[1]
-    missing = await _ran(invoke, ["task", str(TASK), "add-subtask"])
-    blank = await _ran(invoke, ["task", str(TASK), "add-subtask", "  "])
-    assert (missing[0], blank) == (2, (1, "error: title must not be empty\n"))
+    assert await _ran(invoke, ["task", str(TASK), "add-subtask"]) == (
+        2,
+        "Usage: sq task N add-subtask [OPTIONS] TITLE\n"
+        "Try 'sq task N add-subtask --help' for help.\n"
+        "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
+        "│ Missing argument 'TITLE'.                                                    │\n"
+        "╰──────────────────────────────────────────────────────────────────────────────╯\n",
+    )
+    assert await _ran(invoke, ["task", str(TASK), "add-subtask", "  "]) == (
+        1,
+        "error: title must not be empty\n",
+    )
     assert (await _ran(invoke, ["task", str(TASK), "show", "--full"]))[1] == before
 
 

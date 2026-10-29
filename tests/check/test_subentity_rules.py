@@ -195,6 +195,49 @@ async def test_an_unwritten_subtask_body_selected_at_error_fails_the_check(
     )
 
 
+# subentity_title_present
+
+
+def _untitled(squad: Squad) -> str:
+    return (
+        "subtask ST2 has no title"
+        f" — set one with `sq {' '.join(address(squad.task))}"
+        ' subtask ST2 update --title "…"`'
+    )
+
+
+@pytest.mark.breaches("subentity_title_present")
+async def test_a_subtask_with_no_title_is_reported(squad, project, invoke, check_json) -> None:
+    await _add_subtask(invoke, squad.task, "Lex")
+    assert await check_json() == ([], 0)
+
+    # the CLI refuses a blank title: edit the file and re-index
+    edit_item_file(project, squad.task, "title: Lex\n", "title: ''\n")
+    await repair(invoke)
+
+    assert await check_json() == (
+        [issue("subentity_title_present", "warn", squad.task, _untitled(squad))],
+        0,
+    )
+
+
+@pytest.mark.breaches("subentity_title_present@error")
+async def test_a_title_missing_selected_at_error_fails_the_check(
+    squad, project, invoke, check_json, select_validators
+) -> None:
+    await _add_subtask(invoke, squad.task, "Lex")
+    select_validators("subentity_title_present@error", on="task")
+    assert await check_json() == ([], 0)
+
+    edit_item_file(project, squad.task, "title: Lex\n", "title: ''\n")
+    await repair(invoke)
+
+    assert await check_json() == (
+        [issue("subentity_title_present", "error", squad.task, _untitled(squad))],
+        3,
+    )
+
+
 # subentity_title_max
 
 

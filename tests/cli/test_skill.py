@@ -586,6 +586,13 @@ async def test_unlink_role_refuses_a_role_that_does_not_exist(project, invoke) -
     )
 
 
+@pytest.mark.covers("skill unlink-role", "ROLE")
+async def test_unlink_role_refuses_a_role_the_skill_is_not_scoped_to(project, invoke) -> None:
+    await _add(invoke)
+    result = await invoke(["skill", SLUG, "unlink-role", "manager"])
+    assert (result.exit_code, result.output) == (1, "error: SKILL-2 has no ref to ROLE-1\n")
+
+
 @pytest.mark.covers("skill unlink-role", "--as")
 async def test_unlink_role_as_attributes_the_unlink_to_the_actor(project, invoke) -> None:
     await _add(invoke)

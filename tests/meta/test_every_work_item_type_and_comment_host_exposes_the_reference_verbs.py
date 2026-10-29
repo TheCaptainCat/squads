@@ -13,7 +13,7 @@ import pytest
 import typer.core
 from typer._click.core import Context
 
-from squads._cli._create import _attribute_flag  # pyright: ignore[reportPrivateUsage]
+from squads._cli._create import CREATE_ATTRIBUTE_KINDS, attribute_flag
 from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
 from tests._cli_surface import (
@@ -211,9 +211,9 @@ def create_problems(tree: Tree, spec: WorkflowSpec) -> list[str]:
         path = ("create", item_type)
         fields_ = {f"--{f.code}": None for f in spec.fields_for(item_type) if f.code != "priority"}
         fields_ |= {
-            f"--{_attribute_flag(name, attribute)}": None
+            f"--{attribute_flag(name)}": None
             for name, attribute in spec.item_attributes(item_type).items()
-            if attribute.settable and attribute.kind in ("str", "list")
+            if attribute.settable and attribute.kind in CREATE_ATTRIBUTE_KINDS
         }
         if tree.classes[path] != tree.classes[reference]:
             found.append(f"create {item_type}: is not built by the shared create builder")

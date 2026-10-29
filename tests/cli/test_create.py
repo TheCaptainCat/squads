@@ -260,7 +260,7 @@ async def test_json_prints_the_created_item(project, invoke) -> None:
     )
 
 
-@pytest.mark.covers("create <type>", "--tag")
+@pytest.mark.covers("create <type>", "--tags")
 @pytest.mark.covers("create <type>", "--tech")
 async def test_create_guide_stores_each_tag_in_order_and_the_tech(project, invoke) -> None:
     result = await invoke(
@@ -270,9 +270,9 @@ async def test_create_guide_stores_each_tag_in_order_and_the_tech(project, invok
             "Setup",
             "--author",
             "manager",
-            "--tag",
+            "--tags",
             "ops",
-            "--tag",
+            "--tags",
             "dev",
             "--tech",
             "python",
@@ -307,3 +307,23 @@ async def test_review_target_ref_sets_the_reviewed_ref(populated_project, invoke
     assert result.exit_code == 0, result.output
     shown = await invoke(["review", "5", "show", "--json"])
     assert json.loads(shown.output)["target_ref"] == "v1.2.0"
+
+
+@pytest.mark.covers("create <type>", "--target-date")
+async def test_milestone_target_date_sets_the_date(project, invoke) -> None:
+    result = await invoke(
+        ["create", "milestone", "Ship", "--author", "manager", "--target-date", "2026-12-01"]
+    )
+    assert result.exit_code == 0, result.output
+    assert (await _shown(invoke, "milestone", 2))["target_date"] == "2026-12-01"
+
+
+@pytest.mark.covers("create <type>", "--target-date")
+async def test_milestone_target_date_refuses_a_value_that_is_not_a_date(project, invoke) -> None:
+    result = await invoke(
+        ["create", "milestone", "Ship", "--author", "manager", "--target-date", "soon"]
+    )
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: 'target_date' expects an ISO date (YYYY-MM-DD); got 'soon'\n",
+    )

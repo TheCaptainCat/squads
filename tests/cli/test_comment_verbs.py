@@ -526,6 +526,16 @@ async def test_a_subtask_addresses_its_own_discussion(populated_project, invoke)
     assert await _comments(invoke) == []
 
 
+@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+async def test_a_comment_on_a_subtask_the_item_lacks_names_the_subtask(
+    populated_project, invoke
+) -> None:
+    out = await _ran(
+        invoke, ["task", str(TASK), "subtask", "9", "comment", "-m", "x", "--as", "manager"]
+    )
+    assert out == (1, "error: no subtask ST9 in TASK-3\n")
+
+
 @pytest.mark.covers("role", "<slug|id|n>")
 async def test_a_role_addresses_its_own_discussion(populated_project, invoke) -> None:
     host = ["role", "manager"]

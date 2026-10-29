@@ -171,7 +171,7 @@ class SubentityAddRequest(ItemAddress):
     *story* the parent story's local id and *deferred_to* the item carrying deferred work."""
 
     kind: str
-    title: str = ""
+    title: str
     fields: dict[str, str] = Field(default_factory=dict[str, str])
     story: str | None = None
     assignee: str | None = None

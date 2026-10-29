@@ -137,6 +137,18 @@ def _subentity_comments(kind: str) -> common.CommentHost:
     )
 
 
+def _story_kind(spec: WorkflowSpec, kind: str) -> str:
+    """The sub-entity kind a *kind* that maps to a parent story points at: the kind hosted by the
+    parent type of the type that hosts *kind*."""
+    for item_type, type_spec in spec.items.items():
+        if type_spec.subentity_kind == kind:
+            parent = spec.item_parent_required(item_type)
+            hosted = spec.item_subentity_kind(parent) if parent else None
+            if hosted is not None:
+                return hosted
+    return kind
+
+
 def _kw_str(kwargs: dict[str, object], key: str) -> str | None:
     value = kwargs.get(key)
     return value if isinstance(value, str) else None
@@ -892,9 +904,7 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             **_address(ctx),
             kind=kind,
             title=cast(str, kwargs["title"]),
-            # Story-mapping semantics stay wired to the built-in "story" kind regardless of which
-            # kind declares maps_parent_story: a bounded built-in, not per-kind.
-            story=resolve_local_id(story, "story") if story else None,
+            story=resolve_local_id(story, _story_kind(spec, kind)) if story else None,
             fields=_given_fields(kind, spec, kwargs),
             assignee=_kw_str(kwargs, "assignee"),
             status=parse_status(status) if status else None,
@@ -1013,7 +1023,7 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             local=ctx.obj["local"],
             title=title,
             fields=field_values,
-            story=resolve_local_id(story, "story") if story else None,
+            story=resolve_local_id(story, _story_kind(spec, kind)) if story else None,
             clear_story=no_story,
             assignee=assignee,
             clear_assignee=clear_assignee,

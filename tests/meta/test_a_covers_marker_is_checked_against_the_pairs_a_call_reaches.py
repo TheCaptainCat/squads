@@ -58,8 +58,8 @@ CASES: dict[str, Case] = {
         {("create <type>", None), ("create <type>", "TITLE")},
     ),
     "a create option an attribute adds": (
-        ["create", "guide", "G", "--tag", "ops"],
-        {("create <type>", "TITLE"), ("create <type>", "--tag"), ("create <type>", "--author")},
+        ["create", "guide", "G", "--tags", "ops"],
+        {("create <type>", "TITLE"), ("create <type>", "--tags"), ("create <type>", "--author")},
     ),
     "a hidden create alias of a built create": (
         ["create", "g", "G"],

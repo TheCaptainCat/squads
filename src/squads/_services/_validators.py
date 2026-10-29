@@ -623,6 +623,28 @@ def _subentity_body_written(ctx: ValidatorContext) -> list[CheckIssue]:
     return issues
 
 
+def _subentity_title_present(ctx: ValidatorContext) -> list[CheckIssue]:
+    """A sub-entity with no title: the title is required on every write, so a file that carries an
+    empty one was written by hand or by an older release."""
+    item = ctx.item
+    kind = ctx.spec.item_subentity_kind(item.type)
+    if kind is None:
+        return []
+    level = _resolved_level(ctx, "subentity_title_present")
+    return [
+        CheckIssue(
+            level,
+            item.id,
+            f"{kind} {sub.local_id} has no title"
+            f" — set one with `sq {item.type} {item.sequence_id} {kind} {sub.local_id}"
+            ' update --title "…"`',
+            rule="subentity_title_present",
+        )
+        for sub in item.subentities
+        if not sub.title.strip()
+    ]
+
+
 def _subentity_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
     """A sub-entity title over the type's maximum. The threshold is resolved from the spec —
     ``WorkflowSpec.item_subentity_title_max`` — never a module constant, so a type's own
@@ -1094,6 +1116,7 @@ CATALOG: dict[str, Validator] = {
     "subentity_status_valid": _subentity_status_valid,
     "subentity_container_marker": _subentity_container_marker,
     "subentity_body_written": _subentity_body_written,
+    "subentity_title_present": _subentity_title_present,
     "subentity_title_max": _subentity_title_max,
     "subentity_deferral_resolved": _subentity_deferral_resolved,
     "subentities_settled_with_parent": _subentities_settled_with_parent,

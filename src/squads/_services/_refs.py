@@ -296,13 +296,11 @@ class RefsMixin(ServiceCore):
         )
         return src
 
-    async def rm_ref(
-        self, from_id: str, to_id: str, *, kind: str | None = None, missing_ok: bool = False
-    ) -> Item:
+    async def rm_ref(self, from_id: str, to_id: str, *, kind: str | None = None) -> Item:
         """Remove a forward ref edge from *from_id* to *to_id*. ``kind=None`` drops every edge to
         *to_id*; an explicit ``kind`` removes only edges of that kind, the primitive
         :meth:`unlink_role` and the retirement gate's ``--unlink`` build on. Removing an edge the
-        item lacks is refused unless *missing_ok*.
+        item lacks is refused.
         """
         async with self.store.transaction() as db:
             src = require_item(db, from_id)
@@ -327,7 +325,7 @@ class RefsMixin(ServiceCore):
                     return rid == to_id and (kind is None or rkind == kind)
 
             kept = [r for r in src.refs if not _matches(r)]
-            if len(kept) == len(src.refs) and not missing_ok:
+            if len(kept) == len(src.refs):
                 raise SquadsError(f"{src.id} has no ref to {to_id}")
             src.refs = kept
             src.updated_at = clock.now()
@@ -356,15 +354,13 @@ class RefsMixin(ServiceCore):
 
     async def unlink_role(self, skill_id: str, role_id: str) -> Item:
         """Remove a skill's ``scopes`` edge to a role and resync that role's pointer and body; other
-        kinds of edge between the two are left alone. Idempotent: unlinking a role never scoped is a
-        no-op. A thin wrapper over the kind-aware :meth:`rm_ref` and the partial resync.
+        kinds of edge between the two are left alone. Refused when the skill is not scoped to the
+        role. A thin wrapper over the kind-aware :meth:`rm_ref` and the partial resync.
         """
         role = await self.get(role_id)
         if role.type != ROSTER_ROLE:
             raise SquadsError(f"{role_id} is a {role.type}; unlink-role targets a role")
-        updated = await self.rm_ref(
-            skill_id, role_id, kind=self.spec.preload_ref_kind(), missing_ok=True
-        )
+        updated = await self.rm_ref(skill_id, role_id, kind=self.spec.preload_ref_kind())
         await self.roster_projection.resync_role_skills(role.slug)
         return updated
 

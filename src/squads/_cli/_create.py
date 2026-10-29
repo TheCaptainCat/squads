@@ -124,15 +124,17 @@ def _declared_field_options(item_type: str, taken: set[str]) -> list[typer.core.
     ]
 
 
+#: The attribute kinds a create option is derived for.
+CREATE_ATTRIBUTE_KINDS = ("str", "list", "date")
+
 #: ``Context.meta`` key under which the declared-attribute options file the values they receive.
 _ATTRIBUTES_META_KEY = "squads.create_attributes"
 
 
-def _attribute_flag(name: str, spec: AttributeSpec) -> str:
-    """The option name of attribute *name*: its name with dashes, a list attribute's singular
-    (``tags`` is ``--tag``) because the option repeats."""
-    flag = name.replace("_", "-")
-    return flag.removesuffix("s") if spec.kind == "list" else flag
+def attribute_flag(name: str) -> str:
+    """The option name of attribute *name*: its key with dashes (``target_date`` is
+    ``--target-date``)."""
+    return name.replace("_", "-")
 
 
 def _attribute_option(
@@ -157,12 +159,12 @@ def _attribute_option(
 
 
 def _declared_attribute_options(item_type: str, taken: set[str]) -> list[typer.core.TyperOption]:
-    """One option per settable ``str`` or ``list`` attribute *item_type* declares, skipping a flag
-    that is already taken."""
+    """One option per settable ``str``, ``list`` or ``date`` attribute *item_type* declares,
+    skipping a flag that is already taken."""
     options: list[typer.core.TyperOption] = []
     for name, spec in common.get_active_spec().item_attributes(item_type).items():
-        flag = _attribute_flag(name, spec)
-        if spec.settable and spec.kind in ("str", "list") and flag not in taken:
+        flag = attribute_flag(name)
+        if spec.settable and spec.kind in CREATE_ATTRIBUTE_KINDS and flag not in taken:
             options.append(_attribute_option(item_type, name, spec, flag))
             taken.add(flag)
     return options

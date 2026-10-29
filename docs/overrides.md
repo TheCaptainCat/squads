@@ -1412,7 +1412,8 @@ A workflow or playbook override that will not load is reported by these two rule
 Some validators are always on as well. Every type runs the common core (`item_status_valid`,
 `dangling_ref`, `ref_kind_valid`, `agent_registered`, `parent_acyclic` and `attribute_valid`) and
 the checks its `category` turns on: `parent_in`, `subentity_status_valid`,
-`subentity_container_marker`, `subentity_body_written`, `subentity_deferral_resolved` and
+`subentity_container_marker`, `subentity_body_written`, `subentity_title_present`,
+`subentity_deferral_resolved` and
 `subtask_story_mapping` for `work`; `no_parent` and `supersedes_incoming` for `records`;
 `pronouns_valid` for `roster`. A type's `validators` list can change their level, within each
 check's floor, but cannot drop them. Only the checks a type adds beyond them are selectable. The
