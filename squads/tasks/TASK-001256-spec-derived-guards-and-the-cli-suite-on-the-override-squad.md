@@ -3,7 +3,7 @@ id: TASK-1256
 sequence_id: 1256
 type: task
 title: Spec-derived guards and the CLI suite on the override squad
-status: Ready
+status: InReview
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -18,30 +18,30 @@ description: Guards read names from the bundled spec with no allow-lists; tests/
 subentities:
 - local_id: ST1
   title: Vocabulary guards derived from the bundled spec
-  status: Todo
+  status: Done
   story: US9
 - local_id: ST2
   title: Generated-text guard on the override squad
-  status: Todo
+  status: Done
   story: US9
 - local_id: ST3
   title: CLI surface suite on both squads
-  status: Todo
+  status: Done
   story: US10
 - local_id: ST4
   title: CI job on the override squad
-  status: Todo
+  status: Done
   story: US10
 - local_id: ST5
   title: Acceptance scenario on both squads
-  status: Todo
+  status: Done
   story: US10
 - local_id: ST6
   title: Migrate this repository's squad at the cut
   status: Todo
   story: US6
 created_at: '2026-10-29T19:55:11Z'
-updated_at: '2026-10-29T22:22:12Z'
+updated_at: '2026-10-29T23:19:56Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -176,6 +176,8 @@ This repository's squad migrates to 0.19 with the runner, and `sq check` is clea
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
+- [2026-10-29T23:19:41Z] `python-dev` Elias Python:
+  - Runs at the release cut when the operator says so; not run here.
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
 <!-- sq:subtasks:end -->
@@ -183,4 +185,27 @@ This repository's squad migrates to 0.19 with the runner, and `sq check` is clea
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T23:19:22Z] `python-dev` Elias Python:
+  - @manager Handback for TASK-1256 (ST1 to ST5 done; ST6 stays Todo and runs at the release cut). Branch worktree-agent-af29a58938d6ca5a9, rebased on origin/release/0.19 (5ba0f467), head 3cf5bf00; nothing pushed.
+    
+    Commits: bf65308b guards (ST1, ST2), c0f64a86 squad selection and derivation names, d89b3953 suite on the override squad (ST3), bc26591b CI job, scenario and profile guard (ST4, ST5), 3cf5bf00 scenario merged into one case.
+    
+    **ST1.** One scanner (tests/meta/_vocabulary.py) reads every name from a WorkflowSpec: type names, prefixes, aliases, kinds, plurals, local prefixes, field codes, collection names, badge codes, statuses (of every lifecycle), ref kinds. It finds a name as a bare string, as a flag or verb of it (--x, --no-x, --min-x, add-x), inside a code span or command line of a string or template (f-strings read whole), and as a quoted literal in a template tag. The roster types are skipped because the spec says so (item_is_roster). Docstrings, comments and Jinja comments are prose. A one-letter alias is read only after "sq". No literal set, allow-list, sanctioned table or exception entry remains in the vocabulary guards: the ref kind, status, kind, item type and field guards are thin files over the scanner. The scanner leaves out words the engine defines for itself, read from the engine (colour intents, role capabilities), for two exact-string coincidences: info and review. Falsified: a planted bundled string in src/squads/_probe.py turned each of the five guards red (ref kind, status, kind, item type, field code), and so did a code span with a bundled flag and an f-string command; the getattr guard went red on a planted getattr(obj, f.code); a bundled example line in workflow.md.j2 turned the generated-text guard red. test_override_kind_uniformity.py now derives its type from the spec.
+    
+    Source literals the guards found and I fixed: _badges.primary_field_code default "severity" (default removed; returns "" and review.md.j2 omits the field line); review.md.j2 wrote "sq review" (now item.type); milestone.md.j2 wrote MILE-, "targets" and "sq milestone" (now prefix, the view's source name, item.type); greeting_skill.md.j2 wrote Archived and Active for operators (now first_settled_status and live_initial of operator); help examples "status Archived" in the operator, role and skill groups (now "status <status>"); "TASK-<n>" and "FEAT-<n>" in two help texts (now "<PREFIX>-<n>"); the "bug" example in the playbook scaffold comment (now "<type>"); the Blocked and Deferred headers of the role catalog and the Open and Closed workload headers (headers are the title-cased key, titled_columns); the _SIDE_PRIORITY status-name table in _lifecycle_order.py (deleted).
+    
+    Adopter-visible: linearize_lifecycle now lists side states in discovery order, so the work lifecycle reads "(+ Cancelled, Blocked)" and the bug lifecycle "(+ WontFix, Cancelled, Blocked)" in sq workflow, the squads skill and sq-<type> skills (it was Blocked first because of a name table). The review item template omits the severity line when the finding kind declares no field. Help examples show a placeholder instead of a status or ID prefix. The manifest was regenerated (0.19.0 key) and the content store rebuilt.
+    
+    **ST2.** test_generated_agent_text_names_no_bundled_vocabulary.py builds the override test squad with both backends under a non-default squad directory and reads CLAUDE.md, AGENTS.md, .claude/ and the squad agents folder from disk. It fails on any name the bundled spec declares and that squad drops, inside a code span or command line (the override fixture now also drops the bundled lifecycles it does not use, so statuses are dropped too), on a bundled role slug the roster lacks, and on the default squad directory. Falsified with the example line above. Finding for you: with the full role roster the AGENTS.md role responsibilities (src/squads/_specs/roles.toml, tech-lead and product-owner, "bundled default: sq create task ...") name task, FEAT, story, fixes, feature. That is spec-layer text, so the guard runs on the minimal roster; an adopter with the bundled roles and a dropped workflow reads it. Needs a ruling (derive it, or leave it to the roles override).
+    
+    **ST3.** pytest --squad override (or SQUADS_TEST_SQUAD) selects the squad for the whole run. tests/_profile.py holds both profiles (reference type, kind, target kind, host, badge field, flags and so on); tests/cli/conftest.py gives project, seeded_project, populated_project and full_project the selected squad (populated override squad mirrors the bundled numbers 2, 3, 4). Cases read names from the profile (about 900 string literals rewritten). A case about bundled spelling carries bundled_only("reason"); the collection hook refuses a marker with no reason. Guard: every profile entry resolves against its squad's spec. Derived options are named by derivation in covers markers and in the surface (--<field>, --no-<field>, --min-<field>, --<target-kind>, --no-<target-kind>, --<attribute:str|list|date>), applied only on the type-bound commands. This is F13 and F17: the override-squad markers are re-declared, and the invoke fixture records derived flags under their derivation name. The tree built outside a squad by bundled_known no longer stays memoised. Counts: tests/cli bundled 952 before, 968 after (includes TASK-1255 cases and the new scenario); override run 787 passed, 181 skipped (bundled_only), 968 collected. Whole suite bundled: 1770 passed in 49 s wall with -n 4. Override run of tests/cli: 30 s wall with -n 4. Both are far under the ADR-1172 bounds on this box; CI times not measured.
+    Honest gap: 181 of 968 cases (19 percent) are bundled_only. Module breakdown: test_override 29, test_workflow 26, test_item_verbs 26, test_subentity_verbs 21, test_create 15, test_migrate 13, test_repair 9, test_adopt 8, test_import 7, test_renumber 7, test_show 6, others fewer. test_override, migrate, adopt, repair and renumber are about bundled documents and legacy squads; the item, sub-entity, create, show and workflow ones are convertible by a richer profile (retype target, ref-kind tables, severity-like field, placeholder text) and are the follow-up if you want the ratio lower.
+    
+    **ST4.** .github/workflows/test.yml gets an override-squad job (ubuntu-latest, same SHA-pinned actions, uv sync --frozen --all-extras, uv run pytest --squad override tests/cli), run on every pull request through the existing triggers. Falsification: a static --priority option added in _field_options turned test_the_scenario_prints_the_squads_own_vocabulary_and_no_dropped_word red on the override squad only (it passed on bundled); three override-project cases went red on both. Not pushed; needs devops review (Windows and macOS are not in the job; the bundled matrix stays as it was).
+    
+    **ST5.** tests/cli/test_a_squad_shows_only_its_own_vocabulary.py is one scenario run on whichever squad the run is on: create with the badge flag and parent, add-<kind> with the mapping option, list, tree, show, import --dry-run, help of create, update, add-<kind>, list and tree; it fails on any flag, verb or JSON key the bundled spec declares and the squad drops, and on the bundled squad it holds --priority, --story, add-story and the alias f. Counted as one case per squad run.
+    
+    **ST6.** Not run. No sq migrate up, nothing under squads/ touched. It runs at the release cut.
+    
+    Open points for others: F18 and F19 were TASK-1254's; nothing of mine overlaps. F8 note respected: vocabulary is matched only in code spans, flags and keys, never as bare English words.
 <!-- sq:discussion:end -->

@@ -66313,7 +66313,7 @@
       "type": "task",
       "title": "Spec-derived guards and the CLI suite on the override squad",
       "slug": "spec-derived-guards-and-the-cli-suite-on-the-override-squad",
-      "status": "Ready",
+      "status": "InReview",
       "description": "Guards read names from the bundled spec with no allow-lists; tests/cli and CI on the override squad; repo squad migration",
       "parent": "FEAT-1249",
       "author": "tech-lead",
@@ -66331,7 +66331,7 @@
         {
           "local_id": "ST1",
           "title": "Vocabulary guards derived from the bundled spec",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US9",
@@ -66341,7 +66341,7 @@
         {
           "local_id": "ST2",
           "title": "Generated-text guard on the override squad",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US9",
@@ -66351,7 +66351,7 @@
         {
           "local_id": "ST3",
           "title": "CLI surface suite on both squads",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US10",
@@ -66361,7 +66361,7 @@
         {
           "local_id": "ST4",
           "title": "CI job on the override squad",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US10",
@@ -66371,7 +66371,7 @@
         {
           "local_id": "ST5",
           "title": "Acceptance scenario on both squads",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US10",
@@ -66391,7 +66391,7 @@
       ],
       "path": "tasks/TASK-001256-spec-derived-guards-and-the-cli-suite-on-the-override-squad.md",
       "created_at": "2026-10-29T19:55:11Z",
-      "updated_at": "2026-10-29T22:22:12Z",
+      "updated_at": "2026-10-29T23:19:56Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
