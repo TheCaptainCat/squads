@@ -1,6 +1,6 @@
 """The browse screen: item tree + reader panel, the base of the `sq ui` screen stack."""
 
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from typing import ClassVar, Literal
 
 from textual.app import ComposeResult
@@ -9,16 +9,33 @@ from textual.containers import Horizontal
 from textual.screen import Screen
 from textual.widgets import ContentSwitcher, Footer, Header, Static, Tree
 
-from squads._models._item import Item
-from squads._services._base import ItemFilter
-from squads._services._results import TreeNode
-from squads._services._service import Service
+from squads._api import _ops as ops
+from squads._api._dto._memory import MemoryListRequest, MemoryRow
+from squads._api._dto._tree import TreeNode, TreeRequest
+from squads._errors import SquadsError
 from squads._tui._board import BoardScreen
 from squads._tui._filter import FilterScreen
 from squads._tui._memory_reader import MemoryReaderPanel
 from squads._tui._reader import ReaderPanel
 from squads._tui._search import SearchScreen
+from squads._tui._session import Session
 from squads._tui._tree import MemoryNodeData, NodeData, populate_tree, roster_identity_slugs
+
+
+@dataclass(frozen=True)
+class TreeFilter:
+    """The filter fields of the `tree` operation the filter screen sets; `badges` holds
+    (field code, badge code) pairs."""
+
+    item_type: str | None = None
+    status: str | None = None
+    category: str | None = None
+    assignee: str | None = None
+    label: str | None = None
+    badges: tuple[tuple[str, str], ...] = ()
+
+    def is_empty(self) -> bool:
+        return self == TreeFilter()
 
 
 @dataclass(frozen=True)
@@ -33,33 +50,70 @@ class SortKey:
 class BrowseState:
     """The active filter/sort view state — owned by `BrowseScreen`, edited by `FilterScreen`."""
 
-    filter: ItemFilter = field(default_factory=ItemFilter)
+    filter: TreeFilter = field(default_factory=TreeFilter)
     include_closed: bool = False
     sort: SortKey = field(default_factory=SortKey)
 
     def is_default(self) -> bool:
         return self.filter.is_empty() and not self.include_closed and self.sort == SortKey()
 
+    def tree_request(self) -> TreeRequest:
+        f = self.filter
+        return TreeRequest(
+            type=f.item_type,
+            status=f.status,
+            assignee=f.assignee,
+            category=f.category,
+            label=f.label,
+            badge=[f"{code}={value}" for code, value in f.badges],
+            all=self.include_closed,
+        )
 
-def _sort_key_value(item: Item, sort: SortKey) -> tuple[int, str]:
+
+def _sort_key_value(node: TreeNode, sort: SortKey) -> tuple[int, str]:
     """A comparable, always-`tuple[int, str]` key so one `sorted()` call never mixes types."""
     if sort.kind == "status":
-        return (0, item.status)
+        return (0, node.status)
     if sort.kind == "title":
-        return (0, item.title.lower())
+        return (0, node.title.lower())
     if sort.kind == "updated":
-        return (0, item.updated_at.isoformat())
-    value = item.badge_value(sort.badge_code) if sort.badge_code else None
+        return (0, node.updated_at)
+    value = node.badges.get(sort.badge_code) if sort.badge_code else None
     return (1, "") if value is None else (0, value)
 
 
 def sort_siblings(nodes: list[TreeNode], sort: SortKey) -> list[TreeNode]:
     """Reorder siblings at every level of *nodes* per *sort* — presentation-only:
-    recurses into children, never reorders across levels, and never calls the service."""
-    reordered = [replace(n, children=sort_siblings(n.children, sort)) for n in nodes]
+    recurses into children, never reorders across levels, and makes no call."""
+    reordered = [n.model_copy(update={"children": sort_siblings(n.children, sort)}) for n in nodes]
     if sort.kind == "sequence":
         return reordered
-    return sorted(reordered, key=lambda n: _sort_key_value(n.item, sort))
+    return sorted(reordered, key=lambda n: _sort_key_value(n, sort))
+
+
+@dataclass(frozen=True)
+class BrowseView:
+    """What the tree shows: the sorted roots, and each notebook slug's memory entries with how
+    many of its memory files could not be read."""
+
+    nodes: list[TreeNode]
+    memory: dict[str, tuple[list[MemoryRow], int]]
+
+
+async def fetch_view(session: Session, state: BrowseState) -> BrowseView:
+    """Run the `tree` operation under *state*'s filter and toggle, sort it, and list the memory
+    of every role and operator it holds.
+
+    Every visible Role/Operator's memory pool is fetched here, once per identity, not on node
+    expansion: the view compares hygiene across the roster at a glance.
+    """
+    view = await session.call(ops.TREE, state.tree_request())
+    nodes = sort_siblings(view.data.items, state.sort)
+    memory: dict[str, tuple[list[MemoryRow], int]] = {}
+    for slug in roster_identity_slugs(nodes):
+        listed = await session.call(ops.MEMORY_LIST, MemoryListRequest(role=slug))
+        memory[slug] = (listed.data.items, len(listed.omitted))
+    return BrowseView(nodes, memory)
 
 
 class BrowseScreen(Screen[None]):
@@ -71,13 +125,14 @@ class BrowseScreen(Screen[None]):
         ("b", "open_board", "Board"),
     ]
 
-    def __init__(self, svc: Service) -> None:
+    def __init__(self, session: Session, opening: BrowseView) -> None:
         super().__init__()
-        self._svc = svc
+        self._session = session
+        self._opening = opening
         self.state = BrowseState()
         self._tree: Tree[NodeData] = Tree[NodeData]("squad", id="item-tree")
-        self._reader = ReaderPanel(svc, id="reader-panel")
-        self._memory_reader = MemoryReaderPanel(svc, id="memory-reader-panel")
+        self._reader = ReaderPanel(session, id="reader-panel")
+        self._memory_reader = MemoryReaderPanel(session, id="memory-reader-panel")
         self._indicator = Static(id="filter-indicator")
 
     def compose(self) -> ComposeResult:
@@ -91,32 +146,16 @@ class BrowseScreen(Screen[None]):
         yield Footer()
 
     async def on_mount(self) -> None:
-        await self.refresh_tree()
+        self._show(self._opening)
         self._tree.focus()
 
     async def refresh_tree(self) -> None:
-        """Re-run `tree_view()` under the active filter, toggle and sort, and repopulate the tree.
+        """Fetch the view under the active state and repopulate the tree."""
+        self._show(await fetch_view(self._session, self.state))
 
-        Every visible Role/Operator's memory pool is fetched here, once per identity, not on node
-        expansion: the view compares hygiene across the roster at a glance.
-        """
-        nodes = await self._svc.tree_view(
-            filter=self.state.filter, include_closed=self.state.include_closed
-        )
-        nodes = sort_siblings(nodes, self.state.sort)
-        memory = {slug: await self._svc.memory_list(slug) for slug in roster_identity_slugs(nodes)}
+    def _show(self, view: BrowseView) -> None:
         self._tree.reset("squad")
-        pronouns = {r.slug: r.pronouns for r in await self._svc.roster_all()} | {
-            o.slug: o.pronouns for o in await self._svc.operators_all()
-        }
-        populate_tree(
-            self._tree,
-            nodes,
-            self._svc.spec,
-            memory,
-            pronouns,
-            self._svc.paths.config.display.pronouns,
-        )
+        populate_tree(self._tree, view.nodes, self._session.catalogs.types, view.memory)
         self._update_indicator()
 
     def _update_indicator(self) -> None:
@@ -136,17 +175,21 @@ class BrowseScreen(Screen[None]):
 
     def action_open_filter(self) -> None:
         self.app.push_screen(  # pyright: ignore[reportUnknownMemberType]
-            FilterScreen(self.state, self._svc.spec), self._apply_filter
+            FilterScreen(self.state, self._session.catalogs), self._apply_filter
         )
 
     async def _apply_filter(self, result: BrowseState | None) -> None:
         if result is None:
             return
-        self.state = result
-        await self.refresh_tree()
+        previous, self.state = self.state, result
+        try:
+            await self.refresh_tree()
+        except SquadsError as exc:
+            self.state = previous
+            self.notify(str(exc), severity="error")
 
     def action_open_search(self) -> None:
-        self.app.push_screen(SearchScreen(self._svc))  # pyright: ignore[reportUnknownMemberType]
+        self.app.push_screen(SearchScreen(self._session))  # pyright: ignore[reportUnknownMemberType]
 
     def action_open_board(self) -> None:
-        self.app.push_screen(BoardScreen(self._svc))  # pyright: ignore[reportUnknownMemberType]
+        self.app.push_screen(BoardScreen(self._session))  # pyright: ignore[reportUnknownMemberType]

@@ -9,6 +9,7 @@ refs:
 - FEAT-1226
 - TASK-1227
 - TASK-1228
+- TASK-1233
 description: Batch review of FEAT-1226's delivered tasks, one commit at a time, against
   ADR-1224, ADR-1225 and ADR-1172
 subentities:
@@ -193,8 +194,41 @@ subentities:
     parameter
   status: Verified
   severity: low
+- local_id: F39
+  title: TreeNode.slug is null on items and skills where list and show rows give the
+    item's slug
+  status: Open
+  severity: medium
+- local_id: F40
+  title: The three new TreeNode keys sit mid-object and are missing from the stability
+    doc's tree table
+  status: Open
+  severity: low
+- local_id: F41
+  title: TreeRequest.label has no sq tree flag, and dropping it passes the suite
+  status: Open
+  severity: low
+- local_id: F42
+  title: The renderer guard lets _tui import _discussion, _badges, _spec_documents
+    or any _cli module
+  status: Open
+  severity: low
+- local_id: F43
+  title: The skill pronoun fix on tree --json is confirmed, and reverting it passes
+    the suite
+  status: Open
+  severity: info
+- local_id: F44
+  title: 'TUI parity: an @-prefixed assignee now matches, and a stale undeclared badge
+    no longer sorts'
+  status: Open
+  severity: info
+- local_id: F45
+  title: _tui/_filter.py copies the engine's closed category set
+  status: Open
+  severity: info
 created_at: '2026-10-28T23:26:20Z'
-updated_at: '2026-10-29T05:37:22Z'
+updated_at: '2026-10-29T06:07:50Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1226's delivered tasks, one commit at a time, against ADR-1224, ADR-1225 (section 9) and ADR-1172.
@@ -1309,6 +1343,159 @@ Suggested fix (@architect for the rule, then @python-dev): on a call that exits 
     - A residual blind spot, noted and not reopened: the guard credits every flag a refusal mentions, including one it only suggests as the remedy. `reached_pairs` for `task 3 update --parent ""` with the message "use --no-parent to clear the parent" records `--no-parent`. For `--priority x --no-priority` it records both. So a marker naming the suggested flag would pass on a case that never exercises it. No current case does this; I checked the three refusal messages that name another option. If @architect wants it closed, the rule can require that a credited flag also appears in the call's own arguments or in Click's missing-parameter set. Otherwise the review has to catch it.
 <!-- sq:finding:F38:discussion:end -->
 <!-- sq:finding:F38:end -->
+
+<!-- sq:finding:F39 -->
+### F39 — TreeNode.slug is null on items and skills where list and show rows give the item's slug
+
+<!-- sq:finding:F39:body -->
+`TreeNode.slug` reuses the item row's key name with another meaning. On `sq list --json` and `sq <type> <n> show --json`, `slug` is the item's own slug, on every item. On `sq tree --json` and the subtree view source it is now `null` on every work and record item and on every skill, and set only on roles and operators. Tier 3 freezes a key's meaning, so 0.18 would freeze two meanings for one name across sibling documents.
+
+Repro on a scratch squad at 611c505e (FEAT-20 "Refunds", SKILL-43 with slug `manager`):
+
+- `sq list -a --json`: FEAT-20 `slug` = `refunds`, TASK-41 `zeta-closed-task-x`, SKILL-43 `manager`, ROLE-1 `manager`.
+- `sq task 41 show --json`: `slug` = `zeta-closed-task-x`.
+- `sq tree -a --json`: FEAT-20, TASK-41 and SKILL-43 `slug` = `null`; ROLE-1 `manager`.
+
+What the TUI needs is "which notebook this node opens", not the slug. Two ways out, for @architect:
+
+1. Name the key for what it holds (for example `notebook`: the memory notebook's slug, `null` on items that have none).
+2. Carry the item's slug unchanged, as the rows do, and let the TUI tell a role or operator from a skill some other way. The type catalog does not say today which types have a notebook, so this one needs a catalog field.
+
+Option 1 is the smaller change: one key renamed, and the two `tests/cli` expectations that pin it.
+<!-- sq:finding:F39:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F39:discussion -->
+<!-- sq:finding:F39:discussion:end -->
+<!-- sq:finding:F39:end -->
+
+<!-- sq:finding:F40 -->
+### F40 — The three new TreeNode keys sit mid-object and are missing from the stability doc's tree table
+
+<!-- sq:finding:F40:body -->
+The three new `TreeNode` keys are not appended at the end. They sit between keys that already existed: `slug` after `title`, `closed` after `blocked`, and `updated_at` after `anchor`. `docs/stability.md` lists the tree's fields "in emitted order" (Tier 3, "Search, tree and graph") and lists none of the three. The subtree view source (`workflow view --json`) has the same node shape.
+
+Repro: `sq tree -a --json` at 611c505e prints node keys in this order: `id, type, title, slug, status, priority, assignee, blocked, closed, badges, anchor, updated_at, children, display`. At 658ed963 the order was `id, type, title, status, priority, assignee, blocked, badges, anchor, children, display`.
+
+No value changed, and the order of the old keys among themselves is kept. The handback calls these keys "appended". In this review "appended" has meant placed after the last existing key, and that is the rule the parity checks applied to TASK-1227 through TASK-1231.
+
+- @architect: rule whether additive DTO keys must go after the last key (here after `display`), or whether this interleaving is acceptable.
+- @tech-writer: the stability doc's tree table needs `slug` (or its renamed form, see F39), `closed` and `updated_at`, with their classes. The changelog needs a line for the three new keys on `tree --json` and the subtree view source.
+
+Answers to the review brief:
+- `updated_at` is not a duplicate: no field of the node carried it before. Its format matches the list row's, because both serialise through the same pydantic path; the values are equal for the same item.
+- `closed` is not a duplicate on the node either: `display.dimmed` means path-only, and `display.status.intent` is a colour. It could be derived by joining `workflow statuses` (status to role) with `workflow roles` (`hidden`), which is the join the stability doc tells readers to make. Keeping it on the node is a convenience, not redundant state.
+<!-- sq:finding:F40:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F40:discussion -->
+<!-- sq:finding:F40:discussion:end -->
+<!-- sq:finding:F40:end -->
+
+<!-- sq:finding:F41 -->
+### F41 — TreeRequest.label has no sq tree flag, and dropping it passes the suite
+
+<!-- sq:finding:F41:body -->
+`TreeRequest.label` has no CLI path. `sq list` has `--label` and `sq tree` does not, so only the TUI's filter screen reaches the field. Nothing in the surface suite exercises it.
+
+Mutation, on a copy of 611c505e: in `_item_read_ops.py`, `label=req.label` becomes `label=None`. Then `tests/cli/test_tree.py`, `test_workflow.py` and `test_list.py` pass (89 passed, `-n 2`). The label filter works today: my headless run gives an identical tree on 658ed963 and 611c505e for `label=nope`. But this run is the only evidence for it.
+
+Recommendation, for @architect: `sq tree` gains `--label` (`help="Show only items carrying this label."`, as on `sq list`), with one `covers("tree", "--label")` case asserting the whole output. The arguments for it:
+
+- ADR-1224 point 7 says the tree request "takes the same filter fields as `sq tree`". A field with no CLI flag breaks that statement in the other direction.
+- `list` and `tree` would filter alike.
+- ADR-1172 tests only through the CLI surface, so an API-only field stays untested until the HTTP surface has its own suite.
+
+The alternative is to keep the field API-only, and then point 7's wording should say so.
+<!-- sq:finding:F41:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F41:discussion -->
+<!-- sq:finding:F41:discussion:end -->
+<!-- sq:finding:F41:end -->
+
+<!-- sq:finding:F42 -->
+### F42 — The renderer guard lets _tui import _discussion, _badges, _spec_documents or any _cli module
+
+<!-- sq:finding:F42:body -->
+The renderer guard reads direct imports only. For `_tui`, three kinds of import pass it even though they reach the forbidden set:
+
+- `squads._discussion`, which imports `_paths`, `_models._config` and `_workflow`;
+- `squads._badges` and `squads._spec_documents`, which import `_workflow`;
+- any `squads._cli.*` module outside `_calls`, `_common` and the pending modules. Importing one runs `squads._cli/__init__`, which loads every command and `_services`.
+
+Repro: on a copy of 611c505e, append one import to `_tui/_board.py`, then run `test_no_renderer_imports_the_vocabulary_or_the_configuration`. These pass the guard: `from squads import _badges`, `from squads._discussion import split_discussion`, `from squads._spec_documents import resolve_documents`, `from squads._cli._render._roster import _name`. These fail it: `_cli._common`, `_cli._calls`, `_services._service`. At runtime, importing each module that passes and listing `sys.modules` shows what it loads. `_discussion` brings in `_paths`, `_models._config` and `_workflow`. `_badges` and `_spec_documents` bring in `_workflow`. `_cli._render._roster` brings in `_services`, `_paths`, `_models._config` and `_workflow`.
+
+Another guard covers part of this. With `from squads._discussion import split_discussion` appended, `test_the_tree_imports_exactly_the_recorded_edges` goes red (the unmutated control passes). So a new `_tui -> _discussion` edge needs a table row that a reviewer sees. But a `_tui -> _cli` edge would be one row, and the row says nothing about why the edge is forbidden.
+
+What holds today: `import squads._tui._app` loads none of `_services`, `_workflow`, `_paths`, `_models._config` or `_cli`, checked through `sys.modules`. So the claim in the handback is true. It is just not guarded.
+
+Suggested fix (@python-dev): for `_tui`, forbid `squads._cli` whole. Then either follow the import closure (`imports_of` over each module the scan reaches, skipping `TYPE_CHECKING` blocks) or add `_discussion`, `_badges`, `_spec_documents`, `_board._store` and `_memory._store` to the list. The guard's docstring should say which of the two it does.
+<!-- sq:finding:F42:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F42:discussion -->
+<!-- sq:finding:F42:discussion:end -->
+<!-- sq:finding:F42:end -->
+
+<!-- sq:finding:F43 -->
+### F43 — The skill pronoun fix on tree --json is confirmed, and reverting it passes the suite
+
+<!-- sq:finding:F43:body -->
+The pronoun fix is real, and nothing pins it.
+
+Before (658ed963): `tree_node` looked up pronouns by `it.slug` on every item. A skill whose slug matches a role's took that role's pronouns on `sq tree --json` and on the subtree view source. Repro on a scratch squad: `sq skill add manager`, with `manager` at she/her. At 658ed963, `tree --json` gives SKILL-43 `display.pronouns` = `she/her`. At 611c505e it gives `null`. ROLE-1 and OP-17 are unchanged. The TUI was never affected: it already gated on role and operator. The human `sq tree` shows no pronouns at all.
+
+Mutation, on a copy of 611c505e: put back `pronouns=pronouns.get(it.slug) if it.slug else None`. Then `tests/cli/test_tree.py`, `test_workflow.py`, `test_role.py` and `test_skill.py` pass (247 passed).
+
+ADR-1172 sends a verified bug to `tests/regressions/`, which is later work. So this is a regression-set candidate (a skill sharing a role's slug carries no pronouns on `tree --json`), plus a changelog line for the fix (@tech-writer).
+<!-- sq:finding:F43:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F43:discussion -->
+<!-- sq:finding:F43:discussion:end -->
+<!-- sq:finding:F43:end -->
+
+<!-- sq:finding:F44 -->
+### F44 — TUI parity: an @-prefixed assignee now matches, and a stale undeclared badge no longer sorts
+
+<!-- sq:finding:F44:body -->
+The headless parity run turned up two differences that the handback does not list. Both bring the TUI in line with `sq tree`:
+
+1. **An `@`-prefixed, mixed-case assignee now matches.** The filter screen with assignee `@Manager` shows TASK-28 (assigned to `manager`) at 611c505e, and an empty tree at 658ed963. The `tree` operation normalises the slug the same way `sq tree --assignee` does.
+2. **A stale, undeclared badge no longer counts in a badge sort.** TASK-22 is a task that still carries `severity: medium` in its frontmatter, and the task type declares no severity field. Sorted by severity, it came first at 658ed963, because the sort read `item.badge_value`. At 611c505e it comes last, because the sort reads `node.badges`, which holds only declared fields. The header line already ignored the stale value at both commits.
+
+Both are improvements, and neither needs a code change. Item 1 earns a line in the changelog's `sq ui` entry beside the two changes the handback lists (@tech-writer).
+<!-- sq:finding:F44:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F44:discussion -->
+<!-- sq:finding:F44:discussion:end -->
+<!-- sq:finding:F44:end -->
+
+<!-- sq:finding:F45 -->
+### F45 — _tui/_filter.py copies the engine's closed category set
+
+<!-- sq:finding:F45:body -->
+`_tui/_filter.py` defines `_CATEGORIES = ("roster", "work", "records")`. That is a copy of the engine's closed category set, `squads._workflow.CATEGORIES`, which comes from the `Literal` on `ItemSpec.category`. It sits beside `_tui/_tree.py`'s `_GROUP_LABELS` and `_GROUP_ORDER`, which hold the same set. Before this commit the filter read the engine constant directly. No test ties the two copies to the engine. If a category is added to the engine:
+
+- the filter screen silently does not offer it;
+- `populate_tree` raises a `KeyError` on `_GROUP_LABELS[...]` for the first node of that category.
+
+Adopters cannot add a category, so this is engine drift, not adopter risk. The type catalog already carries `category` on every row, so the filter could take the distinct categories from `catalogs.types`, in `_GROUP_ORDER` order. A catalog of categories would also do, if one is ever wanted.
+<!-- sq:finding:F45:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F45:discussion -->
+<!-- sq:finding:F45:discussion:end -->
+<!-- sq:finding:F45:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -1452,4 +1639,25 @@ Suggested fix (@architect for the rule, then @python-dev): on a call that exits 
   - Still open: docs/stability.md (Display settings) still says --json is unchanged by [display] pronouns. @tech-writer
 - [2026-10-29T05:26:59Z] `reviewer` Paul Reviewer:
   - Round 2 of TASK-1229 checked on ed499a68: F32, F33, F37 and F38 are Verified (probes and mutations re-run), and F34 and F35 are Noted as ruled. F36 is reopened: Click's confirm(err=True) still writes one space byte to stdout, so the cases pin that byte plus the runner's echo. Details are on F36. @python-dev F36. The review stays ChangesRequested.
+- [2026-10-29T06:07:49Z] `reviewer` Paul Reviewer:
+  - - I reviewed TASK-1233 (611c505e, against 658ed963). New findings: F39 (medium); F40, F41 and F42 (low); F43, F44 and F45 (info).
+      - **Held up: headless parity.** I extended the dev's pilot capture so that it drives the real `sq ui` with a fixed `--at`. I ran it on 3 squads at both commits:
+        - the main squad: a custom `incident` type with an `impact` collection, roles with and without pronouns, an operator, two skills sharing role slugs, closed and cancelled items, a mapped subtask, an edited operator comment, memories on 3 notebooks, and 2 notices;
+        - the same squad with `[display] pronouns = false`;
+        - the same squad with a corrupt item file.
+      - **What the capture covered.** Every tree label with its spans, the reader for every node, every memory entry, the board, 6 searches (type, status and closed-status filters, no hit, opening a hit), the filter choices, 17 filter states and 7 sorts with closed items shown.
+      - **Results.** Everything is identical except for the explained differences: the closed-status filter and the unknown-assignee toast (both in the handback), plus F44's two.
+      - **Held up: refusals.** Outside a squad, a bad override, a schema behind and a corrupt item give the same stderr and exit code at both commits. On a corrupt index, 658ed963 started the app and crashed inside it with a traceback (exit 0). 611c505e refuses cleanly before the app starts (exit 1). So `open_session` running first is a fix.
+      - **Held up: imports.** `import squads._tui._app` loads no `_services`, `_workflow`, `_paths`, config model or `_cli`. The guard fails on direct imports of `_cli._common`, `_cli._calls` and `_services`. Transitive reach is F42.
+      - **Pronouns.** On 658ed963, a skill sharing a role's slug carried that role's pronouns on `tree --json`. The fix is confirmed but unpinned: F43.
+      - **Deviations.**
+        - Catalogs load once: accepted, since TASK-1219 owns the reload.
+        - Opening view preloaded: accepted.
+        - The DTO fields: see F39, F40 and F41.
+        - Pronoun gate: accepted, see F43.
+        - Closed items under a closed-status filter: accepted.
+        - Unknown-assignee toast: accepted.
+        - 0 tests: accepted under ADR-1172. F41 asks for one surface case if `--label` is added.
+      - **Questions to route.** @architect: F39 (the key's name), F40 (where an added key goes) and F41 (`sq tree --label`). @python-dev: F42 and F45. @tech-writer: changelog and stability doc lines for F40, F43 and F44.
+      - ST2 stays InProgress for the operator's eye-check. The review stays ChangesRequested.
 <!-- sq:discussion:end -->

@@ -11,11 +11,10 @@ from textual.screen import Screen
 from textual.widgets import Footer, Header, Input, ListItem, ListView, Select, Static
 from textual.widgets.select import NoSelection
 
-from squads._models._vocab import label_for
-from squads._services._results import SearchResult
-from squads._services._service import Service
+from squads._api import _ops as ops
+from squads._api._dto._search import SearchHit, SearchRequest
 from squads._tui._reader import ReaderScreen
-from squads._workflow._models import WorkflowSpec
+from squads._tui._session import Session, status_options, type_options
 
 _PROMPT = "Type to search…"
 
@@ -35,17 +34,15 @@ def _skipped_note(count: int) -> Content:
     )
 
 
-def _render_hit(result: SearchResult, spec: WorkflowSpec) -> Content:
+def _render_hit(result: SearchHit) -> Content:
     # Static renders through Textual's own Content markup, which does not honor Rich's `\[`
     # escaping — ids/titles/snippets (all free-form, snippets especially bracket-heavy) go in
     # as template variables rather than being concatenated into the markup string.
-    item = result.item
-    type_label = label_for(item.type, "singular", spec)
     content = Content.from_markup(
         "[bold]$id[/bold] [dim]($type)[/dim] $title",
-        id=item.id,
-        type=type_label,
-        title=item.title,
+        id=result.id,
+        type=result.display.type,
+        title=result.title,
     )
     for hit in result.hits:
         line = Content.from_markup(
@@ -63,9 +60,9 @@ def _selected(select: Select[str]) -> str | None:
 class _HitItem(ListItem):
     """A `ListItem` row that remembers which item it stands for."""
 
-    def __init__(self, result: SearchResult, spec: WorkflowSpec) -> None:
-        super().__init__(Static(_render_hit(result, spec)))
-        self.item_id = result.item.id
+    def __init__(self, result: SearchHit) -> None:
+        super().__init__(Static(_render_hit(result)))
+        self.item_id = result.id
 
 
 class SearchScreen(Screen[None]):
@@ -85,16 +82,13 @@ class SearchScreen(Screen[None]):
     }
     """
 
-    def __init__(self, svc: Service) -> None:
+    def __init__(self, session: Session) -> None:
         super().__init__()
-        self._svc = svc
+        self._session = session
         self._query = Input(placeholder=_PROMPT, id="search-query")
-        self._type_select: Select[str] = Select(
-            [(label_for(t, "singular", svc.spec), t) for t in sorted(svc.spec.non_roster_types())],
-            id="search-type",
-        )
+        self._type_select: Select[str] = Select(type_options(session.catalogs), id="search-type")
         self._status_select: Select[str] = Select(
-            [(s, s) for s in sorted(svc.spec.statuses)], id="search-status-filter"
+            status_options(session.catalogs), id="search-status-filter"
         )
         self._status = Static(_PROMPT, id="search-status")
         self._results: ListView = ListView(id="search-results")
@@ -132,7 +126,9 @@ class SearchScreen(Screen[None]):
 
     @work(exclusive=True)
     async def _run_search(self, text: str, item_type: str | None, status: str | None) -> None:
-        results, unreadable = await self._svc.search(text, item_type=item_type, status=status)
+        request = SearchRequest(q=text, type=item_type, status=status)
+        found = await self._session.call(ops.SEARCH, request)
+        results, unreadable = found.data.items, found.omitted
         await self._results.clear()
         self._results.loading = False
         if not results:
@@ -144,12 +140,12 @@ class SearchScreen(Screen[None]):
             self._status.update(Content.from_markup("No results for $query", query=repr(text)))
             return
         self._status.update(_skipped_note(len(unreadable)) if unreadable else "")
-        await self._results.extend(_HitItem(r, self._svc.spec) for r in results)
+        await self._results.extend(_HitItem(r) for r in results)
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         if isinstance(event.item, _HitItem):
             self.app.push_screen(  # pyright: ignore[reportUnknownMemberType]
-                ReaderScreen(self._svc, event.item.item_id)
+                ReaderScreen(self._session, event.item.item_id)
             )
 
     def action_close(self) -> None:

@@ -18,18 +18,18 @@ description: sq ui screens call operations through the Api the root callback sel
 subentities:
 - local_id: ST1
   title: sq ui hands the app a per-call API selector
-  status: InProgress
+  status: Done
   story: US5
 - local_id: ST2
   title: Screens onto operations
-  status: Todo
+  status: InProgress
   story: US5
 - local_id: ST3
   title: _tui under the renderer guard
-  status: Todo
+  status: Done
   story: US4
 created_at: '2026-10-28T22:12:42Z'
-updated_at: '2026-10-29T05:31:56Z'
+updated_at: '2026-10-29T05:49:06Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -122,4 +122,13 @@ Every screen onto operations (ADR-1224 point 7 table): browse tree on `tree` wit
   - @tech-lead ADR-1224 amended 2026-10-29 (comment ad65a70). For this task: the reader's rendered body is `display.body` on the show DTO (no `rendered_body` key), and every screen reads the whole `data`, never the `--json` projection, so `columns` and `hidden` are there for it.
 - [2026-10-28T23:32:36Z] `tech-lead` Olivia Lead:
   - Body updated per the architect (ADR-1224 amended 2026-10-29): the json_field share for this task and the US3 acceptance line ("data, or the field its operation names"). Test count unchanged.
+- [2026-10-29T05:49:06Z] `python-dev` Elias Python:
+  - - Implemented in d52476d3, on the python-dev worktree branch, not pushed. ST1 and ST3 are Done. ST2 stays InProgress until the operator's eye-check.
+    - Seam: `sq ui` builds the app from an `ApiSelector` (`_tui/_session.py`). `Session.call` asks the selector on every call. Today the selector answers one `LocalApi` (the context's `api`, else `select_api()`), and TASK-1219 replaces it. The catalogs (types, statuses, collections) load once at start. The catalogs and the first tree view load before the app starts, so a refusal (for example, no squad) prints as a CLI error, as it did before.
+    - Screens: the browse tree uses `tree` plus `memory list` per notebook slug. The reader uses `items.show` (`display.body`, sub-entity blocks, `discussion`). The memory reader uses `memory.show`, search uses `search` and the board uses `board.list`. The filter and search choices come from the catalogs. `_tui` imports no `_services`, `_workflow`, `_paths` or config model, and nothing from `_badges`, `_discussion`, `_pronouns`, `_memory` or `_board` either.
+    - DTO fields appended for the TUI: `TreeRequest.label` (honoured by the handler and the hidden count), and `TreeNode.slug` (a role's or operator's notebook slug, `None` elsewhere), `TreeNode.closed` (hidden by default) and `TreeNode.updated_at`. This adds 3 keys to every node of `sq tree --json` and of the subtree view source. Pronouns are now gated on role and operator, which fixes a skill that shares a role's slug picking up that role's pronouns.
+    - Guard: the renderer guard now also scans `_tui/`. I falsified it by adding a `_workflow` import to `_tui/_board.py`, and it failed as expected. Tests added: 0. The suite stays at 1634.
+    - I captured every screen headless, before and after, on a scratch squad (Textual pilot driving the real `sq ui`: tree labels and spans, the reader tabs for each node, memory, board, search with a type filter, the filter choices, and 9 filter or sort states). Everything is identical except one case: a status filter on a closed status (Done) now shows the matching items, because the `tree` operation includes closed items when filtering by status, as `sq tree --status Done` does. Before, it showed an empty tree.
+    - The second change is not in the capture. An unknown assignee in the filter now shows an error toast and keeps the previous view. Before, it showed an empty tree.
+    - For the operator's eye-check, against the released build: the browse tree (groups, dimming, pronouns, memory counts), the reader tabs, a memory entry, `f` with each sort, `/` search with a hit opened, `b` board, and `q`.
 <!-- sq:discussion:end -->

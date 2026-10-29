@@ -64031,7 +64031,7 @@
         {
           "local_id": "ST1",
           "title": "sq ui hands the app a per-call API selector",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -64041,7 +64041,7 @@
         {
           "local_id": "ST2",
           "title": "Screens onto operations",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -64051,7 +64051,7 @@
         {
           "local_id": "ST3",
           "title": "_tui under the renderer guard",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -64061,7 +64061,7 @@
       ],
       "path": "tasks/TASK-001233-terminal-ui-through-the-api.md",
       "created_at": "2026-10-28T22:12:42Z",
-      "updated_at": "2026-10-29T05:31:56Z",
+      "updated_at": "2026-10-29T05:49:06Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -64163,7 +64163,8 @@
       "refs": [
         "FEAT-1226",
         "TASK-1227",
-        "TASK-1228"
+        "TASK-1228",
+        "TASK-1233"
       ],
       "subentities": [
         {
@@ -64545,11 +64546,81 @@
           "story": null,
           "deferred_to": null,
           "extra": {}
+        },
+        {
+          "local_id": "F39",
+          "title": "TreeNode.slug is null on items and skills where list and show rows give the item's slug",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F40",
+          "title": "The three new TreeNode keys sit mid-object and are missing from the stability doc's tree table",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F41",
+          "title": "TreeRequest.label has no sq tree flag, and dropping it passes the suite",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F42",
+          "title": "The renderer guard lets _tui import _discussion, _badges, _spec_documents or any _cli module",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F43",
+          "title": "The skill pronoun fix on tree --json is confirmed, and reverting it passes the suite",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F44",
+          "title": "TUI parity: an @-prefixed assignee now matches, and a stale undeclared badge no longer sorts",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F45",
+          "title": "_tui/_filter.py copies the engine's closed category set",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
         }
       ],
       "path": "reviews/REV-001235-review-of-the-dto-refactor-s-delivered-tasks.md",
       "created_at": "2026-10-28T23:26:20Z",
-      "updated_at": "2026-10-29T05:37:22Z",
+      "updated_at": "2026-10-29T06:07:50Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

@@ -10,8 +10,9 @@ from textual.content import Content
 from textual.screen import ModalScreen
 from textual.widgets import Footer, Header, Markdown, Static
 
-from squads._board._model import BoardNotice
-from squads._services._service import Service
+from squads._api import _ops as ops
+from squads._api._dto._board import BoardListRequest, NoticeRow
+from squads._tui._session import Session
 
 _EMPTY = "*(no notices)*"
 
@@ -26,7 +27,7 @@ def _skipped_note(count: int) -> Content:
     )
 
 
-def _notice_block(notice: BoardNotice) -> str:
+def _notice_block(notice: NoticeRow) -> str:
     header = f"**{notice.author}** — {notice.posted_at}"
     if notice.until:
         header += f" (expires {notice.until})"
@@ -44,9 +45,9 @@ class BoardScreen(ModalScreen[None]):
     }
     """
 
-    def __init__(self, svc: Service) -> None:
+    def __init__(self, session: Session) -> None:
         super().__init__()
-        self._svc = svc
+        self._session = session
         self._status = Static(id="board-status")
         self._body = Markdown(id="board-body")
 
@@ -58,8 +59,9 @@ class BoardScreen(ModalScreen[None]):
         yield Footer()
 
     async def on_mount(self) -> None:
-        notices, unreadable = await self._svc.board_list()
-        newest_first = sorted(notices, key=lambda n: (n.posted_at, n.id), reverse=True)
+        listed = await self._session.call(ops.BOARD_LIST, BoardListRequest())
+        unreadable = listed.omitted
+        newest_first = sorted(listed.data.items, key=lambda n: (n.posted_at, n.id), reverse=True)
         md = "\n\n---\n\n".join(_notice_block(n) for n in newest_first) if newest_first else _EMPTY
         await self._body.update(md)
         self._status.update(_skipped_note(len(unreadable)) if unreadable else "")

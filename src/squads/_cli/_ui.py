@@ -1,7 +1,12 @@
 """`sq ui` — browse the squad in a full-screen terminal app (read-only)."""
 
+import asyncio
+
+from squads._api._api import Api
 from squads._cli import app
-from squads._cli._common import get_service, handle_errors
+from squads._cli._calls import select_api
+from squads._cli._common import handle_errors
+from squads._context import get_context
 from squads._errors import SquadsError
 
 
@@ -9,7 +14,6 @@ from squads._errors import SquadsError
 @handle_errors
 def ui() -> None:
     """Launch the sq ui terminal browser."""
-    svc = get_service()
     try:
         import textual  # noqa: F401  # pyright: ignore[reportUnusedImport]
     except ModuleNotFoundError as exc:
@@ -17,6 +21,12 @@ def ui() -> None:
             "the sq ui terminal UI needs the optional 'tui' extra — "
             "install it with `pip install squads[tui]`"
         ) from exc
-    from squads._tui._app import SquadsApp
+    from squads._tui._app import SquadsApp, open_session
 
-    SquadsApp(svc).run()
+    api = get_context().api or select_api()
+
+    def selector() -> Api:
+        return api
+
+    session, opening = asyncio.run(open_session(selector))
+    SquadsApp(session, opening).run()
