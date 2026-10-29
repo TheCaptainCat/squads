@@ -15,7 +15,6 @@ from squads._language import resolve_working_language
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._paths import SquadPaths, resolve
 from squads._services._bindings import handler_for
-from squads._services._service import Mode as ServiceMode
 from squads._services._service import Service, compose_service
 from squads._spec_documents import SpecSources, spec_sources
 
@@ -41,31 +40,47 @@ def check_grant(paths: SquadPaths, grant: Grant | None) -> None:
 
 
 class LocalApi:
-    """Runs each operation on a service composed for its mode, one service per mode for the
-    instance's lifetime, inside a read scope."""
+    """Runs each operation on a service composed for its mode, inside a read scope; a service
+    that holds what its mode asks for is kept for the instance's lifetime, one that fell back is
+    composed again on the next call."""
 
     def __init__(self, sources: Callable[[Path], SpecSources] = spec_sources) -> None:
         self._sources = sources
         self._services: dict[Mode, Service] = {}
 
-    def _service(self, mode: Mode, paths: SquadPaths) -> Service:
-        if mode not in self._services:
-            ctx = get_context()
-            if mode is Mode.NORMAL and ctx.spec_error is not None:
-                raise SquadsError(ctx.spec_error)
-            self._services[mode] = compose_service(
-                paths,
-                ServiceMode(mode.value),
-                resolved_spec=ctx.active_spec,
-                sources=self._sources(paths.squad_dir),
-            )
-        return self._services[mode]
+    def _service(
+        self, mode: Mode, paths: SquadPaths | None, unresolved: SquadsError | None
+    ) -> Service:
+        cached = self._services.get(mode) if paths is not None else None
+        if cached is not None:
+            return cached
+        ctx = get_context()
+        svc = compose_service(
+            paths,
+            mode,
+            resolved_spec=ctx.active_spec,
+            sources=self._sources(paths.squad_dir) if paths is not None else None,
+            spec_error=ctx.spec_error,
+            unresolved=unresolved,
+            base=ctx.client_cwd,
+        )
+        if svc.refusal is None:
+            self._services[mode] = svc
+        return svc
 
     async def call[Req: BaseModel, Res](self, op: Operation[Req, Res], req: Req) -> Response[Res]:
         """Run *op* on *req*; the squad's working-language notice joins the warnings."""
-        paths = resolve(client_cwd=get_context().client_cwd)
-        check_grant(paths, op.grant)
-        svc = self._service(op.mode, paths)
+        paths: SquadPaths | None = None
+        unresolved: SquadsError | None = None
+        try:
+            paths = resolve(client_cwd=get_context().client_cwd)
+        except SquadsError as exc:
+            if op.mode is not Mode.VOCABULARY:
+                raise
+            unresolved = exc
+        if paths is not None:
+            check_grant(paths, op.grant)
+        svc = self._service(op.mode, paths, unresolved)
         token = enter_read_scope()
         try:
             response = await handler_for(op)(svc, req)

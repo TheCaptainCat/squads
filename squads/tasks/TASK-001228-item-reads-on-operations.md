@@ -16,22 +16,26 @@ description: sq show, tree, graph, search, inbox, mine, blocked, workload, refs,
 subentities:
 - local_id: ST1
   title: show, tree, graph and search
-  status: Todo
+  status: Done
+  assignee: python-dev
   story: US1
 - local_id: ST2
   title: inbox, mine, blocked and workload
-  status: Todo
+  status: Done
+  assignee: python-dev
   story: US1
 - local_id: ST3
   title: refs, comments and sub-entity reads
-  status: Todo
+  status: Done
+  assignee: python-dev
   story: US1
 - local_id: ST4
   title: Display content for item reads
-  status: Todo
+  status: Done
+  assignee: python-dev
   story: US4
 created_at: '2026-10-28T22:12:37Z'
-updated_at: '2026-10-28T23:59:02Z'
+updated_at: '2026-10-29T01:14:04Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -133,4 +137,24 @@ Display content for the item reads (ADR-1224 point 5): the `display` object on e
   - @tech-lead ADR-1224 amended 2026-10-29 (comment ad65a70), points 2, 3 and 4. For this task: `data` is always an object; `tree`, `search`, `inbox`, `mine`, `blocked`, `workload`, `<type> <n> comments` and the sub-entity lists keep their bare-array `--json` by setting the operation's new `json_field` (`items`: the root nodes for `tree`, the hits for `search`), so `columns`, `hidden` and any other sibling go to human mode and HTTP only. `graph`, `refs`, `sq show` and sub-entity show are objects and set none. The US3 acceptance line ("each `--json` prints the operation's `data`") should read "`data`, or the field its operation names". Any display value added to an item row (`mine` rows) goes inside `display`, never beside it.
 - [2026-10-28T23:32:32Z] `tech-lead` Olivia Lead:
   - Body updated per the architect (ADR-1224 amended 2026-10-29): the json_field share for this task and the US3 acceptance line ("data, or the field its operation names"). Test count unchanged.
+- [2026-10-29T00:33:00Z] `python-dev` Elias Python:
+  - - Landed on worktree branch `worktree-agent-a6c1528fd4b8d474e`, commit ee4bdec9 (rebased onto release/0.18 77fac31d first; the worktree had been created from main). Task left InProgress.
+      - 11 operations in the item-reads section: `tree`, `graph`, `search`, `inbox`, `mine`, `blocked`, `workload`, `items.refs`, `items.comments`, `items.subentities.list`, `items.subentities.show`; `sq show <id>` reuses `items.show` with an id-only request. `json_field = "items"` on the 8 array commands (guard list extended).
+      - DTOs in `_api/_dto/_tree.py`, `_graph.py`, `_search.py`, `_queues.py`, `_refs.py`, `_comments.py`, `_subentities.py`; handlers in `_services/_item_read_ops.py` (`ItemReadOpsMixin`, first `Service` base), projections in `_services/_item_read_dto.py`; renderers in `_cli/_render/` `_tree`, `_graph` (dot and Mermaid serializers moved here from `_services/_refs.py`), `_search`, `_queues`, `_refs`, `_comments` (shared with `_render/_items.py`), `_subentities`.
+      - Folded into one call: tree's hidden count, `--json` blocked flags and `--sort`; the inbox/mine slug check; the item existence/type check on refs, comments and sub-entity reads (those verbs and the sub-entity listing and kind group now only parse in the item callback).
+      - Display: tree nodes (rendered priority, dimmed, anchor note, pronouns per `[display] pronouns`), graph nodes (rendered priority, edge text, ref kind label), search hits, queue rows (`status_code`), mine rows (`matched` cell), workload rows, refs rows (kind label), sub-entities (kind name/label/plural/heading, summary table); `columns` on mine and workload.
+    - Proof: scratch squad (custom `incident` type via override with a badge field, labelled attributes and its own sub-entity kind and ref kind; sub-entity discussions; pronouns on a role and an operator; a partial-read copy with a broken symlink), 227 command lines across plain and FORCE_COLOR before/after: 194 byte-identical, 29 `--json` documents differ only by added `display` keys (every old key kept, in order, with its value), partial reads still exit 4 after printing.
+    - Tests: 0 added (1571 passed before and after). Edited, keys added only: the `--json` cases of blocked, workload, tree, graph, search, show, inbox, mine, refs, `<kinds>` and `<kind> show`, now compared as ordered text; guard lists `ALLOWED` (json_field) and `EXTRA_ALLOWED` (`ItemFields`, `MineRow`).
+    - Falsified, each red then restored: tree node field order swapped, refs `in` key renamed, graph `edge_label` dropped, mine `matched` emptied, a `json_field` on graph, `MineRow` out of `EXTRA_ALLOWED`, a `_workflow` import in a renderer, the refs binding removed.
+    - Deviations:
+      - `sq show <id>` now prints labelled attributes in its panel, as `sq <type> <n> show` already does (it was on the old `print_item` path, which lacked them). The only human-output change.
+      - `ItemOpsMixin`'s bases gain `CollabMixin` (between `ItemsMixin` and `SubentitiesMixin`) so the MRO stays consistent with `ImportMixin`; `_item_ops._badge_pairs` became `badge_pairs`; `_dto/_items.py` gains the `ItemFields` base under `ItemRow` (fields unchanged); `_item_dto.subentity_display` split out of `subentity_dto`.
+      - Sub-entity requests carry `kind`, so a stale verb under a renamed kind keeps its refusal; the sub-entity group resolves the item in the store for its verbs not yet on operations (TASK-1229 removes that).
+      - The mine table's priority cell uses the declared field's badge, as `list` does; an item whose type no longer declares `priority` but stores one now shows the raw code there (tree and graph keep the same-name fallback).
+      - The `_services` pending list does not shrink: `_main.py`, `_items.py` and `_common.py` still have unmoved commands.
+    - Adopter-visible, for @tech-writer: `display` on the `--json` rows of tree, graph, search, inbox, mine, blocked, workload, refs, `<kinds>` and `<kind> show`; labelled attributes in `sq show <id>`. CLAUDE.md now has 15 `Service` bases and should name `_item_read_ops`/`_item_read_dto`. Stale code comments in `clients/vscode/src/domain/graphDiagrams.ts` point at `_services/_refs.py` for the Mermaid helpers, now in `_cli/_render/_graph.py`.
+- [2026-10-29T01:02:33Z] `reviewer` Paul Reviewer:
+  - Reviewed on REV-1235: F13 (medium, stale sub-entity read verbs crash under a renamed kind), F14 (low, display.priority and the mine/list vs tree/graph priority rule, @architect), F15 (low, display.pronouns unasserted). Parity otherwise byte-identical or additive-only across 190+ command lines. @python-dev
+- [2026-10-29T01:14:04Z] `python-dev` Elias Python:
+  - Round 2 for REV-1235 F13, F14, F15, commit b55fdf1f on worktree-agent-a6c1528fd4b8d474e (on release/0.18 a8081afe). Gates: pyright 0, ruff clean, tests/meta+cli+check 1607 passed (no new cases; two existing tree cases extended). Removed provisional display key: `display.priority` on tree and graph nodes. @reviewer
 <!-- sq:discussion:end -->

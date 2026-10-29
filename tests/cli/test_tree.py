@@ -2,6 +2,7 @@
 interactions between the priority options, between the badge options and between sort and JSON."""
 
 import json
+from typing import Any
 
 import pytest
 
@@ -27,6 +28,17 @@ PARSER_NODE = {
     "badges": {"priority": "urgent"},
     "anchor": False,
     "children": [],
+    "display": {
+        "type": "Task",
+        "status": {"badge": "🟡 In Progress", "intent": "positive"},
+        "badges": {
+            "priority": {"label": "Priority", "badge": "🔴 urgent", "badge_label": "🔴 Urgent"}
+        },
+        "assignee": "Catherine Manager",
+        "dimmed": False,
+        "anchor": None,
+        "pronouns": None,
+    },
 }
 
 
@@ -101,6 +113,8 @@ async def test_type_refuses_an_unknown_type(readable, invoke) -> None:
 
 @pytest.mark.covers("tree", "--status")
 async def test_status_keeps_one_status_even_when_it_is_closed(readable, invoke) -> None:
+    # With a second badge field set, the line still leads with the first one, the priority.
+    await invoke(["bug", "6", "update", "--set", "severity=high"])
     assert await _tree(invoke, "--status", "Verified") == (0, _drawn(f"└── {BUG}"))
 
 
@@ -261,7 +275,8 @@ async def test_a_filter_that_matches_only_closed_items_prints_a_hint(readable, i
 async def test_json_prints_the_root_nodes_with_their_children(readable, invoke) -> None:
     result = await invoke(["tree", "--json", "--type", "decision"])
     assert result.exit_code == 0, result.output
-    assert json.loads(result.output) == [
+    # Compared as text, so the key order is held as well as the content.
+    expected = [
         {
             "id": "ADR-5",
             "type": "decision",
@@ -273,12 +288,55 @@ async def test_json_prints_the_root_nodes_with_their_children(readable, invoke) 
             "badges": {},
             "anchor": False,
             "children": [],
+            "display": {
+                "type": "Decision",
+                "status": {"badge": "⚪ Proposed", "intent": "neutral"},
+                "badges": {},
+                "assignee": None,
+                "dimmed": False,
+                "anchor": None,
+                "pronouns": None,
+            },
         }
     ]
+    assert result.output == json.dumps(expected, indent=2) + "\n"
     nested = await invoke(["tree", "2", "--json", "--depth", "1"])
     feature = json.loads(nested.output)[0]
     assert feature["children"][0] == PARSER_NODE
     assert feature["children"][1]["blocked"] is True
+    # A role's pronouns reach its node's display, and `[display] pronouns = false` leaves them out.
+    await invoke(["role", "manager", "update", "--pronouns", "she/her"])
+    shown = await invoke(["tree", "--json", "--category", "roster"])
+    assert shown.output == json.dumps([_role_node("she/her")], indent=2) + "\n"
+    config = readable.config_path.read_text(encoding="utf-8")
+    readable.config_path.write_text(config + "\n[display]\npronouns = false\n", encoding="utf-8")
+    hidden = await invoke(["tree", "--json", "--category", "roster"])
+    assert hidden.output == json.dumps([_role_node(None)], indent=2) + "\n"
+
+
+def _role_node(pronouns: str | None) -> dict[str, Any]:
+    """The `manager` role's root node, showing *pronouns*."""
+    return {
+        "id": "ROLE-1",
+        "type": "role",
+        "title": "Catherine Manager",
+        "status": "Active",
+        "priority": None,
+        "assignee": None,
+        "blocked": False,
+        "badges": {},
+        "anchor": False,
+        "children": [],
+        "display": {
+            "type": "Role",
+            "status": {"badge": "⚪ Active", "intent": "positive"},
+            "badges": {},
+            "assignee": None,
+            "dimmed": False,
+            "anchor": None,
+            "pronouns": pronouns,
+        },
+    }
 
 
 # --- interactions ---------------------------------------------------------------------------

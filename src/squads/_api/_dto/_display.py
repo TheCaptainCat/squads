@@ -8,7 +8,8 @@ from squads._api._dto._base import DTO
 
 
 class Column(DTO):
-    """One column of a table: the row key it shows and its header."""
+    """One column of a table: the dotted path from a row to the value its cell shows, and its
+    header."""
 
     key: str
     header: str

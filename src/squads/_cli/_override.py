@@ -7,46 +7,35 @@ The four subcommands are the complete override-management surface:
 - ``sq override diff [<name>]``   — two-delta view (Δ-mine + Δ-upgrade) for drifted overrides.
 - ``sq override update [<name>]`` — re-stamp after a hand-merge; body untouched.
 
-``list`` and ``diff`` support ``--json`` for machine-readable output.
+Each prints what it read or wrote as JSON with ``--json``.
 """
 
-import json
-
 import typer
-from rich.table import Table
 
+from squads._api import _ops as ops
+from squads._api._dto._overrides import (
+    OverrideDiffRequest,
+    OverrideListRequest,
+    OverrideScaffoldRequest,
+    OverrideUpdateRequest,
+)
+from squads._cli import _calls as calls
 from squads._cli._common import (
     Ground,
-    command,
     console,
-    e,
     err_console,
     gate_group_command,
-    get_service,
-    get_squad_paths,
     handle_errors,
     past_the_gate,
-    print_json_clean,
+)
+from squads._cli._render._overrides import (
+    print_errors,
+    render_diffs,
+    render_overrides,
+    render_scaffolded,
+    render_stamped,
 )
 from squads._errors import SquadsError
-from squads._overrides._service import (
-    STATE_BROKEN,
-    STATE_CURRENT,
-    STATE_DRIFTED,
-    DiffResult,
-    OverrideEntry,
-    diff_override,
-    scaffold_playbook,
-    scaffold_role,
-    scaffold_roles_catalog,
-    scaffold_template,
-    scaffold_workflow,
-    scan_overrides,
-    update_stamp,
-)
-from squads._roles._catalog import PREDEFINED
-from squads._roles._resolver import role_base_from_item
-from squads._workflow import ROSTER_ROLE
 
 override_app = typer.Typer(
     no_args_is_help=True,
@@ -60,12 +49,30 @@ def override_gate(ctx: typer.Context) -> None:
     gate_group_command(ctx, override_app)
 
 
+def _address(
+    name: str | None, role: str | None, workflow: bool, playbook: bool, roles_catalog: bool
+) -> tuple[str, str] | None:
+    """The ``(kind, name)`` of the override the arguments name, or ``None`` when they name
+    none; a document's name and its flag are the same address."""
+    if role is not None:
+        return "role", role
+    if workflow or name == "workflow":
+        return "workflow", "workflow"
+    if playbook or name == "playbook":
+        return "playbook", "playbook"
+    if roles_catalog or name == "roles":
+        return "roles", "roles"
+    if name is not None:
+        return "template", name
+    return None
+
+
 # ─── scaffold ──────────────────────────────────────────────────────────────────
 
 
 @override_app.command("scaffold")
-@command
-async def scaffold(
+@handle_errors
+def scaffold(
     name: str | None = typer.Argument(
         None,
         help="Template name, such as `items/<type>.md.j2`, or `workflow`, `playbook`, `roles`.",
@@ -91,6 +98,9 @@ async def scaffold(
         help="Scaffold the override of the whole role catalog, `roles.toml`.",
     ),
     force: bool = typer.Option(False, "--force", help="Overwrite an override that exists."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: the override written."
+    ),
 ):
     """Copy a bundled default into `.overrides/` to start an override from.
 
@@ -100,87 +110,26 @@ async def scaffold(
     `--playbook`, `roles` or `--roles-catalog`. Edit the file, then check it with
     `sq override diff`. A new role is created with `sq role add`, not an override.
     """
-    svc = get_service()
-    squad_dir = svc.paths.squad_dir
-
     if new is not None:
         raise SquadsError(
             f"`sq override scaffold --new` is retired: create the role with "
             f"`sq role add {new} --name … --job-title … --desc … --mission …`"
         )
-
-    if role is not None:
-        item = await svc.roster_item(ROSTER_ROLE, role)
-        base = role_base_from_item(item, svc.catalog) if item is not None else None
-        if item is None and role not in {r.slug for r in svc.catalog().roles}:
-            raise SquadsError(
-                f"no role {role!r} to override: create it with `sq role add {role} --name … "
-                f"--job-title … --desc … --mission …` or `sq role activate {role}`"
-            )
-        dest = scaffold_role(squad_dir, slug=role, force=force, base=base)
-        scaffolded = base is not None or role in {r.slug for r in PREDEFINED}
-        action = (
-            "uncomment the fields to override"
-            if scaffolded
-            else "add fields to override (e.g. full_name, model)"
-        )
-        console.print(
-            f"[green]scaffolded[/green] role override: [bold]{e(str(dest))}[/bold]\n"
-            f"Edit [cyan]{e(str(dest))}[/cyan] to {action}, then verify with "
-            f"[cyan]sq override diff --role {e(role)}[/cyan].",
-            soft_wrap=True,
-        )
-        return
-
-    # Accept 'workflow' as a positional name OR --workflow flag.
-    if workflow or name == "workflow":
-        dest = scaffold_workflow(squad_dir, force=force)
-        console.print(
-            f"[green]scaffolded[/green] workflow override: [bold]{e(str(dest))}[/bold]\n"
-            f"Edit [cyan]{e(str(dest))}[/cyan] to add custom types, statuses, and lifecycles,\n"
-            f"then validate with [cyan]sq workflow lint[/cyan] and "
-            f"inspect with [cyan]sq override diff workflow[/cyan].",
-            soft_wrap=True,
-        )
-        return
-
-    # Accept 'playbook' as a positional name OR --playbook flag.
-    if playbook or name == "playbook":
-        dest = scaffold_playbook(squad_dir, force=force)
-        console.print(
-            f"[green]scaffolded[/green] playbook override: [bold]{e(str(dest))}[/bold]\n"
-            f"Edit [cyan]{e(str(dest))}[/cyan] to add a role's guidance to a type "
-            f"(the '$(*self)' append idiom), then "
-            f"inspect with [cyan]sq override diff playbook[/cyan].",
-            soft_wrap=True,
-        )
-        return
-
-    # Accept 'roles' as a positional name OR --roles-catalog flag.
-    if roles_catalog or name == "roles":
-        dest = scaffold_roles_catalog(squad_dir, force=force)
-        console.print(
-            f"[green]scaffolded[/green] role catalog override: [bold]{e(str(dest))}[/bold]\n"
-            f"Edit [cyan]{e(str(dest))}[/cyan] to override \\[\\[roles]], \\[bundles], or "
-            f"\\[templates.<name>], then inspect with [cyan]sq override diff roles[/cyan].",
-            soft_wrap=True,
-        )
-        return
-
-    if name is None:
+    address = _address(name, role, workflow, playbook, roles_catalog)
+    if address is None:
         raise typer.BadParameter(
             "provide a template name (e.g. 'items/<type>.md.j2'), 'workflow', 'playbook', "
             "'roles', or --role <slug> / --workflow / --playbook / --roles-catalog to "
             "scaffold a role, workflow, playbook, or role-catalog override"
         )
-
-    dest = scaffold_template(squad_dir, template_name=name, force=force)
-    console.print(
-        f"[green]scaffolded[/green] template override: [bold]{e(str(dest))}[/bold]\n"
-        f"Edit [cyan]{e(str(dest))}[/cyan], then verify with "
-        f"[cyan]sq override diff {e(name)}[/cyan].",
-        soft_wrap=True,
-    )
+    kind, target = address
+    request = OverrideScaffoldRequest(kind=kind, name=target, force=force)
+    response = calls.call(ops.OVERRIDES_SCAFFOLD, request)
+    if json_out:
+        calls.print_json(ops.OVERRIDES_SCAFFOLD, response)
+        return
+    calls.print_warnings(response)
+    render_scaffolded(response.data, console)
 
 
 # ─── list ──────────────────────────────────────────────────────────────────────
@@ -200,63 +149,14 @@ def list_overrides(
     base version; `broken` means required sq markers are missing or the file
     cannot be read, an error in `sq check`; the command then exits 1.
     """
-    entries = scan_overrides(get_squad_paths().squad_dir)
-
+    response = calls.call(ops.OVERRIDES_LIST, OverrideListRequest())
     if json_out:
-        print_json_clean(
-            json.dumps(
-                [
-                    {
-                        "name": entry.name,
-                        "kind": entry.kind,
-                        "base_version": entry.base_version,
-                        "state": entry.state,
-                    }
-                    for entry in entries
-                ]
-            )
-        )
-        if any(entry.state == STATE_BROKEN for entry in entries):
-            raise typer.Exit(1)
-        return
-
-    if not entries:
-        console.print(
-            "[dim]no overrides found under .overrides/[/dim]\n"
-            "Run [cyan]sq override scaffold <template_name>[/cyan] to start one.",
-            soft_wrap=True,
-        )
-        return
-
-    table = Table(box=None, pad_edge=False)
-    for col in ("Name", "Kind", "Base Version", "State"):
-        table.add_column(col)
-
-    for entry in entries:
-        state_color = _state_color(entry.state)
-        table.add_row(
-            e(entry.name),
-            entry.kind,
-            e(entry.base_version or "(unstamped)"),
-            f"[{state_color}]{entry.state}[/{state_color}]",
-        )
-    console.print(table)
-    broken = [entry for entry in entries if entry.state == STATE_BROKEN]
-    for entry in broken:
-        if entry.cause:
-            err_console.print(f"error: {e(entry.cause)}", soft_wrap=True)
-    if broken:
+        calls.print_json(ops.OVERRIDES_LIST, response)
+    else:
+        calls.print_warnings(response)
+        render_overrides(response.data, console, err_console)
+    if response.data.failed:
         raise typer.Exit(1)
-
-
-def _state_color(state: str) -> str:
-    if state == STATE_CURRENT:
-        return "green"
-    if state == STATE_DRIFTED:
-        return "yellow"
-    if state == STATE_BROKEN:
-        return "red"
-    return "white"
 
 
 # ─── diff ──────────────────────────────────────────────────────────────────────
@@ -296,112 +196,17 @@ def diff(
     diffed; a broken one is named (with its cause when it cannot be read) and the
     command exits 1 after the rest.
     """
-    squad_dir = get_squad_paths().squad_dir
-
-    results: list[DiffResult] = []
-    entries: list[OverrideEntry] = []
-
-    if role is not None:
-        results.append(diff_override(squad_dir, name=role, kind="role"))
-    elif workflow or name == "workflow":
-        results.append(diff_override(squad_dir, name="workflow", kind="workflow"))
-    elif playbook or name == "playbook":
-        results.append(diff_override(squad_dir, name="playbook", kind="playbook"))
-    elif roles_catalog or name == "roles":
-        results.append(diff_override(squad_dir, name="roles", kind="roles"))
-    elif name is not None:
-        results.append(diff_override(squad_dir, name=name, kind="template"))
-    else:
-        # No name: diff every drifted override.
-        entries = scan_overrides(squad_dir)
-        drifted = [e for e in entries if e.state == STATE_DRIFTED]
-        if not drifted and not json_out:
-            if not any(entry.state == STATE_BROKEN for entry in entries):
-                console.print("[dim]no drifted overrides found[/dim]")
-            _fail_on_broken(entries)
-            return
-        results.extend(
-            diff_override(squad_dir, name=entry.name, kind=entry.kind) for entry in drifted
-        )
-
+    address = _address(name, role, workflow, playbook, roles_catalog)
+    kind, target = address if address is not None else (None, None)
+    response = calls.call(ops.OVERRIDES_DIFF, OverrideDiffRequest(kind=kind, name=target))
     if json_out:
-        print_json_clean(
-            json.dumps(
-                [
-                    {
-                        "name": r.name,
-                        "kind": r.kind,
-                        "base_version": r.base_version,
-                        "base_available": r.base_available,
-                        "delta_mine": r.delta_mine,
-                        "delta_upgrade": r.delta_upgrade,
-                    }
-                    for r in results
-                ]
-            )
-        )
-        _fail_on_broken(entries)
-        return
-
-    for result in results:
-        _print_diff_result(result)
-    _fail_on_broken(entries)
-
-
-def _fail_on_broken(entries: list[OverrideEntry]) -> None:
-    """Name each broken override and exit 1 when there is one; the readable overrides have
-    already been handled. An unreadable one states its cause, a readable one points at
-    `sq override list`."""
-    broken = [entry for entry in entries if entry.state == STATE_BROKEN]
-    for entry in broken:
-        line = entry.cause or (
-            f"{entry.name} is broken (a required sq region is missing); "
-            "run `sq override list` for the state of every override"
-        )
-        err_console.print(f"error: {e(line)}", soft_wrap=True)
-    if broken:
+        calls.print_json(ops.OVERRIDES_DIFF, response)
+        print_errors(response.data.errors, err_console)
+    else:
+        calls.print_warnings(response)
+        render_diffs(response.data, console, err_console)
+    if response.data.failed:
         raise typer.Exit(1)
-
-
-def _fail_on_unreadable(entries: list[OverrideEntry]) -> None:
-    """Name each override that cannot be read, with its cause, and exit 1 when there is one; the
-    readable overrides have already been handled."""
-    unreadable = [entry for entry in entries if entry.cause]
-    for entry in unreadable:
-        err_console.print(f"error: {e(entry.cause or '')}", soft_wrap=True)
-    if unreadable:
-        raise typer.Exit(1)
-
-
-def _print_diff_result(result: DiffResult) -> None:
-    if result.kind == "template":
-        label = result.name
-    elif result.kind == "role":
-        label = f"--role {result.name}"
-    elif result.kind == "playbook":
-        label = "playbook"
-    elif result.kind == "roles":
-        label = "roles"
-    else:
-        label = "workflow"
-    console.print(f"\n[bold]Override: {e(label)}[/bold]  [dim](kind: {result.kind})[/dim]")
-    if result.base_version:
-        console.print(f"[dim]base version: v{result.base_version}[/dim]")
-
-    console.print("\n[yellow]Δ-mine[/yellow]  (your override vs current bundled):")
-    if result.delta_mine:
-        console.print(result.delta_mine, markup=False, highlight=False)
-    else:
-        console.print("[dim](no difference)[/dim]")
-
-    console.print(
-        "\n[yellow]Δ-upgrade[/yellow]  "
-        "(base-version bundled vs current bundled — what the upgrade changed):"
-    )
-    if result.delta_upgrade:
-        console.print(result.delta_upgrade, markup=False, highlight=False)
-    else:
-        console.print("[dim](no difference)[/dim]")
 
 
 # ─── update ────────────────────────────────────────────────────────────────────
@@ -427,6 +232,9 @@ def update(
         "--roles-catalog",
         help="Re-stamp the override of the whole role catalog, `roles.toml`.",
     ),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: the overrides re-stamped."
+    ),
 ):
     """Mark an override as merged with the current default, clearing its drift.
 
@@ -434,34 +242,14 @@ def update(
     no name or flag, every valid override is re-stamped; a broken one is skipped
     until it is fixed, which is named with its cause and exits 1.
     """
-    squad_dir = get_squad_paths().squad_dir
-    entries: list[OverrideEntry] = []
-
-    if role is not None:
-        stamped = update_stamp(squad_dir, name=role, kind="role")
-    elif workflow or name == "workflow":
-        stamped = update_stamp(squad_dir, name="workflow", kind="workflow")
-    elif playbook or name == "playbook":
-        stamped = update_stamp(squad_dir, name="playbook", kind="playbook")
-    elif roles_catalog or name == "roles":
-        stamped = update_stamp(squad_dir, name="roles", kind="roles")
-    elif name is not None:
-        stamped = update_stamp(squad_dir, name=name, kind="template")
+    address = _address(name, role, workflow, playbook, roles_catalog)
+    kind, target = address if address is not None else (None, None)
+    response = calls.call(ops.OVERRIDES_UPDATE, OverrideUpdateRequest(kind=kind, name=target))
+    if json_out:
+        calls.print_json(ops.OVERRIDES_UPDATE, response)
+        print_errors(response.data.errors, err_console)
     else:
-        entries = scan_overrides(squad_dir)
-        stamped = update_stamp(squad_dir, name=None, kind=None)
-
-    if not stamped:
-        if not any(entry.cause for entry in entries):
-            console.print("[dim]nothing to update (no overrides found, or all are current)[/dim]")
-        _fail_on_unreadable(entries)
-        return
-
-    from squads import __version__
-
-    for n in stamped:
-        console.print(f"[green]re-stamped[/green] {e(n)} → v{e(__version__)}")
-    console.print(
-        "\nRun [cyan]sq check[/cyan] to confirm the drift warning is cleared.", soft_wrap=True
-    )
-    _fail_on_unreadable(entries)
+        calls.print_warnings(response)
+        render_stamped(response.data, console, err_console)
+    if response.data.errors:
+        raise typer.Exit(1)

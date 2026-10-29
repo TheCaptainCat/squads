@@ -5,7 +5,38 @@ from squads._api._ops import OPERATIONS
 
 #: The operations allowed a `json_field`: those of the closed set of array commands, added as
 #: each of them moves onto its operation.
-ALLOWED = frozenset({"items.list"})
+ALLOWED = frozenset(
+    {
+        "blocked",
+        "board.list",
+        "check",
+        "inbox",
+        "items.comments",
+        "items.list",
+        "items.subentities.list",
+        "memory.list",
+        "memory.search",
+        "mine",
+        "operators.list",
+        "overrides.diff",
+        "overrides.list",
+        "reflog",
+        "roles.catalog",
+        "roles.list",
+        "search",
+        "tree",
+        "workflow.collections",
+        "workflow.lifecycles",
+        "workflow.ref-kinds",
+        "workflow.roles",
+        "workflow.statuses",
+        "workflow.subentity-kinds",
+        "workflow.types",
+        "workflow.view",
+        "workflow.views",
+        "workload",
+    }
+)
 
 
 def test_every_json_field_names_a_field_of_the_response() -> None:

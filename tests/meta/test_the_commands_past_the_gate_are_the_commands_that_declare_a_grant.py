@@ -56,7 +56,11 @@ def _every_command() -> list[tuple[str, ...]]:
 
 #: The command each operation that declares a grant serves, by operation name; an operation
 #: that declares one and has no row here fails the walk with its name.
-_COMMAND_OF_OPERATION: dict[str, str] = {}
+_COMMAND_OF_OPERATION: dict[str, str] = {
+    "overrides.diff": "override diff",
+    "overrides.list": "override list",
+    "overrides.update": "override update",
+}
 
 
 def _declared(direction: str) -> set[str]:

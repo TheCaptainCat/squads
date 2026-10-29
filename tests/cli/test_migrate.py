@@ -97,7 +97,6 @@ async def test_up_refuses_a_directory_with_no_squad(invoke) -> None:
 # ---------------------------------------------------------------------------- help and chlog
 
 
-@pytest.mark.covers("migrate help")
 async def test_help_lists_the_migrations_oldest_first_outside_any_squad(invoke) -> None:
     result = await invoke(["migrate", "help"])
     assert result.exit_code == 0, result.output
@@ -292,4 +291,35 @@ async def test_repad_refuses_a_width_that_is_not_an_integer(populated_project, i
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
         "│ Invalid value for 'WIDTH': 'wide' is not a valid integer.                    │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯\n",
+    )
+
+
+@pytest.mark.covers("migrate help", "--json")
+async def test_help_json_lists_each_migration_with_its_manual_steps(invoke) -> None:
+    result = await invoke(["migrate", "help", "--json"])
+    assert result.exit_code == 0, result.output
+    # The first entry's head compared as text, so its key order is held as well as its content.
+    assert result.output.startswith(
+        '{\n  "migrations": [\n    {\n      "version": "0.2.0",\n      "from_schema": "0.1",\n'
+        '      "to_schema": "0.2",\n      "summary": "Inline ref kinds; subtask/story/finding '
+        'status machines; sq-managed summaries.",\n      "manual": "**'
+    )
+    entries = json.loads(result.output)["migrations"]
+    assert [list(entry) for entry in entries] == [
+        ["version", "from_schema", "to_schema", "summary", "manual"]
+    ] * len(entries)
+    assert entries[0]["manual"]
+    assert entries[-1]["to_schema"] == SCHEMA_VERSION
+
+
+@pytest.mark.covers("migrate chlog", "--json")
+async def test_chlog_json_prints_the_range_and_its_migrations_with_manual_steps(invoke) -> None:
+    result = await invoke(["migrate", "chlog", "v0.10.0..v0.11.0", "--json"])
+    assert result.exit_code == 0, result.output
+    assert (
+        result.output
+        == json.dumps(
+            {"from_version": "0.10.0", "to_version": "0.11.0", "migrations": []}, indent=2
+        )
+        + "\n"
     )

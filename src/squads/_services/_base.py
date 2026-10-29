@@ -473,6 +473,7 @@ class ServiceCore:
         backends: Callable[[], list[AgentBackend]],
         catalog: CatalogSource,
         files: OverrideFiles,
+        refusal: SquadsError | None = None,
     ):
         self.paths = paths
         self.spec = spec
@@ -482,6 +483,13 @@ class ServiceCore:
         self.catalog = catalog
         self.files = files
         self.roster_projection = RosterProjection(paths, spec, playbook, store, backends, catalog)
+        self._refusal = refusal
+
+    @property
+    def refusal(self) -> SquadsError | None:
+        """Why the composition this service was asked for fell back to the documents it holds;
+        ``None`` when it holds what was asked for."""
+        return self._refusal
 
     @property
     def working_language(self) -> WorkingLanguage:

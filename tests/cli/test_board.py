@@ -1,5 +1,6 @@
 """`sq board …`: posting notices to the team board, listing the current ones and clearing one."""
 
+import json
 from typing import Any
 
 import pytest
@@ -33,16 +34,18 @@ async def test_post_adds_a_notice_signed_by_the_actor(project, invoke) -> None:
     result = await invoke(["board", "post", "-m", "Freeze on Friday", "--as", "manager"])
     notice_id = result.output.split()[1]
     assert (result.exit_code, result.output) == (0, f"posted {notice_id} as manager\n")
-    assert await _board(invoke) == [
-        {
-            "n": 1,
-            "id": notice_id,
-            "author": "manager",
-            "posted_at": STAMP,
-            "until": None,
-            "body": "Freeze on Friday",
-        }
-    ]
+    assert json.dumps(await _board(invoke)) == json.dumps(
+        [
+            {
+                "n": 1,
+                "id": notice_id,
+                "author": "manager",
+                "posted_at": STAMP,
+                "until": None,
+                "body": "Freeze on Friday",
+            }
+        ]
+    )
 
 
 async def test_post_as_is_required(project, invoke) -> None:
@@ -128,24 +131,26 @@ async def test_list_json_numbers_the_current_notices_in_the_order_they_were_post
     assert await _board(invoke) == []
     first = await _post(invoke, "-m", "First", at=EARLIER)
     second = await _post(invoke, "-m", "Second", "--until", "2999-01-01")
-    assert await _board(invoke) == [
-        {
-            "n": 1,
-            "id": first,
-            "author": "manager",
-            "posted_at": EARLIER,
-            "until": None,
-            "body": "First",
-        },
-        {
-            "n": 2,
-            "id": second,
-            "author": "manager",
-            "posted_at": STAMP,
-            "until": "2999-01-01T00:00:00Z",
-            "body": "Second",
-        },
-    ]
+    assert json.dumps(await _board(invoke)) == json.dumps(
+        [
+            {
+                "n": 1,
+                "id": first,
+                "author": "manager",
+                "posted_at": EARLIER,
+                "until": None,
+                "body": "First",
+            },
+            {
+                "n": 2,
+                "id": second,
+                "author": "manager",
+                "posted_at": STAMP,
+                "until": "2999-01-01T00:00:00Z",
+                "body": "Second",
+            },
+        ]
+    )
 
 
 async def test_list_prints_one_numbered_line_per_notice(project, invoke) -> None:
@@ -207,3 +212,54 @@ async def test_clear_needs_a_number(project, invoke) -> None:
             "Missing argument 'N'.",
         ),
     )
+
+
+# ------------------------------------------------------------------------------------ json
+
+
+@pytest.mark.covers("board post", "--json")
+async def test_post_json_prints_the_notice_written(project, invoke) -> None:
+    post = ["board", "post", "-m", "Freeze", "--until", "2999-01-01", "--as", "manager"]
+    result = await invoke(["--at", STAMP, *post, "--json"])
+    assert result.exit_code == 0, result.output
+    (listed,) = await _board(invoke)
+    assert (
+        result.output
+        == json.dumps(
+            {
+                "entry": {
+                    "id": listed["id"],
+                    "author": "manager",
+                    "posted_at": STAMP,
+                    "until": "2999-01-01T00:00:00Z",
+                    "body": "Freeze",
+                }
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+
+
+@pytest.mark.covers("board clear", "--json")
+async def test_clear_json_prints_the_notice_taken_down(project, invoke) -> None:
+    notice_id = await _post(invoke, "-m", "Freeze")
+    result = await invoke(["board", "clear", "1", "--json"])
+    assert result.exit_code == 0, result.output
+    assert (
+        result.output
+        == json.dumps(
+            {
+                "entry": {
+                    "id": notice_id,
+                    "author": "manager",
+                    "posted_at": STAMP,
+                    "until": None,
+                    "body": "Freeze",
+                }
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    assert await _board(invoke) == []

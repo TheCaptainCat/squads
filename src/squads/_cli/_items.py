@@ -21,20 +21,17 @@ import typer
 import typer._click as _click  # underscore is upstream's own private module path, not ours
 import typer.core
 import typer.main
-from rich.table import Table
 
 import squads._cli._common as common
 from squads import _badges as badges
-from squads import _discussion as discussion
 from squads._api import _ops as ops
 from squads._api._dto._items import ItemShowRequest, ItemStatusRequest
+from squads._api._dto._refs import RefsRequest
+from squads._api._dto._subentities import SubentitiesRequest, SubentityRequest
 from squads._cli import _calls as calls
 from squads._cli._common import (
-    build_subentity_json,
-    build_subentity_row_json,
     console,
     e,
-    get_active_spec,
     get_service,
     handle_errors,
     parse_badge_code,
@@ -42,7 +39,6 @@ from squads._cli._common import (
     parse_type,
     print_block,
     print_json_clean,
-    print_subentity,
     resolve_body,
     resolve_body_optional,
     resolve_item_id_any,
@@ -52,19 +48,43 @@ from squads._cli._common import (
     view_disable_result_message,
 )
 from squads._cli._render._items import render_show, render_status
+from squads._cli._render._refs import render_refs
+from squads._cli._render._subentities import render_subentities, render_subentity
 from squads._errors import SquadsError
 from squads._models._item import split_ref
-from squads._models._subentity import SubEntity
 from squads._services._service import Service
 from squads._workflow._models import Field, WorkflowSpec
 
 #: The verbs whose operation checks the addressed item, so the group only parses the number.
 _VERBS_ON_OPERATIONS: frozenset[str] = frozenset(
     {
+        "comments",
+        "refs",
         "show",
         "status",
     }
 )
+
+#: The sub-entity verbs whose operation checks the addressed item and sub-entity.
+_SUBENTITY_VERBS_ON_OPERATIONS: frozenset[str] = frozenset({"show"})
+
+
+def _subentity_verbs(item_type: str) -> frozenset[str]:
+    """The live sub-entity kind's plural listing and kind group of *item_type*, which parse the
+    item's address only; none when the type hosts no kind or the spec cannot be read."""
+    try:
+        spec = common.get_active_spec()
+        kind = spec.item_subentity_kind(item_type)
+        return frozenset() if kind is None else frozenset({spec.subentity_plural(kind), kind})
+    except Exception:  # pylint: disable=broad-except
+        return frozenset()
+
+
+@common.command
+async def _resolve_in_store(ctx: typer.Context, num: str, item_type: str) -> None:
+    """Put the id of the *item_type* numbered *num* on *ctx*, checked against the store."""
+    svc = get_service()
+    ctx.obj = await common.address_obj(ctx, lambda: resolve_item_id_typed(num, item_type, svc))
 
 
 def _id(ctx: typer.Context) -> str:
@@ -72,8 +92,10 @@ def _id(ctx: typer.Context) -> str:
 
 
 def _address(ctx: typer.Context) -> dict[str, str]:
-    """The parsed address the group put on *ctx*."""
-    return {key: ctx.obj[key] for key in ("id", "type", "address")}
+    """The address the group put on *ctx*: the id, with the type and the token as typed when the
+    group only parsed it, the id alone when it resolved it against the store."""
+    typed = {key: ctx.obj[key] for key in ("type", "address") if key in ctx.obj}
+    return {"id": ctx.obj["id"], **typed}
 
 
 def _kw_str(kwargs: dict[str, object], key: str) -> str | None:
@@ -271,21 +293,17 @@ def build_item_app(
     if spec is None:
         spec = common.get_active_spec()
 
-    @common.command
-    async def _resolve_in_store(ctx: typer.Context, num: str) -> None:
-        svc = get_service()
-        ctx.obj = await common.address_obj(ctx, lambda: resolve_item_id_typed(num, item_type, svc))
-
     @item.callback()
     @handle_errors
     def _resolve(
         ctx: typer.Context,
         num: str = typer.Argument(..., metavar="N", help=f"Number or ID of the {item_type}."),
     ):
-        if ctx.invoked_subcommand in _VERBS_ON_OPERATIONS:
+        verb = ctx.invoked_subcommand
+        if verb in _VERBS_ON_OPERATIONS or verb in _subentity_verbs(item_type):
             ctx.obj = common.parsed_address(ctx, lambda: common.item_address(num, item_type))
         else:
-            _resolve_in_store(ctx, num)
+            _resolve_in_store(ctx, num, item_type)
 
     _cmd_show(item)
     _cmd_update(item, item_type, spec)
@@ -574,8 +592,8 @@ def _cmd_remove(item: typer.Typer) -> None:
 
 def _cmd_refs(item: typer.Typer) -> None:
     @item.command("refs")
-    @common.command
-    async def refs(
+    @handle_errors
+    def refs(
         ctx: typer.Context,
         out: bool = typer.Option(
             False, "--out", help="Show the refs this item carries; the default."
@@ -589,28 +607,18 @@ def _cmd_refs(item: typer.Typer) -> None:
         ),
     ):
         """List the item's refs, or the refs other items carry to it."""
-        svc = get_service()
-        show_out = out or all_ or not (incoming or all_)
-        data: dict[str, list[dict[str, str]]] = {}
-        if show_out:
-            data["out"] = [{"id": i, "kind": k} for i, k in await svc.refs_out(_id(ctx))]
-        if incoming or all_:
-            data["in"] = [{"id": i, "kind": k} for i, k in await svc.refs_in(_id(ctx))]
+        request = RefsRequest(
+            **_address(ctx),
+            out=out or all_ or not (incoming or all_),
+            incoming=incoming or all_,
+        )
+        response = calls.call(ops.ITEM_REFS, request)
         if json_out:
-            print_json_clean(json.dumps(data))
-            return
-        for direction, label in (("out", "→ refs"), ("in", "← backrefs")):
-            if direction not in data:
-                continue
-            if not data[direction]:
-                console.print(f"[dim]{label}: none[/dim]")
-                continue
-            table = Table(title=label, box=None, pad_edge=False, title_justify="left")
-            table.add_column("ID")
-            table.add_column("Kind")
-            for row in data[direction]:
-                table.add_row(row["id"], row["kind"])
-            console.print(table)
+            calls.print_json(ops.ITEM_REFS, response)
+        else:
+            calls.print_warnings(response)
+            render_refs(response.data, console)
+        calls.finish(response, json_out=json_out)
 
     ref_app = typer.Typer(no_args_is_help=True, help="Add or remove the item's refs.")
 
@@ -732,21 +740,6 @@ def _field_param(field: Field) -> inspect.Parameter:
     )
 
 
-def _sub_table(kind: str, blocks: list[SubEntity], spec: WorkflowSpec) -> None:
-    """Render the list-verb table from the same field-driven column derivation the body's
-    ``:summary`` region uses (:func:`discussion.summary_columns`/``summary_row``) — one
-    definition, so the CLI list table and the body summary table never drift apart."""
-    if not blocks:
-        console.print(f"[dim]no {kind}s[/dim]")
-        return
-    table = Table(box=None, pad_edge=False)
-    for col in discussion.summary_columns(kind, spec):
-        table.add_column(col)
-    for b in blocks:
-        table.add_row(*(e(c) for c in discussion.summary_row(kind, b, spec)))
-    console.print(table)
-
-
 def _doc[F: Callable[..., object]](text: str) -> Callable[[F], F]:
     """Give a generated command the help text its kind's labels spell out."""
 
@@ -761,34 +754,22 @@ def _register_subentity(item: typer.Typer, kind: str, spec: WorkflowSpec) -> Non
     plural = spec.subentity_plural(kind)
 
     @item.command(plural)
-    @common.command
+    @handle_errors
     @_doc(f"List this item's {plural}.")
-    async def list_sub(
+    def list_sub(
         ctx: typer.Context,
         json_out: bool = typer.Option(
             False, "--json", help=f"Print a JSON array, one object per {kind}."
         ),
     ):
-        blocks = await get_service().list_blocks(_id(ctx), kind)
+        request = SubentitiesRequest(**_address(ctx), kind=kind)
+        response = calls.call(ops.ITEM_SUBENTITIES, request)
         if json_out:
-            print_json_clean(
-                json.dumps(
-                    [
-                        build_subentity_row_json(
-                            local_id=b.local_id,
-                            title=b.title,
-                            status=b.status,
-                            assignee=b.assignee,
-                            severity=b.severity,
-                            story=b.story,
-                            deferred_to=b.deferred_to,
-                        )
-                        for b in blocks
-                    ]
-                )
-            )
-            return
-        _sub_table(kind, blocks, spec)
+            calls.print_json(ops.ITEM_SUBENTITIES, response)
+        else:
+            calls.print_warnings(response)
+            render_subentities(response.data, console)
+        calls.finish(response, json_out=json_out)
 
     _register_add(item, kind, spec)
 
@@ -806,7 +787,14 @@ def _register_subentity(item: typer.Typer, kind: str, spec: WorkflowSpec) -> Non
         ),
     ):
         assert ctx.parent is not None  # the parent item group always runs first
-        ctx.obj = common.extend_obj(ctx.parent.obj, local=resolve_local_id(n, kind))
+        parent = ctx.parent.obj
+        verb = ctx.invoked_subcommand
+        if verb not in _SUBENTITY_VERBS_ON_OPERATIONS and "address" in parent:
+            # The item group only parsed the address; a verb not on its operation yet needs the
+            # item checked against the store first.
+            _resolve_in_store(cast(typer.Context, ctx.parent), parent["address"], parent["type"])
+            parent = ctx.parent.obj
+        ctx.obj = common.extend_obj(parent, local=resolve_local_id(n, kind))
 
     _register_sub_verbs(sub, kind, spec)
     item.add_typer(sub, name=kind)
@@ -1118,18 +1106,20 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
         return ctx.obj["id"], ctx.obj["local"]
 
     @sub.command("show")
-    @common.command
+    @handle_errors
     @_doc(f"Show the {kind}'s status, assignee, body and discussion.")
-    async def s_show(
+    def s_show(
         ctx: typer.Context,
         json_out: bool = typer.Option(False, "--json", help=f"Print one JSON object: the {kind}."),
     ):
-        pid, lid = ids(ctx)
-        detail = await get_service().get_block(pid, kind, lid)
+        request = SubentityRequest(**_address(ctx), kind=kind, local=ctx.obj["local"])
+        response = calls.call(ops.ITEM_SUBENTITY, request)
         if json_out:
-            print_json_clean(json.dumps(build_subentity_json(get_active_spec(), kind, detail)))
-            return
-        print_subentity(detail, kind)
+            calls.print_json(ops.ITEM_SUBENTITY, response)
+        else:
+            calls.print_warnings(response)
+            render_subentity(response.data, console)
+        calls.finish(response, json_out=json_out)
 
     _register_update(sub, kind, spec)
 

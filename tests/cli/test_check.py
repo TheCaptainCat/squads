@@ -63,7 +63,7 @@ async def test_json_prints_one_object_per_issue_and_exits_3_on_an_error(
 ) -> None:
     result = await invoke(["check", "--json"])
     assert result.exit_code == 3
-    assert json.loads(result.output) == [NO_AUTHOR_ISSUE, DANGLING_ISSUE]
+    assert result.output == json.dumps([NO_AUTHOR_ISSUE, DANGLING_ISSUE], indent=2) + "\n"
 
 
 async def test_check_exits_0_when_the_issues_are_warnings(populated_project, invoke) -> None:

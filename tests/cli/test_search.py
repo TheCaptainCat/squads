@@ -95,7 +95,8 @@ async def test_status_refuses_an_unknown_status(readable, invoke) -> None:
 async def test_json_prints_one_object_per_matching_item_with_its_hits(readable, invoke) -> None:
     result = await invoke(["search", "tokeniser", "--json"])
     assert result.exit_code == 0, result.output
-    assert json.loads(result.output) == [
+    # Compared as text, so the key order is held as well as the content.
+    expected = [
         {
             "id": "TASK-3",
             "title": "Parse queries",
@@ -110,5 +111,18 @@ async def test_json_prints_one_object_per_matching_item_with_its_hits(readable, 
                     "hash": "59e0936df6dbc55baeea2fde8e7ab1f24b7ea44e70ce7c413e1caeb45288bf93",
                 }
             ],
+            "display": {
+                "type": "Task",
+                "status": {"badge": "🟡 In Progress", "intent": "positive"},
+                "badges": {
+                    "priority": {
+                        "label": "Priority",
+                        "badge": "🔴 urgent",
+                        "badge_label": "🔴 Urgent",
+                    }
+                },
+                "assignee": "Catherine Manager",
+            },
         }
     ]
+    assert result.output == json.dumps(expected, indent=2) + "\n"

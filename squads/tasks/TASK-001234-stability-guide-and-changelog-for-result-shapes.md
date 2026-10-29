@@ -30,8 +30,12 @@ subentities:
   title: Reserved display key and attribute labels
   status: Todo
   story: US4
+- local_id: ST5
+  title: Behaviour notes from the command moves
+  status: Todo
+  story: US1
 created_at: '2026-10-28T22:12:43Z'
-updated_at: '2026-10-28T23:33:10Z'
+updated_at: '2026-10-29T01:34:37Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -48,6 +52,7 @@ Tell adopters what the command layer changes for them (FEAT-1226 US2, US3, US4):
   - the `etag` key of the show result and the daemon's compatibility messages are documented with the daemon (TASK-1221), which links here for the rule.
 - **Command reference and guides** that describe `--json`: every command that prints a result accepts it; a write prints what it wrote, a corpus-wide command its report, the package-data commands their text or index; `init --json` never prompts; the commands with no result of their own (`ui`, the parse-only groups, bare `workflow`) take none.
 - **Reserved name and attribute labels** (ADR-1224 points 2 and 5): `display` reserved in Tier 3's item rows, its changelog entry shaped like the `views` one, and the 0.18 migration's manual step for renaming a declared `display`; the optional attribute `label` in the overrides docs and on `sq workflow types --json` rows.
+- **Behaviour notes from the command moves:** labelled attributes on `sq show`, the declared-field rule for the lead badge, `display` on the `workflow view --json` sources, and `sq skill <unknown> status` / `sq memory <unknown> show` exiting 2 instead of 1.
 - **CHANGELOG**, unreleased section: one entry for `--json` on every command, one for the display keys, one for the compatibility rule. Entries may be added as each command group lands; this task owns their final wording.
 
 ## Acceptance
@@ -126,6 +131,25 @@ Every key and command named is checked against the built package on a scratch sq
 <!-- sq:subtask:ST4:discussion -->
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
+
+<!-- sq:subtask:ST5 -->
+### ST5 — Behaviour notes from the command moves
+
+<!-- sq:subtask:ST5:body -->
+Adopter-doc items the reviews and rulings raised while the commands moved:
+- `sq show <id>` (and `sq <type> <n> show`) shows the item's labelled attributes, one line per declared attribute that has a `label` and a stored value, in declared order; document it beside the attribute `label` key (ST4).
+- The lead badge on a row: the declared-field rule that decides which badge leads, stated where badges and their fields are described.
+- `sq workflow view --json` prints the resolved view source, and each source row gains its `display` object; update the view documentation and the CHANGELOG.
+- Exit codes: `sq skill <unknown> status` and `sq memory <unknown> show` now exit 2 instead of 1 (the address is refused before any call); CHANGELOG entry under changed behaviour, and the exit-code table wherever the docs list it.
+- CHANGELOG, changed behaviour (REV-1235 F25): `sq role catalog` with a malformed `.squads.toml` now fails with the parse error and exit 1 instead of printing the bundled catalog; `sq role <r> show --json` when the role's item file is missing now fails with the missing-file error and exit 1 instead of printing the document.
+Every behaviour named is checked against the built package on a scratch squad.
+<!-- sq:subtask:ST5:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST5:discussion -->
+<!-- sq:subtask:ST5:discussion:end -->
+<!-- sq:subtask:ST5:end -->
 <!-- sq:subtasks:end -->
 
 ## Discussion
@@ -140,4 +164,8 @@ Every key and command named is checked against the built package on a scratch sq
   - Body and ST2 aligned with ADR-1224 amended 2026-10-29: display.body instead of rendered_body, the one reserved name display, json_field for array documents.
 - [2026-10-28T23:33:10Z] `tech-lead` Olivia Lead:
   - ST4 added for the architect items: display reserved in Tier 3 with a changelog entry like the views one and the 0.18 manual step for renaming a declared display; the optional attribute label in the overrides docs and on sq workflow types --json rows. New tests: 0.
+- [2026-10-29T01:29:56Z] `tech-lead` Olivia Lead:
+  - ST5 added: labelled attributes on sq show, the lead-badge declared-field rule, display on workflow view --json sources, exit 1 -> 2 for sq skill <unknown> status and sq memory <unknown> show. New tests: 0.
+- [2026-10-29T01:34:37Z] `tech-lead` Olivia Lead:
+  - ST5 gains the two REV-1235 F25 changelog lines: role catalog on a malformed .squads.toml exits 1, role show --json on a missing item file exits 1.
 <!-- sq:discussion:end -->

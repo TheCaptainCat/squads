@@ -1,6 +1,7 @@
 """`sq docs` (the bundled documentation) and `sq ui` (the terminal browser, never run
 interactively here)."""
 
+import json
 from typing import TYPE_CHECKING
 
 import pytest
@@ -99,4 +100,14 @@ async def test_ui_refuses_to_start_outside_a_squad(squads_app, invoke, monkeypat
     assert (result.exit_code, lines(result.output)) == (
         1,
         ["error: no .squads.toml found in this or any parent directory — run `sq init`"],
+    )
+
+
+@pytest.mark.covers("docs", "--json")
+async def test_docs_json_prints_the_named_document_under_its_own_name(invoke) -> None:
+    result = await invoke(["docs", "FAQ.md", "--json"])
+    assert result.exit_code == 0, result.output
+    assert (
+        result.output
+        == json.dumps({"name": "faq", "markdown": _docfiles.read("faq")}, indent=2) + "\n"
     )

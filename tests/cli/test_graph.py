@@ -175,7 +175,8 @@ async def test_format_refuses_a_name_other_than_dot_mermaid_or_mermaid_md(readab
 async def test_json_prints_the_root_with_its_nested_children(readable, invoke) -> None:
     result = await invoke(["graph", "4", "--depth", "1", "--json"])
     assert result.exit_code == 0, result.output
-    assert json.loads(result.output) == {
+    # Compared as text, so the key order is held as well as the content.
+    expected = {
         "id": "TASK-4",
         "type": "task",
         "status": "Draft",
@@ -199,6 +200,14 @@ async def test_json_prints_the_root_with_its_nested_children(readable, invoke) -
                 "direction": "out",
                 "seen": False,
                 "children": [],
+                "display": {
+                    "type": "Task",
+                    "status": {"badge": "🟡 In Progress", "intent": "positive"},
+                    "badges": {"priority": _badge("🔴", "urgent")},
+                    "assignee": "Catherine Manager",
+                    "edge": "depends on",
+                    "edge_label": "Depends on",
+                },
             },
             {
                 "id": "REV-7",
@@ -212,8 +221,34 @@ async def test_json_prints_the_root_with_its_nested_children(readable, invoke) -
                 "direction": "out",
                 "seen": False,
                 "children": [],
+                "display": {
+                    "type": "Review",
+                    "status": {"badge": "⚪ Requested", "intent": "neutral"},
+                    "badges": {},
+                    "assignee": None,
+                    "edge": "related",
+                    "edge_label": "Related",
+                },
             },
         ],
+        "display": {
+            "type": "Task",
+            "status": {"badge": "⚪ Draft", "intent": "neutral"},
+            "badges": {"priority": _badge("🟢", "low")},
+            "assignee": None,
+            "edge": None,
+            "edge_label": None,
+        },
+    }
+    assert result.output == json.dumps(expected, indent=2) + "\n"
+
+
+def _badge(emoji: str, code: str) -> dict[str, str]:
+    """A priority badge's display."""
+    return {
+        "label": "Priority",
+        "badge": f"{emoji} {code}",
+        "badge_label": f"{emoji} {code.title()}",
     }
 
 

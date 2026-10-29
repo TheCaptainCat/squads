@@ -133,7 +133,12 @@ async def test_full_adds_one_pane_per_sub_entity(readable, invoke) -> None:
 async def test_json_prints_the_item_as_one_object(readable, invoke) -> None:
     result = await invoke(["show", "5", "--json"])
     assert result.exit_code == 0, result.output
-    assert json.loads(result.output) == {
+    body = (
+        "## Context\n\n_TODO: what is the issue and the forces at play?_\n\n"
+        "## Decision\n\n## Consequences"
+    )
+    # Compared as text, so the key order is held as well as the content.
+    expected = {
         "sequence_id": 5,
         "type": "decision",
         "title": "Pick an index",
@@ -154,9 +159,18 @@ async def test_json_prints_the_item_as_one_object(readable, invoke) -> None:
         "created_session": None,
         "modified_session": None,
         "id": "ADR-5",
-        "body": "## Context\n\n_TODO: what is the issue and the forces at play?_\n\n"
-        "## Decision\n\n## Consequences",
+        "body": body,
         "views": {},
         "discussion": [],
         "badges": {},
+        "display": {
+            "type": "Decision",
+            "status": {"badge": "⚪ Proposed", "intent": "neutral"},
+            "badges": {},
+            "assignee": None,
+            "body": body,
+            "summary": None,
+            "attributes": [],
+        },
     }
+    assert result.output == json.dumps(expected, indent=2) + "\n"

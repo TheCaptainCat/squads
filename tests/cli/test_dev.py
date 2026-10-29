@@ -1,5 +1,6 @@
 """`sq dev …`: adding developer roles for a technology and listing the live ones."""
 
+import json
 from typing import Any
 
 import pytest
@@ -127,7 +128,6 @@ async def test_add_as_refuses_a_slug_that_is_not_registered(project, invoke) -> 
 # ------------------------------------------------------------------------------------ list
 
 
-@pytest.mark.covers("dev list")
 async def test_list_says_there_are_no_developers_and_how_to_add_one(project, invoke) -> None:
     result = await invoke(["dev", "list"])
     assert (result.exit_code, result.output) == (
@@ -136,7 +136,6 @@ async def test_list_says_there_are_no_developers_and_how_to_add_one(project, inv
     )
 
 
-@pytest.mark.covers("dev list")
 async def test_list_shows_each_live_developer_and_leaves_other_roles_out(project, invoke) -> None:
     await invoke(["dev", "add", "--tech", "python"])
     await invoke(["dev", "add", "--tech", "go", "--name", "Gus Go", "--pronouns", "he/him"])
@@ -152,7 +151,6 @@ async def test_list_shows_each_live_developer_and_leaves_other_roles_out(project
     )
 
 
-@pytest.mark.covers("dev list")
 async def test_list_leaves_out_a_developer_that_was_archived(project, invoke) -> None:
     await invoke(["dev", "add", "--tech", "python"])
     await invoke(["role", "python-dev", "status", "Archived"])
@@ -161,3 +159,82 @@ async def test_list_leaves_out_a_developer_that_was_archived(project, invoke) ->
         0,
         "no developers (try `sq dev add --tech <t>`)\n",
     )
+
+
+# ------------------------------------------------------------------------------------- JSON
+
+
+async def _printed(invoke, args: list[str]) -> str:
+    """What a command that succeeds prints, compared as text so the key order is held too."""
+    result = await invoke(args)
+    assert result.exit_code == 0, result.output
+    return result.output
+
+
+def _text(document: object) -> str:
+    return json.dumps(document, indent=2) + "\n"
+
+
+def _entry(row: object) -> str:
+    """A write that reports nothing beside its entry: the entry under `entry`."""
+    return _text({"entry": row})
+
+
+@pytest.mark.covers("dev add", "--json")
+async def test_add_json_prints_the_developer_role_it_added(project, invoke) -> None:
+    printed = await _printed(invoke, ["dev", "add", "--tech", "python", "--json"])
+    assert printed == _entry(
+        {
+            "id": "ROLE-2",
+            "slug": "python-dev",
+            "full_name": "Elias Python",
+            "pronouns": None,
+            "title": "Python developer",
+            "description": "Implements Python code following the project's guides and standards.",
+            "is_default": False,
+            "capabilities": ["dev"],
+            "status": "Active",
+            "origin": "system",
+            "display": {"name": "Elias Python", "pronouns": None, "live": True},
+        }
+    )
+
+
+@pytest.mark.covers("dev list", "--json")
+async def test_list_json_prints_the_developers_the_columns_and_the_template(
+    project, invoke
+) -> None:
+    """The name drops the pronouns once `[display] pronouns` is off; the field keeps them."""
+    await invoke(["dev", "add", "--tech", "python", "--pronouns", "he/him"])
+
+    def listing(display: dict[str, Any]) -> str:
+        return _text(
+            {
+                "items": [
+                    {
+                        "id": "ROLE-2",
+                        "slug": "python-dev",
+                        "full_name": "Elias Python",
+                        "pronouns": "he/him",
+                        "tech": "python",
+                        "display": display,
+                    }
+                ],
+                "columns": [
+                    {"key": "id", "header": "ID"},
+                    {"key": "slug", "header": "Slug"},
+                    {"key": "display.name", "header": "Name"},
+                    {"key": "tech", "header": "Tech"},
+                ],
+                "template_available": True,
+            }
+        )
+
+    printed = await _printed(invoke, ["dev", "list", "--json"])
+    assert printed == listing({"name": "Elias Python (he/him)", "pronouns": "he/him"})
+    config = project.root / ".squads.toml"
+    config.write_text(
+        config.read_text(encoding="utf-8") + "\n[display]\npronouns = false\n", encoding="utf-8"
+    )
+    printed = await _printed(invoke, ["dev", "list", "--json"])
+    assert printed == listing({"name": "Elias Python", "pronouns": None})

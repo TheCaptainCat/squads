@@ -12,8 +12,17 @@ from pydantic import BaseModel, JsonValue
 import squads._api._dto as dto_package
 from squads._api._dto._base import DTO
 
-#: The DTOs whose model accepts extra keys: the item row, and the show document built on it.
-EXTRA_ALLOWED = frozenset({"ItemRow", "ItemShow"})
+#: The DTOs whose model accepts extra keys: the item fields, and the rows and show document built
+#: on them.
+EXTRA_ALLOWED = frozenset(
+    {
+        "ItemFields",
+        "ItemRow",
+        "ItemShow",
+        "ItemShowWithSpec",
+        "MineRow",
+    }
+)
 
 _SCALARS = (str, int, float, bool, type(None))
 

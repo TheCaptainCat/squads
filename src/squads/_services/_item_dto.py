@@ -16,17 +16,19 @@ from squads._api._dto._items import (
 )
 from squads._models._index import SquadsDB
 from squads._models._item import Item
+from squads._models._subentity import SubEntity
 from squads._models._vocab import label_for
 from squads._services._results import SubentityDetail
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE
 from squads._workflow._models import WorkflowSpec
 
-#: The columns of the ``list`` table. The priority column is the dedicated ``--priority`` field.
+#: The columns of the ``list`` table, each keyed by the path to the value its cell shows. The
+#: priority column is the dedicated ``--priority`` field's badge.
 LIST_COLUMNS: tuple[Column, ...] = (
     Column(key="id", header="ID"),
     Column(key="type", header="Type"),
     Column(key="status", header="Status"),
-    Column(key="priority", header="Priority"),
+    Column(key="display.badges.priority.badge", header="Priority"),
     Column(key="title", header="Title"),
     Column(key="parent", header="Parent"),
     Column(key="assignee", header="Assignee"),
@@ -89,27 +91,38 @@ def comment_dtos(comments: Sequence[discussion.Comment]) -> list[Comment]:
     return [Comment.model_validate(entry) for entry in discussion.comments_json(comments)]
 
 
+def subentity_display(
+    kind: str,
+    sub: SubEntity,
+    carrier_title: str | None,
+    spec: WorkflowSpec,
+    names: Mapping[str, str],
+) -> SubentityDisplay:
+    """How a sub-entity of *kind* is shown; *carrier_title* is the title of the item that
+    carries its deferred work."""
+    kind_spec = spec.subentity_kinds.get(kind)
+    return SubentityDisplay(
+        type=kind.title(),
+        status=status_display(sub.status, spec),
+        badges=badge_displays(spec, kind, sub.badge_value),
+        assignee=names.get(sub.assignee) if sub.assignee else None,
+        story=sub.story if kind_spec is not None and kind_spec.maps_parent_story else None,
+        carrier_title=carrier_title,
+    )
+
+
 def subentity_dto(
     kind: str, detail: SubentityDetail, spec: WorkflowSpec, names: Mapping[str, str]
 ) -> Subentity:
     """A sub-entity of *kind* in full, from its detail."""
     info = detail.info
-    kind_spec = spec.subentity_kinds.get(kind)
-    display = SubentityDisplay(
-        type=kind.title(),
-        status=status_display(info.status, spec),
-        badges=badge_displays(spec, kind, info.badge_value),
-        assignee=names.get(info.assignee) if info.assignee else None,
-        story=info.story if kind_spec is not None and kind_spec.maps_parent_story else None,
-        carrier_title=detail.carrier_title,
-    )
     return Subentity.model_validate(
         {
             **info.model_dump(mode="json"),
             "body": detail.body,
             "badges": badges.resolve_badges(spec, kind, info.badge_value),
             "discussion": comment_dtos(detail.comments),
-            "display": display,
+            "display": subentity_display(kind, info, detail.carrier_title, spec, names),
         }
     )
 

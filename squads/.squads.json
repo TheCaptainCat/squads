@@ -1,6 +1,6 @@
 {
   "schema_version": "0.17",
-  "counter": 1235,
+  "counter": 1236,
   "padding": 6,
   "items": {
     "12": {
@@ -63420,7 +63420,7 @@
       "subentities": [],
       "path": "adrs/ADR-001224-commands-call-one-service-operation-and-render-its-dto.md",
       "created_at": "2026-10-28T20:58:31Z",
-      "updated_at": "2026-10-28T23:31:55Z",
+      "updated_at": "2026-10-29T01:51:54Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63530,7 +63530,7 @@
       ],
       "path": "features/FEAT-001226-every-command-answers-in-json-one-shape-for-cli-and-api.md",
       "created_at": "2026-10-28T22:00:08Z",
-      "updated_at": "2026-10-28T23:59:08Z",
+      "updated_at": "2026-10-29T01:04:41Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63645,8 +63645,8 @@
         {
           "local_id": "ST1",
           "title": "show, tree, graph and search",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US1",
           "deferred_to": null,
@@ -63655,8 +63655,8 @@
         {
           "local_id": "ST2",
           "title": "inbox, mine, blocked and workload",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US1",
           "deferred_to": null,
@@ -63665,8 +63665,8 @@
         {
           "local_id": "ST3",
           "title": "refs, comments and sub-entity reads",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US1",
           "deferred_to": null,
@@ -63675,8 +63675,8 @@
         {
           "local_id": "ST4",
           "title": "Display content for item reads",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US4",
           "deferred_to": null,
@@ -63685,7 +63685,7 @@
       ],
       "path": "tasks/TASK-001228-item-reads-on-operations.md",
       "created_at": "2026-10-28T22:12:37Z",
-      "updated_at": "2026-10-28T23:59:02Z",
+      "updated_at": "2026-10-29T01:14:04Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63697,11 +63697,11 @@
       "type": "task",
       "title": "Item writes on operations",
       "slug": "item-writes-on-operations",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "create, update, body, retype, remove, refs, views, comment and sub-entity verbs on one operation each, with --json",
       "parent": "FEAT-1226",
       "author": "tech-lead",
-      "assignee": null,
+      "assignee": "python-dev",
       "priority": "high",
       "severity": null,
       "labels": [],
@@ -63714,7 +63714,7 @@
         {
           "local_id": "ST1",
           "title": "create",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -63724,7 +63724,7 @@
         {
           "local_id": "ST2",
           "title": "update, body, retype, remove, refs and views",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -63734,7 +63734,7 @@
         {
           "local_id": "ST3",
           "title": "Comment verbs on every host, confirmed remove",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -63744,7 +63744,7 @@
         {
           "local_id": "ST4",
           "title": "Sub-entity verbs",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -63754,7 +63754,7 @@
         {
           "local_id": "ST5",
           "title": "JSON output on the 10 item writes",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -63764,7 +63764,7 @@
       ],
       "path": "tasks/TASK-001229-item-writes-on-operations.md",
       "created_at": "2026-10-28T22:12:38Z",
-      "updated_at": "2026-10-28T23:32:33Z",
+      "updated_at": "2026-10-29T04:15:23Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63792,8 +63792,8 @@
         {
           "local_id": "ST1",
           "title": "role verbs and the shared roster registrars",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US1",
           "deferred_to": null,
@@ -63802,8 +63802,8 @@
         {
           "local_id": "ST2",
           "title": "skill verbs",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US1",
           "deferred_to": null,
@@ -63812,8 +63812,8 @@
         {
           "local_id": "ST3",
           "title": "operator and dev verbs",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US1",
           "deferred_to": null,
@@ -63822,8 +63822,8 @@
         {
           "local_id": "ST4",
           "title": "Roster display names and columns",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US4",
           "deferred_to": null,
@@ -63832,8 +63832,8 @@
         {
           "local_id": "ST5",
           "title": "JSON output on the 24 roster keys",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US2",
           "deferred_to": null,
@@ -63842,7 +63842,7 @@
       ],
       "path": "tasks/TASK-001230-roster-commands-on-operations.md",
       "created_at": "2026-10-28T22:12:39Z",
-      "updated_at": "2026-10-28T23:59:04Z",
+      "updated_at": "2026-10-29T00:35:45Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63870,7 +63870,7 @@
         {
           "local_id": "ST1",
           "title": "board and memory",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -63880,7 +63880,7 @@
         {
           "local_id": "ST2",
           "title": "workflow catalogs and views",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -63890,7 +63890,7 @@
         {
           "local_id": "ST3",
           "title": "override, reflog, check and sync",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -63900,7 +63900,7 @@
         {
           "local_id": "ST4",
           "title": "Views and catalogs rendered by the operation",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -63910,7 +63910,7 @@
         {
           "local_id": "ST5",
           "title": "JSON output on the 12 remaining keys",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -63920,7 +63920,7 @@
       ],
       "path": "tasks/TASK-001231-board-memory-workflow-and-maintenance-reads-on-operations.md",
       "created_at": "2026-10-28T22:12:40Z",
-      "updated_at": "2026-10-28T23:59:06Z",
+      "updated_at": "2026-10-29T00:41:05Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -64001,7 +64001,7 @@
       ],
       "path": "tasks/TASK-001232-corpus-wide-commands-and-squad-creation-on-operations.md",
       "created_at": "2026-10-28T22:12:41Z",
-      "updated_at": "2026-10-28T23:32:38Z",
+      "updated_at": "2026-10-29T01:34:31Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -64126,11 +64126,21 @@
           "story": "US4",
           "deferred_to": null,
           "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Behaviour notes from the command moves",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
         }
       ],
       "path": "tasks/TASK-001234-stability-guide-and-changelog-for-result-shapes.md",
       "created_at": "2026-10-28T22:12:43Z",
-      "updated_at": "2026-10-28T23:33:10Z",
+      "updated_at": "2026-10-29T01:34:37Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -64152,7 +64162,8 @@
       "labels": [],
       "refs": [
         "FEAT-1226",
-        "TASK-1227"
+        "TASK-1227",
+        "TASK-1228"
       ],
       "subentities": [
         {
@@ -64274,16 +64285,243 @@
           "story": null,
           "deferred_to": null,
           "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "Stale sub-entity read verbs under a renamed kind crash with KeyError instead of refusing",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "display.priority names one field and keeps a fallback list and mine dropped",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "display.pronouns on tree nodes is asserted by no case",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F16",
+          "title": "CHECK and VOCABULARY modes put fallback policy and a squadless build outside the composition root",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F17",
+          "title": "Key order of 14 moved --json row shapes is asserted by no case",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F18",
+          "title": "workflow view --json fails on a broken view template though it prints only the source",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F19",
+          "title": "workflow view --json sources are private serializer copies that no longer match their commands",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F20",
+          "title": "workflow lint --json prints its refusal on stdout",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F21",
+          "title": "memory forget --json returns only the slug while board clear returns the notice",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F22",
+          "title": "Roster rows never see [display] pronouns = false: ignoring the switch passes the suite",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F23",
+          "title": "The role view disable --json case writes a workflow override, against ADR-1172 scope and the F12 ruling",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F24",
+          "title": "Write responses wrap {entry, ...} where item status prints the row; column keys mix row keys and dotted paths",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F25",
+          "title": "Catalog on a malformed .squads.toml and role show --json on a missing file now exit 1: changelog lines",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F26",
+          "title": "Roster comment bridge, a stale registrar comment and two duplicates are on no deletion list",
+          "status": "Deferred",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "deferred_to": "TASK-1232",
+          "extra": {}
+        },
+        {
+          "local_id": "F27",
+          "title": "TASK-1227 tests: an unmarked milestone case asserting three forms, and an extended types case",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F28",
+          "title": "TASK-1228 tests: pronouns and lead-badge checks appended to tree cases; mine --json asserts one row",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F29",
+          "title": "TASK-1230 tests: pronouns switch appended to dev list --json, ANY in role add, seven tests left unmarked",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F30",
+          "title": "TASK-1231 tests: an override-backed view case against F12/F23, and shape or prefix asserts instead of whole output",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F31",
+          "title": "TASK-1229 tests: an unmarked comment refusal, and create and edit --json checked against the CLI's own output",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
         }
       ],
       "path": "reviews/REV-001235-review-of-the-dto-refactor-s-delivered-tasks.md",
       "created_at": "2026-10-28T23:26:20Z",
-      "updated_at": "2026-10-29T00:06:58Z",
+      "updated_at": "2026-10-29T04:27:33Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
       "slug_in_file": false,
       "id": "REV-1235"
+    },
+    "1236": {
+      "sequence_id": 1236,
+      "type": "task",
+      "title": "Point the VS Code graph comments at _cli/_render/_graph.py",
+      "slug": "point-the-vs-code-graph-comments-at-cli-render-graph-py",
+      "status": "Done",
+      "description": "Comment-only fix of two stale _services/_refs.py pointers in graphDiagrams.ts",
+      "parent": "FEAT-1226",
+      "author": "tech-lead",
+      "assignee": "typescript-dev",
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1228:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Update the two helper pointers",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001236-point-the-vs-code-graph-comments-at-cli-render-graph-py.md",
+      "created_at": "2026-10-29T01:30:24Z",
+      "updated_at": "2026-10-29T01:31:32Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1236"
     }
   }
 }

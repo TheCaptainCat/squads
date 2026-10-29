@@ -1,5 +1,7 @@
 """`sq memory <role> …`: a role's notebook of small facts, from adding one to forgetting it."""
 
+import json
+
 import pytest
 
 from tests.cli._roster import read_json, usage_error
@@ -150,14 +152,18 @@ async def test_list_json_lists_the_notebook_and_is_empty_before_the_first_fact(
 ) -> None:
     assert await read_json(invoke, ["memory", "manager", "list", "--json"]) == []
     await _remember(invoke, "Terse replies", "--slug", "terse")
-    assert await read_json(invoke, ["memory", "manager", "list", "--json"]) == [
-        {
-            "slug": "terse",
-            "filename": "terse.md",
-            "description": "Terse replies",
-            "created_at": STAMP,
-        }
-    ]
+    assert json.dumps(
+        await read_json(invoke, ["memory", "manager", "list", "--json"])
+    ) == json.dumps(
+        [
+            {
+                "slug": "terse",
+                "filename": "terse.md",
+                "description": "Terse replies",
+                "created_at": STAMP,
+            }
+        ]
+    )
 
 
 # ------------------------------------------------------------------------------------ show
@@ -251,9 +257,10 @@ async def test_search_json_lists_the_matching_memories_with_their_hits(
     source.write_text("First paragraph.\n\nThe release is on Friday.\n", encoding="utf-8")
     await _remember(invoke, "Terse replies", "--slug", "terse", "--file", str(source))
     await _remember(invoke, "Prefer uv over pip", "--slug", "tooling")
-    assert await read_json(invoke, ["memory", "manager", "search", "friday", "--json"]) == [
-        {"slug": "terse", "description": "Terse replies", "hits": ["The release is on Friday."]}
-    ]
+    found = await read_json(invoke, ["memory", "manager", "search", "friday", "--json"])
+    assert json.dumps(found) == json.dumps(
+        [{"slug": "terse", "description": "Terse replies", "hits": ["The release is on Friday."]}]
+    )
     assert await read_json(invoke, ["memory", "manager", "search", "absent", "--json"]) == []
 
 
@@ -272,3 +279,48 @@ async def test_forget_deletes_the_memory(project, invoke) -> None:
 async def test_forget_refuses_a_slug_the_notebook_does_not_hold(project, invoke) -> None:
     result = await invoke(["memory", "manager", "forget", "terse"])
     assert (result.exit_code, result.output) == (1, NO_TERSE)
+
+
+# ------------------------------------------------------------------------------------ json
+
+
+@pytest.mark.covers("memory add", "--json")
+async def test_add_json_prints_the_memory_written_and_its_role(project, invoke, tmp_path) -> None:
+    body = tmp_path / "body.md"
+    body.write_text("Answer in one line.\n", encoding="utf-8")
+    add = ["memory", "@Manager", "add", "Terse replies", "--file", str(body)]
+    result = await invoke(["--at", STAMP, *add, "--json"])
+    assert result.exit_code == 0, result.output
+    assert (
+        result.output
+        == json.dumps(
+            {
+                "entry": {
+                    "slug": "terse-replies",
+                    "summary": "Terse replies",
+                    "created_at": STAMP,
+                    "tags": [],
+                    "body": "Answer in one line.",
+                },
+                "role": "manager",
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+
+
+@pytest.mark.covers("memory forget", "--json")
+async def test_forget_json_prints_the_memory_as_it_was_and_its_role(project, invoke) -> None:
+    await _remember(invoke, "Terse replies", "--slug", "terse")
+    result = await invoke(["memory", "@Manager", "forget", "terse", "--json"])
+    assert result.exit_code == 0, result.output
+    entry = {
+        "slug": "terse",
+        "summary": "Terse replies",
+        "created_at": STAMP,
+        "tags": [],
+        "body": "Terse replies",
+    }
+    assert result.output == json.dumps({"entry": entry, "role": "manager"}, indent=2) + "\n"
+    assert await read_json(invoke, ["memory", "manager", "list", "--json"]) == []

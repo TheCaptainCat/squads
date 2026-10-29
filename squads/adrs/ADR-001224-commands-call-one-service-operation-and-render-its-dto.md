@@ -14,7 +14,7 @@ description: Each command validates, calls one operation through an Api (local o
   HTTP) and renders the DTO it returns; --json prints the DTO; the CLI never imports
   the service
 created_at: '2026-10-28T20:58:31Z'
-updated_at: '2026-10-28T23:31:55Z'
+updated_at: '2026-10-29T01:51:54Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -112,8 +112,9 @@ The operator ruled on 2026-10-28 that the commands without `--json` get it in 0.
 | 5, corpus-wide and creation | `repair`, `renumber`, `migrate up`, `migrate repad`, `migrate rename-type`, `migrate rename-status`, `init`, `adopt` | 8 |
 
 - A command gets its flag in the increment that moves it onto its operation, because the flag only prints the DTO that move creates. No increment adds a flag to a command still on the old path.
-- **Coverage (ADR-1172).** Each flag is one new (command, `--json`) pair, so 55 pairs, each declared by one surface case that asserts the whole document (rule 5). The coverage guard fails on an increment that adds a flag without its case.
-- **The payloads** are the DTOs, so a write prints the resource it wrote (an item row, a sub-entity object, a roster row), a corpus-wide operation prints its report, and the package-data commands print their text or index as data. None is built in the CLI.
+- **Coverage (ADR-1172).** Each flag is one new (command, `--json`) pair, so 55 pairs, each declared by one surface case that asserts the whole document (rule 5). The coverage guard fails on an increment that adds a flag without its case. Where the bundled spec refuses every call of a command, so that no success document can be reached without an override, its case asserts the refusal under `--json` (exit code and error line), and the success document waits for the override-backed run ADR-1172 names.
+- **The payloads** are the DTOs, so a write prints the resource it wrote, a corpus-wide operation prints its report, and the package-data commands print their text or index as data. None is built in the CLI.
+- **What a write answers.** Every write of one resource whose `--json` is new in 0.18 answers `{entry, …}`: `entry` is the resource it wrote (an item row, a sub-entity object, a roster row, a notice, a memory), or, for a delete, the resource as it was before it went; any outcome the command reports (`severed`, `changed`, `cleared`, `was_present`, a ref's `target` and `kind`) is a field beside it. Outcome fields are then added without changing the shape, and one verb answers one shape on every host, item `status` included. A write whose `--json` predates 0.18 (`create`, `add-<kind>`, the item and sub-entity `remove`, the comment verbs that had it) keeps its document as `data`. A write that acts over many resources rather than one (`sync`, `override update`, and the corpus-wide operations of increment 5) answers its report, with no `entry`.
 - **The package-data DTOs.** `docs`, `migrate help` and `migrate chlog` make no call (point 1), so their DTOs are not operation responses. They live in `_api/_dto/_package.py` and are built by a function beside the data they read: `_docfiles` for `docs`, the migration registry for `migrate help` and `migrate chlog`. The command calls that function directly and renders, or prints with `--json`, what it returns. They are not operations and have no route: an operation composes a service on a squad, these commands run outside one, and a call would bring the daemon into commands that ADR-1225, section 5, keeps away from it. A client that wants this data over HTTP later gets an operation that calls the same function, which is an additive change. The edges `_docfiles -> _api` and `_migrations -> _api` are rows in the import-edge table.
 - **Prompts.** `--json` never puts a prompt on stdout. `init --json` asks for no role names and keeps the defaults, as `--default-names` does. The `<host> comment` callback's flag applies when it adds a comment; given with a verb (`edit`, `remove`, `show`), which carry their own flag, it is a usage error.
 - Commands added in 0.18 (the `daemon` group of ADR-1052) carry `--json` from the start wherever they print a result.
@@ -121,7 +122,9 @@ The operator ruled on 2026-10-28 that the commands without `--json` get it in 0.
 ### 4. Operations and the API layer
 
 - **The operation table.** `squads/_api/_ops.py` is one literal table with one entry per operation: `Operation[Req, Res]` holding a `name`, the HTTP `method` and `path` (decided in ADR-1225), the `request` and `response` types, and five more fields:
-  - `mode`: the composition mode of ADR-1128 (normal, index check skipped, migrate, bundled fallback). This moves the choice between `get_service` and `get_service_bypassing_index_cross_check` out of the CLI.
+  - `mode`: the composition mode of ADR-1128 that the operation needs: normal, index check skipped, migrate, bundled fallback, `check` (the report that must run on a broken squad) or `vocabulary` (the catalogs and the cheatsheet, which also run outside a squad). This moves the choice between `get_service` and `get_service_bypassing_index_cross_check` out of the CLI. `_api.Mode` is the only mode enum outside the composition root. What each mode falls back to, and in what order, is a table in `_services/_service.py` beside `CHECK_FALLBACKS` (`VOCABULARY_FALLBACKS` among them), reached only through `compose_service`; the document choices those tables step through (a playbook left unavailable, the bundled spec) are private to that module. `LocalApi` maps `op.mode` to `compose_service` and decides no fallback itself.
+  - **Outside a squad.** The last step of `VOCABULARY_FALLBACKS` is a squadless composition over the bundled documents, built inside `compose_service` like any other, not by a second construction path. Only a read may run there: a `tests/meta` guard holds every operation whose mode can compose squadless (`vocabulary` today) to a `GET` route.
+  - **The refusal is part of the composition.** `compose_service` returns the service with the reason it fell back (the error that made it leave normal composition), fixed at construction and never set afterwards; the handler reads it to report why (`check`, the cheatsheet). A composition that fell back is not kept for the next call by `LocalApi` (below), so a squad repaired during a session composes normally again.
   - `grant`: what the operation may do while the squad's schema is behind the package (ADR-955), which moves today's `Ground` gate declarations out of the CLI.
   - `local_only`: true for `init` and `adopt`.
   - `timeout`: `standard` or `long`, the class `HttpApi` applies (ADR-1225, section 3).
@@ -135,7 +138,7 @@ The operator ruled on 2026-10-28 that the commands without `--json` get it in 0.
   ```
 
   It has two implementations:
-  - **`LocalApi`** (in `_services`) composes the service for `op.mode` through `compose_service`, opens the read scope (ADR-753) around the call, awaits the handler and returns its DTO as an object. Nothing is serialised, so local mode does the same work as today, minus the repeated lookups that point 1 folds into the operation. An instance keeps the service it composed for each mode for its own lifetime, which is one call for a command and a session for the TUI in local mode (point 7).
+  - **`LocalApi`** (in `_services`) composes the service for `op.mode` through `compose_service`, opens the read scope (ADR-753) around the call, awaits the handler and returns its DTO as an object. Nothing is serialised, so local mode does the same work as today, minus the repeated lookups that point 1 folds into the operation. An instance keeps the service it composed for each mode for its own lifetime, which is one call for a command and a session for the TUI in local mode (point 7), except a composition that fell back, which it composes again on the next call.
   - **`HttpApi`** (in `_api`, standard library only) puts the request on the wire, parses `Response[Res]` and turns an error answer back into a `SquadsError` carrying the daemon's message.
 
   ADR-1225 gives the wire rules.
@@ -149,8 +152,9 @@ The operator ruled on 2026-10-28 that everything the renderer displays is in the
 What a DTO carries beyond codes, built by the operation from the spec, the configuration and the squad's templates:
 
 - **Per item, tree node, graph node, search hit and sub-entity:** a `display` object holding the type's label, the rendered status badge, each declared badge field as its label and rendered badge, and the assignee's display name. `show`'s existing `badges` key stays as Tier 3 has it. On an item row every display value sits inside `display` (point 2).
+- **Badges, by one rule:** `display.badges` holds the type's declared badge fields only, in declared order, and no display key is named after a field code or a type. A stored code whose field the type no longer declares gets no display entry (the declared-field rule); there is no fallback to a same-named collection. A line that leads with a badge, such as a tree or graph node's, shows the first entry of `display.badges`, and a table column for a field reads that field's entry, its cell empty when there is none; the stored code stays in the row's own key.
 - **Per shown item, its declared attributes:** `display.attributes`, one `{key, label, value}` per attribute the type declares with a `label` and the item stores, in declared order, `value` as display text. An attribute declaration takes an optional `label` (`target_date = { kind = "date", label = "target date" }` in the bundled milestone), an addition to the spec grammar, and `sq workflow types --json` carries it on each attribute, `null` when absent. An attribute without a label is not shown. No display field names an item type: the milestone's target date is one of these rows, not a field of its own.
-- **Per table or listing:** `columns`, the ordered `{key, header}` pairs the human table shows. This covers `list`, the sub-entity summaries, `workload` and the roster lists, whose column sets come from the spec today.
+- **Per table or listing:** `columns`, the ordered `{key, header}` pairs the human table shows. A `key` is the dotted path, from the row, of the exact value its cell shows (`status`, `display.badges.priority.badge`, `display.name`, `id`), so a client fills a table by following each path, with no convention of its own. This covers `list`, the sub-entity summaries, `workload` and the roster lists, whose column sets come from the spec today.
 - **Headings and labels:** a sub-entity kind's plural and container heading, a ref kind's label on `refs` rows and graph edges.
 - **Text the squad's templates produce:** the body with its view tags expanded (`display.body` on `show`, beside the stored `body`), and a view's output rendered through `.overrides/templates/`. Template overrides belong to the squad, so a client never renders them.
 - **Names:** role and operator names with pronouns already applied or left out according to `[display] pronouns`.
@@ -278,4 +282,22 @@ Increment 0 (for `status`) and increments 2 to 5 each add the `--json` flags of 
   - Amended in place 2026-10-29 for REV-1235 F8 and F1 (board rule 6). Status unchanged.
   - Point 5: new bullet `display.attributes` on `show`, one `{key, label, value}` per declared attribute that has a `label` and a stored value, in declared order. Attribute declarations take an optional `label` (spec grammar addition; the bundled milestone's `target_date` gets `label = "target date"`), and `sq workflow types --json` carries it, `null` when absent. No display field names a type; `display.target_date` goes.
   - Point 2: the 0.18 migration's manual step (`sq migrate chlog`) names the `display` rename for an adopter who declares it.
+- [2026-10-29T01:06:01Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 for REV-1235 F14 (board rule 6). Status unchanged.
+  - Point 5: new bullet "Badges, by one rule". `display.badges` holds the declared fields only, in declared order, and no display key is named after a field code or a type. An undeclared stored code gets no display entry, with no same-named-collection fallback. A badge-led line (tree, graph) shows the first entry of `display.badges`. A field's table column reads that field's entry and shows the raw code when there is none.
+- [2026-10-29T01:28:58Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 for REV-1235 F16 (board rule 6). Status unchanged.
+  - Point 4, `mode`: the list adds `check` and `vocabulary`. `_api.Mode` is the only mode enum outside the composition root. Fallback order lives in tables in `_service.py` (`VOCABULARY_FALLBACKS` beside `CHECK_FALLBACKS`), reached only through `compose_service`, and `LocalApi` decides no fallback.
+  - Point 4, new bullets. Outside a squad: the squadless composition is the last step of `VOCABULARY_FALLBACKS`, built inside `compose_service`, and a guard holds squadless-capable modes to `GET` routes. The refusal: it is fixed at construction and returned with the service. A composition that fell back is not cached, so a squad repaired mid-session composes normally again.
+- [2026-10-29T01:35:05Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 for REV-1235 F24, F21 and F23 (board rule 6). Status unchanged.
+  - Point 3a, new bullet "What a write answers": every write whose `--json` is new in 0.18 answers `{entry, …outcome}`. `entry` is the resource written, or for a delete the resource as it was. Writes with `--json` before 0.18 keep their documents. Item `status` follows the rule.
+  - Point 3a, coverage: where the bundled spec refuses every call, the case asserts the refusal under `--json`. The success document waits for ADR-1172's override-backed run.
+  - Point 5, columns: a column `key` is the dotted path from the row to the exact value its cell shows.
+- [2026-10-29T01:43:01Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 for the TASK-1228 dev's question on REV-1235 F24 (e10633a), board rule 6. Status unchanged.
+  - Point 5, badges: a field column whose type no longer declares the field shows an empty cell. There is no raw-code fallback, matching tree and graph. The stored code stays in the row's own key.
+  - Point 5, columns: the example path for status is `status`, the raw status the list cell shows, not `display.status.badge`.
+- [2026-10-29T01:51:54Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 for REV-1235 F21 (board rule 6). Status unchanged. Point 3a, "What a write answers": `{entry, …}` applies to a write of one resource. A write over many resources (`sync`, `override update`, the corpus-wide operations) answers its report, with no `entry`.
 <!-- sq:discussion:end -->

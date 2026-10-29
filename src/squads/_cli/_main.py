@@ -7,85 +7,56 @@ The ``workflow`` command group (cheatsheet + lint) lives in ``_workflow_cmd.py``
 registered as a Typer sub-app in ``_cli/__init__.py``.
 """
 
-import json
 import sys
 from collections.abc import Callable
-from typing import Any
 
 import typer
 from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
-from rich.tree import Tree
 
 import squads._cli._common as common
-from squads import _badges as badges
 from squads._api import _ops as ops
-from squads._api._dto._items import ItemListRequest
-from squads._badges import badge_rank
+from squads._api._dto._check import CheckRequest, SyncRequest
+from squads._api._dto._graph import GraphRequest
+from squads._api._dto._items import ItemListRequest, ItemShowRequest
+from squads._api._dto._package import DocIndex
+from squads._api._dto._queues import BlockedRequest, InboxRequest, MineRequest, WorkloadRequest
+from squads._api._dto._reflog import ReflogRequest
+from squads._api._dto._search import SearchRequest
+from squads._api._dto._tree import TreeRequest
 from squads._cli import _calls as calls
 from squads._cli import app
 from squads._cli._common import (
-    ItemRowFields,
-    build_item_json,
-    build_item_row_json,
     console,
     e,
     err_console,
-    get_active_spec,
     get_service,
     handle_errors,
     parse_category,
     parse_filter_badge_code,
     parse_status,
     parse_type,
-    print_item,
     print_json_clean,
-    resolve_item_id_any,
-    resolve_slug_or_raise,
-    status_text,
 )
-from squads._cli._render._items import render_list
+from squads._cli._render._check import render_check, render_sync
+from squads._cli._render._graph import render_graph, render_graph_text
+from squads._cli._render._items import render_list, render_show
+from squads._cli._render._package import render_doc, render_doc_index
+from squads._cli._render._queues import render_blocked, render_inbox, render_mine, render_workload
+from squads._cli._render._reflog import render_reflog, render_reflog_tree
+from squads._cli._render._search import render_search
+from squads._cli._render._tree import render_tree
 from squads._context import get_context
-from squads._errors import PlaybookConfigError, SquadsError
+from squads._errors import SquadsError
 from squads._index._reflog import REFLOG_OPS
 from squads._models._config import CONFIG_FILENAME
-from squads._models._item import Item
-from squads._models._subentity import SubEntity
 from squads._paths import load_config, process_dir
 from squads._roles._catalog import resolve_roles
-from squads._services._base import ItemFilter
-from squads._services._refs import graph_to_dot, graph_to_mermaid
-from squads._services._results import (
-    TREE_ANCHOR_MARKER,
-    GraphNode,
-    MineRow,
-    ReflogEntry,
-    TreeNode,
-    UnreadableItems,
-    check_issue_sort_key,
-)
-from squads._services._service import Service
 from squads._services._service import adopt as svc_adopt
 from squads._services._service import init as svc_init
-from squads._workflow._loader import refusal_cause
-from squads._workflow._models import WorkflowSpec
 
 # ---------------------------------------------------------------------------
 # Generic badge helpers — one path for priority/severity/any project-declared axis.
 # ---------------------------------------------------------------------------
-
-
-def _field_badge(
-    item_type: str, field_code: str, value: str, spec: WorkflowSpec | None = None
-) -> str:
-    """Render *field_code*'s badge *value* for an item/node of *item_type*, resolving the
-    collection from its own declared field (list/tree/graph's "raw code" rendering
-    convention). Takes the bare type string (not an ``Item``) so it also serves
-    ``GraphNode`` — the ref-graph's own lightweight node shape."""
-    active_spec = spec or get_active_spec()
-    coll = badges.resolve_collection(item_type, field_code, active_spec)
-    return badges.badge_render(coll, value, active_spec)
 
 
 def _parse_badge_pairs(pairs: list[str]) -> dict[str, str]:
@@ -97,53 +68,6 @@ def _parse_badge_pairs(pairs: list[str]) -> dict[str, str]:
             raise SquadsError(f"expected CODE=VALUE, got {pair!r}")
         out[code.strip()] = value.strip().lower()
     return out
-
-
-def _print_empty_or_hidden_hint(hidden_count: int) -> None:
-    """Print the closed-count hint when the default filter hid items down to an empty view,
-    else the plain empty-view message — shared by ``list``/``tree`` so an empty board never
-    looks broken without saying why."""
-    if hidden_count:
-        console.print(f"[dim]{hidden_count} closed items hidden — use --all[/dim]")
-    else:
-        console.print("[dim]no items[/dim]")
-
-
-def _tree_label(it: Item, spec: WorkflowSpec, *, path_only: bool, anchor: bool) -> Text:
-    """One line of the human ``sq tree`` rendering.
-
-    The anchor and path-only flags combine (a cycle anchor can also be path-only), so the anchor
-    marker is appended after the path-only dim and stays readable on a dimmed line. Its wording
-    must work for a reader who has never met it: the item is not a root anybody wrote, it was
-    picked to make a parent loop visible.
-    """
-    badge = _field_badge(it.type, "priority", it.priority, spec) if it.priority else ""
-    prio = f"{e(badge)} · " if badge else ""
-    text = Text.from_markup(f"[bold]{it.id}[/bold] {prio}{e(it.title)} ")
-    text.append("(", style="dim")
-    text.append_text(status_text(it.status, spec))
-    text.append(")", style="dim")
-    if path_only:
-        text.stylize("dim")
-    if anchor:
-        text.append(f"  {TREE_ANCHOR_MARKER}", style="yellow")
-    return text
-
-
-async def _tree_hidden_count(svc: Service, item_filter: ItemFilter, spec: WorkflowSpec) -> int:
-    """Count of items dropped purely by the default category-aware visibility gate, scoped
-    to ``item_filter``'s other dimensions (type/status/assignee/category/badges) — the same
-    quantity ``sq list`` reports, computed independently of ``tree_view``'s own candidate
-    filtering so the CLI can report it without changing that method's signature."""
-    pre_visibility = await svc.list_items(
-        item_type=item_filter.item_type,
-        status=item_filter.status,
-        assignee=item_filter.assignee,
-        category=item_filter.category,
-        badges=dict(item_filter.badges) or None,
-        badge_min=dict(item_filter.badge_min) or None,
-    )
-    return sum(1 for i in pre_visibility if spec.hidden_by_default(i.type, i.status))
 
 
 def _build_badge_filters(
@@ -199,41 +123,6 @@ def _parse_name_flags(raw: list[str]) -> dict[str, str]:
             raise SquadsError(f"--name {entry!r}: name (after '=') must not be empty")
         result[slug] = name
     return result
-
-
-def _item_table(
-    items: list[Item],
-    spec: WorkflowSpec,
-    *,
-    matched: dict[str, list[SubEntity]] | None = None,
-) -> Table:
-    """The item table shared by `list`, `search` and `mine`; all dynamic strings are escaped.
-
-    The Status cell is coloured by the status's role intent (``status_text``), never by a
-    status-name check. ``matched`` (item id to matched sub-entities, from `mine`) adds a "Matched"
-    column so a roll-up row is distinguishable from a direct assignment.
-    """
-    table = Table(box=None, pad_edge=False)
-    cols = ("ID", "Type", "Status", "Priority", "Title", "Parent", "Assignee")
-    if matched is not None:
-        cols = (*cols, "Matched")
-    for col in cols:
-        table.add_column(col)
-    for it in items:
-        row = [
-            it.id,
-            it.type,
-            status_text(it.status, spec),
-            e(_field_badge(it.type, "priority", it.priority)) if it.priority else "",
-            e(it.title),
-            it.parent or "",
-            e(it.assignee or ""),
-        ]
-        if matched is not None:
-            subs = matched.get(it.id, [])
-            row.append(e(", ".join(f"{s.local_id} ({s.status})" for s in subs)))
-        table.add_row(*row)
-    return table
 
 
 def _parse_backend_option(raw: list[str]) -> list[str]:
@@ -530,8 +419,8 @@ def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
 
 
 @app.command()
-@common.command
-async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-list
+@handle_errors
+def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-list
     root_id: str | None = typer.Argument(
         None, help="Item ID or number to root the tree at; omit for the whole squad."
     ),
@@ -587,95 +476,26 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     absent from the tree while `sq list` still returned it; the anchor is a tiebreak, since
     every member is an equally good root.
     """
-    svc = get_service()
-    spec = get_active_spec()
-    # Resolve root_id early so bare numbers work and unknown IDs get a clear error.
-    resolved_root: str | None = None
-    if root_id is not None:
-        resolved_root = await resolve_item_id_any(root_id, svc)
-    # --assignee is a filter, not authorship: a retired role's already-assigned items must
-    # stay reachable, so this validates against the full roster, not live-only.
-    validated_assignee = (
-        await resolve_slug_or_raise(assignee, svc, live_only=False) if assignee else None
-    )
-    parsed_category = parse_category(category) if category else None
-
-    # Mirror list's closed-item gate exactly:
-    #   --status filter (or --all) reveals matching closed items;
-    #   --priority / --assignee / --type / --category alone do NOT widen to closed.
-    include_closed = bool(all_ or status)
-
     badges, badge_min = _build_badge_filters(priority, min_priority, badge, min_badge)
-
-    item_filter = ItemFilter(
-        item_type=parse_type(type) if type else None,
+    request = TreeRequest(
+        root=root_id,
+        type=parse_type(type) if type else None,
         status=parse_status(status) if status else None,
-        assignee=validated_assignee,
-        category=parsed_category,
-        badges=tuple(badges.items()),
-        badge_min=tuple(badge_min.items()),
-        spec=spec,
-    )
-
-    hidden_count = 0 if include_closed else await _tree_hidden_count(svc, item_filter, spec)
-
-    nodes = await svc.tree_view(
-        resolved_root,
-        filter=item_filter,
+        assignee=assignee,
+        category=parse_category(category) if category else None,
+        badge=[f"{code}={value}" for code, value in badges.items()],
+        min_badge=[f"{code}={value}" for code, value in badge_min.items()],
+        sort=sort,
         depth=depth,
-        include_closed=include_closed,
+        all=all_,
     )
-
-    def _sort_children(tns: list[TreeNode]) -> list[TreeNode]:
-        if sort is None:
-            return tns
-        sort_code = sort
-        return sorted(
-            tns,
-            key=lambda tn: badge_rank(
-                tn.item.type, sort_code, tn.item.badge_value(sort_code), spec
-            ),
-        )
-
+    response = calls.call(ops.TREE, request)
     if json_out:
-        blocked_ids = {t.id for t, _ in await svc.blocked()}
-
-        def node(tn: TreeNode) -> dict[str, Any]:
-            it = tn.item
-            # `anchor` is additive and not mirrored by `path_only`, which stays off the wire:
-            # without it a JSON consumer cannot tell an invented root from a written one.
-            return build_item_row_json(
-                ItemRowFields(
-                    id=it.id,
-                    type=it.type,
-                    title=it.title,
-                    status=it.status,
-                    priority=it.priority,
-                    assignee=it.assignee,
-                    badge_value=it.badge_value,
-                ),
-                spec=spec,
-                blocked_ids=blocked_ids,
-                anchor=tn.anchor,
-                children=[node(c) for c in _sort_children(tn.children)],
-            )
-
-        print_json_clean(json.dumps([node(n) for n in _sort_children(nodes)]))
-        return
-
-    def _attach(parent: Tree, tn: TreeNode) -> None:
-        branch = parent.add(_tree_label(tn.item, spec, path_only=tn.path_only, anchor=tn.anchor))
-        for child in _sort_children(tn.children):
-            _attach(branch, child)
-
-    if not nodes:
-        _print_empty_or_hidden_hint(hidden_count)
-        return
-
-    rich_tree = Tree("squad")
-    for n in _sort_children(nodes):
-        _attach(rich_tree, n)
-    console.print(rich_tree)
+        calls.print_json(ops.TREE, response)
+    else:
+        calls.print_warnings(response)
+        render_tree(response.data, console)
+    calls.finish(response, json_out=json_out)
 
 
 @app.command()
@@ -765,22 +585,9 @@ async def renumber(
         console.print(f"  {e(old)} -> {e(new)}")
 
 
-def _empty_result_note(empty: str, unreadable: UnreadableItems) -> str:
-    """The human-mode line for an empty result: empty if fully read, explicitly partial if not.
-
-    "no matches" is a claim about the whole corpus, which a degraded read has not seen, and a
-    confident negative is what stops a reader looking further. The named files follow either
-    way.
-    """
-    if not unreadable:
-        return empty
-    files = "item file" if len(unreadable) == 1 else "item files"
-    return f"{empty} in what could be read — {len(unreadable)} {files} skipped, listed below"
-
-
 @app.command()
-@common.command
-async def inbox(
+@handle_errors
+def inbox(
     role: str = typer.Argument(..., help="Role or operator slug, such as `qa`."),
     json_out: bool = typer.Option(False, "--json", help="Print a JSON array, one object per item."),
 ):
@@ -788,42 +595,18 @@ async def inbox(
 
     Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
-    svc = get_service()
-    # A read/filter, not authoring a new participant — a retired role's past @mentions
-    # must stay reachable, so this validates against the full roster, not live-only.
-    slug = await resolve_slug_or_raise(role, svc, live_only=False)
-    hits, unreadable = await svc.inbox(slug)
+    response = calls.call(ops.INBOX, InboxRequest(slug=role))
     if json_out:
-        print_json_clean(
-            json.dumps(
-                [
-                    {
-                        "id": hit.item.id,
-                        "title": hit.item.title,
-                        "lines": [ln.text for ln in hit.lines],
-                        "regions": [ln.region for ln in hit.lines],
-                        "hashes": [ln.hash for ln in hit.lines],
-                    }
-                    for hit in hits
-                ]
-            )
-        )
-        common.report_omissions(unreadable, json_out=True)
-        return
-    if not hits:
-        console.print(f"[dim]{e(_empty_result_note(f'nothing for @{slug}', unreadable))}[/dim]")
-    for hit in hits:
-        it = hit.item
-        console.print(f"[bold]{it.id}[/bold] {e(it.title)} [dim]({it.status})[/dim]")
-        for ln in hit.lines:
-            suffix = f" [dim]({e(ln.region)})[/dim]" if ln.region else ""
-            console.print(f"    {e(ln.text)}{suffix}")
-    common.report_omissions(unreadable, json_out=False)
+        calls.print_json(ops.INBOX, response)
+    else:
+        calls.print_warnings(response)
+        render_inbox(response.data, console, skipped=len(response.omitted))
+    calls.finish(response, json_out=json_out)
 
 
 @app.command()
-@common.command
-async def search(
+@handle_errors
+def search(
     text: str = typer.Argument(..., help="Text to find (case-insensitive)."),
     type: str | None = common.type_filter_option(),
     status: str | None = common.status_filter_option(),
@@ -840,118 +623,40 @@ async def search(
 
     Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
-    svc = get_service()
-    results, unreadable = await svc.search(
-        text,
-        item_type=parse_type(type) if type else None,
+    request = SearchRequest(
+        q=text,
+        type=parse_type(type) if type else None,
         status=parse_status(status) if status else None,
     )
+    response = calls.call(ops.SEARCH, request)
     if json_out:
-        print_json_clean(
-            json.dumps(
-                [
-                    {
-                        "id": r.item.id,
-                        "title": r.item.title,
-                        "type": r.item.type,
-                        "status": r.item.status,
-                        "hits": [
-                            {
-                                "region": h.region,
-                                "location": h.location,
-                                "snippet": h.snippet,
-                                "hash": h.hash,
-                            }
-                            for h in r.hits
-                        ],
-                    }
-                    for r in results
-                ]
-            )
-        )
-        common.report_omissions(unreadable, json_out=True)
-        return
-    if not results:
-        note = _empty_result_note(f"no matches for {text}", unreadable)
-        console.print(f"[dim]{e(note)}[/dim]")
-    for r in results:
-        status_part = f"[dim]({e(r.item.status)})[/dim]"
-        console.print(f"[bold]{e(r.item.id)}[/bold] {e(r.item.title)} {status_part}")
-        for h in r.hits[:3]:
-            console.print(f"    [dim]{e(h.region)}:[/dim] {e(h.snippet)}")
-    common.report_omissions(unreadable, json_out=False)
+        calls.print_json(ops.SEARCH, response)
+    else:
+        calls.print_warnings(response)
+        render_search(response.data, console, text=text, skipped=len(response.omitted))
+    calls.finish(response, json_out=json_out)
 
 
 @app.command()
-@common.command
-async def blocked(
+@handle_errors
+def blocked(
     json_out: bool = typer.Option(
         False, "--json", help="Print a JSON array, one object per blocked item."
     ),
 ):
     """Show open items that wait on another open item."""
-    svc = get_service()
-    rows = await svc.blocked()
+    response = calls.call(ops.BLOCKED, BlockedRequest())
     if json_out:
-        print_json_clean(
-            json.dumps(
-                [
-                    {
-                        "id": t.id,
-                        "title": t.title,
-                        "blockers": [
-                            {"id": b.id, "title": b.title, "status": b.status} for b in bs
-                        ],
-                    }
-                    for t, bs in rows
-                ]
-            )
-        )
-        return
-    if not rows:
-        console.print("[dim]nothing blocked[/dim]")
-        return
-    for target, blockers in rows:
-        console.print(f"[bold]{target.id}[/bold] {e(target.title)} [dim]({target.status})[/dim]")
-        for b in blockers:
-            console.print(f"    [red]blocked by[/red] {b.id} {e(b.title)} [dim]({b.status})[/dim]")
-
-
-def _graph_edge_label(edge_kind: str, edge_semantic: str | None, direction: str) -> str:
-    """The human-readable branch label for a graph edge.
-
-    Branches on ``edge_semantic``, never ``edge_kind``, whose spelling is display-only. A
-    ``"dependency"`` edge reads ``"depends on"`` for ``direction="out"`` and ``"required by"`` for
-    ``direction="in"``; any other kind shows its declared key verbatim (``"related"``,
-    ``"fixes"``).
-    """
-    if edge_semantic == "dependency":
-        return "depends on" if direction == "out" else "required by"
-    return edge_kind
-
-
-def _attach_graph_node(parent_tree: Tree, node: GraphNode) -> None:
-    """Recursively attach a GraphNode's children to a Rich Tree node."""
-    for child in node.children:
-        # Build the branch label
-        if child.edge_kind is not None and child.direction is not None:
-            label_text = _graph_edge_label(child.edge_kind, child.edge_semantic, child.direction)
-            edge_part = f" [dim]({e(label_text)})[/dim]"
-        else:
-            edge_part = ""
-
-        badge = _field_badge(child.type, "priority", child.priority) if child.priority else ""
-        prio = f"{e(badge)} · " if badge else ""
-        seen_mark = " [dim](seen)[/dim]" if child.seen else ""
-        node_label = f"{edge_part} [bold]{child.id}[/bold] {prio}{e(child.status)}{seen_mark}"
-        branch = parent_tree.add(node_label)
-        if not child.seen:
-            _attach_graph_node(branch, child)
+        calls.print_json(ops.BLOCKED, response)
+    else:
+        calls.print_warnings(response)
+        render_blocked(response.data, console)
+    calls.finish(response, json_out=json_out)
 
 
 @app.command()
-@common.command
-async def graph(
+@handle_errors
+def graph(
     root_id: str = typer.Argument(..., metavar="ID", help="Item ID or number to start from."),
     depth: int = common.depth_option(2, "-d"),
     kind: list[str] = typer.Option(
@@ -991,50 +696,22 @@ async def graph(
     if format_ and format_ not in valid_formats:
         raise SquadsError(f"invalid --format {format_!r}; expected one of {valid_formats}")
 
-    svc = get_service()
-    resolved_id = await resolve_item_id_any(root_id, svc)
-    kinds_filter: set[str] | None = set(kind) if kind else None
-
-    root_node = await svc.graph(
-        resolved_id,
-        depth=depth,
-        kinds=kinds_filter,
-        direction=direction,
-        include_closed=all_,
-    )
-
+    request = GraphRequest(root=root_id, depth=depth, kind=kind, direction=direction, all=all_)
+    response = calls.call(ops.GRAPH, request)
     if json_out:
-        print_json_clean(json.dumps(root_node.to_dict()))
-        return
-
-    if format_ == "dot":
-        console.print(graph_to_dot(root_node), markup=False, highlight=False)
-        return
-
-    if format_ == "mermaid":
-        console.print(graph_to_mermaid(root_node), markup=False, highlight=False)
-        return
-
-    if format_ == "mermaid-md":
-        fenced = f"```mermaid\n{graph_to_mermaid(root_node)}\n```"
-        console.print(fenced, markup=False, highlight=False)
-        return
-
-    # Rich tree rendering
-    prio = (
-        f"{e(_field_badge(root_node.type, 'priority', root_node.priority))} · "
-        if root_node.priority
-        else ""
-    )
-    root_label = f"[bold]{root_node.id}[/bold] {prio}{e(root_node.status)}"
-    tree_view = Tree(root_label)
-    _attach_graph_node(tree_view, root_node)
-    console.print(tree_view)
+        calls.print_json(ops.GRAPH, response)
+    else:
+        calls.print_warnings(response)
+        if format_:
+            render_graph_text(response.data, console, fmt=format_)
+        else:
+            render_graph(response.data, console)
+    calls.finish(response, json_out=json_out)
 
 
 @app.command()
-@common.command
-async def workload(
+@handle_errors
+def workload(
     json_out: bool = typer.Option(
         False, "--json", help="Print a JSON array, one object per assignee."
     ),
@@ -1043,90 +720,46 @@ async def workload(
 
     Items and sub-entities are counted separately.
     """
-    svc = get_service()
-    rows = await svc.workload()
+    response = calls.call(ops.WORKLOAD, WorkloadRequest())
     if json_out:
-        print_json_clean(
-            json.dumps(
-                [
-                    {
-                        "assignee": r.assignee,
-                        "open": r.open,
-                        "closed": r.closed,
-                        "total": r.total,
-                        "subentity_open": r.subentity_open,
-                        "subentity_closed": r.subentity_closed,
-                        "subentity_total": r.subentity_total,
-                    }
-                    for r in rows
-                ]
-            )
-        )
-        return
-    if not rows:
-        console.print("[dim]no items[/dim]")
-        return
-    table = Table(box=None, pad_edge=False)
-    for col in ("Assignee", "Open", "Closed", "Total", "Sub Open", "Sub Closed", "Sub Total"):
-        table.add_column(col)
-    for r in rows:
-        table.add_row(
-            e(r.assignee or "(unassigned)"),
-            str(r.open),
-            str(r.closed),
-            str(r.total),
-            str(r.subentity_open),
-            str(r.subentity_closed),
-            str(r.subentity_total),
-        )
-    console.print(table)
+        calls.print_json(ops.WORKLOAD, response)
+    else:
+        calls.print_warnings(response)
+        render_workload(response.data, console)
+    calls.finish(response, json_out=json_out)
 
 
 @app.command()
-@common.command
-async def mine(
+@handle_errors
+def mine(
     role: str = typer.Argument(..., help="Role or operator slug, such as `python-dev`."),
     all_: bool = common.closed_option(),
     json_out: bool = typer.Option(False, "--json", help="Print a JSON array, one object per item."),
 ):
     """List the items assigned to someone, directly or through a sub-entity."""
-    svc = get_service()
-    # A read/filter: a retired role's still-open assigned items must stay reachable for
-    # review, so this validates against the full roster, not live-only.
-    slug = await resolve_slug_or_raise(role, svc, live_only=False)
-    rows = await svc.mine(slug, include_closed=all_)
-    spec = get_active_spec()
+    response = calls.call(ops.MINE, MineRequest(slug=role, all=all_))
     if json_out:
-        print_json_clean(json.dumps([_mine_row_json(r, spec) for r in rows]))
-        return
-    if not rows:
-        console.print(f"[dim]nothing assigned to {e(slug)}[/dim]")
-        return
-    items = [r.item for r in rows]
-    matched = {r.item.id: r.matched_subentities for r in rows}
-    console.print(_item_table(items, spec, matched=matched))
-
-
-def _mine_row_json(row: MineRow, spec: WorkflowSpec) -> dict[str, Any]:
-    """`mine --json`'s per-item payload: the item, plus the additive ``matched_subentities``
-    key naming every sub-entity of it assigned to the queried slug (see :class:`MineRow`)."""
-    data = row.item.to_row()
-    kind = spec.item_subentity_kind(row.item.type)
-    data["matched_subentities"] = [
-        {"local_id": s.local_id, "kind": kind, "title": s.title, "status": s.status}
-        for s in row.matched_subentities
-    ]
-    return data
+        calls.print_json(ops.MINE, response)
+    else:
+        calls.print_warnings(response)
+        render_mine(response.data, console)
+    calls.finish(response, json_out=json_out)
 
 
 @app.command()
-@common.command
-async def sync():
+@handle_errors
+def sync(
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: what the regeneration left alone."
+    ),
+):
     """Regenerate tool-owned managed files to the current squads version."""
-    svc = get_service()
-    skipped = await svc.sync()
-    _print_scaffold_warnings(skipped)
-    console.print("[green]synced[/green] managed files to this squads version")
+    response = calls.call(ops.SYNC, SyncRequest())
+    if json_out:
+        calls.print_json(ops.SYNC, response)
+        return
+    calls.print_warnings(response)
+    render_sync(response.data, console)
 
 
 @app.command()
@@ -1136,31 +769,25 @@ def docs(
         None, help="Doc to print, such as `internals`; omit to list."
     ),
     pretty: bool = typer.Option(False, "--rich", help="Pretty-print instead of raw markdown."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: the doc, or the list of docs."
+    ),
 ):
     """Print the squads documentation in the terminal, offline."""
     from squads import _docfiles
 
-    if name is None:
-        table = Table(title="squads docs — read with `sq docs <name>`")
-        table.add_column("name")
-        table.add_column("title")
-        for stem, title in _docfiles.available():
-            table.add_row(stem, e(title))
-        console.print(table)
-        return
-    content = _docfiles.read(name)
-    if pretty:
-        from rich.markdown import Markdown
-
-        console.print(Markdown(content))
+    found = _docfiles.doc_index() if name is None else _docfiles.doc(name)
+    if json_out:
+        print_json_clean(found.model_dump_json())
+    elif isinstance(found, DocIndex):
+        render_doc_index(found, console)
     else:
-        # raw markdown, verbatim: no Rich markup interpretation, no reflow
-        console.print(content, markup=False, highlight=False, soft_wrap=True)
+        render_doc(found, console, pretty=pretty)
 
 
 @app.command()
-@common.command
-async def reflog(
+@handle_errors
+def reflog(
     item: str | None = typer.Option(
         None,
         "--item",
@@ -1206,15 +833,12 @@ async def reflog(
     Filters combine: `--item TASK-<n> --op status` shows only that item's status
     changes. A squad with no log yet prints nothing rather than an error.
     """
-    from squads._clock import parse_iso
+    from squads import _clock as clock
 
-    svc = get_service()
     since_ts: str | None = None
     if since:
         try:
-            from squads import _clock as clock
-
-            since_ts = clock.iso(parse_iso(since))
+            since_ts = clock.iso(clock.parse_iso(since))
         except ValueError:
             err_console.print(
                 f"[red]error:[/red] invalid --since timestamp {since!r} "
@@ -1222,185 +846,23 @@ async def reflog(
                 soft_wrap=True,
             )
             raise typer.Exit(1) from None
-
-    entries: list[ReflogEntry] = await svc.read_reflog(
-        item=item,
-        actor_filter=actor,
-        op_filter=op,
-        since=since_ts,
-        tail=tail if tail > 0 else None,
+    request = ReflogRequest(
+        item=item, actor=actor, op=op, since=since_ts, tail=tail if tail > 0 else None
     )
-
+    response = calls.call(ops.REFLOG, request)
     if json_out:
-        import dataclasses
-
-        print_json_clean(
-            json.dumps(
-                [dataclasses.asdict(entry) for entry in entries],
-                ensure_ascii=False,
-            )
-        )
+        calls.print_json(ops.REFLOG, response)
         return
-
+    calls.print_warnings(response)
     if tree_view:
-        _render_reflog_tree(entries)
-        return
-
-    if not entries:
-        console.print("[dim]no reflog entries[/dim]")
-        return
-
-    for entry in entries:
-        delta_str = json.dumps(entry.delta, separators=(",", ":"), ensure_ascii=False)
-        console.print(
-            f"[dim]{e(entry.ts)}[/dim]  [bold]{e(entry.op)}[/bold]"
-            f"  [cyan]{e(entry.target)}[/cyan]"
-            f"  [dim]actor={e(entry.actor)}[/dim]  {e(delta_str)}"
-        )
-
-
-def _reflog_entry_line(entry: ReflogEntry) -> str:
-    """Format a single reflog entry as a Rich-markup line for tree display."""
-    delta_str = json.dumps(entry.delta, separators=(",", ":"), ensure_ascii=False)
-    return (
-        f"[dim]{e(entry.ts)}[/dim]  [bold]{e(entry.op)}[/bold]"
-        f"  [cyan]{e(entry.target)}[/cyan]"
-        f"  [dim]actor={e(entry.actor)}[/dim]  {e(delta_str)}"
-    )
-
-
-def _build_session_maps(
-    entries: list[ReflogEntry],
-) -> tuple[
-    dict[str, list[ReflogEntry]],
-    dict[str, str | None],
-    dict[str, list[str]],
-    list[ReflogEntry],
-]:
-    """Partition entries into session buckets and build parent/children maps.
-
-    Returns:
-        session_entries:  session_id → entries in that session
-        session_parents:  session_id → parent_session_id (first-occurrence wins)
-        children_map:     session_id → list of child session_ids
-        no_session:       entries that carry no session_id at all
-    """
-    session_entries: dict[str, list[ReflogEntry]] = {}
-    session_parents: dict[str, str | None] = {}
-    no_session: list[ReflogEntry] = []
-
-    for entry in entries:
-        sid = entry.session_id
-        if sid is None:
-            no_session.append(entry)
-        else:
-            session_entries.setdefault(sid, []).append(entry)
-            if sid not in session_parents:
-                session_parents[sid] = entry.parent_session_id
-
-    known = set(session_entries.keys())
-    children_map: dict[str, list[str]] = {}
-    for sid in session_entries:
-        p = session_parents.get(sid)
-        if p and p in known:
-            children_map.setdefault(p, []).append(sid)
-
-    return session_entries, session_parents, children_map, no_session
-
-
-def _attach_session_node(
-    parent_node: Tree,
-    sid: str,
-    session_entries: dict[str, list[ReflogEntry]],
-    children_map: dict[str, list[str]],
-    visited: set[str],
-) -> None:
-    """Recursively attach child session nodes under *parent_node*.
-
-    *visited* is updated in-place as nodes are attached.  The guard prevents
-    revisiting a node so the recursion cannot loop even on cyclic edge inputs.
-    """
-    for child_sid in sorted(children_map.get(sid, [])):
-        if child_sid in visited:
-            continue
-        visited.add(child_sid)
-        child_node = parent_node.add(f"[dim]session:[/dim] {e(child_sid)}")
-        for child_entry in session_entries.get(child_sid, []):
-            child_node.add(_reflog_entry_line(child_entry))
-        _attach_session_node(child_node, child_sid, session_entries, children_map, visited)
-
-
-def _render_reflog_tree(entries: list[ReflogEntry]) -> None:
-    """Render reflog entries as a spawn-lineage tree grouped by session edges.
-
-    Best-effort, untrusted, observability-only.  Reflects declared lineage only —
-    a copied session id appears as a legitimate edge; a missing intermediate session
-    degrades to a forest (extra roots), never an error.  Entries with no session_id
-    are grouped as slug-only roots.
-    """
-    console.print("[dim]Spawn-lineage tree — BEST-EFFORT / UNTRUSTED / OBSERVABILITY-ONLY[/dim]")
-    console.print(
-        "[dim]Reflects declared lineage; no tamper-evidence or enforcement guarantee.[/dim]"
-    )
-    console.print()
-
-    if not entries:
-        console.print("[dim]no reflog entries[/dim]")
-        return
-
-    session_entries, session_parents, children_map, no_session = _build_session_maps(entries)
-    known_sessions = set(session_entries.keys())
-
-    tree_root = Tree("[dim]reflog[/dim]")
-    visited: set[str] = set()
-
-    # Attach session-based roots (sessions whose parent is absent or outside the view).
-    for sid in sorted(session_entries.keys()):
-        p = session_parents.get(sid)
-        if p is None or p not in known_sessions:
-            if p and p not in known_sessions:
-                root_label = (
-                    f"[dim]session:[/dim] {e(sid)}"
-                    f"  [dim](parent {e(p)} not in view — forest root)[/dim]"
-                )
-            else:
-                root_label = f"[dim]session:[/dim] {e(sid)}"
-            visited.add(sid)
-            root_node = tree_root.add(root_label)
-            for root_entry in session_entries.get(sid, []):
-                root_node.add(_reflog_entry_line(root_entry))
-            _attach_session_node(root_node, sid, session_entries, children_map, visited)
-
-    # Reachability pass — any session not yet visited (e.g. pure cycles in forged/corrupt
-    # declared edges) is surfaced here so no recorded session is silently discarded.
-    for sid in sorted(session_entries.keys()):
-        if sid in visited:
-            continue
-        visited.add(sid)
-        p = session_parents.get(sid)
-        cycle_label = (
-            f"[dim]session:[/dim] {e(sid)}  [dim](parent {e(p)} — cycle/forest root)[/dim]"
-            if p
-            else f"[dim]session:[/dim] {e(sid)}  [dim](cycle/forest root)[/dim]"
-        )
-        cycle_node = tree_root.add(cycle_label)
-        for cycle_entry in session_entries.get(sid, []):
-            cycle_node.add(_reflog_entry_line(cycle_entry))
-        _attach_session_node(cycle_node, sid, session_entries, children_map, visited)
-
-    # Attach no-session entries as individual roots.
-    for entry in no_session:
-        slug_node = tree_root.add(
-            f"[dim]actor=[/dim]{e(entry.actor)}  [dim](no session recorded)[/dim]"
-        )
-        slug_node.add(_reflog_entry_line(entry))
-
-    console.print(tree_root)
+        render_reflog_tree(response.data, console)
+    else:
+        render_reflog(response.data, console)
 
 
 @app.command(name="show")
-@common.command
-async def show_any(
+@handle_errors
+def show_any(
     item_id: str = typer.Argument(
         ..., metavar="ID", help="Item ID, such as `FEAT-<n>`, or its bare number."
     ),
@@ -1412,19 +874,18 @@ async def show_any(
     full: bool = typer.Option(False, "--full", help="Add one pane per sub-entity (body + badges)."),
 ):
     """Show any item by ID or number, whatever its type."""
-    svc = get_service()
-    resolved_id = await resolve_item_id_any(item_id, svc)
-    it = await svc.get(resolved_id)
+    response = calls.call(ops.ITEM_SHOW, ItemShowRequest(id=item_id))
     if json_out:
-        print_json_clean(await build_item_json(svc, it))
-        return
-    await common.warn_duplicate_id(svc, it)
-    await print_item(svc, it, raw=raw, comments=comments, full=full)
+        calls.print_json(ops.ITEM_SHOW, response)
+    else:
+        calls.print_warnings(response)
+        render_show(response.data, console, raw=raw, comments=comments, full=full)
+    calls.finish(response, json_out=json_out)
 
 
 @app.command()
-@common.command
-async def check(
+@handle_errors
+def check(
     json_out: bool = typer.Option(
         False, "--json", help="Print a JSON array, one object per issue."
     ),
@@ -1437,76 +898,11 @@ async def check(
     A broken workflow or playbook override is reported as an issue, and the other
     checks still run.
     """
-    from squads._paths import resolve
-    from squads._services._results import CheckIssue
-    from squads._services._service import check_fallback, compose_service
-
-    ctx = get_context()
-    sp = resolve(client_cwd=ctx.client_cwd)
-    workflow_issues: list[CheckIssue] = []
-
-    # `open_service` is the ground truth for "does the workflow config load": unlike a lint
-    # finding it is not tripped by one reported without blocking load (the stamp obligation,
-    # which reaches the issue list through the override walk). Only a load failure falls back.
-    try:
-        svc = get_service()
-    except SquadsError as exc:
-        if isinstance(exc, PlaybookConfigError):
-            # No command lints the playbook, so name the loader's violation and the file.
-            workflow_issues.append(
-                CheckIssue("error", "playbook", f"playbook config invalid: {exc}", "playbook_loads")
-            )
-        else:
-            workflow_issues.append(
-                CheckIssue(
-                    "error",
-                    "workflow",
-                    f"workflow config invalid: {refusal_cause(str(exc))} — run `sq workflow lint`",
-                    "workflow_loads",
-                )
-            )
-        # `check_fallback`'s table: a broken playbook keeps the merged workflow spec (the
-        # bundled one would make project-declared types look undeclared); else bundled.
-        svc = compose_service(
-            sp,
-            check_fallback(exc),
-            resolved_spec=ctx.active_spec,
-            sources=common.invocation_sources(sp.squad_dir),
-        )
-
-    # The surviving spec may be unable to load the index: a fallback can land on a spec that
-    # does not declare a type the board still carries (both overrides broken, or a workflow
-    # override dropping a type with live items). Propagating that would discard the config
-    # findings collected above, so the scan's own failure becomes a finding and they still print.
-    collected: list[CheckIssue] = list(workflow_issues)
-    try:
-        collected += await svc.check()
-    except SquadsError as exc:
-        collected.append(
-            CheckIssue("error", "corpus", f"could not scan the corpus: {exc}", "corpus_scans")
-        )
-    issues: list[CheckIssue] = sorted(collected, key=check_issue_sort_key)
-
+    response = calls.call(ops.CHECK, CheckRequest())
     if json_out:
-        print_json_clean(
-            json.dumps(
-                [
-                    {"level": i.level, "item": i.item, "message": i.message, "rule": i.rule}
-                    for i in issues
-                ]
-            )
-        )
-        errors = sum(1 for i in issues if i.level == "error")
-        if errors:
-            raise typer.Exit(3)
-        return
-    if not issues:
-        console.print("[green]✓ no issues[/green]")
-        return
-    errors = sum(1 for i in issues if i.level == "error")
-    for i in issues:
-        color = "red" if i.level == "error" else "yellow"
-        loc = f" [dim]{i.item}[/dim]" if i.item else ""
-        console.print(f"[{color}]{i.level}[/{color}]{loc}: {e(i.message)}", soft_wrap=True)
-    if errors:
+        calls.print_json(ops.CHECK, response)
+    else:
+        calls.print_warnings(response)
+        render_check(response.data, console)
+    if response.data.errors:
         raise typer.Exit(3)

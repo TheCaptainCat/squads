@@ -486,6 +486,9 @@ async def test_diff_without_a_name_covers_only_the_drifted_overrides(project, in
     _restamp(_path(project, f"templates/{TASK}"), OLD_TEMPLATE)
     diffed = await _diff(invoke)
     assert [(d["name"], d["base_version"]) for d in diffed] == [(TASK, OLD_TEMPLATE)]
+    assert [list(d) for d in diffed] == [
+        ["name", "kind", "base_version", "base_available", "delta_mine", "delta_upgrade"]
+    ]
 
 
 async def test_diff_without_a_name_says_when_nothing_drifted(project, invoke) -> None:
@@ -745,3 +748,51 @@ async def test_update_refuses_an_override_file_that_is_not_utf8(project, invoke)
     _break_utf8(broken)
     result = await invoke(["override", "update", TASK])
     assert (result.exit_code, result.output) == (1, NOT_UTF8.format(path=broken))
+
+
+# -------------------------------------------------------------------------------------- json
+
+
+@pytest.mark.covers("override scaffold", "--json")
+async def test_scaffold_json_prints_the_override_written(project, invoke) -> None:
+    result = await invoke(["override", "scaffold", "--role", "architect", "--json"])
+    assert result.exit_code == 0, result.output
+    assert (
+        result.output
+        == json.dumps(
+            {
+                "entry": {
+                    "kind": "role",
+                    "name": "architect",
+                    "path": str(_path(project, "roles/architect.toml")),
+                },
+                "prefilled": True,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+
+
+@pytest.mark.covers("override update", "--json")
+async def test_update_json_prints_the_overrides_restamped_and_the_unreadable_ones(
+    project, invoke
+) -> None:
+    await _drift(invoke, project, TASK, path=f"templates/{TASK}", version=OLD_TEMPLATE)
+    broken = _path(project, f"templates/{FEATURE}")
+    _break_utf8(broken)
+    result = await invoke(["override", "update", "--json"])
+    assert result.exit_code == 1
+    assert (
+        result.stdout
+        == json.dumps(
+            {
+                "stamped": [TASK],
+                "version": __version__,
+                "errors": [NOT_UTF8.format(path=broken)[7:-1]],
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    assert result.stderr == NOT_UTF8.format(path=broken)

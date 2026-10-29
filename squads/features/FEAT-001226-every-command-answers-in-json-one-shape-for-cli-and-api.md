@@ -31,7 +31,7 @@ subentities:
   title: The terminal UI reads through the same API
   status: Todo
 created_at: '2026-10-28T22:00:08Z'
-updated_at: '2026-10-28T23:59:08Z'
+updated_at: '2026-10-29T01:04:41Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -206,4 +206,6 @@ Done when:
   - Dispatch 2026-10-28 (overnight drive delegated by op-pierre): TASK-1227 to python-dev; FEAT-1226 and US1-US4 InProgress with it. TASK-1228, 1230, 1232, 1233, 1234 Ready. TASK-1229 and 1231 stay Draft until the architect settles the tech lead's open points 1-3 (roster comment route, package-data DTOs, write ETag header).
 - [2026-10-28T23:59:08Z] `manager` Catherine Manager:
   - Dispatch 2026-10-29: TASK-1228, 1230 and 1231 in parallel to three python-devs, each in its own git worktree, following TASK-1227's collision conventions. The daemon (TASK-1218) waits for the refactor, per op-pierre's order on MILE-1152.
+- [2026-10-29T01:04:41Z] `manager` Catherine Manager:
+  - 2026-10-29: TASK-1228, 1230 and 1231 integrated on release/0.18 (42ac2937, 9733ec0c, 98b14245; full suite 1607 passed). TASK-1229 dispatched (depends on 1228). Reviews of 1230 and 1231 start now; REV-1235 F13/F15 go back to the 1228 dev, F14 to the architect.
 <!-- sq:discussion:end -->

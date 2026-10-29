@@ -1092,14 +1092,14 @@ async def test_refs_all_lists_both_directions(populated_project, invoke) -> None
 async def test_refs_json_prints_an_array_per_direction_shown(populated_project, invoke) -> None:
     await _ok(invoke, ["task", str(TASK), "ref", "add", str(REVIEW), "--kind", "fixes"])
     await _ok(invoke, ["review", str(REVIEW), "ref", "add", str(TASK), "--kind", "addresses"])
-    default = json.loads(await _ok(invoke, ["task", str(TASK), "refs", "--json"]))
-    both = json.loads(await _ok(invoke, ["task", str(TASK), "refs", "--all", "--json"]))
+    default = await _ok(invoke, ["task", str(TASK), "refs", "--json"])
+    both = await _ok(invoke, ["task", str(TASK), "refs", "--all", "--json"])
+    fixes = {"id": f"REV-{REVIEW}", "kind": "fixes", "display": {"kind": "Fixes"}}
+    addresses = {"id": f"REV-{REVIEW}", "kind": "addresses", "display": {"kind": "Addresses"}}
+    # Compared as text, so the key order is held as well as the content.
     assert (default, both) == (
-        {"out": [{"id": f"REV-{REVIEW}", "kind": "fixes"}]},
-        {
-            "out": [{"id": f"REV-{REVIEW}", "kind": "fixes"}],
-            "in": [{"id": f"REV-{REVIEW}", "kind": "addresses"}],
-        },
+        json.dumps({"out": [fixes]}, indent=2) + "\n",
+        json.dumps({"out": [fixes], "in": [addresses]}, indent=2) + "\n",
     )
 
 

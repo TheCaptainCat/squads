@@ -11,45 +11,33 @@ Sub-commands:
 
 ``lint`` runs the checks ``open_service`` runs fail-closed (pure-spec validation plus the
 live-index cross-check) but prints every error and warning with its config key and a fix hint.
-Exit 0 on a clean spec, 1 when any error is present. It calls ``lint_workflow_spec`` directly
-and never goes through ``open_service``: a spec that makes ``open_service`` hard-stop is
-exactly what an author runs it to diagnose.
+Exit 0 on a clean spec, 1 when any error is present. Its operation reads the override file
+itself: a spec that makes ``open_service`` hard-stop is exactly what an author runs it to
+diagnose.
+
+Each command makes one call; the catalogs and the cheatsheet also answer outside a squad, from
+the bundled spec.
 """
 
-import hashlib
-import json
-import math
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from collections.abc import Callable
 
 import typer
-from rich.markdown import Markdown
-from rich.table import Table
+from pydantic import BaseModel
+from rich.console import Console
 
 import squads._cli._common as common
-from squads._cli._common import (
-    ItemRowFields,
-    build_item_row_json,
-    console,
-    e,
-    handle_errors,
-    status_text,
+from squads._api import _ops as ops
+from squads._api._api import Operation
+from squads._api._dto._workflow import (
+    CatalogRequest,
+    CheatsheetRequest,
+    LintRequest,
+    ViewResolveRequest,
 )
+from squads._cli import _calls as calls
+from squads._cli._common import console, e, handle_errors
+from squads._cli._render import _workflow as render
 from squads._errors import SquadsError
-from squads._interactions._playbook import get_playbook_spec
-from squads._models._schema import SCHEMA_VERSION
-from squads._models._vocab import labels_for
-from squads._paths import number_for_id
-from squads._specload import override_present
-from squads._workflow._lifecycle_order import lifecycle_edges_in_order, lifecycle_states_in_order
-from squads._workflow._models import FALLBACK_ROLE_NAME
-
-if TYPE_CHECKING:
-    from squads._models._item import Item
-    from squads._models._subentity import SubEntity
-    from squads._services._service import Service
-    from squads._views import PlaybookSource
-    from squads._workflow._models import WorkflowSpec
 
 workflow_app = typer.Typer(
     no_args_is_help=False,
@@ -61,153 +49,53 @@ workflow_app = typer.Typer(
 # ─── show (default — bare `sq workflow`) ───────────────────────────────────────
 
 
+def _print_cheatsheet(*, raw: bool, json_out: bool = False) -> None:
+    """Render the cheatsheet — Rich markdown by default, its markdown text verbatim with
+    ``--raw`` (no box-drawing or ANSI), as ``sq show --raw`` and ``sq docs`` do."""
+    response = calls.call(ops.WORKFLOW_SHOW, CheatsheetRequest())
+    if json_out:
+        calls.print_json(ops.WORKFLOW_SHOW, response)
+        return
+    calls.print_warnings(response)
+    render.render_cheatsheet(response.data, console, raw=raw)
+
+
 @workflow_app.callback()
-@common.command
-async def workflow_default(
+@handle_errors
+def workflow_default(
     ctx: typer.Context,
     raw: bool = common.raw_option(),
 ) -> None:
     """Print the team workflow cheatsheet when no sub-command is given."""
     if ctx.invoked_subcommand is None:
-        await _print_cheatsheet(raw=raw)
+        _print_cheatsheet(raw=raw)
 
 
 @workflow_app.command("show")
-@common.command
-async def workflow_show(raw: bool = common.raw_option()) -> None:
+@handle_errors
+def workflow_show(
+    raw: bool = common.raw_option(),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: the cheatsheet as markdown."
+    ),
+) -> None:
     """Print the team workflow cheatsheet: who writes what, how items link."""
-    await _print_cheatsheet(raw=raw)
+    _print_cheatsheet(raw=raw, json_out=json_out)
 
 
-async def _print_cheatsheet(*, raw: bool) -> None:
-    """Render the cheatsheet — Rich markdown by default, clean markdown text with ``--raw``.
-
-    ``--raw`` prints the ``workflow.md.j2`` render verbatim (markdown tables, no
-    box-drawing/ANSI), mirroring the ``sq show --raw`` / ``sq docs`` precedent: opt out of
-    ``rich.Markdown`` rendering, print the source text as-is.
-    """
-    from squads._rendering._engine import render
-
-    # The authoring bullets are roster-aware when a live roster exists, so `sq workflow`
-    # matches CLAUDE.md and never names a role this squad lacks. Outside any squad there is
-    # no roster, and the bullets degrade to catalog membership only.
-    roles: list[dict[str, Any]] | None = None
-    playbook = get_playbook_spec()
-    from_squad: Path | None = None
-    try:
-        svc = common.get_service()
-        roster = await svc.roster()
-    except SquadsError:
-        roles = None
-    else:
-        roles = [
-            {
-                "full_name": r.full_name,
-                "title": r.title,
-                "slug": r.slug,
-                "capabilities": list(r.capabilities),
-            }
-            for r in roster
-        ]
-        # Same reason as the roster: resolve the create-lane through the ACTIVE (merged)
-        # playbook so an override-declared authoring role is named here too.
-        playbook = svc.playbook
-        from_squad = svc.paths.squad_dir
-
-    content = render(
-        "workflow.md.j2",
-        from_squad=from_squad,
-        spec=common.get_active_spec(),
-        roles=roles,
-        playbook=playbook,
-    )
-    if raw:
-        console.print(content, markup=False, highlight=False, soft_wrap=True)
-    else:
-        console.print(Markdown(content))
+# ─── catalogs ─────────────────────────────────────────────────────────────────
 
 
-# ─── types ────────────────────────────────────────────────────────────────────
-
-#: Frozen field set for the ``sq workflow types --json`` catalog. Kept as a module-level
-#: tuple so a test can assert the CLI never drifts from the declared contract.
-TYPE_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str, str, str, str] = (
-    "type",
-    "order",
-    "prefix",
-    "reserved",
-    "category",
-    "subentity_kind",
-    "lifecycle",
-    "fields",
-    "attributes",
-    "labels",
-)
-
-#: Frozen field set for each entry of a ``fields`` array, one shape shared by the type and
-#: sub-entity-kind catalogs because the sub-entity field mechanism is the item one.
-FIELD_ENTRY_FIELDS: tuple[str, str, str] = ("code", "label", "collection")
-
-
-def _field_entries(type_or_kind: str, spec: WorkflowSpec) -> list[dict[str, object]]:
-    """The field->collection bindings declared for an item type OR a sub-entity kind — a
-    client resolves field code -> collection code here, then collection code -> vocabulary via
-    ``sq workflow collections --json``. One builder for both catalogs (see
-    :data:`FIELD_ENTRY_FIELDS`)."""
-    return [
-        {"code": f.code, "label": f.label, "collection": f.collection}
-        for f in spec.fields_for(type_or_kind)
-    ]
-
-
-def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
-    """The frozen type-catalog rows, ascending resolved ``order`` (type name breaks ties).
-
-    Every declared type is included, work and reserved. Every key is present on every row.
-
-    - ``order`` is ``None`` when ``ItemSpec.order`` is unset.
-    - ``category`` is the declared ``roster``/``work``/``records`` axis.
-    - ``subentity_kind`` names the kind the type hosts (``null`` if none) and is the join key into
-      ``sq workflow subentity-kinds --json``: a sub-entity in ``show --json`` carries no kind, so
-      type to kind is a client's only link to the kind's field labels.
-    - ``lifecycle`` names the machine the type binds, by name.
-    - ``fields`` is the declared field-to-collection bindings (``[]`` when none).
-    - ``attributes`` is the declared non-badge frontmatter keys, name to ``{kind, required,
-      settable, label}`` (``{}`` when none; ``label`` is ``null`` when undeclared).
-    - ``labels`` is the four resolved display forms (``singular``/``plural``/``singular_lower``/
-      ``plural_lower``) from ``labels_for``, so a client need not title-case the type string.
-    """
-    types = sorted(spec.items, key=lambda t: (spec.items[t].order, t))
-    return [
-        {
-            "type": t,
-            "order": None if math.isinf(spec.items[t].order) else spec.items[t].order,
-            "prefix": spec.items[t].prefix,
-            "reserved": spec.items[t].category == "roster",
-            "category": spec.items[t].category,
-            "subentity_kind": spec.items[t].subentity_kind,
-            "lifecycle": spec.items[t].lifecycle,
-            "fields": _field_entries(t, spec),
-            "attributes": {
-                name: {
-                    "kind": a.kind,
-                    "required": a.required,
-                    "settable": a.settable,
-                    "label": a.label,
-                }
-                for name, a in spec.item_attributes(t).items()
-            },
-            "labels": labels_for(t, spec),
-        }
-        for t in types
-    ]
-
-
-def _order_cell(order: Any) -> str:
-    """A type's order as the table prints it: whole as an integer, fractional as is."""
-    if order is None:
-        return ""
-    return str(int(order)) if float(order).is_integer() else str(order)
+def _catalog[Res: BaseModel](
+    op: Operation[CatalogRequest, Res], json_out: bool, renderer: Callable[[Res, Console], None]
+) -> None:
+    """Print one catalog: its table, or its rows as a JSON array."""
+    response = calls.call(op, CatalogRequest())
+    if json_out:
+        calls.print_json(op, response)
+        return
+    calls.print_warnings(response)
+    renderer(response.data, console)
 
 
 @workflow_app.command("types")
@@ -221,78 +109,7 @@ def workflow_types(
 
     Fields: sq docs stability
     """
-    from squads._cli._common import get_active_spec, print_json_clean
-
-    spec = get_active_spec()
-    rows = _type_catalog(spec)
-
-    if json_out:
-        print_json_clean(json.dumps(rows))
-        return
-
-    table = Table(box=None, pad_edge=False)
-    for col in ("Type", "Order", "Prefix", "Reserved", "Category"):
-        table.add_column(col)
-    for row in rows:
-        table.add_row(
-            e(str(row["type"])),
-            _order_cell(row["order"]),
-            e(str(row["prefix"])),
-            "yes" if row["reserved"] else "",
-            e(str(row["category"])),
-        )
-    console.print(table)
-
-
-# ─── subentity-kinds ────────────────────────────────────────────────────────────
-
-#: Frozen field set for the ``sq workflow subentity-kinds --json`` catalog. ``placeholder`` is
-#: absent: scaffold prose is content the engine writes into a file, not vocabulary.
-SUBENTITY_KIND_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str, str] = (
-    "subentity_kind",
-    "lifecycle",
-    "plural",
-    "local_prefix",
-    "container_heading",
-    "completion",
-    "maps_parent_story",
-    "fields",
-)
-
-
-def _subentity_kind_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
-    """The frozen sub-entity-kind rows, ascending kind name.
-
-    ``subentity_kind`` is the identity key, named as the spec names it so ``type.subentity_kind``
-    joins it; it is not ``kind``, which means ref-kind wherever ``refs`` (``"ID:kind"``) appear.
-    The other keys are declarations a client would otherwise guess:
-
-    - ``lifecycle`` — the machine this kind binds, by name.
-    - ``plural`` — the CLI list verb and the persisted container-marker name.
-    - ``local_prefix`` — the local-id prefix (``US``/``ST``/``F``).
-    - ``container_heading`` — the resolved ``## <heading>`` above the container block. An engine
-      derivation with a special case ("User Stories"), so title-casing ``plural`` disagrees with
-      the markdown sq writes.
-    - ``completion`` — the done-target status in this kind's lifecycle, so a "mark done" action
-      targets a declared status, not a hardcoded ``Done``/``Fixed``.
-    - ``maps_parent_story`` — completes the roll-up column derivation (fixed base, one column per
-      declared field, a story column iff this flag).
-    - ``fields`` — the ``{code, label, collection}`` entry shape the type row carries
-      (:data:`FIELD_ENTRY_FIELDS`).
-    """
-    return [
-        {
-            "subentity_kind": kind,
-            "lifecycle": ks.lifecycle,
-            "plural": ks.plural,
-            "local_prefix": ks.local_prefix,
-            "container_heading": spec.subentity_container_heading(kind),
-            "completion": ks.completion,
-            "maps_parent_story": ks.maps_parent_story,
-            "fields": _field_entries(kind, spec),
-        }
-        for kind, ks in sorted(spec.subentity_kinds.items())
-    ]
+    _catalog(ops.WORKFLOW_TYPES, json_out, render.render_types)
 
 
 @workflow_app.command("subentity-kinds")
@@ -306,75 +123,7 @@ def workflow_subentity_kinds(
 
     Fields: sq docs stability
     """
-    from squads._cli._common import get_active_spec, print_json_clean
-
-    spec = get_active_spec()
-    rows = _subentity_kind_catalog(spec)
-
-    if json_out:
-        print_json_clean(json.dumps(rows))
-        return
-
-    table = Table(box=None, pad_edge=False)
-    for col in ("Kind", "Lifecycle", "Plural", "Prefix", "Heading", "Completion", "Fields"):
-        table.add_column(col)
-    for row in rows:
-        row_fields = cast("list[dict[str, str]]", row["fields"])
-        table.add_row(
-            e(str(row["subentity_kind"])),
-            e(str(row["lifecycle"])),
-            e(str(row["plural"])),
-            e(str(row["local_prefix"])),
-            e(str(row["container_heading"])),
-            e(str(row["completion"])),
-            e(", ".join(f["code"] for f in row_fields)),
-        )
-    console.print(table)
-
-
-# ─── lifecycles ─────────────────────────────────────────────────────────────────
-
-#: Frozen field set for the ``sq workflow lifecycles --json`` catalog.
-LIFECYCLE_CATALOG_FIELDS: tuple[str, str, str, str] = (
-    "lifecycle",
-    "initial",
-    "states",
-    "transitions",
-)
-
-#: Frozen field set for each entry of a lifecycle row's ``transitions`` array.
-TRANSITION_ENTRY_FIELDS: tuple[str, str] = ("from", "to")
-
-
-def _lifecycle_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
-    """The frozen lifecycle-catalog rows, ascending lifecycle name.
-
-    ``lifecycle`` is the identity key, the ``spec.lifecycles`` map key, so the ``lifecycle`` field
-    of the type and sub-entity-kind rows joins on it.
-
-    ``states`` is :func:`lifecycle_states_in_order`: BFS discovery order from ``initial``, then any
-    unreached state sorted. It is not ``linearize_lifecycle``'s ordering, which canonicalizes side
-    states through a table keyed on bundled status names and would freeze a bundled-name-dependent
-    order into the contract. ``transitions`` is one ``{from, to}`` object per edge
-    (:func:`lifecycle_edges_in_order`), sources in ``states`` order and targets in declared order;
-    a positional pair cannot grow a named key and a map keyed on adopter status names has no
-    frozen key set.
-
-    The row omits which types/kinds bind the lifecycle (join the ``lifecycle`` field of ``sq
-    workflow types``/``subentity-kinds --json``) and per-state terminality (``role.settled``, via
-    ``sq workflow statuses --json`` then ``roles --json``).
-    """
-    return [
-        {
-            "lifecycle": name,
-            "initial": machine.initial,
-            "states": lifecycle_states_in_order(machine),
-            "transitions": [
-                {"from": src, "to": dst} for src, dst in lifecycle_edges_in_order(machine)
-            ],
-        }
-        for name, machine in sorted(spec.lifecycles.items())
-    ]
+    _catalog(ops.WORKFLOW_SUBENTITY_KINDS, json_out, render.render_subentity_kinds)
 
 
 @workflow_app.command("lifecycles")
@@ -388,59 +137,7 @@ def workflow_lifecycles(
 
     Fields: sq docs stability
     """
-    from squads._cli._common import get_active_spec, print_json_clean
-
-    spec = get_active_spec()
-    rows = _lifecycle_catalog(spec)
-
-    if json_out:
-        print_json_clean(json.dumps(rows))
-        return
-
-    table = Table(box=None, pad_edge=False)
-    for col in ("Lifecycle", "Initial", "States", "Transitions"):
-        table.add_column(col)
-    for row in rows:
-        row_states = cast("list[str]", row["states"])
-        row_transitions = cast("list[dict[str, str]]", row["transitions"])
-        table.add_row(
-            e(str(row["lifecycle"])),
-            e(str(row["initial"])),
-            e(", ".join(row_states)),
-            e(", ".join(f"{t['from']} → {t['to']}" for t in row_transitions)),
-        )
-    console.print(table)
-
-
-# ─── collections ────────────────────────────────────────────────────────────────
-
-#: Frozen field set for the ``sq workflow collections --json`` catalog.
-COLLECTION_CATALOG_FIELDS: tuple[str, str, str, str, str] = (
-    "collection",
-    "label",
-    "ordered",
-    "default",
-    "badges",
-)
-
-#: Frozen field set for each entry of a collection row's ``badges`` array.
-COLLECTION_BADGE_ENTRY_FIELDS: tuple[str, str, str] = ("code", "label", "emoji")
-
-
-def _collection_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
-    """The frozen collection-vocabulary rows, ascending collection code — every
-    declared collection's badges once, so a client resolves an item's ``badges`` code (e.g.
-    ``"high"``) to its glyph/label here instead of hardcoding the emoji set."""
-    return [
-        {
-            "collection": code,
-            "label": coll.label,
-            "ordered": coll.ordered,
-            "default": coll.default,
-            "badges": [{"code": b.code, "label": b.label, "emoji": b.emoji} for b in coll.badges],
-        }
-        for code, coll in sorted(spec.collections.items())
-    ]
+    _catalog(ops.WORKFLOW_LIFECYCLES, json_out, render.render_lifecycles)
 
 
 @workflow_app.command("collections")
@@ -454,56 +151,7 @@ def workflow_collections(
 
     Fields: sq docs stability
     """
-    from squads._cli._common import get_active_spec, print_json_clean
-
-    spec = get_active_spec()
-    rows = _collection_catalog(spec)
-
-    if json_out:
-        print_json_clean(json.dumps(rows))
-        return
-
-    table = Table(box=None, pad_edge=False)
-    for col in ("Collection", "Label", "Ordered", "Default", "Badges"):
-        table.add_column(col)
-    for row in rows:
-        row_badges = cast("list[dict[str, str | None]]", row["badges"])
-        badge_list = ", ".join(f"{b['emoji'] or ''} {b['code']}".strip() for b in row_badges)
-        table.add_row(
-            e(str(row["collection"])),
-            e(str(row["label"])),
-            "yes" if row["ordered"] else "",
-            e(str(row["default"])) if row["default"] else "",
-            e(badge_list),
-        )
-    console.print(table)
-
-
-# ─── statuses ────────────────────────────────────────────────────────────────────
-
-#: Frozen field set for the ``sq workflow statuses --json`` catalog.
-STATUS_CATALOG_FIELDS: tuple[str, str, str] = ("status", "role", "badge")
-
-
-def _status_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
-    """The frozen status-vocabulary rows, ascending status name.
-
-    A client joins an item's ``status`` string here to read ``role``/``badge`` instead of keying
-    on a literal status name. ``role`` is the sole status axis: join ``sq workflow roles --json``
-    for ``{settled, hidden, color}``; terminality is ``role.settled`` there.
-
-    ``role`` is the resolved name (``StatusSpec.role``, else ``FALLBACK_ROLE_NAME``, as
-    :meth:`WorkflowSpec.role_for` does), never the bare declared field. Every declared status has
-    some resolved role, so ``null`` would be indistinguishable from "catalog not loaded yet".
-    """
-    return [
-        {
-            "status": name,
-            "role": st.role or FALLBACK_ROLE_NAME,
-            "badge": st.badge,
-        }
-        for name, st in sorted(spec.statuses.items())
-    ]
+    _catalog(ops.WORKFLOW_COLLECTIONS, json_out, render.render_collections)
 
 
 @workflow_app.command("statuses")
@@ -517,59 +165,7 @@ def workflow_statuses(
 
     Fields: sq docs stability
     """
-    from squads._cli._common import get_active_spec, print_json_clean
-
-    spec = get_active_spec()
-    rows = _status_catalog(spec)
-
-    if json_out:
-        print_json_clean(json.dumps(rows))
-        return
-
-    table = Table(box=None, pad_edge=False)
-    for col in ("Status", "Role", "Badge"):
-        table.add_column(col)
-    for row in rows:
-        status = str(row["status"])
-        table.add_row(
-            status_text(status, spec),
-            e(str(row["role"])) if row["role"] else "",
-            e(str(row["badge"])) if row["badge"] else "",
-        )
-    console.print(table)
-
-
-# ─── roles ───────────────────────────────────────────────────────────────────────
-
-#: Frozen field set for the ``sq workflow roles --json`` catalog.
-ROLE_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str] = (
-    "role",
-    "settled",
-    "hidden",
-    "color",
-    "live",
-    "blocked",
-    "deferred",
-)
-
-
-def _role_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
-    """The frozen role-catalog rows, ascending role name — a client joins a status's ``role``
-    (from ``sq workflow statuses --json``) to this catalog to resolve ``settled``/``hidden``/
-    ``color``/``live``/``blocked``/``deferred`` instead of hardcoding any role name or deriving it
-    from category."""
-    return [
-        {
-            "role": name,
-            "settled": r.settled,
-            "hidden": r.hidden,
-            "color": r.color,
-            "live": r.live,
-            "blocked": r.blocked,
-            "deferred": r.deferred,
-        }
-        for name, r in sorted(spec.roles.items())
-    ]
+    _catalog(ops.WORKFLOW_STATUSES, json_out, render.render_statuses)
 
 
 @workflow_app.command("roles")
@@ -584,62 +180,7 @@ def workflow_roles(
     A status role says whether its statuses are settled, hidden or live.
     Fields: sq docs stability
     """
-    from squads._cli._common import get_active_spec, print_json_clean
-
-    spec = get_active_spec()
-    rows = _role_catalog(spec)
-
-    if json_out:
-        print_json_clean(json.dumps(rows))
-        return
-
-    table = Table(box=None, pad_edge=False)
-    for col in ("Role", "Settled", "Hidden", "Color", "Live", "Blocked", "Deferred"):
-        table.add_column(col)
-    for row in rows:
-        table.add_row(
-            e(str(row["role"])),
-            "yes" if row["settled"] else "",
-            "yes" if row["hidden"] else "",
-            e(str(row["color"])),
-            "yes" if row["live"] else "",
-            "yes" if row["blocked"] else "",
-            "yes" if row["deferred"] else "",
-        )
-    console.print(table)
-
-
-# ─── ref-kinds ──────────────────────────────────────────────────────────────────
-
-#: Frozen field set for the ``sq workflow ref-kinds --json`` catalog.
-REF_KIND_CATALOG_FIELDS: tuple[str, str, str, str, str] = (
-    "kind",
-    "label",
-    "hint",
-    "role",
-    "direction",
-)
-
-
-def _ref_kind_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
-    """The frozen ref-kind rows, ascending kind name: the set ``ref add --kind`` accepts.
-
-    ``kind`` is the identity key, the string a ``refs`` entry carries after the ``:``
-    (``"ID:kind"``), or that a bare ``"ID"`` decodes to when it names the kind whose ``role`` is
-    ``"default"``. ``role`` binds engine behaviour to a semantic instead of a spelling (``null``
-    for a purely navigational kind); ``direction`` (``"blocker"``/``"dependent"``/``null``)
-    accompanies only ``role = "dependency"``. Every key is present on every row.
-    """
-    return [
-        {
-            "kind": code,
-            "label": rk.label,
-            "hint": rk.hint,
-            "role": rk.role,
-            "direction": rk.direction,
-        }
-        for code, rk in sorted(spec.ref_kinds.items())
-    ]
+    _catalog(ops.WORKFLOW_ROLES, json_out, render.render_roles)
 
 
 @workflow_app.command("ref-kinds")
@@ -653,54 +194,7 @@ def workflow_ref_kinds(
 
     Fields: sq docs stability
     """
-    from squads._cli._common import get_active_spec, print_json_clean
-
-    spec = get_active_spec()
-    rows = _ref_kind_catalog(spec)
-
-    if json_out:
-        print_json_clean(json.dumps(rows))
-        return
-
-    table = Table(box=None, pad_edge=False)
-    for col in ("Kind", "Label", "Hint", "Role", "Direction"):
-        table.add_column(col)
-    for row in rows:
-        table.add_row(
-            e(str(row["kind"])),
-            e(str(row["label"])),
-            e(str(row["hint"])) if row["hint"] else "",
-            e(str(row["role"])) if row["role"] else "",
-            e(str(row["direction"])) if row["direction"] else "",
-        )
-    console.print(table)
-
-
-# ─── views ──────────────────────────────────────────────────────────────────
-
-#: Frozen field set for the ``sq workflow views --json`` catalog.
-VIEW_CATALOG_FIELDS: tuple[str, str, str, str] = ("view", "source_kind", "source_name", "transform")
-
-
-def _view_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
-    """The frozen view-catalog rows, ascending view name.
-
-    ``view`` is the identity key and also the template's identity
-    (``templates/views/<view>.md.j2``). ``source_kind``/``source_name`` name the declared source
-    (``"ref"``/``"subentity"``/``"subtree"``/``"role"``/``"playbook"``/``"self"`` plus the kind or
-    type it names, ``null`` for the three kinds that take none; join ``source_name`` into
-    ``ref-kinds``/``subentity-kinds``/``types`` by ``source_kind``). ``transform`` is the merged
-    declaration (``{module, function}`` or ``{path, function}``) or ``null``.
-    """
-    return [
-        {
-            "view": name,
-            "source_kind": v.source.kind,
-            "source_name": v.source.name,
-            "transform": v.transform.model_dump(exclude_none=True) if v.transform else None,
-        }
-        for name, v in sorted(spec.views.items())
-    ]
+    _catalog(ops.WORKFLOW_REF_KINDS, json_out, render.render_ref_kinds)
 
 
 @workflow_app.command("views")
@@ -713,215 +207,15 @@ def workflow_views(
     Resolve one against an item with `sq workflow view <name> <id>`.
     Fields: sq docs stability
     """
-    from squads._cli._common import get_active_spec, print_json_clean
-
-    spec = get_active_spec()
-    rows = _view_catalog(spec)
-
-    if json_out:
-        print_json_clean(json.dumps(rows))
-        return
-
-    table = Table(box=None, pad_edge=False)
-    for col in ("View", "Source kind", "Source name"):
-        table.add_column(col)
-    for row in rows:
-        table.add_row(
-            e(str(row["view"])),
-            e(str(row["source_kind"])),
-            e(str(row["source_name"])) if row["source_name"] else "",
-        )
-    console.print(table)
+    _catalog(ops.WORKFLOW_VIEWS, json_out, render.render_views)
 
 
-def _playbook_json_payload(source: PlaybookSource) -> dict[str, object]:
-    """A ``playbook`` source's ``--json`` payload.
-
-    It has no pre-existing serializer to match: the resolved type, its playbook lane's declared
-    fields (``overview``/``lifecycle``/``commands``/``roles``) and the live roster, the raw
-    ingredients :class:`~squads._views.PlaybookSource` carries. ``lane`` is ``None`` for a
-    declared type outside every guide's lane domain, which is that source's well-formed empty
-    case. No ``fields``/``group_by``/``groups`` key: a client sees only the declared fields.
-    """
-    lane = source.lane
-    return {
-        "type": source.item_type,
-        "lane": None
-        if lane is None
-        else {
-            "overview": lane.overview,
-            "lifecycle": lane.lifecycle,
-            "commands": list(lane.commands),
-            "roles": [
-                {
-                    "slug": rg.slug,
-                    "enter": list(rg.enter),
-                    "do": list(rg.do),
-                    "handoff": list(rg.handoff),
-                    "watch": list(rg.watch),
-                    "authors": rg.authors,
-                }
-                for rg in lane.roles
-            ],
-        },
-        "roster": [
-            {
-                "slug": rv.slug,
-                "full_name": rv.full_name,
-                "title": rv.title,
-                "is_default": rv.is_default,
-                "mission": rv.mission,
-                "responsibilities": list(rv.responsibilities),
-                "capabilities": list(rv.capabilities),
-            }
-            for rv in source.roster
-        ],
-    }
-
-
-def _spec_identity_json(svc: Service) -> dict[str, object]:
-    """The identity of the workflow spec that resolved a ``self``-view payload.
-
-    ``digest`` is the SHA-256 of the merged spec, opaque and compared for equality only;
-    ``override`` is a display flag saying a project ``.overrides/workflow.toml`` was merged
-    into it, never a change detector."""
-    from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
-
-    override = override_present(svc.paths.squad_dir / WORKFLOW_OVERRIDE_FILENAME)
-    canonical = json.dumps(
-        svc.spec.model_dump(mode="json"), ensure_ascii=False, separators=(",", ":")
-    )
-    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-    return {"schema_version": SCHEMA_VERSION, "override": override, "digest": digest}
-
-
-def _view_json_child_rows(
-    parent_id: str,
-    children_by_parent: dict[str, list[Item]],
-    spec: WorkflowSpec,
-    blocked_ids: set[str],
-    seen: set[str],
-) -> list[dict[str, Any]]:
-    """One matched record's descendant subtree, shaped like ``sq tree --json`` children.
-
-    This is the equivalence the ``ref``/``subtree`` arm of :func:`_view_json_payload` declares. It
-    reuses ``squads._views.children_by_parent`` and includes every descendant, closed ones too,
-    since ``sq workflow view --json`` has no ``--all`` equivalent. *seen* is one call's set,
-    seeded with the matched record's id, the cycle guard ``_resolve_subtree_source`` applies to
-    the same walk, so a parent cycle terminates.
-    """
-    rows: list[dict[str, Any]] = []
-    for child in sorted(children_by_parent.get(parent_id, []), key=lambda i: number_for_id(i.id)):
-        if child.id in seen:
-            continue
-        seen.add(child.id)
-        rows.append(
-            build_item_row_json(
-                ItemRowFields(
-                    id=child.id,
-                    type=child.type,
-                    title=child.title,
-                    status=child.status,
-                    priority=child.badge_value("priority"),
-                    assignee=child.assignee,
-                    badge_value=child.badge_value,
-                ),
-                spec=spec,
-                blocked_ids=blocked_ids,
-                children=_view_json_child_rows(
-                    child.id, children_by_parent, spec, blocked_ids, seen
-                ),
-            )
-        )
-    return rows
-
-
-async def _view_json_payload(
-    svc: Service, spec: WorkflowSpec, view_name: str, item_id: str
-) -> object:
-    """The ``--json`` payload for ``sq workflow view <name> <id> --json``.
-
-    *view_name* is resolved against *item_id* once
-    (:meth:`~squads._services._views.ViewsMixin.resolve_view_source`) and serialized by the
-    builder its source kind already has, with no shared envelope: ``ref``/``subtree`` use
-    :func:`~squads._cli._common.build_item_row_json` (children as in
-    :func:`_view_json_child_rows`), ``subentity`` uses ``build_subentity_row_json``, ``role`` uses
-    ``build_role_json_payload``, ``self`` uses ``build_item_json`` plus
-    :func:`_spec_identity_json`, and ``playbook`` is :func:`_playbook_json_payload`. No shape
-    carries a ``fields``/``group_by``/``groups`` key.
-    """
-    from squads._cli._common import (
-        build_item_json,
-        build_role_json_payload,
-        build_subentity_row_json,
-        role_base_for_show,
-    )
-    from squads._views import PlaybookSource, children_by_parent
-
-    view, item, result = await svc.resolve_view_source(view_name, item_id)
-    kind = view.source.kind
-
-    if kind in ("ref", "subtree"):
-        assert isinstance(result, list)
-        items = cast("list[Item]", result)
-        blocked_ids = {t.id for t, _ in await svc.blocked()}
-        db = await svc.store.load()
-        child_map = children_by_parent(db)
-        return [
-            build_item_row_json(
-                ItemRowFields(
-                    id=r.id,
-                    type=r.type,
-                    title=r.title,
-                    status=r.status,
-                    priority=r.badge_value("priority"),
-                    assignee=r.assignee,
-                    badge_value=r.badge_value,
-                ),
-                spec=spec,
-                blocked_ids=blocked_ids,
-                children=_view_json_child_rows(r.id, child_map, spec, blocked_ids, {r.id}),
-            )
-            for r in items
-        ]
-
-    if kind == "subentity":
-        assert isinstance(result, list)
-        subentities = cast("list[SubEntity]", result)
-        return [
-            build_subentity_row_json(
-                local_id=r.local_id,
-                title=r.title,
-                status=r.status,
-                assignee=r.assignee,
-                severity=r.badge_value("severity"),
-                story=r.story,
-                deferred_to=r.deferred_to,
-            )
-            for r in subentities
-        ]
-
-    if kind == "role":
-        # The role source's own applicability already guarantees `item` IS the role item —
-        # `result` (the already-resolved `RoleDef`) is not reused here because
-        # `build_role_json_payload` resolves its own, the same way `show_role` itself does.
-        slug = item.slug
-        base_role = role_base_for_show(slug, item, svc.catalog)
-        return await build_role_json_payload(svc, slug, item.id, item, base_role, slug)
-
-    if kind == "playbook":
-        assert isinstance(result, PlaybookSource)
-        return _playbook_json_payload(result)
-
-    # "self" — the only remaining kind; resolves to the host item itself.
-    payload: dict[str, object] = json.loads(await build_item_json(svc, item))
-    payload["spec"] = _spec_identity_json(svc)
-    return payload
+# ─── view ─────────────────────────────────────────────────────────────────────
 
 
 @workflow_app.command("view")
-@common.command
-async def workflow_view(
+@handle_errors
+def workflow_view(
     name: str = typer.Argument(..., help="Declared view name (see `sq workflow views`)."),
     item_id: str = typer.Argument(..., metavar="ID", help="Item to resolve the view against."),
     json_out: bool = typer.Option(
@@ -935,14 +229,13 @@ async def workflow_view(
     `sq tree --json` for a ref view.
     Fields: sq docs stability
     """
-    from squads._cli._common import get_active_spec, get_service, print_json_clean
-
-    svc = get_service()
+    request = ViewResolveRequest(name=name, item=item_id, render=not json_out)
+    response = calls.call(ops.WORKFLOW_VIEW, request)
     if json_out:
-        payload = await _view_json_payload(svc, get_active_spec(), name, item_id)
-        print_json_clean(json.dumps(payload))
+        calls.print_json(ops.WORKFLOW_VIEW, response)
         return
-    console.print(await svc.render_view(name, item_id))
+    calls.print_warnings(response)
+    render.render_view(response.data, console)
 
 
 # ─── lint ─────────────────────────────────────────────────────────────────────
@@ -950,7 +243,11 @@ async def workflow_view(
 
 @workflow_app.command("lint")
 @handle_errors
-def workflow_lint() -> None:
+def workflow_lint(
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: the errors and warnings found."
+    ),
+) -> None:
     """Check the workflow override and list every error with a fix hint.
 
     It reads the override file directly, so it still runs when a broken spec stops
@@ -958,81 +255,17 @@ def workflow_lint() -> None:
 
     Exit codes: 1 the spec has at least one error. See sq docs faq.
     """
-    from squads._context import get_context
-    from squads._paths import resolve
-    from squads._transform import check_view_transforms
-    from squads._workflow._loader import (
-        WORKFLOW_OVERRIDE_FILENAME,
-        lint_workflow_spec,
-    )
-
-    ctx = get_context()
     try:
-        sp = resolve(client_cwd=ctx.client_cwd)
+        response = calls.call(ops.WORKFLOW_LINT, LintRequest())
     except SquadsError as exc:
+        if json_out:
+            raise
         console.print(f"[red]error[/red]: {e(common.error_text(exc))}", soft_wrap=True)
         raise typer.Exit(1) from exc
-
-    squad_dir = sp.squad_dir
-    override_path = squad_dir / WORKFLOW_OVERRIDE_FILENAME
-
-    if not override_present(override_path):
-        console.print(
-            "[green]workflow spec OK[/green] — no override file found; using the bundled default."
-        )
-        return
-
-    sources = common.invocation_sources(squad_dir)
-    try:
-        loaded = sources.workflow()
-    except SquadsError:
-        loaded = None
-    findings = lint_workflow_spec(squad_dir, sources.files, loaded)
-    if not any(f[0] == "error" for f in findings):
-        findings.extend(
-            (
-                "error",
-                f"views.{name}.transform",
-                message,
-                "fix or restore the file under .overrides/ (it is imported, not called).",
-            )
-            for name, message in check_view_transforms(sources.workflow(), squad_dir)
-        )
-
-    errors = [f for f in findings if f[0] == "error"]
-    warnings = [f for f in findings if f[0] == "warn"]
-
-    if not findings:
-        console.print("[green]workflow spec OK[/green] — no errors or warnings.")
-        return
-
-    # Print errors.
-    if errors:
-        table = Table(title="workflow spec errors", show_header=True, header_style="red")
-        table.add_column("location", style="dim")
-        table.add_column("error")
-        table.add_column("fix hint", style="dim")
-        for _level, location, message, fix_hint in errors:
-            table.add_row(e(location), e(message), e(fix_hint))
-        console.print(table)
-
-    # Print warnings.
-    if warnings:
-        table = Table(title="workflow spec warnings", show_header=True, header_style="yellow")
-        table.add_column("location", style="dim")
-        table.add_column("warning")
-        table.add_column("fix hint", style="dim")
-        for _level, location, message, fix_hint in warnings:
-            table.add_row(e(location), e(message), e(fix_hint))
-        console.print(table)
-
-    if errors:
-        console.print(
-            f"[red]{len(errors)} error(s)[/red]"
-            + (f", {len(warnings)} warning(s)" if warnings else "")
-            + " — fix the errors above then re-run `sq workflow lint`."
-        )
-        raise typer.Exit(1)
+    if json_out:
+        calls.print_json(ops.WORKFLOW_LINT, response)
     else:
-        # Warnings only — exit 0.
-        console.print(f"[green]workflow spec OK[/green] — {len(warnings)} warning(s); no errors.")
+        calls.print_warnings(response)
+        render.render_lint(response.data, console)
+    if response.data.errors:
+        raise typer.Exit(1)

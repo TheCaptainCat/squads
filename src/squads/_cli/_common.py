@@ -28,7 +28,10 @@ from squads import __version__, _pronouns
 from squads import _actor as actor
 from squads import _badges as badges
 from squads import _discussion as discussion
+from squads._api import _ops as ops
+from squads._api._dto._comments import CommentsRequest
 from squads._cli._markup import escape_markup
+from squads._cli._render import _comments as comment_render
 from squads._cli._render._style import intent_style
 from squads._context import get_context, rebind
 from squads._errors import (
@@ -2414,19 +2417,26 @@ def register_comment_verbs(app: typer.Typer, id_from_ctx: Callable[[typer.Contex
     register_comment_group(app, lambda ctx: (id_from_ctx(ctx), None))
 
     @app.command("comments")
-    @command
-    async def comments(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
+    @handle_errors
+    def comments(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
         ctx: typer.Context,
         json_out: bool = typer.Option(
             False, "--json", help="Print a JSON array, one object per comment."
         ),
     ) -> None:
         """Print the top-level discussion."""
-        cmt_list = await get_service().comments(id_from_ctx(ctx))
+        from squads._cli import _calls as calls  # _calls imports this module
+
+        # A work item's group only parsed its address, which the operation checks; a roster
+        # host's group resolved the id already.
+        typed = {key: ctx.obj[key] for key in ("type", "address") if key in ctx.obj}
+        response = calls.call(ops.ITEM_COMMENTS, CommentsRequest(id=id_from_ctx(ctx), **typed))
         if json_out:
-            print_json_clean(json.dumps(discussion.comments_json(cmt_list)))
-            return
-        print_comments(cmt_list)
+            calls.print_json(ops.ITEM_COMMENTS, response)
+        else:
+            calls.print_warnings(response)
+            comment_render.print_comments(console, response.data.items)
+        calls.finish(response, json_out=json_out)
 
 
 def require_update_fields(**given: object) -> None:

@@ -18,6 +18,13 @@ class Mode(enum.StrEnum):
     INDEX_CHECK_SKIPPED = "index-check-skipped"
     MIGRATE = "migrate"
     BUNDLED_FALLBACK = "bundled-fallback"
+    #: The normal composition, else the one ``sq check`` falls back to for the refusal, which the
+    #: service carries so the operation reports it as a finding.
+    CHECK = "check"
+    #: The workflow spec the invocation resolved, refused when the squad's override does not
+    #: load; the bundled documents outside a squad. The service carries any other refusal, and
+    #: its operations read the squad only when there is none.
+    VOCABULARY = "vocabulary"
 
 
 class Timeout(enum.StrEnum):
