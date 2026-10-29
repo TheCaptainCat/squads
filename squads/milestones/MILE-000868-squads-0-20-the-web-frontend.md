@@ -9,39 +9,26 @@ refs:
 - EPIC-29
 - MILE-1152:depends-on
 created_at: '2026-09-02T08:03:39Z'
-updated_at: '2026-10-28T14:02:07Z'
+updated_at: '2026-10-28T22:07:55Z'
 ---
 <!-- sq:body -->
-A squad readable in a browser: the squad's state stops being visible only to 
-whoever is sitting at the terminal. This milestone holds the work that brings 
-the browser surface to a first usable state. The linked epic carries the outcome
-and the framing. The surface is built on the local API and daemon of the daemon 
-milestone, which it depends on.
+A squad readable in a browser: the squad's state stops being visible only to whoever is sitting at the terminal. This milestone holds the work that brings the browser surface to a first usable state. The linked epic carries the outcome and the framing. The surface is built on the daemon milestone's API, which it depends on.
 
-The daemon API already accepts writes on the browser port (off by default, 
-loopback only, no authentication). This milestone owns the authentication 
-decision for that port.
+The front calls the daemon's resource routes under `/v1`, the same routes the CLI and the terminal UI use, and generates its types from the OpenAPI document they publish. Every result already carries its display labels and badges, so the front holds no copy of the vocabulary. The routes already accept writes on the browser port (off by default, loopback only, no authentication), with item versions that refuse a write on an item changed since it was read; the actor a request names is declared, not verified. This milestone owns the authentication decision for that port.
 
 **Belongs here**
 
-- The browser frontend: pages rendered server-side from Jinja templates, so they
-are indexable and readable without scripting, with Vue 3 adding the 
-interactivity.
+- The browser frontend, calling the `/v1` routes. Its framework, and whether pages are also rendered on the server, are this milestone's own open decision.
 - The browse surface itself: tree, item, refs, discussion.
 - The authentication decision for the browser port.
-- Whatever the frontend needs from the shared addressing layer to present those 
-views.
+- Pagination of list and search results: their results are unpaginated until the web front needs it (op-pierre, 2026-10-28).
+- Freezing the result shapes the front consumes: shapes that had no `--json` before the daemon milestone stay provisional until then.
 
 **Does not belong here**
 
-- The local API, the CLI's remote and local modes, and the daemon logic. They 
-live in the daemon milestone, and this milestone consumes them.
-- Write screens in the browser. Mutation reachable from a shared URL raises 
-actor and concurrency questions this milestone does not answer; they take their
-own decision first, and that decision is not part of the target. (The write 
-endpoint of the daemon already exists and belongs to the daemon milestone.)
-- The other browse clients. The terminal UI and the editor extension have their 
-own homes; only work whose reason for existing is the web surface aims here.
+- The routes, the CLI's remote and local modes, and the daemon logic. They live in the daemon milestone, and this milestone consumes them.
+- Write screens in the browser. Mutation reachable from a shared URL raises actor questions this milestone does not answer; they take their own decision first, and that decision is not part of the target. (The write routes of the daemon already exist and belong to the daemon milestone.)
+- The other browse clients. The terminal UI and the editor extension have their own homes; only work whose reason for existing is the web surface aims here.
 - Engine or vocabulary changes the web view merely consumes.
 
 <!-- sq:view:milestone_rollup -->
@@ -62,4 +49,8 @@ own homes; only work whose reason for existing is the web surface aims here.
   - @manager the body says browser write paths are not part of the target, but ADR-1052 (op-pierre, 2026-10-16) ships a browser port that accepts writes in 0.18, with authentication left to this milestone. Pending the operator, I suggest one line here stating the API already accepts writes and this milestone owns the authentication decision.
 - [2026-10-28T14:02:07Z] `product-owner` Nina Product:
   - Body states the daemon API already accepts writes on the browser port (off by default, loopback only, no authentication) and that this milestone owns the authentication decision, per op-pierre on FEAT-1140 (2026-10-28).
+- [2026-10-28T21:53:27Z] `op-pierre` Pierre Chat:
+  - 2026-10-28: pagination of list and search DTOs is for later, with the web front.
+- [2026-10-28T22:07:55Z] `product-owner` Nina Product:
+  - Body aligned 2026-10-28 per the manager (FEAT-1140, 027ea69) with ADR-1224/ADR-1225: the front calls the /v1 routes and generates types from OpenAPI; its framework (and any server rendering) is this milestone's open decision; writes carry item versions and a declared actor; pagination (op-pierre ce4c83c) and freezing the provisional shapes now belong here.
 <!-- sq:discussion:end -->

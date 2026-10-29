@@ -1,0 +1,130 @@
+---
+id: TASK-1228
+sequence_id: 1228
+type: task
+title: Item reads on operations
+status: Ready
+parent: FEAT-1226
+author: tech-lead
+priority: high
+refs:
+- ADR-1224:implements
+- TASK-1227:depends-on
+description: sq show, tree, graph, search, inbox, mine, blocked, workload, refs, comments
+  and sub-entity reads each call one operation
+subentities:
+- local_id: ST1
+  title: show, tree, graph and search
+  status: Todo
+  story: US1
+- local_id: ST2
+  title: inbox, mine, blocked and workload
+  status: Todo
+  story: US1
+- local_id: ST3
+  title: refs, comments and sub-entity reads
+  status: Todo
+  story: US1
+- local_id: ST4
+  title: Display content for item reads
+  status: Todo
+  story: US4
+created_at: '2026-10-28T22:12:37Z'
+updated_at: '2026-10-28T22:28:26Z'
+---
+<!-- sq:body -->
+## Goal
+
+Move the item read commands onto one operation each (ADR-1224 point 8, increment 1), following the pattern TASK-1227 sets: `sq show <id>`, `tree`, `graph`, `search`, `inbox`, `mine`, `blocked`, `workload`, `<type> <n> refs`, `<type> <n> comments`, and the sub-entity reads (`<type> <n> <kinds>`, `<type> <n> <kind> <k> show`). Every one of them already has `--json`, so no flag is added here. The write task (TASK-1229) reuses the sub-entity and comment rows this task defines.
+
+## What it builds
+
+- One operation per command in the item-reads section of `_api/_ops.py`, bound in `_services/_bindings.py`, all `GET` with flat request DTOs (filters as query fields, repeated list fields such as `badge`), routes per ADR-1225 section 1 (`/v1/tree`, `/v1/graph`, `/v1/search`, `/v1/inbox/{slug}`, `/v1/mine/{slug}`, `/v1/items/{id}/refs`, `/v1/items/{id}/comments`, `/v1/items/{id}/subentities[/{local}]`; `blocked` and `workload` at the paths the table assigns). Timeout class `standard`.
+- What each command calls more than once today folds into its one operation: `tree`'s hidden count and its `--json` blocked flags; `sq show`'s eight reads (it reuses the item show operation of TASK-1227); the roster lookups behind `inbox`/`mine` slugs, which become the operation's not-found error.
+- The `tree` request takes the same filter fields as `sq tree` (filter, `include_closed`), because the terminal UI's browse screen calls it (ADR-1224 point 7).
+- DTOs in new per-resource modules: `_api/_dto/_tree.py`, `_graph.py`, `_search.py`, `_queues.py` (inbox, mine, blocked, workload), `_subentities.py`, `_comments.py`, `_refs.py`. Fields in today's emitted order, which Tier 3 freezes for `search`, `tree` and `graph`; display keys appended.
+- Display content (ADR-1224 point 5): the `display` object on every tree node, graph node, search hit and sub-entity; `columns` on `workload` and the sub-entity summaries; a sub-entity kind's plural and container heading; a ref kind's label on `refs` rows and graph edges. The tree DTO's display names carry pronouns as `[display] pronouns` says, which the terminal UI needs instead of its two roster calls.
+- Renderers in new modules `_cli/_render/_tree.py`, `_graph.py`, `_search.py`, `_queues.py`, `_subentities.py`, `_comments.py`, `_refs.py`.
+- The `_cli` modules this task finishes leave the `_services` import pending list.
+
+## Modules touched
+
+New: the DTO and renderer modules above. Edited: `_cli/_main.py` (`show_any`, `tree`, `graph`, `search`, `inbox`, `mine`, `blocked`, `workload` and their private helpers such as `_tree_hidden_count`, `_mine_row_json`, `_attach_graph_node`), `_cli/_items.py` (refs, the plural listing, sub-entity show, the sub-entity group callback becomes parse-only), `_cli/_common.py` (the `comments` listing registration only), the item-reads section of `_api/_ops.py` and `_services/_bindings.py`, the read-side classes of `_services/_results.py` (`TreeNode`, `SubentityDetail`, `SearchHit`, `WorkloadRow`, `InboxLine`, `MineRow` and the graph results get DTO counterparts or move), `tests/cli/` modules of these groups only. Shared `_common.py` helpers are left in place for TASK-1232 to delete.
+
+## Acceptance
+
+- FEAT-1226 US1 for every command listed: one call, exit-2 refusals unchanged, existence and roster checks in the operation, partial reads still exit 4 after printing, warnings on stderr.
+- FEAT-1226 US3: each `--json` prints the operation's `data`.
+- FEAT-1226 US4: display on tree nodes, graph nodes, search hits and sub-entities; columns; kind plurals and headings; ref-kind labels; renderers pass the `_cli/_render/` guard.
+- ADR-1224 points 1, 3, 5 and 8 (increment 1). Tier 3 order of `search`, `tree` and `graph` unchanged.
+
+## Test approach (ADR-1172)
+
+- The existing surface suite is the proof. Expected edits: only the whole-document `--json` expectations of these commands, by added display keys; review checks every edited expectation only adds keys.
+- New surface cases: 0 (every command here already has `--json` and its cases).
+- Guards: none new; the `_services` pending list shrinks.
+<!-- sq:body:end -->
+
+## Subtasks
+
+_Add with `sq task 1228 add-subtask "<title>"`; track with `sq task 1228 subtask <n> update --status <Status>`._
+
+<!-- sq:subtasks -->
+
+<!-- sq:subtask:ST1 -->
+### ST1 — show, tree, graph and search
+
+<!-- sq:subtask:ST1:body -->
+`sq show <id>`, `tree`, `graph` and `search` on one operation each (`GET /v1/items/{id}` reused from TASK-1227 for `sq show`, `GET /v1/tree`, `GET /v1/graph`, `GET /v1/search`). `tree` folds its hidden count and its `--json` blocked flags into the one operation, and its request takes the same filter fields as `sq tree` (the terminal UI calls it). Fields in today's emitted order, which Tier 3 freezes for these three. DTOs in `_api/_dto/_tree.py`, `_graph.py`, `_search.py`; renderers in the matching `_cli/_render/` modules. Existing cases pass; only display keys are added to their `--json` expectations.
+<!-- sq:subtask:ST1:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST1:discussion -->
+<!-- sq:subtask:ST1:discussion:end -->
+<!-- sq:subtask:ST1:end -->
+
+<!-- sq:subtask:ST2 -->
+### ST2 — inbox, mine, blocked and workload
+
+<!-- sq:subtask:ST2:body -->
+`inbox`, `mine`, `blocked` and `workload` on one operation each (`GET /v1/inbox/{slug}`, `GET /v1/mine/{slug}`, and the paths the table assigns `blocked` and `workload`). The slug's roster check becomes the operation's not-found error with today's message; `_mine_row_json` stops being called. DTOs in `_api/_dto/_queues.py`, renderer in `_cli/_render/_queues.py`. Existing cases pass; only display keys are added.
+<!-- sq:subtask:ST2:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST2:discussion -->
+<!-- sq:subtask:ST2:discussion:end -->
+<!-- sq:subtask:ST2:end -->
+
+<!-- sq:subtask:ST3 -->
+### ST3 — refs, comments and sub-entity reads
+
+<!-- sq:subtask:ST3:body -->
+`<type> <n> refs`, `<type> <n> comments` and the sub-entity reads (`<type> <n> <kinds>`, `<type> <n> <kind> <k> show`) on one operation each, under `/v1/items/{id}/refs`, `…/comments` and `…/subentities[/{local}]`. The sub-entity group callback only parses. The sub-entity object and the comment row defined here are the shapes TASK-1229's writes return. DTOs in `_api/_dto/_refs.py`, `_comments.py`, `_subentities.py`; renderers in the matching modules. Existing cases pass; only display keys are added.
+<!-- sq:subtask:ST3:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST3:discussion -->
+<!-- sq:subtask:ST3:discussion:end -->
+<!-- sq:subtask:ST3:end -->
+
+<!-- sq:subtask:ST4 -->
+### ST4 — Display content for item reads
+
+<!-- sq:subtask:ST4:body -->
+Display content for the item reads (ADR-1224 point 5): the `display` object on every tree node, graph node, search hit and sub-entity; `columns` on `workload` and the sub-entity summaries; a sub-entity kind's plural and container heading; a ref kind's label on `refs` rows and graph edges; display names with pronouns applied or left out per `[display] pronouns` on tree nodes. Renderers read only the DTO (TASK-1227's guard). Held by the guard and the existing human-output cases.
+<!-- sq:subtask:ST4:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST4:discussion -->
+<!-- sq:subtask:ST4:discussion:end -->
+<!-- sq:subtask:ST4:end -->
+<!-- sq:subtasks:end -->
+
+## Discussion
+
+<!-- sq:discussion -->
+<!-- sq:discussion:end -->

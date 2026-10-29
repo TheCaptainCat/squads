@@ -9,10 +9,10 @@ priority: low
 refs:
 - EPIC-28
 - FEAT-15:depends-on
-description: An sq web command starting a local webserver to browse the squad in a
-  browser; read-only first, with full CRUD as a possible long-term destination
+description: An sq web command serving the squad in a browser through the daemon's
+  /v1 routes; read-only first, with full CRUD as a possible long-term destination
 created_at: '2026-06-10T15:16:05Z'
-updated_at: '2026-10-28T18:23:28Z'
+updated_at: '2026-10-28T22:07:54Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -28,19 +28,21 @@ CLI users can see.
   browsing. Unlike the TUI, a web app reachable by others raises real write questions (who is the
   actor? auth? concurrent edits), so mutations stay a deliberate, separate decision — possible
   someday, promised never.
-- Stack TBD by an ADR when the epic activates — FastAPI is the natural candidate (typed, async,
-  serves JSON we already shape), but the design phase decides; either way it ships as an optional
-  extra (`squads[web]`) so the core stays lean.
-- The read API should be a thin skin over the same `--json` shapes the CLI freezes
-  (EPIC-12's FEAT-15) — one machine surface, two consumers; the shared resolver
-  (FEAT-19) does the addressing.
-- Big sibling of EPIC-28 (`sq ui`): same browse-first philosophy, same service layer,
+- **The server is the daemon** (FEAT-1140): it serves the squad as resource routes under `/v1`,
+  with an OpenAPI document a front generates its types from, on a browser listener that is off by
+  default. Its HTTP server packages ship with every install; only the daemon loads them.
+- **One API, every client**: the browser front, the CLI's remote mode and the terminal UI call
+  the same routes, and each route answers with the same result a command prints with `--json`
+  (FEAT-1226), display labels and badges included, so the front needs no copy of the vocabulary.
+- **The front's stack is its own decision**, taken with the web frontend milestone (MILE-868):
+  it calls the `/v1` routes whatever its framework.
+- Big sibling of EPIC-28 (`sq ui`): same browse-first philosophy, same API,
   different audience — the TUI serves the operator at the keyboard, the web view serves everyone
   else.
 
-Features (authored when this activates): the `sq web` command + server skeleton, the browse UI
-(tree, item, refs, discussion), and — if ever — the CRUD decision as its own feature with its own
-ADR.
+Features: the daemon and its routes (FEAT-1140), the command layer they serve (FEAT-1226), a squad
+hosted on another machine (FEAT-33); still to author: the browse UI (tree, item, refs, discussion),
+and — if ever — the CRUD decision as its own feature with its own ADR.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -55,4 +57,6 @@ ADR.
   - 2026-10-16: all daemon work (API, CLI remote/local modes, daemon logic, dogfood) lives in this epic alongside the web frontend; no separate daemon epic. Milestones split the delivery: MILE-1051 (0.17, daemon) and MILE-868 (frontend).
 - [2026-10-28T13:54:01Z] `product-owner` Nina Product:
   - Outcome and framing predate the daemon line: the body still speaks of `sq web`, FastAPI and an `squads[web]` extra, while the web frontend now consumes the daemon API (FEAT-1140, ADR-1052). @manager the epic wants a rescope when you next open it; no change made here.
+- [2026-10-28T22:07:54Z] `product-owner` Nina Product:
+  - Framing refreshed 2026-10-28 per the manager (FEAT-1140, 027ea69) to match ADR-1224/ADR-1225: the server is the daemon with /v1 resource routes and OpenAPI, its HTTP packages are required dependencies (no `squads[web]` extra, no FastAPI), results carry display so the front needs no vocabulary, and the front stack stays MILE-868's decision. Features line now lists FEAT-1140, FEAT-1226 and FEAT-33. Summary updated.
 <!-- sq:discussion:end -->
