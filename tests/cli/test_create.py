@@ -83,7 +83,7 @@ async def test_parent_refuses_a_type_the_parent_rule_does_not_allow(
     result = await invoke(["create", "task", "Child", "--author", "manager", "--parent", "4"])
     assert (result.exit_code, result.output) == (
         1,
-        "error: a task's parent must be of type feature; link a bug or review with "
+        "error: the parent of task items must be of type feature; link a bug or review with "
         "`sq task <n> ref add <id> --kind fixes|addresses` (got review)\n",
     )
 

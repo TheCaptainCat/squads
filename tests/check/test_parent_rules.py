@@ -12,7 +12,7 @@ from tests.check._arrange import activate, create, edit_item_file, issue, repair
 pytestmark = pytest.mark.anyio
 
 PARENT_HINT = (
-    "a task's parent must be of type feature; link a bug or review with "
+    "the parent of task items must be of type feature; link a bug or review with "
     "`sq task <n> ref add <id> --kind fixes|addresses`"
 )
 

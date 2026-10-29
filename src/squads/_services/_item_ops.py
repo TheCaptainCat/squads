@@ -29,7 +29,6 @@ from squads._services._item_dto import (
 )
 from squads._services._items import ItemsMixin
 from squads._services._subentities import SubentitiesMixin
-from squads._util import article
 
 #: The note the duplicate-id warning carries on a read.
 _DUPLICATE_READ_NOTE = "showing the indexed file; run `sq check`"
@@ -74,9 +73,7 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
             shown = typed.strip()
         else:
             return item.model_copy(deep=True)
-        raise SquadsError(
-            f"{shown} is {item.id} ({item.type}), not {article(address.type)} {address.type}"
-        )
+        raise SquadsError(f"{shown} is {item.id} ({item.type}), not of type {address.type}")
 
     async def _duplicate_warnings(self, item: Item) -> list[str]:
         """The duplicate-id warning a read of *item* carries, when another file has its id."""

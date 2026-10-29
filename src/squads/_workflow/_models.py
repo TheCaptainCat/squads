@@ -1092,7 +1092,7 @@ class WorkflowSpec(BaseModel):
         """
         ts = self.items.get(child)
         names = (" or ".join(sorted(ts.parents)) if ts else "") or "none"
-        msg = f"a {child}'s parent must be of type {names}"
+        msg = f"the parent of {child} items must be of type {names}"
         hints = {r.hint for r in self.item_ref_rules(child) if r.hint}
         if hints:
             msg += "; " + "; ".join(sorted(hints))

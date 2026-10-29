@@ -174,7 +174,10 @@ async def test_address_refuses_the_number_of_an_item_that_is_not_an_operator(
     populated_project, invoke
 ) -> None:
     result = await invoke(["operator", "3", "show"])
-    assert (result.exit_code, result.output) == (1, "error: 3 is TASK-3 (task), not an operator\n")
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: 3 is TASK-3 (task), not of type operator\n",
+    )
 
 
 # ------------------------------------------------------------------------------------ show

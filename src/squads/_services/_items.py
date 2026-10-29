@@ -448,7 +448,7 @@ class ItemsMixin(ServiceCore):
         """Store *raw* as the item's pronouns, trimmed; blank removes them. Returns the value now
         stored. Refuses a value that fails the shape rule, or a type that declares no pronouns."""
         if AttributeKey.PRONOUNS not in self.spec.item_attributes(item.type):
-            raise SquadsError(f"a {item.type} does not carry pronouns")
+            raise SquadsError(f"{item.type} items do not carry pronouns")
         value = checked_pronouns(raw)
         if value is None:
             item.attributes.pop(AttributeKey.PRONOUNS, None)
@@ -462,7 +462,7 @@ class ItemsMixin(ServiceCore):
         role document supplies, so the roster write gate is never asked."""
         value = parse_invocable_choice(raw)
         if AttributeKey.OPERATOR_INVOCABLE not in self.spec.item_attributes(item.type):
-            raise SquadsError(f"a {item.type} does not carry operator_invocable")
+            raise SquadsError(f"{item.type} items do not carry operator_invocable")
         if value is None:
             item.attributes.pop(AttributeKey.OPERATOR_INVOCABLE, None)
         else:
@@ -565,7 +565,7 @@ class ItemsMixin(ServiceCore):
             for backend in self._backends():
                 await backend.generate_skill_entry(ctx, item)
         else:
-            raise SquadsError(f"{item_id} is a {item.type}; only roles/skills have entries")
+            raise SquadsError(f"{item_id} has type {item.type}; only roles/skills have entries")
         return item
 
     def _reject_unwritable_body(self, item_id: str, item: Item, *, append: bool) -> None:
@@ -582,7 +582,9 @@ class ItemsMixin(ServiceCore):
             ROSTER_SKILL,
             ROSTER_OPERATOR,
         ):
-            raise SquadsError(f"{item_id} is a {item.type}; its body is generated, not authored")
+            raise SquadsError(
+                f"{item_id} has type {item.type}; its body is generated, not authored"
+            )
 
     def _refuse_unplaced_view_tags(self, item: Item, region: str, body: str) -> None:
         """Raise when *body* carries a view tag that *region* (the item's current ``sq:body``

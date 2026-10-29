@@ -32,7 +32,7 @@ def _validate_work_types(spec: WorkflowSpec, old_type: str, new_type: str, old_i
     wt = spec.non_roster_types()
     if old_type not in wt:
         raise SquadsError(
-            f"{old_id} is a {old_type}; only work/records items can be retyped "
+            f"{old_id} has type {old_type}; only work/records items can be retyped "
             f"({', '.join(sorted(wt))})"
         )
     if new_type not in wt:
@@ -67,7 +67,7 @@ def _validate_refusals(
             raise SquadsError(
                 f"cannot retype {old_id} to {new_type}: "
                 f"{spec.parent_hint(new_type)} "
-                f"(current parent {item_parent} is a {parent_item.type}). "
+                f"(current parent {item_parent} has type {parent_item.type}). "
                 "Remove or update the parent first."
             )
     invalid_children = [

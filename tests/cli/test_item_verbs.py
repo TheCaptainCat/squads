@@ -80,7 +80,7 @@ async def test_the_item_group_addresses_the_item_by_its_number(populated_project
 async def test_the_item_group_refuses_the_number_of_another_type(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(FEATURE), "show"]) == (
         1,
-        f"error: {FEATURE} is FEAT-{FEATURE} (feature), not a task\n",
+        f"error: {FEATURE} is FEAT-{FEATURE} (feature), not of type task\n",
     )
 
 
@@ -349,7 +349,7 @@ async def test_update_refuses_to_set_an_attribute_the_type_does_not_declare(
 ) -> None:
     assert await _ran(invoke, ["task", str(TASK), "update", "--set", "colour=red"]) == (
         1,
-        "error: 'colour' is not a settable field on a task; valid: priority\n",
+        "error: 'colour' is not a settable field of task items; valid: priority\n",
     )
 
 
@@ -367,7 +367,7 @@ async def test_update_refuses_to_unset_an_attribute_the_type_does_not_declare(
 ) -> None:
     assert await _ran(invoke, ["task", str(TASK), "update", "--unset", "colour"]) == (
         1,
-        "error: 'colour' is not a settable field on a task; valid: priority\n",
+        "error: 'colour' is not a settable field of task items; valid: priority\n",
     )
 
 

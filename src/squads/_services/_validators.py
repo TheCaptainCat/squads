@@ -932,7 +932,7 @@ def _ref_rule_target_present(ctx: ValidatorContext) -> list[CheckIssue]:
         CheckIssue(
             level,
             item.id,
-            f"settled with no {'/'.join(kinds)} ref to a {'/'.join(sorted(active))} — its "
+            f"settled with no {'/'.join(kinds)} ref to {'/'.join(sorted(active))} — its "
             "functional contract slice may be stale",
             rule="ref_rule_target_present",
         )
@@ -964,8 +964,8 @@ def _ref_rule_target_typed(ctx: ValidatorContext) -> list[CheckIssue]:
             CheckIssue(
                 level,
                 item.id,
-                f"{kind} edge to {rid} points at a {target_item.type}, but a {item.type}'s "
-                f"{kind} refs must point at a {'/'.join(sorted(targets))}",
+                f"{kind} edge to {rid} points at {target_item.type}, but {kind} refs of "
+                f"{item.type} must point at {'/'.join(sorted(targets))}",
                 rule="ref_rule_target_typed",
             )
         )

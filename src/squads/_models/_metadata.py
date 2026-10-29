@@ -159,7 +159,9 @@ def require_settable(
     if spec is None:
         valid = ", ".join(sorted({*fields, *badge_codes})) or "(none)"
         hint = _refusal_hint(item_type, key, attributes)
-        raise SquadsError(f"{key!r} is not a settable field on a {item_type}{hint}; valid: {valid}")
+        raise SquadsError(
+            f"{key!r} is not a settable field of {item_type} items{hint}; valid: {valid}"
+        )
     return spec
 
 

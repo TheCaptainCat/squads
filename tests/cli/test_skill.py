@@ -200,7 +200,10 @@ async def test_address_refuses_the_number_of_an_item_that_is_not_a_skill(
     populated_project, invoke
 ) -> None:
     result = await invoke(["skill", "3", "show"])
-    assert (result.exit_code, result.output) == (1, "error: 3 is TASK-3 (task), not a skill\n")
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: 3 is TASK-3 (task), not of type skill\n",
+    )
 
 
 # ------------------------------------------------------------------------------------ show
@@ -544,7 +547,10 @@ async def test_link_role_refuses_a_role_that_does_not_exist(project, invoke) -> 
 async def test_link_role_refuses_the_number_of_an_item_that_is_not_a_role(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "link-role", "2"])
-    assert (result.exit_code, result.output) == (1, "error: 2 is SKILL-2 (skill), not a role\n")
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: 2 is SKILL-2 (skill), not of type role\n",
+    )
 
 
 @pytest.mark.covers("skill link-role", "--as")

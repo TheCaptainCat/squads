@@ -344,7 +344,7 @@ class RefsMixin(ServiceCore):
         """
         role = await self.get(role_id)
         if role.type != ROSTER_ROLE:
-            raise SquadsError(f"{role_id} is a {role.type}; link-role targets a role")
+            raise SquadsError(f"{role_id} has type {role.type}; link-role targets roles")
         updated = await self.add_ref(skill_id, role_id, kind=self.spec.preload_ref_kind())
         await self.roster_projection.resync_role_skills(role.slug)
         return updated
@@ -356,7 +356,7 @@ class RefsMixin(ServiceCore):
         """
         role = await self.get(role_id)
         if role.type != ROSTER_ROLE:
-            raise SquadsError(f"{role_id} is a {role.type}; unlink-role targets a role")
+            raise SquadsError(f"{role_id} has type {role.type}; unlink-role targets roles")
         updated = await self.rm_ref(skill_id, role_id, kind=self.spec.preload_ref_kind())
         await self.roster_projection.resync_role_skills(role.slug)
         return updated
