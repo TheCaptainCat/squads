@@ -6,7 +6,49 @@ All notable changes to this project are documented here. The format follows
 
 ## [0.18.0]
 
+### Added
+
+- **`--json` on every command that prints a result.** The commands that printed only human text take `--json` too: item `status`, `update`, `body`, `retype`, `ref add`, `ref rm`, `view add`, `view disable` and adding a comment; sub-entity `update` and `body`; the role, skill, operator and dev verbs (`dev list` included); `board post` and `board clear`; `memory add` and `memory forget`; `override scaffold` and `override update`; `sync`, `repair`, `renumber`, `init`, `adopt`; the `migrate` verbs, `migrate help` and `migrate chlog`; `docs`, `workflow show` and `workflow lint`. What each prints:
+  - **A write to one resource** prints `{entry, …}`: `entry` is what it wrote (an item row, a sub-entity, a roster row, a notice, a memory), or, for a delete, the resource as it was. What the command reports sits beside it, such as `severed` on a roster entry's `status`, `changed` and `cleared` on `set-default`, `target` and `kind` on `ref add`, and `target` and `kinds` on `ref rm`, which lists the kind of each ref it removed. Item `status --json` prints `{entry}`.
+  - **A write over many resources** (`sync`, `override update`, `repair`, `renumber`, the `migrate` verbs, `init`, `adopt`) prints its report.
+  - **`docs`, `migrate help`, `migrate chlog` and `workflow show`** print their index or text as data; `workflow lint` prints `{override, errors, warnings}`.
+  - The commands that had `--json` keep their document, for writes too (`create`, `add-<kind>`, item and sub-entity `remove`, the comment verbs that had it).
+  - `init --json` asks for no role names and keeps the defaults, as `--default-names` does.
+  - `ui` and bare `workflow` print no result of their own and refuse `--json` with exit `2`.
+
+  These shapes are provisional until a client of their own consumes them; [docs/stability.md](docs/stability.md#tier-3---json-output-shapes-stable-additive-changes-only) lists them.
+
+- **`display`: what the CLI shows, in the `--json` payload.** Item rows, tree and graph nodes, search hits, sub-entities, roster rows, `refs`, `workload` and `workflow statuses` rows, and each `show`, carry a `display` object. On an item-like row it holds the type's label, the rendered status badge with its colour intent, each declared badge field as its label and rendered badge, and the assignee's display name; `show` adds the body with its view tags expanded (`display.body`, beside the stored `body`), the sub-entity table (`display.summary`) and the labelled attributes. A roster row holds the display name and pronouns, a `refs` row and a graph node the ref kind's label, one sub-entity's `show` its kind's label, plural and heading, and a `workflow statuses` row the colour intent. [docs/stability.md](docs/stability.md#tier-3---json-output-shapes-stable-additive-changes-only) lists the keys by payload. A result that a table shows also carries `columns`, one `{key, header}` per column, where `key` is the dotted path from a row to the value its cell shows (`status`, `display.badges.priority.badge`, `display.name`); a listing whose `--json` prints its rows alone leaves `columns` out, so `dev list` is the one `--json` document that carries it. These values are display text: read the key, never parse or compare its content. The codes beside them are unchanged, so a client that joins codes to the workflow catalogs keeps working. The `display` and `columns` keys are provisional on every payload, the frozen ones included.
+
+- **An attribute declaration takes an optional `label`.** `target_date = { kind = "date", label = "target date" }`. `sq show` and `sq <type> <n> show` print one line per labelled attribute the item stores, in declared order (`target date: 2026-11-01`), and `show --json` carries them as `display.attributes`, a list of `{key, label, value}`. `sq workflow types --json` gives each attribute's `label`, `null` when it has none. The bundled milestone labels its `target_date`.
+
+- **`sq tree --label <label>`** shows the items carrying that label, as `sq list --label` does, with their ancestors shown dimmed.
+
+- **`sq tree --json` nodes carry `notebook`, `closed` and `updated_at`,** after `display`: the role's or operator's memory notebook slug (`null` on every other item), whether the status's role is hidden, and the item's last update time, as on a list row. The subtree source of `sq workflow view --json` carries them too.
+
+- **`sq check` reports an override template that does not compile.** A template under `.overrides/templates/` with a syntax error or an unknown filter is an error-level finding under `override_loads`, such as `error .overrides/templates/views/role_definition.md.j2: override template does not compile: line 63: Expected an expression, got 'end of statement block'`.
+
 ### Changed
+
+- **An incompatible change to a `--json` shape ships as a schema change.** Adding a key to a shape is compatible, and a new key goes after the last key its object already has. Removing, renaming or retyping a key, or changing a command's result incompatibly, needs a schema version bump and `sq migrate up`, and the stability tier of the shape decides whether it may happen at all. See [docs/stability.md](docs/stability.md#tier-3---json-output-shapes-stable-additive-changes-only).
+
+- **`display` is a reserved attribute name.** It joins `badges`, `body`, `discussion`, `matched_subentities` and `views` as a key `--json` adds to an item row, so a workflow override that declares an attribute or a badge field named `display` is refused at load: `'task': attribute 'display' is a reserved key every --json item row adds — rename the attribute in the workflow override and in the items that store it`. A `display` key stored in an item file without a declaration stays in the file and out of the `--json` row. The refusal of every other reserved name now names the same remedy, such as `'guide': attribute 'title' is a reserved frontmatter key — rename the attribute in the workflow override and in the items that store it`. **What to do:** if your override declares `display`, pick a new name and rename it in the override and in every item file that stores it; no migration renames it.
+
+- **`[display] pronouns = false` applies to the display text of `--json` too.** A role's or operator's display name (`display.name`, and `display.pronouns` on a tree node) leaves the pronouns out under that setting, as human output and `sq ui` do. The `pronouns` key of a roster row keeps the resolved value either way.
+
+- **The lead badge of a tree or graph line is the type's first declared badge field.** The Priority column of `sq list` and `sq mine` reads the declared `priority` field. On a type whose override no longer declares `priority`, the Priority cell is empty even when an item still stores a priority, and `sq tree` and `sq graph` show the badge of the type's next declared field, or none when it declares no other; `--json` keeps the stored code in `priority`.
+
+- **A usage error is reported before an unknown address.** `sq skill <unknown> status` and `sq memory <unknown> show`, with the required argument missing, exit `2` with the usage error instead of `1` with the unknown-address error, because the address is checked only when the command runs.
+
+- **Under `--json`, a removal's confirmation prompt goes to stderr.** `sq <type> <n> remove`, a sub-entity's `remove` and `comment <hash> remove` without `--yes` print their prompt, and the comment removal its preview, on stderr, so stdout holds only the JSON document.
+
+- **`sq role catalog` with a malformed `.squads.toml` fails.** It exits `1` with the parse error, such as `error: malformed …/.squads.toml: Invalid value (at line 2, column 19)`, for both human output and `--json`, instead of printing the bundled catalog.
+
+- **`sq role <slug> show --json` fails when the role's item file is missing.** It exits `1` with the missing-file error and `run sq repair`, as human `show` does, instead of printing the document without its body.
+
+- **`sq ui`.** The top-level groups, and the category choices of the filter screen, follow the first type of each category in the type catalog's `order`, so a type override's `order` can rearrange them; a category with no type has no group. A status filter on a closed status shows the matching items, as `sq tree --status` does. An assignee filter takes `@` and any letter case (`@Manager` matches `manager`), and an unknown assignee shows an error and keeps the current view. A sort on a badge field reads only the fields an item's type declares, so a stale code its type no longer declares sorts last.
+
+- **`sq show`, `sq list` and `sq tree` run faster than in 0.17.0.** A command loads only the command group it runs, and the interpreter shuts down without walking the whole object graph after the output is written; `sq --help` still loads every group.
 
 - **`--file -` on `sq role add` and `sq role <slug> update` reads standard input.** These two commands read a file named `-`; they now read the role definition from standard input, as every other `--file` option does: `sq role add reviewer-2 --file - < reviewer.toml`. **What to do:** to read a file that is literally named `-`, pass it as `--file ./-`.
 
@@ -15,6 +57,10 @@ All notable changes to this project are documented here. The format follows
 - **`sq role add --file` and `sq role <slug> update --file` resolve a relative path under the directory `-C` chose.** They read a relative path from the directory `sq` was started in, so `sq -C sub role add x --file x.toml` read `./x.toml` while `sq -C sub task 1 body --file b.md` read `sub/b.md`. Both now read `sub/x.toml`, like the other `--file` options.
 
 - **A `--file` that is not valid UTF-8 is a clean error, never a traceback.** An item or sub-entity body, a comment, an `sq import` file, a memory or a board notice read from a file that is not valid UTF-8 ended in a Python traceback. The command now exits 1 with one line naming the file and the position, such as `error: cannot read file 'notes.md': not valid utf-8 (invalid start byte at byte 2)`; the same holds for `--file -` with standard input. `sq role add --file` and `sq role <slug> update --file` already refused a missing or non-UTF-8 file cleanly; their messages now read like the other `--file` refusals, such as `error: cannot read role file 'reviewer.toml': No such file or directory` in place of `Cannot read role override reviewer.toml: [Errno 2] No such file or directory: 'reviewer.toml'`, and `cannot read role file 'reviewer.toml': not valid utf-8 (…)` in place of `Role override reviewer.toml is not valid UTF-8; save it as UTF-8 and re-run.` A role file under `.overrides/roles/` keeps the `Role override … is not valid UTF-8` message.
+
+- **A view whose template fails to render leaves its tag as written and warns.** `sq show`, `sq <type> <n> show`, `sq role <slug> show`, `sq skill <addr> show` and `sq operator <addr> show`, with or without `--json`, exit `0` and print the body with that view's tag unexpanded, plus one warning on stderr naming the view, the item and the error, such as `warning: view 'role_definition' failed to render on ROLE-1: template 'views/role_definition.md.j2' failed to render: … -- its tag is shown as written`. Human `show` exited `1` partway through.
+
+- **`sq tree --json` gives a skill no pronouns.** A skill that shares a role's slug carried that role's pronouns in `display.pronouns`; only roles and operators carry them.
 
 ## [0.17.0]
 

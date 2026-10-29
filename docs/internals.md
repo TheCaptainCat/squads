@@ -28,12 +28,20 @@ carry everything:
 The layering is one-directional:
 
 ```
-_cli  →  _services  →  ( _index store · _backends · _rendering )
+_cli  →  _api  ←  _services  →  ( _index store · _backends · _rendering )
 _models / _paths / _workflow / _sections / _clock   — shared leaves, no internal deps upward
 ```
 
-`Service` (`_services/_service.py`) is the façade every command calls, composed from one mixin per
-concern (items, sub-entities, refs, roster, maintenance, …); it's the only place that orchestrates
+A command parses its arguments, builds one request DTO, calls one **operation** through the `Api`
+protocol (`_api/`) and renders the DTO the operation answers with. `LocalApi`
+(`_services/_local_api.py`) runs the operation in the same process: it checks the squad's schema
+against the operation's grant, composes the service, and calls the handler `_services/_bindings.py`
+binds to that operation inside a read scope. The CLI reaches `_services` only through that one
+factory, and its renderers and the terminal UI read only what the DTOs carry.
+
+`Service` (`_services/_service.py`) is the façade the handlers live on, composed from the
+operation mixins and one mixin per concern (items, sub-entities, refs, roster, maintenance, …);
+it's the only place that orchestrates
 the index, the filesystem, the backends, and rendering together. It is built in one place,
 `compose_service` in the same module: a mode picks which workflow spec and playbook the service
 holds (the fallback order is a table there), the index store and the backends are constructed there
@@ -443,14 +451,21 @@ invocation (parsed by `parse_iso`), which is how a migration preserves historica
 
 Typer app, exposed twice as `squads`/`sq` (entry point `squads.__main__:main`, which answers a bare `--version` itself and otherwise runs `squads._cli:main`, which runs the `app`). The root callback takes
 the effective directory computed from the global `-C` options as `RequestContext.client_cwd` (it
-never calls `os.chdir`), reads `--at`, warns on an unrecognised `working_language`, and dispatches. Conventions:
+never calls `os.chdir`), reads `--at`, resolves the active workflow spec, selects the `Api` and
+dispatches. The root builds a command group only when it is looked up (`LAZY_GROUPS`, and one app
+per bundled item type), so a command imports only its own group; `sq --help` builds them all.
+Conventions:
 
 - Errors that are the user's to see subclass `SquadsError`; a `@handle_errors` decorator turns them
   into a clean message + exit 1 (the corrupt-index and validation paths funnel here).
 - Dynamic strings printed to the console go through `e()` (Rich-escape) so a `[x]` checkbox or a
   bracketed title isn't parsed as Rich markup.
-- Each command group is its own `_module`; `_common.py` holds the shared console, error decorator,
-  service resolver, and value parsers.
+- Each command group is its own `_module`; `_common.py` holds the shared console, error decorator
+  and value parsers, `_calls.py` the call and the `--json`, warning and omission printers, and
+  `_render/` the renderers, which take a DTO and a console.
+- `--json` prints the operation's `data`, or the one field of it the operation names in
+  `json_field`; warnings go to stderr, and a partial read's omissions to stderr followed by
+  exit `4`.
 
 ---
 
@@ -459,21 +474,26 @@ never calls `os.chdir`), reads `--at`, warns on an unrecognised `working_languag
 ```
  sq create task … --parent FEAT-<n>
    │
-   ├─ root callback: set -C / --at, working_language warning
-   ├─ _cli/_create.py  ──▶  get_service()  ──▶  _paths.resolve()  ──▶  SquadPaths
-   └─ Service.create(TASK, "Fix login", parent=FEAT-<n>)
+   ├─ root callback: set -C / --at, resolve the active spec, select the Api
+   ├─ _cli/_create.py  ──▶  ItemCreateRequest  ──▶  calls.call(ITEMS_CREATE, …)
+   ├─ LocalApi.call  ──▶  _paths.resolve() → SquadPaths, check_grant, compose_service
+   └─ Service.create_item  ──▶  Service.create(TASK, "Fix login", parent=FEAT-<n>)
         └─ IndexStore.transaction()  [lock .squads.json]
              ├─ _check_parent: parent_allowed(TASK, FEATURE)        ✓  (epic → SquadsError)
              ├─ allocate_id(TASK) → TASK-NNNNNN                     (counter += 1)
              ├─ build Item (status=Draft, created/updated = clock.now())
              ├─ render items/task.md.j2 → write_new(tasks/TASK-NNNNNN-fix-login.md)
              └─ db.add(item)  →  atomic write .squads.json          [unlock]
-   ◀─ prints the file path;  agent fills the <!-- sq:body --> region
+   ◀─ ItemCreated DTO; the CLI renders it (or prints it under --json)
 ```
 
-1. **CLI** (`_cli/_create.py`) parses args; the root callback already set the active dir / `--at`.
-2. `get_service()` → `_paths.resolve()` builds `SquadPaths` (which squad folder, where the index is).
-3. `Service.create(TASK, "Fix login", parent="FEAT-<n>")`:
+1. **CLI** (`_cli/_create.py`) parses args into an `ItemCreateRequest`; the root callback already
+   set the active dir / `--at` and selected the `Api`.
+2. `LocalApi.call` → `_paths.resolve()` builds `SquadPaths` (which squad folder, where the index
+   is), `check_grant` refuses a squad at another schema, and `compose_service` builds the service
+   for the operation's mode.
+3. The handler, `Service.create_item`, resolves the author, parent and refs, then calls
+   `Service.create(TASK, "Fix login", parent="FEAT-<n>")`:
    - opens `store.transaction()` (locks `.squads.json`);
    - `_check_parent` → `parent_allowed(TASK, FEATURE)` ✓ (an epic here would raise);
    - `db.allocate_id(TASK)` → `TASK-NNNNNN` (padded filename form; counter bumped);
@@ -481,7 +501,8 @@ never calls `os.chdir`), reads `--at`, warns on an unrecognised `working_languag
      `clock.now()`), squad-relative path `tasks/TASK-NNNNNN-fix-login.md`;
    - renders `items/task.md.j2` (placeholder body + empty markers), `write_new` emits frontmatter + body;
    - `db.add(item)`; on clean exit the index is atomically rewritten.
-4. The CLI prints the path; the agent fills the body with `sq task 7 body -m "…"` (or `--file`).
+4. The handler answers an `ItemCreated` DTO with the row and its `display`; the CLI renders it,
+   or prints it with `--json`. The agent fills the body with `sq task 7 body -m "…"` (or `--file`).
 
 `status`, `comment`, `link`, `ref`, `update`, `subtask`/`story` follow the same shape — mutate inside
 a locked transaction (or a marker-safe section edit), stamp `updated_at` from `clock.now()`.
@@ -494,15 +515,15 @@ squads is built for a team's working set — tens to low-thousands of items — 
 reflects that: **the index is a single JSON document, read and rewritten in full.** That keeps the
 integrity story simple (one atomic file, one lock, frontmatter as truth) at the cost of several
 operations being **O(total items)** rather than O(items touched). None of this matters at ~1,000
-items, where Python interpreter + Typer/pydantic import startup (~100–200 ms) dominates every
+items, where Python interpreter + Typer/pydantic import startup (a few hundred milliseconds) dominates every
 command; the index work is single-digit-to-low-tens of milliseconds. The notes below are about
 *where the curve bends* if a repo ever grows an order of magnitude or two.
 
 **Whole-index read on every command.** `IndexStore.load()` (`_index/_store.py`) runs
 `SquadsDB.model_validate_json` over the entire file, so pydantic constructs and validates *every*
-`Item` on each invocation — even `sq show ONE-ID`. Cost is linear in item count, and it's paid at
-most **once per invocation**: a request-scoped read cache (opened by `_cli/_common.py::command`,
-consulted by `load()`) serves every later `Service.get`/`get_block` call in the same command from
+`Item` on each invocation — even `sq show ONE-ID`. Cost is linear in item count, and inside one
+operation it is paid **once**: a read scope (opened by `LocalApi` around each call, consulted by
+`load()`) serves every later `Service.get`/`get_block` call in the same operation from
 the one snapshot it filed, so an item with many sub-entities pays this read once, not once per
 sub-entity. `transaction()` never consults that cache — its own load always hits disk, under the
 lock, so a write is always based on the true current state.
@@ -534,6 +555,13 @@ reads every item file, both for its raw-text scan and for the validators that in
 | `sq inbox` file fan-out | tens–hundreds of ms | first felt |
 | `sq check` / `repair` fan-out | ~0.1–1 s, rare | ~50k+ |
 | `backrefs` / `refs_in` | trivial (one pass) | only if called per-item → O(n²) |
+
+**Measuring a run.** With `SQUADS_SPANS` set to any non-empty value, a command prints its
+wall-clock spans to stderr, one `SQUADS_SPAN <name> <ms>` line each: the root callback, squad
+resolution, service composition, the operation, the DTO build inside it, and the call as a whole.
+The `startup`, `call_done` and `end` marks count from the moment the value names when it has the
+form `t=<float>` (a launcher's `time.perf_counter()` reading), and otherwise from the import of the
+span module. Stdout and the exit code are unchanged.
 
 **If you ever target large repos** (highest leverage first): replace the full-file rewrite with an
 embedded store (SQLite) or partial/streamed writes to kill write amplification; keep an in-memory

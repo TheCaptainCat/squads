@@ -295,11 +295,13 @@ folder in the squad directory. The frozen surfaces are:
   none). The bundled templates' prose and name pools are not frozen. See
   [roles.md § "Where a role's definition comes from"](roles.md#where-a-roles-definition-comes-from).
 - **Attribute grammar (frozen):** a type declares its attributes in `[items.<type>.attributes]`,
-  one `<name> = { kind = …, required = …, settable = … }` entry each. `kind` is one of `str`,
-  `list`, `bool`, `date`; `required` and `settable` default to `false` and `true`. An attribute may
-  not take the name of a core key, of another attribute or badge field on its type, of a key
-  `--json` adds to an item row (`badges`, `body`, `discussion`, `matched_subentities`, `views`), or
-  `extra`, `path` or `prefix`. The `role` and `skill` attributes the bundled spec declares may be
+  one `<name> = { kind = …, required = …, settable = …, label = … }` entry each. `kind` is one of
+  `str`, `list`, `bool`, `date`; `required` and `settable` default to `false` and `true`; `label`
+  is optional, and a labelled attribute an item stores is shown on `show`. An attribute or a badge
+  field may not take the name of a core key, of another attribute or badge field on its type, of a
+  key `--json` adds to an item row (`badges`, `body`, `discussion`, `display`,
+  `matched_subentities`, `views`), or `extra`, `path` or `prefix`; such a declaration is refused at
+  load. The `role` and `skill` attributes the bundled spec declares may be
   added to but not dropped or given another kind. `extra_fields` is not a key of a type and is
   refused at load.
 - **Spec override grammar (frozen):** the same for all three spec documents. Deep recursive merge
@@ -433,9 +435,11 @@ input.
 ### Display settings in `.squads.toml`
 
 A `[display]` table in `.squads.toml` holds one boolean, `pronouns` (default `true`), which decides
-whether human CLI output and `sq ui` print a role's or operator's pronouns after the name. It
-changes nothing else: `--json` payloads, exit codes, stored data and generated agent files are
-identical either way. The table is closed: an unknown key or a non-boolean value is ignored with a
+whether a role's or operator's name is shown with its pronouns: in human CLI output, in `sq ui`,
+and in the roster display names of `--json` payloads (`display.name` and `display.pronouns`, see
+[Tier 3](#tier-3---json-output-shapes-stable-additive-changes-only)). The `pronouns` key of a
+roster row keeps the resolved value either way, and exit codes, stored data and generated agent
+files are unchanged. The table is closed: an unknown key or a non-boolean value is ignored with a
 `sq check` warning, and the default applies. See
 [roles.md § "Pronouns"](roles.md#pronouns).
 
@@ -778,6 +782,99 @@ In a field reference that carries these marks, a key with no mark has a fixed sq
 with the key: an item id, a boolean, `direction`'s `in`/`out`, nested `children`. A key moves to a
 stricter class freely; it moves to a looser one only as a stated contract change.
 
+**Every command that prints a result takes `--json`.** The commands that print no result of their
+own take none: `ui` and bare `workflow` (which prints what `workflow show` prints) refuse it with
+exit `2`, and a group that only takes an address (`sq <type> <n>`, `sq role <addr>`, `sq memory
+<role>`, …) needs a verb, which carries its own `--json`. `--json` never puts a prompt on stdout:
+a removal's confirmation, and `comment <hash> remove`'s preview, go to stderr, and `init --json`
+asks for no role names.
+
+**What a command's JSON is.** Each command answers one result object, and that object is the only
+definition of its `--json` document. `--json` prints the object whole, except where the document
+this tier froze is not an object: there it prints the one field that holds that document, `items`
+for the rows of `list`, `tree`, `search`, `inbox`, `mine`, `blocked`, `workload`, `comments` (on
+any host), the sub-entity lists, `role catalog`, `role list`, `operator list`, `board list`,
+`memory list`, `memory search`, `override list`, `override diff`, `reflog`, `check` and the eight
+workflow catalogs, and for the comments `comment <hash> remove` removed; `source` for `workflow
+view`. The fields beside it in the result object, such as `columns` and `hidden`, are not printed
+by `--json`.
+
+**How a shape changes.**
+
+- **Adding a key is compatible.** A new key goes after the last key its object already emits,
+  never between two existing ones, so the emitted order this tier freezes stays a prefix of the
+  new order.
+- **Anything else is a schema change.** Removing, renaming or retyping a key, or changing a
+  command's result incompatibly, ships with a schema version bump: the squad stops at every
+  command until `sq migrate up` has run, and a package and a squad at different schema versions
+  refuse each other. Whether such a change may happen at all is decided by the shape's class: a
+  frozen shape changes only in a major release, a provisional one (below) in any release.
+- **A new key never reuses a name a sibling document gives another meaning.** A tree node's
+  notebook is `notebook`, because `slug` on an item row is the item's own slug.
+
+**Display keys.** Beside its codes, a payload carries what the CLI shows, so a client can show
+what `sq` shows without reading the vocabulary. `display` holds one of these sets, by payload:
+
+| Payload | `display` keys |
+|---|---|
+| item row (`list`, `create`, the item writes' `entry`), search hit, `inbox`, `mine` and `blocked` row | `type` (the type's label), `status` (`{badge, intent}`: the rendered status badge and its colour intent), `badges` (each declared badge field, in declared order: `{<field>: {label, badge, badge_label}}`), `assignee` (the assignee's display name, or `null`); `create` adds `file`, `mine` adds `matched`, `inbox` and `blocked` add `status_code` |
+| `show` of an item | the item row's keys, plus `body` (the body with its view tags expanded), `summary` (the sub-entity table: `{kind, columns, rows}`, `columns` a list of header strings and `rows` a list of rows of cell strings; `null` on a type without sub-entities) and `attributes` (one `{key, label, value}` per labelled attribute the item stores, in declared order) |
+| tree node | the item row's keys, plus `dimmed` (the node is only on a match's path), `anchor` and `pronouns` (a role's or operator's pronouns, `null` otherwise) |
+| graph node | the item row's keys, plus `edge` and `edge_label` (the label of the ref kind that reached the node) |
+| sub-entity list row | the item row's keys (`type` is the kind's label), plus `story` and `carrier_title` |
+| one sub-entity (`<kind> <k> show`) | the list row's keys, plus `kind` (`{name, label, plural, heading}`) and `discussion` |
+| `role list` row | `name`, `pronouns`, `live` |
+| `operator list` and `dev list` row | `name`, `pronouns` |
+| `role <addr> show` | `name`, `pronouns`, `color`, `body`, `empty_hint`, `definition_resolves`, `change_hint`, `discussion` |
+| `skill <addr> show` | `body`, `empty_hint`, `discussion` |
+| `operator <addr> show` | `name`, `pronouns`, `body`, `discussion` |
+| `refs` row | `kind` (the ref kind's label) |
+| `workload` row | `assignee` |
+| `workflow statuses` row | `intent` |
+
+A roster `display.name` is the name with its pronouns, `Robert Architect (she/her)`, and
+`display.pronouns` the pronouns, when [`[display] pronouns`](#display-settings-in-squadstoml) is on;
+with it off, the bare name and `null`. The same holds for a tree node's `display.pronouns`.
+
+**`columns`**, on a result that a table shows, is one `{key, header}` per column, in order, where
+`key` is the dotted path from a row to the value its cell shows (`status`,
+`display.badges.priority.badge`, `display.name`). A command that prints `items` under `--json`
+leaves `columns` out of its document, so of the `--json` documents only `dev list` carries it.
+
+Their values are of the **display** class: the key is frozen once its shape is, its content is
+not, and a client never parses or compares it. A badge field the type no longer declares has no
+entry in `display.badges`, while the stored code stays in the row's own key. The codes beside
+the display keys keep their class, so a client that joins codes to the workflow catalogs is
+unaffected by them.
+
+**Provisional shapes.** These are documented, and may still change incompatibly, as a schema change,
+until a client of their own consumes them; they are then frozen under this tier:
+
+- the display keys above (`display`, `columns`, the labels), on every payload, the frozen ones
+  included;
+- the `--json` document of these commands: item `status`, `update`, `body`, `retype`, `ref add`,
+  `ref rm`, `view add`, `view disable` and adding a comment; sub-entity `update` and `body`; the role, skill, operator and dev verbs that write, and `dev
+  list`; `board post`, `board clear`, `memory add`, `memory forget`; `override scaffold`,
+  `override update`, `sync`; `workflow show`, `workflow lint`, `docs`, `migrate help`,
+  `migrate chlog`; `repair`, `renumber`, the `migrate` verbs, `init` and `adopt`. A write to one
+  resource answers `{entry, …}`: `entry` is the resource it wrote, or for a delete the resource
+  as it was, and what the command reports is a field beside it:
+
+  | Command | Fields beside `entry` |
+  |---|---|
+  | item `update`, sub-entity `update` | `nothing_to_clear` |
+  | item `ref add`; skill `ref add`, `ref rm` | `target`, `kind` |
+  | item `ref rm` | `target`, `kinds` (the kind of each ref it removed) |
+  | item `retype` | `old_id`, `old_status`, `status_reset`, `rewritten` |
+  | `view add`, `view disable` (item, role, skill) | `view`, `changed`, `was_present` |
+  | role, skill and operator `status` | `severed` |
+  | role `set-default` | `changed`, `cleared` |
+  | skill `link-role`, `unlink-role`; `memory add`, `memory forget` | `role` |
+  | `override scaffold` | `prefilled` |
+
+  Every other write to one resource answers `{entry}` alone. A write over many resources answers
+  its report.
+
 The frozen surface includes:
 
 - **Reading the board:** `list`, `tree`, `graph`, `inbox`, `search`, `blocked`, `workload`, `mine`,
@@ -802,6 +899,7 @@ The frozen surface includes:
   | `hits[].location` | display | a human label for the same place |
   | `hits[].snippet` | display | the matching line |
   | `hits[].hash` | | the full hash of the comment the hit is in, or `null` outside a discussion |
+  | `display` | display | the item as shown (see **Display keys** above); provisional |
 
   `sq tree --json` emits a bare array of root nodes; each node is:
 
@@ -817,6 +915,10 @@ The frozen surface includes:
   | `badges` | vocabulary | object of badge field to badge code; keys and values both name spec entries |
   | `anchor` | | boolean: `true` only on a root invented for a parent cycle, which nobody wrote as a root |
   | `children` | | nested nodes of the same shape |
+  | `display` | display | the node as shown, plus `dimmed` (the node is only on a match's path), `anchor` and `pronouns`; provisional |
+  | `notebook` | | the memory notebook slug of a role or operator, `null` on every other item |
+  | `closed` | | boolean: the status's role is hidden |
+  | `updated_at` | | ISO 8601 timestamp of the item's last update, as on a list row |
 
   `sq graph --json` emits one root object; each node is:
 
@@ -833,15 +935,19 @@ The frozen surface includes:
   | `direction` | | `out` (on a dependency edge, the parent node depends on this one; on any other edge, the parent carries the ref to this one), `in` (the reverse), or `null` on the root |
   | `seen` | | boolean: the node was already expanded elsewhere in this graph, so its `children` is empty |
   | `children` | | nested nodes of the same shape |
+  | `display` | display | the node as shown, plus the edge's kind and label (`edge`, `edge_label`); provisional |
 
   A graph node carries no `title`.
 - **Item rows:** an item object from `list`, `show`, `create` or `mine` is the item's core keys,
   `path` (the item file's path relative to the squad folder, such as `tasks/TASK-NNNNNN-x.md`),
   each attribute its file stores, at the top level beside them, and the keys the command adds
-  (`badges`, `body`, `discussion`, `matched_subentities`, `views`). There is no nested container. An
-  attribute appears only when the file stores it, so a reader learns a type's possible attributes
-  from `sq workflow types --json` (`attributes`: name to `{kind, required, settable}`), not from
-  the rows. A key stored under the name of an added key stays in the file and out of the row.
+  (`badges`, `body`, `discussion`, `display`, `matched_subentities`, `views`). There is no nested
+  container. Every display value an item row carries sits inside `display`, so `display` is the
+  one name the display keys reserve. An attribute appears only when the file stores it, so a
+  reader learns a type's possible attributes from `sq workflow types --json` (`attributes`: name
+  to `{kind, required, settable, label}`, `label` `null` when the declaration has none), not from
+  the rows. A key stored under the name of an added key stays in the file and out of the row, and
+  an override that declares an attribute or badge field under such a name is refused at load.
 
   On an item's `show --json` (`sq show <id>`, `sq <type> <n> show`, `sq skill <addr> show`):
 
@@ -849,6 +955,8 @@ The frozen surface includes:
   |---|---|
   | `body` | the stored text of the item's `sq:body` region, each `sq:view:<name>` tag left as a tag, never rendered. The rendered text is on `sq show` and `--raw` |
   | `views` | always present: an object of view name (vocabulary) to the output of that view's transform, for each view whose tag is placed and enabled in the body, resolves against the item, and declares a transform; `{}` when none does. Each value is the JSON the transform returned, whose shape that transform defines; `milestone_rollup`'s is `{delivered, outstanding, settled}`, three lists of `{id, type, title, status, assignee}` |
+  | `display.body` | display: the body as `sq show` prints it, each view tag expanded. A view whose template fails to render keeps its tag as written, and the command warns on stderr |
+  | `display.attributes` | display: one `{key, label, value}` per attribute the type declares with a `label` and the item stores, in declared order |
 
   A sub-entity's object carries no `views`.
 - **Roster viewers:** `role catalog`, `role list`, `role <addr> show`, `skill <addr> show`,
@@ -870,7 +978,7 @@ The frozen surface includes:
   | `sq workflow types --json` | item type | `type`, `order`, `prefix`, `reserved`, `category`, `subentity_kind`, `lifecycle`, `fields`, `attributes`, `labels` |
   | `sq workflow subentity-kinds --json` | sub-entity kind | `subentity_kind`, `lifecycle`, `plural`, `local_prefix`, `container_heading`, `completion`, `maps_parent_story`, `fields` |
   | `sq workflow collections --json` | badge collection | `collection`, `label`, `ordered`, `default`, `badges` |
-  | `sq workflow statuses --json` | status | `status`, `role`, `badge` |
+  | `sq workflow statuses --json` | status | `status`, `role`, `badge`, `display` |
   | `sq workflow roles --json` | status role | `role`, `settled`, `hidden`, `color`, `live`, `blocked`, `deferred` |
   | `sq workflow lifecycles --json` | lifecycle | `lifecycle`, `initial`, `states`, `transitions` |
   | `sq workflow views --json` | derived view | `view`, `source_kind`, `source_name`, `transform` |
@@ -906,7 +1014,8 @@ The frozen surface includes:
   --json`); `role` matches `sq role <slug> show --json`; `self` matches the host item's own `show
   --json` plus a `spec` key, `{schema_version, override, digest}`; `playbook` has no existing
   counterpart, so its own shape is `{type, lane, roster}` (`lane` is `null` for a type outside
-  every guide's lane domain). No shape carries a `fields`/`group_by`/`groups` key. Because `self`
+  every guide's lane domain). Each row carries the `display` object of the command it matches. No
+  shape carries a `fields`/`group_by`/`groups` key. Because `self`
   is the host's `show --json`, it carries that payload's stored `body` and its `views` key. The
   payload is the source whether or not the view declares a transform: it is the transform's input,
   and the transform's output is on the host's `show --json` under `views.<name>`.
@@ -977,12 +1086,9 @@ The frozen surface includes:
   comment's `hash` (`null` outside a discussion); an inbox row names no author, and carries
   `hashes`, one per entry of `lines` and `regions`
 - **Bulk import:** `sq import --json` (with or without `--dry-run`)
-- **Commands that stay human-output-only:** `repair`, `renumber`, `docs`, `sync`, `init`,
-  `sq workflow show` (the cheatsheet), `sq workflow lint` (which reports through its exit code —
-  0 clean, 1 on any error)
 
-Between major versions, new fields may be added to any shape; old fields stay present, named, and
-typed identically. Every shape above is covered by a regression test, so it cannot drift on you
+Between major versions, new fields may be added to any shape, each after the last field its object
+already emits; old fields stay present, named, and typed identically, in their order. Every shape above is covered by a regression test, so it cannot drift on you
 unnoticed.
 
 **Where each shape's fields are written down.** This document is the authority for every shape it
@@ -1057,8 +1163,7 @@ seven: `managed_entry_paths`, `restriction_fragment`, `render_role_entry` and
 `render_skill_entry`. A bundled backend overrides them to declare its per-entry pointers and to
 answer, respectively, which projected value currently constrains the session (rather than merely
 configuring or supplying it) and what it would write for one entry without writing it — the seam
-`sq check`'s currency comparison consumes. A third-party backend written
-against the documented seven still instantiates and simply never participates in that comparison,
+`sq check`'s currency comparison consumes. A backend written against the documented seven still instantiates and simply never participates in that comparison,
 exactly as one that declares no `managed_entry_paths` never participates in the presence check.
 
 **Every host answers the same five questions, in its own terms.** The containment rule above is
@@ -1069,9 +1174,10 @@ and dispatch an entry; which of those constrain the session rather than configur
 pure render of one entry looks like. See `docs/backends.md` for the full five and both bundled
 backends' worked answers.
 
-squads ships two backends — `claude_code` and `agents_md` — and both satisfy the same conformance
-suite a third-party backend is held to. Backends self-register on import; see
-[backends.md](backends.md) for the registration hook and a worked example.
+squads ships two backends, `claude_code` and `agents_md`. The backends are a literal table in
+`_backends/_registry.py`: adding one means a class that implements the seven methods and a row in
+that table, which is a change to the squads package itself. See
+[backends.md § "Registering one"](backends.md#registering-one) for a worked example.
 
 Backend selection: `sq init --backend <name>` or `active_backends` in `.squads.toml`.
 

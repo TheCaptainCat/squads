@@ -68,9 +68,11 @@ sanctioned way to satisfy it.
 ## Conventions
 
 - **Private layout.** Every module and subpackage is underscore-prefixed
-  (`squads._service`, `squads._models._item`, …) and package `__init__`s don't re-export — import
-  straight from the underscore modules. (`squads/__init__` keeps `__version__`; `_cli/__init__` the
-  Typer `app`; `_backends/_claude_code/__init__` the registration side-effect.)
+  (`squads._services._service`, `squads._models._item`, …) and package `__init__`s don't re-export
+  — import straight from the underscore modules. (`squads/__init__` keeps `__version__`;
+  `_cli/__init__` the Typer `app`, `main` and the lazy command table; `_workflow/__init__` the
+  bundled-spec accessor.) The backends are a literal table in `_backends/_registry.py`; nothing
+  registers on import.
 - **Frontmatter is the source of truth.** `.squads.json` is a rebuildable index — never store
   anything in it that can't be reconstructed from the `.md` files (`sq repair` proves it).
 - **Marker-safe edits only** — touch file content via `squads._sections`; never rewrite an agent's
@@ -159,9 +161,21 @@ in that test's `LONG_BODIES` list.
 
 - **A template** → drop a `.j2` under `squads/_rendering/templates/`; it ships in the wheel as
   package data automatically. Render with `squads._rendering._engine.render` (StrictUndefined).
-- **A command** → add it to the right `squads/_cli/_*` module (or a new one), wire it onto `app`
-  in `_cli/__init__`, and route logic through `Service`. Write its help to
-  [Writing `--help` text](#writing---help-text).
+- **A command** → it calls one operation:
+  1. Declare the request and response DTOs under `squads/_api/_dto/` (frozen, JSON-native) and the
+     `Operation` in `squads/_api/_ops.py`, listed in `OPERATIONS` (with a `grant` if it must run on
+     a squad at another schema, and a `json_field` only for the array documents that guard lists).
+  2. Write the handler as a `Service` method in the right `_services/_*_ops.py` mixin, answering
+     `Response[<its DTO>]`, and bind it in `_services/_bindings.py` (`bind(OP, Service.method)`).
+  3. In the right `squads/_cli/_*` module, parse the arguments into the request DTO, call
+     `calls.call(OP, request)` (`_cli/_calls.py`), then print with `calls.print_json` under
+     `--json` or render through `_cli/_render/`, and end with `calls.finish`. A top-level command
+     is registered on `app` in `_cli/_main.py`; a command in a group, on that group's Typer.
+  4. A new command group is a Typer in its own `_cli` module and a `LAZY_GROUPS` row in
+     `_cli/__init__.py`; `tests/meta/test_lazy_command_groups_match_the_typer_groups.py` holds the
+     table to the group Typers.
+  5. Add its surface cases under `tests/cli/` (one per parameter, `--json` included), and write its
+     help to [Writing `--help` text](#writing---help-text).
 - **An item type** → declare it in the bundled workflow spec (`squads/_specs/workflow.toml`):
   prefix, folder, category, lifecycle, and any parent/ref rules. Add its item template, and — if
   agents author it — a `[types.<name>]` entry in `squads/_specs/playbook.toml` so the type gets its

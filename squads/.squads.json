@@ -1,6 +1,6 @@
 {
   "schema_version": "0.17",
-  "counter": 1238,
+  "counter": 1240,
   "padding": 6,
   "items": {
     "12": {
@@ -59456,7 +59456,7 @@
       "subentities": [],
       "path": "agents/skills/SKILL-000508-releasing-squads.md",
       "created_at": "2026-07-20T12:32:09Z",
-      "updated_at": "2026-10-27T20:16:11Z",
+      "updated_at": "2026-10-29T12:06:58Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -64094,7 +64094,7 @@
       "type": "task",
       "title": "Stability guide and changelog for result shapes",
       "slug": "stability-guide-and-changelog-for-result-shapes",
-      "status": "Ready",
+      "status": "InReview",
       "description": "Frozen and provisional JSON shapes, the schema-change rule, display keys and --json on every command, for adopters",
       "parent": "FEAT-1226",
       "author": "tech-lead",
@@ -64111,7 +64111,7 @@
         {
           "local_id": "ST1",
           "title": "Stability guide: tiers, provisional shapes, schema rule",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -64121,7 +64121,7 @@
         {
           "local_id": "ST2",
           "title": "Display keys for adopters",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -64131,7 +64131,7 @@
         {
           "local_id": "ST3",
           "title": "JSON output on every command, in docs and changelog",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -64141,7 +64141,7 @@
         {
           "local_id": "ST4",
           "title": "Reserved display key and attribute labels",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -64151,7 +64151,7 @@
         {
           "local_id": "ST5",
           "title": "Behaviour notes from the command moves",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -64161,7 +64161,7 @@
       ],
       "path": "tasks/TASK-001234-stability-guide-and-changelog-for-result-shapes.md",
       "created_at": "2026-10-28T22:12:43Z",
-      "updated_at": "2026-10-29T11:12:17Z",
+      "updated_at": "2026-10-29T12:15:02Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -64762,7 +64762,7 @@
         {
           "local_id": "F58",
           "title": "Releasing runbook does not run bench_local_mode.py as the task requires",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -64788,11 +64788,81 @@
           "story": null,
           "deferred_to": null,
           "extra": {}
+        },
+        {
+          "local_id": "F61",
+          "title": "Stability Tier 5 says backends self-register on import; the registry is a literal table",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F62",
+          "title": "Display keys documented as one shape; roster, statuses, sub-entity rows and show's summary differ",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F63",
+          "title": "CHANGELOG lead-badge entry: tree shows the next declared field's badge, not none",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F64",
+          "title": "Provisional write fields list omits nothing_to_clear and view",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F65",
+          "title": "CLAUDE.md lists RetypeOpsMixin second while claiming MRO order; it is fourth",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F66",
+          "title": "CONTRIBUTING.md still describes registration side-effects and wiring commands onto app",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F67",
+          "title": "Per-payload display table has no row for add-<kind>, which gains display {item, body_command}",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
         }
       ],
       "path": "reviews/REV-001235-review-of-the-dto-refactor-s-delivered-tasks.md",
       "created_at": "2026-10-28T23:26:20Z",
-      "updated_at": "2026-10-29T11:49:30Z",
+      "updated_at": "2026-10-29T12:28:59Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -64919,6 +64989,56 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "TASK-1238"
+    },
+    "1239": {
+      "sequence_id": 1239,
+      "type": "bug",
+      "title": "display.assignee ignores [display] pronouns in --json",
+      "slug": "display-assignee-ignores-display-pronouns-in-json",
+      "status": "InProgress",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-1226"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001239-display-assignee-ignores-display-pronouns-in-json.md",
+      "created_at": "2026-10-29T12:25:02Z",
+      "updated_at": "2026-10-29T12:26:01Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "BUG-1239"
+    },
+    "1240": {
+      "sequence_id": 1240,
+      "type": "bug",
+      "title": "workflow view accepts a wrong ID prefix that show refuses",
+      "slug": "workflow-view-accepts-a-wrong-id-prefix-that-show-refuses",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-001240-workflow-view-accepts-a-wrong-id-prefix-that-show-refuses.md",
+      "created_at": "2026-10-29T12:25:03Z",
+      "updated_at": "2026-10-29T12:25:03Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "BUG-1240"
     }
   }
 }

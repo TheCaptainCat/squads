@@ -13,7 +13,7 @@ refs:
 description: 'The team''s runbook for cutting a squads release: gates, prep, and drafting
   the release (the operator publishes).'
 created_at: '2026-07-20T12:32:09Z'
-updated_at: '2026-10-27T20:16:11Z'
+updated_at: '2026-10-29T12:06:58Z'
 when_to_use: When preparing or cutting a squads release.
 allowed_tools: ''
 origin: project
@@ -33,6 +33,24 @@ actual GitHub publish. Never `git tag` or publish yourself.
 - `uv run --all-extras pyright && uv run --all-extras ruff check . && uv run --all-extras ruff format --check .` clean.
   (`--all-extras` is required — a bare `uv run` prunes the optional `tui` extra and pyright floods
   with false `textual` import errors.)
+- **Run time no slower than the last release.** With the release's dependencies synced, run the
+  benchmark against the released `sq` on a copy of this repo's squad, and record its output:
+  ```bash
+  rm -rf ~/.cache/sq-bench/squad && mkdir -p ~/.cache/sq-bench/squad && \
+    cp .squads.toml ~/.cache/sq-bench/squad/ && cp -r squads ~/.cache/sq-bench/squad/
+  uv run python scripts/bench_local_mode.py --squad ~/.cache/sq-bench/squad \
+    --old ~/.local/bin/sq --new "$PWD/.venv/bin/sq" --task <n of any task in the squad>
+  ```
+  The script copies the directory again before it runs, so pass one that holds only
+  `.squads.toml` and the squad folder, never the repo root (it would copy `.venv` and `.git`).
+  `--old` is the last released `sq` (the uv tool) and `--new` the release tree's, both absolute
+  paths, since the commands run inside the copy. For `show`, `list` and `tree` the new median
+  should be at most the old one (`new/old median` ≤ 1.0); a command above it is a run-time
+  regression to raise with the operator before the cut, and a rerun with `--spans` shows where
+  the time goes. Post the printed table as a comment on the release's milestone
+  (`sq milestone <n> comment --file`), so the numbers stay with the release. Both builds must accept the squad's schema: on a release that
+  changes `SCHEMA_VERSION` the old build refuses the copy, so say so in the comment and post the
+  new build's `--spans` medians instead.
 - **The content-store gate is not a standalone step here** — it is the last item of §2's ordered
   sequence below, because it depends on the version bump having already landed. Do not run
   `gen_template_manifest.py --release-gate` before that sequence; see §2 for why and for what its

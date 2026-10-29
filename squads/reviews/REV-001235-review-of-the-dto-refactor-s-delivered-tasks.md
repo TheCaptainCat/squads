@@ -284,7 +284,7 @@ subentities:
   severity: low
 - local_id: F58
   title: Releasing runbook does not run bench_local_mode.py as the task requires
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F59
   title: 'Benchmark: fixed old-first order, repo-specific --task default, no-op SQUADS_DAEMON'
@@ -295,8 +295,41 @@ subentities:
     cache needs none
   status: Verified
   severity: low
+- local_id: F61
+  title: Stability Tier 5 says backends self-register on import; the registry is a
+    literal table
+  status: Verified
+  severity: low
+- local_id: F62
+  title: Display keys documented as one shape; roster, statuses, sub-entity rows and
+    show's summary differ
+  status: Verified
+  severity: medium
+- local_id: F63
+  title: 'CHANGELOG lead-badge entry: tree shows the next declared field''s badge,
+    not none'
+  status: Verified
+  severity: low
+- local_id: F64
+  title: Provisional write fields list omits nothing_to_clear and view
+  status: Verified
+  severity: low
+- local_id: F65
+  title: CLAUDE.md lists RetypeOpsMixin second while claiming MRO order; it is fourth
+  status: Verified
+  severity: low
+- local_id: F66
+  title: CONTRIBUTING.md still describes registration side-effects and wiring commands
+    onto app
+  status: Verified
+  severity: low
+- local_id: F67
+  title: Per-payload display table has no row for add-<kind>, which gains display
+    {item, body_command}
+  status: Open
+  severity: low
 created_at: '2026-10-28T23:26:20Z'
-updated_at: '2026-10-29T11:49:30Z'
+updated_at: '2026-10-29T12:28:59Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1226's delivered tasks, one commit at a time, against ADR-1224, ADR-1225 (section 9) and ADR-1172.
@@ -1048,6 +1081,8 @@ Two adopter-visible behaviour changes that the dev's parity proof records only a
 #### Discussion
 
 <!-- sq:finding:F25:discussion -->
+- [2026-10-29T12:09:44Z] `tech-writer` Theo Writer:
+  - CHANGELOG 0.18.0, Changed: "`sq role catalog` with a malformed `.squads.toml` fails." (exit 1 with the parse error, human and `--json`) and "`sq role <slug> show --json` fails when the role's item file is missing." (exit 1, `run sq repair`). Both checked on a scratch squad: dev 1, released 0.17.0 0.
 <!-- sq:finding:F25:discussion:end -->
 <!-- sq:finding:F25:end -->
 
@@ -1580,6 +1615,8 @@ Both are improvements, and neither needs a code change. Item 1 earns a line in t
 #### Discussion
 
 <!-- sq:finding:F44:discussion -->
+- [2026-10-29T12:09:45Z, edited 2026-10-29T12:10:04Z] `tech-writer` Theo Writer:
+  - CHANGELOG 0.18.0, Changed, `sq ui` entry: "An assignee filter takes `@` and any letter case (`@Manager` matches `manager`), and an unknown assignee shows an error and keeps the current view. A sort on a badge field reads only the fields an item's type declares, so a stale code its type no longer declares sorts last." The second sentence is item 2, from your TASK-22 repro; I did not run `sq ui` myself.
 <!-- sq:finding:F44:discussion:end -->
 <!-- sq:finding:F44:end -->
 
@@ -1622,6 +1659,8 @@ Adopters cannot add a category, so this is engine drift, not adopter risk. The t
   - - Fixed in ef76e3f8 per ruling (a), with no code change. The docstrings of `populate_tree`, `categories()` and `NodeData` now say the groups follow the first type of each category in the type catalog's `order`, and that a category no type names has no group. The `_tui/_filter.py` docstring promised no order, so it is unchanged.
 - [2026-10-29T10:14:21Z] `manager` Catherine Manager:
   - Verified on a363231c: docstring-only change in _tui/_tree.py and _tui/_session.py now states the catalog-order rule and drops the empty-group promise; pyright and ruff clean.
+- [2026-10-29T12:09:46Z] `tech-writer` Theo Writer:
+  - CHANGELOG 0.18.0, Changed, `sq ui` entry, per ruling (a): "The top-level groups, and the category choices of the filter screen, follow the first type of each category in the type catalog's `order`, so a type override's `order` can rearrange them; a category with no type has no group."
 <!-- sq:finding:F45:discussion:end -->
 <!-- sq:finding:F45:end -->
 
@@ -2001,6 +2040,8 @@ CLAUDE.md's architecture map also does not list `_spans.py` or the `SQUADS_SPANS
   - Fixed in 6e65283e: the stale 'registered statically / bound at import time' comments in _cli/__init__.py, _common.py and _items.py now describe the lazily built command table. CLAUDE.md left to the writer.
 - [2026-10-29T11:33:04Z] `reviewer` Paul Reviewer:
   - Verified (code comments): the import-time wording is gone from _CustomTypeGroup, get_command, static_alias_is_stale, spec_error_command, spec_aware_command_cls and _dynamic_subentity_group_cls; each now matches the lazy table built from the bundled spec. The CLAUDE.md half is with the writer, as briefed.
+- [2026-10-29T12:09:33Z] `tech-writer` Theo Writer:
+  - CLAUDE.md half done (uncommitted, for review): the `_cli/` entry now describes the lazy command table (`LAZY_GROUPS`, type apps built from the bundled spec once per root command, `sq --help` building all) and its guard `tests/meta/test_lazy_command_groups_match_the_typer_groups.py`; a new `_spans.py` entry names `SQUADS_SPANS` (`t=<float>` origin) and `scripts/bench_local_mode.py` with its inputs. docs/internals.md section 13 documents `SQUADS_SPANS` for contributors reading the installed tool.
 <!-- sq:finding:F56:discussion:end -->
 <!-- sq:finding:F56:end -->
 
@@ -2031,6 +2072,8 @@ The task's test approach says the script "is a release-time check ... and the re
 #### Discussion
 
 <!-- sq:finding:F58:discussion -->
+- [2026-10-29T12:09:36Z] `tech-writer` Theo Writer:
+  - The releasing-squads skill (SKILL-508), section 1 Gates, now runs `scripts/bench_local_mode.py`: copy `.squads.toml` and `squads/` to `~/.cache/sq-bench/squad`, `--old ~/.local/bin/sq --new "$PWD/.venv/bin/sq" --task <n>`, expect `new/old median` <= 1.0 on show, list and tree, raise anything above with the operator, and post the table as a comment on the release milestone. Smoke-run of that exact command at 8b9dc64b, 3 runs: show 0.751, list 0.705, tree 0.719. A schema-bump release cannot compare (the old build refuses the copy); the step says to record the new build spans then.
 <!-- sq:finding:F58:discussion:end -->
 <!-- sq:finding:F58:end -->
 
@@ -2076,6 +2119,151 @@ If the hook stays, add it to `[tool.vulture] ignore_names` with a one-line reaso
   - Verified on 3ebdf978: drop_type_apps and the module-level _type_app cache are gone (grep over src, tests, conftest.py is empty); the type-app cache is local to _lazy_builders; full suite 1655 passed, pyright 0, ruff clean.
 <!-- sq:finding:F60:discussion:end -->
 <!-- sq:finding:F60:end -->
+
+<!-- sq:finding:F61 -->
+### F61 — Stability Tier 5 says backends self-register on import; the registry is a literal table
+
+<!-- sq:finding:F61:body -->
+`docs/stability.md`, Tier 5 (line 1155): "Backends self-register on import; see backends.md for the registration hook and a worked example." Neither half is true. `src/squads/_backends/_registry.py` is a literal `MappingProxyType` table of the two built-in backends ("A new backend is a row here"); nothing registers on import, and `docs/backends.md` § "Registering one" tells the reader to add a row to that table, not to call a hook.
+
+Fix: "The backends are a literal table in `_registry.py`; see [backends.md § Registering one](backends.md#registering-one) for adding one and a worked example." The writer flagged the line on TASK-1234 but left it. Note for the same paragraph: "the same conformance suite a third-party backend is held to" sits oddly beside a closed table, since a third party adds a backend by editing the package; worth a look while the sentence is open.
+<!-- sq:finding:F61:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F61:discussion -->
+- [2026-10-29T12:26:19Z] `tech-writer` Theo Writer:
+  - Fixed (uncommitted): Tier 5 now says the backends are a literal table in `_backends/_registry.py`, that adding one is a class plus a row there (a change to the package), and links backends.md § "Registering one". The "conformance suite a third-party backend is held to" claim is gone (no such suite under tests/), and "A third-party backend written against the documented seven" reads "A backend …". Checked against `_registry.py` and backends.md.
+- [2026-10-29T12:28:33Z] `reviewer` Paul Reviewer:
+  - Verified at 28fc68cc: Tier 5 now names the literal table in _backends/_registry.py and backends.md Registering one; the seven methods match the 7 abstract methods in _backends/_base.py.
+<!-- sq:finding:F61:discussion:end -->
+<!-- sq:finding:F61:end -->
+
+<!-- sq:finding:F62 -->
+### F62 — Display keys documented as one shape; roster, statuses, sub-entity rows and show's summary differ
+
+<!-- sq:finding:F62:body -->
+`docs/stability.md` Tier 3 "Display keys" describes one `display` content for "every item row, tree and graph node, search hit, sub-entity, roster row and `workflow statuses` row": `type`, `status: {badge, intent}`, `badges`, the assignee's name. The CHANGELOG `display` entry says the same. Measured on a scratch squad with the dev tree:
+
+- `role list --json` row: `display` is `{name, pronouns, live}`: no `type`, `status` or `badges`, and `live` is documented nowhere.
+- `workflow statuses --json` row: `display` is `{intent}` only.
+- sub-entity list rows (`sq task N subtasks --json`) carry no `display.kind`; only the single sub-entity entry does (`kind: {name, label, plural, heading}`). The CHANGELOG says "a sub-entity carries its kind's label, plural and heading"; stability's narrower "on a sub-entity's `show`" is closer.
+- `show --json` `display` carries `summary` (`{kind, columns, rows}`, where `columns` is a list of header strings), undocumented, and it contradicts the stated `columns` shape of `{key, header}` objects.
+- "Role and operator names in it follow `[display] pronouns`": `display.assignee` on an item row is the bare name (`Robert Architect`) with pronouns on or off. Only roster `display.name` and the tree node's `display.pronouns` follow the setting.
+- CHANGELOG: "A table or listing carries `columns`". Under `--json` every listing prints only `items` and drops `columns`, except `dev list` (the one operation with `columns` and no `json_field`). Stability says so; the CHANGELOG does not, so an adopter running `sq list --json` finds no `columns`.
+
+Since the display keys are frozen "once their shape is", the documented key set has to be the emitted one. Fix: state `display` per payload kind (item-like rows, roster rows, statuses rows, sub-entity entry versus row, show's additions including `summary`), and add the HTTP-only caveat for `columns` to the CHANGELOG.
+<!-- sq:finding:F62:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F62:discussion -->
+- [2026-10-29T12:26:22Z] `tech-writer` Theo Writer:
+  - Fixed (uncommitted): stability Tier 3 "Display keys" is now a per-payload table measured on a scratch squad (item row, show incl. `summary` {kind, columns as header strings, rows}, tree node, graph node, sub-entity list row without `kind`, one sub-entity with `kind`/`discussion`, role list {name, pronouns, live}, operator/dev list {name, pronouns}, role/skill/operator show, refs {kind}, workload {assignee}, statuses {intent}); `columns` is its own paragraph saying only `dev list` carries it under --json. CHANGELOG display entry rewritten to match, with the --json caveat for `columns`. Pronouns: only roster `display.name`/`display.pronouns` and the tree node `display.pronouns` are documented as following `[display] pronouns`; `display.assignee` on item rows stays the bare name with pronouns on or off (measured), which I left undocumented as a possible defect against ADR-1224 point 5, for routing.
+- [2026-10-29T12:28:35Z] `reviewer` Paul Reviewer:
+  - Verified at 28fc68cc: every row of the per-payload display table matches the display annotation of its DTO (all 23 DTOs that carry display enumerated); show summary is null on a milestone; dev list is the one --json document with columns. One payload the table leaves out is filed as F67.
+<!-- sq:finding:F62:discussion:end -->
+<!-- sq:finding:F62:end -->
+
+<!-- sq:finding:F63 -->
+### F63 — CHANGELOG lead-badge entry: tree shows the next declared field's badge, not none
+
+<!-- sq:finding:F63:body -->
+CHANGELOG, Changed: "On a type whose override no longer declares `priority`, `sq tree` and `sq graph` show no badge and the Priority cell is empty". This holds only when `priority` was the type's only field. Reproduced: a bundled `bug` (priority high, severity low), with an override that leaves `fields = [{ code = "severity", ... }]`, shows `BUG-23 🟢 low · Bug one` on `sq tree`, which is the severity badge, the first declared field, as the first sentence of the same entry says. The Priority cell is empty, as stated.
+
+`docs/overrides.md` "Where a field's badge shows" states the rule correctly. Fix: drop "show no badge" or narrow it to "show the next declared field's badge, or none".
+<!-- sq:finding:F63:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F63:discussion -->
+- [2026-10-29T12:26:25Z] `tech-writer` Theo Writer:
+  - Fixed (uncommitted): CHANGELOG now says the Priority cell is empty and tree/graph show the next declared field badge, or none when the type declares no other. Reproduced: bug with priority high and severity low, override `[items.bug] fields = [severity]`: tree `BUG-24 🟢 low · Bug one`, list Priority cell empty. overrides.md "Where a field badge shows" had the same "shows none" clause; corrected likewise.
+- [2026-10-29T12:28:38Z] `reviewer` Paul Reviewer:
+  - Verified at 28fc68cc: the CHANGELOG and overrides.md now say the next declared field leads; matches the bug override probe (severity badge shown, Priority cell empty).
+<!-- sq:finding:F63:discussion:end -->
+<!-- sq:finding:F63:end -->
+
+<!-- sq:finding:F64 -->
+### F64 — Provisional write fields list omits nothing_to_clear and view
+
+<!-- sq:finding:F64:body -->
+Stability Tier 3, provisional list: "what the command reports is a field beside it (`severed`, `changed`, `cleared`, `was_present`, `target`, `kind` on `ref add`, `kinds` on `ref rm`)". This reads as the full set, but it omits fields the DTOs emit:
+
+- `nothing_to_clear` on item `update` (`ItemUpdated`) and sub-entity `update` (`SubentityUpdated`); `sq task N update --priority high --json` prints `{entry, nothing_to_clear}`;
+- `view` beside `changed` and `was_present` on `view add` and `view disable` (`ItemViewChanged`);
+
+Provisional or not, the key names are what a client binds to. Fix: list them, or mark the parenthesis "such as" (as the CHANGELOG does) and point at the command reference.
+<!-- sq:finding:F64:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F64:discussion -->
+- [2026-10-29T12:26:27Z] `tech-writer` Theo Writer:
+  - Fixed (uncommitted): the provisional list now has a table of the fields beside `entry`, printed from every `_api/_dto` model with an `entry` field: nothing_to_clear (item/sub-entity update), target+kind (item ref add, skill ref add/rm), target+kinds (item ref rm), old_id/old_status/status_reset/rewritten (retype), view/changed/was_present (view add/disable), severed (role/skill/operator status), changed/cleared (set-default), role (link-role/unlink-role, memory add/forget), prefilled (override scaffold); every other one-resource write answers {entry}. Spot-checked override scaffold, link-role, operator status and view add on the scratch squad.
+- [2026-10-29T12:28:40Z] `reviewer` Paul Reviewer:
+  - Verified at 28fc68cc: the fields-beside-entry table matches every operation whose response has entry (47 enumerated), and every unlisted one answers {entry} alone.
+<!-- sq:finding:F64:discussion:end -->
+<!-- sq:finding:F64:end -->
+
+<!-- sq:finding:F65 -->
+### F65 — CLAUDE.md lists RetypeOpsMixin second while claiming MRO order; it is fourth
+
+<!-- sq:finding:F65:body -->
+CLAUDE.md, `_services/` paragraph: "the concern **mixins** that are the 20 `Service` bases, in MRO order: ... (`ItemWriteOpsMixin` and `RetypeOpsMixin` in `_item_write_ops`, `ItemReadOpsMixin` ..., `RosterOpsMixin` ..., `ItemOpsMixin` ...". `Service.__mro__` (and the class statement in `_services/_service.py`) runs ItemWriteOps, ItemReadOps, RosterOps, **RetypeOps**, ItemOps, SquadStateOps, CorpusOps, then Import ... Views. Grouping the two `_item_write_ops` classes puts `RetypeOpsMixin` second instead of fourth. The count (20), the domain-mixin tail and every module named are right.
+
+Fix: list in MRO order with the module after each name, or drop "in MRO order".
+<!-- sq:finding:F65:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F65:discussion -->
+- [2026-10-29T12:26:30Z] `tech-writer` Theo Writer:
+  - Fixed (uncommitted): CLAUDE.md lists the operation mixins in `Service.__mro__` order, printed from the code: ItemWriteOps (_item_write_ops), ItemReadOps, RosterOps, RetypeOps (_item_write_ops), ItemOps, SquadStateOps, CorpusOps, then the 13 domain mixins.
+- [2026-10-29T12:28:43Z] `reviewer` Paul Reviewer:
+  - Verified at 28fc68cc: the list now runs ItemWriteOps, ItemReadOps, RosterOps, RetypeOps, ItemOps, SquadStateOps, CorpusOps, matching Service.__mro__.
+<!-- sq:finding:F65:discussion:end -->
+<!-- sq:finding:F65:end -->
+
+<!-- sq:finding:F66 -->
+### F66 — CONTRIBUTING.md still describes registration side-effects and wiring commands onto app
+
+<!-- sq:finding:F66:body -->
+The commit brings CLAUDE.md and docs/internals.md onto the operation layer, but CONTRIBUTING.md still describes the removed structure:
+
+- line 72-73: "`_backends/_claude_code/__init__` the registration side-effect": that `__init__` is a one-line docstring, and the backends are a literal table in `_registry.py`;
+- line 162-163, "How to add things", **A command**: "wire it onto `app` in `_cli/__init__`, and route logic through `Service`". A command now builds a request DTO and calls an operation through `_calls.call`; the operation is a row in `_api/_ops.py` bound in `_services/_bindings.py`; a new command group is a `LAZY_GROUPS` row, which `tests/meta/test_lazy_command_groups_match_the_typer_groups.py` holds.
+
+It is contributor-facing, not adopter docs, but it is the page a new contributor follows to add a command. Fix: rewrite both lines to the operation path.
+<!-- sq:finding:F66:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F66:discussion -->
+- [2026-10-29T12:26:32Z] `tech-writer` Theo Writer:
+  - Fixed (uncommitted): CONTRIBUTING.md Conventions now names the backends literal table (no registration on import) and `squads._services._service`; "How to add things / A command" is the operation path: DTOs and the Operation row in `_api/_ops.py` + OPERATIONS, the handler on a `_services/_*_ops.py` mixin bound in `_bindings.py`, the CLI calling `calls.call`/`print_json`/`finish`, top-level commands on `app` in `_main.py`, a new group as a LAZY_GROUPS row held by its tests/meta guard, and its tests/cli cases.
+- [2026-10-29T12:28:45Z] `reviewer` Paul Reviewer:
+  - Verified at 28fc68cc: calls.call, calls.print_json, calls.finish, Operation.grant, the json_field guard, @app.command in _cli/_main.py and LAZY_GROUPS all exist as described; the registration side-effect line is gone.
+<!-- sq:finding:F66:discussion:end -->
+<!-- sq:finding:F66:end -->
+
+<!-- sq:finding:F67 -->
+### F67 — Per-payload display table has no row for add-<kind>, which gains display {item, body_command}
+
+<!-- sq:finding:F67:body -->
+The per-payload `display` table in `docs/stability.md` Tier 3 (added in 28fc68cc) says `display` "holds one of these sets, by payload", but one payload that carries `display` has no row: the answer of `add-<kind>` (`SubentityAdded`, `AddedDisplay`) carries `display: {item, body_command}`. Measured on a scratch squad:
+
+- dev tree: `sq task 22 add-subtask "Three" --json` prints `{local_id, path, region, start_line, end_line, display: {item: "TASK-22", body_command: "sq task 22 subtask ST3 body -m \"…\""}}`;
+- released 0.17.0: the same command prints `{local_id, path, region, start_line, end_line}`, with no `display`.
+
+So `add-<kind>` gains a key in this release, appended last as the rule asks, but neither the table nor the CHANGELOG names it. Smaller point in the same table: a sub-entity `update`'s `entry` carries the "one sub-entity" set (`kind`, `discussion`), not only `<kind> <k> show`. Fix: add an `add-<kind>` row (`item`, `body_command`), and widen the one-sub-entity row to the sub-entity writes' `entry`.
+<!-- sq:finding:F67:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F67:discussion -->
+<!-- sq:finding:F67:discussion:end -->
+<!-- sq:finding:F67:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -2274,4 +2462,8 @@ If the hook stays, add it to `[tool.vulture] ignore_names` with a one-line reaso
       - Headless parity at 06b8982c against 611c505e, with the bundled spec: identical apart from the filter's category order, which the dev reported.
       - The stability doc and changelog lines are not in this commit. They are listed on TASK-1234 for @tech-writer.
       - F25 and F44 stay Open. ST2 still waits for the operator's eye-check. The review stays ChangesRequested.
+- [2026-10-29T12:21:48Z] `reviewer` Paul Reviewer:
+  - - Docs commit 145cd933 (TASK-1234) reviewed against the dev tree on scratch squads. Findings: F61-F66 (1 medium, 5 low). @tech-writer for the docs lines, @tech-lead for disposition.
+    - Verified as stated: `{entry}` on `status`; `{entry, target, kind}` / `{entry, target, kinds}` on `ref add`/`ref rm`; `{override, errors, warnings}` on `workflow lint`; `ui --json` and `workflow --json` exit 2; the 36 `json_field` operations match the Tier 3 list (8 catalogs, `source` for `workflow view`); `dev list` is the one listing that prints `columns`; tree node key order (`display`, `notebook`, `closed`, `updated_at`) and `display.{dimmed, anchor, pronouns}`; graph `display.{edge, edge_label}`; refs `display.kind`; `tree --label` dims ancestors; `[display] pronouns = false` on roster `display.name` and tree `display.pronouns`, with the roster `pronouns` key unchanged; the `display`/`title`/`views`/`extra` refusal texts; a badge field named `display` refused; the attribute `label` on `show`, `display.attributes` and `workflow types --json`; exit 2 for skill/memory with the argument missing; `role catalog` on a malformed toml exits 1 for both outputs; `role show --json` on a missing file exits 1; view render failure exits 0 with the warning; the `sq check` compile finding; removal prompt on stderr with stdout empty; `init --json` under a pty does not prompt; `_spans.py` names and marks; the benchmark flags and runbook steps; every module, guard file, `LAZY_GROUPS`, `check_grant`, `VOCABULARY_FALLBACKS` and `Mode` member CLAUDE.md names. No sq IDs or dev-process text in the added adopter-doc lines.
+    - Not in this review's scope, raised for @qa: `sq workflow view <name> SKILL-2 --json` resolves a wrong-prefix id to whatever item has number 2 (ROLE-2 here), where `sq show SKILL-2` refuses with "SKILL-2 is ROLE-2 (role)". The released 0.17.0 behaves the same, so it is not a regression.
 <!-- sq:discussion:end -->

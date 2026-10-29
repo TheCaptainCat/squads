@@ -522,9 +522,14 @@ review_due = { kind = "date", required = true }
   A role's definition comes from the role catalog and its overrides: its `model`, a developer's
   included, is set in `.overrides/roles/<slug>.toml` or `roles.toml`, and `sq sync` writes a
   developer's onto its role item, the value it runs on.
+- `label` (optional): the name `sq <type> <n> show` prints the attribute under. A labelled
+  attribute that an item stores is shown as one line of the header, in declared order, and on
+  `show --json` as an entry of `display.attributes`, `{key, label, value}`. An attribute without a
+  label is not shown. The bundled milestone declares
+  `target_date = { kind = "date", label = "target date" }`.
 
-`sq workflow types --json` lists each type's attributes with their `kind`, `required` and
-`settable`. The bundled spec declares `target_date` on `milestone`, `target_ref` on `review`,
+`sq workflow types --json` lists each type's attributes with their `kind`, `required`,
+`settable` and `label` (`null` when absent). The bundled spec declares `target_date` on `milestone`, `target_ref` on `review`,
 `tags` and `tech` on `guide`, `is_default`, `model` and `tech` on `role`, and
 `allowed_tools`, `model` and `when_to_use` on `skill`. Add attributes to a bundled type the same
 way, roster types included:
@@ -556,10 +561,12 @@ written until a command that targets that key replaces it.
 
 **What the loader refuses.** An attribute cannot take the name of a core key, of another attribute
 or badge field on the same type, of a key `--json` adds to an item row (`badges`, `body`,
-`discussion`, `matched_subentities`, `views`), or `extra`, `path` or `prefix`:
+`discussion`, `display`, `matched_subentities`, `views`), or `extra`, `path` or `prefix`, and a
+badge field cannot take the name of a key `--json` adds either:
 
 ```
-- 'guide': attribute 'title' is a reserved key — pick another name
+- 'guide': attribute 'title' is a reserved frontmatter key — rename the attribute in the workflow override and in the items that store it
+- 'task': attribute 'display' is a reserved key every --json item row adds — rename the attribute in the workflow override and in the items that store it
 ```
 
 The `role` and `skill` attributes the bundled spec declares are the ones sq writes into each
@@ -1538,6 +1545,13 @@ A field can declare its own `default`, which wins over the collection's:
 `{ code = "risk", label = "Risk", collection = "impact", default = "low" }`. `sq create` stores that
 default for every declared field it is not given a value for; a field with no default on either
 level stays unset. Items that already exist keep what they store.
+
+**Where a field's badge shows.** A badge is shown only for a field the item's type declares, in
+declared order. A line that leads with one badge, such as a `sq tree` or `sq graph` line, shows the
+type's first declared field; the Priority column of `sq list` and `sq mine` shows the declared
+`priority` field. A code an item stores under a field its type no longer declares stays in the
+file and in the `--json` row's own key, and gets no badge: the tree line leads with the first
+field the type still declares, or with no badge, and the table cell is empty.
 
 An item field's `code` cannot be the name of a built-in `sq create` option: `author`, `parent`,
 `desc`, `label`, `ref`, `assignee`, `message`, `file`, `json` or `help`. Such a field is refused
