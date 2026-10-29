@@ -3,7 +3,7 @@ id: TASK-1253
 sequence_id: 1253
 type: task
 title: Derived badge options, request fields and import fronts
-status: Ready
+status: InReview
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -18,26 +18,26 @@ description: create/update/list/tree flags from declared fields, generic request
 subentities:
 - local_id: ST1
   title: Derived flags on create and item update
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: Derived filters on list and tree
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST3
   title: List badge column from the spec
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST4
   title: Derived-flag and import-key collisions
-  status: Todo
+  status: Done
   story: US6
 - local_id: ST5
   title: Import fronts and selectors per declared kind
-  status: Todo
+  status: Done
   story: US3
 created_at: '2026-10-29T19:55:08Z'
-updated_at: '2026-10-29T21:07:38Z'
+updated_at: '2026-10-29T21:32:00Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -180,4 +180,30 @@ Tests (4): `add-<kind>` with field and target-kind keys plus the kind selector o
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T21:31:59Z] `python-dev` Elias Python:
+  - @manager Implemented in the worktree branch `worktree-agent-a7714e69d7a42db55`, commit f6454033 (off origin/release/0.19).
+    
+    Gates: pyright 0 errors, ruff check and format clean, `pytest -n 4 tests/meta tests/cli tests/regressions tests/check` 1742 passed. Each new test was falsified once (break the code, see it red, restore).
+    
+    Adopter-visible changes (draft changelog lines):
+    - BREAKING: the static `--priority`, `--no-priority` and `--min-priority` options are gone. `create`, `<type> <n> update`, `list` and `tree` now take `--<field>` for each declared field (`--<field>`/`--no-<field>` on update, `--min-<field>` on list and tree for an ordered field). A bundled squad still sees `--priority` because it declares a `priority` field; a squad without that field gets "No such option".
+    - A field code with underscores gives a dashed flag (`work_size` is `--work-size`).
+    - `list` and `mine` show one badge column: the first field on an ordered collection, headed by its label, and none when no type declares one.
+    - `--badge`, `--min-badge` and `--sort` name the declared fields when refused; `update --set/--unset` refusals now list the declared badge fields beside the attributes.
+    - `sq import`: `add-<kind>` exists for every declared kind (fields and the target kind's name as top-level keys), the `"<kind>": "<local>"` comment selector exists for every declared kind, an unknown op names the declared `add-<kind>` ops. BREAKING: `add-sub` takes the mapping as `maps_to` (was `story`).
+    - Spec load refuses a field code, target kind or kind whose derived flag or import key equals a fixed option or key of its command or op.
+    
+    Per subtask:
+    - ST1 create and update derive flags (`_cli/_field_options.py`, new); request fields `priority` and `clear_priority` removed; update routes values through `set_attributes`/`unset_attributes`. Tests: derived create/update flags with `--no-`, `--priority` unknown (exit 2), dashed flag for an underscored code, `--severity`/`--no-severity` on a bundled bug.
+    - ST2 list and tree derive `--<code>` and `--min-<code>`. Tests: derived equals generic on list and on tree, generic forms refuse undeclared codes naming `urgency, work_size` (the fixture's declared type fields; `impact` is a kind field, not a filterable item field), bundled `--severity`/`--min-severity`.
+    - ST3 `list_columns(spec)` and `mine_columns(spec)` replace the fixed tuples. Tests: override header is `Urgency`; a squad with no field shows no badge column.
+    - ST4 `_workflow/_derived_names.py` (tables of fixed options and import keys, plus a `tests/meta` guard holding them to the live commands and event models). Tests: `force` and `sort` field codes; a kind field `handle` against the add-<kind> import keys. A code already refused as a reserved key is not reported twice.
+    - ST5 `parse_events` takes the spec and folds `add-<kind>` and the kind selectors to the generic events at parse time; the per-kind event models are gone; per-op counts keep the op the file wrote. Tests: add-<kind> with field and target-kind keys plus the kind selector, unknown op/selector, add-sub with maps_to and fields, create/update with fields/unset_fields.
+    
+    Notes for the merge and follow-ups:
+    - Test infra: the `invoke` fixture now computes reached pairs with the cwd squad's spec bound as the active spec (otherwise a call on the override squad reached nothing); `tests/meta` reference-verbs guard knows the derived update options.
+    - Removed `tests/meta/test_priority_kwarg_goes_through_declared_field_gate.py` (its subject no longer exists) and the two dead allow-list entries in the field-code and kind-literal guards.
+    - Minimal docs edit forced by a guard: `docs/adoption.md` `add-sub` row now lists `maps_to` instead of `story`. The tech writer still owes the import reference (add-<kind> rows are now per declared kind), the `--priority` mentions in docs, and the `--set` refusal text.
+    - Left for TASK-1254: the `story=` keyword of `_add_block_model`/`_add_block_core`/`add_block` (import passes `event.maps_to` to it), sub-entity wire/row keys, the "a initiative" article in `require_settable`'s message, and the `maps_to_parent` target-kind flag registrars (the collision check already covers `--<target-kind>` and `--no-<target-kind>`).
+    - Not touched: TUI/VS Code clients (the TUI filter has no priority read); tree text rendering and `ItemRow.priority`/`severity`/tree node `priority` stay for the wire-shape task.
 <!-- sq:discussion:end -->
