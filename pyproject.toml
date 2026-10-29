@@ -23,18 +23,18 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "typer>=0.12",
-    "pydantic>=2.6",
-    "jinja2>=3.1",
-    "filelock>=3.13",
-    "rich>=13.7",
-    "pyyaml>=6.0",
-    "anyio>=4",
+    "typer>=0.27.3",
+    "pydantic>=2.14.2",
+    "jinja2>=3.1.6",
+    "filelock>=4.2.4",
+    "rich>=15.0.0",
+    "pyyaml>=6.0.3",
+    "anyio>=4.15.1",
     "babel>=2.18",
 ]
 
 [project.optional-dependencies]
-tui = ["textual>=0.29.0"]
+tui = ["textual>=8.2.8"]
 
 [project.scripts]
 squads = "squads.__main__:main"
@@ -47,12 +47,12 @@ Issues = "https://github.com/TheCaptainCat/squads/issues"
 
 [dependency-groups]
 dev = [
-    "pytest>=8.0",
-    "pytest-cov>=5.0",
-    "freezegun>=1.4",
-    "ruff>=0.6",
-    "pyright>=1.1.380",
-    "anyio[trio]>=4.14.0",
+    "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
+    "freezegun>=1.5.5",
+    "ruff>=0.17.3",
+    "pyright>=1.1.414",
+    "anyio[trio]>=4.15.1",
     "vulture>=2.16",
     "pytest-xdist>=3.8.0",
 ]
@@ -91,8 +91,10 @@ line-length = 100
 target-version = "py314"
 src = ["src", "tests"]
 # clients/ is a self-contained TypeScript/Node package with its own gate; a stray
-# .ts/node_modules there must never fail a Python run.
-extend-exclude = ["clients"]
+# .ts/node_modules there must never fail a Python run. squads/ holds sq-managed item files, never
+# reformatted by hand (ruff formats the Python blocks in Markdown); docs/backends.md keeps its
+# signature sketches as written.
+extend-exclude = ["clients", "squads", "docs/backends.md"]
 
 [tool.ruff.lint]
 select = [
@@ -107,7 +109,7 @@ select = [
 # RUF029 (async function without `await`) is a preview rule. `explicit-preview-rules` keeps every
 # other preview rule off, the `RUF` prefix included, but preview also turns on the preview
 # behaviour of already-selected stable rules (F401, F811, SIM102 fixes, ...): none changes the
-# findings at ruff 0.15.16, so re-measure on a ruff bump.
+# findings at ruff 0.17.3, so re-measure on a ruff bump.
 preview = true
 explicit-preview-rules = true
 extend-select = ["RUF029"]
