@@ -22,6 +22,7 @@ Address resolution order (exact match, no fuzzy):
 
 import json
 from pathlib import Path
+from typing import Any
 
 import typer
 from rich.panel import Panel
@@ -341,12 +342,20 @@ async def activate_role(
     )
 
 
+def _read_definition(file: str | None) -> dict[str, Any] | None:
+    """The role definition a ``--file`` names, read as the request's other files are: under the
+    name the command line wrote, ``-`` being stdin."""
+    if file is None:
+        return None
+    return read_role_toml(Path(file), lambda _path: common.read_client_text(file, what="role file"))
+
+
 @role_app.command("add")
 @common.command
 async def add_role(  # noqa: PLR0913 — a flag per definition field
     slug: str = typer.Argument(..., help="Slug to file the new role under."),
     name: str | None = typer.Option(None, "--name", help="Full name of the agent."),
-    file: Path | None = common.file_option(common.ROLE_DEFINITION_FILE_HELP),
+    file: str | None = common.file_option(common.ROLE_DEFINITION_FILE_HELP, metavar="PATH"),
     job_title: str | None = typer.Option(None, "--job-title", help="The role's job title."),
     desc: str | None = common.desc_option(None),
     mission: str | None = typer.Option(None, "--mission", help="What the role is there to do."),
@@ -365,7 +374,7 @@ async def add_role(  # noqa: PLR0913 — a flag per definition field
     """
     svc = get_service()
     await common.apply_edit_actor(as_, svc)
-    definition = read_role_toml(file) if file is not None else None
+    definition = _read_definition(file)
     item = await svc.add_role(
         slug,
         name=name,
@@ -652,7 +661,7 @@ async def update_role(  # noqa: PLR0913 — a flag per role field
         "--can-spawn",
         help="`yes` or `no`: may the role spawn agents (a role that defines itself only).",
     ),
-    file: Path | None = common.file_option(common.ROLE_DELTA_FILE_HELP),
+    file: str | None = common.file_option(common.ROLE_DELTA_FILE_HELP, metavar="PATH"),
     as_: str | None = common.edit_as_option(),
 ) -> None:
     """Edit a role's name, pronouns, model, or a definition it holds itself.
@@ -689,7 +698,7 @@ async def update_role(  # noqa: PLR0913 — a flag per role field
         capabilities=_split_capabilities(capabilities),
         color=color,
         can_spawn=_parse_yes_no("--can-spawn", can_spawn),
-        definition=read_role_toml(file) if file is not None else None,
+        definition=_read_definition(file),
         source=str(file) if file is not None else "the role definition",
     )
     await svc.refresh_managed()

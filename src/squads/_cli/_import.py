@@ -10,7 +10,6 @@ never receive it.
 """
 
 import json
-import sys
 from typing import Any
 
 import typer
@@ -18,18 +17,12 @@ import typer
 import squads._cli._common as common
 from squads._cli import app
 from squads._context import get_context
-from squads._errors import SquadsError
 from squads._services._results import ImportApplyResult, ImportPlan, ImportResult
 
 
 def _read_import_text(file: str) -> str:
     """The JSONL text for *file* (``-`` reads stdin)."""
-    if file == "-":
-        return sys.stdin.read()
-    try:
-        return common.client_path(file).read_text(encoding="utf-8")
-    except OSError as exc:
-        raise SquadsError(f"cannot read import file {file!r}: {exc.strerror or exc}") from exc
+    return common.read_client_text(file, what="import file")
 
 
 def _plan_json(plan: ImportPlan) -> dict[str, Any]:

@@ -11,7 +11,7 @@ refs:
 description: 'CLI tests in-process on the bundled spec: one case per parameter, shared
   registrations tested once, a marker-based coverage guard'
 created_at: '2026-10-27T21:25:41Z'
-updated_at: '2026-10-28T00:37:18Z'
+updated_at: '2026-10-28T19:15:58Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -93,7 +93,7 @@ The guard proves that each pair has a test. It does not prove that the test fail
 
 ### 4. In-process, on a copied squad
 
-Every CLI test runs `sq` in-process through Typer's `CliRunner` (the `runner`/`invoke` fixtures). It runs on its own copy of a squad built once per module (`copy_squad` and the builders in `tests/_squads.py`), under the frozen clock. No test starts a subprocess. A behaviour that is only observable in a separate process, such as the console-script entry point or environment latching at interpreter start, is outside this suite. The autouse fixtures in `tests/conftest.py` stay in force for every test: the context reset, the plain-output environment, the empty starting directory and the item-file write ledger.
+Every CLI test runs `sq` in-process through Typer's `CliRunner` (the `runner`/`invoke` fixtures). It runs on its own copy of a squad built once per module (`copy_squad` and the builders in `tests/_squads.py`), under the frozen clock. No test starts a subprocess. A behaviour that is only observable in a separate process, such as the console-script entry point or environment latching at interpreter start, is outside this suite; it belongs to the cross-process set below. The autouse fixtures in `tests/conftest.py` stay in force for every test: the context reset, the plain-output environment, the empty starting directory and the item-file write ledger.
 
 ### 5. Assert what the user sees
 
@@ -128,9 +128,23 @@ This suite runs against the engine with the bundled workflow spec, playbook and 
 
 Specific regression tests, one per verified bug, are a separate set in `tests/regressions/`. They follow the same rules for execution (rule 4), assertion (rule 5) and naming: each module and test is named for the behaviour the bug broke, never by its ticket. A regression test carries no `covers` marker. It neither counts toward nor replaces surface coverage, and a surface case is not removed because a regression test touches the same parameter. Each one is shown red against the unfixed code before it is kept. Their organisation beyond that is left to when they are written.
 
+### The cross-process set
+
+A behaviour belongs here only when no in-process test can observe it: it needs one process to start, find or outlive another, a signal, or the operating system's own way of spawning a process. Anything an in-process test can observe is tested in-process instead. These behaviours form a small, named set outside the surface suite: each test names the one behaviour it holds, and a behaviour joins only when it meets this condition. The set runs the real `sq` console script against a scratch squad and asserts as rule 5 does: exit code and whole output, state read back through `show --json`. It is named as rule 6 says. It carries no `covers` marker and neither counts toward nor replaces surface coverage. It runs in its own CI job on each OS.
+
+The daemon's members are implicit start, discovery, fall back, no replay after a lost connection, Ctrl-C, and the detached spawn on Windows.
+
+### The daemon's command endpoint
+
+The daemon's documented command endpoint is a surface, but not a (command, parameter) pair. Its tests follow rules 4 to 6: they run in-process, with the daemon's HTTP application served on a thread of the test process against a copied squad; they assert the whole response and read state back through the CLI; and they live in a module named for the endpoint's behaviour. They carry no `covers` marker, because there is no pair for one to name.
+
+### Mode parity
+
+When the CLI answers the same commands in a second mode, currently the daemon's remote mode, parity is held by running this suite again in that mode, selected for the whole run, in its own CI job. Every existing case then asserts the same output in both modes. No case is added for parity.
+
 ### Time bound
 
-Every CI test job runs in under 10 minutes; Windows, running the full suite, in at most 15. A target is met on an OS when every one of at least two runs on that OS is under it. There is no test-count ceiling and no row-budget guard: the time targets are the only bound, and review checks for cross products and duplicated cases.
+Every CI test job runs in under 10 minutes; Windows, running the full suite, in at most 15. A target is met on an OS when every one of at least two runs on that OS is under it. The remote-mode run and the cross-process set are CI test jobs under the same targets; the remote-mode run on Windows runs the full suite, so its bound is 15 minutes. There is no test-count ceiling and no row-budget guard: the time targets are the only bound, and review checks for cross products and duplicated cases.
 
 ## Why
 
@@ -146,6 +160,7 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
 - Adding an option to any command fails the coverage guard until a test declares it. Adding a verb to the builder or a registrar fails nothing per type: one test on the reference host covers it, and the parity guard holds the rest.
 - A new bundled type needs no new surface tests unless it brings a parameter of its own.
 - Override-backed surface runs and the regression set are later work. Their keys and location are fixed here.
+- The daemon adds two CI jobs and no surface cases: the cross-process set on each OS, and the surface suite in remote mode. The coverage guard sees neither the cross-process set nor the endpoint tests, since neither carries a `covers` marker.
 - The guards prove that a case exists, not that it is strong: a vacuous case is still caught by the falsification step and by review.
 
 ## Options considered and rejected
@@ -169,4 +184,6 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
   - Rule 3 clarified per the FEAT-1173 manager decision (comment e4d4615): every leaf is declared (key-only covers for parameterless leaves), keys drop the hidden _addr segment, and the guard carries a shrinking pending list during the build.
 - [2026-10-27T23:51:04Z] `architect` Robert Architect:
   - Rule 5 amended per REV-1198 F14: a test may read the output files its command produces (agent files from init/adopt/sync/roster regen, override files); item files and .squads.json stay CLI-only.
+- [2026-10-28T19:15:58Z] `architect` Robert Architect:
+  - Amended per the op-pierre rulings on FEAT-1140 (a6fcbde, 2026-10-28): rule 4 points out-of-process behaviours to a new "cross-process set" section (what qualifies, small and named, no covers marker, own CI job per OS; the daemon members listed); a "daemon command endpoint" section puts endpoint tests under rules 4-6 without covers markers; a "mode parity" section reruns the suite in remote mode in its own CI job with no new cases; the time bound places both new jobs under the existing targets; Consequences gains the two-jobs line.
 <!-- sq:discussion:end -->

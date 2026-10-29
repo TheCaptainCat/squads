@@ -46,7 +46,7 @@ subentities:
   title: In-process command entry and Ctrl-C
   status: InProgress
 created_at: '2026-10-25T10:47:24Z'
-updated_at: '2026-10-28T18:28:08Z'
+updated_at: '2026-10-28T19:18:00Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -338,4 +338,15 @@ Output parity and the fall back are in US3; `SQUADS_DAEMON` is in US5.
   - Dispatch 2026-10-28 (op-pierre go): TASK-1217 to python-dev; EPIC-29, FEAT-1140 and US1/US10 moved InProgress with it. The architect settles the five open points in ADR-1052 before TASK-1218 starts.
 - [2026-10-28T18:28:08Z] `architect` Robert Architect:
   - @tech-lead the open ADR-1052 points (header, wire encoding, hidden daemon run, dev installs, file table) are decided in the body; the 2026-10-28 architect comment on ADR-1052 lists each with its reason. Two divergences from your recommendations: the header is Squads-Client (no X- prefix, RFC 6648), and the terminal facts gain stream encodings.
+- [2026-10-28T19:11:48Z] `tech-lead` Olivia Lead:
+  - @manager I rewrote the test approaches of TASK-1218, 1219, 1220 and 1222 to ADR-1172 (2026-10-28). Size: about 45 new in-process tests (TASK-1218), about 12 cross-process tests (TASK-1219), no new cases for parity or CI. Five points where ADR-1172 and ADR-1052 do not meet, for the operator or @architect, each with my recommendation:
+    - Cross-process behaviours (implicit start, discovery, lock singleton, idle exit, fall back, no replay, Ctrl-C, Windows spawn) can only be seen across processes. ADR-1172 rule 4 puts them outside its suite but names no home. Recommendation: a small separate set (about 12 tests) that runs the real `sq` console script, asserts as rule 5 does and carries no `covers` markers, in its own CI job per OS (TASK-1220). ADR-1172 should name it.
+    - The command endpoint is a documented surface (US1, US9) but not a CLI pair. Recommendation: endpoint tests under rules 4 to 6 (in-process, copied squad, whole response, state read through `show --json`), with a harness that serves the daemon's HTTP app on a thread of the test process and no `covers` marker.
+    - Parity (ADR-1052 "Parity is tested"). Recommendation: a run-wide remote mode of the `invoke` fixture that sends the existing surface cases through that harness, in its own CI job. No parity cases are added.
+    - The post-commit prompt branch (REV-1223 F6, TASK-1218 ST8) has no surface that reaches it, because every prompting command asks before it writes. Recommendation: build it untested and record on ADR-1052 that the guarded behaviour is "prompts precede writes".
+    - `idle_timeout_minutes` takes whole minutes, so the one idle-exit test waits at least 60 s on each OS. Recommendation: accept that rather than add a hidden seconds setting.
+- [2026-10-28T19:14:07Z] `op-pierre` Pierre Chat:
+  - Rulings on the tech lead's five test questions: (1) cross-process behaviours are a small named set with its own CI job, recorded in ADR-1172; (2) daemon endpoint tests follow ADR-1172 rules 4-6 without covers markers; (3) parity reruns the existing surface suite in remote mode in its own CI job, with no new cases; (4) the post-commit prompt branch is built untested, recorded on ADR-1052; (5) idle exit is not tested.
+- [2026-10-28T19:18:00Z] `tech-lead` Olivia Lead:
+  - Settled: the operator ruling (a6fcbde) and the ADR-1172/ADR-1052 amendments answer my five test questions; TASK-1218, 1219 and 1220 now cite them (about 45 in-process tests, 6 cross-process, none for parity).
 <!-- sq:discussion:end -->

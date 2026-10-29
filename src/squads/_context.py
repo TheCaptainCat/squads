@@ -12,6 +12,7 @@ accessors below; nothing below ``open_service`` reads the ``ContextVar`` directl
 fields are added with a default, so existing call sites and fields are untouched.
 """
 
+from collections.abc import Mapping
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -19,9 +20,23 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    # _context sits below _clock/_actor; _workflow._models sits above them, and a runtime
-    # import here would cycle back to this module mid-init, so it is type-only.
+    from rich.console import Console
+
+    # _context sits below _clock/_actor; _workflow._models and _spec_documents sit above them,
+    # and a runtime import here would cycle back to this module mid-init, so they are type-only.
+    from squads._spec_documents import SpecDocuments
     from squads._workflow._models import WorkflowSpec
+
+
+@dataclass(frozen=True)
+class TerminalFacts:
+    """What the client's terminal looks like: which standard streams are terminals, and its size."""
+
+    stdin_tty: bool = False
+    stdout_tty: bool = False
+    stderr_tty: bool = False
+    columns: int | None = None
+    lines: int | None = None
 
 
 @dataclass(frozen=True)
@@ -41,6 +56,18 @@ class RequestContext:
     #: outside a squad or with no override. Its presence turns every spec-consuming surface into
     #: a refusal, since a spec that failed to load has no honest bundled substitute.
     spec_error: str | None = None
+
+    #: The directory a request starts from; ``None`` means the process directory.
+    start_dir: Path | None = None
+    #: The files a request carries, by the name the command line gives them (``-`` is stdin);
+    #: ``None`` means files are read from the filesystem and stdin from the process.
+    attachments: Mapping[str, bytes] | None = None
+    #: The client's terminal; ``None`` outside a served request.
+    terminal: TerminalFacts | None = None
+    #: The spec documents a long-lived process loaded once.
+    documents: SpecDocuments | None = None
+    #: The stdout and stderr consoles built for this invocation, in that order.
+    consoles: tuple[Console, Console] | None = None
 
 
 _DEFAULT_CONTEXT = RequestContext()

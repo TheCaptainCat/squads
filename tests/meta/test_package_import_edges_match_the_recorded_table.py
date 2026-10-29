@@ -267,6 +267,7 @@ _cli -> _workflow typing
 _cli -> squads local
 _cli -> squads top
 _clock -> _context top
+_context -> _spec_documents typing
 _context -> _workflow typing
 _discussion -> _badges top
 _discussion -> _errors top
@@ -339,6 +340,7 @@ _overrides -> _util top
 _overrides -> _view_tags local
 _overrides -> _workflow top
 _overrides -> squads top
+_paths -> _context top
 _paths -> _errors top
 _paths -> _models top
 _paths -> _workflow top

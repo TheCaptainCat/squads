@@ -36,7 +36,7 @@ async def actors_of(invoke, item_id: str, op: str) -> list[str]:
 
 
 def forced_terminal(monkeypatch) -> None:
-    """Make the shared console behave as a terminal without colour, so rendering that a pipe skips
-    (markdown bodies) runs."""
+    """Make the invocation's console behave as a terminal without colour, so rendering that a pipe
+    skips (markdown bodies) runs."""
     monkeypatch.setenv("TERM", "dumb")
-    monkeypatch.setattr("squads._cli._common.console._force_terminal", True)
+    monkeypatch.setenv("TTY_COMPATIBLE", "1")

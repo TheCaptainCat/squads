@@ -12,6 +12,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from squads._context import get_context
 from squads._errors import InvalidIdError, NotInitializedError, SquadsError
 from squads._models._config import CONFIG_FILENAME, INDEX_FILENAME, LOCK_FILENAME, SquadsConfig
 from squads._models._item import prefix_from_id
@@ -24,9 +25,11 @@ def process_dir() -> Path:
 
 
 def path_from_process_dir(path: Path) -> str:
-    """*path* spelled relative to the process directory, so a command a remedy names with it
-    works from wherever the user runs it (the project root, or under ``-C``)."""
-    return os.path.relpath(path, process_dir())
+    """*path* spelled relative to the directory the command started from (the request's, else the
+    process directory), so a command a remedy names with it works from wherever the user runs it
+    (the project root, or under ``-C``)."""
+    start = get_context().start_dir
+    return os.path.relpath(path, start if start is not None else process_dir())
 
 
 def find_config(start: Path) -> Path | None:

@@ -223,6 +223,7 @@ async def test_show_raw_prints_plain_text_where_a_terminal_gets_a_panel(
 ) -> None:
     short = await _post(invoke, "Findable")
     monkeypatch.setattr(Console, "is_terminal", property(lambda self: True))
+    monkeypatch.setenv("TERM", "dumb")  # a terminal without colour, as the console is built per run
     raw = await _ran(invoke, ["task", str(TASK), "comment", short, "show", "--raw"])
     styled = await _ran(invoke, ["task", str(TASK), "comment", short, "show"])
     assert raw == (
