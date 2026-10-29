@@ -57,7 +57,7 @@ operator_app = typer.Typer(
         (
             "sq operator op-alice show",
             "sq operator 2 remove --purge",
-            "sq operator op-alice status Archived",
+            "sq operator op-alice status <status>",
         ),
         "add, list",
     ),

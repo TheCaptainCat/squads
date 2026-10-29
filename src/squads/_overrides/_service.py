@@ -616,7 +616,7 @@ _PLAYBOOK_SCAFFOLD_BODY = """\
 # Re-stamp after merging:          sq override update playbook
 #
 # In the example below, the first entry appends a guide; the second appends one that also
-# claims the type's create-lane, so `sq create bug --author devops` stops warning.
+# claims the type's create-lane, so `sq create <type> --author devops` stops warning.
 #
 # --- Worked example (uncomment and edit to activate) -------------------------
 #

@@ -79,7 +79,7 @@ skill_app = typer.Typer(
             "sq skill squads show",
             "sq skill 2 regen",
             "sq skill SKILL-2 remove --purge",
-            "sq skill squads status Archived",
+            "sq skill squads status <status>",
             "sq skill squads view disable squads_skill",
         ),
         "add",

@@ -25,9 +25,6 @@ ALLOWLIST: dict[str, frozenset[str]] = {
         # retired-key load/lint check; never mutated after module import
         {"_RETIRED_VIEW_KEY_REASONS"}
     ),
-    "src/squads/_workflow/_lifecycle_order.py": frozenset(
-        {"_SIDE_PRIORITY"}  # fixed side-status sort-priority lookup table
-    ),
     "src/squads/_workflow/_validator_names.py": frozenset(
         {
             "CATEGORY_BUNDLES",  # fixed category -> default-bundle table; the load-time checks

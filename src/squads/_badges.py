@@ -77,16 +77,13 @@ def status_badge(status_value: str, spec: WorkflowSpec) -> str:
     return f"{emoji} {label}".strip()
 
 
-def primary_field_code(kind: str, spec: WorkflowSpec, *, default: str = "severity") -> str:
+def primary_field_code(kind: str, spec: WorkflowSpec) -> str:
     """The first field a sub-entity *kind* (or item type) declares, shown beside its container.
 
-    Templates must not hardcode the code (``'severity'``): a spec that replaces the kind's field
-    (``finding`` to ``impact``) still has a first field. Falls back to *default* only when the
-    kind declares none, as :func:`field_label`/:func:`field_default` do, so the template still
-    renders.
+    Empty when the kind declares none, so a template shows no field line.
     """
     fields = spec.fields_for(kind)
-    return fields[0].code if fields else default
+    return fields[0].code if fields else ""
 
 
 def declared_collection(type_or_kind: str, field_code: str, spec: WorkflowSpec) -> str | None:

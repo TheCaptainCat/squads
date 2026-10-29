@@ -7,6 +7,7 @@
 [selected]
 items = ["role", "skill", "operator", "initiative", "job", "record"]
 subentity_kinds = ["outcome", "action"]
+lifecycles = ["work", "adr", "agent", "subentity", "step"]
 collections = ["urgency", "impact", "size"]
 ref_kinds = ["related", "blocks", "depends-on", "scopes", "replaces"]
 views = ["role_definition", "squads_skill", "greeting_skill", "memory_skill", "item_skill"]

@@ -3,7 +3,7 @@ the columns its table shows."""
 
 import math
 
-from squads._api._dto._display import Column
+from squads._api._dto._display import Column, titled_columns
 from squads._api._dto._workflow import (
     AttributeEntry,
     CollectionBadge,
@@ -181,15 +181,7 @@ def role_catalog(spec: WorkflowSpec) -> StatusRoleCatalog:
         )
         for name, r in sorted(spec.roles.items())
     ]
-    columns = _columns(
-        ("role", "Role"),
-        ("settled", "Settled"),
-        ("hidden", "Hidden"),
-        ("color", "Color"),
-        ("live", "Live"),
-        ("blocked", "Blocked"),
-        ("deferred", "Deferred"),
-    )
+    columns = titled_columns("role", "settled", "hidden", "color", "live", "blocked", "deferred")
     return StatusRoleCatalog(items=rows, columns=columns)
 
 

@@ -51,19 +51,29 @@ def init_full(root: Path) -> None:
     asyncio.run(service.init(root=root, roles_spec="all"))
 
 
-def init_overridden(root: Path, source: Path) -> None:
-    """The `minimal` squad, bundled skills seeded, initialised under the override documents in the
-    directory *source*, stamped as the current release writes them."""
+def init_overridden(
+    root: Path,
+    source: Path,
+    *,
+    roles_spec: str = "minimal",
+    squad_dir: str = "squads",
+    backend: list[str] | None = None,
+) -> None:
+    """A squad, bundled skills seeded, initialised under the override documents in the directory
+    *source*, stamped as the current release writes them; the `minimal` roster unless *roles_spec*
+    says otherwise."""
     from squads import __version__
 
-    overrides = root / "squads" / ".overrides"
+    overrides = root / squad_dir / ".overrides"
     overrides.mkdir(parents=True)
     for document in sorted(source.glob("*.toml")):
         (overrides / document.name).write_text(
             f"# squads:override-base:{__version__}\n" + document.read_text(encoding="utf-8"),
             encoding="utf-8",
         )
-    init_seeded(root)
+    asyncio.run(
+        service.init(root=root, roles_spec=roles_spec, squad_dir=squad_dir, backend=backend)
+    )
 
 
 def restore(template: Path, dest: Path) -> Path:

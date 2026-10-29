@@ -5,7 +5,7 @@ from collections.abc import Mapping
 
 from squads import _badges as badges
 from squads import _discussion as discussion
-from squads._api._dto._display import Column
+from squads._api._dto._display import Column, titled_columns
 from squads._api._dto._graph import GraphNode, GraphNodeDisplay
 from squads._api._dto._items import SubentitySummary
 from squads._api._dto._queues import (
@@ -47,9 +47,7 @@ def mine_columns(spec: WorkflowSpec) -> list[Column]:
 #: The columns of the ``workload`` table.
 WORKLOAD_COLUMNS: tuple[Column, ...] = (
     Column(key="display.assignee", header="Assignee"),
-    Column(key="open", header="Open"),
-    Column(key="closed", header="Closed"),
-    Column(key="total", header="Total"),
+    *titled_columns("open", "closed", "total"),
     Column(key="subentity_open", header="Sub Open"),
     Column(key="subentity_closed", header="Sub Closed"),
     Column(key="subentity_total", header="Sub Total"),

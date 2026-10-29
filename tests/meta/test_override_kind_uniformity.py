@@ -24,6 +24,7 @@ from squads._overrides._manifest import (
 from squads._overrides._service import STATE_DRIFTED, OverrideEntry
 from squads._overrides._stamp import stamp_template_file, stamp_toml_file
 from squads._roles._loader import ROLES_OVERRIDE_FILENAME
+from squads._workflow import bundled_spec
 from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
 from tests._helpers import catalog_of
 
@@ -70,14 +71,22 @@ def _shadowing_path(squad_dir: Path, rel: str) -> Path:
 
 # ─── template ───────────────────────────────────────────────────────────────────
 
-_TEMPLATE_REL = "items/task.md.j2"
+#: The first bundled work type that hosts a sub-entity kind, which the overrides below shadow.
+_SPEC = bundled_spec()
+_TYPE = next(
+    name
+    for name in _SPEC.items
+    if not _SPEC.item_is_roster(name) and _SPEC.item_subentity_kind(name)
+)
+_KIND_PLURAL = _SPEC.subentity_plural(_SPEC.item_subentity_kind(_TYPE) or "")
+_TEMPLATE_REL = f"items/{_TYPE}.md.j2"
 
 
 def _template_shadowing_content() -> str:
     return (
         "<!-- sq:body -->\nCUSTOM_UNIFORMITY_PROBE\n<!-- sq:body:end -->\n\n"
         "<!-- sq:summary -->\n<!-- sq:summary:end -->\n\n"
-        "<!-- sq:subtasks -->\n<!-- sq:subtasks:end -->\n\n"
+        f"<!-- sq:{_KIND_PLURAL} -->\n<!-- sq:{_KIND_PLURAL}:end -->\n\n"
         "## Discussion\n\n<!-- sq:discussion -->\n<!-- sq:discussion:end -->\n"
     )
 
@@ -124,7 +133,7 @@ def _place_role_add_only(squad_dir: Path) -> None:
 
 def _place_workflow_shadowing(squad_dir: Path) -> None:
     path = _shadowing_path(squad_dir, WORKFLOW_OVERRIDE_FILENAME)
-    path.write_text('[items.task]\nfolder = "uniformity-probe-tickets"\n', encoding="utf-8")
+    path.write_text(f'[items.{_TYPE}]\nfolder = "uniformity-probe-tickets"\n', encoding="utf-8")
 
 
 def _place_workflow_add_only(squad_dir: Path) -> None:
@@ -141,7 +150,7 @@ def _place_workflow_add_only(squad_dir: Path) -> None:
 
 def _place_playbook_shadowing(squad_dir: Path) -> None:
     path = _shadowing_path(squad_dir, PLAYBOOK_OVERRIDE_FILENAME)
-    path.write_text('[types.task]\nroles = ["$(*self)"]\n', encoding="utf-8")
+    path.write_text(f'[types.{_TYPE}]\nroles = ["$(*self)"]\n', encoding="utf-8")
 
 
 def _place_playbook_add_only(squad_dir: Path) -> None:

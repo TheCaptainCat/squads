@@ -76,7 +76,7 @@ role_app = typer.Typer(
             "sq role manager show",
             "sq role 1 regen",
             "sq role ROLE-1 remove --purge",
-            "sq role manager status Archived",
+            "sq role manager status <status>",
             "sq role qa set-default",
             "sq role qa view disable role_definition",
         ),

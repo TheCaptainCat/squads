@@ -753,7 +753,7 @@ def reflog(
     item: str | None = typer.Option(
         None,
         "--item",
-        help="Show only entries on this full item ID, such as `TASK-<n>`.",
+        help="Show only entries on this full item ID, such as `<PREFIX>-<n>`.",
         metavar="ID",
     ),
     actor: str | None = typer.Option(
@@ -828,7 +828,7 @@ def reflog(
 @handle_errors
 def show_any(
     item_id: str = typer.Argument(
-        ..., metavar="ID", help="Item ID, such as `FEAT-<n>`, or its bare number."
+        ..., metavar="ID", help="Item ID, such as `<PREFIX>-<n>`, or its bare number."
     ),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the item."),
     raw: bool = common.raw_option(),
