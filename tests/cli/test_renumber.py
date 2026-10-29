@@ -23,6 +23,7 @@ UNCERTIFIED = (
 
 
 @pytest.mark.covers("renumber", "--by")
+@pytest.mark.bundled_only("renumbers items of the bundled types")
 async def test_by_adds_its_value_to_every_number_from_the_lowest_moved(
     populated_project, invoke
 ) -> None:
@@ -41,6 +42,7 @@ async def test_by_adds_its_value_to_every_number_from_the_lowest_moved(
 
 
 @pytest.mark.covers("renumber", "--by")
+@pytest.mark.bundled_only("renumbers items of the bundled types")
 async def test_by_rewrites_the_references_to_a_moved_item(populated_project, invoke) -> None:
     result = await invoke(["renumber", "--from", "2", "--by", "10"])
     assert result.exit_code == 0, result.output
@@ -50,6 +52,7 @@ async def test_by_rewrites_the_references_to_a_moved_item(populated_project, inv
 
 
 @pytest.mark.covers("renumber", "--by")
+@pytest.mark.bundled_only("renumbers items of the bundled types")
 async def test_by_moves_the_scaffolded_hints_to_the_new_numbers(populated_project, invoke) -> None:
     result = await invoke(["renumber", "--from", "2", "--by", "10"])
     assert result.exit_code == 0, result.output
@@ -68,6 +71,7 @@ async def test_by_moves_the_scaffolded_hints_to_the_new_numbers(populated_projec
 
 
 @pytest.mark.covers("renumber", "--by")
+@pytest.mark.bundled_only("renumbers items of the bundled types")
 async def test_by_refuses_an_offset_that_does_not_clear_the_branch_counter(
     populated_project, invoke
 ) -> None:
@@ -82,6 +86,7 @@ async def test_by_refuses_an_offset_that_does_not_clear_the_branch_counter(
 
 
 @pytest.mark.covers("renumber", "--onto")
+@pytest.mark.bundled_only("renumbers items of the bundled types")
 async def test_onto_moves_the_items_from_the_lowest_just_past_the_other_counter(
     populated_project, invoke
 ) -> None:
@@ -99,6 +104,7 @@ async def test_onto_moves_the_items_from_the_lowest_just_past_the_other_counter(
 
 
 @pytest.mark.covers("renumber", "--json")
+@pytest.mark.bundled_only("renumbers items of the bundled types")
 async def test_renumber_json_prints_the_items_moved_and_the_counter(
     populated_project, invoke
 ) -> None:
@@ -130,6 +136,7 @@ async def test_onto_reports_when_no_item_is_at_or_above_from(populated_project, 
 
 
 @pytest.mark.covers("renumber", "--onto", "--by")
+@pytest.mark.bundled_only("renumbers items of the bundled types")
 async def test_onto_refuses_by(populated_project, invoke) -> None:
     result = await invoke(["renumber", "--from", "2", "--onto", "9", "--by", "3"])
     assert (result.exit_code, result.output) == (2, BOTH_OR_NEITHER)

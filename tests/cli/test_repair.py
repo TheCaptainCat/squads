@@ -29,6 +29,7 @@ def _add_twin_numbered_two(squad_dir: Path) -> None:
 
 
 @pytest.mark.covers("repair")
+@pytest.mark.bundled_only("repairs items of the bundled types")
 async def test_repair_rebuilds_a_lost_index_from_the_item_files(populated_project, invoke) -> None:
     (populated_project.squad_dir / ".squads.json").unlink()
     result = await invoke(["repair"])
@@ -42,6 +43,7 @@ async def test_repair_rebuilds_a_lost_index_from_the_item_files(populated_projec
 
 
 @pytest.mark.covers("repair")
+@pytest.mark.bundled_only("repairs items of the bundled types")
 async def test_repair_names_an_indexed_item_whose_file_is_gone_and_keeps_the_counter(
     populated_project, invoke
 ) -> None:
@@ -56,6 +58,7 @@ async def test_repair_names_an_indexed_item_whose_file_is_gone_and_keeps_the_cou
 
 
 @pytest.mark.covers("repair", "--json")
+@pytest.mark.bundled_only("repairs items of the bundled types")
 async def test_repair_json_prints_what_the_rebuild_found(populated_project, invoke) -> None:
     (populated_project.squad_dir / "tasks/TASK-000009-broken.md").write_text(
         "---\n: : bad\n", encoding="utf-8"
@@ -82,6 +85,7 @@ async def test_repair_json_prints_what_the_rebuild_found(populated_project, invo
 
 
 @pytest.mark.covers("repair", "--renumber")
+@pytest.mark.bundled_only("repairs items of the bundled types")
 async def test_renumber_gives_a_shared_number_a_new_one(populated_project, invoke) -> None:
     _add_twin_numbered_two(populated_project.squad_dir)
     result = await invoke(["repair", "--renumber"])
@@ -94,6 +98,7 @@ async def test_renumber_gives_a_shared_number_a_new_one(populated_project, invok
 
 
 @pytest.mark.covers("repair")
+@pytest.mark.bundled_only("repairs items of the bundled types")
 async def test_repair_refuses_two_ids_that_share_a_number_and_keeps_the_index(
     populated_project, invoke
 ) -> None:
@@ -110,6 +115,7 @@ async def test_repair_refuses_two_ids_that_share_a_number_and_keeps_the_index(
 
 
 @pytest.mark.covers("repair", "--renumber")
+@pytest.mark.bundled_only("repairs items of the bundled types")
 async def test_renumber_refuses_an_id_two_files_carry_to_be_merged_by_hand(
     populated_project, invoke
 ) -> None:
@@ -127,6 +133,7 @@ async def test_renumber_refuses_an_id_two_files_carry_to_be_merged_by_hand(
 
 
 @pytest.mark.covers("repair")
+@pytest.mark.bundled_only("repairs items of the bundled types")
 async def test_repair_refuses_a_same_id_pair_a_renumber_resolves_before_writing(
     populated_project, invoke
 ) -> None:
@@ -148,6 +155,7 @@ async def test_repair_refuses_a_same_id_pair_a_renumber_resolves_before_writing(
 
 
 @pytest.mark.covers("repair", "--json")
+@pytest.mark.bundled_only("repairs items of the bundled types")
 async def test_renumber_json_lists_each_moved_file_and_each_reference_left(
     populated_project, invoke
 ) -> None:
@@ -190,6 +198,7 @@ async def test_renumber_json_lists_each_moved_file_and_each_reference_left(
 
 
 @pytest.mark.covers("repair", "--json")
+@pytest.mark.bundled_only("repairs items of the bundled types")
 async def test_renumber_json_names_the_moved_file_that_holds_a_reference(
     populated_project, invoke
 ) -> None:

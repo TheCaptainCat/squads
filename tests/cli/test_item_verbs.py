@@ -163,7 +163,8 @@ async def test_update_moves_the_task_under_another_parent(populated_project, inv
     out = await _ran(invoke, [P.ref, str(loose), "update", "--parent", str(other)])
     assert out == (
         0,
-        f"updated {P.ref_prefix}-{loose}  {P.ref_folder}/{P.ref_prefix}-00000{loose}-loose-end.md\n",
+        f"updated {P.ref_prefix}-{loose}  "
+        f"{P.ref_folder}/{P.ref_prefix}-00000{loose}-loose-end.md\n",
     )
     assert (await _show(invoke, loose))["parent"] == f"{P.host_prefix}-{other}"
 
@@ -175,7 +176,8 @@ async def test_update_refuses_a_parent_that_lacks_the_story_a_subtask_maps_to(
     other = await _create_feature(invoke)
     assert await _ran(invoke, [P.ref, str(TASK), "update", "--parent", str(other)]) == (
         1,
-        f"error: {P.kind} {P.kind_prefix}1 maps to {P.target_kind} {P.target_prefix}1, missing from {P.host_prefix}-{other}\n",
+        f"error: {P.kind} {P.kind_prefix}1 maps to {P.target_kind} {P.target_prefix}1, missing "
+        f"from {P.host_prefix}-{other}\n",
     )
 
 
@@ -193,7 +195,8 @@ async def test_update_clears_the_parent(populated_project, invoke) -> None:
     out = await _ran(invoke, [P.ref, str(loose), "update", "--no-parent"])
     assert out == (
         0,
-        f"updated {P.ref_prefix}-{loose}  {P.ref_folder}/{P.ref_prefix}-00000{loose}-loose-end.md\n",
+        f"updated {P.ref_prefix}-{loose}  "
+        f"{P.ref_folder}/{P.ref_prefix}-00000{loose}-loose-end.md\n",
     )
     assert (await _show(invoke, loose))["parent"] is None
 
@@ -204,7 +207,8 @@ async def test_update_refuses_to_clear_the_parent_a_mapped_subtask_needs(
 ) -> None:
     assert await _ran(invoke, [P.ref, str(TASK), "update", "--no-parent"]) == (
         1,
-        f"error: {P.kind} maps to {P.target_kind} sub-entities but {P.ref_prefix}-3 has no {P.host} parent\n",
+        f"error: {P.kind} maps to {P.target_kind} sub-entities but {P.ref_prefix}-3 has no "
+        f"{P.host} parent\n",
     )
 
 
@@ -234,31 +238,34 @@ async def test_update_clears_the_assignee(populated_project, invoke) -> None:
 
 @pytest.mark.covers("<type> update", "--<field>")
 async def test_update_sets_the_priority(populated_project, invoke) -> None:
-    out = await _ran(invoke, [P.ref, str(TASK), "update", "--priority", "high"])
+    out = await _ran(invoke, [P.ref, str(TASK), "update", P.badge_flag, P.badge_value])
     assert out == (0, f"updated {P.ref_prefix}-3  {TASK_PATH}\n")
-    assert (await _show(invoke))["priority"] == "high"
+    assert (await _show(invoke))[P.badge] == P.badge_value
 
 
 @pytest.mark.covers("<type> update", "--<field>")
 async def test_update_refuses_a_priority_outside_the_declared_ones(
     populated_project, invoke
 ) -> None:
-    assert await _ran(invoke, [P.ref, str(TASK), "update", "--priority", "soon"]) == (
+    assert await _ran(invoke, [P.ref, str(TASK), "update", P.badge_flag, "soon"]) == (
         1,
-        "error: invalid priority 'soon' (one of: urgent, high, medium, low)\n",
+        f"error: invalid {P.badge} 'soon' (one of: {P.badge_codes})\n",
     )
 
 
 @pytest.mark.covers("<type> update", "--no-<field>")
 async def test_update_clears_the_priority(populated_project, invoke) -> None:
-    await _ok(invoke, [P.ref, str(TASK), "update", "--priority", "high"])
-    out = await _ran(invoke, [P.ref, str(TASK), "update", "--no-priority"])
+    await _ok(invoke, [P.ref, str(TASK), "update", P.badge_flag, P.badge_value])
+    out = await _ran(invoke, [P.ref, str(TASK), "update", P.no_badge_flag])
     assert out == (0, f"updated {P.ref_prefix}-3  {TASK_PATH}\n")
-    assert "priority" not in await _show(invoke)
+    assert P.badge not in await _show(invoke)
 
 
 @pytest.mark.covers("<type> update", "--<field>")
 @pytest.mark.covers("<type> update", "--no-<field>")
+@pytest.mark.bundled_only(
+    "the case declares a field on the bundled bug type or restates bundled fields"
+)
 async def test_update_sets_and_clears_a_field_only_some_types_declare(
     populated_project, invoke
 ) -> None:
@@ -274,7 +281,7 @@ async def test_update_sets_and_clears_a_field_only_some_types_declare(
             f"{P.ref} N update [OPTIONS]",
             f"{P.ref} N update",
             "--severity",
-            " ('(Possible options: --priority, --set)',)",
+            f" ('(Possible options: {P.badge_flag}, --set)',)",
         ),
     )
 
@@ -307,33 +314,33 @@ async def test_update_refuses_an_empty_priority_even_beside_another_change(
     populated_project, invoke
 ) -> None:
     assert await _ran(
-        invoke, [P.ref, str(TASK), "update", "--priority", "", "--title", "Renamed"]
-    ) == (1, "error: invalid priority '' (one of: urgent, high, medium, low)\n")
+        invoke, [P.ref, str(TASK), "update", P.badge_flag, "", "--title", "Renamed"]
+    ) == (1, f"error: invalid {P.badge} '' (one of: {P.badge_codes})\n")
 
 
 @pytest.mark.covers("<type> update", "--<field>", "--no-<field>")
 @pytest.mark.covers("<type> update", "--set")
 async def test_update_logs_each_badge_change_in_the_reflog_delta(populated_project, invoke) -> None:
-    await _ok(invoke, [P.ref, str(TASK), "update", "--priority", "high"])
-    await _ok(invoke, [P.ref, str(TASK), "update", "--set", "priority=low"])
-    await _ok(invoke, [P.ref, str(TASK), "update", "--no-priority"])
+    await _ok(invoke, [P.ref, str(TASK), "update", P.badge_flag, P.badge_value])
+    await _ok(invoke, [P.ref, str(TASK), "update", "--set", f"{P.badge}={P.badge_other_value}"])
+    await _ok(invoke, [P.ref, str(TASK), "update", P.no_badge_flag])
     entries = json.loads(
         await _ok(
             invoke, ["reflog", "--item", f"{P.ref_prefix}-{TASK}", "--op", "update", "--json"]
         )
     )
     assert [e["delta"] for e in entries] == [
-        {"priority": "high"},
-        {"priority": "low"},
-        {"priority": None},
+        {P.badge: P.badge_value},
+        {P.badge: P.badge_other_value},
+        {P.badge: None},
     ]
 
 
 @pytest.mark.covers("<type> update", "--<field>", "--no-<field>")
 async def test_update_refuses_a_flag_and_its_negation_together(populated_project, invoke) -> None:
     assert await _ran(
-        invoke, [P.ref, str(TASK), "update", "--priority", "high", "--no-priority"]
-    ) == (1, "error: use either --priority or --no-priority, not both\n")
+        invoke, [P.ref, str(TASK), "update", P.badge_flag, P.badge_value, P.no_badge_flag]
+    ) == (1, f"error: use either {P.badge_flag} or {P.no_badge_flag}, not both\n")
 
 
 @pytest.mark.covers("<type> update", "--add-label")
@@ -366,12 +373,17 @@ async def test_update_removes_a_label(populated_project, invoke) -> None:
 
 @pytest.mark.covers("<type> update", "--set")
 async def test_update_sets_a_declared_attribute(populated_project, invoke) -> None:
-    out = await _ran(invoke, [P.ref, str(TASK), "update", "--set", "priority=low"])
+    out = await _ran(
+        invoke, [P.ref, str(TASK), "update", "--set", f"{P.badge}={P.badge_other_value}"]
+    )
     assert out == (0, f"updated {P.ref_prefix}-3  {TASK_PATH}\n")
-    assert (await _show(invoke))["priority"] == "low"
+    assert (await _show(invoke))[P.badge] == P.badge_other_value
 
 
 @pytest.mark.covers("<type> update", "--set")
+@pytest.mark.bundled_only(
+    "the case declares a field on the bundled bug type or restates bundled fields"
+)
 async def test_update_stores_a_field_an_override_declares_under_its_code(
     populated_project, invoke
 ) -> None:
@@ -379,50 +391,56 @@ async def test_update_stores_a_field_an_override_declares_under_its_code(
     overrides.mkdir()
     (overrides / "workflow.toml").write_text(
         f"# squads:override-base:0.19.0\n[items.{P.ref}]\nfields = [\n"
-        '  { code = "urgency", label = "Urgency", collection = "priority" },\n]\n',
+        f'  {{ code = "urgency", label = "Urgency", collection = "{P.badge}" }},\n]\n',
         encoding="utf-8",
     )
-    await _ok(invoke, [P.ref, str(TASK), "update", "--set", "urgency=high"])
+    await _ok(invoke, [P.ref, str(TASK), "update", "--set", f"urgency={P.badge_value}"])
 
     shown = await _show(invoke)
-    assert shown["urgency"] == "high"
-    assert shown["badges"] == {"urgency": "high"}
+    assert shown["urgency"] == P.badge_value
+    assert shown["badges"] == {"urgency": P.badge_value}
     assert shown["display"]["badges"]["urgency"]["label"] == "Urgency"
 
 
 @pytest.mark.covers("<type> update", "--set")
 async def test_update_refuses_a_set_that_is_not_key_equals_value(populated_project, invoke) -> None:
-    assert await _ran(invoke, [P.ref, str(TASK), "update", "--set", "priority"]) == (
+    assert await _ran(invoke, [P.ref, str(TASK), "update", "--set", P.badge]) == (
         1,
-        "error: --set expects key=value, got 'priority'\n",
+        f"error: --set expects key=value, got '{P.badge}'\n",
     )
 
 
 @pytest.mark.covers("<type> update", "--set")
+@pytest.mark.bundled_only(
+    "the case declares a field on the bundled bug type or restates bundled fields"
+)
 async def test_update_refuses_to_set_an_attribute_the_type_does_not_declare(
     populated_project, invoke
 ) -> None:
     assert await _ran(invoke, [P.ref, str(TASK), "update", "--set", "colour=red"]) == (
         1,
-        f"error: 'colour' is not a settable field of {P.ref} items; valid: priority\n",
+        f"error: 'colour' is not a settable field of {P.ref} items; valid: {P.badge}\n",
     )
 
 
 @pytest.mark.covers("<type> update", "--unset")
 async def test_update_unsets_a_declared_attribute(populated_project, invoke) -> None:
-    await _ok(invoke, [P.ref, str(TASK), "update", "--priority", "high"])
-    out = await _ran(invoke, [P.ref, str(TASK), "update", "--unset", "priority"])
+    await _ok(invoke, [P.ref, str(TASK), "update", P.badge_flag, P.badge_value])
+    out = await _ran(invoke, [P.ref, str(TASK), "update", "--unset", P.badge])
     assert out == (0, f"updated {P.ref_prefix}-3  {TASK_PATH}\n")
-    assert "priority" not in await _show(invoke)
+    assert P.badge not in await _show(invoke)
 
 
 @pytest.mark.covers("<type> update", "--unset")
+@pytest.mark.bundled_only(
+    "the case declares a field on the bundled bug type or restates bundled fields"
+)
 async def test_update_refuses_to_unset_an_attribute_the_type_does_not_declare(
     populated_project, invoke
 ) -> None:
     assert await _ran(invoke, [P.ref, str(TASK), "update", "--unset", "colour"]) == (
         1,
-        f"error: 'colour' is not a settable field of {P.ref} items; valid: priority\n",
+        f"error: 'colour' is not a settable field of {P.ref} items; valid: {P.badge}\n",
     )
 
 
@@ -465,8 +483,10 @@ async def test_update_refuses_assignee_with_clear_assignee(populated_project, in
 
 @pytest.mark.covers("<type> update", "--<field>", "--no-<field>")
 async def test_update_refuses_priority_with_no_priority(populated_project, invoke) -> None:
-    out = await _ran(invoke, [P.ref, str(TASK), "update", "--priority", "high", "--no-priority"])
-    assert out == (1, "error: use either --priority or --no-priority, not both\n")
+    out = await _ran(
+        invoke, [P.ref, str(TASK), "update", P.badge_flag, P.badge_value, P.no_badge_flag]
+    )
+    assert out == (1, f"error: use either {P.badge_flag} or {P.no_badge_flag}, not both\n")
 
 
 @pytest.mark.covers("<type> update", "--add-label", "--rm-label")
@@ -488,10 +508,18 @@ async def test_update_unsets_an_attribute_that_is_set_and_unset_in_one_call(
 ) -> None:
     out = await _ran(
         invoke,
-        [P.ref, str(TASK), "update", "--set", "priority=low", "--unset", "priority"],
+        [
+            P.ref,
+            str(TASK),
+            "update",
+            "--set",
+            f"{P.badge}={P.badge_other_value}",
+            "--unset",
+            P.badge,
+        ],
     )
     assert out == (0, f"updated {P.ref_prefix}-3  {TASK_PATH}\n")
-    assert "priority" not in await _show(invoke)
+    assert P.badge not in await _show(invoke)
 
 
 # --- show -----------------------------------------------------------------------------------
@@ -547,6 +575,7 @@ def _subtask_json(local_id: str, title: str, story: str | None) -> dict[str, Any
 
 
 @pytest.mark.covers("<type> show", "--json")
+@pytest.mark.bundled_only("the rendered panes carry the bundled type's fields and placeholder text")
 async def test_show_json_prints_the_item_as_one_object(populated_project, invoke) -> None:
     body = f"## Description\n\n_TODO: describe this {P.ref}._"
     expected = {
@@ -576,7 +605,7 @@ async def test_show_json_prints_the_item_as_one_object(populated_project, invoke
         "discussion": [],
         "badges": {},
         "display": {
-            "type": "Task",
+            "type": P.ref_label,
             "status": {"badge": "⚪ Draft", "intent": "neutral"},
             "badges": {},
             "assignee": None,
@@ -618,6 +647,9 @@ async def _milestone_with_a_target_date(invoke) -> None:
 
 
 @pytest.mark.covers("<type> show")
+@pytest.mark.bundled_only(
+    "the declared attribute and the view belong to the bundled milestone type"
+)
 async def test_show_prints_a_declared_attribute_under_its_label(populated_project, invoke) -> None:
     await _milestone_with_a_target_date(invoke)
     shown = await _ok(invoke, ["milestone", str(MILESTONE), "show"])
@@ -662,6 +694,9 @@ async def test_show_prints_a_declared_attribute_under_its_label(populated_projec
 
 
 @pytest.mark.covers("<type> show", "--json")
+@pytest.mark.bundled_only(
+    "the declared attribute and the view belong to the bundled milestone type"
+)
 async def test_show_json_lists_a_declared_attribute_with_its_label(
     populated_project, invoke
 ) -> None:
@@ -705,6 +740,9 @@ async def test_show_json_lists_a_declared_attribute_with_its_label(
 
 
 @pytest.mark.covers("<type> show", "--raw")
+@pytest.mark.bundled_only(
+    "the declared attribute and the view belong to the bundled milestone type"
+)
 async def test_show_raw_prints_a_declared_attribute_under_its_label(
     populated_project, invoke
 ) -> None:
@@ -733,6 +771,7 @@ async def test_show_raw_prints_plain_markdown(populated_project, invoke) -> None
 
 
 @pytest.mark.covers("<type> show", "--full")
+@pytest.mark.bundled_only("the rendered panes carry the bundled type's fields and placeholder text")
 async def test_show_full_adds_one_pane_per_subtask(populated_project, invoke) -> None:
     out = await _ran(invoke, [P.ref, str(TASK), "show", "--full"])
     assert out == (
@@ -753,6 +792,7 @@ async def test_show_full_adds_one_pane_per_subtask(populated_project, invoke) ->
 
 
 @pytest.mark.covers("<type> show", "--comments")
+@pytest.mark.bundled_only("the rendered panes carry the bundled type's fields and placeholder text")
 async def test_show_comments_appends_the_discussion(populated_project, invoke) -> None:
     await _ok(invoke, [P.ref, str(TASK), "comment", "-m", "Looks good", "--as", "manager"])
     short = json.loads(await _ok(invoke, [P.ref, str(TASK), "comments", "--json"]))[0]["short_hash"]
@@ -867,7 +907,7 @@ async def test_status_json_prints_the_moved_items_row(populated_project, invoke)
                     "id": f"{P.ref_prefix}-3",
                     "badges": {},
                     "display": {
-                        "type": "Task",
+                        "type": P.ref_label,
                         "status": {"badge": "⚪ Ready", "intent": "neutral"},
                         "badges": {},
                         "assignee": None,
@@ -994,6 +1034,7 @@ async def test_body_refuses_an_actor_no_roster_entry_has(populated_project, invo
 
 
 @pytest.mark.covers("<type> retype", "NEW-TYPE")
+@pytest.mark.bundled_only("retype moves between the bundled types and names them")
 async def test_retype_reclassifies_the_item_and_keeps_its_number(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     out = await _ran(invoke, [P.ref, str(loose), "retype", "bug"])
@@ -1007,6 +1048,7 @@ async def test_retype_reclassifies_the_item_and_keeps_its_number(populated_proje
 
 
 @pytest.mark.covers("<type> retype", "NEW-TYPE")
+@pytest.mark.bundled_only("retype moves between the bundled types and names them")
 async def test_retype_refuses_an_item_that_holds_sub_entities(populated_project, invoke) -> None:
     assert await _ran(invoke, [P.ref, str(TASK), "retype", "bug"]) == (
         1,
@@ -1025,6 +1067,7 @@ async def test_retype_refuses_the_type_the_item_already_has(populated_project, i
 
 
 @pytest.mark.covers("<type> retype", "NEW-TYPE")
+@pytest.mark.bundled_only("retype moves between the bundled types and names them")
 async def test_retype_refuses_a_roster_type(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     assert await _ran(invoke, [P.ref, str(loose), "retype", "role"]) == (
@@ -1035,16 +1078,19 @@ async def test_retype_refuses_a_roster_type(populated_project, invoke) -> None:
 
 
 @pytest.mark.covers("<type> retype", "NEW-TYPE")
+@pytest.mark.bundled_only("retype moves between the bundled types and names them")
 async def test_retype_refuses_a_type_the_spec_does_not_declare(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     assert await _ran(invoke, [P.ref, str(loose), "retype", P.target_kind]) == (
         1,
-        f"error: unknown type '{P.target_kind}' (one of: bug, contract, decision, epic, {P.host}, guide, "
+        f"error: unknown type '{P.target_kind}' (one of: bug, contract, decision, epic, {P.host}, "
+        f"guide, "
         f"milestone, operator, {P.third}, role, skill, {P.ref})\n",
     )
 
 
 @pytest.mark.covers("<type> retype", "--as")
+@pytest.mark.bundled_only("retype moves between the bundled types and names them")
 async def test_retype_attributes_the_edit_to_the_named_slug(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     await _ok(invoke, [P.ref, str(loose), "retype", "bug", "--as", "manager"])
@@ -1052,6 +1098,7 @@ async def test_retype_attributes_the_edit_to_the_named_slug(populated_project, i
 
 
 @pytest.mark.covers("<type> retype", "--as")
+@pytest.mark.bundled_only("retype moves between the bundled types and names them")
 async def test_retype_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     assert await _ran(invoke, [P.ref, str(loose), "retype", "bug", "--as", "ghost"]) == (
@@ -1152,17 +1199,20 @@ async def test_ref_add_refuses_a_target_that_is_not_an_item_id(populated_project
 
 @pytest.mark.covers("<type> ref add", "--kind")
 async def test_ref_add_kind_names_the_relation(populated_project, invoke) -> None:
-    out = await _ran(invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW), "--kind", "fixes"])
-    assert out == (0, f"{P.ref_prefix}-3 → {P.third_prefix}-{REVIEW} (fixes)\n")
-    assert (await _show(invoke))["refs"] == [f"{P.third_prefix}-{REVIEW}:fixes"]
+    out = await _ran(
+        invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW), "--kind", P.ref_kind_one]
+    )
+    assert out == (0, f"{P.ref_prefix}-3 → {P.third_prefix}-{REVIEW} ({P.ref_kind_one})\n")
+    assert (await _show(invoke))["refs"] == [f"{P.third_prefix}-{REVIEW}:{P.ref_kind_one}"]
 
 
 @pytest.mark.covers("<type> ref add", "--kind")
+@pytest.mark.bundled_only("the listing and the tables follow the bundled ref kinds")
 async def test_ref_add_refuses_a_kind_the_spec_does_not_declare(populated_project, invoke) -> None:
     assert await _ran(invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW), "--kind", "likes"]) == (
         1,
-        "error: unknown ref kind 'likes'. Valid kinds: addresses, blocks, depends-on, "
-        "duplicates, fixes, implements, related, scopes, supersedes, targets\n",
+        f"error: unknown ref kind 'likes'. Valid kinds: {P.ref_kind_two}, blocks, depends-on, "
+        f"duplicates, {P.ref_kind_one}, implements, related, scopes, supersedes, targets\n",
     )
 
 
@@ -1181,7 +1231,7 @@ async def test_ref_add_refuses_an_actor_no_roster_entry_has(populated_project, i
 
 @pytest.mark.covers("<type> ref rm", "TARGET")
 async def test_ref_rm_drops_every_ref_to_the_target(populated_project, invoke) -> None:
-    await _ok(invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW), "--kind", "fixes"])
+    await _ok(invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW), "--kind", P.ref_kind_one])
     await _ok(invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW), "--kind", "related"])
     await _ok(invoke, [P.ref, str(TASK), "ref", "add", str(FEATURE)])
     out = await _ran(invoke, [P.ref, str(TASK), "ref", "rm", f"{P.third_prefix}-{REVIEW}"])
@@ -1222,54 +1272,62 @@ async def test_ref_rm_refuses_an_actor_no_roster_entry_has(populated_project, in
 
 
 @pytest.mark.covers("<type> refs", "--out")
+@pytest.mark.bundled_only("the listing and the tables follow the bundled ref kinds")
 async def test_refs_out_lists_the_refs_the_item_carries(populated_project, invoke) -> None:
-    await _ok(invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW), "--kind", "fixes"])
+    await _ok(invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW), "--kind", P.ref_kind_one])
     await _ok(invoke, [P.third, str(REVIEW), "ref", "add", str(FEATURE)])
     out = await _ran(invoke, [P.ref, str(TASK), "refs", "--out"])
-    assert out == (0, f"→ refs      \nID     Kind \nREV-{REVIEW}  fixes\n")
+    assert out == (0, f"→ refs      \nID     Kind \nREV-{REVIEW}  {P.ref_kind_one}\n")
 
 
 @pytest.mark.covers("<type> refs", "--out", "--in")
+@pytest.mark.bundled_only("the listing and the tables follow the bundled ref kinds")
 async def test_refs_out_with_in_lists_both_directions(populated_project, invoke) -> None:
-    await _ok(invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW), "--kind", "fixes"])
-    await _ok(invoke, [P.third, str(REVIEW), "ref", "add", str(TASK), "--kind", "addresses"])
+    await _ok(invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW), "--kind", P.ref_kind_one])
+    await _ok(invoke, [P.third, str(REVIEW), "ref", "add", str(TASK), "--kind", P.ref_kind_two])
     out = await _ran(invoke, [P.ref, str(TASK), "refs", "--out", "--in"])
     assert out == (
         0,
-        f"→ refs      \nID     Kind \nREV-{REVIEW}  fixes\n"
-        f"← backrefs      \nID     Kind     \nREV-{REVIEW}  addresses\n",
+        f"→ refs      \nID     Kind \nREV-{REVIEW}  {P.ref_kind_one}\n"
+        f"← backrefs      \nID     Kind     \nREV-{REVIEW}  {P.ref_kind_two}\n",
     )
 
 
 @pytest.mark.covers("<type> refs", "--in")
+@pytest.mark.bundled_only("the listing and the tables follow the bundled ref kinds")
 async def test_refs_in_lists_the_refs_other_items_carry_to_it(populated_project, invoke) -> None:
     await _ok(invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW)])
-    await _ok(invoke, [P.third, str(REVIEW), "ref", "add", str(TASK), "--kind", "addresses"])
+    await _ok(invoke, [P.third, str(REVIEW), "ref", "add", str(TASK), "--kind", P.ref_kind_two])
     out = await _ran(invoke, [P.ref, str(TASK), "refs", "--in"])
-    assert out == (0, f"← backrefs      \nID     Kind     \nREV-{REVIEW}  addresses\n")
+    assert out == (0, f"← backrefs      \nID     Kind     \nREV-{REVIEW}  {P.ref_kind_two}\n")
 
 
 @pytest.mark.covers("<type> refs", "--all")
+@pytest.mark.bundled_only("the listing and the tables follow the bundled ref kinds")
 async def test_refs_all_lists_both_directions(populated_project, invoke) -> None:
-    await _ok(invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW), "--kind", "fixes"])
+    await _ok(invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW), "--kind", P.ref_kind_one])
     out = await _ran(invoke, [P.ref, str(TASK), "refs", "--all"])
     assert out == (
         0,
-        f"→ refs      \nID     Kind \nREV-{REVIEW}  fixes\n← backrefs: none\n",
+        f"→ refs      \nID     Kind \nREV-{REVIEW}  {P.ref_kind_one}\n← backrefs: none\n",
     )
 
 
 @pytest.mark.covers("<type> refs", "--json")
 async def test_refs_json_prints_an_array_per_direction_shown(populated_project, invoke) -> None:
-    await _ok(invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW), "--kind", "fixes"])
-    await _ok(invoke, [P.third, str(REVIEW), "ref", "add", str(TASK), "--kind", "addresses"])
+    await _ok(invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW), "--kind", P.ref_kind_one])
+    await _ok(invoke, [P.third, str(REVIEW), "ref", "add", str(TASK), "--kind", P.ref_kind_two])
     default = await _ok(invoke, [P.ref, str(TASK), "refs", "--json"])
     both = await _ok(invoke, [P.ref, str(TASK), "refs", "--all", "--json"])
-    fixes = {"id": f"{P.third_prefix}-{REVIEW}", "kind": "fixes", "display": {"kind": "Fixes"}}
+    fixes = {
+        "id": f"{P.third_prefix}-{REVIEW}",
+        "kind": P.ref_kind_one,
+        "display": {"kind": P.ref_kind_one_label},
+    }
     addresses = {
         "id": f"{P.third_prefix}-{REVIEW}",
-        "kind": "addresses",
-        "display": {"kind": "Addresses"},
+        "kind": P.ref_kind_two,
+        "display": {"kind": P.ref_kind_two_label},
     }
     # Compared as text, so the key order is held as well as the content.
     assert (default, both) == (
@@ -1303,6 +1361,9 @@ async def test_comments_json_prints_one_object_per_comment(populated_project, in
 
 
 @pytest.mark.covers("<type> view add", "NAME")
+@pytest.mark.bundled_only(
+    "the declared attribute and the view belong to the bundled milestone type"
+)
 async def test_view_add_places_the_declared_view_in_the_body(populated_project, invoke) -> None:
     out = await _ran(invoke, [P.ref, str(TASK), "view", "add", "milestone_rollup"])
     assert out == (0, f"{P.ref_prefix}-3: view milestone_rollup placed in sq:body\n")
@@ -1321,6 +1382,9 @@ async def test_view_add_refuses_a_name_no_view_declares(populated_project, invok
 
 
 @pytest.mark.covers("<type> view disable", "NAME")
+@pytest.mark.bundled_only(
+    "the declared attribute and the view belong to the bundled milestone type"
+)
 async def test_view_disable_stops_showing_the_view(populated_project, invoke) -> None:
     await _ok(invoke, [P.ref, str(TASK), "view", "add", "milestone_rollup"])
     out = await _ran(invoke, [P.ref, str(TASK), "view", "disable", "milestone_rollup"])
@@ -1329,6 +1393,9 @@ async def test_view_disable_stops_showing_the_view(populated_project, invoke) ->
 
 
 @pytest.mark.covers("<type> view add", "--as")
+@pytest.mark.bundled_only(
+    "the declared attribute and the view belong to the bundled milestone type"
+)
 async def test_view_add_attributes_the_edit_to_the_named_slug(populated_project, invoke) -> None:
     await _ok(invoke, [P.ref, str(TASK), "view", "add", "milestone_rollup", "--as", "manager"])
     assert await _actors(invoke, f"{P.ref_prefix}-{TASK}", "view") == ["manager"]
@@ -1341,6 +1408,9 @@ async def test_view_add_refuses_an_actor_no_roster_entry_has(populated_project, 
 
 
 @pytest.mark.covers("<type> view disable", "--as")
+@pytest.mark.bundled_only(
+    "the declared attribute and the view belong to the bundled milestone type"
+)
 async def test_view_disable_attributes_the_edit_to_the_named_slug(
     populated_project, invoke
 ) -> None:
@@ -1404,7 +1474,7 @@ def _written(row: dict[str, Any], **outcome: Any) -> str:
     """*row* as the written entry with the task's display, and the write's *outcome* beside it, as
     `--json` prints it: compared as text, so the key order is held as well as the content."""
     shown = {
-        "type": "Task",
+        "type": P.ref_label,
         "status": {"badge": "⚪ Draft", "intent": "neutral"},
         "badges": {},
         "assignee": None,
@@ -1426,6 +1496,7 @@ async def test_body_json_prints_the_items_row_after_the_write(populated_project,
 
 
 @pytest.mark.covers("<type> retype", "--json")
+@pytest.mark.bundled_only("retype moves between the bundled types and names them")
 async def test_retype_json_prints_the_items_row_under_its_new_type(
     populated_project, invoke
 ) -> None:

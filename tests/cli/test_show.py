@@ -5,30 +5,33 @@ import json
 
 import pytest
 
+from tests._profile import selected
 from tests._readable import init_readable, lines
+
+P = selected()
 
 pytestmark = pytest.mark.anyio
 
 PARSER_PANEL = [
     "╭──────────────────────────────────────────╮",
-    "│ TASK-3  (task)                           │",
+    f"│ {P.ref_prefix}-3  ({P.ref})                           │",
     "│ title: Parse queries                     │",
     "│ status: InProgress                       │",
     "│ priority: 🔴 urgent                      │",
-    "│ parent: FEAT-2                           │",
+    f"│ parent: {P.host_prefix}-2                           │",
     "│ author: manager                          │",
     "│ assignee: manager                        │",
     "│ labels: parser                           │",
-    "│ file: tasks/TASK-000003-parse-queries.md │",
+    f"│ file: {P.ref_folder}/{P.ref_prefix}-000003-parse-queries.md │",
     "╰──────────────────────────────────────────╯",
     "",
     "## Description",
     "",
-    "_TODO: describe this task._",
+    f"_TODO: describe this {P.ref}._",
     "",
     "Subtask  Status  Assignee  Title                Story",
-    "ST1      Todo              Tokenise the input   US1",
-    "ST2      Done              Parse the operators",
+    f"{P.kind_prefix}1      Todo              Tokenise the input   {P.target_prefix}1",
+    f"{P.kind_prefix}2      Done              Parse the operators",
 ]
 PARSER_COMMENT = [
     "",
@@ -49,9 +52,10 @@ async def _show(invoke, *args: str) -> tuple[int, list[str]]:
 
 
 @pytest.mark.covers("show", "ID")
+@pytest.mark.bundled_only("the rendered panel and its notices are the bundled task's")
 async def test_show_addresses_the_item_by_number_or_full_id(readable, invoke) -> None:
     by_number = await _show(invoke, "3")
-    by_id = await _show(invoke, "TASK-3")
+    by_id = await _show(invoke, f"{P.ref_prefix}-3")
     assert by_number == (0, PARSER_PANEL)
     assert by_id == by_number
 
@@ -65,8 +69,12 @@ async def test_show_refuses_a_number_no_item_has(readable, invoke) -> None:
 
 
 @pytest.mark.covers("show", "ID")
+@pytest.mark.bundled_only("the rendered panel and its notices are the bundled task's")
 async def test_show_refuses_a_full_id_whose_prefix_is_another_types(readable, invoke) -> None:
-    assert await _show(invoke, "TASK-2") == (1, ["error: TASK-2 is FEAT-2 (feature)"])
+    assert await _show(invoke, f"{P.ref_prefix}-2") == (
+        1,
+        [f"error: {P.ref_prefix}-2 is {P.host_prefix}-2 ({P.host})"],
+    )
 
 
 @pytest.mark.covers("show", "ID")
@@ -78,54 +86,57 @@ async def test_show_refuses_text_that_is_not_an_id(readable, invoke) -> None:
 
 
 @pytest.mark.covers("show", "--raw")
+@pytest.mark.bundled_only("the rendered panel and its notices are the bundled task's")
 async def test_raw_prints_plain_text_instead_of_the_rendered_panel(readable, invoke) -> None:
     assert await _show(invoke, "4", "--raw") == (
         0,
         [
-            "# TASK-4 — Rank results",
+            f"# {P.ref_prefix}-4 — Rank results",
             "",
             "- **status:** Draft",
             "- **priority:** 🟢 low",
-            "- **parent:** FEAT-2",
+            f"- **parent:** {P.host_prefix}-2",
             "- **author:** manager",
-            "- **refs:** TASK-3 (depends-on), REV-7",
+            f"- **refs:** {P.ref_prefix}-3 (depends-on), {P.third_prefix}-7",
             "",
             "## Description",
             "",
-            "_TODO: describe this task._",
+            f"_TODO: describe this {P.ref}._",
         ],
     )
 
 
 @pytest.mark.covers("show", "--comments")
+@pytest.mark.bundled_only("the rendered panel and its notices are the bundled task's")
 async def test_comments_appends_the_discussion(readable, invoke) -> None:
     assert await _show(invoke, "3", "--comments") == (0, [*PARSER_PANEL, *PARSER_COMMENT])
     assert (await _show(invoke, "3"))[1] == PARSER_PANEL
 
 
 @pytest.mark.covers("show", "--full")
+@pytest.mark.bundled_only("the sub-entity panes are the bundled subtask's")
 async def test_full_adds_one_pane_per_sub_entity(readable, invoke) -> None:
     assert await _show(invoke, "7", "--full") == (
         0,
         [
             "╭───────────────────────────────────────────────╮",
-            "│ REV-7  (review)                               │",
+            f"│ {P.third_prefix}-7  ({P.third})                               │",
             "│ title: Review the parser                      │",
             "│ status: Requested                             │",
             "│ author: manager                               │",
             "│ labels: parser                                │",
             "│ refs: BUG-6                                   │",
-            "│ file: reviews/REV-000007-review-the-parser.md │",
+            f"│ file: reviews/{P.third_prefix}-000007-{P.third}-the-parser.md │",
             "╰───────────────────────────────────────────────╯",
             "",
             "## Scope",
             "",
-            "_TODO: what is under review?_",
+            f"_TODO: what is under {P.third}?_",
             "",
             "Finding  Severity  Status  Assignee  Title",
             "F1       🟠 high   Open    manager   Unbounded recursion",
             "=== F1 — Unbounded recursion  🔴 Open  🟠 High  manager ===",
-            "_Describe the finding, its impact, and a recommendation — free-form._",
+            f"_Describe the {P.third_kind}, its impact, and a recommendation — free-form._",
             "",
         ],
     )
@@ -178,10 +189,11 @@ async def test_json_prints_the_item_as_one_object(readable, invoke) -> None:
 
 
 @pytest.mark.covers("show", "--json")
+@pytest.mark.bundled_only("the rendered panel and its notices are the bundled task's")
 async def test_json_prints_the_notices_on_stderr_and_only_the_object_on_stdout(
     project, invoke
 ) -> None:
-    created = await invoke(["--at", "2026-06-01", "create", "task", "Parse", "--author", "manager"])
+    created = await invoke(["--at", "2026-06-01", "create", P.ref, "Parse", "--author", "manager"])
     assert created.exit_code == 0, created.output
     # No command writes an unrecognised working language, so the configuration is edited.
     config = project.root / ".squads.toml"
@@ -189,11 +201,11 @@ async def test_json_prints_the_notices_on_stderr_and_only_the_object_on_stdout(
     config.write_text(
         text.replace('working_language = "en"', 'working_language = "klingon!!"'), encoding="utf-8"
     )
-    result = await invoke(["show", "TASK-2", "--json"])
-    body = "## Description\n\n_TODO: describe this task._"
+    result = await invoke(["show", f"{P.ref_prefix}-2", "--json"])
+    body = f"## Description\n\n_TODO: describe this {P.ref}._"
     expected = {
         "sequence_id": 2,
-        "type": "task",
+        "type": P.ref,
         "title": "Parse",
         "slug": "parse",
         "status": "Draft",
@@ -204,12 +216,12 @@ async def test_json_prints_the_notices_on_stderr_and_only_the_object_on_stdout(
         "labels": [],
         "refs": [],
         "subentities": [],
-        "path": "tasks/TASK-000002-parse.md",
+        "path": f"{P.ref_folder}/{P.ref_prefix}-000002-parse.md",
         "created_at": "2026-06-01T00:00:00Z",
         "updated_at": "2026-06-01T00:00:00Z",
         "created_session": None,
         "modified_session": None,
-        "id": "TASK-2",
+        "id": f"{P.ref_prefix}-2",
         "body": body,
         "views": {},
         "discussion": [],

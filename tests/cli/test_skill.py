@@ -8,8 +8,11 @@ import pytest
 
 from squads._workflow import bundled_spec
 from squads._workflow._loader import load_workflow_spec
+from tests._profile import selected
 from tests.cli._output import entry_text, json_text, printed, read_json
 from tests.cli._roster import actors_of, body_of, forced_terminal, usage_error
+
+P = selected()
 
 pytestmark = pytest.mark.anyio
 
@@ -202,7 +205,7 @@ async def test_address_refuses_the_number_of_an_item_that_is_not_a_skill(
     result = await invoke(["skill", "3", "show"])
     assert (result.exit_code, result.output) == (
         1,
-        "error: 3 is TASK-3 (task), not of type skill\n",
+        f"error: 3 is {P.ref_prefix}-3 ({P.ref}), not of type skill\n",
     )
 
 
@@ -460,6 +463,7 @@ async def test_ref_add_kind_sets_the_kind_of_the_ref(project, invoke) -> None:
 
 
 @pytest.mark.covers("skill ref add", "--kind")
+@pytest.mark.bundled_only("the case reads the bundled ref kinds, review gate and dropped names")
 async def test_ref_add_kind_refuses_a_kind_the_workflow_does_not_declare(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "ref", "add", "1", "--kind", "bogus"])
@@ -941,6 +945,7 @@ async def _generated_texts(project, invoke) -> dict[str, str]:
 
 
 @pytest.mark.covers("skill show")
+@pytest.mark.bundled_only("the case reads the bundled ref kinds, review gate and dropped names")
 async def test_generated_agent_text_refers_to_no_vocabulary_the_squad_dropped(
     override_project, invoke
 ) -> None:
@@ -950,7 +955,7 @@ async def test_generated_agent_text_refers_to_no_vocabulary_the_squad_dropped(
         - _vocabulary(load_workflow_spec(override_project.squad_dir))
         if len(name) > 1  # a one-letter alias reads as English
     }
-    assert {"feature", "story", "priority", "feat"} <= dropped
+    assert {P.host, P.target_kind, "priority", "feat"} <= dropped
     texts = await _generated_texts(override_project, invoke)
     for where, text in texts.items():
         assert _references(text, dropped) == [], f"{where} refers to dropped vocabulary"
@@ -958,12 +963,13 @@ async def test_generated_agent_text_refers_to_no_vocabulary_the_squad_dropped(
 
 
 @pytest.mark.covers("skill show")
+@pytest.mark.bundled_only("the case reads the bundled ref kinds, review gate and dropped names")
 async def test_generated_agent_text_names_the_review_gate_the_spec_declares(
     full_project, invoke
 ) -> None:
     claude = (await _generated_texts(full_project, invoke))["the CLAUDE.md section"]
     assert "(status / priority / assignee / blocked per node)" in claude
-    assert "item/review status, new findings, whether" in claude
-    assert "every linked review resolved" in claude
-    assert "author items and review points" in claude
-    assert "the reviewer's finding" in claude
+    assert f"item/{P.third} status, new {P.third_kind_plural}, whether" in claude
+    assert f"every linked {P.third} resolved" in claude
+    assert f"author items and {P.third} points" in claude
+    assert f"the reviewer's {P.third_kind}" in claude

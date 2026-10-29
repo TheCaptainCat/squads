@@ -15,7 +15,11 @@ from tests._override_populated import OVERRIDE, init_override_populated, init_ov
 from tests._populated import init_populated
 from tests._squads import init_full, init_minimal, init_overridden, init_seeded
 
-_ON_OVERRIDE = _profile.selected().squad == "override"
+
+def _on_override() -> bool:
+    """Whether the run is on the override squad; read when a fixture is asked for, since the
+    option is parsed after this module is imported."""
+    return _profile.selected().squad == "override"
 
 
 def _override_minimal(root: Path) -> None:
@@ -39,7 +43,7 @@ def profile() -> _profile.Profile:
 @pytest.fixture
 def project(copy_squad) -> SquadPaths:
     """A fresh unseeded `minimal` squad in the test's directory, which is the cwd."""
-    if _ON_OVERRIDE:
+    if _on_override():
         return copy_squad("override-minimal", _override_minimal)
     return copy_squad("minimal", init_minimal)
 
@@ -47,7 +51,7 @@ def project(copy_squad) -> SquadPaths:
 @pytest.fixture
 def seeded_project(copy_squad) -> SquadPaths:
     """A fresh `minimal` squad with the bundled skills seeded, as `sq init` leaves it."""
-    if _ON_OVERRIDE:
+    if _on_override():
         return copy_squad("override-seeded", _override_seeded)
     return copy_squad("seeded", init_seeded)
 
@@ -56,7 +60,7 @@ def seeded_project(copy_squad) -> SquadPaths:
 def populated_project(copy_squad) -> SquadPaths:
     """A fresh copy of the squad with a host and its target-kind entries, a reference item under
     it with sub-entities and a third item with sub-entities that carry a field."""
-    if _ON_OVERRIDE:
+    if _on_override():
         return copy_squad("override-surface", init_override_surface)
     return copy_squad("populated", init_populated)
 
@@ -71,6 +75,6 @@ def override_project(copy_squad) -> SquadPaths:
 @pytest.fixture
 def full_project(copy_squad) -> SquadPaths:
     """A fresh squad with every role of the catalog and the bundled skills seeded."""
-    if _ON_OVERRIDE:
+    if _on_override():
         return copy_squad("override-full", _override_full)
     return copy_squad("full", init_full)

@@ -386,6 +386,7 @@ async def test_chlog_requires_a_range(invoke) -> None:
 @pytest.mark.covers("migrate rename-status", "TYPE")
 @pytest.mark.covers("migrate rename-status", "OLD_STATUS")
 @pytest.mark.covers("migrate rename-status", "NEW_STATUS")
+@pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_rename_status_relabels_the_items_of_the_type_at_that_status(
     populated_project, invoke
 ) -> None:
@@ -399,6 +400,7 @@ async def test_rename_status_relabels_the_items_of_the_type_at_that_status(
 
 
 @pytest.mark.covers("migrate rename-status", "OLD_STATUS")
+@pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_rename_status_refuses_a_status_outside_the_lifecycle(
     populated_project, invoke
 ) -> None:
@@ -427,6 +429,7 @@ async def test_rename_status_refuses_a_type_the_spec_does_not_declare(
 
 @pytest.mark.covers("migrate rename-type", "OLD_TYPE")
 @pytest.mark.covers("migrate rename-type", "NEW_TYPE")
+@pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_rename_type_moves_the_items_to_the_new_type_and_prefix(
     populated_project, invoke
 ) -> None:
@@ -445,6 +448,7 @@ async def test_rename_type_moves_the_items_to_the_new_type_and_prefix(
 
 
 @pytest.mark.covers("migrate rename-type", "OLD_TYPE")
+@pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_rename_type_refuses_a_roster_type(populated_project, invoke) -> None:
     result = await invoke(["migrate", "rename-type", "task", "role"])
     assert (result.exit_code, result.output) == (
@@ -454,12 +458,14 @@ async def test_rename_type_refuses_a_roster_type(populated_project, invoke) -> N
 
 
 @pytest.mark.covers("migrate rename-type", "OLD_TYPE", "NEW_TYPE")
+@pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_rename_type_refuses_to_rename_a_type_to_itself(populated_project, invoke) -> None:
     result = await invoke(["migrate", "rename-type", "task", "task"])
     assert (result.exit_code, result.output) == (1, "error: cannot rename 'task' to itself\n")
 
 
 @pytest.mark.covers("migrate rename-type", "OLD_TYPE")
+@pytest.mark.bundled_only("refuses a bundled type name the squad's spec does not declare")
 async def test_rename_type_refuses_a_type_the_spec_does_not_declare(
     populated_project, invoke
 ) -> None:
@@ -471,6 +477,7 @@ async def test_rename_type_refuses_a_type_the_spec_does_not_declare(
 
 
 @pytest.mark.covers("migrate rename-type", "NEW_TYPE")
+@pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_rename_type_refuses_a_move_that_leaves_a_child_with_an_invalid_parent(
     populated_project, invoke
 ) -> None:
@@ -487,6 +494,7 @@ async def test_rename_type_refuses_a_move_that_leaves_a_child_with_an_invalid_pa
 
 
 @pytest.mark.covers("migrate repad", "WIDTH")
+@pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_repad_widens_the_item_files_numbers_and_leaves_the_ids(
     populated_project, invoke
 ) -> None:
@@ -500,6 +508,7 @@ async def test_repad_widens_the_item_files_numbers_and_leaves_the_ids(
 
 
 @pytest.mark.covers("migrate repad", "WIDTH")
+@pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_repad_refuses_a_width_that_does_not_exceed_the_current_one(
     populated_project, invoke
 ) -> None:
@@ -514,6 +523,7 @@ async def test_repad_refuses_a_width_that_does_not_exceed_the_current_one(
 
 
 @pytest.mark.covers("migrate repad", "WIDTH")
+@pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_repad_refuses_a_width_above_the_maximum_and_renames_nothing(
     populated_project, invoke
 ) -> None:
@@ -630,6 +640,7 @@ async def test_repad_json_prints_the_padding_before_and_after(populated_project,
 
 
 @pytest.mark.covers("migrate rename-type", "--json")
+@pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_rename_type_json_prints_the_items_moved_and_their_new_ids(
     populated_project, invoke
 ) -> None:
@@ -648,6 +659,7 @@ async def test_rename_type_json_prints_the_items_moved_and_their_new_ids(
 
 
 @pytest.mark.covers("migrate rename-status", "--json")
+@pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_rename_status_json_prints_how_many_items_were_relabelled(
     populated_project, invoke
 ) -> None:
@@ -808,6 +820,7 @@ async def test_rename_field_json_prints_how_many_items_and_entries_moved(
 
 
 @pytest.mark.covers("migrate rename-field", "OLD")
+@pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_rename_field_moves_an_item_value_on_the_bundled_squad(
     populated_project, invoke
 ) -> None:

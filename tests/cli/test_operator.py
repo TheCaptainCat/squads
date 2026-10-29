@@ -5,8 +5,11 @@ from typing import Any
 
 import pytest
 
+from tests._profile import selected
 from tests.cli._output import entry_text, printed, read_json
 from tests.cli._roster import actors_of, body_of, forced_terminal, usage_error
+
+P = selected()
 
 pytestmark = pytest.mark.anyio
 
@@ -176,7 +179,7 @@ async def test_address_refuses_the_number_of_an_item_that_is_not_an_operator(
     result = await invoke(["operator", "3", "show"])
     assert (result.exit_code, result.output) == (
         1,
-        "error: 3 is TASK-3 (task), not of type operator\n",
+        f"error: 3 is {P.ref_prefix}-3 ({P.ref}), not of type operator\n",
     )
 
 
@@ -194,7 +197,7 @@ PANEL = (
 )
 PROFILE = (
     "\n# Alice Tester\n\n**Operator (human)**  ·  **Slug:** `op-alice`\n\n"
-    "A human who works on this project — authors items and review points, and can be \n"
+    f"A human who works on this project — authors items and {P.third} points, and can be \n"
     "assigned work (including manual steps).\n\n"
     'Attribute their words with `sq <type> <n> comment --as op-alice -m "…"`,\n'
     "correct or withdraw their comment with `comment <hash> edit|remove --as \n"
@@ -204,6 +207,7 @@ PROFILE = (
 
 
 @pytest.mark.covers("operator show", "--json")
+@pytest.mark.bundled_only("the operator text names the bundled review points")
 async def test_show_json_describes_the_operator(project, invoke) -> None:
     await _add_alice(invoke, "--pronouns", "she/her")
     assert await _operator(invoke) == {
@@ -218,7 +222,7 @@ async def test_show_json_describes_the_operator(project, invoke) -> None:
             "pronouns": "she/her",
             "body": (
                 "# Alice Tester\n\n**Operator (human)**  ·  **Slug:** `op-alice`\n\nA human who "
-                "works on this project — authors items and review points, and can be assigned "
+                f"works on this project — authors items and {P.third} points, and can be assigned "
                 "work (including manual steps).\n\nAttribute their words with `sq <type> <n> "
                 'comment --as op-alice -m "…"`,\ncorrect or withdraw their comment with `comment '
                 "<hash> edit|remove --as op-alice`,\nand assign work to them with `--assignee "
@@ -230,6 +234,7 @@ async def test_show_json_describes_the_operator(project, invoke) -> None:
 
 
 @pytest.mark.covers("operator show", "--raw")
+@pytest.mark.bundled_only("the operator text names the bundled review points")
 async def test_show_raw_prints_the_body_unrendered_where_a_terminal_would_render_it(
     project, invoke, monkeypatch
 ) -> None:
@@ -244,6 +249,7 @@ async def test_show_raw_prints_the_body_unrendered_where_a_terminal_would_render
 
 
 @pytest.mark.covers("operator show", "--comments")
+@pytest.mark.bundled_only("the operator text names the bundled review points")
 async def test_show_comments_appends_the_discussion(project, invoke) -> None:
     await _add_alice(invoke)
     await invoke(["operator", "op-alice", "comment", "-m", "Welcome.", "--as", "manager"])

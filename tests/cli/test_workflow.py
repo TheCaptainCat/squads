@@ -58,6 +58,7 @@ async def _run(invoke, *args: str) -> tuple[int, list[str]]:
 
 
 @pytest.mark.covers("workflow show")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_workflow_prints_the_rendered_cheatsheet(project, invoke) -> None:
     code, out = await _run(invoke)
     assert (code, out[:5]) == (0, RENDERED_HEAD)
@@ -65,6 +66,7 @@ async def test_workflow_prints_the_rendered_cheatsheet(project, invoke) -> None:
 
 
 @pytest.mark.covers("workflow", "--raw")
+@pytest.mark.bundled_only("lists the bundled vocabulary")
 async def test_the_group_raw_prints_the_cheatsheet_as_plain_markdown(project, invoke) -> None:
     code, out = await _run(invoke, "--raw")
     assert (code, out[:4]) == (0, CHEATSHEET_HEAD)
@@ -79,6 +81,7 @@ async def test_show_raw_prints_the_cheatsheet_as_plain_markdown(project, invoke)
 
 
 @pytest.mark.covers("workflow types")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_types_lists_every_declared_type(project, invoke) -> None:
     assert await _run(invoke, "types") == (
         0,
@@ -101,12 +104,14 @@ async def test_types_lists_every_declared_type(project, invoke) -> None:
 
 
 @pytest.mark.covers("workflow types", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_types_json_prints_one_object_per_type(project, invoke) -> None:
     output = await printed(invoke, ["workflow", "types", "--json"])
     assert output == json_text(documents.TYPES)
 
 
 @pytest.mark.covers("workflow subentity-kinds")
+@pytest.mark.bundled_only("lists the bundled vocabulary")
 async def test_subentity_kinds_lists_every_declared_kind(project, invoke) -> None:
     assert await _run(invoke, "subentity-kinds") == (
         0,
@@ -120,12 +125,14 @@ async def test_subentity_kinds_lists_every_declared_kind(project, invoke) -> Non
 
 
 @pytest.mark.covers("workflow subentity-kinds", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_subentity_kinds_json_prints_one_object_per_kind(project, invoke) -> None:
     output = await printed(invoke, ["workflow", "subentity-kinds", "--json"])
     assert output == json_text(documents.SUBENTITY_KINDS)
 
 
 @pytest.mark.covers("workflow lifecycles")
+@pytest.mark.bundled_only("lists the bundled vocabulary")
 async def test_lifecycles_lists_every_declared_lifecycle(project, invoke) -> None:
     code, out = await _run(invoke, "lifecycles")
     assert (code, out[:3]) == (
@@ -139,12 +146,14 @@ async def test_lifecycles_lists_every_declared_lifecycle(project, invoke) -> Non
 
 
 @pytest.mark.covers("workflow lifecycles", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_lifecycles_json_prints_one_object_per_lifecycle(project, invoke) -> None:
     output = await printed(invoke, ["workflow", "lifecycles", "--json"])
     assert output == json_text(documents.LIFECYCLES)
 
 
 @pytest.mark.covers("workflow collections")
+@pytest.mark.bundled_only("lists the bundled vocabulary")
 async def test_collections_lists_every_declared_badge_collection(project, invoke) -> None:
     code, out = await _run(invoke, "collections")
     assert (code, out[:2]) == (
@@ -157,6 +166,7 @@ async def test_collections_lists_every_declared_badge_collection(project, invoke
 
 
 @pytest.mark.covers("workflow collections", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_collections_json_prints_one_object_per_collection(project, invoke) -> None:
     output = await printed(invoke, ["workflow", "collections", "--json"])
     assert output == json_text(documents.COLLECTIONS)
@@ -208,6 +218,7 @@ async def test_roles_json_prints_one_object_per_status_role(project, invoke) -> 
 
 
 @pytest.mark.covers("workflow ref-kinds")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_ref_kinds_lists_every_declared_ref_kind(project, invoke) -> None:
     code, out = await _run(invoke, "ref-kinds")
     assert (code, out[:2]) == (
@@ -220,12 +231,14 @@ async def test_ref_kinds_lists_every_declared_ref_kind(project, invoke) -> None:
 
 
 @pytest.mark.covers("workflow ref-kinds", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_ref_kinds_json_prints_one_object_per_ref_kind(project, invoke) -> None:
     output = await printed(invoke, ["workflow", "ref-kinds", "--json"])
     assert output == json_text(documents.REF_KINDS)
 
 
 @pytest.mark.covers("workflow views")
+@pytest.mark.bundled_only("lists the bundled vocabulary")
 async def test_views_lists_every_declared_view(project, invoke) -> None:
     assert await _run(invoke, "views") == (
         0,
@@ -242,6 +255,7 @@ async def test_views_lists_every_declared_view(project, invoke) -> None:
 
 
 @pytest.mark.covers("workflow views", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_views_json_prints_one_object_per_view(project, invoke) -> None:
     output = await printed(invoke, ["workflow", "views", "--json"])
     assert output == json_text(documents.VIEWS)
@@ -369,6 +383,7 @@ async def test_view_json_prints_the_records_the_view_resolves(milestone_project,
 
 
 @pytest.mark.covers("workflow lint")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_lint_accepts_a_squad_with_no_override(project, invoke) -> None:
     assert await _run(invoke, "lint") == (
         0,
@@ -380,6 +395,7 @@ async def test_lint_accepts_a_squad_with_no_override(project, invoke) -> None:
 
 
 @pytest.mark.covers("workflow show", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_show_json_prints_the_cheatsheet_as_markdown(project, invoke) -> None:
     raw = await invoke(["workflow", "show", "--raw"])
     result = await invoke(["workflow", "show", "--json"])
@@ -390,6 +406,7 @@ async def test_show_json_prints_the_cheatsheet_as_markdown(project, invoke) -> N
 
 
 @pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_lint_json_prints_each_error_with_its_location_and_fix(project, invoke) -> None:
     (project.squad_dir / ".overrides").mkdir()
     (project.squad_dir / ".overrides" / "workflow.toml").write_text(
@@ -431,6 +448,7 @@ async def _lint_messages(project, invoke, override: str) -> list[str]:
 
 
 @pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_lint_refuses_an_item_field_code_equal_to_a_core_key(project, invoke) -> None:
     assert await _lint_messages(
         project,
@@ -443,6 +461,7 @@ async def test_lint_refuses_an_item_field_code_equal_to_a_core_key(project, invo
 
 
 @pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_lint_refuses_a_kind_field_code_a_sub_entity_object_adds(project, invoke) -> None:
     assert await _lint_messages(
         project,
@@ -456,6 +475,7 @@ async def test_lint_refuses_a_kind_field_code_a_sub_entity_object_adds(project, 
 
 
 @pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_lint_refuses_a_field_code_equal_to_an_option_of_the_command_it_derives_onto(
     project, invoke
 ) -> None:
@@ -476,6 +496,7 @@ async def test_lint_refuses_a_field_code_equal_to_an_option_of_the_command_it_de
 
 
 @pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_lint_refuses_a_field_whose_import_key_equals_a_fixed_key_of_its_op(
     project, invoke
 ) -> None:
@@ -492,6 +513,7 @@ async def test_lint_refuses_a_field_whose_import_key_equals_a_fixed_key_of_its_o
 
 
 @pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_lint_refuses_two_fields_that_give_one_flag(project, invoke) -> None:
     messages = await _lint_messages(
         project,
@@ -506,6 +528,7 @@ async def test_lint_refuses_two_fields_that_give_one_flag(project, invoke) -> No
 
 
 @pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_lint_refuses_a_target_kind_equal_to_an_option_of_the_command_it_derives_onto(
     project, invoke
 ) -> None:
@@ -527,6 +550,7 @@ async def test_lint_refuses_a_target_kind_equal_to_an_option_of_the_command_it_d
 
 
 @pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_lint_refuses_a_kind_named_like_a_key_of_the_comment_op(project, invoke) -> None:
     messages = await _lint_messages(
         project,
@@ -541,6 +565,7 @@ async def test_lint_refuses_a_kind_named_like_a_key_of_the_comment_op(project, i
 
 
 @pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_lint_refuses_a_kind_named_like_the_generic_selector(project, invoke) -> None:
     messages = await _lint_messages(
         project,
@@ -650,6 +675,7 @@ GREETING_SKILL_SOURCE = {
 
 
 @pytest.mark.covers("workflow view", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_view_json_leaves_the_views_own_tag_unexpanded_in_its_source(
     seeded_project, invoke
 ) -> None:

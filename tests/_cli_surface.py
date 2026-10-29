@@ -99,11 +99,17 @@ def raw_param_name(param: Any) -> str:
     return param.human_readable_name
 
 
-def param_name(param: Any, spec: WorkflowSpec | None = None) -> str:
-    """The name a test declares *param* by: its raw name, a flag *spec* derives from its
-    declarations by its derivation."""
+def derives_options(key: str) -> bool:
+    """Whether the command at *key* takes options derived from the spec's declarations: the create,
+    update, listing and sub-entity commands of a work-item type."""
+    return key in ("list", "tree") or key.startswith((f"create {TYPE}", TYPE))
+
+
+def param_name(param: Any, spec: WorkflowSpec | None = None, key: str = TYPE) -> str:
+    """The name a test declares *param* of the command at *key* by: its raw name, or for a flag
+    *spec* derives from its declarations, the derivation."""
     raw = raw_param_name(param)
-    if param.param_type_name != "option":
+    if param.param_type_name != "option" or not derives_options(key):
         return raw
     return derived_names(spec or bundled_spec()).get(raw, raw)
 
@@ -219,7 +225,7 @@ def surface_of(nodes: Iterable[Node], spec: WorkflowSpec) -> Surface:
         key = fold_path(node.path, spec)
         if not hasattr(node.command, "list_commands"):
             leaves.add(key)
-        pairs.update((key, param_name(p, spec)) for p in node_params(node))
+        pairs.update((key, param_name(p, spec, key)) for p in node_params(node))
     pairs -= EXCLUDED_PARAMS.keys()
     return Surface(frozenset(pairs), frozenset(leaves))
 
@@ -253,10 +259,10 @@ def reached_pairs(
         key = fold_path(path, spec)
         params = node_params(Node(path, command, ctx))
         given_pairs = {
-            (key, param_name(p, spec))
+            (key, param_name(p, spec, key))
             for p in params
             if given.get(p.name) not in (None, ())
-            and (key, param_name(p, spec)) not in EXCLUDED_PARAMS
+            and (key, param_name(p, spec, key)) not in EXCLUDED_PARAMS
         }
         level = {pair for pair in given_pairs if known is None or pair in known}
         reached |= level
@@ -286,21 +292,21 @@ def _missing(key: str, params: list[Any], given: dict[str, Any], spec: WorkflowS
     that leaves it out: the first one Click processes."""
     absent = [p for p in params if p.required and given.get(p.name) in (None, ())]
     first = next(iter(iter_params_for_processing([], absent)), None)
-    return {(key, param_name(first, spec))} if first is not None else set()
+    return {(key, param_name(first, spec, key))} if first is not None else set()
 
 
 def _named(key: str, params: list[Any], refusal: str, spec: WorkflowSpec) -> set[Pair]:
     """The pairs of the options of the command a call ended on that have a flag, short or long,
     in *refusal*."""
     return {
-        (key, param_name(p, spec))
+        (key, param_name(p, spec, key))
         for p in params
         if p.param_type_name == "option"
         and any(
             re.search(rf"(?<![\w-]){re.escape(flag)}(?![\w-])", refusal)
             for flag in (*p.opts, *p.secondary_opts)
         )
-        and (key, param_name(p, spec)) not in EXCLUDED_PARAMS
+        and (key, param_name(p, spec, key)) not in EXCLUDED_PARAMS
     }
 
 
@@ -322,3 +328,5 @@ def bundled_known() -> frozenset[Pair]:
             return surface_of(command_nodes(include_hidden=True), bundled_spec()).known
     finally:
         bind_context(prior)
+        # the tree built outside any squad must not be the one the next command is run on
+        getattr(typer.main.get_command, "cache_clear", lambda: None)()

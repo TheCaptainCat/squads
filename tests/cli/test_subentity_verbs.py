@@ -13,13 +13,16 @@ from typing import Any
 import pytest
 
 from tests._populated import FEATURE, REVIEW, TASK
+from tests._profile import selected
+
+P = selected()
 
 pytestmark = pytest.mark.anyio
 
-TASK_FILE = "TASK-000003-build-the-query-parser.md"
-REVIEW_FILE = "REV-000004-review-the-query-parser.md"
-NO_BODY = "_Describe this subtask here — free-form paragraphs or bullet lists._"
-NO_FINDING_BODY = "_Describe the finding, its impact, and a recommendation — free-form._"
+TASK_FILE = f"{P.ref_prefix}-000003-build-the-query-parser.md"
+REVIEW_FILE = f"{P.third_prefix}-000004-{P.third}-the-query-parser.md"
+NO_BODY = f"_Describe this {P.kind} here — free-form paragraphs or bullet lists._"
+NO_FINDING_BODY = f"_Describe the {P.third_kind}, its impact, and a recommendation — free-form._"
 UNKNOWN_STATUS = (
     "error: unknown status 'Nope' (one of: Accepted, Active, Approved, Archived, Blocked, "
     "Cancelled, ChangesRequested, Deferred, Deprecated, Done, Draft, Fixed, InProgress, InReview, "
@@ -28,7 +31,8 @@ UNKNOWN_STATUS = (
 )
 UNKNOWN_SLUG = "error: unknown slug 'ghost'; valid slugs: manager\n"
 ADDED_HINT = (
-    '  set its body:  sq task 3 subtask ST{n} body -m "…"  (or --file body.md / --file -)\n'
+    f'  set its body:  sq {P.ref} 3 {P.kind} {P.kind_prefix}{{n}} body -m "…"'
+    "  (or --file body.md / --file -)\n"
 )
 
 
@@ -48,20 +52,18 @@ async def _ok(invoke, args: list[str], **kw: Any) -> str:
 
 
 async def _subtask(invoke, local: int = 1, number: int = TASK) -> dict[str, Any]:
-    return json.loads(
-        await _ok(invoke, ["task", str(number), "subtask", str(local), "show", "--json"])
-    )
+    return json.loads(await _ok(invoke, [P.ref, str(number), P.kind, str(local), "show", "--json"]))
 
 
 async def _finding(invoke, local: int = 1) -> dict[str, Any]:
     return json.loads(
-        await _ok(invoke, ["review", str(REVIEW), "finding", str(local), "show", "--json"])
+        await _ok(invoke, [P.third, str(REVIEW), P.third_kind, str(local), "show", "--json"])
     )
 
 
 async def _create_task(invoke, *extra: str) -> int:
     """Create a task the populated feature does not parent and return its number."""
-    output = await _ok(invoke, ["create", "task", "Loose end", "--author", "manager", *extra])
+    output = await _ok(invoke, ["create", P.ref, "Loose end", "--author", "manager", *extra])
     return int(output.split("-")[1].split()[0])
 
 
@@ -77,27 +79,30 @@ async def _actors(invoke, target: str) -> list[tuple[str, str]]:
 
 
 @pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_the_group_addresses_a_subtask_by_number_or_local_id(
     populated_project, invoke
 ) -> None:
     by_number = await _subtask(invoke, 1)
     by_local_id = json.loads(
-        await _ok(invoke, ["task", str(TASK), "subtask", "ST1", "show", "--json"])
+        await _ok(invoke, [P.ref, str(TASK), P.kind, f"{P.kind_prefix}1", "show", "--json"])
     )
     by_lowercase = json.loads(
-        await _ok(invoke, ["task", str(TASK), "subtask", "st1", "show", "--json"])
+        await _ok(invoke, [P.ref, str(TASK), P.kind, "st1", "show", "--json"])
     )
     assert by_number == by_local_id == by_lowercase
-    assert by_number["local_id"] == "ST1"
+    assert by_number["local_id"] == f"{P.kind_prefix}1"
 
 
 @pytest.mark.covers("<type> <kind>", "LOCAL-ID")
 async def test_the_group_refuses_a_local_id_the_item_does_not_hold(
     populated_project, invoke
 ) -> None:
-    assert await _ran(invoke, ["task", str(TASK), "subtask", "9", "show"]) == (
+    assert await _ran(invoke, [P.ref, str(TASK), P.kind, "9", "show"]) == (
         1,
-        "error: no subtask ST9 in TASK-3\n",
+        f"error: no {P.kind} {P.kind_prefix}9 in {P.ref_prefix}-3\n",
     )
 
 
@@ -105,21 +110,24 @@ async def test_the_group_refuses_a_local_id_the_item_does_not_hold(
 
 
 @pytest.mark.covers("<type> <kinds>", "--json")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_the_plural_listing_prints_every_subtask_as_json(populated_project, invoke) -> None:
-    output = await _ok(invoke, ["task", str(TASK), "subtasks", "--json"])
+    output = await _ok(invoke, [P.ref, str(TASK), P.kind_plural, "--json"])
     rows = [
         {
-            "local_id": "ST1",
+            "local_id": f"{P.kind_prefix}1",
             "title": "Tokenise the input",
             "status": "Todo",
             "assignee": None,
-            "maps_to": "US1",
+            "maps_to": f"{P.target_prefix}1",
             "deferred_to": None,
             "badges": {},
-            "display": _todo_display("US1"),
+            "display": _todo_display(f"{P.target_prefix}1"),
         },
         {
-            "local_id": "ST2",
+            "local_id": f"{P.kind_prefix}2",
             "title": "Parse the operators",
             "status": "Todo",
             "assignee": None,
@@ -152,12 +160,15 @@ def _todo_display(story: str | None) -> dict[str, Any]:
 
 
 @pytest.mark.covers("<type> <kinds>")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_the_plural_listing_prints_a_table_of_subtasks(populated_project, invoke) -> None:
-    assert await _ran(invoke, ["task", str(TASK), "subtasks"]) == (
+    assert await _ran(invoke, [P.ref, str(TASK), P.kind_plural]) == (
         0,
         "Subtask  Status  Assignee  Title                Story\n"
-        "ST1      Todo              Tokenise the input   US1  \n"
-        "ST2      Todo              Parse the operators       \n",
+        f"{P.kind_prefix}1      Todo              Tokenise the input   {P.target_prefix}1  \n"
+        f"{P.kind_prefix}2      Todo              Parse the operators       \n",
     )
 
 
@@ -165,21 +176,24 @@ async def test_the_plural_listing_prints_a_table_of_subtasks(populated_project, 
 
 
 @pytest.mark.covers("<type> <kind> show", "--json")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_show_json_prints_the_subtask_as_one_object(populated_project, invoke) -> None:
-    output = await _ok(invoke, ["task", str(TASK), "subtask", "1", "show", "--json"])
-    kind = {"name": "subtask", "label": "Subtask", "plural": "subtasks", "heading": "Subtasks"}
+    output = await _ok(invoke, [P.ref, str(TASK), P.kind, "1", "show", "--json"])
+    kind = {"name": P.kind, "label": "Subtask", "plural": P.kind_plural, "heading": "Subtasks"}
     expected = {
-        "local_id": "ST1",
+        "local_id": f"{P.kind_prefix}1",
         "title": "Tokenise the input",
         "status": "Todo",
         "assignee": None,
-        "maps_to": "US1",
+        "maps_to": f"{P.target_prefix}1",
         "deferred_to": None,
         "body": NO_BODY,
         "badges": {},
         "discussion": [],
         "display": {
-            **_todo_display("US1"),
+            **_todo_display(f"{P.target_prefix}1"),
             "kind": kind,
             "discussion": None,
         },
@@ -189,11 +203,14 @@ async def test_show_json_prints_the_subtask_as_one_object(populated_project, inv
 
 
 @pytest.mark.covers("<type> <kind> show")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_show_prints_the_status_story_body_and_discussion(populated_project, invoke) -> None:
-    assert await _ran(invoke, ["task", str(TASK), "subtask", "1", "show"]) == (
+    assert await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "show"]) == (
         0,
-        "ST1 — Tokenise the input  (subtask)\n"
-        "  status: Todo   Story: US1\n\n"
+        f"{P.kind_prefix}1 — Tokenise the input  ({P.kind})\n"
+        f"  status: Todo   {P.target_kind.title()}: {P.target_prefix}1\n\n"
         f"{NO_BODY}\n\n"
         "Discussion\n(none)\n",
     )
@@ -203,10 +220,13 @@ async def test_show_prints_the_status_story_body_and_discussion(populated_projec
 
 
 @pytest.mark.covers("<type> add-<kind>", "TITLE")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_add_scaffolds_a_todo_subtask_with_the_given_title(populated_project, invoke) -> None:
-    assert await _ran(invoke, ["task", str(TASK), "add-subtask", "Index the tokens"]) == (
+    assert await _ran(invoke, [P.ref, str(TASK), f"add-{P.kind}", "Index the tokens"]) == (
         0,
-        "added ST3 to TASK-3\n" + ADDED_HINT.format(n=3),
+        f"added {P.kind_prefix}3 to {P.ref_prefix}-3\n" + ADDED_HINT.format(n=3),
     )
     added = await _subtask(invoke, 3)
     assert (added["title"], added["status"], added["maps_to"], added["body"]) == (
@@ -219,25 +239,25 @@ async def test_add_scaffolds_a_todo_subtask_with_the_given_title(populated_proje
 
 @pytest.mark.covers("<type> add-<kind>", "TITLE")
 async def test_add_refuses_a_missing_or_blank_title(populated_project, invoke) -> None:
-    before = (await _ran(invoke, ["task", str(TASK), "show", "--full"]))[1]
-    assert await _ran(invoke, ["task", str(TASK), "add-subtask"]) == (
+    before = (await _ran(invoke, [P.ref, str(TASK), "show", "--full"]))[1]
+    assert await _ran(invoke, [P.ref, str(TASK), f"add-{P.kind}"]) == (
         2,
-        "Usage: sq task N add-subtask [OPTIONS] TITLE\n"
-        "Try 'sq task N add-subtask --help' for help.\n"
+        f"Usage: sq {P.ref} N add-{P.kind} [OPTIONS] TITLE\n"
+        f"Try 'sq {P.ref} N add-{P.kind} --help' for help.\n"
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
         "│ Missing argument 'TITLE'.                                                    │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯\n",
     )
-    assert await _ran(invoke, ["task", str(TASK), "add-subtask", "  "]) == (
+    assert await _ran(invoke, [P.ref, str(TASK), f"add-{P.kind}", "  "]) == (
         1,
         "error: title must not be empty\n",
     )
-    assert (await _ran(invoke, ["task", str(TASK), "show", "--full"]))[1] == before
+    assert (await _ran(invoke, [P.ref, str(TASK), "show", "--full"]))[1] == before
 
 
 @pytest.mark.covers("<type> <kind> update", "--title")
 async def test_update_refuses_a_blank_title(populated_project, invoke) -> None:
-    assert await _ran(invoke, ["task", str(TASK), "subtask", "1", "update", "--title", " "]) == (
+    assert await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "update", "--title", " "]) == (
         1,
         "error: title must not be empty\n",
     )
@@ -248,21 +268,21 @@ async def test_update_refuses_a_blank_title(populated_project, invoke) -> None:
 async def test_add_message_writes_each_message_as_a_body_paragraph(
     populated_project, invoke
 ) -> None:
-    await _ok(invoke, ["task", str(TASK), "add-subtask", "Index", "-m", "First", "-m", "Second"])
+    await _ok(invoke, [P.ref, str(TASK), f"add-{P.kind}", "Index", "-m", "First", "-m", "Second"])
     assert (await _subtask(invoke, 3))["body"] == "First\n\nSecond"
 
 
 @pytest.mark.covers("<type> add-<kind>", "--file")
 async def test_add_file_writes_the_file_as_the_body(populated_project, invoke) -> None:
     _write_file()
-    await _ok(invoke, ["task", str(TASK), "add-subtask", "Index", "--file", "text.md"])
+    await _ok(invoke, [P.ref, str(TASK), f"add-{P.kind}", "Index", "--file", "text.md"])
     assert (await _subtask(invoke, 3))["body"] == "From a file"
 
 
 @pytest.mark.covers("<type> add-<kind>", "--file")
 async def test_add_file_reads_the_body_from_stdin_for_a_dash(populated_project, invoke) -> None:
     await _ok(
-        invoke, ["task", str(TASK), "add-subtask", "Index", "--file", "-"], input="Piped in\n"
+        invoke, [P.ref, str(TASK), f"add-{P.kind}", "Index", "--file", "-"], input="Piped in\n"
     )
     assert (await _subtask(invoke, 3))["body"] == "Piped in"
 
@@ -270,7 +290,7 @@ async def test_add_file_reads_the_body_from_stdin_for_a_dash(populated_project, 
 @pytest.mark.covers("<type> add-<kind>", "--file")
 async def test_add_file_refuses_a_file_that_does_not_exist(populated_project, invoke) -> None:
     assert await _ran(
-        invoke, ["task", str(TASK), "add-subtask", "Index", "--file", "missing.md"]
+        invoke, [P.ref, str(TASK), f"add-{P.kind}", "Index", "--file", "missing.md"]
     ) == (
         1,
         "error: cannot read file 'missing.md': No such file or directory\n",
@@ -281,32 +301,32 @@ async def test_add_file_refuses_a_file_that_does_not_exist(populated_project, in
 async def test_add_refuses_message_with_file(populated_project, invoke) -> None:
     _write_file()
     out = await _ran(
-        invoke, ["task", str(TASK), "add-subtask", "Index", "-m", "x", "--file", "text.md"]
+        invoke, [P.ref, str(TASK), f"add-{P.kind}", "Index", "-m", "x", "--file", "text.md"]
     )
     assert out == (1, "error: provide the body via -m or --file, not both\n")
 
 
 @pytest.mark.covers("<type> add-<kind>", "--status")
 async def test_add_status_starts_the_subtask_in_that_status(populated_project, invoke) -> None:
-    await _ok(invoke, ["task", str(TASK), "add-subtask", "Index", "--status", "InProgress"])
+    await _ok(invoke, [P.ref, str(TASK), f"add-{P.kind}", "Index", "--status", "InProgress"])
     assert (await _subtask(invoke, 3))["status"] == "InProgress"
 
 
 @pytest.mark.covers("<type> add-<kind>", "--status")
 async def test_add_refuses_a_status_the_spec_does_not_declare(populated_project, invoke) -> None:
-    out = await _ran(invoke, ["task", str(TASK), "add-subtask", "Index", "--status", "Nope"])
+    out = await _ran(invoke, [P.ref, str(TASK), f"add-{P.kind}", "Index", "--status", "Nope"])
     assert out == (1, UNKNOWN_STATUS)
 
 
 @pytest.mark.covers("<type> add-<kind>", "--assignee")
 async def test_add_assignee_assigns_the_new_subtask(populated_project, invoke) -> None:
-    await _ok(invoke, ["task", str(TASK), "add-subtask", "Index", "--assignee", "manager"])
+    await _ok(invoke, [P.ref, str(TASK), f"add-{P.kind}", "Index", "--assignee", "manager"])
     assert (await _subtask(invoke, 3))["assignee"] == "manager"
 
 
 @pytest.mark.covers("<type> add-<kind>", "--assignee")
 async def test_add_refuses_an_assignee_no_roster_entry_has(populated_project, invoke) -> None:
-    out = await _ran(invoke, ["task", str(TASK), "add-subtask", "Index", "--assignee", "ghost"])
+    out = await _ran(invoke, [P.ref, str(TASK), f"add-{P.kind}", "Index", "--assignee", "ghost"])
     assert out == (1, UNKNOWN_SLUG)
 
 
@@ -314,18 +334,27 @@ async def test_add_refuses_an_assignee_no_roster_entry_has(populated_project, in
 async def test_add_story_maps_the_subtask_to_a_story_of_the_parent_feature(
     populated_project, invoke
 ) -> None:
-    await _ok(invoke, ["task", str(TASK), "add-subtask", "Index", "--story", "US2"])
-    await _ok(invoke, ["task", str(TASK), "add-subtask", "Rank", "--story", "1"])
-    assert [(await _subtask(invoke, n))["maps_to"] for n in (3, 4)] == ["US2", "US1"]
+    await _ok(
+        invoke,
+        [P.ref, str(TASK), f"add-{P.kind}", "Index", f"--{P.target_kind}", f"{P.target_prefix}2"],
+    )
+    await _ok(invoke, [P.ref, str(TASK), f"add-{P.kind}", "Rank", f"--{P.target_kind}", "1"])
+    assert [(await _subtask(invoke, n))["maps_to"] for n in (3, 4)] == [
+        f"{P.target_prefix}2",
+        f"{P.target_prefix}1",
+    ]
 
 
 @pytest.mark.covers("<type> add-<kind>", "--<target-kind>")
 async def test_add_story_refuses_a_story_the_parent_feature_lacks(
     populated_project, invoke
 ) -> None:
-    assert await _ran(invoke, ["task", str(TASK), "add-subtask", "Index", "--story", "US9"]) == (
+    assert await _ran(
+        invoke,
+        [P.ref, str(TASK), f"add-{P.kind}", "Index", f"--{P.target_kind}", f"{P.target_prefix}9"],
+    ) == (
         1,
-        f"error: story US9 not found in FEAT-{FEATURE}\n",
+        f"error: {P.target_kind} {P.target_prefix}9 not found in {P.host_prefix}-{FEATURE}\n",
     )
 
 
@@ -333,76 +362,102 @@ async def test_add_story_refuses_a_story_the_parent_feature_lacks(
 async def test_add_story_is_resolved_against_the_parent_of_the_task_it_is_added_to(
     populated_project, invoke
 ) -> None:
-    output = await _ok(invoke, ["create", "feature", "Indexing", "--author", "manager"])
+    output = await _ok(invoke, ["create", P.host, "Indexing", "--author", "manager"])
     other = int(output.split("-")[1].split()[0])
-    await _ok(invoke, ["feature", str(other), "add-story", "Only story"])
+    await _ok(invoke, [P.host, str(other), f"add-{P.target_kind}", f"Only {P.target_kind}"])
     loose = await _create_task(invoke, "--parent", str(other))
-    assert await _ran(invoke, ["task", str(loose), "add-subtask", "Index", "--story", "US2"]) == (
+    assert await _ran(
+        invoke,
+        [P.ref, str(loose), f"add-{P.kind}", "Index", f"--{P.target_kind}", f"{P.target_prefix}2"],
+    ) == (
         1,
-        f"error: story US2 not found in FEAT-{other}\n",
+        f"error: {P.target_kind} {P.target_prefix}2 not found in {P.host_prefix}-{other}\n",
     )
 
 
 @pytest.mark.covers("<type> add-<kind>", "--<target-kind>")
 async def test_add_story_refuses_a_task_with_no_feature_parent(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
-    assert await _ran(invoke, ["task", str(loose), "add-subtask", "Index", "--story", "US1"]) == (
+    assert await _ran(
+        invoke,
+        [P.ref, str(loose), f"add-{P.kind}", "Index", f"--{P.target_kind}", f"{P.target_prefix}1"],
+    ) == (
         1,
-        f"error: TASK-{loose} has no feature parent; set one before mapping subtask to US1\n",
+        f"error: {P.ref_prefix}-{loose} has no {P.host} parent; set one before mapping {P.kind} "
+        f"to {P.target_prefix}1\n",
     )
 
 
 @pytest.mark.covers("<type> add-<kind>", "--json")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_add_json_prints_where_the_body_region_was_written(populated_project, invoke) -> None:
-    payload = json.loads(await _ok(invoke, ["task", str(TASK), "add-subtask", "Index", "--json"]))
+    payload = json.loads(await _ok(invoke, [P.ref, str(TASK), f"add-{P.kind}", "Index", "--json"]))
     assert Path(payload.pop("path")).name == TASK_FILE
     assert payload == {
-        "local_id": "ST3",
-        "region": "subtask:ST3:body",
+        "local_id": f"{P.kind_prefix}3",
+        "region": f"{P.kind}:{P.kind_prefix}3:body",
         "start_line": 64,
         "end_line": 66,
-        "display": {"item": "TASK-3", "body_command": 'sq task 3 subtask ST3 body -m "…"'},
+        "display": {
+            "item": f"{P.ref_prefix}-3",
+            "body_command": f'sq {P.ref} 3 {P.kind} {P.kind_prefix}3 body -m "…"',
+        },
     }
 
 
 @pytest.mark.covers("<type> add-<kind>", "--as")
 async def test_add_attributes_the_new_subtask_to_the_named_slug(populated_project, invoke) -> None:
-    await _ok(invoke, ["task", str(TASK), "add-subtask", "Index", "--as", "manager"])
-    await _ok(invoke, ["task", str(TASK), "add-subtask", "Rank"])
-    assert (await _actors(invoke, "TASK-3"))[-2:] == [("manager", "add"), ("system", "add")]
+    await _ok(invoke, [P.ref, str(TASK), f"add-{P.kind}", "Index", "--as", "manager"])
+    await _ok(invoke, [P.ref, str(TASK), f"add-{P.kind}", "Rank"])
+    assert (await _actors(invoke, f"{P.ref_prefix}-3"))[-2:] == [
+        ("manager", "add"),
+        ("system", "add"),
+    ]
 
 
 @pytest.mark.covers("<type> add-<kind>", "--as")
 async def test_add_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
-    assert await _ran(invoke, ["task", str(TASK), "add-subtask", "Index", "--as", "ghost"]) == (
+    assert await _ran(invoke, [P.ref, str(TASK), f"add-{P.kind}", "Index", "--as", "ghost"]) == (
         1,
         UNKNOWN_SLUG,
     )
 
 
 @pytest.mark.covers("<type> add-<kind>", "--<field>")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_add_severity_sets_the_severity_of_a_new_finding(populated_project, invoke) -> None:
     out = await _ran(
-        invoke, ["review", str(REVIEW), "add-finding", "Dead branch", "--severity", "low"]
+        invoke, [P.third, str(REVIEW), f"add-{P.third_kind}", "Dead branch", "--severity", "low"]
     )
     assert out == (
         0,
-        "added F3 to REV-4\n"
-        '  set its body:  sq review 4 finding F3 body -m "…"  (or --file body.md / --file -)\n',
+        f"added F3 to {P.third_prefix}-4\n"
+        f'  set its body:  sq {P.third} 4 {P.third_kind} F3 body -m "…"'
+        "  (or --file body.md / --file -)\n",
     )
     assert (await _finding(invoke, 3))["severity"] == "low"
 
 
 @pytest.mark.covers("<type> add-<kind>", "TITLE")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_add_severity_defaults_to_medium_when_not_given(populated_project, invoke) -> None:
-    await _ok(invoke, ["review", str(REVIEW), "add-finding", "Dead branch"])
+    await _ok(invoke, [P.third, str(REVIEW), f"add-{P.third_kind}", "Dead branch"])
     assert (await _finding(invoke, 3))["severity"] == "medium"
 
 
 @pytest.mark.covers("<type> add-<kind>", "--<field>")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_add_refuses_a_severity_outside_the_declared_ones(populated_project, invoke) -> None:
     out = await _ran(
-        invoke, ["review", str(REVIEW), "add-finding", "Dead branch", "--severity", "Bad"]
+        invoke, [P.third, str(REVIEW), f"add-{P.third_kind}", "Dead branch", "--severity", "Bad"]
     )
     assert out == (1, "error: unknown severity 'Bad' (one of: critical, high, medium, low, info)\n")
 
@@ -414,9 +469,9 @@ async def test_add_deferred_to_names_the_item_that_carries_a_deferred_finding(
     await _ok(
         invoke,
         [
-            "review",
+            P.third,
             str(REVIEW),
-            "add-finding",
+            f"add-{P.third_kind}",
             "Later",
             "--status",
             "Deferred",
@@ -425,17 +480,23 @@ async def test_add_deferred_to_names_the_item_that_carries_a_deferred_finding(
         ],
     )
     deferred = await _finding(invoke, 3)
-    assert (deferred["status"], deferred["deferred_to"]) == ("Deferred", "TASK-3")
+    assert (deferred["status"], deferred["deferred_to"]) == ("Deferred", f"{P.ref_prefix}-3")
 
 
 @pytest.mark.covers("<type> add-<kind>", "--deferred-to")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_add_refuses_deferred_to_on_a_finding_that_is_not_deferred(
     populated_project, invoke
 ) -> None:
-    out = await _ran(invoke, ["review", str(REVIEW), "add-finding", "Later", "--deferred-to", "3"])
+    out = await _ran(
+        invoke, [P.third, str(REVIEW), f"add-{P.third_kind}", "Later", "--deferred-to", "3"]
+    )
     assert out == (
         1,
-        "error: a carrier (--deferred-to / deferred_to) applies to finding sub-entities in a "
+        f"error: a carrier (--deferred-to / deferred_to) applies to {P.third_kind} sub-entities "
+        f"in a "
         "deferred status (Deferred); F3 is Open\n",
     )
 
@@ -445,9 +506,9 @@ async def test_add_refuses_a_deferred_to_that_is_not_an_item_id(populated_projec
     out = await _ran(
         invoke,
         [
-            "review",
+            P.third,
             str(REVIEW),
-            "add-finding",
+            f"add-{P.third_kind}",
             "Later",
             "--status",
             "Deferred",
@@ -466,9 +527,9 @@ async def test_add_refuses_a_deferred_to_no_item_has(populated_project, invoke) 
     out = await _ran(
         invoke,
         [
-            "review",
+            P.third,
             str(REVIEW),
-            "add-finding",
+            f"add-{P.third_kind}",
             "Later",
             "--status",
             "Deferred",
@@ -484,58 +545,60 @@ async def test_add_refuses_a_deferred_to_no_item_has(populated_project, invoke) 
 
 @pytest.mark.covers("<type> <kind> update", "--title")
 async def test_update_replaces_the_title(populated_project, invoke) -> None:
-    assert await _ran(invoke, ["task", str(TASK), "subtask", "1", "update", "--title", "Lex"]) == (
+    assert await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "update", "--title", "Lex"]) == (
         0,
-        "updated TASK-3 ST1\n",
+        f"updated {P.ref_prefix}-3 {P.kind_prefix}1\n",
     )
     assert (await _subtask(invoke, 1))["title"] == "Lex"
 
 
 @pytest.mark.covers("<type> <kind> update", "--status")
 async def test_update_moves_to_a_status_the_lifecycle_allows(populated_project, invoke) -> None:
-    await _ok(invoke, ["task", str(TASK), "subtask", "1", "update", "--status", "InProgress"])
+    await _ok(invoke, [P.ref, str(TASK), P.kind, "1", "update", "--status", "InProgress"])
     assert (await _subtask(invoke, 1))["status"] == "InProgress"
 
 
 @pytest.mark.covers("<type> <kind> update", "--status")
 async def test_update_refuses_a_status_the_spec_does_not_declare(populated_project, invoke) -> None:
-    out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "update", "--status", "Nope"])
+    out = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "update", "--status", "Nope"])
     assert out == (1, UNKNOWN_STATUS)
 
 
 @pytest.mark.covers("<type> <kind> update", "--force")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_update_force_makes_a_move_the_lifecycle_refuses(populated_project, invoke) -> None:
-    await _ok(invoke, ["task", str(TASK), "subtask", "1", "update", "--status", "Done"])
-    refused = await _ran(
-        invoke, ["task", str(TASK), "subtask", "1", "update", "--status", "Cancelled"]
-    )
+    await _ok(invoke, [P.ref, str(TASK), P.kind, "1", "update", "--status", "Done"])
+    refused = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "update", "--status", "Cancelled"])
     assert refused == (
         1,
-        "error: subtask ST1 cannot move Done → Cancelled (use --force to override)\n",
+        f"error: {P.kind} {P.kind_prefix}1 cannot move Done → Cancelled (use --force to "
+        f"override)\n",
     )
     assert (await _subtask(invoke, 1))["status"] == "Done"
-    forced = ["task", str(TASK), "subtask", "1", "update", "--status", "Cancelled", "--force"]
-    assert await _ran(invoke, forced) == (0, "updated TASK-3 ST1\n")
+    forced = [P.ref, str(TASK), P.kind, "1", "update", "--status", "Cancelled", "--force"]
+    assert await _ran(invoke, forced) == (0, f"updated {P.ref_prefix}-3 {P.kind_prefix}1\n")
     assert (await _subtask(invoke, 1))["status"] == "Cancelled"
 
 
 @pytest.mark.covers("<type> <kind> update", "--assignee")
 async def test_update_assignee_assigns_the_subtask(populated_project, invoke) -> None:
-    await _ok(invoke, ["task", str(TASK), "subtask", "1", "update", "--assignee", "manager"])
+    await _ok(invoke, [P.ref, str(TASK), P.kind, "1", "update", "--assignee", "manager"])
     assert (await _subtask(invoke, 1))["assignee"] == "manager"
 
 
 @pytest.mark.covers("<type> <kind> update", "--assignee")
 async def test_update_refuses_an_assignee_no_roster_entry_has(populated_project, invoke) -> None:
-    out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "update", "--assignee", "ghost"])
+    out = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "update", "--assignee", "ghost"])
     assert out == (1, UNKNOWN_SLUG)
 
 
 @pytest.mark.covers("<type> <kind> update", "--clear-assignee")
 async def test_update_clear_assignee_unassigns_the_subtask(populated_project, invoke) -> None:
-    await _ok(invoke, ["task", str(TASK), "subtask", "1", "update", "--assignee", "manager"])
-    out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "update", "--clear-assignee"])
-    assert out == (0, "updated TASK-3 ST1\n")
+    await _ok(invoke, [P.ref, str(TASK), P.kind, "1", "update", "--assignee", "manager"])
+    out = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "update", "--clear-assignee"])
+    assert out == (0, f"updated {P.ref_prefix}-3 {P.kind_prefix}1\n")
     assert (await _subtask(invoke, 1))["assignee"] is None
 
 
@@ -543,15 +606,15 @@ async def test_update_clear_assignee_unassigns_the_subtask(populated_project, in
 async def test_update_clear_assignee_says_so_when_there_is_none_to_clear(
     populated_project, invoke
 ) -> None:
-    out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "update", "--clear-assignee"])
-    assert out == (0, "TASK-3 ST1 has no assignee to clear\n")
+    out = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "update", "--clear-assignee"])
+    assert out == (0, f"{P.ref_prefix}-3 {P.kind_prefix}1 has no assignee to clear\n")
 
 
 @pytest.mark.covers("<type> <kind> update", "--assignee", "--clear-assignee")
 async def test_update_refuses_assignee_with_clear_assignee(populated_project, invoke) -> None:
     out = await _ran(
         invoke,
-        ["task", str(TASK), "subtask", "2", "update", "--assignee", "manager", "--clear-assignee"],
+        [P.ref, str(TASK), P.kind, "2", "update", "--assignee", "manager", "--clear-assignee"],
     )
     assert out == (1, "error: use --assignee or --clear-assignee, not both\n")
 
@@ -560,34 +623,52 @@ async def test_update_refuses_assignee_with_clear_assignee(populated_project, in
 async def test_update_story_maps_the_subtask_to_a_story_of_the_parent_feature(
     populated_project, invoke
 ) -> None:
-    await _ok(invoke, ["task", str(TASK), "subtask", "1", "update", "--story", "US2"])
-    await _ok(invoke, ["task", str(TASK), "subtask", "2", "update", "--story", "1"])
-    assert [(await _subtask(invoke, n))["maps_to"] for n in (1, 2)] == ["US2", "US1"]
+    await _ok(
+        invoke,
+        [P.ref, str(TASK), P.kind, "1", "update", f"--{P.target_kind}", f"{P.target_prefix}2"],
+    )
+    await _ok(invoke, [P.ref, str(TASK), P.kind, "2", "update", f"--{P.target_kind}", "1"])
+    assert [(await _subtask(invoke, n))["maps_to"] for n in (1, 2)] == [
+        f"{P.target_prefix}2",
+        f"{P.target_prefix}1",
+    ]
 
 
 @pytest.mark.covers("<type> <kind> update", "--<target-kind>")
 async def test_update_story_refuses_a_story_the_parent_feature_lacks(
     populated_project, invoke
 ) -> None:
-    out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "update", "--story", "US9"])
-    assert out == (1, f"error: story US9 not found in FEAT-{FEATURE}\n")
+    out = await _ran(
+        invoke,
+        [P.ref, str(TASK), P.kind, "1", "update", f"--{P.target_kind}", f"{P.target_prefix}9"],
+    )
+    assert out == (
+        1,
+        f"error: {P.target_kind} {P.target_prefix}9 not found in {P.host_prefix}-{FEATURE}\n",
+    )
 
 
 @pytest.mark.covers("<type> <kind> update", "--<target-kind>")
 async def test_update_story_is_resolved_against_the_parent_of_the_task_it_belongs_to(
     populated_project, invoke
 ) -> None:
-    output = await _ok(invoke, ["create", "feature", "Indexing", "--author", "manager"])
+    output = await _ok(invoke, ["create", P.host, "Indexing", "--author", "manager"])
     other = int(output.split("-")[1].split()[0])
-    await _ok(invoke, ["feature", str(other), "add-story", "Only story"])
+    await _ok(invoke, [P.host, str(other), f"add-{P.target_kind}", f"Only {P.target_kind}"])
     loose = await _create_task(invoke, "--parent", str(other))
-    await _ok(invoke, ["task", str(loose), "add-subtask", "Index"])
-    assert await _ran(invoke, ["task", str(loose), "subtask", "1", "update", "--story", "US2"]) == (
+    await _ok(invoke, [P.ref, str(loose), f"add-{P.kind}", "Index"])
+    assert await _ran(
+        invoke,
+        [P.ref, str(loose), P.kind, "1", "update", f"--{P.target_kind}", f"{P.target_prefix}2"],
+    ) == (
         1,
-        f"error: story US2 not found in FEAT-{other}\n",
+        f"error: {P.target_kind} {P.target_prefix}2 not found in {P.host_prefix}-{other}\n",
     )
-    await _ok(invoke, ["task", str(loose), "subtask", "1", "update", "--story", "US1"])
-    assert (await _subtask(invoke, 1, loose))["maps_to"] == "US1"
+    await _ok(
+        invoke,
+        [P.ref, str(loose), P.kind, "1", "update", f"--{P.target_kind}", f"{P.target_prefix}1"],
+    )
+    assert (await _subtask(invoke, 1, loose))["maps_to"] == f"{P.target_prefix}1"
 
 
 @pytest.mark.covers("<type> <kind> update", "--<target-kind>")
@@ -595,72 +676,98 @@ async def test_update_story_refuses_a_task_with_no_feature_parent(
     populated_project, invoke
 ) -> None:
     loose = await _create_task(invoke)
-    await _ok(invoke, ["task", str(loose), "add-subtask", "Index"])
-    assert await _ran(invoke, ["task", str(loose), "subtask", "1", "update", "--story", "US1"]) == (
+    await _ok(invoke, [P.ref, str(loose), f"add-{P.kind}", "Index"])
+    assert await _ran(
+        invoke,
+        [P.ref, str(loose), P.kind, "1", "update", f"--{P.target_kind}", f"{P.target_prefix}1"],
+    ) == (
         1,
-        f"error: TASK-{loose} has no feature parent; set one before mapping subtask to US1\n",
+        f"error: {P.ref_prefix}-{loose} has no {P.host} parent; set one before mapping {P.kind} "
+        f"to {P.target_prefix}1\n",
     )
 
 
 @pytest.mark.covers("<type> <kind> update", "--no-<target-kind>")
 async def test_update_no_story_clears_the_story_mapping(populated_project, invoke) -> None:
-    out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "update", "--no-story"])
-    assert out == (0, "updated TASK-3 ST1\n")
+    out = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "update", f"--no-{P.target_kind}"])
+    assert out == (0, f"updated {P.ref_prefix}-3 {P.kind_prefix}1\n")
     assert (await _subtask(invoke, 1))["maps_to"] is None
 
 
 @pytest.mark.covers("<type> <kind> update", "--<target-kind>", "--no-<target-kind>")
 async def test_update_refuses_story_with_no_story(populated_project, invoke) -> None:
     out = await _ran(
-        invoke, ["task", str(TASK), "subtask", "1", "update", "--story", "US2", "--no-story"]
+        invoke,
+        [
+            P.ref,
+            str(TASK),
+            P.kind,
+            "1",
+            "update",
+            f"--{P.target_kind}",
+            f"{P.target_prefix}2",
+            f"--no-{P.target_kind}",
+        ],
     )
-    assert out == (1, "error: use --story or --no-story, not both\n")
+    assert out == (1, f"error: use --{P.target_kind} or --no-{P.target_kind}, not both\n")
 
 
 @pytest.mark.covers("<type> <kind> update", "--as")
 async def test_update_attributes_the_edit_to_the_named_slug(populated_project, invoke) -> None:
-    await _ok(
-        invoke, ["task", str(TASK), "subtask", "1", "update", "--title", "A", "--as", "manager"]
-    )
-    await _ok(invoke, ["task", str(TASK), "subtask", "1", "update", "--title", "B"])
-    assert (await _actors(invoke, "TASK-3"))[-2:] == [("manager", "update"), ("system", "update")]
+    await _ok(invoke, [P.ref, str(TASK), P.kind, "1", "update", "--title", "A", "--as", "manager"])
+    await _ok(invoke, [P.ref, str(TASK), P.kind, "1", "update", "--title", "B"])
+    assert (await _actors(invoke, f"{P.ref_prefix}-3"))[-2:] == [
+        ("manager", "update"),
+        ("system", "update"),
+    ]
 
 
 @pytest.mark.covers("<type> <kind> update", "--as")
 async def test_update_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
     out = await _ran(
-        invoke, ["task", str(TASK), "subtask", "1", "update", "--title", "T", "--as", "ghost"]
+        invoke, [P.ref, str(TASK), P.kind, "1", "update", "--title", "T", "--as", "ghost"]
     )
     assert out == (1, UNKNOWN_SLUG)
 
 
 @pytest.mark.covers("<type> <kind> update")
 async def test_update_refuses_a_call_that_changes_nothing(populated_project, invoke) -> None:
-    assert await _ran(invoke, ["task", str(TASK), "subtask", "1", "update"]) == (
+    assert await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "update"]) == (
         1,
         "error: nothing to update (pass at least one field, e.g. --title/--status)\n",
     )
 
 
 @pytest.mark.covers("<type> <kind> update", "--<field>")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_update_severity_changes_the_severity_of_a_finding(populated_project, invoke) -> None:
-    out = await _ran(invoke, ["review", str(REVIEW), "finding", "1", "update", "--severity", "low"])
-    assert out == (0, "updated REV-4 F1\n")
+    out = await _ran(
+        invoke, [P.third, str(REVIEW), P.third_kind, "1", "update", "--severity", "low"]
+    )
+    assert out == (0, f"updated {P.third_prefix}-4 F1\n")
     assert (await _finding(invoke, 1))["severity"] == "low"
 
 
 @pytest.mark.covers("<type> <kind> update", "--<field>")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_update_severity_accepts_the_label_in_any_case(populated_project, invoke) -> None:
-    await _ok(invoke, ["review", str(REVIEW), "finding", "2", "update", "--severity", "INFO"])
+    await _ok(invoke, [P.third, str(REVIEW), P.third_kind, "2", "update", "--severity", "INFO"])
     assert (await _finding(invoke, 2))["severity"] == "info"
 
 
 @pytest.mark.covers("<type> <kind> update", "--<field>")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_update_refuses_a_severity_outside_the_declared_ones(
     populated_project, invoke
 ) -> None:
     out = await _ran(
-        invoke, ["review", str(REVIEW), "finding", "1", "update", "--severity", "bogus"]
+        invoke, [P.third, str(REVIEW), P.third_kind, "1", "update", "--severity", "bogus"]
     )
     assert out == (
         1,
@@ -669,29 +776,36 @@ async def test_update_refuses_a_severity_outside_the_declared_ones(
 
 
 @pytest.mark.covers("<type> <kind> update", "--deferred-to")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_update_deferred_to_points_a_deferred_finding_at_another_item(
     populated_project, invoke
 ) -> None:
-    deferring = ["review", str(REVIEW), "finding", "1", "update", "--status", "Deferred"]
+    deferring = [P.third, str(REVIEW), P.third_kind, "1", "update", "--status", "Deferred"]
     await _ok(invoke, [*deferring, "--deferred-to", "3"])
-    assert (await _finding(invoke, 1))["deferred_to"] == "TASK-3"
+    assert (await _finding(invoke, 1))["deferred_to"] == f"{P.ref_prefix}-3"
     out = await _ran(
-        invoke, ["review", str(REVIEW), "finding", "1", "update", "--deferred-to", "2"]
+        invoke, [P.third, str(REVIEW), P.third_kind, "1", "update", "--deferred-to", "2"]
     )
-    assert out == (0, "updated REV-4 F1\n")
-    assert (await _finding(invoke, 1))["deferred_to"] == "FEAT-2"
+    assert out == (0, f"updated {P.third_prefix}-4 F1\n")
+    assert (await _finding(invoke, 1))["deferred_to"] == f"{P.host_prefix}-2"
 
 
 @pytest.mark.covers("<type> <kind> update", "--deferred-to")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_update_refuses_deferred_to_on_a_finding_that_is_not_deferred(
     populated_project, invoke
 ) -> None:
     out = await _ran(
-        invoke, ["review", str(REVIEW), "finding", "2", "update", "--deferred-to", "3"]
+        invoke, [P.third, str(REVIEW), P.third_kind, "2", "update", "--deferred-to", "3"]
     )
     assert out == (
         1,
-        "error: a carrier (--deferred-to / deferred_to) applies to finding sub-entities in a "
+        f"error: a carrier (--deferred-to / deferred_to) applies to {P.third_kind} sub-entities "
+        f"in a "
         "deferred status (Deferred); F2 is Open\n",
     )
 
@@ -703,9 +817,9 @@ async def test_update_refuses_a_deferred_to_that_is_not_an_item_id(
     out = await _ran(
         invoke,
         [
-            "review",
+            P.third,
             str(REVIEW),
-            "finding",
+            P.third_kind,
             "1",
             "update",
             "--status",
@@ -725,9 +839,9 @@ async def test_update_refuses_a_deferred_to_no_item_has(populated_project, invok
     out = await _ran(
         invoke,
         [
-            "review",
+            P.third,
             str(REVIEW),
-            "finding",
+            P.third_kind,
             "1",
             "update",
             "--status",
@@ -744,16 +858,14 @@ async def test_update_refuses_a_deferred_to_no_item_has(populated_project, invok
 
 @pytest.mark.covers("<type> <kind> body", "--message")
 async def test_body_sets_each_message_as_a_paragraph(populated_project, invoke) -> None:
-    out = await _ran(
-        invoke, ["task", str(TASK), "subtask", "1", "body", "-m", "First", "-m", "Second"]
-    )
-    assert out == (0, "TASK-3 ST1: body set\n")
+    out = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "body", "-m", "First", "-m", "Second"])
+    assert out == (0, f"{P.ref_prefix}-3 {P.kind_prefix}1: body set\n")
     assert (await _subtask(invoke, 1))["body"] == "First\n\nSecond"
 
 
 @pytest.mark.covers("<type> <kind> body")
 async def test_body_refuses_a_call_with_no_text(populated_project, invoke) -> None:
-    assert await _ran(invoke, ["task", str(TASK), "subtask", "1", "body"]) == (
+    assert await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "body"]) == (
         1,
         "error: provide the body via -m (repeatable) or --file PATH ('-' for stdin)\n",
     )
@@ -762,24 +874,20 @@ async def test_body_refuses_a_call_with_no_text(populated_project, invoke) -> No
 @pytest.mark.covers("<type> <kind> body", "--file")
 async def test_body_reads_the_text_from_a_file(populated_project, invoke) -> None:
     _write_file()
-    out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "body", "--file", "text.md"])
-    assert out == (0, "TASK-3 ST1: body set\n")
+    out = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "body", "--file", "text.md"])
+    assert out == (0, f"{P.ref_prefix}-3 {P.kind_prefix}1: body set\n")
     assert (await _subtask(invoke, 1))["body"] == "From a file"
 
 
 @pytest.mark.covers("<type> <kind> body", "--file")
 async def test_body_reads_the_text_from_stdin_for_a_dash(populated_project, invoke) -> None:
-    await _ok(
-        invoke, ["task", str(TASK), "subtask", "1", "body", "--file", "-"], input="Piped in\n"
-    )
+    await _ok(invoke, [P.ref, str(TASK), P.kind, "1", "body", "--file", "-"], input="Piped in\n")
     assert (await _subtask(invoke, 1))["body"] == "Piped in"
 
 
 @pytest.mark.covers("<type> <kind> body", "--file")
 async def test_body_refuses_a_file_that_does_not_exist(populated_project, invoke) -> None:
-    assert await _ran(
-        invoke, ["task", str(TASK), "subtask", "1", "body", "--file", "missing.md"]
-    ) == (
+    assert await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "body", "--file", "missing.md"]) == (
         1,
         "error: cannot read file 'missing.md': No such file or directory\n",
     )
@@ -789,50 +897,48 @@ async def test_body_refuses_a_file_that_does_not_exist(populated_project, invoke
 async def test_body_refuses_message_with_file(populated_project, invoke) -> None:
     _write_file()
     out = await _ran(
-        invoke, ["task", str(TASK), "subtask", "1", "body", "-m", "Text", "--file", "text.md"]
+        invoke, [P.ref, str(TASK), P.kind, "1", "body", "-m", "Text", "--file", "text.md"]
     )
     assert out == (1, "error: provide the body via -m or --file, not both\n")
 
 
 @pytest.mark.covers("<type> <kind> body", "--append")
 async def test_body_append_adds_after_the_existing_body(populated_project, invoke) -> None:
-    await _ok(invoke, ["task", str(TASK), "subtask", "1", "body", "-m", "First"])
-    out = await _ran(
-        invoke, ["task", str(TASK), "subtask", "1", "body", "-m", "Second", "--append"]
-    )
-    assert out == (0, "TASK-3 ST1: body appended\n")
+    await _ok(invoke, [P.ref, str(TASK), P.kind, "1", "body", "-m", "First"])
+    out = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "body", "-m", "Second", "--append"])
+    assert out == (0, f"{P.ref_prefix}-3 {P.kind_prefix}1: body appended\n")
     assert (await _subtask(invoke, 1))["body"] == "First\n\nSecond"
 
 
 @pytest.mark.covers("<type> <kind> body", "--force")
 async def test_body_force_replaces_a_body_already_written(populated_project, invoke) -> None:
-    await _ok(invoke, ["task", str(TASK), "subtask", "1", "body", "-m", "First"])
-    refused = await _ran(invoke, ["task", str(TASK), "subtask", "1", "body", "-m", "Second"])
+    await _ok(invoke, [P.ref, str(TASK), P.kind, "1", "body", "-m", "First"])
+    refused = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "body", "-m", "Second"])
     assert refused == (
         1,
-        "error: TASK-3 ST1 already has a body (1 line); setting one would discard it:\n\n"
+        f"error: {P.ref_prefix}-3 {P.kind_prefix}1 already has a body (1 line); setting one would "
+        f"discard it:\n\n"
         "    First\n\n"
         "Nothing was written. Add to it with `--append`, or pass `--force` to replace it.\n",
     )
-    forced = await _ran(
-        invoke, ["task", str(TASK), "subtask", "1", "body", "-m", "Second", "--force"]
-    )
-    assert forced == (0, "TASK-3 ST1: body set\n")
+    forced = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "body", "-m", "Second", "--force"])
+    assert forced == (0, f"{P.ref_prefix}-3 {P.kind_prefix}1: body set\n")
     assert (await _subtask(invoke, 1))["body"] == "Second"
 
 
 @pytest.mark.covers("<type> <kind> body", "--as")
 async def test_body_attributes_the_edit_to_the_named_slug(populated_project, invoke) -> None:
-    await _ok(invoke, ["task", str(TASK), "subtask", "1", "body", "-m", "First", "--as", "manager"])
-    await _ok(invoke, ["task", str(TASK), "subtask", "1", "body", "-m", "Second", "--append"])
-    assert (await _actors(invoke, "TASK-3"))[-2:] == [("manager", "body"), ("system", "body")]
+    await _ok(invoke, [P.ref, str(TASK), P.kind, "1", "body", "-m", "First", "--as", "manager"])
+    await _ok(invoke, [P.ref, str(TASK), P.kind, "1", "body", "-m", "Second", "--append"])
+    assert (await _actors(invoke, f"{P.ref_prefix}-3"))[-2:] == [
+        ("manager", "body"),
+        ("system", "body"),
+    ]
 
 
 @pytest.mark.covers("<type> <kind> body", "--as")
 async def test_body_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
-    out = await _ran(
-        invoke, ["task", str(TASK), "subtask", "1", "body", "-m", "x", "--as", "ghost"]
-    )
+    out = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "body", "-m", "x", "--as", "ghost"])
     assert out == (1, UNKNOWN_SLUG)
 
 
@@ -841,13 +947,13 @@ async def test_body_refuses_an_actor_no_roster_entry_has(populated_project, invo
 
 @pytest.mark.covers("<type> <kind> remove", "--yes")
 async def test_remove_yes_deletes_the_subtask_without_asking(populated_project, invoke) -> None:
-    assert await _ran(invoke, ["task", str(TASK), "subtask", "1", "remove", "--yes"]) == (
+    assert await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "remove", "--yes"]) == (
         0,
-        "removed subtask ST1 from TASK-3\n",
+        f"removed {P.kind} {P.kind_prefix}1 from {P.ref_prefix}-3\n",
     )
-    assert await _ran(invoke, ["task", str(TASK), "subtask", "1", "show"]) == (
+    assert await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "show"]) == (
         1,
-        "error: no subtask ST1 in TASK-3\n",
+        f"error: no {P.kind} {P.kind_prefix}1 in {P.ref_prefix}-3\n",
     )
 
 
@@ -855,51 +961,59 @@ async def test_remove_yes_deletes_the_subtask_without_asking(populated_project, 
 async def test_remove_asks_for_confirmation_and_keeps_the_subtask_when_declined(
     populated_project, invoke
 ) -> None:
-    out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "remove"], input="n\n")
-    assert out == (1, "Remove subtask ST1 from TASK-3? This cannot be undone. [y/N]: n\nAborted.\n")
-    assert (await _subtask(invoke, 1))["local_id"] == "ST1"
+    out = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "remove"], input="n\n")
+    assert out == (
+        1,
+        f"Remove {P.kind} {P.kind_prefix}1 from {P.ref_prefix}-3? This cannot be undone. [y/N]: "
+        f"n\nAborted.\n",
+    )
+    assert (await _subtask(invoke, 1))["local_id"] == f"{P.kind_prefix}1"
 
 
 @pytest.mark.covers("<type> <kind> remove")
 async def test_remove_deletes_the_subtask_when_confirmed(populated_project, invoke) -> None:
-    out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "remove"], input="y\n")
+    out = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "remove"], input="y\n")
     assert out == (
         0,
-        "Remove subtask ST1 from TASK-3? This cannot be undone. [y/N]: y\n"
-        "removed subtask ST1 from TASK-3\n",
+        f"Remove {P.kind} {P.kind_prefix}1 from {P.ref_prefix}-3? This cannot be undone. [y/N]: y\n"
+        f"removed {P.kind} {P.kind_prefix}1 from {P.ref_prefix}-3\n",
     )
     assert [
         row["local_id"]
-        for row in json.loads(await _ok(invoke, ["task", str(TASK), "subtasks", "--json"]))
-    ] == ["ST2"]
+        for row in json.loads(await _ok(invoke, [P.ref, str(TASK), P.kind_plural, "--json"]))
+    ] == [f"{P.kind_prefix}2"]
 
 
 @pytest.mark.covers("<type> <kind> remove", "--yes")
 async def test_remove_refuses_a_subtask_the_item_does_not_hold(populated_project, invoke) -> None:
-    assert await _ran(invoke, ["task", str(TASK), "subtask", "7", "remove", "--yes"]) == (
+    assert await _ran(invoke, [P.ref, str(TASK), P.kind, "7", "remove", "--yes"]) == (
         1,
-        "error: no subtask ST7 in TASK-3\n",
+        f"error: no {P.kind} {P.kind_prefix}7 in {P.ref_prefix}-3\n",
     )
 
 
 @pytest.mark.covers("<type> <kind> remove", "--json")
 async def test_remove_json_prints_the_removed_subtask(populated_project, invoke) -> None:
-    out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "remove", "--yes", "--json"])
-    assert (out[0], json.loads(out[1])) == (0, {"removed": "subtask ST1", "item": "TASK-3"})
+    out = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "remove", "--yes", "--json"])
+    assert (out[0], json.loads(out[1])) == (
+        0,
+        {"removed": f"{P.kind} {P.kind_prefix}1", "item": f"{P.ref_prefix}-3"},
+    )
 
 
 @pytest.mark.covers("<type> <kind> remove", "--as")
 async def test_remove_attributes_the_deletion_to_the_named_slug(populated_project, invoke) -> None:
-    await _ok(invoke, ["task", str(TASK), "subtask", "1", "remove", "--yes", "--as", "manager"])
-    await _ok(invoke, ["task", str(TASK), "subtask", "2", "remove", "--yes"])
-    assert (await _actors(invoke, "TASK-3"))[-2:] == [("manager", "remove"), ("system", "remove")]
+    await _ok(invoke, [P.ref, str(TASK), P.kind, "1", "remove", "--yes", "--as", "manager"])
+    await _ok(invoke, [P.ref, str(TASK), P.kind, "2", "remove", "--yes"])
+    assert (await _actors(invoke, f"{P.ref_prefix}-3"))[-2:] == [
+        ("manager", "remove"),
+        ("system", "remove"),
+    ]
 
 
 @pytest.mark.covers("<type> <kind> remove", "--as")
 async def test_remove_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
-    out = await _ran(
-        invoke, ["task", str(TASK), "subtask", "1", "remove", "--yes", "--as", "ghost"]
-    )
+    out = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "remove", "--yes", "--as", "ghost"])
     assert out == (1, UNKNOWN_SLUG)
 
 
@@ -911,7 +1025,7 @@ def _written_subtask(title: str, body: str, **outcome: Any) -> str:
     beside it, as `--json` prints it: compared as text, so the key order is held as well as the
     content."""
     subtask = {
-        "local_id": "ST2",
+        "local_id": f"{P.kind_prefix}2",
         "title": title,
         "status": "Todo",
         "assignee": None,
@@ -934,9 +1048,9 @@ def _written_subtask(title: str, body: str, **outcome: Any) -> str:
             },
             "carrier_title": None,
             "kind": {
-                "name": "subtask",
+                "name": P.kind,
                 "label": "Subtask",
-                "plural": "subtasks",
+                "plural": P.kind_plural,
                 "heading": "Subtasks",
             },
             "discussion": None,
@@ -946,16 +1060,22 @@ def _written_subtask(title: str, body: str, **outcome: Any) -> str:
 
 
 @pytest.mark.covers("<type> <kind> update", "--json")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_update_json_prints_the_subentity_after_the_update(populated_project, invoke) -> None:
     printed = await _ok(
-        invoke, ["task", str(TASK), "subtask", "2", "update", "--title", "Parse it", "--json"]
+        invoke, [P.ref, str(TASK), P.kind, "2", "update", "--title", "Parse it", "--json"]
     )
     assert printed == _written_subtask("Parse it", NO_BODY, nothing_to_clear=False)
 
 
 @pytest.mark.covers("<type> <kind> body", "--json")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_body_json_prints_the_subentity_after_the_write(populated_project, invoke) -> None:
-    printed = await _ok(invoke, ["task", str(TASK), "subtask", "2", "body", "-m", "Text", "--json"])
+    printed = await _ok(invoke, [P.ref, str(TASK), P.kind, "2", "body", "-m", "Text", "--json"])
     assert printed == _written_subtask("Parse the operators", "Text")
 
 
@@ -963,11 +1083,14 @@ async def test_body_json_prints_the_subentity_after_the_write(populated_project,
 async def test_remove_json_asks_on_stderr_and_prints_only_the_document_on_stdout(
     populated_project, invoke
 ) -> None:
-    result = await invoke(["task", str(TASK), "subtask", "2", "remove", "--json"], input="y\n")
+    result = await invoke([P.ref, str(TASK), P.kind, "2", "remove", "--json"], input="y\n")
     assert result.exit_code == 0, result.output
-    expected = {"removed": "subtask ST2", "item": "TASK-3"}
+    expected = {"removed": f"{P.kind} {P.kind_prefix}2", "item": f"{P.ref_prefix}-3"}
     assert result.stdout == json.dumps(expected, indent=2) + "\n"
-    assert result.stderr == "Remove subtask ST2 from TASK-3? This cannot be undone. [y/N]: "
+    assert (
+        result.stderr
+        == f"Remove {P.kind} {P.kind_prefix}2 from {P.ref_prefix}-3? This cannot be undone. [y/N]: "
+    )
 
 
 # --- the stored entry -----------------------------------------------------------------------
@@ -978,13 +1101,18 @@ async def test_remove_json_asks_on_stderr_and_prints_only_the_document_on_stdout
 async def test_an_unknown_key_on_an_entry_survives_an_update_and_a_repair(
     populated_project, invoke
 ) -> None:
-    path = populated_project.squad_dir / "tasks" / TASK_FILE
+    path = populated_project.squad_dir / P.ref_folder / TASK_FILE
     text = path.read_text(encoding="utf-8")
-    assert text.count("- local_id: ST2\n") == 1
-    path.write_text(text.replace("- local_id: ST2\n", "- local_id: ST2\n  note: ''\n  kept: yes\n"))
+    assert text.count(f"- local_id: {P.kind_prefix}2\n") == 1
+    path.write_text(
+        text.replace(
+            f"- local_id: {P.kind_prefix}2\n",
+            f"- local_id: {P.kind_prefix}2\n  note: ''\n  kept: yes\n",
+        )
+    )
     await _ok(invoke, ["repair"])
 
-    await _ok(invoke, ["task", str(TASK), "subtask", "2", "update", "--title", "Parse more"])
+    await _ok(invoke, [P.ref, str(TASK), P.kind, "2", "update", "--title", "Parse more"])
     await _ok(invoke, ["repair"])
 
     second = await _subtask(invoke, 2)
@@ -1000,6 +1128,9 @@ async def _action(invoke, local: int = 1) -> dict[str, Any]:
 
 @pytest.mark.covers("<type> add-<kind>", "TITLE")
 @pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_the_mapping_option_is_named_after_the_kind_the_parent_hosts(
     override_project, invoke
 ) -> None:
@@ -1012,12 +1143,13 @@ async def test_the_mapping_option_is_named_after_the_kind_the_parent_hosts(
     await _ok(invoke, ["job", "9", "action", "1", "update", "--no-outcome"])
     assert (await _action(invoke))["maps_to"] is None
 
-    assert await _ran(invoke, ["job", "9", "action", "1", "update", "--story", "1"]) == (
+    assert await _ran(invoke, ["job", "9", "action", "1", "update", f"--{P.target_kind}", "1"]) == (
         2,
         "Usage: sq job N action LOCAL-ID update [OPTIONS]\n"
         "Try 'sq job N action LOCAL-ID update --help' for help.\n"
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
-        "│ No such option: --story ('(Possible options: --json)',)                      │\n"
+        f"│ No such option: --{P.target_kind} ('(Possible options: --json)',)                     "
+        f" │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯\n",
     )
 
@@ -1104,13 +1236,16 @@ async def test_a_clear_flag_removes_an_optional_field_and_is_refused_beside_its_
 
 
 @pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+@pytest.mark.bundled_only(
+    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
+)
 async def test_a_required_field_has_no_clear_flag(populated_project, invoke) -> None:
     assert await _ran(
-        invoke, ["review", str(REVIEW), "finding", "1", "update", "--no-severity"]
+        invoke, [P.third, str(REVIEW), P.third_kind, "1", "update", "--no-severity"]
     ) == (
         2,
-        "Usage: sq review N finding LOCAL-ID update [OPTIONS]\n"
-        "Try 'sq review N finding LOCAL-ID update --help' for help.\n"
+        f"Usage: sq {P.third} N {P.third_kind} LOCAL-ID update [OPTIONS]\n"
+        f"Try 'sq {P.third} N {P.third_kind} LOCAL-ID update --help' for help.\n"
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
         "│ No such option: --no-severity ('(Possible options: --severity)',)            │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯\n",

@@ -31,6 +31,11 @@ class Profile:
     ref_prefix: str
     ref_folder: str
     ref_title: str
+    ref_label: str
+    ref_kind_one: str
+    ref_kind_one_label: str
+    ref_kind_two: str
+    ref_kind_two_label: str
     ref_slug: str
     #: A third type with a sub-entity kind that has a field, and that kind.
     third: str
@@ -48,11 +53,15 @@ class Profile:
     #: The kind of the third type, its field, and a value of that field's collection.
     third_kind: str
     third_kind_prefix: str
+    third_kind_plural: str
     third_field: str
     third_value: str
     third_other_value: str
     #: A badge field of the reference type, a value of it, another value, and an unset marker.
     badge: str
+    badge_flag: str
+    no_badge_flag: str
+    badge_codes: str
     badge_value: str
     badge_other_value: str
     #: The status a reference item moves to from its initial status, and its initial status.
@@ -85,6 +94,11 @@ BUNDLED = Profile(
     ref_prefix="TASK",
     ref_folder="tasks",
     ref_title="Build the query parser",
+    ref_label="Task",
+    ref_kind_one="fixes",
+    ref_kind_one_label="Fixes",
+    ref_kind_two="addresses",
+    ref_kind_two_label="Addresses",
     ref_slug="build-the-query-parser",
     third="review",
     third_prefix="REV",
@@ -98,10 +112,14 @@ BUNDLED = Profile(
     target_plural="stories",
     third_kind="finding",
     third_kind_prefix="F",
+    third_kind_plural="findings",
     third_field="severity",
     third_value="High",
     third_other_value="Low",
     badge="priority",
+    badge_flag="--priority",
+    no_badge_flag="--no-priority",
+    badge_codes="urgent, high, medium, low",
     badge_value="high",
     badge_other_value="low",
     initial="Draft",
@@ -120,6 +138,11 @@ OVERRIDE = Profile(
     ref_prefix="JOB",
     ref_folder="jobs",
     ref_title="Build the query parser",
+    ref_label="Job",
+    ref_kind_one="blocks",
+    ref_kind_one_label="Blocks",
+    ref_kind_two="scopes",
+    ref_kind_two_label="Scopes",
     ref_slug="build-the-query-parser",
     third="job",
     third_prefix="JOB",
@@ -133,10 +156,14 @@ OVERRIDE = Profile(
     target_plural="outcomes",
     third_kind="action",
     third_kind_prefix="AC",
+    third_kind_plural="actions",
     third_field="impact",
     third_value="large",
     third_other_value="small",
     badge="work_size",
+    badge_flag="--work-size",
+    no_badge_flag="--no-work-size",
+    badge_codes="s, m, l",
     badge_value="m",
     badge_other_value="l",
     initial="Draft",

@@ -51,6 +51,7 @@ async def test_json_prints_an_empty_array_for_a_clean_squad(project, invoke) -> 
 
 
 @pytest.mark.covers("check")
+@pytest.mark.bundled_only("the damaged squad and its messages are the bundled task type's")
 async def test_check_names_each_issue_and_exits_3_on_an_error(damaged_project, invoke) -> None:
     result = await invoke(["check"])
     assert (result.exit_code, result.output) == (
@@ -60,6 +61,7 @@ async def test_check_names_each_issue_and_exits_3_on_an_error(damaged_project, i
 
 
 @pytest.mark.covers("check", "--json")
+@pytest.mark.bundled_only("the damaged squad and its messages are the bundled task type's")
 async def test_json_prints_one_object_per_issue_and_exits_3_on_an_error(
     damaged_project, invoke
 ) -> None:

@@ -8,15 +8,18 @@ from typing import Any
 import pytest
 
 from tests._help_tree import CUSTOM_VOCABULARY_OVERRIDE, write_workflow_override
+from tests._profile import selected
 from tests._squadwide import listed
+
+P = selected()
 
 pytestmark = pytest.mark.anyio
 
-CREATE = {"op": "create", "type": "task", "title": "Imported", "handle": "t", "as": "manager"}
+CREATE = {"op": "create", "type": P.ref, "title": "Imported", "handle": "t", "as": "manager"}
 COMMENT = {"op": "comment", "target": "t", "message": "hello"}
-PLAN = "  create: 1\n  comment: 1\nhandles:\n  t -> TASK-2\n"
+PLAN = f"  create: 1\n  comment: 1\nhandles:\n  t -> {P.ref_prefix}-2\n"
 ONLY_ROLE = [("ROLE-1", "Catherine Manager")]
-IMPORTED = [*ONLY_ROLE, ("TASK-2", "Imported")]
+IMPORTED = [*ONLY_ROLE, (f"{P.ref_prefix}-2", "Imported")]
 
 
 def _events(*events: dict[str, Any]) -> str:
@@ -32,7 +35,7 @@ async def test_file_applies_its_events_and_reports_the_ids_it_gave(project, invo
     result = await invoke(["import", _events(CREATE, COMMENT)])
     assert (result.exit_code, result.output) == (0, PLAN + "imported 2 event(s)\n")
     assert await listed(invoke) == IMPORTED
-    shown = await invoke(["task", "2", "show", "--json"])
+    shown = await invoke([P.ref, "2", "show", "--json"])
     task = json.loads(shown.output)
     assert (task["author"], [c["body"] for c in task["discussion"]]) == ("manager", ["- hello"])
 
@@ -42,7 +45,7 @@ async def test_file_dash_reads_the_events_from_standard_input(project, invoke) -
     result = await invoke(["import", "-"], input=json.dumps(CREATE) + "\n")
     assert (result.exit_code, result.output) == (
         0,
-        "  create: 1\nhandles:\n  t -> TASK-2\nimported 1 event(s)\n",
+        f"  create: 1\nhandles:\n  t -> {P.ref_prefix}-2\nimported 1 event(s)\n",
     )
     assert await listed(invoke) == IMPORTED
 
@@ -80,7 +83,7 @@ async def test_as_attributes_an_event_that_names_no_actor(project, invoke) -> No
     anonymous = {k: v for k, v in CREATE.items() if k != "as"}
     result = await invoke(["import", _events(anonymous), "--as", "manager"])
     assert result.exit_code == 0, result.output
-    shown = await invoke(["task", "2", "show", "--json"])
+    shown = await invoke([P.ref, "2", "show", "--json"])
     assert json.loads(shown.output)["author"] == "manager"
 
 
@@ -112,13 +115,13 @@ async def test_json_prints_the_plan_and_the_outcome_of_an_applied_file(project, 
     assert result.exit_code == 0, result.output
     assert json.loads(result.output) == {
         "op_counts": {"create": 1, "comment": 1},
-        "handle_to_id": {"t": "TASK-2"},
+        "handle_to_id": {"t": f"{P.ref_prefix}-2"},
         "handle_to_sub": {},
         "issues": [],
         "ok": True,
         "applied": True,
         "dry_run": False,
-        "created_ids": ["TASK-2"],
+        "created_ids": [f"{P.ref_prefix}-2"],
         "warnings": [],
     }
 
@@ -129,7 +132,7 @@ async def test_json_with_dry_run_reports_the_plan_as_not_applied(project, invoke
     assert result.exit_code == 0, result.output
     payload = json.loads(result.output)
     assert (payload["applied"], payload["dry_run"], payload["created_ids"]) == (False, True, [])
-    assert payload["handle_to_id"] == {"t": "TASK-2"}
+    assert payload["handle_to_id"] == {"t": f"{P.ref_prefix}-2"}
     assert await listed(invoke) == ONLY_ROLE
 
 
@@ -138,16 +141,16 @@ async def test_json_lists_every_refusal_by_line_and_exits_1(project, invoke) -> 
     result = await invoke(
         [
             "import",
-            _events(CREATE, {"op": "status", "target": "TASK-99", "status": "Ready"}),
+            _events(CREATE, {"op": "status", "target": f"{P.ref_prefix}-99", "status": "Ready"}),
             "--json",
         ]
     )
     assert result.exit_code == 1
     assert json.loads(result.output) == {
         "op_counts": {"create": 1, "status": 1},
-        "handle_to_id": {"t": "TASK-2"},
+        "handle_to_id": {"t": f"{P.ref_prefix}-2"},
         "handle_to_sub": {},
-        "issues": [{"line": 2, "message": "no item 'TASK-99' in the index"}],
+        "issues": [{"line": 2, "message": f"no item '{P.ref_prefix}-99' in the index"}],
         "ok": False,
         "applied": False,
         "dry_run": False,
@@ -157,16 +160,18 @@ async def test_json_lists_every_refusal_by_line_and_exits_1(project, invoke) -> 
 
 
 @pytest.mark.covers("import", "FILE")
+@pytest.mark.bundled_only("the case builds its events from the bundled kinds and refusals")
 async def test_a_refused_line_leaves_the_valid_events_before_it_unapplied(project, invoke) -> None:
     events = _events(
-        CREATE, {"op": "nope"}, {"op": "status", "target": "TASK-99", "status": "Ready"}
+        CREATE, {"op": "nope"}, {"op": "status", "target": f"{P.ref_prefix}-99", "status": "Ready"}
     )
     result = await invoke(["import", events])
     assert result.exit_code == 1
     assert result.output.splitlines() == [
         "line 2: unknown op 'nope'; valid ops: create, status, body, comment, ref, add-sub, "
-        "add-story, add-subtask, add-finding, sub-status, sub-body, assign, update",
-        "line 3: no item 'TASK-99' in the index",
+        f"add-{P.target_kind}, add-{P.kind}, add-{P.third_kind}, sub-status, sub-body, assign, "
+        f"update",
+        f"line 3: no item '{P.ref_prefix}-99' in the index",
         "2 issue(s) found — nothing written.",
     ]
     assert await listed(invoke) == ONLY_ROLE
@@ -182,7 +187,8 @@ async def test_an_event_refused_while_applying_undoes_the_events_before_it(proje
     result = await invoke(["import", events])
     assert (result.exit_code, result.output) == (
         1,
-        "error: TASK-2 already has a body (1 line); setting one would discard it:\n\n    one\n\n"
+        f"error: {P.ref_prefix}-2 already has a body (1 line); setting one would discard it:\n\n  "
+        f"  one\n\n"
         "Nothing was written. Add to it with `--append`, or pass `--force` to replace it.\n",
     )
     assert await listed(invoke) == ONLY_ROLE
@@ -200,17 +206,21 @@ def _host(
 
 
 HOSTS = [
-    *_host("feature", "f", "story", "Feature"),
-    *_host("task", "t", "subtask", "Task"),
-    *_host("review", "r", "finding", "Review"),
+    *_host(P.host, "f", P.target_kind, "Feature"),
+    *_host(P.ref, "t", P.kind, "Task"),
+    *_host(P.third, "r", P.third_kind, "Review"),
 ]
 HOST_IDS = {
-    "story": ("feature", "2", "f"),
-    "subtask": ("task", "3", "t"),
-    "finding": ("review", "4", "r"),
+    P.target_kind: (P.host, "2", "f"),
+    P.kind: (P.ref, "3", "t"),
+    P.third_kind: (P.third, "4", "r"),
 }
-LOCAL = {"story": "US1", "subtask": "ST1", "finding": "F1"}
-TOO_MANY = "a comment event names at most one of story / subtask / finding / sub"
+LOCAL = {
+    P.target_kind: f"{P.target_prefix}1",
+    P.kind: f"{P.kind_prefix}1",
+    P.third_kind: f"{P.third_kind_prefix}1",
+}
+TOO_MANY = f"a comment event names at most one of {P.target_kind} / {P.kind} / {P.third_kind} / sub"
 
 
 def _comment(kind: str, **selectors: Any) -> dict[str, Any]:
@@ -225,7 +235,7 @@ async def _discussion(invoke, kind: str) -> list[str]:
 
 
 @pytest.mark.covers("import", "FILE")
-@pytest.mark.parametrize("kind", ["story", "subtask", "finding"])
+@pytest.mark.parametrize("kind", [P.target_kind, P.kind, P.third_kind])
 @pytest.mark.parametrize("spelled", ["field", "sub"])
 async def test_a_comment_event_selector_lands_in_that_sub_entity(
     project, invoke, kind, spelled
@@ -239,17 +249,17 @@ async def test_a_comment_event_selector_lands_in_that_sub_entity(
 
 
 @pytest.mark.covers("import", "FILE")
-@pytest.mark.parametrize("kind", ["story", "subtask", "finding"])
+@pytest.mark.parametrize("kind", [P.target_kind, P.kind, P.third_kind])
 @pytest.mark.parametrize("spelled", ["field", "sub"])
 async def test_a_comment_event_selector_can_name_an_add_sub_handle(
     project, invoke, kind, spelled
 ) -> None:
     hosts = [
-        *_host("feature", "f", "story", "Feature", sub_handle="hs"),
-        *_host("task", "t", "subtask", "Task", sub_handle="hst"),
-        *_host("review", "r", "finding", "Review", sub_handle="hf"),
+        *_host(P.host, "f", P.target_kind, "Feature", sub_handle="hs"),
+        *_host(P.ref, "t", P.kind, "Task", sub_handle="hst"),
+        *_host(P.third, "r", P.third_kind, "Review", sub_handle="hf"),
     ]
-    handle = {"story": "hs", "subtask": "hst", "finding": "hf"}[kind]
+    handle = {P.target_kind: "hs", P.kind: "hst", P.third_kind: "hf"}[kind]
     selector = {kind: handle} if spelled == "field" else {"sub": [kind, handle]}
     result = await invoke(["import", _events(*hosts, _comment(kind, **selector))])
     assert result.exit_code == 0, result.output
@@ -259,27 +269,33 @@ async def test_a_comment_event_selector_can_name_an_add_sub_handle(
 
 
 @pytest.mark.covers("import", "FILE")
+@pytest.mark.bundled_only("the case builds its events from the bundled kinds and refusals")
 async def test_a_comment_event_without_a_selector_lands_on_the_item(project, invoke) -> None:
-    result = await invoke(["import", _events(*HOSTS, _comment("subtask"))])
+    result = await invoke(["import", _events(*HOSTS, _comment(P.kind))])
     assert result.exit_code == 0, result.output
-    shown = await invoke(["task", "3", "show", "--json"])
+    shown = await invoke([P.ref, "3", "show", "--json"])
     assert [c["body"] for c in json.loads(shown.output)["discussion"]] == ["- note"]
-    assert await _discussion(invoke, "subtask") == []
+    assert await _discussion(invoke, P.kind) == []
 
 
 @pytest.mark.covers("import", "FILE")
 @pytest.mark.parametrize(
     "selectors",
     [
-        {"story": "US1", "subtask": "ST1"},
-        {"subtask": "ST1", "sub": ["subtask", "ST1"]},
-        {"story": "US1", "subtask": "ST1", "finding": "F1"},
+        {P.target_kind: f"{P.target_prefix}1", P.kind: f"{P.kind_prefix}1"},
+        {P.kind: f"{P.kind_prefix}1", "sub": [P.kind, f"{P.kind_prefix}1"]},
+        {
+            P.target_kind: f"{P.target_prefix}1",
+            P.kind: f"{P.kind_prefix}1",
+            P.third_kind: f"{P.third_kind_prefix}1",
+        },
     ],
 )
+@pytest.mark.bundled_only("the case builds its events from the bundled kinds and refusals")
 async def test_a_comment_event_naming_two_selectors_is_refused_and_writes_nothing(
     project, invoke, selectors
 ) -> None:
-    result = await invoke(["import", _events(*HOSTS, _comment("subtask", **selectors))])
+    result = await invoke(["import", _events(*HOSTS, _comment(P.kind, **selectors))])
     assert (result.exit_code, result.output) == (
         1,
         f"line 7: {TOO_MANY}\n1 issue(s) found — nothing written.\n",
@@ -290,13 +306,21 @@ async def test_a_comment_event_naming_two_selectors_is_refused_and_writes_nothin
 @pytest.mark.covers("import", "FILE")
 @pytest.mark.parametrize(
     ("kind", "selector"),
-    [("subtask", {"subtask": "ST9"}), ("story", {"sub": ["story", "US9"]})],
+    [
+        (P.kind, {P.kind: f"{P.kind_prefix}9"}),
+        (P.target_kind, {"sub": [P.target_kind, f"{P.target_prefix}9"]}),
+    ],
 )
+@pytest.mark.bundled_only("the case builds its events from the bundled kinds and refusals")
 async def test_a_comment_event_naming_an_unknown_sub_entity_is_refused(
     project, invoke, kind, selector
 ) -> None:
     result = await invoke(["import", _events(*HOSTS, _comment(kind, **selector))])
-    missing = "ST9 in TASK-3" if kind == "subtask" else "US9 in FEAT-2"
+    missing = (
+        f"{P.kind_prefix}9 in {P.ref_prefix}-3"
+        if kind == P.kind
+        else f"{P.target_prefix}9 in {P.host_prefix}-2"
+    )
     assert (result.exit_code, result.output) == (
         1,
         f"line 7: no {kind} {missing}\n1 issue(s) found — nothing written.\n",
@@ -353,19 +377,27 @@ async def test_add_kind_takes_each_field_and_the_target_kind_as_keys_and_a_comme
 
 
 @pytest.mark.covers("import", "FILE")
+@pytest.mark.bundled_only("the case builds its events from the bundled kinds and refusals")
 async def test_an_op_or_a_selector_for_a_kind_the_squad_does_not_declare_is_unknown(
     override_project, invoke
 ) -> None:
     events = _events(
-        {"op": "add-story", "target": "INI-8", "title": "No such kind", **AS},
-        {"op": "comment", "target": "INI-8", "story": "US1", "message": "x", **AS},
+        {"op": f"add-{P.target_kind}", "target": "INI-8", "title": "No such kind", **AS},
+        {
+            "op": "comment",
+            "target": "INI-8",
+            P.target_kind: f"{P.target_prefix}1",
+            "message": "x",
+            **AS,
+        },
     )
     result = await invoke(["import", events])
     assert result.exit_code == 1
     assert result.output.splitlines() == [
-        "line 1: unknown op 'add-story'; valid ops: create, status, body, comment, ref, "
+        f"line 1: unknown op 'add-{P.target_kind}'; valid ops: create, status, body, comment, ref, "
         "add-sub, add-outcome, add-action, sub-status, sub-body, assign, update",
-        "line 2: comment.story: not a key of comment; the sub-entity selectors are outcome, "
+        f"line 2: comment.{P.target_kind}: not a key of comment; the sub-entity selectors are "
+        f"outcome, "
         "action, sub",
         "2 issue(s) found — nothing written.",
     ]
@@ -435,37 +467,50 @@ async def test_a_stray_key_on_add_kind_is_reported_under_the_op_the_file_wrote(
 
 
 @pytest.mark.covers("import", "FILE")
+@pytest.mark.bundled_only("the case builds its events from the bundled kinds and refusals")
 async def test_the_old_story_key_on_add_sub_points_to_maps_to_and_an_empty_field_is_unset(
     project, invoke
 ) -> None:
-    host = {"op": "create", "type": "review", "title": "R", "handle": "r", **AS}
+    host = {"op": "create", "type": P.third, "title": "R", "handle": "r", **AS}
     findings = [
-        {"op": "add-finding", "target": "r", "title": f"F {n}", "severity": value}
+        {"op": f"add-{P.third_kind}", "target": "r", "title": f"F {n}", "severity": value}
         for n, value in enumerate((None, ""))
     ]
     await _import_ok(invoke, host, *findings)
-    assert [(await _shown(invoke, "review", "2", "finding", str(n)))["badges"] for n in (1, 2)] == [
+    assert [
+        (await _shown(invoke, P.third, "2", P.third_kind, str(n)))["badges"] for n in (1, 2)
+    ] == [
         {},
         {},
     ]
-    old = {"op": "add-sub", "target": "r", "kind": "subtask", "title": "T", "story": "US1"}
+    old = {
+        "op": "add-sub",
+        "target": "r",
+        "kind": P.kind,
+        "title": "T",
+        P.target_kind: f"{P.target_prefix}1",
+    }
     refused = await invoke(["import", _events(old | AS)])
     assert (refused.exit_code, refused.output) == (
         1,
-        "line 1: add-sub.story: not a key of add-sub; use 'maps_to' for the mapping\n"
+        f"line 1: add-sub.{P.target_kind}: not a key of add-sub; use 'maps_to' for the mapping\n"
         "1 issue(s) found — nothing written.\n",
     )
 
 
 @pytest.mark.covers("import", "FILE")
+@pytest.mark.bundled_only("the case builds its events from the bundled kinds and refusals")
 async def test_a_kind_the_type_does_not_host_is_refused_by_its_declared_plural(
     populated_project, invoke
 ) -> None:
     write_workflow_override(populated_project.squad_dir, CUSTOM_VOCABULARY_OVERRIDE)
-    file = _events({"op": "add-analysis", "target": "TASK-3", "title": "Why", "as": "manager"})
+    file = _events(
+        {"op": "add-analysis", "target": f"{P.ref_prefix}-3", "title": "Why", "as": "manager"}
+    )
     result = await invoke(["import", file])
     assert (result.exit_code, result.output) == (
         1,
-        "line 1: TASK-3 has type task, which does not host analyses (it hosts subtasks)\n"
+        f"line 1: {P.ref_prefix}-3 has type {P.ref}, which does not host analyses (it hosts "
+        f"{P.kind_plural})\n"
         "1 issue(s) found — nothing written.\n",
     )

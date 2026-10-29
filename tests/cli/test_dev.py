@@ -22,7 +22,7 @@ def _lines(output: str) -> list[str]:
 # ------------------------------------------------------------------------------------- add
 
 
-@pytest.mark.covers("dev add", "--<attribute:str>")
+@pytest.mark.covers("dev add", "--tech")
 async def test_add_tech_builds_a_developer_role_named_for_the_technology(project, invoke) -> None:
     result = await invoke(["dev", "add", "--tech", "python"])
     assert (result.exit_code, result.output) == (0, "added Elias Python (`python-dev`) ROLE-2\n")
@@ -46,7 +46,7 @@ async def test_add_needs_a_technology(project, invoke) -> None:
     )
 
 
-@pytest.mark.covers("dev add", "--<attribute:str>")
+@pytest.mark.covers("dev add", "--tech")
 async def test_add_refuses_a_technology_whose_developer_role_already_exists(
     project, invoke
 ) -> None:

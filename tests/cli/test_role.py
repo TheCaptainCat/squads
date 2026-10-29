@@ -6,8 +6,11 @@ from typing import Any
 
 import pytest
 
+from tests._profile import selected
 from tests.cli._output import entry_text, json_text, printed, read_json
 from tests.cli._roster import actors_of, body_of, forced_terminal, usage_error
+
+P = selected()
 
 pytestmark = pytest.mark.anyio
 
@@ -242,6 +245,7 @@ async def test_list_json_describes_each_activated_role(project, invoke) -> None:
 
 
 @pytest.mark.covers("role activate", "SLUG")
+@pytest.mark.bundled_only("activates a catalog role whose text names the bundled workflow")
 async def test_activate_adds_a_catalog_role_and_writes_its_pointer(project, invoke) -> None:
     result = await invoke(["role", "activate", "architect"])
     assert (result.exit_code, result.output) == (
@@ -311,7 +315,7 @@ async def test_activate_model_replaces_the_catalogs_model(project, invoke) -> No
     assert "model: haiku\n" in _pointer(project, "architect").read_text(encoding="utf-8")
 
 
-@pytest.mark.covers("role activate", "--from", "--<attribute:str>")
+@pytest.mark.covers("role activate", "--from", "--tech")
 async def test_activate_from_a_template_builds_a_role_for_the_technology(project, invoke) -> None:
     result = await invoke(["role", "activate", "--from", "dev", "--tech", "python"])
     assert (result.exit_code, result.output) == (0, "added Elias Python (`python-dev`) ROLE-2\n")
@@ -354,7 +358,7 @@ async def test_activate_from_a_template_that_takes_a_technology_needs_tech(proje
     )
 
 
-@pytest.mark.covers("role activate", "--<attribute:str>")
+@pytest.mark.covers("role activate", "--tech")
 async def test_activate_tech_is_refused_without_a_template(project, invoke) -> None:
     result = await invoke(["role", "activate", "architect", "--tech", "go"])
     assert (result.exit_code, result.output) == (
@@ -487,8 +491,8 @@ async def test_add_needs_a_slug(project, invoke) -> None:
 
 @pytest.mark.covers("role add", "--capabilities")
 async def test_add_capabilities_are_split_on_commas_and_trimmed(project, invoke) -> None:
-    await _add_scout(invoke, "--capabilities", "review, , dev")
-    assert (await _role(invoke, "scout"))["capabilities"] == ["review", "dev"]
+    await _add_scout(invoke, "--capabilities", f"{P.third}, , dev")
+    assert (await _role(invoke, "scout"))["capabilities"] == [P.third, "dev"]
 
 
 @pytest.mark.covers("role add", "--model")
@@ -632,7 +636,10 @@ async def test_address_refuses_the_number_of_an_item_that_is_not_a_role(
     populated_project, invoke
 ) -> None:
     result = await invoke(["role", "3", "show"])
-    assert (result.exit_code, result.output) == (1, "error: 3 is TASK-3 (task), not of type role\n")
+    assert (result.exit_code, result.output) == (
+        1,
+        f"error: 3 is {P.ref_prefix}-3 ({P.ref}), not of type role\n",
+    )
 
 
 # ----------------------------------------------------------------------------------- show
@@ -1118,7 +1125,7 @@ async def test_update_mission_changes_the_mission_of_a_role_that_defines_itself(
 async def test_update_capabilities_replaces_them_and_a_blank_value_clears_them(
     project, invoke
 ) -> None:
-    await _add_scout(invoke, "--capabilities", "review")
+    await _add_scout(invoke, "--capabilities", P.third)
     await invoke(["role", "scout", "update", "--capabilities", "dev, plan"])
     assert (await _role(invoke, "scout"))["capabilities"] == ["dev", "plan"]
     await invoke(["role", "scout", "update", "--capabilities", ""])

@@ -45,6 +45,7 @@ def _cached_get_command(app_obj: Any) -> Any:
 
 
 typer.main.get_command = _cached_get_command
+_cached_get_command.cache_clear = _build_command.cache_clear  # type: ignore[attr-defined]
 # typer.testing binds its own alias at import, so patching typer.main alone misses invoke().
 _typer_testing: Any = typer.testing
 _typer_testing._get_command = _cached_get_command
@@ -86,7 +87,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 def pytest_configure(config: pytest.Config) -> None:
     """Publish the selected squad to the modules that read it at import time."""
-    os.environ["SQUADS_TEST_SQUAD"] = config.getoption("--squad")
+    os.environ["SQUADS_TEST_SQUAD"] = str(config.getoption("--squad"))
 
 
 def _skip_other_squad(config: pytest.Config, items: list[pytest.Item]) -> None:
