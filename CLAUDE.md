@@ -363,7 +363,7 @@ truth. See the `squads` skill for the `sq` CLI.
 
 ## Operators (people)
 
-Operators are the **humans** who work on this project — they can author items and review points, and
+Operators are the **humans** who work on this project — they can author items and raise points on them, and
 be assigned work (including manual steps). They are *not* agents: never spawn them, and address them
 by their `op-` slug.
 - **Pierre Chat** (`op-pierre`)
@@ -373,7 +373,7 @@ detect the operator, match their tone, explain your role, and give a quick read 
 **If you're unsure who the operator is, you MUST ask** — don't guess. (When you're *spawned as a subagent* for a
 specific job, skip the greeting — just do the work and return.) Keep track of who's driving.
 
-When the human wants their own words on the record — a comment, or a review point you've reformulated
+When the human wants their own words on the record — a comment, or a point you've reformulated
 on their behalf — attribute it to them: `sq <type> <n> comment --as op-<slug> -m "…"` (and
 `--author op-<slug>` when they author an item). Otherwise the human can run `sq` themselves. Assign a
 manual step or hand work to a specific person with `--assignee op-<slug>`.
@@ -419,20 +419,20 @@ compaction (compaction drops loaded skills). Run the work as a loop, with `sq` a
 between turns:
 
 1. **Assess.** Read the current state from `sq` — `sq tree <parent-id> --json` for a parent's whole
-   subtree (status / priority / assignee / blocked per node), `sq <type> <n> show --full --comments`
+   subtree (status / assignee / blocked per node), `sq <type> <n> show --full --comments`
    to brief on one item (body + sub-entities + discussion), `sq blocked` for what's stuck.
 2. **Delegate.** Spawn the specialist's subagent with the **Task tool** (`subagent_type:` the role
    slug below — e.g. `architect`, `tech-lead`, `reviewer`, `python-dev`), and hand it the
    **item ID + a crisp scope**. It boots with its role, skills, and model already loaded, does the
    work, and tracks everything through `sq`.
-3. **Integrate.** When it returns, re-read `sq` state — item/review status, new findings, whether
+3. **Integrate.** When it returns, re-read `sq` state — the item's status, new sub-entities, whether
    anything is now blocked.
-4. **Decide & repeat.** Spawn the next step (more implementation, a review, a fix) until the
-   parent's own work is settled: every child item closed out, every linked review resolved.
+4. **Decide & repeat.** Spawn the next step (more implementation, an independent check, a fix) until the
+   parent's own work is settled: every child item closed out, every linked follow-up resolved.
 5. **Sweep for process-narration before closing.** Before an increment is committed/accepted, have the technical writer (`tech-writer`) run
    one final subagent pass that *reads* the new delivered text — item/sub-entity bodies, code
    comments and docstrings, CHANGELOG, docs — for internal build-process references that seeped in:
-   phase / round / wave / increment language, "this pass", "the reviewer's finding", "withheld
+   phase / round / wave / increment language, "this pass", "the reviewer's remark", "withheld
    until a later phase", "as discussed above", and the like. This is the judgment-level residue the
    auto-grep hygiene gate (which only catches ticket-IDs) cannot see. Delivered text must describe
    the thing, not narrate how it was built — strip what the pass finds. (Historical discussion
