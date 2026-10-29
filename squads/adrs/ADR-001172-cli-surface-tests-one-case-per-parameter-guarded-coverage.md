@@ -14,7 +14,7 @@ description: 'CLI tests in-process on the bundled squad and a full-override squa
   one case per parameter, shared registrations tested once, a marker-based coverage
   guard'
 created_at: '2026-10-27T21:25:41Z'
-updated_at: '2026-10-29T19:25:55Z'
+updated_at: '2026-10-29T21:13:08Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -104,7 +104,7 @@ Every CLI test runs `sq` in-process through Typer's `CliRunner` (the `runner`/`i
 
 ### 5. Assert what the user sees
 
-A case asserts the exit code and the composed output: the whole message line or the JSON object, not a substring that would survive a wrong message. State is read back through the CLI: `sq <type> <n> show --json`, or the `--json` form of the listing or command concerned. A test never opens `.squads.json`, and opens an item file only for the hint named below. A test reads a file directly only when that file is the output the command under test produces for the user: the generated agent-facing files (`.claude/` pointers, the managed `CLAUDE.md` and `AGENTS.md` regions) written by `init`, `adopt`, `sync` and the roster verbs that regenerate pointers, and the override files that `sq override` scaffolds or restamps. One item-file read is allowed: a test may read the add and track hint that an item template scaffolds above the sub-entity region, since no sq output carries it. No other file is read; any other state goes through the CLI. A test writes an item file or `.squads.json` directly only to arrange a state that no CLI path can produce (a corrupt, legacy or drifted corpus for `repair`, `check`, `migrate`, `adopt` or `renumber`); its assertions still read state through the CLI.
+A case asserts the exit code and the composed output: the whole message line or the JSON object, not a substring that would survive a wrong message. State is read back through the CLI: `sq <type> <n> show --json`, or the `--json` form of the listing or command concerned. A test never opens `.squads.json`, and opens an item file only for the hint named below. A test reads a file directly only when that file is the output the command under test produces for the user: the generated agent-facing files (`.claude/` pointers, the managed `CLAUDE.md` and `AGENTS.md` regions) written by `init`, `adopt`, `sync` and the roster verbs that regenerate pointers, and the override files that `sq override` scaffolds or restamps. Two item-file reads are allowed. A test may read the add and track hint that an item template scaffolds above the sub-entity region, since no sq output carries it. A migration test may read the item files `sq migrate up` rewrote, since those files are the output the command produces; it reads them as plain text and compares whole files or the whole frontmatter, never through an internal function such as a frontmatter parser. No other file is read; any other state goes through the CLI. A refusal is asserted by its whole message lines, never by a substring. A test writes an item file or `.squads.json` directly only to arrange a state that no CLI path can produce (a corrupt, legacy or drifted corpus for `repair`, `check`, `migrate`, `adopt` or `renumber`); its assertions still read state through the CLI.
 
 ### 6. Layout and names
 
@@ -250,4 +250,8 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
     - "Scope: bundled spec only" becomes "Scope: two squads": the bundled squad and an override squad that drops every bundled work-item type, kind and field. One squad per run, one CI job each. Cases reach their host through a per-squad profile, held by a new `tests/meta` guard.
     - Rule 3: a derived parameter is named by its derivation (`--<field>`, `--no-<field>`, `--min-<field>`, `--<target-kind>`, `--no-<target-kind>`, `--<attribute:KIND>`), so one marker holds on both squads; the coverage guard enumerates each squad's tree.
     - Context, rule 2, the time bound, Consequences and the rejected custom-type option follow.
+- [2026-10-29T21:13:08Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29, under REV-1259 F5 and the manager ruling 2a9fcf4 on REV-1259 (operator delegation for this drive).
+    - Rule 5: a migration test may read the item files `sq migrate up` rewrote, as plain text, comparing whole files or the whole frontmatter, since those files are the output the command produces. Never through an internal function such as a frontmatter parser.
+    - Unchanged and restated: `.squads.json` is never read, and a refusal is asserted by its whole message lines, never a substring.
 <!-- sq:discussion:end -->

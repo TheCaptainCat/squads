@@ -23,7 +23,7 @@ description: Options, import keys, stored keys, wire keys and generated text der
   from the active spec; badge values and the mapping are stored flat under declared
   or neutral keys
 created_at: '2026-10-29T19:08:39Z'
-updated_at: '2026-10-29T19:51:16Z'
+updated_at: '2026-10-29T21:13:07Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -95,8 +95,8 @@ The root command table resolves a type token through the active spec's aliases. 
 
 **Frontmatter.** An item stores each badge value at the top level under its field code, as every custom field already does. `priority` and `severity` stop being core keys. A sub-entity entry in the parent's `subentities` list is flat in the same way:
 
-- **Sub-entity core keys:** `local_id`, `title`, `status`, `assignee`, `maps_to`, `deferred_to`. `maps_to` holds the local id of the mapped sub-entity in the parent, and is written only when set, like `deferred_to`.
-- **Every other key** is an attribute of the entry: each declared field under its code, and any unknown key, kept through every write, repair and migration. The `extra` container goes.
+- **Sub-entity core keys:** `local_id`, `title`, `status`, `assignee`, `maps_to`, `deferred_to`. `maps_to` holds the local id of the mapped sub-entity in the parent, and is written only when set, like `deferred_to`; an empty or null `maps_to` is unset.
+- **Every other key** is an attribute of the entry: each declared field under its code, and any unknown key, kept as written, an empty value included, through every write, repair and migration. An empty value of a declared field is unset. The `extra` container goes.
 
 ```yaml
 subentities:
@@ -148,10 +148,17 @@ The change to the stored sub-entity entry and to the frozen `--json` shapes is a
 **The runner** walks every item file of every type, roster included, and rewrites only `subentities` entries:
 
 - `story: X` becomes `maps_to: X`;
+- an empty or null `maps_to` means no mapping: it is dropped, and a `story` beside it becomes the mapping, so no mapping is lost;
 - each key of `extra` moves to the entry's top level, and `extra` goes;
 - an empty `severity` (the loose spelling the model tolerated) is dropped.
 
-Item top-level keys are not touched: `priority: high` and `severity: critical` are already stored under their field code. Body bytes and markers are untouched. The runner first scans every file and refuses the run, exit 1 with nothing written, when an entry holds both `story` and `maps_to`, or an `extra` key equal to a sub-entity core key or to a key already at the entry's top level; the refusal names the item and the key. Both arise only from hand edits. **Idempotence:** an entry with no `story` and no `extra` is left byte-identical, so a second run rewrites nothing. `sq migrate up` then rebuilds `.squads.json` from the files.
+Every other entry key, an unknown key included, is copied as written, an empty value included (§6).
+
+**Item top-level keys keep their values and are reordered once.** `priority: high` and `severity: critical` are already stored under their field code, so no value changes. Their position does: as attributes, the item writer emits them after the timestamps and session keys, with the other attributes, where 0.17 wrote them among the core keys. The runner rewrites each item file whose top-level key order differs from the order the item writer produces, moving keys only, so the reorder lands once, in the diff `sq migrate up` already makes, and a later write shows only its own change. In a bundled squad the only keys that move are `priority` and `severity`. Body bytes and markers are untouched.
+
+**Refusals.** The runner first scans every file and refuses the run, exit 1 with nothing written, when an entry holds both `story` and a non-empty `maps_to`, or an `extra` key equal to a sub-entity core key or to a key already at the entry's top level; the refusal names the item and the key. Both arise only from hand edits.
+
+**Idempotence:** a file whose entries hold no `story` and no `extra` and whose top-level keys already stand in the writer's order is left byte-identical, so a second run rewrites nothing. `sq migrate up` then rebuilds `.squads.json` from the files.
 
 **What the runner does not rewrite**, listed in the migration's `manual` step:
 
@@ -247,4 +254,9 @@ Each overlap below is a clause-level amendment (board rule 6): the older decisio
   - 2026-10-29: ADR-1250 accepted.
 - [2026-10-29T19:51:16Z] `architect` Robert Architect:
   - §11 applied 2026-10-29: ADR-323 §4/§5, ADR-348 §1/§4/§7, ADR-622 (Addressing, the op set), ADR-1007 §1/§4, and the neutral names in ADR-541, ADR-738, ADR-864 and ADR-1109 are amended in place, each with a dated comment and a related ref back here. ADR-1172 needed nothing further (its amendment b2bb2a8 already matches §10). Statuses unchanged.
+- [2026-10-29T21:13:07Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29, under REV-1259 F1, F3 and F4 and the manager ruling 2a9fcf4 (operator delegation for this drive).
+    - Section 8: item top-level keys keep their values but are reordered once. The 0.19 runner rewrites each item file whose top-level key order differs from the writer's, moving keys only, so `priority` and `severity` land after the timestamps with the other attributes in the migration diff and never move again. Idempotence now covers key order; the sub-entity rewrites and the pre-scan refusal stand.
+    - Section 8 (F3): an empty or null `maps_to` means no mapping; it is dropped and a `story` beside it becomes the mapping. Not a refusal: an empty value is unset everywhere else, and folding it loses nothing. The refusal is now for `story` beside a non-empty `maps_to`. Section 6 says the model folds an empty `maps_to` to unset.
+    - Sections 6 and 8 (F4): an unknown entry key is kept as written, an empty value included; only an empty value of a declared field is unset.
 <!-- sq:discussion:end -->
