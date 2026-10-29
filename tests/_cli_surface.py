@@ -11,13 +11,14 @@ import functools
 import re
 import tempfile
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 import typer.main
 from typer._click.core import Context, iter_params_for_processing
 
 from squads._cli import app
+from squads._context import bind_context, get_context
 from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
 from tests._help_tree import Node, command_nodes
@@ -263,6 +264,12 @@ def declared_pairs(arguments: tuple[str, ...]) -> set[Pair]:
 @functools.cache
 def bundled_known() -> frozenset[Pair]:
     """Every pair a marker may name: the pairs of the bundled tree and the bare call of its
-    leaves, read from a directory outside any squad."""
-    with tempfile.TemporaryDirectory() as empty, contextlib.chdir(empty):
-        return surface_of(command_nodes(include_hidden=True), bundled_spec()).known
+    leaves, read from a directory outside any squad with no active spec bound, so the options the
+    caller's squad derives never enter the cached answer."""
+    prior = get_context()
+    bind_context(replace(prior, active_spec=None))
+    try:
+        with tempfile.TemporaryDirectory() as empty, contextlib.chdir(empty):
+            return surface_of(command_nodes(include_hidden=True), bundled_spec()).known
+    finally:
+        bind_context(prior)

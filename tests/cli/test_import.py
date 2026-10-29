@@ -346,7 +346,7 @@ async def test_add_kind_takes_each_field_and_the_target_kind_as_keys_and_a_comme
         "imported 4 event(s)\n"
     )
     action = await _shown(invoke, "job", "9", "action", "3")
-    assert (action["badges"], action["story"]) == ({"impact": "small"}, "OC1")
+    assert (action["badges"], action["maps_to"]) == ({"impact": "small"}, "OC1")
     outcome = await _shown(invoke, "initiative", "8", "outcome", "3")
     assert [c["body"] for c in outcome["discussion"]] == ["- agreed"]
 
@@ -387,7 +387,7 @@ async def test_add_sub_takes_the_mapping_as_maps_to_and_the_fields_in_fields(
         },
     )
     action = await _shown(invoke, "job", "9", "action", "3")
-    assert (action["badges"], action["story"]) == ({"impact": "large"}, "OC2")
+    assert (action["badges"], action["maps_to"]) == ({"impact": "large"}, "OC2")
     named = {"op": "add-sub", "target": "JOB-9", "kind": "action", "title": "T", "outcome": "OC1"}
     refused = await invoke(["import", _events(named | AS)])
     assert (refused.exit_code, refused.output) == (
