@@ -106,7 +106,7 @@ subentities:
   severity: low
 - local_id: F21
   title: A changed local_prefix leaves entries unreachable and sq check silent
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F22
   title: 'rename-field: itself-refusal and reflog untested; empty kind name in two
@@ -116,7 +116,7 @@ subentities:
 - local_id: F23
   title: 'rename-field has no scope: a key held on items and entries moves all or
     nothing'
-  status: Open
+  status: Fixed
   severity: info
 - local_id: F24
   title: VS Code mapping label is made in client code and differs from the server
@@ -128,7 +128,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-29T22:51:27Z'
+updated_at: '2026-10-29T23:04:37Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -745,4 +745,6 @@ Regenerate from the dev tree, after the TASK-1254 wire fixes (F19: `badges` on e
   - The kind-rename body orphaning (outcome to goal, prefix kept) is covered by the same ADR-1250 section 6 ruling as F21: block markers stay keyed by kind name; `sq migrate rename-kind outcome goal` rewrites them marker-safely, and `subentity_kind_mismatch` reports a block marker whose kind tag is not the hosted kind, naming that command. The "renamed kind needs no data move" sentence is gone.
 - [2026-10-29T22:51:27Z] `python-dev` Elias Python:
   - F24 server half done in the latest TASK-1254 commit: kind label key, one kind_label resolver on every site, maps_to_kind on every sub-entity display, label on the kinds catalog row. Client half is open.
+- [2026-10-29T23:04:37Z] `python-dev` Elias Python:
+  - F21, F23 and the kind-rename body orphaning fixed in fb01519e: sq migrate rename-kind, check rule subentity_kind_mismatch, and rename-field --type/--kind scopes with the scoped command named by frontmatter_key_undeclared.
 <!-- sq:discussion:end -->

@@ -66743,7 +66743,7 @@
         {
           "local_id": "F21",
           "title": "A changed local_prefix leaves entries unreachable and sq check silent",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66763,7 +66763,7 @@
         {
           "local_id": "F23",
           "title": "rename-field has no scope: a key held on items and entries moves all or nothing",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "info",
           "story": null,
@@ -66793,7 +66793,7 @@
       ],
       "path": "reviews/REV-001259-review-of-the-bundled-vocabulary-feature.md",
       "created_at": "2026-10-29T21:09:02Z",
-      "updated_at": "2026-10-29T22:51:27Z",
+      "updated_at": "2026-10-29T23:04:37Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
