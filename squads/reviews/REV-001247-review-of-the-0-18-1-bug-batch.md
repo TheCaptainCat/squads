@@ -48,7 +48,7 @@ subentities:
 - local_id: F8
   title: 'tests/regressions: eight duplicated fixtures, one module holding two bugs,
     uneven docstrings'
-  status: Open
+  status: Fixed
   severity: info
 - local_id: F9
   title: unlink-role on a skill not scoped to the role still reports success, the
@@ -71,7 +71,7 @@ subentities:
   status: Fixed
   severity: low
 created_at: '2026-10-29T17:02:38Z'
-updated_at: '2026-10-29T17:25:39Z'
+updated_at: '2026-10-29T17:30:54Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -269,6 +269,8 @@ Layout of `tests/regressions/`, written by three devs in parallel:
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
+- [2026-10-29T17:30:54Z] `python-dev` Elias Python:
+  - Fixed in eaaac5a7: shared fixtures in tests/regressions/conftest.py, helpers moved to tests/, memory-search and import tests split, badge cases merged, docstrings on every module. Also removed the dead hand-written-create branch in tests/_cli_surface.py fold_path.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 

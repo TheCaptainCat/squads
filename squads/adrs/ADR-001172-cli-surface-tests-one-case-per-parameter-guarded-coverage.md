@@ -12,7 +12,7 @@ refs:
 description: 'CLI tests in-process on the bundled spec: one case per parameter, shared
   registrations tested once, a marker-based coverage guard'
 created_at: '2026-10-27T21:25:41Z'
-updated_at: '2026-10-29T17:11:44Z'
+updated_at: '2026-10-29T17:28:46Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -24,7 +24,7 @@ The first tests to rebuild are CLI tests: every command, every parameter, run ag
 - 344 commands (groups included), 267 leaf commands, 1,079 (command, parameter) pairs counting group callbacks.
 - The nine work-item groups come from one builder, `build_item_app`. Each has 11 verbs, plus 3 more on a type that hosts a sub-entity kind (`add-<kind>`, `<kind>`, the plural listing). `retype` and `remove` exist only on non-roster types.
 - The comment verbs come from one registrar, `register_comment_verbs`, and are mounted on every item group, every sub-entity group and the `role`, `skill` and `operator` groups.
-- `sq create <type>` takes the same options on eight types. `guide` differs: it takes `--tag` and `--tech`, and has no `--label`, `--priority` or `--ref`.
+- `sq create <type>` takes the shared options on every type, plus one option per badge field and per create-time attribute the type declares. A create-time attribute is a settable `str`, `list` or `date` attribute in `[items.<type>.attributes]`; its option is `--<key>` with underscores as dashes, and a `bool` attribute gets none. In the bundled spec, `guide` declares `tags` and `tech` (`--tags`, `--tech`), `milestone` declares `target_date` (`--target-date`) and `review` declares `target_ref` (`--target-ref`).
 - Sub-entity verbs take the same options on all three bundled kinds, except `subtask update --story/--no-story` and `finding update --severity/--deferred-to`.
 - Once item types, sub-entity kinds and comment hosts are each folded onto one key, 1,079 pairs become about 374, on about 111 leaf commands.
 
@@ -53,13 +53,13 @@ A verb set that one builder or registrar mounts on several hosts is tested on on
 - **Work-item verbs** are tested on the bundled `task` type. It is non-roster, so it has `retype` and `remove`. It hosts a sub-entity kind (`subtask`) whose `--story` option resolves against another item (its parent feature's stories). It also carries a parent rule that `sq check` enforces. No other bundled type exercises more of the builder.
 - **Sub-entity verbs** are tested on `task subtask`. A parameter that only some kinds carry is tested on a host that carries it: `--severity` and `--deferred-to` on `review finding`.
 - **Comment verbs** are tested on the `task` item host. Addressing through the other host kinds is tested once each: sub-entity, role, skill and operator. Each of those cases covers the address, not the verb's parameters again.
-- **`sq create <type>`** is tested on `task`. A parameter only some types carry is tested on a type that carries it: `--tag` and `--tech` on `guide`.
+- **`sq create <type>`** is tested on `task`. A parameter derived from a type's own declarations is tested on a type that declares it: `--tags` and `--tech` on `guide`, `--target-date` on `milestone`, `--target-ref` on `review`. No type is special-cased: every create command is built from the spec, and no test or guard names a type to exempt it.
 - **Per-type differences that the spec decides**, such as which transitions a lifecycle allows, are not CLI surface. The `status` verb is tested on `task`'s lifecycle: one allowed transition and one refused transition. Whether every bundled lifecycle is well formed is the spec loader's concern, not this suite's.
 
 The verb-set guard is a new `tests/meta` module. It enumerates the tree with `_help_tree.command_nodes()` and reads the bundled spec. For every declared work-item type it asserts two things:
 
 - The type's verb set equals the reference type's verb set, minus what the spec decides: the `add-<kind>`, `<kind>` and plural verbs are present exactly when the type hosts a kind, and `retype`/`remove` are present exactly when the type is not roster.
-- Each verb's parameter names equal the reference type's, except the parameters derived from the type's own declarations: create-time attributes and the kind-specific sub-entity options.
+- Each verb's parameter names equal the reference type's, plus the parameters derived from the type's own declarations: on `create`, one option per declared badge field and per create-time attribute; on sub-entity verbs, the kind-specific options. The guard computes both sets from the spec, and fails on a create command the shared builder did not build.
 
 The same guard asserts that every comment host exposes the same comment verbs with the same parameters. The guard derives its expectations from the spec and stores no list of types. The existing `test_roster_body_verbs_share_one_registration` keeps holding the roster body verbs.
 
@@ -163,7 +163,7 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
 
 - Two new `tests/meta` guards: verb-set parity across hosts, and (command, parameter) coverage. The `invoke` fixture gains the marker cross-check, and `covers` is registered as a pytest marker.
 - Adding an option to any command fails the coverage guard until a test declares it. Adding a verb to the builder or a registrar fails nothing per type: one test on the reference host covers it, and the parity guard holds the rest.
-- A new bundled type needs no new surface tests unless it brings a parameter of its own.
+- A new bundled type needs no new surface tests unless it brings a parameter of a kind the suite does not test yet.
 - Override-backed surface runs and the regression set are later work. Their keys and location are fixed here.
 - The daemon adds two CI jobs and no surface cases: the cross-process set on each OS, and the surface suite in remote mode. The coverage guard sees neither the cross-process set nor the route tests, since neither carries a `covers` marker.
 - The guards prove that a case exists, not that it is strong: a vacuous case is still caught by the falsification step and by review.
@@ -231,4 +231,10 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
     - No other work-item type literal appears in `_cli`.
     
     @manager
+- [2026-10-29T17:28:46Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 for REV-1247 F3 (op-pierre a856fab; flag naming per the operator ruling relayed with e3bb9356 and 14c77354). This follows board rule 6 and supersedes the plan in d5e503c. Status unchanged.
+    - Context: `sq create <type>` takes the shared options plus one option per badge field and per create-time attribute. A create-time attribute is a settable `str`, `list` or `date` attribute. Its flag is `--<key>` with underscores as dashes, and a `bool` attribute gets no flag. The bundled flags are `--tags` and `--tech` on guide, `--target-date` on milestone and `--target-ref` on review. The guide exception is gone.
+    - Rule 2: a parameter derived from a type's declarations is tested on a type that declares it, and every derived flag is named. No type is special-cased.
+    - Verb-set guard: it adds the derived parameters computed from the spec, and fails on a create command the shared builder did not build.
+    - Consequences: a new type needs new surface tests only for a parameter of a kind the suite does not test yet.
 <!-- sq:discussion:end -->
