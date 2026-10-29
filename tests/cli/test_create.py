@@ -214,7 +214,7 @@ async def test_priority_refuses_a_code_the_collection_does_not_declare(project, 
     )
 
 
-@pytest.mark.covers("create <type>", "--author")
+@pytest.mark.covers("create <type>", "--<field>")
 async def test_a_field_code_with_an_underscore_gets_a_dashed_flag(override_project, invoke) -> None:
     result = await invoke(
         ["create", "job", "Wire it", "--author", "manager", "--parent", "8", "--work-size", "m"]
@@ -223,7 +223,7 @@ async def test_a_field_code_with_an_underscore_gets_a_dashed_flag(override_proje
     assert (await _shown(invoke, "job", 11))["badges"] == {"work_size": "m"}
 
 
-@pytest.mark.covers("create <type>", "--author")
+@pytest.mark.covers("create <type>", "--<field>")
 async def test_a_declared_field_flag_sets_the_value_the_squad_names(
     override_project, invoke
 ) -> None:

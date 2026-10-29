@@ -286,7 +286,7 @@ async def test_update_sets_and_clears_a_field_only_some_types_declare(
     )
 
 
-@pytest.mark.covers("<type> update", "--json")
+@pytest.mark.covers("<type> update", "--<field>", "--no-<field>")
 async def test_update_takes_a_flag_per_declared_field_and_a_negation_per_optional_one(
     override_project, invoke
 ) -> None:

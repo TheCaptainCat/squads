@@ -398,7 +398,7 @@ async def test_a_field_only_some_types_declare_filters_exactly_and_by_threshold(
     )
 
 
-@pytest.mark.covers("list", "--json")
+@pytest.mark.covers("list", "--<field>", "--min-<field>")
 async def test_a_derived_filter_means_exactly_its_generic_form(override_project, invoke) -> None:
     created = await invoke(
         ["create", "initiative", "Later one", "--author", "manager", "--urgency", "later"]
