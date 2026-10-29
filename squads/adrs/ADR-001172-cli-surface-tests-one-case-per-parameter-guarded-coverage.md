@@ -8,10 +8,11 @@ author: architect
 refs:
 - FEAT-1096
 - ADR-1025
+- ADR-1225
 description: 'CLI tests in-process on the bundled spec: one case per parameter, shared
   registrations tested once, a marker-based coverage guard'
 created_at: '2026-10-27T21:25:41Z'
-updated_at: '2026-10-28T19:15:58Z'
+updated_at: '2026-10-28T21:47:38Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -134,9 +135,9 @@ A behaviour belongs here only when no in-process test can observe it: it needs o
 
 The daemon's members are implicit start, discovery, fall back, no replay after a lost connection, Ctrl-C, and the detached spawn on Windows.
 
-### The daemon's command endpoint
+### The daemon's routes
 
-The daemon's documented command endpoint is a surface, but not a (command, parameter) pair. Its tests follow rules 4 to 6: they run in-process, with the daemon's HTTP application served on a thread of the test process against a copied squad; they assert the whole response and read state back through the CLI; and they live in a module named for the endpoint's behaviour. They carry no `covers` marker, because there is no pair for one to name.
+The daemon's routes (ADR-1225) are a surface, but not (command, parameter) pairs. The mode-parity run covers every operation over HTTP, so route tests are kept only for what it cannot see: one case per row of the error table, a vocabulary mismatch on an unchanged and on a changed configuration, the OpenAPI document covering every operation, a partial read's envelope, the binding of each metadata header, a `GET` that does not mutate, and the admission negatives listed in ADR-1052. They follow rules 4 to 6: they run in-process, with the daemon's HTTP application served on a thread of the test process against a copied squad; they assert the whole response and read state back through the CLI; and they live in a module named for the behaviour of the route they hold. They carry no `covers` marker, because there is no pair for one to name.
 
 ### Mode parity
 
@@ -160,7 +161,7 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
 - Adding an option to any command fails the coverage guard until a test declares it. Adding a verb to the builder or a registrar fails nothing per type: one test on the reference host covers it, and the parity guard holds the rest.
 - A new bundled type needs no new surface tests unless it brings a parameter of its own.
 - Override-backed surface runs and the regression set are later work. Their keys and location are fixed here.
-- The daemon adds two CI jobs and no surface cases: the cross-process set on each OS, and the surface suite in remote mode. The coverage guard sees neither the cross-process set nor the endpoint tests, since neither carries a `covers` marker.
+- The daemon adds two CI jobs and no surface cases: the cross-process set on each OS, and the surface suite in remote mode. The coverage guard sees neither the cross-process set nor the route tests, since neither carries a `covers` marker.
 - The guards prove that a case exists, not that it is strong: a vacuous case is still caught by the falsification step and by review.
 
 ## Options considered and rejected
@@ -186,4 +187,6 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
   - Rule 5 amended per REV-1198 F14: a test may read the output files its command produces (agent files from init/adopt/sync/roster regen, override files); item files and .squads.json stay CLI-only.
 - [2026-10-28T19:15:58Z] `architect` Robert Architect:
   - Amended per the op-pierre rulings on FEAT-1140 (a6fcbde, 2026-10-28): rule 4 points out-of-process behaviours to a new "cross-process set" section (what qualifies, small and named, no covers marker, own CI job per OS; the daemon members listed); a "daemon command endpoint" section puts endpoint tests under rules 4-6 without covers markers; a "mode parity" section reruns the suite in remote mode in its own CI job with no new cases; the time bound places both new jobs under the existing targets; Consequences gains the two-jobs line.
+- [2026-10-28T21:47:38Z] `architect` Robert Architect:
+  - Amended in place on the acceptance of ADR-1225 (op-pierre 2f9041b, 3fbbd10), per its section 8; board rule 6, linked related. The section "The daemon's command endpoint" becomes "The daemon's routes". Route tests are kept only for what the parity run cannot see: error-table rows, a vocabulary mismatch on an unchanged and on a changed configuration, the OpenAPI coverage, a partial read's envelope, header binding, a GET that does not mutate, and the ADR-1052 admission negatives. They still follow rules 4 to 6, with no covers marker. The Consequences bullet now says "route tests". The cross-process set and the mode-parity job are unchanged.
 <!-- sq:discussion:end -->

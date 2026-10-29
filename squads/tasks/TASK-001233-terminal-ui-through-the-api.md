@@ -1,0 +1,119 @@
+---
+id: TASK-1233
+sequence_id: 1233
+type: task
+title: Terminal UI through the Api
+status: Ready
+parent: FEAT-1226
+author: tech-lead
+priority: high
+refs:
+- ADR-1224:implements
+- TASK-1228:depends-on
+- TASK-1230:depends-on
+- TASK-1231:depends-on
+description: sq ui screens call operations through the Api the root callback selects;
+  display from DTOs only
+subentities:
+- local_id: ST1
+  title: sq ui hands the app a per-call API selector
+  status: Todo
+  story: US5
+- local_id: ST2
+  title: Screens onto operations
+  status: Todo
+  story: US5
+- local_id: ST3
+  title: _tui under the renderer guard
+  status: Todo
+  story: US4
+created_at: '2026-10-28T22:12:42Z'
+updated_at: '2026-10-28T22:28:29Z'
+---
+<!-- sq:body -->
+## Goal
+
+Take the terminal UI off the service (ADR-1224 point 7, increment 6): `sq ui` hands the app the API selection of the root callback, every screen makes its calls through `Api`, and the screens show only what the DTOs carry. It needs no operation of its own; it uses the ones TASK-1227, TASK-1228, TASK-1230 and TASK-1231 create. In local mode it runs on `LocalApi`; its behaviour as a daemon client (FEAT-1140 US13) is built in TASK-1219 on the seam this task leaves.
+
+## What it builds
+
+- **The seam for a long session.** The app holds the selection rule, not one selected API (ADR-1224 point 7): each call asks a selector for the API to use. In this task the selector always returns `LocalApi`; TASK-1219 makes it resolve the endpoint per call, re-resolve after a retirement or a refused connection, and reload the catalogs after a retirement. Each `LocalApi` call opens its own read scope, which the reader skips today.
+- **Screens onto operations** (ADR-1224 point 7 table):
+  - browse tree: the `tree` operation with the same filter fields as `sq tree`; roster nodes call `memory list` per slug, and names with pronouns come from the tree DTO's display names, so the `roster_all`/`operators_all` calls go;
+  - reader: the item `show` operation, whose DTO carries the rendered body, the discussion and every sub-entity block;
+  - memory reader: `memory show`; search: `search`; board: `board list`;
+  - filter screen and search filters: the workflow catalog operations (`types`, `statuses`, `collections`) instead of `svc.spec`.
+- `sort_siblings` and `populate_tree` work on DTOs instead of `TreeNode` and `Item`; the `[display] pronouns` read of `svc.paths.config` goes.
+- `_tui/` joins the renderer guard of TASK-1227: no `_tui` module imports `squads._services`, `squads._workflow`, `squads._paths` or the configuration model.
+
+## Modules touched
+
+`src/squads/_tui/` (`_app.py`, `_browse.py`, `_tree.py`, `_reader.py`, `_memory_reader.py`, `_search.py`, `_board.py`, `_filter.py`), `src/squads/_cli/_ui.py`, the renderer guard in `tests/meta/`. Where a screen needs a field a DTO lacks, it is appended to that DTO's module (owned by the task that made it), never computed in `_tui`. Depends on TASK-1228, TASK-1230 and TASK-1231 (ADR-1224 point 8); runs beside TASK-1232, with no file in common.
+
+## Acceptance
+
+- FEAT-1226 US5: browse, reader, memory reader, search, board and filter screens show what they show today, labels, badges and display names from the results; each screen load is one call; the filter choices come from the catalog operations.
+- FEAT-1226 US4: the TUI displays only what the results carry; `_tui` passes the guard.
+- ADR-1224 point 7 and point 8 (increment 6), local mode.
+
+## Test approach
+
+- ADR-1172 covers the CLI surface; the TUI has no surface suite in this repository. New tests: 0. The guard extension is the automated proof that no screen reads the service, the vocabulary or the configuration.
+- The screens are checked by eye: the operator compares each screen against the released build on this repository's board, in local mode. This is a visual item, so it goes to the operator in review.
+- See "Left open".
+
+## Left open
+
+- **Automated TUI tests.** None exist since the suite rebuild, and ADR-1172 does not name a home for them. Recommendation: none in 0.18, the operator's visual check plus the guard; a Textual pilot set, if wanted, is its own decision.
+<!-- sq:body:end -->
+
+## Subtasks
+
+_Add with `sq task 1233 add-subtask "<title>"`; track with `sq task 1233 subtask <n> update --status <Status>`._
+
+<!-- sq:subtasks -->
+
+<!-- sq:subtask:ST1 -->
+### ST1 — sq ui hands the app a per-call API selector
+
+<!-- sq:subtask:ST1:body -->
+`sq ui` hands the app a per-call API selector instead of a `Service` (ADR-1224 point 7). In this task the selector always returns `LocalApi`, one read scope per call; TASK-1219 ST9 makes it resolve the endpoint per call. `_cli/_ui.py` stops calling `get_service`.
+<!-- sq:subtask:ST1:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST1:discussion -->
+<!-- sq:subtask:ST1:discussion:end -->
+<!-- sq:subtask:ST1:end -->
+
+<!-- sq:subtask:ST2 -->
+### ST2 — Screens onto operations
+
+<!-- sq:subtask:ST2:body -->
+Every screen onto operations (ADR-1224 point 7 table): browse tree on `tree` with the same filter fields as `sq tree`, roster nodes on `memory list` per slug with names from the tree DTO (the `roster_all`/`operators_all` calls go); the reader on the item `show` operation; the memory reader on `memory show`; search on `search`; the board on `board list`; the filter screen and search filters on `workflow types`, `statuses` and `collections`. `sort_siblings` and `populate_tree` work on DTOs. A field a screen needs and a DTO lacks is appended to that DTO's module, never computed in `_tui`. Checked by eye by the operator against the released build.
+<!-- sq:subtask:ST2:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST2:discussion -->
+<!-- sq:subtask:ST2:discussion:end -->
+<!-- sq:subtask:ST2:end -->
+
+<!-- sq:subtask:ST3 -->
+### ST3 — _tui under the renderer guard
+
+<!-- sq:subtask:ST3:body -->
+`_tui/` joins the renderer guard of TASK-1227: no `_tui` module imports `squads._services`, `squads._workflow`, `squads._paths` or the configuration model, and the `svc.spec` and `svc.paths.config.display.pronouns` reads are gone. Falsify by adding one such import. Guard extension, no new test.
+<!-- sq:subtask:ST3:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST3:discussion -->
+<!-- sq:subtask:ST3:discussion:end -->
+<!-- sq:subtask:ST3:end -->
+<!-- sq:subtasks:end -->
+
+## Discussion
+
+<!-- sq:discussion -->
+<!-- sq:discussion:end -->

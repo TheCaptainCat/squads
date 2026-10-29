@@ -12,14 +12,17 @@ refs:
 - ADR-1052:depends-on
 - TASK-1125:depends-on
 - MILE-1152:targets
-description: A local process serving squad state over one API, used by the CLI in
-  remote mode and later the browser; local mode stays
+- FEAT-1226
+- ADR-1225:depends-on
+- ADR-1224
+description: A local process serving the squad as resource routes, called by the CLI
+  in remote mode, the terminal UI and later the browser; local mode stays
 subentities:
 - local_id: US1
-  title: Every command runs through one command endpoint
+  title: Every operation served at its own resource route
   status: InProgress
 - local_id: US2
-  title: Local writes through the command endpoint
+  title: Writes through the routes, safe against concurrent edits
   status: Todo
 - local_id: US3
   title: CLI remote and local modes
@@ -43,56 +46,75 @@ subentities:
   title: Documentation for adopters
   status: Todo
 - local_id: US10
-  title: In-process command entry and Ctrl-C
+  title: Actor, time, session and paths travel with each call
   status: InProgress
+- local_id: US11
+  title: Client and daemon refuse a schema or vocabulary mismatch
+  status: Todo
+- local_id: US12
+  title: Remote commands within a measured client budget
+  status: Todo
+- local_id: US13
+  title: The terminal UI as a daemon client
+  status: Todo
 created_at: '2026-10-25T10:47:24Z'
-updated_at: '2026-10-28T19:18:00Z'
+updated_at: '2026-10-28T22:34:34Z'
 ---
 <!-- sq:body -->
 ## Problem
 
-Every `sq` invocation starts cold: it builds the CLI, loads the vocabulary and reads the squad again, then exits. Nothing is kept between two commands, and there is no way for anything other than the CLI to ask a running process about the squad. The browser frontend (MILE-868) needs exactly that, and the CLI itself would benefit from the same door.
+Every `sq` invocation starts cold: it builds the CLI, loads the vocabulary and reads the squad again, then exits. Nothing is kept between two commands, and nothing other than the CLI can ask a running process about the squad. The browser frontend (MILE-868) needs exactly that: typed resources it can call from a Vue or Angular front. The CLI benefits from the same door.
 
 ## What the daemon gives an adopter
 
-- A local process that serves squad state over an API on the adopter's own machine, and answers the same questions the CLI answers today.
-- A CLI that uses it without being asked: the first command starts the daemon, later commands are answered by it, and the daemon exits by itself after a quiet period.
-- Local mode kept as it is: with the daemon switched off, or when it cannot start, the CLI reads and writes the squad directly, as today.
-- One API for every client. The CLI's remote mode and the future browser frontend call the same endpoints (op-pierre ruling, 2026-10-16); there is no second protocol.
+- A local process that serves the squad as resource routes under `/v1`, one route per operation, with a typed JSON answer and an OpenAPI document a front can generate its types from.
+- A CLI that uses it without being asked: the first command starts the daemon, later commands are answered by it, and the daemon exits by itself after a quiet period. The CLI still parses and renders in the user's own process, so output is the same in both modes.
+- Local mode kept as it is: with the daemon switched off, or when a local daemon cannot start, the CLI reads and writes the squad directly.
+- One API for every client. The CLI's remote mode, the terminal UI and the future browser frontend call the same routes (op-pierre rulings, 2026-10-16 and 2026-10-28); there is no second protocol.
+- Writes that refuse to overwrite what changed since a client read it, and a client and daemon that refuse each other before running anything when their schema or vocabulary differ.
 
 ## Scope
 
-- The local API: one command endpoint that runs the CLI's own commands, plus daemon status and stop, covering reads and local single-user writes, and everything local mode does including migrate, repair, repad and renumber.
-- The CLI's two modes, remote (answered by the daemon) and local (direct), with the fall back from the first to the second when the daemon cannot start.
+- The routes: every operation of the command layer (the operation table that FEAT-1226 builds) served at its own route, plus daemon status, stop and the OpenAPI document; reads and local single-user writes, and everything local mode does, including migrate, repair, repad and renumber.
+- The errors a client can act on: an HTTP status and a machine-readable type per failure, with the same sentence local mode prints.
+- The request headers: actor, clock, session ids, client directory, schema and vocabulary checks, and `If-Match` for writes on an item.
+- The CLI's two modes, remote (answered by the daemon) and local (direct), chosen once per invocation, with the fall back from the first to the second for a local daemon, and the timeouts a remote call applies.
+- The terminal UI on the same selection: a daemon client in remote mode.
+- The client budget: what a remote command costs in the client's own process, measured at release.
 - The daemon's lifecycle: implicit start, discovery, staleness, idle exit, stop, and settings in `.squads.toml`.
 - Native Windows supported, remote mode included.
 - This repository dogfooding the daemon, switched off at first and enabled once it has earned trust.
 - The browser-facing listener exists but is off by default.
 
-The transport, the protocol, the discovery scheme and the write semantics are decided by the architect in ADR-1052; this feature states outcomes and leaves those choices to it.
+The command layer the routes serve (one operation per command, its result shape, `--json` on every command) is FEAT-1226. The transport, discovery, lifecycle and request model are decided in ADR-1052; the routes, wire format, errors and mode selection in ADR-1225. This feature states outcomes and leaves those choices to them.
 
 ## Non-goals
 
-- The browser frontend (MILE-868, 0.20). It consumes this API and is not built here.
-- Authentication and authorization. The API assumes a trusted local caller.
-- Remote or multi-user access, and anything that needs the daemon reachable beyond the adopter's machine.
-- Cutting the fixed startup cost of a local invocation (FEAT-916, Done): the daemon is measured against that lean baseline, not a substitute for it.
-- Progress output while a command runs: in remote mode a command's output arrives when it ends.
+- The browser frontend (MILE-868). It consumes these routes and is not built here.
+- Authentication and authorization. The API assumes a trusted local caller, and the actor a request names is declared, not verified.
+- A squad hosted on another machine (FEAT-33), and any listener reachable beyond the adopter's machine.
+- Pagination of listings and search results; it comes with the web front.
+- Cutting the fixed startup cost of a local invocation (FEAT-916, Done) as a criterion: local mode benefits from the client's lighter start where it can, but only remote mode carries a budget.
+- Progress output while an operation runs: a remote answer arrives when the operation ends.
 
 ## Boundary with FEAT-33
 
-FEAT-33 is the client side of a squad hosted elsewhere. This feature delivers the server side on one machine and the first working use of that seam: the CLI talks to a daemon on localhost through one command endpoint, which the web client shares. No Protocol-typed service interface or second service implementation is built; the shared seam is the endpoint-resolution function plus the command endpoint. FEAT-33 keeps the remote address setting, authentication and the pointer gap in `.claude/`; its Protocol-typed interface and `RemoteService` give way to this feature's endpoint.
+FEAT-33 is the client side of a squad hosted elsewhere. This feature delivers the server side on one machine and the seam that case plugs into: endpoint resolution returns an endpoint, and the CLI and the terminal UI call it through the same HTTP client the local daemon uses. The endpoint says whether a local mode exists; only a local daemon has one. FEAT-33 adds a source for that endpoint (an address the client's own settings name), authentication, a listener beyond loopback, the hosted-squad fall back rule as a user-facing behaviour, synchronising the workflow configuration between a checkout and a hosted squad, and the `.claude/` pointer gap. No second client or service interface is built for it.
 
 ## Acceptance criteria
 
-- On a machine with the daemon enabled, running any `sq` command starts a daemon if none is running, and the command's output is identical to local mode, including `--json`.
+- On a machine with the daemon enabled, any `sq` command starts a daemon if none is running, and its output and exit code are identical to local mode, `--json` included.
 - A second command is answered by the same daemon; stopping it, or leaving it idle for the configured time, ends the process and removes its runtime files.
 - With the daemon disabled in `.squads.toml` or by `SQUADS_DAEMON=off`, `sq` never starts or contacts one.
-- When the daemon cannot start and the squad is on the machine, the command still succeeds in local mode and one line on stderr says why.
-- A write made through the daemon is visible to a plain local-mode command right after, and the reverse, with no stale answer.
+- When a local daemon cannot start, the command still succeeds in local mode and one line on stderr says why.
+- A write made through the daemon is visible to a local-mode command right after, and the reverse, with no stale answer.
 - Two commands started at once end up on one daemon.
+- A client other than the CLI reads and writes the squad through the documented routes, generates its types from `GET /v1/openapi.json`, and tells failures apart by HTTP status and error type.
+- A write that names an item version the item no longer has is refused with `409` and writes nothing.
+- A client and a daemon at different schema versions, or parsing with different workflow vocabularies, refuse each other before anything runs, and the CLI's message names the remedy.
+- The terminal UI browses the squad through the daemon in remote mode and directly in local mode, with the same screens.
+- Client budget, a release criterion: the client's overhead for `sq <type> <n> show` (wall time minus the daemon's own handling time), as the median of 31 interleaved runs on the reference host, is at most 275 ms in human mode and 235 ms with `--json`, and the measurement is recorded with the release.
 - The same behaviour holds on Linux, macOS and native Windows.
-- A client other than the CLI can read and write the squad by running commands through the documented command endpoint.
 - This repository runs with the daemon disabled and a documented step to enable it.
 <!-- sq:body:end -->
 
@@ -103,12 +125,20 @@ _Add with `sq feature 1140 add-story "As a <role>, I want … so that …"`; tra
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — Every command runs through one command endpoint
+### US1 — Every operation served at its own resource route
 
 <!-- sq:story:US1:body -->
-As an adopter or a tool author, I run any `sq` command through the daemon's one command endpoint and get the same exit code, stdout and stderr as in local mode, `--json` included, so a client never parses anything but the CLI's own output.
+As a front author or tool author, I call every operation of the squad at its own route under `/v1` and get a typed JSON answer, described by an OpenAPI document I can generate my client's types from.
 
-Done when: `POST /v1/commands` takes the command's arguments, the client directory, a fixed list of environment variables, terminal facts and file attachments, and answers with exit code, stdout and stderr once the command ends; every command of the CLI runs through it; errors carry the same message and exit code as in local mode; a file the command names is read from the request's attachments, and a path that is not attached is refused with a clear error; commands run one at a time, each with a fresh context, so nothing from one command is visible to the next.
+Done when:
+- Every operation of the command layer (FEAT-1226) is served at its route: items by id at `/v1/items/{id}`, so a custom type needs no new route; roles, skills and operators under `/v1/roles/{addr}`, `/v1/skills/{addr}` and `/v1/operators/{addr}`, addressed by slug, id or number as on the CLI; squad-wide operations under `/v1/squad/`.
+- `GET` reads and never changes anything; filters are query parameters, and a repeated filter repeats its key. Creation is a `POST` on a collection, a partial update a `PATCH`, a body replacement a `PUT` on `…/body`, a removal a `DELETE`, and any other action a `POST` on a sub-resource named after it (`…/status`, `…/retype`).
+- A successful answer is `200` with `data`, `omitted` and `warnings`; a partial read is a `200` with a non-empty `omitted`, never a lost result.
+- A failure answers `{"error": {"type", "message"}}` with a status a client can act on: `404 not_found` for an unknown item, roster entry, comment or sub-entity; `409 conflict` for a refused transition or a squad whose schema is behind; `423 locked` when the squad's lock is held too long; `400 invalid` for any other refusal; `500 internal`, with the details in the daemon's log. The message is the sentence local mode prints, and the CLI prints it and exits 1 as in local mode.
+- `GET /v1/openapi.json` describes every operation: its method and path, its parameters, its request and response schemas, and the error body of each status.
+- `GET /v1/daemon` reports the daemon's identity and state, and `POST /v1/daemon/stop` stops it.
+- File content a command takes (`--file`, `-`, the import file) travels as text in the request; the daemon never reads a path a client names.
+- Requests run one at a time, and nothing from one request (clock, actor, client directory) is visible to the next.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -118,12 +148,19 @@ Done when: `POST /v1/commands` takes the command's arguments, the client directo
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — Local writes through the command endpoint
+### US2 — Writes through the routes, safe against concurrent edits
 
 <!-- sq:story:US2:body -->
-As the person at this machine, I create, edit, comment on and transition items, and run migrate, repair, repad and renumber, through the same command endpoint, so the CLI's remote mode does everything local mode does.
+As the person at this machine, or a front acting for them, I create, edit, comment on and transition items, and run migrate, repair, repad and renumber, through the routes, and a write never overwrites a change I have not seen.
 
-Done when: every mutating command, including migrate, repair, repad and renumber, runs through `POST /v1/commands` as a peer of a local-mode process under the squad's file lock; a write made through the daemon is seen by a local-mode command straight after and the reverse; two writers at once never corrupt the squad; no squad data is kept between commands, so edits made outside the daemon need no invalidation; a daemon older than the squad's schema refuses a command with the message an old CLI prints.
+Done when:
+- Every write the CLI can make, corpus-wide operations included, runs through its route as a peer of a local-mode process under the squad's file lock, synchronously, as a command does.
+- A write made through the daemon is seen by a local-mode command straight after, and the reverse; two writers at once never corrupt the squad; no squad data is kept between requests, so edits made outside the daemon need no invalidation.
+- Every read of one item, and every write on one, answers with the item's version as an `ETag`, and the item's result carries it too. A sub-entity, whose state lives in its parent item, shares the parent's version, and roster entries follow the same rule.
+- A write on an item that sends `If-Match` with a version the item no longer has answers `409 changed_since_read` and writes nothing; the check and the write cannot be separated by another writer.
+- Comment edits and removals address the comment by its content hash, so a comment changed since it was read no longer resolves and nothing is changed.
+- `comment remove` without `--yes` removes exactly the comments it showed and the user confirmed; if one was edited or removed in between, nothing is removed and the command says so.
+- The actor a write is recorded under is the one the request declares (`--as` on the CLI); it is not verified, as US9 tells adopters.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -136,9 +173,19 @@ Done when: every mutating command, including migrate, repair, repad and renumber
 ### US3 — CLI remote and local modes
 
 <!-- sq:story:US3:body -->
-As an adopter, my commands are answered by the daemon when it is on and directly when it is off or cannot start, with the same output either way.
+As an adopter, my commands are answered by the daemon when it is on and directly when it is off or cannot start, with the same output either way, and a remote call never hangs silently.
 
-Done when: output including --json is identical across modes; a failed daemon start (spawn error, no answer within 5 seconds, unusable runtime directory) falls back to local mode with one line on stderr giving the reason and how to turn the daemon off, and the next command tries again; the answer `503 not_executed` (reasons `retiring`, `other_squad`, `needs_terminal`) is the only one after which the client runs the command itself; a connection lost after a request was sent is reported as an error and never replayed locally; a command that would prompt runs in local mode, and so do `ui`, `daemon`, `init`, `adopt`, shell completion and a bare `--version`; with no local squad the command fails with a clear message.
+Done when:
+- Output and exit code, `--json` included, are identical across modes.
+- The CLI chooses once per invocation between the daemon and local mode. Commands that make no call (`docs`, `migrate help`, `migrate chlog`, `--version`, `--help`, shell completion) never contact or start a daemon, and neither do `init`, `adopt` and `daemon`.
+- A failed start of a local daemon (spawn error, no answer within 5 seconds, unusable runtime directory) runs the command in local mode with one line on stderr giving the reason and how to turn the daemon off, and the next command tries again.
+- A local daemon that declines a call before running it (it is retiring after a configuration edit) has that call answered in local mode, silently. It is the only answer after which a call is sent again.
+- A connection lost after the request was sent is reported as an error and never replayed.
+- Prompts (item, sub-entity and comment removal) are asked in the user's own terminal in both modes.
+- An ordinary call waits at most 5 s to connect and 300 s for its answer, queue time included; migrate, repair, renumber and import wait for as long as they take, and print a waiting notice on stderr after 10 s.
+- A timeout or Ctrl-C ends only the client's wait: an operation the daemon has started runs to completion, nothing is replayed or run locally, and the message says the operation may still complete and to check before running it again (exit 1, or 130 for Ctrl-C). In local mode Ctrl-C ends the process. Both behaviours are documented (US9).
+- With no squad found, the command fails with a clear message.
+- The CLI's surface test suite runs again in remote mode, in its own CI job, and passes.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -198,7 +245,7 @@ Done when: the acceptance behaviours of this feature pass on native Windows, inc
 <!-- sq:story:US7:body -->
 As the future web client, I can reach the same API from a browser once the adopter turns that listener on, and it stays unreachable from web pages otherwise.
 
-Done when: the listener is off unless configured; when on it binds loopback only, never a non-loopback address, and serves the same endpoints as the CLI, the command endpoint included, writes too; it accepts a write only from its own origin; no authentication is added in this release. The Host, content-type and header admission rules are in US6.
+Done when: the listener is off unless configured; when on it binds loopback only, never a non-loopback address, and serves the same routes as the CLI, the OpenAPI document and writes included; it accepts a write only from its own origin; no authentication is added in this release. The Host, content-type and header admission rules are in US6.
 <!-- sq:story:US7:body:end -->
 
 #### Discussion
@@ -226,21 +273,21 @@ Done when: this repository sets `enabled = false` with a documented switch-on st
 ### US9 — Documentation for adopters
 
 <!-- sq:story:US9:body -->
-As an adopter, I read how the daemon behaves, what it keeps on my machine, how 
-to turn it off and what to do when it misbehaves.
+As an adopter or a front author, I read how the daemon behaves, what it keeps on my machine, how to turn it off, how to call its API and what to do when it misbehaves.
 
-Done when: adopter docs cover the modes, the settings including `SQUADS_DAEMON`,
-the fall back, `sq daemon status` and `sq daemon stop`, the command endpoint's 
-request and response so another client can use it, what the runtime directory 
-holds (socket, json, lock, log), that a development install should keep the 
-daemon off, the differences between remote and local mode (Ctrl-C, output 
-arriving when a command ends), and the security stance of a local API without 
-authentication, with no reference to the project's internal tracking. The 
-security section states the exposure per platform plainly:
-- On native Windows, and on any platform with `daemon.browser` on, any local 
-process or user can read and write the squad while the daemon runs.
-- On POSIX with the browser port off, only the owning user can.
-- Attacks that originate in a browser are refused everywhere.
+Done when adopter docs cover, with no reference to the project's internal tracking:
+- the modes, the settings including `SQUADS_DAEMON`, the fall back, `sq daemon status` and `sq daemon stop`;
+- what the runtime directory holds (socket, json, lock, log), and that a development install should keep the daemon off;
+- the differences between remote and local mode: Ctrl-C, timeouts and the waiting notice, output arriving when an operation ends;
+- the API for another client: the routes, the answer envelope, the error statuses and types, the request headers, where to fetch the OpenAPI document, and the result schemas;
+- that the actor header is declared by the client and never verified, so the actor recorded on an item, a comment or a reflog line is a claim;
+- item versions: the `ETag` on reads and writes, and `If-Match` to refuse a write on an item changed since it was read;
+- compatibility: a client and a daemon at different schema versions, or with different workflow vocabularies, refuse each other, and what to do about each message;
+- that installing squads brings the daemon's HTTP server packages with it, and that only the daemon loads them;
+- the security stance of a local API without authentication, with the exposure per platform stated plainly:
+  - on native Windows, and on any platform with `daemon.browser` on, any local process or user can read and write the squad while the daemon runs;
+  - on POSIX with the browser port off, only the owning user can;
+  - attacks that originate in a browser are refused everywhere.
 <!-- sq:story:US9:body:end -->
 
 #### Discussion
@@ -250,17 +297,16 @@ process or user can read and write the squad while the daemon runs.
 <!-- sq:story:US9:end -->
 
 <!-- sq:story:US10 -->
-### US10 — In-process command entry and Ctrl-C
+### US10 — Actor, time, session and paths travel with each call
 
 <!-- sq:story:US10:body -->
-As an adopter, the same `sq` command gives the same result whether it runs in my process or is forwarded to the daemon, and Ctrl-C does what the documentation says in each mode.
+As an adopter, a command run through the daemon records the same actor, time and session as in my own process, and its messages name paths the way local mode does.
 
 Done when:
-- A command runs in-process as one request: one argv-to-exit-code entry, a console built per invocation, the directory taken from the request (`-C` included), file attachments served from the request, and the root callback deriving its context from the request. Nothing from one command is visible to the next (clock, actor, context, environment, output). In local mode none of this is visible.
-- The CLI forwards a command to the daemon through the one command endpoint, and the daemon runs the same command path the local CLI runs. No second client or service interface is built.
-- Ctrl-C in remote mode stops only the client wait: a command the daemon has already started runs to completion and is not replayed. In local mode Ctrl-C ends the process. Both behaviours are documented (US9).
-
-Output parity and the fall back are in US3; `SQUADS_DAEMON` is in US5.
+- A command runs as one invocation entry, with its consoles built per invocation, so in-process runs never share state; in local mode none of this is visible.
+- `--as`, `--at`, the session ids the reflog records (`SQUADS_SESSION_ID`, `SQUADS_PARENT_SESSION_ID`) and the directory the command started from (`-C` included) travel with each call, and the daemon applies them to that call only.
+- A message that names a path spells it relative to the directory the command started from, in both modes; a client that sends no directory, such as a web front, gets paths spelled from the squad's root.
+- The reflog line of a write made through the daemon carries the same actor and session ids as the same write made locally.
 <!-- sq:story:US10:body:end -->
 
 #### Discussion
@@ -268,6 +314,64 @@ Output parity and the fall back are in US3; `SQUADS_DAEMON` is in US5.
 <!-- sq:story:US10:discussion -->
 <!-- sq:story:US10:discussion:end -->
 <!-- sq:story:US10:end -->
+
+<!-- sq:story:US11 -->
+### US11 — Client and daemon refuse a schema or vocabulary mismatch
+
+<!-- sq:story:US11:body -->
+As an adopter or a front author, a client and a daemon that would not understand each other refuse before anything runs, and the message tells me which side to bring in line.
+
+Done when:
+- Every client sends its schema version; a daemon at another schema version answers `409 schema_mismatch` with both versions, and nothing runs. The CLI says whether to install a squads release at the daemon's schema or to upgrade the server and migrate the squad, and exits 1 without falling back. A request with no schema version, such as from an earlier web build, is answered.
+- The CLI sends a hash of the workflow vocabulary it parsed the command with (the bundled workflow and the checkout's workflow override). A daemon holding another one answers `409 vocabulary_mismatch` with one digest per document, and nothing runs; the CLI names the document that differs, says to bring the checkout in line with the squad, exits 1 and does not fall back.
+- A local daemon started before the checkout's configuration was edited retires instead of refusing, so the command is answered on the new configuration.
+- The checks run in a fixed order: schema, then vocabulary, then whether the squad's own schema allows the operation, so the message that names the remedy comes first.
+- `sq daemon status` and `GET /v1/daemon` show the daemon's vocabulary hash and its per-document digests.
+<!-- sq:story:US11:body:end -->
+
+#### Discussion
+
+<!-- sq:story:US11:discussion -->
+<!-- sq:story:US11:discussion:end -->
+<!-- sq:story:US11:end -->
+
+<!-- sq:story:US12 -->
+### US12 — Remote commands within a measured client budget
+
+<!-- sq:story:US12:body -->
+As an adopter, a command answered by the daemon costs well under what a local run costs today in my own process, and every release says what it costs.
+
+Done when:
+- The client's overhead for `sq <type> <n> show` (the process's wall time minus the daemon's own handling time, which the daemon reports with each answer), as the median of 31 interleaved runs on the reference host, is at most 275 ms in human mode and 235 ms with `--json`.
+- The release runbook measures it on the reference host and records the numbers with the release; CI runs the same measurement as a report.
+- A repository guard fails when the remote command path loads the squad's service layer, the template engine, the daemon's server packages or the other modules the budget leaves out.
+<!-- sq:story:US12:body:end -->
+
+#### Discussion
+
+<!-- sq:story:US12:discussion -->
+<!-- sq:story:US12:discussion:end -->
+<!-- sq:story:US12:end -->
+
+<!-- sq:story:US13 -->
+### US13 — The terminal UI as a daemon client
+
+<!-- sq:story:US13:body -->
+As an operator, `sq ui` browses the squad through the daemon when commands do, and keeps working for the whole session even when the daemon goes away underneath it.
+
+Done when:
+- `sq ui` chooses between the daemon and local mode by the same rule as any command, and in remote mode its terminal stays in its own process.
+- A daemon that retires mid-session (a configuration edit) has the call answered locally, the next call reaches a daemon on the new configuration, and the filter choices reload from it; the session never stays stuck in local mode.
+- A daemon that exited (idle timeout, `sq daemon stop`) is started again on the next call, or local mode answers when that fails.
+- A call lost after it was sent is shown as an error on the screen, never replayed, and the user can refresh.
+- A workflow configuration edited during the session is picked up on the next call, without restarting `sq ui`.
+<!-- sq:story:US13:body:end -->
+
+#### Discussion
+
+<!-- sq:story:US13:discussion -->
+<!-- sq:story:US13:discussion:end -->
+<!-- sq:story:US13:end -->
 <!-- sq:stories:end -->
 
 ## Discussion
@@ -349,4 +453,33 @@ Output parity and the fall back are in US3; `SQUADS_DAEMON` is in US5.
   - Rulings on the tech lead's five test questions: (1) cross-process behaviours are a small named set with its own CI job, recorded in ADR-1172; (2) daemon endpoint tests follow ADR-1172 rules 4-6 without covers markers; (3) parity reruns the existing surface suite in remote mode in its own CI job, with no new cases; (4) the post-commit prompt branch is built untested, recorded on ADR-1052; (5) idle exit is not tested.
 - [2026-10-28T19:18:00Z] `tech-lead` Olivia Lead:
   - Settled: the operator ruling (a6fcbde) and the ADR-1172/ADR-1052 amendments answer my five test questions; TASK-1218, 1219 and 1220 now cite them (about 45 in-process tests, 6 cross-process, none for parity).
+- [2026-10-28T20:44:47Z] `op-pierre` Pierre Chat:
+  - Architecture direction (2026-10-28): a CLI command validates its inputs, calls the service once (to be confirmed per command), and hands the result to the CLI renderer. The renderer never calls the service: it receives DTOs that carry everything it displays. The API is meant as resource endpoints a Vue/Angular front will call, and the CLI in remote mode calls the same endpoints, through a layer that makes either the HTTP call or the local service call depending on the mode. This reopens the API shape decided in ADR-1052.
+- [2026-10-28T20:59:25Z] `architect` Robert Architect:
+  - @op-pierre the 2026-10-28 direction is drafted as ADR-1224 (one operation per command, DTOs, the Api layer, refactor increments) and ADR-1225 (resource routes, HTTP-or-local selection, ADR-1052/ADR-1172 amendments, TASK-1217 keep/remove, daemon gating), both Proposed. One call per command holds for every command except interactive comment remove (2). Six questions for you at the ends of the two bodies. TASK-1218/1219 should not start before your ruling.
+- [2026-10-28T22:06:01Z] `product-owner` Nina Product:
+  - Rewritten 2026-10-28 against ADR-1224 and ADR-1225 (Accepted) and the op-pierre rulings of the day.
+    - Body: resource routes, OpenAPI, ETags, schema and vocabulary checks, the TUI and the client budget in scope and acceptance; the command layer moved to FEAT-1226; FEAT-33 boundary now names the endpoint and HTTP client as the seam, with the hosted-squad fall back rule, auth, a non-loopback listener and spec sync on FEAT-33's side; pagination and declared-not-verified actor added to non-goals.
+    - US1 routes, envelope, error statuses, OpenAPI; US2 writes with ETag/If-Match and the confirmed-hash comment remove; US3 per-invocation selection, local-daemon fall back, timeouts, Ctrl-C, parity CI job; US7 serves routes, not the command endpoint; US9 adds the API, declared actor, ETags, compatibility and dependencies; US10 retitled to the per-call metadata and path spelling.
+    - New: US11 schema/vocabulary mismatch, US12 client budget (275/235 ms), US13 TUI as a daemon client. US4, US5, US6 and US8 re-read: unchanged.
+    - Refs: ADR-1225 depends-on, ADR-1224 and FEAT-1226 related.
+- [2026-10-28T22:06:02Z] `product-owner` Nina Product:
+  - @manager questions only the operator can answer, each with my recommendation:
+    1. MILE-1152 title still reads "squads 0.18 - the daemon", while the release now leads with the command layer (FEAT-1226). Recommend a retitle to "squads 0.18 - the daemon and one API for every client"; or keep it, the daemon is still the headline.
+    2. EPIC-29's framing is stale: it names FastAPI, a `squads[web]` optional extra and a read API skinned over `--json`; ADR-1225 chose Starlette on uvicorn as required dependencies and resource routes. Recommend I refresh its framing bullets (I own the epic) once you agree.
+    3. MILE-868's body describes server-side Jinja pages with Vue 3, while the 2026-10-28 direction says a Vue or Angular front calling the `/v1` routes, and op-pierre's pagination note (ce4c83c) is only in its discussion. Recommend aligning the body: the front calls the routes, its framework is its own decision, and pagination of list and search belongs there.
+- [2026-10-28T22:06:55Z] `manager` Catherine Manager:
+  - @product-owner on your three questions (operator asleep, manager decides under the 2026-10-28 delegation; flagged for op-pierre's review): 1. retitle MILE-1152 per board notice 11 now that the theme is settled — your proposed title is fine. 2 and 3. refresh EPIC-29 and MILE-868 to match the accepted ADR-1224/1225: they are stale descriptions, not product decisions; leave the front's framework as MILE-868's own open decision and put the pagination note in its body.
+- [2026-10-28T22:27:02Z] `tech-lead` Olivia Lead:
+  - Daemon tasks reshaped against ADR-1225 (2026-10-28), Draft and unassigned.
+    - TASK-1218 (D1): Starlette on uvicorn, routes generated from the op table, the envelope and error table, OpenAPI with its guards, the request scope with header binding, ETags and If-Match, schema then vocabulary then grant, settings, lifecycle, listeners and admission, and the browser port. Its ten subtasks are reused for the new stories (US1, US2, US4, US5, US6, US7, US10, US11). Depends on TASK-1227. About 41 tests and 2 guards.
+    - TASK-1219 (D2): API selection, implicit start, conditional fall back, HttpApi with timeouts and Ctrl-C, the client side of the schema and vocabulary checks, the client budget (levers, import guard, benchmark, runbook step), the parity run, and the TUI as a daemon client (US13). Depends on TASK-1218 and TASK-1233. 9 tests and 3 guards.
+    - US13 is in D2, not in the TUI task: its behaviours are HttpApi, endpoint re-resolution and fall back, which D2 builds, and TASK-1233 leaves a per-call selector for it. This way the TUI work does not wait for the daemon.
+    - TASK-1220: parity and cross-process jobs per OS, a budget report job (not a gate), the leak check. TASK-1221 now documents the routes, envelope, errors, headers, the declared actor, ETags and compatibility, and depends on 1218 as well. TASK-1222 adds the TUI, an override edit and a stop to the trial.
+    - REV-1223 F3, F4, F6 and F8 lose their subject (ADR-1225 section 9). The subtasks that carried them now hold other work; their disposition is @reviewer's.
+    - Open, each with a recommendation in its task: how a write's new ETag reaches the router (1218); the timeouts, the waiting notice and the hosted-squad branches are built untested (1219). @architect
+- [2026-10-28T22:34:34Z] `architect` Robert Architect:
+  - @manager these are my technical opinions on the two test-coverage points the tech lead left for the operator (TASK-1219, TASK-1233). They are not decisions.
+  - (5) Untested remote paths. The timeouts and the 10 s notice can be built untested. The risk on a timeout is replay or fall back, and it takes the same path as a connection lost after sending, which the no-replay cross-process member tests. Keep the durations as data in the timeout-class table, so a later test can shrink them without a hook. The hosted-squad branches (retry once, "cannot reach", no fall back) are different: nothing in 0.18 can reach them, so they would ship as code nobody can falsify. I would leave them to FEAT-33 and ship only the `Endpoint` local-mode flag, with the no-local-mode case refused as unsupported. If the operator wants them in 0.18, one test that hands `HttpApi` a hand-built `Endpoint` without a local mode, aimed at the route harness, covers both branches. It costs one exception to the surface-only rule of ADR-1172.
+  - (6) The TUI without tests. The guard plus an eye check is adequate for the screens, because their risk is display and an eye catches display. The weak spot is `sort_siblings` and `populate_tree` moving from `TreeNode`/`Item` onto DTOs. That is ordering logic, and the eye check only exercises the shapes this board happens to hold. If the operator wants one cheap addition, it is a table test of those two functions over DTO shapes (siblings with and without a sort key, closed items hidden and shown), not a Textual pilot set.
 <!-- sq:discussion:end -->

@@ -11,6 +11,7 @@ refs:
 - ADR-1052:implements
 - TASK-1219:depends-on
 - TASK-1220:depends-on
+- ADR-1225:implements
 description: enabled = false committed with a switch-on step, SQUADS_DAEMON=on trial,
   result recorded before enabling
 subentities:
@@ -23,26 +24,26 @@ subentities:
   status: Todo
   story: US8
 created_at: '2026-10-28T14:08:45Z'
-updated_at: '2026-10-28T19:11:31Z'
+updated_at: '2026-10-28T22:26:06Z'
 ---
 <!-- sq:body -->
 ## Goal
 
-Run the daemon on this repository's own board (US8): committed off first, trialled in-session with `SQUADS_DAEMON=on`, and enabled here only once the trial result is on the record.
+Run the daemon on this repository's own board (FEAT-1140 US8): committed off first, trialled in-session with `SQUADS_DAEMON=on`, and enabled here only once the trial result is on the record.
 
 ## What it builds
 
 - This repository's `.squads.toml` sets `[daemon] enabled = false`, and the contributor documentation (not the adopter docs) states the switch-on step: `SQUADS_DAEMON=on` for a trial session, then `enabled = true` once trusted. A development checkout keeps its daemon off.
-- A trial: a stretch of the team's normal board work (reads, creates, comments, transitions, a `repair` and a `renumber` dry run, concurrent agents) run through the released or pre-release-installed tool with `SQUADS_DAEMON=on`, never through the dev tree. Recorded as a comment on this task: what ran, for how long, and any stale read, lost write or stuck process found (each one filed as a bug).
+- A trial on a pre-release build installed as the uv tool (op-pierre, 2026-10-28), never the dev tree: a stretch of the team's normal board work (reads, creates, comments including a confirmed `comment remove`, transitions, a `repair` and a `renumber` dry run, concurrent agents), plus `sq ui` browsing through the daemon, an edit of the workflow override mid-session (the daemon retires and the next command and the TUI pick up the new configuration) and a `sq daemon stop` while `sq ui` is open. Recorded as a comment on this task: what ran, for how long, and any stale read, lost write, wrong refusal or stuck process found, each filed as a bug.
 - The decision to enable the daemon by default here is the operator's, taken on that record.
 
 ## Acceptance
 
-US8 in full: `enabled = false` committed with a documented switch-on step; trial via `SQUADS_DAEMON=on` with nothing committed until the result is recorded; no stale reads, lost writes or stuck processes in the trial; result recorded before enabling.
+FEAT-1140 US8 in full: `enabled = false` committed with a documented switch-on step; trial via `SQUADS_DAEMON=on` with nothing committed until the result is recorded; no stale reads, lost writes or stuck processes in the trial; result recorded before enabling.
 
 ## Test approach
 
-A manual trial, not a suite test: between trial steps, compare a daemon answer with a local answer (`SQUADS_DAEMON=off`) for the same `--json` read; afterwards `sq repair` reports nothing to fix, `sq check` is clean, and `sq daemon status --json` reports none running once `sq daemon stop` returns. Record the commands run in the result comment.
+A manual trial, not a suite test: between trial steps, compare a daemon answer with a local answer (`SQUADS_DAEMON=off`) for the same `--json` read; afterwards `sq repair` reports nothing to fix, `sq check` is clean, and `sq daemon status --json` reports none running once `sq daemon stop` returns. Record the commands run in the result comment. New tests: 0.
 <!-- sq:body:end -->
 
 ## Subtasks
@@ -68,7 +69,7 @@ Set `[daemon] enabled = false` in this repository's `.squads.toml` and document 
 ### ST2 — Trial with SQUADS_DAEMON=on and record the result
 
 <!-- sq:subtask:ST2:body -->
-Normal board work through the installed tool with `SQUADS_DAEMON=on`, never the dev tree. A manual trial, not a suite test: between steps compare a daemon `--json` read with the same read under `SQUADS_DAEMON=off`; afterwards `sq repair` has nothing to fix, `sq check` is clean and `sq daemon status --json` reports none running after `sq daemon stop`. Record the commands and result as a comment; file each defect as a bug; enabling by default here is the operator's call.
+Normal board work through the pre-release build installed as the uv tool with `SQUADS_DAEMON=on`, never the dev tree, including a confirmed `comment remove`, `sq ui` browsing through the daemon, an override edit mid-session and a `sq daemon stop` while `sq ui` is open. A manual trial, not a suite test: between steps compare a daemon `--json` read with the same read under `SQUADS_DAEMON=off`; afterwards `sq repair` has nothing to fix, `sq check` is clean and `sq daemon status --json` reports none running after `sq daemon stop`. Record the commands and result as a comment; file each defect as a bug; enabling by default here is the operator's call.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

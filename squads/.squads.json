@@ -1,6 +1,6 @@
 {
   "schema_version": "0.17",
-  "counter": 1223,
+  "counter": 1234,
   "padding": 6,
   "items": {
     "12": {
@@ -63,7 +63,7 @@
       "title": "sq web — a local web view of the squad",
       "slug": "sq-web-a-local-web-view-of-the-squad",
       "status": "InProgress",
-      "description": "An sq web command starting a local webserver to browse the squad in a browser; read-only first, with full CRUD as a possible long-term destination",
+      "description": "An sq web command serving the squad in a browser through the daemon's /v1 routes; read-only first, with full CRUD as a possible long-term destination",
       "parent": null,
       "author": "product-owner",
       "assignee": null,
@@ -77,7 +77,7 @@
       "subentities": [],
       "path": "epics/EPIC-000029-sq-web-a-local-web-view-of-the-squad.md",
       "created_at": "2026-06-10T15:16:05Z",
-      "updated_at": "2026-10-28T18:23:28Z",
+      "updated_at": "2026-10-28T22:07:54Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -1174,7 +1174,7 @@
       "title": "Remote mode: the sq CLI as a client to a remote daemon",
       "slug": "remote-mode-the-sq-cli-as-a-client-to-a-remote-daemon",
       "status": "Draft",
-      "description": "The CLI as a client of a remote daemon: a per-squad remote address, authentication, and the same exit code and output as local mode, built on the daemon's command endpoint",
+      "description": "The CLI and terminal UI as clients of a squad hosted on another machine: a client-side address, authentication, no local fall back, built on the daemon's routes",
       "parent": "EPIC-29",
       "author": "product-owner",
       "assignee": null,
@@ -1184,12 +1184,13 @@
       "refs": [
         "FEAT-15",
         "FEAT-13",
-        "FEAT-1140:depends-on"
+        "FEAT-1140:depends-on",
+        "ADR-1225"
       ],
       "subentities": [
         {
           "local_id": "US1",
-          "title": "Remote daemon refuses callers it cannot identify",
+          "title": "Hosted squad refuses callers it cannot identify",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1209,7 +1210,37 @@
         },
         {
           "local_id": "US3",
-          "title": "Remote address set per squad; local is the default",
+          "title": "Hosted squad address set on the client; local is the default",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Clear errors when the hosted squad is restarting or unreachable",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "A checkout out of line with the hosted squad is refused",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "Agents on another machine load their persona from the squad",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1220,7 +1251,7 @@
       ],
       "path": "features/FEAT-000033-remote-mode-the-sq-cli-as-a-client-to-a-remote-daemon.md",
       "created_at": "2026-06-10T15:33:16Z",
-      "updated_at": "2026-10-28T14:03:10Z",
+      "updated_at": "2026-10-28T22:06:04Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -9213,7 +9244,7 @@
       "title": "The daemon: a local API the CLI and web client share",
       "slug": "the-daemon-a-local-api-the-cli-and-web-client-share",
       "status": "InProgress",
-      "description": "A local process serving squad state over one API, used by the CLI in remote mode and later the browser; local mode stays",
+      "description": "A local process serving the squad as resource routes, called by the CLI in remote mode, the terminal UI and later the browser; local mode stays",
       "parent": "EPIC-29",
       "author": "product-owner",
       "assignee": null,
@@ -9224,12 +9255,15 @@
         "FEAT-33",
         "ADR-1052:depends-on",
         "TASK-1125:depends-on",
-        "MILE-1152:targets"
+        "MILE-1152:targets",
+        "FEAT-1226",
+        "ADR-1225:depends-on",
+        "ADR-1224"
       ],
       "subentities": [
         {
           "local_id": "US1",
-          "title": "Every command runs through one command endpoint",
+          "title": "Every operation served at its own resource route",
           "status": "InProgress",
           "assignee": null,
           "severity": null,
@@ -9239,7 +9273,7 @@
         },
         {
           "local_id": "US2",
-          "title": "Local writes through the command endpoint",
+          "title": "Writes through the routes, safe against concurrent edits",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -9319,8 +9353,38 @@
         },
         {
           "local_id": "US10",
-          "title": "In-process command entry and Ctrl-C",
+          "title": "Actor, time, session and paths travel with each call",
           "status": "InProgress",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US11",
+          "title": "Client and daemon refuse a schema or vocabulary mismatch",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US12",
+          "title": "Remote commands within a measured client budget",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US13",
+          "title": "The terminal UI as a daemon client",
+          "status": "Todo",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -9330,7 +9394,7 @@
       ],
       "path": "features/FEAT-001140-the-daemon-a-local-api-the-cli-and-web-client-share.md",
       "created_at": "2026-10-25T10:47:24Z",
-      "updated_at": "2026-10-28T19:18:00Z",
+      "updated_at": "2026-10-28T22:34:34Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -40105,10 +40169,10 @@
     "1052": {
       "sequence_id": 1052,
       "type": "decision",
-      "title": "The daemon: one command API, its transports, lifecycle and requests",
-      "slug": "the-daemon-one-command-api-its-transports-lifecycle-and-requ",
+      "title": "The daemon: its transports, lifecycle and requests",
+      "slug": "the-daemon-its-transports-lifecycle-and-requests",
       "status": "Accepted",
-      "description": "One HTTP command endpoint the CLI forwards to and the browser shares; Unix socket on POSIX, loopback ports on Windows and for the browser; serial commands in a fresh scope; edited configuration retires the daemon",
+      "description": "Unix socket on POSIX, loopback ports on Windows and for the browser; Starlette on uvicorn; one request at a time; edited configuration retires the daemon. The API's shape is ADR-1225",
       "parent": null,
       "author": "architect",
       "assignee": null,
@@ -40122,12 +40186,13 @@
         "FEAT-916",
         "ADR-1128",
         "FEAT-1140",
-        "MILE-1152"
+        "MILE-1152",
+        "ADR-1225"
       ],
       "subentities": [],
-      "path": "adrs/ADR-001052-the-daemon-one-command-api-its-transports-lifecycle-and-requ.md",
+      "path": "adrs/ADR-001052-the-daemon-its-transports-lifecycle-and-requests.md",
       "created_at": "2026-10-16T11:27:26Z",
-      "updated_at": "2026-10-28T19:15:59Z",
+      "updated_at": "2026-10-28T21:47:36Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -40561,7 +40626,7 @@
       "subentities": [],
       "path": "milestones/MILE-000868-squads-0-20-the-web-frontend.md",
       "created_at": "2026-09-02T08:03:39Z",
-      "updated_at": "2026-10-28T14:02:07Z",
+      "updated_at": "2026-10-28T22:07:55Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -40645,10 +40710,10 @@
     "1152": {
       "sequence_id": 1152,
       "type": "milestone",
-      "title": "squads 0.18 - the daemon",
-      "slug": "squads-0-18-the-daemon",
+      "title": "squads 0.18 - the daemon and one API for every client",
+      "slug": "squads-0-18-the-daemon-and-one-api-for-every-client",
       "status": "InProgress",
-      "description": "A local API the CLI and the web client share, with the daemon behind it",
+      "description": "Resource routes the CLI, terminal UI and web client share, with the daemon behind them and JSON output on every command",
       "parent": null,
       "author": "product-owner",
       "assignee": null,
@@ -40657,9 +40722,9 @@
       "labels": [],
       "refs": [],
       "subentities": [],
-      "path": "milestones/MILE-001152-squads-0-18-the-daemon.md",
+      "path": "milestones/MILE-001152-squads-0-18-the-daemon-and-one-api-for-every-client.md",
       "created_at": "2026-10-25T21:16:14Z",
-      "updated_at": "2026-10-28T13:53:34Z",
+      "updated_at": "2026-10-28T22:07:56Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -60225,12 +60290,13 @@
       "labels": [],
       "refs": [
         "FEAT-1096",
-        "ADR-1025"
+        "ADR-1025",
+        "ADR-1225"
       ],
       "subentities": [],
       "path": "adrs/ADR-001172-cli-surface-tests-one-case-per-parameter-guarded-coverage.md",
       "created_at": "2026-10-27T21:25:41Z",
-      "updated_at": "2026-10-28T19:15:58Z",
+      "updated_at": "2026-10-28T21:47:38Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -62776,10 +62842,10 @@
     "1218": {
       "sequence_id": 1218,
       "type": "task",
-      "title": "Daemon process: settings, discovery, command API, listeners",
-      "slug": "daemon-process-settings-discovery-command-api-listeners",
+      "title": "Daemon process: routes, request scope, listeners",
+      "slug": "daemon-process-routes-request-scope-listeners",
       "status": "Draft",
-      "description": "[daemon] settings and check rule, shared endpoint resolution, runtime files, the three routes, serial request scope, retirement, lifecycle, TCP admission",
+      "description": "Starlette on uvicorn serving the operation table as /v1 routes: envelope and errors, OpenAPI, request scope, ETags, schema and vocabulary checks, settings, lifecycle, admission",
       "parent": "FEAT-1140",
       "author": "tech-lead",
       "assignee": null,
@@ -62788,7 +62854,9 @@
       "labels": [],
       "refs": [
         "ADR-1052:implements",
-        "TASK-1217:depends-on"
+        "TASK-1217:depends-on",
+        "ADR-1225:implements",
+        "TASK-1227:depends-on"
       ],
       "subentities": [
         {
@@ -62813,7 +62881,7 @@
         },
         {
           "local_id": "ST3",
-          "title": "HTTP app, three routes and the serial request scope",
+          "title": "Starlette app: routes from the table, envelope, errors",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -62823,7 +62891,7 @@
         },
         {
           "local_id": "ST4",
-          "title": "Writes, corpus operations and schema skew through the daemon",
+          "title": "Writes, corpus operations and ETags",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -62843,7 +62911,7 @@
         },
         {
           "local_id": "ST6",
-          "title": "TCP listeners and admission rules",
+          "title": "Listeners on uvicorn and the admission middleware",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -62863,38 +62931,38 @@
         },
         {
           "local_id": "ST8",
-          "title": "Prompt after a commit fails instead of retrying",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": "US3",
-          "deferred_to": null,
-          "extra": {}
-        },
-        {
-          "local_id": "ST9",
-          "title": "Typer help and usage output follow the request",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": "US3",
-          "deferred_to": null,
-          "extra": {}
-        },
-        {
-          "local_id": "ST10",
-          "title": "Endpoint surface tests for the seeded request path",
+          "title": "Request scope and metadata headers",
           "status": "Todo",
           "assignee": null,
           "severity": null,
           "story": "US10",
           "deferred_to": null,
           "extra": {}
+        },
+        {
+          "local_id": "ST9",
+          "title": "Schema and vocabulary checks, daemon side",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US11",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST10",
+          "title": "OpenAPI document and route guards",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
         }
       ],
-      "path": "tasks/TASK-001218-daemon-process-settings-discovery-command-api-listeners.md",
+      "path": "tasks/TASK-001218-daemon-process-routes-request-scope-listeners.md",
       "created_at": "2026-10-28T14:08:41Z",
-      "updated_at": "2026-10-28T19:17:52Z",
+      "updated_at": "2026-10-28T22:36:29Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -62904,10 +62972,10 @@
     "1219": {
       "sequence_id": 1219,
       "type": "task",
-      "title": "CLI remote mode: forwarder, implicit start and fall back",
-      "slug": "cli-remote-mode-forwarder-implicit-start-and-fall-back",
+      "title": "CLI remote mode: HttpApi, selection and fall back",
+      "slug": "cli-remote-mode-httpapi-selection-and-fall-back",
       "status": "Draft",
-      "description": "Stdlib forwarder in __main__, detached spawn, discovery and staleness, local fall back, attachments table, parity matrix",
+      "description": "Root callback picks HttpApi or LocalApi; implicit start, conditional fall back, timeouts, schema and vocabulary headers, client budget and guard, parity run, the TUI as a daemon client",
       "parent": "FEAT-1140",
       "author": "tech-lead",
       "assignee": null,
@@ -62916,12 +62984,14 @@
       "labels": [],
       "refs": [
         "ADR-1052:implements",
-        "TASK-1218:depends-on"
+        "TASK-1218:depends-on",
+        "ADR-1225:implements",
+        "TASK-1233:depends-on"
       ],
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Forwarder, local-only commands and fall back",
+          "title": "API selection in the root callback",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -62931,7 +63001,7 @@
         },
         {
           "local_id": "ST2",
-          "title": "Discovery, staleness cleanup and detached spawn",
+          "title": "Implicit start, discovery and failed start",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -62951,17 +63021,7 @@
         },
         {
           "local_id": "ST4",
-          "title": "Attachments table from the command tree, guarded",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": "US1",
-          "deferred_to": null,
-          "extra": {}
-        },
-        {
-          "local_id": "ST5",
-          "title": "Forwarding through the one endpoint and Ctrl-C",
+          "title": "HttpApi requests, headers and errors",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -62970,19 +63030,59 @@
           "extra": {}
         },
         {
-          "local_id": "ST6",
-          "title": "Parity matrix in both modes",
+          "local_id": "ST5",
+          "title": "Fall back, no replay, timeouts and Ctrl-C",
           "status": "Todo",
           "assignee": null,
           "severity": null,
           "story": "US3",
           "deferred_to": null,
           "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Mode parity run over HttpApi",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Schema and vocabulary headers, client side",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US11",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Client budget: levers, import guard, benchmark",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US12",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST9",
+          "title": "The terminal UI as a daemon client",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US13",
+          "deferred_to": null,
+          "extra": {}
         }
       ],
-      "path": "tasks/TASK-001219-cli-remote-mode-forwarder-implicit-start-and-fall-back.md",
+      "path": "tasks/TASK-001219-cli-remote-mode-httpapi-selection-and-fall-back.md",
       "created_at": "2026-10-28T14:08:42Z",
-      "updated_at": "2026-10-28T19:17:57Z",
+      "updated_at": "2026-10-28T22:25:06Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -62995,7 +63095,7 @@
       "title": "CI: daemon coverage on Linux, macOS and native Windows",
       "slug": "ci-daemon-coverage-on-linux-macos-and-native-windows",
       "status": "Draft",
-      "description": "Daemon and remote-mode tests on the three-OS matrix, leaked-daemon check, bounded Windows wall time",
+      "description": "Cross-process set, mode-parity run and budget report on the three-OS matrix, leaked-daemon check, bounded time",
       "parent": "FEAT-1140",
       "author": "tech-lead",
       "assignee": null,
@@ -63005,12 +63105,13 @@
       "refs": [
         "ADR-1052:implements",
         "TASK-1218:depends-on",
-        "TASK-1219:depends-on"
+        "TASK-1219:depends-on",
+        "ADR-1225:implements"
       ],
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Daemon tests on the three-OS matrix, Windows first-class",
+          "title": "Cross-process and parity jobs on the three-OS matrix",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -63027,11 +63128,21 @@
           "story": "US6",
           "deferred_to": null,
           "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Client-budget report job",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US12",
+          "deferred_to": null,
+          "extra": {}
         }
       ],
       "path": "tasks/TASK-001220-ci-daemon-coverage-on-linux-macos-and-native-windows.md",
       "created_at": "2026-10-28T14:08:43Z",
-      "updated_at": "2026-10-28T19:17:59Z",
+      "updated_at": "2026-10-28T22:25:58Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63041,10 +63152,10 @@
     "1221": {
       "sequence_id": 1221,
       "type": "task",
-      "title": "Adopter docs and changelog for the daemon",
-      "slug": "adopter-docs-and-changelog-for-the-daemon",
+      "title": "Adopter docs and changelog for the daemon and its API",
+      "slug": "adopter-docs-and-changelog-for-the-daemon-and-its-api",
       "status": "Draft",
-      "description": "Modes, settings, SQUADS_DAEMON, fall back, status/stop, the command endpoint, runtime files, per-platform security",
+      "description": "Modes, settings, fall back, daemon commands, routes, envelope, errors, headers, ETags, compatibility, declared actor, runtime files, per-platform security",
       "parent": "FEAT-1140",
       "author": "tech-lead",
       "assignee": null,
@@ -63053,7 +63164,10 @@
       "labels": [],
       "refs": [
         "ADR-1052:implements",
-        "TASK-1219:depends-on"
+        "TASK-1219:depends-on",
+        "ADR-1225:implements",
+        "ADR-1224:implements",
+        "TASK-1218:depends-on"
       ],
       "subentities": [
         {
@@ -63068,7 +63182,7 @@
         },
         {
           "local_id": "ST2",
-          "title": "Command endpoint reference and security stance",
+          "title": "API reference and security stance",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -63077,9 +63191,9 @@
           "extra": {}
         }
       ],
-      "path": "tasks/TASK-001221-adopter-docs-and-changelog-for-the-daemon.md",
+      "path": "tasks/TASK-001221-adopter-docs-and-changelog-for-the-daemon-and-its-api.md",
       "created_at": "2026-10-28T14:08:44Z",
-      "updated_at": "2026-10-28T18:39:03Z",
+      "updated_at": "2026-10-28T22:26:04Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63102,7 +63216,8 @@
       "refs": [
         "ADR-1052:implements",
         "TASK-1219:depends-on",
-        "TASK-1220:depends-on"
+        "TASK-1220:depends-on",
+        "ADR-1225:implements"
       ],
       "subentities": [
         {
@@ -63128,7 +63243,7 @@
       ],
       "path": "tasks/TASK-001222-dogfood-the-daemon-on-this-repository-s-board.md",
       "created_at": "2026-10-28T14:08:45Z",
-      "updated_at": "2026-10-28T19:11:31Z",
+      "updated_at": "2026-10-28T22:26:06Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63180,7 +63295,7 @@
           "assignee": null,
           "severity": "medium",
           "story": null,
-          "deferred_to": "TASK-1218",
+          "deferred_to": "TASK-1227",
           "extra": {}
         },
         {
@@ -63190,7 +63305,7 @@
           "assignee": null,
           "severity": "medium",
           "story": null,
-          "deferred_to": "TASK-1218",
+          "deferred_to": "TASK-1227",
           "extra": {}
         },
         {
@@ -63210,7 +63325,7 @@
           "assignee": null,
           "severity": "low",
           "story": null,
-          "deferred_to": "TASK-1218",
+          "deferred_to": "TASK-1227",
           "extra": {}
         },
         {
@@ -63230,7 +63345,7 @@
           "assignee": null,
           "severity": "info",
           "story": null,
-          "deferred_to": "TASK-1218",
+          "deferred_to": "TASK-1229",
           "extra": {}
         },
         {
@@ -63276,12 +63391,741 @@
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-28T19:29:17Z",
+      "updated_at": "2026-10-28T22:31:29Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
       "slug_in_file": false,
       "id": "REV-1223"
+    },
+    "1224": {
+      "sequence_id": 1224,
+      "type": "decision",
+      "title": "Commands call one service operation and render its DTO",
+      "slug": "commands-call-one-service-operation-and-render-its-dto",
+      "status": "Accepted",
+      "description": "Each command validates, calls one operation through an Api (local or HTTP) and renders the DTO it returns; --json prints the DTO; the CLI never imports the service",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1140",
+        "MILE-1152",
+        "ADR-1052",
+        "ADR-1225"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001224-commands-call-one-service-operation-and-render-its-dto.md",
+      "created_at": "2026-10-28T20:58:31Z",
+      "updated_at": "2026-10-28T22:33:51Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1224"
+    },
+    "1225": {
+      "sequence_id": 1225,
+      "type": "decision",
+      "title": "The daemon serves the operations as resource routes",
+      "slug": "the-daemon-serves-the-operations-as-resource-routes",
+      "status": "Accepted",
+      "description": "Resource routes under /v1 generated from the operation table replace POST /v1/commands; HttpApi or LocalApi chosen per invocation; ADR-1052 amended on acceptance",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1140",
+        "MILE-1152",
+        "ADR-1052",
+        "ADR-1224",
+        "ADR-1172"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001225-the-daemon-serves-the-operations-as-resource-routes.md",
+      "created_at": "2026-10-28T20:58:41Z",
+      "updated_at": "2026-10-28T22:33:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1225"
+    },
+    "1226": {
+      "sequence_id": 1226,
+      "type": "feature",
+      "title": "Every command answers in JSON, one shape for CLI and API",
+      "slug": "every-command-answers-in-json-one-shape-for-cli-and-api",
+      "status": "InProgress",
+      "description": "Each command calls one operation and renders its result; --json on every command that prints one, and the same shape served by the API",
+      "parent": "EPIC-29",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-1152:targets",
+        "ADR-1224:depends-on",
+        "ADR-1225",
+        "FEAT-1140"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Output unchanged as each command moves onto its operation",
+          "status": "InProgress",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "JSON output on every command that prints a result",
+          "status": "InProgress",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "One result shape for the CLI and the API",
+          "status": "InProgress",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Results carry their own display",
+          "status": "InProgress",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "The terminal UI reads through the same API",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001226-every-command-answers-in-json-one-shape-for-cli-and-api.md",
+      "created_at": "2026-10-28T22:00:08Z",
+      "updated_at": "2026-10-28T22:28:35Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1226"
+    },
+    "1227": {
+      "sequence_id": 1227,
+      "type": "task",
+      "title": "Api foundation and the item show, list and status reference",
+      "slug": "api-foundation-and-the-item-show-list-and-status-reference",
+      "status": "InProgress",
+      "description": "The _api package, LocalApi, the binding table and the guards; item show, list and status moved end to end as the pattern",
+      "parent": "FEAT-1226",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1224:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "The _api package: envelope, operation table, Api, wire form",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "LocalApi, the binding table and the API on the request",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Guards: _services imports, renderers, bindings, DTO fields",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Item show, list and status end to end",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Display content and renderers for items",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "JSON output on item status",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001227-api-foundation-and-the-item-show-list-and-status-reference.md",
+      "created_at": "2026-10-28T22:12:36Z",
+      "updated_at": "2026-10-28T22:34:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1227"
+    },
+    "1228": {
+      "sequence_id": 1228,
+      "type": "task",
+      "title": "Item reads on operations",
+      "slug": "item-reads-on-operations",
+      "status": "Ready",
+      "description": "sq show, tree, graph, search, inbox, mine, blocked, workload, refs, comments and sub-entity reads each call one operation",
+      "parent": "FEAT-1226",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1224:implements",
+        "TASK-1227:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "show, tree, graph and search",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "inbox, mine, blocked and workload",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "refs, comments and sub-entity reads",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Display content for item reads",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001228-item-reads-on-operations.md",
+      "created_at": "2026-10-28T22:12:37Z",
+      "updated_at": "2026-10-28T22:28:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1228"
+    },
+    "1229": {
+      "sequence_id": 1229,
+      "type": "task",
+      "title": "Item writes on operations",
+      "slug": "item-writes-on-operations",
+      "status": "Ready",
+      "description": "create, update, body, retype, remove, refs, views, comment and sub-entity verbs on one operation each, with --json",
+      "parent": "FEAT-1226",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1224:implements",
+        "TASK-1227:depends-on",
+        "TASK-1228:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "create",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "update, body, retype, remove, refs and views",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Comment verbs on every host, confirmed remove",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Sub-entity verbs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "JSON output on the 10 item writes",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001229-item-writes-on-operations.md",
+      "created_at": "2026-10-28T22:12:38Z",
+      "updated_at": "2026-10-28T22:36:46Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1229"
+    },
+    "1230": {
+      "sequence_id": 1230,
+      "type": "task",
+      "title": "Roster commands on operations",
+      "slug": "roster-commands-on-operations",
+      "status": "Ready",
+      "description": "role, skill, operator and dev verbs on one operation each, with --json and resolved display names",
+      "parent": "FEAT-1226",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1224:implements",
+        "TASK-1227:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "role verbs and the shared roster registrars",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "skill verbs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "operator and dev verbs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Roster display names and columns",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "JSON output on the 24 roster keys",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001230-roster-commands-on-operations.md",
+      "created_at": "2026-10-28T22:12:39Z",
+      "updated_at": "2026-10-28T22:36:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1230"
+    },
+    "1231": {
+      "sequence_id": 1231,
+      "type": "task",
+      "title": "Board, memory, workflow and maintenance reads on operations",
+      "slug": "board-memory-workflow-and-maintenance-reads-on-operations",
+      "status": "Ready",
+      "description": "board, memory, workflow catalogs and views, overrides, reflog, check, sync and package-data commands on operations, with --json",
+      "parent": "FEAT-1226",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1224:implements",
+        "TASK-1227:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "board and memory",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "workflow catalogs and views",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "override, reflog, check and sync",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Views and catalogs rendered by the operation",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "JSON output on the 12 remaining keys",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001231-board-memory-workflow-and-maintenance-reads-on-operations.md",
+      "created_at": "2026-10-28T22:12:40Z",
+      "updated_at": "2026-10-28T22:36:47Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1231"
+    },
+    "1232": {
+      "sequence_id": 1232,
+      "type": "task",
+      "title": "Corpus-wide commands and squad creation on operations",
+      "slug": "corpus-wide-commands-and-squad-creation-on-operations",
+      "status": "Ready",
+      "description": "repair, renumber, migrate, import, init and adopt on operations with --json; get_service and the CLI-side JSON builders deleted",
+      "parent": "FEAT-1226",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1224:implements",
+        "TASK-1228:depends-on",
+        "TASK-1229:depends-on",
+        "TASK-1230:depends-on",
+        "TASK-1231:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "repair, renumber and the migrate operations",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "import",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "init and adopt, local only",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Delete get_service, CLI gates and JSON builders",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "JSON output on the 8 corpus and creation keys",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001232-corpus-wide-commands-and-squad-creation-on-operations.md",
+      "created_at": "2026-10-28T22:12:41Z",
+      "updated_at": "2026-10-28T22:28:28Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1232"
+    },
+    "1233": {
+      "sequence_id": 1233,
+      "type": "task",
+      "title": "Terminal UI through the Api",
+      "slug": "terminal-ui-through-the-api",
+      "status": "Ready",
+      "description": "sq ui screens call operations through the Api the root callback selects; display from DTOs only",
+      "parent": "FEAT-1226",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1224:implements",
+        "TASK-1228:depends-on",
+        "TASK-1230:depends-on",
+        "TASK-1231:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "sq ui hands the app a per-call API selector",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Screens onto operations",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "_tui under the renderer guard",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001233-terminal-ui-through-the-api.md",
+      "created_at": "2026-10-28T22:12:42Z",
+      "updated_at": "2026-10-28T22:28:29Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1233"
+    },
+    "1234": {
+      "sequence_id": 1234,
+      "type": "task",
+      "title": "Stability guide and changelog for result shapes",
+      "slug": "stability-guide-and-changelog-for-result-shapes",
+      "status": "Ready",
+      "description": "Frozen and provisional JSON shapes, the schema-change rule, display keys and --json on every command, for adopters",
+      "parent": "FEAT-1226",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1224:implements",
+        "TASK-1232:depends-on",
+        "TASK-1233:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Stability guide: tiers, provisional shapes, schema rule",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Display keys for adopters",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "JSON output on every command, in docs and changelog",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001234-stability-guide-and-changelog-for-result-shapes.md",
+      "created_at": "2026-10-28T22:12:43Z",
+      "updated_at": "2026-10-28T22:28:30Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1234"
     }
   }
 }
