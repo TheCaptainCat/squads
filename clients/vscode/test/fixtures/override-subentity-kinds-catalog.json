@@ -1,0 +1,28 @@
+[
+  {
+    "subentity_kind": "action",
+    "lifecycle": "step",
+    "plural": "actions",
+    "local_prefix": "AC",
+    "container_heading": "Actions",
+    "completion": "Done",
+    "maps_to_parent": true,
+    "fields": [
+      {
+        "code": "impact",
+        "label": "Impact",
+        "collection": "impact"
+      }
+    ]
+  },
+  {
+    "subentity_kind": "outcome",
+    "lifecycle": "subentity",
+    "plural": "outcomes",
+    "local_prefix": "OC",
+    "container_heading": "Desired Outcomes",
+    "completion": "Done",
+    "maps_to_parent": false,
+    "fields": []
+  }
+]

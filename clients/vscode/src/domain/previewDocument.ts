@@ -12,6 +12,8 @@ import type { SqOutcome } from '../sqAdapter';
 import type { SqDiscussionEntry, SqSubEntity } from '../types';
 import {
   type FieldBindingsByType,
+  type MappingKinds,
+  mappingLabel,
   NO_BADGE_VOCABULARY,
   NO_FIELD_BINDINGS,
   resolveItemBadges,
@@ -731,20 +733,23 @@ export interface SubEntitiesOutcome {
 export interface SubEntityFieldContext {
   readonly itemType?: string | undefined;
   readonly fieldBindings?: FieldBindingsByType | undefined;
+  /** Local-id prefix -> kind name, to label a `maps_to` by its target kind. */
+  readonly mappingKinds?: MappingKinds | undefined;
 }
 
 /** The head badge line for one sub-entity — status, then every declared badge field the
- * sub-entity actually carries, then assignee and story (each omitted when absent; `story` is
- * subtasks only). The badge fields come from the payload's own spec-resolved `badges` map and
+ * sub-entity actually carries, then assignee and mapping (each omitted when absent; `maps_to` is
+ * set only on a kind that maps). The badge fields come from the payload's own spec-resolved `badges` map and
  * are labelled from the kind's declared `fields`, so a project that renames or adds an axis is
  * followed here with no client change and no badge axis is named in this file. The three
  * remaining literals are the sub-entity model's own structural fields, not declared vocabulary
- * — and a kind that maps no parent story simply never carries one, so that part omits itself.
+ * — and a kind that maps nothing never carries a `maps_to`, so that part omits itself. The
+ * mapping is labelled by its target kind's name, resolved from the `maps_to` value's local id
+ * prefix through the kind catalog.
  *
  * Plain text, not the spec's rendered badge glyph, and the raw badge *code* rather than its
  * display label — this preview head doesn't fetch/join the collections catalog
- * (`sq workflow collections --json`) the way the tree tooltip does, same raw-code convention
- * `graphDiagrams.ts` uses. That is why the vocabulary passed to `resolveItemBadges` here is
+ * (`sq workflow collections --json`) the way the tree tooltip does. That is why the vocabulary passed to `resolveItemBadges` here is
  * deliberately the empty one. */
 function buildSubEntityHeadLine(entity: SqSubEntity, fields: SubEntityFieldContext = {}): string {
   const parts = [`Status: ${escapeHtml(entity.status)}`];
@@ -760,8 +765,10 @@ function buildSubEntityHeadLine(entity: SqSubEntity, fields: SubEntityFieldConte
   if (entity.assignee !== null) {
     parts.push(`Assignee: ${escapeHtml(entity.assignee)}`);
   }
-  if (entity.story !== null) {
-    parts.push(`Story: ${escapeHtml(entity.story)}`);
+  if (entity.maps_to !== null) {
+    parts.push(
+      `${escapeHtml(mappingLabel(entity.maps_to, fields.mappingKinds))}: ${escapeHtml(entity.maps_to)}`,
+    );
   }
   return parts.join(' · ');
 }

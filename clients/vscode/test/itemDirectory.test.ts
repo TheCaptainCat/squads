@@ -14,8 +14,6 @@ function listItem(overrides: Partial<SqListItem> & { id: string }): SqListItem {
     parent: null,
     author: 'tech-lead',
     assignee: null,
-    priority: null,
-    severity: null,
     labels: [],
     refs: [],
     path: 'tasks/x.md',

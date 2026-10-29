@@ -150,6 +150,10 @@ function isStringOrNull(value: unknown): value is string | null {
   return typeof value === 'string' || value === null;
 }
 
+function isOptionalString(value: unknown): value is string | undefined {
+  return value === undefined || typeof value === 'string';
+}
+
 /** A key an older `sq` omits entirely and a newer one may legitimately emit as `null`. Absent
  * and `null` mean the same thing to every consumer here: nothing to join on. */
 function isOptionalNullableString(value: unknown): value is string | null | undefined {
@@ -183,10 +187,7 @@ function hasRequiredTreeNodeStrings(node: Record<string, unknown>): boolean {
 }
 
 function hasNullableTreeNodeStrings(node: Record<string, unknown>): boolean {
-  return (
-    (typeof node.priority === 'string' || node.priority === null) &&
-    (typeof node.assignee === 'string' || node.assignee === null)
-  );
+  return typeof node.assignee === 'string' || node.assignee === null;
 }
 
 /** Shape guard for one `sq tree --json` node (recursive). Exported so the integration
@@ -215,9 +216,23 @@ function hasRequiredGraphNodeStrings(node: Record<string, unknown>): boolean {
   );
 }
 
+/** `display` is read for badge labels only: absent, or an object whose `badges` (when present)
+ * is an object — anything else is a payload this client cannot label from. */
+function isOptionalGraphDisplay(value: unknown): boolean {
+  if (value === undefined) {
+    return true;
+  }
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const badges = (value as Record<string, unknown>).badges;
+  return badges === undefined || (typeof badges === 'object' && badges !== null);
+}
+
 function hasNullableGraphNodeFields(node: Record<string, unknown>): boolean {
   return (
-    (typeof node.priority === 'string' || node.priority === null) &&
+    isOptionalBadgeMap(node.badges) &&
+    isOptionalGraphDisplay(node.display) &&
     (typeof node.assignee === 'string' || node.assignee === null) &&
     (typeof node.edge_kind === 'string' || node.edge_kind === null) &&
     // Optional: an older `sq` predates the field and simply omits it — tolerated, not rejected.
@@ -378,6 +393,7 @@ export function isSqSubEntityKindCatalogEntry(
   const entry = value as Record<string, unknown>;
   return (
     typeof entry.subentity_kind === 'string' &&
+    isOptionalString(entry.local_prefix) &&
     Array.isArray(entry.fields) &&
     entry.fields.every(isSqTypeField)
   );
@@ -520,7 +536,7 @@ function isSqSubEntity(value: unknown): value is SqSubEntity {
     typeof entry.title === 'string' &&
     typeof entry.status === 'string' &&
     isStringOrNull(entry.assignee) &&
-    isStringOrNull(entry.story) &&
+    isStringOrNull(entry.maps_to) &&
     typeof entry.body === 'string' &&
     isOptionalBadgeMap(entry.badges) &&
     hasOptionalDiscussion(entry)

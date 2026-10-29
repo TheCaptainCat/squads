@@ -1,6 +1,13 @@
+import { readFileSync } from 'node:fs';
+import * as path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
-import { buildSubEntityFieldBindings } from '../src/domain/badgeCatalog';
+import {
+  buildMappingKinds,
+  buildSubEntityFieldBindings,
+  type MappingKinds,
+} from '../src/domain/badgeCatalog';
 import { MERMAID_NODE_ID_ESCAPE_SOURCE, mermaidNodeId } from '../src/domain/graphDiagrams';
 import { buildItemDirectory } from '../src/domain/itemDirectory';
 import {
@@ -25,7 +32,7 @@ import {
   UPDATE_CONTENT_COMMAND,
 } from '../src/domain/previewMessages';
 import { buildRoleDirectory } from '../src/domain/roleDirectory';
-import type { SqRoleListRow, SqSubEntity } from '../src/types';
+import type { SqRoleListRow, SqSubEntity, SqSubEntityKindCatalogEntry } from '../src/types';
 
 function makeRole(overrides: Partial<SqRoleListRow> = {}): SqRoleListRow {
   return {
@@ -233,7 +240,7 @@ describe('buildPreviewHtml', () => {
             title: 'A finding',
             status: 'Open',
             assignee: null,
-            story: null,
+            maps_to: null,
             body: '',
             badges: { severity: 'high' },
           },
@@ -797,7 +804,7 @@ describe('buildSubEntitiesHtml', () => {
     title: 'Preview omits the item’s sub-entities',
     status: 'Open',
     assignee: null,
-    story: null,
+    maps_to: null,
     body: 'Add a section listing sub-entities.',
     badges: { severity: 'high' },
   };
@@ -806,7 +813,7 @@ describe('buildSubEntitiesHtml', () => {
     title: 'Render sub-entities',
     status: 'InProgress',
     assignee: 'typescript-dev',
-    story: null,
+    maps_to: null,
     body: '',
   };
   /** The two catalogs joined into sub-entity field bindings, as the preview manager does. */
@@ -857,7 +864,36 @@ describe('buildSubEntitiesHtml', () => {
     expect(html).not.toContain('Story:');
   });
 
-  it('renders assignee and story on the head line when present', () => {
+  it('labels a set maps_to by its target kind, from the bundled and from an overridden catalog', () => {
+    const bundledKinds = buildMappingKinds(
+      JSON.parse(
+        readFileSync(path.join(__dirname, 'fixtures', 'subentity-kinds-catalog.json'), 'utf8'),
+      ) as SqSubEntityKindCatalogEntry[],
+    );
+    const overrideKinds = buildMappingKinds(
+      JSON.parse(
+        readFileSync(
+          path.join(__dirname, 'fixtures', 'override-subentity-kinds-catalog.json'),
+          'utf8',
+        ),
+      ) as SqSubEntityKindCatalogEntry[],
+    );
+    const head = (mapsTo: string | null, mappingKinds: MappingKinds): string =>
+      buildSubEntitiesHtml(
+        { entities: [{ ...story, maps_to: mapsTo }] },
+        undefined,
+        undefined,
+        undefined,
+        { mappingKinds },
+      );
+
+    expect(head('US1', bundledKinds)).toContain('Story: US1');
+    expect(head('OC1', overrideKinds)).toContain('Outcome: OC1');
+    expect(head('OC1', overrideKinds)).not.toContain('Story');
+    expect(head(null, overrideKinds)).not.toMatch(/Outcome:|Story:|Maps to:/);
+  });
+
+  it('renders assignee on the head line when present', () => {
     const html = buildSubEntitiesHtml({ entities: [story] });
     expect(html).toContain('Status: InProgress');
     expect(html).toContain('Assignee: typescript-dev');
@@ -1187,8 +1223,6 @@ describe('item hover text reaches every rendered surface', () => {
       parent: null,
       author: null,
       assignee: null,
-      priority: null,
-      severity: null,
       labels: [],
       refs: [],
       path: 'tasks/x.md',
@@ -1243,7 +1277,7 @@ describe('item hover text reaches every rendered surface', () => {
             title: 'A finding',
             status: 'Open',
             assignee: null,
-            story: null,
+            maps_to: null,
             body: 'Traced to TASK-452.',
             discussion: [{ author: 'a', ts: '2026-01-01T00:00:00Z', body: 'Also TASK-452.' }],
           },

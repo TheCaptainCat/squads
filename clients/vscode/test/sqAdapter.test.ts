@@ -874,7 +874,39 @@ describe('getShowJson', () => {
     expect(outcome.data.subentities).toEqual([]);
   });
 
-  it('parses a populated subentities array (local_id/title/status/assignee/story/body/badges)', async () => {
+  it('parses sub-entities of an override vocabulary: maps_to null, flat stored field, badges', async () => {
+    const runner = stubRunner({
+      stdout: fixture('override-show-json.json'),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'JOB-9');
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data.subentities.map((entry) => entry.maps_to)).toEqual([null, null]);
+    expect(outcome.data.subentities[0]?.badges).toEqual({ impact: 'large' });
+  });
+
+  it('rejects a sub-entity that has no maps_to key (the retired story shape)', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify({
+        type: 'task',
+        discussion: [],
+        subentities: [
+          { local_id: 'ST1', title: 't', status: 'Todo', assignee: null, story: 'US1', body: '' },
+        ],
+      }),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-1');
+    expect(outcome.kind).not.toBe('success');
+  });
+
+  it('parses a populated subentities array (local_id/title/status/assignee/maps_to/body/badges)', async () => {
     const runner = stubRunner({
       stdout: JSON.stringify({
         type: 'review',
@@ -886,7 +918,7 @@ describe('getShowJson', () => {
             status: 'Open',
             assignee: null,
             severity: 'high',
-            story: null,
+            maps_to: null,
             body: 'Body text.',
             badges: { severity: 'high' },
           },
@@ -919,7 +951,7 @@ describe('getShowJson', () => {
             title: 'A finding',
             status: 'Open',
             assignee: null,
-            story: null,
+            maps_to: null,
             body: 'Body text.',
           },
         ],
@@ -957,7 +989,7 @@ describe('getShowJson', () => {
             title: 'A finding',
             status: 'Open',
             assignee: null,
-            story: null,
+            maps_to: null,
             body: 'Body text.',
             badges: { severity: 3 },
           },
@@ -982,7 +1014,7 @@ describe('getShowJson', () => {
             status: 'Open',
             assignee: null,
             severity: 'high',
-            story: null,
+            maps_to: null,
             body: 'Body text.',
             discussion: [{ author: 'Ada Typescript', ts: '2026-08-03T00:00:00Z', body: 'Noted.' }],
           },
@@ -1013,7 +1045,7 @@ describe('getShowJson', () => {
             status: 'Open',
             assignee: null,
             severity: 'high',
-            story: null,
+            maps_to: null,
             body: 'Body text.',
           },
         ],
@@ -1041,7 +1073,7 @@ describe('getShowJson', () => {
             status: 'Open',
             assignee: null,
             severity: 'high',
-            story: null,
+            maps_to: null,
             body: 'Body text.',
             discussion: [{ author: 'Ada Typescript' }],
           },
@@ -1094,7 +1126,7 @@ describe('getShowJson', () => {
       status: 'Open',
       assignee: null,
       severity: 'high',
-      story: null,
+      maps_to: null,
       body: 'Body text.',
       discussion,
     });
@@ -1266,7 +1298,7 @@ describe('getSubentityKindsCatalog', () => {
           local_prefix: 'F',
           container_heading: 'Findings',
           completion: 'Fixed',
-          maps_parent_story: false,
+          maps_to_parent: false,
           fields: [{ code: 'severity', label: 'Severity', collection: 'severity' }],
         },
       ]),

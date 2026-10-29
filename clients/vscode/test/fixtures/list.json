@@ -9,8 +9,6 @@
     "parent": null,
     "author": "manager",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [],
@@ -43,8 +41,6 @@
     "parent": null,
     "author": "architect",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [],
@@ -77,8 +73,6 @@
     "parent": null,
     "author": "op-pierre",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [],
@@ -156,7 +150,6 @@
     "author": "product-owner",
     "assignee": null,
     "priority": "high",
-    "severity": null,
     "labels": [],
     "refs": [
       "BUG-22:depends-on",
@@ -199,7 +192,6 @@
     "author": "product-owner",
     "assignee": null,
     "priority": "high",
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [
@@ -209,9 +201,8 @@
         "status": "Done",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US2",
@@ -219,9 +210,8 @@
         "status": "Done",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US3",
@@ -229,9 +219,8 @@
         "status": "Done",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       }
     ],
     "path": "features/FEAT-000013-stability-contract-documentation.md",
@@ -270,7 +259,6 @@
     "author": "product-owner",
     "assignee": null,
     "priority": "high",
-    "severity": null,
     "labels": [],
     "refs": [
       "PRD-859:implements"
@@ -282,9 +270,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US2",
@@ -292,9 +279,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US3",
@@ -302,9 +288,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US4",
@@ -312,9 +297,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       }
     ],
     "path": "features/FEAT-000014-project-level-template-and-role-overrides.md",
@@ -353,7 +337,6 @@
     "author": "product-owner",
     "assignee": null,
     "priority": "high",
-    "severity": null,
     "labels": [],
     "refs": [
       "PRD-862:implements"
@@ -365,9 +348,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US2",
@@ -375,9 +357,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US3",
@@ -385,9 +366,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       }
     ],
     "path": "features/FEAT-000015-machine-readable-surface-audit.md",
@@ -426,7 +406,6 @@
     "author": "product-owner",
     "assignee": null,
     "priority": "medium",
-    "severity": null,
     "labels": [],
     "refs": [
       "PRD-861:implements"
@@ -438,9 +417,8 @@
         "status": "Done",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US2",
@@ -448,9 +426,8 @@
         "status": "Done",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       }
     ],
     "path": "features/FEAT-000016-second-backend-generic-agents-md.md",
@@ -489,7 +466,6 @@
     "author": "op-pierre",
     "assignee": null,
     "priority": "medium",
-    "severity": null,
     "labels": [],
     "refs": [
       "FEAT-19"
@@ -531,7 +507,6 @@
     "author": "product-owner",
     "assignee": null,
     "priority": "high",
-    "severity": null,
     "labels": [],
     "refs": [
       "FEAT-19",
@@ -574,7 +549,6 @@
     "author": "op-pierre",
     "assignee": null,
     "priority": "low",
-    "severity": null,
     "labels": [],
     "refs": [
       "FEAT-26"
@@ -616,7 +590,6 @@
     "author": "product-owner",
     "assignee": null,
     "priority": "low",
-    "severity": null,
     "labels": [],
     "refs": [
       "FEAT-15:depends-on",
@@ -659,7 +632,6 @@
     "author": "product-owner",
     "assignee": null,
     "priority": "low",
-    "severity": null,
     "labels": [],
     "refs": [
       "EPIC-28",
@@ -701,8 +673,6 @@
     "parent": null,
     "author": "product-owner",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [],
@@ -734,7 +704,6 @@
     "author": "product-owner",
     "assignee": null,
     "priority": "medium",
-    "severity": null,
     "labels": [],
     "refs": [
       "FEAT-13",
@@ -748,9 +717,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US2",
@@ -758,9 +726,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US3",
@@ -768,9 +735,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       }
     ],
     "path": "features/FEAT-000032-pluggable-index-store-sqlite-sql-databases-behind-the-index.md",
@@ -809,7 +775,6 @@
     "author": "product-owner",
     "assignee": null,
     "priority": "medium",
-    "severity": null,
     "labels": [],
     "refs": [
       "FEAT-15",
@@ -824,9 +789,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US2",
@@ -834,9 +798,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US3",
@@ -844,9 +807,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US4",
@@ -854,9 +816,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US5",
@@ -864,9 +825,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US6",
@@ -874,9 +834,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       }
     ],
     "path": "features/FEAT-000033-remote-mode-the-sq-cli-as-a-client-to-a-remote-daemon.md",
@@ -914,8 +873,6 @@
     "parent": null,
     "author": "product-owner",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [],
@@ -947,7 +904,6 @@
     "author": "tech-lead",
     "assignee": "python-dev",
     "priority": "high",
-    "severity": null,
     "labels": [],
     "refs": [
       "BUG-22:fixes"
@@ -959,9 +915,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "ST2",
@@ -969,9 +924,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "ST3",
@@ -979,9 +933,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "ST4",
@@ -989,9 +942,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       }
     ],
     "path": "tasks/TASK-000042-fix-counter-regression-and-sequence-number-reuse-bug-000022.md",
@@ -1030,7 +982,6 @@
     "author": "tech-lead",
     "assignee": "python-dev",
     "priority": "medium",
-    "severity": null,
     "labels": [],
     "refs": [
       "BUG-21:fixes"
@@ -1042,9 +993,8 @@
         "status": "Done",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "ST2",
@@ -1052,9 +1002,8 @@
         "status": "Done",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "ST3",
@@ -1062,9 +1011,8 @@
         "status": "Done",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "ST4",
@@ -1072,9 +1020,8 @@
         "status": "Done",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       }
     ],
     "path": "tasks/TASK-000043-validate-slug-arguments-across-mine-inbox-and-slug-accepting.md",
@@ -1113,7 +1060,6 @@
     "author": "tech-lead",
     "assignee": "python-dev",
     "priority": "low",
-    "severity": null,
     "labels": [],
     "refs": [
       "BUG-25:fixes",
@@ -1156,7 +1102,6 @@
     "author": "tech-lead",
     "assignee": "tech-lead",
     "priority": "low",
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [],
@@ -1195,8 +1140,6 @@
     "parent": null,
     "author": "reviewer",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [
       "FEAT-19:addresses"
@@ -1208,9 +1151,8 @@
         "status": "Verified",
         "assignee": null,
         "severity": "medium",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "F2",
@@ -1218,9 +1160,8 @@
         "status": "Verified",
         "assignee": null,
         "severity": "medium",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "F3",
@@ -1228,9 +1169,8 @@
         "status": "Verified",
         "assignee": null,
         "severity": "low",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "F4",
@@ -1238,9 +1178,8 @@
         "status": "Verified",
         "assignee": null,
         "severity": "low",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       }
     ],
     "path": "reviews/REV-000048-feat-000019-uniform-item-addressing.md",
@@ -1270,8 +1209,6 @@
     "parent": null,
     "author": "architect",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [
       "FEAT-35",
@@ -1308,8 +1245,6 @@
     "parent": null,
     "author": "reviewer",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [
       "FEAT-35:addresses"
@@ -1321,9 +1256,8 @@
         "status": "WontFix",
         "assignee": null,
         "severity": "low",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       }
     ],
     "path": "reviews/REV-000052-feat-000035-typed-ref-vocabulary.md",
@@ -1353,8 +1287,6 @@
     "parent": null,
     "author": "reviewer",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [
       "FEAT-26:addresses"
@@ -1366,9 +1298,8 @@
         "status": "Verified",
         "assignee": null,
         "severity": "medium",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "F2",
@@ -1376,9 +1307,8 @@
         "status": "Verified",
         "assignee": null,
         "severity": "low",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "F3",
@@ -1386,9 +1316,8 @@
         "status": "Verified",
         "assignee": null,
         "severity": "low",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       }
     ],
     "path": "reviews/REV-000061-review-feat-000026-rendered-show-output.md",
@@ -1419,7 +1348,6 @@
     "author": "reviewer",
     "assignee": null,
     "priority": "high",
-    "severity": null,
     "labels": [],
     "refs": [
       "TASK-65"
@@ -1431,9 +1359,8 @@
         "status": "Verified",
         "assignee": null,
         "severity": "high",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "F2",
@@ -1441,9 +1368,8 @@
         "status": "Verified",
         "assignee": null,
         "severity": "high",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "F3",
@@ -1451,9 +1377,8 @@
         "status": "Verified",
         "assignee": null,
         "severity": "medium",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "F4",
@@ -1461,9 +1386,8 @@
         "status": "Verified",
         "assignee": null,
         "severity": "low",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "F5",
@@ -1471,9 +1395,8 @@
         "status": "Verified",
         "assignee": null,
         "severity": "low",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "F6",
@@ -1481,9 +1404,8 @@
         "status": "Verified",
         "assignee": null,
         "severity": "low",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "F7",
@@ -1491,9 +1413,8 @@
         "status": "Verified",
         "assignee": null,
         "severity": "low",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "F8",
@@ -1501,9 +1422,8 @@
         "status": "Verified",
         "assignee": null,
         "severity": "low",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "F9",
@@ -1511,9 +1431,8 @@
         "status": "Verified",
         "assignee": null,
         "severity": "low",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "F10",
@@ -1521,9 +1440,8 @@
         "status": "WontFix",
         "assignee": null,
         "severity": "low",
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       }
     ],
     "path": "reviews/REV-000067-feat-000064-negative-path-error-ux-leaks-the-internal-addr-s.md",
@@ -1561,8 +1479,6 @@
     "parent": null,
     "author": "architect",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [
       "GUIDE-79",
@@ -1597,8 +1513,6 @@
     "parent": null,
     "author": "architect",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [
       "ADR-71",
@@ -1632,8 +1546,6 @@
     "parent": null,
     "author": "architect",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [
       "GUIDE-79"
@@ -1666,8 +1578,6 @@
     "parent": null,
     "author": "architect",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [
       "ADR-71",
@@ -1713,7 +1623,6 @@
     "author": "product-owner",
     "assignee": null,
     "priority": "low",
-    "severity": null,
     "labels": [],
     "refs": [
       "PRD-863:implements"
@@ -1725,9 +1634,8 @@
         "status": "Done",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US2",
@@ -1735,9 +1643,8 @@
         "status": "Done",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US3",
@@ -1745,9 +1652,8 @@
         "status": "Done",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       }
     ],
     "path": "features/FEAT-000100-read-only-browse-sidebar-tree-rendered-preview.md",
@@ -1786,7 +1692,6 @@
     "author": "product-owner",
     "assignee": null,
     "priority": "low",
-    "severity": null,
     "labels": [],
     "refs": [
       "FEAT-125:depends-on"
@@ -1798,9 +1703,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "US2",
@@ -1808,9 +1712,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       }
     ],
     "path": "features/FEAT-000123-exclusive-work-leases-claims.md",
@@ -1848,8 +1751,6 @@
     "parent": null,
     "author": "architect",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [
       "FEAT-176:addresses",
@@ -1883,8 +1784,6 @@
     "parent": null,
     "author": "architect",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [
       "FEAT-177:addresses",
@@ -1918,7 +1817,6 @@
     "parent": null,
     "author": "manager",
     "assignee": null,
-    "priority": null,
     "severity": "medium",
     "labels": [],
     "refs": [
@@ -1960,8 +1858,6 @@
     "parent": null,
     "author": "greeting",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [],
@@ -1993,8 +1889,6 @@
     "parent": null,
     "author": "sq-bug",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [],
@@ -2026,8 +1920,6 @@
     "parent": null,
     "author": "product-owner",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [
       "EPIC-31"
@@ -2060,8 +1952,6 @@
     "parent": null,
     "author": "op-pierre",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [],
@@ -2093,7 +1983,6 @@
     "author": "tech-lead",
     "assignee": null,
     "priority": "low",
-    "severity": null,
     "labels": [],
     "refs": [
       "TASK-666:depends-on",
@@ -2106,9 +1995,8 @@
         "status": "Done",
         "assignee": "python-dev",
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "ST2",
@@ -2116,9 +2004,8 @@
         "status": "Done",
         "assignee": "python-dev",
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       },
       {
         "local_id": "ST3",
@@ -2126,9 +2013,8 @@
         "status": "Done",
         "assignee": "python-dev",
         "severity": null,
-        "story": null,
         "deferred_to": null,
-        "extra": {}
+        "maps_to": null
       }
     ],
     "path": "tasks/TASK-000247-eliminate-pre-existing-reportprivateusage-suppressions-acros.md",
@@ -2166,8 +2052,6 @@
     "parent": null,
     "author": "product-owner",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [
       "EPIC-206"
@@ -2200,8 +2084,6 @@
     "parent": null,
     "author": "product-owner",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [],
@@ -2232,8 +2114,6 @@
     "parent": null,
     "author": "architect",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [
       "ADR-541",
@@ -2272,7 +2152,6 @@
     "author": "devops",
     "assignee": null,
     "priority": "high",
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [],
@@ -2311,8 +2190,6 @@
     "parent": null,
     "author": "qa",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [],
@@ -2343,8 +2220,6 @@
     "parent": null,
     "author": "tech-lead",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [
       "FEAT-377:addresses"
@@ -2377,8 +2252,6 @@
     "parent": "FEAT-100",
     "author": "tech-lead",
     "assignee": "typescript-dev",
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [
       "ADR-427:addresses",
@@ -2413,8 +2286,6 @@
     "parent": "FEAT-100",
     "author": "tech-lead",
     "assignee": "typescript-dev",
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [
       "ADR-427:addresses",

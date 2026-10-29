@@ -31,12 +31,18 @@ export interface SqTreeNode {
   readonly type: string;
   readonly title: string;
   readonly status: string;
-  readonly priority: string | null;
   readonly assignee: string | null;
   readonly blocked: boolean;
   readonly badges?: SqBadgeMap;
   readonly anchor?: boolean;
   readonly children: readonly SqTreeNode[];
+}
+
+/** The slice of a graph node's `display` the client reads: per badge field, the resolved label
+ * pair (`badge_label` is the badge's display label with its glyph). Optional on every level —
+ * an older `sq` omits it, and a graph label then falls back to the raw badge code. */
+export interface SqGraphNodeDisplay {
+  readonly badges?: Readonly<Record<string, { readonly badge_label: string }>>;
 }
 
 /** One node of `sq graph <id> --json` (recursive; the ego-centric ref-graph BFS). The root
@@ -55,7 +61,8 @@ export interface SqGraphNode {
   readonly id: string;
   readonly type: string;
   readonly status: string;
-  readonly priority: string | null;
+  readonly badges?: SqBadgeMap;
+  readonly display?: SqGraphNodeDisplay;
   readonly assignee: string | null;
   readonly edge_kind: string | null;
   readonly edge_semantic?: string | null;
@@ -118,6 +125,9 @@ export interface SqTypeCatalogEntry {
  * convention. */
 export interface SqSubEntityKindCatalogEntry {
   readonly subentity_kind: string;
+  /** The prefix of the kind's local ids (the letters before the number); the key a `maps_to` value is resolved
+   * to its target kind by. Optional: without it a mapping is labelled generically. */
+  readonly local_prefix?: string;
   readonly fields: readonly SqTypeField[];
 }
 
@@ -209,7 +219,8 @@ export interface SqDiscussionEntry {
 /** One entry of `sq show <id> --json`'s `subentities` array — a story/subtask/finding tracked on
  * the parent item. `local_id` is kind-prefixed (`US<n>` story / `ST<n>` subtask / the finding
  * letter) — the kind itself isn't a separate field, so the client never needs a hardcoded kind
- * list. `story` is set for subtasks only (the parent story's local id).
+ * list. `maps_to` is the local id of the sub-entity this one maps to on the parent (a subtask's
+ * story, say) and `null` when it maps to none — always present, whatever the kind is called.
  *
  * `badges` is the sub-entity's spec-resolved per-field map (field code -> badge code), the same
  * shape and the same generic mechanism the item level carries — a declared axis is read from
@@ -224,7 +235,7 @@ export interface SqSubEntity {
   readonly title: string;
   readonly status: string;
   readonly assignee: string | null;
-  readonly story: string | null;
+  readonly maps_to: string | null;
   readonly body: string;
   readonly badges?: SqBadgeMap;
   readonly discussion?: readonly SqDiscussionEntry[];
@@ -325,8 +336,6 @@ export interface SqListItem {
   readonly parent: string | null;
   readonly author: string | null;
   readonly assignee: string | null;
-  readonly priority: string | null;
-  readonly severity: string | null;
   readonly labels: readonly string[];
   readonly refs: readonly string[];
   readonly path: string;
