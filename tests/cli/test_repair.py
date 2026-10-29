@@ -75,8 +75,8 @@ async def test_repair_json_prints_what_the_rebuild_found(populated_project, invo
                     "`sq repair`"
                 ],
                 "renumbered": [],
-                "references": [],
                 "references_left": False,
+                "references": [],
             }
         ),
     )
@@ -155,6 +155,7 @@ async def test_renumber_json_lists_each_moved_file_and_each_reference_left(
                         "target": "tasks/TASK-000005-twin.md",
                     }
                 ],
+                "references_left": True,
                 "references": [
                     {
                         "id": "TASK-3",
@@ -163,7 +164,6 @@ async def test_renumber_json_lists_each_moved_file_and_each_reference_left(
                         "text": '"See TASK-3."',
                     }
                 ],
-                "references_left": True,
             }
         ),
     )

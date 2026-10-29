@@ -45,8 +45,8 @@ class RepairReport(DTO):
     missing: list[str]
     unreadable: list[str]
     renumbered: list[MovedFile]
-    references: list[LeftReference]
     references_left: bool
+    references: list[LeftReference]
 
 
 class RenumberRequest(DTO):
