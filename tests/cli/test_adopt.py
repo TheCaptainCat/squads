@@ -79,7 +79,7 @@ async def test_renumber_gives_a_shared_number_a_new_one_and_adopts(adoptable, in
     assert result.exit_code == 0, result.output
     assert flat(result.output) == _adopted(
         adoptable, "squads", "architect,tech-lead,reviewer"
-    ).replace("imported:4", "imported:5")
+    ).replace("imported:4", "imported:5").replace(TAIL, "renumberedTASK-3->TASK-5" + TAIL)
 
 
 @pytest.mark.covers("adopt", "--roles")
@@ -122,6 +122,7 @@ async def test_json_prints_the_squad_adopted_and_what_it_held(adoptable, invoke)
                     "TASK-000009-broken.md: file has no `id` in frontmatter — its previous index "
                     "entry, if any, was carried forward as-is; fix the file and repair again"
                 ],
+                "renumbered": [],
                 "warnings": [],
             }
         ),
@@ -180,3 +181,27 @@ async def test_adopt_writes_settings_and_claude_md_by_default(adoptable, invoke)
         ".claude/settings.json",
         "CLAUDE.md",
     ]
+
+
+@pytest.mark.covers("adopt", "--renumber")
+async def test_renumber_json_lists_the_items_that_moved(adoptable, invoke) -> None:
+    squad = adoptable / "squads"
+    original = (squad / "tasks/TASK-000003-build-the-query-parser.md").read_text(encoding="utf-8")
+    (squad / "features/FEAT-000003-twin.md").write_text(
+        original.replace("id: TASK-3", "id: FEAT-3"), encoding="utf-8"
+    )
+    result = await invoke(["adopt", "--roles", "core", "--renumber", "--json"])
+    assert (result.exit_code, result.output) == (
+        0,
+        json_text(
+            {
+                "squad": str(squad),
+                "imported": 5,
+                "roles": ["architect", "tech-lead", "reviewer"],
+                "notice": None,
+                "unreadable": [],
+                "renumbered": ["  renumbered TASK-3 -> TASK-5"],
+                "warnings": [],
+            }
+        ),
+    )

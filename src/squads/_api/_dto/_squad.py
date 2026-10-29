@@ -225,11 +225,13 @@ class AdoptRequest(DTO):
 
 class AdoptReport(DTO):
     """The squad adopted: its folder, how many items it held, the roles newly activated, the
-    rebuild's content notice and unreadable files, and the scaffolding notices."""
+    rebuild's content notice, unreadable files and renumbering lines, and the scaffolding
+    notices."""
 
     squad: str
     imported: int
     roles: list[str]
     notice: str | None
     unreadable: list[str]
+    renumbered: list[str]
     warnings: list[str]

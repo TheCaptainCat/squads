@@ -17,7 +17,10 @@ async def test_repair_renumber_moves_the_hint_to_the_new_number(populated, invok
     )
     (squad / "tasks/TASK-000002-build-the-query-parser.md").write_text(twin, encoding="utf-8")
     result = await invoke(["repair", "--renumber"])
-    assert (result.exit_code, result.output) == (0, "rebuilt index: 5 items, counter=5\n")
+    assert (result.exit_code, result.output) == (
+        0,
+        "rebuilt index: 5 items, counter=5\n  renumbered TASK-2 -> TASK-5\n",
+    )
     shown = await invoke(["task", "5", "show", "--json"])
     # The hint is in the file only: no command prints it.
     text = (squad / "tasks/TASK-000005-build-the-query-parser.md").read_text(encoding="utf-8")

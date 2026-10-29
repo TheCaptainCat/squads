@@ -216,6 +216,8 @@ def render_adopt(report: AdoptReport, console: Console) -> None:
     _print_notice(report.notice, console)
     _print_warnings(report.warnings, console)
     _print_unreadable(report.unreadable, console)
+    for line in report.renumbered:
+        console.print(e(line), soft_wrap=True)
     if report.unreadable:
         return
     console.print(

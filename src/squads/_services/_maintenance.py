@@ -1474,7 +1474,9 @@ class MaintenanceMixin(ServiceCore):
             renumbered = await self._renumber_same_id(
                 previous_counter, previous_padding, known_corpus
             )
-            await self._renumber()
+            renumbered.lines += [
+                f"  renumbered {old} -> {new}" for old, new in (await self._renumber()).items()
+            ]
         await self.refuse_shared_numbers()
 
         db, unreadable, canonicalized, stripped = await self._rebuild_index_from_disk(

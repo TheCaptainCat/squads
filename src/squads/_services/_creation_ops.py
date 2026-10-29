@@ -61,6 +61,7 @@ async def adopt_squad(
             roles=[r.slug for r in result.roles],
             notice=result.repair.strip_notice(),
             unreadable=unreadable_lines(result.repair.unreadable),
+            renumbered=list(result.repair.renumber_report),
             warnings=list(result.warnings),
         )
     )

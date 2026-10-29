@@ -85,7 +85,10 @@ async def test_repair_json_prints_what_the_rebuild_found(populated_project, invo
 async def test_renumber_gives_a_shared_number_a_new_one(populated_project, invoke) -> None:
     _add_twin_numbered_two(populated_project.squad_dir)
     result = await invoke(["repair", "--renumber"])
-    assert (result.exit_code, result.output) == (0, "rebuilt index: 5 items, counter=5\n")
+    assert (result.exit_code, result.output) == (
+        0,
+        "rebuilt index: 5 items, counter=5\n  renumbered TASK-2 -> TASK-5\n",
+    )
     assert await listed(invoke) == [*ITEMS, TWIN]
 
 
