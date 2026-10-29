@@ -192,7 +192,7 @@ def _reached(
     prior = get_context()
     bind_context(replace(prior, active_spec=spec))
     try:
-        known = None if spec is bundled_spec() else cli_surface.bundled_known()
+        known = None if spec == bundled_spec() else cli_surface.bundled_known()
         return cli_surface.reached_pairs(args, spec, refusal, known=known)
     finally:
         bind_context(prior)

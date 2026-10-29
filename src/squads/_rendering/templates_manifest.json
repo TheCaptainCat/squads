@@ -428,7 +428,7 @@
     "_rendering/templates/agents/role.md.j2": "508cab2ee059960798b3026fcb2628d1287d2f01fc8af4a6182be5ba0cf0b1aa",
     "_rendering/templates/agents/skill.md.j2": "d2608b71e8ec5b6e2108c0ff19d35c2fac8e787c7f6bf95816ca225264a989ed",
     "_rendering/templates/agents_md/agents_section.md.j2": "437eb8cf7277e1b178187e0c2649344d91b33fe0f3de99886a33a03bd6bc8145",
-    "_rendering/templates/claude/claude_section.md.j2": "716ed8e16200fe4c8edcdd33df2b0cdaf6a26f28ac1e9ebd53180bbcda6216e4",
+    "_rendering/templates/claude/claude_section.md.j2": "66551eae87548226f9231bae0cb7c4eaf1322fd10b620ea7d7fd67ae48c1baf0",
     "_rendering/templates/claude/pointer_agent.md.j2": "b0ea3bf5c28be1e6fc6897e7048ea265f28e32a30f2229efbafdf46f4c877a69",
     "_rendering/templates/claude/pointer_skill.md.j2": "b7851c49a75ca4fdb8f0f9e7d1bd9fab8557006b033dceb7e4335566b9760179",
     "_rendering/templates/items/_default.md.j2": "d4b39440e7da5e65fb913a33788545a9d9238786ae8a929e9513134e6ede98a3",

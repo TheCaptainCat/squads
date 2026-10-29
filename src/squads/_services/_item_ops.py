@@ -23,6 +23,7 @@ from squads._services._item_dto import (
     item_row,
     list_columns,
     participant_names,
+    row_fields,
     show_display,
     sort_by_badge,
     subentity_dto,
@@ -90,7 +91,7 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
         warnings = await self._duplicate_warnings(item)
         names = await self.display_names()
         kind = self.spec.item_subentity_kind(item.type)
-        row = item.to_row()
+        row = row_fields(item, self.spec)
         expanded = await self.read_body(item.id, keep_view=keep_view)
         if kind is not None:
             row["subentities"] = [

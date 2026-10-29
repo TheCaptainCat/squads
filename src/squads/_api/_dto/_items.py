@@ -92,7 +92,10 @@ class _TrailingKeys(DTO):
 
 
 class SubentityRow(_TrailingKeys):
-    """A sub-entity's stored state: its core keys, then each stored attribute flat."""
+    """A sub-entity's stored state: its core keys, each stored attribute flat, then the keys a
+    surface adds, with its badges by field code."""
+
+    TRAILING: ClassVar[tuple[str, ...]] = ("body", "badges", "discussion", "display")
 
     model_config = ConfigDict(extra="allow")
 
@@ -102,6 +105,7 @@ class SubentityRow(_TrailingKeys):
     assignee: str | None
     maps_to: str | None = None
     deferred_to: str | None = None
+    badges: dict[str, str]
 
     @model_validator(mode="before")
     @classmethod
@@ -122,10 +126,7 @@ class SubentityRow(_TrailingKeys):
 class Subentity(SubentityRow):
     """A sub-entity with its body, badges, discussion and display."""
 
-    TRAILING: ClassVar[tuple[str, ...]] = ("body", "badges", "discussion", "display")
-
     body: str
-    badges: dict[str, str]
     discussion: list[Comment]
     display: SubentityDisplay
 

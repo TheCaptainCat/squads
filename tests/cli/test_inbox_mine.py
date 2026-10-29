@@ -140,6 +140,7 @@ async def test_mine_json_prints_one_object_per_item_with_the_matching_sub_entiti
                     "assignee": None,
                     "maps_to": None,
                     "deferred_to": None,
+                    "badges": {},
                 },
                 {
                     "local_id": "US2",
@@ -148,6 +149,7 @@ async def test_mine_json_prints_one_object_per_item_with_the_matching_sub_entiti
                     "assignee": None,
                     "maps_to": None,
                     "deferred_to": None,
+                    "badges": {},
                 },
             ],
             "path": "features/FEAT-000002-search.md",
@@ -188,6 +190,7 @@ async def test_mine_json_prints_one_object_per_item_with_the_matching_sub_entiti
                     "assignee": None,
                     "maps_to": "US1",
                     "deferred_to": None,
+                    "badges": {},
                 },
                 {
                     "local_id": "ST2",
@@ -196,6 +199,7 @@ async def test_mine_json_prints_one_object_per_item_with_the_matching_sub_entiti
                     "assignee": None,
                     "maps_to": None,
                     "deferred_to": None,
+                    "badges": {},
                 },
             ],
             "path": "tasks/TASK-000003-parse-queries.md",
@@ -241,6 +245,7 @@ async def test_mine_json_prints_one_object_per_item_with_the_matching_sub_entiti
                     "maps_to": None,
                     "deferred_to": None,
                     "severity": "high",
+                    "badges": {"severity": "high"},
                 }
             ],
             "path": "reviews/REV-000007-review-the-parser.md",

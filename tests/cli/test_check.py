@@ -81,7 +81,7 @@ async def _check_issues(invoke) -> list[dict[str, str]]:
 
 @pytest.mark.covers("check", "--json")
 @pytest.mark.covers("repair")
-@pytest.mark.covers("<type> <kind> update")
+@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
 async def test_a_mapping_to_a_missing_sub_entity_names_the_target_kind(
     override_project, invoke
 ) -> None:

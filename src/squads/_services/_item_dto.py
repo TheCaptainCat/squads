@@ -1,7 +1,7 @@
 """Items projected onto their DTOs, with the display content the spec and the roster decide."""
 
 from collections.abc import Callable, Mapping, Sequence
-from typing import cast
+from typing import Any, cast
 
 from squads import _badges as badges
 from squads import _discussion as discussion
@@ -85,11 +85,23 @@ def item_display(item: Item, spec: WorkflowSpec, names: Mapping[str, str]) -> Di
     )
 
 
+def row_fields(item: Item, spec: WorkflowSpec) -> dict[str, Any]:
+    """*item*'s row keys, each sub-entity with its badges by field code (none when the type hosts
+    no kind)."""
+    row = item.to_row()
+    kind = spec.item_subentity_kind(item.type)
+    row["subentities"] = [
+        {**stored, "badges": badges.resolve_badges(spec, kind, sub.badge_value) if kind else {}}
+        for stored, sub in zip(row["subentities"], item.subentities, strict=True)
+    ]
+    return row
+
+
 def item_row(item: Item, spec: WorkflowSpec, names: Mapping[str, str]) -> ItemRow:
     """*item* as a listing row."""
     return ItemRow.model_validate(
         {
-            **item.to_row(),
+            **row_fields(item, spec),
             "badges": badges.resolve_badges(spec, item.type, item.badge_value),
             "display": item_display(item, spec, names),
         }

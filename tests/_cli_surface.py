@@ -186,7 +186,7 @@ def reached_pairs(
     Each level is parsed with Click's parser, an unknown token routed to the address subgroup. A
     parameter counts when the call gives it a value, when Click's missing-parameter error names it,
     or when a flag appears in the *refusal* of a failed call; a leaf given none adds `(key, None)`.
-    A parameter outside *known* (the bundled tree's pairs) counts for nothing.
+    A parameter outside *known* (the bundled tree's pairs) is not reached, nor is it a bare call.
     """
     root = typer.main.get_command(app)
     ctx = Context(root, info_name="sq")
@@ -203,17 +203,16 @@ def reached_pairs(
             return reached
         key = fold_path(path, spec)
         params = node_params(Node(path, command, ctx))
-        level = {
+        given_pairs = {
             (key, param_name(p))
             for p in params
-            if given.get(p.name) not in (None, ())
-            and (key, param_name(p)) not in EXCLUDED_PARAMS
-            and (known is None or (key, param_name(p)) in known)
+            if given.get(p.name) not in (None, ()) and (key, param_name(p)) not in EXCLUDED_PARAMS
         }
+        level = {pair for pair in given_pairs if known is None or pair in known}
         reached |= level
         if not hasattr(command, "list_commands") or not rest:
             if not hasattr(command, "list_commands"):
-                reached |= {(key, None)} if not level else set()
+                reached |= {(key, None)} if not given_pairs else set()
                 reached |= _missing(key, params, given)
             return reached | _named(key, params, refusal or "")
         child = command.get_command(ctx, rest[0])

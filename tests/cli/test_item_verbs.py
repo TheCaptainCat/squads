@@ -823,6 +823,7 @@ async def test_status_json_prints_the_moved_items_row(populated_project, invoke)
                             "assignee": None,
                             "maps_to": "US1",
                             "deferred_to": None,
+                            "badges": {},
                         },
                         {
                             "local_id": "ST2",
@@ -831,6 +832,7 @@ async def test_status_json_prints_the_moved_items_row(populated_project, invoke)
                             "assignee": None,
                             "maps_to": None,
                             "deferred_to": None,
+                            "badges": {},
                         },
                     ],
                     "path": TASK_PATH,
@@ -1345,6 +1347,7 @@ def _task_row(*, labels: list[str] | None = None, refs: list[str] | None = None)
             "assignee": None,
             "maps_to": maps_to,
             "deferred_to": None,
+            "badges": {},
         }
 
     return {

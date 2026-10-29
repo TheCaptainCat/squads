@@ -146,7 +146,7 @@ def _build_create_cmd(item_type_str: str) -> _click.Command:
     _tmp_app = typer.Typer()
     _tmp_app.command(
         item_type_str,
-        help=f"Create {common.article(item_type_str)} {item_type_str}.",
+        help=f"Create one new {item_type_str}.",
         cls=_create_command_cls(item_type_str),
     )(_make(item_type_str))
     leaf: _click.Command = typer.main.get_command(_tmp_app)  # type: ignore[assignment]
@@ -328,7 +328,7 @@ def _make(item_type_str: str):
 for _t in _CREATABLE:
     create_app.command(
         _t,
-        help=f"Create {common.article(_t)} {_t}.",
+        help=f"Create one new {_t}.",
         cls=_create_command_cls(_t),
     )(_make(_t))
 

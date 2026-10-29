@@ -17,6 +17,7 @@ from squads._api._dto._queues import (
 from squads._api._dto._refs import Refs, RefsRequest
 from squads._api._dto._search import SearchRequest, SearchResults
 from squads._api._dto._subentities import (
+    KindDisplay,
     SubentitiesRequest,
     SubentityEntry,
     SubentityList,
@@ -174,6 +175,11 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
             raise SquadsError(f"{item.id} ({item.type}) hosts no sub-entities")
         return hosted
 
+    def _target_display(self, kind: str) -> KindDisplay | None:
+        """How the kind *kind*'s mapping targets is named, none when *kind* does not map."""
+        target = self.spec.mapping_target_kind(kind)
+        return kind_display(target, self.spec) if target is not None else None
+
     async def list_subentities(self, req: SubentitiesRequest) -> Response[SubentityList]:
         """The item's sub-entities, with their summary table."""
         item = await self.addressed_item(req)
@@ -190,6 +196,7 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
             items=entries,
             summary=subentity_summary(kind, subs, self.spec),
             kind=kind_display(kind, self.spec),
+            maps_to_kind=self._target_display(kind),
         )
         return Response(data=listing)
 
@@ -204,7 +211,7 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
         display = SubentityShowDisplay(
             **dict(full.display),
             kind=kind_display(kind, self.spec),
-            maps_to_kind=self.spec.mapping_target_kind(kind),
+            maps_to_kind=self._target_display(kind),
             discussion=unparsed,
         )
         return Response(data=SubentityShow.model_validate({**dict(full), "display": display}))

@@ -966,7 +966,7 @@ def _clause_subentity_mapping_reachable(
     return [
         f"item {t!r}: hosts subentity_kind {ts.subentity_kind!r}, which declares "
         f"maps_to_parent, but category {ts.category!r} turns on no validator for it "
-        f"('subentity_mapping'), so a {ts.subentity_kind} mapping to a sub-entity its "
+        f"('subentity_mapping'), so a mapping of {ts.subentity_kind!r} to a sub-entity its "
         f"parent does not have would go unreported. Drop maps_to_parent on "
         f"{ts.subentity_kind!r}, leave {t!r} in a category that checks the mapping, or name "
         f"'subentity_mapping' in its own 'validators' list"
@@ -1344,7 +1344,7 @@ def subentity_source_reason(
         return None
     hosted_desc = repr(hosted) if hosted else "none"
     return (
-        f"view {view_name!r} sources {kind!r} sub-entities, but a {item_type!r} item hosts "
+        f"view {view_name!r} sources {kind!r} sub-entities, but {item_type!r} items host "
         f"{hosted_desc}"
     )
 

@@ -31,6 +31,7 @@ from squads._services._item_dto import (
     badge_displays,
     item_display,
     list_columns,
+    row_fields,
     status_display,
     subentity_display,
 )
@@ -191,7 +192,7 @@ def mine_row(row: results.MineRow, spec: WorkflowSpec, names: Mapping[str, str])
     )
     return MineRow.model_validate(
         {
-            **row.item.to_row(),
+            **row_fields(row.item, spec),
             "matched_subentities": [
                 MatchedSubentity(local_id=s.local_id, kind=kind, title=s.title, status=s.status)
                 for s in subs
@@ -264,6 +265,7 @@ def subentity_entry(
     return SubentityEntry.model_validate(
         {
             **sub.model_dump(mode="json"),
+            "badges": badges.resolve_badges(spec, kind, sub.badge_value),
             "display": subentity_display(kind, sub, carrier_title, spec, names),
         }
     )

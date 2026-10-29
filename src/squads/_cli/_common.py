@@ -60,7 +60,6 @@ from squads._models._participants import refuse_system_actor
 from squads._paths import process_dir, resolve
 from squads._spec_documents import SpecSources, spec_sources
 from squads._specload import override_present
-from squads._util import article
 from squads._workflow import CATEGORIES, bundled_spec
 from squads._workflow._models import WorkflowSpec
 
@@ -677,7 +676,7 @@ def move_status_option() -> Any:
 
 def type_group_help(item_type: str) -> str:
     """The summary of ``sq <type>``, for a bundled or a declared type alike."""
-    return f"Operate on {article(item_type)} {item_type} by number or ID."
+    return f"Operate on one {item_type} by number or ID."
 
 
 def e(value: object) -> str:
@@ -1050,7 +1049,7 @@ def address_epilog(group: str, noun: str, examples: Sequence[str], group_verbs: 
     """The epilog of a roster group: how to address one entry, with examples, one per line
     (Rich renders each blank-line-separated paragraph of an epilog on its own line). The
     ``{verbs}`` marker is filled in once the addressed verbs are registered."""
-    one = f"{article(noun)} {noun}"
+    one = f"one {noun}"
     paragraphs = [
         f"Address {one}: sq {group} {ADDRESS_METAVAR} VERB, where VERB is one of {{verbs}}.",
         "Examples:",

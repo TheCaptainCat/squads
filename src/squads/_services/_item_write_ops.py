@@ -58,7 +58,7 @@ from squads._api._response import Response
 from squads._errors import SquadsError
 from squads._models._item import Item, make_ref, split_ref
 from squads._models._metadata import coerce_attribute, require_settable
-from squads._services._item_dto import comment_dtos, item_display, item_row
+from squads._services._item_dto import comment_dtos, item_display, item_row, row_fields
 from squads._services._item_ops import ItemOpsMixin
 from squads._services._item_read_ops import ItemReadOpsMixin
 from squads._services._results import FoundComment
@@ -172,7 +172,7 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
         names = await self.display_names()
         created = ItemCreated.model_validate(
             {
-                **res.item.to_row(),
+                **row_fields(res.item, self.spec),
                 "lane_warning": res.lane_warning,
                 "badges": badges.resolve_badges(self.spec, res.item.type, res.item.badge_value),
                 "display": {

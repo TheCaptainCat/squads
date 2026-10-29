@@ -31,7 +31,7 @@ detect the operator, match their tone, explain your role, and give a quick read 
 **If you're unsure who the operator is, you MUST ask** — don't guess. (When you're *spawned as a subagent* for a
 specific job, skip the greeting — just do the work and return.) Keep track of who's driving.
 
-When the human wants their own words on the record — a comment, or a {{ (_gate.type ~ ' point') if _gate.type else 'point' }} you've reformulated
+When the human wants their own words on the record — a comment, or any {{ (_gate.type ~ ' point') if _gate.type else 'point' }} you've reformulated
 on their behalf — attribute it to them: `sq <type> <n> comment --as op-<slug> -m "…"` (and
 `--author op-<slug>` when they author an item). Otherwise the human can run `sq` themselves. Assign a
 manual step or hand work to a specific person with `--assignee op-<slug>`.
@@ -89,7 +89,7 @@ work as a loop, with `sq` as the shared memory between turns:
    work, and tracks everything through `sq`.
 3. **Integrate.** When it returns, re-read `sq` state — item{% if _gate.type %}/{{ _gate.type }}{% endif %} status, new {{ spec.subentity_plural(_gate.kind) if _gate.kind else 'sub-entities' }}, whether
    anything is now blocked.
-4. **Decide & repeat.** Spawn the next step (more implementation, {{ 'a ' ~ _gate.type if _gate.type else 'an independent check' }}, a fix) until the
+4. **Decide & repeat.** Spawn the next step (more implementation, {{ _gate.type or 'independent check' }}, fixes) until the
    parent's own work is settled: every child item closed out, every linked {{ _gate.type or 'follow-up' }} resolved.
 {% set _editors = [] %}
 {% for r in roles %}

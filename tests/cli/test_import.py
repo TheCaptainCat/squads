@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 
+from tests._help_tree import CUSTOM_VOCABULARY_OVERRIDE, write_workflow_override
 from tests._squadwide import listed
 
 pytestmark = pytest.mark.anyio
@@ -452,5 +453,19 @@ async def test_the_old_story_key_on_add_sub_points_to_maps_to_and_an_empty_field
     assert (refused.exit_code, refused.output) == (
         1,
         "line 1: add-sub.story: not a key of add-sub; use 'maps_to' for the mapping\n"
+        "1 issue(s) found — nothing written.\n",
+    )
+
+
+@pytest.mark.covers("import", "FILE")
+async def test_a_kind_the_type_does_not_host_is_refused_by_its_declared_plural(
+    populated_project, invoke
+) -> None:
+    write_workflow_override(populated_project.squad_dir, CUSTOM_VOCABULARY_OVERRIDE)
+    file = _events({"op": "add-analysis", "target": "TASK-3", "title": "Why", "as": "manager"})
+    result = await invoke(["import", file])
+    assert (result.exit_code, result.output) == (
+        1,
+        "line 1: TASK-3 has type task, which does not host analyses (it hosts subtasks)\n"
         "1 issue(s) found — nothing written.\n",
     )
