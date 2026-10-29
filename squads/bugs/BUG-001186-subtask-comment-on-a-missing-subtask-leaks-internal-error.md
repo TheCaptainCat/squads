@@ -5,11 +5,13 @@ type: bug
 title: subtask comment on a missing subtask leaks internal error
 status: Open
 author: qa
+priority: low
 severity: low
 refs:
 - FEAT-1173
+- MILE-1241:targets
 created_at: '2026-10-27T23:37:33Z'
-updated_at: '2026-10-27T23:37:52Z'
+updated_at: '2026-10-29T16:31:26Z'
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree.

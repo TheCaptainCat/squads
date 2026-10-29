@@ -5,11 +5,13 @@ type: bug
 title: create guide lacks --priority, --label and --ref
 status: Open
 author: qa
+priority: low
 severity: low
 refs:
 - FEAT-1173
+- MILE-1241:targets
 created_at: '2026-10-27T23:37:30Z'
-updated_at: '2026-10-27T23:37:49Z'
+updated_at: '2026-10-29T16:31:23Z'
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree in a scratch squad.

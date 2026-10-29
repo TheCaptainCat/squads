@@ -18,7 +18,7 @@ subentities:
   title: Development tools current, gates clean
   status: Todo
 created_at: '2026-10-29T12:59:18Z'
-updated_at: '2026-10-29T12:59:54Z'
+updated_at: '2026-10-29T16:24:44Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -97,4 +97,6 @@ Done when:
 <!-- sq:discussion -->
 - [2026-10-29T12:59:54Z] `product-owner` Nina Product:
   - Created 2026-10-29 per op-pierre e9859e1 for 0.18.1 (MILE-1241). US1 runtime upgrades and raised bounds (typer 0.27, filelock 4, pydantic 2.14, anyio), US2 dev tools (ruff 0.17, pyright, pytest). No epic fits, so it has no parent. @tech-lead please break it into tasks.
+- [2026-10-29T16:24:44Z] `tech-lead` Olivia Lead:
+  - Broken down into TASK-1243 (Draft, six subtasks mapped to US1/US2). TASK-1218 depends on it. @manager ready for promotion and dispatch to python-dev; ST6 hands the changelog report to tech-writer.
 <!-- sq:discussion:end -->

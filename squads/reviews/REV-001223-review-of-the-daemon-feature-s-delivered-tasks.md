@@ -20,15 +20,13 @@ subentities:
   severity: medium
 - local_id: F3
   title: Typer's help and usage-error consoles ignore seeded terminal facts
-  status: Deferred
+  status: Noted
   severity: medium
-  deferred_to: TASK-1227
 - local_id: F4
   title: No test covers terminal facts reaching the consoles; build_consoles(None)
     mutation survives
-  status: Deferred
+  status: Noted
   severity: medium
-  deferred_to: TASK-1227
 - local_id: F5
   title: Override remedy path still spelled from the process directory in a served
     request
@@ -36,18 +34,16 @@ subentities:
   severity: low
 - local_id: F6
   title: Prompt after a committed transaction does not fail as ADR-1052 point 12 states
-  status: Deferred
+  status: Noted
   severity: low
-  deferred_to: TASK-1227
 - local_id: F7
   title: Attachments decoded outside the CLI; invalid UTF-8 --file escapes as a traceback
   status: Verified
   severity: low
 - local_id: F8
   title: Comment-removal listing before NeedsTerminal; vacuous --version stderr row
-  status: Deferred
+  status: Verified
   severity: info
-  deferred_to: TASK-1229
 - local_id: F9
   title: 'Local-mode changes from the fix have no CHANGELOG entry: role --file under
     -C, clean non-UTF-8 refusal'
@@ -68,7 +64,7 @@ subentities:
   status: Verified
   severity: low
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-28T23:29:12Z'
+updated_at: '2026-10-29T16:24:02Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -206,6 +202,8 @@ This cannot be fixed by forcing our consoles; it needs the request scope's stdio
   - Subject gone; no fix will be made. ADR-1225 (Accepted) replaces the command endpoint with resource routes, and its section 9 removes the seeded terminal facts and `run`'s seed. TASK-1227 ST4 deletes that code. In remote mode the CLI is the client process: it parses, renders and prints `--help` and usage errors itself, so Typer's consoles read the user's own stdio and environment, exactly as in local mode (ADR-1225 section 5; Consequences: "the renderer always runs in the user's own process"). The daemon builds no consoles (section 7). No concern survives in another form: help and usage errors never make a call, so the mode-parity job has nothing to compare for them. Deferral re-pointed from TASK-1218 ST9, which now holds the schema and vocabulary checks, to TASK-1227, which removes the subject. The lifecycle has no edge out of Deferred, so this stays Deferred rather than WontFix.
 - [2026-10-28T23:29:09Z] `reviewer` Paul Reviewer:
   - Disposition: subject removed, nothing left to fix. ADR-1225 section 9 dropped the seeded terminal facts, NeedsTerminal and the signalling prompt helpers; commit 3b3cfbd9 (TASK-1227) removed them. Verified on that commit: no reference to TerminalFacts, NeedsTerminal, confirm_or_signal, prompt_or_signal or attachments remains in src or tests, build_consoles takes no terminal, and the four prompt sites are plain typer.confirm/typer.prompt again (each asked and wrote nothing when answered n under a pseudo-terminal). Left Deferred, which has no outgoing transition; this comment is the closing record (REV-1235).
+- [2026-10-29T16:23:47Z] `reviewer` Paul Reviewer:
+  - Noted: subject removed, nothing to fix. 5f5ef259 (TASK-1227; the rebased 3b3cfbd9 cited above) deleted TerminalFacts, NeedsTerminal and the signalling prompts; at HEAD none remains in src or tests, build_consoles takes no terminal, and every prompt is a typer.confirm/prompt in _cli. Forced from Deferred per op-pierre 2e3799b.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -231,6 +229,8 @@ ST2's acceptance is "consoles built per invocation … from the terminal facts".
   - Subject gone; no fix will be made. The finding asked for tests of `TerminalFacts` reaching the consoles. ADR-1225 section 9 removes terminal facts as a request seed, and TASK-1227 ST4 deletes them; consoles stay built per invocation from the process's own stdio, which the existing surface tests already drive (the `forced_terminal` fixture with `TTY_COMPATIBLE`). The TASK-1218 ST10 case this finding pointed to no longer exists: ST10 now holds the OpenAPI document and route guards. Deferral re-pointed to TASK-1227. The lifecycle has no edge out of Deferred, so this stays Deferred rather than WontFix.
 - [2026-10-28T23:29:10Z] `reviewer` Paul Reviewer:
   - Disposition: subject removed, nothing left to fix. ADR-1225 section 9 dropped the seeded terminal facts, NeedsTerminal and the signalling prompt helpers; commit 3b3cfbd9 (TASK-1227) removed them. Verified on that commit: no reference to TerminalFacts, NeedsTerminal, confirm_or_signal, prompt_or_signal or attachments remains in src or tests, build_consoles takes no terminal, and the four prompt sites are plain typer.confirm/typer.prompt again (each asked and wrote nothing when answered n under a pseudo-terminal). Left Deferred, which has no outgoing transition; this comment is the closing record (REV-1235).
+- [2026-10-29T16:23:49Z] `reviewer` Paul Reviewer:
+  - Noted: subject removed, nothing to fix. 5f5ef259 (TASK-1227; the rebased 3b3cfbd9 cited above) deleted TerminalFacts, NeedsTerminal and the signalling prompts; at HEAD none remains in src or tests, build_consoles takes no terminal, and every prompt is a typer.confirm/prompt in _cli. Forced from Deferred per op-pierre 2e3799b.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -278,6 +278,8 @@ Today every prompt site asks before it writes, and the per-site ordering tests p
   - Subject gone; no fix will be made. The hazard was a `NeedsTerminal` raised after a write had committed, which would make the client re-run a partly committed command. ADR-1225 section 3 drops `needs_terminal`, section 8 removes ADR-1052 point 12's prompt branch, and section 9 turns `confirm_or_signal`/`prompt_or_signal` back into `typer.confirm`/`typer.prompt`; TASK-1227 ST4 does the removal. Prompts now run in the CLI between calls, and an operation never prompts, so there is no re-run to make unsafe. Checked on bb306416: all four prompt sites are in `_cli` (`_items.py` x2, `_common.py` comment removal, `_main.py`); none is in `_services`. What remains is the ordinary ask-before-write rule, which TASK-1229 states for removals ("prompts sit between calls, never inside one") and which its own review checks. TASK-1218 ST8 now holds the request scope and headers, not a post-commit flag. Deferral re-pointed to TASK-1227. The lifecycle has no edge out of Deferred, so this stays Deferred rather than WontFix.
 - [2026-10-28T23:29:11Z] `reviewer` Paul Reviewer:
   - Disposition: subject removed, nothing left to fix. ADR-1225 section 9 dropped the seeded terminal facts, NeedsTerminal and the signalling prompt helpers; commit 3b3cfbd9 (TASK-1227) removed them. Verified on that commit: no reference to TerminalFacts, NeedsTerminal, confirm_or_signal, prompt_or_signal or attachments remains in src or tests, build_consoles takes no terminal, and the four prompt sites are plain typer.confirm/typer.prompt again (each asked and wrote nothing when answered n under a pseudo-terminal). Left Deferred, which has no outgoing transition; this comment is the closing record (REV-1235).
+- [2026-10-29T16:23:51Z] `reviewer` Paul Reviewer:
+  - Noted: subject removed, nothing to fix. 5f5ef259 (TASK-1227; the rebased 3b3cfbd9 cited above) deleted TerminalFacts, NeedsTerminal and the signalling prompts; at HEAD none remains in src or tests, build_consoles takes no terminal, and every prompt is a typer.confirm/prompt in _cli. Forced from Deferred per op-pierre 2e3799b.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -326,6 +328,8 @@ Two minor points; nothing to fix in this task.
   - Point 1's subject is gone: there is no daemon-side stdout buffer to discard and no client re-run, because ADR-1225 removes `needs_terminal` and stdio redirection (sections 3 and 7; TASK-1227 ST4 removes `NeedsTerminal`). The concern survives in one form, output printed before a prompt: `comment remove` without `--yes` becomes a preview call that lists the comments with their full hashes, a confirmation in the CLI, then the remove call (ADR-1225 section 3, "comment remove after a confirmation"). TASK-1229 builds that flow, so the listing must print once, before the prompt, and nothing must print or be removed after a refusal. Re-pointed from TASK-1218 ST8 (now the request scope and headers) to TASK-1229, to check in its review. Point 2 (the vacuous `--version` row) went with the deleted test module and needs nothing.
 - [2026-10-28T23:29:12Z] `reviewer` Paul Reviewer:
   - Disposition: subject removed, nothing left to fix. ADR-1225 section 9 dropped the seeded terminal facts, NeedsTerminal and the signalling prompt helpers; commit 3b3cfbd9 (TASK-1227) removed them. Verified on that commit: no reference to TerminalFacts, NeedsTerminal, confirm_or_signal, prompt_or_signal or attachments remains in src or tests, build_consoles takes no terminal, and the four prompt sites are plain typer.confirm/typer.prompt again (each asked and wrote nothing when answered n under a pseudo-terminal). Left Deferred, which has no outgoing transition; this comment is the closing record (REV-1235).
+- [2026-10-29T16:23:53Z] `reviewer` Paul Reviewer:
+  - Verified at HEAD: c459d709 (TASK-1229) built comment remove as preview call, CLI prompt, then remove call. Scratch squad: without --yes, answered n, the listing prints once before the prompt, nothing after Aborted, and the comment stays. Forced from Deferred per op-pierre 2e3799b.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -500,4 +504,8 @@ The missing-file line has the same cause as F11: an OSError still goes through r
   - Round 5 (7a6cd237): F12 Verified. No finding is open; every finding is Verified or Deferred to TASK-1218 (ST8, ST9, ST10). A note, not a finding: malformed TOML in a role --file still reads "malformed role override NAME: …", the parse-error wording shared with .overrides/ files. The review stays open for the feature later tasks.
 - [2026-10-28T22:31:29Z] `reviewer` Paul Reviewer:
   - Scope after ADR-1225 (Accepted 2026-10-28). This review covers FEAT-1140's tasks as reshaped: TASK-1218 (the daemon on routes), TASK-1219 (remote mode) and the rest of the feature as they land. FEAT-1226 (the DTO refactor, TASK-1227 onward) gets its own batch review when its first task lands; none is created now. F3, F4 and F6 lost their subject with the seeded-request code TASK-1227 removes and are re-pointed to it; F8's surviving concern (output before a prompt in comment remove) is re-pointed to TASK-1229. Reasons are on each finding.
+- [2026-10-29T16:19:59Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: this review stays open for FEAT-1140 tasks as they land. F3, F4 and F6 point at TASK-1227 (Done): the reviewer confirms TASK-1227 settled them, or re-homes them to TASK-1218.
+- [2026-10-29T16:24:02Z] `reviewer` Paul Reviewer:
+  - F3, F4, F6 Noted (subject removed in 5f5ef259) and F8 Verified (c459d709); no finding is open. The review stays open for FEAT-1140 tasks as they land.
 <!-- sq:discussion:end -->

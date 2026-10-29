@@ -1,6 +1,6 @@
 {
   "schema_version": "0.17",
-  "counter": 1242,
+  "counter": 1246,
   "padding": 6,
   "items": {
     "12": {
@@ -60942,16 +60942,17 @@
       "parent": null,
       "author": "qa",
       "assignee": null,
-      "priority": null,
+      "priority": "low",
       "severity": "low",
       "labels": [],
       "refs": [
-        "FEAT-1173"
+        "FEAT-1173",
+        "MILE-1241:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001183-create-guide-lacks-priority-label-and-ref.md",
       "created_at": "2026-10-27T23:37:30Z",
-      "updated_at": "2026-10-27T23:37:49Z",
+      "updated_at": "2026-10-29T16:31:23Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -60968,16 +60969,17 @@
       "parent": null,
       "author": "qa",
       "assignee": null,
-      "priority": null,
+      "priority": "low",
       "severity": "low",
       "labels": [],
       "refs": [
-        "FEAT-1173"
+        "FEAT-1173",
+        "MILE-1241:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001184-ref-rm-reports-success-for-a-ref-the-item-lacks.md",
       "created_at": "2026-10-27T23:37:31Z",
-      "updated_at": "2026-10-27T23:37:50Z",
+      "updated_at": "2026-10-29T16:31:24Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -60994,16 +60996,17 @@
       "parent": null,
       "author": "qa",
       "assignee": null,
-      "priority": null,
+      "priority": "low",
       "severity": "medium",
       "labels": [],
       "refs": [
-        "FEAT-1173"
+        "FEAT-1173",
+        "MILE-1241:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001185-add-subtask-without-a-title-adds-an-empty-titled-subtask.md",
       "created_at": "2026-10-27T23:37:32Z",
-      "updated_at": "2026-10-27T23:37:51Z",
+      "updated_at": "2026-10-29T16:31:59Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -61020,16 +61023,17 @@
       "parent": null,
       "author": "qa",
       "assignee": null,
-      "priority": null,
+      "priority": "low",
       "severity": "low",
       "labels": [],
       "refs": [
-        "FEAT-1173"
+        "FEAT-1173",
+        "MILE-1241:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001186-subtask-comment-on-a-missing-subtask-leaks-internal-error.md",
       "created_at": "2026-10-27T23:37:33Z",
-      "updated_at": "2026-10-27T23:37:52Z",
+      "updated_at": "2026-10-29T16:31:26Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -61046,16 +61050,17 @@
       "parent": null,
       "author": "qa",
       "assignee": null,
-      "priority": null,
+      "priority": "medium",
       "severity": "medium",
       "labels": [],
       "refs": [
-        "FEAT-1173"
+        "FEAT-1173",
+        "MILE-1241:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001187-init-adopt-write-files-before-refusing-an-unknown-backend.md",
       "created_at": "2026-10-27T23:37:34Z",
-      "updated_at": "2026-10-27T23:37:53Z",
+      "updated_at": "2026-10-29T16:31:20Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -61072,16 +61077,17 @@
       "parent": null,
       "author": "qa",
       "assignee": null,
-      "priority": null,
+      "priority": "medium",
       "severity": "medium",
       "labels": [],
       "refs": [
-        "FEAT-1173"
+        "FEAT-1173",
+        "MILE-1241:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001188-init-squad-dir-accepts-absolute-and-escaping-paths.md",
       "created_at": "2026-10-27T23:37:35Z",
-      "updated_at": "2026-10-27T23:37:54Z",
+      "updated_at": "2026-10-29T16:31:21Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -61098,16 +61104,17 @@
       "parent": null,
       "author": "qa",
       "assignee": null,
-      "priority": null,
+      "priority": "low",
       "severity": "low",
       "labels": [],
       "refs": [
-        "FEAT-1173"
+        "FEAT-1173",
+        "MILE-1241:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001189-migrate-chlog-accepts-non-version-and-reversed-ranges.md",
       "created_at": "2026-10-27T23:37:36Z",
-      "updated_at": "2026-10-27T23:37:55Z",
+      "updated_at": "2026-10-29T16:31:27Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -61124,16 +61131,17 @@
       "parent": null,
       "author": "qa",
       "assignee": null,
-      "priority": null,
+      "priority": "medium",
       "severity": "medium",
       "labels": [],
       "refs": [
-        "FEAT-1173"
+        "FEAT-1173",
+        "MILE-1241:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001190-migrate-repad-has-no-upper-bound-on-width.md",
       "created_at": "2026-10-27T23:37:37Z",
-      "updated_at": "2026-10-27T23:37:56Z",
+      "updated_at": "2026-10-29T16:31:22Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -61150,16 +61158,17 @@
       "parent": null,
       "author": "qa",
       "assignee": null,
-      "priority": null,
+      "priority": "high",
       "severity": "medium",
       "labels": [],
       "refs": [
-        "FEAT-1173"
+        "FEAT-1173",
+        "MILE-1241:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001191-repair-silently-drops-one-of-two-files-sharing-a-number.md",
       "created_at": "2026-10-27T23:37:38Z",
-      "updated_at": "2026-10-27T23:37:57Z",
+      "updated_at": "2026-10-29T16:31:19Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -61176,16 +61185,17 @@
       "parent": null,
       "author": "qa",
       "assignee": null,
-      "priority": null,
+      "priority": "low",
       "severity": "low",
       "labels": [],
       "refs": [
-        "FEAT-1173"
+        "FEAT-1173",
+        "MILE-1241:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001192-unknown-option-error-shows-a-tuple-repr.md",
       "created_at": "2026-10-27T23:37:39Z",
-      "updated_at": "2026-10-27T23:37:58Z",
+      "updated_at": "2026-10-29T16:31:28Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -61202,16 +61212,17 @@
       "parent": null,
       "author": "qa",
       "assignee": null,
-      "priority": null,
+      "priority": "low",
       "severity": "low",
       "labels": [],
       "refs": [
-        "FEAT-1173"
+        "FEAT-1173",
+        "MILE-1241:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001193-list-tree-sort-accepts-an-unknown-badge-field.md",
       "created_at": "2026-10-27T23:37:40Z",
-      "updated_at": "2026-10-27T23:37:59Z",
+      "updated_at": "2026-10-29T16:31:29Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -61228,16 +61239,17 @@
       "parent": null,
       "author": "qa",
       "assignee": null,
-      "priority": null,
+      "priority": "low",
       "severity": "low",
       "labels": [],
       "refs": [
-        "FEAT-1173"
+        "FEAT-1173",
+        "MILE-1241:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001194-list-tree-badge-filters-accept-unknown-code-or-value.md",
       "created_at": "2026-10-27T23:37:41Z",
-      "updated_at": "2026-10-27T23:38:00Z",
+      "updated_at": "2026-10-29T16:31:30Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -61254,16 +61266,17 @@
       "parent": null,
       "author": "qa",
       "assignee": null,
-      "priority": null,
+      "priority": "low",
       "severity": "low",
       "labels": [],
       "refs": [
-        "FEAT-1173"
+        "FEAT-1173",
+        "MILE-1241:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001195-reflog-op-accepts-an-unknown-operation.md",
       "created_at": "2026-10-27T23:37:42Z",
-      "updated_at": "2026-10-27T23:38:01Z",
+      "updated_at": "2026-10-29T16:31:31Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -61280,16 +61293,17 @@
       "parent": null,
       "author": "qa",
       "assignee": null,
-      "priority": null,
+      "priority": "low",
       "severity": "low",
       "labels": [],
       "refs": [
-        "FEAT-1173"
+        "FEAT-1173",
+        "MILE-1241:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001196-tree-graph-depth-accepts-a-negative-value.md",
       "created_at": "2026-10-27T23:37:43Z",
-      "updated_at": "2026-10-27T23:38:02Z",
+      "updated_at": "2026-10-29T16:31:32Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -61306,16 +61320,17 @@
       "parent": null,
       "author": "qa",
       "assignee": null,
-      "priority": null,
+      "priority": "low",
       "severity": "low",
       "labels": [],
       "refs": [
-        "FEAT-1173"
+        "FEAT-1173",
+        "MILE-1241:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001197-memory-search-prints-the-summary-twice-for-equal-body.md",
       "created_at": "2026-10-27T23:37:44Z",
-      "updated_at": "2026-10-27T23:38:03Z",
+      "updated_at": "2026-10-29T16:31:33Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -61636,16 +61651,17 @@
       "parent": null,
       "author": "qa",
       "assignee": null,
-      "priority": null,
+      "priority": "low",
       "severity": "low",
       "labels": [],
       "refs": [
-        "FEAT-1173"
+        "FEAT-1173",
+        "MILE-1241:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001200-sq-import-unknown-op-error-has-stray-colon-and-pydantic-word.md",
       "created_at": "2026-10-28T00:28:17Z",
-      "updated_at": "2026-10-28T00:28:23Z",
+      "updated_at": "2026-10-29T16:31:34Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -62856,7 +62872,8 @@
         "ADR-1052:implements",
         "TASK-1217:depends-on",
         "ADR-1225:implements",
-        "TASK-1227:depends-on"
+        "TASK-1227:depends-on",
+        "TASK-1243:depends-on"
       ],
       "subentities": [
         {
@@ -62962,7 +62979,7 @@
       ],
       "path": "tasks/TASK-001218-daemon-process-routes-request-scope-listeners.md",
       "created_at": "2026-10-28T14:08:41Z",
-      "updated_at": "2026-10-29T07:04:57Z",
+      "updated_at": "2026-10-29T16:24:42Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63302,21 +63319,21 @@
         {
           "local_id": "F3",
           "title": "Typer's help and usage-error consoles ignore seeded terminal facts",
-          "status": "Deferred",
+          "status": "Noted",
           "assignee": null,
           "severity": "medium",
           "story": null,
-          "deferred_to": "TASK-1227",
+          "deferred_to": null,
           "extra": {}
         },
         {
           "local_id": "F4",
           "title": "No test covers terminal facts reaching the consoles; build_consoles(None) mutation survives",
-          "status": "Deferred",
+          "status": "Noted",
           "assignee": null,
           "severity": "medium",
           "story": null,
-          "deferred_to": "TASK-1227",
+          "deferred_to": null,
           "extra": {}
         },
         {
@@ -63332,11 +63349,11 @@
         {
           "local_id": "F6",
           "title": "Prompt after a committed transaction does not fail as ADR-1052 point 12 states",
-          "status": "Deferred",
+          "status": "Noted",
           "assignee": null,
           "severity": "low",
           "story": null,
-          "deferred_to": "TASK-1227",
+          "deferred_to": null,
           "extra": {}
         },
         {
@@ -63352,11 +63369,11 @@
         {
           "local_id": "F8",
           "title": "Comment-removal listing before NeedsTerminal; vacuous --version stderr row",
-          "status": "Deferred",
+          "status": "Verified",
           "assignee": null,
           "severity": "info",
           "story": null,
-          "deferred_to": "TASK-1229",
+          "deferred_to": null,
           "extra": {}
         },
         {
@@ -63402,7 +63419,7 @@
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-28T23:29:12Z",
+      "updated_at": "2026-10-29T16:24:02Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -64173,7 +64190,7 @@
       "type": "review",
       "title": "Review of the DTO refactor's delivered tasks",
       "slug": "review-of-the-dto-refactor-s-delivered-tasks",
-      "status": "ChangesRequested",
+      "status": "Approved",
       "description": "Batch review of FEAT-1226's delivered tasks, one commit at a time, against ADR-1224, ADR-1225 and ADR-1172",
       "parent": null,
       "author": "reviewer",
@@ -64282,21 +64299,21 @@
         {
           "local_id": "F10",
           "title": "Transitional verb set and second gate copy are not on TASK-1232's deletion list",
-          "status": "Deferred",
+          "status": "Verified",
           "assignee": null,
           "severity": "info",
           "story": null,
-          "deferred_to": "TASK-1232",
+          "deferred_to": null,
           "extra": {}
         },
         {
           "local_id": "F11",
           "title": "JSON mode prints no response warnings, so the language notice goes once the root callback stops printing it",
-          "status": "Deferred",
+          "status": "Verified",
           "assignee": null,
           "severity": "info",
           "story": null,
-          "deferred_to": "TASK-1232",
+          "deferred_to": null,
           "extra": {}
         },
         {
@@ -64442,11 +64459,11 @@
         {
           "local_id": "F26",
           "title": "Roster comment bridge, a stale registrar comment and two duplicates are on no deletion list",
-          "status": "Deferred",
+          "status": "Verified",
           "assignee": null,
           "severity": "info",
           "story": null,
-          "deferred_to": "TASK-1232",
+          "deferred_to": null,
           "extra": {}
         },
         {
@@ -64862,7 +64879,7 @@
       ],
       "path": "reviews/REV-001235-review-of-the-dto-refactor-s-delivered-tasks.md",
       "created_at": "2026-10-28T23:26:20Z",
-      "updated_at": "2026-10-29T12:38:38Z",
+      "updated_at": "2026-10-29T16:23:37Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -65029,11 +65046,13 @@
       "priority": "low",
       "severity": "medium",
       "labels": [],
-      "refs": [],
+      "refs": [
+        "MILE-1241:targets"
+      ],
       "subentities": [],
       "path": "bugs/BUG-001240-workflow-view-accepts-a-wrong-id-prefix-that-show-refuses.md",
       "created_at": "2026-10-29T12:25:03Z",
-      "updated_at": "2026-10-29T12:25:03Z",
+      "updated_at": "2026-10-29T16:22:04Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -65060,7 +65079,7 @@
       "subentities": [],
       "path": "milestones/MILE-001241-squads-0-18-1-the-daemon.md",
       "created_at": "2026-10-29T12:59:12Z",
-      "updated_at": "2026-10-29T12:59:50Z",
+      "updated_at": "2026-10-29T16:32:00Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -65107,12 +65126,367 @@
       ],
       "path": "features/FEAT-001242-dependencies-current-and-tested.md",
       "created_at": "2026-10-29T12:59:18Z",
-      "updated_at": "2026-10-29T12:59:54Z",
+      "updated_at": "2026-10-29T16:24:44Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
       "slug_in_file": false,
       "id": "FEAT-1242"
+    },
+    "1243": {
+      "sequence_id": 1243,
+      "type": "task",
+      "title": "Upgrade runtime and dev dependencies, raise lower bounds",
+      "slug": "upgrade-runtime-and-dev-dependencies-raise-lower-bounds",
+      "status": "Draft",
+      "description": "Lock typer 0.27, filelock 4, pydantic 2.14, anyio 4.15, ruff 0.17, pyright, pytest; bounds raised to the versions the suite runs",
+      "parent": "FEAT-1242",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1172"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "typer 0.27: help tree and usage errors match what adopters see",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "filelock 4: index lock tests, release on process death",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "pydantic 2.14 and anyio 4.15 locked, suite green",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Runtime lower bounds raised to the tested versions",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "ruff 0.17, pyright, pytest locked; gates clean",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Report adopter-visible changes for the changelog",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001243-upgrade-runtime-and-dev-dependencies-raise-lower-bounds.md",
+      "created_at": "2026-10-29T16:23:49Z",
+      "updated_at": "2026-10-29T16:24:43Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1243"
+    },
+    "1244": {
+      "sequence_id": 1244,
+      "type": "task",
+      "title": "Fix setup and maintenance bugs: init, adopt, migrate, repair",
+      "slug": "fix-setup-and-maintenance-bugs-init-adopt-migrate-repair",
+      "status": "Draft",
+      "description": "Refuse bad backend, squad-dir, chlog range and repad width before writing; repair refuses a shared number",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-1187:fixes",
+        "BUG-1188:fixes",
+        "BUG-1189:fixes",
+        "BUG-1190:fixes",
+        "BUG-1191:fixes",
+        "MILE-1241:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Refuse an unknown backend before init or adopt writes",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Refuse an absolute, empty or escaping --squad-dir",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Refuse a non-version or reversed migrate chlog range",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Bound migrate repad WIDTH before renaming",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Make repair refuse two files sharing one number",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001244-fix-setup-and-maintenance-bugs-init-adopt-migrate-repair.md",
+      "created_at": "2026-10-29T16:27:28Z",
+      "updated_at": "2026-10-29T16:30:57Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1244"
+    },
+    "1245": {
+      "sequence_id": 1245,
+      "type": "task",
+      "title": "Fix listing option validation and three messages",
+      "slug": "fix-listing-option-validation-and-three-messages",
+      "status": "Draft",
+      "description": "list/tree/reflog/graph refuse unknown values; clean unknown-option, memory search and import messages",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-1192:fixes",
+        "BUG-1193:fixes",
+        "BUG-1194:fixes",
+        "BUG-1195:fixes",
+        "BUG-1196:fixes",
+        "BUG-1197:fixes",
+        "BUG-1200:fixes",
+        "MILE-1241:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Print the unknown-option suggestion without a tuple repr",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Refuse an unknown --sort field on list and tree",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Refuse an unknown badge code or value in list/tree filters",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Refuse an unknown reflog --op",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Refuse a negative --depth on tree and graph",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Show a memory search hit once when body equals summary",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Name an unknown import op in squads' own words",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001245-fix-listing-option-validation-and-three-messages.md",
+      "created_at": "2026-10-29T16:27:29Z",
+      "updated_at": "2026-10-29T16:31:35Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1245"
+    },
+    "1246": {
+      "sequence_id": 1246,
+      "type": "task",
+      "title": "Fix item verb bugs: guide options, ref rm, sub-entities, view ID",
+      "slug": "fix-item-verb-bugs-guide-options-ref-rm-sub-entities-view-id",
+      "status": "Draft",
+      "description": "create guide options, truthful ref rm, sub-entity title and comment errors, workflow view prefix check",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-1183:fixes",
+        "BUG-1184:fixes",
+        "BUG-1185:fixes",
+        "BUG-1186:fixes",
+        "BUG-1240:fixes",
+        "MILE-1241:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Accept --priority, --label and --ref on create guide",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Refuse ref rm for a ref the item lacks",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Decide and apply the add-subtask empty-title rule",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Report a missing sub-entity on comment like sibling verbs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Refuse a wrong ID prefix in workflow view",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001246-fix-item-verb-bugs-guide-options-ref-rm-sub-entities-view-id.md",
+      "created_at": "2026-10-29T16:27:30Z",
+      "updated_at": "2026-10-29T16:30:59Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1246"
     }
   }
 }
