@@ -721,6 +721,7 @@ one this guide ships with; your reflog is not corrupt.
 | `migrate` | `sq migrate up` (`delta.from_schema`, `to_schema`, `applied`), and `sq migrate repad` (`delta.op` = `repad`, with `old_padding`, `new_padding`, `renamed`) |
 | `rename-type` | `sq migrate rename-type` — **one line per item moved**, not one line for the run |
 | `rename-status` | `sq migrate rename-status` — likewise, one line per item moved |
+| `rename-field` | `sq migrate rename-field` — likewise, one line per item whose key moved |
 
 `repair`, `renumber` and `migrate` are squad-level: they carry an empty `target`. Every other op
 names the item it touched.

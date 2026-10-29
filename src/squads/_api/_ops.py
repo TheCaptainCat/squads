@@ -157,6 +157,8 @@ from squads._api._dto._squad import (
     InitRequest,
     MigrateRequest,
     MigrationReport,
+    RenameFieldReport,
+    RenameFieldRequest,
     RenameStatusReport,
     RenameStatusRequest,
     RenameTypeReport,
@@ -819,6 +821,14 @@ RENAME_STATUS = Operation(
     RenameStatusReport,
     timeout=Timeout.LONG,
 )
+RENAME_FIELD = Operation(
+    "squad.rename-field",
+    "POST",
+    "/v1/squad/rename-field",
+    RenameFieldRequest,
+    RenameFieldReport,
+    timeout=Timeout.LONG,
+)
 IMPORT = Operation(
     "squad.import", "POST", "/v1/squad/import", ImportRequest, ImportReport, timeout=Timeout.LONG
 )
@@ -957,6 +967,7 @@ OPERATIONS: tuple[Operation[Any, Any], ...] = (
     REPAD,
     RENAME_TYPE,
     RENAME_STATUS,
+    RENAME_FIELD,
     IMPORT,
     INIT,
     ADOPT,

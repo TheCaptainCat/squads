@@ -406,3 +406,32 @@ async def test_a_review_approved_over_an_open_finding_selected_at_error_fails_th
     await repair(invoke)
 
     assert await check_json() == ([_unsettled(open_review, "error")], 3)
+
+
+# frontmatter_key_undeclared
+
+
+@pytest.mark.breaches("frontmatter_key_undeclared")
+async def test_a_key_the_sub_entity_kind_does_not_declare_is_reported(
+    squad, project, invoke, check_json, select_validators
+) -> None:
+    select_validators("frontmatter_key_undeclared", on="task")
+    assert await check_json() == ([], 0)
+
+    # no command writes a key the kind does not declare: edit the file and re-index
+    edit_item_file(
+        project,
+        squad.task,
+        "title: Parse\n  status: Todo",
+        "title: Parse\n  status: Todo\n  colour: red",
+    )
+    await repair(invoke)
+
+    message = (
+        "frontmatter key 'colour' on ST1 is not declared on subtask"
+        "; `sq migrate rename-field colour <new>` moves its value to a declared key"
+    )
+    assert await check_json() == (
+        [issue("frontmatter_key_undeclared", "warn", squad.task, message)],
+        0,
+    )

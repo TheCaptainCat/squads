@@ -656,3 +656,199 @@ async def test_rename_status_json_prints_how_many_items_were_relabelled(
         0,
         json_text({"type": "task", "old_status": "Draft", "new_status": "Ready", "renamed": 1}),
     )
+
+
+# ---------------------------------------------------------------------------- rename-field
+
+MOVED_WEIGHT = "rename-field done: weight → impact, 1 item(s) and 1 sub-entity entry(ies) moved\n"
+
+
+def _squad_bytes(paths) -> dict[str, bytes]:
+    """Every file under the squad folder, by relative path."""
+    return {
+        str(p.relative_to(paths.squad_dir)): p.read_bytes()
+        for p in sorted(paths.squad_dir.rglob("*"))
+        if p.is_file()
+    }
+
+
+def _item_file(paths, folder: str, number: int) -> Path:
+    (found,) = (paths.squad_dir / folder).glob(f"*-{number:06d}-*.md")
+    return found
+
+
+def _declare_impact_on_jobs(paths) -> None:
+    """The override squad's jobs also declare `impact`, the field its actions carry."""
+    override = paths.squad_dir / ".overrides" / "workflow.toml"
+    text = override.read_text(encoding="utf-8")
+    field = '{ code = "work_size", label = "Work size", collection = "size", required = false },'
+    assert field in text
+    override.write_text(
+        text.replace(
+            field, field + '\n  { code = "impact", label = "Impact", collection = "impact" },'
+        ),
+        encoding="utf-8",
+    )
+
+
+async def _store_job_values_under_an_old_key(paths, invoke, value: str = "large") -> Path:
+    """The job and its first action hold *value* under `weight`, a key the spec does not declare."""
+    job = _item_file(paths, "jobs", 9)
+    text = job.read_text(encoding="utf-8")
+    assert "  impact: large\n" in text
+    text = text.replace("  impact: large\n", f"  weight: {value}\n")
+    text = text.replace("work_size: m\n", f"work_size: m\nweight: {value}\n")
+    job.write_text(text, encoding="utf-8")
+    await invoke(["repair"])
+    return job
+
+
+@pytest.mark.covers("migrate rename-field", "OLD")
+@pytest.mark.covers("migrate rename-field", "NEW")
+async def test_rename_field_moves_the_value_on_the_item_and_on_its_entries(
+    override_project, invoke
+) -> None:
+    _declare_impact_on_jobs(override_project)
+    job = await _store_job_values_under_an_old_key(override_project, invoke)
+
+    result = await invoke(["migrate", "rename-field", "weight", "impact"])
+
+    assert (result.exit_code, result.output) == (0, MOVED_WEIGHT + CHECK_HINT)
+    frontmatter = re.sub(
+        r"(created_at|updated_at): '[^']*'",
+        "stamp: T",
+        job.read_text(encoding="utf-8").split("---\n")[1],
+    )
+    assert frontmatter == (
+        "id: JOB-9\nsequence_id: 9\ntype: job\ntitle: Write the onboarding guide\n"
+        "status: Draft\nparent: INI-8\nauthor: manager\n"
+        "subentities:\n- local_id: AC1\n  title: Draft the outline\n  status: Todo\n"
+        "  impact: large\n"
+        "- local_id: AC2\n  title: Record the walkthrough\n  status: Deferred\n"
+        "  deferred_to: REC-10\n"
+        "stamp: T\nstamp: T\n"
+        "owner_team: docs\nneeds_review: true\nwork_size: m\nimpact: large\n"
+    )
+    checked = await invoke(["check", "--json"])
+    assert (checked.exit_code, checked.output) == (0, "[]\n")
+
+
+@pytest.mark.covers("migrate rename-field", "NEW")
+async def test_rename_field_refuses_a_key_the_holder_does_not_declare(
+    override_project, invoke
+) -> None:
+    _declare_impact_on_jobs(override_project)
+    await _store_job_values_under_an_old_key(override_project, invoke)
+    before = _squad_bytes(override_project)
+
+    result = await invoke(["migrate", "rename-field", "weight", "urgency"])
+
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: cannot rename field 'weight' to 'urgency': JOB-9: 'job' does not declare "
+        "'urgency'; AC1 of JOB-9: 'action' does not declare 'urgency'\n",
+    )
+    assert _squad_bytes(override_project) == before
+
+
+@pytest.mark.covers("migrate rename-field", "NEW")
+async def test_rename_field_refuses_a_holder_that_already_holds_the_new_key(
+    override_project, invoke
+) -> None:
+    _declare_impact_on_jobs(override_project)
+    job = await _store_job_values_under_an_old_key(override_project, invoke)
+    text = job.read_text(encoding="utf-8")
+    job.write_text(text.replace("  weight: large\n", "  weight: large\n  impact: small\n"))
+    await invoke(["repair"])
+    before = _squad_bytes(override_project)
+
+    result = await invoke(["migrate", "rename-field", "weight", "impact"])
+
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: cannot rename field 'weight' to 'impact': AC1 of JOB-9 already holds 'impact'\n",
+    )
+    assert _squad_bytes(override_project) == before
+
+
+@pytest.mark.covers("migrate rename-field", "OLD")
+async def test_rename_field_refuses_a_value_the_new_field_does_not_accept(
+    override_project, invoke
+) -> None:
+    _declare_impact_on_jobs(override_project)
+    await _store_job_values_under_an_old_key(override_project, invoke, value="huge")
+    before = _squad_bytes(override_project)
+
+    result = await invoke(["migrate", "rename-field", "weight", "impact"])
+
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: cannot rename field 'weight' to 'impact': JOB-9: 'huge' is not a value of "
+        "'impact' (collection 'impact'); AC1 of JOB-9: 'huge' is not a value of 'impact' "
+        "(collection 'impact')\n",
+    )
+    assert _squad_bytes(override_project) == before
+
+
+@pytest.mark.covers("migrate rename-field", "--json")
+async def test_rename_field_json_prints_how_many_items_and_entries_moved(
+    override_project, invoke
+) -> None:
+    _declare_impact_on_jobs(override_project)
+    await _store_job_values_under_an_old_key(override_project, invoke)
+
+    result = await invoke(["migrate", "rename-field", "weight", "impact", "--json"])
+
+    assert (result.exit_code, result.output) == (
+        0,
+        json_text({"old": "weight", "new": "impact", "items": 1, "entries": 1}),
+    )
+
+
+@pytest.mark.covers("migrate rename-field", "OLD")
+async def test_rename_field_moves_an_item_value_on_the_bundled_squad(
+    populated_project, invoke
+) -> None:
+    task = _item_file(populated_project, "tasks", 3)
+    task.write_text(
+        task.read_text(encoding="utf-8").replace(
+            "author: manager\n", "author: manager\nprio: high\n"
+        )
+    )
+    await invoke(["repair"])
+
+    result = await invoke(["migrate", "rename-field", "prio", "priority"])
+
+    assert (result.exit_code, result.output) == (
+        0,
+        "rename-field done: prio → priority, 1 item(s) and 0 sub-entity entry(ies) moved\n"
+        + CHECK_HINT,
+    )
+    assert (await _shown(invoke, "task", 3))["priority"] == "high"
+
+
+@pytest.mark.covers("check", "--json")
+async def test_a_kind_renamed_with_the_same_prefix_keeps_its_entries_and_mappings(
+    override_project, invoke
+) -> None:
+    job = _item_file(override_project, "jobs", 9)
+    job.write_text(
+        job.read_text(encoding="utf-8").replace(
+            "  status: Todo\n  impact: large\n", "  status: Todo\n  maps_to: OC1\n  impact: large\n"
+        )
+    )
+    override = override_project.squad_dir / ".overrides" / "workflow.toml"
+    override.write_text(
+        override.read_text(encoding="utf-8")
+        .replace('subentity_kind = "action"', 'subentity_kind = "step_kind"')
+        .replace("[subentity_kinds.action]", "[subentity_kinds.step_kind]")
+        .replace('["outcome", "action"]', '["outcome", "step_kind"]')
+    )
+
+    await invoke(["repair"])
+    checked = await invoke(["check", "--json"])
+    shown = await invoke(["job", "9", "show", "--json"])
+
+    assert (checked.exit_code, checked.output) == (0, "[]\n")
+    entries = json.loads(shown.output)["subentities"]
+    assert [(e["local_id"], e["maps_to"]) for e in entries] == [("AC1", "OC1"), ("AC2", None)]

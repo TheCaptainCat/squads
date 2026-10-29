@@ -6,6 +6,7 @@
                                             release range
 - `sq migrate rename-type OLD NEW`         bulk-rename every OLD-type item to NEW type
 - `sq migrate rename-status TYPE OLD NEW`  bulk-move every TYPE item at OLD status to NEW status
+- `sq migrate rename-field OLD NEW`        move every value stored under key OLD to key NEW
 """
 
 import typer
@@ -14,6 +15,7 @@ import squads._cli._common as common
 from squads._api import _ops as ops
 from squads._api._dto._squad import (
     MigrateRequest,
+    RenameFieldRequest,
     RenameStatusRequest,
     RenameTypeRequest,
     RepadRequest,
@@ -23,6 +25,7 @@ from squads._cli._common import console, handle_errors
 from squads._cli._render._package import render_migrations, render_steps
 from squads._cli._render._squad import (
     render_migration,
+    render_rename_field,
     render_rename_status,
     render_rename_type,
     render_repad,
@@ -170,6 +173,30 @@ def migrate_rename_status(
         return
     calls.print_warnings(response)
     render_rename_status(response.data, console)
+
+
+@migrate_app.command("rename-field")
+@handle_errors
+def migrate_rename_field(
+    old: str = typer.Argument(..., metavar="OLD", help="Stored key to move values from."),
+    new: str = typer.Argument(..., metavar="NEW", help="Declared key to move them to."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: how many items and entries were moved."
+    ),
+):
+    """Move the values stored under key OLD to key NEW.
+
+    Covers items and sub-entity entries. Refuses, changing nothing, when a holder
+    does not declare NEW, already holds it, or holds a value NEW does not accept.
+    Run `sq check` afterwards.
+    """
+    request = RenameFieldRequest(old=old, new=new)
+    response = calls.call(ops.RENAME_FIELD, request)
+    if json_out:
+        calls.print_json(ops.RENAME_FIELD, response)
+        return
+    calls.print_warnings(response)
+    render_rename_field(response.data, console)
 
 
 def _parse_span(span: str) -> tuple[str, str]:

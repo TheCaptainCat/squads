@@ -1086,22 +1086,40 @@ def _pronouns_valid(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _frontmatter_key_undeclared(ctx: ValidatorContext) -> list[CheckIssue]:
-    """Every attribute no declaration on the item's type names, to catch a typo. Selected per
-    project; it reports and never rewrites."""
-    declared = set(ctx.spec.item_attributes(ctx.item.type)) | {
-        f.code for f in ctx.spec.fields_for(ctx.item.type)
+    """Every key no declaration names, on the item and on each of its sub-entity entries, to catch
+    a typo or a field the spec no longer declares. Selected per project; it reports and never
+    rewrites."""
+    item = ctx.item
+    declared = set(ctx.spec.item_attributes(item.type)) | {
+        f.code for f in ctx.spec.fields_for(item.type)
     }
     level = _resolved_level(ctx, "frontmatter_key_undeclared")
-    return [
+    remedy = "; `sq migrate rename-field {key} <new>` moves its value to a declared key"
+    issues = [
         CheckIssue(
             level,
-            ctx.item.id,
-            f"frontmatter key {key!r} is not declared on {ctx.item.type}",
+            item.id,
+            f"frontmatter key {key!r} is not declared on {item.type}" + remedy.format(key=key),
             rule="frontmatter_key_undeclared",
         )
-        for key in ctx.item.attributes
+        for key in item.attributes
         if key not in declared
     ]
+    kind = ctx.spec.item_subentity_kind(item.type)
+    entry_declared: set[str] = {f.code for f in ctx.spec.fields_for(kind)} if kind else set()
+    issues += [
+        CheckIssue(
+            level,
+            item.id,
+            f"frontmatter key {key!r} on {entry.local_id} is not declared on {kind or 'any kind'}"
+            + remedy.format(key=key),
+            rule="frontmatter_key_undeclared",
+        )
+        for entry in item.subentities
+        for key in entry.attributes
+        if key not in entry_declared
+    ]
+    return issues
 
 
 #: The closed per-item validator catalog — a CODE/definition constant, immutable and shared

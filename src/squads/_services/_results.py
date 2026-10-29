@@ -173,6 +173,14 @@ class RenameResult:
 
 
 @dataclass(frozen=True)
+class RenameFieldResult:
+    """Outcome of ``Service.rename_field()``."""
+
+    items: int  # items whose own key moved
+    entries: int  # sub-entity entries whose key moved
+
+
+@dataclass(frozen=True)
 class RemoveResult:
     """Outcome of ``Service.remove_work_item()``.
 

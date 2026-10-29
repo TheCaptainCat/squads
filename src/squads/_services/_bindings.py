@@ -184,6 +184,7 @@ BINDINGS = (
     bind(ops.REPAD, Service.repad_squad),
     bind(ops.RENAME_TYPE, Service.rename_type_items),
     bind(ops.RENAME_STATUS, Service.rename_status_items),
+    bind(ops.RENAME_FIELD, Service.rename_field_items),
     bind(ops.IMPORT, Service.import_squad_events),
 )
 

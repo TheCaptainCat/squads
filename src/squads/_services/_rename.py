@@ -5,6 +5,7 @@ resync primitives, batching the id rewrite and the resync into one pass.
 
 from collections.abc import Iterable
 from pathlib import Path
+from typing import Any
 
 from squads import _aio
 from squads import _clock as clock
@@ -23,10 +24,12 @@ from squads._itemfile import (
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item
+from squads._models._metadata import value_problem
 from squads._models._participants import SYSTEM_SLUG
+from squads._models._subentity import SubEntity
 from squads._paths import SquadPaths
 from squads._services._base import ServiceCore
-from squads._services._results import RenameResult
+from squads._services._results import RenameFieldResult, RenameResult
 from squads._services._retype import (
     apply_type_change,
     resync_edges,
@@ -82,6 +85,28 @@ def _validate_rename_status(spec: WorkflowSpec, item_type: str, new_status: str)
             f"{new_status!r} is not a state of {item_type}'s lifecycle "
             f"(states: {', '.join(sorted(states))})"
         )
+
+
+def _move_problem(spec: WorkflowSpec, owner: str, *, is_item: bool, new: str, value: Any) -> str:
+    """Why *value* cannot move to key *new* on *owner* (an item type or a sub-entity kind), or an
+    empty string when it can: *new* is a declared field whose collection holds the value, or a
+    declared attribute of that type that accepts it."""
+    fields = {f.code: f for f in spec.fields_for(owner)}
+    if new in fields:
+        collection = spec.collection(fields[new].collection)
+        if collection.declares(value):
+            return ""
+        return f"{value!r} is not a value of {new!r} (collection {fields[new].collection!r})"
+    attribute = spec.item_attributes(owner).get(new) if is_item else None
+    if attribute is not None:
+        problem = value_problem(attribute, value)
+        return "" if problem is None else f"{new!r}: {problem}"
+    return f"{owner!r} does not declare {new!r}"
+
+
+def _renamed_key(attributes: dict[str, Any], old: str, new: str) -> dict[str, Any]:
+    """*attributes* with key *old* replaced by *new* in place, the order kept."""
+    return {(new if key == old else key): value for key, value in attributes.items()}
 
 
 async def _snapshot_files(paths: SquadPaths, db: SquadsDB) -> dict[int, tuple[Path, str]]:
@@ -282,6 +307,99 @@ class RenameMixin(ServiceCore):
             rewritten_names = [str(p.relative_to(self.paths.squad_dir)) for p in rewritten]
 
         return RenameResult(renamed=len(matching), ids=ids, rewritten=rewritten_names)
+
+    async def rename_field(self, old: str, new: str) -> RenameFieldResult:
+        """Move every value stored under key *old* to key *new*, on items and sub-entity entries,
+        in one transaction. Refuses, writing nothing, when a holder of *old* does not declare *new*,
+        already holds *new*, or holds a value *new* does not accept; the refusal names each one.
+        Frontmatter only; each changed item gets a reflog line and a system comment, and any failure
+        restores every squad file to its pre-call bytes.
+        """
+        old = str(old)
+        new = str(new)
+        if old == new:
+            raise SquadsError(f"cannot rename field {old!r} to itself")
+        async with self.store.transaction() as db:
+            await self._refuse_any_duplicated_id()
+            holders: list[tuple[Item, bool, list[SubEntity]]] = []
+            problems: list[str] = []
+            for item in sorted(db.items.values(), key=lambda it: it.sequence_id):
+                entries = [s for s in item.subentities if old in s.attributes]
+                if old not in item.attributes and not entries:
+                    continue
+                own = old in item.attributes
+                holders.append((item, own, entries))
+                if own:
+                    problems += self._field_move_problems(
+                        item.id, item.type, item.attributes, old, new, is_item=True
+                    )
+                kind = self.spec.item_subentity_kind(item.type) or ""
+                for entry in entries:
+                    problems += self._field_move_problems(
+                        f"{entry.local_id} of {item.id}",
+                        kind,
+                        entry.attributes,
+                        old,
+                        new,
+                        is_item=False,
+                    )
+            if problems:
+                raise SquadsError(f"cannot rename field {old!r} to {new!r}: " + "; ".join(problems))
+
+            snapshot = await _snapshot_files(self.paths, db)
+            default_kind = self.spec.default_ref_kind()
+            _check_batch_skew([item for item, _, _ in holders], snapshot, default_kind=default_kind)
+            try:
+                for item, own, entries in holders:
+                    if own:
+                        item.attributes = _renamed_key(item.attributes, old, new)
+                    for entry in entries:
+                        entry.attributes = _renamed_key(entry.attributes, old, new)
+                    item.updated_at = clock.now()
+                    path = item_file(self.paths, item)
+                    text = sections.replace_frontmatter(
+                        snapshot[item.sequence_id][1],
+                        item.to_frontmatter_dict(),
+                        source=str(path),
+                    )
+                    await write_text(path, _with_rename_field_comment(text, old, new))
+                    db.add(item)
+                    self.store.log("rename-field", item.id, {"old": old, "new": new})
+            except Exception:
+                await _rollback_files(self.paths, db, snapshot)
+                raise
+
+        return RenameFieldResult(
+            items=sum(1 for _, own, _ in holders if own),
+            entries=sum(len(entries) for _, _, entries in holders),
+        )
+
+    def _field_move_problems(
+        self,
+        where: str,
+        owner: str,
+        attributes: dict[str, Any],
+        old: str,
+        new: str,
+        *,
+        is_item: bool,
+    ) -> list[str]:
+        """The reasons the holder *where* cannot take *old*'s value under *new*, naming it."""
+        if new in attributes:
+            return [f"{where} already holds {new!r}"]
+        problem = _move_problem(self.spec, owner, is_item=is_item, new=new, value=attributes[old])
+        return [f"{where}: {problem}"] if problem else []
+
+
+def _with_rename_field_comment(text: str, old: str, new: str) -> str:
+    """*text* with a system comment recording the field rename appended to its discussion."""
+    now_iso = clock.iso(clock.now())
+    entry = discussion.format_comment(
+        now_iso, SYSTEM_SLUG, SYSTEM_SLUG, [f"field renamed {old} → {new}"]
+    )
+    if sections.has_section(text, markers.DISCUSSION):
+        return sections.append_to_section(text, markers.DISCUSSION, entry)
+    return text
 
 
 def _with_rename_comment(text: str, old_id: str, new_id: str, item: Item) -> str:

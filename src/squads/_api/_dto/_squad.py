@@ -142,6 +142,13 @@ class RenameStatusRequest(DTO):
     new_status: str
 
 
+class RenameFieldRequest(DTO):
+    """Move every stored value under key *old* to key *new*, on items and sub-entity entries."""
+
+    old: str
+    new: str
+
+
 class RenamedId(DTO):
     """One item a type rename moved: its id before and after."""
 
@@ -165,6 +172,15 @@ class RenameStatusReport(DTO):
     old_status: str
     new_status: str
     renamed: int
+
+
+class RenameFieldReport(DTO):
+    """The two keys and how many items and sub-entity entries were moved."""
+
+    old: str
+    new: str
+    items: int
+    entries: int
 
 
 class ImportRequest(DTO):

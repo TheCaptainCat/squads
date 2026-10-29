@@ -13,6 +13,8 @@ from squads._api._dto._squad import (
     MigrationReport,
     Reconciled,
     RenamedId,
+    RenameFieldReport,
+    RenameFieldRequest,
     RenameStatusReport,
     RenameStatusRequest,
     RenameTypeReport,
@@ -199,6 +201,15 @@ class CorpusOpsMixin(ImportMixin, MaintenanceMixin, RenameMixin):
                 old_status=req.old_status,
                 new_status=req.new_status,
                 renamed=result.renamed,
+            )
+        )
+
+    async def rename_field_items(self, req: RenameFieldRequest) -> Response[RenameFieldReport]:
+        """Move every stored value from one key to another, on items and sub-entity entries."""
+        result = await self.rename_field(req.old, req.new)
+        return Response(
+            data=RenameFieldReport(
+                old=req.old, new=req.new, items=result.items, entries=result.entries
             )
         )
 

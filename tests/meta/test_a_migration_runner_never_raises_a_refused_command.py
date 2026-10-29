@@ -21,6 +21,7 @@ _MIGRATE_COMMANDS = {
     "squad.repad": "migrate repad",
     "squad.rename-type": "migrate rename-type",
     "squad.rename-status": "migrate rename-status",
+    "squad.rename-field": "migrate rename-field",
 }
 #: The ``sq migrate`` commands that read the package's own registry and make no call, so the
 #: schema gate never applies to them.
