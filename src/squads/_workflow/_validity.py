@@ -13,7 +13,7 @@ import warnings
 from collections.abc import Callable, Iterator
 from re import compile as re_compile
 
-from squads._models._attributes import ROW_ADDED_KEYS, AttributeKey
+from squads._models._attributes import ROW_ADDED_KEYS, SUBENTITY_ROW_ADDED_KEYS, AttributeKey
 from squads._workflow._models import (
     COLOR_INTENTS,
     FALLBACK_ROLE_NAME,
@@ -333,6 +333,10 @@ def _mapping_target_errors(
     return errors
 
 
+#: The name of the generic sub-entity selector, which a declared kind may not take.
+GENERIC_SUBENTITY_VERB = "sub"
+
+
 def check_subentity_kinds(
     items: dict[str, ItemSpec],
     subentity_kinds: dict[str, SubentityKindSpec],
@@ -352,6 +356,11 @@ def check_subentity_kinds(
     seen_plurals: dict[str, str] = {}
     seen_prefixes: dict[str, str] = {}
     for kind, ks in subentity_kinds.items():
+        if kind == GENERIC_SUBENTITY_VERB:
+            errors.append(
+                f"subentity kind {kind!r}: the name is the generic sub-entity verb; "
+                "rename the kind in the workflow override"
+            )
         if ks.lifecycle not in all_lifecycle_names:
             errors.append(
                 f"subentity kind {kind!r}: lifecycle {ks.lifecycle!r} not declared in lifecycles"
@@ -1059,38 +1068,29 @@ def check_category_consistency(
             errors.extend(clause(t, ts, effective, kinds, ref_kinds))
 
 
-#: Field codes exempt from the reserved-key check below because this schema models them by field
-#: code on purpose: ``priority``/``severity`` keep their literal key (``Item.priority``,
-#: ``Item.severity`` and ``SubEntity.severity`` are the badge-code storage itself), so frontmatter
-#: round-trips unchanged.
-_FIELD_ELIGIBLE_ITEM_KEYS: frozenset[str] = frozenset({"priority", "severity"})
-
-
-_FIELD_ELIGIBLE_SUBENTITY_KEYS: frozenset[str] = frozenset({"severity"})
-
-
 def _reserved_item_keys() -> frozenset[str]:
     """Names a field code or an attribute may not take: the model's own fields (derived from
-    ``Item``, never hand-copied), the names a ``--json`` row adds, and ``extra``. ``path`` and
-    ``prefix`` are model fields that are not frontmatter, and are refused for the same reason: a
-    key of that name is never read back as the user's value."""
+    ``Item``, never hand-copied) and the names a ``--json`` row adds. ``path`` and ``prefix`` are
+    model fields that are not frontmatter, and are refused for the same reason: a key of that name
+    is never read back as the user's value."""
     from squads._models._item import Item
 
     keys = set(Item.model_fields) | set(Item.model_computed_fields)
-    return frozenset(keys | set(ROW_ADDED_KEYS) | {"extra"})
+    return frozenset(keys | set(ROW_ADDED_KEYS))
 
 
-def _reserved_kind(name: str) -> str:
-    """What reserves *name*: a key every ``--json`` item row adds, or a frontmatter key."""
-    return "key every --json item row adds" if name in ROW_ADDED_KEYS else "frontmatter key"
+def _reserved_kind(name: str, row_added: tuple[str, ...], row: str) -> str:
+    """What reserves *name*: a key every ``--json`` *row* adds, or a frontmatter key."""
+    return f"key every --json {row} adds" if name in row_added else "frontmatter key"
 
 
 def _reserved_subentity_keys() -> frozenset[str]:
-    """Sub-entity frontmatter keys a field code may not shadow (mirrors ``_reserved_item_keys``)."""
+    """Sub-entity keys a field code may not shadow: the entry's own fields (derived from
+    ``SubEntity``) and the names a ``--json`` sub-entity object adds."""
     from squads._models._subentity import SubEntity
 
     keys = set(SubEntity.model_fields) | set(SubEntity.model_computed_fields)
-    return frozenset(keys - _FIELD_ELIGIBLE_SUBENTITY_KEYS)
+    return frozenset(keys | set(SUBENTITY_ROW_ADDED_KEYS))
 
 
 def _iter_field_owners(
@@ -1116,7 +1116,12 @@ def check_field_codes(
     reserved_subentity = _reserved_subentity_keys()
     for owner, is_item, fields in _iter_field_owners(items, subentity_kinds):
         seen: set[str] = set()
-        reserved = (reserved_item - _FIELD_ELIGIBLE_ITEM_KEYS) if is_item else reserved_subentity
+        reserved = reserved_item if is_item else reserved_subentity
+        added, row = (
+            (ROW_ADDED_KEYS, "item row")
+            if is_item
+            else (SUBENTITY_ROW_ADDED_KEYS, "sub-entity object")
+        )
         for f in fields:
             if f.code in seen:
                 errors.append(f"{owner!r}: duplicate field code {f.code!r}")
@@ -1124,7 +1129,8 @@ def check_field_codes(
             if f.code in reserved:
                 errors.append(
                     f"{owner!r}: field code {f.code!r} shadows a reserved "
-                    f"{_reserved_kind(f.code)} — rename the field in the workflow override"
+                    f"{_reserved_kind(f.code, added, row)} — rename the field in the "
+                    "workflow override"
                 )
 
 
@@ -1162,7 +1168,8 @@ def check_attributes(items: dict[str, ItemSpec], errors: list[str]) -> None:
         for name in ts.attributes:
             if name in reserved:
                 errors.append(
-                    f"{owner!r}: attribute {name!r} is a reserved {_reserved_kind(name)} — "
+                    f"{owner!r}: attribute {name!r} is a reserved "
+                    f"{_reserved_kind(name, ROW_ADDED_KEYS, 'item row')} — "
                     "rename the attribute in the workflow override and in the items that "
                     "store it"
                 )

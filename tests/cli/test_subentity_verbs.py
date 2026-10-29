@@ -12,6 +12,7 @@ from typing import Any
 
 import pytest
 
+from squads._itemfile import read_frontmatter
 from tests._populated import FEATURE, REVIEW, TASK
 
 pytestmark = pytest.mark.anyio
@@ -956,3 +957,51 @@ async def test_remove_json_asks_on_stderr_and_prints_only_the_document_on_stdout
     expected = {"removed": "subtask ST2", "item": "TASK-3"}
     assert result.stdout == json.dumps(expected, indent=2) + "\n"
     assert result.stderr == "Remove subtask ST2 from TASK-3? This cannot be undone. [y/N]: "
+
+
+# --- the stored entry -----------------------------------------------------------------------
+
+
+def _entries(project, file: str, folder: str) -> list[dict[str, Any]]:
+    """The `subentities` entries of the item file *file*, as the frontmatter holds them."""
+    return read_frontmatter(project.squad_dir / folder / file)["subentities"]
+
+
+@pytest.mark.covers("<type> add-<kind>", "--severity")
+@pytest.mark.covers("<type> add-<kind>", "--story")
+async def test_an_entry_stores_its_field_flat_and_its_mapping_under_maps_to(
+    populated_project, invoke
+) -> None:
+    await _ok(invoke, ["review", str(REVIEW), "add-finding", "Dead branch", "--severity", "low"])
+    await _ok(invoke, ["task", str(TASK), "add-subtask", "Rank", "--story", "US2"])
+
+    findings = _entries(populated_project, REVIEW_FILE, "reviews")
+    assert findings[-1] == {
+        "local_id": "F3",
+        "title": "Dead branch",
+        "status": "Open",
+        "severity": "low",
+    }
+    subtasks = _entries(populated_project, TASK_FILE, "tasks")
+    assert subtasks[0]["maps_to"] == "US1"
+    assert subtasks[-1]["maps_to"] == "US2"
+    assert not any({"story", "extra"} & entry.keys() for entry in subtasks + findings)
+    assert "maps_to" not in subtasks[1]
+
+
+@pytest.mark.covers("<type> <kind> update", "--title")
+@pytest.mark.covers("repair")
+async def test_an_unknown_key_on_an_entry_survives_an_update_and_a_repair(
+    populated_project, invoke
+) -> None:
+    path = populated_project.squad_dir / "tasks" / TASK_FILE
+    text = path.read_text(encoding="utf-8")
+    assert text.count("- local_id: ST2\n") == 1
+    path.write_text(text.replace("- local_id: ST2\n", "- local_id: ST2\n  note: keep me\n"))
+    await _ok(invoke, ["repair"])
+
+    await _ok(invoke, ["task", str(TASK), "subtask", "2", "update", "--title", "Parse more"])
+    await _ok(invoke, ["repair"])
+
+    second = _entries(populated_project, TASK_FILE, "tasks")[1]
+    assert (second["title"], second["note"]) == ("Parse more", "keep me")

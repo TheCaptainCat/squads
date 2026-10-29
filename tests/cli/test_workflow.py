@@ -420,6 +420,57 @@ async def test_lint_json_prints_each_error_with_its_location_and_fix(project, in
     )
 
 
+async def _lint_messages(project, invoke, override: str) -> list[str]:
+    """The messages `workflow lint --json` prints for a workflow override of *override*."""
+    folder = project.squad_dir / ".overrides"
+    folder.mkdir()
+    (folder / "workflow.toml").write_text(
+        f"# squads:override-base:0.19.0\n{override}", encoding="utf-8"
+    )
+    result = await invoke(["workflow", "lint", "--json"])
+    assert result.exit_code == 1, result.output
+    return [e["message"] for e in json.loads(result.output)["errors"]]
+
+
+@pytest.mark.covers("workflow lint", "--json")
+async def test_lint_refuses_an_item_field_code_equal_to_a_core_key(project, invoke) -> None:
+    assert await _lint_messages(
+        project,
+        invoke,
+        '[items.task]\nfields = [{ code = "status", label = "S", collection = "priority" }]\n',
+    ) == [
+        "'task': field code 'status' shadows a reserved frontmatter key — rename the field in "
+        "the workflow override"
+    ]
+
+
+@pytest.mark.covers("workflow lint", "--json")
+async def test_lint_refuses_a_kind_field_code_a_sub_entity_object_adds(project, invoke) -> None:
+    assert await _lint_messages(
+        project,
+        invoke,
+        '[subentity_kinds.finding]\nfields = [{ code = "badges", label = "B", '
+        'collection = "severity" }]\n',
+    ) == [
+        "'finding': field code 'badges' shadows a reserved key every --json sub-entity object "
+        "adds — rename the field in the workflow override"
+    ]
+
+
+@pytest.mark.covers("workflow lint", "--json")
+async def test_lint_refuses_a_kind_named_like_the_generic_selector(project, invoke) -> None:
+    messages = await _lint_messages(
+        project,
+        invoke,
+        '[subentity_kinds.sub]\nlifecycle = "subentity"\ncompletion = "Done"\n'
+        'plural = "subs"\nlocal_prefix = "SB"\nplaceholder = "_text_"\n',
+    )
+    assert messages == [
+        "subentity kind 'sub': the name is the generic sub-entity verb; rename the kind in the "
+        "workflow override"
+    ]
+
+
 @pytest.mark.covers("workflow lint", "--json")
 async def test_lint_json_refuses_outside_a_squad_on_stderr(invoke) -> None:
     result = await invoke(["workflow", "lint", "--json"])

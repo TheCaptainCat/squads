@@ -100,6 +100,10 @@ ROW_ADDED_KEYS: tuple[str, ...] = (
     "views",
 )
 
+#: Names a ``--json`` sub-entity object adds on top of the entry's own keys. A field code named like
+#: one would be hidden by it.
+SUBENTITY_ROW_ADDED_KEYS: tuple[str, ...] = ("badges", "body", "discussion", "display")
+
 #: Model fields that are not frontmatter: refused as declared attribute names. A hand-added key of
 #: such a name is kept like any unknown key and left out of a ``--json`` row.
 NON_FRONTMATTER_KEYS: tuple[str, ...] = ("path", "prefix")

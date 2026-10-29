@@ -12,6 +12,7 @@ from typing import Any
 
 import pytest
 
+from squads._itemfile import read_frontmatter
 from tests._populated import FEATURE, REVIEW, TASK
 
 pytestmark = pytest.mark.anyio
@@ -274,6 +275,26 @@ async def test_update_sets_a_declared_attribute(populated_project, invoke) -> No
     out = await _ran(invoke, ["task", str(TASK), "update", "--set", "priority=low"])
     assert out == (0, f"updated TASK-3  {TASK_PATH}\n")
     assert (await _show(invoke))["priority"] == "low"
+
+
+@pytest.mark.covers("<type> update", "--set")
+async def test_update_stores_a_field_an_override_declares_under_its_code(
+    populated_project, invoke
+) -> None:
+    overrides = populated_project.squad_dir / ".overrides"
+    overrides.mkdir()
+    (overrides / "workflow.toml").write_text(
+        "# squads:override-base:0.19.0\n[items.task]\nfields = [\n"
+        '  { code = "urgency", label = "Urgency", collection = "priority" },\n]\n',
+        encoding="utf-8",
+    )
+    await _ok(invoke, ["task", str(TASK), "update", "--set", "urgency=high"])
+
+    stored = read_frontmatter(populated_project.squad_dir / TASK_PATH)
+    assert stored["urgency"] == "high"
+    shown = await _show(invoke)
+    assert shown["badges"] == {"urgency": "high"}
+    assert shown["display"]["badges"]["urgency"]["label"] == "Urgency"
 
 
 @pytest.mark.covers("<type> update", "--set")

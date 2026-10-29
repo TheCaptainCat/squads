@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 
 from squads import __version__
+from squads._itemfile import read_frontmatter
 from squads._models._schema import SCHEMA_VERSION
 from tests.cli import _bundled_documents as documents
 from tests.cli._output import json_text, printed
@@ -16,6 +17,7 @@ from tests.cli._output import json_text, printed
 pytestmark = pytest.mark.anyio
 
 OLD_SQUAD = Path(__file__).parents[1] / "fixtures" / "corpus" / "v0_14"
+SCHEMA_17_SQUAD = Path(__file__).parents[1] / "fixtures" / "corpus" / "v0_17"
 CHECK_HINT = "  run `sq check` to verify integrity\n"
 NO_SQUAD = "error: no .squads.toml found in this or any parent directory — run `sq init`\n"
 
@@ -73,6 +75,115 @@ async def test_up_brings_an_older_squad_to_the_current_schema(
         0,
         f"already at schema v{SCHEMA_VERSION}; nothing to migrate\n",
     )
+
+
+def _snapshot(root: Path) -> dict[str, bytes]:
+    """Every file under *root* with its bytes."""
+    return {
+        str(p.relative_to(root)): p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file()
+    }
+
+
+def _body(path: Path) -> str:
+    """The text of the item file at *path* after its frontmatter."""
+    return path.read_text(encoding="utf-8").split("\n---\n", 1)[1]
+
+
+def _edit(path: Path, old: str, new: str) -> None:
+    text = path.read_text(encoding="utf-8")
+    assert text.count(old) == 1, old
+    path.write_text(text.replace(old, new), encoding="utf-8")
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_flattens_sub_entity_entries_and_leaves_the_rest_as_it_was(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = shutil.copytree(SCHEMA_17_SQUAD, tmp_path / "old")
+    monkeypatch.chdir(squad)
+    before = _snapshot(squad)
+    result = await invoke(["migrate", "up"])
+    assert result.exit_code == 0, result.output
+    after = _snapshot(squad)
+
+    task = squad / "tasks" / "TASK-000003-implement-auth.md"
+    review = squad / "reviews" / "REV-000004-auth-review.md"
+    assert [e["maps_to"] for e in read_frontmatter(task)["subentities"][:1]] == ["US1"]
+    assert read_frontmatter(review)["subentities"] == [
+        {"local_id": "F1", "title": "Unchecked read", "status": "Open", "severity": "high"},
+        {"local_id": "F2", "title": "Dead branch", "status": "Open"},
+        {
+            "local_id": "F3",
+            "title": "Slow path",
+            "status": "Open",
+            "severity": "medium",
+            "urgency": "low",
+        },
+    ]
+    assert (
+        _body(task) == before["tasks/TASK-000003-implement-auth.md"].decode().split("\n---\n", 1)[1]
+    )
+    assert (
+        _body(review) == before["reviews/REV-000004-auth-review.md"].decode().split("\n---\n", 1)[1]
+    )
+    for untouched in ("features/FEAT-000002-user-login.md", "agents/roles/ROLE-000001-manager.md"):
+        assert after[untouched] == before[untouched]
+
+    subtask = json.loads((await invoke(["task", "3", "subtask", "1", "show", "--json"])).output)
+    assert subtask["story"] == "US1"
+    finding = json.loads((await invoke(["review", "4", "finding", "3", "show", "--json"])).output)
+    assert (finding["severity"], finding["extra"]) == ("medium", {"urgency": "low"})
+    index = json.loads((squad / ".squads.json").read_text(encoding="utf-8"))
+    assert index["schema_version"] == SCHEMA_VERSION
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_refuses_an_entry_holding_both_story_and_maps_to_and_writes_nothing(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = shutil.copytree(SCHEMA_17_SQUAD, tmp_path / "old")
+    monkeypatch.chdir(squad)
+    _edit(
+        squad / "tasks" / "TASK-000003-implement-auth.md",
+        "  story: US1\n",
+        "  story: US1\n  maps_to: US2\n",
+    )
+    before = _snapshot(squad)
+    result = await invoke(["migrate", "up"])
+    assert result.exit_code == 1, result.output
+    assert "TASK-3 ST1: holds both 'story' and 'maps_to'" in result.output
+    assert _snapshot(squad) == before
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_refuses_an_extra_key_that_is_already_a_key_of_the_entry(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = shutil.copytree(SCHEMA_17_SQUAD, tmp_path / "old")
+    monkeypatch.chdir(squad)
+    _edit(
+        squad / "reviews" / "REV-000004-auth-review.md", "    urgency: low\n", "    severity: low\n"
+    )
+    before = _snapshot(squad)
+    result = await invoke(["migrate", "up"])
+    assert result.exit_code == 1, result.output
+    assert (
+        "REV-4 F3: has an 'extra' key 'severity' that is also a key of the entry" in result.output
+    )
+    assert _snapshot(squad) == before
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_run_again_on_flat_entries_changes_no_file(tmp_path, monkeypatch, invoke) -> None:
+    squad = shutil.copytree(SCHEMA_17_SQUAD, tmp_path / "old")
+    monkeypatch.chdir(squad)
+    assert (await invoke(["migrate", "up"])).exit_code == 0
+    items = {str(p): p.read_bytes() for p in squad.rglob("*.md")}
+    _edit(squad / ".squads.toml", f'schema_version = "{SCHEMA_VERSION}"', 'schema_version = "0.17"')
+
+    result = await invoke(["migrate", "up"])
+    assert result.exit_code == 0, result.output
+    assert {str(p): p.read_bytes() for p in squad.rglob("*.md")} == items
 
 
 @pytest.mark.covers("migrate up")

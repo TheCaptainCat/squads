@@ -85,7 +85,7 @@ class SubEntity(BaseModel):
     def badge_value(self, code: str) -> str | None:
         """The badge code stored under field *code*, ``None`` when the entry stores none. No spec
         needed to read — the code is the stored, authoritative value."""
-        return self.attributes.get(code)
+        return self.attributes.get(code) or None
 
     def set_badge_value(self, code: str, value: str | None) -> None:
         """Generic badge-code setter — the write-side mirror of :meth:`badge_value`."""

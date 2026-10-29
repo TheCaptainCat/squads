@@ -233,7 +233,7 @@ class Item(BaseModel):
     def badge_value(self, code: str) -> str | None:
         """The badge code stored under field *code*, ``None`` when the item stores none. No spec
         needed to read — the code is the stored, authoritative value."""
-        return self.attributes.get(code)
+        return self.attributes.get(code) or None
 
     def attribute(self, key: str, default: Any = None) -> Any:
         """The stored value of attribute *key*, or *default* when the item does not carry it.
