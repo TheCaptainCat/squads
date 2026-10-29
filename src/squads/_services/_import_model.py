@@ -7,7 +7,7 @@ fronts stay distinct events for per-op counts and :func:`generic_add_sub` folds 
 
 import json
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError, model_validator
 from pydantic_core import ErrorDetails
@@ -333,12 +333,18 @@ def generic_add_sub(ev: ImportEvent) -> AddSubEvent:
     raise TypeError(f"{ev.op!r} is not an add-sub-shaped event")
 
 
+def _valid_ops() -> str:
+    """The import ops the event union accepts, in declaration order."""
+    choices = cast(dict[str, Any], _EVENT_ADAPTER.core_schema)["choices"]
+    return ", ".join(str(op) for op in choices)
+
+
 def _validation_message(error: ErrorDetails) -> str:
     """One validation error as an issue message: squads' own words for an unknown ``op``."""
     if error["type"] == "union_tag_invalid":
-        ctx = error.get("ctx", {})
-        tags = str(ctx.get("expected_tags", "")).replace("'", "")
-        return f"unknown op {ctx.get('tag')!r}; valid ops: {tags}"
+        return f"unknown op {error.get('ctx', {}).get('tag')!r}; valid ops: {_valid_ops()}"
+    if error["type"] == "union_tag_not_found":
+        return f"missing op; valid ops: {_valid_ops()}"
     loc = ".".join(str(p) for p in error["loc"])
     return f"{loc}: {error['msg']}" if loc else str(error["msg"])
 

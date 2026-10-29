@@ -575,12 +575,18 @@ def closed_option() -> Any:
     return typer.Option(False, "--all", "-a", help="Include closed items.")
 
 
+def _refuse_negative_depth(value: int | None) -> int | None:
+    if value is not None and value < 0:
+        raise typer.BadParameter("must be 0 or more")
+    return value
+
+
 def depth_option(default: int | None, *flags: str) -> Any:
     return typer.Option(
         default,
         "--depth",
         *flags,
-        min=0,
+        callback=_refuse_negative_depth,
         help="How many levels below the root to show; 0 shows only the root.",
     )
 

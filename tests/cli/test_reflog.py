@@ -157,8 +157,11 @@ async def test_json_prints_one_object_per_entry(history, invoke) -> None:
 
 @pytest.mark.covers("reflog", "--op")
 async def test_op_refuses_an_operation_the_log_does_not_know(history, invoke) -> None:
-    code, out = await _reflog(invoke, "--op", "ghost")
-    assert (code, out[0].startswith("error: unknown operation 'ghost' (one of: create, ")) == (
+    assert await _reflog(invoke, "--op", "ghost") == (
         1,
-        True,
+        [
+            "error: unknown operation 'ghost' (one of: create, status, update, body, view, "
+            "comment, comment_edit, comment_remove, subentity, ref, link, retype, default_role, "
+            "remove, repair, renumber, migrate, rename-type, rename-status)"
+        ],
     )

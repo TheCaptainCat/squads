@@ -246,7 +246,7 @@ async def test_depth_refuses_a_value_that_is_not_an_integer(readable, invoke) ->
             "Usage: sq tree [OPTIONS] [ROOT_ID]",
             "Try 'sq tree --help' for help.",
             "╭─ Error ──────────────────────────────────────────────────────────────────────╮",
-            "│ Invalid value for '--depth': 'deep' is not a valid integer range.            │",
+            "│ Invalid value for '--depth': 'deep' is not a valid integer.                  │",
             "╰──────────────────────────────────────────────────────────────────────────────╯",
         ],
     )
@@ -481,5 +481,13 @@ async def test_sort_decides_the_order_of_the_json_roots(readable, invoke) -> Non
 
 @pytest.mark.covers("tree", "--depth")
 async def test_depth_refuses_a_negative_value(readable, invoke) -> None:
-    code, out = await _tree(invoke, "--depth", "-1")
-    assert (code, any("Invalid value for '--depth'" in line for line in out)) == (2, True)
+    assert await _tree(invoke, "--depth", "-1") == (
+        2,
+        [
+            "Usage: sq tree [OPTIONS] [ROOT_ID]",
+            "Try 'sq tree --help' for help.",
+            "╭─ Error ──────────────────────────────────────────────────────────────────────╮",
+            "│ Invalid value for '--depth': must be 0 or more                               │",
+            "╰──────────────────────────────────────────────────────────────────────────────╯",
+        ],
+    )

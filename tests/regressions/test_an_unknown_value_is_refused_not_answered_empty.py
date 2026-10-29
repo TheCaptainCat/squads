@@ -51,8 +51,13 @@ async def test_a_reflog_operation_that_does_not_exist_is_refused(readable, invok
 
 
 async def test_a_negative_depth_is_refused(readable, invoke) -> None:
-    code, out = await _run(invoke, "tree", "--depth", "-1")
-    assert (code, out[3]) == (
+    assert await _run(invoke, "tree", "--depth", "-1") == (
         2,
-        "│ Invalid value for '--depth': -1 is not in the range x>=0.                    │",
+        [
+            "Usage: sq tree [OPTIONS] [ROOT_ID]",
+            "Try 'sq tree --help' for help.",
+            "╭─ Error ──────────────────────────────────────────────────────────────────────╮",
+            "│ Invalid value for '--depth': must be 0 or more                               │",
+            "╰──────────────────────────────────────────────────────────────────────────────╯",
+        ],
     )
