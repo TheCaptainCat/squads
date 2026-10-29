@@ -1,8 +1,7 @@
-"""Read-backs the roster and notebook CLI tests share: JSON through a command's own output, an
-item's stored body, and who a write was attributed to."""
+"""Read-backs the roster and notebook CLI tests share: an item's stored body, who a write was
+attributed to, and the error box Click prints for a refused command line."""
 
-import json
-from typing import Any
+from tests.cli._output import read_json
 
 #: The usage line and error box Click prints for a refused command line, by what is missing.
 ERROR_BOX_TOP = "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
@@ -15,13 +14,6 @@ def usage_error(usage: str, hint: str, message: str) -> str:
     """The whole output of a command line Click refuses: the usage, the help hint and the boxed
     *message*, padded as the 80-column box prints it."""
     return f"{usage}\nTry '{hint}' for help.\n{ERROR_BOX_TOP}│ {message:<76} │\n{ERROR_BOX_BOTTOM}"
-
-
-async def read_json(invoke, args: list[str]) -> Any:
-    """The JSON a command that succeeds prints."""
-    result = await invoke(args)
-    assert result.exit_code == 0, result.output
-    return json.loads(result.output)
 
 
 async def body_of(invoke, number: int) -> str:

@@ -1,6 +1,7 @@
 """Every (command, parameter) pair of the live command tree, hidden commands included, is declared
-by a ``covers`` marker under ``tests/cli/``, every marker names a pair the tree has, and every
-leaf command with no parameter is declared by its key alone.
+by a ``covers`` marker under ``tests/cli/``, every marker names a pair the tree has, every leaf
+command with no parameter is declared by its key alone, and every test under ``tests/cli/``
+carries a marker. A key alone declares the bare call, so it is valid on any leaf.
 
 A marker counts only on a collected test that runs. The markers are read with ``ast``.
 """
@@ -22,7 +23,7 @@ from tests._cli_surface import (
     surface_of,
 )
 from tests._help_tree import command_nodes
-from tests._marker_ast import marker_calls, string_arguments
+from tests._marker_ast import marker_calls, string_arguments, unmarked_tests
 from tests.meta._roots import REPO_ROOT
 
 CLI_TESTS = REPO_ROOT / "tests" / "cli"
@@ -35,6 +36,7 @@ class Declarations:
     pairs: frozenset[Pair]
     unreadable: tuple[str, ...]
     ignored: tuple[str, ...] = ()
+    unmarked: tuple[str, ...] = ()
 
 
 def read_declarations(sources: dict[str, str]) -> Declarations:
@@ -42,13 +44,16 @@ def read_declarations(sources: dict[str, str]) -> Declarations:
 
     A marker on a function that is not collected, or on a test that carries a skip, skipif, xfail
     or slow mark (or in a module whose ``pytestmark`` does), declares nothing and is listed in
-    ``ignored``.
+    ``ignored``. A collected test with no ``covers`` marker is listed in ``unmarked``.
     """
     pairs: set[Pair] = set()
     unreadable: list[str] = []
     ignored: list[str] = []
+    unmarked: list[str] = []
     for name, source in sorted(sources.items()):
-        found = marker_calls(ast.parse(source), "covers")
+        tree = ast.parse(source)
+        unmarked += [f"{name}::{t.function.name}" for t in unmarked_tests(tree, "covers")]
+        found = marker_calls(tree, "covers")
         for call in found.running:
             arguments = string_arguments(call)
             if arguments is None:
@@ -59,7 +64,7 @@ def read_declarations(sources: dict[str, str]) -> Declarations:
             (ignored if string_arguments(call) is not None else unreadable).append(
                 f"{name}:{call.lineno}"
             )
-    return Declarations(frozenset(pairs), tuple(unreadable), tuple(ignored))
+    return Declarations(frozenset(pairs), tuple(unreadable), tuple(ignored), tuple(unmarked))
 
 
 def cli_test_sources(root: Path = CLI_TESTS) -> dict[str, str]:
@@ -83,8 +88,11 @@ def problems(surface: Surface, declared: Declarations) -> list[str]:
         for i in declared.ignored
     ]
     found += [
+        f"unmarked test (every CLI test declares a covers marker): {u}" for u in declared.unmarked
+    ]
+    found += [
         f"stale marker: {_show(pair)} is not a pair of the tree"
-        for pair in sorted(declared.pairs - required, key=_order)
+        for pair in sorted(declared.pairs - surface.known, key=_order)
     ]
     undeclared = required - declared.pairs
     found += [f"undeclared: {_show(pair)}" for pair in sorted(undeclared, key=_order)]
@@ -97,7 +105,7 @@ def _order(pair: Pair) -> tuple[str, str]:
 
 def _show(pair: Pair) -> str:
     key, param = pair
-    return f"sq {key} {param}" if param else f"sq {key} (the command itself)"
+    return f"sq {key} {param}" if param else f"sq {key} (the bare call)"
 
 
 def _surface() -> Surface:
@@ -136,7 +144,7 @@ def test_the_surface_folds_the_tree_onto_keys_without_vocabulary_or_the_address_
 
 # ---------------------------------------------------------------------------- the checks bite
 
-_SURFACE = Surface(frozenset({("a", "--x"), ("a", "--y"), ("b", "N")}), frozenset({"sync"}))
+_SURFACE = Surface(frozenset({("a", "--x"), ("a", "--y"), ("b", "N")}), frozenset({"a", "sync"}))
 
 
 def _declare(*pairs: Pair) -> Declarations:
@@ -156,22 +164,46 @@ def test_an_undeclared_pair_is_reported() -> None:
 
 
 def test_an_undeclared_parameterless_leaf_is_reported() -> None:
-    assert problems(_SURFACE, _declare(*_ALL[:3])) == ["undeclared: sq sync (the command itself)"]
+    assert problems(_SURFACE, _declare(*_ALL[:3])) == ["undeclared: sq sync (the bare call)"]
 
 
 def test_a_stale_marker_is_reported() -> None:
     declared = _declare(*_ALL, ("a", "--gone"), ("gone", None))
     assert problems(_SURFACE, declared) == [
         "stale marker: sq a --gone is not a pair of the tree",
-        "stale marker: sq gone (the command itself) is not a pair of the tree",
+        "stale marker: sq gone (the bare call) is not a pair of the tree",
     ]
 
 
-def test_a_key_marker_on_a_command_that_has_parameters_is_stale() -> None:
-    declared = _declare(*_ALL, ("a", None))
+def test_a_key_marker_declares_the_bare_call_of_a_leaf_that_has_parameters() -> None:
+    assert problems(_SURFACE, _declare(*_ALL, ("a", None))) == []
+
+
+def test_a_key_marker_on_a_command_that_is_not_a_leaf_is_stale() -> None:
+    declared = _declare(*_ALL, ("b", None))
     assert problems(_SURFACE, declared) == [
-        "stale marker: sq a (the command itself) is not a pair of the tree"
+        "stale marker: sq b (the bare call) is not a pair of the tree"
     ]
+
+
+def test_a_cli_test_without_a_marker_is_reported() -> None:
+    source = (
+        '@pytest.mark.covers("a", "--x")\ndef test_marked(): ...\n'
+        "class TestM:\n"
+        '    pytestmark = pytest.mark.covers("a", "--y")\n'
+        "    def test_held(self): ...\n"
+        "@pytest.mark.anyio\nasync def test_bare(): ...\n"
+        "def helper(): ...\n"
+    )
+    declared = read_declarations({"tests/cli/test_m.py": source})
+    assert problems(Surface(declared.pairs, frozenset({"a"})), declared) == [
+        "unmarked test (every CLI test declares a covers marker): tests/cli/test_m.py::test_bare"
+    ]
+
+
+def test_a_module_marker_marks_every_test_of_the_module() -> None:
+    source = 'pytestmark = pytest.mark.covers("a", "--x")\ndef test_x(): ...\n'
+    assert read_declarations({"tests/cli/test_m.py": source}).unmarked == ()
 
 
 @pytest.mark.parametrize(
@@ -240,7 +272,8 @@ def test_a_marker_on_a_test_that_does_not_run_declares_nothing_and_is_reported(
     declared = read_declarations({"tests/cli/test_m.py": source})
     assert declared.pairs == frozenset()
     assert len(declared.ignored) == 1
-    assert problems(Surface(frozenset(), frozenset()), declared) == [
+    found = problems(Surface(frozenset(), frozenset()), declared)
+    assert [line for line in found if not line.startswith("unmarked test")] == [
         "marker on a test that does not run (not collected, or skipped, xfailed or slow): "
         f"{declared.ignored[0]}"
     ]

@@ -3,7 +3,7 @@ id: TASK-1228
 sequence_id: 1228
 type: task
 title: Item reads on operations
-status: InProgress
+status: Done
 parent: FEAT-1226
 author: tech-lead
 assignee: python-dev
@@ -35,7 +35,7 @@ subentities:
   assignee: python-dev
   story: US4
 created_at: '2026-10-28T22:12:37Z'
-updated_at: '2026-10-29T01:14:04Z'
+updated_at: '2026-10-29T05:27:28Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -157,4 +157,6 @@ Display content for the item reads (ADR-1224 point 5): the `display` object on e
   - Reviewed on REV-1235: F13 (medium, stale sub-entity read verbs crash under a renamed kind), F14 (low, display.priority and the mine/list vs tree/graph priority rule, @architect), F15 (low, display.pronouns unasserted). Parity otherwise byte-identical or additive-only across 190+ command lines. @python-dev
 - [2026-10-29T01:14:04Z] `python-dev` Elias Python:
   - Round 2 for REV-1235 F13, F14, F15, commit b55fdf1f on worktree-agent-a6c1528fd4b8d474e (on release/0.18 a8081afe). Gates: pyright 0, ruff clean, tests/meta+cli+check 1607 passed (no new cases; two existing tree cases extended). Removed provisional display key: `display.priority` on tree and graph nodes. @reviewer
+- [2026-10-29T05:27:28Z] `manager` Catherine Manager:
+  - Done 2026-10-29: its REV-1235 findings are Verified or deferred with a home; full suite 1634 passed on ed499a68.
 <!-- sq:discussion:end -->

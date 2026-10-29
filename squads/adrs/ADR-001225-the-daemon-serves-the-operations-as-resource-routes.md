@@ -15,7 +15,7 @@ description: Resource routes under /v1 generated from the operation table replac
   POST /v1/commands; HttpApi or LocalApi chosen per invocation; ADR-1052 amended on
   acceptance
 created_at: '2026-10-28T20:58:41Z'
-updated_at: '2026-10-28T22:33:52Z'
+updated_at: '2026-10-29T04:58:58Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -69,13 +69,15 @@ Examples (the table is authoritative):
 | `sq <type> <n> status <S>` | `POST /v1/items/{id}/status` |
 | `sq <type> <n> body` | `PUT /v1/items/{id}/body` |
 | `sq <type> <n> ref add` / `ref rm` | `POST /v1/items/{id}/refs`, `DELETE /v1/items/{id}/refs/{target}` |
-| `sq <type> <n> comment …` | `POST`, `GET`, `PATCH` and `DELETE` on `/v1/items/{id}/comments[/{hash}]` |
-| `sq role <addr> comment …`, and the skill and operator forms | the same methods on `/v1/roles/{addr}/comments[/{hash}]`, `/v1/skills/{addr}/comments[/{hash}]`, `/v1/operators/{addr}/comments[/{hash}]` |
-| `sq <type> <n> <kind> <k> …` | `/v1/items/{id}/subentities[/{local}]`, plus `/body` and `/comments` under it |
+| `sq <type> <n> comment …` | `POST`, `GET`, `PATCH` and `DELETE` on `/v1/items/{id}/comments[/{hash}]`; the removal preview of section 3 is `GET /v1/items/{id}/comments/{hash}/removal` |
+| `sq role <addr> comment …`, and the skill and operator forms | the same methods on `/v1/roles/{addr}/comments[/{hash}]`, `/v1/skills/{addr}/comments[/{hash}]`, `/v1/operators/{addr}/comments[/{hash}]`, and the removal preview at `…/comments/{hash}/removal` under each |
+| `sq <type> <n> <kind> <k> …` | `/v1/items/{id}/subentities[/{local}]`, plus `/body` and `/comments` under it, the removal preview included |
 | `sq workflow types` and the other catalogs | `GET /v1/workflow/{catalog}` |
 | `sq role add`, `sq role <addr> update` | `POST /v1/roles`, `PATCH /v1/roles/{addr}` |
 | `sq repair`, `sq migrate up` | `POST /v1/squad/repair`, `POST /v1/squad/migrate` |
 | (no command) the API's description | `GET /v1/openapi.json` (section 6) |
+
+The removal preview is a read, so it is a `GET`, on a sub-resource named for what it returns: the comments a removal of that hash would take, with the actor's right to remove them checked. That is why it is not the `GET` on `…/comments/{hash}`, which is `show`.
 
 ### 2. Requests
 
@@ -455,4 +457,6 @@ Board changes that follow acceptance, for their owners:
   - Section 1, new bullet and table row: a roster entry's discussion is served at `/v1/{roles,skills,operators}/{addr}/comments[/{hash}]`, with the item comment methods and DTOs (`addr` in place of `id`). The operation resolves `addr` within the route's kind, and the kind is never a request field. An unresolved address answers 404 with today's text.
   - Section 3, ETags, new bullet "How the ETag travels": `If-Match` in and the new `ETag` out both go on the request's `RequestContext`, never in a DTO or the envelope. The write records the hash of the addressed file's bytes at the end of the transaction, under the lock, and the generic endpoint writes the header. A remove answers with none. Rejected and recorded: an envelope field and an etag on the write rows.
   - @tech-lead TASK-1229 and TASK-1218 can be updated.
+- [2026-10-29T04:58:58Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 for REV-1235 F35 (board rule 6). Status unchanged. Section 1: the comment removal preview is `GET …/comments/{hash}/removal` under items, sub-entities and roster entries. It is a read, on a sub-resource named for what it returns, and it is distinct from `show`.
 <!-- sq:discussion:end -->

@@ -27,6 +27,7 @@ def _add_twin_numbered_two(squad_dir: Path) -> None:
     (squad_dir / "tasks/TASK-000002-build-the-query-parser.md").write_text(twin, encoding="utf-8")
 
 
+@pytest.mark.covers("repair")
 async def test_repair_rebuilds_a_lost_index_from_the_item_files(populated_project, invoke) -> None:
     (populated_project.squad_dir / ".squads.json").unlink()
     result = await invoke(["repair"])
@@ -39,6 +40,7 @@ async def test_repair_rebuilds_a_lost_index_from_the_item_files(populated_projec
     ]
 
 
+@pytest.mark.covers("repair")
 async def test_repair_names_an_indexed_item_whose_file_is_gone_and_keeps_the_counter(
     populated_project, invoke
 ) -> None:
@@ -60,6 +62,7 @@ async def test_renumber_gives_a_shared_number_a_new_one(populated_project, invok
     assert await listed(invoke) == [*ITEMS, TWIN]
 
 
+@pytest.mark.covers("repair")
 async def test_check_reports_a_shared_number_that_repair_without_renumber_leaves(
     populated_project, invoke
 ) -> None:

@@ -616,7 +616,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
     ) -> str:
         target = handles.resolve_item(event.target)
         sub = _comment_selector(handles, target, event)
-        item = await self._comment_core(
+        item, _written = await self._comment_core(
             db,
             target,
             event.all_messages(),

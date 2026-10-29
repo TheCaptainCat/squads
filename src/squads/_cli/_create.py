@@ -6,7 +6,6 @@ active spec at Click dispatch time, after the root callback has bound it.
 """
 
 import contextlib
-import json
 from collections.abc import Callable
 from typing import Any, ClassVar
 
@@ -16,38 +15,36 @@ import typer.core
 import typer.main
 
 import squads._cli._common as common
-from squads import _actor as actor
 from squads import _badges as badges
-from squads._cli._common import (
-    console,
-    e,
-    get_service,
-    print_json_clean,
-    resolve_body_optional,
-    resolve_item_id_any,
-    resolve_slug_or_raise,
-)
+from squads._api import _ops as ops
+from squads._api._dto._item_writes import ItemCreateRequest
+from squads._cli import _calls as calls
+from squads._cli._common import console, resolve_body_optional
+from squads._cli._render._writes import render_created
 from squads._errors import SquadsError
 from squads._models._attributes import AttributeKey
-from squads._models._item import make_ref, split_ref
-from squads._services._service import Service
 from squads._workflow import bundled_spec
 from squads._workflow._models import Field, WorkflowSpec
 
 
-async def _resolve_parent_option(parent: str | None, svc: Service) -> str | None:
-    """Resolve a create command's ``--parent`` option to a full item ID, or ``None``.
-
-    The single parent door for every ``sq create`` command (built-in, custom and ``guide``). It
-    tests ``is not None``, not truthiness: ``--parent ""`` is a supplied value, and an empty or
-    whitespace-only one is refused here rather than silently creating a parentless item.
-    ``create`` has no ``--no-parent``: omitting ``--parent`` is how a parentless item is made.
-    """
-    if parent is None:
-        return None
-    if not parent.strip():
+def _check_parent_option(parent: str | None) -> None:
+    """Refuse an empty or whitespace-only ``--parent``, the single parent door of every
+    ``sq create`` command: ``--parent ""`` is a supplied value, and creating a parentless item
+    from it would be silent. ``create`` has no ``--no-parent``: omitting ``--parent`` is how a
+    parentless item is made."""
+    if parent is not None and not parent.strip():
         raise SquadsError("--parent needs an item ID; omit --parent to create without a parent")
-    return await resolve_item_id_any(parent, svc)
+
+
+def _create(request: ItemCreateRequest, json_out: bool) -> None:
+    """Make the one create call, then print the created item."""
+    response = calls.call(ops.ITEMS_CREATE, request)
+    if json_out:
+        calls.print_json(ops.ITEMS_CREATE, response)
+    else:
+        calls.print_warnings(response)
+        render_created(response.data, console)
+    calls.finish(response, json_out=json_out)
 
 
 def _priority_help(item_type: str) -> str:
@@ -309,8 +306,8 @@ _CREATABLE: tuple[str, ...] = tuple(
 
 
 def _make(item_type_str: str):
-    @common.command
-    async def cmd(  # noqa: PLR0913 — Typer options are the command's surface
+    @common.handle_errors
+    def cmd(  # noqa: PLR0913 — Typer options are the command's surface
         ctx: typer.Context,
         title: str = typer.Argument(..., help="Item title."),
         author: str = common.author_option(),
@@ -328,43 +325,23 @@ def _make(item_type_str: str):
             False, "--json", help="Print one JSON object: the created item."
         ),
     ):
-        svc = get_service()
-        # --author/--assignee accept only a live slug: a retired role stops being
-        # an active participant, though its past authorship stays readable.
-        validated_author = await resolve_slug_or_raise(author, svc)
-        actor.set_actor(validated_author)
-        validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
-        resolved_parent = await _resolve_parent_option(parent, svc)
-        resolved_refs: list[str] | None = None
-        if ref:
-            resolved_refs = []
-            for r in ref:
-                rid, kind = split_ref(r)
-                resolved_refs.append(make_ref(await resolve_item_id_any(rid, svc), kind))
-        res = await svc.create(
-            item_type_str,
-            title,
+        _check_parent_option(parent)
+        request = ItemCreateRequest(
+            type=item_type_str,
+            title=title,
+            author=author,
+            parent=parent,
             description=desc,
-            parent=resolved_parent,
-            author=validated_author,
-            labels=label or None,
-            refs=resolved_refs,
-            assignee=validated_assignee,
-            # No pre-parse: the collection `priority` binds is per-type, and the service's
-            # `_check_priority` resolves it from the type's own declared field.
+            labels=label or [],
+            refs=ref or [],
+            assignee=assignee,
+            # No pre-parse: the collection `priority` binds is per-type, resolved by the operation
+            # from the type's own declared field.
             priority=priority,
-            fields=_given_fields(ctx),
+            fields=_given_fields(ctx) or {},
             body=resolve_body_optional(message or None, file),
         )
-        if json_out:
-            data = res.item.to_row()
-            if res.lane_warning is not None:
-                data["lane_warning"] = res.lane_warning
-            print_json_clean(json.dumps(data))
-        else:
-            console.print(f"created [bold]{res.item.id}[/bold] → {res.path}")
-            if res.lane_warning is not None:
-                console.print(e(res.lane_warning))
+        _create(request, json_out)
 
     cmd.__name__ = f"create_{item_type_str}"
     return cmd
@@ -389,8 +366,8 @@ _STATIC_CREATE_TYPES: frozenset[str] = frozenset({*_CREATABLE, "guide"})
 
 
 @create_app.command("guide", help="Create a guide.")
-@common.command
-async def create_guide(  # noqa: PLR0913 — Typer options are the command's surface
+@common.handle_errors
+def create_guide(  # noqa: PLR0913 — Typer options are the command's surface
     title: str = typer.Argument(..., help="Guide title."),
     author: str = common.author_option(),
     tech: str | None = common.tech_option(),
@@ -402,37 +379,23 @@ async def create_guide(  # noqa: PLR0913 — Typer options are the command's sur
     file: str | None = common.file_option(),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the created item."),
 ):
-    attributes: dict[str, object] = {}
+    attributes: dict[str, str | list[str]] = {}
     if tech:
         attributes[AttributeKey.TECH] = tech
     if tag:
         attributes[AttributeKey.TAGS] = list(tag)
-    svc = get_service()
-    # --author/--assignee accept only a live slug: a retired role stops being an
-    # active participant, though its past authorship stays readable.
-    validated_author = await resolve_slug_or_raise(author, svc)
-    actor.set_actor(validated_author)
-    validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
-    resolved_parent = await _resolve_parent_option(parent, svc)
-    res = await svc.create(
-        "guide",
-        title,
+    _check_parent_option(parent)
+    request = ItemCreateRequest(
+        type="guide",
+        title=title,
+        author=author,
+        parent=parent,
         description=desc,
-        parent=resolved_parent,
-        author=validated_author,
-        assignee=validated_assignee,
-        attributes=attributes or None,
+        assignee=assignee,
+        attributes=attributes,
         body=resolve_body_optional(message or None, file),
     )
-    if json_out:
-        data = res.item.to_row()
-        if res.lane_warning is not None:
-            data["lane_warning"] = res.lane_warning
-        print_json_clean(json.dumps(data))
-    else:
-        console.print(f"created [bold]{res.item.id}[/bold] → {res.path}")
-        if res.lane_warning is not None:
-            console.print(e(res.lane_warning))
+    _create(request, json_out)
 
 
 # Hidden guide aliases (same pattern as _CREATABLE loop above).

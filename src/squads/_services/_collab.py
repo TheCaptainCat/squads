@@ -7,7 +7,7 @@ from squads import _aio
 from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
-from squads._errors import SquadsError
+from squads._errors import SquadsError, SubentityNotFoundError
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
@@ -276,17 +276,19 @@ class CollabMixin(ServiceCore):
         *,
         as_slug: str = ANONYMOUS_SLUG,
         sub: tuple[str, str] | None = None,
-    ) -> Item:
-        """Opens its own transaction, then delegates to :meth:`_comment_core` — the bulk
-        importer calls that core directly (its own transaction is already open)."""
+    ) -> str:
+        """Add the comment and answer its hash. Opens its own transaction, then delegates to
+        :meth:`_comment_core` — the bulk importer calls that core directly (its own transaction
+        is already open)."""
         async with self.store.transaction() as db:
-            return await self._comment_core(
+            _item, written = await self._comment_core(
                 db,
                 item_id,
                 messages,
                 as_slug=as_slug,
                 sub=sub,
             )
+        return written
 
     async def _comment_core(
         self,
@@ -296,9 +298,10 @@ class CollabMixin(ServiceCore):
         *,
         as_slug: str = ANONYMOUS_SLUG,
         sub: tuple[str, str] | None = None,
-    ) -> Item:
-        """The comment mutation core: takes an already-open transaction's ``db`` (so the author
-        display name resolves against in-memory state, not a fresh disk load — see
+    ) -> tuple[Item, str]:
+        """The comment mutation core, answering the item and the new comment's hash: takes an
+        already-open transaction's ``db`` (so the author display name resolves against in-memory
+        state, not a fresh disk load — see
         :meth:`~squads._services._roster_projection.RosterProjection.author_of`)."""
         refuse_system_actor(as_slug)
         if not messages:
@@ -312,13 +315,24 @@ class CollabMixin(ServiceCore):
             now_iso, as_slug, self.roster_projection.author_of(db, as_slug), messages
         )
 
+        written: list[str] = []
+
         def mutate(text: str, _item: Item) -> tuple[str, bool]:
             region = sections.get_section(text, tag)
             if region is None:
-                raise SquadsError(
-                    f"no discussion section {tag!r} in {item_id} (was it scaffolded?)"
-                )
+                # A sub-entity's discussion is missing when the sub-entity is.
+                missing = SquadsError if sub is None else SubentityNotFoundError
+                raise missing(f"no discussion section {tag!r} in {item_id} (was it scaffolded?)")
             self._refuse_duplicate_comment(_item, region, scope, as_slug, now_iso, entry)
+            written.append(
+                discussion.comment_hash(
+                    _item.sequence_id,
+                    scope,
+                    as_slug,
+                    now_iso,
+                    discussion.canonical_text(entry.split("\n")[1:]),
+                )
+            )
             self.store.log(
                 "comment",
                 _item.id,
@@ -327,7 +341,7 @@ class CollabMixin(ServiceCore):
             return sections.append_to_section(text, tag, entry), True
 
         item, _changed = await self._section_edit_core(db, item_id, mutate)
-        return item
+        return item, written[-1]
 
     # ------------------------------------------------------------------ comments by hash
     def _discussion_scopes(self, item: Item) -> list[tuple[str, str]]:
@@ -355,9 +369,8 @@ class CollabMixin(ServiceCore):
             parsed[scope] = _Located(scope, tag, region, cmts, [])
         here = parsed.get(want)
         if here is None:
-            raise SquadsError(
-                f"no discussion section for {sub[1] if sub else 'the item'} in {item.id}"
-            )
+            missing = SquadsError if sub is None else SubentityNotFoundError
+            raise missing(f"no discussion section for {sub[1] if sub else 'the item'} in {item.id}")
         elsewhere: list[discussion.OtherScope] = []
         for scope, other in parsed.items():
             if scope == want:

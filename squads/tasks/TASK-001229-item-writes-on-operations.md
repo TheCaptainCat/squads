@@ -3,7 +3,7 @@ id: TASK-1229
 sequence_id: 1229
 type: task
 title: Item writes on operations
-status: InProgress
+status: Done
 parent: FEAT-1226
 author: tech-lead
 assignee: python-dev
@@ -36,7 +36,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-10-28T22:12:38Z'
-updated_at: '2026-10-29T04:15:23Z'
+updated_at: '2026-10-29T05:37:41Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -180,4 +180,8 @@ The sub-entity verbs (`add-<kind>`, `<kind> <k> update`, `body`, `remove`, and t
     - Adopter-visible, for @tech-writer: `--json` on the 10 keys with the `{entry, …}` shapes above; `status --json` wrapped in `entry`; the additive keys above; `--json` before a comment verb is a usage error (exit 2).
 - [2026-10-29T04:15:23Z] `python-dev` Elias Python:
   - Rebased onto release/0.18 17c74eb7 (no src or test changes upstream since 79eac7ad): commit is now 6699ef16; pyright 0 errors, ruff clean, tests/meta+cli+check 1621 passed. The many-resource report rule touches none of this task's writes; no column keys added.
+- [2026-10-29T05:20:31Z] `python-dev` Elias Python:
+  - Round 2 landed as ed808d64 (on release/0.18 bf2881eb): REV-1235 F32, F33, F36, F37 Fixed (details on each finding); F34 and F35 unchanged per the ruling. Tests +3 (the F36 removal cases); expectations edited: comment --json now adds to a non-empty discussion, ref rm --json expects kinds. Gates: pyright 0, ruff clean, tests/meta+cli+check 1634 passed. Parity rerun: 218 byte-identical, 12 additive JSON, status --json wrapped; squad tree identical.
+- [2026-10-29T05:37:41Z] `manager` Catherine Manager:
+  - Done 2026-10-29: its REV-1235 findings are Verified, Noted or deferred with a home; full suite 1634 passed on e6462b5e.
 <!-- sq:discussion:end -->

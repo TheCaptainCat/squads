@@ -101,6 +101,7 @@ async def test_renumber_refuses_to_run_with_neither_onto_nor_by(populated_projec
     assert (result.exit_code, result.output) == (2, BOTH_OR_NEITHER)
 
 
+@pytest.mark.covers("renumber", "--from")
 async def test_from_is_required(populated_project, invoke) -> None:
     result = await invoke(["renumber", "--onto", "9"])
     assert (result.exit_code, result.output) == (
@@ -111,6 +112,7 @@ async def test_from_is_required(populated_project, invoke) -> None:
     )
 
 
+@pytest.mark.covers("renumber", "--from")
 async def test_from_refuses_a_value_that_is_not_an_integer(populated_project, invoke) -> None:
     result = await invoke(["renumber", "--from", "x", "--by", "10"])
     assert (result.exit_code, result.output) == (

@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from squads import _badges as badges
-from squads._errors import SquadsError
+from squads._errors import CommentNotFoundError, SquadsError
 from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._models._participants import SLUG_PATTERN, require_valid_slug
@@ -48,6 +48,8 @@ _COMMENT_HEADER_RE = re.compile(rf"^- \[({_TS})(?:, edited ({_TS}))?\] `({SLUG_P
 
 _HASH_DOMAIN = "sq-comment-1"
 SHORT_HASH_LENGTH = 7
+#: The length of a comment's full hash, a SHA-256 in hex.
+FULL_HASH_LENGTH = 64
 MIN_HASH_PREFIX = 4
 
 _HEX_RE = re.compile(r"[0-9a-fA-F]+")
@@ -222,13 +224,17 @@ def resolve_hash(
         raise SquadsError(f"{token} is ambiguous in {where}: {listed}")
     if hits:
         return hits
+    # A full hash is what a removal sends after its preview; name it as the preview showed it.
+    named = token[:SHORT_HASH_LENGTH] if len(token) == FULL_HASH_LENGTH else token
     for other in elsewhere:
         if any(c.hash.startswith(prefix) for c in other.comments):
-            raise SquadsError(
-                f"no comment {token} in {where}; it is in {other.label} "
-                f"({other.address} {token} ...)"
+            raise CommentNotFoundError(
+                f"no comment {named} in {where}; it is in {other.label} "
+                f"({other.address} {named} ...)"
             )
-    raise SquadsError(f"no comment {token} in {where} (edited or removed since it was read?)")
+    raise CommentNotFoundError(
+        f"no comment {named} in {where} (edited or removed since it was read?)"
+    )
 
 
 def author_label(cmt: Comment) -> str:

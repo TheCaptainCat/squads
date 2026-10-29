@@ -14,6 +14,7 @@ SKILL = Path(".claude/skills/squads/SKILL.md")
 POINTER = Path(".claude/agents/manager.md")
 
 
+@pytest.mark.covers("sync")
 async def test_sync_restores_a_hand_edited_pointer_and_skill(seeded_project, invoke) -> None:
     root = seeded_project.root
     pointer, skill = root / POINTER, root / SKILL
@@ -31,6 +32,7 @@ async def test_sync_restores_a_hand_edited_pointer_and_skill(seeded_project, inv
     assert skill.read_text(encoding="utf-8").startswith("---\nname: squads\n")
 
 
+@pytest.mark.covers("sync")
 async def test_sync_rewrites_the_managed_region_and_keeps_the_prose_around_it(
     seeded_project, invoke
 ) -> None:
@@ -47,6 +49,7 @@ async def test_sync_rewrites_the_managed_region_and_keeps_the_prose_around_it(
     assert "HAND EDIT" not in rewritten
 
 
+@pytest.mark.covers("sync")
 async def test_sync_on_current_files_only_reports_that_it_ran(seeded_project, invoke) -> None:
     result = await invoke(["sync"])
     assert (result.exit_code, result.output) == (0, DONE)

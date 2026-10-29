@@ -4,12 +4,13 @@ resolved against an item, and the override lint."""
 import asyncio
 import json
 from pathlib import Path
-from typing import Any
 
 import pytest
 
 from tests._helpers import create_item, make_service
 from tests._squads import paths_of
+from tests.cli import _bundled_documents as documents
+from tests.cli._output import json_text, printed
 from tests.cli._readable import init_readable, lines
 
 pytestmark = pytest.mark.anyio
@@ -53,32 +54,10 @@ async def _run(invoke, *args: str) -> tuple[int, list[str]]:
     return result.exit_code, lines(result.output)
 
 
-async def _json(invoke, *args: str) -> list[dict[str, Any]]:
-    result = await invoke(["workflow", *args, "--json"])
-    assert result.exit_code == 0, result.output
-    return json.loads(result.output)
-
-
-def _named(entries: list[dict[str, Any]], key: str) -> list[str]:
-    return [entry[key] for entry in entries]
-
-
-def _one(entries: list[dict[str, Any]], key: str, value: str) -> dict[str, Any]:
-    return next(entry for entry in entries if entry[key] == value)
-
-
-def _assert_row(
-    entries: list[dict[str, Any]], key: str, value: str, expected: dict[str, Any]
-) -> None:
-    """The row whose *key* is *value* is *expected*, compared as text so the key order is
-    held, and every row has its keys in that order."""
-    assert json.dumps(_one(entries, key, value)) == json.dumps(expected)
-    assert {tuple(entry) for entry in entries} == {tuple(expected)}
-
-
 # --- the cheatsheet -------------------------------------------------------------------------
 
 
+@pytest.mark.covers("workflow show")
 async def test_workflow_prints_the_rendered_cheatsheet(project, invoke) -> None:
     code, out = await _run(invoke)
     assert (code, out[:5]) == (0, RENDERED_HEAD)
@@ -99,6 +78,7 @@ async def test_show_raw_prints_the_cheatsheet_as_plain_markdown(project, invoke)
 # --- the vocabulary listings ----------------------------------------------------------------
 
 
+@pytest.mark.covers("workflow types")
 async def test_types_lists_every_declared_type(project, invoke) -> None:
     assert await _run(invoke, "types") == (
         0,
@@ -122,49 +102,11 @@ async def test_types_lists_every_declared_type(project, invoke) -> None:
 
 @pytest.mark.covers("workflow types", "--json")
 async def test_types_json_prints_one_object_per_type(project, invoke) -> None:
-    entries = await _json(invoke, "types")
-    assert _named(entries, "type") == [
-        "epic",
-        "feature",
-        "task",
-        "bug",
-        "decision",
-        "contract",
-        "milestone",
-        "review",
-        "guide",
-        "role",
-        "skill",
-        "operator",
-    ]
-    _assert_row(
-        entries,
-        "type",
-        "task",
-        {
-            "type": "task",
-            "order": 30.0,
-            "prefix": "TASK",
-            "reserved": False,
-            "category": "work",
-            "subentity_kind": "subtask",
-            "lifecycle": "work",
-            "fields": [{"code": "priority", "label": "Priority", "collection": "priority"}],
-            "attributes": {},
-            "labels": {
-                "singular": "Task",
-                "plural": "Tasks",
-                "singular_lower": "task",
-                "plural_lower": "tasks",
-            },
-        },
-    )
-    milestone = _one(entries, "type", "milestone")
-    assert milestone["attributes"] == {
-        "target_date": {"kind": "date", "required": False, "settable": True, "label": "target date"}
-    }
+    output = await printed(invoke, ["workflow", "types", "--json"])
+    assert output == json_text(documents.TYPES)
 
 
+@pytest.mark.covers("workflow subentity-kinds")
 async def test_subentity_kinds_lists_every_declared_kind(project, invoke) -> None:
     assert await _run(invoke, "subentity-kinds") == (
         0,
@@ -179,25 +121,11 @@ async def test_subentity_kinds_lists_every_declared_kind(project, invoke) -> Non
 
 @pytest.mark.covers("workflow subentity-kinds", "--json")
 async def test_subentity_kinds_json_prints_one_object_per_kind(project, invoke) -> None:
-    entries = await _json(invoke, "subentity-kinds")
-    assert _named(entries, "subentity_kind") == ["finding", "story", "subtask"]
-    _assert_row(
-        entries,
-        "subentity_kind",
-        "finding",
-        {
-            "subentity_kind": "finding",
-            "lifecycle": "finding",
-            "plural": "findings",
-            "local_prefix": "F",
-            "container_heading": "Findings",
-            "completion": "Fixed",
-            "maps_parent_story": False,
-            "fields": [{"code": "severity", "label": "Severity", "collection": "severity"}],
-        },
-    )
+    output = await printed(invoke, ["workflow", "subentity-kinds", "--json"])
+    assert output == json_text(documents.SUBENTITY_KINDS)
 
 
+@pytest.mark.covers("workflow lifecycles")
 async def test_lifecycles_lists_every_declared_lifecycle(project, invoke) -> None:
     code, out = await _run(invoke, "lifecycles")
     assert (code, out[:3]) == (
@@ -212,35 +140,11 @@ async def test_lifecycles_lists_every_declared_lifecycle(project, invoke) -> Non
 
 @pytest.mark.covers("workflow lifecycles", "--json")
 async def test_lifecycles_json_prints_one_object_per_lifecycle(project, invoke) -> None:
-    entries = await _json(invoke, "lifecycles")
-    assert _named(entries, "lifecycle") == [
-        "adr",
-        "agent",
-        "bug",
-        "contract",
-        "finding",
-        "guide",
-        "milestone",
-        "review",
-        "subentity",
-        "work",
-    ]
-    _assert_row(
-        entries,
-        "lifecycle",
-        "agent",
-        {
-            "lifecycle": "agent",
-            "initial": "Active",
-            "states": ["Active", "Archived"],
-            "transitions": [
-                {"from": "Active", "to": "Archived"},
-                {"from": "Archived", "to": "Active"},
-            ],
-        },
-    )
+    output = await printed(invoke, ["workflow", "lifecycles", "--json"])
+    assert output == json_text(documents.LIFECYCLES)
 
 
+@pytest.mark.covers("workflow collections")
 async def test_collections_lists_every_declared_badge_collection(project, invoke) -> None:
     code, out = await _run(invoke, "collections")
     assert (code, out[:2]) == (
@@ -254,28 +158,11 @@ async def test_collections_lists_every_declared_badge_collection(project, invoke
 
 @pytest.mark.covers("workflow collections", "--json")
 async def test_collections_json_prints_one_object_per_collection(project, invoke) -> None:
-    entries = await _json(invoke, "collections")
-    assert _named(entries, "collection") == ["priority", "severity"]
-    _assert_row(
-        entries,
-        "collection",
-        "severity",
-        {
-            "collection": "severity",
-            "label": "Severity",
-            "ordered": True,
-            "default": "medium",
-            "badges": [
-                {"code": "critical", "label": "Critical", "emoji": "🔴"},
-                {"code": "high", "label": "High", "emoji": "🟠"},
-                {"code": "medium", "label": "Medium", "emoji": "🟡"},
-                {"code": "low", "label": "Low", "emoji": "🟢"},
-                {"code": "info", "label": "Info", "emoji": "🔵"},
-            ],
-        },
-    )
+    output = await printed(invoke, ["workflow", "collections", "--json"])
+    assert output == json_text(documents.COLLECTIONS)
 
 
+@pytest.mark.covers("workflow statuses")
 async def test_statuses_lists_every_declared_status_with_its_role(project, invoke) -> None:
     code, out = await _run(invoke, "statuses")
     assert (code, out[:3], out[-1]) == (
@@ -291,21 +178,11 @@ async def test_statuses_lists_every_declared_status_with_its_role(project, invok
 
 @pytest.mark.covers("workflow statuses", "--json")
 async def test_statuses_json_prints_one_object_per_status(project, invoke) -> None:
-    entries = await _json(invoke, "statuses")
-    assert len(entries) == 25
-    _assert_row(
-        entries,
-        "status",
-        "Blocked",
-        {
-            "status": "Blocked",
-            "role": "blocked",
-            "badge": "🔴",
-            "display": {"intent": "danger"},
-        },
-    )
+    output = await printed(invoke, ["workflow", "statuses", "--json"])
+    assert output == json_text(documents.STATUSES)
 
 
+@pytest.mark.covers("workflow roles")
 async def test_roles_lists_every_status_role(project, invoke) -> None:
     assert await _run(invoke, "roles") == (
         0,
@@ -326,34 +203,11 @@ async def test_roles_lists_every_status_role(project, invoke) -> None:
 
 @pytest.mark.covers("workflow roles", "--json")
 async def test_roles_json_prints_one_object_per_status_role(project, invoke) -> None:
-    entries = await _json(invoke, "roles")
-    assert _named(entries, "role") == [
-        "active",
-        "attention",
-        "blocked",
-        "deferred",
-        "done",
-        "in_force",
-        "pending",
-        "retired",
-        "superseded",
-    ]
-    _assert_row(
-        entries,
-        "role",
-        "blocked",
-        {
-            "role": "blocked",
-            "settled": False,
-            "hidden": False,
-            "color": "danger",
-            "live": False,
-            "blocked": True,
-            "deferred": False,
-        },
-    )
+    output = await printed(invoke, ["workflow", "roles", "--json"])
+    assert output == json_text(documents.ROLES)
 
 
+@pytest.mark.covers("workflow ref-kinds")
 async def test_ref_kinds_lists_every_declared_ref_kind(project, invoke) -> None:
     code, out = await _run(invoke, "ref-kinds")
     assert (code, out[:2]) == (
@@ -367,33 +221,11 @@ async def test_ref_kinds_lists_every_declared_ref_kind(project, invoke) -> None:
 
 @pytest.mark.covers("workflow ref-kinds", "--json")
 async def test_ref_kinds_json_prints_one_object_per_ref_kind(project, invoke) -> None:
-    entries = await _json(invoke, "ref-kinds")
-    assert _named(entries, "kind") == [
-        "addresses",
-        "blocks",
-        "depends-on",
-        "duplicates",
-        "fixes",
-        "implements",
-        "related",
-        "scopes",
-        "supersedes",
-        "targets",
-    ]
-    _assert_row(
-        entries,
-        "kind",
-        "blocks",
-        {
-            "kind": "blocks",
-            "label": "Blocks",
-            "hint": "A is blocking B; B cannot proceed while A is open",
-            "role": "dependency",
-            "direction": "blocker",
-        },
-    )
+    output = await printed(invoke, ["workflow", "ref-kinds", "--json"])
+    assert output == json_text(documents.REF_KINDS)
 
 
+@pytest.mark.covers("workflow views")
 async def test_views_lists_every_declared_view(project, invoke) -> None:
     assert await _run(invoke, "views") == (
         0,
@@ -411,26 +243,8 @@ async def test_views_lists_every_declared_view(project, invoke) -> None:
 
 @pytest.mark.covers("workflow views", "--json")
 async def test_views_json_prints_one_object_per_view(project, invoke) -> None:
-    entries = await _json(invoke, "views")
-    assert _named(entries, "view") == [
-        "greeting_skill",
-        "item_skill",
-        "memory_skill",
-        "milestone_rollup",
-        "role_definition",
-        "squads_skill",
-    ]
-    _assert_row(
-        entries,
-        "view",
-        "milestone_rollup",
-        {
-            "view": "milestone_rollup",
-            "source_kind": "ref",
-            "source_name": "targets",
-            "transform": {"module": "squads._view_transforms", "function": "milestone_rollup"},
-        },
-    )
+    output = await printed(invoke, ["workflow", "views", "--json"])
+    assert output == json_text(documents.VIEWS)
 
 
 # --- view -----------------------------------------------------------------------------------
@@ -460,6 +274,7 @@ async def test_view_resolves_a_declared_view_against_the_item(milestone_project,
     assert await _run(invoke, "view", "milestone_rollup", "MILE-8") == expected
 
 
+@pytest.mark.covers("workflow view", "NAME")
 async def test_view_refuses_a_name_no_view_declares(milestone_project, invoke) -> None:
     assert await _run(invoke, "view", "ghost", "8") == (
         1,
@@ -467,6 +282,7 @@ async def test_view_refuses_a_name_no_view_declares(milestone_project, invoke) -
     )
 
 
+@pytest.mark.covers("workflow view", "ID")
 async def test_view_refuses_an_item_the_index_lacks(milestone_project, invoke) -> None:
     assert await _run(invoke, "view", "milestone_rollup", "99") == (
         1,
@@ -534,25 +350,10 @@ async def test_view_json_prints_the_records_the_view_resolves(milestone_project,
     assert result.output == json.dumps(expected, indent=2) + "\n"
 
 
-@pytest.mark.covers("workflow view", "--json")
-async def test_view_json_still_prints_the_source_when_the_template_does_not_render(
-    milestone_project, invoke
-) -> None:
-    template = milestone_project.squad_dir / ".overrides" / "templates" / "views"
-    template.mkdir(parents=True)
-    (template / "milestone_rollup.md.j2").write_text(
-        "{{ nope.undefined_thing }}\n", encoding="utf-8"
-    )
-    rendered = await invoke(["workflow", "view", "milestone_rollup", "8"])
-    assert rendered.exit_code == 1
-    result = await invoke(["workflow", "view", "milestone_rollup", "8", "--json"])
-    assert result.exit_code == 0, result.output
-    assert [node["id"] for node in json.loads(result.output)] == ["TASK-3", "TASK-4"]
-
-
 # --- lint -----------------------------------------------------------------------------------
 
 
+@pytest.mark.covers("workflow lint")
 async def test_lint_accepts_a_squad_with_no_override(project, invoke) -> None:
     assert await _run(invoke, "lint") == (
         0,
@@ -609,3 +410,101 @@ async def test_lint_json_refuses_outside_a_squad_on_stderr(invoke) -> None:
     assert result.stderr == (
         "error: no .squads.toml found in this or any parent directory — run `sq init`\n"
     )
+
+
+#: The `role_definition` view's source on the seeded squad: the `manager` role, its own tag left
+#: unexpanded in the body.
+MANAGER_ROLE_SOURCE = {
+    "slug": "manager",
+    "id": "ROLE-1",
+    "activated": True,
+    "origin": "system",
+    "full_name": "Catherine Manager",
+    "pronouns": None,
+    "title": "manager",
+    "mission": "Be the operator's first point of contact and run the work loop: understand the "
+    "intent, delegate to the right specialists, integrate what they return, and drive "
+    "each feature to done — keeping everything tracked in squads.",
+    "model": "opus",
+    "is_default": True,
+    "can_spawn": True,
+    "capabilities": [],
+    "create_lane": [],
+    "responsibilities": [
+        "Triage incoming requests and clarify intent",
+        "Delegate work to the right specialist agents and integrate their results",
+        "Drive features through the loop (implement → review → fix) until done",
+        "Keep the backlog and statuses honest",
+        "Summarise progress for the operator",
+    ],
+    "skills": ["squads", "greeting", "sq-memory"],
+    "display": {
+        "name": "Catherine Manager",
+        "pronouns": None,
+        "color": "cyan",
+        "body": "<!-- sq:view:role_definition -->",
+        "empty_hint": "(empty — run `sq sync`; if it stays empty, declare the definition in "
+        "`.overrides/roles.toml`, or `.overrides/roles/<slug>.toml`, or run "
+        "`sq role manager view add role_definition`)",
+        "definition_resolves": True,
+        "change_hint": "To change its mission or responsibilities: `sq override scaffold "
+        "--role manager`, edit the file, then `sq sync`. To change its model: "
+        "`sq role manager update --model …`.",
+        "discussion": [],
+    },
+}
+#: The `greeting_skill` view's source on the seeded squad: the `greeting` skill, its own tag left
+#: unexpanded in the body.
+GREETING_SKILL_SOURCE = {
+    "sequence_id": 2,
+    "type": "skill",
+    "title": "greeting",
+    "slug": "greeting",
+    "status": "Active",
+    "description": "Start of a conversation with a human: detect & register the operator, then "
+    "greet them — match their tone, say how you help, and give a quick read of the project. "
+    "Use when a person opens a session; skip it when spawned as a subagent for a job.",
+    "parent": None,
+    "author": "greeting",
+    "assignee": None,
+    "priority": None,
+    "severity": None,
+    "labels": [],
+    "refs": [],
+    "subentities": [],
+    "path": "agents/skills/SKILL-000002-greeting.md",
+    "created_at": "2026-06-07T10:00:00Z",
+    "updated_at": "2026-06-07T10:00:00Z",
+    "created_session": None,
+    "modified_session": None,
+    "id": "SKILL-2",
+    "origin": "system",
+    "body": "<!-- sq:view:greeting_skill -->",
+    "views": {},
+    "discussion": [],
+    "badges": {},
+    "spec": {
+        "schema_version": "0.17",
+        "override": False,
+        "digest": "211060de2abfe6793ecbcfacd9b987a048dbe34f4f70b45b653336d2762820e3",
+    },
+    "display": {
+        "type": "Skill",
+        "status": {"badge": "⚪ Active", "intent": "positive"},
+        "badges": {},
+        "assignee": None,
+        "body": "<!-- sq:view:greeting_skill -->",
+        "summary": None,
+        "attributes": [],
+    },
+}
+
+
+@pytest.mark.covers("workflow view", "--json")
+async def test_view_json_leaves_the_views_own_tag_unexpanded_in_its_source(
+    seeded_project, invoke
+) -> None:
+    role = await printed(invoke, ["workflow", "view", "role_definition", "ROLE-1", "--json"])
+    assert role == json_text(MANAGER_ROLE_SOURCE)
+    skill = await printed(invoke, ["workflow", "view", "greeting_skill", "SKILL-2", "--json"])
+    assert skill == json_text(GREETING_SKILL_SOURCE)

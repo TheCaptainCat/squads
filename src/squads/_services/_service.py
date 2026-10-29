@@ -25,6 +25,7 @@ from squads._services._collab import CollabMixin
 from squads._services._import import ImportMixin
 from squads._services._item_ops import ItemOpsMixin
 from squads._services._item_read_ops import ItemReadOpsMixin
+from squads._services._item_write_ops import ItemWriteOpsMixin, RetypeOpsMixin
 from squads._services._items import ItemsMixin
 from squads._services._maintenance import MaintenanceMixin, ensure_root_tmp_ignored
 from squads._services._memory import MemoryMixin
@@ -49,8 +50,10 @@ from squads._workflow._models import WorkflowSpec
 
 
 class Service(
+    ItemWriteOpsMixin,
     ItemReadOpsMixin,
     RosterOpsMixin,
+    RetypeOpsMixin,
     ItemOpsMixin,
     SquadStateOpsMixin,
     ImportMixin,

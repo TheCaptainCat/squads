@@ -147,6 +147,25 @@ def marker_calls(tree: ast.Module, name: str) -> MarkerCalls:
     return MarkerCalls(tuple(running), tuple(ignored))
 
 
+def unmarked_tests(tree: ast.Module, name: str) -> list[CollectedTest]:
+    """The tests pytest collects from *tree* that carry no ``pytest.mark.<name>`` call, on the
+    function, its class or the module."""
+    if any(mark == name and call is not None for mark, call in module_marks(tree)):
+        return []
+    tests = collected_tests(tree)
+    shadowed = _shadowed(tests)
+    found: list[CollectedTest] = []
+    for test in tests:
+        held = marks(test.function.decorator_list)
+        if test.owner is not None:
+            held += marks(test.owner.decorator_list) + _pytestmark(test.owner.body)
+        if id(test.function) not in shadowed and not any(
+            mark == name and call is not None for mark, call in held
+        ):
+            found.append(test)
+    return found
+
+
 def string_arguments(call: ast.Call) -> tuple[str, ...] | None:
     """The literal string arguments of a marker call, ``None`` when any is not one, when the call
     has keywords, or when it has no argument."""

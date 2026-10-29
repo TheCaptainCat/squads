@@ -35,6 +35,7 @@ async def _ids(invoke, *args: str) -> list[str]:
     return [item["id"] for item in json.loads(result.output)]
 
 
+@pytest.mark.covers("list")
 async def test_list_hides_closed_items_by_default(readable, invoke) -> None:
     assert await _list(invoke) == (0, ALL_OPEN)
 
@@ -63,6 +64,7 @@ async def test_type_keeps_one_type(readable, invoke) -> None:
     )
 
 
+@pytest.mark.covers("list", "--type")
 async def test_type_refuses_an_unknown_type(readable, invoke) -> None:
     assert await _list(invoke, "--type", "ghost") == (
         1,
@@ -84,6 +86,7 @@ async def test_status_keeps_one_status_even_when_it_is_closed(readable, invoke) 
     )
 
 
+@pytest.mark.covers("list", "--status")
 async def test_status_refuses_an_unknown_status(readable, invoke) -> None:
     code, out = await _list(invoke, "--status", "Ghost")
     assert (code, out[0][:34]) == (1, "error: unknown status 'Ghost' (one")
@@ -101,10 +104,12 @@ async def test_parent_keeps_the_direct_children(readable, invoke) -> None:
     )
 
 
+@pytest.mark.covers("list", "--parent")
 async def test_parent_accepts_the_full_id(readable, invoke) -> None:
     assert await _ids(invoke, "--parent", "FEAT-2") == ["TASK-3", "TASK-4"]
 
 
+@pytest.mark.covers("list", "--parent")
 async def test_parent_refuses_a_number_no_item_has(readable, invoke) -> None:
     assert await _list(invoke, "--parent", "99") == (
         1,
@@ -135,6 +140,7 @@ async def test_assignee_keeps_the_items_assigned_to_the_slug(readable, invoke) -
     )
 
 
+@pytest.mark.covers("list", "--assignee")
 async def test_assignee_refuses_a_slug_no_roster_entry_has(readable, invoke) -> None:
     assert await _list(invoke, "--assignee", "ghost") == (
         1,
@@ -153,6 +159,7 @@ async def test_category_keeps_one_category(readable, invoke) -> None:
     )
 
 
+@pytest.mark.covers("list", "--category")
 async def test_category_refuses_an_unknown_category(readable, invoke) -> None:
     assert await _list(invoke, "--category", "ghost") == (
         1,
@@ -171,6 +178,7 @@ async def test_priority_keeps_the_items_of_exactly_that_priority(readable, invok
     )
 
 
+@pytest.mark.covers("list", "--priority")
 async def test_priority_refuses_an_unknown_code(readable, invoke) -> None:
     assert await _list(invoke, "--priority", "ghost") == (
         1,
@@ -190,6 +198,7 @@ async def test_min_priority_keeps_the_items_at_least_that_urgent(readable, invok
     )
 
 
+@pytest.mark.covers("list", "--min-priority")
 async def test_min_priority_refuses_an_unknown_code(readable, invoke) -> None:
     assert await _list(invoke, "--min-priority", "ghost") == (
         1,
@@ -208,6 +217,7 @@ async def test_badge_keeps_the_items_whose_field_has_the_value(readable, invoke)
     )
 
 
+@pytest.mark.covers("list", "--badge")
 async def test_badge_refuses_a_pair_without_a_value(readable, invoke) -> None:
     assert await _list(invoke, "--badge", "priority") == (
         1,
@@ -227,6 +237,7 @@ async def test_min_badge_keeps_the_items_at_least_that_rank(readable, invoke) ->
     )
 
 
+@pytest.mark.covers("list", "--min-badge")
 async def test_min_badge_refuses_a_pair_without_a_value(readable, invoke) -> None:
     assert await _list(invoke, "--min-badge", "priority") == (
         1,
@@ -304,11 +315,13 @@ async def test_json_prints_one_object_per_item(readable, invoke) -> None:
 # --- interactions ---------------------------------------------------------------------------
 
 
+@pytest.mark.covers("list", "--type")
 async def test_a_closed_item_is_hidden_with_a_hint_until_all_is_given(readable, invoke) -> None:
     hidden = await invoke(["list", "--type", "bug"])
     assert (hidden.exit_code, hidden.output) == (0, "1 closed items hidden — use --all\n")
 
 
+@pytest.mark.covers("list", "--compact", "--json")
 async def test_compact_refuses_json(readable, invoke) -> None:
     assert await _list(invoke, "--compact", "--json") == (
         2,
@@ -322,6 +335,7 @@ async def test_compact_refuses_json(readable, invoke) -> None:
     )
 
 
+@pytest.mark.covers("list", "--priority", "--min-priority")
 async def test_priority_and_min_priority_both_apply_to_one_listing(readable, invoke) -> None:
     both = await _list(invoke, "--priority", "urgent", "--min-priority", "high")
     assert both == (
@@ -335,6 +349,7 @@ async def test_priority_and_min_priority_both_apply_to_one_listing(readable, inv
     assert below == (0, ["no items"])
 
 
+@pytest.mark.covers("list", "--badge", "--min-badge")
 async def test_badge_and_min_badge_both_apply_to_one_listing(readable, invoke) -> None:
     both = await _list(invoke, "--badge", "priority=urgent", "--min-badge", "priority=high")
     assert both == (
@@ -348,6 +363,7 @@ async def test_badge_and_min_badge_both_apply_to_one_listing(readable, invoke) -
     assert below == (0, ["no items"])
 
 
+@pytest.mark.covers("list", "--sort", "--json")
 async def test_sort_decides_the_order_of_the_json_array(readable, invoke) -> None:
     assert await _ids(invoke, "--sort", "priority") == [
         "TASK-3",

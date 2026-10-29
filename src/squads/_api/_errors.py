@@ -4,12 +4,14 @@ from pydantic import BaseModel
 
 from squads._errors import (
     AlreadyInitializedError,
+    CommentNotFoundError,
     IndexLockTimeoutError,
     InvalidTransitionError,
     ItemNotFoundError,
     RoleNotFoundError,
     SchemaGateError,
     SquadsError,
+    SubentityNotFoundError,
 )
 
 #: The error type of a ``SquadsError`` no row of :data:`ERROR_TYPES` names.
@@ -21,6 +23,8 @@ INTERNAL = "internal"
 ERROR_TYPES: tuple[tuple[type[SquadsError], str], ...] = (
     (ItemNotFoundError, "not_found"),
     (RoleNotFoundError, "not_found"),
+    (CommentNotFoundError, "not_found"),
+    (SubentityNotFoundError, "not_found"),
     (InvalidTransitionError, "conflict"),
     (AlreadyInitializedError, "conflict"),
     (SchemaGateError, "conflict"),

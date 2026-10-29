@@ -113,9 +113,10 @@ def _playbook_source(source: PlaybookSource) -> PlaybookView:
     )
 
 
-async def _self_source(svc: Service, item: Item) -> ItemShowWithSpec:
-    """The item as ``sq show --json`` prints it, plus the spec's identity."""
-    shown = (await svc.show_item(ItemShowRequest(id=item.id))).data
+async def _self_source(svc: Service, item: Item, view_name: str) -> ItemShowWithSpec:
+    """The item as ``sq show --json`` prints it, with the view's own tag left in its body, plus
+    the spec's identity."""
+    shown = (await svc.show_item(ItemShowRequest(id=item.id), keep_view=view_name)).data
     canonical = json.dumps(
         svc.spec.model_dump(mode="json"), ensure_ascii=False, separators=(",", ":")
     )
@@ -137,8 +138,9 @@ async def view_source(svc: Service, view_name: str, item_id: str) -> ViewSource:
             kind = view.source.name or ""
             return await _subentity_source(svc, kind, cast("list[SubEntity]", result))
         case "role":
-            return (await svc.show_role_entry(RosterAddress(addr=item.slug))).data
+            address = RosterAddress(addr=item.slug)
+            return (await svc.show_role_entry(address, keep_view=view_name)).data
         case "playbook":
             return _playbook_source(cast(PlaybookSource, result))
         case _:
-            return await _self_source(svc, item)
+            return await _self_source(svc, item, view_name)

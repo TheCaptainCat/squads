@@ -12,7 +12,7 @@ from pathlib import Path
 from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
-from squads._errors import InvalidTransitionError, SquadsError
+from squads._errors import InvalidTransitionError, SquadsError, SubentityNotFoundError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import ensure_no_skew
 from squads._models import _markers as markers
@@ -710,4 +710,4 @@ class SubentitiesMixin(ServiceCore):
         for s in item.subentities:
             if s.local_id == local_id:
                 return s
-        raise SquadsError(f"no {kind} {local_id} in {item.id}")
+        raise SubentityNotFoundError(f"no {kind} {local_id} in {item.id}")

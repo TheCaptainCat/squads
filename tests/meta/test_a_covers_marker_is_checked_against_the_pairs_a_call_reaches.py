@@ -1,5 +1,7 @@
 """The pairs one argument list reaches on the live tree: what the ``invoke`` fixture compares a
-test's ``covers`` markers with."""
+test's ``covers`` markers with. A leaf called with none of its own parameters reaches its bare
+pair ``(key, None)``, and only then; a required parameter it leaves out is reached as the one
+Click's missing-parameter error names."""
 
 import pytest
 
@@ -15,7 +17,6 @@ CASES: dict[str, Case] = {
             ("", "-C"),
             ("<type>", "N"),
             ("<type> show", "--json"),
-            ("<type> show", None),
         },
     ),
     "a sub-entity verb with its address": (
@@ -24,7 +25,6 @@ CASES: dict[str, Case] = {
             ("<type>", "N"),
             ("<type> <kind>", "LOCAL-ID"),
             ("<type> <kind> update", "--story"),
-            ("<type> <kind> update", None),
         },
     ),
     "an item comment group given a message": (
@@ -37,23 +37,33 @@ CASES: dict[str, Case] = {
             ("role", "<slug|id|n>"),
             ("<host> comment", "HASH"),
             ("<host> comment edit", "--message"),
-            ("<host> comment edit", None),
         },
     ),
-    "a create option a type adds": (
+    "a create option a type adds, the author left out": (
         ["create", "bug", "T", "--severity", "S1"],
-        {("create <type>", "TITLE"), ("create <type>", "--severity"), ("create <type>", None)},
+        {
+            ("create <type>", "TITLE"),
+            ("create <type>", "--severity"),
+            ("create <type>", "--author"),
+        },
     ),
     "a parameterless leaf": (["sync"], {("sync", None)}),
-    "a leaf with its argument missing": (["search"], {("search", None)}),
-    "a built create with its title missing": (["create", "task"], {("create <type>", None)}),
+    "a leaf that has parameters, called with none": (
+        ["task", "3", "show"],
+        {("<type>", "N"), ("<type> show", None)},
+    ),
+    "a leaf with its argument missing": (["search"], {("search", None), ("search", "TEXT")}),
+    "a built create with its title missing": (
+        ["create", "task"],
+        {("create <type>", None), ("create <type>", "TITLE")},
+    ),
     "a hand-written create keeps its own key": (
         ["create", "guide", "G", "--tag", "ops"],
-        {("create guide", "TITLE"), ("create guide", "--tag"), ("create guide", None)},
+        {("create guide", "TITLE"), ("create guide", "--tag"), ("create guide", "--author")},
     ),
     "a hidden create alias of the hand-written create": (
         ["create", "g", "G"],
-        {("create guide", "TITLE"), ("create guide", None)},
+        {("create guide", "TITLE"), ("create guide", "--author")},
     ),
     "a group with its address missing": (["task"], set()),
     "a roster comment with the hash missing is read as a slug": (
@@ -74,16 +84,15 @@ CASES: dict[str, Case] = {
             ("skill", "<slug|id|n>"),
             ("role status", "STATUS"),
             ("role status", "--unlink"),
-            ("role status", None),
         },
     ),
     "a roster comments listing folds onto the host key": (
         ["operator", "op-a", "comments", "--json"],
-        {("operator", "<slug|id|n>"), ("<host> comments", "--json"), ("<host> comments", None)},
+        {("operator", "<slug|id|n>"), ("<host> comments", "--json")},
     ),
     "a short alias is its long flag": (
         ["list", "-t", "task"],
-        {("list", "--type"), ("list", None)},
+        {("list", "--type")},
     ),
 }
 
@@ -107,3 +116,9 @@ def test_a_level_that_does_not_parse_keeps_the_pairs_of_the_levels_before_it() -
 
 def test_an_unknown_command_reaches_nothing_beyond_the_root() -> None:
     assert reached_pairs(["nonesuch"], bundled_spec()) == set()
+
+
+def test_a_failed_call_reaches_the_options_its_output_names_by_any_flag() -> None:
+    refusal = "error: provide the body via -m (repeatable); --as-slug and x-file are not flags\n"
+    reached = reached_pairs(["board", "post", "--until", "2999-01-01"], bundled_spec(), refusal)
+    assert reached == {("board post", "--until"), ("board post", "--message")}

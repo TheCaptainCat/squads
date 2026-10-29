@@ -416,12 +416,14 @@ def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole s
     catalog: CatalogSource,
     squad_dir_display: str | None,
     working_language: WorkingLanguage,
+    keep: str | None = None,
 ) -> str:
     """*text* with every well-formed ``sq:view:<name>`` tag replaced by that view's rendered
-    output, in place. A disabled tag is removed the way ``strip_marker_lines`` removes a
-    marker, never left as a blank line; an unresolvable enabled tag stays literal. Read-only,
-    and pads a rendered view with a blank line against neighbouring prose. A view that declares a
-    transform runs it once per tag; a failing transform raises rather than leaving the tag."""
+    output, in place, except the tag of the view *keep* names, which stays as written. A disabled
+    tag is removed the way ``strip_marker_lines`` removes a marker, never left as a blank line; an
+    unresolvable enabled tag stays literal. Read-only, and pads a rendered view with a blank line
+    against neighbouring prose. A view that declares a transform runs it once per tag; a failing
+    transform raises rather than leaving the tag."""
     text, _ = strip_marker_lines(text, _keep_unless_disabled_view_tag)
     loader = TransformLoader(squad_dir)
     segments: list[tuple[str, str]] = []
@@ -436,6 +438,8 @@ def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole s
         if parts is None:
             continue  # not a view tag — left literal
         name = parts.name
+        if name == keep:
+            continue  # the view being resolved: its own input never holds its output
         reason = resolve_view_target(name, item.type, spec, playbook, from_squad=squad_dir)
         if reason is not None:
             continue  # undeclared, template missing, or source inapplicable — left literal

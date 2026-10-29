@@ -1,11 +1,11 @@
 """The item operations: an item's show, a listing of items and a status move, each answering
 with its DTO."""
 
+from squads._api._dto._item_writes import ItemWritten
 from squads._api._dto._items import (
     ItemAddress,
     ItemList,
     ItemListRequest,
-    ItemRow,
     ItemShow,
     ItemShowRequest,
     ItemStatusRequest,
@@ -63,8 +63,11 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
             f"{shown} is {item.id} ({item.type}), not {article(address.type)} {address.type}"
         )
 
-    async def show_item(self, req: ItemShowRequest) -> Response[ItemShow]:
-        """The item in full, with a warning when more than one file carries its id."""
+    async def show_item(
+        self, req: ItemShowRequest, *, keep_view: str | None = None
+    ) -> Response[ItemShow]:
+        """The item in full, with a warning when more than one file carries its id; the tag of
+        the view *keep_view* names stays unexpanded in the displayed body."""
         item = await self.addressed_item(req)
         warnings: list[str] = []
         duplicate = await self.duplicate_id_error(item)
@@ -88,7 +91,7 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
                 "discussion": comment_dtos(await self.comments(item.id)),
                 "badges": resolve_badges(self.spec, item.type, item.badge_value),
                 "display": show_display(
-                    item, kind, await self.read_body(item.id), self.spec, names
+                    item, kind, await self.read_body(item.id, keep_view=keep_view), self.spec, names
                 ),
             }
         )
@@ -120,10 +123,10 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
         rows = [item_row(i, self.spec, names) for i in sort_by_badge(items, req.sort, self.spec)]
         return Response(data=ItemList(items=rows, columns=list(LIST_COLUMNS), hidden=hidden))
 
-    async def move_item_status(self, req: ItemStatusRequest) -> Response[ItemRow]:
+    async def move_item_status(self, req: ItemStatusRequest) -> Response[ItemWritten]:
         """Move the item to the requested status, as the declared actor; answers its new row."""
         item = await self.addressed_item(req)
         await self.adopt_declared_actor()
         moved = await self.set_status(item.id, req.status, force=req.force)
         names = participant_names(await self.store.load())
-        return Response(data=item_row(moved, self.spec, names))
+        return Response(data=ItemWritten(entry=item_row(moved, self.spec, names)))

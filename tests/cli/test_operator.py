@@ -1,12 +1,12 @@
 """`sq operator …`: registering people, listing them, and the addressed verbs (show, update,
 status, remove, body and the comment listing)."""
 
-import json
 from typing import Any
 
 import pytest
 
-from tests.cli._roster import actors_of, body_of, forced_terminal, read_json, usage_error
+from tests.cli._output import entry_text, printed, read_json
+from tests.cli._roster import actors_of, body_of, forced_terminal, usage_error
 
 pytestmark = pytest.mark.anyio
 
@@ -63,6 +63,7 @@ async def test_add_refuses_a_slug_an_operator_already_has(project, invoke) -> No
     )
 
 
+@pytest.mark.covers("operator add", "NAME")
 async def test_add_needs_a_name(project, invoke) -> None:
     result = await invoke(["operator", "add"])
     assert (result.exit_code, result.output) == (
@@ -284,6 +285,7 @@ async def test_update_pronouns_sets_them_and_a_blank_value_clears_them(project, 
     assert (await _operator(invoke))["pronouns"] is None
 
 
+@pytest.mark.covers("operator update")
 async def test_update_needs_a_field_to_change(project, invoke) -> None:
     await _add_alice(invoke)
     result = await invoke(["operator", "op-alice", "update"])
@@ -321,6 +323,7 @@ async def test_update_as_refuses_a_slug_that_is_not_registered(project, invoke) 
 # ---------------------------------------------------------------------------------- remove
 
 
+@pytest.mark.covers("role remove", "--purge")
 async def test_remove_purge_deletes_the_operator_and_drops_them_from_the_roster(
     project, invoke
 ) -> None:
@@ -334,6 +337,7 @@ async def test_remove_purge_deletes_the_operator_and_drops_them_from_the_roster(
 # ------------------------------------------------------------------------------- comments
 
 
+@pytest.mark.covers("operator", "<slug|id|n>")
 async def test_comments_refuses_an_unknown_operator(project, invoke) -> None:
     result = await invoke(["operator", "op-nobody", "comments", "--json"])
     assert (result.exit_code, result.output) == (
@@ -345,6 +349,7 @@ async def test_comments_refuses_an_unknown_operator(project, invoke) -> None:
 # --------------------------------------------------------------------- shared verbs' address
 
 
+@pytest.mark.covers("operator", "<slug|id|n>")
 async def test_body_status_and_remove_act_on_the_operator_they_address(project, invoke) -> None:
     """The shared roster verbs resolve the address of an operator, never another roster entry."""
     await _add_alice(invoke)
@@ -365,28 +370,12 @@ async def test_body_status_and_remove_act_on_the_operator_they_address(project, 
 # ---------------------------------------------------------------------------- JSON of the writes
 
 
-async def _printed(invoke, args: list[str]) -> str:
-    """What a command that succeeds prints, compared as text so the key order is held too."""
-    result = await invoke(args)
-    assert result.exit_code == 0, result.output
-    return result.output
-
-
-def _text(document: object) -> str:
-    return json.dumps(document, indent=2) + "\n"
-
-
-def _entry(row: object) -> str:
-    """A write that reports nothing beside its entry: the entry under `entry`."""
-    return _text({"entry": row})
-
-
 @pytest.mark.covers("operator add", "--json")
 async def test_add_json_prints_the_operator_it_registered(project, invoke) -> None:
-    printed = await _printed(
+    output = await printed(
         invoke, ["operator", "add", "Alice Tester", "--pronouns", "she/her", "--json"]
     )
-    assert printed == _entry(
+    assert output == entry_text(
         {
             "id": "OP-2",
             "slug": "op-alice",
@@ -401,10 +390,10 @@ async def test_add_json_prints_the_operator_it_registered(project, invoke) -> No
 @pytest.mark.covers("operator update", "--json")
 async def test_update_json_prints_the_operator_after_the_update(project, invoke) -> None:
     await _add_alice(invoke)
-    printed = await _printed(
+    output = await printed(
         invoke, ["operator", "op-alice", "update", "--title", "Alice T", "--json"]
     )
-    assert printed == _entry(
+    assert output == entry_text(
         {
             "id": "OP-2",
             "slug": "op-alice",

@@ -5,9 +5,15 @@ from typing import Any
 
 import pytest
 
-from tests.cli._populated import FEATURE, REVIEW, TASK
+from tests.cli._populated import FEATURE, REVIEW, TASK, init_populated
 
 pytestmark = pytest.mark.anyio
+
+
+@pytest.fixture
+def populated_project(copy_squad):
+    """The squad the CLI tests' `populated_project` fixture copies."""
+    return copy_squad("populated", init_populated)
 
 
 async def _show(invoke, item_type: str, number: int) -> dict[str, Any]:

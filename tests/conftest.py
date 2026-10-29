@@ -177,18 +177,21 @@ def _covers_markers_need_invoke(request: pytest.FixtureRequest):  # pyright: ign
 
 @pytest.fixture
 def invoke(request: pytest.FixtureRequest, runner: CliRunner):
-    """`runner.invoke` on a worker thread, so an async test can call the CLI, with a fresh
-    template cache before each call.
+    """`runner.invoke` on a worker thread with a fresh template cache, so an async test can call
+    the CLI.
 
-    Each call's argument list is resolved against the live tree, and at teardown the test fails
-    when a pair its `covers` markers declare was not named by any call.
+    Each call records the pairs it reaches (`reached_pairs`, given a failed call's output too);
+    at teardown the test fails when a pair its `covers` markers declare was not reached.
     """
     reached: set[cli_surface.Pair] = set()
 
-    def _invoke(args: list[str], **kw: Any) -> Any:
+    async def _invoke(args: list[str], **kw: Any) -> Any:
         reached.update(cli_surface.reached_pairs(args, bundled_spec()))
         _env_cache.clear()
-        return _aio.to_thread(functools.partial(runner.invoke, app, args, **kw))
+        result = await _aio.to_thread(functools.partial(runner.invoke, app, args, **kw))
+        if result.exit_code != 0:
+            reached.update(cli_surface.reached_pairs(args, bundled_spec(), result.output))
+        return result
 
     yield _invoke
     missing = _declared_pairs(request.node) - reached

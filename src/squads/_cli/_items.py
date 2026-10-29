@@ -1,8 +1,7 @@
 """Resource-oriented item commands: ``sq <type> <num> <verb> …`` (sub-entities nest one level).
 
 :func:`build_item_app` builds one Typer group per work-item type. The group callback puts the
-item's address in the Click context: parsed only, for a verb whose operation checks the item, and
-resolved against the store (validating the type) for the others, which wrap a ``svc.*`` method.
+item's address in the Click context, parsed only: each verb's operation checks the item.
 A type that declares a sub-entity kind also gets ``add-<kind>``, a ``<plural>`` list verb and a
 nested ``<kind> <n> <verb>`` subgroup, built generically from the resolved ``SubentityKindSpec``
 (see :func:`_register_subentity`).
@@ -12,7 +11,6 @@ nested ``<kind> <n> <verb>`` subgroup, built generically from the resolved ``Sub
 # pyright: reportUnusedFunction=false
 
 import inspect
-import json
 import textwrap
 from collections.abc import Callable, Sized
 from typing import Any, cast
@@ -21,81 +19,122 @@ import typer
 import typer._click as _click  # underscore is upstream's own private module path, not ours
 import typer.core
 import typer.main
+from pydantic import BaseModel
+from rich.console import Console
 
 import squads._cli._common as common
 from squads import _badges as badges
 from squads._api import _ops as ops
+from squads._api._api import Operation
+from squads._api._dto._comment_writes import (
+    SubentityCommentAddRequest,
+    SubentityCommentEditRequest,
+    SubentityCommentRequest,
+)
+from squads._api._dto._item_writes import (
+    ItemBodyRequest,
+    ItemRefRemoveRequest,
+    ItemRefRequest,
+    ItemRemoveRequest,
+    ItemRetypeRequest,
+    ItemUpdateRequest,
+    ItemViewChanged,
+    ItemViewRequest,
+    SubentityAddRequest,
+    SubentityBodyRequest,
+    SubentityRemoveRequest,
+    SubentityUpdated,
+    SubentityUpdateRequest,
+)
 from squads._api._dto._items import ItemShowRequest, ItemStatusRequest
 from squads._api._dto._refs import RefsRequest
 from squads._api._dto._subentities import SubentitiesRequest, SubentityRequest
 from squads._cli import _calls as calls
 from squads._cli._common import (
     console,
-    e,
-    get_service,
     handle_errors,
     parse_badge_code,
     parse_status,
     parse_type,
-    print_block,
-    print_json_clean,
     resolve_body,
     resolve_body_optional,
-    resolve_item_id_any,
-    resolve_item_id_typed,
     resolve_local_id,
-    resolve_slug_or_raise,
-    view_disable_result_message,
 )
 from squads._cli._render._items import render_show, render_status
 from squads._cli._render._refs import render_refs
+from squads._cli._render._roster import render_body_written, render_view_change
 from squads._cli._render._subentities import render_subentities, render_subentity
-from squads._errors import SquadsError
-from squads._models._item import split_ref
-from squads._services._service import Service
-from squads._workflow._models import Field, WorkflowSpec
-
-#: The verbs whose operation checks the addressed item, so the group only parses the number.
-_VERBS_ON_OPERATIONS: frozenset[str] = frozenset(
-    {
-        "comments",
-        "refs",
-        "show",
-        "status",
-    }
+from squads._cli._render._writes import (
+    render_item_removed,
+    render_ref_added,
+    render_ref_removed,
+    render_retyped,
+    render_subentity_added,
+    render_subentity_removed,
+    render_updated,
 )
-
-#: The sub-entity verbs whose operation checks the addressed item and sub-entity.
-_SUBENTITY_VERBS_ON_OPERATIONS: frozenset[str] = frozenset({"show"})
-
-
-def _subentity_verbs(item_type: str) -> frozenset[str]:
-    """The live sub-entity kind's plural listing and kind group of *item_type*, which parse the
-    item's address only; none when the type hosts no kind or the spec cannot be read."""
-    try:
-        spec = common.get_active_spec()
-        kind = spec.item_subentity_kind(item_type)
-        return frozenset() if kind is None else frozenset({spec.subentity_plural(kind), kind})
-    except Exception:  # pylint: disable=broad-except
-        return frozenset()
-
-
-@common.command
-async def _resolve_in_store(ctx: typer.Context, num: str, item_type: str) -> None:
-    """Put the id of the *item_type* numbered *num* on *ctx*, checked against the store."""
-    svc = get_service()
-    ctx.obj = await common.address_obj(ctx, lambda: resolve_item_id_typed(num, item_type, svc))
-
-
-def _id(ctx: typer.Context) -> str:
-    return ctx.obj["id"]
+from squads._errors import SquadsError
+from squads._workflow._models import Field, WorkflowSpec
 
 
 def _address(ctx: typer.Context) -> dict[str, str]:
-    """The address the group put on *ctx*: the id, with the type and the token as typed when the
-    group only parsed it, the id alone when it resolved it against the store."""
-    typed = {key: ctx.obj[key] for key in ("type", "address") if key in ctx.obj}
-    return {"id": ctx.obj["id"], **typed}
+    """The parsed address the group put on *ctx*."""
+    return {key: ctx.obj[key] for key in ("id", "type", "address")}
+
+
+def _finish[Req: BaseModel, Res](
+    op: Operation[Req, Res],
+    request: Req,
+    json_out: bool,
+    render: Callable[[Res, Console], None],
+) -> None:
+    """Make the command's one call, then print ``data`` with *json_out*, else *render* it."""
+    response = calls.call(op, request)
+    if json_out:
+        calls.print_json(op, response)
+    else:
+        calls.print_warnings(response)
+        render(response.data, console)
+    calls.finish(response, json_out=json_out)
+
+
+def _view_change(
+    ctx: typer.Context,
+    op: Operation[ItemViewRequest, ItemViewChanged],
+    name: str,
+    as_: str | None,
+    *,
+    json_out: bool,
+    enable: bool,
+) -> None:
+    common.declare_actor(as_)
+
+    def render(changed: ItemViewChanged, console: Console) -> None:
+        render_view_change(
+            changed.entry.id,
+            changed.view,
+            console,
+            enable=enable,
+            changed=changed.changed,
+            was_present=changed.was_present,
+        )
+
+    _finish(op, ItemViewRequest(**_address(ctx), name=name), json_out, render)
+
+
+def _subentity_comments(kind: str) -> common.CommentHost:
+    """The discussion of a sub-entity of *kind*."""
+    return common.CommentHost(
+        add=ops.SUBENTITY_COMMENT_ADD,
+        show=ops.SUBENTITY_COMMENT_SHOW,
+        edit=ops.SUBENTITY_COMMENT_EDIT,
+        removal=ops.SUBENTITY_COMMENT_REMOVAL,
+        remove=ops.SUBENTITY_COMMENT_REMOVE,
+        add_request=SubentityCommentAddRequest,
+        hash_request=SubentityCommentRequest,
+        edit_request=SubentityCommentEditRequest,
+        address=lambda ctx: {**_address(ctx), "kind": kind, "local": ctx.obj["local"]},
+    )
 
 
 def _kw_str(kwargs: dict[str, object], key: str) -> str | None:
@@ -127,16 +166,6 @@ def _anything_asked(*values: object) -> bool:
         bool(cast(Sized, v)) if isinstance(v, list | dict) else v not in (None, False)
         for v in values
     )
-
-
-def _settle_clear_assignee(
-    current: str | None, clear_assignee: bool, *others: object
-) -> tuple[bool, bool]:
-    """Drop `--clear-assignee` when the target has no assignee (*current*), and report whether
-    nothing else was asked for either (*others*: the remaining `update` options)."""
-    if not clear_assignee or current is not None:
-        return clear_assignee, False
-    return False, not _anything_asked(*others)
 
 
 def _guard_update(*, has_any: bool, assignee: str | None, clear_assignee: bool) -> None:
@@ -299,17 +328,13 @@ def build_item_app(
         ctx: typer.Context,
         num: str = typer.Argument(..., metavar="N", help=f"Number or ID of the {item_type}."),
     ):
-        verb = ctx.invoked_subcommand
-        if verb in _VERBS_ON_OPERATIONS or verb in _subentity_verbs(item_type):
-            ctx.obj = common.parsed_address(ctx, lambda: common.item_address(num, item_type))
-        else:
-            _resolve_in_store(ctx, num, item_type)
+        ctx.obj = common.parsed_address(ctx, lambda: common.item_address(num, item_type))
 
     _cmd_show(item)
     _cmd_update(item, item_type, spec)
     _cmd_status(item)
     _cmd_body(item)
-    common.register_comment_verbs(item, _id)
+    common.register_comment_verbs(item, common.ITEM_COMMENTS)
     _cmd_refs(item)
     _cmd_view(item)
 
@@ -369,8 +394,8 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
                 p.help = text  # type: ignore[attr-defined]
 
     @item.command("update", cls=common.spec_aware_command_cls(_refresh_priority_help))
-    @common.command
-    async def update(  # noqa: PLR0913 — the one metadata entry point
+    @handle_errors
+    def update(  # noqa: PLR0913 — the one metadata entry point
         ctx: typer.Context,
         title: str | None = typer.Option(None, "--title", help="New title."),
         desc: str | None = common.desc_option(None),
@@ -394,6 +419,9 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
         ),
         unset: list[str] = typer.Option(None, "--unset", help="Attribute to remove (repeatable)."),
         as_: str | None = common.edit_as_option(),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the item's row after the update."
+        ),
     ):
         """Change the item's title, status, parent, assignee, labels or attributes."""
         # `is not None`, not truthiness: `--parent ""` is a supplied value, and a truth test
@@ -410,8 +438,6 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
             if not sep:
                 raise SquadsError(f"--set expects key=value, got {pair!r}")
             set_attributes[key.strip()] = value
-        svc = get_service()
-        await common.apply_edit_actor(as_, svc)
         others = (
             title, desc, author, status, parent, no_parent, priority, no_priority,
             add_label, rm_label, set_, unset,
@@ -421,37 +447,28 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
             assignee=assignee,
             clear_assignee=clear_assignee,
         )
-        clear_assignee, nothing_to_change = _settle_clear_assignee(
-            (await svc.get(_id(ctx))).assignee, clear_assignee, *others
-        )
-        if nothing_to_change:
-            console.print(f"{_id(ctx)} has no assignee to clear")
-            return
-        validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
-        validated_author = await resolve_slug_or_raise(author, svc) if author else None
-        resolved_parent = await resolve_item_id_any(parent, svc) if parent is not None else None
-        it = await svc.update(
-            _id(ctx),
+        common.declare_actor(as_)
+        request = ItemUpdateRequest(
+            **_address(ctx),
             title=title,
             description=desc,
-            assignee=validated_assignee,
-            clear_assignee=clear_assignee,
-            # No pre-parse: the collection `priority` binds is per-type and the service's
-            # `_check_priority` resolves it from this item's own declared field. See the
-            # matching note in `_cli/_create.py`.
-            priority=priority,
-            clear_priority=no_priority,
-            add_labels=add_label or None,
-            rm_labels=rm_label or None,
-            author=validated_author,
+            author=author,
             status=parse_status(status) if status else None,
             force=force,
-            parent=resolved_parent,
+            parent=parent,
             clear_parent=no_parent,
-            set_attributes=set_attributes or None,
-            unset_attributes=unset or None,
+            assignee=assignee,
+            clear_assignee=clear_assignee,
+            # No pre-parse: the collection `priority` binds is per-type, resolved by the operation
+            # from this item's own declared field.
+            priority=priority,
+            clear_priority=no_priority,
+            add_labels=add_label or [],
+            rm_labels=rm_label or [],
+            set_attributes=set_attributes,
+            unset_attributes=unset or [],
         )
-        console.print(f"updated {it.id}  [dim]{it.path}[/dim]")
+        _finish(ops.ITEM_UPDATE, request, json_out, render_updated)
 
 
 def _cmd_status(item: typer.Typer) -> None:
@@ -474,20 +491,23 @@ def _cmd_status(item: typer.Typer) -> None:
             calls.print_json(ops.ITEM_STATUS, response)
         else:
             calls.print_warnings(response)
-            render_status(response.data, console)
+            render_status(response.data.entry, console)
         calls.finish(response, json_out=json_out)
 
 
 def _cmd_body(item: typer.Typer) -> None:
     @item.command("body")
-    @common.command
-    async def body(
+    @handle_errors
+    def body(
         ctx: typer.Context,
         message: list[str] = common.message_option(),
         file: str | None = common.file_option(),
         append: bool = common.append_option(),
         force: bool = common.replace_body_option(),
         as_: str | None = common.edit_as_option(),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the item's row after the write."
+        ),
     ):
         """Set or append to the item's body.
 
@@ -495,18 +515,21 @@ def _cmd_body(item: typer.Typer) -> None:
         refusal names what would be lost and writes nothing, so a bare `body` is a
         safe check. A first write over the template just works.
         """
-        svc = get_service()
-        await common.apply_edit_actor(as_, svc)
-        await svc.set_body(
-            _id(ctx), resolve_body(message or None, file), append=append, force=force
+        text = resolve_body(message or None, file)
+        common.declare_actor(as_)
+        request = ItemBodyRequest(**_address(ctx), text=text, append=append, force=force)
+        _finish(
+            ops.ITEM_BODY,
+            request,
+            json_out,
+            lambda written, console: render_body_written(written.entry.id, console, append=append),
         )
-        console.print(f"{_id(ctx)}: body {'appended' if append else 'set'}")
 
 
 def _cmd_retype(item: typer.Typer) -> None:
     @item.command("retype")
-    @common.command
-    async def retype(
+    @handle_errors
+    def retype(
         ctx: typer.Context,
         new_type: str = typer.Argument(
             ...,
@@ -517,6 +540,9 @@ def _cmd_retype(item: typer.Typer) -> None:
             ),
         ),
         as_: str | None = common.edit_as_option(),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the item's row under its new type."
+        ),
     ):
         """Reclassify this item to a different type, keeping its number and body.
 
@@ -529,27 +555,15 @@ def _cmd_retype(item: typer.Typer) -> None:
         if target not in wt:
             work = ", ".join(sorted(wt))
             raise SquadsError(f"cannot retype to {new_type!r}; valid targets: {work}")
-        svc = get_service()
-        await common.apply_edit_actor(as_, svc)
-        res = await svc.retype(_id(ctx), target)
-        console.print(
-            f"retyped {e(res.old_id)} → [bold]{e(res.item.id)}[/bold]  [dim]{res.item.path}[/dim]"
-        )
-        if res.status_reset:
-            console.print(
-                f"  status reset: {e(res.old_status)} → [yellow]{e(res.item.status)}[/yellow]"
-                f" (workflows differ)"
-            )
-        else:
-            console.print(f"  status carried: [bold]{e(res.item.status)}[/bold]")
-        if res.rewritten:
-            console.print(f"  rewritten refs in {len(res.rewritten)} file(s)")
+        common.declare_actor(as_)
+        request = ItemRetypeRequest(**_address(ctx), target=target)
+        _finish(ops.ITEM_RETYPE, request, json_out, render_retyped)
 
 
 def _cmd_remove(item: typer.Typer) -> None:
     @item.command("remove")
-    @common.command
-    async def remove(
+    @handle_errors
+    def remove(
         ctx: typer.Context,
         force: bool = typer.Option(
             False,
@@ -569,25 +583,13 @@ def _cmd_remove(item: typer.Typer) -> None:
         it to the type's cancelled status instead (see `sq workflow lifecycles`);
         remove only items that should never have existed.
         """
-        item_id = _id(ctx)
-        svc = get_service()
-        await common.apply_edit_actor(as_, svc)
+        common.declare_actor(as_)
         if not yes:
-            typer.confirm(f"Remove {item_id}? This cannot be undone.", abort=True)
-        res = await svc.remove_work_item(item_id, force=force)
-        if json_out:
-            print_json_clean(
-                json.dumps(
-                    {
-                        "removed_id": res.removed_id,
-                        "severed_refs": res.severed_refs,
-                    }
-                )
+            common.confirm(
+                f"Remove {_address(ctx)['id']}? This cannot be undone.", json_out=json_out
             )
-            return
-        console.print(f"removed {e(res.removed_id)}")
-        if res.severed_refs:
-            console.print(f"  severed refs in: {', '.join(e(r) for r in res.severed_refs)}")
+        request = ItemRemoveRequest(**_address(ctx), force=force)
+        _finish(ops.ITEM_REMOVE, request, json_out, render_item_removed)
 
 
 def _cmd_refs(item: typer.Typer) -> None:
@@ -623,8 +625,8 @@ def _cmd_refs(item: typer.Typer) -> None:
     ref_app = typer.Typer(no_args_is_help=True, help="Add or remove the item's refs.")
 
     @ref_app.command("add")
-    @common.command
-    async def ref_add(
+    @handle_errors
+    def ref_add(
         ctx: typer.Context,
         target: str = typer.Argument(
             ..., help="Item ID or number to ref; `ID:kind` also sets the kind."
@@ -635,31 +637,29 @@ def _cmd_refs(item: typer.Typer) -> None:
             help="Ref kind (see `sq workflow ref-kinds`); without it, the default kind.",
         ),
         as_: str | None = common.edit_as_option(),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the item's row after the write."
+        ),
     ):
         """Add a ref from this item to TARGET."""
-        svc = get_service()
-        await common.apply_edit_actor(as_, svc)
-        # target may be a bare number, full ID, or ID:kind — resolve the ID part only
-        raw_id, embedded_kind = split_ref(target)
-        resolved_id = await resolve_item_id_any(raw_id, svc)
-        effective_kind = embedded_kind or kind or svc.spec.default_ref_kind()
-        await svc.add_ref(_id(ctx), resolved_id, kind=effective_kind)
-        console.print(f"{_id(ctx)} → {resolved_id} ([dim]{effective_kind}[/dim])")
+        common.declare_actor(as_)
+        request = ItemRefRequest(**_address(ctx), target=target, kind=kind)
+        _finish(ops.ITEM_REF_ADD, request, json_out, render_ref_added)
 
     @ref_app.command("rm")
-    @common.command
-    async def ref_rm(
+    @handle_errors
+    def ref_rm(
         ctx: typer.Context,
         target: str = typer.Argument(..., help="Item ID or number."),
         as_: str | None = common.edit_as_option(),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the item's row after the write."
+        ),
     ):
         """Remove this item's ref to TARGET."""
-        svc = get_service()
-        await common.apply_edit_actor(as_, svc)
-        raw_id, _ = split_ref(target)
-        resolved_id = await resolve_item_id_any(raw_id, svc)
-        await svc.rm_ref(_id(ctx), resolved_id)
-        console.print(f"removed {_id(ctx)} → {resolved_id}")
+        common.declare_actor(as_)
+        request = ItemRefRemoveRequest(**_address(ctx), target=target)
+        _finish(ops.ITEM_REF_RM, request, json_out, render_ref_removed)
 
     item.add_typer(ref_app, name="ref")
 
@@ -677,39 +677,32 @@ def _cmd_view(item: typer.Typer) -> None:
     )
 
     @view_app.command("add")
-    @common.command
-    async def view_add(
+    @handle_errors
+    def view_add(
         ctx: typer.Context,
         name: str = typer.Argument(..., help="Declared view name (see `sq workflow views`)."),
         as_: str | None = common.edit_as_option(),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the item's row after the change."
+        ),
     ):
         """Show a declared view in the item's body, or re-enable it."""
-        svc = get_service()
-        await common.apply_edit_actor(as_, svc)
-        placed = await svc.add_view(_id(ctx), name)
-        if placed:
-            console.print(f"{_id(ctx)}: view {e(name)} placed in sq:body")
-        else:
-            console.print(f"{_id(ctx)}: view {e(name)} already present, unchanged")
+        _view_change(ctx, ops.ITEM_VIEW_ADD, name, as_, json_out=json_out, enable=True)
 
     @view_app.command("disable")
-    @common.command
-    async def view_disable(
+    @handle_errors
+    def view_disable(
         ctx: typer.Context,
         name: str = typer.Argument(
             ..., help="View name; it need not be declared, so a dropped view can be turned off."
         ),
         as_: str | None = common.edit_as_option(),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the item's row after the change."
+        ),
     ):
         """Stop showing a view in the item's body; its tag stays, disabled."""
-        svc = get_service()
-        await common.apply_edit_actor(as_, svc)
-        item_id = _id(ctx)
-        was_present = await svc.view_tag_present(item_id, name)
-        disabled = await svc.disable_view(item_id, name)
-        console.print(
-            view_disable_result_message(item_id, name, was_present=was_present, changed=disabled)
-        )
+        _view_change(ctx, ops.ITEM_VIEW_DISABLE, name, as_, json_out=json_out, enable=False)
 
     item.add_typer(view_app, name="view")
 
@@ -787,32 +780,21 @@ def _register_subentity(item: typer.Typer, kind: str, spec: WorkflowSpec) -> Non
         ),
     ):
         assert ctx.parent is not None  # the parent item group always runs first
-        parent = ctx.parent.obj
-        verb = ctx.invoked_subcommand
-        if verb not in _SUBENTITY_VERBS_ON_OPERATIONS and "address" in parent:
-            # The item group only parsed the address; a verb not on its operation yet needs the
-            # item checked against the store first.
-            _resolve_in_store(cast(typer.Context, ctx.parent), parent["address"], parent["type"])
-            parent = ctx.parent.obj
-        ctx.obj = common.extend_obj(parent, local=resolve_local_id(n, kind))
+        ctx.obj = common.extend_obj(ctx.parent.obj, local=resolve_local_id(n, kind))
 
     _register_sub_verbs(sub, kind, spec)
     item.add_typer(sub, name=kind)
 
 
-def _resolve_add_fields(
-    svc: Service, kind: str, spec: WorkflowSpec, fields: list[Field], kwargs: dict[str, object]
-) -> dict[str, str]:
-    """One resolved+validated badge value per declared field, applying the field's own default
-    when the flag is omitted (every declared field resolves through the generic
-    ``SubEntity.set_badge_value`` store)."""
+def _given_fields(kind: str, spec: WorkflowSpec, kwargs: dict[str, object]) -> dict[str, str]:
+    """The badge code given for each declared field, checked against its collection; an omitted
+    field is left to the operation, which applies its default."""
     values: dict[str, str] = {}
-    for field in fields:
+    for field in spec.fields_for(kind):
         raw = _kw_str(kwargs, field.code)
-        resolved = raw or svc.field_default(kind, field.code)
-        if resolved:
+        if raw is not None:
             coll = badges.resolve_collection(kind, field.code, spec)
-            values[field.code] = parse_badge_code(coll, resolved, spec)
+            values[field.code] = parse_badge_code(coll, raw, spec)
     return values
 
 
@@ -833,12 +815,6 @@ def _deferred_to_params(kind: str, spec: WorkflowSpec) -> list[inspect.Parameter
             annotation=str | None,
         )
     ]
-
-
-async def _resolve_deferred_to(svc: Service, kwargs: dict[str, object]) -> str | None:
-    """The full ID behind ``--deferred-to``, or ``None`` when it was not given."""
-    token = _kw_str(kwargs, "deferred_to")
-    return await resolve_item_id_any(token, svc) if token else None
 
 
 def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
@@ -907,37 +883,30 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
         _edit_as_param(),
     ]
 
-    async def _add(**kwargs: object) -> None:
+    def _add(**kwargs: object) -> None:
         ctx = cast(typer.Context, kwargs["ctx"])
-        title = cast(str, kwargs["title"])
-        svc = get_service()
-        await common.apply_edit_actor(_kw_str(kwargs, "as_"), svc)
-        assignee = _kw_str(kwargs, "assignee")
-        validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
         story = _kw_str(kwargs, "story")
-        # Story-mapping semantics stay wired to the built-in "story" kind regardless of which
-        # kind declares maps_parent_story — a bounded built-in, not per-kind.
-        normalized_story = resolve_local_id(story, "story") if story else None
-        field_values = _resolve_add_fields(svc, kind, spec, fields, kwargs)
         status = _kw_str(kwargs, "status")
         message = _kw_list(kwargs, "message")
-        file = _kw_str(kwargs, "file")
-        res = await svc.add_block(
-            _id(ctx),
-            kind,
-            title,
-            story=normalized_story,
-            fields=field_values or None,
-            assignee=validated_assignee,
+        request = SubentityAddRequest(
+            **_address(ctx),
+            kind=kind,
+            title=cast(str, kwargs["title"]),
+            # Story-mapping semantics stay wired to the built-in "story" kind regardless of which
+            # kind declares maps_parent_story: a bounded built-in, not per-kind.
+            story=resolve_local_id(story, "story") if story else None,
+            fields=_given_fields(kind, spec, kwargs),
+            assignee=_kw_str(kwargs, "assignee"),
             status=parse_status(status) if status else None,
-            deferred_to=await _resolve_deferred_to(svc, kwargs),
-            body=resolve_body_optional(message or None, file),
+            deferred_to=_kw_str(kwargs, "deferred_to"),
+            body=resolve_body_optional(message or None, _kw_str(kwargs, "file")),
         )
-        print_block(_id(ctx), res, _kw_bool(kwargs, "json_out"))
+        common.declare_actor(_kw_str(kwargs, "as_"))
+        _finish(ops.SUBENTITY_ADD, request, _kw_bool(kwargs, "json_out"), render_subentity_added)
 
     _add.__doc__ = f"Scaffold {common.article(kind)} {kind} on this item."
     _add.__signature__ = inspect.Signature(params)  # pyright: ignore[reportFunctionMemberAccess]
-    item.command(f"add-{kind}")(common.command(_add))
+    item.command(f"add-{kind}")(handle_errors(_add))
 
 
 def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
@@ -945,9 +914,6 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
     (identically to ``add-<kind>``) + ``--story``/``--no-story`` iff maps_parent_story."""
     ks = spec.subentity_kinds[kind]
     fields = spec.fields_for(kind)
-
-    def ids(ctx: typer.Context) -> tuple[str, str]:
-        return ctx.obj["id"], ctx.obj["local"]
 
     params: list[inspect.Parameter] = [
         inspect.Parameter("ctx", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=typer.Context),
@@ -1003,27 +969,25 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             annotation=bool,
         ),
         _edit_as_param(),
+        inspect.Parameter(
+            "json_out",
+            inspect.Parameter.KEYWORD_ONLY,
+            default=typer.Option(
+                False, "--json", help=f"Print one JSON object: the {kind} after the update."
+            ),
+            annotation=bool,
+        ),
     ]
 
-    async def _update(**kwargs: object) -> None:
+    def _update(**kwargs: object) -> None:
         ctx = cast(typer.Context, kwargs["ctx"])
-        pid, lid = ids(ctx)
         title = _kw_str(kwargs, "title")
         story = _kw_str(kwargs, "story")
         no_story = _kw_bool(kwargs, "no_story")
         assignee = _kw_str(kwargs, "assignee")
         clear_assignee = _kw_bool(kwargs, "clear_assignee")
         status = _kw_str(kwargs, "status")
-        force = _kw_bool(kwargs, "force")
-
-        field_values: dict[str, str] = {}
-        for field in fields:
-            raw = _kw_str(kwargs, field.code)
-            if raw is None:
-                continue
-            coll = badges.resolve_collection(kind, field.code, spec)
-            field_values[field.code] = parse_badge_code(coll, raw, spec)
-
+        field_values = _given_fields(kind, spec, kwargs)
         if story and no_story:
             raise SquadsError("use --story or --no-story, not both")
         _guard_update(
@@ -1042,42 +1006,34 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             assignee=assignee,
             clear_assignee=clear_assignee,
         )
-        svc = get_service()
-        await common.apply_edit_actor(_kw_str(kwargs, "as_"), svc)
-        clear_assignee, nothing_to_change = _settle_clear_assignee(
-            (await svc.get_block(pid, kind, lid)).info.assignee,
-            clear_assignee,
-            title,
-            field_values,
-            story,
-            no_story,
-            status,
-            _kw_str(kwargs, "deferred_to"),
-        )
-        if nothing_to_change:
-            console.print(f"{pid} {lid} has no assignee to clear")
-            return
-        validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
-        normalized_story = resolve_local_id(story, "story") if story else None
-        await svc.update_block(
-            pid,
-            kind,
-            lid,
+        common.declare_actor(_kw_str(kwargs, "as_"))
+        request = SubentityUpdateRequest(
+            **_address(ctx),
+            kind=kind,
+            local=ctx.obj["local"],
             title=title,
-            fields=field_values or None,
-            story=normalized_story,
+            fields=field_values,
+            story=resolve_local_id(story, "story") if story else None,
             clear_story=no_story,
-            assignee=validated_assignee,
+            assignee=assignee,
             clear_assignee=clear_assignee,
             status=parse_status(status) if status else None,
-            deferred_to=await _resolve_deferred_to(svc, kwargs),
-            force=force,
+            deferred_to=_kw_str(kwargs, "deferred_to"),
+            force=_kw_bool(kwargs, "force"),
         )
-        console.print(f"updated {pid} {lid}")
+
+        def render(updated: SubentityUpdated, console: Console) -> None:
+            label = f"{ctx.obj['id']} {updated.entry.local_id}"
+            if updated.nothing_to_clear:
+                console.print(f"{label} has no assignee to clear")
+            else:
+                console.print(f"updated {label}")
+
+        _finish(ops.SUBENTITY_UPDATE, request, _kw_bool(kwargs, "json_out"), render)
 
     _update.__doc__ = f"Change the {kind}'s title, status, assignee or declared fields."
     _update.__signature__ = inspect.Signature(params)  # pyright: ignore[reportFunctionMemberAccess]
-    sub.command("update")(common.command(_update))
+    sub.command("update")(handle_errors(_update))
 
 
 def _remove_help(kind: str, spec: WorkflowSpec) -> str:
@@ -1102,9 +1058,6 @@ def _remove_help(kind: str, spec: WorkflowSpec) -> str:
 
 
 def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
-    def ids(ctx: typer.Context) -> tuple[str, str]:
-        return ctx.obj["id"], ctx.obj["local"]
-
     @sub.command("show")
     @handle_errors
     @_doc(f"Show the {kind}'s status, assignee, body and discussion.")
@@ -1124,33 +1077,46 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
     _register_update(sub, kind, spec)
 
     @sub.command("body")
-    @common.command
+    @handle_errors
     @_doc(
         f"Set or append to the {kind}'s body.\n\n"
         "Replacing a body someone has already written is refused unless `--force`."
     )
-    async def s_body(
+    def s_body(
         ctx: typer.Context,
         message: list[str] = common.message_option(),
         file: str | None = common.file_option(),
         append: bool = common.append_option(),
         force: bool = common.replace_body_option(),
         as_: str | None = common.edit_as_option(),
+        json_out: bool = typer.Option(
+            False, "--json", help=f"Print one JSON object: the {kind} after the write."
+        ),
     ):
-        pid, lid = ids(ctx)
-        svc = get_service()
-        await common.apply_edit_actor(as_, svc)
-        await svc.set_block_body(
-            pid, kind, lid, resolve_body(message or None, file), append=append, force=force
+        text = resolve_body(message or None, file)
+        common.declare_actor(as_)
+        request = SubentityBodyRequest(
+            **_address(ctx),
+            kind=kind,
+            local=ctx.obj["local"],
+            text=text,
+            append=append,
+            force=force,
         )
-        console.print(f"{pid} {lid}: body {'appended' if append else 'set'}")
+        label = f"{ctx.obj['id']} {ctx.obj['local']}"
+        _finish(
+            ops.SUBENTITY_BODY,
+            request,
+            json_out,
+            lambda _, console: console.print(f"{label}: body {'appended' if append else 'set'}"),
+        )
 
-    common.register_comment_group(sub, lambda ctx: (ids(ctx)[0], (kind, ids(ctx)[1])))
+    common.register_comment_group(sub, _subentity_comments(kind))
 
     @sub.command("remove")
-    @common.command
+    @handle_errors
     @_doc(_remove_help(kind, spec))
-    async def s_remove(
+    def s_remove(
         ctx: typer.Context,
         yes: bool = common.yes_option(),
         json_out: bool = typer.Option(
@@ -1158,13 +1124,11 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
         ),
         as_: str | None = common.edit_as_option(),
     ):
-        pid, lid = ids(ctx)
-        svc = get_service()
-        await common.apply_edit_actor(as_, svc)
+        common.declare_actor(as_)
         if not yes:
-            typer.confirm(f"Remove {kind} {lid} from {pid}? This cannot be undone.", abort=True)
-        await svc.remove_block(pid, kind, lid)
-        if json_out:
-            print_json_clean(json.dumps({"removed": f"{kind} {lid}"}))
-            return
-        console.print(f"removed {kind} {lid} from {pid}")
+            common.confirm(
+                f"Remove {kind} {ctx.obj['local']} from {ctx.obj['id']}? This cannot be undone.",
+                json_out=json_out,
+            )
+        request = SubentityRemoveRequest(**_address(ctx), kind=kind, local=ctx.obj["local"])
+        _finish(ops.SUBENTITY_REMOVE, request, json_out, render_subentity_removed)

@@ -3,7 +3,7 @@ id: TASK-1230
 sequence_id: 1230
 type: task
 title: Roster commands on operations
-status: InProgress
+status: Done
 parent: FEAT-1226
 author: tech-lead
 assignee: python-dev
@@ -40,7 +40,7 @@ subentities:
   assignee: python-dev
   story: US2
 created_at: '2026-10-28T22:12:39Z'
-updated_at: '2026-10-29T00:35:45Z'
+updated_at: '2026-10-29T05:27:32Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -168,4 +168,6 @@ Display for the roster (ADR-1224 point 5): role and operator names with pronouns
     - Gates: pyright 0 errors, ruff check and format clean, `pytest -n 2 tests/meta tests/cli tests/check` 1596 passed (+25: 24 cases, 1 guard test). Falsified: dropping one key from each roster DTO turns all 24 cases red; a second `set_body` call in the roster operations turns the body guard red.
     - Dead in `_cli/_common.py` for TASK-1232: `register_status_verb`, `register_remove_verb`, `register_body_verb`, `named_markup`, `origin_json`.
     - Adopter-visible, for @tech-writer: `--json` on the 24 roster keys; `display` on role list, operator list and role/skill/operator show documents; `dev list --json` prints an object (`items`, `columns`, `template_available`).
+- [2026-10-29T05:27:32Z] `manager` Catherine Manager:
+  - Done 2026-10-29: its REV-1235 findings are Verified or deferred with a home; full suite 1634 passed on ed499a68.
 <!-- sq:discussion:end -->

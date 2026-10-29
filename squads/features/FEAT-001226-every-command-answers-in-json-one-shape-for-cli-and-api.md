@@ -29,9 +29,9 @@ subentities:
   status: InProgress
 - local_id: US5
   title: The terminal UI reads through the same API
-  status: Todo
+  status: InProgress
 created_at: '2026-10-28T22:00:08Z'
-updated_at: '2026-10-29T01:04:41Z'
+updated_at: '2026-10-29T05:27:38Z'
 ---
 <!-- sq:body -->
 ## Problem

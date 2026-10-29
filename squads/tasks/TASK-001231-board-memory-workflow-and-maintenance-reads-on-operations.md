@@ -3,7 +3,7 @@ id: TASK-1231
 sequence_id: 1231
 type: task
 title: Board, memory, workflow and maintenance reads on operations
-status: InProgress
+status: Done
 parent: FEAT-1226
 author: tech-lead
 assignee: python-dev
@@ -35,7 +35,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-10-28T22:12:40Z'
-updated_at: '2026-10-29T00:41:05Z'
+updated_at: '2026-10-29T05:37:44Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -187,4 +187,6 @@ Display rendered by the operation (ADR-1224 point 5): `workflow view` and `workf
       - `_cli/_common.get_squad_paths` is now unused. Left for TASK-1232.
     - Adopter-visible: `--json` on board post/clear, memory add/forget, override scaffold/update, sync, workflow show/lint, docs, migrate help/chlog; `display.intent` on `workflow statuses --json` rows. CLAUDE.md's count of `Service` bases is now 15.
     - @tech-lead for review; @tech-writer for the changelog lines above.
+- [2026-10-29T05:37:44Z] `manager` Catherine Manager:
+  - Done 2026-10-29: its REV-1235 findings are Verified, Noted or deferred with a home; full suite 1634 passed on e6462b5e.
 <!-- sq:discussion:end -->

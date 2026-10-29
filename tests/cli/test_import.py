@@ -55,6 +55,7 @@ async def test_file_refuses_a_path_that_cannot_be_read(project, invoke) -> None:
     )
 
 
+@pytest.mark.covers("import", "FILE")
 async def test_file_is_required(project, invoke) -> None:
     result = await invoke(["import"])
     assert (result.exit_code, result.output) == (
@@ -82,6 +83,7 @@ async def test_as_attributes_an_event_that_names_no_actor(project, invoke) -> No
     assert json.loads(shown.output)["author"] == "manager"
 
 
+@pytest.mark.covers("import", "FILE")
 async def test_an_event_with_no_actor_is_refused_without_as(project, invoke) -> None:
     anonymous = {k: v for k, v in CREATE.items() if k != "as"}
     result = await invoke(["import", _events(anonymous)])

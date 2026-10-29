@@ -12,7 +12,7 @@ refs:
 description: 'CLI tests in-process on the bundled spec: one case per parameter, shared
   registrations tested once, a marker-based coverage guard'
 created_at: '2026-10-27T21:25:41Z'
-updated_at: '2026-10-28T21:47:38Z'
+updated_at: '2026-10-29T05:08:56Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -77,7 +77,10 @@ def test_update_refuses_parent_with_no_parent(...): ...
 
 - **Command key.** The command's path under `sq`, as `_help_tree` yields it. A work-item type name is written `<type>`, a sub-entity kind `<kind>` (`add-<kind>`, `<kinds>` for the plural listing), and the segments up to a mounted comment group `<host>` (`<host> comment edit`). The hidden `_addr` dispatcher segment that `_help_tree` yields is dropped (`task comment _addr edit` is `<host> comment edit`, `role _addr update` is `role update`), and the dispatcher's argument (`HASH`, `<slug|id|n>`) belongs to the parent key. The root callback is the empty key `""`. A group callback's own parameters belong to the group's key: `<type>` for `N`, `<host> comment` for `-m`, `--file` and `--as`.
 - **Parameter name.** An option is named by its first long flag (`--title`); its short alias is not a separate parameter. An argument is named as the usage line prints it (`N`, `TITLE`), which is Click's `human_readable_name`.
-- **Every leaf command is declared**, not only every (command, parameter) pair. A leaf with no parameters (`sync`, `ui`, `migrate up`) is declared with its command key alone: `@pytest.mark.covers("sync")`.
+- **Every leaf command is declared**, not only every (command, parameter) pair. A leaf with no parameters (`ui`) is declared with its command key alone: `@pytest.mark.covers("ui")`.
+- **The key alone declares the bare call:** the command run with none of its own parameters. It is valid on any leaf and required only on a leaf with no parameters, so a leaf that gains a parameter keeps it: the case that runs plain `sq sync` stays `covers("sync")`, and the case that runs `sq sync --json` is `covers("sync", "--json")`. It goes stale only when the key goes.
+- **Every CLI test declares.** Each test function in `tests/cli/` carries at least one `covers` marker. A test that runs no command of its own has no place in `tests/cli/`: a test of the suite's own fixtures belongs in `tests/meta/`.
+- **A refusal declares the parameter it is about.** A case whose call is refused for a missing or malformed value declares that parameter (`covers("create <type>", "TITLE")` for a missing title), not a parameter the call happens to pass. A refusal squads raises itself names in its message the flag it refuses (`--as`, `--message`, `--force`), and the case declares that parameter in the same way.
 - **One marker, several parameters**, is only for an interaction (rule 1). A test may carry several `covers` markers when it asserts each one's effect.
 
 The **coverage guard** is a new `tests/meta` module:
@@ -86,9 +89,10 @@ The **coverage guard** is a new `tests/meta` module:
 - It reads every `covers` marker from the CLI test modules with `ast`, without importing them.
 - It fails, listing them, when a pair or a leaf command of the tree is declared by no test.
 - It also fails when a marker names a pair or a key the tree no longer has (stale).
+- It fails, listing them, on a test function in `tests/cli/` that carries no `covers` marker.
 - It excludes only parameters squads does not declare: Typer's `--install-completion` and `--show-completion`. Click's `--help` is not a parameter of the tree, and the help-rule guard already holds it. The exclusion is a named constant in the guard, one reason per entry.
 
-The marker is checked against what the test runs. The CLI `invoke` fixture resolves each argument list against the live tree and records the keys and (key, parameter) pairs it reached. At teardown it fails the test when a declared key or pair is not among them. A marker cannot claim coverage its test does not exercise. This check is local to the test, so `-k`, `--lf` and xdist runs stay valid.
+The marker is checked against what the test runs. The CLI `invoke` fixture resolves each argument list against the live tree and records the keys and (key, parameter) pairs it reached, plus the pair of the parameter a refusal names: one a Click usage error names (a missing or bad value), or, on a call that exits non-zero, one whose flag appears in the output, and the bare pair `(key, None)` for a call that passes none of its leaf's parameters, so a key-only marker is checked like any other. At teardown it fails the test when a declared key or pair is not among them. A marker cannot claim coverage its test does not exercise. This check is local to the test, so `-k`, `--lf` and xdist runs stay valid.
 
 The guard proves that each pair has a test. It does not prove that the test fails when the parameter breaks. That proof is made once, when the test is written: break the parameter's effect, see the test go red, restore it. Review checks that this was done.
 
@@ -189,4 +193,14 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
   - Amended per the op-pierre rulings on FEAT-1140 (a6fcbde, 2026-10-28): rule 4 points out-of-process behaviours to a new "cross-process set" section (what qualifies, small and named, no covers marker, own CI job per OS; the daemon members listed); a "daemon command endpoint" section puts endpoint tests under rules 4-6 without covers markers; a "mode parity" section reruns the suite in remote mode in its own CI job with no new cases; the time bound places both new jobs under the existing targets; Consequences gains the two-jobs line.
 - [2026-10-28T21:47:38Z] `architect` Robert Architect:
   - Amended in place on the acceptance of ADR-1225 (op-pierre 2f9041b, 3fbbd10), per its section 8; board rule 6, linked related. The section "The daemon's command endpoint" becomes "The daemon's routes". Route tests are kept only for what the parity run cannot see: error-table rows, a vocabulary mismatch on an unchanged and on a changed configuration, the OpenAPI coverage, a partial read's envelope, header binding, a GET that does not mutate, and the ADR-1052 admission negatives. They still follow rules 4 to 6, with no covers marker. The Consequences bullet now says "route tests". The cross-process set and the mode-parity job are unchanged.
+- [2026-10-29T04:29:14Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 for the REV-1235 test audit (35950c3, F29/F30), board rule 6. Status unchanged.
+  - Rule 3: the key-only marker declares the bare call, meaning the command run with none of its own parameters. It is valid on any leaf and required only on a leaf with no parameters. A leaf that gains `--json` keeps `covers("<key>")` on its plain case and adds `covers("<key>", "--json")` for the JSON case. The parameterless example is now `ui` (`sync` gained `--json`).
+  - Rule 3: every test function in `tests/cli/` carries at least one `covers` marker, and the coverage guard fails on one that has none. The `invoke` fixture records `(key, None)` for a call that passes none of its leaf's parameters, so a key-only marker is checked against the call like any other.
+- [2026-10-29T04:53:22Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 for the audit-fix questions on REV-1235 (F27-F31), board rule 6. Status unchanged.
+  - Rule 3: a refusal case declares the parameter the refusal is about. The `invoke` fixture counts as reached the parameter a Click usage error names. A refusal squads raises itself about an absent value declares the key alone, or the parameters the call passes.
+  - Rule 3: a test of the suite's own fixtures belongs in `tests/meta/`, not `tests/cli/`.
+- [2026-10-29T05:08:56Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 for REV-1235 F38 (board rule 6). Status unchanged. Rule 3: a refusal that squads raises itself names the flag it refuses, and its case declares that parameter. The `invoke` fixture records a parameter whose flag appears in the output of a call that exits non-zero. There is no new marker argument.
 <!-- sq:discussion:end -->

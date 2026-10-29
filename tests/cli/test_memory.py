@@ -4,7 +4,8 @@ import json
 
 import pytest
 
-from tests.cli._roster import read_json, usage_error
+from tests.cli._output import read_json
+from tests.cli._roster import usage_error
 
 pytestmark = pytest.mark.anyio
 
@@ -86,6 +87,7 @@ async def test_add_numbers_the_slug_of_a_fact_that_would_collide(project, invoke
     )
 
 
+@pytest.mark.covers("memory add", "FACT")
 async def test_add_needs_a_fact(project, invoke) -> None:
     result = await invoke(["memory", "manager", "add"])
     assert (result.exit_code, result.output) == (
@@ -237,6 +239,7 @@ async def test_search_says_when_nothing_matches(project, invoke) -> None:
     assert (result.exit_code, result.output) == (0, "no matches for nothing-like-this\n")
 
 
+@pytest.mark.covers("memory search", "QUERY")
 async def test_search_needs_a_query(project, invoke) -> None:
     result = await invoke(["memory", "manager", "search"])
     assert (result.exit_code, result.output) == (

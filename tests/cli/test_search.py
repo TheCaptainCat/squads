@@ -33,10 +33,12 @@ async def test_search_lists_each_item_with_the_places_the_text_was_found(readabl
     )
 
 
+@pytest.mark.covers("search", "TEXT")
 async def test_search_ignores_the_case_of_the_text(readable, invoke) -> None:
     assert await _search(invoke, "PARSE") == await _search(invoke, "parse")
 
 
+@pytest.mark.covers("search", "TEXT")
 async def test_search_finds_text_in_a_comment(readable, invoke) -> None:
     assert await _search(invoke, "tokeniser") == (
         0,
@@ -48,10 +50,12 @@ async def test_search_finds_text_in_a_comment(readable, invoke) -> None:
     )
 
 
+@pytest.mark.covers("search", "TEXT")
 async def test_search_says_when_nothing_matches(readable, invoke) -> None:
     assert await _search(invoke, "zzz") == (0, ["no matches for zzz"])
 
 
+@pytest.mark.covers("search", "TEXT")
 async def test_search_refuses_empty_text(readable, invoke) -> None:
     assert await _search(invoke, "") == (1, ["error: search needs a non-empty query"])
 
@@ -64,6 +68,7 @@ async def test_type_keeps_the_hits_of_one_type(readable, invoke) -> None:
     )
 
 
+@pytest.mark.covers("search", "--type")
 async def test_type_refuses_an_unknown_type(readable, invoke) -> None:
     assert await _search(invoke, "parse", "--type", "ghost") == (
         1,
@@ -86,6 +91,7 @@ async def test_status_keeps_the_hits_in_one_status(readable, invoke) -> None:
     )
 
 
+@pytest.mark.covers("search", "--status")
 async def test_status_refuses_an_unknown_status(readable, invoke) -> None:
     code, out = await _search(invoke, "parse", "--status", "Ghost")
     assert (code, out[0][:34]) == (1, "error: unknown status 'Ghost' (one")

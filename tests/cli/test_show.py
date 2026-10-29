@@ -56,6 +56,7 @@ async def test_show_addresses_the_item_by_number_or_full_id(readable, invoke) ->
     assert by_id == by_number
 
 
+@pytest.mark.covers("show", "ID")
 async def test_show_refuses_a_number_no_item_has(readable, invoke) -> None:
     assert await _show(invoke, "99") == (
         1,
@@ -63,10 +64,12 @@ async def test_show_refuses_a_number_no_item_has(readable, invoke) -> None:
     )
 
 
+@pytest.mark.covers("show", "ID")
 async def test_show_refuses_a_full_id_whose_prefix_is_another_types(readable, invoke) -> None:
     assert await _show(invoke, "TASK-2") == (1, ["error: TASK-2 is FEAT-2 (feature)"])
 
 
+@pytest.mark.covers("show", "ID")
 async def test_show_refuses_text_that_is_not_an_id(readable, invoke) -> None:
     assert await _show(invoke, "ghost") == (
         1,

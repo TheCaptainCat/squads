@@ -117,6 +117,7 @@ async def test_no_claude_writes_the_pointers_and_skips_settings_and_claude_md(
     ]
 
 
+@pytest.mark.covers("adopt", "--roles")
 async def test_adopt_writes_settings_and_claude_md_by_default(adoptable, invoke) -> None:
     result = await invoke(["adopt", "--roles", "core"])
     assert result.exit_code == 0, result.output
