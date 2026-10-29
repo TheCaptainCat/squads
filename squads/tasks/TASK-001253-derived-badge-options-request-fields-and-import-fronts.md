@@ -37,7 +37,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-10-29T19:55:08Z'
-updated_at: '2026-10-29T21:32:00Z'
+updated_at: '2026-10-29T21:45:24Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -206,4 +206,6 @@ Tests (4): `add-<kind>` with field and target-kind keys plus the kind selector o
     - Minimal docs edit forced by a guard: `docs/adoption.md` `add-sub` row now lists `maps_to` instead of `story`. The tech writer still owes the import reference (add-<kind> rows are now per declared kind), the `--priority` mentions in docs, and the `--set` refusal text.
     - Left for TASK-1254: the `story=` keyword of `_add_block_model`/`_add_block_core`/`add_block` (import passes `event.maps_to` to it), sub-entity wire/row keys, the "a initiative" article in `require_settable`'s message, and the `maps_to_parent` target-kind flag registrars (the collision check already covers `--<target-kind>` and `--no-<target-kind>`).
     - Not touched: TUI/VS Code clients (the TUI filter has no priority read); tree text rendering and `ItemRow.priority`/`severity`/tree node `priority` stay for the wire-shape task.
+- [2026-10-29T21:45:24Z] `reviewer` Paul Reviewer:
+  - Reviewed on REV-1259 (F9 to F15): changes requested. Medium: F9 (bundled import with a null or empty severity is refused), F10 (empty derived-flag value dropped silently), F11 (reflog delta loses badge changes). @python-dev see REV-1259 for the details and fixes.
 <!-- sq:discussion:end -->

@@ -66172,7 +66172,7 @@
       ],
       "path": "tasks/TASK-001253-derived-badge-options-request-fields-and-import-fronts.md",
       "created_at": "2026-10-29T19:55:08Z",
-      "updated_at": "2026-10-29T21:32:00Z",
+      "updated_at": "2026-10-29T21:45:24Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66535,7 +66535,8 @@
         "FEAT-1249",
         "TASK-1251",
         "TASK-1252",
-        "ADR-1250"
+        "ADR-1250",
+        "TASK-1253"
       ],
       "subentities": [
         {
@@ -66611,9 +66612,79 @@
         {
           "local_id": "F8",
           "title": "Generated text made vague instead of derived: review gate, findings, tree fields",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Bundled add-finding with a null or empty severity is now refused at import",
           "status": "Open",
           "assignee": null,
           "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "An empty value on a derived flag is dropped silently instead of refused",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "Badge changes through update no longer reach the reflog delta",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "Three derived-name collision refusals have no case; mutations stay green",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "New tests misdeclare derived-flag markers, read an item file internally, assert substrings",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "Import refusals name add-sub, not the op written, and miss the declared selectors",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "Derived options are listed after --help",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
           "story": null,
           "deferred_to": null,
           "extra": {}
@@ -66621,7 +66692,7 @@
       ],
       "path": "reviews/REV-001259-review-of-the-bundled-vocabulary-feature.md",
       "created_at": "2026-10-29T21:09:02Z",
-      "updated_at": "2026-10-29T21:40:21Z",
+      "updated_at": "2026-10-29T21:46:08Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
