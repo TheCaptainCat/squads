@@ -980,6 +980,12 @@ async def test_rename_kind_moves_the_prefix_the_plural_and_the_mappings(
     ]
     mapped = await invoke(["job", "9", "action", "1", "show"])
     assert mapped.output.splitlines()[1] == "  status: Todo   impact: large   Desired outcome: GO1"
+    table = await invoke(["initiative", "8", "show"])
+    assert [line.split()[0] for line in table.output.splitlines() if line.startswith("GO")] == [
+        "GO1",
+        "GO2",
+    ]
+    assert "OC1" not in table.output
     checked = await invoke(["check", "--json"])
     assert (checked.exit_code, checked.output) == (0, "[]\n")
 
