@@ -124,8 +124,6 @@ ALLOWLIST: dict[str, frozenset[str]] = {
         {
             "_ROLE_STYLES",  # closed intent->Textual-style lookup table — immutable-by-
             # convention CODE constant, same shape as INTENT_COLORS above
-            "_GROUP_LABELS",  # fixed category->root-label lookup table — immutable-by-
-            # convention CODE constant
         }
     ),
 }

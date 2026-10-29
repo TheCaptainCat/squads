@@ -1,6 +1,6 @@
 {
   "schema_version": "0.17",
-  "counter": 1236,
+  "counter": 1238,
   "padding": 6,
   "items": {
     "12": {
@@ -9394,7 +9394,7 @@
       ],
       "path": "features/FEAT-001140-the-daemon-a-local-api-the-cli-and-web-client-share.md",
       "created_at": "2026-10-25T10:47:24Z",
-      "updated_at": "2026-10-28T22:34:34Z",
+      "updated_at": "2026-10-29T06:53:53Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -62962,7 +62962,7 @@
       ],
       "path": "tasks/TASK-001218-daemon-process-routes-request-scope-listeners.md",
       "created_at": "2026-10-28T14:08:41Z",
-      "updated_at": "2026-10-28T22:36:29Z",
+      "updated_at": "2026-10-29T07:04:57Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -62986,7 +62986,8 @@
         "ADR-1052:implements",
         "TASK-1218:depends-on",
         "ADR-1225:implements",
-        "TASK-1233:depends-on"
+        "TASK-1233:depends-on",
+        "TASK-1238:depends-on"
       ],
       "subentities": [
         {
@@ -63082,7 +63083,7 @@
       ],
       "path": "tasks/TASK-001219-cli-remote-mode-httpapi-selection-and-fall-back.md",
       "created_at": "2026-10-28T14:08:42Z",
-      "updated_at": "2026-10-28T22:25:06Z",
+      "updated_at": "2026-10-29T07:11:55Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63239,11 +63240,21 @@
           "story": "US8",
           "deferred_to": null,
           "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Live check of remote timeouts and Ctrl-C",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "deferred_to": null,
+          "extra": {}
         }
       ],
       "path": "tasks/TASK-001222-dogfood-the-daemon-on-this-repository-s-board.md",
       "created_at": "2026-10-28T14:08:45Z",
-      "updated_at": "2026-10-28T22:26:06Z",
+      "updated_at": "2026-10-29T06:54:53Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63420,7 +63431,7 @@
       "subentities": [],
       "path": "adrs/ADR-001224-commands-call-one-service-operation-and-render-its-dto.md",
       "created_at": "2026-10-28T20:58:31Z",
-      "updated_at": "2026-10-29T04:58:56Z",
+      "updated_at": "2026-10-29T06:49:06Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63450,7 +63461,7 @@
       "subentities": [],
       "path": "adrs/ADR-001225-the-daemon-serves-the-operations-as-resource-routes.md",
       "created_at": "2026-10-28T20:58:41Z",
-      "updated_at": "2026-10-29T04:58:58Z",
+      "updated_at": "2026-10-29T07:04:37Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63526,11 +63537,21 @@
           "story": null,
           "deferred_to": null,
           "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "Local commands are no slower than in 0.17.0",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
         }
       ],
       "path": "features/FEAT-001226-every-command-answers-in-json-one-shape-for-cli-and-api.md",
       "created_at": "2026-10-28T22:00:08Z",
-      "updated_at": "2026-10-29T05:27:38Z",
+      "updated_at": "2026-10-29T07:12:29Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63932,7 +63953,7 @@
       "type": "task",
       "title": "Corpus-wide commands and squad creation on operations",
       "slug": "corpus-wide-commands-and-squad-creation-on-operations",
-      "status": "InProgress",
+      "status": "Done",
       "description": "repair, renumber, migrate, import, init and adopt on operations with --json; get_service and the CLI-side JSON builders deleted",
       "parent": "FEAT-1226",
       "author": "tech-lead",
@@ -63951,7 +63972,7 @@
         {
           "local_id": "ST1",
           "title": "repair, renumber and the migrate operations",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -63961,7 +63982,7 @@
         {
           "local_id": "ST2",
           "title": "import",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -63971,7 +63992,7 @@
         {
           "local_id": "ST3",
           "title": "init and adopt, local only",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -63981,7 +64002,7 @@
         {
           "local_id": "ST4",
           "title": "Delete get_service, CLI gates and JSON builders",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -63991,7 +64012,7 @@
         {
           "local_id": "ST5",
           "title": "JSON output on the 8 corpus and creation keys",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -64001,7 +64022,7 @@
       ],
       "path": "tasks/TASK-001232-corpus-wide-commands-and-squad-creation-on-operations.md",
       "created_at": "2026-10-28T22:12:41Z",
-      "updated_at": "2026-10-29T05:27:34Z",
+      "updated_at": "2026-10-29T10:14:55Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -64061,7 +64082,7 @@
       ],
       "path": "tasks/TASK-001233-terminal-ui-through-the-api.md",
       "created_at": "2026-10-28T22:12:42Z",
-      "updated_at": "2026-10-29T05:49:06Z",
+      "updated_at": "2026-10-29T06:54:55Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -64140,7 +64161,7 @@
       ],
       "path": "tasks/TASK-001234-stability-guide-and-changelog-for-result-shapes.md",
       "created_at": "2026-10-28T22:12:43Z",
-      "updated_at": "2026-10-29T04:29:21Z",
+      "updated_at": "2026-10-29T10:09:19Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -64550,7 +64571,7 @@
         {
           "local_id": "F39",
           "title": "TreeNode.slug is null on items and skills where list and show rows give the item's slug",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -64560,7 +64581,7 @@
         {
           "local_id": "F40",
           "title": "The three new TreeNode keys sit mid-object and are missing from the stability doc's tree table",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -64570,7 +64591,7 @@
         {
           "local_id": "F41",
           "title": "TreeRequest.label has no sq tree flag, and dropping it passes the suite",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -64580,7 +64601,7 @@
         {
           "local_id": "F42",
           "title": "The renderer guard lets _tui import _discussion, _badges, _spec_documents or any _cli module",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -64590,7 +64611,7 @@
         {
           "local_id": "F43",
           "title": "The skill pronoun fix on tree --json is confirmed, and reverting it passes the suite",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "info",
           "story": null,
@@ -64610,9 +64631,89 @@
         {
           "local_id": "F45",
           "title": "_tui/_filter.py copies the engine's closed category set",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "info",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F46",
+          "title": "Repair-corridor guard no longer reaches the producers; adopt and migrate can drop unreadable",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F47",
+          "title": "Grant guard checks operations only; a CLI leaf with no call passes unseen",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F48",
+          "title": "Working-language notice is lost on every refused call, not only the three listed",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F49",
+          "title": "init prompts for role names on a mismatched squad before the gate refuses",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F50",
+          "title": "Sweep leftovers: open_service and TARGET_DATE dead, docstrings name the deleted bridge",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F51",
+          "title": "New --json cases cover only empty reports; migration rows asserted by no case",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F52",
+          "title": "Ladder modes share names with document choices of a different meaning",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F53",
+          "title": "Write guard misses stdlib writers imported by name (from os import unlink)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
           "story": null,
           "deferred_to": null,
           "extra": {}
@@ -64620,7 +64721,7 @@
       ],
       "path": "reviews/REV-001235-review-of-the-dto-refactor-s-delivered-tasks.md",
       "created_at": "2026-10-28T23:26:20Z",
-      "updated_at": "2026-10-29T06:07:50Z",
+      "updated_at": "2026-10-29T10:14:21Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -64663,6 +64764,90 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "TASK-1236"
+    },
+    "1237": {
+      "sequence_id": 1237,
+      "type": "bug",
+      "title": "A view that fails to render makes show and role show exit 1",
+      "slug": "a-view-that-fails-to-render-makes-show-and-role-show-exit-1",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-1226"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001237-a-view-that-fails-to-render-makes-show-and-role-show-exit-1.md",
+      "created_at": "2026-10-29T06:59:37Z",
+      "updated_at": "2026-10-29T07:15:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "BUG-1237"
+    },
+    "1238": {
+      "sequence_id": 1238,
+      "type": "task",
+      "title": "Local mode no slower than 0.17.0 on show, list and tree",
+      "slug": "local-mode-no-slower-than-0-17-0-on-show-list-and-tree",
+      "status": "Ready",
+      "description": "Measure where the 20-30 % run-time regression goes, apply the local-mode levers, prove show/list/tree no slower than 0.17.0",
+      "parent": "FEAT-1226",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1224:implements",
+        "ADR-1225"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Benchmark script and span breakdown",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Local-mode levers from ADR-1225",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Fix the run-time costs until the criterion holds",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001238-local-mode-no-slower-than-0-17-0-on-show-list-and-tree.md",
+      "created_at": "2026-10-29T07:11:29Z",
+      "updated_at": "2026-10-29T07:12:49Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1238"
     }
   }
 }

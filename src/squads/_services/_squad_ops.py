@@ -312,7 +312,7 @@ class SquadStateOpsMixin(
             return Response(data=ViewResult(source=None, output=output))
         # Every operation runs on the composed ``Service``; the source reuses its other commands.
         source = await view_source(cast("Service", self), req.name, req.item)
-        return Response(data=ViewResult(source=source, output=None))
+        return Response(data=ViewResult(source=source.data, output=None), warnings=source.warnings)
 
     async def lint_workflow(self, req: LintRequest) -> Response[LintReport]:
         """Every error and warning of the squad's workflow override, read from the file itself so

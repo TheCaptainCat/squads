@@ -12,6 +12,7 @@ refs:
 - TASK-1218:depends-on
 - ADR-1225:implements
 - TASK-1233:depends-on
+- TASK-1238:depends-on
 description: Root callback picks HttpApi or LocalApi; implicit start, conditional
   fall back, timeouts, schema and vocabulary headers, client budget and guard, parity
   run, the TUI as a daemon client
@@ -53,7 +54,7 @@ subentities:
   status: Todo
   story: US13
 created_at: '2026-10-28T14:08:42Z'
-updated_at: '2026-10-28T22:25:06Z'
+updated_at: '2026-10-29T07:11:55Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -69,12 +70,12 @@ Remote mode (ADR-1225 section 10, D2): the CLI itself calls the daemon through `
 - **Fall back, no replay, timeouts, Ctrl-C** (ADR-1225 sections 3, 5; ADR-1052 point 10) — ST5. Against an endpoint with a local mode, `503 retiring` reruns the call on `LocalApi` silently, and an unreachable or unstartable daemon gives way to `LocalApi`. Against one without (the FEAT-33 seam), `503 retiring` is retried once against the re-resolved endpoint, then fails with the "is restarting" message; an unreachable server fails with the "cannot reach" message; nothing runs locally. A connection lost after sending is an error, never replayed. Timeouts from the operation's class: `standard` 5 s connect and 300 s answer, `long` 5 s connect and no answer timeout with the `waiting for the daemon (<operation>)…` notice after 10 s. A timeout or Ctrl-C ends only the wait, with the "may still complete" message, exit 1 or 130; a connect timeout is an unreachable daemon.
 - **Mode parity** (ADR-1172 "Mode parity", ADR-1225 section 5) — ST6. A run-wide remote mode of the `invoke` fixture that sends every surface case through `HttpApi` against TASK-1218's application served in-process. The root `conftest.py` sets `SQUADS_DAEMON=off` for every test that does not exercise the daemon. TASK-1220 runs it as its own CI job.
 - **Vocabulary hash and schema, client side** (ADR-1225 sections 3, 5) — ST7. The client sends the hash of the documents it parsed with, from the same `spec_sources` bytes TASK-1218 introduces, and its `SCHEMA_VERSION`; it prints the client-behind, client-ahead and vocabulary messages of ADR-1225, naming the document that differs from the per-document digests; exit 1, no fall back. A `tests/meta` guard fails when the parser reaches a document the hash leaves out.
-- **Client budget** (ADR-1225 section 5) — ST8. The levers: `gc.freeze()` once output is flushed, `gc.disable()` for start-up; a literal command-name table at the root importing only the invoked group's module (root `--help` still loads all), guarded against the registered tree; `__version__` without `importlib.metadata`; `anyio` confined to the service side; the spec loader path trimmed to what loading needs. The import guard: the remote path (root callback, `HttpApi`, the renderer) loads none of `squads._services`, `squads._index`, `jinja2`, `yaml`, `anyio`, `filelock`, `importlib.metadata`, `starlette`, `uvicorn`, nor `rich.markdown` before a body is rendered. A benchmark script measuring the client overhead (wall time minus `Server-Timing`) for `sq <type> <n> show`, median of 31 interleaved runs, human and `--json`; the release runbook (the `releasing-squads` skill) runs it on the reference host and records the numbers.
+- **Client budget** (ADR-1225 section 5) — ST8. The levers that serve local mode too (lazy command modules with the command-name table and its guard, `gc` handling in `main`, `__version__` without metadata, `defer_build`, lazy `rich.markdown`) land in TASK-1238; this task adds the remote-only ones: `anyio` confined to the service side and the spec loader path trimmed to what loading needs. The import guard: the remote path (root callback, `HttpApi`, the renderer) loads none of `squads._services`, `squads._index`, `jinja2`, `yaml`, `anyio`, `filelock`, `importlib.metadata`, `starlette`, `uvicorn`, nor `rich.markdown` before a body is rendered. A benchmark script measuring the client overhead (wall time minus `Server-Timing`) for `sq <type> <n> show`, median of 31 interleaved runs, human and `--json`; the release runbook (the `releasing-squads` skill) runs it on the reference host and records the numbers.
 - **The terminal UI as a daemon client** (ADR-1224 point 7, ADR-1225 section 5) — ST9, on the selector seam TASK-1233 leaves.
 
 ## Modules touched
 
-`src/squads/_cli/__init__.py` (selection, the command-name table, `gc` handling in `main`), `src/squads/__main__.py`, `src/squads/__init__.py` (`__version__`), `src/squads/_api/_http.py` and the client half of `_api`, the shared endpoint module of TASK-1218 (spawn and discovery on top of it), `src/squads/_tui/_app.py` (the selector), the spec loader modules (trim), `tests/conftest.py`, the root `conftest.py`, `tests/meta/` (budget import guard, command-name table guard, vocabulary-document guard), a new cross-process test directory, a benchmark script under `scripts/`, the `releasing-squads` skill body. Depends on TASK-1218 (the application, endpoint resolution, the hash) and TASK-1233 (the TUI seam).
+`src/squads/_cli/__init__.py` (selection), `src/squads/__main__.py`, `src/squads/_api/_http.py` and the client half of `_api`, the shared endpoint module of TASK-1218 (spawn and discovery on top of it), `src/squads/_tui/_app.py` (the selector), the spec loader modules (trim), `tests/conftest.py`, the root `conftest.py`, `tests/meta/` (budget import guard, vocabulary-document guard), a new cross-process test directory, a benchmark script under `scripts/`, the `releasing-squads` skill body. Depends on TASK-1218 (the application, endpoint resolution, the hash), TASK-1233 (the TUI seam) and TASK-1238 (the shared levers).
 
 ## Acceptance
 
@@ -87,14 +88,14 @@ Remote mode (ADR-1225 section 10, D2): the CLI itself calls the daemon through `
 - Parity: the existing surface suite rerun in remote mode in its own CI job (TASK-1220). No new cases.
 - Cross-process set, exactly ADR-1172's members, real `sq` against a scratch squad, whole output asserted, state read through `show --json`: implicit start, discovery, fall back, no replay, Ctrl-C, detached spawn on Windows. 6 tests.
 - Surface cases in remote mode (in-process, `HttpApi` against the served application, whole stderr and exit code): client behind, client ahead, vocabulary mismatch naming the document. 3 tests.
-- Guards: budget import, command-name table, vocabulary documents. 3.
-- Built and not tested: idle exit, simultaneous starts, staleness cleanup, the 300 s timeout and the 10 s waiting notice, and the hosted-squad branches (no endpoint without a local mode exists in 0.18). See "Left open".
-- Expected total: 9 tests and 3 guards; the benchmark is a report, not a test.
+- Guards: budget import, vocabulary documents. 2.
+- Built and not tested: idle exit, simultaneous starts, staleness cleanup.
+- Timeouts get no automated test (op-pierre, 2026-10-29, FEAT-1140 comment 20c1d4d): the 300 s answer timeout, the 10 s waiting notice, and a timeout or Ctrl-C ending only the client's wait are checked live by QA in TASK-1222 ST3. The Ctrl-C cross-process member of ADR-1172 stays.
+- The hosted-squad branches (retry once against the re-resolved endpoint, the "is restarting" and "cannot reach" errors) are built behind the `Endpoint` local-mode flag and not tested in 0.18: nothing produces an endpoint without a local mode until FEAT-33, which tests them.
+- Expected total: 9 tests and 2 guards; the benchmark is a report, not a test.
 
 ## Left open
 
-- **Timeouts and the waiting notice untested.** A case would wait 10 s or more, or need a test-only delay hook. Recommendation: build them untested, as idle exit is, and say so on ADR-1225.
-- **Hosted-squad branches unreachable.** Nothing in 0.18 produces an `Endpoint` without a local mode, so the retry-once and "cannot reach" paths have no surface. Recommendation: build them behind the `Endpoint` flag untested; FEAT-33 tests them when it adds the source.
 - **The TUI remote behaviours** (ST9) have no automated surface either; recommendation as on TASK-1233: the operator's check in a session against the daemon.
 <!-- sq:body:end -->
 
@@ -174,7 +175,7 @@ Conditional fall back, no replay, timeouts and Ctrl-C (ADR-1225 sections 3 and 5
 - either: `vocabulary_mismatch` and `schema_mismatch` never retried and never fall back; a connection lost after sending is an error, never replayed;
 - timeouts from the operation's class: `standard` 5 s connect and 300 s answer, `long` 5 s connect and no answer timeout, with `waiting for the daemon (<operation>)…` on stderr after 10 s; a timeout prints the "may still complete" message and exits 1, Ctrl-C the same sentence without the duration and exits 130; a connect timeout is an unreachable daemon.
 
-Tests: two members of the cross-process set: fall back (an unusable runtime directory runs the command locally with its one stderr line, and the next command tries again) and no replay (a daemon killed after the request was sent gives the error, and `show --json` shows the write at most once); plus the Ctrl-C member (interrupting during a write leaves it visible once). 3 tests. Timeouts, the waiting notice and the no-local-mode branches are built and not tested (see the task's "Left open").
+Tests: two members of the cross-process set: fall back (an unusable runtime directory runs the command locally with its one stderr line, and the next command tries again) and no replay (a daemon killed after the request was sent gives the error, and `show --json` shows the write at most once); plus the Ctrl-C member (interrupting during a write leaves it visible once). 3 tests. Timeouts and the waiting notice get no automated test; QA checks them live (TASK-1222 ST3, op-pierre 2026-10-29). The no-local-mode branches are not tested in 0.18; FEAT-33 tests them.
 <!-- sq:subtask:ST5:body:end -->
 
 #### Discussion
@@ -224,18 +225,13 @@ Tests (surface, remote mode in-process): one case per message, whole stderr and 
 <!-- sq:subtask:ST8:body -->
 The client budget of ADR-1225 section 5: client overhead (wall time minus the daemon's `Server-Timing`) for `sq <type> <n> show`, median of 31 interleaved runs on the reference host, at most 275 ms human and 235 ms `--json`.
 
-Levers on the client path not already set by the command-layer tasks (DTO modules per resource with `defer_build`, renderers importing only `rich` and `_api`, `rich.markdown` lazy, no `_services`):
-- `gc.freeze()` once output is flushed and `gc.disable()` for start-up, in `main`;
-- lazy command modules: a literal command-name table at the root importing only the invoked group's module (root `--help` still loads all), with a `tests/meta` guard comparing the table to the registered tree;
-- `__version__` without `importlib.metadata` at import;
-- `anyio` confined to the service side;
-- the spec loader path trimmed to what loading needs (override scaffolding and manifest modules off it).
+Levers on the client path: the ones that serve local mode as well (the literal command-name table with lazy command modules and its guard, `gc.freeze()`/`gc.disable()` in `main`, `__version__` without `importlib.metadata`, `defer_build`, `rich.markdown` on demand) are TASK-1238's. This subtask adds the remote-only ones: `anyio` confined to the service side, and the spec loader path trimmed to what loading needs (override scaffolding and manifest modules off it).
 
 The import guard (`tests/meta`): importing the remote path (root callback, `HttpApi`, the renderer) in a subprocess leaves `sys.modules` without `squads._services`, `squads._index`, `jinja2`, `yaml`, `anyio`, `filelock`, `importlib.metadata`, `starlette`, `uvicorn`, and without `rich.markdown` before a body is rendered.
 
 A benchmark script under `scripts/` measures the budget; the `releasing-squads` skill gains the step that runs it on the reference host and records the numbers with the release; TASK-1220 runs it in CI as a report.
 
-Tests: 2 guards (imports, command-name table). The benchmark is a report, not a test.
+Tests: 1 guard (imports). The benchmark is a report, not a test.
 <!-- sq:subtask:ST8:body:end -->
 
 #### Discussion
@@ -270,4 +266,8 @@ Tests: none automated (see TASK-1233); the operator checks a session against the
 <!-- sq:discussion -->
 - [2026-10-28T19:03:20Z] `manager` Catherine Manager:
   - @tech-lead From the TASK-1217 fixes (REV-1223 F1): role add/update --file are typed Path, so typer normalises ./r.toml to r.toml before the attachment lookup. The file-argument table in ST4 must key those two options by the normalised form, or the forwarder must normalise the same way.
+- [2026-10-29T06:54:52Z] `tech-lead` Olivia Lead:
+  - Per op-pierre 20c1d4d (FEAT-1140): no automated timeout test; QA checks timeouts live in TASK-1222 ST3. Hosted-squad branches are not tested in 0.18 (FEAT-33). Body and ST5 updated; test count unchanged (9).
+- [2026-10-29T07:11:55Z] `tech-lead` Olivia Lead:
+  - Local-mode levers (lazy command modules and the command-name table guard, gc handling, version without metadata, defer_build, lazy rich.markdown) moved to TASK-1238 per op-pierre 739a3b6; this task keeps the remote budget, its import guard, the benchmark and the remote-only levers. Depends on TASK-1238. Guards 3 -> 2.
 <!-- sq:discussion:end -->

@@ -3,6 +3,7 @@ cells resolved from their column keys."""
 
 from typing import cast
 
+from rich.console import Console
 from rich.text import Text
 
 from squads._api._dto._display import Display
@@ -60,3 +61,17 @@ def lead_badge(display: Display) -> str:
     (``"🟠 high · "``); nothing when the item holds no badge value."""
     first = next(iter(display.badges.values()), None)
     return f"{e(first.badge)} · " if first is not None else ""
+
+
+def print_body(console: Console, body: str, *, styled: bool, empty_hint: str) -> None:
+    """*body* after a blank line, as markdown when *styled*, else verbatim; *empty_hint* dimmed
+    when there is none."""
+    console.print()
+    if not body:
+        console.print(f"[dim]{e(empty_hint)}[/dim]")
+    elif styled:
+        from rich.markdown import Markdown
+
+        console.print(Markdown(body))
+    else:
+        console.print(body, markup=False, highlight=False)

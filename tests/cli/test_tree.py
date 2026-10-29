@@ -128,6 +128,11 @@ async def test_assignee_refuses_a_slug_no_roster_entry_has(readable, invoke) -> 
     )
 
 
+@pytest.mark.covers("tree", "--label")
+async def test_label_keeps_the_items_carrying_it(readable, invoke) -> None:
+    assert await _tree(invoke, "--label", "core") == (0, _drawn(f"└── {FEATURE}"))
+
+
 @pytest.mark.covers("tree", "--category")
 async def test_category_keeps_one_category(readable, invoke) -> None:
     assert await _tree(invoke, "--category", "roster") == (0, _drawn(f"└── {ROLE}"))
@@ -276,29 +281,23 @@ async def test_json_prints_the_root_nodes_with_their_children(readable, invoke) 
             "id": "FEAT-2",
             "type": "feature",
             "title": "Search",
-            "slug": None,
             "status": "Draft",
             "priority": "high",
             "assignee": "manager",
             "blocked": False,
-            "closed": False,
             "badges": {"priority": "high"},
             "anchor": False,
-            "updated_at": "2026-06-07T10:00:00Z",
             "children": [
                 {
                     "id": "TASK-3",
                     "type": "task",
                     "title": "Parse queries",
-                    "slug": None,
                     "status": "InProgress",
                     "priority": "urgent",
                     "assignee": "manager",
                     "blocked": False,
-                    "closed": False,
                     "badges": {"priority": "urgent"},
                     "anchor": False,
-                    "updated_at": "2026-06-07T10:00:00Z",
                     "children": [],
                     "display": {
                         "type": "Task",
@@ -315,20 +314,20 @@ async def test_json_prints_the_root_nodes_with_their_children(readable, invoke) 
                         "anchor": None,
                         "pronouns": None,
                     },
+                    "notebook": None,
+                    "closed": False,
+                    "updated_at": "2026-06-07T10:00:00Z",
                 },
                 {
                     "id": "TASK-4",
                     "type": "task",
                     "title": "Rank results",
-                    "slug": None,
                     "status": "Draft",
                     "priority": "low",
                     "assignee": None,
                     "blocked": True,
-                    "closed": False,
                     "badges": {"priority": "low"},
                     "anchor": False,
-                    "updated_at": "2026-06-07T10:00:00Z",
                     "children": [],
                     "display": {
                         "type": "Task",
@@ -345,6 +344,9 @@ async def test_json_prints_the_root_nodes_with_their_children(readable, invoke) 
                         "anchor": None,
                         "pronouns": None,
                     },
+                    "notebook": None,
+                    "closed": False,
+                    "updated_at": "2026-06-07T10:00:00Z",
                 },
             ],
             "display": {
@@ -358,6 +360,9 @@ async def test_json_prints_the_root_nodes_with_their_children(readable, invoke) 
                 "anchor": None,
                 "pronouns": None,
             },
+            "notebook": None,
+            "closed": False,
+            "updated_at": "2026-06-07T10:00:00Z",
         }
     ]
     # Compared as text, so the key order is held as well as the content.
@@ -388,21 +393,51 @@ async def test_json_leaves_the_pronouns_out_when_the_display_setting_turns_them_
     assert (hidden.exit_code, hidden.output) == (0, json_text([_role_node(None)]))
 
 
+@pytest.mark.covers("tree", "--json")
+async def test_json_gives_a_skill_sharing_a_roles_slug_neither_its_notebook_nor_its_pronouns(
+    readable, invoke
+) -> None:
+    await _give_the_manager_pronouns(invoke)
+    added = await invoke(["skill", "add", "Manager"])
+    assert added.exit_code == 0, added.output
+    shown = await invoke(["tree", "--json", "--category", "roster"])
+    skill = {"id": "SKILL-8", "type": "skill", "title": "Manager", "status": "Active"}
+    skill_node = {
+        **skill,
+        "priority": None,
+        "assignee": None,
+        "blocked": False,
+        "badges": {},
+        "anchor": False,
+        "children": [],
+        "display": {
+            "type": "Skill",
+            "status": {"badge": "⚪ Active", "intent": "positive"},
+            "badges": {},
+            "assignee": None,
+            "dimmed": False,
+            "anchor": None,
+            "pronouns": None,
+        },
+        "notebook": None,
+        "closed": False,
+        "updated_at": "2026-06-07T10:00:00Z",
+    }
+    assert (shown.exit_code, shown.output) == (0, json_text([_role_node("she/her"), skill_node]))
+
+
 def _role_node(pronouns: str | None) -> dict[str, Any]:
     """The `manager` role's root node, showing *pronouns*."""
     return {
         "id": "ROLE-1",
         "type": "role",
         "title": "Catherine Manager",
-        "slug": "manager",
         "status": "Active",
         "priority": None,
         "assignee": None,
         "blocked": False,
-        "closed": False,
         "badges": {},
         "anchor": False,
-        "updated_at": "2026-06-07T10:00:00Z",
         "children": [],
         "display": {
             "type": "Role",
@@ -413,6 +448,9 @@ def _role_node(pronouns: str | None) -> dict[str, Any]:
             "anchor": None,
             "pronouns": pronouns,
         },
+        "notebook": "manager",
+        "closed": False,
+        "updated_at": "2026-06-07T10:00:00Z",
     }
 
 

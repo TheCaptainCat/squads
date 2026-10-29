@@ -114,6 +114,7 @@ def role_catalog(
     if json_out:
         calls.print_json(ops.ROLES_CATALOG, response)
         return
+    calls.print_warnings(response)
     render_role_catalog(response.data, console)
 
 
@@ -135,6 +136,7 @@ def role_list(
     if json_out:
         calls.print_json(ops.ROLES_LIST, response)
         return
+    calls.print_warnings(response)
     render_role_list(response.data, console)
 
 

@@ -175,4 +175,6 @@ ignore_names = [
     # functions (_cli/_items.py's add-<kind>/update builders) at runtime.
     "__signature__",
     "__doc__",
+    # Grant.ground: the reason an operation runs past the schema gate, declared and not read.
+    "ground",
 ]

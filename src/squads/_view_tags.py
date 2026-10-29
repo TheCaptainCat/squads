@@ -7,6 +7,7 @@ rendering a view's source stays in :mod:`squads._views`.
 """
 
 import re
+from dataclasses import dataclass
 from itertools import pairwise
 from pathlib import Path
 
@@ -405,6 +406,15 @@ def _keep_unless_disabled_view_tag(raw: str) -> bool:
     return parts is None or not parts.disabled
 
 
+@dataclass(frozen=True, slots=True)
+class ExpandedBody:
+    """A body as it reads with its view tags expanded, and a warning for each view whose
+    template failed to render, its tag left as written."""
+
+    text: str
+    warnings: tuple[str, ...] = ()
+
+
 def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole squad context
     text: str,
     item: Item,
@@ -417,15 +427,17 @@ def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole s
     squad_dir_display: str | None,
     working_language: WorkingLanguage,
     keep: str | None = None,
-) -> str:
+) -> ExpandedBody:
     """*text* with every well-formed ``sq:view:<name>`` tag replaced by that view's rendered
     output, in place, except the tag of the view *keep* names, which stays as written. A disabled
     tag is removed the way ``strip_marker_lines`` removes a marker, never left as a blank line; an
-    unresolvable enabled tag stays literal. Read-only, and pads a rendered view with a blank line
+    unresolvable enabled tag stays literal. A tag whose template fails to render stays as written
+    too, with one warning per such view. Read-only, and pads a rendered view with a blank line
     against neighbouring prose. A view that declares a transform runs it once per tag; a failing
     transform raises rather than leaving the tag."""
     text, _ = strip_marker_lines(text, _keep_unless_disabled_view_tag)
     loader = TransformLoader(squad_dir)
+    failed: dict[str, str] = {}
     segments: list[tuple[str, str]] = []
     pending = ""
     last = 0
@@ -438,8 +450,8 @@ def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole s
         if parts is None:
             continue  # not a view tag — left literal
         name = parts.name
-        if name == keep:
-            continue  # the view being resolved: its own input never holds its output
+        if name == keep or name in failed:
+            continue  # the view being resolved, or one that already failed: left as written
         reason = resolve_view_target(name, item.type, spec, playbook, from_squad=squad_dir)
         if reason is not None:
             continue  # undeclared, template missing, or source inapplicable — left literal
@@ -450,16 +462,20 @@ def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole s
             if view.transform is not None
             else None
         )
-        rendered = render_resolved_source_or_raise(
-            name,
-            result,
-            item,
-            spec,
-            squad_dir_display,
-            working_language,
-            data,
-            from_squad=squad_dir,
-        )
+        try:
+            rendered = render_resolved_source_or_raise(
+                name,
+                result,
+                item,
+                spec,
+                squad_dir_display,
+                working_language,
+                data,
+                from_squad=squad_dir,
+            )
+        except SquadsError as exc:
+            failed[name] = f"{exc} -- its tag is shown as written"
+            continue
         pending += text[last:start]
         segments.append(("literal", pending))
         # Stripped of its own leading/trailing newlines so the padding this function adds is
@@ -469,11 +485,12 @@ def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole s
         pending = ""
         last = end
         changed = True
+    warnings = tuple(failed.values())
     if not changed:
-        return text
+        return ExpandedBody(text, warnings)
     pending += text[last:]
     segments.append(("literal", pending))
-    return _assemble_padded_expansion(segments)
+    return ExpandedBody(_assemble_padded_expansion(segments), warnings)
 
 
 def _pad_between(chunk: str, *, pad_before: bool, pad_after: bool) -> str:

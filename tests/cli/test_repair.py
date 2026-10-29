@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.cli._output import json_text
 from tests.cli._squadwide import listed
 
 pytestmark = pytest.mark.anyio
@@ -52,6 +53,32 @@ async def test_repair_names_an_indexed_item_whose_file_is_gone_and_keeps_the_cou
         "warn REV-4: indexed but no markdown file found (deleted?)\n",
     )
     assert [i for i, _ in await listed(invoke)] == ["ROLE-1", "FEAT-2", "TASK-3"]
+
+
+@pytest.mark.covers("repair", "--json")
+async def test_repair_json_prints_what_the_rebuild_found(populated_project, invoke) -> None:
+    original = (populated_project.squad_dir / TASK_FILE).read_bytes()
+    (populated_project.squad_dir / "tasks/TASK-000003-dup.md").write_bytes(original)
+    result = await invoke(["repair", "--renumber", "--json"])
+    assert (result.exit_code, result.output) == (
+        1,
+        json_text(
+            {
+                "indexed": 4,
+                "counter": 4,
+                "notice": None,
+                "missing": [],
+                "unreadable": [
+                    "TASK-000003-build-the-query-parser.md: TASK-3: 2 files carry this id "
+                    "(tasks/TASK-000003-build-the-query-parser.md, tasks/TASK-000003-dup.md); "
+                    "merge the content you want into one file, delete the other by hand, then run "
+                    "`sq repair`"
+                ],
+                "renumbered": [],
+                "references_left": False,
+            }
+        ),
+    )
 
 
 @pytest.mark.covers("repair", "--renumber")

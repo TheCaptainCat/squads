@@ -1,6 +1,5 @@
 """The CLI imports `squads._services` in one place, the factory that builds the local API, so no
-renderer or command can call the service. Modules whose commands are not on an operation yet are
-listed as pending; the list only shrinks.
+renderer or command can call the service.
 
 Imports are read as absolute module names: relative imports resolved against their package, and
 `importlib.import_module`/`__import__` with a string literal counted as an import."""
@@ -12,15 +11,6 @@ SERVICES = ("squads._services",)
 
 #: The one function allowed to import the service layer: (module, function).
 FACTORY = ("_calls.py", "local_api")
-
-#: CLI modules that still import the service layer, one per line, sorted.
-PENDING = frozenset(
-    {
-        "_common.py",
-        "_import.py",
-        "_main.py",
-    }
-)
 
 
 def _offenders() -> dict[str, list[int]]:
@@ -39,18 +29,12 @@ def _offenders() -> dict[str, list[int]]:
     return offenders
 
 
-def test_only_the_local_api_factory_and_the_pending_modules_import_the_service_layer() -> None:
+def test_only_the_local_api_factory_imports_the_service_layer() -> None:
     offenders = _offenders()
-    unexpected = {rel: lines for rel, lines in offenders.items() if rel not in PENDING}
-    assert not unexpected, (
+    assert not offenders, (
         f"these CLI modules import squads._services outside {FACTORY[1]}() in {FACTORY[0]}; "
-        f"call the operation through the Api instead: {unexpected}"
+        f"call the operation through the Api instead: {offenders}"
     )
-
-
-def test_every_pending_module_still_imports_the_service_layer() -> None:
-    stale = PENDING - set(_offenders())
-    assert not stale, f"no longer import squads._services; delete them from PENDING: {stale}"
 
 
 def test_the_scan_finds_the_import_in_the_factory() -> None:

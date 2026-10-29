@@ -15,7 +15,7 @@ description: Resource routes under /v1 generated from the operation table replac
   POST /v1/commands; HttpApi or LocalApi chosen per invocation; ADR-1052 amended on
   acceptance
 created_at: '2026-10-28T20:58:41Z'
-updated_at: '2026-10-29T04:58:58Z'
+updated_at: '2026-10-29T07:04:37Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -97,7 +97,7 @@ The removal preview is a read, so it is a `GET`, on a sub-resource named for wha
 ### 3. Responses and errors
 
 - **Success.** An operation that ran answers 200 with the `Response[T]` envelope: `data`, `omitted` and `warnings`. A partial read is a 200 with a non-empty `omitted`. The CLI turns that into exit 4 itself, so the browser gets the report in the body rather than as a line of stderr.
-- **Errors.** A `SquadsError` answers `{"error": {"type": "...", "message": "..."}}`.
+- **Errors.** A `SquadsError` answers `{"error": {"type": "...", "message": "...", "warnings": [...]}}`. `warnings` has the meaning of a response's `warnings` (the working-language notice among them) and is an empty list when there is none, so a refusal prints the same notices in remote mode as in local mode. `HttpApi` puts them on the `SquadsError` it raises, and the CLI prints them on stderr before the error.
   - `message` is `error_text(exc)`: the same sentence local mode prints, spelled from `Squads-Client-Dir`.
   - `type` is an open set derived from the exception class.
   - `HttpApi` raises a `SquadsError` with that message, and `@handle_errors` prints `error: <message>` and exits 1, exactly as in local mode.
@@ -245,7 +245,7 @@ For a local daemon the second case needs a configuration the daemon never loaded
 | The workflow spec and its override (`bind_active_spec`, `resolve_spec_for_ctx`, `_CustomTypeGroup`) | parsing, option help, `--help`, completion | read from the checkout and hashed (above). `--help` and completion make no call. |
 | The override's cross-check against the index | `bind_active_spec` | the daemon's composition; a contradiction comes back as the operation's error |
 | The schema gate (`require_current_schema`, `apply_gate`, `config.schema_version` in `migrate`) | the root callback and the gated groups | the operation's `grant` (ADR-1224, point 4), checked by the daemon; the hard stop is a `409 conflict` with today's text |
-| The working-language notice | the root callback | a `warnings` entry |
+| The working-language notice | the root callback | a `warnings` entry, on a response or on a refused call's error; a refusal the CLI makes before any call (a vocabulary exit 2) carries none, since the CLI does not read the configuration, and the next call that runs prints it |
 | `[display] pronouns` and role resolution against the squad directory | role, operator and dev rendering | DTO content (ADR-1224, point 5) |
 | Template overrides (`from_squad`) | `workflow view`, the rendered body of `show` | DTO content |
 | The playbook and role catalog (`invocation_sources`) | the cheatsheet, roster commands | operations |
@@ -459,4 +459,8 @@ Board changes that follow acceptance, for their owners:
   - @tech-lead TASK-1229 and TASK-1218 can be updated.
 - [2026-10-29T04:58:58Z] `architect` Robert Architect:
   - Amended in place 2026-10-29 for REV-1235 F35 (board rule 6). Status unchanged. Section 1: the comment removal preview is `GET …/comments/{hash}/removal` under items, sub-entities and roster entries. It is a read, on a sub-resource named for what it returns, and it is distinct from `show`.
+- [2026-10-29T07:04:37Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 for REV-1235 F48 (board rule 6). Status unchanged.
+  - Section 3, errors: the envelope gains `warnings`, an empty list when there is none, with the meaning a response's `warnings` has. `HttpApi` attaches it to the `SquadsError` it raises.
+  - Notice row: the notice rides on a response or on a refused call's error. A refusal the CLI makes before any call carries none, which is accepted, since the CLI does not read the configuration.
 <!-- sq:discussion:end -->

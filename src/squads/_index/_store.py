@@ -630,10 +630,7 @@ _read_scope: ContextVar[_ReadScope | None] = ContextVar("_read_scope", default=N
 
 def enter_read_scope() -> Token[_ReadScope | None]:
     """Bind a fresh, empty :class:`_ReadScope` and return the token to undo it with
-    (:func:`exit_read_scope`). ``_cli/_common.py``'s ``command`` bridge uses it because Typer's
-    group callback and the leaf verb cross the sync/async bridge in two sequential calls sharing one
-    Click root ``Context``: it opens the scope on the first and closes it via ``ctx.call_on_close``.
-    Prefer :func:`read_scope` for one call frame.
+    (:func:`exit_read_scope`); :func:`read_scope` is the block form.
     """
     return _read_scope.set(_ReadScope())
 
@@ -645,11 +642,8 @@ def exit_read_scope(token: Token[_ReadScope | None]) -> None:
 
 @contextlib.contextmanager
 def read_scope() -> Generator[None]:
-    """Bind a fresh, empty :class:`_ReadScope` for the block, for use confined to one call frame
-    (tests). The real CLI scope comes from ``_cli/_common.py::command`` via
-    :func:`enter_read_scope`, since one invocation can cross the sync/async bridge more than once
-    and this form would tear down and reopen each time. ``sq ui`` never passes through either, so it
-    keeps per-call-fresh reads.
+    """Bind a fresh, empty :class:`_ReadScope` for the block: each operation runs in one, so its
+    reads of the index share one load.
     """
     token = enter_read_scope()
     try:

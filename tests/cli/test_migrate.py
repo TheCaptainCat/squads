@@ -319,3 +319,102 @@ async def test_chlog_json_prints_the_range_and_its_migrations_with_manual_steps(
         )
         + "\n"
     )
+
+
+@pytest.mark.covers("migrate up", "--json")
+async def test_up_json_reports_each_migration_run_on_an_older_squad(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    monkeypatch.chdir(shutil.copytree(OLD_SQUAD, tmp_path / "old"))
+    result = await invoke(["migrate", "up", "--json"])
+    shipped = {m["version"]: m for m in documents.MIGRATIONS["migrations"]}
+
+    def applied(version: str, changed: int, reports: list[str]) -> dict[str, Any]:
+        entry = shipped[version]
+        return {
+            "version": version,
+            "from_schema": entry["from_schema"],
+            "to_schema": entry["to_schema"],
+            "summary": entry["summary"],
+            "changed": changed,
+            "reports": reports,
+            "skipped": [],
+            "manual": bool(entry["manual"]),
+        }
+
+    assert (result.exit_code, result.output) == (
+        0,
+        json_text(
+            {
+                "schema_version": SCHEMA_VERSION,
+                "applied": [
+                    applied("0.15.0", 6, []),
+                    applied(
+                        "0.16.0",
+                        5,
+                        [
+                            "0 comment header(s) rewritten in 0 file(s); 0 already carried a slug",
+                            "5 file(s) flattened; 0 key(s) lifted (none); 0 skill description(s) "
+                            "dropped; 2 `path:` key(s) removed",
+                            "0 operator title(s) set from the stored full name",
+                            "0 dropped skill description(s) differed from the one kept",
+                            "1 role(s) stamped origin project",
+                            "4 skill(s) stamped origin system",
+                            "4 skill(s) given a discussion region",
+                        ],
+                    ),
+                    applied(
+                        "0.17.0",
+                        0,
+                        [
+                            "dev-agent: no catalog entry and no role file; define it with "
+                            "`sq role dev-agent update --job-title … --desc … --mission …`"
+                        ],
+                    ),
+                ],
+                "reconciled": {"indexed": [], "missing": []},
+                "config_dropped": ["squads_version"],
+                "notice": "stripped retired regions from 3 item files — review the diff",
+                "unreadable": [],
+                "manual_span": "v0.14.0..v0.17.0",
+            }
+        ),
+    )
+
+
+@pytest.mark.covers("migrate repad", "--json")
+async def test_repad_json_prints_the_padding_before_and_after(populated_project, invoke) -> None:
+    result = await invoke(["migrate", "repad", "8", "--json"])
+    assert (result.exit_code, result.output) == (
+        0,
+        json_text({"previous": 6, "width": 8, "renamed": 4}),
+    )
+
+
+@pytest.mark.covers("migrate rename-type", "--json")
+async def test_rename_type_json_prints_the_items_moved_and_their_new_ids(
+    populated_project, invoke
+) -> None:
+    result = await invoke(["migrate", "rename-type", "task", "bug", "--json"])
+    assert (result.exit_code, result.output) == (
+        0,
+        json_text(
+            {
+                "old_type": "task",
+                "new_type": "bug",
+                "renamed": 1,
+                "ids": [{"old": "TASK-3", "new": "BUG-3"}],
+            }
+        ),
+    )
+
+
+@pytest.mark.covers("migrate rename-status", "--json")
+async def test_rename_status_json_prints_how_many_items_were_relabelled(
+    populated_project, invoke
+) -> None:
+    result = await invoke(["migrate", "rename-status", "task", "Draft", "Ready", "--json"])
+    assert (result.exit_code, result.output) == (
+        0,
+        json_text({"type": "task", "old_status": "Draft", "new_status": "Ready", "renamed": 1}),
+    )

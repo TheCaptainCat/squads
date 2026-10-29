@@ -18,19 +18,7 @@ from squads import _clock as clock
 from squads._api._dto._memory import MemoryRow
 from squads._api._dto._tree import TreeNode
 from squads._api._dto._workflow import TypeCatalog
-
-_WORK_GROUP = "Work"
-_RECORDS_GROUP = "Records"
-_ROSTER_GROUP = "Roster"
-
-#: Fixed top-level root order, each one always present (even empty), keyed by the category a
-#: type declares in the type catalog.
-_GROUP_LABELS: dict[str, str] = {
-    "work": _WORK_GROUP,
-    "records": _RECORDS_GROUP,
-    "roster": _ROSTER_GROUP,
-}
-_GROUP_ORDER: tuple[str, ...] = ("work", "records", "roster")
+from squads._tui._session import categories
 
 #: Rich/Textual style per colour intent, this client's own mapping of a status role's colour
 #: axis. "neutral" (no override) is also the fallback for an unrecognised intent.
@@ -58,11 +46,11 @@ class MemoryNodeData:
 
 
 #: Every payload a tree node's `data` can carry, besides the ever-allowed `None` (used for
-#: purely structural nodes: the three category groups, and a degraded-read notice leaf).
+#: purely structural nodes: the category groups, and a degraded-read notice leaf).
 type NodeData = str | MemoryNodeData
 
 #: One role/operator identity's eagerly-fetched memory pool: its entries and how many memory
-#: files could not be read, keyed by the identity's notebook slug (`TreeNode.slug`).
+#: files could not be read, keyed by the identity's notebook slug (`TreeNode.notebook`).
 type MemoryBySlug = Mapping[str, tuple[list[MemoryRow], int]]
 
 
@@ -74,8 +62,8 @@ def roster_identity_slugs(nodes: list[TreeNode]) -> list[str]:
     while stack:
         node = stack.pop()
         stack.extend(node.children)
-        if node.slug:
-            out.append(node.slug)
+        if node.notebook:
+            out.append(node.notebook)
     return out
 
 
@@ -191,7 +179,7 @@ def _attach(parent: UiTreeNode[NodeData], node: TreeNode, memory: MemoryBySlug) 
     label = _label(node)
     entries: list[MemoryRow] = []
     unreadable = 0
-    pool = memory.get(node.slug) if node.slug else None
+    pool = memory.get(node.notebook) if node.notebook else None
     if pool is not None:
         entries, unreadable = pool
         label.append_text(_memory_glance_suffix(entries))
@@ -200,8 +188,8 @@ def _attach(parent: UiTreeNode[NodeData], node: TreeNode, memory: MemoryBySlug) 
         branch = parent.add(label, node.id, expand=bool(node.children))
         for child in node.children:
             _attach(branch, child, memory)
-        if node.slug is not None and pool is not None:
-            _attach_memory_children(branch, node.slug, entries, unreadable)
+        if node.notebook is not None and pool is not None:
+            _attach_memory_children(branch, node.notebook, entries, unreadable)
         return
     parent.add_leaf(label, node.id)
 
@@ -211,16 +199,17 @@ def populate_tree(
 ) -> None:
     """Build the fully expanded tree from the roots the `tree` operation answered.
 
-    Nodes sit under three synthetic top-level groups in fixed order, each present even when
-    empty: Work, Records (decisions/guides/etc.) and Roster (roles/operators/skills), by the
-    category *types* gives each type. *memory* is the already-fetched `memory list` result for
-    every notebook slug in *nodes* (see `roster_identity_slugs`); this function makes no call.
+    Nodes sit under one synthetic top-level group per category a declared type names, ordered
+    by the first type of each category in the type catalog's `order`; a category no type names
+    has no group. A group with types but no node in view still shows. *memory* is the
+    already-fetched `memory list` result for every notebook slug in *nodes* (see
+    `roster_identity_slugs`); this function makes no call.
     """
-    categories = {row.type: row.category for row in types.items}
+    category_of = {row.type: row.category for row in types.items}
     groups = {
-        category: tree.root.add(Text(_GROUP_LABELS[category], style="bold"), None, expand=True)
-        for category in _GROUP_ORDER
+        category: tree.root.add(Text(category.capitalize(), style="bold"), None, expand=True)
+        for category in categories(types)
     }
     for node in nodes:
-        _attach(groups[categories[node.type]], node, memory)
+        _attach(groups[category_of[node.type]], node, memory)
     tree.root.expand()

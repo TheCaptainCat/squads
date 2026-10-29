@@ -58,4 +58,5 @@ def dev_list(
     if json_out:
         calls.print_json(ops.DEVELOPERS_LIST, response)
         return
+    calls.print_warnings(response)
     render_developer_list(response.data, console)

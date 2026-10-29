@@ -4,7 +4,10 @@ from pathlib import Path
 
 
 class SquadsError(Exception):
-    """Base class for all expected, user-facing errors."""
+    """Base class for all expected, user-facing errors. ``warnings`` holds the notices the
+    refused call would have answered with, which the caller prints before the error."""
+
+    warnings: tuple[str, ...] = ()
 
 
 class NotInitializedError(SquadsError):
@@ -79,7 +82,7 @@ class PlaybookConfigError(SquadsError):
     """The active playbook (bundled base plus an override) failed to load or validate.
 
     Raised by ``_spec_documents.resolve_playbook``. It is distinct from a plain ``SquadsError`` so
-    a caller that also opens the workflow spec (``open_service``, ``sq check``) can name the
+    a caller that also opens the workflow spec (``compose_service``, ``sq check``) can name the
     actually-broken file, not point at ``sq workflow lint``, which never reads
     ``.overrides/playbook.toml``.
     """

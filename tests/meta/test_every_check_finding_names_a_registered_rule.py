@@ -37,6 +37,7 @@ _SITES: dict[tuple[str, str], tuple[str, ...]] = {
         "override_loads",
         "view_tag_in_region",
         "override_loads",
+        "override_loads",
         "override_stamped",
         "override_current",
     ),

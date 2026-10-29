@@ -29,7 +29,7 @@ subentities:
   status: Done
   story: US4
 created_at: '2026-10-28T22:12:42Z'
-updated_at: '2026-10-29T05:49:06Z'
+updated_at: '2026-10-29T06:54:55Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -131,4 +131,6 @@ Every screen onto operations (ADR-1224 point 7 table): browse tree on `tree` wit
     - I captured every screen headless, before and after, on a scratch squad (Textual pilot driving the real `sq ui`: tree labels and spans, the reader tabs for each node, memory, board, search with a type filter, the filter choices, and 9 filter or sort states). Everything is identical except one case: a status filter on a closed status (Done) now shows the matching items, because the `tree` operation includes closed items when filtering by status, as `sq tree --status Done` does. Before, it showed an empty tree.
     - The second change is not in the capture. An unknown assignee in the filter now shows an error toast and keeps the previous view. Before, it showed an empty tree.
     - For the operator's eye-check, against the released build: the browse tree (groups, dimming, pronouns, memory counts), the reader tabs, a memory entry, `f` with each sort, `/` search with a hit opened, `b` board, and `q`.
+- [2026-10-29T06:54:55Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: no TUI test suite in 0.18. The TUI is held by the import guard, the surface tests of the operations it calls, and the operator's eye-check (list on REV-1235). A TUI suite is decided later, with its own rule in ADR-1172.
 <!-- sq:discussion:end -->

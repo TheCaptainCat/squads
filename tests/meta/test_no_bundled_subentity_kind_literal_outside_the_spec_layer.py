@@ -22,7 +22,6 @@ _EXEMPT_DIR_NAMES: frozenset[str] = frozenset({"_specs", "_migrations"})
 #: ``(path, literal)`` -> why that file legitimately holds it. Per file and literal, not per
 #: line, so an edit elsewhere in the file does not move the exemption.
 _ALLOWED: dict[tuple[str, str], str] = {
-    ("src/squads/_cli/_common.py", "story"): "the `story` field name of a sub-entity payload",
     ("src/squads/_cli/_items.py", "story"): "the `--story` option name, a field not a kind",
     ("src/squads/_models/_subentity.py", "story"): "the `story` frontmatter field key",
     ("src/squads/_services/_validators.py", "story"): "the fallback kind of a missing declaration",

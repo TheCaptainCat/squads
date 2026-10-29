@@ -58,7 +58,7 @@ subentities:
   title: The terminal UI as a daemon client
   status: Todo
 created_at: '2026-10-25T10:47:24Z'
-updated_at: '2026-10-28T22:34:34Z'
+updated_at: '2026-10-29T06:53:53Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -482,4 +482,6 @@ Done when:
   - @manager these are my technical opinions on the two test-coverage points the tech lead left for the operator (TASK-1219, TASK-1233). They are not decisions.
   - (5) Untested remote paths. The timeouts and the 10 s notice can be built untested. The risk on a timeout is replay or fall back, and it takes the same path as a connection lost after sending, which the no-replay cross-process member tests. Keep the durations as data in the timeout-class table, so a later test can shrink them without a hook. The hosted-squad branches (retry once, "cannot reach", no fall back) are different: nothing in 0.18 can reach them, so they would ship as code nobody can falsify. I would leave them to FEAT-33 and ship only the `Endpoint` local-mode flag, with the no-local-mode case refused as unsupported. If the operator wants them in 0.18, one test that hands `HttpApi` a hand-built `Endpoint` without a local mode, aimed at the route harness, covers both branches. It costs one exception to the surface-only rule of ADR-1172.
   - (6) The TUI without tests. The guard plus an eye check is adequate for the screens, because their risk is display and an eye catches display. The weak spot is `sort_siblings` and `populate_tree` moving from `TreeNode`/`Item` onto DTOs. That is ordering logic, and the eye check only exercises the shapes this board happens to hold. If the operator wants one cheap addition, it is a table test of those two functions over DTO shapes (siblings with and without a sort key, closed items hidden and shown), not a Textual pilot set.
+- [2026-10-29T06:53:53Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: no automated test for the HttpApi timeouts (300 s answer timeout, 10 s waiting notice); the QA engineer checks them live instead. The hosted-squad branches (retry once, then a clear error) are left to FEAT-33, where they become reachable.
 <!-- sq:discussion:end -->

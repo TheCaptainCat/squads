@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 import squads._migrations as migrations_pkg
-from squads._cli._migrate import migrate_grants
+from squads._api._ops import OPERATIONS
 
 _DIR = Path(migrations_pkg.__file__).parent
 _FORBIDDEN_NAMES = frozenset({"skew_message", "ensure_no_skew"})
@@ -15,8 +15,25 @@ _WORD = r"(<[^>\s]+>|[a-z][\w-]*)"
 _COMMAND = re.compile(rf"\bsq {_WORD}(?: {_WORD})?")
 
 
+#: The ``sq migrate`` command each operation serves.
+_MIGRATE_COMMANDS = {
+    "squad.migrate": "migrate up",
+    "squad.repad": "migrate repad",
+    "squad.rename-type": "migrate rename-type",
+    "squad.rename-status": "migrate rename-status",
+}
+#: The ``sq migrate`` commands that read the package's own registry and make no call, so the
+#: schema gate never applies to them.
+_NO_CALL = frozenset({"migrate help", "migrate chlog"})
+
+
 def _permitted_when_behind() -> set[str]:
-    return {f"migrate {name}" for name, grant in migrate_grants().items() if grant.behind}
+    granted = {
+        _MIGRATE_COMMANDS[op.name]
+        for op in OPERATIONS
+        if op.name in _MIGRATE_COMMANDS and op.grant is not None and op.grant.behind
+    }
+    return granted | _NO_CALL
 
 
 def _refused_commands(text: str) -> list[str]:

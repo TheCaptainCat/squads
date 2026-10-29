@@ -66,31 +66,31 @@ def tree_node(
 ) -> TreeNode:
     """*node* and the nodes below it, each level ranked by the badge field *sort* names."""
     it = node.item
-    slug = it.slug if it.slug and it.type in (ROSTER_ROLE, ROSTER_OPERATOR) else None
+    notebook = it.slug if it.slug and it.type in (ROSTER_ROLE, ROSTER_OPERATOR) else None
     display = TreeNodeDisplay(
         **dict(item_display(it, spec, names)),
         dimmed=node.path_only,
         anchor=results.TREE_ANCHOR_MARKER if node.anchor else None,
-        pronouns=pronouns.get(slug) if slug else None,
+        pronouns=pronouns.get(notebook) if notebook else None,
     )
     return TreeNode(
         id=it.id,
         type=it.type,
         title=it.title,
-        slug=slug,
         status=it.status,
         priority=it.priority,
         assignee=it.assignee,
         blocked=it.id in blocked_ids,
-        closed=spec.hidden_by_default(it.type, it.status),
         badges=badges.resolve_badges(spec, it.type, it.badge_value),
         anchor=node.anchor,
-        updated_at=it.model_dump(mode="json", include={"updated_at"})["updated_at"],
         children=[
             tree_node(c, spec, names, blocked_ids=blocked_ids, pronouns=pronouns, sort=sort)
             for c in sort_tree_level(node.children, sort, spec)
         ],
         display=display,
+        notebook=notebook,
+        closed=spec.hidden_by_default(it.type, it.status),
+        updated_at=it.model_dump(mode="json", include={"updated_at"})["updated_at"],
     )
 
 

@@ -23,7 +23,7 @@ from squads._api._dto._roles import (
 from squads._api._dto._roster import SeveredRef
 from squads._api._dto._skills import SkillRefChange, SkillRefs, SkillRoleLink, SkillRow, SkillShow
 from squads._cli._render._comments import is_styled, print_comments
-from squads._cli._render._style import e
+from squads._cli._render._style import e, print_body
 from squads._pronouns import named
 
 _CHECK = "✓"
@@ -47,18 +47,6 @@ def _table[R](
         shown = cells(row)
         table.add_row(*(shown[column.key] for column in columns))
     console.print(table)
-
-
-def _print_body(console: Console, body: str, *, styled: bool, empty_hint: str) -> None:
-    console.print()
-    if not body:
-        console.print(f"[dim]{e(empty_hint)}[/dim]")
-    elif styled:
-        from rich.markdown import Markdown
-
-        console.print(Markdown(body))
-    else:
-        console.print(body, markup=False, highlight=False)
 
 
 # ----------------------------------------------------------------------------- listings
@@ -163,7 +151,7 @@ def render_role_show(show: RoleShow, console: Console, *, raw: bool, comments: b
                 "`sq check` reports why, under role_base_resolves)[/dim]",
                 soft_wrap=True,
             )
-        _print_body(
+        print_body(
             console,
             shown.body,
             styled=is_styled(console) and not raw,
@@ -196,7 +184,7 @@ def render_skill_show(show: SkillShow, console: Console, *, raw: bool, comments:
     if show.when_to_use:
         rows.append(f"[bold]when to use:[/bold] {e(show.when_to_use)}")
     console.print(Panel("\n".join(rows), expand=False))
-    _print_body(
+    print_body(
         console,
         show.display.body,
         styled=is_styled(console) and not raw,
@@ -218,7 +206,7 @@ def render_operator_show(
         f"[bold]file:[/bold] {show.path}",
     ]
     console.print(Panel("\n".join(rows), expand=False))
-    _print_body(
+    print_body(
         console,
         show.display.body,
         styled=is_styled(console) and not raw,

@@ -50,7 +50,7 @@ from squads._overrides._stamp import (
     write_template_stamp,
 )
 from squads._paths import path_from_process_dir
-from squads._rendering._engine import invalidate_squad_dir
+from squads._rendering._engine import invalidate_squad_dir, template_compile_error
 from squads._roles._catalog import PREDEFINED, RoleDef, get_catalog, role_by_slug
 from squads._roles._loader import (
     ROLES_OVERRIDE_FILENAME,
@@ -1269,7 +1269,7 @@ def _roles_catalog_stamp_finding_gated(
 
 def _roles_catalog_invalid_issue(squad_dir: Path, catalog: CatalogSource) -> OverrideIssue | None:
     """The error finding when the merged role catalog refuses to load, else ``None``. The
-    catalog loads lazily, so ``open_service`` never surfaces an invalid merge."""
+    catalog loads lazily, so ``compose_service`` never surfaces an invalid merge."""
     if not override_present(_roles_catalog_override_path(squad_dir)):
         return None
     try:
@@ -1289,7 +1289,7 @@ def _check_roles_catalog_override_issues(
 ) -> list[OverrideIssue]:
     """Return check issues for the role catalog document override (if present): the stamp
     findings its workflow and playbook siblings report, plus *invalid* — the refusal from
-    :func:`_roles_catalog_invalid_issue`, which those siblings leave to ``open_service``."""
+    :func:`_roles_catalog_invalid_issue`, which those siblings leave to ``compose_service``."""
     rc_path = _roles_catalog_override_path(squad_dir)
     if not override_present(rc_path):
         return []
@@ -1355,7 +1355,8 @@ def check_override_issues(
 
 def _check_template_override_issues(squad_dir: Path) -> list[OverrideIssue]:
     """Return check issues for every ``.overrides/templates/*.md.j2`` override: an error for a
-    structurally broken item/role template, an error for a shadowing override with no stamp
+    structurally broken item/role template or one that does not compile, an error for a
+    shadowing override with no stamp
     (shadowing-vs-add-only: an add-only override with no bundled counterpart reports nothing), and a
     content-gated drift warning."""
     # Function-local: `_view_tags` sits on the cycle through `_views`, which this package is on.
@@ -1400,6 +1401,18 @@ def _check_template_override_issues(squad_dir: Path) -> list[OverrideIssue]:
                     )
                 )
                 continue  # Broken → don't also warn about drift
+
+        compile_error = template_compile_error(rel, from_squad=squad_dir)
+        if compile_error is not None:
+            issues.append(
+                _issue(
+                    "error",
+                    display,
+                    f"override template does not compile: {compile_error}",
+                    "override_loads",
+                )
+            )
+            continue
 
         # Stamp obligation: unstamped is an error only when the override shadows a bundled template
         # (the uniform severity contract), and an add-only override reports nothing. Warn: version

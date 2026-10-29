@@ -15,8 +15,11 @@ from squads._cli._render._comments import (
     print_comments_plain,
     print_comments_styled,
 )
-from squads._cli._render._style import cell_text, e, status_text
+from squads._cli._render._style import cell_text, e, print_body, status_text
 from squads._models._item import split_ref
+
+#: What an item with no body shows in its place.
+_EMPTY_BODY = "(empty — set it with `body`)"
 
 
 def _refs_line(refs: list[str]) -> str:
@@ -78,18 +81,6 @@ def _blocks(show: ItemShow) -> list[Subentity]:
     if show.display.summary is None:
         return []
     return [sub for sub in show.subentities if isinstance(sub, Subentity)]
-
-
-def _print_body(console: Console, body: str, *, styled: bool) -> None:
-    console.print()
-    if not body:
-        console.print(f"[dim]{e('(empty — set it with `body`)')}[/dim]")
-    elif styled:
-        from rich.markdown import Markdown
-
-        console.print(Markdown(body))
-    else:
-        console.print(body, markup=False, highlight=False)
 
 
 def _print_summary(console: Console, show: ItemShow) -> None:
@@ -183,7 +174,7 @@ def render_show(show: ItemShow, console: Console, *, raw: bool, comments: bool, 
         return
     console.print(Panel("\n".join(_panel_rows(show)), expand=False))
     styled = is_styled(console)
-    _print_body(console, show.display.body, styled=styled)
+    print_body(console, show.display.body, styled=styled, empty_hint=_EMPTY_BODY)
     _print_summary(console, show)
     if full:
         _print_full_panes(console, show, styled=styled, comments=comments)

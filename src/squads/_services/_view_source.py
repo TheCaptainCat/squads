@@ -21,6 +21,7 @@ from squads._api._dto._workflow import (
     SpecIdentity,
     ViewSource,
 )
+from squads._api._response import Response
 from squads._models._item import Item
 from squads._models._schema import SCHEMA_VERSION
 from squads._models._subentity import SubEntity
@@ -113,10 +114,11 @@ def _playbook_source(source: PlaybookSource) -> PlaybookView:
     )
 
 
-async def _self_source(svc: Service, item: Item, view_name: str) -> ItemShowWithSpec:
+async def _self_source(svc: Service, item: Item, view_name: str) -> Response[ItemShowWithSpec]:
     """The item as ``sq show --json`` prints it, with the view's own tag left in its body, plus
     the spec's identity."""
-    shown = (await svc.show_item(ItemShowRequest(id=item.id), keep_view=view_name)).data
+    response = await svc.show_item(ItemShowRequest(id=item.id), keep_view=view_name)
+    shown = response.data
     canonical = json.dumps(
         svc.spec.model_dump(mode="json"), ensure_ascii=False, separators=(",", ":")
     )
@@ -125,22 +127,29 @@ async def _self_source(svc: Service, item: Item, view_name: str) -> ItemShowWith
         override=override_present(svc.paths.squad_dir / WORKFLOW_OVERRIDE_FILENAME),
         digest=hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
     )
-    return ItemShowWithSpec.model_validate({**dict(shown), "spec": spec})
+    return Response(
+        data=ItemShowWithSpec.model_validate({**dict(shown), "spec": spec}),
+        warnings=response.warnings,
+    )
 
 
-async def view_source(svc: Service, view_name: str, item_id: str) -> ViewSource:
-    """*view_name*'s source resolved against *item_id*, in the shape of its own command."""
+async def view_source(svc: Service, view_name: str, item_id: str) -> Response[ViewSource]:
+    """*view_name*'s source resolved against *item_id*, in the shape of its own command, with
+    the warnings that command's read carries."""
     view, item, result = await svc.resolve_view_source(view_name, item_id)
     match view.source.kind:
         case "ref" | "subtree":
-            return await _tree_source(svc, cast("list[Item]", result))
+            return Response(data=await _tree_source(svc, cast("list[Item]", result)))
         case "subentity":
             kind = view.source.name or ""
-            return await _subentity_source(svc, kind, cast("list[SubEntity]", result))
+            rows = await _subentity_source(svc, kind, cast("list[SubEntity]", result))
+            return Response(data=rows)
         case "role":
             address = RosterAddress(addr=item.slug)
-            return (await svc.show_role_entry(address, keep_view=view_name)).data
+            role = await svc.show_role_entry(address, keep_view=view_name)
+            return Response(data=role.data, warnings=role.warnings)
         case "playbook":
-            return _playbook_source(cast(PlaybookSource, result))
+            return Response(data=_playbook_source(cast(PlaybookSource, result)))
         case _:
-            return await _self_source(svc, item, view_name)
+            shown = await _self_source(svc, item, view_name)
+            return Response(data=shown.data, warnings=shown.warnings)
