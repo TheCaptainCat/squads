@@ -23,7 +23,7 @@ description: Options, import keys, stored keys, wire keys and generated text der
   from the active spec; badge values and the mapping are stored flat under declared
   or neutral keys
 created_at: '2026-10-29T19:08:39Z'
-updated_at: '2026-10-29T21:13:07Z'
+updated_at: '2026-10-29T22:05:10Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -44,7 +44,9 @@ Generated agent text has the same defect. The squads skill teaches `sq f 26 stor
 
 **No bundled vocabulary is special-cased outside the spec: not in the CLI, import, storage, wire shapes, generated text or the guards.** Code outside `_specs/` and `_migrations/` does not name a bundled type, sub-entity kind, badge field, collection, status or alias to decide an option, a column, a message, an import key, a stored key, a wire key or a generated line. It resolves what it needs from the active spec: a declared field, the kind a type hosts, a declared capability, a status role or a ref-kind semantic. A template looked up by the declared name, with the generic template as the fallback, is not a special case.
 
-**Every name is derived, every label comes from the spec.** An option, an import key and a stored key are spelled after the declaration they derive from. A bundled squad sees `--priority` and `--story` because the bundled spec declares a field `priority` and a kind `story`, not because the code knows them. No static spelling and no alias of a bundled name exists. Every human-facing word reads the declared vocabulary: help text, a column header, a show or head label, a refusal message, in the CLI and in the clients (VS Code, the TUI). Messages use the declared `plural` and label, and are phrased so they need no article chosen in code ("a initiative").
+**Every name is derived, every label comes from the spec.** An option, an import key and a stored key are spelled after the declaration they derive from. A bundled squad sees `--priority` and `--story` because the bundled spec declares a field `priority` and a kind `story`, not because the code knows them. No static spelling and no alias of a bundled name exists. Every human-facing word reads the declared vocabulary: help text, a column header, a show or head label, a refusal message, in the CLI and in the clients (VS Code, the TUI). Messages use the declared `plural` and label.
+
+**No article is chosen in code, anywhere.** Help text, messages, generated agent text and templates are phrased so that no article stands before a declared name, neither a fixed "a" ("a audit") nor one a helper computes ("Create an initiative."): "Create a new initiative.", "Operate on one initiative by number or ID.", "so the `action` kind, which maps to a sub-entity, ...". No helper picks an article for any word, the reserved roster nouns included. An article in fixed text before a fixed engine word ("a parameter kind") is ordinary prose.
 
 **Grammar names the mechanism, not a bundled instance.** A spec key, a validator name or a transform name that every squad writes is neutral:
 
@@ -132,14 +134,14 @@ All collisions are checked against the active spec only.
 
 ### 7. Wire shapes
 
-- **Item rows** (`list`, `show`, `create`, `mine`): `priority` and `severity` leave the core keys. A stored badge value appears at the top level beside the other attributes, only when the file stores it; `badges` carries every declared field.
-- **Tree and graph nodes:** the `priority` key goes. `badges` carries every field.
-- **Sub-entity objects** (in `subentities`, the sub-entity lists and `<kind> <k> show`): the keys are `local_id`, `title`, `status`, `assignee`, `maps_to`, `deferred_to`, then each stored attribute flat, then `body`, `badges`, `discussion`, `display`. `maps_to` and `deferred_to` are always present, `null` when unset. `severity`, `story` and `extra` go.
-- **Display:** the sub-entity row's `display.story` becomes `display.maps_to`, the mapped sub-entity as shown.
+- **Item rows** (`list`, `show`, `create`, `mine`): `priority` and `severity` leave the core keys. A stored badge value appears at the top level beside the other attributes, only when the file stores it; `badges` maps each declared field that holds a value to its badge code.
+- **Tree and graph nodes:** the `priority` key goes. `badges` maps each field that holds a value to its badge code.
+- **Sub-entity objects**, wherever one appears (an item row's `subentities`, `show`, the sub-entity lists, `<kind> <k> show`, a view source): the keys are `local_id`, `title`, `status`, `assignee`, `maps_to`, `deferred_to`, then each stored attribute flat, then the keys the surface adds. `badges` is on every surface; `display` is on the lists, `show` and view sources; `body` and `discussion` are on `show` and `<kind> <k> show`. In order: `body`, `badges`, `discussion`, `display`. `badges` maps each field the kind declares that holds a value to its badge code, and is `{}` for an entry whose type hosts no kind. `maps_to` and `deferred_to` are always present, `null` when unset. `severity`, `story` and `extra` go.
+- **Display:** the sub-entity row's `display.story` becomes `display.maps_to`, the mapped sub-entity as shown. Wherever a kind is shown as a `KindDisplay` (`<kind> <k> show`'s `display.kind`, the sub-entity list's `kind`), its target kind is shown beside it as `maps_to_kind`, a `KindDisplay` too, `null` when the kind does not map. It is a `KindDisplay` and not the kind's name because a renderer may not read the spec and a name is a code, not a label (§1); it takes the shape `display.kind` already has.
 - **Catalog:** the `sq workflow subentity-kinds --json` column `maps_parent_story` becomes `maps_to_parent`.
-- **Render context:** the sub-entity head and the item templates receive the declared fields as a list of `{code, label, badge}` and the mapping as `{label, value}` (the target kind's label and the `maps_to` value), instead of the `severity`, `severity_label` and `story` names.
+- **Render context:** the sub-entity head receives the declared fields that hold a value as a list of `{code, label, badge}` in declared order, and the mapping as `{label, value}` (the target kind's label and the `maps_to` value) or none, instead of the `severity`, `severity_label` and `story` names. Item and view templates receive the models, not a field list: an item or a sub-entity reads a badge value through `badge_value('<code>')`, which gives none when unset, and a template finds the declared fields through `spec.fields_for(<type or kind>)`. An item template scaffolds the body once, at create, and a badge value written into the body would go stale at the next update, so it gets no field list.
 
-The clients read badge values from `badges` and labels from `display` and the catalogs, never from a field-named key.
+The clients read badge values from `badges` and labels from `display` and the catalogs, never from a field-named key. Since every item and every sub-entity object carries `badges`, a client can do so on every surface; the flat keys are the stored state, there for scripts that read the file's shape.
 
 ### 8. Schema version and migration
 
@@ -163,7 +165,13 @@ Every other entry key, an unknown key included, is copied as written, an empty v
 **What the runner does not rewrite**, listed in the migration's `manual` step:
 
 - An override that spells `maps_parent_story`, `subtask_story_mapping` or the transform `milestone_rollup` is refused at load with a message naming the neutral name, so `sq migrate up` stops before any runner, nothing migrated, until the override is edited.
-- An override template that reads a name this change removes (the sub-entity head's `severity`, `severity_label` and `story`, an item's `.priority` or `.severity`, a sub-entity's `.story` or `.extra`) fails to render under `StrictUndefined`. The step names the generic context that replaces each one (§7).
+- An override template that reads a name this change removes fails to render, and not always on every item:
+  - the sub-entity head no longer receives `severity`, `severity_label` or `story`; it receives `fields` and `mapping` (§7), and fails on every head that reads an old name;
+  - an item's `.priority` and `.severity` are no longer model fields. The template engine serves an item's stored attributes as fields on the item an item template or a view receives as `item`, so there `item.priority` still renders while the item stores a value and fails on an item that stores none, where 0.17 rendered none. On the items of a view's `source`, which are not wrapped, it fails on every item;
+  - a sub-entity's `.severity`, `.story` and `.extra` fail on every entry: view templates receive the sub-entity models, which serve no attribute as a field;
+  - the replacement that works on every item and sub-entity, in every template, is `.badge_value('<code>')`; the mapping is `.maps_to` and any other stored key is in `.attributes`.
+
+  The step's second point reads exactly: "(2) An override template that reads a name this release removes fails to render, on some items or on all. The sub-entity head no longer receives `severity`, `severity_label` or `story`, but `fields` (a list of `code`, `label` and `badge`) and `mapping` (a `label` and a `value`, or none). An item's `.priority` and `.severity` are no longer fields: on the `item` an item template or a view receives, they still render while that item stores a value and fail on an item that stores none; on the items of a view's `source` they fail on every item. A sub-entity's `.severity`, `.story` and `.extra` fail on every entry. Read a badge value with `.badge_value('<code>')`, which works on every item and sub-entity in every template and gives none when unset; read the mapping with `.maps_to` and any other stored key from `.attributes`."
 - Reflog entries keep the keys they recorded: they are history.
 
 This repository's squad is brought up to date by the same runner.
@@ -259,4 +267,10 @@ Each overlap below is a clause-level amendment (board rule 6): the older decisio
     - Section 8: item top-level keys keep their values but are reordered once. The 0.19 runner rewrites each item file whose top-level key order differs from the writer's, moving keys only, so `priority` and `severity` land after the timestamps with the other attributes in the migration diff and never move again. Idempotence now covers key order; the sub-entity rewrites and the pre-scan refusal stand.
     - Section 8 (F3): an empty or null `maps_to` means no mapping; it is dropped and a `story` beside it becomes the mapping. Not a refusal: an empty value is unset everywhere else, and folding it loses nothing. The refusal is now for `story` beside a non-empty `maps_to`. Section 6 says the model folds an empty `maps_to` to unset.
     - Sections 6 and 8 (F4): an unknown entry key is kept as written, an empty value included; only an empty value of a declared field is unset.
+- [2026-10-29T22:05:10Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29, under REV-1259 F7, F18 and F19 and the manager's F18 ruling c4ebe04.
+    - Section 1 (F18): no article is chosen in code, anywhere, help text included. No helper picks an article, and no fixed "a" stands before a declared name.
+    - Section 7 (F19): every sub-entity object carries `badges`, item-row `subentities` and list entries included (`{}` when the type hosts no kind), so the "never from a field-named key" rule holds on every surface. `maps_to_kind` is listed and typed as a `KindDisplay`, on `<kind> <k> show` and beside the sub-entity list's `kind`. Item templates get no `fields` list: they read `badge_value(code)` and `spec.fields_for(...)`, since a badge value scaffolded into a body goes stale.
+    - Section 8 (F7): the template-breakage text now says where it fails. `item.<code>` renders while the item stores a value and fails when it stores none, on a view's `source` items it fails always, and a sub-entity's `.severity` fails on every entry. It also gives the exact MANUAL point 2 text for the 0.19 runner.
+    @manager the code changes are in my handback. @reviewer F7 and F19 can be re-checked against this text once they land.
 <!-- sq:discussion:end -->

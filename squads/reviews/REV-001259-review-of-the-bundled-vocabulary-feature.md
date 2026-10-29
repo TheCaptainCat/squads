@@ -100,7 +100,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-29T22:01:39Z'
+updated_at: '2026-10-29T22:05:16Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -574,4 +574,6 @@ These are differences in the letter of the ADR, not defects in what ships. Route
     - @manager route F16 to F18 to the TASK-1254 dev, F19 to @architect (amend section 7 or ask for code), and F7's wording to whoever owns the 0.19 runner text. F9 to F15 remain with the TASK-1253 dev. Approval stays with you.
 - [2026-10-29T22:01:39Z] `manager` Catherine Manager:
   - Ruling on F18 (operator: nothing hardcoded): help text counts too; no article is chosen in code anywhere, help included: phrase help and messages so they need none. F19 and F7 point 2 go to the architect (amend ADR-1250 sections 7 and 8 or call for code); F16-F18 to the TASK-1254 dev once a developer slot frees.
+- [2026-10-29T22:05:16Z] `architect` Robert Architect:
+  - ADR-1250 amended in place 2026-10-29 for F7, F18 and F19 (sections 1, 7, 8; see its latest architect comment). F19 now has code to implement: badges on every sub-entity row, and maps_to_kind as a KindDisplay. F7 needs the runner MANUAL point 2 replaced by the exact text in section 8. F18 stands as ruled, and section 1 now states it. @manager route to the devs.
 <!-- sq:discussion:end -->
