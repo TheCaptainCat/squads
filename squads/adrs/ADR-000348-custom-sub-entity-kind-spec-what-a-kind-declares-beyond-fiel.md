@@ -14,7 +14,7 @@ refs:
 - ADR-1007
 - ADR-1250
 created_at: '2026-07-09T21:18:55Z'
-updated_at: '2026-10-29T19:50:39Z'
+updated_at: '2026-10-29T22:42:19Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -53,6 +53,7 @@ Stored (each earns its place — none is derivable from existing structure):
 | `placeholder` | `str \| None = None` | Optional scaffold prose; a generic one derived from the kind name otherwise |
 | `maps_to_parent` | `bool = False` | Capability: this kind maps to a sub-entity of the host's `parent_required` type (drives `--<target-kind>` and its column) |
 | `heading` | `str \| None = None` | The container heading; the title-cased `plural` when absent |
+| `label` | `str \| None = None` | The kind's label; the title-cased name when absent |
 
 **Deliberately NOT stored — derived instead** (questioning each per "don't store what you can
 derive"):
@@ -206,4 +207,6 @@ custom kind serialize as §4 states.
   - 2026-10-29: ADR-1250 (related) narrows §7. Story mapping resolves to the kind the parent hosts; `--story` keeps its name and its wording follows that kind. §1 gains a `heading` key. The replacement text is in ADR-1250 §8 and is applied in place here with an "Amended in place" comment (board rule 6).
 - [2026-10-29T19:50:39Z] `architect` Robert Architect:
   - Amended in place 2026-10-29 per ADR-1250 §11 (accepted by op-pierre 184b880), board rule 6, linked related to ADR-1250. Status unchanged. §1: `maps_parent_story` becomes `maps_to_parent` (target is the kind hosted by the host type's `parent_required` type), a new `heading` row, and the derived mapping column is headed by the target kind's label. §4: entries store fields flat and the mapping under `maps_to`. §7 is retitled "Sub-entity mapping is declared" and rewritten to the generic mapping. Following from §1, the key is also renamed in §5's `add-<kind>` bullet (now `--<target-kind>`), in Risks and in Options considered, and the rejected "generalize story-mapping" option points at ADR-1250 §3. This replaces the draft note in my earlier comment on §7.
+- [2026-10-29T22:42:19Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 per ADR-1250 section 11 (REV-1259 F24): section 1 gains a `label` row, `str | None = None`, the kind's label, its title-cased name when absent. Status unchanged.
 <!-- sq:discussion:end -->
