@@ -146,7 +146,7 @@ async def test_category_refuses_an_unknown_category(readable, invoke) -> None:
     )
 
 
-@pytest.mark.covers("tree", "--priority")
+@pytest.mark.covers("tree", "--<field>")
 async def test_priority_keeps_the_items_of_exactly_that_priority_in_context(
     readable, invoke
 ) -> None:
@@ -156,7 +156,7 @@ async def test_priority_keeps_the_items_of_exactly_that_priority_in_context(
     )
 
 
-@pytest.mark.covers("tree", "--priority")
+@pytest.mark.covers("tree", "--<field>")
 async def test_priority_refuses_an_unknown_code(readable, invoke) -> None:
     assert await _tree(invoke, "--priority", "ghost") == (
         1,
@@ -164,7 +164,7 @@ async def test_priority_refuses_an_unknown_code(readable, invoke) -> None:
     )
 
 
-@pytest.mark.covers("tree", "--min-priority")
+@pytest.mark.covers("tree", "--min-<field>")
 async def test_min_priority_keeps_the_items_at_least_that_urgent_in_context(
     readable, invoke
 ) -> None:
@@ -174,7 +174,7 @@ async def test_min_priority_keeps_the_items_at_least_that_urgent_in_context(
     )
 
 
-@pytest.mark.covers("tree", "--min-priority")
+@pytest.mark.covers("tree", "--min-<field>")
 async def test_min_priority_refuses_an_unknown_code(readable, invoke) -> None:
     assert await _tree(invoke, "--min-priority", "ghost") == (
         1,
@@ -452,8 +452,8 @@ def _role_node(pronouns: str | None) -> dict[str, Any]:
 # --- interactions ---------------------------------------------------------------------------
 
 
-@pytest.mark.covers("tree", "--severity")
-@pytest.mark.covers("tree", "--min-severity")
+@pytest.mark.covers("tree", "--<field>")
+@pytest.mark.covers("tree", "--min-<field>")
 async def test_a_field_only_some_types_declare_filters_exactly_and_by_threshold(
     readable, invoke
 ) -> None:
@@ -499,7 +499,7 @@ async def test_a_generic_form_refuses_a_code_no_type_declares_naming_the_declare
         )
 
 
-@pytest.mark.covers("tree", "--priority", "--min-priority")
+@pytest.mark.covers("tree", "--<field>", "--min-<field>")
 async def test_priority_and_min_priority_both_apply_to_one_tree(readable, invoke) -> None:
     both = await _tree(invoke, "--priority", "urgent", "--min-priority", "high")
     assert both == (0, _drawn(f"└── {FEATURE}", f"    └── {PARSER}"))

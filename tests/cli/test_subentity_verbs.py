@@ -310,7 +310,7 @@ async def test_add_refuses_an_assignee_no_roster_entry_has(populated_project, in
     assert out == (1, UNKNOWN_SLUG)
 
 
-@pytest.mark.covers("<type> add-<kind>", "--story")
+@pytest.mark.covers("<type> add-<kind>", "--<target-kind>")
 async def test_add_story_maps_the_subtask_to_a_story_of_the_parent_feature(
     populated_project, invoke
 ) -> None:
@@ -319,7 +319,7 @@ async def test_add_story_maps_the_subtask_to_a_story_of_the_parent_feature(
     assert [(await _subtask(invoke, n))["maps_to"] for n in (3, 4)] == ["US2", "US1"]
 
 
-@pytest.mark.covers("<type> add-<kind>", "--story")
+@pytest.mark.covers("<type> add-<kind>", "--<target-kind>")
 async def test_add_story_refuses_a_story_the_parent_feature_lacks(
     populated_project, invoke
 ) -> None:
@@ -329,7 +329,7 @@ async def test_add_story_refuses_a_story_the_parent_feature_lacks(
     )
 
 
-@pytest.mark.covers("<type> add-<kind>", "--story")
+@pytest.mark.covers("<type> add-<kind>", "--<target-kind>")
 async def test_add_story_is_resolved_against_the_parent_of_the_task_it_is_added_to(
     populated_project, invoke
 ) -> None:
@@ -343,7 +343,7 @@ async def test_add_story_is_resolved_against_the_parent_of_the_task_it_is_added_
     )
 
 
-@pytest.mark.covers("<type> add-<kind>", "--story")
+@pytest.mark.covers("<type> add-<kind>", "--<target-kind>")
 async def test_add_story_refuses_a_task_with_no_feature_parent(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     assert await _ran(invoke, ["task", str(loose), "add-subtask", "Index", "--story", "US1"]) == (
@@ -380,7 +380,7 @@ async def test_add_refuses_an_actor_no_roster_entry_has(populated_project, invok
     )
 
 
-@pytest.mark.covers("<type> add-<kind>", "--severity")
+@pytest.mark.covers("<type> add-<kind>", "--<field>")
 async def test_add_severity_sets_the_severity_of_a_new_finding(populated_project, invoke) -> None:
     out = await _ran(
         invoke, ["review", str(REVIEW), "add-finding", "Dead branch", "--severity", "low"]
@@ -399,7 +399,7 @@ async def test_add_severity_defaults_to_medium_when_not_given(populated_project,
     assert (await _finding(invoke, 3))["severity"] == "medium"
 
 
-@pytest.mark.covers("<type> add-<kind>", "--severity")
+@pytest.mark.covers("<type> add-<kind>", "--<field>")
 async def test_add_refuses_a_severity_outside_the_declared_ones(populated_project, invoke) -> None:
     out = await _ran(
         invoke, ["review", str(REVIEW), "add-finding", "Dead branch", "--severity", "Bad"]
@@ -556,7 +556,7 @@ async def test_update_refuses_assignee_with_clear_assignee(populated_project, in
     assert out == (1, "error: use --assignee or --clear-assignee, not both\n")
 
 
-@pytest.mark.covers("<type> <kind> update", "--story")
+@pytest.mark.covers("<type> <kind> update", "--<target-kind>")
 async def test_update_story_maps_the_subtask_to_a_story_of_the_parent_feature(
     populated_project, invoke
 ) -> None:
@@ -565,7 +565,7 @@ async def test_update_story_maps_the_subtask_to_a_story_of_the_parent_feature(
     assert [(await _subtask(invoke, n))["maps_to"] for n in (1, 2)] == ["US2", "US1"]
 
 
-@pytest.mark.covers("<type> <kind> update", "--story")
+@pytest.mark.covers("<type> <kind> update", "--<target-kind>")
 async def test_update_story_refuses_a_story_the_parent_feature_lacks(
     populated_project, invoke
 ) -> None:
@@ -573,7 +573,7 @@ async def test_update_story_refuses_a_story_the_parent_feature_lacks(
     assert out == (1, f"error: story US9 not found in FEAT-{FEATURE}\n")
 
 
-@pytest.mark.covers("<type> <kind> update", "--story")
+@pytest.mark.covers("<type> <kind> update", "--<target-kind>")
 async def test_update_story_is_resolved_against_the_parent_of_the_task_it_belongs_to(
     populated_project, invoke
 ) -> None:
@@ -590,7 +590,7 @@ async def test_update_story_is_resolved_against_the_parent_of_the_task_it_belong
     assert (await _subtask(invoke, 1, loose))["maps_to"] == "US1"
 
 
-@pytest.mark.covers("<type> <kind> update", "--story")
+@pytest.mark.covers("<type> <kind> update", "--<target-kind>")
 async def test_update_story_refuses_a_task_with_no_feature_parent(
     populated_project, invoke
 ) -> None:
@@ -602,14 +602,14 @@ async def test_update_story_refuses_a_task_with_no_feature_parent(
     )
 
 
-@pytest.mark.covers("<type> <kind> update", "--no-story")
+@pytest.mark.covers("<type> <kind> update", "--no-<target-kind>")
 async def test_update_no_story_clears_the_story_mapping(populated_project, invoke) -> None:
     out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "update", "--no-story"])
     assert out == (0, "updated TASK-3 ST1\n")
     assert (await _subtask(invoke, 1))["maps_to"] is None
 
 
-@pytest.mark.covers("<type> <kind> update", "--story", "--no-story")
+@pytest.mark.covers("<type> <kind> update", "--<target-kind>", "--no-<target-kind>")
 async def test_update_refuses_story_with_no_story(populated_project, invoke) -> None:
     out = await _ran(
         invoke, ["task", str(TASK), "subtask", "1", "update", "--story", "US2", "--no-story"]
@@ -642,20 +642,20 @@ async def test_update_refuses_a_call_that_changes_nothing(populated_project, inv
     )
 
 
-@pytest.mark.covers("<type> <kind> update", "--severity")
+@pytest.mark.covers("<type> <kind> update", "--<field>")
 async def test_update_severity_changes_the_severity_of_a_finding(populated_project, invoke) -> None:
     out = await _ran(invoke, ["review", str(REVIEW), "finding", "1", "update", "--severity", "low"])
     assert out == (0, "updated REV-4 F1\n")
     assert (await _finding(invoke, 1))["severity"] == "low"
 
 
-@pytest.mark.covers("<type> <kind> update", "--severity")
+@pytest.mark.covers("<type> <kind> update", "--<field>")
 async def test_update_severity_accepts_the_label_in_any_case(populated_project, invoke) -> None:
     await _ok(invoke, ["review", str(REVIEW), "finding", "2", "update", "--severity", "INFO"])
     assert (await _finding(invoke, 2))["severity"] == "info"
 
 
-@pytest.mark.covers("<type> <kind> update", "--severity")
+@pytest.mark.covers("<type> <kind> update", "--<field>")
 async def test_update_refuses_a_severity_outside_the_declared_ones(
     populated_project, invoke
 ) -> None:

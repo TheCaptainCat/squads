@@ -18,6 +18,7 @@ import typer.main
 from typer._click.core import Context, iter_params_for_processing
 
 from squads._cli import app
+from squads._cli._create import CREATE_ATTRIBUTE_KINDS
 from squads._context import bind_context, get_context
 from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
@@ -50,13 +51,61 @@ EXCLUDED_PARAMS: dict[Pair, str] = {
 }
 
 
-def param_name(param: Any) -> str:
-    """The name a test declares *param* by: the first long flag, else the first flag, else the
-    usage name of an argument."""
+FIELD = "<field>"
+TARGET_KIND = "<target-kind>"
+
+
+def _dashed(code: str) -> str:
+    return code.replace("_", "-")
+
+
+def derived_names(spec: WorkflowSpec) -> dict[str, str]:
+    """The flags *spec* derives from its declarations, each with the name a marker holds it by, so
+    one marker holds in every squad: `--<field>`, `--no-<field>` and `--min-<field>` for a badge
+    field, `--<target-kind>` and `--no-<target-kind>` for a sub-entity mapping, and
+    `--<attribute:str>`, `--<attribute:list>` or `--<attribute:date>` for a create-time attribute.
+    """
+    names: dict[str, str] = {}
+
+    def field_flags(code: str) -> None:
+        flag = _dashed(code)
+        names.setdefault(f"--{flag}", f"--{FIELD}")
+        names.setdefault(f"--no-{flag}", f"--no-{FIELD}")
+        names.setdefault(f"--min-{flag}", f"--min-{FIELD}")
+
+    for type_name, item in spec.items.items():
+        if spec.item_is_roster(type_name):
+            continue
+        for declared in item.fields:
+            field_flags(declared.code)
+        for key, attribute in item.attributes.items():
+            if attribute.settable and attribute.kind in CREATE_ATTRIBUTE_KINDS:
+                names.setdefault(f"--{_dashed(key)}", f"--<attribute:{attribute.kind}>")
+    for kind, kind_spec in spec.subentity_kinds.items():
+        for declared in kind_spec.fields:
+            field_flags(declared.code)
+        target = spec.mapping_target_kind(kind)
+        if target is not None:
+            names.setdefault(f"--{_dashed(target)}", f"--{TARGET_KIND}")
+            names.setdefault(f"--no-{_dashed(target)}", f"--no-{TARGET_KIND}")
+    return names
+
+
+def raw_param_name(param: Any) -> str:
+    """The first long flag of an option, else its first flag, else the usage name of an argument."""
     if param.param_type_name == "option":
         longs = [o for o in param.opts if o.startswith("--")]
         return longs[0] if longs else param.opts[0]
     return param.human_readable_name
+
+
+def param_name(param: Any, spec: WorkflowSpec | None = None) -> str:
+    """The name a test declares *param* by: its raw name, a flag *spec* derives from its
+    declarations by its derivation."""
+    raw = raw_param_name(param)
+    if param.param_type_name != "option":
+        return raw
+    return derived_names(spec or bundled_spec()).get(raw, raw)
 
 
 @dataclass(frozen=True)
@@ -170,7 +219,7 @@ def surface_of(nodes: Iterable[Node], spec: WorkflowSpec) -> Surface:
         key = fold_path(node.path, spec)
         if not hasattr(node.command, "list_commands"):
             leaves.add(key)
-        pairs.update((key, param_name(p)) for p in node_params(node))
+        pairs.update((key, param_name(p, spec)) for p in node_params(node))
     pairs -= EXCLUDED_PARAMS.keys()
     return Surface(frozenset(pairs), frozenset(leaves))
 
@@ -204,17 +253,18 @@ def reached_pairs(
         key = fold_path(path, spec)
         params = node_params(Node(path, command, ctx))
         given_pairs = {
-            (key, param_name(p))
+            (key, param_name(p, spec))
             for p in params
-            if given.get(p.name) not in (None, ()) and (key, param_name(p)) not in EXCLUDED_PARAMS
+            if given.get(p.name) not in (None, ())
+            and (key, param_name(p, spec)) not in EXCLUDED_PARAMS
         }
         level = {pair for pair in given_pairs if known is None or pair in known}
         reached |= level
         if not hasattr(command, "list_commands") or not rest:
             if not hasattr(command, "list_commands"):
                 reached |= {(key, None)} if not given_pairs else set()
-                reached |= _missing(key, params, given)
-            return reached | _named(key, params, refusal or "")
+                reached |= _missing(key, params, given, spec)
+            return reached | _named(key, params, refusal or "", spec)
         child = command.get_command(ctx, rest[0])
         if child is not None:
             name, remaining = rest[0], rest[1:]
@@ -231,26 +281,26 @@ def reached_pairs(
         command = child
 
 
-def _missing(key: str, params: list[Any], given: dict[str, Any]) -> set[Pair]:
+def _missing(key: str, params: list[Any], given: dict[str, Any], spec: WorkflowSpec) -> set[Pair]:
     """The pair of the required parameter Click's missing-parameter error names for a leaf call
     that leaves it out: the first one Click processes."""
     absent = [p for p in params if p.required and given.get(p.name) in (None, ())]
     first = next(iter(iter_params_for_processing([], absent)), None)
-    return {(key, param_name(first))} if first is not None else set()
+    return {(key, param_name(first, spec))} if first is not None else set()
 
 
-def _named(key: str, params: list[Any], refusal: str) -> set[Pair]:
+def _named(key: str, params: list[Any], refusal: str, spec: WorkflowSpec) -> set[Pair]:
     """The pairs of the options of the command a call ended on that have a flag, short or long,
     in *refusal*."""
     return {
-        (key, param_name(p))
+        (key, param_name(p, spec))
         for p in params
         if p.param_type_name == "option"
         and any(
             re.search(rf"(?<![\w-]){re.escape(flag)}(?![\w-])", refusal)
             for flag in (*p.opts, *p.secondary_opts)
         )
-        and (key, param_name(p)) not in EXCLUDED_PARAMS
+        and (key, param_name(p, spec)) not in EXCLUDED_PARAMS
     }
 
 

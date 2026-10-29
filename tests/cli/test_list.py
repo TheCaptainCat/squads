@@ -169,7 +169,7 @@ async def test_category_refuses_an_unknown_category(readable, invoke) -> None:
     )
 
 
-@pytest.mark.covers("list", "--priority")
+@pytest.mark.covers("list", "--<field>")
 async def test_priority_keeps_the_items_of_exactly_that_priority(readable, invoke) -> None:
     assert await _list(invoke, "--priority", "low") == (
         0,
@@ -180,7 +180,7 @@ async def test_priority_keeps_the_items_of_exactly_that_priority(readable, invok
     )
 
 
-@pytest.mark.covers("list", "--priority")
+@pytest.mark.covers("list", "--<field>")
 async def test_priority_refuses_an_unknown_code(readable, invoke) -> None:
     assert await _list(invoke, "--priority", "ghost") == (
         1,
@@ -188,7 +188,7 @@ async def test_priority_refuses_an_unknown_code(readable, invoke) -> None:
     )
 
 
-@pytest.mark.covers("list", "--min-priority")
+@pytest.mark.covers("list", "--min-<field>")
 async def test_min_priority_keeps_the_items_at_least_that_urgent(readable, invoke) -> None:
     assert await _list(invoke, "--min-priority", "high") == (
         0,
@@ -200,7 +200,7 @@ async def test_min_priority_keeps_the_items_at_least_that_urgent(readable, invok
     )
 
 
-@pytest.mark.covers("list", "--min-priority")
+@pytest.mark.covers("list", "--min-<field>")
 async def test_min_priority_refuses_an_unknown_code(readable, invoke) -> None:
     assert await _list(invoke, "--min-priority", "ghost") == (
         1,
@@ -384,8 +384,8 @@ async def test_compact_refuses_json(readable, invoke) -> None:
     )
 
 
-@pytest.mark.covers("list", "--severity")
-@pytest.mark.covers("list", "--min-severity")
+@pytest.mark.covers("list", "--<field>")
+@pytest.mark.covers("list", "--min-<field>")
 async def test_a_field_only_some_types_declare_filters_exactly_and_by_threshold(
     readable, invoke
 ) -> None:
@@ -458,7 +458,7 @@ async def test_a_squad_declaring_no_field_lists_no_badge_column(override_project
     assert lines(result.output)[0].split()[:4] == ["ID", "Type", "Status", "Title"]
 
 
-@pytest.mark.covers("list", "--priority", "--min-priority")
+@pytest.mark.covers("list", "--<field>", "--min-<field>")
 async def test_priority_and_min_priority_both_apply_to_one_listing(readable, invoke) -> None:
     both = await _list(invoke, "--priority", "urgent", "--min-priority", "high")
     assert both == (

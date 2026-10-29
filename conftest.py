@@ -61,6 +61,14 @@ def fresh_command_tree():
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
+        "--squad",
+        action="store",
+        default=os.environ.get("SQUADS_TEST_SQUAD", "bundled"),
+        choices=("bundled", "override"),
+        help="the squad the tests/cli surface suite runs on: the bundled one, or the override "
+        "test squad that shares none of its vocabulary (default: $SQUADS_TEST_SQUAD, else bundled)",
+    )
+    parser.addoption(
         "--run-slow",
         action="store_true",
         default=False,
@@ -76,9 +84,29 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
+def pytest_configure(config: pytest.Config) -> None:
+    """Publish the selected squad to the modules that read it at import time."""
+    os.environ["SQUADS_TEST_SQUAD"] = config.getoption("--squad")
+
+
+def _skip_other_squad(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Skip a case about the other squad's own spelling; its marker states why."""
+    selected = config.getoption("--squad")
+    for item in items:
+        for squad in ("bundled", "override"):
+            marker = item.get_closest_marker(f"{squad}_only")
+            if marker is None:
+                continue
+            if not marker.args or not isinstance(marker.args[0], str) or not marker.args[0]:
+                pytest.fail(f"{item.nodeid}: {squad}_only needs a reason", pytrace=False)
+            if squad != selected:
+                item.add_marker(pytest.mark.skip(reason=f"{squad} squad only: {marker.args[0]}"))
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """Skip slow tests unless `--run-slow`, and shuffle by seed when `--shuffle-seed` is given
     (the same seed gives every xdist worker the same order)."""
+    _skip_other_squad(config, items)
     seed = config.getoption("--shuffle-seed")
     if seed is not None:
         random.Random(seed).shuffle(items)

@@ -24,7 +24,7 @@ CASES: dict[str, Case] = {
         {
             ("<type>", "N"),
             ("<type> <kind>", "LOCAL-ID"),
-            ("<type> <kind> update", "--story"),
+            ("<type> <kind> update", "--<target-kind>"),
         },
     ),
     "an item comment group given a message": (
@@ -43,7 +43,7 @@ CASES: dict[str, Case] = {
         ["create", "bug", "T", "--severity", "S1"],
         {
             ("create <type>", "TITLE"),
-            ("create <type>", "--severity"),
+            ("create <type>", "--<field>"),
             ("create <type>", "--author"),
         },
     ),
@@ -59,7 +59,7 @@ CASES: dict[str, Case] = {
     ),
     "a create option an attribute adds": (
         ["create", "guide", "G", "--tags", "ops"],
-        {("create <type>", "TITLE"), ("create <type>", "--tags"), ("create <type>", "--author")},
+        {("create <type>", "TITLE"), ("create <type>", "--<attribute:list>"), ("create <type>", "--author")},
     ),
     "a hidden create alias of a built create": (
         ["create", "g", "G"],

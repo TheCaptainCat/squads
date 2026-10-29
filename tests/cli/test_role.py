@@ -311,7 +311,7 @@ async def test_activate_model_replaces_the_catalogs_model(project, invoke) -> No
     assert "model: haiku\n" in _pointer(project, "architect").read_text(encoding="utf-8")
 
 
-@pytest.mark.covers("role activate", "--from", "--tech")
+@pytest.mark.covers("role activate", "--from", "--<attribute:str>")
 async def test_activate_from_a_template_builds_a_role_for_the_technology(project, invoke) -> None:
     result = await invoke(["role", "activate", "--from", "dev", "--tech", "python"])
     assert (result.exit_code, result.output) == (0, "added Elias Python (`python-dev`) ROLE-2\n")
@@ -354,7 +354,7 @@ async def test_activate_from_a_template_that_takes_a_technology_needs_tech(proje
     )
 
 
-@pytest.mark.covers("role activate", "--tech")
+@pytest.mark.covers("role activate", "--<attribute:str>")
 async def test_activate_tech_is_refused_without_a_template(project, invoke) -> None:
     result = await invoke(["role", "activate", "architect", "--tech", "go"])
     assert (result.exit_code, result.output) == (

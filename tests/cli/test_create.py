@@ -175,14 +175,14 @@ async def test_assignee_refuses_a_slug_that_is_not_registered(project, invoke) -
     )
 
 
-@pytest.mark.covers("create <type>", "--priority")
+@pytest.mark.covers("create <type>", "--<field>")
 async def test_priority_sets_the_priority(project, invoke) -> None:
     result = await invoke(["create", "task", "Index", "--author", "manager", "--priority", "high"])
     assert result.exit_code == 0, result.output
     assert (await _shown(invoke, "task", 2))["priority"] == "high"
 
 
-@pytest.mark.covers("create <type>", "--priority")
+@pytest.mark.covers("create <type>", "--<field>")
 async def test_priority_refuses_a_code_the_collection_does_not_declare(project, invoke) -> None:
     result = await invoke(["create", "task", "Index", "--author", "manager", "--priority", "nope"])
     assert (result.exit_code, result.output) == (
@@ -218,7 +218,7 @@ async def test_a_declared_field_flag_sets_the_value_the_squad_names(
     )
 
 
-@pytest.mark.covers("create <type>", "--priority")
+@pytest.mark.covers("create <type>", "--<field>")
 async def test_priority_refuses_an_empty_value(project, invoke) -> None:
     result = await invoke(["create", "task", "Index", "--author", "manager", "--priority", ""])
     assert (result.exit_code, result.output) == (
@@ -295,8 +295,8 @@ async def test_json_prints_the_created_item(project, invoke) -> None:
     )
 
 
-@pytest.mark.covers("create <type>", "--tags")
-@pytest.mark.covers("create <type>", "--tech")
+@pytest.mark.covers("create <type>", "--<attribute:list>")
+@pytest.mark.covers("create <type>", "--<attribute:str>")
 async def test_create_guide_stores_each_tag_in_order_and_the_tech(project, invoke) -> None:
     result = await invoke(
         [
@@ -318,14 +318,14 @@ async def test_create_guide_stores_each_tag_in_order_and_the_tech(project, invok
     assert (shown["tags"], shown["tech"]) == (["ops", "dev"], "python")
 
 
-@pytest.mark.covers("create <type>", "--severity")
+@pytest.mark.covers("create <type>", "--<field>")
 async def test_bug_severity_sets_the_severity(project, invoke) -> None:
     result = await invoke(["create", "bug", "Crash", "--author", "manager", "--severity", "high"])
     assert result.exit_code == 0, result.output
     assert (await _shown(invoke, "bug", 2))["severity"] == "high"
 
 
-@pytest.mark.covers("create <type>", "--severity")
+@pytest.mark.covers("create <type>", "--<field>")
 async def test_bug_severity_refuses_a_code_the_collection_does_not_declare(project, invoke) -> None:
     result = await invoke(["create", "bug", "Crash", "--author", "manager", "--severity", "zzz"])
     assert (result.exit_code, result.output) == (
@@ -334,7 +334,7 @@ async def test_bug_severity_refuses_a_code_the_collection_does_not_declare(proje
     )
 
 
-@pytest.mark.covers("create <type>", "--target-ref")
+@pytest.mark.covers("create <type>", "--<attribute:str>")
 async def test_review_target_ref_sets_the_reviewed_ref(populated_project, invoke) -> None:
     result = await invoke(
         ["create", "review", "Audit", "--author", "manager", "--target-ref", "v1.2.0"]
@@ -344,7 +344,7 @@ async def test_review_target_ref_sets_the_reviewed_ref(populated_project, invoke
     assert json.loads(shown.output)["target_ref"] == "v1.2.0"
 
 
-@pytest.mark.covers("create <type>", "--target-date")
+@pytest.mark.covers("create <type>", "--<attribute:date>")
 async def test_milestone_target_date_sets_the_date(project, invoke) -> None:
     result = await invoke(
         ["create", "milestone", "Ship", "--author", "manager", "--target-date", "2026-12-01"]
@@ -353,7 +353,7 @@ async def test_milestone_target_date_sets_the_date(project, invoke) -> None:
     assert (await _shown(invoke, "milestone", 2))["target_date"] == "2026-12-01"
 
 
-@pytest.mark.covers("create <type>", "--target-date")
+@pytest.mark.covers("create <type>", "--<attribute:date>")
 async def test_milestone_target_date_refuses_a_value_that_is_not_a_date(project, invoke) -> None:
     result = await invoke(
         ["create", "milestone", "Ship", "--author", "manager", "--target-date", "soon"]
@@ -364,7 +364,7 @@ async def test_milestone_target_date_refuses_a_value_that_is_not_a_date(project,
     )
 
 
-@pytest.mark.covers("create <type>", "--tags")
+@pytest.mark.covers("create <type>", "--<attribute:list>")
 async def test_tags_split_on_commas_and_drop_blanks_as_update_set_does(project, invoke) -> None:
     result = await invoke(
         [

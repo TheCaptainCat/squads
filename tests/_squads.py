@@ -58,10 +58,11 @@ def init_overridden(
     roles_spec: str = "minimal",
     squad_dir: str = "squads",
     backend: list[str] | None = None,
+    seed_skills: bool = True,
 ) -> None:
-    """A squad, bundled skills seeded, initialised under the override documents in the directory
-    *source*, stamped as the current release writes them; the `minimal` roster unless *roles_spec*
-    says otherwise."""
+    """A squad initialised under the override documents in the directory *source*, stamped as the
+    current release writes them; bundled skills seeded unless *seed_skills* is false, the `minimal`
+    roster unless *roles_spec* says otherwise."""
     from squads import __version__
 
     overrides = root / squad_dir / ".overrides"
@@ -72,7 +73,13 @@ def init_overridden(
             encoding="utf-8",
         )
     asyncio.run(
-        service.init(root=root, roles_spec=roles_spec, squad_dir=squad_dir, backend=backend)
+        service.init(
+            root=root,
+            roles_spec=roles_spec,
+            squad_dir=squad_dir,
+            backend=backend,
+            _skip_skill_seed=not seed_skills,
+        )
     )
 
 

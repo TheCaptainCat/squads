@@ -29,7 +29,7 @@ from tests._cli_surface import (
     ROSTER_SHARED_VERBS,
     ParamSignature,
     node_params,
-    param_name,
+    raw_param_name,
     param_signature,
 )
 from tests._help_tree import Node, command_nodes
@@ -78,7 +78,7 @@ class Tree:
         aliases: dict[tuple[str, ...], Signatures] = {}
         for node in nodes:
             path = tuple(s for s in node.path if s != ADDRESS_SEGMENT)
-            signatures: Signatures = {param_name(p): param_signature(p) for p in node_params(node)}
+            signatures: Signatures = {raw_param_name(p): param_signature(p) for p in node_params(node)}
             if _canonical(path, spec) != path:
                 aliases.setdefault(path, {}).update(signatures)
                 continue
