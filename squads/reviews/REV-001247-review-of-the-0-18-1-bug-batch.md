@@ -1,0 +1,323 @@
+---
+id: REV-1247
+sequence_id: 1247
+type: review
+title: Review of the 0.18.1 bug batch
+status: ChangesRequested
+author: reviewer
+refs:
+- TASK-1244
+- TASK-1245
+- TASK-1246
+subentities:
+- local_id: F1
+  title: migrate chlog still accepts non-version bounds such as v1x..v2y and answers
+    no manual steps
+  status: Open
+  severity: low
+- local_id: F2
+  title: init over a shared-number corpus writes .squads.toml before the repair refusal;
+    a plain re-run is refused
+  status: Open
+  severity: low
+- local_id: F3
+  title: 'create guide skips the spec-aware create class: override fields and the
+    --priority help refresh miss it'
+  status: Open
+  severity: low
+- local_id: F4
+  title: 'Existing untitled sub-entities stay invisible: sq check does not report
+    the now-required title'
+  status: Open
+  severity: low
+- local_id: F5
+  title: 'import with no op still prints pydantic wording: Unable to extract tag using
+    discriminator ''op'''
+  status: Open
+  severity: low
+- local_id: F6
+  title: Several new refusal cases assert a prefix or exit code instead of the whole
+    output (ADR-1172 rule 5)
+  status: Open
+  severity: low
+- local_id: F7
+  title: No tests/cli boundary case for a comment on a missing sub-entity, nor for
+    an adopt --squad-dir refusal
+  status: Open
+  severity: low
+- local_id: F8
+  title: 'tests/regressions: eight duplicated fixtures, one module holding two bugs,
+    uneven docstrings'
+  status: Open
+  severity: info
+- local_id: F9
+  title: unlink-role on a skill not scoped to the role still reports success, the
+    BUG-1184 shape
+  status: Open
+  severity: low
+- local_id: F10
+  title: SubentityAddRequest.title still defaults to empty, so the API contract advertises
+    it as optional
+  status: Open
+  severity: info
+- local_id: F11
+  title: repair --renumber leaves the scaffold hint naming the old number (pre-existing,
+    for QA)
+  status: Open
+  severity: info
+- local_id: F12
+  title: The depth option's min=0 makes Click say 'deep' is not a valid integer range;
+    regression pins Click wording
+  status: Open
+  severity: low
+created_at: '2026-10-29T17:02:38Z'
+updated_at: '2026-10-29T17:06:17Z'
+---
+<!-- sq:body -->
+## Scope
+
+The 0.18.1 bug batch on `release/0.18.1`, sixteen bugs in three tasks:
+
+- TASK-1244 (commits 5a6c61d3, 391a9d85): BUG-1187, BUG-1188, BUG-1189, BUG-1190, BUG-1191.
+- TASK-1245 (commits f3fe8028, 9389aceb): BUG-1193, BUG-1194, BUG-1195, BUG-1196, BUG-1197, BUG-1200.
+- TASK-1246 (commit 118cd69e): BUG-1183, BUG-1184, BUG-1185, BUG-1186, BUG-1240.
+
+BUG-1192 is out of scope here (moved to TASK-1243).
+
+## Method
+
+- Read every diff, task, bug and handback, and the op-pierre rulings on BUG-1185.
+- Drove each fix from the dev tree in scratch squads under the session scratchpad, against the released 0.17.0 tool where a comparison mattered. That covered: init, adopt and init `--force` over a corpus with a shared number, plus the `sq repair --renumber` remedy each message names; `migrate up` on a copy of the v0.14 fixture corpus with a shared number; `adopt`/`init --squad-dir` edge values; chlog range edges; `list`/`tree` badge and sort codes in mixed case; `--depth` wording; roster `ref rm` and `unlink-role`; an import with a missing `op` and a missing or blank sub-entity title; a hand-arranged untitled sub-entity through `show`, `update --status`, `body`, `comment`, `repair`, `subtasks --json` and `sq check`; and an override that declares a field on `guide` and `task`.
+- Falsification (ADR-1172): a scratch worktree at 0ae6a3ab (no fixes) with HEAD's `tests/regressions/` copied in. All 22 regression cases fail, each on its own bug's symptom. In a scratch worktree at HEAD, the `_refuse_shared_numbers` call alone was reverted: the regression case and the `tests/cli/test_repair.py` case went red, then green again after the restore.
+- In the HEAD worktree, `tests/meta` plus `tests/regressions` pass (710 passed). The full suite was not run (the main loop owns it).
+
+## Judgment points
+
+- **BUG-1191 remedy.** Plain `repair`, `init` (with or without `--force`) and `adopt` over a corpus whose files share a number all print the same refusal, and it names `sq repair --renumber`. That remedy works on each path once the corpus is current-schema. `migrate up` never reaches the new refusal, because its pre-runner fit check already refuses a shared number with hand-renumber instructions, which is the right answer on a behind-schema corpus where `sq repair` is gated. On `init` over a corpus the config is written before the refusal; see the findings.
+- **repad width 32.** Thirty-two digits, a 60-character slug and a short prefix stay well inside 255 bytes. The bound is checked in the service before the index is loaded, so nothing is renamed.
+- **`--depth deep`.** Click's `IntRange` gives "'deep' is not a valid integer range.", which reads as if a range were expected. See the findings.
+- **BUG-1183.** `create guide` is still hand-written and is not built with the spec-aware create command class. Override-declared fields therefore do not reach it. This gap predates the batch (0.17.0 behaves the same), so it is not a regression, but ST1 asked for the derived form.
+- **BUG-1185 on an existing untitled sub-entity.** Every read and every non-title write keeps working, and `sq check` stays silent. See the findings.
+<!-- sq:body:end -->
+
+## Findings
+
+_Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
+
+_Add with `sq review 1247 add-finding "…" --severity medium`; track with `sq review 1247 finding <n> update --status <Status>`._
+
+<!-- sq:findings -->
+
+<!-- sq:finding:F1 -->
+### F1 — migrate chlog still accepts non-version bounds such as v1x..v2y and answers no manual steps
+
+<!-- sq:finding:F1:body -->
+`_parse_span` in `src/squads/_cli/_migrate.py` checks each bound with `_VERSION = re.compile(r"\d[\w.+-]*")`. That pattern accepts letters and dots anywhere after the first digit, so a typo can still come back as "nothing to do", which is the defect BUG-1189 fixed. Driven on the dev tree:
+
+- `sq migrate chlog v1x..v2y` prints `no manual steps for v1x..v2y` and exits 0.
+- `sq migrate chlog v0.1.0..v0.2.0..v0.3.0` exits 0 and prints the v0.2.0 steps: the upper bound `0.2.0..v0.3.0` matches the pattern, and `version_tuple` falls back silently.
+
+Fix: validate each bound against the PEP 440 pattern `version_tuple` already uses (`_util._VERSION_RE`, full match), not a looser pattern of its own. Add the `v1x..v2y` row to the existing parametrised surface case.
+<!-- sq:finding:F1:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F1:discussion -->
+<!-- sq:finding:F1:discussion:end -->
+<!-- sq:finding:F1:end -->
+
+<!-- sq:finding:F2 -->
+### F2 — init over a shared-number corpus writes .squads.toml before the repair refusal; a plain re-run is refused
+
+<!-- sq:finding:F2:body -->
+`init` writes `.squads.toml`, the root `.gitignore`, the squad folder and the empty index before it calls `svc.repair()`. Over a corpus whose files share a number, the new refusal therefore comes after those writes. Driven: a copy of a squad with TASK-14 and BUG-14, `.squads.toml` removed.
+
+- `sq init --default-names --roles minimal` exits 1 with the refusal, which names `sq repair --renumber`.
+- `.squads.toml` is now on disk. `sq repair --renumber` works, but running `sq init` again gives `.squads.toml already exists (use --force to overwrite)`, exit 1. Nothing tells the adopter that the first init stopped half-way, with no roles activated and no backend files.
+
+This is the write-before-refuse shape of BUG-1187, reached through a different refusal. `adopt` is fine: a second `adopt` reads the config it wrote and completes after the renumber (driven). `init --force` is fine too.
+
+Fix options: in `init`, when the folder already holds item files, run the shared-number check (`shared_number_groups` over the carriers) before the first write. Or make the refusal on this path say to run `sq init --force` again after `sq repair --renumber`. The first option matches what TASK-1244 set out to guarantee.
+<!-- sq:finding:F2:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F2:discussion -->
+<!-- sq:finding:F2:discussion:end -->
+<!-- sq:finding:F2:end -->
+
+<!-- sq:finding:F3 -->
+### F3 — create guide skips the spec-aware create class: override fields and the --priority help refresh miss it
+
+<!-- sq:finding:F3:body -->
+`create guide` gained hand-added `--priority`, `--label` and `--ref`, and the reported bug is fixed: the options work and show on `guide N show --json`. It is still registered with no `cls=_create_command_cls("guide")`, unlike every `_make` command, and so are its hidden aliases. Two consequences:
+
+- An override-declared field on `guide` gets no option. Driven with an override declaring `sev` (severity) on both `task` and `guide`: `create task --help` lists `--sev`, while `create guide g --sev high` is refused with `No such option: --sev`.
+- The new `--priority` help is computed once from the bundled spec. `_refresh_priority_help` never runs for guide, so an override that drops guide's priority field leaves the flag visible and its help stale, where the other types hide it.
+
+This predates the batch (0.17.0 behaves the same), so it is not a regression. But ST1 asked for the derived form ("so a field declared on guide in an override also reaches it"), and the handback does not say why it was not done. Fix: register `create_guide` and its aliases with `_create_command_cls("guide")`, take `ctx`, and pass `fields=_given_fields(ctx) or {}`.
+<!-- sq:finding:F3:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F3:discussion -->
+<!-- sq:finding:F3:discussion:end -->
+<!-- sq:finding:F3:end -->
+
+<!-- sq:finding:F4 -->
+### F4 — Existing untitled sub-entities stay invisible: sq check does not report the now-required title
+
+<!-- sq:finding:F4:body -->
+The op-pierre ruling makes the title required on add, update and import, and those writes now refuse a missing or blank title. On an adopter corpus that already holds an untitled sub-entity, nothing reports it. Driven on a scratch squad, with ST1's `title: ''` arranged in the frontmatter:
+
+- `show --full` renders `=== ST1 —   ⚪ Todo ===` and an empty Title cell. `update --status InProgress`, `body -m`, `comment`, `repair` and `subtasks --json` (`"title": ""`) all exit 0.
+- `sq check` reports nothing about it.
+
+So "required everywhere" holds for writes only: an existing violation is invisible until someone tries to retitle it. Either add a `sq check` rule (warning, remedy `sq <type> N <kind> K update --title "…"`), or record a ruling that pre-existing untitled sub-entities are tolerated. The dev's handback asked the same question, and it is still open. The tech writer needs the answer for the changelog line.
+<!-- sq:finding:F4:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F4:discussion -->
+<!-- sq:finding:F4:discussion:end -->
+<!-- sq:finding:F4:end -->
+
+<!-- sq:finding:F5 -->
+### F5 — import with no op still prints pydantic wording: Unable to extract tag using discriminator 'op'
+
+<!-- sq:finding:F5:body -->
+`_validation_message` in `src/squads/_services/_import_model.py` rewrites `union_tag_invalid` (an unknown `op`) and drops the empty-location separator. A line with no `op` at all raises `union_tag_not_found`, which still prints pydantic's text. Driven: `{"as":"manager"}` gives `line 1: Unable to extract tag using discriminator 'op'`.
+
+This is the same defect as BUG-1200 (pydantic wording instead of squads' own) one error type over. Fix: map `union_tag_not_found` to, for example, `missing op; valid ops: …`, and add the case to the regression test.
+<!-- sq:finding:F5:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F5:discussion -->
+<!-- sq:finding:F5:discussion:end -->
+<!-- sq:finding:F5:end -->
+
+<!-- sq:finding:F6 -->
+### F6 — Several new refusal cases assert a prefix or exit code instead of the whole output (ADR-1172 rule 5)
+
+<!-- sq:finding:F6:body -->
+ADR-1172 rule 5 (assert the exit code and the whole message or JSON) is applied for most cases, but several new cases assert a fragment:
+
+- `tests/cli/test_tree.py::test_depth_refuses_a_negative_value` and `tests/cli/test_graph.py::test_depth_refuses_a_negative_value`: `any("Invalid value for '--depth'" in line ...)`.
+- `tests/cli/test_reflog.py::test_op_refuses_an_operation_the_log_does_not_know`: `startswith("error: unknown operation 'ghost' (one of: create, ")`. The regression module asserts the whole line, so the surface case can too.
+- `tests/cli/test_init.py::test_squad_dir_refuses_an_absolute_empty_or_escaping_folder` and the regression `test_an_unusable_squad_folder_leaves_the_folder_untouched_for_the_retry`: `startswith("error: --squad-dir must ")` plus a line count. Three different messages, none of them pinned.
+- `missing.exit_code == 2` with no output, in both `test_add_refuses_a_missing_or_blank_title` and `test_a_subtask_cannot_be_added_without_a_title_or_with_a_blank_one`.
+- `tests/regressions/...unknown_value...::test_a_negative_depth_is_refused`: one box line, `out[3]` (see the `--depth` finding).
+
+Each of these passes for a wrong refusal that happens to share the prefix. Fix: assert the full output for each.
+<!-- sq:finding:F6:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F6:discussion -->
+<!-- sq:finding:F6:discussion:end -->
+<!-- sq:finding:F6:end -->
+
+<!-- sq:finding:F7 -->
+### F7 — No tests/cli boundary case for a comment on a missing sub-entity, nor for an adopt --squad-dir refusal
+
+<!-- sq:finding:F7:body -->
+Two refusals added in this batch have no surface case in `tests/cli`. ADR-1172 rule 1 asks for each pair's boundary refusals, and only regression cases cover these, which ADR-1172 says do not stand in for surface coverage:
+
+- A comment on a missing sub-entity (BUG-1186). TASK-1246 ST4 named `tests/cli/test_comment_verbs.py` for it, and no case was added there. The only case is `tests/regressions/test_comment_on_a_missing_subentity_names_it.py`.
+- `adopt --squad-dir` with an absolute, empty or escaping value. `_checked_squad_dir` guards adopt too (driven: `../up`, blank and `a/../../x` are all refused), but only `init --squad-dir` has a refusal case.
+
+Fix: one case each, with `covers` on the sub-entity comment host key and on `("adopt", "--squad-dir")`.
+<!-- sq:finding:F7:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F7:discussion -->
+<!-- sq:finding:F7:discussion:end -->
+<!-- sq:finding:F7:end -->
+
+<!-- sq:finding:F8 -->
+### F8 — tests/regressions: eight duplicated fixtures, one module holding two bugs, uneven docstrings
+
+<!-- sq:finding:F8:body -->
+Layout of `tests/regressions/`, written by three devs in parallel:
+
+- Seven modules each define a local `populated` / `populated_project` fixture (`copy_squad("populated", init_populated)`), identical to `tests/cli/conftest.py::populated_project`, and one more redefines `readable`. A `tests/regressions/conftest.py` holding `populated_project` (and `readable`) removes eight copies. That is real duplication, and the set will only grow.
+- `test_a_hit_that_repeats_the_summary_shows_once.py` also holds the import unknown-op test (BUG-1200). The module is named for one behaviour and holds two, against the "named for the behaviour the bug broke" rule. Move the import case to a module of its own.
+- BUG-1194 got two regression tests (unknown value, unknown field) where one parametrised test would do.
+- The five TASK-1246 modules have no module docstring, while the others do. A one-line docstring keeps the set consistent.
+<!-- sq:finding:F8:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F8:discussion -->
+<!-- sq:finding:F8:discussion:end -->
+<!-- sq:finding:F8:end -->
+
+<!-- sq:finding:F9 -->
+### F9 — unlink-role on a skill not scoped to the role still reports success, the BUG-1184 shape
+
+<!-- sq:finding:F9:body -->
+`rm_ref` gained `missing_ok`, and `unlink_role` passes `missing_ok=True`. So `sq skill <slug> unlink-role <role>` on a skill that is not scoped to that role still reports success. Driven twice in a row on the same skill: `SKILL-12 unscoped from ROLE-1 (role resynced)`, exit 0 both times.
+
+That is the false success line BUG-1184 removed from `ref rm`, kept on purpose on a sibling verb. Either refuse it like `ref rm` (`SKILL-12 is not scoped to ROLE-1`), or keep it idempotent but say so (`already unscoped`). Needs a decision rather than a silent default.
+<!-- sq:finding:F9:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F9:discussion -->
+<!-- sq:finding:F9:discussion:end -->
+<!-- sq:finding:F9:end -->
+
+<!-- sq:finding:F10 -->
+### F10 — SubentityAddRequest.title still defaults to empty, so the API contract advertises it as optional
+
+<!-- sq:finding:F10:body -->
+`SubentityAddRequest.title` in `src/squads/_api/_dto/_item_writes.py` still defaults to `""`. The API contract, and the OpenAPI document the daemon serves from it, therefore advertise the title as optional, while the service now refuses a blank one with `title must not be empty`. A remote client finds out only from the refusal. Make the field required, as the import event models now do.
+<!-- sq:finding:F10:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F10:discussion -->
+<!-- sq:finding:F10:discussion:end -->
+<!-- sq:finding:F10:end -->
+
+<!-- sq:finding:F11 -->
+### F11 — repair --renumber leaves the scaffold hint naming the old number (pre-existing, for QA)
+
+<!-- sq:finding:F11:body -->
+The batch makes `sq repair --renumber` the remedy that `repair`, `init` and `adopt` name. Driven on a scratch squad: after the renumber moved TASK-14 to TASK-15, the task's scaffolded hint above the sub-entity region still reads `_Add with sq task 14 add-subtask "<title>"; track with sq task 14 subtask <n> update --status <Status>._`. That command now addresses the other item (BUG-14 holds number 14).
+
+This predates the batch and is outside its scope. Recorded so it gets a disposition: it belongs to QA as a bug against renumber.
+<!-- sq:finding:F11:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F11:discussion -->
+<!-- sq:finding:F11:discussion:end -->
+<!-- sq:finding:F11:end -->
+
+<!-- sq:finding:F12 -->
+### F12 — The depth option's min=0 makes Click say 'deep' is not a valid integer range; regression pins Click wording
+
+<!-- sq:finding:F12:body -->
+`depth_option` gained `min=0`, so Click now types `--depth` as `IntRange`. A non-integer is now refused with Click's range wording: `Invalid value for '--depth': 'deep' is not a valid integer range.` (driven on `tree` and `graph`; 0.17.0 says `'deep' is not a valid int.`). The user gave a word, not a range, so the message names the wrong problem. Two surface goldens were updated to the new wording rather than questioned.
+
+`test_a_negative_depth_is_refused` in `tests/regressions/` pins Click's own phrasing (`-1 is not in the range x>=0.`) as the contract, and only one box line of it. A Click upgrade that rewords it turns the test red with no squads defect.
+
+Fix: keep the plain `int` type and refuse a negative value in a callback (`typer.BadParameter("must be 0 or more")`). Assert the whole refusal in the surface and regression cases.
+<!-- sq:finding:F12:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F12:discussion -->
+<!-- sq:finding:F12:discussion:end -->
+<!-- sq:finding:F12:end -->
+<!-- sq:findings:end -->
+
+## Discussion
+
+<!-- sq:discussion -->
+- [2026-10-29T17:06:17Z] `reviewer` Paul Reviewer:
+  - Verdict: ChangesRequested. All sixteen fixes are correct as reported, and each regression test was shown red against the unfixed code. Requested: F1, F2, F5 and F12 (residues of the bugs fixed here) and F6, F7 (ADR-1172 assertion and boundary gaps). F3, F4 and F9 need a fix or a ruling. F8, F10 and F11 are info. F11 belongs to QA as a bug. @python-dev @manager
+<!-- sq:discussion:end -->

@@ -1,6 +1,6 @@
 {
   "schema_version": "0.17",
-  "counter": 1246,
+  "counter": 1247,
   "padding": 6,
   "items": {
     "12": {
@@ -65497,6 +65497,155 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "TASK-1246"
+    },
+    "1247": {
+      "sequence_id": 1247,
+      "type": "review",
+      "title": "Review of the 0.18.1 bug batch",
+      "slug": "review-of-the-0-18-1-bug-batch",
+      "status": "ChangesRequested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1244",
+        "TASK-1245",
+        "TASK-1246"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "migrate chlog still accepts non-version bounds such as v1x..v2y and answers no manual steps",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "init over a shared-number corpus writes .squads.toml before the repair refusal; a plain re-run is refused",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "create guide skips the spec-aware create class: override fields and the --priority help refresh miss it",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Existing untitled sub-entities stay invisible: sq check does not report the now-required title",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "import with no op still prints pydantic wording: Unable to extract tag using discriminator 'op'",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Several new refusal cases assert a prefix or exit code instead of the whole output (ADR-1172 rule 5)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "No tests/cli boundary case for a comment on a missing sub-entity, nor for an adopt --squad-dir refusal",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "tests/regressions: eight duplicated fixtures, one module holding two bugs, uneven docstrings",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "unlink-role on a skill not scoped to the role still reports success, the BUG-1184 shape",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "SubentityAddRequest.title still defaults to empty, so the API contract advertises it as optional",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "repair --renumber leaves the scaffold hint naming the old number (pre-existing, for QA)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "The depth option's min=0 makes Click say 'deep' is not a valid integer range; regression pins Click wording",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001247-review-of-the-0-18-1-bug-batch.md",
+      "created_at": "2026-10-29T17:02:38Z",
+      "updated_at": "2026-10-29T17:06:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1247"
     }
   }
 }
