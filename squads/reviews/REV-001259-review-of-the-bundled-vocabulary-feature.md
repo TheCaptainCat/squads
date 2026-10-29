@@ -77,7 +77,7 @@ subentities:
   severity: low
 - local_id: F15
   title: Derived options are listed after --help
-  status: Fixed
+  status: Open
   severity: info
 - local_id: F16
   title: New tests read the job file internally, assert substrings, unit-test set_head;
@@ -99,8 +99,36 @@ subentities:
     badges, item templates'
   status: Open
   severity: low
+- local_id: F20
+  title: Kind-rename test renames the source kind and cannot fail on the local_prefix
+    claim
+  status: Open
+  severity: low
+- local_id: F21
+  title: A changed local_prefix leaves entries unreachable and sq check silent
+  status: Open
+  severity: low
+- local_id: F22
+  title: 'rename-field: itself-refusal and reflog untested; empty kind name in two
+    messages'
+  status: Open
+  severity: low
+- local_id: F23
+  title: 'rename-field has no scope: a key held on items and entries moves all or
+    nothing'
+  status: Open
+  severity: info
+- local_id: F24
+  title: VS Code mapping label is made in client code and differs from the server
+    label
+  status: Open
+  severity: medium
+- local_id: F25
+  title: VS Code bundled fixtures jq-trimmed, not regenerated; sub-entity shapes unexercised
+  status: Open
+  severity: low
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-29T22:24:59Z'
+updated_at: '2026-10-29T22:33:56Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -464,6 +492,8 @@ TASK-1253. Driven: in `sq create task --help`, `sq task <n> update --help`, `sq 
 #### Discussion
 
 <!-- sq:finding:F15:discussion -->
+- [2026-10-29T22:33:55Z] `reviewer` Paul Reviewer:
+  - - Reopened after a check at 7632d602. `_extended` in `_cli/_field_options.py` now places the derived options before Click's help option for `update`, `list` and `tree`; driven, they are fixed. `_create_command_cls` in `_cli/_create.py` still appends them after `--help`. Driven: `sq create task --help` lists `--priority` after `--help`, and `sq create job --help` on the override squad lists `--work-size` and `--owner-team` after it. Fix: route the create path through the same insertion.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
 
@@ -547,6 +577,122 @@ These are differences in the letter of the ADR, not defects in what ships. Route
 <!-- sq:finding:F19:discussion -->
 <!-- sq:finding:F19:discussion:end -->
 <!-- sq:finding:F19:end -->
+
+<!-- sq:finding:F20 -->
+### F20 — Kind-rename test renames the source kind and cannot fail on the local_prefix claim
+
+<!-- sq:finding:F20:body -->
+TASK-1255, ST2: `test_a_kind_renamed_with_the_same_prefix_keeps_its_entries_and_mappings`. ADR-1250 section 6 claims that a renamed kind needs no data move "while `local_prefix` is unchanged". The test cannot fail on that claim:
+
+- It renames `action`, the kind the mapping starts from. The mapping value `OC1` points at an `outcome`, and the kind name never appears in the stored mapping. The rename the fixed `maps_to` key exists for is a rename of the **target** kind.
+- It asserts `check --json` is `[]` and the raw `maps_to` values. Both stay the same when `local_prefix` changes too. Driven on a copy of the override squad, with `action` renamed to `step_kind` and `local_prefix` changed to `SK`: `sq check` reports no issues and `job 9 show --json` still gives `[("AC1", "OC1"), ("AC2", None)]`. But `job 9 step_kind 1 show` fails with "no step_kind SK1 in JOB-9", and `add-step_kind` creates SK1 next to AC1.
+
+Driven, the meaningful case: rename `outcome` to `goal`, keeping `OC` and the plural. `job 9 action 1 show` then labels the mapping "goal: OC1" and `check` is clean.
+
+Fix: rename the target kind, keep its prefix and plural, and assert through the CLI that the mapping is labelled by the new kind (the head line, or `display.maps_to_kind` once it is a KindDisplay) and that `<new kind> 1 show` reaches OC1.
+<!-- sq:finding:F20:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F20:discussion -->
+<!-- sq:finding:F20:discussion:end -->
+<!-- sq:finding:F20:end -->
+
+<!-- sq:finding:F21 -->
+### F21 — A changed local_prefix leaves entries unreachable and sq check silent
+
+<!-- sq:finding:F21:body -->
+ADR-1250 section 6, the kind-rename paragraph, relies on `local_prefix` staying unchanged. Nothing reports when it changes. Driven on the override squad, with `outcome` renamed to `goal`, `local_prefix` changed from OC to GO, and the plural kept:
+
+- `sq check` reports no issues, exit 0.
+- `initiative 8 goal 1 show` fails with "no goal GO1 in INI-8". The stored OC1 and OC2 can no longer be reached by number.
+- `job 9 action 1 update --goal OC2` is accepted, but `--goal GO1` is refused with "goal GO1 not found in INI-8". A mapping can still name the old ids and cannot name the new ones.
+
+This is mostly older than this feature: any `local_prefix` change already broke reachability. But the ADR now states the precondition and gives adopters a rename story, so the gap is in the path they are told to use.
+
+Fix (architect's call): a `sq check` rule for an entry whose `local_id` does not carry its kind's `local_prefix`, or a `maps_to` whose prefix is not the target kind's. Alternatively, say in section 6 that changing `local_prefix` needs a data move and name it.
+<!-- sq:finding:F21:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F21:discussion -->
+<!-- sq:finding:F21:discussion:end -->
+<!-- sq:finding:F21:end -->
+
+<!-- sq:finding:F22 -->
+### F22 — rename-field: itself-refusal and reflog untested; empty kind name in two messages
+
+<!-- sq:finding:F22:body -->
+TASK-1255, ST2. The operation wiring, the refusal before any write, the rollback, the reflog line and the system comment all hold. Driven on both squads: refusals write nothing (git status clean); an entry-only move changes only that key, `updated_at`, one reflog line `rename-field JOB-9 {"old","new"}` and the index; a bundled `sev` to `severity` move on a finding works; a move to `priority` on a finding is refused. Gaps:
+
+- **Boundary refusal without a case.** "cannot rename field 'x' to itself" (exit 1) has no test. ADR-1172 rule 1 asks for one case per boundary refusal.
+- **The reflog line and the system comment are untested.** No case reads `sq reflog` or the discussion after a move. The rename-type and rename-status tests read theirs.
+- **An empty kind name in two messages.** An entry on a type that hosts no kind (a record carrying a hand-written `subentities` list) is refused with "X1 of REC-10: '' does not declare 'impact'". `sq check` says "is not declared on any kind". Name the type instead, for example "REC-10 hosts no sub-entity kind".
+
+Fix: add the itself-refusal case and one reflog read-back, and word the no-kind messages.
+<!-- sq:finding:F22:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F22:discussion -->
+<!-- sq:finding:F22:discussion:end -->
+<!-- sq:finding:F22:end -->
+
+<!-- sq:finding:F23 -->
+### F23 — rename-field has no scope: a key held on items and entries moves all or nothing
+
+<!-- sq:finding:F23:body -->
+TASK-1255 against ADR-1250 section 6, for the architect. `rename-field OLD NEW` applies to every holder of OLD in one batch, with no scope. When OLD sits on items and on entries, and NEW is declared on only one of them, the move is refused as a whole. There is no command to move only part of it.
+
+Driven: with `weight` on JOB-9 and on its entry AC1, `rename-field weight impact` is refused with "JOB-9: 'job' does not declare 'impact'" (exit 1, nothing written), although AC1's kind declares `impact`. The adopter must either hand-edit the file or declare `impact` on jobs for a while.
+
+This is the ADR's letter, implemented correctly. Consider an optional `--type`/`--kind` scope, or say in section 6 that a key shared across types moves in one go.
+<!-- sq:finding:F23:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F23:discussion -->
+<!-- sq:finding:F23:discussion:end -->
+<!-- sq:finding:F23:end -->
+
+<!-- sq:finding:F24 -->
+### F24 — VS Code mapping label is made in client code and differs from the server label
+
+<!-- sq:finding:F24:body -->
+TASK-1257, ST2. The preview's mapping label is built in client code: the target kind is found from the `maps_to` prefix through the catalog's `local_prefix`, then its name is capitalised (`mappingLabel` in `src/domain/badgeCatalog.ts`). ADR-1250 section 7 says the clients read "labels from `display` and the catalogs". The code makes a label of its own instead, and it differs from the server's:
+
+- Driven: for a kind named `step_kind`, `<kind> <k> show --json` gives `display.kind.label` = "Step_Kind". The client's rule gives "Step_kind".
+- The server already resolves the target kind (`display.maps_to_kind` on `<kind> <k> show`, which the amended section 7 types as a KindDisplay). The client resolves it again from the prefix, so it depends on the unenforced `local_prefix` (F21).
+
+The preview reads `sq show --json`, whose sub-entity rows carry `display.maps_to` (the value) but no target-kind label, and the kind catalog has no label column. So the data the client should read does not yet exist on the surface it uses.
+
+Fix: the architect names the source, for example `maps_to_kind` as a KindDisplay on the `show` sub-entity rows too, or a `label` per kind in `sq workflow subentity-kinds --json`. Then the client reads that label, falls back to "Maps to" when it is absent, and drops `buildMappingKinds` and the prefix lookup.
+<!-- sq:finding:F24:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F24:discussion -->
+<!-- sq:finding:F24:discussion:end -->
+<!-- sq:finding:F24:end -->
+
+<!-- sq:finding:F25 -->
+### F25 — VS Code bundled fixtures jq-trimmed, not regenerated; sub-entity shapes unexercised
+
+<!-- sq:finding:F25:body -->
+TASK-1257. The bundled fixtures were edited with jq, not regenerated. They no longer match what `sq` emits, so unit tests pass on shapes that never occur:
+
+- `show-json.json` has no top-level `badges`, `display` or `views` (the dev tree emits all three), and its `subentities` list is empty. On the bundled side, no unit test sees a sub-entity object with `maps_to`, `deferred_to` or a flat field.
+- `list.json` has no row with sub-entities. The `SubentityRow` shape (flat keys today, `badges` after the F19 fix) is not exercised.
+- `tree.json` and `graph.json` were trimmed of `priority` only. The rewrite also re-encoded every `\u` escape in `show-json.json` as UTF-8, which is diff noise and not a shape change.
+
+Regenerate from the dev tree, after the TASK-1254 wire fixes (F19: `badges` on every sub-entity row, `maps_to_kind` as a KindDisplay) land: `show-json.json` (on an item with a mapped sub-entity), `list.json` (with a sub-entity row), `tree.json`, `graph.json`, `subentity-kinds-catalog.json`, and the three `override-*` fixtures. The canary passes against the dev tree today (90 passed, run with `SQ_CANARY_CMD`).
+<!-- sq:finding:F25:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F25:discussion -->
+<!-- sq:finding:F25:discussion:end -->
+<!-- sq:finding:F25:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -578,4 +724,11 @@ These are differences in the letter of the ADR, not defects in what ships. Route
   - ADR-1250 amended in place 2026-10-29 for F7, F18 and F19 (sections 1, 7, 8; see its latest architect comment). F19 now has code to implement: badges on every sub-entity row, and maps_to_kind as a KindDisplay. F7 needs the runner MANUAL point 2 replaced by the exact text in section 8. F18 stands as ruled, and section 1 now states it. @manager route to the devs.
 - [2026-10-29T22:24:59Z] `python-dev` Elias Python:
   - F16 to F18 fixed in f254f57c, with the F19 code changes and MANUAL point 2 text. Head tests dropped: only the frozen 0.2 to 0.3 runner reaches that renderer and its own migration guards it.
+- [2026-10-29T22:33:56Z] `reviewer` Paul Reviewer:
+  - - Third pass, at 7632d602 (origin/release/0.19), driven with the dev tree on fresh bundled and override scratch squads.
+    - **F9 to F14 verified Fixed.** F9: on the bundled squad, add-finding lines with a null or empty severity import and create findings with no severity. F10: an empty `--priority` or `--work-size` is refused on create and update, as in 0.17. F11: the reflog records `--<code>`, `--no-<code>`, `--set` and `--unset` changes. F12: the three lint cases assert whole messages. F13: the internal file read and the substring asserts are gone; the markers wait for TASK-1256. F14: refusals name the op the file wrote, a comment selector names the declared selectors, and `story` on add-sub points to `maps_to`. The `bundled_known()` cache fix in tests/_cli_surface.py unbinds the active spec, which is sound. **F15 reopened**: create help still lists the derived options after `--help` (comment on F15).
+    - **TASK-1255: changes requested, low and info only.** The operation, binding, handler, refusal before any write, rollback, reflog line and system comment hold on both squads. The check rule scans entries and names the verb; it does not flag `deferred_to`. F20: the kind-rename test cannot fail on its claim. F21: a changed `local_prefix` is silent (architect). F22: test and wording gaps. F23 (info, architect): the move has no scope.
+    - **TASK-1257: changes requested.** npm test 768 passed and test:canary 90 passed against the dev tree in a throwaway copy. Client source carries no bundled vocabulary in the diff. F24 (medium): the mapping label is made in code ("Step_kind" vs the server's "Step_Kind"), and the show rows the preview reads carry no label to use, so the architect must name a source. F25: the fixtures to regenerate after the TASK-1254 wire fixes.
+    - Notes, not findings (pre-existing): `src/domain/displayNode.ts` maps bundled type names to icons; `sq create <custom-type> --help` shows `--install-completion`/`--show-completion` (the temporary Typer in `_build_create_cmd`, since b2f4c1cb).
+    - @manager route F15 to the TASK-1253 dev, F20 and F22 to the TASK-1255 dev, F21, F23 and F24 to @architect (F24's client change follows that ruling and the F19 code), and F25 to the TASK-1257 dev once TASK-1254 lands. Approval stays with you.
 <!-- sq:discussion:end -->

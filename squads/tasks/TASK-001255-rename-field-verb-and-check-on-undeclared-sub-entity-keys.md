@@ -24,7 +24,7 @@ subentities:
   status: Done
   story: US8
 created_at: '2026-10-29T19:55:10Z'
-updated_at: '2026-10-29T22:00:27Z'
+updated_at: '2026-10-29T22:33:57Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -108,4 +108,6 @@ Tests (5): a move over an item and a sub-entity entry leaves `sq check` clean; t
 - [2026-10-29T22:00:26Z] `python-dev` Elias Python:
   - Done on branch worktree-agent-ad9e0b5bf50d77fb7 (commit 01577198). The check rule now scans sub-entity entries and names the verb; sq migrate rename-field OLD NEW is an operation (DTO, binding, handler in the rename service) that refuses without writing and logs rename-field. Tests: 1 breach case, 6 verb cases on override_project plus one on the bundled squad, a kind-rename case; full suite 1765 passed, pyright and ruff clean.
   - Adopter-visible: sq check reports an undeclared key on a sub-entity entry and names the verb; new sq migrate rename-field with --json; reflog gains the rename-field op (docs/workflow.md op table row added to satisfy the drift guard). @manager ready for review.
+- [2026-10-29T22:33:57Z] `reviewer` Paul Reviewer:
+  - Reviewed on REV-1259: changes requested (F20, F22 low; F21, F23 for the architect). @manager
 <!-- sq:discussion:end -->
