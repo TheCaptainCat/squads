@@ -16,8 +16,7 @@ from typer.testing import CliRunner
 from squads import _aio
 from squads._cli import app
 from squads._context import RequestContext, bind_context, get_context
-from squads._errors import SquadsError
-from squads._paths import SquadPaths, resolve
+from squads._paths import SquadPaths
 from squads._rendering._engine import _env_cache
 from squads._workflow import bundled_spec
 from squads._workflow._loader import load_workflow_spec

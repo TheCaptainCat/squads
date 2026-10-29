@@ -21,8 +21,7 @@ _EXEMPT_DIR_NAMES: frozenset[str] = frozenset({"_specs", "_migrations"})
 
 #: ``(path, literal)`` -> why that file legitimately holds it. Per file and literal, not per
 #: line, so an edit elsewhere in the file does not move the exemption.
-_ALLOWED: dict[tuple[str, str], str] = {
-}
+_ALLOWED: dict[tuple[str, str], str] = {}
 
 
 def _repo_root() -> Path:

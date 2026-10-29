@@ -12,6 +12,7 @@ from typing import Any
 
 import pytest
 
+from squads._itemfile import read_frontmatter
 from tests._populated import FEATURE, REVIEW, TASK
 
 pytestmark = pytest.mark.anyio
