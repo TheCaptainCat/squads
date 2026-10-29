@@ -60,6 +60,7 @@ REFLOG_OPS: tuple[str, ...] = (
     "rename-type",
     "rename-status",
     "rename-field",
+    "rename-kind",
 )
 
 

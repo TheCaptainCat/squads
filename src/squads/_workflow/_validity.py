@@ -1033,6 +1033,7 @@ UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "settled_requires_discussion",
         "external_id_not_in_title",
         "frontmatter_key_undeclared",
+        "subentity_kind_mismatch",
         "pronouns_valid",
     }
 )

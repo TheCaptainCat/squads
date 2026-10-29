@@ -15,6 +15,7 @@ from squads._api._dto._squad import (
     MovedFile,
     Reconciled,
     RenameFieldReport,
+    RenameKindReport,
     RenameStatusReport,
     RenameTypeReport,
     RenumberReport,
@@ -183,6 +184,14 @@ def render_rename_field(report: RenameFieldReport, console: Console) -> None:
     console.print(
         f"[green]rename-field done[/green]: {e(report.old)} → {e(report.new)}, "
         f"{report.items} item(s) and {report.entries} sub-entity entry(ies) moved"
+    )
+    console.print(_CHECK_HINT, soft_wrap=True)
+
+
+def render_rename_kind(report: RenameKindReport, console: Console) -> None:
+    console.print(
+        f"[green]rename-kind done[/green]: {e(report.old)} → {e(report.new)}, "
+        f"{report.items} item(s) rewritten"
     )
     console.print(_CHECK_HINT, soft_wrap=True)
 

@@ -6,7 +6,8 @@
                                             release range
 - `sq migrate rename-type OLD NEW`         bulk-rename every OLD-type item to NEW type
 - `sq migrate rename-status TYPE OLD NEW`  bulk-move every TYPE item at OLD status to NEW status
-- `sq migrate rename-field OLD NEW`        move every value stored under key OLD to key NEW
+- `sq migrate rename-field OLD NEW`        move the values stored under key OLD to key NEW
+- `sq migrate rename-kind OLD NEW`         bring the stored spellings of kind OLD to kind NEW
 """
 
 import typer
@@ -16,6 +17,7 @@ from squads._api import _ops as ops
 from squads._api._dto._squad import (
     MigrateRequest,
     RenameFieldRequest,
+    RenameKindRequest,
     RenameStatusRequest,
     RenameTypeRequest,
     RepadRequest,
@@ -26,6 +28,7 @@ from squads._cli._render._package import render_migrations, render_steps
 from squads._cli._render._squad import (
     render_migration,
     render_rename_field,
+    render_rename_kind,
     render_rename_status,
     render_rename_type,
     render_repad,
@@ -180,23 +183,54 @@ def migrate_rename_status(
 def migrate_rename_field(
     old: str = typer.Argument(..., metavar="OLD", help="Stored key to move values from."),
     new: str = typer.Argument(..., metavar="NEW", help="Declared key to move them to."),
+    types: list[str] = typer.Option(
+        [], "--type", help="Move only the item key of this type (repeatable)."
+    ),
+    kinds: list[str] = typer.Option(
+        [], "--kind", help="Move only the entry key of this sub-entity kind (repeatable)."
+    ),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: how many items and entries were moved."
     ),
 ):
     """Move the values stored under key OLD to key NEW.
 
-    Covers items and sub-entity entries. Refuses, changing nothing, when a holder
-    does not declare NEW, already holds it, or holds a value NEW does not accept.
-    Run `sq check` afterwards.
+    Covers items and sub-entity entries, or only the given --type and --kind
+    scopes. Refuses, changing nothing, when a holder does not declare NEW,
+    already holds it, or holds a value NEW does not accept. Run `sq check`
+    afterwards.
     """
-    request = RenameFieldRequest(old=old, new=new)
+    request = RenameFieldRequest(old=old, new=new, types=types, kinds=kinds)
     response = calls.call(ops.RENAME_FIELD, request)
     if json_out:
         calls.print_json(ops.RENAME_FIELD, response)
         return
     calls.print_warnings(response)
     render_rename_field(response.data, console)
+
+
+@migrate_app.command("rename-kind")
+@handle_errors
+def migrate_rename_kind(
+    old: str = typer.Argument(..., metavar="OLD", help="Kind name the block markers carry."),
+    new: str = typer.Argument(..., metavar="NEW", help="Declared kind to bring them to."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: how many items were rewritten."
+    ),
+):
+    """Bring the stored spellings of kind OLD to the declaration of kind NEW.
+
+    Rewrites block markers, the container marker, local ids and mappings. Refuses,
+    changing nothing, when NEW is undeclared, a type does not host it, an item
+    mixes prefixes or a marker pair is missing. Run `sq check` afterwards.
+    """
+    request = RenameKindRequest(old=old, new=new)
+    response = calls.call(ops.RENAME_KIND, request)
+    if json_out:
+        calls.print_json(ops.RENAME_KIND, response)
+        return
+    calls.print_warnings(response)
+    render_rename_kind(response.data, console)
 
 
 def _parse_span(span: str) -> tuple[str, str]:

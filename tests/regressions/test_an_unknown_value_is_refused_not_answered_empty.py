@@ -10,7 +10,7 @@ pytestmark = pytest.mark.anyio
 OPS = (
     "create, status, update, body, view, comment, comment_edit, comment_remove, subentity, ref, "
     "link, retype, default_role, remove, repair, renumber, migrate, rename-type, "
-    "rename-status, rename-field"
+    "rename-status, rename-field, rename-kind"
 )
 
 

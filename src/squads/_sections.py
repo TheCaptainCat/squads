@@ -146,6 +146,22 @@ def iter_marker_spans(text: str) -> list[tuple[str, int, int]]:
     return [(m.group(1), m.start(), m.end()) for m in MARKER_RE.finditer(text)]
 
 
+def retag_markers(text: str, retag: Callable[[str], str | None]) -> str:
+    """*text* with the tag of each marker *retag* answers for replaced, and every other byte
+    kept: the marker line's own spacing and the content between markers are untouched. *retag*
+    receives a tag as :func:`iter_marker_spans` reports it and answers its replacement, or ``None``
+    to keep it."""
+    parts: list[str] = []
+    last = 0
+    for tag, start, end in iter_marker_spans(text):
+        renamed = retag(tag)
+        if renamed is None or renamed == tag:
+            continue
+        parts += [text[last:start], text[start:end].replace(tag, renamed, 1)]
+        last = end
+    return "".join(parts) + text[last:]
+
+
 def get_section(text: str, tag: str) -> str | None:
     """Return the inner content of a section, or None if the section is absent."""
     o, c = markers.open_marker(tag), markers.close_marker(tag)

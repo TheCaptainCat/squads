@@ -1094,12 +1094,17 @@ def _frontmatter_key_undeclared(ctx: ValidatorContext) -> list[CheckIssue]:
         f.code for f in ctx.spec.fields_for(item.type)
     }
     level = _resolved_level(ctx, "frontmatter_key_undeclared")
-    remedy = "; `sq migrate rename-field {key} <new>` moves its value to a declared key"
+
+    def remedy(key: str, scope: str) -> str:
+        command = f"sq migrate rename-field {key} <new>" + (f" {scope}" if scope else "")
+        return f"; `{command}` moves its value to a declared key"
+
     issues = [
         CheckIssue(
             level,
             item.id,
-            f"frontmatter key {key!r} is not declared on {item.type}" + remedy.format(key=key),
+            f"frontmatter key {key!r} is not declared on {item.type}"
+            + remedy(key, f"--type {item.type}"),
             rule="frontmatter_key_undeclared",
         )
         for key in item.attributes
@@ -1112,13 +1117,73 @@ def _frontmatter_key_undeclared(ctx: ValidatorContext) -> list[CheckIssue]:
         CheckIssue(
             level,
             item.id,
-            f"frontmatter key {key!r} on {entry.local_id} is not {where}" + remedy.format(key=key),
+            f"frontmatter key {key!r} on {entry.local_id} is not {where}"
+            + remedy(key, f"--kind {kind}" if kind else ""),
             rule="frontmatter_key_undeclared",
         )
         for entry in item.subentities
         for key in entry.attributes
         if key not in entry_declared
     ]
+    return issues
+
+
+def _subentity_kind_mismatch(ctx: ValidatorContext) -> list[CheckIssue]:
+    """Every stored spelling of the item's sub-entity kind that is not the declared one: a block
+    marker's kind tag, the container marker, a local id's prefix and a mapping's prefix. Each
+    finding names the verb that brings the item to the declaration."""
+    item, spec, text = ctx.item, ctx.spec, ctx.raw_text
+    kind = spec.item_subentity_kind(item.type)
+    if kind is None or text is None:
+        return []
+    level = _resolved_level(ctx, "subentity_kind_mismatch")
+    prefix, plural = spec.subentity_kinds[kind].local_prefix, spec.subentity_plural(kind)
+    tags = [t.removeprefix(markers.PREFIX) for t, _, _ in sections.iter_marker_spans(text)]
+    block_kinds = {
+        found.group(1)
+        for entry in item.subentities
+        for tag in tags
+        if (found := re.fullmatch(rf"([\w-]+):{re.escape(entry.local_id)}", tag))
+    }
+    old = min(block_kinds - {kind}, default=kind)
+
+    def issue(message: str, was: str, now: str) -> CheckIssue:
+        return CheckIssue(
+            level,
+            item.id,
+            f"{message}; `sq migrate rename-kind {was} {now}` brings it to the declaration",
+            rule="subentity_kind_mismatch",
+        )
+
+    issues = [
+        issue(f"block marker of {e.local_id} carries kind {name!r}, not {kind!r}", name, kind)
+        for e in item.subentities
+        for name in sorted(block_kinds - {kind})
+        if markers.open_marker(f"{name}:{e.local_id}") in text
+    ]
+    if markers.open_marker(plural) not in text:
+        issues += [
+            issue(f"container marker {tag!r} is not {plural!r}", old, kind)
+            for tag in discussion.stale_container_tags(text, plural)
+        ]
+    issues += [
+        issue(f"{e.local_id} does not start with prefix {prefix!r} of kind {kind!r}", old, kind)
+        for e in item.subentities
+        if not re.fullmatch(rf"{re.escape(prefix)}\d+", e.local_id)
+    ]
+    target = spec.mapping_target_kind(kind)
+    if target is not None:
+        target_prefix = spec.subentity_kinds[target].local_prefix
+        issues += [
+            issue(
+                f"{e.local_id} maps to {e.maps_to}, which does not start with prefix "
+                f"{target_prefix!r} of kind {target!r}",
+                target,
+                target,
+            )
+            for e in item.subentities
+            if e.maps_to and not re.fullmatch(rf"{re.escape(target_prefix)}\d+", e.maps_to)
+        ]
     return issues
 
 
@@ -1156,6 +1221,7 @@ CATALOG: dict[str, Validator] = {
     "external_id_not_in_title": _external_id_not_in_title,
     "attribute_valid": _attribute_valid,
     "frontmatter_key_undeclared": _frontmatter_key_undeclared,
+    "subentity_kind_mismatch": _subentity_kind_mismatch,
     "pronouns_valid": _pronouns_valid,
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
@@ -1173,6 +1239,7 @@ VALIDATOR_CONTEXT: dict[str, frozenset[ContextRequirement]] = {
     "ref_rule_target_present": frozenset({ContextRequirement.TYPE_PRESENT}),
     "item_skill_shadowed": frozenset({ContextRequirement.RAW_TEXT}),
     "attribute_valid": frozenset({ContextRequirement.RAW_TEXT}),
+    "subentity_kind_mismatch": frozenset({ContextRequirement.RAW_TEXT}),
     "pronouns_valid": frozenset({ContextRequirement.RAW_TEXT}),
 }
 assert set(VALIDATOR_CONTEXT) <= set(CATALOG), (

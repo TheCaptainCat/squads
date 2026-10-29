@@ -3,7 +3,9 @@ change, so sub-entities and status always carry over; it reuses ``_retype``'s pe
 resync primitives, batching the id rewrite and the resync into one pass.
 """
 
+import re
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +31,7 @@ from squads._models._participants import SYSTEM_SLUG
 from squads._models._subentity import SubEntity
 from squads._paths import SquadPaths
 from squads._services._base import ServiceCore
-from squads._services._results import RenameFieldResult, RenameResult
+from squads._services._results import RenameFieldResult, RenameKindResult, RenameResult
 from squads._services._retype import (
     apply_type_change,
     resync_edges,
@@ -308,48 +310,46 @@ class RenameMixin(ServiceCore):
 
         return RenameResult(renamed=len(matching), ids=ids, rewritten=rewritten_names)
 
-    async def rename_field(self, old: str, new: str) -> RenameFieldResult:
+    async def rename_field(
+        self, old: str, new: str, *, types: Iterable[str] = (), kinds: Iterable[str] = ()
+    ) -> RenameFieldResult:
         """Move every value stored under key *old* to key *new*, on items and sub-entity entries,
         in one transaction. Refuses, writing nothing, when a holder of *old* does not declare *new*,
         already holds *new*, or holds a value *new* does not accept; the refusal names each one.
-        Frontmatter only; each changed item gets a reflog line and a system comment, and any failure
-        restores every squad file to its pre-call bytes.
+        *types* and *kinds* limit the move to the items of those types and the entries of those
+        kinds; with neither, every holder moves. Frontmatter only; each changed item gets a reflog
+        line and a system comment, and any failure restores every squad file to its pre-call bytes.
         """
         old = str(old)
         new = str(new)
         if old == new:
             raise SquadsError(f"cannot rename field {old!r} to itself")
+        scope = _FieldScope(set(types), set(kinds))
+        scope.refuse_undeclared(self.spec)
         async with self.store.transaction() as db:
             await self._refuse_any_duplicated_id()
             holders: list[tuple[Item, bool, list[SubEntity]]] = []
             problems: list[str] = []
             for item in sorted(db.items.values(), key=lambda it: it.sequence_id):
-                entries = [s for s in item.subentities if old in s.attributes]
-                if old not in item.attributes and not entries:
+                kind = self.spec.item_subentity_kind(item.type)
+                own = old in item.attributes and scope.takes_type(item.type)
+                entries = [
+                    s for s in item.subentities if old in s.attributes and scope.takes_kind(kind)
+                ]
+                if not own and not entries:
                     continue
-                own = old in item.attributes
                 holders.append((item, own, entries))
                 if own:
                     problems += self._field_move_problems(
                         item.id, item.type, item.attributes, old, new, is_item=True
                     )
-                kind = self.spec.item_subentity_kind(item.type)
-                for entry in entries:
-                    if kind is None:
-                        problems.append(
-                            f"{entry.local_id} of {item.id}: {item.type} hosts no sub-entity kind"
-                        )
-                        continue
-                    problems += self._field_move_problems(
-                        f"{entry.local_id} of {item.id}",
-                        kind,
-                        entry.attributes,
-                        old,
-                        new,
-                        is_item=False,
-                    )
+                problems += self._entry_move_problems(item, kind, entries, old, new)
             if problems:
-                raise SquadsError(f"cannot rename field {old!r} to {new!r}: " + "; ".join(problems))
+                raise SquadsError(
+                    f"cannot rename field {old!r} to {new!r}: "
+                    + "; ".join(problems)
+                    + " (limit the move with --type or --kind)"
+                )
 
             snapshot = await _snapshot_files(self.paths, db)
             default_kind = self.spec.default_ref_kind()
@@ -378,6 +378,76 @@ class RenameMixin(ServiceCore):
             items=sum(1 for _, own, _ in holders if own),
             entries=sum(len(entries) for _, _, entries in holders),
         )
+
+    async def rename_kind(self, old: str, new: str) -> RenameKindResult:
+        """Bring the stored spellings of kind *old* to the declaration of kind *new*, in one
+        transaction: block markers (with their regions), the container marker, local ids and the
+        mappings that target *new*. Refuses, writing nothing, when *new* is undeclared, a type that
+        carries *old* blocks does not host *new*, an item mixes local prefixes, or a marker pair is
+        missing. Items that already match are not written. Markdown is rewritten through the marker
+        helpers only; each changed item gets a reflog line and a system comment.
+        """
+        old = str(old)
+        new = str(new)
+        spec = self.spec
+        if new not in spec.subentity_kinds:
+            raise SquadsError(f"{new!r} is not a sub-entity kind the active spec declares")
+        async with self.store.transaction() as db:
+            await self._refuse_any_duplicated_id()
+            snapshot = await _snapshot_files(self.paths, db)
+            plan = _KindPlan(spec, old, new)
+            items = sorted(db.items.values(), key=lambda it: it.sequence_id)
+            problems: list[str] = []
+            for item in items:
+                problems += plan.survey(item, snapshot[item.sequence_id][1])
+            if problems:
+                raise SquadsError(f"cannot rename kind {old!r} to {new!r}: " + "; ".join(problems))
+
+            texts: dict[int, str] = {}
+            for item in items:
+                text = plan.rewritten_text(item, snapshot[item.sequence_id][1])
+                ids = plan.local_ids(item)
+                mapped = plan.mappings(item, db.get(item.parent) if item.parent else None)
+                if text != snapshot[item.sequence_id][1] or ids or mapped:
+                    texts[item.sequence_id] = text
+            changed = [it for it in items if it.sequence_id in texts]
+            default_kind = spec.default_ref_kind()
+            _check_batch_skew(changed, snapshot, default_kind=default_kind)
+            try:
+                for item in changed:
+                    local = plan.local_ids(item)
+                    mapped = plan.mappings(item, db.get(item.parent) if item.parent else None)
+                    for entry in item.subentities:
+                        entry.local_id = local.get(entry.local_id, entry.local_id)
+                        entry.maps_to = mapped.get(entry.local_id, entry.maps_to)
+                    item.updated_at = clock.now()
+                    path = item_file(self.paths, item)
+                    text = sections.replace_frontmatter(
+                        texts[item.sequence_id], item.to_frontmatter_dict(), source=str(path)
+                    )
+                    await write_text(path, _with_rename_kind_comment(text, old, new))
+                    db.add(item)
+                    self.store.log("rename-kind", item.id, {"old": old, "new": new})
+            except Exception:
+                await _rollback_files(self.paths, db, snapshot)
+                raise
+        return RenameKindResult(items=len(changed))
+
+    def _entry_move_problems(
+        self, item: Item, kind: str | None, entries: list[SubEntity], old: str, new: str
+    ) -> list[str]:
+        """The reasons the *entries* of *item* cannot take *old*'s value under *new*."""
+        if kind is None:
+            return [
+                f"{e.local_id} of {item.id}: {item.type} hosts no sub-entity kind" for e in entries
+            ]
+        return [
+            problem
+            for e in entries
+            for problem in self._field_move_problems(
+                f"{e.local_id} of {item.id}", kind, e.attributes, old, new, is_item=False
+            )
+        ]
 
     def _field_move_problems(
         self,
@@ -421,6 +491,183 @@ def _with_rename_status_comment(text: str, old_status: str, new_status: str) -> 
     """*text* with a system comment recording the status rename appended to its discussion."""
     now_iso = clock.iso(clock.now())
     msg = f"status renamed {old_status} → {new_status}"
+    entry = discussion.format_comment(now_iso, SYSTEM_SLUG, SYSTEM_SLUG, [msg])
+    if sections.has_section(text, markers.DISCUSSION):
+        return sections.append_to_section(text, markers.DISCUSSION, entry)
+    return text
+
+
+_LOCAL_ID = re.compile(r"(.*?)(\d+)")
+_BLOCK_SUFFIX = r"((?::body|:head|:discussion)?(?::end)?)"
+
+
+def _split_local_id(local_id: str) -> tuple[str, str] | None:
+    """The prefix and number of *local_id*, or ``None`` when it ends in no number."""
+    found = _LOCAL_ID.fullmatch(local_id)
+    return (found.group(1), found.group(2)) if found else None
+
+
+@dataclass(frozen=True)
+class _FieldScope:
+    """The item types and sub-entity kinds a field move is limited to; both empty means all."""
+
+    types: set[str]
+    kinds: set[str]
+
+    def refuse_undeclared(self, spec: WorkflowSpec) -> None:
+        for name in sorted(self.types - set(spec.items)):
+            raise SquadsError(f"--type {name!r} is not an item type the active spec declares")
+        for name in sorted(self.kinds - set(spec.subentity_kinds)):
+            raise SquadsError(f"--kind {name!r} is not a sub-entity kind the active spec declares")
+
+    def takes_type(self, item_type: str) -> bool:
+        return not (self.types or self.kinds) or item_type in self.types
+
+    def takes_kind(self, kind: str | None) -> bool:
+        return not (self.types or self.kinds) or (kind is not None and kind in self.kinds)
+
+
+class _KindPlan:
+    """What bringing kind *old* to kind *new*'s declaration changes, read from the active spec
+    and each item's text: which items host or carry the kind, their stored prefix, and the new
+    spelling of each marker tag, local id and mapping."""
+
+    def __init__(self, spec: WorkflowSpec, old: str, new: str) -> None:
+        self.new = new
+        self.new_prefix = spec.subentity_kinds[new].local_prefix
+        self.plural = spec.subentity_plural(new)
+        self.spec = spec
+        self.block = re.compile(rf"(?:{re.escape(old)}|{re.escape(new)}):([^:]+){_BLOCK_SUFFIX}")
+        self.old_prefix: dict[str, str] = {}
+        self.stale: dict[str, str] = {}
+        self.targeting = {k for k in spec.subentity_kinds if spec.mapping_target_kind(k) == new}
+
+    def hosts(self, item: Item) -> bool:
+        return self.spec.item_subentity_kind(item.type) == self.new
+
+    def _carries(self, text: str) -> bool:
+        return any(
+            self.block.fullmatch(tag.removeprefix(markers.PREFIX))
+            for tag, _, _ in sections.iter_marker_spans(text)
+        )
+
+    def survey(self, item: Item, text: str) -> list[str]:
+        """The reasons *item* cannot be brought to the declaration; records its stored prefix and
+        stale container for the rewrite."""
+        if not self.hosts(item):
+            if self._carries(text):
+                return [f"{item.id}: {item.type} does not host {self.new!r}"]
+            return []
+        if not item.subentities:
+            return []
+        problems: list[str] = []
+        prefixes = {(_split_local_id(s.local_id) or (s.local_id, ""))[0] for s in item.subentities}
+        if len(prefixes) > 1:
+            return [
+                f"{item.id}: entries carry more than one prefix ({', '.join(sorted(prefixes))})"
+            ]
+        self.old_prefix[item.id] = next(iter(prefixes))
+        names = {self.new, *self._old_names(text)}
+        problems += [
+            f"{item.id}: no marker pair for {entry.local_id}"
+            for entry in item.subentities
+            if not any(
+                markers.open_marker(f"{kind}:{entry.local_id}") in text
+                and markers.close_marker(f"{kind}:{entry.local_id}") in text
+                for kind in names
+            )
+        ]
+        plural_pair = (
+            markers.open_marker(self.plural) in text and markers.close_marker(self.plural) in text
+        )
+        if not plural_pair:
+            stale = discussion.stale_container_tags(text, self.plural)
+            if len(stale) != 1 or not (
+                markers.open_marker(stale[0]) in text and markers.close_marker(stale[0]) in text
+            ):
+                problems.append(f"{item.id}: no container marker pair for {self.plural!r}")
+            else:
+                self.stale[item.id] = stale[0]
+        return problems
+
+    def _old_names(self, text: str) -> set[str]:
+        """The kind names the block markers of *text* carry, besides the declared one."""
+        names = {
+            tag.removeprefix(markers.PREFIX).split(":")[0]
+            for tag, _, _ in sections.iter_marker_spans(text)
+            if self.block.fullmatch(tag.removeprefix(markers.PREFIX))
+        }
+        return names
+
+    def _renamed(self, item_id: str, local_id: str) -> str:
+        split = _split_local_id(local_id)
+        if split is None or split[0] != self.old_prefix.get(item_id):
+            return local_id
+        return f"{self.new_prefix}{split[1]}"
+
+    def local_ids(self, item: Item) -> dict[str, str]:
+        """The entries of *item* whose local id changes, old to new."""
+        if not self.hosts(item):
+            return {}
+        renamed = {s.local_id: self._renamed(item.id, s.local_id) for s in item.subentities}
+        return {old: new for old, new in renamed.items() if old != new}
+
+    def mappings(self, item: Item, parent: Item | None) -> dict[str, str | None]:
+        """For each entry of *item* mapping onto *new*, its new ``maps_to``, keyed by local id."""
+        if parent is None or self.spec.item_subentity_kind(item.type) not in self.targeting:
+            return {}
+        out: dict[str, str | None] = {}
+        for entry in item.subentities:
+            if (
+                entry.maps_to
+                and (renamed := self._renamed(parent.id, entry.maps_to)) != entry.maps_to
+            ):
+                out[entry.local_id] = renamed
+        return out
+
+    def rewritten_text(self, item: Item, text: str) -> str:
+        """*text* with the block markers, container marker and block headings of *item* in the
+        declared spelling; every other byte is kept."""
+        if not self.hosts(item) or not item.subentities:
+            return text
+
+        def retag(tag: str) -> str | None:
+            name = tag.removeprefix(markers.PREFIX)
+            stale = self.stale.get(item.id)
+            if stale is not None and name in (stale, f"{stale}:end"):
+                return markers.PREFIX + self.plural + name.removeprefix(stale)
+            found = self.block.fullmatch(name)
+            if found is None:
+                return None
+            local = self._renamed(item.id, found.group(1))
+            return f"{markers.PREFIX}{self.new}:{local}{found.group(2)}"
+
+        text = sections.retag_markers(text, retag)
+        for entry in item.subentities:
+            renamed = self._renamed(item.id, entry.local_id)
+            if renamed != entry.local_id:
+                text = _with_heading_id(text, self.new, entry.local_id, renamed)
+        return text
+
+
+def _with_heading_id(text: str, kind: str, old_id: str, new_id: str) -> str:
+    """*text* with the ``### <id>`` heading under the block ``<kind>:<new_id>`` carrying *new_id*
+    in place of *old_id*; the rest of the heading line is kept."""
+    opener = markers.open_marker(f"{kind}:{new_id}")
+    start = text.find(opener)
+    if start == -1:
+        return text
+    heading = re.compile(rf"(###[ \t]*){re.escape(old_id)}(?![\w])")
+    found = heading.search(text, start + len(opener))
+    if found is None:
+        return text
+    return text[: found.start()] + found.group(1) + new_id + text[found.end() :]
+
+
+def _with_rename_kind_comment(text: str, old: str, new: str) -> str:
+    """*text* with a system comment recording the kind rename appended to its discussion."""
+    now_iso = clock.iso(clock.now())
+    msg = f"kind spellings brought from {old} to {new}"
     entry = discussion.format_comment(now_iso, SYSTEM_SLUG, SYSTEM_SLUG, [msg])
     if sections.has_section(text, markers.DISCUSSION):
         return sections.append_to_section(text, markers.DISCUSSION, entry)

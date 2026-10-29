@@ -5,6 +5,8 @@ rename, import, init and adopt did, each as one report.
 after ``error:``; ``notice`` is the announcement that a rebuild rewrote item content, ``None``
 when it rewrote nothing."""
 
+from pydantic import Field
+
 from squads._api._dto._base import DTO
 
 
@@ -143,10 +145,29 @@ class RenameStatusRequest(DTO):
 
 
 class RenameFieldRequest(DTO):
-    """Move every stored value under key *old* to key *new*, on items and sub-entity entries."""
+    """Move the stored values under key *old* to key *new*, on items and sub-entity entries; *types*
+    and *kinds* limit the move to the items of those types and the entries of those kinds (the
+    union of both), and name nothing to move everything."""
 
     old: str
     new: str
+    types: list[str] = Field(default_factory=list[str])
+    kinds: list[str] = Field(default_factory=list[str])
+
+
+class RenameKindRequest(DTO):
+    """Bring the stored spellings of kind *old* to the declaration of kind *new*."""
+
+    old: str
+    new: str
+
+
+class RenameKindReport(DTO):
+    """The two kind names and how many items were rewritten."""
+
+    old: str
+    new: str
+    items: int
 
 
 class RenamedId(DTO):

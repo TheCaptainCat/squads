@@ -15,6 +15,7 @@ from tests.check._arrange import (
     create,
     edit_item_file,
     issue,
+    item_path,
     ok,
     repair,
     update,
@@ -429,9 +430,138 @@ async def test_a_key_the_sub_entity_kind_does_not_declare_is_reported(
 
     message = (
         "frontmatter key 'colour' on ST1 is not declared on subtask"
-        "; `sq migrate rename-field colour <new>` moves its value to a declared key"
+        "; `sq migrate rename-field colour <new> --kind subtask` moves its value to a declared key"
     )
     assert await check_json() == (
         [issue("frontmatter_key_undeclared", "warn", squad.task, message)],
         0,
+    )
+
+
+# subentity_kind_mismatch
+
+
+def _rewrite_everywhere(project, item_id: str, old: str, new: str) -> None:
+    """Replace every *old* with *new* in the item's file."""
+    path = item_path(project, item_id)
+    path.write_text(path.read_text(encoding="utf-8").replace(old, new), encoding="utf-8")
+
+
+def _mismatch(squad: Squad, level: str, message: str, verb_args: str) -> dict[str, str]:
+    return issue(
+        "subentity_kind_mismatch",
+        level,
+        squad.task,
+        f"{message}; `sq migrate rename-kind {verb_args}` brings it to the declaration",
+    )
+
+
+@pytest.mark.breaches("subentity_kind_mismatch")
+async def test_a_block_marker_carrying_another_kind_is_reported(
+    squad, project, invoke, check_json, select_validators
+) -> None:
+    select_validators("subentity_kind_mismatch", on="task")
+    assert await check_json() == ([], 0)
+
+    _rewrite_everywhere(project, squad.task, "sq:subtask:ST1", "sq:step:ST1")
+    await repair(invoke)
+
+    assert await check_json() == (
+        [
+            _mismatch(
+                squad,
+                "warn",
+                "block marker of ST1 carries kind 'step', not 'subtask'",
+                "step subtask",
+            )
+        ],
+        0,
+    )
+
+
+@pytest.mark.breaches("subentity_kind_mismatch")
+async def test_a_container_marker_that_is_not_the_plural_is_reported(
+    squad, project, invoke, check_json, select_validators
+) -> None:
+    select_validators("subentity_kind_mismatch", on="task")
+    assert await check_json() == ([], 0)
+
+    _rewrite_everywhere(project, squad.task, "sq:subtasks", "sq:steps")
+    await repair(invoke)
+
+    assert await check_json() == (
+        [
+            issue(
+                "block_in_container",
+                "warn",
+                "TASK-000006-build.md",
+                "subtask block ST1 sits outside its 'subtasks' container -- move it between "
+                "`<!-- sq:subtasks -->` and `<!-- sq:subtasks:end -->`",
+            ),
+            issue(
+                "subentity_container_marker",
+                "error",
+                squad.task,
+                "no 'subtasks' container section; the file carries 'steps' — 'subtask' declares "
+                "plural 'subtasks', so `sq task 6 add-subtask` cannot write here. Revert "
+                "subentity_kinds.subtask.plural in the workflow override, or change it only while "
+                "no task items exist",
+            ),
+            _mismatch(
+                squad, "warn", "container marker 'steps' is not 'subtasks'", "subtask subtask"
+            ),
+        ],
+        3,
+    )
+
+
+@pytest.mark.breaches("subentity_kind_mismatch")
+async def test_a_local_id_without_the_kind_prefix_is_reported(
+    squad, project, invoke, check_json, select_validators
+) -> None:
+    select_validators("subentity_kind_mismatch", on="task")
+    assert await check_json() == ([], 0)
+
+    _rewrite_everywhere(project, squad.task, "ST1", "XT1")
+    await repair(invoke)
+
+    assert await check_json() == (
+        [
+            _mismatch(
+                squad,
+                "warn",
+                "XT1 does not start with prefix 'ST' of kind 'subtask'",
+                "subtask subtask",
+            )
+        ],
+        0,
+    )
+
+
+@pytest.mark.breaches("subentity_kind_mismatch@error")
+async def test_a_mapping_without_the_target_kind_prefix_is_reported_at_the_selected_level(
+    squad, project, invoke, check_json, select_validators
+) -> None:
+    select_validators("subentity_kind_mismatch@error", on="task")
+    assert await check_json() == ([], 0)
+
+    edit_item_file(project, squad.task, "maps_to: US1", "maps_to: XS1")
+    await repair(invoke)
+
+    assert await check_json() == (
+        [
+            _mismatch(
+                squad,
+                "error",
+                "ST1 maps to XS1, which does not start with prefix 'US' of kind 'story'",
+                "story story",
+            ),
+            issue(
+                "subentity_mapping",
+                "error",
+                squad.task,
+                "subtask ST1 maps to story XS1, missing from FEAT-5",
+            ),
+        ],
+        3,
     )

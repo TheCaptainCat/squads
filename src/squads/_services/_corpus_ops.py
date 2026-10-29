@@ -15,6 +15,8 @@ from squads._api._dto._squad import (
     RenamedId,
     RenameFieldReport,
     RenameFieldRequest,
+    RenameKindReport,
+    RenameKindRequest,
     RenameStatusReport,
     RenameStatusRequest,
     RenameTypeReport,
@@ -206,12 +208,17 @@ class CorpusOpsMixin(ImportMixin, MaintenanceMixin, RenameMixin):
 
     async def rename_field_items(self, req: RenameFieldRequest) -> Response[RenameFieldReport]:
         """Move every stored value from one key to another, on items and sub-entity entries."""
-        result = await self.rename_field(req.old, req.new)
+        result = await self.rename_field(req.old, req.new, types=req.types, kinds=req.kinds)
         return Response(
             data=RenameFieldReport(
                 old=req.old, new=req.new, items=result.items, entries=result.entries
             )
         )
+
+    async def rename_kind_items(self, req: RenameKindRequest) -> Response[RenameKindReport]:
+        """Bring the stored spellings of a kind to its declaration."""
+        result = await self.rename_kind(req.old, req.new)
+        return Response(data=RenameKindReport(old=req.old, new=req.new, items=result.items))
 
     async def import_squad_events(self, req: ImportRequest) -> Response[ImportReport]:
         """Check the events, then apply them in one transaction unless a dry run or a problem

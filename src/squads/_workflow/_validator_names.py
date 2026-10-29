@@ -49,6 +49,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "external_id_not_in_title",
         "attribute_valid",
         "frontmatter_key_undeclared",
+        "subentity_kind_mismatch",
         "pronouns_valid",
     }
 )
@@ -307,6 +308,7 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "external_id_not_in_title": "warn",
     "attribute_valid": "error",
     "frontmatter_key_undeclared": "warn",
+    "subentity_kind_mismatch": "warn",
     "pronouns_valid": "error",
 }
 

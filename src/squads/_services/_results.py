@@ -181,6 +181,13 @@ class RenameFieldResult:
 
 
 @dataclass(frozen=True)
+class RenameKindResult:
+    """Outcome of ``Service.rename_kind()``."""
+
+    items: int  # items whose file or entries were rewritten
+
+
+@dataclass(frozen=True)
 class RemoveResult:
     """Outcome of ``Service.remove_work_item()``.
 

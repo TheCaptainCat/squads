@@ -746,7 +746,8 @@ async def test_rename_field_refuses_a_key_the_holder_does_not_declare(
     assert (result.exit_code, result.output) == (
         1,
         "error: cannot rename field 'weight' to 'urgency': JOB-9: 'job' does not declare "
-        "'urgency'; AC1 of JOB-9: 'action' does not declare 'urgency'\n",
+        "'urgency'; AC1 of JOB-9: 'action' does not declare 'urgency' "
+        "(limit the move with --type or --kind)\n",
     )
     assert _squad_bytes(override_project) == before
 
@@ -766,7 +767,8 @@ async def test_rename_field_refuses_a_holder_that_already_holds_the_new_key(
 
     assert (result.exit_code, result.output) == (
         1,
-        "error: cannot rename field 'weight' to 'impact': AC1 of JOB-9 already holds 'impact'\n",
+        "error: cannot rename field 'weight' to 'impact': AC1 of JOB-9 already holds 'impact' "
+        "(limit the move with --type or --kind)\n",
     )
     assert _squad_bytes(override_project) == before
 
@@ -785,7 +787,7 @@ async def test_rename_field_refuses_a_value_the_new_field_does_not_accept(
         1,
         "error: cannot rename field 'weight' to 'impact': JOB-9: 'huge' is not a value of "
         "'impact' (collection 'impact'); AC1 of JOB-9: 'huge' is not a value of 'impact' "
-        "(collection 'impact')\n",
+        "(collection 'impact') (limit the move with --type or --kind)\n",
     )
     assert _squad_bytes(override_project) == before
 
@@ -825,37 +827,6 @@ async def test_rename_field_moves_an_item_value_on_the_bundled_squad(
         + CHECK_HINT,
     )
     assert (await _shown(invoke, "task", 3))["priority"] == "high"
-
-
-@pytest.mark.covers("check", "--json")
-async def test_a_target_kind_renamed_with_the_same_prefix_keeps_its_mappings(
-    override_project, invoke
-) -> None:
-    job = _item_file(override_project, "jobs", 9)
-    job.write_text(
-        job.read_text(encoding="utf-8").replace(
-            "  status: Todo\n  impact: large\n", "  status: Todo\n  maps_to: OC1\n  impact: large\n"
-        )
-    )
-    override = override_project.squad_dir / ".overrides" / "workflow.toml"
-    override.write_text(
-        override.read_text(encoding="utf-8")
-        .replace('subentity_kind = "outcome"', 'subentity_kind = "goal"')
-        .replace("[subentity_kinds.outcome]", "[subentity_kinds.goal]")
-        .replace('["outcome", "action"]', '["goal", "action"]')
-    )
-
-    await invoke(["repair"])
-    checked = await invoke(["check", "--json"])
-    mapped = await invoke(["job", "9", "action", "1", "show"])
-    target = await invoke(["initiative", "8", "goal", "1", "show"])
-
-    assert (checked.exit_code, checked.output) == (0, "[]\n")
-    assert mapped.output.splitlines()[:2] == [
-        "AC1 — Draft the outline  (action)",
-        "  status: Todo   impact: large   Desired outcome: OC1",
-    ]
-    assert target.output.splitlines()[0] == "OC1 — Fifty active teams  (goal)"
 
 
 @pytest.mark.covers("migrate rename-field", "NEW")
@@ -921,6 +892,254 @@ async def test_rename_field_refuses_an_entry_on_a_type_that_hosts_no_kind(
     assert (result.exit_code, result.output) == (
         1,
         "error: cannot rename field 'weight' to 'impact': X1 of REC-10: record hosts no "
-        "sub-entity kind\n",
+        "sub-entity kind (limit the move with --type or --kind)\n",
     )
+    assert _squad_bytes(override_project) == before
+
+
+# ---------------------------------------------------------------------------- rename-kind
+
+
+def _redeclare_outcome_as_goal(paths, *, prefix: str = "OC", plural: str = "outcomes") -> None:
+    """The override squad's outcome kind is declared as `goal`, with *prefix* and *plural*."""
+    override = paths.squad_dir / ".overrides" / "workflow.toml"
+    override.write_text(
+        override.read_text(encoding="utf-8")
+        .replace('subentity_kind = "outcome"', 'subentity_kind = "goal"')
+        .replace("[subentity_kinds.outcome]", "[subentity_kinds.goal]")
+        .replace('["outcome", "action"]', '["goal", "action"]')
+        .replace('plural = "outcomes"', f'plural = "{plural}"')
+        .replace('local_prefix = "OC"', f'local_prefix = "{prefix}"'),
+        encoding="utf-8",
+    )
+
+
+async def _map_the_first_action_to_the_first_outcome(paths, invoke) -> None:
+    job = _item_file(paths, "jobs", 9)
+    job.write_text(
+        job.read_text(encoding="utf-8").replace(
+            "  status: Todo\n  impact: large\n", "  status: Todo\n  maps_to: OC1\n  impact: large\n"
+        ),
+        encoding="utf-8",
+    )
+    await invoke(["repair"])
+
+
+@pytest.mark.covers("migrate rename-kind", "OLD")
+@pytest.mark.covers("migrate rename-kind", "NEW")
+async def test_rename_kind_keeps_the_prefix_and_the_bodies_stay_reachable(
+    override_project, invoke
+) -> None:
+    await _map_the_first_action_to_the_first_outcome(override_project, invoke)
+    _redeclare_outcome_as_goal(override_project)
+
+    result = await invoke(["migrate", "rename-kind", "outcome", "goal"])
+
+    assert (result.exit_code, result.output) == (
+        0,
+        "rename-kind done: outcome → goal, 1 item(s) rewritten\n" + CHECK_HINT,
+    )
+    shown = await invoke(["initiative", "8", "goal", "1", "show"])
+    assert shown.output.splitlines()[:5] == [
+        "OC1 — Fifty active teams  (goal)",
+        "  status: Todo",
+        "",
+        "Measured weekly.",
+        "",
+    ]
+    mapped = await invoke(["job", "9", "action", "1", "show"])
+    assert mapped.output.splitlines()[1] == "  status: Todo   impact: large   Desired outcome: OC1"
+    checked = await invoke(["check", "--json"])
+    assert (checked.exit_code, checked.output) == (0, "[]\n")
+
+
+@pytest.mark.covers("migrate rename-kind", "NEW")
+async def test_rename_kind_moves_the_prefix_the_plural_and_the_mappings(
+    override_project, invoke
+) -> None:
+    await _map_the_first_action_to_the_first_outcome(override_project, invoke)
+    _redeclare_outcome_as_goal(override_project, prefix="GO", plural="goals")
+
+    result = await invoke(["migrate", "rename-kind", "outcome", "goal"])
+
+    assert (result.exit_code, result.output) == (
+        0,
+        "rename-kind done: outcome → goal, 2 item(s) rewritten\n" + CHECK_HINT,
+    )
+    initiative = _item_file(override_project, "initiatives", 8).read_text(encoding="utf-8")
+    assert "### GO1 — Fifty active teams" in initiative
+    assert "<!-- sq:goal:GO2:body -->" in initiative
+    assert "<!-- sq:goals -->" in initiative
+    assert "sq:outcome" not in initiative
+    shown = await invoke(["initiative", "8", "goal", "1", "show"])
+    assert shown.output.splitlines()[:4] == [
+        "GO1 — Fifty active teams  (goal)",
+        "  status: Todo",
+        "",
+        "Measured weekly.",
+    ]
+    mapped = await invoke(["job", "9", "action", "1", "show"])
+    assert mapped.output.splitlines()[1] == "  status: Todo   impact: large   Desired outcome: GO1"
+    checked = await invoke(["check", "--json"])
+    assert (checked.exit_code, checked.output) == (0, "[]\n")
+
+
+@pytest.mark.covers("migrate rename-kind", "NEW")
+async def test_rename_kind_refuses_a_kind_the_spec_does_not_declare(
+    override_project, invoke
+) -> None:
+    before = _squad_bytes(override_project)
+
+    result = await invoke(["migrate", "rename-kind", "outcome", "nosuch"])
+
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: 'nosuch' is not a sub-entity kind the active spec declares\n",
+    )
+    assert _squad_bytes(override_project) == before
+
+
+@pytest.mark.covers("migrate rename-kind", "NEW")
+async def test_rename_kind_refuses_a_type_that_does_not_host_the_kind(
+    override_project, invoke
+) -> None:
+    before = _squad_bytes(override_project)
+
+    result = await invoke(["migrate", "rename-kind", "outcome", "action"])
+
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: cannot rename kind 'outcome' to 'action': INI-8: initiative does not host "
+        "'action'\n",
+    )
+    assert _squad_bytes(override_project) == before
+
+
+@pytest.mark.covers("migrate rename-kind", "OLD")
+async def test_rename_kind_refuses_an_item_whose_entries_mix_prefixes(
+    override_project, invoke
+) -> None:
+    initiative = _item_file(override_project, "initiatives", 8)
+    initiative.write_text(
+        initiative.read_text(encoding="utf-8").replace("local_id: OC2", "local_id: ZZ2"),
+        encoding="utf-8",
+    )
+    await invoke(["repair"])
+    _redeclare_outcome_as_goal(override_project, prefix="GO")
+    before = _squad_bytes(override_project)
+
+    result = await invoke(["migrate", "rename-kind", "outcome", "goal"])
+
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: cannot rename kind 'outcome' to 'goal': INI-8: entries carry more than one "
+        "prefix (OC, ZZ)\n",
+    )
+    assert _squad_bytes(override_project) == before
+
+
+@pytest.mark.covers("migrate rename-kind", "OLD")
+async def test_rename_kind_refuses_an_item_with_a_missing_marker_pair(
+    override_project, invoke
+) -> None:
+    initiative = _item_file(override_project, "initiatives", 8)
+    initiative.write_text(
+        initiative.read_text(encoding="utf-8").replace("<!-- sq:outcome:OC2:end -->\n", ""),
+        encoding="utf-8",
+    )
+    _redeclare_outcome_as_goal(override_project, prefix="GO")
+    before = _squad_bytes(override_project)
+
+    result = await invoke(["migrate", "rename-kind", "outcome", "goal"])
+
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: cannot rename kind 'outcome' to 'goal': INI-8: no marker pair for OC2\n",
+    )
+    assert _squad_bytes(override_project) == before
+
+
+@pytest.mark.covers("migrate rename-kind", "--json")
+async def test_rename_kind_writes_nothing_when_the_spellings_already_match(
+    override_project, invoke
+) -> None:
+    before = _squad_bytes(override_project)
+
+    result = await invoke(["migrate", "rename-kind", "outcome", "outcome", "--json"])
+
+    assert (result.exit_code, result.output) == (
+        0,
+        json_text({"old": "outcome", "new": "outcome", "items": 0}),
+    )
+    assert _squad_bytes(override_project) == before
+
+
+@pytest.mark.covers("migrate rename-kind", "OLD")
+async def test_rename_kind_logs_and_comments_on_each_item_it_rewrites(
+    override_project, invoke
+) -> None:
+    await _map_the_first_action_to_the_first_outcome(override_project, invoke)
+    _redeclare_outcome_as_goal(override_project, prefix="GO", plural="goals")
+    await invoke(["migrate", "rename-kind", "outcome", "goal"])
+
+    logged = await invoke(["reflog", "--json", "--op", "rename-kind"])
+    shown = await invoke(["initiative", "8", "show", "--comments"])
+
+    assert [(e["target"], e["delta"]) for e in json.loads(logged.output)] == [
+        ("INI-8", {"old": "outcome", "new": "goal"}),
+        ("JOB-9", {"old": "outcome", "new": "goal"}),
+    ]
+    header, bullet = shown.output.strip().splitlines()[-2:]
+    assert re.fullmatch(r"--- \w+ \[2026-06-07T10:00:00Z\] squads ---", header)
+    assert bullet == "- kind spellings brought from outcome to goal"
+
+
+@pytest.mark.covers("migrate rename-field", "--kind")
+async def test_rename_field_limited_to_a_kind_leaves_the_item_key_in_place(
+    override_project, invoke
+) -> None:
+    job = await _store_job_values_under_an_old_key(override_project, invoke)
+
+    result = await invoke(["migrate", "rename-field", "weight", "impact", "--kind", "action"])
+
+    assert (result.exit_code, result.output) == (
+        0,
+        "rename-field done: weight → impact, 0 item(s) and 1 sub-entity entry(ies) moved\n"
+        + CHECK_HINT,
+    )
+    text = job.read_text(encoding="utf-8")
+    assert ("  impact: large\n" in text, "\nweight: large\n" in text) == (True, True)
+
+
+@pytest.mark.covers("migrate rename-field", "--type")
+async def test_rename_field_limited_to_a_type_leaves_the_entries_in_place(
+    override_project, invoke
+) -> None:
+    _declare_impact_on_jobs(override_project)
+    job = await _store_job_values_under_an_old_key(override_project, invoke)
+
+    result = await invoke(["migrate", "rename-field", "weight", "impact", "--type", "job"])
+
+    assert (result.exit_code, result.output) == (
+        0,
+        "rename-field done: weight → impact, 1 item(s) and 0 sub-entity entry(ies) moved\n"
+        + CHECK_HINT,
+    )
+    text = job.read_text(encoding="utf-8")
+    assert ("\nimpact: large\n" in text, "  weight: large\n" in text) == (True, True)
+
+
+@pytest.mark.covers("migrate rename-field", "--kind")
+async def test_rename_field_refuses_a_scope_the_spec_does_not_declare(
+    override_project, invoke
+) -> None:
+    before = _squad_bytes(override_project)
+
+    kind = await invoke(["migrate", "rename-field", "weight", "impact", "--kind", "nosuch"])
+    item_type = await invoke(["migrate", "rename-field", "weight", "impact", "--type", "nosuch"])
+
+    assert [(r.exit_code, r.output) for r in (kind, item_type)] == [
+        (1, "error: --kind 'nosuch' is not a sub-entity kind the active spec declares\n"),
+        (1, "error: --type 'nosuch' is not an item type the active spec declares\n"),
+    ]
     assert _squad_bytes(override_project) == before
