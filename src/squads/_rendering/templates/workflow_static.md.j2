@@ -62,7 +62,7 @@ Two distinct exit paths for work items — use the right one:
 
 | | Cancel | Remove |
 |---|---|---|
-| **Intent** | Work genuinely considered, then dropped | Item should never have existed (mis-creation, test artifact, rolled-back change) |
+| **Intent** | Work genuinely considered, then dropped | Item should never have existed (mis-creation, test artifact, rolled-back decision) |
 | **Effect** | Status → `{{ dropped or "<dropped-status>" }}`; item stays on the books, greppable, linkable, visible in `tree`/`list` | File deleted, index entry gone; only a sequence-number gap remains |
 | **Command** | `sq <type> <n> status {{ dropped or "<dropped-status>" }}` | `sq <type> <n> remove` |
 

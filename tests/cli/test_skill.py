@@ -920,8 +920,22 @@ def _vocabulary(spec) -> set[str]:
     return names
 
 
+def _references(text: str, names: set[str]) -> list[str]:
+    """The *names* that *text* uses as vocabulary: inside a code span, where a command, option or id
+    is written. The same word in running prose is ordinary English."""
+    spans = " ".join(re.findall(r"`[^`]*`", text))
+    return sorted(n for n in names if re.search(rf"(?<![\w-]){re.escape(n)}(?![\w-])", spans))
+
+
+async def _generated_texts(project, invoke) -> dict[str, str]:
+    return {
+        "the squads skill": await printed(invoke, ["skill", "squads", "show"]),
+        "the CLAUDE.md section": (project.root / "CLAUDE.md").read_text(encoding="utf-8"),
+    }
+
+
 @pytest.mark.covers("skill show")
-async def test_generated_agent_text_names_no_word_the_squad_dropped(
+async def test_generated_agent_text_refers_to_no_vocabulary_the_squad_dropped(
     override_project, invoke
 ) -> None:
     dropped = {
@@ -931,10 +945,19 @@ async def test_generated_agent_text_names_no_word_the_squad_dropped(
         if len(name) > 1  # a one-letter alias reads as English
     }
     assert {"feature", "story", "priority", "feat"} <= dropped
-    texts = {
-        "the squads skill": await printed(invoke, ["skill", "squads", "show"]),
-        "the CLAUDE.md section": (override_project.root / "CLAUDE.md").read_text(encoding="utf-8"),
-    }
+    texts = await _generated_texts(override_project, invoke)
     for where, text in texts.items():
-        named = sorted(w for w in dropped if re.search(rf"(?<![\w-]){re.escape(w)}(?![\w-])", text))
-        assert named == [], f"{where} names words the squad dropped"
+        assert _references(text, dropped) == [], f"{where} refers to dropped vocabulary"
+    assert "(status / urgency / assignee / blocked per node)" in texts["the CLAUDE.md section"]
+
+
+@pytest.mark.covers("skill show")
+async def test_generated_agent_text_names_the_review_gate_the_spec_declares(
+    full_project, invoke
+) -> None:
+    claude = (await _generated_texts(full_project, invoke))["the CLAUDE.md section"]
+    assert "(status / priority / assignee / blocked per node)" in claude
+    assert "item/review status, new findings, whether" in claude
+    assert "every linked review resolved" in claude
+    assert "author items and review points" in claude
+    assert "the reviewer's finding" in claude

@@ -46,6 +46,11 @@ def init_seeded(root: Path) -> None:
     asyncio.run(service.init(root=root, roles_spec="minimal"))
 
 
+def init_full(root: Path) -> None:
+    """The squad with every bundled role and the bundled skills seeded."""
+    asyncio.run(service.init(root=root, roles_spec="all"))
+
+
 def init_overridden(root: Path, source: Path) -> None:
     """The `minimal` squad, bundled skills seeded, initialised under the override documents in the
     directory *source*, stamped as the current release writes them."""

@@ -21,9 +21,11 @@ from jinja2.loaders import split_template_path
 from squads import _badges as badges
 from squads._errors import SquadsError
 from squads._interactions._cheatsheet import (
+    ReviewGate,
     cheatsheet_alias_example,
     cheatsheet_anchor_context,
     cheatsheet_anchor_type,
+    cheatsheet_review_gate,
 )
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._playbook import authoring_owners, get_playbook_spec, parent_chain
@@ -135,6 +137,7 @@ def _make_env(squad_dir: Path | None) -> Environment:
     # still yields a fully runnable example built from whatever type qualifies best.
     env.globals["cheatsheet_anchor_type"] = cheatsheet_anchor_type  # pyright: ignore[reportArgumentType]
     env.globals["cheatsheet_anchor_context"] = cheatsheet_anchor_context  # pyright: ignore[reportArgumentType]
+    env.globals["cheatsheet_review_gate"] = _review_gate  # pyright: ignore[reportArgumentType]
     env.globals["cheatsheet_alias_example"] = cheatsheet_alias_example  # pyright: ignore[reportArgumentType]
     # badge-vocabulary helpers — item templates render an active `spec` and derive axis
     # labels/legends/examples from it rather than hardcoding bundled vocab (e.g. severity).
@@ -187,6 +190,14 @@ def _authoring_owners(
     render and reads the bundled one."""
     active = playbook if playbook is not None else get_playbook_spec()
     return authoring_owners(item_type, roster, active, role_titles)
+
+
+def _review_gate(
+    spec: WorkflowSpec, roster: Iterable[Any] | None, playbook: PlaybookSpec | None
+) -> ReviewGate:
+    """``cheatsheet_review_gate`` for templates; a render with no playbook reads the bundled one."""
+    active = playbook if playbook is not None else get_playbook_spec()
+    return cheatsheet_review_gate(spec, roster, active)
 
 
 def _badge(status_value: str, spec: WorkflowSpec | None = None) -> str:

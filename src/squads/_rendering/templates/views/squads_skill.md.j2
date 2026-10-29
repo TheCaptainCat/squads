@@ -100,7 +100,7 @@ The operator sometimes talks to you directly — for live work or debugging. The
   a scoped question (e.g. `sq {{ anchor or "<type>" }} N {{ anchor_kind or "<kind>" }} 1 comment
   --as <your-slug> -m "@role does this look right?"`). This is guidance, not a hard rule — the
   inbox never misses a mention.
-- **Stay in lane.** File anything you discover that's out of scope as its own item;
+- **Stay in lane.** File anything you discover that's out of scope as its own item (e.g. a bug);
   don't silently expand the work.
 
 Humans are tracked as **operators** (`op-<firstname>` slugs; see the roster in `CLAUDE.md`). Assign
@@ -110,7 +110,7 @@ work to a person with `--assignee op-<slug>`, and attribute their words with `--
 
 ## Finding things across the board
 
-Use `sq search "<text>"` when you need to hunt an earlier discussion or check whether a topic is
+Use `sq search "<text>"` when you need to hunt a prior decision or check whether a topic is
 already tracked — not as a routine boot step.
 
 - It scans **everything**: titles, summaries, bodies, discussion comments, and sub-entity prose{% if _kind_to_type %}
