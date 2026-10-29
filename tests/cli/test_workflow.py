@@ -11,7 +11,7 @@ from tests._helpers import create_item, make_service
 from tests._readable import init_readable, lines
 from tests._squads import paths_of
 from tests.cli import _bundled_documents as documents
-from tests.cli._output import json_text, printed
+from tests.cli._output import json_text, printed, read_json
 
 pytestmark = pytest.mark.anyio
 
@@ -503,7 +503,7 @@ GREETING_SKILL_SOURCE = {
     "spec": {
         "schema_version": "0.17",
         "override": False,
-        "digest": "211060de2abfe6793ecbcfacd9b987a048dbe34f4f70b45b653336d2762820e3",
+        "digest": "763066bf35062c577c391af9959a9442e065ccfa2fbf066aae12210b200fcda1",
     },
     "display": {
         "type": "Skill",
@@ -525,3 +525,107 @@ async def test_view_json_leaves_the_views_own_tag_unexpanded_in_its_source(
     assert role == json_text(MANAGER_ROLE_SOURCE)
     skill = await printed(invoke, ["workflow", "view", "greeting_skill", "SKILL-2", "--json"])
     assert skill == json_text(GREETING_SKILL_SOURCE)
+
+
+# --- the override squad and the grammar an override spells ------------------------------------
+
+
+def _write_override(project, text: str) -> None:
+    overrides = project.squad_dir / ".overrides"
+    overrides.mkdir(exist_ok=True)
+    (overrides / "workflow.toml").write_text(text, encoding="utf-8")
+
+
+async def _lint_errors(invoke) -> str:
+    """The messages `sq workflow lint` refuses the override with, as one string."""
+    result = await invoke(["workflow", "lint", "--json"])
+    assert result.exit_code == 1, result.output
+    return "\n".join(e["message"] for e in json.loads(result.output)["errors"])
+
+
+@pytest.mark.covers("check")
+@pytest.mark.covers("workflow types", "--json")
+@pytest.mark.covers("workflow subentity-kinds", "--json")
+async def test_the_override_squad_checks_clean_and_lists_only_its_own_vocabulary(
+    override_project, invoke
+) -> None:
+    checked = await invoke(["check"])
+    assert (checked.exit_code, checked.output) == (0, "✓ no issues\n")
+    types = await read_json(invoke, ["workflow", "types", "--json"])
+    kinds = await read_json(invoke, ["workflow", "subentity-kinds", "--json"])
+    assert sorted(t["type"] for t in types) == [
+        "initiative",
+        "job",
+        "operator",
+        "record",
+        "role",
+        "skill",
+    ]
+    assert sorted(k["subentity_kind"] for k in kinds) == ["action", "outcome"]
+
+
+@pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.parametrize(
+    ("override", "refusal"),
+    [
+        (
+            "[subentity_kinds.subtask]\nmaps_parent_story = true\n",
+            "'maps_parent_story' was renamed 'maps_to_parent'",
+        ),
+        (
+            "[items.task]\nvalidators = ['subtask_story_mapping@warn']\n",
+            "'subtask_story_mapping@warn' was renamed 'subentity_mapping'",
+        ),
+        (
+            "[views.milestone_rollup]\n"
+            "transform = { module = 'squads._view_transforms', function = 'milestone_rollup' }\n",
+            "'milestone_rollup' was renamed 'status_rollup'",
+        ),
+    ],
+)
+async def test_an_override_spelling_a_renamed_grammar_name_is_refused_naming_the_new_one(
+    project, invoke, override: str, refusal: str
+) -> None:
+    _write_override(project, override)
+    assert refusal in await _lint_errors(invoke)
+
+
+@pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.parametrize(
+    ("override", "cause", "remedy"),
+    [
+        (
+            "[items.bug]\nsubentity_kind = 'subtask'\n",
+            "'bug' has no parent_required",
+            "declare parent_required on 'bug'",
+        ),
+        (
+            "[items.bug]\nsubentity_kind = 'subtask'\nparent_required = 'epic'\n",
+            "its parent_required type 'epic' hosts no sub-entity kind",
+            "declare subentity_kind on 'epic'",
+        ),
+    ],
+)
+async def test_a_mapping_kind_without_a_target_is_refused_naming_both_remedies(
+    project, invoke, override: str, cause: str, remedy: str
+) -> None:
+    _write_override(project, override)
+    refusal = await _lint_errors(invoke)
+    assert cause in refusal
+    assert remedy in refusal
+    assert "drop maps_to_parent on 'subtask'" in refusal
+
+
+@pytest.mark.covers("workflow subentity-kinds", "--json")
+async def test_a_container_heading_is_the_declared_text_or_the_title_cased_plural(
+    override_project, invoke
+) -> None:
+    kinds = await read_json(invoke, ["workflow", "subentity-kinds", "--json"])
+    assert {k["subentity_kind"]: k["container_heading"] for k in kinds} == {
+        "outcome": "Desired Outcomes",
+        "action": "Actions",
+    }
+    initiative = next((override_project.squad_dir / "initiatives").glob("INI-*.md"))
+    job = next((override_project.squad_dir / "jobs").glob("JOB-*.md"))
+    assert "\n## Desired Outcomes\n" in initiative.read_text(encoding="utf-8")
+    assert "\n## Actions\n" in job.read_text(encoding="utf-8")

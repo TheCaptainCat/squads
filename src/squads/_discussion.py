@@ -509,13 +509,13 @@ def summary_columns(kind: str, spec: WorkflowSpec) -> list[str]:
 
     A fixed base (local-id column headed by the kind name, then Status/Assignee/Title), one column
     per declared ``Field`` headed by its ``label`` and inserted right after the local-id column, and
-    a trailing Story column iff the kind declares ``maps_parent_story``. The body summary table and
+    a trailing Story column iff the kind declares ``maps_to_parent``. The body summary table and
     the CLI list/show tables share this derivation.
     """
     field_labels = [f.label for f in spec.fields_for(kind)]
     cols = [kind.title(), *field_labels, "Status", "Assignee", "Title"]
     ks = spec.subentity_kinds.get(kind)
-    if ks is not None and ks.maps_parent_story:
+    if ks is not None and ks.maps_to_parent:
         cols.append("Story")
     return cols
 
@@ -542,7 +542,7 @@ def summary_row(kind: str, sub: SubEntity, spec: WorkflowSpec) -> list[str]:
     ]
     row = [sub.local_id, *field_cells, sub.status, sub.assignee or "", sub.title]
     ks = spec.subentity_kinds.get(kind)
-    if ks is not None and ks.maps_parent_story:
+    if ks is not None and ks.maps_to_parent:
         row.append(sub.story or "")
     return row
 

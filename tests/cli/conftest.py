@@ -4,6 +4,7 @@
 import pytest
 
 from squads._paths import SquadPaths
+from tests._override_populated import init_override_populated
 from tests._populated import init_populated
 
 
@@ -12,3 +13,10 @@ def populated_project(copy_squad) -> SquadPaths:
     """A fresh copy of the squad with a feature and its stories, a task and its subtasks, and a
     review and its findings, as the working directory."""
     return copy_squad("populated", init_populated)
+
+
+@pytest.fixture
+def override_project(copy_squad) -> SquadPaths:
+    """A fresh copy of the override test squad, populated with its own vocabulary, as the working
+    directory."""
+    return copy_squad("override-populated", init_override_populated)

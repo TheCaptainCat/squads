@@ -111,7 +111,7 @@ class SubentitiesMixin(ServiceCore):
         initial_status = self._resolve_add_status(kind, status)
         self._check_assignee(db, assignee)
         if story:
-            self._check_maps_parent_story(kind)
+            self._check_maps_to_parent(kind)
             self._validate_subtask_story(db, item, story)
         local_id = discussion.next_local_id(item.subentities, kind, self.spec)
         sub = SubEntity(
@@ -466,7 +466,7 @@ class SubentitiesMixin(ServiceCore):
         if clear_story:
             sub.story = None
         elif story is not None:
-            self._check_maps_parent_story(kind)
+            self._check_maps_to_parent(kind)
             self._validate_subtask_story(db, item, story)
             sub.story = story
         if clear_assignee:
@@ -548,7 +548,7 @@ class SubentitiesMixin(ServiceCore):
         (:func:`sections.remove_section`, marker-safe), atomically in one ``store.transaction()``
         with a reflog entry. A removed id below the highest stays a gap, but removing the highest
         frees its number for reissue (:func:`discussion.next_local_id`). Removing a kind another
-        kind's ``maps_parent_story`` targets is refused while a subtask still maps to it.
+        kind's ``maps_to_parent`` targets is refused while a subtask still maps to it.
         """
         async with self.store.transaction() as db:
             item = self._require_parent(db, parent_id, kind)
@@ -678,16 +678,16 @@ class SubentitiesMixin(ServiceCore):
         hint = f" ({item.type}s host {hosts}s)" if hosts else ""
         raise SquadsError(f"{item.id} is a {item.type}, which does not host {kind}s{hint}")
 
-    def _check_maps_parent_story(self, kind: str) -> None:
-        """Raise unless *kind* declares the ``maps_parent_story`` capability — the
+    def _check_maps_to_parent(self, kind: str) -> None:
+        """Raise unless *kind* declares the ``maps_to_parent`` capability — the
         feature/story mapping stays a bounded built-in, gated by the flag rather than
         a ``kind == "subtask"`` literal."""
         ks = self.spec.subentity_kinds.get(kind)
-        if ks is None or not ks.maps_parent_story:
+        if ks is None or not ks.maps_to_parent:
             raise SquadsError(f"{kind} sub-entities don't map to a parent story")
 
     def _kind_is_story_target(self, item_type: str) -> bool:
-        """True when some other item type's hosted sub-entity kind declares ``maps_parent_story``
+        """True when some other item type's hosted sub-entity kind declares ``maps_to_parent``
         and maps onto *item_type*'s hosted kind, so removing one of those could orphan a mapped
         child's reference. The flag is on the mapping (child) kind, so this walks every declared
         type, however either kind is named.
@@ -699,7 +699,7 @@ class SubentitiesMixin(ServiceCore):
             ks = self.spec.subentity_kinds.get(child_kind)
             if (
                 ks is not None
-                and ks.maps_parent_story
+                and ks.maps_to_parent
                 and self.spec.item_parent_required(other_type) == item_type
             ):
                 return True

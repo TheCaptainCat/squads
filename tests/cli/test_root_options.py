@@ -102,17 +102,37 @@ async def test_c_help_of_one_squad_does_not_change_the_next_squads_verbs(
     overrides = overridden / "squads" / ".overrides"
     overrides.mkdir()
     (overrides / "workflow.toml").write_text(
-        '# squads:override-base:0.18.0\n[items.bug]\nsubentity_kind = "subtask"\n',
+        '# squads:override-base:0.18.0\n[items.bug]\nsubentity_kind = "finding"\n',
         encoding="utf-8",
     )
 
     await invoke(["-C", str(overridden), "task", "1", "show", "--help"])
-    result = await invoke(["-C", str(project.root), "bug", "1", "add-subtask", "x"])
+    result = await invoke(["-C", str(project.root), "bug", "1", "add-finding", "x"])
     assert (result.exit_code, result.output) == (
         2,
         "Usage: sq bug [OPTIONS] N COMMAND [ARGS]...\n"
         "Try 'sq bug --help' for help.\n"
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
-        "│ No such command 'add-subtask'.                                               │\n"
+        "│ No such command 'add-finding'.                                               │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯\n",
     )
+
+
+@pytest.mark.covers("<type> show")
+async def test_an_alias_of_a_dropped_type_runs_the_type_that_now_declares_it(
+    override_project, invoke
+) -> None:
+    result = await invoke(["f", "8", "show"])
+    assert result.exit_code == 0, result.output
+    assert "INI-8  (initiative)" in result.output
+
+
+@pytest.mark.covers("workflow lint", "--json")
+async def test_an_alias_of_a_kept_type_cannot_be_given_to_another_type(project, invoke) -> None:
+    overrides = project.squad_dir / ".overrides"
+    overrides.mkdir()
+    (overrides / "workflow.toml").write_text("[items.bug]\naliases = ['f']\n", encoding="utf-8")
+    result = await invoke(["workflow", "lint", "--json"])
+    assert result.exit_code == 1, result.output
+    messages = [e["message"] for e in json.loads(result.output)["errors"]]
+    assert "duplicate alias 'f': used by 'feature' and 'bug'" in "\n".join(messages)

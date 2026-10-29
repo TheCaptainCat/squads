@@ -264,7 +264,7 @@ SUBENTITY_KINDS = [
         "local_prefix": "F",
         "container_heading": "Findings",
         "completion": "Fixed",
-        "maps_parent_story": False,
+        "maps_to_parent": False,
         "fields": [{"code": "severity", "label": "Severity", "collection": "severity"}],
     },
     {
@@ -274,7 +274,7 @@ SUBENTITY_KINDS = [
         "local_prefix": "US",
         "container_heading": "User Stories",
         "completion": "Done",
-        "maps_parent_story": False,
+        "maps_to_parent": False,
         "fields": [],
     },
     {
@@ -284,7 +284,7 @@ SUBENTITY_KINDS = [
         "local_prefix": "ST",
         "container_heading": "Subtasks",
         "completion": "Done",
-        "maps_parent_story": True,
+        "maps_to_parent": True,
         "fields": [],
     },
 ]
@@ -674,7 +674,7 @@ VIEWS = [
         "view": "milestone_rollup",
         "source_kind": "ref",
         "source_name": "targets",
-        "transform": {"module": "squads._view_transforms", "function": "milestone_rollup"},
+        "transform": {"module": "squads._view_transforms", "function": "status_rollup"},
     },
     {"view": "role_definition", "source_kind": "role", "source_name": None, "transform": None},
     {"view": "squads_skill", "source_kind": "playbook", "source_name": None, "transform": None},

@@ -629,7 +629,7 @@ pronouns = { kind = "str", settable = false }
 
 # ---------------------------------------------------------------------------
 # Sub-entity kinds — machine binding (`lifecycle`) + done-toggle target (`completion`) +
-# CLI/storage vocabulary (`plural`/`local_prefix`/`placeholder`/`maps_parent_story`) +
+# CLI/storage vocabulary (`plural`/`heading`/`local_prefix`/`placeholder`/`maps_to_parent`) +
 # field declarations (mirrors the item `fields` mechanism). `lifecycle` is an explicit
 # reference, mirroring `ItemSpec.lifecycle` — story and subtask share `subentity`; a
 # custom kind is likewise free to share a machine with another kind by naming it.
@@ -640,6 +640,7 @@ pronouns = { kind = "str", settable = false }
 lifecycle = "subentity"
 completion = "Done"
 plural = "stories"
+heading = "User Stories"
 local_prefix = "US"
 placeholder = "_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._"
 
@@ -647,14 +648,16 @@ placeholder = "_Write the user story (e.g. “As an <role>, I want … so that �
 lifecycle = "subentity"
 completion = "Done"
 plural = "subtasks"
+heading = "Subtasks"
 local_prefix = "ST"
 placeholder = "_Describe this subtask here — free-form paragraphs or bullet lists._"
-maps_parent_story = true
+maps_to_parent = true
 
 [subentity_kinds.finding]
 lifecycle = "finding"
 completion = "Fixed"
 plural = "findings"
+heading = "Findings"
 local_prefix = "F"
 placeholder = "_Describe the finding, its impact, and a recommendation — free-form._"
 fields = [
@@ -689,7 +692,7 @@ fields = [
 [views.milestone_rollup]
 # Source: every item carrying a forward `targets` ref to this milestone, recovered by
 # inverting stored forward edges — the milestone file itself is never touched. The
-# transform (`squads._view_transforms.milestone_rollup`) partitions members on the declared
+# transform (`squads._view_transforms.status_rollup`) partitions members on the declared
 # `is_delivered`/`role_for(...).settled` axes, never a literal status name: "delivered" is a
 # member's own kind reaching its happy-path terminal (whatever a lifecycle calls it — "Done",
 # "Accepted", "Verified"); "settled" alone (without "delivered") is a member that stopped for
@@ -704,7 +707,7 @@ fields = [
 # it anyway) — a milestone's roll-up is the one bundled view a body write can replace prose
 # beside at all, the other five sitting on bodies replace and append both refuse.
 source = { kind = "ref", name = "targets" }
-transform = { module = "squads._view_transforms", function = "milestone_rollup" }
+transform = { module = "squads._view_transforms", function = "status_rollup" }
 
 # ---------------------------------------------------------------------------
 # Four more bundled views, all non-relation sources (role/playbook/self) — each declaring only

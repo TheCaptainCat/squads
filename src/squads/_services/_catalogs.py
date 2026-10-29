@@ -86,7 +86,7 @@ def subentity_kind_catalog(spec: WorkflowSpec) -> SubentityKindCatalog:
             local_prefix=ks.local_prefix,
             container_heading=spec.subentity_container_heading(kind),
             completion=ks.completion,
-            maps_parent_story=ks.maps_parent_story,
+            maps_to_parent=ks.maps_to_parent,
             fields=_fields(kind, spec),
         )
         for kind, ks in sorted(spec.subentity_kinds.items())

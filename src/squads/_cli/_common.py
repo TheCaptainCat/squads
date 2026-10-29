@@ -62,7 +62,7 @@ from squads._spec_documents import SpecSources, spec_sources
 from squads._specload import override_present
 from squads._util import article
 from squads._workflow import CATEGORIES, bundled_spec
-from squads._workflow._models import RESERVED_CLI_ALIASES, WorkflowSpec, reserved_alias_owner
+from squads._workflow._models import WorkflowSpec
 
 
 def build_consoles() -> tuple[Console, Console]:
@@ -327,6 +327,32 @@ def _read_spec_from_disk(ctx: Any) -> WorkflowSpec:
         return merged
 
 
+def bundled_alias_owner(name: str) -> str | None:
+    """The bundled type that declares *name* as an alias, or ``None`` when no bundled type does."""
+    return next(
+        (t for t, ts in bundled_spec().items.items() if name in ts.aliases),
+        None,
+    )
+
+
+def retargeted_type(ctx: Any, cmd_name: str) -> str | None:
+    """The type the active spec routes the root token *cmd_name* to when that is not the bundled
+    type the root table registers it for (a type name or alias the spec gives to another type),
+    else ``None``. Any spec-resolution error returns ``None``."""
+    bundled = bundled_spec()
+    registered = cmd_name if cmd_name in bundled.items else bundled_alias_owner(cmd_name)
+    if registered is None:
+        return None
+    try:
+        spec = resolve_spec_for_ctx(ctx)
+    except Exception:  # pylint: disable=broad-except
+        return None
+    declared = cmd_name if cmd_name in spec.non_roster_types() else spec.alias_to_type.get(cmd_name)
+    if declared is None or declared == registered or declared not in spec.non_roster_types():
+        return None
+    return declared
+
+
 def stale_static_aliases(spec: WorkflowSpec) -> frozenset[str]:
     """Static type aliases whose owner is still declared but no longer declares them.
 
@@ -336,8 +362,11 @@ def stale_static_aliases(spec: WorkflowSpec) -> frozenset[str]:
     """
     return frozenset(
         alias
-        for alias, owner in RESERVED_CLI_ALIASES
-        if (owner_spec := spec.items.get(owner)) is not None and alias not in owner_spec.aliases
+        for owner, owner_bundled in bundled_spec().items.items()
+        for alias in owner_bundled.aliases
+        if (owner_spec := spec.items.get(owner)) is not None
+        and alias not in owner_spec.aliases
+        and alias not in spec.alias_to_type
     )
 
 
@@ -350,7 +379,7 @@ def static_alias_is_stale(ctx: Any, cmd_name: str) -> bool:
     valid), so the caller substitutes :func:`stale_alias_command`. Any spec-resolution error
     returns ``False``.
     """
-    if reserved_alias_owner(cmd_name) is None:
+    if bundled_alias_owner(cmd_name) is None:
         return False
     try:
         spec = resolve_spec_for_ctx(ctx)
@@ -366,7 +395,7 @@ def stale_alias_command(ctx: Any, cmd_name: str) -> _click.Command:
     built from the raw ``self.commands`` table and would suggest the stale string just typed. The
     command swallows every trailing token and its own ``--help``.
     """
-    owner = reserved_alias_owner(cmd_name) or ""
+    owner = bundled_alias_owner(cmd_name) or ""
     try:
         owner_spec = resolve_spec_for_ctx(ctx).items.get(owner)
     except Exception:  # pylint: disable=broad-except

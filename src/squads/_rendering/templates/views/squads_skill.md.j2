@@ -22,15 +22,11 @@ agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff 
 {% endif %}
 {% endfor %}
 {% set _kind_hints = [] %}
-{% set _kind_notes = {
-    "finding": 'Fix rationale, reproduction notes, "agreed — closing this one"',
-    "story": "Acceptance clarification, story-local blocker or question",
-    "subtask": "Implementation note, decision local to this unit of work",
-} %}
 {% for _kind in _kind_to_type %}
 {% set _kspec = spec.subentity_kinds[_kind] %}
-{% if _kspec.maps_parent_story %}
-{% set _ = _kind_hints.append("a " ~ _kind ~ "'s `--story`") %}
+{% set _target = spec.mapping_target_kind(_kind) %}
+{% if _target %}
+{% set _ = _kind_hints.append("a " ~ _kind ~ "'s `--" ~ _target ~ "`") %}
 {% endif %}
 {% for _f in _kspec.fields %}
 {% set _ = _kind_hints.append("a " ~ _kind ~ "'s `--" ~ _f.code ~ "`") %}
@@ -94,7 +90,7 @@ The operator sometimes talks to you directly — for live work or debugging. The
   | Scope | Command | When to use |
   |---|---|---|
 {% for _kind in _kind_to_type %}
-  | One {{ _kind }} | `sq {{ _kind_to_type[_kind] }} <n> {{ _kind }} <k> comment` | {{ _kind_notes.get(_kind, "Notes scoped to this sub-entity") }} |
+  | One {{ _kind }} | `sq {{ _kind_to_type[_kind] }} <n> {{ _kind }} <k> comment` | Notes scoped to this {{ _kind }}: a clarification, blocker or question local to it |
 {% endfor %}
   | Whole item | `sq <type> <n> comment` | Handoff @mentions, decisions spanning multiple sub-entities, item-level status summaries |
 
@@ -104,7 +100,7 @@ The operator sometimes talks to you directly — for live work or debugging. The
   a scoped question (e.g. `sq {{ anchor or "<type>" }} N {{ anchor_kind or "<kind>" }} 1 comment
   --as <your-slug> -m "@role does this look right?"`). This is guidance, not a hard rule — the
   inbox never misses a mention.
-- **Stay in lane.** File anything you discover that's out of scope as its own item (e.g. a bug);
+- **Stay in lane.** File anything you discover that's out of scope as its own item;
   don't silently expand the work.
 
 Humans are tracked as **operators** (`op-<firstname>` slugs; see the roster in `CLAUDE.md`). Assign
@@ -114,11 +110,11 @@ work to a person with `--assignee op-<slug>`, and attribute their words with `--
 
 ## Finding things across the board
 
-Use `sq search "<text>"` when you need to hunt a prior decision or check whether a topic is
+Use `sq search "<text>"` when you need to hunt an earlier discussion or check whether a topic is
 already tracked — not as a routine boot step.
 
-- It scans **everything**: titles, summaries, bodies, discussion comments, and sub-entity prose
-  (story/subtask/finding blocks) — case-insensitive substring match.
+- It scans **everything**: titles, summaries, bodies, discussion comments, and sub-entity prose{% if _kind_to_type %}
+  ({{ _kind_to_type | list | join('/') }} blocks){% endif %} — case-insensitive substring match.
 - Narrow with `--type <type>` and/or `--status <status>` (the same vocabulary as `sq list`); both
   AND-compose with the query.
 {# The region label is `<kind>:<local_prefix><n>`; both halves are spec-declared, so the

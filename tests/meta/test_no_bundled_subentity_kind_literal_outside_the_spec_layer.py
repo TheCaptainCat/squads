@@ -33,13 +33,6 @@ _ALLOWED: dict[tuple[str, str], str] = {
         ("src/squads/_services/_import_model.py", kind): "the per-kind events of the import format"
         for kind in ("story", "subtask", "finding")
     },
-    **{
-        ("src/squads/_workflow/_models.py", literal): (
-            "the bundled container heading table, which only applies while a kind's declared "
-            "plural matches it"
-        )
-        for literal in ("story", "subtask", "finding", "stories", "subtasks", "findings")
-    },
 }
 
 

@@ -414,12 +414,12 @@ def _agent_registered(ctx: ValidatorContext) -> list[CheckIssue]:
     return issues
 
 
-def _subtask_story_mapping(ctx: ValidatorContext) -> list[CheckIssue]:
+def _subentity_mapping(ctx: ValidatorContext) -> list[CheckIssue]:
     """A subtask maps to one of its parent's declared stories."""
     item = ctx.item
     kind = ctx.spec.item_subentity_kind(item.type)
     ks = ctx.spec.subentity_kinds.get(kind) if kind is not None else None
-    if ks is None or not ks.maps_parent_story:
+    if ks is None or not ks.maps_to_parent:
         return []
     refs = [(s.local_id, s.story) for s in item.subentities if s.story]
     if not refs:
@@ -428,14 +428,14 @@ def _subtask_story_mapping(ctx: ValidatorContext) -> list[CheckIssue]:
     required_parent = ctx.spec.item_parent_required(item.type)
     host = required_parent or "parent"
     story_kind = ctx.spec.item_subentity_kind(host) or "story"
-    level = _resolved_level(ctx, "subtask_story_mapping")
+    level = _resolved_level(ctx, "subentity_mapping")
     if parent is None or (required_parent is not None and parent.type != required_parent):
         return [
             CheckIssue(
                 level,
                 item.id,
                 f"{kind} maps to a {story_kind} but the {item.type} has no {host} parent",
-                rule="subtask_story_mapping",
+                rule="subentity_mapping",
             )
         ]
     known = {s.local_id for s in parent.subentities}
@@ -444,7 +444,7 @@ def _subtask_story_mapping(ctx: ValidatorContext) -> list[CheckIssue]:
             level,
             item.id,
             f"{kind} {stn} → {us} missing from {parent.id}",
-            rule="subtask_story_mapping",
+            rule="subentity_mapping",
         )
         for stn, us in refs
         if us not in known
@@ -1112,7 +1112,7 @@ CATALOG: dict[str, Validator] = {
     "dangling_ref": _dangling_ref,
     "ref_kind_valid": _ref_kind_valid,
     "agent_registered": _agent_registered,
-    "subtask_story_mapping": _subtask_story_mapping,
+    "subentity_mapping": _subentity_mapping,
     "subentity_status_valid": _subentity_status_valid,
     "subentity_container_marker": _subentity_container_marker,
     "subentity_body_written": _subentity_body_written,

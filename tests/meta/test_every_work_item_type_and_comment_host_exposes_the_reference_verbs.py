@@ -126,7 +126,7 @@ def kind_options(kind: str, spec: WorkflowSpec, verb: tuple[str, ...]) -> set[st
     options = {f"--{f.code}" for f in spec.fields_for(kind)}
     if spec.subentity_deferred_statuses(kind):
         options.add("--deferred-to")
-    if spec.subentity_kinds[kind].maps_parent_story:
+    if spec.subentity_kinds[kind].maps_to_parent:
         options |= {"--story", "--no-story"} if updates else {"--story"}
     return options
 

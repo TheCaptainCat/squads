@@ -67,7 +67,7 @@ class SubentityKindRow(DTO):
     local_prefix: str
     container_heading: str
     completion: str
-    maps_parent_story: bool
+    maps_to_parent: bool
     fields: list[FieldEntry]
 
 

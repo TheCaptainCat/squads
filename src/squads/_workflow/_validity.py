@@ -35,7 +35,6 @@ from squads._workflow._models import (
     ViewSpec,
     ViewTransform,
     parse_view_position,
-    reserved_alias_owner,
 )
 from squads._workflow._validator_names import (
     ACTIVE_ITEM_SQUAD_GLOBAL_NAMES,
@@ -305,6 +304,35 @@ def check_completion_status(
             )
 
 
+def _mapping_target_errors(
+    items: dict[str, ItemSpec], subentity_kinds: dict[str, SubentityKindSpec]
+) -> list[str]:
+    """A mapping kind needs a target: its host type declares ``parent_required`` and that type
+    hosts a kind. Each refusal names the type and both remedies."""
+    errors: list[str] = []
+    for t, ts in sorted(items.items()):
+        ks = subentity_kinds.get(ts.subentity_kind) if ts.subentity_kind else None
+        if ks is None or not ks.maps_to_parent:
+            continue
+        remedy = f"drop maps_to_parent on {ts.subentity_kind!r}"
+        if ts.parent_required is None:
+            errors.append(
+                f"item {t!r}: hosts subentity kind {ts.subentity_kind!r}, which declares "
+                f"maps_to_parent, but {t!r} has no parent_required, so there is no kind to map "
+                f"onto — declare parent_required on {t!r}, or {remedy}"
+            )
+            continue
+        parent = items.get(ts.parent_required)
+        if parent is not None and parent.subentity_kind is None:
+            errors.append(
+                f"item {t!r}: hosts subentity kind {ts.subentity_kind!r}, which declares "
+                f"maps_to_parent, but its parent_required type {ts.parent_required!r} hosts no "
+                f"sub-entity kind to map onto — declare subentity_kind on "
+                f"{ts.parent_required!r}, or {remedy}"
+            )
+    return errors
+
+
 def check_subentity_kinds(
     items: dict[str, ItemSpec],
     subentity_kinds: dict[str, SubentityKindSpec],
@@ -319,6 +347,7 @@ def check_subentity_kinds(
         for t, ts in sorted(items.items())
         if ts.subentity_kind and ts.subentity_kind not in subentity_kinds
     )
+    errors.extend(_mapping_target_errors(items, subentity_kinds))
 
     seen_plurals: dict[str, str] = {}
     seen_prefixes: dict[str, str] = {}
@@ -415,13 +444,6 @@ def check_item_refs(
                 "(its whole per-type verb surface, `sq <type> <n> <verb>`, becomes unreachable "
                 "behind the built-in)"
             )
-        name_alias_owner = reserved_alias_owner(t)
-        if name_alias_owner is not None:
-            errors.append(
-                f"item {t!r}: shadows the built-in `sq {t}` alias of the {name_alias_owner!r} "
-                f"command — rename the type (`sq {t} <n> <verb>` and `sq create {t}` both "
-                f"dispatch into {name_alias_owner!r}'s command tree, not this type's)"
-            )
         errors.extend(
             f"item {t!r}: alias {alias!r} shadows the built-in `sq {alias}` command — rename "
             "or drop the alias"
@@ -429,10 +451,10 @@ def check_item_refs(
             if alias in RESERVED_CLI_VERBS
         )
         errors.extend(
-            f"item {t!r}: alias {alias!r} shadows the built-in `sq {alias}` alias of the "
-            f"{owner!r} command — rename or drop the alias"
+            f"item {t!r}: alias {alias!r} is the name of the declared type {alias!r} — rename "
+            "or drop the alias"
             for alias in ts.aliases
-            if (owner := reserved_alias_owner(alias)) is not None and owner != t
+            if alias in items and alias != t
         )
         if ts.prefix in seen_prefixes:
             errors.append(
@@ -820,7 +842,7 @@ def _clause_parent_reachable(
     (only the empty ``roster`` bundle), leaving ``parents`` declared but unread. Two further
     contradictions: ``parent_present`` with ``no_parent`` in one set refuses every item whichever
     way it is created, and ``parent_required`` naming a type the ``parents`` allowlist excludes
-    makes ``subtask_story_mapping`` dead in both directions (an empty ``parents`` is the lenient
+    makes ``subentity_mapping`` dead in both directions (an empty ``parents`` is the lenient
     "any parent" and excludes nothing).
 
     ``parent_required`` is absent from the reachability audit because it has a live consumer under
@@ -916,29 +938,29 @@ def _clause_supersedes_checked(
     ]
 
 
-def _clause_story_mapping_reachable(
+def _clause_subentity_mapping_reachable(
     t: str,
     ts: ItemSpec,
     effective: frozenset[str],
     kinds: dict[str, SubentityKindSpec],
     _ref_kinds: dict[str, RefKindSpec],
 ) -> list[str]:
-    """Guards ``subtask_story_mapping``, whose gate is the hosted kind's ``maps_parent_story``
+    """Guards ``subentity_mapping``, whose gate is the hosted kind's ``maps_to_parent``
     capability rather than anything on the item type itself — which is why it is not one of
     :data:`SUBENTITY_VALIDATOR_NAMES` and needs its own clause. Reachable independently of
     :func:`_clause_subentity_checked`: an adopter who satisfies that one by naming a sub-entity
     check back would otherwise still lose the mapping check with no report.
     """
     ks = kinds.get(ts.subentity_kind) if ts.subentity_kind is not None else None
-    if ks is None or not ks.maps_parent_story or "subtask_story_mapping" in effective:
+    if ks is None or not ks.maps_to_parent or "subentity_mapping" in effective:
         return []
     return [
         f"item {t!r}: hosts subentity_kind {ts.subentity_kind!r}, which declares "
-        f"maps_parent_story, but category {ts.category!r} turns on no validator for it "
-        f"('subtask_story_mapping'), so a {ts.subentity_kind} mapping to a story its parent "
-        f"does not have would go unreported. Drop maps_parent_story on "
+        f"maps_to_parent, but category {ts.category!r} turns on no validator for it "
+        f"('subentity_mapping'), so a {ts.subentity_kind} mapping to a sub-entity its "
+        f"parent does not have would go unreported. Drop maps_to_parent on "
         f"{ts.subentity_kind!r}, leave {t!r} in a category that checks the mapping, or name "
-        f"'subtask_story_mapping' in its own 'validators' list"
+        f"'subentity_mapping' in its own 'validators' list"
     ]
 
 
@@ -959,7 +981,7 @@ CONSISTENCY_CLAUSES: tuple[tuple[frozenset[str], ConsistencyClause], ...] = (
     (frozenset({"parent_in"}), _clause_parent_reachable),
     (_BUNDLED_SUBENTITY_VALIDATOR_NAMES, _clause_subentity_checked),
     (frozenset({"supersedes_incoming"}), _clause_supersedes_checked),
-    (frozenset({"subtask_story_mapping"}), _clause_story_mapping_reachable),
+    (frozenset({"subentity_mapping"}), _clause_subentity_mapping_reachable),
 )
 
 

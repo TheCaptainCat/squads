@@ -49,19 +49,19 @@ async def _review(invoke, title: str) -> str:
     return review
 
 
-# subtask_story_mapping
+# subentity_mapping
 
 
 def _unmapped(squad: Squad, level: str) -> dict[str, str]:
     message = f"subtask ST2 → US9 missing from {squad.feature}"
-    return issue("subtask_story_mapping", level, squad.task, message)
+    return issue("subentity_mapping", level, squad.task, message)
 
 
 STORY_US1 = "title: Lex\n  status: Todo\n  story: US1"
 STORY_US9 = "title: Lex\n  status: Todo\n  story: US9"
 
 
-@pytest.mark.breaches("subtask_story_mapping")
+@pytest.mark.breaches("subentity_mapping")
 async def test_a_subtask_mapped_to_a_story_its_parent_lacks_is_reported(
     squad, project, invoke, check_json
 ) -> None:
@@ -75,12 +75,12 @@ async def test_a_subtask_mapped_to_a_story_its_parent_lacks_is_reported(
     assert await check_json() == ([_unmapped(squad, "error")], 3)
 
 
-@pytest.mark.breaches("subtask_story_mapping@warn")
+@pytest.mark.breaches("subentity_mapping@warn")
 async def test_a_story_mapping_selected_at_warn_leaves_the_exit_code_alone(
     squad, project, invoke, check_json, select_validators
 ) -> None:
     await ok(invoke, *address(squad.task), "add-subtask", "Lex", "-m", "Do it", "--story", "US1")
-    select_validators("subtask_story_mapping@warn", on="task")
+    select_validators("subentity_mapping@warn", on="task")
     assert await check_json() == ([], 0)
 
     # the CLI refuses a story the parent lacks: edit the file and re-index

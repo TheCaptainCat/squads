@@ -20,7 +20,11 @@ from jinja2.loaders import split_template_path
 
 from squads import _badges as badges
 from squads._errors import SquadsError
-from squads._interactions._cheatsheet import cheatsheet_anchor_context, cheatsheet_anchor_type
+from squads._interactions._cheatsheet import (
+    cheatsheet_alias_example,
+    cheatsheet_anchor_context,
+    cheatsheet_anchor_type,
+)
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._playbook import authoring_owners, get_playbook_spec, parent_chain
 from squads._interactions._role_guidance import (
@@ -131,6 +135,7 @@ def _make_env(squad_dir: Path | None) -> Environment:
     # still yields a fully runnable example built from whatever type qualifies best.
     env.globals["cheatsheet_anchor_type"] = cheatsheet_anchor_type  # pyright: ignore[reportArgumentType]
     env.globals["cheatsheet_anchor_context"] = cheatsheet_anchor_context  # pyright: ignore[reportArgumentType]
+    env.globals["cheatsheet_alias_example"] = cheatsheet_alias_example  # pyright: ignore[reportArgumentType]
     # badge-vocabulary helpers — item templates render an active `spec` and derive axis
     # labels/legends/examples from it rather than hardcoding bundled vocab (e.g. severity).
     env.globals["resolve_collection"] = badges.resolve_collection  # pyright: ignore[reportArgumentType]

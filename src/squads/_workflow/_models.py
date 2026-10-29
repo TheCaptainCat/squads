@@ -83,45 +83,6 @@ RESERVED_CLI_VERBS: frozenset[str] = frozenset(
     }
 )
 
-#: Every alias the CLI's import-time registration binds into the root Click table, paired with
-#: the bundled type whose group it routes to (``sq feat ...`` -> ``feature``). Registration reads
-#: the bundled spec unconditionally, so these ten names are live root commands in every squad, as
-#: collision-prone as the fixed verbs above: a declared type or alias wearing one would be
-#: silently served by the bundled type's tree. Owning the alias is not a collision, so the check
-#: refuses a name only when the declaring type differs from the owner recorded here
-#: (:func:`reserved_alias_owner`).
-#:
-#: It is hand-maintained for the same layering reason as ``RESERVED_CLI_VERBS`` (and because it
-#: is consulted while the bundled spec is still being built); a ``tests/meta`` guard pins it
-#: against the bundled aliases and the live command table in both directions.
-RESERVED_CLI_ALIASES: tuple[tuple[str, str], ...] = (
-    ("b", "bug"),
-    ("c", "contract"),
-    ("d", "decision"),
-    ("dec", "decision"),
-    ("e", "epic"),
-    ("f", "feature"),
-    ("feat", "feature"),
-    ("g", "guide"),
-    ("m", "milestone"),
-    ("mile", "milestone"),
-    ("prd", "contract"),
-    ("r", "review"),
-    ("rev", "review"),
-    ("t", "task"),
-)
-
-
-def reserved_alias_owner(name: str) -> str | None:
-    """The bundled type *name* is statically registered as an alias of, or ``None``.
-
-    ``reserved_alias_owner("feat") == "feature"``; ``reserved_alias_owner("feature") is None``
-    (a type *name* is not an alias). The linear scan over ten entries is deliberate — a
-    module-level dict would be mutable shared state for a lookup this small.
-    """
-    return next((owner for alias, owner in RESERVED_CLI_ALIASES if alias == name), None)
-
-
 #: The fallback role name a status with no declared ``role`` resolves to — neutral/non-settled/
 #: shown, so a custom status is fail-safe-visible until its author assigns one.
 FALLBACK_ROLE_NAME = "pending"
@@ -335,10 +296,13 @@ class SubentityKindSpec(BaseModel):
     """Scaffold prose shown for a freshly-created block with no body yet. ``None`` falls
     back to the generic kind-derived placeholder (``_discussion.body_placeholder``)."""
 
-    maps_parent_story: bool = False
-    """Capability flag: a sub-entity of this kind maps to one of its parent's stories
-    (drives the ``--story`` option and the ``Story`` column). ``True`` only for the
-    built-in ``subtask`` kind."""
+    heading: str | None = None
+    """The ``## <heading>`` line above this kind's container block; ``None`` falls back to the
+    title-cased ``plural``."""
+
+    maps_to_parent: bool = False
+    """Capability flag: a sub-entity of this kind maps to a sub-entity of its host's parent, of
+    the kind that parent's type hosts (:meth:`WorkflowSpec.mapping_target_kind`)."""
 
     completion: str
     """The status a mark-done action should target inside this kind's own ``lifecycle``:
@@ -416,9 +380,9 @@ class ItemSpec(BaseModel):
 
     Read for three things, and the name promises more than two of them deliver — so read this
     before declaring it. **Sub-entity story mapping**: it is what resolves the host whose
-    sub-entities this type's own may map onto (``maps_parent_story``), and there it *is*
+    sub-entities this type's own may map onto (``maps_to_parent``), and there it *is*
     enforced, hard — ``add-<kind> --story`` refuses an item whose parent is missing or is not
-    this type, and ``subtask_story_mapping`` reports the same as a ``sq check`` error. That
+    this type, and ``subentity_mapping`` reports the same as a ``sq check`` error. That
     resolution is why this is a single type name and not derivable from ``parents``, which is a
     multi-valued allowlist with no way to say which member owns the stories. **Generated agent
     prose**: the ``--parent`` example in the per-type skills, and the anchor-type score behind
@@ -621,17 +585,6 @@ class StatusSpec(BaseModel):
 # ---------------------------------------------------------------------------
 # Validation helpers (extracted to keep _validate under complexity limits)
 # ---------------------------------------------------------------------------
-
-
-# Bundled sub-entity container headings, keyed by kind and paired with the plural they belong to
-# (see WorkflowSpec.subentity_container_heading), so an adopter's declared plural wins over the
-# bundled wording: a story plural renamed to `outcomes` must not render "## User Stories" above a
-# container marked `sq:outcomes`.
-_BUNDLED_CONTAINER_HEADINGS: dict[str, tuple[str, str]] = {
-    "story": ("stories", "User Stories"),
-    "subtask": ("subtasks", "Subtasks"),
-    "finding": ("findings", "Findings"),
-}
 
 
 class SquadSpec(BaseModel):
@@ -1108,21 +1061,27 @@ class WorkflowSpec(BaseModel):
         return self.subentity_kinds[kind].plural
 
     def subentity_container_heading(self, kind: str) -> str:
-        """The ``## <heading>`` line above *kind*'s container block. The three bundled kinds keep
-        their bundled wording (``_BUNDLED_CONTAINER_HEADINGS``; "User Stories" is not derivable from
-        ``plural``) only while they still carry their bundled plural; otherwise it falls back to the
-        declared ``plural`` title-cased (``"actions"`` -> ``"Actions"``). The wording is an
-        irregularity of one plural, not of the kind name, so a project renaming story's plural to
-        ``"outcomes"`` must not get "User Stories" above a container marked ``sq:outcomes``. It is
-        shared by item templates and :func:`squads._services._base.ensure_subentity_container_text`,
-        so a rename cannot make them disagree, and raises ``KeyError`` for an undeclared *kind* like
-        :meth:`subentity_plural`.
+        """The ``## <heading>`` line above *kind*'s container block: the declared ``heading``, else
+        the ``plural`` title-cased (``"actions"`` -> ``"Actions"``). Item templates and
+        :func:`squads._services._base.ensure_subentity_container_text` share it, and it raises
+        ``KeyError`` for an undeclared *kind* like :meth:`subentity_plural`.
         """
-        plural = self.subentity_kinds[kind].plural
-        bundled = _BUNDLED_CONTAINER_HEADINGS.get(kind)
-        if bundled is not None and bundled[0] == plural:
-            return bundled[1]
-        return plural.title()
+        ks = self.subentity_kinds[kind]
+        return ks.heading if ks.heading is not None else ks.plural.title()
+
+    def mapping_target_kind(self, kind: str) -> str | None:
+        """The kind *kind*'s sub-entities map onto: the kind hosted by the ``parent_required`` type
+        of the type that hosts *kind*. ``None`` when *kind* does not map or no such kind resolves
+        (spec load refuses the latter for a mapping kind).
+        """
+        ks = self.subentity_kinds.get(kind)
+        if ks is None or not ks.maps_to_parent:
+            return None
+        for ts in self.items.values():
+            if ts.subentity_kind == kind and ts.parent_required is not None:
+                parent = self.items.get(ts.parent_required)
+                return parent.subentity_kind if parent is not None else None
+        return None
 
     def parent_hint(self, child: str) -> str:
         """Human guidance for an invalid parent, for error messages: it appends the spec-declared

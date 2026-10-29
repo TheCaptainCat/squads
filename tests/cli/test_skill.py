@@ -1,10 +1,13 @@
 """`sq skill …`: creating skills, and the addressed verbs (show, update, status, refs, role links,
 regen, remove, body, views and the comment listing)."""
 
+import re
 from typing import Any
 
 import pytest
 
+from squads._workflow import bundled_spec
+from squads._workflow._loader import load_workflow_spec
 from tests.cli._output import entry_text, json_text, printed, read_json
 from tests.cli._roster import actors_of, body_of, forced_terminal, usage_error
 
@@ -905,3 +908,33 @@ async def test_unlink_role_refuses_a_skill_whose_only_ref_to_the_role_is_another
     result = await invoke(["skill", SLUG, "unlink-role", "manager"])
     assert (result.exit_code, result.output) == (1, "error: SKILL-2 has no scopes ref to ROLE-1\n")
     assert (await read_json(invoke, ["skill", SLUG, "refs", "--json"]))["out"] != []
+
+
+def _vocabulary(spec) -> set[str]:
+    """Every type, alias, sub-entity kind and plural, badge field and collection *spec* declares."""
+    names = set(spec.items) | set(spec.subentity_kinds) | set(spec.collections)
+    for item in spec.items.values():
+        names |= set(item.aliases) | {f.code for f in item.fields}
+    for kind in spec.subentity_kinds.values():
+        names |= {kind.plural} | {f.code for f in kind.fields}
+    return names
+
+
+@pytest.mark.covers("skill show")
+async def test_generated_agent_text_names_no_word_the_squad_dropped(
+    override_project, invoke
+) -> None:
+    dropped = {
+        name
+        for name in _vocabulary(bundled_spec())
+        - _vocabulary(load_workflow_spec(override_project.squad_dir))
+        if len(name) > 1  # a one-letter alias reads as English
+    }
+    assert {"feature", "story", "priority", "feat"} <= dropped
+    texts = {
+        "the squads skill": await printed(invoke, ["skill", "squads", "show"]),
+        "the CLAUDE.md section": (override_project.root / "CLAUDE.md").read_text(encoding="utf-8"),
+    }
+    for where, text in texts.items():
+        named = sorted(w for w in dropped if re.search(rf"(?<![\w-]){re.escape(w)}(?![\w-])", text))
+        assert named == [], f"{where} names words the squad dropped"

@@ -231,7 +231,7 @@ def _kind_signature(item_type: str, spec: WorkflowSpec) -> KindSignature:
     fields = tuple(
         (f.code, f.label, f.collection, f.required, f.default) for f in spec.fields_for(kind)
     )
-    return (kind, ks.plural, ks.maps_parent_story, fields)
+    return (kind, ks.plural, ks.maps_to_parent, fields)
 
 
 def _dynamic_subentity_group_cls(item_type: str) -> type[typer.core.TyperGroup]:
@@ -847,7 +847,7 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
         ),
         *(_field_param(field) for field in fields),
     ]
-    if ks.maps_parent_story:
+    if ks.maps_to_parent:
         params.append(
             inspect.Parameter(
                 "story",
@@ -921,7 +921,7 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
 
 def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
     """The sub-entity metadata entry point — one ``--<field-code>`` option per declared field
-    (identically to ``add-<kind>``) + ``--story``/``--no-story`` iff maps_parent_story."""
+    (identically to ``add-<kind>``) + ``--story``/``--no-story`` iff maps_to_parent."""
     ks = spec.subentity_kinds[kind]
     fields = spec.fields_for(kind)
 
@@ -935,7 +935,7 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
         ),
         *(_field_param(field) for field in fields),
     ]
-    if ks.maps_parent_story:
+    if ks.maps_to_parent:
         params += [
             inspect.Parameter(
                 "story",
@@ -1053,7 +1053,7 @@ def _remove_help(kind: str, spec: WorkflowSpec) -> str:
             child
             for item_type, ts in spec.items.items()
             if (child := ts.subentity_kind) is not None
-            and spec.subentity_kinds[child].maps_parent_story
+            and spec.subentity_kinds[child].maps_to_parent
             and spec.item_subentity_kind(spec.item_parent_required(item_type) or "") == kind
         }
     )

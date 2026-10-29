@@ -198,11 +198,12 @@ class _CustomTypeGroup(typer.core.TyperGroup):
     def get_command(self, ctx: Any, cmd_name: str) -> _click.Command | None:
         # The table lists every bundled alias whatever the active spec says, so one the spec no
         # longer declares must be refused here (see `common.static_alias_is_stale`).
-        if common.static_alias_is_stale(ctx, cmd_name):
+        retargeted = common.retargeted_type(ctx, cmd_name)
+        if retargeted is None and common.static_alias_is_stale(ctx, cmd_name):
             return common.stale_alias_command(ctx, cmd_name)
 
         # Fast path: the root's command table, which builds a bundled command on first lookup.
-        cmd = super().get_command(ctx, cmd_name)
+        cmd = super().get_command(ctx, cmd_name) if retargeted is None else None
         if cmd is not None:
             return cmd
 
@@ -212,7 +213,7 @@ class _CustomTypeGroup(typer.core.TyperGroup):
         try:
             from squads._cli._items import build_item_app
 
-            if cmd_name in _STATIC_TYPES:
+            if retargeted is None and cmd_name in _STATIC_TYPES:
                 # Bundled types are always in the command table; if we're here,
                 # it's genuinely unknown (shouldn't happen, but guard so we never shadow them).
                 return None
@@ -221,8 +222,8 @@ class _CustomTypeGroup(typer.core.TyperGroup):
 
             # Resolve the canonical type name: check direct type name first, then
             # spec's alias_to_type map (covers custom aliases like "inc" → "incident").
-            canonical = cmd_name
-            if cmd_name not in spec.non_roster_types():
+            canonical = retargeted or cmd_name
+            if retargeted is None and cmd_name not in spec.non_roster_types():
                 # Check if it's an alias for a custom type.
                 resolved = spec.alias_to_type.get(cmd_name)
                 if resolved is not None and resolved in spec.non_roster_types():

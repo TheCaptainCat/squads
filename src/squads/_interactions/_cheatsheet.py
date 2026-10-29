@@ -35,6 +35,20 @@ def cheatsheet_anchor_type(spec: WorkflowSpec) -> str | None:
     return next(t for t in types if score(t) == best)
 
 
+def cheatsheet_alias_example(spec: WorkflowSpec) -> str:
+    """A runnable ``sq <alias> 26 <kind> 4 show`` line built from the first non-roster type that
+    declares an alias, with the sub-entity kind it hosts when it hosts one. Without an aliased
+    type it names the anchor type, or ``<type>``, so the line never names a vocabulary the
+    squad lacks.
+    """
+    for item_type in sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t)):
+        aliases = spec.items[item_type].aliases
+        if aliases:
+            kind = spec.item_subentity_kind(item_type)
+            return f"sq {aliases[-1]} 26 {kind} 4 show" if kind else f"sq {aliases[-1]} 26 show"
+    return f"sq {cheatsheet_anchor_type(spec) or '<type>'} 26 show"
+
+
 class CheatsheetAnchorContext(TypedDict):
     """Return shape of :func:`cheatsheet_anchor_context` — see there for what each key means."""
 

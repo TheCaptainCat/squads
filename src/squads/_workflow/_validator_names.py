@@ -27,7 +27,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "dangling_ref",
         "ref_kind_valid",
         "agent_registered",
-        "subtask_story_mapping",
+        "subentity_mapping",
         "subentity_status_valid",
         "subentity_container_marker",
         "subentity_body_written",
@@ -285,7 +285,7 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "dangling_ref": "warn",
     "ref_kind_valid": "warn",
     "agent_registered": "warn",
-    "subtask_story_mapping": "error",
+    "subentity_mapping": "error",
     "subentity_status_valid": "error",
     "subentity_container_marker": "error",
     "subentity_body_written": "warn",
@@ -327,7 +327,7 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
 #: The rest are not load-bearing. ``parent_in``/``no_parent``: nothing downstream relies on
 #: parent-type eligibility, only on the chain terminating. ``item_status_valid``: rendering reads
 #: the global status catalog, not the per-type graph, and ``--force`` on a status update is a
-#: designed recovery. ``subtask_story_mapping``: it affects grouping display only and stays
+#: designed recovery. ``subentity_mapping``: it affects grouping display only and stays
 #: visible where rendered. ``subentity_status_valid``: the same as ``item_status_valid``, since
 #: the sub-entity vocabulary gate runs first and unconditionally, so a non-member stays
 #: recoverable.
@@ -367,7 +367,7 @@ CATEGORY_BUNDLES: dict[str, tuple[str, ...]] = {
         "subentity_body_written",
         "subentity_title_present",
         "subentity_deferral_resolved",
-        "subtask_story_mapping",
+        "subentity_mapping",
     ),
     "records": ("no_parent", "supersedes_incoming"),
 }
@@ -376,8 +376,8 @@ CATEGORY_BUNDLES: dict[str, tuple[str, ...]] = {
 #: The validators whose subject is a type's declared ``subentity_kind``: a type that declares a kind
 #: but whose effective set holds none has sub-entities nothing can check
 #: (:func:`check_category_consistency`). ``subentity_title_max`` is a member although no bundle
-#: supplies it, so a type may satisfy the clause by naming it alone. ``subtask_story_mapping`` is
-#: absent, as it belongs to one kind's ``maps_parent_story`` capability and has its own clause
+#: supplies it, so a type may satisfy the clause by naming it alone. ``subentity_mapping`` is
+#: absent, as it belongs to one kind's ``maps_to_parent`` capability and has its own clause
 #: (:func:`_clause_story_mapping_reachable`).
 SUBENTITY_VALIDATOR_NAMES: frozenset[str] = frozenset(
     {

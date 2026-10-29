@@ -6,7 +6,7 @@ from squads._workflow._models import WorkflowSpec
 type Row = dict[str, str | None]
 
 
-def milestone_rollup(source: list[Item], *, spec: WorkflowSpec) -> dict[str, list[Row]]:
+def status_rollup(source: list[Item], *, spec: WorkflowSpec) -> dict[str, list[Row]]:
     """The milestone's targeting members split into ``delivered``, ``outstanding`` and
     ``settled`` (stopped without delivering), by status role alone, each ordered by type and
     then sequence number."""

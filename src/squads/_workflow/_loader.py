@@ -286,6 +286,87 @@ def _retired_view_grammar_violations(raw_override: RawMapping, origin: str) -> l
     return violations
 
 
+#: The grammar names that became neutral, by the table they were spelled in.
+_RENAMED_KIND_KEYS: tuple[tuple[str, str], ...] = (("maps_parent_story", "maps_to_parent"),)
+_RENAMED_VALIDATORS: tuple[tuple[str, str], ...] = (("subtask_story_mapping", "subentity_mapping"),)
+_RENAMED_TRANSFORM_FUNCTIONS: tuple[tuple[str, str], ...] = (("milestone_rollup", "status_rollup"),)
+_BUNDLED_TRANSFORM_MODULE = "squads._view_transforms"
+
+
+type _Renamed = tuple[str, str, str]
+
+
+def _renamed_kind_keys(raw_override: RawMapping) -> list[_Renamed]:
+    """``(path, old, new)`` for each renamed key a ``[subentity_kinds.<kind>]`` table spells."""
+    return [
+        (f"subentity_kinds.{kind}.{old}", old, new)
+        for kind, table in _tables(raw_override.get("subentity_kinds"))
+        for old, new in _RENAMED_KIND_KEYS
+        if old in table
+    ]
+
+
+def _renamed_validators(raw_override: RawMapping) -> list[_Renamed]:
+    """``(path, entry, new)`` for each ``validators`` entry, of a type or of ``[squad]``, that
+    spells a renamed validator in any ``name``, ``name:param`` or ``name@level`` form."""
+    tables = {f"items.{t}": v for t, v in _tables(raw_override.get("items"))}
+    tables.update(dict(_tables({"squad": raw_override.get("squad")})))
+    found: list[_Renamed] = []
+    for path, table in tables.items():
+        entries = table.get("validators")
+        for entry in cast(list[object], entries) if isinstance(entries, list) else ():
+            bare = entry.split("@", 1)[0].split(":", 1)[0] if isinstance(entry, str) else ""
+            found.extend(
+                (f"{path}.validators", str(entry), new)
+                for old, new in _RENAMED_VALIDATORS
+                if old == bare
+            )
+    return found
+
+
+def _renamed_transform_functions(raw_override: RawMapping) -> list[_Renamed]:
+    """``(path, old, new)`` for each view transform that names a renamed function of the bundled
+    transform module."""
+    found: list[_Renamed] = []
+    for name, table in _tables(raw_override.get("views")):
+        transform = table.get("transform")
+        if not isinstance(transform, dict):
+            continue
+        written = cast(RawMapping, transform)
+        if written.get("module") == _BUNDLED_TRANSFORM_MODULE:
+            found.extend(
+                (f"views.{name}.transform", old, new)
+                for old, new in _RENAMED_TRANSFORM_FUNCTIONS
+                if written.get("function") == old
+            )
+    return found
+
+
+def _renamed_grammar_violations(raw_override: RawMapping, origin: str) -> list[MergeViolation]:
+    """Every old spelling of a renamed grammar name in *raw_override*: a kind key, a validator
+    entry or a bundled transform function. The message names the neutral name, since the old one
+    would otherwise surface as an unknown key or validator."""
+    return [
+        MergeViolation(origin, path, f"{old!r} was renamed {new!r}", f"write {new!r} in its place.")
+        for path, old, new in (
+            *_renamed_kind_keys(raw_override),
+            *_renamed_validators(raw_override),
+            *_renamed_transform_functions(raw_override),
+        )
+    ]
+
+
+def _tables(section: object) -> list[tuple[str, RawMapping]]:
+    """The named sub-tables of a raw *section*; empty when it is not a table."""
+    if not isinstance(section, dict):
+        return []
+    return [
+        (k, cast(RawMapping, v))
+        for k, v in cast(RawMapping, section).items()
+        if isinstance(v, dict)
+    ]
+
+
 def _selected_squad_violations(raw_override: RawMapping, origin: str) -> list[MergeViolation]:
     """``[selected]`` naming ``squad``: that table holds one list, so it has no entries to drop."""
     selected = raw_override.get("selected")
@@ -379,6 +460,7 @@ def _check_override_refusals(raw_override: RawMapping, origin: str) -> None:
         *_retired_view_grammar_violations(raw_override, origin),
         *_override_transform_violations(raw_override, origin),
         *_selected_squad_violations(raw_override, origin),
+        *_renamed_grammar_violations(raw_override, origin),
     ]
     if retired_violations:
         raise SquadsError("; ".join(str(v) for v in retired_violations))
@@ -1394,6 +1476,7 @@ def lint_workflow_spec(  # noqa: PLR0911 — one return per gate below
     retired_violations = [
         *_retired_view_grammar_violations(raw_override, str(override_path)),
         *_override_transform_violations(raw_override, str(override_path)),
+        *_renamed_grammar_violations(raw_override, str(override_path)),
     ]
     squad_violations = _selected_squad_violations(raw_override, str(override_path))
     origin = str(override_path)

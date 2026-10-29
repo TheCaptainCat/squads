@@ -46,6 +46,21 @@ def init_seeded(root: Path) -> None:
     asyncio.run(service.init(root=root, roles_spec="minimal"))
 
 
+def init_overridden(root: Path, source: Path) -> None:
+    """The `minimal` squad, bundled skills seeded, initialised under the override documents in the
+    directory *source*, stamped as the current release writes them."""
+    from squads import __version__
+
+    overrides = root / "squads" / ".overrides"
+    overrides.mkdir(parents=True)
+    for document in sorted(source.glob("*.toml")):
+        (overrides / document.name).write_text(
+            f"# squads:override-base:{__version__}\n" + document.read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+    init_seeded(root)
+
+
 def restore(template: Path, dest: Path) -> Path:
     """Copy the built squad to *dest* (a fresh directory) and return it."""
     shutil.copytree(template, dest, symlinks=True, dirs_exist_ok=True)
