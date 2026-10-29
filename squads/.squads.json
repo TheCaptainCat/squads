@@ -66252,7 +66252,7 @@
       ],
       "path": "tasks/TASK-001254-mapping-option-sub-entity-messages-and-wire-shapes-from-the.md",
       "created_at": "2026-10-29T19:55:09Z",
-      "updated_at": "2026-10-29T21:41:00Z",
+      "updated_at": "2026-10-29T22:00:43Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66264,7 +66264,7 @@
       "type": "task",
       "title": "rename-field verb and check on undeclared sub-entity keys",
       "slug": "rename-field-verb-and-check-on-undeclared-sub-entity-keys",
-      "status": "Ready",
+      "status": "InReview",
       "description": "sq migrate rename-field and frontmatter_key_undeclared on sub-entity entries",
       "parent": "FEAT-1249",
       "author": "tech-lead",
@@ -66281,7 +66281,7 @@
         {
           "local_id": "ST1",
           "title": "Undeclared keys on sub-entity entries in check",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US8",
@@ -66291,7 +66291,7 @@
         {
           "local_id": "ST2",
           "title": "The rename-field verb",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US8",
@@ -66301,7 +66301,7 @@
       ],
       "path": "tasks/TASK-001255-rename-field-verb-and-check-on-undeclared-sub-entity-keys.md",
       "created_at": "2026-10-29T19:55:10Z",
-      "updated_at": "2026-10-29T21:50:07Z",
+      "updated_at": "2026-10-29T22:00:27Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66403,7 +66403,7 @@
       "type": "task",
       "title": "VS Code client reads badges, display and maps_to",
       "slug": "vs-code-client-reads-badges-display-and-maps-to",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Extension types, previews and graph labels on the new shapes",
       "parent": "FEAT-1249",
       "author": "tech-lead",
@@ -66450,7 +66450,7 @@
       ],
       "path": "tasks/TASK-001257-vs-code-client-reads-badges-display-and-maps-to.md",
       "created_at": "2026-10-29T19:55:12Z",
-      "updated_at": "2026-10-29T19:56:29Z",
+      "updated_at": "2026-10-29T22:00:56Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66536,7 +66536,8 @@
         "TASK-1251",
         "TASK-1252",
         "ADR-1250",
-        "TASK-1253"
+        "TASK-1253",
+        "TASK-1254"
       ],
       "subentities": [
         {
@@ -66592,7 +66593,7 @@
         {
           "local_id": "F6",
           "title": "New priority and severity literals in services and the DTO adapter",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66622,7 +66623,7 @@
         {
           "local_id": "F9",
           "title": "Bundled add-finding with a null or empty severity is now refused at import",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -66632,7 +66633,7 @@
         {
           "local_id": "F10",
           "title": "An empty value on a derived flag is dropped silently instead of refused",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -66642,7 +66643,7 @@
         {
           "local_id": "F11",
           "title": "Badge changes through update no longer reach the reflog delta",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -66652,7 +66653,7 @@
         {
           "local_id": "F12",
           "title": "Three derived-name collision refusals have no case; mutations stay green",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66662,7 +66663,7 @@
         {
           "local_id": "F13",
           "title": "New tests misdeclare derived-flag markers, read an item file internally, assert substrings",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66672,7 +66673,7 @@
         {
           "local_id": "F14",
           "title": "Import refusals name add-sub, not the op written, and miss the declared selectors",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66682,9 +66683,49 @@
         {
           "local_id": "F15",
           "title": "Derived options are listed after --help",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "info",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F16",
+          "title": "New tests read the job file internally, assert substrings, unit-test set_head; ST3 plural is regular",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F17",
+          "title": "Covers check: a call giving only derived options reaches the bare pair, so bare markers over-claim",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F18",
+          "title": "Fixed article before declared names in the F8 template text and two spec-load messages",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F19",
+          "title": "Wire and render context differ from ADR-1250 s7: maps_to_kind, rows without badges, item templates",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
           "story": null,
           "deferred_to": null,
           "extra": {}
@@ -66692,7 +66733,7 @@
       ],
       "path": "reviews/REV-001259-review-of-the-bundled-vocabulary-feature.md",
       "created_at": "2026-10-29T21:09:02Z",
-      "updated_at": "2026-10-29T21:46:08Z",
+      "updated_at": "2026-10-29T22:01:39Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

@@ -3,7 +3,7 @@ id: TASK-1257
 sequence_id: 1257
 type: task
 title: VS Code client reads badges, display and maps_to
-status: Draft
+status: Ready
 parent: FEAT-1249
 author: tech-lead
 assignee: typescript-dev
@@ -27,7 +27,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-10-29T19:55:12Z'
-updated_at: '2026-10-29T19:56:29Z'
+updated_at: '2026-10-29T22:00:56Z'
 ---
 <!-- sq:body -->
 ## Goal

@@ -11,6 +11,7 @@ refs:
 - TASK-1252
 - ADR-1250
 - TASK-1253
+- TASK-1254
 subentities:
 - local_id: F1
   title: Badge keys move after the timestamps on first rewrite; normalise once in
@@ -37,7 +38,7 @@ subentities:
   severity: low
 - local_id: F6
   title: New priority and severity literals in services and the DTO adapter
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F7
   title: MANUAL point 2 awaits the wire task; refusal hint sends the adopter to the
@@ -51,35 +52,55 @@ subentities:
   severity: medium
 - local_id: F9
   title: Bundled add-finding with a null or empty severity is now refused at import
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F10
   title: An empty value on a derived flag is dropped silently instead of refused
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F11
   title: Badge changes through update no longer reach the reflog delta
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F12
   title: Three derived-name collision refusals have no case; mutations stay green
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F13
   title: New tests misdeclare derived-flag markers, read an item file internally,
     assert substrings
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F14
   title: Import refusals name add-sub, not the op written, and miss the declared selectors
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F15
   title: Derived options are listed after --help
-  status: Open
+  status: Fixed
   severity: info
+- local_id: F16
+  title: New tests read the job file internally, assert substrings, unit-test set_head;
+    ST3 plural is regular
+  status: Open
+  severity: low
+- local_id: F17
+  title: 'Covers check: a call giving only derived options reaches the bare pair,
+    so bare markers over-claim'
+  status: Open
+  severity: low
+- local_id: F18
+  title: Fixed article before declared names in the F8 template text and two spec-load
+    messages
+  status: Open
+  severity: low
+- local_id: F19
+  title: 'Wire and render context differ from ADR-1250 s7: maps_to_kind, rows without
+    badges, item templates'
+  status: Open
+  severity: low
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-29T21:46:08Z'
+updated_at: '2026-10-29T22:01:39Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -243,6 +264,10 @@ They bridge to the `--priority` options and the wire keys, which the badge-optio
 <!-- sq:finding:F6:discussion -->
 - [2026-10-29T21:45:22Z] `reviewer` Paul Reviewer:
   - Read at ce46f0eb (TASK-1253): the create and update sites in _services/_base.py and _services/_items.py are gone with the --priority options. Five remain, all for the wire task (TASK-1254): _services/_refs.py lines 194 and 440, _services/_item_read_dto.py lines 84 and 271, and the SubentityRow adapter in _api/_dto/_items.py line 101. The changed code of TASK-1253 adds no bundled literal. Stays Open until TASK-1254 lands and the derived guard (TASK-1256) covers field codes.
+- [2026-10-29T22:00:40Z] `reviewer` Paul Reviewer:
+  - Read at 4ca21036: the five remaining sites are gone. The tree and graph nodes no longer carry `priority`, `_item_read_dto` no longer reads `severity`, and the `SubentityRow` adapter is removed. `rg 'badge_value\("'` finds no call with a literal code in `src`. Closing.
+    
+    The derived guard on field codes is TASK-1256's. Two older literals it should catch, both outside this finding's scope: `_badges.primary_field_code(default="severity")`, and `sq review` written literally in `templates/items/review.md.j2`.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -264,6 +289,17 @@ Also driven, older than this change: a refusal from this runner ends with "Chang
 <!-- sq:finding:F7:discussion -->
 - [2026-10-29T21:40:21Z] `python-dev` Elias Python:
   - Hint fixed in a3db5b9d: an entry refusal no longer prints the roster note. MANUAL point 2 stays open until the wire task settles the template context names.
+- [2026-10-29T22:00:24Z] `reviewer` Paul Reviewer:
+  - Verified at 4ca21036 (TASK-1254 landed). The refusal hint is fixed: a refused entry prints no roster note, and the whole-line refusal tests hold it.
+    
+    MANUAL point 2, head part: holds. `subentities/head.md.j2` receives `fields` (code, label, badge) and `mapping` (label, value), as the text says.
+    
+    MANUAL point 2, item and sub-entity part: not exact. Driven with an override `items/bug.md.j2` on a bundled scratch squad:
+    - `{{ item.priority }}` still renders when the bug stores a priority. `render` wraps the item in `_FlatItem`, which serves stored attributes as fields. It fails only on an item that does not store one (`_FlatItem object has no attribute 'priority'`), where 0.17 rendered `None`. So the template breaks on some items and not others, which is harder to catch than the text suggests.
+    - `{{ item.badge_value("priority") }}` renders `high`, or `None` when unset. The recommendation is right.
+    - A sub-entity's `.severity` is gone too: view templates get raw `SubEntity` objects, so it fails on every entry. The text names only `.story` and `.extra`.
+    
+    Fix: say that `item.<code>` resolves only while the item stores the value, and that `badge_value('<code>')` is the form that works on every item. Add a sub-entity's `.severity` with `.badge_value('severity')`. ADR-1250 section 8 lists the same names and needs the same correction. Stays Open until the wording lands.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -430,6 +466,87 @@ TASK-1253. Driven: in `sq create task --help`, `sq task <n> update --help`, `sq 
 <!-- sq:finding:F15:discussion -->
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
+
+<!-- sq:finding:F16 -->
+### F16 — New tests read the job file internally, assert substrings, unit-test set_head; ST3 plural is regular
+
+<!-- sq:finding:F16:body -->
+TASK-1254, the new tests, read against ADR-1172 rules 3 and 5 as amended.
+
+- **Internal file read.** `_job_entries` in `tests/cli/test_subentity_verbs.py` reads the job file through the internal `squads._itemfile.read_frontmatter`, in four override-squad tests (mapping option, clear flag). `job <n> action <k> show --json` now carries `maps_to` and the flat `impact`, so the read-back can go through the CLI.
+- **Substrings.** `"No such option: --story" in ...`, `"No such option: --no-severity" in ...`, `"outcome: OC1" in shown`, `"story" not in (...)`. Rule 5 asks for the whole message lines.
+- **Unit tests.** The two head tests in `tests/regressions/test_a_sub_entity_head_shows_the_declared_fields_and_mapping.py` call the internal `discussion.set_head`. The handback says why: no command renders a head any more. Read: the only caller of `set_head` is the frozen 0.2 to 0.3 runner. So these tests guard a renderer only that runner reaches.
+- **ST3 case.** ST3 asked for a refusal on "a vowel-initial label with an irregular plural". The case uses `action`/`actions`, a regular plural, so a plural made by appending "s" in code would still pass.
+
+Fix: read back through `show --json`, assert whole lines, and use a kind with an irregular plural in the ST3 case (the override squad can declare one). For the head tests, either keep them as the one documented exception or drop them with the dead head path. That is a ruling for op-pierre or the architect.
+<!-- sq:finding:F16:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F16:discussion -->
+<!-- sq:finding:F16:discussion:end -->
+<!-- sq:finding:F16:end -->
+
+<!-- sq:finding:F17 -->
+### F17 — Covers check: a call giving only derived options reaches the bare pair, so bare markers over-claim
+
+<!-- sq:finding:F17:body -->
+Test infrastructure, `tests/_cli_surface.py` `reached_pairs` with the new `known` filter (TASK-1254).
+
+Read: the per-test check is `declared - reached`, so dropping pairs from `reached` only makes it stricter, with one exception. The bare pair is added when `level` is empty (`reached |= {(key, None)} if not level`), and `level` is computed after the filter. So an override-squad call that passes only squad-derived options (`--outcome`, `--no-impact`) now reaches the bare pair. A marker such as `covers("<type> <kind> update")` then claims the bare call, which in the bundled tree means "update with no option": the "nothing to update" refusal.
+
+Five markers use this: `tests/cli/test_check.py:84` and `tests/cli/test_subentity_verbs.py` at lines 992, 1010, 1020 and 1063. Each test passes `--outcome`/`--no-outcome`/`--impact`. The bundled bare-update case (line 631) still exists, so nothing is uncovered today. But the coverage guard can no longer tell a bare call from a call with options.
+
+Fix: decide the bare pair from what the call gave, before the filter. A call that gave any option reaches no bare pair. Then the override-squad tests declare nothing, or the derivation names that TASK-1256 introduces (F13).
+<!-- sq:finding:F17:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F17:discussion -->
+<!-- sq:finding:F17:discussion:end -->
+<!-- sq:finding:F17:end -->
+
+<!-- sq:finding:F18 -->
+### F18 — Fixed article before declared names in the F8 template text and two spec-load messages
+
+<!-- sq:finding:F18:body -->
+ADR-1250 section 1: messages "are phrased so they need no article chosen in code". The article sweep (4aa383a7) covered the services and CLI messages. Read: these sites still put a fixed "a" before a declared name:
+
+- `templates/claude/claude_section.md.j2`, added by the F8 fix (e679b838): step 4 renders `'a ' ~ _gate.type` ("more implementation, a review, a fix"), and the operator line renders "a {{ _gate.type }} point". A review type named `audit` gives "a audit".
+- `_workflow/_validity.py:969`: "so a {kind} mapping to a sub-entity ...", a spec-load refusal naming the declared kind ("a action mapping" on the override squad's kind).
+- `_workflow/_validity.py:1347`: "but a {item_type!r} item hosts ...".
+
+Lines 786 and 1259 of the same file put "a" before engine words (a parameter kind, a view source kind), not vocabulary. They are fine.
+
+Help text still calls the `article()` heuristic before a declared type: `_cli/_create.py:149` and `:331` ("Create an initiative."), and `_cli/_common.py:680` (`type_group_help`). It picks right for ordinary words, but it is an article chosen in code. A neutral wording costs nothing ("Create a new initiative." keeps the article before "new"; "Operate on one initiative by number or ID."). `address_epilog` names a reserved roster type, so it can stay.
+
+Fix: reword the four vocabulary sites. Reword the help sites too, unless the architect reads section 1 as covering messages only.
+<!-- sq:finding:F18:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F18:discussion -->
+<!-- sq:finding:F18:discussion:end -->
+<!-- sq:finding:F18:end -->
+
+<!-- sq:finding:F19 -->
+### F19 — Wire and render context differ from ADR-1250 s7: maps_to_kind, rows without badges, item templates
+
+<!-- sq:finding:F19:body -->
+TASK-1254, ST4 and ST5, against ADR-1250 section 7. Driven on an override scratch squad and on a bundled one.
+
+- **`display.maps_to_kind`** (on `<kind> <k> show` only) is not in section 7. It is needed: the show renderer labels the mapping line ("outcome: OC1") and may not read the spec, and nothing else in the DTO names the target kind. Two things should follow: list the key in section 7, and consider typing it as a `KindDisplay` like `display.kind`, so clients get the label and not only the name.
+- **List rows carry no `badges`.** `<type> <n> <kinds> --json` entries and the `subentities` rows of `list --json` item rows carry each field only under its flat code (`"impact": "large"`). They have no `badges`, only `display.badges` (labels, without the raw code). The last paragraph of section 7 says clients read values from `badges` and "never from a field-named key". On these two surfaces a client can do neither. Either add `badges` to `SubentityRow`, or amend section 7 to say rows carry the flat keys.
+- **Item templates** get no `fields` list. Section 7 says "the sub-entity head and the item templates receive the declared fields as a list of {code, label, badge}". Item templates receive `item` (stored attributes flat, plus `item.badge_value(code)`) and `spec`, as before. Amend section 7, or pass `fields`.
+
+These are differences in the letter of the ADR, not defects in what ships. Route to the architect to amend section 7, or to the dev where the ADR stands.
+<!-- sq:finding:F19:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F19:discussion -->
+<!-- sq:finding:F19:discussion:end -->
+<!-- sq:finding:F19:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -445,4 +562,16 @@ TASK-1253. Driven: in `sq create task --help`, `sq task <n> update --help`, `sq 
   - TASK-1253 (ce46f0eb) reviewed. Verdict: changes requested, three medium findings. The derived options, list column, collision check and import fronts work on both squads (driven), and the invoke fixture change and the deleted priority guard are sound (see Results that hold).
   - F9: bundled add-finding import lines with a null or empty severity are now refused. F10: an empty --<code> value is dropped silently (0.17 refused it). F11: update --<code> no longer reaches the reflog delta. Low: F12 (three collision refusals have no case), F13 (markers, an internal file read, substring asserts), F14 (import refusals name add-sub, not the op written). Info: F15. F6 partly closed by this task; comment on F6.
   - @manager route F9 to F14 to the TASK-1253 dev. The F13 markers wait for TASK-1256. Approval stays with you once the findings are dispositioned.
+- [2026-10-29T21:55:06Z] `python-dev` Elias Python:
+  - F9 to F15 fixed in f636eebe (F13 markers wait for the CLI-suite-on-override task).
+- [2026-10-29T22:00:42Z] `reviewer` Paul Reviewer:
+  - Second pass at 4ca21036 (origin/release/0.19).
+    
+    - **F1 to F5 verified Fixed.** Driven: the branch's `migrate up` on a fresh copy of this squad changed 623 item files. A YAML diff of each one shows identical top-level values and identical body bytes. The only key moves are `priority` and/or `severity` (469 files: 411 priority, 22 severity, 36 both). The sub-entity entries differ only in `story` becoming `maps_to`. With the schema stamp reset, a second runner pass rewrote no item file. After the migration, a comment on TASK-1251 changed only `updated_at` and the discussion. Read: an empty `maps_to` is dropped or folded (F3), unknown entry keys are kept as written (F4), and the migration tests compare whole-file text with no internal reads (F2, F5).
+    - **F8 verified Fixed.** In the bundled CLAUDE.md, the loop gate names reviews and findings again, and the tree line lists the field. The new template text puts a fixed "a" before the type name: see F18.
+    - **F6 Fixed** (comment on F6). **F7**: the hint is fixed; MANUAL point 2 holds for the head but not for items and sub-entities (comment on F7). Stays Open.
+    - **TASK-1254 verdict: changes requested, low severity only** (F16 to F19). The option, messages, wire shapes and head context work on both squads (driven: `--outcome`/`--no-outcome`, `--story` refused with exit 2 on the override squad, "outcome OC9 not found in INI-15", flat `impact` with `maps_to` always present, no `priority` on tree nodes). `display.maps_to_kind` is needed, since the renderer cannot derive the target kind from the DTO, but section 7 should list it (F19). The `known` filter weakens only the bare pairs (F17).
+    - @manager route F16 to F18 to the TASK-1254 dev, F19 to @architect (amend section 7 or ask for code), and F7's wording to whoever owns the 0.19 runner text. F9 to F15 remain with the TASK-1253 dev. Approval stays with you.
+- [2026-10-29T22:01:39Z] `manager` Catherine Manager:
+  - Ruling on F18 (operator: nothing hardcoded): help text counts too; no article is chosen in code anywhere, help included: phrase help and messages so they need none. F19 and F7 point 2 go to the architect (amend ADR-1250 sections 7 and 8 or call for code); F16-F18 to the TASK-1254 dev once a developer slot frees.
 <!-- sq:discussion:end -->
