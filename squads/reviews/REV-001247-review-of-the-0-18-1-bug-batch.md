@@ -23,12 +23,12 @@ subentities:
 - local_id: F3
   title: 'create guide skips the spec-aware create class: override fields and the
     --priority help refresh miss it'
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F4
   title: 'Existing untitled sub-entities stay invisible: sq check does not report
     the now-required title'
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F5
   title: 'import with no op still prints pydantic wording: Unable to extract tag using
@@ -53,12 +53,12 @@ subentities:
 - local_id: F9
   title: unlink-role on a skill not scoped to the role still reports success, the
     BUG-1184 shape
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F10
   title: SubentityAddRequest.title still defaults to empty, so the API contract advertises
     it as optional
-  status: Open
+  status: Fixed
   severity: info
 - local_id: F11
   title: repair --renumber leaves the scaffold hint naming the old number (pre-existing,
@@ -71,7 +71,7 @@ subentities:
   status: Fixed
   severity: low
 created_at: '2026-10-29T17:02:38Z'
-updated_at: '2026-10-29T17:19:31Z'
+updated_at: '2026-10-29T17:25:39Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -227,6 +227,8 @@ Each of these passes for a wrong refusal that happens to share the prefix. Fix: 
   - My part fixed in 50277923: negative --depth on tree/graph and reflog --op assert the whole output. Other cases in this finding are not mine; left Open.
 - [2026-10-29T17:17:50Z] `python-dev` Elias Python:
   - TASK-1244 part done in 9dc8388a: the --squad-dir refusals assert the whole output. Other tasks parts remain.
+- [2026-10-29T17:25:39Z] `python-dev` Elias Python:
+  - Missing-title exit-2 cases now assert the whole output (0553c825). Other F6 cases belong to TASK-1244 and TASK-1245.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -247,6 +249,8 @@ Fix: one case each, with `covers` on the sub-entity comment host key and on `("a
 <!-- sq:finding:F7:discussion -->
 - [2026-10-29T17:17:51Z] `python-dev` Elias Python:
   - TASK-1244 part done in 9dc8388a: adopt --squad-dir boundary case added. The sub-entity comment case belongs to the other task.
+- [2026-10-29T17:25:38Z] `python-dev` Elias Python:
+  - Missing sub-entity comment boundary case added in tests/cli/test_comment_verbs.py (0553c825). The adopt --squad-dir half belongs to TASK-1244.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 

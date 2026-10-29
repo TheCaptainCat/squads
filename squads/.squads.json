@@ -65502,7 +65502,7 @@
       ],
       "path": "tasks/TASK-001246-fix-item-verb-bugs-guide-options-ref-rm-sub-entities-view-id.md",
       "created_at": "2026-10-29T16:27:30Z",
-      "updated_at": "2026-10-29T16:52:18Z",
+      "updated_at": "2026-10-29T17:25:44Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -65551,7 +65551,7 @@
         {
           "local_id": "F3",
           "title": "create guide skips the spec-aware create class: override fields and the --priority help refresh miss it",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -65561,7 +65561,7 @@
         {
           "local_id": "F4",
           "title": "Existing untitled sub-entities stay invisible: sq check does not report the now-required title",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -65611,7 +65611,7 @@
         {
           "local_id": "F9",
           "title": "unlink-role on a skill not scoped to the role still reports success, the BUG-1184 shape",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -65621,7 +65621,7 @@
         {
           "local_id": "F10",
           "title": "SubentityAddRequest.title still defaults to empty, so the API contract advertises it as optional",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "info",
           "story": null,
@@ -65651,7 +65651,7 @@
       ],
       "path": "reviews/REV-001247-review-of-the-0-18-1-bug-batch.md",
       "created_at": "2026-10-29T17:02:38Z",
-      "updated_at": "2026-10-29T17:19:31Z",
+      "updated_at": "2026-10-29T17:25:39Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
