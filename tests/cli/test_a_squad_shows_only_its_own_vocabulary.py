@@ -93,30 +93,23 @@ def _spelled(text: str, names: vocabulary.Vocabulary) -> list[str]:
     return sorted((quoted_keys | flags) & set(names))
 
 
-@pytest.mark.skipif(P.squad != "override", reason="the bundled squad drops nothing")
-async def test_the_override_squad_prints_no_word_it_dropped(populated_project, invoke) -> None:
-    surfaces = await _surfaces(invoke)
-    dropped = _dropped(populated_project.squad_dir)
-
-    found = {where: _spelled(text, dropped) for where, text in surfaces.items()}
-
-    assert {where: names for where, names in found.items() if names} == {}
-
-
-@pytest.mark.skipif(P.squad != "bundled", reason="the override squad has its own words")
-async def test_the_bundled_squad_keeps_its_own_flags_verbs_and_alias(
+@pytest.mark.covers("create <type>", "--<field>", "--parent")
+@pytest.mark.covers("<type> add-<kind>", "--<target-kind>")
+@pytest.mark.covers("list", "--json")
+@pytest.mark.covers("tree", "--json")
+@pytest.mark.covers("<type> show", "--json")
+@pytest.mark.covers("import", "FILE")
+async def test_the_scenario_prints_the_squads_own_vocabulary_and_no_dropped_word(
     populated_project, invoke
 ) -> None:
     surfaces = await _surfaces(invoke)
-
-    assert f"--{P.badge}" in surfaces["create --help"]
-    assert f"--{P.target_kind}" in surfaces["add --help"]
-    assert f"add-{P.kind}" in surfaces["update --help"] + await _run(invoke, [P.ref, "3", "--help"])
+    kept = f"--{_flag(P.badge)}"
+    assert kept in surfaces["create --help"]
+    assert f"add-{P.kind}" in await _run(invoke, [P.ref, "3", "--help"])
+    assert f"--{_flag(P.target_kind)}" in surfaces["add --help"]
     assert await _run(invoke, [P.host_alias, "2", "show", "--json"])
 
+    dropped = _dropped(populated_project.squad_dir)
+    found = {where: _spelled(text, dropped) for where, text in surfaces.items()}
 
-async def test_the_scenario_runs_on_the_squad_the_run_is_on(populated_project, invoke) -> None:
-    surfaces = await _surfaces(invoke)
-
-    assert f"--{_flag(P.badge)}" in surfaces["create --help"]
-    assert f"add-{P.kind}" in await _run(invoke, [P.ref, "3", "--help"])
+    assert {where: names for where, names in found.items() if names} == {}
