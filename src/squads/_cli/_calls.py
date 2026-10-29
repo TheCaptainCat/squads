@@ -7,6 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from squads import _spans as spans
 from squads._api._api import Api, Operation
 from squads._api._response import Response
 from squads._cli import _common as common
@@ -31,7 +32,10 @@ def call[Req: BaseModel, Res](op: Operation[Req, Res], req: Req) -> Response[Res
     api = get_context().api
     if api is None:
         api = select_api()
-    return asyncio.run(api.call(op, req))
+    with spans.span("api_call"):
+        response = asyncio.run(api.call(op, req))
+    spans.mark("call_done")
+    return response
 
 
 def print_warnings(response: Response[Any]) -> None:

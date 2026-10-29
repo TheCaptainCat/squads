@@ -64161,7 +64161,7 @@
       ],
       "path": "tasks/TASK-001234-stability-guide-and-changelog-for-result-shapes.md",
       "created_at": "2026-10-28T22:12:43Z",
-      "updated_at": "2026-10-29T10:09:19Z",
+      "updated_at": "2026-10-29T11:12:17Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -64185,7 +64185,8 @@
         "FEAT-1226",
         "TASK-1227",
         "TASK-1228",
-        "TASK-1233"
+        "TASK-1233",
+        "TASK-1238"
       ],
       "subentities": [
         {
@@ -64717,11 +64718,81 @@
           "story": null,
           "deferred_to": null,
           "extra": {}
+        },
+        {
+          "local_id": "F54",
+          "title": "Lazy type groups cache an override-built app across run() calls; leaks between squads",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F55",
+          "title": "SQUADS_SPANS=yes crashes every command; empty or 1 prints since-boot marks",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F56",
+          "title": "Comments still say the root table is built at import time; _spans missing from CLAUDE.md",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F57",
+          "title": "Lazy-group guard misses annotated and from-import Typer definitions",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F58",
+          "title": "Releasing runbook does not run bench_local_mode.py as the task requires",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F59",
+          "title": "Benchmark: fixed old-first order, repo-specific --task default, no-op SQUADS_DAEMON",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F60",
+          "title": "drop_type_apps is a src test hook over a module cache; a per-root type-app cache needs none",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
         }
       ],
       "path": "reviews/REV-001235-review-of-the-dto-refactor-s-delivered-tasks.md",
       "created_at": "2026-10-28T23:26:20Z",
-      "updated_at": "2026-10-29T10:14:21Z",
+      "updated_at": "2026-10-29T11:49:30Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -64796,7 +64867,7 @@
       "type": "task",
       "title": "Local mode no slower than 0.17.0 on show, list and tree",
       "slug": "local-mode-no-slower-than-0-17-0-on-show-list-and-tree",
-      "status": "Ready",
+      "status": "Done",
       "description": "Measure where the 20-30 % run-time regression goes, apply the local-mode levers, prove show/list/tree no slower than 0.17.0",
       "parent": "FEAT-1226",
       "author": "tech-lead",
@@ -64812,7 +64883,7 @@
         {
           "local_id": "ST1",
           "title": "Benchmark script and span breakdown",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -64822,7 +64893,7 @@
         {
           "local_id": "ST2",
           "title": "Local-mode levers from ADR-1225",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -64832,7 +64903,7 @@
         {
           "local_id": "ST3",
           "title": "Fix the run-time costs until the criterion holds",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -64842,7 +64913,7 @@
       ],
       "path": "tasks/TASK-001238-local-mode-no-slower-than-0-17-0-on-show-list-and-tree.md",
       "created_at": "2026-10-29T07:11:29Z",
-      "updated_at": "2026-10-29T07:12:49Z",
+      "updated_at": "2026-10-29T11:49:38Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

@@ -1293,8 +1293,6 @@ def workflow_stamp_finding(
     add-only and unstamped is ``None``. Absent provenance is reported, never a load-time refusal.
     """
 
-    from squads import __version__
-
     if stamp is None:
         if workflow_override_shadows_bundled(squad_dir, files):
             return (
@@ -1303,6 +1301,8 @@ def workflow_stamp_finding(
                 "`sq override update workflow` to re-stamp",
             )
         return None
+    from squads import __version__
+
     if stamp != __version__ and artifact_changed_since(WORKFLOW_KEY, stamp):
         return (
             "warn",

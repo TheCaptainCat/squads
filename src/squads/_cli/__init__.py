@@ -1,11 +1,15 @@
 """The Typer application, exposed as both `squads` and `sq`."""
 
+import contextlib
 import contextvars
+import functools
+import gc
+import importlib
 import io
 import sys
-from collections.abc import Sequence
+from collections.abc import Callable, Iterator, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, ClassVar
+from typing import Any, ClassVar, NamedTuple
 
 import typer
 import typer._click as _click  # underscore is upstream's own private module path, not ours
@@ -13,6 +17,7 @@ import typer.core
 import typer.main
 
 from squads import _actor as actor
+from squads import _spans as spans
 from squads import version_line
 from squads._cli import _calls as calls
 from squads._cli import _common as common
@@ -28,10 +33,103 @@ if sys.platform == "win32":  # pragma: no cover
             _stream.reconfigure(encoding="utf-8", errors="replace")
 
 
+class LazyGroup(NamedTuple):
+    """A command group the root builds on first use: its name, the module and attribute that
+    hold its Typer, and its summary line."""
+
+    name: str
+    module: str
+    attr: str
+    help: str
+
+
+#: The root's command groups, in the order ``sq --help`` lists them. A group's module is
+#: imported, and its Typer converted, only when the group is looked up.
+LAZY_GROUPS: tuple[LazyGroup, ...] = (
+    LazyGroup("create", "squads._cli._create", "create_app", "Create a tracked item."),
+    LazyGroup("role", "squads._cli._role", "role_app", "Manage agent roles."),
+    LazyGroup("dev", "squads._cli._dev", "dev_app", "Manage developer roles."),
+    LazyGroup("operator", "squads._cli._operator", "operator_app", "Manage human operators."),
+    LazyGroup("skill", "squads._cli._skill", "skill_app", "Manage agent skills."),
+    LazyGroup(
+        "memory", "squads._cli._memory", "memory_app", "Read and write a role's memory notebook."
+    ),
+    LazyGroup(
+        "board",
+        "squads._cli._board",
+        "board_app",
+        "Post, list and take down notices on the team board.",
+    ),
+    LazyGroup(
+        "migrate",
+        "squads._cli._migrate",
+        "migrate_app",
+        "Run schema migrations and read their steps.",
+    ),
+    LazyGroup(
+        "override",
+        "squads._cli._override",
+        "override_app",
+        "Manage project-level template and role overrides.",
+    ),
+    LazyGroup(
+        "workflow",
+        "squads._cli._workflow_cmd",
+        "workflow_app",
+        "Show the team workflow and the active spec's vocabulary.",
+    ),
+)
+
+
+def _group_command(sub: typer.Typer, name: str, **options: Any) -> Any:
+    """The Click group *sub* makes under *name*, as ``add_typer`` with *options* would register
+    it."""
+    host = typer.Typer(add_completion=False)
+    host.add_typer(sub, name=name, **options)
+    return typer.main.get_command(host).commands[name]  # type: ignore[attr-defined]
+
+
+class _LazyCommands(MutableMapping[str, _click.Command]):
+    """The root group's commands: the ones registered up front, and the lazy ones, each built
+    when first read. Names keep one order whether or not a command has been built."""
+
+    def __init__(
+        self,
+        eager: MutableMapping[str, _click.Command],
+        lazy: dict[str, Callable[[], _click.Command]],
+    ) -> None:
+        self._built: dict[str, _click.Command] = dict(eager)
+        self._builders = lazy
+        self._names: dict[str, None] = dict.fromkeys([*eager, *lazy])
+
+    def __getitem__(self, name: str) -> _click.Command:
+        if name not in self._built:
+            if name not in self._builders:
+                raise KeyError(name)
+            self._built[name] = self._builders[name]()
+        return self._built[name]
+
+    def __setitem__(self, name: str, command: _click.Command) -> None:
+        self._built[name] = command
+        self._names[name] = None
+
+    def __delitem__(self, name: str) -> None:
+        del self._names[name]
+        self._built.pop(name, None)
+        self._builders.pop(name, None)
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._names)
+
+    def __len__(self) -> int:
+        return len(self._names)
+
+
 class _CustomTypeGroup(typer.core.TyperGroup):
     """Root TyperGroup that builds item sub-apps for custom work types on demand.
 
-    Built-in commands are registered statically at import time. An unknown name is resolved
+    Built-in commands and bundled types are looked up through the root's command table, built
+    from the bundled spec on first use. An unknown name is resolved
     against the active spec and, if it is a declared custom type, gets a ``build_item_app``
     sub-app; ``list_commands`` lists those types in ``sq --help``. Spec-resolution errors fall
     back to the built-in set, so the built-in ``--help`` and ``get_command`` path never raise.
@@ -41,6 +139,10 @@ class _CustomTypeGroup(typer.core.TyperGroup):
     # built from, so repeated ``get_command`` calls (e.g. during completion introspection)
     # return the same command and another squad's spec never reuses it.
     _custom_cmd_cache: ClassVar[common.SpecKeyedCache[_click.Command]] = common.SpecKeyedCache()
+
+    def __init__(self, **attrs: Any) -> None:
+        super().__init__(**attrs)
+        self.commands = _LazyCommands(self.commands, _lazy_builders())
 
     @staticmethod
     def _resolve_spec_for_ctx(ctx: Any) -> Any:
@@ -94,12 +196,12 @@ class _CustomTypeGroup(typer.core.TyperGroup):
         return base + custom
 
     def get_command(self, ctx: Any, cmd_name: str) -> _click.Command | None:
-        # The static table binds every bundled alias at import time, so one the active spec no
+        # The table lists every bundled alias whatever the active spec says, so one the spec no
         # longer declares must be refused here (see `common.static_alias_is_stale`).
         if common.static_alias_is_stale(ctx, cmd_name):
             return common.stale_alias_command(ctx, cmd_name)
 
-        # Fast path: try the statically-built command table first.
+        # Fast path: the root's command table, which builds a bundled command on first lookup.
         cmd = super().get_command(ctx, cmd_name)
         if cmd is not None:
             return cmd
@@ -111,7 +213,7 @@ class _CustomTypeGroup(typer.core.TyperGroup):
             from squads._cli._items import build_item_app
 
             if cmd_name in _STATIC_TYPES:
-                # Statically-registered types are always in the static table; if we're here,
+                # Bundled types are always in the command table; if we're here,
                 # it's genuinely unknown (shouldn't happen, but guard so we never shadow them).
                 return None
 
@@ -237,6 +339,12 @@ def main_callback(
         False, "--version", callback=_version_cb, is_eager=True, help="Show version and exit."
     ),
 ):
+    spans.mark("startup")
+    with spans.span("root_callback"):
+        _bind_request(ctx, change_dir, at)
+
+
+def _bind_request(ctx: typer.Context, change_dir: list[str], at: str | None) -> None:
     from squads._context import bind_context, get_context
 
     # Bind one fresh RequestContext per invocation, from -C/--at plus the clock that
@@ -266,70 +374,47 @@ def main_callback(
 
 # Register commands (imported after `app` is defined; they decorate it). `_main` is a side-effect
 # import — its `@app.command()`s attach the top-level commands but it's never referenced by name.
-from squads._cli import (  # noqa: E402
-    _board,
-    _create,
-    _dev,
-    _items,
-    _memory,
-    _migrate,
-    _operator,
-    _override,
-    _role,
-    _skill,
-    _workflow_cmd,
-)
 from squads._cli import _import as _import  # noqa: E402
+from squads._cli import _items  # noqa: E402
 from squads._cli import _main as _main  # noqa: E402
 from squads._cli import _ui as _ui  # noqa: E402
 
-app.add_typer(_create.create_app, name="create", help="Create a tracked item.")
-app.add_typer(_role.role_app, name="role", help="Manage agent roles.")
-app.add_typer(_dev.dev_app, name="dev", help="Manage developer roles.")
-app.add_typer(_operator.operator_app, name="operator", help="Manage human operators.")
-app.add_typer(_skill.skill_app, name="skill", help="Manage agent skills.")
-app.add_typer(
-    _memory.memory_app,
-    name="memory",
-    help="Read and write a role's memory notebook.",
-)
-app.add_typer(
-    _board.board_app,
-    name="board",
-    help="Post, list and take down notices on the team board.",
-)
-app.add_typer(
-    _migrate.migrate_app, name="migrate", help="Run schema migrations and read their steps."
-)
-app.add_typer(
-    _override.override_app,
-    name="override",
-    help="Manage project-level template and role overrides.",
-)
-app.add_typer(
-    _workflow_cmd.workflow_app,
-    name="workflow",
-    help="Show the team workflow and the active spec's vocabulary.",
-)
-
 # Resource-oriented item groups: `sq <type> <num> <verb> …`, one sub-app per bundled type,
-# registered under its canonical name and hidden aliases. Types an override adds are not in
-# the bundled spec at import time; `_CustomTypeGroup.get_command` builds them lazily.
+# available under its canonical name and hidden aliases. Types an override adds are not in
+# the bundled spec at import time; `_CustomTypeGroup.get_command` builds them on demand.
 _spec = bundled_spec()
-# Registration order is ItemSpec.order (type name breaking ties; a missing order sorts last),
-# so neither the TOML table order nor an override can reorder `sq --help`.
+# Order is ItemSpec.order (type name breaking ties; a missing order sorts last), so neither the
+# TOML table order nor an override can reorder `sq --help`.
 _STATIC_TYPES: list[str] = sorted(_spec.non_roster_types(), key=lambda t: (_spec.items[t].order, t))
 
-for _type_str in _STATIC_TYPES:
-    _type_app = _items.build_item_app(_type_str)
-    app.add_typer(
-        _type_app,
-        name=_type_str,
-        help=common.type_group_help(_type_str),
-    )
-    # Aliases come from the spec's ItemSpec.aliases — the single source of truth.
-    for _alias in _spec.items[_type_str].aliases:
-        app.add_typer(_type_app, name=_alias, hidden=True)
+
+def _lazy_builders() -> dict[str, Callable[[], _click.Command]]:
+    """Each lazy command's name, in listing order, with the call that builds it; a type and its
+    aliases share the one app built for this root."""
+    builders: dict[str, Callable[[], _click.Command]] = {}
+    apps: dict[str, typer.Typer] = {}
+    for group in LAZY_GROUPS:
+        builders[group.name] = functools.partial(_build_group, group)
+    for item_type in _STATIC_TYPES:
+        builders[item_type] = functools.partial(_build_type_group, apps, item_type, item_type)
+        for alias in _spec.items[item_type].aliases:
+            builders[alias] = functools.partial(_build_type_group, apps, item_type, alias)
+    return builders
+
+
+def _build_type_group(apps: dict[str, typer.Typer], item_type: str, name: str) -> _click.Command:
+    """``sq <type>`` under *name*: the type's own name, or a hidden alias of it."""
+    if item_type not in apps:
+        apps[item_type] = _items.build_item_app(item_type, spec=bundled_spec())
+    if name == item_type:
+        return _group_command(apps[item_type], name, help=common.type_group_help(item_type))
+    return _group_command(apps[item_type], name, hidden=True)
+
+
+def _build_group(group: LazyGroup) -> _click.Command:
+    sub: typer.Typer = getattr(importlib.import_module(group.module), group.attr)
+    return _group_command(sub, group.name, help=group.help)
+
 
 # Global value-options live on the group callback, so Click only parses them *before* the
 # subcommand. Hoist them so `sq create … --at <when>` works the same as `sq --at <when> create …`.
@@ -406,5 +491,19 @@ def run(argv: Sequence[str]) -> int:
 
 
 def main() -> None:
-    """Console-script entry point: run the process's arguments and exit with the code."""
-    sys.exit(run(sys.argv[1:]))
+    """Console-script entry point: run the process's arguments and exit with the code.
+
+    The imports are done by now: the collector (off since the launcher started) comes back on
+    with their object graph set aside, so the command's own collections skip it.
+    """
+    gc.freeze()
+    gc.enable()
+    code = run(sys.argv[1:])
+    spans.mark("end")
+    # Output is out before the interpreter tears the object graph down; freezing it keeps the
+    # shutdown collections from walking it.
+    with contextlib.suppress(OSError, ValueError):
+        sys.stdout.flush()
+        sys.stderr.flush()
+    gc.freeze()
+    sys.exit(code)

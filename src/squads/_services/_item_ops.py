@@ -1,6 +1,7 @@
 """The item operations: an item's show, a listing of items and a status move, each answering
 with its DTO."""
 
+from squads import _spans as spans
 from squads._api._dto._item_writes import ItemWritten
 from squads._api._dto._items import (
     ItemAddress,
@@ -87,16 +88,20 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
                 )
                 for sub in item.subentities
             ]
-        shown = ItemShow.model_validate(
-            {
-                **row,
-                "body": await self.read_stored_body(item.id),
-                "views": await self.view_data(item.id),
-                "discussion": comment_dtos(await self.comments(item.id)),
-                "badges": resolve_badges(self.spec, item.type, item.badge_value),
-                "display": show_display(item, kind, expanded.text, self.spec, names),
-            }
-        )
+        stored_body = await self.read_stored_body(item.id)
+        views = await self.view_data(item.id)
+        discussion = comment_dtos(await self.comments(item.id))
+        with spans.span("dto"):
+            shown = ItemShow.model_validate(
+                {
+                    **row,
+                    "body": stored_body,
+                    "views": views,
+                    "discussion": discussion,
+                    "badges": resolve_badges(self.spec, item.type, item.badge_value),
+                    "display": show_display(item, kind, expanded.text, self.spec, names),
+                }
+            )
         return Response(data=shown, warnings=[*warnings, *expanded.warnings])
 
     async def list_item_rows(self, req: ItemListRequest) -> Response[ItemList]:
@@ -122,7 +127,10 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
             hidden = len(items) - len(visible)
             items = visible
         names = participant_names(await self.store.load())
-        rows = [item_row(i, self.spec, names) for i in sort_by_badge(items, req.sort, self.spec)]
+        with spans.span("dto"):
+            rows = [
+                item_row(i, self.spec, names) for i in sort_by_badge(items, req.sort, self.spec)
+            ]
         return Response(data=ItemList(items=rows, columns=list(LIST_COLUMNS), hidden=hidden))
 
     async def move_item_status(self, req: ItemStatusRequest) -> Response[ItemWritten]:

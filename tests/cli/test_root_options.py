@@ -2,6 +2,7 @@
 line, and the refused `--dir`."""
 
 import json
+import shutil
 
 import pytest
 
@@ -89,4 +90,29 @@ async def test_dir_is_refused_naming_c_as_the_replacement(project, invoke) -> No
         2,
         "error: --dir is no longer supported; use -C <path> to run sq as if started in <path> "
         "(the project directory, or any folder inside it)\n",
+    )
+
+
+@pytest.mark.covers("", "-C")
+async def test_c_help_of_one_squad_does_not_change_the_next_squads_verbs(
+    project, invoke, outside, tmp_path_factory, fresh_command_tree
+) -> None:
+    overridden = tmp_path_factory.mktemp("overridden") / "squad"
+    shutil.copytree(project.root, overridden)
+    overrides = overridden / "squads" / ".overrides"
+    overrides.mkdir()
+    (overrides / "workflow.toml").write_text(
+        '# squads:override-base:0.18.0\n[items.bug]\nsubentity_kind = "subtask"\n',
+        encoding="utf-8",
+    )
+
+    await invoke(["-C", str(overridden), "task", "1", "show", "--help"])
+    result = await invoke(["-C", str(project.root), "bug", "1", "add-subtask", "x"])
+    assert (result.exit_code, result.output) == (
+        2,
+        "Usage: sq bug [OPTIONS] N COMMAND [ARGS]...\n"
+        "Try 'sq bug --help' for help.\n"
+        "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
+        "│ No such command 'add-subtask'.                                               │\n"
+        "╰──────────────────────────────────────────────────────────────────────────────╯\n",
     )

@@ -19,7 +19,6 @@ import typer.core
 import typer.main
 from pydantic import BaseModel
 from rich.console import Console
-from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.text import Text
 
@@ -345,7 +344,7 @@ def stale_static_aliases(spec: WorkflowSpec) -> frozenset[str]:
 def static_alias_is_stale(ctx: Any, cmd_name: str) -> bool:
     """True when *cmd_name* is a static type alias the resolved spec no longer declares.
 
-    The root table binds every bundled alias at import time, so after an override renames
+    The root table lists every bundled alias, so after an override renames
     ``feature``'s aliases, ``sq feat 9 show`` would still dispatch and exit 0. Unlike a dropped
     type name, a stale alias has no accurate downstream refusal (its type is usually still
     valid), so the caller substitutes :func:`stale_alias_command`. Any spec-resolution error
@@ -468,7 +467,7 @@ def _pending_spec_error(ctx: Any) -> str | None:
 def spec_error_command(cmd_name: str, ctx: Any = None) -> _click.Command | None:
     """A refusal command for a name the parser cannot classify because the override failed to load.
 
-    Returns ``None`` when the spec is fine. A name absent from the static table is checked
+    Returns ``None`` when the spec is fine. A name absent from the command table is checked
     against the bundled spec (the parser must not raise); for a squad whose override declares
     ``widget``, "No such command" would be a wrong claim about that squad's vocabulary. So when
     the override is known to have failed (``RequestContext.spec_error``), the name dispatches
@@ -693,6 +692,8 @@ def _render_comments_styled(
     comments: list[discussion.Comment], shorts: list[str] | None = None
 ) -> None:
     """Render each comment as a Rich Panel (TTY, color enabled, not --raw)."""
+    from rich.markdown import Markdown
+
     for cmt, short in zip(comments, shorts or discussion.short_hashes(comments), strict=True):
         title = (
             f"{e(short)}  {e(cmt.timestamp)}  {e(discussion.author_label(cmt))}"
@@ -889,6 +890,8 @@ def help_requested(argv: list[str], root: _click.Command | None = None) -> bool:
     """Whether *argv* carries ``--help`` as an option of its own: before any ``--`` and not the
     value of an option that takes one. ``-h`` is not a help option of this CLI. Pass the
     invocation's *root* command to read its value options off the tree Click already built."""
+    if "--help" not in argv:
+        return False
     values = value_options() if root is None else _value_options_of(root)
     consumed = False
     for token in argv:
@@ -1076,7 +1079,7 @@ def spec_aware_command_cls(
 ) -> type[typer.core.TyperCommand]:
     """Build a ``TyperCommand`` subclass that re-derives chosen parameters' help at render time.
 
-    A statically registered command is built at import time, before any squad is known, so a
+    A bundled command is built from the bundled spec, before any squad is known, so a
     plain ``help=`` string is the bundled spec's answer. Click renders ``--help`` through
     ``get_params(ctx)`` after the root callback has bound the per-invocation spec, so refreshing
     there makes the help spec-aware without changing when the command is registered.

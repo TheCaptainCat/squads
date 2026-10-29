@@ -35,7 +35,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-10-28T22:12:43Z'
-updated_at: '2026-10-29T10:09:19Z'
+updated_at: '2026-10-29T11:12:17Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -179,4 +179,6 @@ Every behaviour named is checked against the built package on a scratch squad.
       - `sq tree --label`;
       - a skill that shares a role's slug no longer shows that role's pronouns on `tree --json` (F43);
       - in `sq ui`: closed items under a closed-status filter, the unknown-assignee toast, and F44's `@`-assignee match. If F45 is ruled (a), the group order following the type order goes in too.
+- [2026-10-29T11:12:17Z] `manager` Catherine Manager:
+  - Also in scope: REV-1235 F56 (CLAUDE.md: _spans.py, SQUADS_SPANS, scripts/bench_local_mode.py) and F58 (add the local-mode benchmark to the releasing runbook, numbers recorded with the release). Mark both Fixed on REV-1235 when done.
 <!-- sq:discussion:end -->
