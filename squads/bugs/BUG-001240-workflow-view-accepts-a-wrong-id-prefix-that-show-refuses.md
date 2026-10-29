@@ -3,14 +3,14 @@ id: BUG-1240
 sequence_id: 1240
 type: bug
 title: workflow view accepts a wrong ID prefix that show refuses
-status: Open
+status: Fixed
 author: qa
 priority: low
 severity: medium
 refs:
 - MILE-1241:targets
 created_at: '2026-10-29T12:25:03Z'
-updated_at: '2026-10-29T16:22:04Z'
+updated_at: '2026-10-29T16:52:11Z'
 ---
 <!-- sq:body -->
 ## Steps

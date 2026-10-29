@@ -3,7 +3,7 @@ id: TASK-1244
 sequence_id: 1244
 type: task
 title: 'Fix setup and maintenance bugs: init, adopt, migrate, repair'
-status: Ready
+status: InReview
 author: tech-lead
 priority: high
 refs:
@@ -18,21 +18,21 @@ description: Refuse bad backend, squad-dir, chlog range and repad width before w
 subentities:
 - local_id: ST1
   title: Refuse an unknown backend before init or adopt writes
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Refuse an absolute, empty or escaping --squad-dir
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Refuse a non-version or reversed migrate chlog range
-  status: Todo
+  status: Done
 - local_id: ST4
   title: Bound migrate repad WIDTH before renaming
-  status: Todo
+  status: Done
 - local_id: ST5
   title: Make repair refuse two files sharing one number
-  status: Todo
+  status: Done
 created_at: '2026-10-29T16:27:28Z'
-updated_at: '2026-10-29T16:42:54Z'
+updated_at: '2026-10-29T16:51:12Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -158,4 +158,6 @@ Fixes BUG-1191.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T16:51:11Z] `python-dev` Elias Python:
+  - @manager handback. Branch worktree-agent-a4a27e01490d44cc2, commits 5e32ddb3 (fixes + surface tests) and b8756004 (tests/regressions). BUG-1187..1191 Fixed; all 8 new regression tests shown red on the unfixed code. Gates: pyright, ruff, format clean; tests/meta, the four cli modules and tests/regressions pass (765). Repair now also refuses via init, adopt and migrate up when two ids share a number.
 <!-- sq:discussion:end -->

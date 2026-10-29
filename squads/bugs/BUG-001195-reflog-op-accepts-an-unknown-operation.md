@@ -3,7 +3,7 @@ id: BUG-1195
 sequence_id: 1195
 type: bug
 title: reflog --op accepts an unknown operation
-status: Open
+status: Fixed
 author: qa
 priority: low
 severity: low
@@ -11,7 +11,7 @@ refs:
 - FEAT-1173
 - MILE-1241:targets
 created_at: '2026-10-27T23:37:42Z'
-updated_at: '2026-10-29T16:31:31Z'
+updated_at: '2026-10-29T16:48:11Z'
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree.

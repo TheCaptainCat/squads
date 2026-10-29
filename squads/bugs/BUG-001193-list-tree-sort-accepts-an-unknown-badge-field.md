@@ -3,7 +3,7 @@ id: BUG-1193
 sequence_id: 1193
 type: bug
 title: list/tree --sort accepts an unknown badge field
-status: Open
+status: Fixed
 author: qa
 priority: low
 severity: low
@@ -11,7 +11,7 @@ refs:
 - FEAT-1173
 - MILE-1241:targets
 created_at: '2026-10-27T23:37:40Z'
-updated_at: '2026-10-29T16:31:29Z'
+updated_at: '2026-10-29T16:48:08Z'
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree.

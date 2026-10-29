@@ -3,7 +3,7 @@ id: BUG-1184
 sequence_id: 1184
 type: bug
 title: ref rm reports success for a ref the item lacks
-status: Open
+status: Fixed
 author: qa
 priority: low
 severity: low
@@ -11,7 +11,7 @@ refs:
 - FEAT-1173
 - MILE-1241:targets
 created_at: '2026-10-27T23:37:31Z'
-updated_at: '2026-10-29T16:31:24Z'
+updated_at: '2026-10-29T16:52:04Z'
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree.

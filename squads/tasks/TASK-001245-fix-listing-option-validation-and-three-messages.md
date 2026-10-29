@@ -3,7 +3,7 @@ id: TASK-1245
 sequence_id: 1245
 type: task
 title: Fix listing option validation and three messages
-status: Ready
+status: InReview
 author: tech-lead
 priority: low
 refs:
@@ -22,24 +22,24 @@ subentities:
   status: Cancelled
 - local_id: ST2
   title: Refuse an unknown --sort field on list and tree
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Refuse an unknown badge code or value in list/tree filters
-  status: Todo
+  status: Done
 - local_id: ST4
   title: Refuse an unknown reflog --op
-  status: Todo
+  status: Done
 - local_id: ST5
   title: Refuse a negative --depth on tree and graph
-  status: Todo
+  status: Done
 - local_id: ST6
   title: Show a memory search hit once when body equals summary
-  status: Todo
+  status: Done
 - local_id: ST7
   title: Name an unknown import op in squads' own words
-  status: Todo
+  status: Done
 created_at: '2026-10-29T16:27:29Z'
-updated_at: '2026-10-29T16:42:55Z'
+updated_at: '2026-10-29T16:48:17Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -201,4 +201,6 @@ Fixes BUG-1200.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T16:48:17Z] `python-dev` Elias Python:
+  - Handback: commit 387eaf31 on branch worktree-agent-ad810b7e21b457c45. ST2-ST7 done, bugs 1193-1197 and 1200 Fixed, ST1 stays Cancelled. New tests fail without the fix. Side effect: min=0 on --depth changes the type-error wording to "not a valid integer range". @manager
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: TASK-1246
 sequence_id: 1246
 type: task
 title: 'Fix item verb bugs: guide options, ref rm, sub-entities, view ID'
-status: Ready
+status: InReview
 author: tech-lead
 priority: medium
 refs:
@@ -18,21 +18,21 @@ description: create guide options, truthful ref rm, sub-entity title and comment
 subentities:
 - local_id: ST1
   title: Accept --priority, --label and --ref on create guide
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Refuse ref rm for a ref the item lacks
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Decide and apply the add-subtask empty-title rule
-  status: Todo
+  status: Done
 - local_id: ST4
   title: Report a missing sub-entity on comment like sibling verbs
-  status: Todo
+  status: Done
 - local_id: ST5
   title: Refuse a wrong ID prefix in workflow view
-  status: Todo
+  status: Done
 created_at: '2026-10-29T16:27:30Z'
-updated_at: '2026-10-29T16:42:56Z'
+updated_at: '2026-10-29T16:52:18Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -160,4 +160,6 @@ Fixes BUG-1240.
 <!-- sq:discussion -->
 - [2026-10-29T16:42:43Z] `op-pierre` Pierre Chat:
   - 2026-10-29: BUG-1185 is ruled: the sub-entity title is required everywhere (see BUG-1185).
+- [2026-10-29T16:52:18Z] `python-dev` Elias Python:
+  - Handback: all five fixes are in c3a74531 on branch worktree-agent-a6842b5fa4632a07c. One regression test per bug in tests/regressions/ plus surface cases in tests/cli. Gates, tests/cli and tests/meta green (1558 passed). Each test fails with the src changes reverted. Sub-entity titles are now required on add, update and import. Please decide whether existing untitled sub-entities need a migration. The squads corpus has none. @manager
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: BUG-1197
 sequence_id: 1197
 type: bug
 title: memory search prints the summary twice for equal body
-status: Open
+status: Fixed
 author: qa
 priority: low
 severity: low
@@ -11,7 +11,7 @@ refs:
 - FEAT-1173
 - MILE-1241:targets
 created_at: '2026-10-27T23:37:44Z'
-updated_at: '2026-10-29T16:31:33Z'
+updated_at: '2026-10-29T16:48:14Z'
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree. Cosmetic.
