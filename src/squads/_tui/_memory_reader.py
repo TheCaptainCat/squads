@@ -10,11 +10,12 @@ from textual.containers import Vertical, VerticalScroll
 from textual.content import Content
 from textual.widgets import Markdown, Static
 
-from squads._memory._model import MemoryEntry
-from squads._services._service import Service
+from squads._api import _ops as ops
+from squads._api._dto._memory import Memory, MemoryShowRequest
+from squads._tui._session import Session
 
 
-def _glance_line(entry: MemoryEntry) -> Content:
+def _glance_line(entry: Memory) -> Content:
     # Static renders through Textual's own Content markup, which does not honor Rich's `\[`
     # escaping — the summary/tags are free-form and may contain brackets, so they go in as
     # template variables rather than being concatenated into the markup string.
@@ -39,9 +40,9 @@ class MemoryReaderPanel(Vertical):
     }
     """
 
-    def __init__(self, svc: Service, *, id: str | None = None) -> None:
+    def __init__(self, session: Session, *, id: str | None = None) -> None:
         super().__init__(id=id)
-        self._svc = svc
+        self._session = session
 
     def compose(self) -> ComposeResult:
         yield Static(id="memory-glance-header")
@@ -49,7 +50,8 @@ class MemoryReaderPanel(Vertical):
             yield Markdown(id="memory-body-view")
 
     async def load(self, role_slug: str, entry_slug: str) -> None:
-        entry = await self._svc.memory_show(role_slug, entry_slug)
+        request = MemoryShowRequest(role=role_slug, slug=entry_slug)
+        entry = (await self._session.call(ops.MEMORY_SHOW, request)).data
         self.query_one("#memory-glance-header", Static).update(_glance_line(entry))
         await self.query_one("#memory-body-view", Markdown).update(
             entry.body.strip() or "*(no body yet)*"

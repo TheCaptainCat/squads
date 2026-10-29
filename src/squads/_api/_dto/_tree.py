@@ -17,6 +17,7 @@ class TreeRequest(DTO):
     status: str | None = None
     assignee: str | None = None
     category: str | None = None
+    label: str | None = None
     badge: list[str] = Field(default_factory=list[str])
     min_badge: list[str] = Field(default_factory=list[str])
     sort: str | None = None
@@ -35,17 +36,22 @@ class TreeNodeDisplay(Display):
 
 
 class TreeNode(DTO):
-    """One item of the hierarchy, with the items below it."""
+    """One item of the hierarchy, with the items below it. ``slug`` is a role's or operator's
+    slug, which names its memory notebook, and ``None`` on every other item; ``closed`` says the
+    default view hides the item."""
 
     id: str
     type: str
     title: str
+    slug: str | None
     status: str
     priority: str | None
     assignee: str | None
     blocked: bool
+    closed: bool
     badges: dict[str, str]
     anchor: bool
+    updated_at: str
     children: list[TreeNode]
     display: TreeNodeDisplay
 

@@ -1,6 +1,6 @@
 """The filter/sort popup: a modal seeded from and returning a new `BrowseState`.
 
-Imports no other `_tui` module — the seed/result `BrowseState`/`SortKey` are
+Imports no `_tui` module but `_session` — the seed/result `BrowseState`/`SortKey` are
 only ever handled via `dataclasses.replace()` on the instances they are given, never
 constructed from an imported class; both are imported only under `TYPE_CHECKING`.
 """
@@ -15,9 +15,8 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, Select, Switch
 from textual.widgets.select import NoSelection
 
-from squads._models._vocab import label_for
-from squads._workflow import CATEGORIES
-from squads._workflow._models import Field, WorkflowSpec
+from squads._api._dto._workflow import FieldEntry
+from squads._tui._session import Catalogs, status_options, type_options
 
 if TYPE_CHECKING:
     from squads._tui._browse import BrowseState
@@ -26,19 +25,26 @@ _BADGE_CODE = "filter-badge-code"
 _BADGE_VALUE = "filter-badge-value"
 _SORT_SEQUENCE = "sequence"
 
+#: The type categories a filter offers, in the order it offers them.
+_CATEGORIES: tuple[str, ...] = ("roster", "work", "records")
 
-def _all_badge_fields(spec: WorkflowSpec) -> list[Field]:
-    """Every declared badge field, deduplicated by code across every work type — spec-generic,
-    not hard-coded to `priority`."""
-    seen: dict[str, Field] = {}
-    for item_type in sorted(spec.non_roster_types()):
-        for f in spec.fields_for(item_type):
+
+def _all_badge_fields(catalogs: Catalogs) -> list[FieldEntry]:
+    """Every declared badge field, deduplicated by code across every non-roster type —
+    catalog-generic, not hard-coded to `priority`."""
+    seen: dict[str, FieldEntry] = {}
+    for row in sorted(catalogs.types.items, key=lambda r: r.type):
+        if row.reserved:
+            continue
+        for f in row.fields:
             seen.setdefault(f.code, f)
     return list(seen.values())
 
 
-def _badge_value_options(field: Field | None, spec: WorkflowSpec) -> list[tuple[str, str]]:
-    coll = spec.collections.get(field.collection) if field else None
+def _badge_value_options(field: FieldEntry | None, catalogs: Catalogs) -> list[tuple[str, str]]:
+    if field is None:
+        return []
+    coll = next((c for c in catalogs.collections.items if c.collection == field.collection), None)
     return [(b.label, b.code) for b in coll.badges] if coll else []
 
 
@@ -47,7 +53,7 @@ def _selected(select: Select[str]) -> str | None:
     return None if isinstance(value, NoSelection) else value
 
 
-def _sort_options(badge_fields: list[Field]) -> list[tuple[str, str]]:
+def _sort_options(badge_fields: list[FieldEntry]) -> list[tuple[str, str]]:
     opts = [
         ("Sequence (default)", _SORT_SEQUENCE),
         ("Status", "status"),
@@ -80,27 +86,27 @@ class FilterScreen(ModalScreen["BrowseState | None"]):
     }
     """
 
-    def __init__(self, state: BrowseState, spec: WorkflowSpec) -> None:
+    def __init__(self, state: BrowseState, catalogs: Catalogs) -> None:
         super().__init__()
         self._state = state
-        self._spec = spec
-        self._badge_fields = _all_badge_fields(spec)
+        self._catalogs = catalogs
+        self._badge_fields = _all_badge_fields(catalogs)
 
         seed_code, seed_value = state.filter.badges[0] if state.filter.badges else (None, None)
         seed_field = next((f for f in self._badge_fields if f.code == seed_code), None)
 
         self._type_select: Select[str] = Select(
-            [(label_for(t, "singular", spec), t) for t in sorted(spec.non_roster_types())],
+            type_options(catalogs),
             id="filter-type",
             value=state.filter.item_type or Select.NULL,
         )
         self._status_select: Select[str] = Select(
-            [(s, s) for s in sorted(spec.statuses)],
+            status_options(catalogs),
             id="filter-status",
             value=state.filter.status or Select.NULL,
         )
         self._category_select: Select[str] = Select(
-            [(c.capitalize(), c) for c in CATEGORIES],
+            [(c.capitalize(), c) for c in _CATEGORIES],
             id="filter-category",
             value=state.filter.category or Select.NULL,
         )
@@ -116,7 +122,7 @@ class FilterScreen(ModalScreen["BrowseState | None"]):
                 value=seed_code or Select.NULL,
             )
             self._badge_value_select = Select(
-                _badge_value_options(seed_field, spec),
+                _badge_value_options(seed_field, catalogs),
                 id=_BADGE_VALUE,
                 value=seed_value or Select.NULL,
             )
@@ -157,7 +163,7 @@ class FilterScreen(ModalScreen["BrowseState | None"]):
                 yield Button("Clear", id="clear")
                 yield Button("Cancel", id="cancel")
 
-    def _field_for(self, code: str | None) -> Field | None:
+    def _field_for(self, code: str | None) -> FieldEntry | None:
         return next((f for f in self._badge_fields if f.code == code), None)
 
     def on_select_changed(self, event: Select.Changed) -> None:
@@ -166,7 +172,7 @@ class FilterScreen(ModalScreen["BrowseState | None"]):
         if code_select is None or value_select is None or event.select is not code_select:
             return
         code = _selected(code_select)
-        value_select.set_options(_badge_value_options(self._field_for(code), self._spec))
+        value_select.set_options(_badge_value_options(self._field_for(code), self._catalogs))
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "apply":
@@ -211,7 +217,6 @@ class FilterScreen(ModalScreen["BrowseState | None"]):
             assignee=assignee,
             label=label,
             badges=badges,
-            spec=self._spec,
         )
 
         sort_value = _selected(self._sort_select) or _SORT_SEQUENCE

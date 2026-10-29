@@ -412,15 +412,9 @@ _transform -> _errors top
 _transform -> _models top
 _transform -> _paths local
 _transform -> _workflow typing
-_tui -> _badges top
-_tui -> _board top
+_tui -> _api top
 _tui -> _clock top
-_tui -> _discussion top
-_tui -> _memory top
-_tui -> _models top
-_tui -> _pronouns top
-_tui -> _services top
-_tui -> _workflow top
+_tui -> _errors top
 _view_remedies -> _workflow top
 _view_tags -> _errors top
 _view_tags -> _interactions top
