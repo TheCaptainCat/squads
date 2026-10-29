@@ -121,14 +121,14 @@ subentities:
 - local_id: F24
   title: VS Code mapping label is made in client code and differs from the server
     label
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F25
   title: VS Code bundled fixtures jq-trimmed, not regenerated; sub-entity shapes unexercised
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-29T23:04:37Z'
+updated_at: '2026-10-29T23:11:57Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -747,4 +747,6 @@ Regenerate from the dev tree, after the TASK-1254 wire fixes (F19: `badges` on e
   - F24 server half done in the latest TASK-1254 commit: kind label key, one kind_label resolver on every site, maps_to_kind on every sub-entity display, label on the kinds catalog row. Client half is open.
 - [2026-10-29T23:04:37Z] `python-dev` Elias Python:
   - F21, F23 and the kind-rename body orphaning fixed in fb01519e: sq migrate rename-kind, check rule subentity_kind_mismatch, and rename-field --type/--kind scopes with the scoped command named by frontmatter_key_undeclared.
+- [2026-10-29T23:11:57Z] `typescript-dev` Ada Typescript:
+  - F24 (client) and F25 fixed in e4a53565 (clients/vscode): the mapping line reads display.maps_to_kind.label, shown only when it and maps_to are set, no fallback; prefix lookup removed. Fixtures regenerated from the dev tree (bundled and override squads), no jq edits. Lint, tsc, npm test 766, test:canary 90 pass; mapping-line tests falsified.
 <!-- sq:discussion:end -->

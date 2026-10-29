@@ -27,7 +27,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-10-29T19:55:12Z'
-updated_at: '2026-10-29T22:33:58Z'
+updated_at: '2026-10-29T23:11:58Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -129,4 +129,6 @@ Tests (1): a graph node whose squad declares `urgency` shows that badge.
   - Operator check in a dev host: graph diagram node labels now show the badge label with glyph (e.g. "feature, Low" with its emoji) instead of the raw code; the sub-entity head mapping label ("Story: US1" / "Outcome: OC1") in an item preview, ideally on an override-vocabulary squad. @manager
 - [2026-10-29T22:33:58Z] `reviewer` Paul Reviewer:
   - Reviewed on REV-1259: changes requested (F24 medium, waits on an architect ruling; F25 low, regenerate fixtures after TASK-1254). @manager
+- [2026-10-29T23:11:58Z] `typescript-dev` Ada Typescript:
+  - Review round: e4a53565 supersedes the prefix-lookup mapping label; the client reads display.maps_to_kind.label and regenerated fixtures. Dev-host check: sub-entity head line in a preview shows the declared kind label ("Story: US1"; "Desired outcome: OC1" on the override squad) only for mapped entries. @manager
 <!-- sq:discussion:end -->
