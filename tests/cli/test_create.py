@@ -260,34 +260,8 @@ async def test_json_prints_the_created_item(project, invoke) -> None:
     )
 
 
-@pytest.mark.covers("create guide", "TITLE")
-@pytest.mark.covers("create guide", "--author")
-async def test_create_guide_makes_a_draft_guide_and_prints_its_id_and_path(project, invoke) -> None:
-    await invoke(["role", "activate", "architect"])
-    result = await invoke(["create", "guide", "Setup", "--author", "architect"])
-    path = project.squad_dir / "guides" / "GUIDE-000003-setup.md"
-    assert result.exit_code == 0
-    assert "".join(result.output.split()) == f"createdGUIDE-3→{path}"
-    item = await _shown(invoke, "guide", 3)
-    assert (item["title"], item["status"], item["author"], item["parent"]) == (
-        "Setup",
-        "Draft",
-        "architect",
-        None,
-    )
-
-
-@pytest.mark.covers("create guide", "--author")
-async def test_create_guide_refuses_an_author_that_is_not_registered(project, invoke) -> None:
-    result = await invoke(["create", "guide", "Setup", "--author", "nobody"])
-    assert (result.exit_code, result.output) == (
-        1,
-        "error: unknown slug 'nobody'; valid slugs: manager\n",
-    )
-
-
-@pytest.mark.covers("create guide", "--tag")
-@pytest.mark.covers("create guide", "--tech")
+@pytest.mark.covers("create <type>", "--tag")
+@pytest.mark.covers("create <type>", "--tech")
 async def test_create_guide_stores_each_tag_in_order_and_the_tech(project, invoke) -> None:
     result = await invoke(
         [
@@ -309,166 +283,6 @@ async def test_create_guide_stores_each_tag_in_order_and_the_tech(project, invok
     assert (shown["tags"], shown["tech"]) == (["ops", "dev"], "python")
 
 
-@pytest.mark.covers("create guide", "--priority")
-@pytest.mark.covers("create guide", "--label")
-@pytest.mark.covers("create guide", "--ref")
-async def test_create_guide_takes_a_priority_labels_and_refs(project, invoke) -> None:
-    result = await invoke(
-        [
-            "create",
-            "guide",
-            "Setup",
-            "--author",
-            "manager",
-            "--priority",
-            "high",
-            "--label",
-            "ops",
-            "--ref",
-            "1:implements",
-        ]
-    )
-    assert result.exit_code == 0, result.output
-    shown = await _shown(invoke, "guide", 2)
-    assert (shown["priority"], shown["labels"], shown["refs"]) == (
-        "high",
-        ["ops"],
-        ["ROLE-1:implements"],
-    )
-
-
-@pytest.mark.covers("create guide", "--desc")
-async def test_create_guide_desc_sets_the_summary(project, invoke) -> None:
-    result = await invoke(
-        ["create", "guide", "Setup", "--author", "manager", "--desc", "How to set up"]
-    )
-    assert result.exit_code == 0, result.output
-    assert (await _shown(invoke, "guide", 2))["description"] == "How to set up"
-
-
-@pytest.mark.covers("create guide", "--assignee")
-async def test_create_guide_assignee_sets_the_assignee(project, invoke) -> None:
-    result = await invoke(
-        ["create", "guide", "Setup", "--author", "manager", "--assignee", "manager"]
-    )
-    assert result.exit_code == 0, result.output
-    assert (await _shown(invoke, "guide", 2))["assignee"] == "manager"
-
-
-@pytest.mark.covers("create guide", "--assignee")
-async def test_create_guide_assignee_refuses_a_slug_that_is_not_registered(project, invoke) -> None:
-    result = await invoke(
-        ["create", "guide", "Setup", "--author", "manager", "--assignee", "nobody"]
-    )
-    assert (result.exit_code, result.output) == (
-        1,
-        "error: unknown slug 'nobody'; valid slugs: manager\n",
-    )
-
-
-@pytest.mark.covers("create guide", "--parent")
-async def test_create_guide_parent_refuses_a_parent_because_a_guide_takes_none(
-    populated_project, invoke
-) -> None:
-    """No guide parent is accepted under the bundled spec; the refusal is the case."""
-    result = await invoke(["create", "guide", "Setup", "--author", "manager", "--parent", "2"])
-    assert (result.exit_code, result.output) == (1, "error: guide takes no parent (got FEAT-2)\n")
-
-
-@pytest.mark.covers("create guide", "--parent")
-async def test_create_guide_parent_refuses_a_number_no_item_has(populated_project, invoke) -> None:
-    result = await invoke(["create", "guide", "Setup", "--author", "manager", "--parent", "99"])
-    assert (result.exit_code, result.output) == (
-        1,
-        "error: no item with number 99 (use a full ID like TYPE-99 or bare 99)\n",
-    )
-
-
-@pytest.mark.covers("create guide", "--parent")
-async def test_create_guide_parent_refuses_an_empty_value_instead_of_creating_a_parentless_guide(
-    populated_project, invoke
-) -> None:
-    result = await invoke(["create", "guide", "Setup", "--author", "manager", "--parent", ""])
-    assert (result.exit_code, result.output) == (
-        1,
-        "error: --parent needs an item ID; omit --parent to create without a parent\n",
-    )
-
-
-@pytest.mark.covers("create guide", "--message")
-async def test_create_guide_message_repeated_becomes_one_paragraph_each_in_the_body(
-    project, invoke
-) -> None:
-    result = await invoke(
-        ["create", "guide", "Setup", "--author", "manager", "-m", "First.", "-m", "Second."]
-    )
-    assert result.exit_code == 0, result.output
-    assert (await _shown(invoke, "guide", 2))["body"] == "First.\n\nSecond."
-
-
-@pytest.mark.covers("create guide", "--file")
-async def test_create_guide_file_reads_the_body_from_the_file(project, invoke, tmp_path) -> None:
-    source = tmp_path / "body.md"
-    source.write_text("From a file.\n\nTwo paragraphs.\n", encoding="utf-8")
-    result = await invoke(
-        ["create", "guide", "Setup", "--author", "manager", "--file", str(source)]
-    )
-    assert result.exit_code == 0, result.output
-    assert (await _shown(invoke, "guide", 2))["body"] == "From a file.\n\nTwo paragraphs."
-
-
-@pytest.mark.covers("create guide", "--message", "--file")
-async def test_create_guide_message_excludes_file(project, invoke, tmp_path) -> None:
-    source = tmp_path / "body.md"
-    source.write_text("From a file.\n", encoding="utf-8")
-    result = await invoke(
-        ["create", "guide", "Setup", "--author", "manager", "-m", "Inline.", "--file", str(source)]
-    )
-    assert (result.exit_code, result.output) == (
-        1,
-        "error: provide the body via -m or --file, not both\n",
-    )
-    listed = await invoke(["list", "--json"])
-    assert [item["id"] for item in json.loads(listed.output)] == ["ROLE-1"]
-
-
-@pytest.mark.covers("create guide", "--json")
-async def test_create_guide_json_prints_the_created_guide(project, invoke) -> None:
-    output = await printed(invoke, ["create", "guide", "Setup", "--author", "manager", "--json"])
-    assert output == json_text(
-        {
-            "sequence_id": 2,
-            "type": "guide",
-            "title": "Setup",
-            "slug": "setup",
-            "status": "Draft",
-            "description": "",
-            "parent": None,
-            "author": "manager",
-            "assignee": None,
-            "priority": None,
-            "severity": None,
-            "labels": [],
-            "refs": [],
-            "subentities": [],
-            "path": "guides/GUIDE-000002-setup.md",
-            "created_at": "2026-06-07T10:00:00Z",
-            "updated_at": "2026-06-07T10:00:00Z",
-            "created_session": None,
-            "modified_session": None,
-            "id": "GUIDE-2",
-            "badges": {},
-            "display": {
-                "type": "Guide",
-                "status": {"badge": "⚪ Draft", "intent": "neutral"},
-                "badges": {},
-                "assignee": None,
-                "file": str(project.squad_dir / "guides" / "GUIDE-000002-setup.md"),
-            },
-        }
-    )
-
-
 @pytest.mark.covers("create <type>", "--severity")
 async def test_bug_severity_sets_the_severity(project, invoke) -> None:
     result = await invoke(["create", "bug", "Crash", "--author", "manager", "--severity", "high"])
@@ -483,3 +297,13 @@ async def test_bug_severity_refuses_a_code_the_collection_does_not_declare(proje
         1,
         "error: invalid severity 'zzz' (one of: critical, high, medium, low, info)\n",
     )
+
+
+@pytest.mark.covers("create <type>", "--target-ref")
+async def test_review_target_ref_sets_the_reviewed_ref(populated_project, invoke) -> None:
+    result = await invoke(
+        ["create", "review", "Audit", "--author", "manager", "--target-ref", "v1.2.0"]
+    )
+    assert result.exit_code == 0, result.output
+    shown = await invoke(["review", "5", "show", "--json"])
+    assert json.loads(shown.output)["target_ref"] == "v1.2.0"

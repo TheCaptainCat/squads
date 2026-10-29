@@ -22,7 +22,7 @@ from squads._cli import _calls as calls
 from squads._cli._common import console, resolve_body_optional
 from squads._cli._render._writes import render_created
 from squads._errors import SquadsError
-from squads._models._attributes import AttributeKey
+from squads._models._attributes import AttributeSpec
 from squads._workflow import bundled_spec
 from squads._workflow._models import Field, WorkflowSpec
 
@@ -124,6 +124,50 @@ def _declared_field_options(item_type: str, taken: set[str]) -> list[typer.core.
     ]
 
 
+#: ``Context.meta`` key under which the declared-attribute options file the values they receive.
+_ATTRIBUTES_META_KEY = "squads.create_attributes"
+
+
+def _attribute_flag(name: str, spec: AttributeSpec) -> str:
+    """The option name of attribute *name*: its name with dashes, a list attribute's singular
+    (``tags`` is ``--tag``) because the option repeats."""
+    flag = name.replace("_", "-")
+    return flag.removesuffix("s") if spec.kind == "list" else flag
+
+
+def _attribute_option(
+    item_type: str, name: str, spec: AttributeSpec, flag: str
+) -> typer.core.TyperOption:
+    def _remember(ctx: _click.Context, _param: _click.Parameter, value: Any) -> None:
+        if value:
+            ctx.meta.setdefault(_ATTRIBUTES_META_KEY, {})[name] = (
+                list(value) if spec.kind == "list" else value
+            )
+
+    label = spec.label or name.replace("_", " ")
+    many = spec.kind == "list"
+    return typer.core.TyperOption(
+        param_decls=[f"--{flag}", f"attribute_{name}"],
+        default=None,
+        multiple=many,
+        help=f"{label.capitalize()} of the {item_type}{' (repeatable)' if many else ''}.",
+        expose_value=False,
+        callback=_remember,
+    )
+
+
+def _declared_attribute_options(item_type: str, taken: set[str]) -> list[typer.core.TyperOption]:
+    """One option per settable ``str`` or ``list`` attribute *item_type* declares, skipping a flag
+    that is already taken."""
+    options: list[typer.core.TyperOption] = []
+    for name, spec in common.get_active_spec().item_attributes(item_type).items():
+        flag = _attribute_flag(name, spec)
+        if spec.settable and spec.kind in ("str", "list") and flag not in taken:
+            options.append(_attribute_option(item_type, name, spec, flag))
+            taken.add(flag)
+    return options
+
+
 def _create_command_cls(item_type: str) -> type[typer.core.TyperCommand]:
     """The command class for ``sq create <item_type>``: its ``--help`` and its options follow
     the live spec, so a field an override declares is settable by its code like a bundled one.
@@ -141,7 +185,11 @@ def _create_command_cls(item_type: str) -> type[typer.core.TyperCommand]:
                 taken = {
                     opt.removeprefix("--") for p in params for opt in (*p.opts, *p.secondary_opts)
                 }
-                params = [*params, *_declared_field_options(item_type, taken)]
+                params = [
+                    *params,
+                    *_declared_field_options(item_type, taken),
+                    *_declared_attribute_options(item_type, taken),
+                ]
             return params
 
     return _CreateCommand
@@ -151,6 +199,11 @@ def _given_fields(ctx: typer.Context) -> dict[str, str] | None:
     """The values the declared-field options received, keyed by field code; ``None`` when none
     was given."""
     return dict(ctx.meta.get(_FIELDS_META_KEY, {})) or None
+
+
+def _given_attributes(ctx: typer.Context) -> dict[str, str | list[str]]:
+    """The values the declared-attribute options received, keyed by attribute name."""
+    return dict(ctx.meta.get(_ATTRIBUTES_META_KEY, {}))
 
 
 def _build_create_cmd(item_type_str: str) -> _click.Command:
@@ -301,7 +354,6 @@ _create_spec = bundled_spec()
 _CREATABLE: tuple[str, ...] = tuple(
     t
     for t in sorted(_create_spec.non_roster_types(), key=lambda t: (_create_spec.items[t].order, t))
-    if t != "guide"
 )
 
 
@@ -339,6 +391,7 @@ def _make(item_type_str: str):
             # from the type's own declared field.
             priority=priority,
             fields=_given_fields(ctx) or {},
+            attributes=_given_attributes(ctx),
             body=resolve_body_optional(message or None, file),
         )
         _create(request, json_out)
@@ -362,50 +415,4 @@ for _t in _CREATABLE:
 
 # Type names with a static `sq create <type>` command already registered above — used by
 # _CustomCreateGroup to draw the line between "already known" and "resolve dynamically".
-_STATIC_CREATE_TYPES: frozenset[str] = frozenset({*_CREATABLE, "guide"})
-
-
-@create_app.command("guide", help="Create a guide.")
-@common.handle_errors
-def create_guide(  # noqa: PLR0913 — Typer options are the command's surface
-    title: str = typer.Argument(..., help="Guide title."),
-    author: str = common.author_option(),
-    tech: str | None = common.tech_option(),
-    tag: list[str] = typer.Option(None, "--tag", help="Tag to add (repeatable)."),
-    parent: str | None = common.parent_option(),
-    desc: str = common.desc_option(),
-    label: list[str] = common.label_option(),
-    ref: list[str] = typer.Option(
-        None, "--ref", help="Item to ref, as `ID` or `ID:kind` (repeatable)."
-    ),
-    assignee: str | None = common.assignee_option(),
-    priority: str | None = typer.Option(None, "--priority", help=_priority_help("guide")),
-    message: list[str] = common.message_option(),
-    file: str | None = common.file_option(),
-    json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the created item."),
-):
-    attributes: dict[str, str | list[str]] = {}
-    if tech:
-        attributes[AttributeKey.TECH] = tech
-    if tag:
-        attributes[AttributeKey.TAGS] = list(tag)
-    _check_parent_option(parent)
-    request = ItemCreateRequest(
-        type="guide",
-        title=title,
-        author=author,
-        parent=parent,
-        description=desc,
-        labels=label or [],
-        refs=ref or [],
-        assignee=assignee,
-        priority=priority,
-        attributes=attributes,
-        body=resolve_body_optional(message or None, file),
-    )
-    _create(request, json_out)
-
-
-# Hidden guide aliases (same pattern as _CREATABLE loop above).
-for _guide_alias in _create_spec.items["guide"].aliases:
-    create_app.command(_guide_alias, hidden=True)(create_guide)
+_STATIC_CREATE_TYPES: frozenset[str] = frozenset(_CREATABLE)

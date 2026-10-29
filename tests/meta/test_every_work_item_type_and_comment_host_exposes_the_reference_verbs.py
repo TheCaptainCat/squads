@@ -13,6 +13,7 @@ import pytest
 import typer.core
 from typer._click.core import Context
 
+from squads._cli._create import _attribute_flag  # pyright: ignore[reportPrivateUsage]
 from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
 from tests._cli_surface import (
@@ -35,11 +36,6 @@ from tests._help_tree import Node, command_nodes
 #: The work-item type every other type is held to: it hosts a kind and is not roster, so it
 #: carries every verb the builder mounts.
 REFERENCE_TYPE = "task"
-
-#: What every `create` command carries, including one that is written by hand rather than built.
-CREATE_CORE = frozenset(
-    {"TITLE", "--author", "--parent", "--desc", "--assignee", "--message", "--file", "--json"}
-)
 
 #: A command's parameters by name; ``None`` is a parameter the spec declares, which any signature
 #: satisfies.
@@ -203,7 +199,7 @@ def item_verb_problems(tree: Tree, spec: WorkflowSpec) -> list[str]:
 
 def create_problems(tree: Tree, spec: WorkflowSpec) -> list[str]:
     """`create <type>` exists for exactly the non-roster types; a built command carries the
-    reference's options plus the field options its type declares, a hand-written one the core."""
+    reference's options plus the field and attribute options its type declares."""
     created = {p[1] for p in tree.params if len(p) == 2 and p[0] == "create"}
     found = (
         []
@@ -214,18 +210,17 @@ def create_problems(tree: Tree, spec: WorkflowSpec) -> list[str]:
     for item_type in sorted(set(spec.non_roster_types()) & created):
         path = ("create", item_type)
         fields_ = {f"--{f.code}": None for f in spec.fields_for(item_type) if f.code != "priority"}
-        actual = tree.params[path]
-        if tree.classes[path] == tree.classes[reference]:
-            found += differences(
-                f"create {item_type}", {(): tree.params[reference] | fields_}, {(): actual}
-            )
-        else:
-            core = {n: s for n, s in tree.params[reference].items() if n in CREATE_CORE}
-            found += differences(
-                f"create {item_type}",
-                {(): core},
-                {(): {n: s for n, s in actual.items() if n in CREATE_CORE}},
-            )
+        fields_ |= {
+            f"--{_attribute_flag(name, attribute)}": None
+            for name, attribute in spec.item_attributes(item_type).items()
+            if attribute.settable and attribute.kind in ("str", "list")
+        }
+        if tree.classes[path] != tree.classes[reference]:
+            found.append(f"create {item_type}: is not built by the shared create builder")
+            continue
+        found += differences(
+            f"create {item_type}", {(): tree.params[reference] | fields_}, {(): tree.params[path]}
+        )
     return found
 
 

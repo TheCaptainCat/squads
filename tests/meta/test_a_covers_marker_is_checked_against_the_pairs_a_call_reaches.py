@@ -57,13 +57,13 @@ CASES: dict[str, Case] = {
         ["create", "task"],
         {("create <type>", None), ("create <type>", "TITLE")},
     ),
-    "a hand-written create keeps its own key": (
+    "a create option an attribute adds": (
         ["create", "guide", "G", "--tag", "ops"],
-        {("create guide", "TITLE"), ("create guide", "--tag"), ("create guide", "--author")},
+        {("create <type>", "TITLE"), ("create <type>", "--tag"), ("create <type>", "--author")},
     ),
-    "a hidden create alias of the hand-written create": (
+    "a hidden create alias of a built create": (
         ["create", "g", "G"],
-        {("create guide", "TITLE"), ("create guide", "--author")},
+        {("create <type>", "TITLE"), ("create <type>", "--author")},
     ),
     "a group with its address missing": (["task"], set()),
     "a roster comment with the hash missing is read as a slug": (
