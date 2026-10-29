@@ -6,8 +6,10 @@ hidden `_addr` dispatcher dropped; the root callback is the empty key. A paramet
 first long flag, or by the usage name of an argument.
 """
 
+import contextlib
 import functools
 import re
+import tempfile
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
@@ -261,5 +263,6 @@ def declared_pairs(arguments: tuple[str, ...]) -> set[Pair]:
 @functools.cache
 def bundled_known() -> frozenset[Pair]:
     """Every pair a marker may name: the pairs of the bundled tree and the bare call of its
-    leaves."""
-    return surface_of(command_nodes(include_hidden=True), bundled_spec()).known
+    leaves, read from a directory outside any squad."""
+    with tempfile.TemporaryDirectory() as empty, contextlib.chdir(empty):
+        return surface_of(command_nodes(include_hidden=True), bundled_spec()).known
