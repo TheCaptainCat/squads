@@ -13,7 +13,7 @@ refs:
 - ADR-738
 - ADR-1007
 created_at: '2026-07-09T21:18:55Z'
-updated_at: '2026-10-25T21:25:33Z'
+updated_at: '2026-10-29T19:09:16Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -202,4 +202,6 @@ custom kind serialize as §4 states.
   - Nothing in this decision's model changes — `plural` is still the single declared name, and the derived-vs-stored split holds. What changes is reach: a rename now also moves a published catalog value. `placeholder` is deliberately left unpublished (content the engine writes, not vocabulary a client resolves). Linked `related` both ways.
 - [2026-10-25T21:25:33Z] `architect` Robert Architect:
   - 2026-10-25 audit: partly stale, body edited to the present tense; the kind schema is unchanged. Context now states the problem instead of the pre-implementation code (StatusSpec.completion, _SUBENTITY_PLURAL and the other static tables no longer exist). §2 states the shipped result (story and subtask share the subentity lifecycle). §5 corrected: the per-kind service wrappers are kept as test-only delegators and stay in vulture ignore_names (the body said they drop out). Folded the dated ADR-1007 note into §4 and the 2026-08-03 ADR-738 widening into Risks. Removed the Blast radius section, the TASK-330 churn risk and the schema-line planning.
+- [2026-10-29T19:09:16Z] `architect` Robert Architect:
+  - 2026-10-29: ADR-1250 (related) narrows §7. Story mapping resolves to the kind the parent hosts; `--story` keeps its name and its wording follows that kind. §1 gains a `heading` key. The replacement text is in ADR-1250 §8 and is applied in place here with an "Amended in place" comment (board rule 6).
 <!-- sq:discussion:end -->

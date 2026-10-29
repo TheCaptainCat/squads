@@ -11,7 +11,7 @@ refs:
 - ADR-232
 - ADR-1007
 created_at: '2026-07-07T10:00:07Z'
-updated_at: '2026-10-25T21:23:54Z'
+updated_at: '2026-10-29T19:09:15Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -175,4 +175,6 @@ a badge of that collection, and a required field with no resolvable default.
   - Accepted as-is at the design-gate review (op-pierre deciding). Full three-level Badge/Collection/Field model confirmed: a field references a collection and carries its own label; the collection holds ordered badges; each badge = code + label + emoji. Sequenced after ADR-322.
 - [2026-10-25T21:23:54Z] `architect` Robert Architect:
   - 2026-10-25 audit: partly stale, body rewritten in the present tense; the three-level model is unchanged. Restated §5 as the shipped CLI grammar: --badge/--min-badge CODE=VALUE, --sort CODE, --priority/--min-priority sugar and update --set, not generated per-field --<code> flags (REV-346 F3, WontFix: Typer options are fixed at import). §3 now says spec load refuses ordered = false. Folded the dated ADR-1007 note into §4 and named where sub-entity fields are stored. Removed the pre-implementation grep table, enum line numbers, the bug-severity migration plan and the FEAT-231 test note.
+- [2026-10-29T19:09:15Z] `architect` Robert Architect:
+  - 2026-10-29: ADR-1250 (related) narrows §5. Every badge-field option is derived from the declared fields, and `--priority`/`--min-priority` become the derived names of the bundled field. The replacement text is in ADR-1250 §8 and is applied in place here with an "Amended in place" comment. The other sections stand (board rule 6).
 <!-- sq:discussion:end -->

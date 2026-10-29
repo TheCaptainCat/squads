@@ -13,65 +13,84 @@ subentities:
 - local_id: F1
   title: migrate chlog still accepts non-version bounds such as v1x..v2y and answers
     no manual steps
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F2
   title: init over a shared-number corpus writes .squads.toml before the repair refusal;
     a plain re-run is refused
-  status: Fixed
+  status: Open
   severity: low
 - local_id: F3
   title: 'create guide skips the spec-aware create class: override fields and the
     --priority help refresh miss it'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: 'Existing untitled sub-entities stay invisible: sq check does not report
     the now-required title'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: 'import with no op still prints pydantic wording: Unable to extract tag using
     discriminator ''op'''
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F6
   title: Several new refusal cases assert a prefix or exit code instead of the whole
     output (ADR-1172 rule 5)
-  status: Open
+  status: Verified
   severity: low
 - local_id: F7
   title: No tests/cli boundary case for a comment on a missing sub-entity, nor for
     an adopt --squad-dir refusal
-  status: Open
+  status: Verified
   severity: low
 - local_id: F8
   title: 'tests/regressions: eight duplicated fixtures, one module holding two bugs,
     uneven docstrings'
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F9
   title: unlink-role on a skill not scoped to the role still reports success, the
     BUG-1184 shape
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F10
   title: SubentityAddRequest.title still defaults to empty, so the API contract advertises
     it as optional
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F11
   title: repair --renumber leaves the scaffold hint naming the old number (pre-existing,
     for QA)
-  status: Open
+  status: Verified
   severity: info
 - local_id: F12
   title: The depth option's min=0 makes Click say 'deep' is not a valid integer range;
     regression pins Click wording
-  status: Fixed
+  status: Verified
   severity: low
+- local_id: F13
+  title: unlink-role refusal says 'has no ref' when the skill holds another kind of
+    ref to the role
+  status: Open
+  severity: low
+- local_id: F14
+  title: Playbook guide command, README and CHANGELOG still give guide --tag after
+    the --tags rename
+  status: Open
+  severity: low
+- local_id: F15
+  title: 'create attribute options skip the --set coercion for list values: comma-joined
+    and blank tags stored'
+  status: Open
+  severity: low
+- local_id: F16
+  title: 'New create-attribute meta test cannot fail: it never reads the built CLI'
+  status: Open
+  severity: info
 created_at: '2026-10-29T17:02:38Z'
-updated_at: '2026-10-29T17:39:37Z'
+updated_at: '2026-10-29T19:11:20Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -125,6 +144,8 @@ Fix: validate each bound against the PEP 440 pattern `version_tuple` already use
 <!-- sq:finding:F1:discussion -->
 - [2026-10-29T17:17:48Z] `python-dev` Elias Python:
   - Fixed in 9dc8388a (branch worktree-agent-a4a27e01490d44cc2).
+- [2026-10-29T19:09:52Z] `reviewer` Paul Reviewer:
+  - Verified at cc772bc0 (1df93668): bounds go through is_version (the version_tuple pattern). Driven: v1x..v2y and v0.1.0..v0.2.0..v0.3.0 are refused with the range message; v0.1..v0.2 and a padded bound still answer. Both rows are in the surface case.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -147,6 +168,15 @@ Fix options: in `init`, when the folder already holds item files, run the shared
 <!-- sq:finding:F2:discussion -->
 - [2026-10-29T17:17:49Z] `python-dev` Elias Python:
   - Fixed in 9dc8388a: init checks for shared numbers before it writes .squads.toml.
+- [2026-10-29T19:10:39Z] `reviewer` Paul Reviewer:
+  - Reopened at cc772bc0. The refusal now comes before any write (driven: no `.squads.toml` after the refused `init`), but the remedy it names cannot run on this path. Driven on a copy of a squad with TASK-23 and BUG-23, `.squads.toml` removed:
+    
+    - `sq init --default-names --roles minimal` exits 1: "... run `sq repair --renumber` to give one of them a new number".
+    - `sq repair --renumber` then exits 1: "no .squads.toml found in this or any parent directory — run `sq init`". The two messages send the adopter in a loop.
+    - `sq init --force` gives the same refusal.
+    - The only way out found: `sq adopt` (refused, but it writes the config), then `sq repair --renumber`, then `sq adopt` again. Nothing says so.
+    
+    Fix: on the init path, name a remedy that works without a configuration. Either init writes the config and the refusal says to run `sq repair --renumber` then `sq init --force`, or the refusal on init names the adopt sequence. Add the follow-through (run the named remedy, then init again) to the regression case, so it proves the remedy and not only the refusal.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -167,6 +197,8 @@ This predates the batch (0.17.0 behaves the same), so it is not a regression. Bu
 <!-- sq:finding:F3:discussion -->
 - [2026-10-29T17:09:28Z] `manager` Catherine Manager:
   - Root cause: the generic create command derives options from badge fields only, not from the attributes a type declares ([items.<type>.attributes]); guide declares tags and tech, so it was excluded by a guide literal in _cli/_create.py and kept as a copy that drifted (BUG-1183). Fix: generic create derives one option per declared create-time attribute; drop the guide exclusion, its hand-written command and the guide exception in the tests/meta guards; ADR-1172 rule 2 wording needs the architect.
+- [2026-10-29T19:09:54Z] `reviewer` Paul Reviewer:
+  - Verified at cc772bc0 (e3bb9356, 14c77354): create guide is built by the shared create class and its aliases with it. Driven with an override declaring field sev and attributes audience (str) and due (date) on guide: create guide --help lists --sev, --tags, --tech, --audience, --due; all write; create g takes --sev; with the override dropping priority, --priority leaves the help. The verb-set guard now fails a create command the shared builder did not build.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -185,6 +217,8 @@ So "required everywhere" holds for writes only: an existing violation is invisib
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-29T19:09:57Z] `reviewer` Paul Reviewer:
+  - Verified at cc772bc0 (14c77354): subentity_title_present (warn, work bundle). Driven: an empty subtask title on a task and a whitespace-only finding title on a review are each reported with the update --title remedy; running the named remedy clears both. Falsified in a scratch worktree: with the rule emptied, both tests/check cases go red; restored, green.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -202,6 +236,8 @@ This is the same defect as BUG-1200 (pydantic wording instead of squads' own) on
 <!-- sq:finding:F5:discussion -->
 - [2026-10-29T17:13:11Z] `python-dev` Elias Python:
   - Fixed in 50277923: a line with no op reads "missing op; valid ops: ..."; regression test added.
+- [2026-10-29T19:09:59Z] `reviewer` Paul Reviewer:
+  - Verified at cc772bc0 (e07a89b8): a line with no op reads "missing op; valid ops: ..." (driven), with a regression case asserting the whole output.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -229,6 +265,8 @@ Each of these passes for a wrong refusal that happens to share the prefix. Fix: 
   - TASK-1244 part done in 9dc8388a: the --squad-dir refusals assert the whole output. Other tasks parts remain.
 - [2026-10-29T17:25:39Z] `python-dev` Elias Python:
   - Missing-title exit-2 cases now assert the whole output (0553c825). Other F6 cases belong to TASK-1244 and TASK-1245.
+- [2026-10-29T19:10:12Z] `reviewer` Paul Reviewer:
+  - Verified at cc772bc0 (1df93668, e07a89b8, 14c77354): every case listed here now asserts the exit code and the whole output: tree/graph negative depth, reflog --op, init --squad-dir (surface and regression, one message per value), both missing-title exit-2 cases, and the regression negative depth.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -251,6 +289,8 @@ Fix: one case each, with `covers` on the sub-entity comment host key and on `("a
   - TASK-1244 part done in 9dc8388a: adopt --squad-dir boundary case added. The sub-entity comment case belongs to the other task.
 - [2026-10-29T17:25:38Z] `python-dev` Elias Python:
   - Missing sub-entity comment boundary case added in tests/cli/test_comment_verbs.py (0553c825). The adopt --squad-dir half belongs to TASK-1244.
+- [2026-10-29T19:10:15Z] `reviewer` Paul Reviewer:
+  - Verified at cc772bc0: tests/cli/test_adopt.py has the adopt --squad-dir refusal (1df93668) and tests/cli/test_comment_verbs.py the comment on a missing subtask (14c77354), each with whole-output asserts and covers markers.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -271,6 +311,8 @@ Layout of `tests/regressions/`, written by three devs in parallel:
 <!-- sq:finding:F8:discussion -->
 - [2026-10-29T17:30:54Z] `python-dev` Elias Python:
   - Fixed in eaaac5a7: shared fixtures in tests/regressions/conftest.py, helpers moved to tests/, memory-search and import tests split, badge cases merged, docstrings on every module. Also removed the dead hand-written-create branch in tests/_cli_surface.py fold_path.
+- [2026-10-29T19:10:18Z] `reviewer` Paul Reviewer:
+  - Verified at cc772bc0 (6be4facd): tests/regressions/conftest.py holds the shared fixtures, no module redefines one, the import cases have their own module, the BUG-1194 cases are merged and every module has a docstring.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -286,6 +328,8 @@ That is the false success line BUG-1184 removed from `ref rm`, kept on purpose o
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
+- [2026-10-29T19:10:20Z] `reviewer` Paul Reviewer:
+  - Verified at cc772bc0 (14c77354): unlink-role on an unscoped skill exits 1 (driven twice in a row; regression and surface cases). The refusal text is wrong when the skill holds another kind of ref to the role: see F13.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -299,6 +343,8 @@ That is the false success line BUG-1184 removed from `ref rm`, kept on purpose o
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
+- [2026-10-29T19:10:23Z] `reviewer` Paul Reviewer:
+  - Verified at cc772bc0 (14c77354): SubentityAddRequest JSON schema now lists title as required (id, kind, title).
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -316,6 +362,8 @@ This predates the batch and is outside its scope. Recorded so it gets a disposit
 <!-- sq:finding:F11:discussion -->
 - [2026-10-29T17:11:42Z] `qa` Mara Tester:
   - Filed as BUG-1248 (reproduced on both repair --renumber and sq renumber).
+- [2026-10-29T19:10:25Z] `reviewer` Paul Reviewer:
+  - Verified at cc772bc0 via BUG-1248 (1df93668): driven, repair --renumber moved TASK-22 to TASK-23 and its add/track hint now names 23; sq renumber --by is covered by tests/cli/test_renumber.py. Falsified in a scratch worktree: with _rehint short-circuited, the surface and regression cases go red; restored, green. File read allowed by the op-pierre rule 5 exception on ADR-1172.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -335,8 +383,81 @@ Fix: keep the plain `int` type and refuse a negative value in a callback (`typer
 <!-- sq:finding:F12:discussion -->
 - [2026-10-29T17:13:13Z] `python-dev` Elias Python:
   - Fixed in 50277923: depth uses a callback refusing negatives ("must be 0 or more"); a non-integer keeps the plain integer message; goldens and regression pin our wording.
+- [2026-10-29T19:10:28Z] `reviewer` Paul Reviewer:
+  - Verified at cc772bc0 (e07a89b8): plain int with a callback. Driven: deep gives "is not a valid integer.", -2 gives "must be 0 or more" on tree and graph (-d too); goldens and the regression assert the whole box.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
+
+<!-- sq:finding:F13 -->
+### F13 — unlink-role refusal says 'has no ref' when the skill holds another kind of ref to the role
+
+<!-- sq:finding:F13:body -->
+`unlink_role` calls `rm_ref(..., kind=<scopes>)`, and `rm_ref` refuses with "`<id>` has no ref to `<target>`" whatever kind it was asked to remove. When the skill holds another kind of ref to the role, the message is false. Driven at cc772bc0:
+
+- `sq skill deploy-notes ref add ROLE-1 --kind related`, then `sq skill deploy-notes refs` shows `→ refs  ROLE-1  related`.
+- `sq skill deploy-notes unlink-role manager` exits 1 with `error: SKILL-24 has no ref to ROLE-1`.
+
+The refusal itself is right (op-pierre ruling on F9). Fix: when `kind` is given, name it, for example `SKILL-24 is not scoped to ROLE-1` from `unlink_role`, or `has no scopes ref to ROLE-1` from `rm_ref`. Add the related-edge case to the existing surface case's file.
+<!-- sq:finding:F13:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F13:discussion -->
+<!-- sq:finding:F13:discussion:end -->
+<!-- sq:finding:F13:end -->
+
+<!-- sq:finding:F14 -->
+### F14 — Playbook guide command, README and CHANGELOG still give guide --tag after the --tags rename
+
+<!-- sq:finding:F14:body -->
+The op-pierre ruling renamed guide's `--tag` to `--tags`, but three texts still give `--tag`:
+
+- `src/squads/_specs/playbook.toml:416`: `sq create guide "…" --author architect [--tech …] [--tag …]`. This is generated agent guidance: `sq skill sq-guide show` on a fresh scratch squad prints it (line 19), and running it gives `No such option: --tag`.
+- `README.md:300`: "guides take `--tech`/`--tag` in place of `--label`/`--ref`/`--priority`". Both halves are false: guides take `--tags`, and they take `--label`, `--ref` and `--priority` like every type.
+- `README.md:339`: `sq create guide TITLE [--tech] [--tag]`.
+
+`CHANGELOG.md` has no 0.18.1 entry yet for the rename, which the ruling asked for as one breaking line, nor for `--target-date`/`--target-ref`. Fix: the playbook line with the dev (it regenerates the skill, so `sq sync` and the template manifest follow); README and CHANGELOG with the tech writer.
+<!-- sq:finding:F14:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F14:discussion -->
+<!-- sq:finding:F14:discussion:end -->
+<!-- sq:finding:F14:end -->
+
+<!-- sq:finding:F15 -->
+### F15 — create attribute options skip the --set coercion for list values: comma-joined and blank tags stored
+
+<!-- sq:finding:F15:body -->
+`_coerced_create_attributes` (`src/squads/_services/_item_write_ops.py`) says each value is "checked as `update --set` checks it ... a list as its parts", but a value that arrives as a list is stored without coercion. Driven at cc772bc0:
+
+- `sq create guide G --tags a,b --tags c` stores `["a,b", "c"]`, while `sq guide N update --set tags=a,b` stores `["a", "b"]`. The flag and the key now share a name, so the two read alike and parse differently.
+- `sq create guide G2 --tags "" --tags " "` stores `["", " "]`; `update --set "tags= , "` stores `[]`.
+- Read, not driven: through the API, a list sent for a `str` attribute (`"tech": ["a"]`) skips `coerce` and is stored as a list.
+
+Blank list values predate this batch (the old `--tag` stored them too), but the new helper claims the `--set` checks and its list branch skips them. Fix: coerce each element of a list value (strip, drop blanks, decide on comma splitting so both doors agree) and refuse a list for a non-list attribute; or narrow the docstring to what it does.
+<!-- sq:finding:F15:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F15:discussion -->
+<!-- sq:finding:F15:discussion:end -->
+<!-- sq:finding:F15:end -->
+
+<!-- sq:finding:F16 -->
+### F16 — New create-attribute meta test cannot fail: it never reads the built CLI
+
+<!-- sq:finding:F16:body -->
+`tests/meta/test_every_create_attribute_option_writes_a_settable_attribute.py` replaced the scan of hand-written create assignments. It computes the settable `str`/`list`/`date` attributes from the bundled spec and asserts three of them are present. It never reads the built CLI, and `_declared_attribute_options` already filters on `settable`, so the property in its name holds by construction. Mutation, read not run: dropping the `settable` filter from `_declared_attribute_options` leaves it green, and the verb-set guard does not catch it either, since no bundled creatable type declares a non-settable attribute.
+
+What it does pin is that the bundled spec keeps those three attributes settable, a spec shape the surface cases in `tests/cli/test_create.py` already exercise. Under ADR-1172 a test that cannot fail on its subject is a finding. Fix: delete it, or make it build `create <type>` against a spec with a non-settable attribute and assert no flag is derived for it.
+<!-- sq:finding:F16:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F16:discussion -->
+<!-- sq:finding:F16:discussion:end -->
+<!-- sq:finding:F16:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -384,4 +505,8 @@ Fix: keep the plain `int` type and refuse a negative value in a callback (`typer
     Side defects (D): the article helper writes "a initiative" (create error, import message) and "a action's" (squads skill line 44); the import plural is naive ("storys"); the `add-action --impact` help omits the collection codes that create lists.
     
     Priority order: 1+2+3+4 (one priority surface, M), 7, 12, 9, then the S wording batch (8, 11, 13, 14, 16-20).
+- [2026-10-29T19:11:20Z] `reviewer` Paul Reviewer:
+  - Verification at cc772bc0, read-only. Verified: F1, F3, F4, F5, F6, F7, F8, F9, F10, F11 (BUG-1248), F12. Reopened: F2 (the init refusal names `sq repair --renumber`, which cannot run without the config init no longer writes). New: F13, F14, F15 (low), F16 (info). Review stays ChangesRequested.
+    
+    Method: diffs of 1df93668, e07a89b8, e3bb9356, 14c77354, 6be4facd; 451 targeted tests pass (regressions, check sub-entity rules and the touched tests/cli modules); ruff clean; each fix driven from the dev tree on scratch squads. Falsified in a scratch worktree at HEAD: emptying `_subentity_title_present` and short-circuiting `_rehint` each turn their surface and regression cases red, and they go green again once restored. `_story_kind` (14c77354, outside the findings) driven: `--story US1`/`1` map, `US9` refused. @manager: F2 and F13/F15/F16 for the TASK-1244/1246 devs, F14 needs the dev for the playbook line and @tech-writer for README and the CHANGELOG lines.
 <!-- sq:discussion:end -->

@@ -11,7 +11,7 @@ refs:
 - REV-1247
 - MILE-1241:targets
 created_at: '2026-10-29T17:11:35Z'
-updated_at: '2026-10-29T17:17:26Z'
+updated_at: '2026-10-29T19:11:29Z'
 ---
 <!-- sq:body -->
 ## Summary
@@ -52,4 +52,6 @@ The renumber code must re-render that scaffold line (or the template should not 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T19:11:29Z] `reviewer` Paul Reviewer:
+  - Re-falsified at cc772bc0 for REV-1247 F11: driven on a scratch squad (repair --renumber moved TASK-22 to 23 and its hint now names 23), and with _rehint short-circuited in a scratch worktree the surface and regression cases go red, green once restored. Verification of the bug itself stays with @qa.
 <!-- sq:discussion:end -->

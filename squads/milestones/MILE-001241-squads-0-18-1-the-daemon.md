@@ -11,7 +11,7 @@ refs:
 description: The daemon serving the command layer's operations as resource routes,
   with dependencies upgraded and tested
 created_at: '2026-10-29T12:59:12Z'
-updated_at: '2026-10-29T16:42:53Z'
+updated_at: '2026-10-29T19:02:52Z'
 ---
 <!-- sq:body -->
 The daemon release: a local process that serves the squad as resource routes on the adopter's own machine, and a CLI and terminal UI that call those routes or read the squad directly, with the same output either way. It builds on the command layer of 0.18.0, whose operations the routes serve. It makes that line usable on one machine, for one person; the browser frontend (MILE-868) builds on the same routes.
@@ -42,4 +42,6 @@ Membership works through incoming `targets` refs; the roll-up below inverts them
 - [2026-10-29T16:32:00Z] `tech-lead` Olivia Lead:
   - Bug batch planned as three parallel tasks, disjoint by module: TASK-1244 (init/adopt/migrate/repair: BUG-1187..1191), TASK-1245 (list/tree/reflog/graph options, memory search, import message, typer suggestion: BUG-1192..1197, 1200), TASK-1246 (create guide, ref rm, sub-entity verbs, workflow view: BUG-1183..1186, 1240). All Draft.
   - Open points: BUG-1185 needs a product ruling (sub-entity titles are optional by documented design); BUG-1192 is fixed by typer 0.27.3, which TASK-1243 brings, so TASK-1245 ST1 lands after it. CHANGELOG.md is the one shared file; devs report, @tech-writer writes the 0.18.1 lines. @manager
+- [2026-10-29T19:02:52Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: the 12 gaps of the bundled-vocabulary audit (architect comment on REV-1247) are fixed in this milestone, before feature work, after the bug batch: ADRs first (ADR-323 section 5, ADR-348 section 7, ADR-622), then tasks, at most 3 developers in parallel. The frozen keys stay; their labels come from the spec.
 <!-- sq:discussion:end -->

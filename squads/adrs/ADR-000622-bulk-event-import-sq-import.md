@@ -13,7 +13,7 @@ description: A JSONL event-import command that replays a project's history in on
   process, with per-event timestamps and attribution, to replace hundreds of per-mutation
   sq calls.
 created_at: '2026-07-23T07:56:31Z'
-updated_at: '2026-10-25T21:36:45Z'
+updated_at: '2026-10-29T19:09:17Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -216,4 +216,6 @@ the interactive behaviour.
   - 2026-10-11: narrowed in place, on the operator's ruling of this date recorded on MILE-934. One dated note, under "Atomicity, validation, idempotency", after the paragraph stating that `sq repair` reconciles the index when an apply dies mid-flush. It says the claim holds at the package's schema, and that while a squad's schema is behind the package the gate refuses `sq repair` and the reconcile inside `sq migrate up` is the recovery path (ADR-955 and its amendments of 2026-10-09). Nothing else in the body changed; `related` ref to ADR-955 added.
 - [2026-10-25T21:36:45Z] `architect` Robert Architect:
   - 2026-10-25 audit: partly stale, targeted present-tense edits; the import design is unchanged. CLI surface corrected to the shipped flags: --dry-run, --json, --as (an event with no actor to inherit is refused); the time default is the global --at, the squad is -C (folded the ADR-1009 note); there is no --check-monotonic flag and no ref removal variant. Folded the ADR-955 recovery note into the apply contract, stated the exit-3 applied-with-error-findings case from sq import --help, and replaced the v1/deferred framing with in/out of scope.
+- [2026-10-29T19:09:17Z] `architect` Robert Architect:
+  - 2026-10-29: ADR-1250 (related) narrows "The op set". `add-<kind>` and the `<kind>` comment selector exist for every declared kind in place of the three bundled fronts. The replacement text is in ADR-1250 §8 and is applied in place here with an "Amended in place" comment (board rule 6).
 <!-- sq:discussion:end -->

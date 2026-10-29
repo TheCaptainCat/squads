@@ -12,7 +12,7 @@ refs:
 description: 'CLI tests in-process on the bundled spec: one case per parameter, shared
   registrations tested once, a marker-based coverage guard'
 created_at: '2026-10-27T21:25:41Z'
-updated_at: '2026-10-29T17:28:46Z'
+updated_at: '2026-10-29T19:04:38Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -102,7 +102,7 @@ Every CLI test runs `sq` in-process through Typer's `CliRunner` (the `runner`/`i
 
 ### 5. Assert what the user sees
 
-A case asserts the exit code and the composed output: the whole message line or the JSON object, not a substring that would survive a wrong message. State is read back through the CLI: `sq <type> <n> show --json`, or the `--json` form of the listing or command concerned. A test never opens an item file or `.squads.json`. A test reads a file directly only when that file is the output the command under test produces for the user: the generated agent-facing files (`.claude/` pointers, the managed `CLAUDE.md` and `AGENTS.md` regions) written by `init`, `adopt`, `sync` and the roster verbs that regenerate pointers, and the override files that `sq override` scaffolds or restamps. No other file is read; any other state goes through the CLI. A test writes an item file or `.squads.json` directly only to arrange a state that no CLI path can produce (a corrupt, legacy or drifted corpus for `repair`, `check`, `migrate`, `adopt` or `renumber`); its assertions still read state through the CLI.
+A case asserts the exit code and the composed output: the whole message line or the JSON object, not a substring that would survive a wrong message. State is read back through the CLI: `sq <type> <n> show --json`, or the `--json` form of the listing or command concerned. A test never opens `.squads.json`, and opens an item file only for the hint named below. A test reads a file directly only when that file is the output the command under test produces for the user: the generated agent-facing files (`.claude/` pointers, the managed `CLAUDE.md` and `AGENTS.md` regions) written by `init`, `adopt`, `sync` and the roster verbs that regenerate pointers, and the override files that `sq override` scaffolds or restamps. One item-file read is allowed: a test may read the add and track hint that an item template scaffolds above the sub-entity region, since no sq output carries it. No other file is read; any other state goes through the CLI. A test writes an item file or `.squads.json` directly only to arrange a state that no CLI path can produce (a corrupt, legacy or drifted corpus for `repair`, `check`, `migrate`, `adopt` or `renumber`); its assertions still read state through the CLI.
 
 ### 6. Layout and names
 
@@ -237,4 +237,8 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
     - Rule 2: a parameter derived from a type's declarations is tested on a type that declares it, and every derived flag is named. No type is special-cased.
     - Verb-set guard: it adds the derived parameters computed from the spec, and fails on a create command the shared builder did not build.
     - Consequences: a new type needs new surface tests only for a parameter of a kind the suite does not test yet.
+- [2026-10-29T19:02:53Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: rule 5 exception: a test may read the scaffolded add/track hint from an item file, since no sq output carries it (BUG-1248 tests).
+- [2026-10-29T19:04:38Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 per op-pierre b819805 (board rule 6). Status unchanged. Rule 5: a test never opens `.squads.json`; it may open an item file only to read the add and track hint an item template scaffolds above the sub-entity region, since no sq output carries it. Any other item state still goes through the CLI.
 <!-- sq:discussion:end -->
