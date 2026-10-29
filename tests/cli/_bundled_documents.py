@@ -1513,7 +1513,8 @@ MIGRATIONS = {
             "to_schema": "0.19",
             "summary": "Sub-entity entries are flat: story becomes maps_to, the keys of "
             "extra move up beside the others, and an empty severity is "
-            "dropped.",
+            "dropped. Item keys keep their values and follow the writer's "
+            "order.",
             "manual": "Edit what `sq migrate up` does not rewrite. (1) An override that"
             " spells `maps_parent_story`, `subtask_story_mapping` or the "
             "transform `milestone_rollup` is refused at load, so `sq migrate "

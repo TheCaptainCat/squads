@@ -8,7 +8,7 @@ and the derived ``:head`` badge line are re-rendered from this state.
 
 from typing import Any, cast
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, field_validator
 
 #: The frontmatter keys of a sub-entity entry that the model itself holds. Every other key of an
 #: entry is an attribute: a declared field under its code, or an unknown key kept as written.
@@ -21,8 +21,16 @@ SUBENTITY_CORE_KEYS: tuple[str, ...] = (
     "deferred_to",
 )
 
-#: The key the model dumps its attributes under, which is also how the index stores them.
-_ATTRIBUTES_KEY = "attributes"
+
+def entry_payload(entry: Any) -> Any:
+    """A frontmatter entry as the ``SubEntity`` payload: the core keys, and every other key as
+    written under ``attributes``. A non-mapping is returned untouched for pydantic to report."""
+    if not isinstance(entry, dict):
+        return entry
+    raw = cast("dict[str, Any]", entry)
+    out = {key: raw[key] for key in SUBENTITY_CORE_KEYS if key in raw}
+    out["attributes"] = {k: v for k, v in raw.items() if k not in SUBENTITY_CORE_KEYS}
+    return out
 
 
 class SubEntity(BaseModel):
@@ -44,30 +52,11 @@ class SubEntity(BaseModel):
 
     model_config = {"use_enum_values": False}
 
-    @model_validator(mode="before")
+    @field_validator("maps_to", mode="before")
     @classmethod
-    def _gather_attributes(cls, data: Any) -> Any:
-        """Gather every non-core key of a frontmatter entry into ``attributes``, dropping a key
-        whose value is empty (``""`` or ``null``), which means "not set". A non-mapping input
-        (``subentities: [5]``) is returned untouched for pydantic to report, since
-        :meth:`Item.from_frontmatter <squads._models._item.Item.from_frontmatter>` passes the raw
-        list to ``model_validate``, the single thing allowed to reject a type-invalid sub-entity.
-        """
-        if not isinstance(data, dict):
-            return data
-        raw = cast("dict[str, Any]", data)
-        out = {key: raw[key] for key in SUBENTITY_CORE_KEYS if key in raw}
-        held = raw.get(_ATTRIBUTES_KEY)
-        attributes: dict[str, Any] = (
-            dict(cast("dict[str, Any]", held)) if isinstance(held, dict) else {}
-        )
-        for key, value in raw.items():
-            if key in SUBENTITY_CORE_KEYS or (key == _ATTRIBUTES_KEY and isinstance(held, dict)):
-                continue
-            if value is not None and value != "":
-                attributes[key] = value
-        out[_ATTRIBUTES_KEY] = attributes
-        return out
+    def _empty_mapping_is_unset(cls, v: object) -> object:
+        """An empty ``maps_to`` is no mapping."""
+        return None if v == "" else v
 
     @field_validator("status", mode="before")
     @classmethod

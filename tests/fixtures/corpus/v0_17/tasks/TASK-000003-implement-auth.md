@@ -6,6 +6,7 @@ title: Implement auth
 status: Draft
 parent: FEAT-2
 author: manager
+priority: high
 subentities:
 - local_id: ST1
   title: Validate tokens

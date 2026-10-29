@@ -10,6 +10,9 @@ subentities:
   title: Unchecked read
   status: Open
   severity: high
+  note: ''
+  attributes:
+    x: 1
 - local_id: F2
   title: Dead branch
   status: Open

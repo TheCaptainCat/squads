@@ -12,7 +12,6 @@ from typing import Any
 
 import pytest
 
-from squads._itemfile import read_frontmatter
 from tests._populated import FEATURE, REVIEW, TASK
 
 pytestmark = pytest.mark.anyio
@@ -330,9 +329,8 @@ async def test_update_stores_a_field_an_override_declares_under_its_code(
     )
     await _ok(invoke, ["task", str(TASK), "update", "--set", "urgency=high"])
 
-    stored = read_frontmatter(populated_project.squad_dir / TASK_PATH)
-    assert stored["urgency"] == "high"
     shown = await _show(invoke)
+    assert shown["urgency"] == "high"
     assert shown["badges"] == {"urgency": "high"}
     assert shown["display"]["badges"]["urgency"]["label"] == "Urgency"
 

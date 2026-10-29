@@ -2,6 +2,7 @@
 renames of a status, a type and the item-number padding."""
 
 import json
+import re
 import shutil
 from pathlib import Path
 from typing import Any
@@ -9,7 +10,6 @@ from typing import Any
 import pytest
 
 from squads import __version__
-from squads._itemfile import read_frontmatter
 from squads._models._schema import SCHEMA_VERSION
 from tests.cli import _bundled_documents as documents
 from tests.cli._output import json_text, printed
@@ -78,25 +78,102 @@ async def test_up_brings_an_older_squad_to_the_current_schema(
 
 
 def _snapshot(root: Path) -> dict[str, bytes]:
-    """Every file under *root* with its bytes."""
+    """Every file under *root* except the index, with its bytes."""
     return {
-        str(p.relative_to(root)): p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file()
+        str(p.relative_to(root)): p.read_bytes()
+        for p in sorted(root.rglob("*"))
+        if p.is_file() and p.name != ".squads.json"
     }
 
 
-def _body(path: Path) -> str:
-    """The text of the item file at *path* after its frontmatter."""
-    return path.read_text(encoding="utf-8").split("\n---\n", 1)[1]
+def _text(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
 
 
 def _edit(path: Path, old: str, new: str) -> None:
-    text = path.read_text(encoding="utf-8")
+    text = _text(path)
     assert text.count(old) == 1, old
     path.write_text(text.replace(old, new), encoding="utf-8")
 
 
+def _migrated_head(text: str) -> str:
+    """The frontmatter block of an item file, the opening and closing rules included."""
+    return text.split("\n---\n", 1)[0] + "\n---\n"
+
+
+def _tail(text: str) -> str:
+    return text.split("\n---\n", 1)[1]
+
+
+TASK_FILE = "tasks/TASK-000003-implement-auth.md"
+REVIEW_FILE = "reviews/REV-000004-auth-review.md"
+BUG_FILE = "bugs/BUG-000005-login-fails-on-empty-password.md"
+
+TASK_HEAD = """---
+id: TASK-3
+sequence_id: 3
+type: task
+title: Implement auth
+status: Draft
+parent: FEAT-2
+author: manager
+subentities:
+- local_id: ST1
+  title: Validate tokens
+  status: Todo
+  maps_to: US1
+- local_id: ST2
+  title: Refresh tokens
+  status: Todo
+created_at: '2026-10-29T20:55:26Z'
+updated_at: '2026-10-29T20:55:27Z'
+priority: high
+---
+"""
+REVIEW_HEAD = """---
+id: REV-4
+sequence_id: 4
+type: review
+title: Auth review
+status: Requested
+author: manager
+subentities:
+- local_id: F1
+  title: Unchecked read
+  status: Open
+  severity: high
+  note: ''
+  attributes:
+    x: 1
+- local_id: F2
+  title: Dead branch
+  status: Open
+- local_id: F3
+  title: Slow path
+  status: Open
+  severity: medium
+  urgency: low
+created_at: '2026-10-29T20:55:27Z'
+updated_at: '2026-10-29T20:55:36Z'
+---
+"""
+BUG_HEAD = """---
+id: BUG-5
+sequence_id: 5
+type: bug
+title: Login fails on empty password
+status: Open
+author: manager
+created_at: '2026-10-29T20:55:30Z'
+updated_at: '2026-10-29T20:55:30Z'
+priority: low
+severity: critical
+---
+"""
+
+
 @pytest.mark.covers("migrate up")
-async def test_up_flattens_sub_entity_entries_and_leaves_the_rest_as_it_was(
+async def test_up_flattens_entries_and_puts_item_keys_in_the_writers_order(
     tmp_path, monkeypatch, invoke
 ) -> None:
     squad = shutil.copytree(SCHEMA_17_SQUAD, tmp_path / "old")
@@ -106,35 +183,29 @@ async def test_up_flattens_sub_entity_entries_and_leaves_the_rest_as_it_was(
     assert result.exit_code == 0, result.output
     after = _snapshot(squad)
 
-    task = squad / "tasks" / "TASK-000003-implement-auth.md"
-    review = squad / "reviews" / "REV-000004-auth-review.md"
-    assert [e["maps_to"] for e in read_frontmatter(task)["subentities"][:1]] == ["US1"]
-    assert read_frontmatter(review)["subentities"] == [
-        {"local_id": "F1", "title": "Unchecked read", "status": "Open", "severity": "high"},
-        {"local_id": "F2", "title": "Dead branch", "status": "Open"},
-        {
-            "local_id": "F3",
-            "title": "Slow path",
-            "status": "Open",
-            "severity": "medium",
-            "urgency": "low",
-        },
-    ]
-    assert (
-        _body(task) == before["tasks/TASK-000003-implement-auth.md"].decode().split("\n---\n", 1)[1]
-    )
-    assert (
-        _body(review) == before["reviews/REV-000004-auth-review.md"].decode().split("\n---\n", 1)[1]
-    )
+    for name, head in ((TASK_FILE, TASK_HEAD), (REVIEW_FILE, REVIEW_HEAD), (BUG_FILE, BUG_HEAD)):
+        assert after[name].decode() == head + _tail(before[name].decode()), name
     for untouched in ("features/FEAT-000002-user-login.md", "agents/roles/ROLE-000001-manager.md"):
-        assert after[untouched] == before[untouched]
+        assert after[untouched] == before[untouched], untouched
 
     subtask = json.loads((await invoke(["task", "3", "subtask", "1", "show", "--json"])).output)
     assert subtask["story"] == "US1"
     finding = json.loads((await invoke(["review", "4", "finding", "3", "show", "--json"])).output)
     assert (finding["severity"], finding["extra"]) == ("medium", {"urgency": "low"})
-    index = json.loads((squad / ".squads.json").read_text(encoding="utf-8"))
-    assert index["schema_version"] == SCHEMA_VERSION
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_takes_a_story_beside_an_empty_maps_to_as_the_mapping(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = shutil.copytree(SCHEMA_17_SQUAD, tmp_path / "old")
+    monkeypatch.chdir(squad)
+    _edit(squad / TASK_FILE, "  story: US1\n", "  maps_to: ''\n  story: US1\n")
+    _edit(squad / TASK_FILE, "  title: Refresh tokens\n", "  title: Refresh tokens\n  maps_to:\n")
+
+    result = await invoke(["migrate", "up"])
+    assert result.exit_code == 0, result.output
+    assert _migrated_head(_text(squad / TASK_FILE)) == TASK_HEAD
 
 
 @pytest.mark.covers("migrate up")
@@ -143,15 +214,17 @@ async def test_up_refuses_an_entry_holding_both_story_and_maps_to_and_writes_not
 ) -> None:
     squad = shutil.copytree(SCHEMA_17_SQUAD, tmp_path / "old")
     monkeypatch.chdir(squad)
-    _edit(
-        squad / "tasks" / "TASK-000003-implement-auth.md",
-        "  story: US1\n",
-        "  story: US1\n  maps_to: US2\n",
-    )
+    _edit(squad / TASK_FILE, "  story: US1\n", "  story: US1\n  maps_to: US2\n")
     before = _snapshot(squad)
     result = await invoke(["migrate", "up"])
-    assert result.exit_code == 1, result.output
-    assert "TASK-3 ST1: holds both 'story' and 'maps_to'" in result.output
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: TASK-3 ST1: holds both 'story' and a non-empty 'maps_to'\n"
+        "1 problem(s) found; fix the entries by hand.\n"
+        "This step wrote nothing and the schema stamp is unchanged.\n"
+        "The squad is still at schema v0.17: fix the cause, then re-run `sq migrate up`, "
+        "which rebuilds the index from the files first.\n",
+    )
     assert _snapshot(squad) == before
 
 
@@ -161,14 +234,16 @@ async def test_up_refuses_an_extra_key_that_is_already_a_key_of_the_entry(
 ) -> None:
     squad = shutil.copytree(SCHEMA_17_SQUAD, tmp_path / "old")
     monkeypatch.chdir(squad)
-    _edit(
-        squad / "reviews" / "REV-000004-auth-review.md", "    urgency: low\n", "    severity: low\n"
-    )
+    _edit(squad / REVIEW_FILE, "    urgency: low\n", "    severity: low\n")
     before = _snapshot(squad)
     result = await invoke(["migrate", "up"])
-    assert result.exit_code == 1, result.output
-    assert (
-        "REV-4 F3: has an 'extra' key 'severity' that is also a key of the entry" in result.output
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: REV-4 F3: has an 'extra' key 'severity' that is also a key of the entry\n"
+        "1 problem(s) found; fix the entries by hand.\n"
+        "This step wrote nothing and the schema stamp is unchanged.\n"
+        "The squad is still at schema v0.17: fix the cause, then re-run `sq migrate up`, "
+        "which rebuilds the index from the files first.\n",
     )
     assert _snapshot(squad) == before
 
@@ -178,14 +253,13 @@ async def test_up_flattens_the_mapping_of_a_squad_with_its_own_vocabulary(
     override_project, invoke
 ) -> None:
     job = next((override_project.squad_dir / "jobs").glob("*.md"))
-    number = str(read_frontmatter(job)["sequence_id"])
-    mapped_now = await invoke(["job", number, "action", "1", "update", "--story", "1"])
+    number = re.search(r"^sequence_id: (\d+)$", _text(job), re.MULTILINE)
+    assert number is not None
+    mapped_now = await invoke(["job", number[1], "action", "1", "update", "--story", "1"])
     assert mapped_now.exit_code == 0, mapped_now.output
-    before = read_frontmatter(job)["subentities"]
-    mapped = [e for e in before if "maps_to" in e]
-    assert mapped
-    text = job.read_text(encoding="utf-8")
-    job.write_text(text.replace("  maps_to: ", "  story: "), encoding="utf-8")
+    flat = _text(job)
+    assert "  maps_to: " in flat
+    job.write_text(flat.replace("  maps_to: ", "  story: "), encoding="utf-8")
     _edit(
         override_project.root / ".squads.toml",
         f'schema_version = "{SCHEMA_VERSION}"',
@@ -194,11 +268,11 @@ async def test_up_flattens_the_mapping_of_a_squad_with_its_own_vocabulary(
 
     result = await invoke(["migrate", "up"])
     assert result.exit_code == 0, result.output
-    assert read_frontmatter(job)["subentities"] == before
+    assert _text(job) == flat
 
 
 @pytest.mark.covers("migrate up")
-async def test_up_run_again_on_flat_entries_changes_no_file(tmp_path, monkeypatch, invoke) -> None:
+async def test_up_run_again_changes_no_file(tmp_path, monkeypatch, invoke) -> None:
     squad = shutil.copytree(SCHEMA_17_SQUAD, tmp_path / "old")
     monkeypatch.chdir(squad)
     assert (await invoke(["migrate", "up"])).exit_code == 0

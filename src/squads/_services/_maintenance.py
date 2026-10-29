@@ -51,6 +51,7 @@ from squads._itemfile import (
 )
 from squads._migrations._config_text import ConfigRewrite, plan_config_rewrite
 from squads._migrations._context import MigrationContext
+from squads._migrations._outcome import EntriesRefused
 from squads._migrations._registry import MIGRATIONS, Migration, release_reading_schema
 from squads._models import _attributes as attrs
 from squads._models import _markers as markers
@@ -898,8 +899,9 @@ class MaintenanceMixin(ServiceCore):
                 text += (
                     f"\nRebuild the index with the repair command of {_reader_phrase(disk)} first."
                 )
+        note = "" if isinstance(exc, EntriesRefused) else _earlier_steps_note(running, applied)
         return SquadsError(
-            f"{text}\n{_earlier_steps_note(running, applied)}"
+            f"{text}\n{note}"
             f"The squad is still at schema v{disk}: fix the cause, then re-run "
             "`sq migrate up`, which rebuilds the index from the files first."
         )

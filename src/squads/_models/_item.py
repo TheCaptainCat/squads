@@ -16,7 +16,7 @@ from pydantic_core import to_jsonable_python
 from squads import _clock as clock
 from squads._errors import SquadsError
 from squads._models._attributes import CORE_KEYS, NON_FRONTMATTER_KEYS, ROW_ADDED_KEYS
-from squads._models._subentity import SubEntity
+from squads._models._subentity import SubEntity, entry_payload
 from squads._util import NonEmpty
 
 REF_SEP = ":"
@@ -386,9 +386,9 @@ def _frontmatter_payload(
         "assignee": data.get("assignee"),
         "labels": _empty_list_if_unset(data.get("labels")),
         "refs": _read_refs(data, default_kind=default_kind),
-        # Otherwise handed over raw: SubEntity's own validators fold the loose spellings, and
-        # pydantic reports anything that is not a list of mappings.
-        "subentities": _empty_list_if_unset(data.get("subentities")),
+        # Each entry is split into core keys and attributes; pydantic reports anything that is not
+        # a list of mappings.
+        "subentities": _entry_payloads(_empty_list_if_unset(data.get("subentities"))),
         "path": path,
         "created_at": _parse_dt(data.get("created_at")),
         "updated_at": _parse_dt(data.get("updated_at")),
@@ -400,6 +400,13 @@ def _frontmatter_payload(
             key: _json_form(value) for key, value in data.items() if key not in CORE_KEYS
         },
     }
+
+
+def _entry_payloads(value: Any) -> Any:
+    """*value*, a list, with each entry split by :func:`entry_payload`; anything else unchanged."""
+    if not isinstance(value, list):
+        return value
+    return [entry_payload(e) for e in cast("list[Any]", value)]
 
 
 def _json_form(value: Any) -> Any:
