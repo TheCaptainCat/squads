@@ -3,19 +3,27 @@
     "id": "EPIC-99",
     "type": "epic",
     "title": "VS Code extension — browse the squad in the editor",
-    "status": "Ready",
+    "status": "Done",
     "priority": "low",
     "assignee": null,
     "blocked": false,
+    "badges": {
+      "priority": "low"
+    },
+    "anchor": false,
     "children": [
       {
         "id": "FEAT-100",
         "type": "feature",
         "title": "Read-only browse: sidebar tree + rendered preview",
-        "status": "Ready",
+        "status": "Done",
         "priority": "low",
         "assignee": null,
         "blocked": false,
+        "badges": {
+          "priority": "low"
+        },
+        "anchor": false,
         "children": [
           {
             "id": "TASK-428",
@@ -25,7 +33,24 @@
             "priority": null,
             "assignee": "typescript-dev",
             "blocked": false,
-            "children": []
+            "badges": {},
+            "anchor": false,
+            "children": [],
+            "display": {
+              "type": "Task",
+              "status": {
+                "badge": "🟢 Done",
+                "intent": "positive"
+              },
+              "badges": {},
+              "assignee": "Ada Typescript",
+              "dimmed": false,
+              "anchor": null,
+              "pronouns": null
+            },
+            "notebook": null,
+            "closed": true,
+            "updated_at": "2026-07-16T18:33:18Z"
           },
           {
             "id": "TASK-429",
@@ -35,7 +60,24 @@
             "priority": null,
             "assignee": "typescript-dev",
             "blocked": false,
-            "children": []
+            "badges": {},
+            "anchor": false,
+            "children": [],
+            "display": {
+              "type": "Task",
+              "status": {
+                "badge": "🟢 Done",
+                "intent": "positive"
+              },
+              "badges": {},
+              "assignee": "Ada Typescript",
+              "dimmed": false,
+              "anchor": null,
+              "pronouns": null
+            },
+            "notebook": null,
+            "closed": true,
+            "updated_at": "2026-07-17T11:23:20Z"
           },
           {
             "id": "TASK-430",
@@ -45,7 +87,24 @@
             "priority": null,
             "assignee": "typescript-dev",
             "blocked": false,
-            "children": []
+            "badges": {},
+            "anchor": false,
+            "children": [],
+            "display": {
+              "type": "Task",
+              "status": {
+                "badge": "🟢 Done",
+                "intent": "positive"
+              },
+              "badges": {},
+              "assignee": "Ada Typescript",
+              "dimmed": false,
+              "anchor": null,
+              "pronouns": null
+            },
+            "notebook": null,
+            "closed": true,
+            "updated_at": "2026-07-17T07:41:47Z"
           },
           {
             "id": "TASK-431",
@@ -55,7 +114,24 @@
             "priority": null,
             "assignee": "typescript-dev",
             "blocked": false,
-            "children": []
+            "badges": {},
+            "anchor": false,
+            "children": [],
+            "display": {
+              "type": "Task",
+              "status": {
+                "badge": "🟢 Done",
+                "intent": "positive"
+              },
+              "badges": {},
+              "assignee": "Ada Typescript",
+              "dimmed": false,
+              "anchor": null,
+              "pronouns": null
+            },
+            "notebook": null,
+            "closed": true,
+            "updated_at": "2026-07-17T07:41:47Z"
           },
           {
             "id": "TASK-432",
@@ -65,7 +141,24 @@
             "priority": null,
             "assignee": "devops",
             "blocked": false,
-            "children": []
+            "badges": {},
+            "anchor": false,
+            "children": [],
+            "display": {
+              "type": "Task",
+              "status": {
+                "badge": "🟢 Done",
+                "intent": "positive"
+              },
+              "badges": {},
+              "assignee": "Hugo Ops",
+              "dimmed": false,
+              "anchor": null,
+              "pronouns": null
+            },
+            "notebook": null,
+            "closed": true,
+            "updated_at": "2026-07-17T07:41:48Z"
           },
           {
             "id": "TASK-433",
@@ -75,7 +168,24 @@
             "priority": null,
             "assignee": "devops",
             "blocked": false,
-            "children": []
+            "badges": {},
+            "anchor": false,
+            "children": [],
+            "display": {
+              "type": "Task",
+              "status": {
+                "badge": "🟢 Done",
+                "intent": "positive"
+              },
+              "badges": {},
+              "assignee": "Hugo Ops",
+              "dimmed": false,
+              "anchor": null,
+              "pronouns": null
+            },
+            "notebook": null,
+            "closed": true,
+            "updated_at": "2026-07-17T11:46:05Z"
           },
           {
             "id": "TASK-434",
@@ -85,7 +195,24 @@
             "priority": null,
             "assignee": "python-dev",
             "blocked": false,
-            "children": []
+            "badges": {},
+            "anchor": false,
+            "children": [],
+            "display": {
+              "type": "Task",
+              "status": {
+                "badge": "🟢 Done",
+                "intent": "positive"
+              },
+              "badges": {},
+              "assignee": "Elias Python",
+              "dimmed": false,
+              "anchor": null,
+              "pronouns": null
+            },
+            "notebook": null,
+            "closed": true,
+            "updated_at": "2026-07-16T18:27:00Z"
           },
           {
             "id": "TASK-439",
@@ -95,27 +222,78 @@
             "priority": null,
             "assignee": "python-dev",
             "blocked": false,
-            "children": []
+            "badges": {},
+            "anchor": false,
+            "children": [],
+            "display": {
+              "type": "Task",
+              "status": {
+                "badge": "🟢 Done",
+                "intent": "positive"
+              },
+              "badges": {},
+              "assignee": "Elias Python",
+              "dimmed": false,
+              "anchor": null,
+              "pronouns": null
+            },
+            "notebook": null,
+            "closed": true,
+            "updated_at": "2026-07-17T08:02:51Z"
           },
           {
             "id": "TASK-440",
             "type": "task",
             "title": "Client: consume tree title + is_open, collapse to one sq tree call",
-            "status": "Ready",
+            "status": "Done",
             "priority": null,
             "assignee": "typescript-dev",
             "blocked": false,
-            "children": []
+            "badges": {},
+            "anchor": false,
+            "children": [],
+            "display": {
+              "type": "Task",
+              "status": {
+                "badge": "🟢 Done",
+                "intent": "positive"
+              },
+              "badges": {},
+              "assignee": "Ada Typescript",
+              "dimmed": false,
+              "anchor": null,
+              "pronouns": null
+            },
+            "notebook": null,
+            "closed": true,
+            "updated_at": "2026-07-17T11:19:01Z"
           },
           {
             "id": "TASK-441",
             "type": "task",
             "title": "Client: integration skew-canary CI layer (fixtures vs live sq)",
-            "status": "Draft",
+            "status": "Done",
             "priority": null,
             "assignee": "typescript-dev",
-            "blocked": true,
-            "children": []
+            "blocked": false,
+            "badges": {},
+            "anchor": false,
+            "children": [],
+            "display": {
+              "type": "Task",
+              "status": {
+                "badge": "🟢 Done",
+                "intent": "positive"
+              },
+              "badges": {},
+              "assignee": "Ada Typescript",
+              "dimmed": false,
+              "anchor": null,
+              "pronouns": null
+            },
+            "notebook": null,
+            "closed": true,
+            "updated_at": "2026-07-17T09:08:32Z"
           },
           {
             "id": "TASK-442",
@@ -125,10 +303,69 @@
             "priority": null,
             "assignee": "devops",
             "blocked": false,
-            "children": []
+            "badges": {},
+            "anchor": false,
+            "children": [],
+            "display": {
+              "type": "Task",
+              "status": {
+                "badge": "🟢 Done",
+                "intent": "positive"
+              },
+              "badges": {},
+              "assignee": "Hugo Ops",
+              "dimmed": false,
+              "anchor": null,
+              "pronouns": null
+            },
+            "notebook": null,
+            "closed": true,
+            "updated_at": "2026-07-17T08:02:53Z"
           }
-        ]
+        ],
+        "display": {
+          "type": "Feature",
+          "status": {
+            "badge": "🟢 Done",
+            "intent": "positive"
+          },
+          "badges": {
+            "priority": {
+              "label": "Priority",
+              "badge": "🟢 low",
+              "badge_label": "🟢 Low"
+            }
+          },
+          "assignee": null,
+          "dimmed": false,
+          "anchor": null,
+          "pronouns": null
+        },
+        "notebook": null,
+        "closed": true,
+        "updated_at": "2026-09-01T13:48:14Z"
       }
-    ]
+    ],
+    "display": {
+      "type": "Epic",
+      "status": {
+        "badge": "🟢 Done",
+        "intent": "positive"
+      },
+      "badges": {
+        "priority": {
+          "label": "Priority",
+          "badge": "🟢 low",
+          "badge_label": "🟢 Low"
+        }
+      },
+      "assignee": null,
+      "dimmed": false,
+      "anchor": null,
+      "pronouns": null
+    },
+    "notebook": null,
+    "closed": true,
+    "updated_at": "2026-07-19T19:33:00Z"
   }
 ]

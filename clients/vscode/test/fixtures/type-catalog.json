@@ -1,273 +1,356 @@
 [
-    {
-        "type": "epic",
-        "order": 10.0,
-        "prefix": "EPIC",
-        "reserved": false,
-        "category": "work",
-        "subentity_kind": null,
-        "lifecycle": "work",
-        "fields": [
-            {
-                "code": "priority",
-                "label": "Priority",
-                "collection": "priority"
-            }
-        ],
-        "labels": {
-            "singular": "Epic",
-            "plural": "Epics",
-            "singular_lower": "epic",
-            "plural_lower": "epics"
-        },
-        "attributes": {}
-    },
-    {
-        "type": "feature",
-        "order": 20.0,
-        "prefix": "FEAT",
-        "reserved": false,
-        "category": "work",
-        "subentity_kind": "story",
-        "lifecycle": "work",
-        "fields": [
-            {
-                "code": "priority",
-                "label": "Priority",
-                "collection": "priority"
-            }
-        ],
-        "labels": {
-            "singular": "Feature",
-            "plural": "Features",
-            "singular_lower": "feature",
-            "plural_lower": "features"
-        },
-        "attributes": {}
-    },
-    {
-        "type": "task",
-        "order": 30.0,
-        "prefix": "TASK",
-        "reserved": false,
-        "category": "work",
-        "subentity_kind": "subtask",
-        "lifecycle": "work",
-        "fields": [
-            {
-                "code": "priority",
-                "label": "Priority",
-                "collection": "priority"
-            }
-        ],
-        "labels": {
-            "singular": "Task",
-            "plural": "Tasks",
-            "singular_lower": "task",
-            "plural_lower": "tasks"
-        },
-        "attributes": {}
-    },
-    {
-        "type": "bug",
-        "order": 40.0,
-        "prefix": "BUG",
-        "reserved": false,
-        "category": "work",
-        "subentity_kind": null,
-        "lifecycle": "bug",
-        "fields": [
-            {
-                "code": "priority",
-                "label": "Priority",
-                "collection": "priority"
-            },
-            {
-                "code": "severity",
-                "label": "Severity",
-                "collection": "severity"
-            }
-        ],
-        "labels": {
-            "singular": "Bug",
-            "plural": "Bugs",
-            "singular_lower": "bug",
-            "plural_lower": "bugs"
-        },
-        "attributes": {}
-    },
-    {
-        "type": "decision",
-        "order": 50.0,
-        "prefix": "ADR",
-        "reserved": false,
-        "category": "records",
-        "subentity_kind": null,
-        "lifecycle": "adr",
-        "fields": [
-            {
-                "code": "priority",
-                "label": "Priority",
-                "collection": "priority"
-            }
-        ],
-        "labels": {
-            "singular": "Decision",
-            "plural": "Decisions",
-            "singular_lower": "decision",
-            "plural_lower": "decisions"
-        },
-        "attributes": {}
-    },
-    {
-        "type": "review",
-        "order": 60.0,
-        "prefix": "REV",
-        "reserved": false,
-        "category": "work",
-        "subentity_kind": "finding",
-        "lifecycle": "review",
-        "fields": [
-            {
-                "code": "priority",
-                "label": "Priority",
-                "collection": "priority"
-            }
-        ],
-        "labels": {
-            "singular": "Review",
-            "plural": "Reviews",
-            "singular_lower": "review",
-            "plural_lower": "reviews"
-        },
-        "attributes": {
-            "target_ref": {
-                "kind": "str",
-                "required": false,
-                "settable": true
-            }
-        }
-    },
-    {
-        "type": "guide",
-        "order": 70.0,
-        "prefix": "GUIDE",
-        "reserved": false,
-        "category": "records",
-        "subentity_kind": null,
-        "lifecycle": "guide",
-        "fields": [
-            {
-                "code": "priority",
-                "label": "Priority",
-                "collection": "priority"
-            }
-        ],
-        "labels": {
-            "singular": "Guide",
-            "plural": "Guides",
-            "singular_lower": "guide",
-            "plural_lower": "guides"
-        },
-        "attributes": {
-            "tags": {
-                "kind": "list",
-                "required": false,
-                "settable": true
-            },
-            "tech": {
-                "kind": "str",
-                "required": false,
-                "settable": true
-            }
-        }
-    },
-    {
-        "type": "role",
-        "order": 80.0,
-        "prefix": "ROLE",
-        "reserved": true,
-        "category": "roster",
-        "subentity_kind": null,
-        "lifecycle": "agent",
-        "fields": [],
-        "labels": {
-            "singular": "Role",
-            "plural": "Roles",
-            "singular_lower": "role",
-            "plural_lower": "roles"
-        },
-        "attributes": {
-            "is_default": {
-                "kind": "bool",
-                "required": false,
-                "settable": false
-            },
-            "is_dev": {
-                "kind": "bool",
-                "required": false,
-                "settable": false
-            },
-            "model": {
-                "kind": "str",
-                "required": false,
-                "settable": true
-            },
-            "tech": {
-                "kind": "str",
-                "required": false,
-                "settable": false
-            }
-        }
-    },
-    {
-        "type": "skill",
-        "order": 90.0,
-        "prefix": "SKILL",
-        "reserved": true,
-        "category": "roster",
-        "subentity_kind": null,
-        "lifecycle": "agent",
-        "fields": [],
-        "labels": {
-            "singular": "Skill",
-            "plural": "Skills",
-            "singular_lower": "skill",
-            "plural_lower": "skills"
-        },
-        "attributes": {
-            "allowed_tools": {
-                "kind": "str",
-                "required": false,
-                "settable": true
-            },
-            "model": {
-                "kind": "str",
-                "required": false,
-                "settable": true
-            },
-            "when_to_use": {
-                "kind": "str",
-                "required": false,
-                "settable": true
-            }
-        }
-    },
-    {
-        "type": "operator",
-        "order": 100.0,
-        "prefix": "OP",
-        "reserved": true,
-        "category": "roster",
-        "subentity_kind": null,
-        "lifecycle": "agent",
-        "fields": [],
-        "labels": {
-            "singular": "Operator",
-            "plural": "Operators",
-            "singular_lower": "operator",
-            "plural_lower": "operators"
-        },
-        "attributes": {}
+  {
+    "type": "epic",
+    "order": 10.0,
+    "prefix": "EPIC",
+    "reserved": false,
+    "category": "work",
+    "subentity_kind": null,
+    "lifecycle": "work",
+    "fields": [
+      {
+        "code": "priority",
+        "label": "Priority",
+        "collection": "priority"
+      }
+    ],
+    "attributes": {},
+    "labels": {
+      "singular": "Epic",
+      "plural": "Epics",
+      "singular_lower": "epic",
+      "plural_lower": "epics"
     }
+  },
+  {
+    "type": "feature",
+    "order": 20.0,
+    "prefix": "FEAT",
+    "reserved": false,
+    "category": "work",
+    "subentity_kind": "story",
+    "lifecycle": "work",
+    "fields": [
+      {
+        "code": "priority",
+        "label": "Priority",
+        "collection": "priority"
+      }
+    ],
+    "attributes": {},
+    "labels": {
+      "singular": "Feature",
+      "plural": "Features",
+      "singular_lower": "feature",
+      "plural_lower": "features"
+    }
+  },
+  {
+    "type": "task",
+    "order": 30.0,
+    "prefix": "TASK",
+    "reserved": false,
+    "category": "work",
+    "subentity_kind": "subtask",
+    "lifecycle": "work",
+    "fields": [
+      {
+        "code": "priority",
+        "label": "Priority",
+        "collection": "priority"
+      }
+    ],
+    "attributes": {},
+    "labels": {
+      "singular": "Task",
+      "plural": "Tasks",
+      "singular_lower": "task",
+      "plural_lower": "tasks"
+    }
+  },
+  {
+    "type": "bug",
+    "order": 40.0,
+    "prefix": "BUG",
+    "reserved": false,
+    "category": "work",
+    "subentity_kind": null,
+    "lifecycle": "bug",
+    "fields": [
+      {
+        "code": "priority",
+        "label": "Priority",
+        "collection": "priority"
+      },
+      {
+        "code": "severity",
+        "label": "Severity",
+        "collection": "severity"
+      }
+    ],
+    "attributes": {},
+    "labels": {
+      "singular": "Bug",
+      "plural": "Bugs",
+      "singular_lower": "bug",
+      "plural_lower": "bugs"
+    }
+  },
+  {
+    "type": "decision",
+    "order": 50.0,
+    "prefix": "ADR",
+    "reserved": false,
+    "category": "records",
+    "subentity_kind": null,
+    "lifecycle": "adr",
+    "fields": [
+      {
+        "code": "priority",
+        "label": "Priority",
+        "collection": "priority"
+      }
+    ],
+    "attributes": {},
+    "labels": {
+      "singular": "Decision",
+      "plural": "Decisions",
+      "singular_lower": "decision",
+      "plural_lower": "decisions"
+    }
+  },
+  {
+    "type": "review",
+    "order": 60.0,
+    "prefix": "REV",
+    "reserved": false,
+    "category": "work",
+    "subentity_kind": "finding",
+    "lifecycle": "review",
+    "fields": [
+      {
+        "code": "priority",
+        "label": "Priority",
+        "collection": "priority"
+      }
+    ],
+    "attributes": {
+      "target_ref": {
+        "kind": "str",
+        "required": false,
+        "settable": true,
+        "label": null
+      }
+    },
+    "labels": {
+      "singular": "Review",
+      "plural": "Reviews",
+      "singular_lower": "review",
+      "plural_lower": "reviews"
+    }
+  },
+  {
+    "type": "guide",
+    "order": 70.0,
+    "prefix": "GUIDE",
+    "reserved": false,
+    "category": "records",
+    "subentity_kind": null,
+    "lifecycle": "guide",
+    "fields": [
+      {
+        "code": "priority",
+        "label": "Priority",
+        "collection": "priority"
+      }
+    ],
+    "attributes": {
+      "tags": {
+        "kind": "list",
+        "required": false,
+        "settable": true,
+        "label": null
+      },
+      "tech": {
+        "kind": "str",
+        "required": false,
+        "settable": true,
+        "label": null
+      }
+    },
+    "labels": {
+      "singular": "Guide",
+      "plural": "Guides",
+      "singular_lower": "guide",
+      "plural_lower": "guides"
+    }
+  },
+  {
+    "type": "role",
+    "order": 80.0,
+    "prefix": "ROLE",
+    "reserved": true,
+    "category": "roster",
+    "subentity_kind": null,
+    "lifecycle": "agent",
+    "fields": [],
+    "attributes": {
+      "agreements": {
+        "kind": "list",
+        "required": false,
+        "settable": false,
+        "label": null
+      },
+      "can_spawn": {
+        "kind": "bool",
+        "required": false,
+        "settable": false,
+        "label": null
+      },
+      "capabilities": {
+        "kind": "list",
+        "required": false,
+        "settable": false,
+        "label": null
+      },
+      "color": {
+        "kind": "str",
+        "required": false,
+        "settable": false,
+        "label": null
+      },
+      "is_default": {
+        "kind": "bool",
+        "required": false,
+        "settable": false,
+        "label": null
+      },
+      "job_title": {
+        "kind": "str",
+        "required": false,
+        "settable": false,
+        "label": null
+      },
+      "mission": {
+        "kind": "str",
+        "required": false,
+        "settable": false,
+        "label": null
+      },
+      "model": {
+        "kind": "str",
+        "required": false,
+        "settable": true,
+        "label": null
+      },
+      "origin": {
+        "kind": "str",
+        "required": true,
+        "settable": false,
+        "label": null
+      },
+      "pronouns": {
+        "kind": "str",
+        "required": false,
+        "settable": false,
+        "label": null
+      },
+      "responsibilities": {
+        "kind": "list",
+        "required": false,
+        "settable": false,
+        "label": null
+      },
+      "tech": {
+        "kind": "str",
+        "required": false,
+        "settable": false,
+        "label": null
+      },
+      "template": {
+        "kind": "str",
+        "required": false,
+        "settable": false,
+        "label": null
+      }
+    },
+    "labels": {
+      "singular": "Role",
+      "plural": "Roles",
+      "singular_lower": "role",
+      "plural_lower": "roles"
+    }
+  },
+  {
+    "type": "skill",
+    "order": 90.0,
+    "prefix": "SKILL",
+    "reserved": true,
+    "category": "roster",
+    "subentity_kind": null,
+    "lifecycle": "agent",
+    "fields": [],
+    "attributes": {
+      "allowed_tools": {
+        "kind": "str",
+        "required": false,
+        "settable": true,
+        "label": null
+      },
+      "model": {
+        "kind": "str",
+        "required": false,
+        "settable": true,
+        "label": null
+      },
+      "operator_invocable": {
+        "kind": "bool",
+        "required": false,
+        "settable": false,
+        "label": null
+      },
+      "origin": {
+        "kind": "str",
+        "required": true,
+        "settable": false,
+        "label": null
+      },
+      "when_to_use": {
+        "kind": "str",
+        "required": false,
+        "settable": true,
+        "label": null
+      }
+    },
+    "labels": {
+      "singular": "Skill",
+      "plural": "Skills",
+      "singular_lower": "skill",
+      "plural_lower": "skills"
+    }
+  },
+  {
+    "type": "operator",
+    "order": 100.0,
+    "prefix": "OP",
+    "reserved": true,
+    "category": "roster",
+    "subentity_kind": null,
+    "lifecycle": "agent",
+    "fields": [],
+    "attributes": {
+      "pronouns": {
+        "kind": "str",
+        "required": false,
+        "settable": false,
+        "label": null
+      }
+    },
+    "labels": {
+      "singular": "Operator",
+      "plural": "Operators",
+      "singular_lower": "operator",
+      "plural_lower": "operators"
+    }
+  }
 ]

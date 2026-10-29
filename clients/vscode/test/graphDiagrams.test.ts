@@ -312,10 +312,10 @@ describe('buildRefGraphMermaid', () => {
     expect(buildRefGraphMermaid(root)).toBe(
       [
         'flowchart LR',
-        '  FEAT_002d449["`FEAT-449 (feature): Draft`"]',
+        '  FEAT_002d449["`FEAT-449 (feature): Done`"]',
         '  FEAT_002d100["`FEAT-100 (feature, low): Done`"]',
         '  ADR_002d427["`ADR-427 (decision): Accepted`"]',
-        '  REV_002d448["`REV-448 (review): Requested`"]',
+        '  REV_002d448["`REV-448 (review): Approved`"]',
         '  FEAT_002d100 -->|related| ADR_002d427',
         '  FEAT_002d100 -->|related| FEAT_002d449',
         '  FEAT_002d100 -->|related| REV_002d448',
