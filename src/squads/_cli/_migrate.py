@@ -8,6 +8,8 @@
 - `sq migrate rename-status TYPE OLD NEW`  bulk-move every TYPE item at OLD status to NEW status
 """
 
+import re
+
 import typer
 
 import squads._cli._common as common
@@ -29,6 +31,10 @@ from squads._cli._render._squad import (
 )
 from squads._errors import SquadsError
 from squads._migrations._registry import manual_steps, migration_index
+from squads._models._item import MAX_ID_PADDING
+from squads._util import version_tuple
+
+_VERSION = re.compile(r"\d[\w.+-]*")
 
 migrate_app = typer.Typer(no_args_is_help=True, help="Run schema migrations and read their steps.")
 
@@ -99,7 +105,9 @@ def migrate_chlog(
 @handle_errors
 def migrate_repad(
     new_width: int = typer.Argument(
-        ..., metavar="WIDTH", help="Digits to pad item numbers to; more than the current width."
+        ...,
+        metavar="WIDTH",
+        help=f"Digits to pad item numbers to: above the current width, up to {MAX_ID_PADDING}.",
     ),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: the padding before and after."
@@ -169,7 +177,13 @@ def migrate_rename_status(
 
 
 def _parse_span(span: str) -> tuple[str, str]:
+    expected = f"expected a range like v0.1.1..v0.2.0 (vFROM..vTO, FROM below TO), got {span!r}"
     lo, sep, hi = span.partition("..")
     if not sep:
-        raise SquadsError(f"expected a range like v0.1.1..v0.2.0, got {span!r}")
-    return lo.strip().lstrip("vV"), hi.strip().lstrip("vV")
+        raise SquadsError(expected)
+    lo, hi = lo.strip().lstrip("vV"), hi.strip().lstrip("vV")
+    if not (_VERSION.fullmatch(lo) and _VERSION.fullmatch(hi)):
+        raise SquadsError(expected)
+    if version_tuple(lo) >= version_tuple(hi):
+        raise SquadsError(expected)
+    return lo, hi

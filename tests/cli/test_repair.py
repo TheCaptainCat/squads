@@ -90,23 +90,19 @@ async def test_renumber_gives_a_shared_number_a_new_one(populated_project, invok
 
 
 @pytest.mark.covers("repair")
-async def test_check_reports_a_shared_number_that_repair_without_renumber_leaves(
+async def test_repair_refuses_two_ids_that_share_a_number_and_keeps_the_index(
     populated_project, invoke
 ) -> None:
     _add_twin_numbered_two(populated_project.squad_dir)
-    await invoke(["repair"])
-    checked = await invoke(["check", "--json"])
-    assert checked.exit_code == 3
-    assert [i for i in json.loads(checked.output) if i["rule"] == "numbers_unique"] == [
-        {
-            "level": "error",
-            "item": "#2",
-            "message": "2 files carry number 2 under different ids "
-            "(features/FEAT-000002-search.md, tasks/TASK-000002-build-the-query-parser.md); "
-            "run `sq repair --renumber` to give one of them a new number",
-            "rule": "numbers_unique",
-        }
-    ]
+    result = await invoke(["repair"])
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: refusing to rebuild the index: it keys items by number:\n"
+        "  - 2 files carry number 2 under different ids "
+        "(features/FEAT-000002-search.md, tasks/TASK-000002-build-the-query-parser.md); "
+        "run `sq repair --renumber` to give one of them a new number\n",
+    )
+    assert await listed(invoke) == ITEMS
 
 
 @pytest.mark.covers("repair", "--renumber")

@@ -351,6 +351,24 @@ def _init_time_spec(sources: SpecSources) -> WorkflowSpec:
         raise SquadsError(f"{exc} — run `sq workflow lint` to see details") from exc
 
 
+def _checked_squad_dir(root: Path, squad_dir: str) -> str:
+    """*squad_dir* when it is a non-empty relative folder that stays inside *root*, else a
+    refusal: it is checked before init or adopt writes anything."""
+    if not squad_dir.strip():
+        raise SquadsError("--squad-dir must name a folder, not an empty value")
+    if Path(squad_dir).is_absolute():
+        raise SquadsError(f"--squad-dir must be relative to the project root, got {squad_dir!r}")
+    if not (root / squad_dir).resolve().is_relative_to(root):
+        raise SquadsError(f"--squad-dir must stay inside the project root, got {squad_dir!r}")
+    return squad_dir
+
+
+def _checked_backends(names: list[str]) -> None:
+    """Refuse an unknown backend name before init or adopt writes anything."""
+    for name in names:
+        get_backend(name)
+
+
 async def init(
     *,
     root: Path | None = None,
@@ -373,6 +391,8 @@ async def init(
     config_path = root / CONFIG_FILENAME
     if await _aio.path_exists(config_path) and not force:
         raise AlreadyInitializedError(f"{config_path} already exists (use --force to overwrite)")
+    squad_dir = _checked_squad_dir(root, squad_dir)
+    _checked_backends(backend or [])
 
     # Validate a pre-placed override before any state is written, so a bad one means init never
     # starts rather than leaving a half-created squad.
@@ -455,6 +475,9 @@ async def adopt(
     existing = load_config(config_path) if await _aio.path_exists(config_path) else None
     if existing is not None:
         squad_dir = existing.squad_dir
+    else:
+        squad_dir = _checked_squad_dir(root, squad_dir)
+        _checked_backends(backend or [])
     sources = spec_sources(root / squad_dir)
     role_defs = resolve_roles(roles_spec, sources.catalog()) if roles_spec else []
     if existing is not None:

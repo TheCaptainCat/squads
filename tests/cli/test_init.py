@@ -34,6 +34,25 @@ async def test_squad_dir_names_the_folder_the_squad_lives_in(invoke) -> None:
     assert (items[0], len(items)) == (("ROLE-1", "Catherine Manager"), 13)
 
 
+@pytest.mark.covers("init", "--squad-dir")
+@pytest.mark.parametrize("folder", ["/abs", "../up", ""])
+async def test_squad_dir_refuses_an_absolute_empty_or_escaping_folder(invoke, folder) -> None:
+    root = Path.cwd()
+    result = await invoke([*MINIMAL, "--squad-dir", folder])
+    assert result.exit_code == 1, result.output
+    assert result.output.startswith("error: --squad-dir must ")
+    assert len(result.output.splitlines()) == 1
+    assert sorted(root.iterdir()) == []
+
+
+@pytest.mark.covers("init", "--squad-dir")
+async def test_squad_dir_accepts_a_nested_relative_folder(invoke) -> None:
+    root = Path.cwd()
+    result = await invoke([*MINIMAL, "--squad-dir", "team/work"])
+    assert result.exit_code == 0, result.output
+    assert (root / "team/work/.squads.json").is_file()
+
+
 @pytest.mark.covers("init", "--backend")
 async def test_backend_claude_code_writes_the_pointers_settings_and_claude_md(invoke) -> None:
     root = Path.cwd()
@@ -87,8 +106,12 @@ async def test_backend_none_writes_no_agent_files(invoke) -> None:
 
 @pytest.mark.covers("init", "--backend")
 async def test_backend_refuses_a_name_that_is_not_registered(invoke) -> None:
+    root = Path.cwd()
     result = await invoke([*MINIMAL, "--backend", "bogus"])
     assert (result.exit_code, result.output) == (1, BAD_BACKEND)
+    assert sorted(root.iterdir()) == []
+    retried = await invoke([*MINIMAL, "--backend", "claude_code"])
+    assert retried.exit_code == 0, retried.output
 
 
 @pytest.mark.covers("init", "--backend")

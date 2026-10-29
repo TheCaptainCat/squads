@@ -127,6 +127,9 @@ async def test_backend_refuses_a_name_that_is_not_registered(adoptable, invoke) 
         1,
         "error: unknown backend 'bogus' (available: claude_code, agents_md)\n",
     )
+    assert not (adoptable / ".squads.toml").exists()
+    retried = await invoke(["adopt", "--roles", "core", "--backend", "claude_code"])
+    assert retried.exit_code == 0, retried.output
 
 
 @pytest.mark.covers("adopt", "--no-claude")

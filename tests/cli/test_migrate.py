@@ -140,7 +140,19 @@ async def test_chlog_refuses_a_range_without_two_dots(invoke) -> None:
     result = await invoke(["migrate", "chlog", "v0.2.0"])
     assert (result.exit_code, result.output) == (
         1,
-        "error: expected a range like v0.1.1..v0.2.0, got 'v0.2.0'\n",
+        "error: expected a range like v0.1.1..v0.2.0 (vFROM..vTO, FROM below TO), got 'v0.2.0'\n",
+    )
+
+
+@pytest.mark.covers("migrate chlog", "vFROM..vTO")
+@pytest.mark.parametrize("span", ["a..b", "v0.17.0..v0.1.0", "v0.2.0..v0.2.0"])
+async def test_chlog_refuses_a_bound_that_is_no_version_or_a_range_not_ascending(
+    invoke, span
+) -> None:
+    result = await invoke(["migrate", "chlog", span])
+    assert (result.exit_code, result.output) == (
+        1,
+        f"error: expected a range like v0.1.1..v0.2.0 (vFROM..vTO, FROM below TO), got {span!r}\n",
     )
 
 
@@ -285,6 +297,20 @@ async def test_repad_refuses_a_width_that_does_not_exceed_the_current_one(
         1,
         "error: new padding 6 must be greater than the current padding 6; padding can only "
         "increase (one-way format bump)\n",
+    )
+    task = await _shown(invoke, "task", 3)
+    assert task["path"] == "tasks/TASK-000003-build-the-query-parser.md"
+
+
+@pytest.mark.covers("migrate repad", "WIDTH")
+async def test_repad_refuses_a_width_above_the_maximum_and_renames_nothing(
+    populated_project, invoke
+) -> None:
+    result = await invoke(["migrate", "repad", "99"])
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: new padding 99 is above the maximum of 32 digits; padding can only increase, "
+        "so a width that wide could not be taken back\n",
     )
     task = await _shown(invoke, "task", 3)
     assert task["path"] == "tasks/TASK-000003-build-the-query-parser.md"

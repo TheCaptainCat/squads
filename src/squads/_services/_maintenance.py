@@ -60,6 +60,7 @@ from squads._models._index import SquadsDB
 from squads._models._item import (
     DEFAULT_ID_PADDING,
     DISPLAY_ID_PADDING,
+    MAX_ID_PADDING,
     Item,
     format_item_id,
     prefix_from_id,
@@ -91,6 +92,7 @@ from squads._services._duplicate_ids import (
     duplicate_groups,
     normalized_id,
     renumber_same_id_groups,
+    shared_number_groups,
 )
 from squads._services._results import (
     MigrationRun,
@@ -1471,6 +1473,7 @@ class MaintenanceMixin(ServiceCore):
                 previous_counter, previous_padding, known_corpus
             )
             await self._renumber()
+        await self._refuse_shared_numbers()
 
         db, unreadable, canonicalized, stripped = await self._rebuild_index_from_disk(
             rerun=rerun,
@@ -1513,6 +1516,18 @@ class MaintenanceMixin(ServiceCore):
             renumber_report=renumbered.lines,
             references_left=renumbered.references_left,
         )
+
+    async def _refuse_shared_numbers(self) -> None:
+        """Refuse, before the index is rebuilt, a number carried by files of different ids: the
+        index is keyed by number, so the rebuild would keep one file and hide the other."""
+        groups = shared_number_groups(await self._id_carriers())
+        if not groups:
+            return
+        lines = "\n".join(
+            f"  - {self._shared_number_message(number, files)}"
+            for number, files in sorted(groups.items())
+        )
+        raise SquadsError(f"refusing to rebuild the index: it keys items by number:\n{lines}")
 
     async def _renumber_same_id(
         self, previous_counter: int, padding: int, known_corpus: SquadsDB | None
@@ -1562,6 +1577,11 @@ class MaintenanceMixin(ServiceCore):
         afterwards to rebuild the index with the new padding and paths. Returns the number of files
         renamed.
         """
+        if new_padding > MAX_ID_PADDING:
+            raise SquadsError(
+                f"new padding {new_padding} is above the maximum of {MAX_ID_PADDING} digits; "
+                "padding can only increase, so a width that wide could not be taken back"
+            )
         db = await self.store.load(fresh=True)
         current = db.padding
         if new_padding <= current:

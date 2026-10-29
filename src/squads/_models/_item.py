@@ -26,6 +26,10 @@ REF_SEP = ":"
 #: Never used for display — see :data:`DISPLAY_ID_PADDING`.
 DEFAULT_ID_PADDING: int = 6
 
+#: The widest padding ``sq migrate repad`` accepts: far past any counter, and well inside the
+#: 255-byte filename limit once a prefix and a slug are added.
+MAX_ID_PADDING: int = 32
+
 #: Display padding is fixed at 0 (``PREFIX-7``): a constant, never stored or configurable, used by
 #: every human-facing surface (frontmatter ``id:``, refs, prose, CLI output). Filenames stay padded
 #: at :data:`DEFAULT_ID_PADDING` or the squad's ``SquadsDB.padding``, deliberately; format them with
