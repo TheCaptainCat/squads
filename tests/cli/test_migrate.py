@@ -174,6 +174,30 @@ async def test_up_refuses_an_extra_key_that_is_already_a_key_of_the_entry(
 
 
 @pytest.mark.covers("migrate up")
+async def test_up_flattens_the_mapping_of_a_squad_with_its_own_vocabulary(
+    override_project, invoke
+) -> None:
+    job = next((override_project.squad_dir / "jobs").glob("*.md"))
+    number = str(read_frontmatter(job)["sequence_id"])
+    mapped_now = await invoke(["job", number, "action", "1", "update", "--story", "1"])
+    assert mapped_now.exit_code == 0, mapped_now.output
+    before = read_frontmatter(job)["subentities"]
+    mapped = [e for e in before if "maps_to" in e]
+    assert mapped
+    text = job.read_text(encoding="utf-8")
+    job.write_text(text.replace("  maps_to: ", "  story: "), encoding="utf-8")
+    _edit(
+        override_project.root / ".squads.toml",
+        f'schema_version = "{SCHEMA_VERSION}"',
+        'schema_version = "0.17"',
+    )
+
+    result = await invoke(["migrate", "up"])
+    assert result.exit_code == 0, result.output
+    assert read_frontmatter(job)["subentities"] == before
+
+
+@pytest.mark.covers("migrate up")
 async def test_up_run_again_on_flat_entries_changes_no_file(tmp_path, monkeypatch, invoke) -> None:
     squad = shutil.copytree(SCHEMA_17_SQUAD, tmp_path / "old")
     monkeypatch.chdir(squad)
