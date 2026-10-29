@@ -370,6 +370,7 @@ CATEGORY_BUNDLES: dict[str, tuple[str, ...]] = {
         "subentity_title_present",
         "subentity_deferral_resolved",
         "subentity_mapping",
+        "subentity_kind_mismatch",
     ),
     "records": ("no_parent", "supersedes_incoming"),
 }

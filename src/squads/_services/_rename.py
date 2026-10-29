@@ -325,6 +325,7 @@ class RenameMixin(ServiceCore):
         if old == new:
             raise SquadsError(f"cannot rename field {old!r} to itself")
         scope = _FieldScope(set(types), set(kinds))
+        scoped = bool(scope.types or scope.kinds)
         scope.refuse_undeclared(self.spec)
         async with self.store.transaction() as db:
             await self._refuse_any_duplicated_id()
@@ -345,10 +346,9 @@ class RenameMixin(ServiceCore):
                     )
                 problems += self._entry_move_problems(item, kind, entries, old, new)
             if problems:
+                hint = "" if scoped else " (limit the move with --type or --kind)"
                 raise SquadsError(
-                    f"cannot rename field {old!r} to {new!r}: "
-                    + "; ".join(problems)
-                    + " (limit the move with --type or --kind)"
+                    f"cannot rename field {old!r} to {new!r}: " + "; ".join(problems) + hint
                 )
 
             snapshot = await _snapshot_files(self.paths, db)

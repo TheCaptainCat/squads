@@ -586,15 +586,15 @@ def _subentity_container_marker(ctx: ValidatorContext) -> list[CheckIssue]:
     if not stale:
         return []  # no container at all: `add-<kind>` writes one
     found = f"; the file carries {stale[0]!r}"
+    was = min(_block_kinds(item, ctx.raw_text) - {kind}, default=kind)
     level = _resolved_level(ctx, "subentity_container_marker")
     return [
         CheckIssue(
             level,
             item.id,
             f"no {plural!r} container section{found} — {kind!r} declares plural {plural!r}, "
-            f"so `sq {item.type} {item.sequence_id} add-{kind}` cannot write here. Revert "
-            f"subentity_kinds.{kind}.plural in the workflow override, or change it only "
-            f"while no {item.type} items exist",
+            f"so `sq {item.type} {item.sequence_id} add-{kind}` cannot write here; "
+            f"`sq migrate rename-kind {was} {kind}` brings the file to the declared plural",
             rule="subentity_container_marker",
         )
     ]
@@ -1128,6 +1128,17 @@ def _frontmatter_key_undeclared(ctx: ValidatorContext) -> list[CheckIssue]:
     return issues
 
 
+def _block_kinds(item: Item, text: str) -> set[str]:
+    """The kind names the block markers of *item*'s entries carry in *text*."""
+    tags = [t.removeprefix(markers.PREFIX) for t, _, _ in sections.iter_marker_spans(text)]
+    return {
+        found.group(1)
+        for entry in item.subentities
+        for tag in tags
+        if (found := re.fullmatch(rf"([\w-]+):{re.escape(entry.local_id)}", tag))
+    }
+
+
 def _subentity_kind_mismatch(ctx: ValidatorContext) -> list[CheckIssue]:
     """Every stored spelling of the item's sub-entity kind that is not the declared one: a block
     marker's kind tag, the container marker, a local id's prefix and a mapping's prefix. Each
@@ -1138,13 +1149,7 @@ def _subentity_kind_mismatch(ctx: ValidatorContext) -> list[CheckIssue]:
         return []
     level = _resolved_level(ctx, "subentity_kind_mismatch")
     prefix, plural = spec.subentity_kinds[kind].local_prefix, spec.subentity_plural(kind)
-    tags = [t.removeprefix(markers.PREFIX) for t, _, _ in sections.iter_marker_spans(text)]
-    block_kinds = {
-        found.group(1)
-        for entry in item.subentities
-        for tag in tags
-        if (found := re.fullmatch(rf"([\w-]+):{re.escape(entry.local_id)}", tag))
-    }
+    block_kinds = _block_kinds(item, text)
     old = min(block_kinds - {kind}, default=kind)
 
     def issue(message: str, was: str, now: str) -> CheckIssue:

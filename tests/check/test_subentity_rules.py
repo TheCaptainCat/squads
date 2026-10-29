@@ -155,11 +155,22 @@ async def test_a_container_marker_that_is_not_the_declared_plural_is_reported(
     noun = " ".join(address(carry))
     message = (
         "no 'subtasks' container section; the file carries 'chores' — 'subtask' declares "
-        f"plural 'subtasks', so `sq {noun} add-subtask` cannot write here. Revert "
-        "subentity_kinds.subtask.plural in the workflow override, or change it only while "
-        "no task items exist"
+        f"plural 'subtasks', so `sq {noun} add-subtask` cannot write here; "
+        "`sq migrate rename-kind subtask subtask` brings the file to the declared plural"
     )
-    assert await check_json() == ([issue("subentity_container_marker", "error", carry, message)], 3)
+    assert await check_json() == (
+        [
+            issue("subentity_container_marker", "error", carry, message),
+            issue(
+                "subentity_kind_mismatch",
+                "warn",
+                carry,
+                "container marker 'chores' is not 'subtasks'; "
+                "`sq migrate rename-kind subtask subtask` brings it to the declaration",
+            ),
+        ],
+        3,
+    )
 
 
 # subentity_body_written
@@ -460,7 +471,6 @@ def _mismatch(squad: Squad, level: str, message: str, verb_args: str) -> dict[st
 async def test_a_block_marker_carrying_another_kind_is_reported(
     squad, project, invoke, check_json, select_validators
 ) -> None:
-    select_validators("subentity_kind_mismatch", on="task")
     assert await check_json() == ([], 0)
 
     _rewrite_everywhere(project, squad.task, "sq:subtask:ST1", "sq:step:ST1")
@@ -483,7 +493,6 @@ async def test_a_block_marker_carrying_another_kind_is_reported(
 async def test_a_container_marker_that_is_not_the_plural_is_reported(
     squad, project, invoke, check_json, select_validators
 ) -> None:
-    select_validators("subentity_kind_mismatch", on="task")
     assert await check_json() == ([], 0)
 
     _rewrite_everywhere(project, squad.task, "sq:subtasks", "sq:steps")
@@ -503,9 +512,8 @@ async def test_a_container_marker_that_is_not_the_plural_is_reported(
                 "error",
                 squad.task,
                 "no 'subtasks' container section; the file carries 'steps' — 'subtask' declares "
-                "plural 'subtasks', so `sq task 6 add-subtask` cannot write here. Revert "
-                "subentity_kinds.subtask.plural in the workflow override, or change it only while "
-                "no task items exist",
+                "plural 'subtasks', so `sq task 6 add-subtask` cannot write here; "
+                "`sq migrate rename-kind subtask subtask` brings the file to the declared plural",
             ),
             _mismatch(
                 squad, "warn", "container marker 'steps' is not 'subtasks'", "subtask subtask"
@@ -519,7 +527,6 @@ async def test_a_container_marker_that_is_not_the_plural_is_reported(
 async def test_a_local_id_without_the_kind_prefix_is_reported(
     squad, project, invoke, check_json, select_validators
 ) -> None:
-    select_validators("subentity_kind_mismatch", on="task")
     assert await check_json() == ([], 0)
 
     _rewrite_everywhere(project, squad.task, "ST1", "XT1")

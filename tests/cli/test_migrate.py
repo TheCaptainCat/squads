@@ -938,6 +938,44 @@ async def _map_the_first_action_to_the_first_outcome(paths, invoke) -> None:
     await invoke(["repair"])
 
 
+RENAMED_INITIATIVE = (
+    "---\nid: INI-8\nsequence_id: 8\ntype: initiative\ntitle: Open the beta\nstatus: Draft\n"
+    "author: manager\nsubentities:\n- local_id: GO1\n  title: Fifty active teams\n"
+    "  status: Todo\n- local_id: GO2\n  title: A published roadmap\n  status: Todo\n"
+    "created_at: '2026-06-07T10:00:00Z'\nupdated_at: '2026-06-07T10:00:00Z'\n"
+    "horizon: '2026-12-01'\nthemes:\n- growth\nurgency: now\n---\n"
+    "<!-- sq:body -->\n## Description\n\n_TODO: describe this initiative._\n"
+    "<!-- sq:body:end -->\n\n## Discussion\n\n<!-- sq:discussion -->\n"
+    "- [2026-06-07T10:00:00Z] `squads` squads:\n"
+    "  - kind spellings brought from outcome to goal\n<!-- sq:discussion:end -->\n\n\n"
+    "## Desired Outcomes\n\n<!-- sq:goals -->\n\n"
+    "<!-- sq:goal:GO1 -->\n### GO1 — Fifty active teams\n\n<!-- sq:goal:GO1:body -->\n"
+    "Measured weekly.\n<!-- sq:goal:GO1:body:end -->\n\n#### Discussion\n\n"
+    "<!-- sq:goal:GO1:discussion -->\n<!-- sq:goal:GO1:discussion:end -->\n"
+    "<!-- sq:goal:GO1:end -->\n\n"
+    "<!-- sq:goal:GO2 -->\n### GO2 — A published roadmap\n\n<!-- sq:goal:GO2:body -->\n"
+    "Public.\n<!-- sq:goal:GO2:body:end -->\n\n#### Discussion\n\n"
+    "<!-- sq:goal:GO2:discussion -->\n<!-- sq:goal:GO2:discussion:end -->\n"
+    "<!-- sq:goal:GO2:end -->\n<!-- sq:goals:end -->\n"
+)
+RENAMED_INITIATIVE_SHOW = (
+    "╭───────────────────────────────────────────────╮\n"
+    "│ INI-8  (initiative)                           │\n"
+    "│ title: Open the beta                          │\n"
+    "│ status: Draft                                 │\n"
+    "│ urgency: 🔴 now                               │\n"
+    "│ horizon: 2026-12-01                           │\n"
+    "│ themes: growth                                │\n"
+    "│ author: manager                               │\n"
+    "│ file: initiatives/INI-000008-open-the-beta.md │\n"
+    "╰───────────────────────────────────────────────╯\n\n"
+    "## Description\n\n_TODO: describe this initiative._\n\n"
+    "Desired outcome  Status  Assignee  Title              \n"
+    "GO1              Todo              Fifty active teams \n"
+    "GO2              Todo              A published roadmap\n"
+)
+
+
 @pytest.mark.covers("migrate rename-kind", "OLD")
 @pytest.mark.covers("migrate rename-kind", "NEW")
 async def test_rename_kind_keeps_the_prefix_and_the_bodies_stay_reachable(
@@ -980,10 +1018,7 @@ async def test_rename_kind_moves_the_prefix_the_plural_and_the_mappings(
         "rename-kind done: outcome → goal, 2 item(s) rewritten\n" + CHECK_HINT,
     )
     initiative = _item_file(override_project, "initiatives", 8).read_text(encoding="utf-8")
-    assert "### GO1 — Fifty active teams" in initiative
-    assert "<!-- sq:goal:GO2:body -->" in initiative
-    assert "<!-- sq:goals -->" in initiative
-    assert "sq:outcome" not in initiative
+    assert initiative == RENAMED_INITIATIVE
     shown = await invoke(["initiative", "8", "goal", "1", "show"])
     assert shown.output.splitlines()[:4] == [
         "GO1 — Fifty active teams  (goal)",
@@ -994,11 +1029,7 @@ async def test_rename_kind_moves_the_prefix_the_plural_and_the_mappings(
     mapped = await invoke(["job", "9", "action", "1", "show"])
     assert mapped.output.splitlines()[1] == "  status: Todo   impact: large   Desired outcome: GO1"
     table = await invoke(["initiative", "8", "show"])
-    assert [line.split()[0] for line in table.output.splitlines() if line.startswith("GO")] == [
-        "GO1",
-        "GO2",
-    ]
-    assert "OC1" not in table.output
+    assert table.output == RENAMED_INITIATIVE_SHOW
     checked = await invoke(["check", "--json"])
     assert (checked.exit_code, checked.output) == (0, "[]\n")
 
@@ -1113,6 +1144,23 @@ async def test_rename_kind_logs_and_comments_on_each_item_it_rewrites(
     assert bullet == "- kind spellings brought from outcome to goal"
 
 
+JOB_FRONTMATTER = (
+    "id: JOB-9\nsequence_id: 9\ntype: job\ntitle: Write the onboarding guide\n"
+    "status: Draft\nparent: INI-8\nauthor: manager\n"
+    "subentities:\n- local_id: AC1\n  title: Draft the outline\n  status: Todo\n"
+    "  {entry_key}: large\n"
+    "- local_id: AC2\n  title: Record the walkthrough\n  status: Deferred\n"
+    "  deferred_to: REC-10\n"
+    "created_at: '2026-06-07T10:00:00Z'\nupdated_at: '2026-06-07T10:00:00Z'\n"
+    "owner_team: docs\nneeds_review: true\nwork_size: m\n{item_tail}: large\n"
+)
+
+
+def _frontmatter(path: Path) -> str:
+    """The frontmatter block of the item file at *path*."""
+    return path.read_text(encoding="utf-8").split("---\n")[1]
+
+
 @pytest.mark.covers("migrate rename-field", "--kind")
 async def test_rename_field_limited_to_a_kind_leaves_the_item_key_in_place(
     override_project, invoke
@@ -1126,8 +1174,7 @@ async def test_rename_field_limited_to_a_kind_leaves_the_item_key_in_place(
         "rename-field done: weight → impact, 0 item(s) and 1 sub-entity entry(ies) moved\n"
         + CHECK_HINT,
     )
-    text = job.read_text(encoding="utf-8")
-    assert ("  impact: large\n" in text, "\nweight: large\n" in text) == (True, True)
+    assert _frontmatter(job) == JOB_FRONTMATTER.format(entry_key="impact", item_tail="weight")
 
 
 @pytest.mark.covers("migrate rename-field", "--type")
@@ -1144,8 +1191,7 @@ async def test_rename_field_limited_to_a_type_leaves_the_entries_in_place(
         "rename-field done: weight → impact, 1 item(s) and 0 sub-entity entry(ies) moved\n"
         + CHECK_HINT,
     )
-    text = job.read_text(encoding="utf-8")
-    assert ("\nimpact: large\n" in text, "  weight: large\n" in text) == (True, True)
+    assert _frontmatter(job) == JOB_FRONTMATTER.format(entry_key="weight", item_tail="impact")
 
 
 @pytest.mark.covers("migrate rename-field", "--kind")
@@ -1161,4 +1207,51 @@ async def test_rename_field_refuses_a_scope_the_spec_does_not_declare(
         (1, "error: --kind 'nosuch' is not a sub-entity kind the active spec declares\n"),
         (1, "error: --type 'nosuch' is not an item type the active spec declares\n"),
     ]
+    assert _squad_bytes(override_project) == before
+
+
+@pytest.mark.covers("check", "--json")
+async def test_check_reports_a_changed_local_prefix_without_any_selection(
+    override_project, invoke
+) -> None:
+    override = override_project.squad_dir / ".overrides" / "workflow.toml"
+    override.write_text(
+        override.read_text(encoding="utf-8").replace('local_prefix = "OC"', 'local_prefix = "GO"'),
+        encoding="utf-8",
+    )
+
+    checked = await invoke(["check", "--json"])
+
+    verb = "`sq migrate rename-kind outcome outcome` brings it to the declaration"
+    assert (checked.exit_code, json.loads(checked.output)) == (
+        0,
+        [
+            {
+                "level": "warn",
+                "item": "INI-8",
+                "message": f"{local} does not start with prefix 'GO' of kind 'outcome'; {verb}",
+                "rule": "subentity_kind_mismatch",
+            }
+            for local in ("OC1", "OC2")
+        ],
+    )
+    await invoke(["migrate", "rename-kind", "outcome", "outcome"])
+    fixed = await invoke(["check", "--json"])
+    assert (fixed.exit_code, fixed.output) == (0, "[]\n")
+
+
+@pytest.mark.covers("migrate rename-field", "--type")
+async def test_rename_field_refusal_under_a_scope_does_not_suggest_a_scope(
+    override_project, invoke
+) -> None:
+    await _store_job_values_under_an_old_key(override_project, invoke)
+    before = _squad_bytes(override_project)
+
+    result = await invoke(["migrate", "rename-field", "weight", "urgency", "--type", "job"])
+
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: cannot rename field 'weight' to 'urgency': JOB-9: 'job' does not declare "
+        "'urgency'\n",
+    )
     assert _squad_bytes(override_project) == before
