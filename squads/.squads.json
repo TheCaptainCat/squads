@@ -1,6 +1,6 @@
 {
   "schema_version": "0.17",
-  "counter": 1258,
+  "counter": 1259,
   "padding": 6,
   "items": {
     "12": {
@@ -66014,7 +66014,7 @@
       ],
       "path": "tasks/TASK-001251-generic-badge-and-mapping-storage-and-the-0-19-schema-migrat.md",
       "created_at": "2026-10-29T19:55:06Z",
-      "updated_at": "2026-10-29T20:58:36Z",
+      "updated_at": "2026-10-29T21:10:19Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66092,7 +66092,7 @@
       ],
       "path": "tasks/TASK-001252-spec-derived-aliases-neutral-grammar-headings-and-override-s.md",
       "created_at": "2026-10-29T19:55:07Z",
-      "updated_at": "2026-10-29T21:01:30Z",
+      "updated_at": "2026-10-29T21:10:20Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66184,7 +66184,7 @@
       "type": "task",
       "title": "Mapping option, sub-entity messages and wire shapes from the spec",
       "slug": "mapping-option-sub-entity-messages-and-wire-shapes-from-the",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "--<target-kind> option and labels, spec-worded messages, JSON shapes by badge code and maps_to, render context",
       "parent": "FEAT-1249",
       "author": "tech-lead",
@@ -66202,7 +66202,7 @@
         {
           "local_id": "ST1",
           "title": "Mapping option named after the target kind",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -66252,7 +66252,7 @@
       ],
       "path": "tasks/TASK-001254-mapping-option-sub-entity-messages-and-wire-shapes-from-the.md",
       "created_at": "2026-10-29T19:55:09Z",
-      "updated_at": "2026-10-29T21:07:39Z",
+      "updated_at": "2026-10-29T21:08:41Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66517,6 +66517,116 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "TASK-1258"
+    },
+    "1259": {
+      "sequence_id": 1259,
+      "type": "review",
+      "title": "Review of the bundled vocabulary feature",
+      "slug": "review-of-the-bundled-vocabulary-feature",
+      "status": "ChangesRequested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1249",
+        "TASK-1251",
+        "TASK-1252",
+        "ADR-1250"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Badge keys move after the timestamps on first rewrite; normalise once in the runner",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Migration tests do not guard item top-level keys; fixture lacks priority and severity",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "story with an empty maps_to loses the mapping silently in the 0.19 runner",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Unknown entry keys with empty values are dropped on write",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "New tests read item files and the index directly and assert substrings (ADR-1172 rule 5)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "New priority and severity literals in services and the DTO adapter",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "MANUAL point 2 awaits the wire task; refusal hint sends the adopter to the roster",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Generated text made vague instead of derived: review gate, findings, tree fields",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001259-review-of-the-bundled-vocabulary-feature.md",
+      "created_at": "2026-10-29T21:09:02Z",
+      "updated_at": "2026-10-29T21:11:25Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1259"
     }
   }
 }

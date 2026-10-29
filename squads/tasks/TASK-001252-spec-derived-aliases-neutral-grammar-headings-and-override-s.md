@@ -35,7 +35,7 @@ subentities:
   status: Done
   story: US5
 created_at: '2026-10-29T19:55:07Z'
-updated_at: '2026-10-29T21:01:30Z'
+updated_at: '2026-10-29T21:10:20Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -208,4 +208,6 @@ Tests (1): on the override squad, `sq skill squads show` and the CLAUDE.md secti
     - A kind with `maps_to_parent = true` needs a host type whose `parent_required` type hosts a sub-entity kind; otherwise the spec is refused at load, naming both remedies.
     - New optional `heading` key on `[subentity_kinds.<kind>]` sets the container heading; without it the heading is the title-cased `plural` (docs/overrides.md entry for the writer). An override that renames a bundled kind's `plural` now keeps the bundled `heading` until it declares its own.
     - The squads skill, CLAUDE.md section and workflow cheatsheet read every example from the squad's own vocabulary instead of bundled type and kind names.
+- [2026-10-29T21:10:20Z] `reviewer` Paul Reviewer:
+  - Generated-text rewording reviewed in REV-1259 F8 (medium): derive the review gate, findings and tree fields from the spec instead of neutral words.
 <!-- sq:discussion:end -->

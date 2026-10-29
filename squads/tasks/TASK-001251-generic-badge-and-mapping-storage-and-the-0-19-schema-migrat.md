@@ -31,7 +31,7 @@ subentities:
   status: Done
   story: US6
 created_at: '2026-10-29T19:55:06Z'
-updated_at: '2026-10-29T20:58:36Z'
+updated_at: '2026-10-29T21:10:19Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -184,4 +184,6 @@ This repository's own squad is migrated later, at the release cut (see the guard
     Left for others:
     - The load-time refusal of the three old spellings (sibling task) must land for point (1) to hold. If the template context names differ from what that task and the wire task settle, adjust point (2).
     - The runner was not run on `squads/`.
+- [2026-10-29T21:10:19Z] `reviewer` Paul Reviewer:
+  - Reviewed in REV-1259: changes requested, findings F1 to F7.
 <!-- sq:discussion:end -->

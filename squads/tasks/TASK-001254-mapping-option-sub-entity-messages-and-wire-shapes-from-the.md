@@ -3,7 +3,7 @@ id: TASK-1254
 sequence_id: 1254
 type: task
 title: Mapping option, sub-entity messages and wire shapes from the spec
-status: Ready
+status: InProgress
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -18,7 +18,7 @@ description: --<target-kind> option and labels, spec-worded messages, JSON shape
 subentities:
 - local_id: ST1
   title: Mapping option named after the target kind
-  status: Todo
+  status: InProgress
   story: US4
 - local_id: ST2
   title: Clear flags for optional sub-entity fields
@@ -37,7 +37,7 @@ subentities:
   status: Todo
   story: US7
 created_at: '2026-10-29T19:55:09Z'
-updated_at: '2026-10-29T21:07:39Z'
+updated_at: '2026-10-29T21:08:41Z'
 ---
 <!-- sq:body -->
 ## Goal
