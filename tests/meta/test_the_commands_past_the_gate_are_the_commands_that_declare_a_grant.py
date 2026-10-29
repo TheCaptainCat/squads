@@ -11,6 +11,7 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
+from squads._api._ops import OPERATIONS
 from squads._cli import app
 from squads._cli._common import GATED_GROUPS, grants_by_command
 
@@ -53,13 +54,24 @@ def _every_command() -> list[tuple[str, ...]]:
     return [*top, *groups, *verbs]
 
 
+#: The command each operation that declares a grant serves, by operation name; an operation
+#: that declares one and has no row here fails the walk with its name.
+_COMMAND_OF_OPERATION: dict[str, str] = {}
+
+
 def _declared(direction: str) -> set[str]:
-    return {
+    on_commands = {
         f"{group} {name}"
         for group, group_app in _GATED_APPS.items()
         for name, grant in grants_by_command(group_app).items()
-        if (grant.behind if direction == "behind" else grant.ahead)
+        if grant.covers(behind=direction == "behind")
     }
+    on_operations = {
+        _COMMAND_OF_OPERATION[op.name]
+        for op in OPERATIONS
+        if op.grant is not None and op.grant.covers(behind=direction == "behind")
+    }
+    return on_commands | on_operations
 
 
 def _observed(direction: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> set[str]:

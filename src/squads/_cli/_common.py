@@ -11,7 +11,7 @@ import sys
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePath
-from typing import IO, Any, cast
+from typing import Any, cast
 
 import anyio
 import typer
@@ -29,9 +29,9 @@ from squads import _actor as actor
 from squads import _badges as badges
 from squads import _discussion as discussion
 from squads._cli._markup import escape_markup
-from squads._context import TerminalFacts, get_context, rebind
+from squads._cli._render._style import intent_style
+from squads._context import get_context, rebind
 from squads._errors import (
-    NeedsTerminal,
     NotInitializedError,
     RoleNotFoundError,
     SquadsError,
@@ -45,12 +45,12 @@ from squads._models._attributes import AttributeKey
 from squads._models._item import (
     DISPLAY_ID_PADDING,
     Item,
-    effective_prefix,
     format_item_id,
+    parse_item_token,
     split_ref,
 )
 from squads._models._omission import Omission
-from squads._models._participants import ANONYMOUS_SLUG, refuse_system_actor
+from squads._models._participants import refuse_system_actor
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._subentity import SubEntity
 from squads._paths import SquadPaths, process_dir, resolve
@@ -72,47 +72,14 @@ from squads._services._service import (
 )
 from squads._spec_documents import SpecSources, spec_sources
 from squads._specload import override_present
-from squads._workflow import CATEGORIES, ROSTER_OPERATOR, ROSTER_ROLE, bundled_spec
+from squads._util import article
+from squads._workflow import CATEGORIES, bundled_spec
 from squads._workflow._models import RESERVED_CLI_ALIASES, WorkflowSpec, reserved_alias_owner
 
 
-class _ReportedStream:
-    """A stream that answers ``isatty`` with the client's terminal fact and passes everything
-    else to the stream it wraps."""
-
-    def __init__(self, stream: Any, terminal: TerminalFacts, *, stderr: bool) -> None:
-        self._stream = stream
-        self._tty = terminal.stderr_tty if stderr else terminal.stdout_tty
-
-    def isatty(self) -> bool:
-        return self._tty
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._stream, name)
-
-
-def build_console(*, stderr: bool, terminal: TerminalFacts | None) -> Console:
-    """A console for the current stdio and environment; *terminal* (a served request's) decides
-    whether it is a terminal and how wide, in place of the process's own streams."""
-    if terminal is None:
-        return Console(stderr=stderr)
-    stream = _ReportedStream(sys.stderr if stderr else sys.stdout, terminal, stderr=stderr)
-    # The environment (COLUMNS, LINES, FORCE_COLOR, TTY_COMPATIBLE) outranks the terminal's own
-    # facts, as it does for a console on a real stream.
-    return Console(
-        file=cast(IO[str], stream),
-        stderr=stderr,
-        width=None if os.environ.get("COLUMNS", "").isdigit() else terminal.columns,
-        height=None if os.environ.get("LINES", "").isdigit() else terminal.lines,
-    )
-
-
-def build_consoles(terminal: TerminalFacts | None) -> tuple[Console, Console]:
+def build_consoles() -> tuple[Console, Console]:
     """The stdout and stderr consoles of one invocation."""
-    return (
-        build_console(stderr=False, terminal=terminal),
-        build_console(stderr=True, terminal=terminal),
-    )
+    return Console(), Console(stderr=True)
 
 
 class _ConsoleHandle:
@@ -129,7 +96,7 @@ class _ConsoleHandle:
         if ctx.consoles is not None:
             target = ctx.consoles[1 if self._stderr else 0]
         else:
-            target = build_console(stderr=self._stderr, terminal=ctx.terminal)
+            target = Console(stderr=self._stderr)
         return getattr(target, name)
 
 
@@ -737,24 +704,10 @@ def view_disable_result_message(
     return f"{item_id}: view {e(name)} disabled in sq:body"
 
 
-#: Concrete `rich` colour per colour intent in ``COLOR_INTENTS``: a total map plus a
-#: ``"neutral"`` entry that is also the fallback for an unrecognised intent.
-INTENT_COLORS: dict[str, str] = {
-    "positive": "green",
-    "danger": "red",
-    "warning": "yellow",
-    "info": "cyan",
-    "muted": "bright_black",
-    "neutral": "",
-}
-
-
 def status_style(status: str, spec: WorkflowSpec) -> str:
-    """The concrete `rich` style for *status* — joins ``status -> role_for(status).color ->
-    INTENT_COLORS``. An intent absent from the map (a future/custom colour word this build
-    doesn't know) falls back to the neutral (uncoloured) style rather than raising."""
-    intent = spec.role_for(status).color
-    return INTENT_COLORS.get(intent, INTENT_COLORS["neutral"])
+    """The concrete `rich` style for *status*: its role's colour intent, uncoloured when this
+    build does not know the intent."""
+    return intent_style(spec.role_for(status).color)
 
 
 def status_text(status: str, spec: WorkflowSpec) -> Text:
@@ -1224,36 +1177,9 @@ def client_path(file: str) -> Path:
     return base / file if base is not None else Path(file)
 
 
-def read_client_bytes(file: str, *, what: str = "file") -> bytes:
-    """The bytes of *file* as the command line names it: an attachment when the request carries
-    attachments, else the file under the client's directory. A name the request does not carry is
-    refused; a filesystem failure raises the :class:`OSError` naming *file* as it was given."""
-    attachments = get_context().attachments
-    if attachments is not None:
-        try:
-            return attachments[file]
-        except KeyError:
-            reason = "no stdin was attached" if file == "-" else "it was not attached"
-            raise SquadsError(f"cannot read {what} {file!r}: {reason}") from None
-    try:
-        return client_path(file).read_bytes()
-    except OSError as exc:
-        raise OSError(exc.errno, exc.strerror, file) from exc
-
-
 def _decode(raw: bytes, encoding: str) -> str:
     """*raw* read through a text stream, so newlines translate as a file read would."""
     return io.TextIOWrapper(io.BytesIO(raw), encoding=encoding).read()
-
-
-def read_client_file_text(file: str, *, what: str = "file") -> str:
-    """The text of *file* (see :func:`read_client_bytes`), ``-`` being stdin: the process's own,
-    or an attached one read in the client's stdin encoding. Raises what a read or decode raises."""
-    if file != "-":
-        return _decode(read_client_bytes(file, what=what), "utf-8")
-    if get_context().attachments is None:
-        return sys.stdin.read()
-    return _decode(read_client_bytes(file, what=what), sys.stdin.encoding or "utf-8")
 
 
 def not_text_refusal(exc: UnicodeDecodeError, file: str, what: str) -> SquadsError:
@@ -1264,14 +1190,13 @@ def not_text_refusal(exc: UnicodeDecodeError, file: str, what: str) -> SquadsErr
 
 
 def read_client_text(file: str, *, what: str = "file") -> str:
-    """The text of *file* as the command line names it: ``-`` is stdin, anything else a path.
-
-    A request that carries attachments serves both from them, stdin through the client's stdin
-    encoding; otherwise the filesystem and the process's stdin are read. Every failure is a
-    :class:`SquadsError` naming *file*.
-    """
+    """The text of *file* as the command line names it: ``-`` is stdin, anything else a path
+    under the client's directory, read as UTF-8. Every failure is a :class:`SquadsError` naming
+    *file*."""
     try:
-        return read_client_file_text(file, what=what)
+        if file == "-":
+            return sys.stdin.read()
+        return _decode(client_path(file).read_bytes(), "utf-8")
     except UnicodeDecodeError as exc:
         raise not_text_refusal(exc, file, what) from exc
     except OSError as exc:
@@ -1282,22 +1207,6 @@ def _read_source_file(file: str) -> str:
     """Read --file content: '-' reads stdin, anything else a real path. Shared by every
     content-source resolver (body, comment) so '-' and read errors behave identically."""
     return read_client_text(file).strip("\n")
-
-
-def confirm_or_signal(prompt: str) -> None:
-    """``typer.confirm(prompt, abort=True)`` where a terminal exists; in a served request, which
-    has none, :class:`NeedsTerminal` before anything is asked."""
-    if get_context().terminal is not None:
-        raise NeedsTerminal(prompt)
-    typer.confirm(prompt, abort=True)
-
-
-def prompt_or_signal(prompt: str) -> str:
-    """``typer.prompt`` for an optional answer, with the same served-request signal as
-    :func:`confirm_or_signal`."""
-    if get_context().terminal is not None:
-        raise NeedsTerminal(prompt)
-    return typer.prompt(prompt, default="", show_default=False)
 
 
 def resolve_body_optional(messages: list[str] | None, file: str | None) -> str | None:
@@ -1690,6 +1599,21 @@ def _close_read_scope(root: _click.core.Context) -> None:
     root.meta.pop(_BYPASS_SERVICE_META_KEY, None)
 
 
+#: ``click.Context.meta`` key for the notices this invocation has printed (see
+#: :func:`printed_notices`).
+_PRINTED_NOTICES_META_KEY = "squads.printed_notices"
+
+
+def printed_notices() -> set[str]:
+    """The notices this invocation has printed on stderr, so a response that carries one again
+    does not print it twice. Outside a Click invocation the set is fresh."""
+    root = _click_root_context()
+    if root is None:
+        return set()
+    printed: set[str] = root.meta.setdefault(_PRINTED_NOTICES_META_KEY, set())
+    return printed
+
+
 def working_language_notice() -> None:
     """Warn on stderr when ``working_language`` is not a language tag; English applies."""
     try:
@@ -1698,6 +1622,7 @@ def working_language_notice() -> None:
         return  # not in a squad, or an unreadable config
     _, problem = resolve_working_language(sp.config.working_language)
     if problem is not None:
+        printed_notices().add(problem)
         err_console.print(f"[yellow]warning:[/yellow] {e(problem)}", soft_wrap=True)
 
 
@@ -1862,52 +1787,14 @@ def get_squad_paths() -> SquadPaths:
     return resolve(client_cwd=get_context().client_cwd)
 
 
-_SILENT_H = ("hour", "honest", "honor", "heir")
-_CONSONANT_SOUND = ("uni", "use", "usu", "uti", "ubi", "eu", "one")
-
-
-def article(word: str) -> str:
-    """``"an"`` before a vowel sound, ``"a"`` before a consonant sound: ``an epic``, ``a unit``,
-    ``a user_story``, ``an hour``."""
-    w = word.lower()
-    if w.startswith(_SILENT_H):
-        return "an"
-    if w.startswith(_CONSONANT_SOUND):
-        return "a"
-    return "an" if w[:1] in ("a", "e", "i", "o", "u") else "a"
-
-
 def _mismatch_msg(label: str, actual_id: str, actual_type: str, expected_type: str) -> str:
     """Build a uniform type-mismatch error: ``"<label> is <id> (<type>), not a/an <type>"``."""
     return f"{label} is {actual_id} ({actual_type}), not {article(expected_type)} {expected_type}"
 
 
-def _parse_item_token(token: str) -> tuple[int, str | None]:
-    """Parse an item token into ``(sequence_number, prefix_or_None)``.
-
-    A bare number (``"35"``, ``"000035"``) gives ``(seq, None)``; a full ID (``"PREFIX-000035"``)
-    gives ``(seq, head_upper)``. Raises :class:`SquadsError` on unparseable input.
-    """
-    t = token.strip()
-    if t.isdigit():
-        return int(t), None
-    head, sep, num = t.rpartition("-")
-    if sep and num.isdigit():
-        return int(num), head.upper()
-    raise SquadsError(
-        f"invalid item id {token!r} (use a bare number or a full ID like TYPE-NNNNNN)"
-    )
-
-
-async def resolve_item_id_typed(token: str, item_type: str, svc: Service) -> str:
-    """Resolve a token (``35``, ``000035``, ``PREFIX-000035``) and verify the item's type.
-
-    Raises :class:`SquadsError` naming the real item and type on a mismatch, or naming both
-    accepted forms on an unknown item. The prefix comes from the per-invocation spec, so custom
-    types that declare their own prefix validate correctly. Takes ``svc`` like
-    :func:`resolve_slug_or_raise`; one DB read per call.
-    """
-    # Resolve the prefix from the active spec — the sole vocabulary source.
+def item_prefix(item_type: str) -> str:
+    """The id prefix of *item_type* in the active spec, refused for a type the spec does not
+    declare."""
     from squads._models._vocab import prefix_for
     from squads._workflow import dropped_via_selected
 
@@ -1921,9 +1808,40 @@ async def resolve_item_id_typed(token: str, item_type: str, svc: Service) -> str
             "[selected] list (selected.items) in .overrides/workflow.toml, not left "
             "undeclared — add it back to selected.items to restore it"
         )
-    prefix = prefix_for(item_type, spec)
+    return prefix_for(item_type, spec)
+
+
+def item_address(token: str, item_type: str) -> dict[str, str]:
+    """The address of an item a command names by *token*, parsed but not looked up: its id (the
+    number under the token's own prefix, or the type's), the type and the token as typed."""
+    prefix = item_prefix(item_type)
+    seq, given_prefix = parse_item_token(token)
+    item_id = format_item_id(given_prefix or prefix, seq, DISPLAY_ID_PADDING)
+    return {"id": item_id, "type": item_type, "address": token}
+
+
+def parsed_address(ctx: typer.Context, parse: Callable[[], dict[str, str]]) -> dict[str, Any]:
+    """An addressed group's ``ctx.obj`` from *parse*; a failure is raised unless help was
+    requested for the verb below, when it is deferred to the first read."""
+    try:
+        return parse()
+    except SquadsError as exc:
+        if not verb_help_requested(ctx):
+            raise
+        return UnresolvedAddress(exc)
+
+
+async def resolve_item_id_typed(token: str, item_type: str, svc: Service) -> str:
+    """Resolve a token (``35``, ``000035``, ``PREFIX-000035``) and verify the item's type.
+
+    Raises :class:`SquadsError` naming the real item and type on a mismatch, or naming both
+    accepted forms on an unknown item. The prefix comes from the per-invocation spec, so custom
+    types that declare their own prefix validate correctly. Takes ``svc`` like
+    :func:`resolve_slug_or_raise`; one DB read per call.
+    """
+    prefix = item_prefix(item_type)
     t = token.strip()
-    seq, given_prefix = _parse_item_token(token)
+    seq, given_prefix = parse_item_token(token)
     if given_prefix is not None and given_prefix != prefix:
         # Full ID with wrong prefix — look up the actual item so we can name it.
         db = await svc.store.load()
@@ -1947,23 +1865,9 @@ async def resolve_item_id_any(token: str, svc: Service) -> str:
     """Resolve a token to the full ID of whatever item owns that sequence number.
 
     A bare number or a full ID is accepted; the type word of a full ID is validated against the
-    actual owner. For type-less surfaces (``sq tree``, ``--parent``, ``ref add`` targets). One DB
-    read.
+    actual owner. For type-less surfaces (``sq tree``, ``--parent``, ``ref add`` targets).
     """
-    seq, given_prefix = _parse_item_token(token)
-    db = await svc.store.load()
-    item = db.get(str(seq))
-
-    if item is None:
-        hint = format_item_id("TYPE", seq, DISPLAY_ID_PADDING)  # display width
-        raise SquadsError(f"no item with number {seq} (use a full ID like {hint} or bare {seq})")
-
-    if given_prefix is not None:
-        expected_prefix = effective_prefix(item.prefix)
-        if given_prefix != expected_prefix:
-            raise SquadsError(f"{token} is {item.id} ({item.type})")
-
-    return item.id
+    return await svc.resolve_any_id(token)
 
 
 def is_full_id_shape(token: str) -> bool:
@@ -2461,7 +2365,9 @@ def _register_comment_remove(addr_app: typer.Typer, target: CommentTarget) -> No
                     highlight=False,
                 )
             n = len(found.group)
-            confirm_or_signal(f"Remove {'this comment' if n == 1 else f'these {n} comments'}?")
+            typer.confirm(
+                f"Remove {'this comment' if n == 1 else f'these {n} comments'}?", abort=True
+            )
         res = await svc.remove_comment(item_id, ctx.obj["hash"], as_slug=slug, sub=sub)
         if json_out:
             print_json_clean(
@@ -2561,6 +2467,14 @@ async def resolve_actor_or_raise(slug: str, svc: Service) -> str:
     return await resolve_slug_or_raise(slug, svc)
 
 
+def declare_actor(as_: str | None) -> None:
+    """Declare an optional ``--as`` as the actor of the call that follows, which checks it
+    against the roster; the system slug is refused here, before anything is read."""
+    if as_ is not None:
+        refuse_system_actor(as_)
+        actor.set_actor(as_)
+
+
 async def apply_edit_actor(as_: str | None, svc: Service) -> None:
     """Record an optional ``--as`` as the actor of the edit that follows, validated as a
     comment's is; without it the actor stays ``system``. Call it before any write."""
@@ -2569,59 +2483,9 @@ async def apply_edit_actor(as_: str | None, svc: Service) -> None:
 
 
 async def resolve_slug_or_raise(slug: str, svc: Service, *, live_only: bool = True) -> str:
-    """Validate ``slug`` against the roster (agents and operators) and return it normalised.
-
-    Raises :class:`SquadsError` naming the valid slugs when it is unknown; the legacy anonymous
-    ``"operator"`` sentinel is not validated. With ``live_only`` (default) a retired entry is
-    rejected, which the write paths (``--as``/``--author``/``--assignee`` on create, comment and
-    update) need; callers that read or filter by a participant (``--assignee`` on ``sq list`` and
-    ``sq tree``, ``sq mine``, ``sq inbox``) pass ``live_only=False`` so a retired role's items
-    and mentions stay reachable. A rejected slug that is retired rather than unknown names the
-    entry and the command that undoes it (:func:`_retired_participant_hint`).
-    """
-    normalised = slug.lstrip("@").lower()
-    if normalised == ANONYMOUS_SLUG:
-        return normalised
-    if live_only:
-        agent_slugs = [r.slug for r in await svc.roster()]
-        operator_slugs = [o.slug for o in await svc.operators()]
-        if normalised in agent_slugs or normalised in operator_slugs:
-            return normalised
-        retired = await _retired_participant_hint(svc, normalised)
-        if retired is not None:
-            raise SquadsError(retired)
-    else:
-        agent_slugs = [r.slug for r in await svc.roster_all()]
-        operator_slugs = [o.slug for o in await svc.operators_all()]
-        if normalised in agent_slugs or normalised in operator_slugs:
-            return normalised
-    valid = sorted(agent_slugs + operator_slugs)
-    hint = ", ".join(valid) if valid else "(none registered — run `sq init` or `sq operator add`)"
-    raise SquadsError(f"unknown slug {slug!r}; valid slugs: {hint}")
-
-
-async def _retired_participant_hint(svc: Service, slug: str) -> str | None:
-    """``slug``'s retired-but-known message for :func:`resolve_slug_or_raise`, or ``None`` when
-    *slug* is not in the full roster either (genuinely unknown).
-
-    Looks the slug up against the full (not live-only) roster/operator vocabulary — the one
-    extra call ``live_only`` skips when the slug already resolved — and names the entry plus
-    the reactivating command rather than leaving the operator to guess it.
-    """
-    role = await svc.roster_item(ROSTER_ROLE, slug)
-    if role is not None:
-        target = svc.spec.live_initial(ROSTER_ROLE)
-        return (
-            f"{slug!r} ({role.id}) is retired; reactivate it with `sq role {slug} status {target}`"
-        )
-    op = await svc.roster_item(ROSTER_OPERATOR, slug)
-    if op is not None:
-        target = svc.spec.live_initial(ROSTER_OPERATOR)
-        return (
-            f"{slug!r} ({op.id}) is retired; reactivate it with `sq operator {slug} status "
-            f"{target}`"
-        )
-    return None
+    """Validate ``slug`` against the roster (agents and operators) and return it normalised (see
+    :meth:`~squads._services._base.ServiceCore.resolve_participant`)."""
+    return await svc.resolve_participant(slug, live_only=live_only)
 
 
 def parse_type(value: str) -> str:

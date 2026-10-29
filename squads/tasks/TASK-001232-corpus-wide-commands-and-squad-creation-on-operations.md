@@ -37,7 +37,7 @@ subentities:
   status: Todo
   story: US2
 created_at: '2026-10-28T22:12:41Z'
-updated_at: '2026-10-28T22:28:28Z'
+updated_at: '2026-10-28T23:32:38Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -50,7 +50,8 @@ Move the corpus-wide commands and squad creation onto operations (ADR-1224 point
 - `init` and `adopt` are operations with `local_only` true: they create the squad a daemon is keyed on and never go through a daemon. `init --json` asks for no role names and keeps the defaults, as `--default-names` does (ADR-1224 point 3a). The role-name prompt of `init` sits before the call.
 - `import` reads its file (or `-`) in the CLI and sends the text in the request DTO (ADR-1225 section 2); its report carries the findings that give exit 3.
 - **`--json` on 8 keys** (ADR-1224 point 3a): `repair`, `renumber`, `migrate up`, `migrate repad`, `migrate rename-type`, `migrate rename-status`, `init`, `adopt`. Each prints its report.
-- **Removal sweep** (ADR-1224 point 4 and point 8): the pending list of the `_services` import guard is empty and removed; `get_service`, `get_service_bypassing_index_cross_check`, the root-context memo and the second bridge crossing go; the root callback's schema gate (`require_current_schema`, `apply_gate`) gives way to each operation's `grant`; the grant guard reads the operation table only; the CLI-side JSON builders (`build_item_json`, `build_item_row_json`, `build_subentity_json`, `build_role_json_payload`, `_view_json_payload` and any left) and every `_cli/_common.py` helper the earlier tasks left without a caller are deleted; `Service` parameters disappear from `_cli`.
+- **Removal sweep** (ADR-1224 point 4 and point 8): the pending list of the `_services` import guard is empty and removed; `get_service`, `get_service_bypassing_index_cross_check`, the root-context memo and the second bridge crossing go; the root callback's schema gate (`require_current_schema`, `apply_gate`) gives way to each operation's `grant`; the grant guard reads the operation table only; the CLI-side JSON builders (`build_item_json`, `build_item_row_json`, `build_subentity_json`, `build_role_json_payload`, `_view_json_payload` and any left) and every `_cli/_common.py` helper the earlier tasks left without a caller are deleted; `Service` parameters disappear from `_cli`. Also deleted: `_VERBS_ON_OPERATIONS` in `_cli/_items.py` and the `_resolve_in_store` branch of the item group callback, so the callback only parses (ADR-1224 point 1); and, once the CLI gates are gone, the bridge copy of the gate, so one remains: `Ground`/`Grant` in `_api/_api.py` and `check_grant` in `_services/_local_api.py` against `_cli/_common.py`'s `Ground`, `GateGrant` and `apply_gate`, and `_api.Mode` against `_services._service.Mode` (REV-1235 F10). Keep the operation-side gate and drop the CLI one; the refusal texts stay today's.
+- **Response warnings in `--json` mode** (REV-1235 F11). Today the root callback prints the working-language notice on stderr for every command, `--json` included; once it stops, the notice reaches a command only as a response `warnings` entry, which `--json` mode does not print. Decision: in `--json` mode the CLI prints the response's `warnings` on stderr, one line each, as human mode does, so stdout stays one JSON document; this matches how `omitted` already goes to stderr in `--json` mode. The change is in the one call helper every command uses, so every moved command gets it.
 - DTOs in `_api/_dto/_squad.py`; renderers in `_cli/_render/_squad.py`.
 
 ## Modules touched
@@ -61,13 +62,13 @@ Edited: `_cli/_main.py` (`repair`, `renumber`, `init`, `adopt`), `_cli/_migrate.
 
 - FEAT-1226 US1 for every command listed: one call (`init`/`adopt` local only), exit 3 on import findings, the schema hard stop with today's text, output and error text unchanged.
 - FEAT-1226 US2: the 8 flags print their report; `init --json` never prompts.
-- FEAT-1226 US3: no CLI-side JSON assembly is left anywhere; every `--json` is an operation's `data`.
+- FEAT-1226 US3: no CLI-side JSON assembly is left anywhere; every `--json` prints `data`, or the field its operation names. None of this task's operations sets `json_field`.
 - ADR-1224 points 2, 3a, 4 and 8 (increment 5): no `_cli` module other than the `LocalApi` factory imports `squads._services`, guard green with no pending list.
 
 ## Test approach (ADR-1172)
 
 - Existing surface suite as the proof, including the arranged-corpus cases rule 5 allows for `repair`, `migrate`, `adopt` and `renumber`; only additive `--json` expectation edits.
-- New surface cases: 8, one whole-document case per new flag with its `covers` marker; the `init --json` case asserts that no prompt reaches stdout.
+- New surface cases: 9. One whole-document case per new flag with its `covers` marker (8); the `init --json` case asserts that no prompt reaches stdout. One case for the `--json` warnings: `show --json` on a squad with an unrecognised `working_language` prints the notice on stderr and only the document on stdout (1).
 - Guards: the `_services` guard loses its pending list; the grant guard reads the table only.
 <!-- sq:body:end -->
 
@@ -120,7 +121,7 @@ _Add with `sq task 1232 add-subtask "<title>"`; track with `sq task 1232 subtask
 ### ST4 — Delete get_service, CLI gates and JSON builders
 
 <!-- sq:subtask:ST4:body -->
-The removal sweep (ADR-1224 points 4, 8): the `_services` guard's pending list is empty and removed; `get_service`, `get_service_bypassing_index_cross_check`, the root-context memo and the second bridge crossing are deleted; the root callback's schema gate (`require_current_schema`, `apply_gate`) gives way to each operation's `grant`, and the grant guard reads the operation table only; the CLI-side JSON builders (`build_item_json`, `build_item_row_json`, `build_subentity_json`, `build_role_json_payload`, `_view_json_payload` and any left) and every `_cli/_common.py` helper left without a caller are deleted; no `_cli` function takes a `Service`. Afterwards, `uv run vulture` on `_cli/` shows no new dead code. Held by the guards and the whole surface suite.
+The removal sweep (ADR-1224 points 4, 8): the `_services` guard's pending list is empty and removed; `get_service`, `get_service_bypassing_index_cross_check`, the root-context memo and the second bridge crossing are deleted; the root callback's schema gate (`require_current_schema`, `apply_gate`) gives way to each operation's `grant`, and the grant guard reads the operation table only; the CLI-side JSON builders (`build_item_json`, `build_item_row_json`, `build_subentity_json`, `build_role_json_payload`, `_view_json_payload` and any left) and every `_cli/_common.py` helper left without a caller are deleted; no `_cli` function takes a `Service`. Also deleted (REV-1235 F10): `_VERBS_ON_OPERATIONS` and the `_resolve_in_store` branch of the item group callback in `_cli/_items.py`, so the callback only parses; and the bridge copy of the schema gate, keeping the operation-side one (`Ground`/`Grant` in `_api/_api.py`, `check_grant` in `_services/_local_api.py`) and dropping `_cli/_common.py`'s `Ground`, `GateGrant` and `apply_gate`, with `_api.Mode` and `_services._service.Mode` reduced to one; refusal texts unchanged. Afterwards, `uv run vulture` on `_cli/` shows no new dead code. Held by the guards and the whole surface suite.
 <!-- sq:subtask:ST4:body:end -->
 
 #### Discussion
@@ -133,7 +134,7 @@ The removal sweep (ADR-1224 points 4, 8): the `_services` guard's pending list i
 ### ST5 — JSON output on the 8 corpus and creation keys
 
 <!-- sq:subtask:ST5:body -->
-`--json` on 8 keys (ADR-1224 point 3a): `repair`, `renumber`, `migrate up`, `migrate repad`, `migrate rename-type`, `migrate rename-status`, `init`, `adopt`, each printing its report. Tests: one whole-document case per key with its `covers` marker; the `init --json` case also asserts no prompt reaches stdout. Falsify each once. 8 tests.
+`--json` on 8 keys (ADR-1224 point 3a): `repair`, `renumber`, `migrate up`, `migrate repad`, `migrate rename-type`, `migrate rename-status`, `init`, `adopt`, each printing its report. Tests: one whole-document case per key with its `covers` marker; the `init --json` case also asserts no prompt reaches stdout. In `--json` mode the CLI prints the response's `warnings` on stderr, one line each, as human mode does and as `omitted` already goes, so the working-language notice survives the root callback no longer printing it (REV-1235 F11); one case: `show --json` on a squad with an unrecognised `working_language` prints the notice on stderr and only the document on stdout. Falsify each once. 9 tests.
 <!-- sq:subtask:ST5:body:end -->
 
 #### Discussion
@@ -146,4 +147,6 @@ The removal sweep (ADR-1224 points 4, 8): the `_services` guard's pending list i
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-28T23:32:38Z] `tech-lead` Olivia Lead:
+  - Body, ST4 and ST5 updated for REV-1235: F10 adds _VERBS_ON_OPERATIONS, the _resolve_in_store branch and the bridge gate copy to the deletions; F11 prints response warnings on stderr in --json mode. New cases 8 -> 9. The US3 line reads "data, or the field its operation names".
 <!-- sq:discussion:end -->

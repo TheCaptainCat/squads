@@ -26,8 +26,12 @@ subentities:
   title: JSON output on every command, in docs and changelog
   status: Todo
   story: US2
+- local_id: ST4
+  title: Reserved display key and attribute labels
+  status: Todo
+  story: US4
 created_at: '2026-10-28T22:12:43Z'
-updated_at: '2026-10-28T22:28:30Z'
+updated_at: '2026-10-28T23:33:10Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -37,12 +41,13 @@ Tell adopters what the command layer changes for them (FEAT-1226 US2, US3, US4):
 ## What it covers
 
 - **`docs/stability.md`** (ADR-1224 point 3, ADR-1225 section 3 "Client and server compatibility"):
-  - the shapes that had `--json` before this release keep their tier; the shapes that gain it now, and the display keys on every payload (`display`, `columns`, `rendered_body`, kind and ref-kind labels), are listed in Tier 3 under a provisional mark until the web front consumes them;
+  - the shapes that had `--json` before this release keep their tier; the shapes that gain it now, and the display keys on every payload (`display`, including `display.body` on the show result, `columns`, kind and ref-kind labels); that an item row reserves the one name `display`, and a declared attribute or badge field of that name is refused at load as any reserved name is; that `--json` prints `data` or, for the commands whose frozen document is an array, the one field the operation names, while HTTP clients get the whole `data`, are listed in Tier 3 under a provisional mark until the web front consumes them;
   - display values are of the display class: the key is frozen once the shape is, its content is not, and no client parses or compares it; the codes beside them keep their class, so a client that joins codes to the workflow catalogs is unaffected;
   - adding a field is compatible; removing, renaming or retyping one, or changing an operation incompatibly, ships as a schema change (a schema version bump and `sq migrate up`, after which a package and a squad, or a client and a daemon, at different schema versions refuse each other); the tier decides whether a change may happen at all;
   - one definition: the JSON a command prints is the body its route answers;
   - the `etag` key of the show result and the daemon's compatibility messages are documented with the daemon (TASK-1221), which links here for the rule.
 - **Command reference and guides** that describe `--json`: every command that prints a result accepts it; a write prints what it wrote, a corpus-wide command its report, the package-data commands their text or index; `init --json` never prompts; the commands with no result of their own (`ui`, the parse-only groups, bare `workflow`) take none.
+- **Reserved name and attribute labels** (ADR-1224 points 2 and 5): `display` reserved in Tier 3's item rows, its changelog entry shaped like the `views` one, and the 0.18 migration's manual step for renaming a declared `display`; the optional attribute `label` in the overrides docs and on `sq workflow types --json` rows.
 - **CHANGELOG**, unreleased section: one entry for `--json` on every command, one for the display keys, one for the compatibility rule. Entries may be added as each command group lands; this task owns their final wording.
 
 ## Acceptance
@@ -81,7 +86,7 @@ _Add with `sq task 1234 add-subtask "<title>"`; track with `sq task 1234 subtask
 ### ST2 — Display keys for adopters
 
 <!-- sq:subtask:ST2:body -->
-The display keys for adopters (ADR-1224 point 5): what `display`, `columns`, `rendered_body` and the kind and ref-kind labels carry, that their values are of the display class (no client parses or compares them), that the codes beside them keep their class, and how a front shows what the CLI shows without the vocabulary. CHANGELOG entry for the display keys.
+The display keys for adopters (ADR-1224 point 5): what `display` (with `display.body` on the show result), `columns` and the kind and ref-kind labels carry, that their values are of the display class (no client parses or compares them), that the codes beside them keep their class, and how a front shows what the CLI shows without the vocabulary. CHANGELOG entry for the display keys.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -102,9 +107,37 @@ Command reference and guides: every command that prints a result accepts `--json
 <!-- sq:subtask:ST3:discussion -->
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
+
+<!-- sq:subtask:ST4 -->
+### ST4 — Reserved display key and attribute labels
+
+<!-- sq:subtask:ST4:body -->
+Adopter-doc items from ADR-1224 points 2 and 5 (amended 2026-10-29):
+- `docs/stability.md`, Tier 3 item rows: `display` is a reserved name; an override that declares an attribute or badge field named `display` is refused at load, and an undeclared stored key of that name stays out of the row.
+- CHANGELOG, unreleased section: an entry naming the reserved `display` key and its refusal, shaped like the existing `views` entry.
+- The 0.18 migration's manual step, as `sq migrate chlog` prints it: an adopter who declares `display` renames it in the override and in the items that store it, choosing the new name; no migration renames it. Write the text; it is registered as the `manual` string of the 0.18 migration in `_migrations/_registry.py`. If no 0.18 migration record exists yet, raise it with the tech lead rather than creating one.
+- Overrides documentation: an attribute declaration takes an optional `label` (for example `target_date = { kind = "date", label = "target date" }`); a labelled attribute that an item stores is shown in `display.attributes` on `show`, in declared order.
+- `sq workflow types --json` rows carry each attribute's `label`, `null` when absent; document it where the catalog output is described.
+Every key and command named is checked against the built package on a scratch squad, including the load refusal of a declared `display` and `sq migrate chlog` printing the step.
+<!-- sq:subtask:ST4:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST4:discussion -->
+<!-- sq:subtask:ST4:discussion:end -->
+<!-- sq:subtask:ST4:end -->
 <!-- sq:subtasks:end -->
 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-28T23:13:25Z, edited 2026-10-28T23:13:34Z] `architect` Robert Architect:
+  - @tech-lead @tech-writer ADR-1224 amended 2026-10-29 (comment ad65a70). Three adopter-visible points for this task:
+  - The reserved attribute names become adopter-visible in docs/stability.md Tier 3, item rows: an attribute or badge field cannot be named after a key the row adds (`badges`, `body`, `discussion`, `display`, `matched_subentities`, `views`), nor `extra`, `path`, `prefix` or a core key. `display` is new: an override declaring it is refused at load with `'<type>': attribute 'display' is a reserved key — pick another name`, and a stored undeclared `display` key stays in the file and out of the row. Changelog entry in the shape of the existing `views` one. There is no `rendered_body` key: the expanded body is `display.body` on `show --json`.
+  - "One definition" in the body is not exact any more: the HTTP body is the whole `data`; `--json` prints `data`, or, for the 29 commands whose frozen document is an array (or, for `workflow view`, the source's own shape), the one field of it that keeps that document, so `columns` and `hidden` are HTTP-only there.
+  - The display-keys list should drop `rendered_body`.
+- [2026-10-28T23:32:39Z] `tech-lead` Olivia Lead:
+  - Body and ST2 aligned with ADR-1224 amended 2026-10-29: display.body instead of rendered_body, the one reserved name display, json_field for array documents.
+- [2026-10-28T23:33:10Z] `tech-lead` Olivia Lead:
+  - ST4 added for the architect items: display reserved in Tier 3 with a changelog entry like the views one and the 0.18 manual step for renaming a declared display; the optional attribute label in the overrides docs and on sq workflow types --json rows. New tests: 0.
 <!-- sq:discussion:end -->

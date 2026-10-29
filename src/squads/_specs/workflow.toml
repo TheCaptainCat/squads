@@ -520,7 +520,7 @@ ref_rules = []
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 
 [items.milestone.attributes]
-target_date = { kind = "date" }
+target_date = { kind = "date", label = "target date" }
 # The roll-up is placed by a `sq:view:milestone_rollup` tag seeded into
 # `templates/items/milestone.md.j2`'s `sq:body` region, the same mechanism `role_definition`/
 # `squads_skill`/`greeting_skill`/`memory_skill`/`item_skill` use — see the `[views]` block

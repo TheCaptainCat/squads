@@ -132,3 +132,18 @@ def version_tuple(version: str) -> VersionKey:
     post = int(m["post_n"] or 0) if has_post else -1
     dev = int(m["dev_n"] or 0) if has_dev else _NO_DEV
     return (release, pre, post, dev)
+
+
+_SILENT_H = ("hour", "honest", "honor", "heir")
+_CONSONANT_SOUND = ("uni", "use", "usu", "uti", "ubi", "eu", "one")
+
+
+def article(word: str) -> str:
+    """``"an"`` before a vowel sound, ``"a"`` before a consonant sound: ``an epic``, ``a unit``,
+    ``a user_story``, ``an hour``."""
+    w = word.lower()
+    if w.startswith(_SILENT_H):
+        return "an"
+    if w.startswith(_CONSONANT_SOUND):
+        return "a"
+    return "an" if w[:1] in ("a", "e", "i", "o", "u") else "a"

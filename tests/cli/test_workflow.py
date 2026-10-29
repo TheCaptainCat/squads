@@ -145,6 +145,10 @@ async def test_types_json_prints_one_object_per_type(project, invoke) -> None:
             "plural_lower": "tasks",
         },
     }
+    milestone = _one(entries, "type", "milestone")
+    assert milestone["attributes"] == {
+        "target_date": {"kind": "date", "required": False, "settable": True, "label": "target date"}
+    }
 
 
 async def test_subentity_kinds_lists_every_declared_kind(project, invoke) -> None:

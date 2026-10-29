@@ -22,13 +22,15 @@ type AttributeKind = Literal["str", "list", "bool", "date"]
 
 class AttributeSpec(BaseModel):
     """One declared attribute of an item type: the kind of value it holds, whether ``sq check``
-    requires it, and whether ``sq update --set`` may write it."""
+    requires it, whether ``sq update --set`` may write it, and the label it is shown under."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     kind: AttributeKind
     required: bool = False
     settable: bool = True
+    #: The name ``show`` displays the attribute under; an attribute without one is not displayed.
+    label: str | None = None
 
 
 class AttributeKey:
@@ -97,6 +99,7 @@ ROW_ADDED_KEYS: tuple[str, ...] = (
     "badges",
     "body",
     "discussion",
+    "display",
     "matched_subentities",
     "views",
 )

@@ -22,6 +22,7 @@ from squads._services._board import BoardMixin
 from squads._services._check import CheckMixin
 from squads._services._collab import CollabMixin
 from squads._services._import import ImportMixin
+from squads._services._item_ops import ItemOpsMixin
 from squads._services._items import ItemsMixin
 from squads._services._maintenance import MaintenanceMixin, ensure_root_tmp_ignored
 from squads._services._memory import MemoryMixin
@@ -44,6 +45,7 @@ from squads._workflow._models import WorkflowSpec
 
 
 class Service(
+    ItemOpsMixin,
     ImportMixin,
     ItemsMixin,
     CollabMixin,

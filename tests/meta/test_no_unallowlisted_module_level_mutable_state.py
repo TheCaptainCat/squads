@@ -71,7 +71,7 @@ ALLOWLIST: dict[str, frozenset[str]] = {
     "src/squads/_cli/_create.py": frozenset(
         {"_create_spec"}  # bundled spec used to statically register `sq create <type>`
     ),
-    "src/squads/_cli/_common.py": frozenset(
+    "src/squads/_cli/_render/_style.py": frozenset(
         {
             "INTENT_COLORS"  # closed intent->rich-colour lookup table — immutable-by-convention
             # CODE constant, shared read-only across requests

@@ -4,6 +4,7 @@ Pure presentation over the workflow spec's declared collections/fields — no di
 sub-entity concerns live here (see :mod:`squads._discussion` for that).
 """
 
+import math
 import re
 from collections.abc import Callable
 
@@ -182,3 +183,14 @@ def badge_render(
     emoji, raw_code, label = badge_parts(collection_code, code, spec)
     text = label if as_label else raw_code
     return f"{emoji} {text}"
+
+
+def badge_rank(type_or_kind: str, field_code: str, value: str | None, spec: WorkflowSpec) -> float:
+    """The position of *value* in the ordered collection *type_or_kind* binds *field_code* to
+    (lower first); a value that does not resolve sorts last."""
+    collection = declared_collection(type_or_kind, field_code, spec)
+    coll = spec.collections.get(collection) if collection else None
+    if coll is None or value is None:
+        return math.inf
+    codes = [b.code for b in coll.badges]
+    return codes.index(value) if value in codes else math.inf

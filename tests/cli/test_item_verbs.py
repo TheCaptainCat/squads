@@ -390,22 +390,189 @@ SHOWN_HEAD = [
 PLACEHOLDER = "_Describe this subtask here — free-form paragraphs or bullet lists._"
 
 
+def _subtask_json(local_id: str, title: str, story: str | None) -> dict[str, Any]:
+    status = {"badge": "⚪ Todo", "intent": "neutral"}
+    return {
+        "local_id": local_id,
+        "title": title,
+        "status": "Todo",
+        "assignee": None,
+        "severity": None,
+        "story": story,
+        "deferred_to": None,
+        "extra": {},
+        "body": PLACEHOLDER,
+        "badges": {},
+        "discussion": [],
+        "display": {
+            "type": "Subtask",
+            "status": status,
+            "badges": {},
+            "assignee": None,
+            "story": story,
+            "carrier_title": None,
+        },
+    }
+
+
 @pytest.mark.covers("<type> show", "--json")
 async def test_show_json_prints_the_item_as_one_object(populated_project, invoke) -> None:
-    item = await _show(invoke)
-    assert {
-        k: item[k] for k in ("id", "type", "title", "status", "parent", "author", "labels", "refs")
-    } == {
-        "id": "TASK-3",
+    body = "## Description\n\n_TODO: describe this task._"
+    expected = {
+        "sequence_id": 3,
         "type": "task",
         "title": "Build the query parser",
+        "slug": "build-the-query-parser",
         "status": "Draft",
+        "description": "",
         "parent": "FEAT-2",
         "author": "manager",
+        "assignee": None,
+        "priority": None,
+        "severity": None,
         "labels": [],
         "refs": [],
+        "subentities": [
+            _subtask_json("ST1", "Tokenise the input", "US1"),
+            _subtask_json("ST2", "Parse the operators", None),
+        ],
+        "path": TASK_PATH,
+        "created_at": FROZEN_STAMP,
+        "updated_at": FROZEN_STAMP,
+        "created_session": None,
+        "modified_session": None,
+        "id": "TASK-3",
+        "body": body,
+        "views": {},
+        "discussion": [],
+        "badges": {},
+        "display": {
+            "type": "Task",
+            "status": {"badge": "⚪ Draft", "intent": "neutral"},
+            "badges": {},
+            "assignee": None,
+            "body": body,
+            "summary": {
+                "kind": "subtask",
+                "columns": ["Subtask", "Status", "Assignee", "Title", "Story"],
+                "rows": [
+                    ["ST1", "Todo", "", "Tokenise the input", "US1"],
+                    ["ST2", "Todo", "", "Parse the operators", ""],
+                ],
+            },
+            "attributes": [],
+        },
     }
-    assert [s["local_id"] for s in item["subentities"]] == ["ST1", "ST2"]
+    # Compared as text, so the key order is held as well as the content.
+    output = await _ok(invoke, ["task", str(TASK), "show", "--json"])
+    assert output == json.dumps(expected, indent=2) + "\n"
+
+
+async def test_show_prints_a_milestone_with_its_labelled_target_date_in_every_form(
+    populated_project, invoke
+) -> None:
+    out = await _ok(invoke, ["create", "milestone", "Beta", "--author", "manager"])
+    number = re.match(r"created MILE-(\d+)", out)
+    assert number, out
+    await _ok(invoke, ["milestone", number[1], "update", "--set", "target_date=2026-12-01"])
+    scope = (
+        "## Objective\n\n_TODO: what reaching this milestone means — the outcome it marks, in "
+        "one or two sentences._\n\n## Scope boundary\n\n_TODO: what counts toward this milestone "
+        "and what doesn't. Membership itself is never listed\nhere — join work to it with `ref "
+        "add MILE-… --kind targets` and read `sq milestone <n> show`\nfor the current roll-up, "
+        "computed fresh from the corpus every time._\n\n"
+    )
+    rollup = (
+        "## Delivered (0)\n\n_(none yet)_\n\n## Outstanding (0)\n\n_(nothing outstanding)_"
+        "\n\n## Settled without delivering (0)\n\n_(none)_"
+    )
+    expected = {
+        "sequence_id": 5,
+        "type": "milestone",
+        "title": "Beta",
+        "slug": "beta",
+        "status": "Draft",
+        "description": "",
+        "parent": None,
+        "author": "manager",
+        "assignee": None,
+        "priority": None,
+        "severity": None,
+        "labels": [],
+        "refs": [],
+        "subentities": [],
+        "path": "milestones/MILE-000005-beta.md",
+        "created_at": FROZEN_STAMP,
+        "updated_at": FROZEN_STAMP,
+        "created_session": None,
+        "modified_session": None,
+        "id": "MILE-5",
+        "target_date": "2026-12-01",
+        "body": scope + "<!-- sq:view:milestone_rollup -->",
+        "views": {"milestone_rollup": {"delivered": [], "outstanding": [], "settled": []}},
+        "discussion": [],
+        "badges": {},
+        "display": {
+            "type": "Milestone",
+            "status": {"badge": "⚪ Draft", "intent": "neutral"},
+            "badges": {},
+            "assignee": None,
+            "body": scope + rollup,
+            "summary": None,
+            "attributes": [{"key": "target_date", "label": "target date", "value": "2026-12-01"}],
+        },
+    }
+    output = await _ok(invoke, ["milestone", number[1], "show", "--json"])
+    assert output == json.dumps(expected, indent=2) + "\n"
+    rollup_lines = [
+        "## Delivered (0)",
+        "",
+        "_(none yet)_",
+        "",
+        "## Outstanding (0)",
+        "",
+        "_(nothing outstanding)_",
+        "",
+        "## Settled without delivering (0)",
+        "",
+        "_(none)_",
+    ]
+    shown = await _ok(invoke, ["milestone", number[1], "show"])
+    assert [line.rstrip() for line in shown.splitlines()] == [
+        "╭──────────────────────────────────────╮",
+        "│ MILE-5  (milestone)                  │",
+        "│ title: Beta                          │",
+        "│ status: Draft                        │",
+        "│ target date: 2026-12-01              │",
+        "│ author: manager                      │",
+        "│ file: milestones/MILE-000005-beta.md │",
+        "╰──────────────────────────────────────╯",
+        "",
+        "## Objective",
+        "",
+        "_TODO: what reaching this milestone means — the outcome it marks, in one or two",
+        "sentences._",
+        "",
+        "## Scope boundary",
+        "",
+        "_TODO: what counts toward this milestone and what doesn't. Membership itself is",
+        "never listed",
+        "here — join work to it with `ref add MILE-… --kind targets` and read `sq",
+        "milestone <n> show`",
+        "for the current roll-up, computed fresh from the corpus every time._",
+        "",
+        *rollup_lines,
+    ]
+    raw = await _ok(invoke, ["milestone", number[1], "show", "--raw"])
+    assert raw.splitlines() == [
+        "# MILE-5 — Beta",
+        "",
+        "- **status:** Draft",
+        "- **target date:** 2026-12-01",
+        "- **author:** manager",
+        "",
+        *(scope + rollup).splitlines(),
+    ]
 
 
 @pytest.mark.covers("<type> show", "--raw")
@@ -501,6 +668,70 @@ async def test_status_attributes_the_move_to_the_named_slug(populated_project, i
     await _ok(invoke, ["task", str(TASK), "status", "Ready", "--as", "manager"])
     await _ok(invoke, ["task", str(TASK), "status", "InProgress"])
     assert await _actors(invoke, f"TASK-{TASK}", "status") == ["manager", "system"]
+
+
+@pytest.mark.covers("<type> status", "--json")
+async def test_status_json_prints_the_moved_items_row(populated_project, invoke) -> None:
+    moved = await _ok(invoke, ["task", str(TASK), "status", "Ready", "--json"])
+    # Compared as text, so the key order is held as well as the content.
+    assert (
+        moved
+        == json.dumps(
+            {
+                "sequence_id": 3,
+                "type": "task",
+                "title": "Build the query parser",
+                "slug": "build-the-query-parser",
+                "status": "Ready",
+                "description": "",
+                "parent": "FEAT-2",
+                "author": "manager",
+                "assignee": None,
+                "priority": None,
+                "severity": None,
+                "labels": [],
+                "refs": [],
+                "subentities": [
+                    {
+                        "local_id": "ST1",
+                        "title": "Tokenise the input",
+                        "status": "Todo",
+                        "assignee": None,
+                        "severity": None,
+                        "story": "US1",
+                        "deferred_to": None,
+                        "extra": {},
+                    },
+                    {
+                        "local_id": "ST2",
+                        "title": "Parse the operators",
+                        "status": "Todo",
+                        "assignee": None,
+                        "severity": None,
+                        "story": None,
+                        "deferred_to": None,
+                        "extra": {},
+                    },
+                ],
+                "path": TASK_PATH,
+                "created_at": FROZEN_STAMP,
+                "updated_at": FROZEN_STAMP,
+                "created_session": None,
+                "modified_session": None,
+                "id": "TASK-3",
+                "badges": {},
+                "display": {
+                    "type": "Task",
+                    "status": {"badge": "⚪ Ready", "intent": "neutral"},
+                    "badges": {},
+                    "assignee": None,
+                },
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    assert (await _show(invoke))["status"] == "Ready"
 
 
 async def test_status_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:

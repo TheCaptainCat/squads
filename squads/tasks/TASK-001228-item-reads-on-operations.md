@@ -3,9 +3,10 @@ id: TASK-1228
 sequence_id: 1228
 type: task
 title: Item reads on operations
-status: Ready
+status: InProgress
 parent: FEAT-1226
 author: tech-lead
+assignee: python-dev
 priority: high
 refs:
 - ADR-1224:implements
@@ -30,7 +31,7 @@ subentities:
   status: Todo
   story: US4
 created_at: '2026-10-28T22:12:37Z'
-updated_at: '2026-10-28T22:28:26Z'
+updated_at: '2026-10-28T23:59:02Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -42,6 +43,7 @@ Move the item read commands onto one operation each (ADR-1224 point 8, increment
 - One operation per command in the item-reads section of `_api/_ops.py`, bound in `_services/_bindings.py`, all `GET` with flat request DTOs (filters as query fields, repeated list fields such as `badge`), routes per ADR-1225 section 1 (`/v1/tree`, `/v1/graph`, `/v1/search`, `/v1/inbox/{slug}`, `/v1/mine/{slug}`, `/v1/items/{id}/refs`, `/v1/items/{id}/comments`, `/v1/items/{id}/subentities[/{local}]`; `blocked` and `workload` at the paths the table assigns). Timeout class `standard`.
 - What each command calls more than once today folds into its one operation: `tree`'s hidden count and its `--json` blocked flags; `sq show`'s eight reads (it reuses the item show operation of TASK-1227); the roster lookups behind `inbox`/`mine` slugs, which become the operation's not-found error.
 - The `tree` request takes the same filter fields as `sq tree` (filter, `include_closed`), because the terminal UI's browse screen calls it (ADR-1224 point 7).
+- **`json_field`** (ADR-1224 points 3 and 4, amended 2026-10-29): `data` is always an object. `tree`, `search`, `inbox`, `mine`, `blocked`, `workload`, `<type> <n> comments` and the sub-entity lists keep their bare-array `--json` by setting `json_field = "items"` (the root nodes for `tree`, the hits for `search`), so `columns`, `hidden` and any other sibling reach human mode and HTTP only. `graph`, `refs`, `sq show` and sub-entity show are objects and set none. A display value added to an item row (the `mine` rows) goes inside `display`, never beside it.
 - DTOs in new per-resource modules: `_api/_dto/_tree.py`, `_graph.py`, `_search.py`, `_queues.py` (inbox, mine, blocked, workload), `_subentities.py`, `_comments.py`, `_refs.py`. Fields in today's emitted order, which Tier 3 freezes for `search`, `tree` and `graph`; display keys appended.
 - Display content (ADR-1224 point 5): the `display` object on every tree node, graph node, search hit and sub-entity; `columns` on `workload` and the sub-entity summaries; a sub-entity kind's plural and container heading; a ref kind's label on `refs` rows and graph edges. The tree DTO's display names carry pronouns as `[display] pronouns` says, which the terminal UI needs instead of its two roster calls.
 - Renderers in new modules `_cli/_render/_tree.py`, `_graph.py`, `_search.py`, `_queues.py`, `_subentities.py`, `_comments.py`, `_refs.py`.
@@ -54,7 +56,7 @@ New: the DTO and renderer modules above. Edited: `_cli/_main.py` (`show_any`, `t
 ## Acceptance
 
 - FEAT-1226 US1 for every command listed: one call, exit-2 refusals unchanged, existence and roster checks in the operation, partial reads still exit 4 after printing, warnings on stderr.
-- FEAT-1226 US3: each `--json` prints the operation's `data`.
+- FEAT-1226 US3: each `--json` prints `data`, or the field its operation names.
 - FEAT-1226 US4: display on tree nodes, graph nodes, search hits and sub-entities; columns; kind plurals and headings; ref-kind labels; renderers pass the `_cli/_render/` guard.
 - ADR-1224 points 1, 3, 5 and 8 (increment 1). Tier 3 order of `search`, `tree` and `graph` unchanged.
 
@@ -127,4 +129,8 @@ Display content for the item reads (ADR-1224 point 5): the `display` object on e
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-28T23:13:20Z] `architect` Robert Architect:
+  - @tech-lead ADR-1224 amended 2026-10-29 (comment ad65a70), points 2, 3 and 4. For this task: `data` is always an object; `tree`, `search`, `inbox`, `mine`, `blocked`, `workload`, `<type> <n> comments` and the sub-entity lists keep their bare-array `--json` by setting the operation's new `json_field` (`items`: the root nodes for `tree`, the hits for `search`), so `columns`, `hidden` and any other sibling go to human mode and HTTP only. `graph`, `refs`, `sq show` and sub-entity show are objects and set none. The US3 acceptance line ("each `--json` prints the operation's `data`") should read "`data`, or the field its operation names". Any display value added to an item row (`mine` rows) goes inside `display`, never beside it.
+- [2026-10-28T23:32:32Z] `tech-lead` Olivia Lead:
+  - Body updated per the architect (ADR-1224 amended 2026-10-29): the json_field share for this task and the US3 acceptance line ("data, or the field its operation names"). Test count unchanged.
 <!-- sq:discussion:end -->

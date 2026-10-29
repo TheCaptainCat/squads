@@ -49,8 +49,17 @@ from squads._language import WorkingLanguage, resolve_working_language
 from squads._models import _markers as markers
 from squads._models._attributes import AttributeKey
 from squads._models._index import SquadsDB
-from squads._models._item import Item, make_ref, split_ref
+from squads._models._item import (
+    DISPLAY_ID_PADDING,
+    Item,
+    effective_prefix,
+    format_item_id,
+    make_ref,
+    parse_item_token,
+    split_ref,
+)
 from squads._models._participants import (
+    ANONYMOUS_SLUG,
     OPERATOR_SLUG_PREFIX,
     group_verb_problem,
     operator_slug_problem,
@@ -1403,6 +1412,74 @@ class ServiceCore:
     async def operators_all(self) -> list[OperatorView]:
         """Every operator entry regardless of status."""
         return await self.roster_projection.operators_all()
+
+    async def resolve_participant(self, slug: str, *, live_only: bool = True) -> str:
+        """Validate *slug* against the roster (agents and operators) and return it normalised.
+
+        Raises :class:`SquadsError` naming the valid slugs when it is unknown; the legacy anonymous
+        sentinel is not validated. With *live_only* a retired entry is refused, naming the entry and
+        the command that reactivates it; a read or a filter by a participant passes ``False`` so a
+        retired role's items and mentions stay reachable.
+        """
+        normalised = slug.lstrip("@").lower()
+        if normalised == ANONYMOUS_SLUG:
+            return normalised
+        if live_only:
+            agent_slugs = [r.slug for r in await self.roster()]
+            operator_slugs = [o.slug for o in await self.operators()]
+            if normalised in agent_slugs or normalised in operator_slugs:
+                return normalised
+            retired = await self._retired_participant_hint(normalised)
+            if retired is not None:
+                raise SquadsError(retired)
+        else:
+            agent_slugs = [r.slug for r in await self.roster_all()]
+            operator_slugs = [o.slug for o in await self.operators_all()]
+            if normalised in agent_slugs or normalised in operator_slugs:
+                return normalised
+        valid = sorted(agent_slugs + operator_slugs)
+        hint = (
+            ", ".join(valid) if valid else "(none registered — run `sq init` or `sq operator add`)"
+        )
+        raise SquadsError(f"unknown slug {slug!r}; valid slugs: {hint}")
+
+    async def _retired_participant_hint(self, slug: str) -> str | None:
+        """The retired-entry refusal for *slug*, or ``None`` when no roster entry has it."""
+        role = await self.roster_item(ROSTER_ROLE, slug)
+        if role is not None:
+            target = self.spec.live_initial(ROSTER_ROLE)
+            return (
+                f"{slug!r} ({role.id}) is retired; reactivate it with `sq role {slug} status "
+                f"{target}`"
+            )
+        op = await self.roster_item(ROSTER_OPERATOR, slug)
+        if op is not None:
+            target = self.spec.live_initial(ROSTER_OPERATOR)
+            return (
+                f"{slug!r} ({op.id}) is retired; reactivate it with `sq operator {slug} status "
+                f"{target}`"
+            )
+        return None
+
+    async def adopt_declared_actor(self) -> None:
+        """Validate the actor the request declares against the live roster and record it
+        normalised; without one the actor stays the system's."""
+        declared = actor.declared_actor()
+        if declared is not None:
+            actor.set_actor(await self.resolve_participant(declared))
+
+    async def resolve_any_id(self, token: str) -> str:
+        """The id of whatever item owns *token*'s number; a full id's prefix must be its owner's."""
+        seq, given_prefix = parse_item_token(token)
+        item = (await self.store.load()).get(str(seq))
+        if item is None:
+            hint = format_item_id("TYPE", seq, DISPLAY_ID_PADDING)
+            raise ItemNotFoundError(
+                f"no item with number {seq} (use a full ID like {hint} or bare {seq})"
+            )
+        if given_prefix is not None and given_prefix != effective_prefix(item.prefix):
+            raise SquadsError(f"{token} is {item.id} ({item.type})")
+        return item.id
 
     async def resolved_skills_for_role(self, slug: str) -> list[str]:
         """A live role's full preload-skill set."""

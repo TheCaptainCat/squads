@@ -1058,6 +1058,11 @@ def _reserved_item_keys() -> frozenset[str]:
     return frozenset(keys | set(ROW_ADDED_KEYS) | {"extra"})
 
 
+def _reserved_kind(name: str) -> str:
+    """What reserves *name*: a key every ``--json`` item row adds, or a frontmatter key."""
+    return "key every --json item row adds" if name in ROW_ADDED_KEYS else "frontmatter key"
+
+
 def _reserved_subentity_keys() -> frozenset[str]:
     """Sub-entity frontmatter keys a field code may not shadow (mirrors ``_reserved_item_keys``)."""
     from squads._models._subentity import SubEntity
@@ -1096,7 +1101,8 @@ def check_field_codes(
             seen.add(f.code)
             if f.code in reserved:
                 errors.append(
-                    f"{owner!r}: field code {f.code!r} shadows a reserved frontmatter key"
+                    f"{owner!r}: field code {f.code!r} shadows a reserved "
+                    f"{_reserved_kind(f.code)} — rename the field in the workflow override"
                 )
 
 
@@ -1134,7 +1140,9 @@ def check_attributes(items: dict[str, ItemSpec], errors: list[str]) -> None:
         for name in ts.attributes:
             if name in reserved:
                 errors.append(
-                    f"{owner!r}: attribute {name!r} is a reserved key — pick another name"
+                    f"{owner!r}: attribute {name!r} is a reserved {_reserved_kind(name)} — "
+                    "rename the attribute in the workflow override and in the items that "
+                    "store it"
                 )
             elif name in codes:
                 errors.append(f"{owner!r}: attribute {name!r} is also a field code on this type")
