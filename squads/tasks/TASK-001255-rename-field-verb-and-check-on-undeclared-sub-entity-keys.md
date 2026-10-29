@@ -3,7 +3,7 @@ id: TASK-1255
 sequence_id: 1255
 type: task
 title: rename-field verb and check on undeclared sub-entity keys
-status: Draft
+status: Ready
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -24,7 +24,7 @@ subentities:
   status: Todo
   story: US8
 created_at: '2026-10-29T19:55:10Z'
-updated_at: '2026-10-29T19:56:26Z'
+updated_at: '2026-10-29T21:50:07Z'
 ---
 <!-- sq:body -->
 ## Goal

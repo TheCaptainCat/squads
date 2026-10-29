@@ -39,7 +39,7 @@ subentities:
   status: InProgress
 - local_id: US8
   title: rename-field verb and check on unknown sub-entity keys
-  status: Todo
+  status: InProgress
 - local_id: US9
   title: Guards derived from the spec, no allow-lists
   status: Todo
@@ -47,7 +47,7 @@ subentities:
   title: Permanent override test squad and its CI job
   status: InProgress
 created_at: '2026-10-29T19:04:26Z'
-updated_at: '2026-10-29T21:07:42Z'
+updated_at: '2026-10-29T21:50:09Z'
 ---
 <!-- sq:body -->
 ## Problem
