@@ -374,7 +374,12 @@ def create_guide(  # noqa: PLR0913 — Typer options are the command's surface
     tag: list[str] = typer.Option(None, "--tag", help="Tag to add (repeatable)."),
     parent: str | None = common.parent_option(),
     desc: str = common.desc_option(),
+    label: list[str] = common.label_option(),
+    ref: list[str] = typer.Option(
+        None, "--ref", help="Item to ref, as `ID` or `ID:kind` (repeatable)."
+    ),
     assignee: str | None = common.assignee_option(),
+    priority: str | None = typer.Option(None, "--priority", help=_priority_help("guide")),
     message: list[str] = common.message_option(),
     file: str | None = common.file_option(),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the created item."),
@@ -391,7 +396,10 @@ def create_guide(  # noqa: PLR0913 — Typer options are the command's surface
         author=author,
         parent=parent,
         description=desc,
+        labels=label or [],
+        refs=ref or [],
         assignee=assignee,
+        priority=priority,
         attributes=attributes,
         body=resolve_body_optional(message or None, file),
     )

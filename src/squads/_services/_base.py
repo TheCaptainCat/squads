@@ -371,12 +371,6 @@ def require_title(title: str, what: str = "title") -> None:
         raise SquadsError(f"{what} must not be empty")
 
 
-def subentity_title(title: str) -> str:
-    """A sub-entity's stored title: *title*, or the empty title when it is blank. A sub-entity
-    may have no title, so a blank one is stored as none rather than refused."""
-    return "" if is_blank(title) else title
-
-
 def reject_markers(text: str, what: str = "body") -> None:
     """Raise ``SquadsError`` when *text* contains a well-formed sq marker tag. Every prose input
     landing inside a marker region passes through it before a write; *what* names the input in the

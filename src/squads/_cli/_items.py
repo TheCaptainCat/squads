@@ -830,7 +830,7 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
         inspect.Parameter(
             "title",
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            default=typer.Argument("", help="Optional short title; put the detail in the body."),
+            default=typer.Argument(..., help="Short title; put the detail in the body."),
             annotation=str,
         ),
         *(_field_param(field) for field in fields),

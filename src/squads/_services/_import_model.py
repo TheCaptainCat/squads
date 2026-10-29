@@ -89,7 +89,7 @@ class AddSubEvent(_EventBase):
     op: Literal["add-sub"] = "add-sub"
     target: str
     kind: str
-    title: str = ""
+    title: str
     story: str | None = None
     fields: dict[str, str] = {}
     assignee: str | None = None
@@ -102,7 +102,7 @@ class AddSubEvent(_EventBase):
 class AddStoryEvent(_EventBase):
     op: Literal["add-story"] = "add-story"
     target: str
-    title: str = ""
+    title: str
     assignee: str | None = None
     status: str | None = None
     body: str | None = None
@@ -125,7 +125,7 @@ class AddStoryEvent(_EventBase):
 class AddSubtaskEvent(_EventBase):
     op: Literal["add-subtask"] = "add-subtask"
     target: str
-    title: str = ""
+    title: str
     story: str | None = None
     assignee: str | None = None
     status: str | None = None
@@ -150,7 +150,7 @@ class AddSubtaskEvent(_EventBase):
 class AddFindingEvent(_EventBase):
     op: Literal["add-finding"] = "add-finding"
     target: str
-    title: str = ""
+    title: str
     severity: str | None = None
     assignee: str | None = None
     status: str | None = None

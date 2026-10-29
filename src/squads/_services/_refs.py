@@ -296,10 +296,13 @@ class RefsMixin(ServiceCore):
         )
         return src
 
-    async def rm_ref(self, from_id: str, to_id: str, *, kind: str | None = None) -> Item:
+    async def rm_ref(
+        self, from_id: str, to_id: str, *, kind: str | None = None, missing_ok: bool = False
+    ) -> Item:
         """Remove a forward ref edge from *from_id* to *to_id*. ``kind=None`` drops every edge to
         *to_id*; an explicit ``kind`` removes only edges of that kind, the primitive
-        :meth:`unlink_role` and the retirement gate's ``--unlink`` build on.
+        :meth:`unlink_role` and the retirement gate's ``--unlink`` build on. Removing an edge the
+        item lacks is refused unless *missing_ok*.
         """
         async with self.store.transaction() as db:
             src = require_item(db, from_id)
@@ -323,7 +326,10 @@ class RefsMixin(ServiceCore):
                     rid, rkind = split_ref(r)
                     return rid == to_id and (kind is None or rkind == kind)
 
-            src.refs = [r for r in src.refs if not _matches(r)]
+            kept = [r for r in src.refs if not _matches(r)]
+            if len(kept) == len(src.refs) and not missing_ok:
+                raise SquadsError(f"{src.id} has no ref to {to_id}")
+            src.refs = kept
             src.updated_at = clock.now()
             src.modified_session, _ = actor.current_session()
             await self._update_item_frontmatter(src, base)
@@ -356,7 +362,9 @@ class RefsMixin(ServiceCore):
         role = await self.get(role_id)
         if role.type != ROSTER_ROLE:
             raise SquadsError(f"{role_id} is a {role.type}; unlink-role targets a role")
-        updated = await self.rm_ref(skill_id, role_id, kind=self.spec.preload_ref_kind())
+        updated = await self.rm_ref(
+            skill_id, role_id, kind=self.spec.preload_ref_kind(), missing_ok=True
+        )
         await self.roster_projection.resync_role_skills(role.slug)
         return updated
 

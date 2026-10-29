@@ -240,8 +240,8 @@ the id each handle will get.
 move the lifecycle does not allow needs `"force": true`; a `create` sets its `status` directly. A
 `fields` map takes field codes to collection codes (`{"priority": "high"}`); a field a `create`
 leaves out stores its declared default. `kind` is a sub-entity kind the workflow declares
-(`story`, `subtask` and `finding` in the bundled one). A title must not be blank on an item; a
-sub-entity's title is optional.
+(`story`, `subtask` and `finding` in the bundled one). A title must not be blank, on an item or
+on a sub-entity.
 
 | `op` | Required | Optional | What it does |
 |------|----------|----------|--------------|
@@ -250,10 +250,10 @@ sub-entity's title is optional.
 | `body` | `target`, `body` | `append`, `force`, `at`, `as` | Writes the item's body. Replacing a written body needs `force`; `append` adds to it. |
 | `comment` | `target`, and `message` or `messages` | `story`, `subtask`, `finding`, `sub`, `at`, `as` | Adds one discussion entry, one bullet per message. A selector puts it on a sub-entity's discussion: `story`, `subtask` or `finding` names the local id, `sub` is `[kind, local]`. Give at most one. |
 | `ref` | `target`, `to` | `kind`, `at`, `as` | Adds a ref from `target` to `to`. Without `kind`, the workflow's default kind. |
-| `add-sub` | `target`, `kind` | `title`, `story`, `fields`, `assignee`, `status`, `deferred_to`, `body`, `handle`, `at`, `as` | Adds a sub-entity of any kind. `story` maps a subtask to a story of the task's parent feature. |
-| `add-story` | `target` | `title`, `assignee`, `status`, `body`, `handle`, `at`, `as` | `add-sub` with `kind` `story`. |
-| `add-subtask` | `target` | `title`, `story`, `assignee`, `status`, `body`, `handle`, `at`, `as` | `add-sub` with `kind` `subtask`. |
-| `add-finding` | `target` | `title`, `severity`, `assignee`, `status`, `deferred_to`, `body`, `handle`, `at`, `as` | `add-sub` with `kind` `finding`; `severity` is the finding's severity code. |
+| `add-sub` | `target`, `kind`, `title` | `story`, `fields`, `assignee`, `status`, `deferred_to`, `body`, `handle`, `at`, `as` | Adds a sub-entity of any kind. `story` maps a subtask to a story of the task's parent feature. |
+| `add-story` | `target`, `title` | `assignee`, `status`, `body`, `handle`, `at`, `as` | `add-sub` with `kind` `story`. |
+| `add-subtask` | `target`, `title` | `story`, `assignee`, `status`, `body`, `handle`, `at`, `as` | `add-sub` with `kind` `subtask`. |
+| `add-finding` | `target`, `title` | `severity`, `assignee`, `status`, `deferred_to`, `body`, `handle`, `at`, `as` | `add-sub` with `kind` `finding`; `severity` is the finding's severity code. |
 | `sub-status` | `target`, `kind`, `local`, `status` | `deferred_to`, `force`, `at`, `as` | Moves a sub-entity to a status. |
 | `sub-body` | `target`, `kind`, `local`, `body` | `append`, `force`, `at`, `as` | Writes a sub-entity's body, with the same `append` and `force` rules as `body`. |
 | `assign` | `target` | `assignee`, `kind`, `local`, `at`, `as` | Sets the item's assignee, or a sub-entity's with `kind` and `local`. Without `assignee`, removes it. |

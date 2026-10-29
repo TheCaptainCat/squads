@@ -1081,6 +1081,14 @@ async def test_ref_rm_drops_every_ref_to_the_target(populated_project, invoke) -
 
 
 @pytest.mark.covers("<type> ref rm", "TARGET")
+async def test_ref_rm_refuses_a_target_the_item_has_no_ref_to(populated_project, invoke) -> None:
+    assert await _ran(invoke, ["task", str(TASK), "ref", "rm", str(REVIEW)]) == (
+        1,
+        f"error: TASK-3 has no ref to REV-{REVIEW}\n",
+    )
+
+
+@pytest.mark.covers("<type> ref rm", "TARGET")
 async def test_ref_rm_refuses_a_target_that_is_not_an_item_id(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "ref", "rm", "elsewhere"]) == (
         1,

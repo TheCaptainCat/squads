@@ -309,6 +309,34 @@ async def test_create_guide_stores_each_tag_in_order_and_the_tech(project, invok
     assert (shown["tags"], shown["tech"]) == (["ops", "dev"], "python")
 
 
+@pytest.mark.covers("create guide", "--priority")
+@pytest.mark.covers("create guide", "--label")
+@pytest.mark.covers("create guide", "--ref")
+async def test_create_guide_takes_a_priority_labels_and_refs(project, invoke) -> None:
+    result = await invoke(
+        [
+            "create",
+            "guide",
+            "Setup",
+            "--author",
+            "manager",
+            "--priority",
+            "high",
+            "--label",
+            "ops",
+            "--ref",
+            "1:implements",
+        ]
+    )
+    assert result.exit_code == 0, result.output
+    shown = await _shown(invoke, "guide", 2)
+    assert (shown["priority"], shown["labels"], shown["refs"]) == (
+        "high",
+        ["ops"],
+        ["ROLE-1:implements"],
+    )
+
+
 @pytest.mark.covers("create guide", "--desc")
 async def test_create_guide_desc_sets_the_summary(project, invoke) -> None:
     result = await invoke(

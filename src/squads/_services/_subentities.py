@@ -23,7 +23,7 @@ from squads._services._base import (
     ServiceCore,
     reject_body_overwrite,
     reject_markers,
-    subentity_title,
+    require_title,
 )
 from squads._services._results import BlockResult, SubentityDetail
 
@@ -99,7 +99,7 @@ class SubentitiesMixin(ServiceCore):
         by :meth:`_add_block_core` and the bulk importer's pre-pass, which runs it on a throwaway
         ``db`` copy.
         """
-        title = subentity_title(title)
+        require_title(title)
         reject_markers(title, "title")
         if body is not None:
             reject_markers(body)
@@ -454,7 +454,7 @@ class SubentitiesMixin(ServiceCore):
     ) -> None:
         """The sub-entity metadata-update mutation core: takes an already-open ``db``."""
         if title is not None:
-            title = subentity_title(title)
+            require_title(title)
             reject_markers(title, "title")
         item = self._require_parent(db, parent_id, kind)
         sub = self._find(item, kind, local_id)

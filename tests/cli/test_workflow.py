@@ -286,7 +286,18 @@ async def test_view_refuses_a_name_no_view_declares(milestone_project, invoke) -
 async def test_view_refuses_an_item_the_index_lacks(milestone_project, invoke) -> None:
     assert await _run(invoke, "view", "milestone_rollup", "99") == (
         1,
-        ["error: no item '99' in the index"],
+        ["error: no item with number 99 (use a full ID like TYPE-99 or bare 99)"],
+    )
+
+
+@pytest.mark.covers("workflow view", "ID")
+@pytest.mark.parametrize("view", ["milestone_rollup", "memory_skill"])
+async def test_view_refuses_an_id_whose_prefix_is_not_its_owners(
+    milestone_project, invoke, view: str
+) -> None:
+    assert await _run(invoke, "view", view, "TASK-8") == (
+        1,
+        ["error: TASK-8 is MILE-8 (milestone)"],
     )
 
 

@@ -320,9 +320,12 @@ class CollabMixin(ServiceCore):
         def mutate(text: str, _item: Item) -> tuple[str, bool]:
             region = sections.get_section(text, tag)
             if region is None:
-                # A sub-entity's discussion is missing when the sub-entity is.
-                missing = SquadsError if sub is None else SubentityNotFoundError
-                raise missing(f"no discussion section {tag!r} in {item_id} (was it scaffolded?)")
+                if sub is not None:
+                    # A sub-entity's discussion is missing when the sub-entity is.
+                    raise SubentityNotFoundError(f"no {sub[0]} {sub[1]} in {item_id}")
+                raise SquadsError(
+                    f"no discussion section {tag!r} in {item_id} (was it scaffolded?)"
+                )
             self._refuse_duplicate_comment(_item, region, scope, as_slug, now_iso, entry)
             written.append(
                 discussion.comment_hash(

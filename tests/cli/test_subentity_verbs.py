@@ -209,6 +209,24 @@ async def test_add_scaffolds_a_todo_subtask_with_the_given_title(populated_proje
     )
 
 
+@pytest.mark.covers("<type> add-<kind>", "TITLE")
+async def test_add_refuses_a_missing_or_blank_title(populated_project, invoke) -> None:
+    before = (await _ran(invoke, ["task", str(TASK), "show", "--full"]))[1]
+    missing = await _ran(invoke, ["task", str(TASK), "add-subtask"])
+    blank = await _ran(invoke, ["task", str(TASK), "add-subtask", "  "])
+    assert (missing[0], blank) == (2, (1, "error: title must not be empty\n"))
+    assert (await _ran(invoke, ["task", str(TASK), "show", "--full"]))[1] == before
+
+
+@pytest.mark.covers("<type> <kind> update", "--title")
+async def test_update_refuses_a_blank_title(populated_project, invoke) -> None:
+    assert await _ran(invoke, ["task", str(TASK), "subtask", "1", "update", "--title", " "]) == (
+        1,
+        "error: title must not be empty\n",
+    )
+    assert (await _subtask(invoke, 1))["title"] == "Tokenise the input"
+
+
 @pytest.mark.covers("<type> add-<kind>", "--message")
 async def test_add_message_writes_each_message_as_a_body_paragraph(
     populated_project, invoke
