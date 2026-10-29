@@ -14,6 +14,8 @@ refs:
 - TASK-1254
 - TASK-1255
 - TASK-1257
+- TASK-1256
+- TASK-1258
 subentities:
 - local_id: F1
   title: Badge keys move after the timestamps on first rewrite; normalise once in
@@ -71,7 +73,7 @@ subentities:
 - local_id: F13
   title: New tests misdeclare derived-flag markers, read an item file internally,
     assert substrings
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F14
   title: Import refusals name add-sub, not the op written, and miss the declared selectors
@@ -108,7 +110,7 @@ subentities:
   severity: low
 - local_id: F21
   title: A changed local_prefix leaves entries unreachable and sq check silent
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F22
   title: 'rename-field: itself-refusal and reflog untested; empty kind name in two
@@ -131,14 +133,48 @@ subentities:
   severity: low
 - local_id: F26
   title: Field labels still lowercased in the sub-entity show line and two help strings
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F27
   title: New rename-kind and scoped rename-field tests assert substrings of item files
-  status: Fixed
+  status: Verified
   severity: low
+- local_id: F28
+  title: Stale-prefix check names rename-kind for an item with mixed prefixes, which
+    rename-kind refuses
+  status: Open
+  severity: low
+- local_id: F29
+  title: Docs say subentity_kind_mismatch ships unselected; every work type runs it
+    by default
+  status: Open
+  severity: medium
+- local_id: F30
+  title: CHANGELOG sort message, misplaced rename-type use case, side-state order
+    not recorded
+  status: Open
+  severity: low
+- local_id: F31
+  title: Vocabulary scan misses an ID prefix with its dash (TASK-, f-strings, startswith)
+  status: Open
+  severity: low
+- local_id: F32
+  title: Engine-word exclusion takes every bundled capability, not the one the engine
+    reads
+  status: Open
+  severity: low
+- local_id: F33
+  title: Derived kind-field and attribute options run on no override case; profile
+    lacks attributes
+  status: Open
+  severity: medium
+- local_id: F34
+  title: Bundled role text names bundled commands on a squad that drops them (operator
+    ruling)
+  status: Open
+  severity: info
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-29T23:37:53Z'
+updated_at: '2026-10-29T23:57:07Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -470,6 +506,8 @@ Fix now: the file read and the substring assertions. Fix the markers with TASK-1
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
+- [2026-10-29T23:55:39Z] `reviewer` Paul Reviewer:
+  - Verified at 1a0dd763. The override-squad cases declare derived pairs by derivation (`--<field>`, `--min-<field>`, `--<target-kind>`). Driven: adding `--no-<field>` or `--assignee` to the list case at test_list.py:401 fails on the override run with "covers declares pairs no call reached". The `_itemfile` read and the substring asserts are gone from tests/cli.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
 
@@ -634,6 +672,8 @@ Fix (architect's call): a `sq check` rule for an entry whose `local_id` does not
       With the kind renamed outcome to goal (plural changed too), the default check reports only the older `subentity_container_marker` error, whose remedy reads "Revert subentity_kinds.goal.plural in the workflow override, or change it only while no initiative items exist". ADR-1250 section 6 now makes a plural change a data change with one verb, so that remedy should name `sq migrate rename-kind <old> <new>`.
       
       Fix: add `subentity_kind_mismatch` to the work bundle (or to every type that hosts a kind), as the section 6 text "reports on each item whose type hosts kind K" reads, and name the verb in the container-marker remedy. If the architect means the rule to stay opt-in, section 6 should say so, and the remedy text still needs the verb.
+- [2026-10-29T23:55:41Z] `reviewer` Paul Reviewer:
+  - Verified at 1a0dd763. The rule runs with no selection on a plain bundled squad, on the override squad and on a migrated copy of this repository squad, where a planted QQ2/XX1 is reported. The plural change error names `sq migrate rename-kind outcome outcome`, and running it clears the check. The migrated copy of this repository squad reports nothing beyond the copy missing agent files and the stale override stamp. Follow-ups: F28 (mixed prefixes), F29 (docs still say opt-in).
 <!-- sq:finding:F21:discussion:end -->
 <!-- sq:finding:F21:end -->
 
@@ -732,6 +772,8 @@ Fix: print `b.label` as given in the meta line. For the two help strings, print 
 #### Discussion
 
 <!-- sq:finding:F26:discussion -->
+- [2026-10-29T23:55:42Z] `reviewer` Paul Reviewer:
+  - Verified at 1a0dd763. Override squad: `Impact: large   Desired outcome: OC1` on the show line, `Clear the Work size.`, `At least this Urgency: now|soon|later.`, `Attribute horizon of the initiative.` A grep for label case changes in _cli, _tui, _rendering and _services finds none (the pattern hits the two removed lines on 1a0dd763^).
 <!-- sq:finding:F26:discussion:end -->
 <!-- sq:finding:F26:end -->
 
@@ -755,8 +797,149 @@ Fix: compare the whole rewritten file (or the whole frontmatter plus the marker 
 #### Discussion
 
 <!-- sq:finding:F27:discussion -->
+- [2026-10-29T23:55:43Z] `reviewer` Paul Reviewer:
+  - Verified at cb95b420. The rename-kind test compares the whole initiative file and the whole show output. The scoped rename-field tests compare the whole frontmatter. The new check case asserts the whole JSON.
 <!-- sq:finding:F27:discussion:end -->
 <!-- sq:finding:F27:end -->
+
+<!-- sq:finding:F28 -->
+### F28 — Stale-prefix check names rename-kind for an item with mixed prefixes, which rename-kind refuses
+
+<!-- sq:finding:F28:body -->
+ADR-1250 section 6 (kind rename) and the F21 fix (cb95b420). Driven, dev tree at 1a0dd763, on a squad built from `tests/fixtures/override_squad`:
+
+1. INI-8 with outcome OC1; commit.
+2. Change `local_prefix` of `outcome` from OC to GO in the override.
+3. `sq initiative 8 add-outcome "Second"` is accepted and allocates GO1, beside OC1.
+4. `sq check`: `warn INI-8: OC1 does not start with prefix 'GO' of kind 'outcome'; ` + "`sq migrate rename-kind outcome outcome`" + ` brings it to the declaration`, exit 0.
+5. Running that command: `error: cannot rename kind 'outcome' to 'outcome': INI-8: entries carry more than one prefix (GO, OC)`, exit 1.
+
+The check names a remedy that refuses, and no verb resolves the item; OC1 cannot be moved to GO1 either, since GO1 is taken. Step 3 is the ordinary path for an adopter who edits the override and keeps working before running `sq check`. A hand-edited single entry (driven on a copy of this repository's squad: ST1 set to XX1) gives the same dead end.
+
+Fix (pick one): `add-<kind>` (and import `add-<kind>`/`add-sub`) refuses while the item holds entries under another prefix, naming `rename-kind`; or `rename-kind` renumbers past the highest number in use for the mixed case; or the check gives a different remedy for an item whose entries mix prefixes, and docs/workflow.md "Renaming a sub-entity kind" says to run `rename-kind` before adding entries.
+<!-- sq:finding:F28:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F28:discussion -->
+<!-- sq:finding:F28:discussion:end -->
+<!-- sq:finding:F28:end -->
+
+<!-- sq:finding:F29 -->
+### F29 — Docs say subentity_kind_mismatch ships unselected; every work type runs it by default
+
+<!-- sq:finding:F29:body -->
+TASK-1258 docs against the F21 fix (cb95b420, landed before the docs commit 62d56c4c). Driven: on a plain bundled squad, a copy of this repository's squad, and the override squad, `subentity_kind_mismatch` runs with no selection (it is in the `work` bundle, `_workflow/_validator_names.py` `CATEGORY_BUNDLES`).
+
+The adopter docs say it ships unselected:
+- `docs/overrides.md` lists it (line 650) under "These checks are not selected for you anywhere in the bundled spec, so naming one in a type's list is the only way it ever runs", and again at line 2473 among "The checks that ship unselected".
+- `docs/workflow.md` line 1665: "the `subentity_kind_mismatch` check (when a type selects it)".
+- `CHANGELOG.md` 0.19.0 Added, the check entry: "A type selects either check in its `validators` list."
+- `docs/migration.md` line 390: "when a type selects them" (the runbook, in progress beside this review).
+
+`frontmatter_key_undeclared` is still opt-in, so the sentences that name both need splitting. Fix: move `subentity_kind_mismatch` out of the unselected lists and say every `work` type runs it at `warn`, as the CHANGELOG already says of `subentity_title_present`.
+<!-- sq:finding:F29:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F29:discussion -->
+<!-- sq:finding:F29:discussion:end -->
+<!-- sq:finding:F29:end -->
+
+<!-- sq:finding:F30 -->
+### F30 — CHANGELOG sort message, misplaced rename-type use case, side-state order not recorded
+
+<!-- sq:finding:F30:body -->
+TASK-1258, smaller points, read and driven:
+
+- `CHANGELOG.md` BREAKING badge-option entry: "`--badge`, `--min-badge` and `--sort` refuse ... (`unknown badge field 'priority' ...`)". Driven: `--sort priority` says `unknown sort field 'priority' (one of: urgency, work_size)`. Say "naming the declared ones" without implying one message, or quote both.
+- `docs/workflow.md`: the paragraph "**Use case:** You released your squad with the built-in `task` type ... `sq migrate rename-type task job`" ended the "Renaming existing types and statuses" section; the two new subsections were inserted above it, so it now sits at the end of "Renaming a sub-entity kind", about another verb. Move it back above the new subsections.
+- Adopter-visible changes reported in the TASK-1256 handback are not in the 0.19.0 CHANGELOG: side states listed in discovery order in `sq workflow`, the squads skill and the `sq-<type>` skills (driven: `Done (+ Cancelled, Blocked)` where 0.17 printed `(+ Blocked, Cancelled)`), the review item template omitting the severity line when the finding kind declares no field, and help examples showing placeholders. `README.md` lines 183 and 193 and `docs/workflow.md` lines 335-336 still print the old order.
+<!-- sq:finding:F30:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F30:discussion -->
+<!-- sq:finding:F30:discussion:end -->
+<!-- sq:finding:F30:end -->
+
+<!-- sq:finding:F31 -->
+### F31 — Vocabulary scan misses an ID prefix with its dash (TASK-, f-strings, startswith)
+
+<!-- sq:finding:F31:body -->
+TASK-1256 ST1, the scanner in `tests/meta/_vocabulary.py`. Falsified on a scratch export of 1a0dd763 by planting `src/squads/_probe.py` and running the six vocabulary guards (item type, status, field code, ref kind, sub-entity kind, generic accessor):
+
+Caught (one guard red): `"feature"`, `("prio" "rity")`, `{"subtasks": 1}`, `"stories"`, `"US"`, `"depends-on"`, `"InProgress"`.
+
+Missed (all green):
+- An ID prefix with its dash: `"TASK-"`, `i.startswith("FEAT-")`, `f"TASK-{n}"`, `"TASK-%d" % n`. `literal_hits` compares a whole string to the name after stripping `--`, `--no-`, `--min-`, `add-`, so `TASK-` never equals `TASK`; spans only cover backticks and `sq ` lines. This is the usual shape of a hardcoded prefix.
+- `"review"` used as the item type and `"info"` as the severity code, through the engine-word exclusion (separate finding).
+- Spellings the spec does not declare verbatim: `"Priority"`, `"PRIORITY"`, `"story_id"`, `"depends_on"`, `"in_progress"`, and attribute access `item.priority`. These are judgment calls; a case-folded match for type names and field codes would catch the first two.
+
+No live hit today: `rg` for `"(TASK|FEAT|...)-` outside `_specs/` and `_migrations/` finds only a docstring in `_index/_reflog.py`. Fix: in `literal_hits` (and the f-string units), also match a string that starts with `<prefix>-`, and add the shape to `test_the_vocabulary_scan_finds_a_name_in_every_position.py`.
+<!-- sq:finding:F31:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F31:discussion -->
+<!-- sq:finding:F31:discussion:end -->
+<!-- sq:finding:F31:end -->
+
+<!-- sq:finding:F32 -->
+### F32 — Engine-word exclusion takes every bundled capability, not the one the engine reads
+
+<!-- sq:finding:F32:body -->
+TASK-1256 ST1: the one exclusion, asked about in the review brief. `engine_words()` in `tests/meta/_vocabulary.py` drops `COLOR_INTENTS` and every capability of the bundled role catalog from the bare-literal and template-literal scans. Today it removes `info` (colour intent, and the bundled severity code) and `review` (capability, and the bundled item type).
+
+- `info`: acceptable. `COLOR_INTENTS` is a closed engine set in `_workflow/_models.py`, and the source must spell it.
+- `review`: partly an exception in disguise. The engine does give one capability a meaning: `_interactions/_cheatsheet.py:74` reads `"review" in r.capabilities` for the review gate. But the scanner takes all capabilities from `get_catalog()`, the bundled roles document, so every catalog capability (`dev`, `edit`, `plan`, `product`, `verify`, ...) becomes an exempt word, and a future bundled name that matches one disappears from the guards without any edit. Driven: `def f(t): return t == "review"` passes all six guards.
+
+Fix: make the capability the engine reads a named engine constant (the cheatsheet uses it), and have `engine_words()` return `COLOR_INTENTS` plus that constant, not the catalog's capabilities.
+<!-- sq:finding:F32:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F32:discussion -->
+<!-- sq:finding:F32:discussion:end -->
+<!-- sq:finding:F32:end -->
+
+<!-- sq:finding:F33 -->
+### F33 — Derived kind-field and attribute options run on no override case; profile lacks attributes
+
+<!-- sq:finding:F33:body -->
+TASK-1256 ST3, the `bundled_only` cases (181 of 968). ST3 lets a case stay bundled-only when it "is about the bundled spelling", and ADR-1172 "Scope: two squads" puts in the profile "a kind with a field and a deferred status, a create-time attribute of each kind", so that "no case skips for want of a host".
+
+Read: a static pass over `tests/cli` finds 65 (command, parameter) pairs that only `bundled_only` cases declare, so the override CI job runs nothing for them. Legitimate: `override *`, `adopt`, `repair --renumber`, `renumber`, `migrate rename-type/rename-status` and the `workflow` catalog prints, which are about the bundled documents or legacy squads. Not about bundled spelling:
+
+- `<type> add-<kind> --<field>` and `<type> <kind> update --<field>`: the derived field option on a kind, which this feature introduces. `test_add_severity_sets_the_severity_of_a_new_finding`, `test_add_refuses_a_severity_outside_the_declared_ones` and the three `update` cases (`test_subentity_verbs.py` lines 428-470 and 741-775) pass `--severity` literally, although the profile already holds `third_kind`, `third_field`, `third_value` and `third_other_value` (on the override squad: `action`, `impact`).
+- `create <type> --<attribute:date|list|str>`: the override squad declares `horizon` (date) and `themes` (list) on `initiative`, but the profile has no attribute entry, so the six cases in `test_create.py` (lines 329-430) stay on `milestone`, `guide` and `review`.
+- Generic behaviours: `<type> refs --in/--out/--all`, `<type> retype --as`, `<type> show --full/--comments`, `show --full/--comments/--raw`, `create <type> --json`, `<type> add-<kind> --json`, `<type> view disable NAME`.
+
+Fix: add the ADR's attribute entries (and anything else missing) to the profile and run the field, attribute and generic cases on both squads; keep `bundled_only` for the bundled-document cases. The handback states the gap openly; this finding asks for the feature's own options and the generic ones to be closed in this task.
+<!-- sq:finding:F33:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F33:discussion -->
+<!-- sq:finding:F33:discussion:end -->
+<!-- sq:finding:F33:end -->
+
+<!-- sq:finding:F34 -->
+### F34 — Bundled role text names bundled commands on a squad that drops them (operator ruling)
+
+<!-- sq:finding:F34:body -->
+For the operator. TASK-1256 handback (ST2) raised it. `src/squads/_specs/roles.toml` lines 102-104 (tech-lead) and 169 (product-owner) hold responsibilities that name bundled commands: "(bundled default: `sq create task --parent FEAT-<n>`)", "`sq task <n> add-subtask \"…\" --story USn`", "`sq task <n> ref add <id> --kind fixes|addresses`", "`sq feature <n> add-story`".
+
+Driven: on a squad with the override test squad's workflow and `--roles all`, `sq role tech-lead show` prints all three tech-lead lines, and they also reach that role's pointer and AGENTS.md text. None of the commands exist on that squad (`sq create task` is refused). The generated-text guard runs on the minimal roster to avoid them.
+
+Options: derive the examples from the active spec, as the squads skill and the CLAUDE.md section do (the role text would become a template), or leave the text as is and tell adopters to override the role's responsibilities when they drop the bundled types. Not decided here.
+<!-- sq:finding:F34:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F34:discussion -->
+<!-- sq:finding:F34:discussion:end -->
+<!-- sq:finding:F34:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -829,4 +1012,14 @@ Fix: compare the whole rewritten file (or the whole frontmatter plus the marker 
   - F21 and F27 fixed in the latest commit on the TASK-1255 branch: subentity_kind_mismatch is in the work bundle (warn), the container error names rename-kind, rename tests assert whole files and output, the scoped refusal drops the scope hint.
 - [2026-10-29T23:37:53Z] `python-dev` Elias Python:
   - F26 fixed in 508a57b7: no label is case-changed in the CLI renderers or option help.
+- [2026-10-29T23:56:12Z] `reviewer` Paul Reviewer:
+  - - Fifth pass at 1a0dd763 (origin/release/0.19). I drove the dev tree on fresh bundled and override scratch squads and on a migrated copy of this repository's squad, and falsified the guards on a scratch export. Reviewed against ADR-1250, ADR-1172 and the TASK-1256 and TASK-1258 acceptance.
+      - **Verified: F13, F21, F26, F27** (comments on each). Repository squad, driven: the dev tree's `migrate up` on a copy rewrote only `story` to `maps_to` (1052 lines) and moved `priority` (447) and `severity` (58) after the timestamps. `check` afterwards reports only the copy's missing agent files and the stale override stamp. `subentity_kind_mismatch` is active there: a planted XX1 is reported.
+      - **TASK-1256, driven.** Planted literals turn the guards red for type, kind, plural, local prefix, ref kind, status and implicit concatenation; an ID prefix with its dash is missed (F31). The exclusion: `info` is acceptable, but the capability half is wider than the one word the engine reads (F32). Of the 181 `bundled_only` cases, the bundled-document ones are legitimate. The feature's own kind-field and attribute options, and several generic verbs, run on no override case (F33). The roles.toml text that names bundled commands is recorded for the operator (F34). Derived covers markers are recorded and checked against over-claim: driven both ways. CI job: Hugo's review stands, and I did not dispatch it.
+      - **TASK-1258, driven.** BREAKING entries hold on both squads: `--priority` exit 2; `--badge`, `--min-badge`, `--set` and `--sort` refusals; import `add-story` and `add-sub.story`; sub-entity and item-row JSON key order; `maps_to` null; `badges` on every row; tree nodes without `priority`; catalog `label`; the 0.17 tool's refusal of a 0.19 squad, word for word; the `maps_parent_story` load refusal. Stability tiers match the driven shapes. No item IDs or process narration in the adopter docs, only example ids in sample output. But the docs say `subentity_kind_mismatch` is opt-in, and it now runs by default (F29). Smaller points are in F30.
+      - **New: F28** (the stale-prefix remedy refuses on mixed prefixes), **F29** (medium), **F30**, **F31**, **F32**, **F33** (medium), **F34** (info, operator ruling).
+      - Notes, older than this feature: `No such option: --x ('(Possible options: ...)',)` comes from the locked typer 0.26.7. v0.17.0 code shows it under the same lock, and the released tool, built against typer 0.27.3, does not. `unknown_option` in tests/cli pins that rendering. With a plural change, the older block-outside-container warning still says to move the block by hand, beside the rename-kind remedy. Theo's second point (a kind `label` not reaching `--story` help on a bundled type) is the TASK-1254 follow-up in flight.
+      - Verdict: changes requested. Two medium (F29 docs, F33 suite) and four low; F34 is for the operator. @manager route F29 and F30 to @tech-writer, F31, F32 and F33 to the TASK-1256 dev, and F28 to @architect (choose the remedy) then the TASK-1255 dev. Approval stays with you.
+- [2026-10-29T23:57:07Z] `manager` Catherine Manager:
+  - Ruling on F28 (operator delegation for this drive): rename-kind brings every stored local id of the kind to the declared prefix, keeping each number, and refuses only when two ids would collide on one item (naming them); so the stale-prefix finding always names a command that works. The architect folds it into ADR-1250 section 6 with the next amendment. F34 stays for op-pierre. Routing: F29/F30 tech writer; F31-F33 TASK-1256 dev; F28 TASK-1255 dev next.
 <!-- sq:discussion:end -->
