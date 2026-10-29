@@ -19,6 +19,7 @@ import typer._click as _click  # underscore is upstream's own private module pat
 import typer._click.globals as _click_globals  # ditto — upstream's, not ours
 import typer.core
 import typer.main
+from pydantic import BaseModel
 from rich.console import Console, Group, RenderableType
 from rich.markdown import Markdown
 from rich.panel import Panel
@@ -29,9 +30,24 @@ from squads import _actor as actor
 from squads import _badges as badges
 from squads import _discussion as discussion
 from squads._api import _ops as ops
-from squads._api._dto._comments import CommentsRequest
+from squads._api._api import Operation
+from squads._api._dto._comment_writes import (
+    CommentAdded,
+    CommentAddRequest,
+    CommentEdited,
+    CommentEditRequest,
+    CommentRequest,
+    CommentSelection,
+    CommentShown,
+    RosterCommentAddRequest,
+    RosterCommentEditRequest,
+    RosterCommentRequest,
+)
+from squads._api._dto._comments import Comments, CommentsRequest
+from squads._api._dto._roster import RosterAddress
 from squads._cli._markup import escape_markup
 from squads._cli._render import _comments as comment_render
+from squads._cli._render import _writes as write_render
 from squads._cli._render._style import intent_style
 from squads._context import get_context, rebind
 from squads._errors import (
@@ -65,7 +81,7 @@ from squads._roles._resolver import (
     resolve_role_with_base,
     stored_values,
 )
-from squads._services._results import BlockResult, SelfRemedied, SubentityDetail
+from squads._services._results import SelfRemedied, SubentityDetail
 from squads._services._service import (
     BYPASS_FALLBACKS,
     MIGRATE_FALLBACKS,
@@ -516,17 +532,6 @@ def spec_error_command(cmd_name: str, ctx: Any = None) -> _click.Command | None:
     return leaf
 
 
-async def warn_duplicate_id(svc: Service, item: Item) -> None:
-    """Warn on stderr when more than one file carries *item*'s id: the file shown is the
-    indexed one, and only `sq check` says which files the others are."""
-    message = await svc.duplicate_id_error(item)
-    if message is not None:
-        err_console.print(
-            f"[yellow]warning:[/yellow] {e(message)} -- showing the indexed file; run `sq check`",
-            soft_wrap=True,
-        )
-
-
 def unreadable_report(msg: str) -> str:
     """One ``repair``/``adopt``/``migrate`` line for an unreadable file. A line that carries its
     own remedy is printed as is; every other file gets the generic carried-forward note."""
@@ -690,23 +695,6 @@ def e(value: object) -> str:
     return escape_markup(str(value))
 
 
-def view_disable_result_message(
-    item_id: str, name: str, *, was_present: bool, changed: bool
-) -> str:
-    """The one print line of ``view disable``, worded for what happened.
-
-    ``disable_view`` is ungated and writes one of three outcomes: a fresh disabled tag where none
-    was placed, an enabled tag turned off, or a conflicting pair collapsed to one disabled copy.
-    ``was_present`` (read before the write, via ``ViewsMixin.view_tag_present``) tells the first
-    apart, since nothing was there to disable.
-    """
-    if not changed:
-        return f"{item_id}: view {e(name)} already disabled, unchanged"
-    if not was_present:
-        return f"{item_id}: view {e(name)} had no existing tag — placed disabled in sq:body"
-    return f"{item_id}: view {e(name)} disabled in sq:body"
-
-
 def status_style(status: str, spec: WorkflowSpec) -> str:
     """The concrete `rich` style for *status*: its role's colour intent, uncoloured when this
     build does not know the intent."""
@@ -721,30 +709,6 @@ def status_text(status: str, spec: WorkflowSpec) -> Text:
     so colouring a status never opens a markup-injection path.
     """
     return Text(status, style=status_style(status, spec))
-
-
-def print_block(parent_id: str, res: BlockResult, json_out: bool) -> None:
-    """Report a scaffolded story/subtask/finding block + where the agent should write its body."""
-    if json_out:
-        data: dict[str, object] = {
-            "local_id": res.local_id,
-            "path": str(res.path),
-            "region": res.body_tag,
-            "start_line": res.start_line,
-            "end_line": res.end_line,
-        }
-        if res.title_advisory is not None:
-            data["title_advisory"] = res.title_advisory
-        print_json_clean(json.dumps(data))
-        return
-    console.print(f"added [bold]{res.local_id}[/bold] to {parent_id}")
-    console.print(
-        f"  set its body:  [cyan]{e(res.body_command)}[/cyan]"
-        "  [dim](or --file body.md / --file -)[/dim]",
-        soft_wrap=True,
-    )
-    if res.title_advisory is not None:
-        console.print(e(res.title_advisory))
 
 
 def _is_styled() -> bool:
@@ -1790,11 +1754,6 @@ def get_squad_paths() -> SquadPaths:
     return resolve(client_cwd=get_context().client_cwd)
 
 
-def _mismatch_msg(label: str, actual_id: str, actual_type: str, expected_type: str) -> str:
-    """Build a uniform type-mismatch error: ``"<label> is <id> (<type>), not a/an <type>"``."""
-    return f"{label} is {actual_id} ({actual_type}), not {article(expected_type)} {expected_type}"
-
-
 def item_prefix(item_type: str) -> str:
     """The id prefix of *item_type* in the active spec, refused for a type the spec does not
     declare."""
@@ -1832,69 +1791,6 @@ def parsed_address(ctx: typer.Context, parse: Callable[[], dict[str, str]]) -> d
         if not verb_help_requested(ctx):
             raise
         return UnresolvedAddress(exc)
-
-
-async def resolve_item_id_typed(token: str, item_type: str, svc: Service) -> str:
-    """Resolve a token (``35``, ``000035``, ``PREFIX-000035``) and verify the item's type.
-
-    Raises :class:`SquadsError` naming the real item and type on a mismatch, or naming both
-    accepted forms on an unknown item. The prefix comes from the per-invocation spec, so custom
-    types that declare their own prefix validate correctly. Takes ``svc`` like
-    :func:`resolve_slug_or_raise`; one DB read per call.
-    """
-    prefix = item_prefix(item_type)
-    t = token.strip()
-    seq, given_prefix = parse_item_token(token)
-    if given_prefix is not None and given_prefix != prefix:
-        # Full ID with wrong prefix — look up the actual item so we can name it.
-        db = await svc.store.load()
-        item = db.get(str(seq))
-        if item is None:
-            hint = format_item_id(prefix, seq, DISPLAY_ID_PADDING)  # display width
-            raise SquadsError(f"no item with number {seq} (use {hint} or bare {seq})")
-        raise SquadsError(_mismatch_msg(token, item.id, item.type, item_type))
-
-    db = await svc.store.load()
-    item = db.get(str(seq))
-    if item is None:
-        hint = format_item_id(prefix, seq, DISPLAY_ID_PADDING)  # display, not filename
-        raise SquadsError(f"no item with number {seq} (use {hint} or bare {seq})")
-    if item.type != item_type:
-        raise SquadsError(_mismatch_msg(t, item.id, item.type, item_type))
-    return item.id
-
-
-async def resolve_item_id_any(token: str, svc: Service) -> str:
-    """Resolve a token to the full ID of whatever item owns that sequence number.
-
-    A bare number or a full ID is accepted; the type word of a full ID is validated against the
-    actual owner. For type-less surfaces (``sq tree``, ``--parent``, ``ref add`` targets).
-    """
-    return await svc.resolve_any_id(token)
-
-
-def is_full_id_shape(token: str) -> bool:
-    """Return True when *token* looks like a full item ID (``TYPE-NNNNNN``)."""
-    _, sep, tail = token.rpartition("-")
-    return bool(sep) and tail.isdigit()
-
-
-async def resolve_agent_addr(token: str, item_type: str, svc: Service) -> str:
-    """Resolve a role/skill/operator address to a full item ID, by exact match only.
-
-    In order: a full-ID shape (``ROLE-000001``) and a bare number go through
-    :func:`resolve_item_id_typed`; anything else is an exact slug in the service's per-type lookup.
-    Raises :class:`SquadsError` when nothing matches.
-    """
-    t = token.strip()
-    # Paths 1 and 2: numeric or full-ID token — let the typed resolver handle it.
-    if t.isdigit() or is_full_id_shape(t):
-        return await resolve_item_id_typed(token, item_type, svc)
-    # Path 3: treat as a slug — delegate to the service's authoritative slug lookup.
-    item = await svc.roster_item(item_type, t)
-    if item is not None:
-        return item.id
-    raise SquadsError(f"no {item_type} with slug, ID, or number {token!r}")
 
 
 ADDRESS_METAVAR = "<slug|id|n>"
@@ -1939,17 +1835,6 @@ def extend_obj(obj: dict[str, Any], **items: Any) -> dict[str, Any]:
     if isinstance(obj, UnresolvedAddress):
         return obj.extended(**items)
     return {**obj, **items}
-
-
-async def address_obj(ctx: typer.Context, resolve: Callable[[], Awaitable[str]]) -> dict[str, Any]:
-    """``{"id": <resolved>}`` for an addressed group's ``ctx.obj``. A failed resolution is raised,
-    unless help was requested for the verb below, when it is deferred to the first read."""
-    try:
-        return {"id": await resolve()}
-    except SquadsError as exc:
-        if not verb_help_requested(ctx):
-            raise
-        return UnresolvedAddress(exc)
 
 
 class AddressedGroup(HelpAwareGroup):
@@ -2065,127 +1950,6 @@ def spec_aware_command_cls(
     return _SpecAwareCommand
 
 
-def register_status_verb(
-    addr_app: typer.Typer, id_from_ctx: Callable[[typer.Context], str]
-) -> None:
-    """Register a ``status`` verb on an addressed roster subgroup (``role``/``skill``/``operator``).
-
-    Mirrors ``_cmd_status`` in ``_cli/_items.py`` (``STATUS`` positional, ``--force``, the
-    ``{id} → {status}`` line) but drives ``Service.set_roster_status``, which also reports what
-    ``--unlink`` severed. ``--unlink`` is offered only here, since only roster types carry the
-    config-integrity clauses (``_services/_retirement.py``) it satisfies. ``id_from_ctx``
-    extracts the resolved id from ``ctx.obj`` by the caller's convention: role's
-    ``_require_id`` raises the "activate it first" error for a bundled-only slug, skill and
-    operator read ``ctx.obj["id"]``.
-    """
-
-    @addr_app.command("status")
-    @command
-    async def status(  # pyright: ignore[reportUnusedFunction] — registered via the decorator above
-        ctx: typer.Context,
-        new_status: str = typer.Argument(..., metavar="STATUS", help=MOVE_STATUS_HELP),
-        force: bool = force_transition_option(
-            "Make a transition the lifecycle does not allow; a change that would leave "
-            "the config invalid is still refused."
-        ),
-        unlink: bool = typer.Option(
-            False,
-            "--unlink",
-            help=(
-                "On a retirement, remove the skill-to-role link the refusal names, then "
-                "check again; refused on any other transition."
-            ),
-        ),
-        as_: str | None = edit_as_option(),
-    ) -> None:
-        """Move this entry to another status."""
-        item_id = id_from_ctx(ctx)
-        svc = get_service()
-        await apply_edit_actor(as_, svc)
-        result = await svc.set_roster_status(
-            item_id, parse_status(new_status), force=force, unlink=unlink
-        )
-        console.print(f"{result.item.id} → [bold]{result.item.status}[/bold]")
-        if unlink:
-            if result.severed:
-                for sev in result.severed:
-                    console.print(f"  severed {e(sev.referrer)} → {e(sev.target)} ({sev.kind})")
-            else:
-                console.print("  --unlink: no references severed (nothing was severable)")
-        print_warnings(result.warnings)
-
-
-def register_remove_verb(
-    addr_app: typer.Typer,
-    id_from_ctx: Callable[[typer.Context], str],
-    *,
-    refresh_managed: bool = False,
-) -> None:
-    """Register ``remove`` on an addressed roster subgroup, with ``rm`` as its hidden alias.
-
-    Both names are one command: ``Service.remove_item`` with the ``--purge`` guard, the same
-    confirmation line and the same warnings. ``refresh_managed`` re-renders the managed
-    ``CLAUDE.md`` roster afterwards (roles and operators appear in it; skills do not).
-    ``id_from_ctx`` is the caller's address convention, as for :func:`register_status_verb`.
-    """
-
-    @command
-    async def remove(
-        ctx: typer.Context,
-        purge: bool = typer.Option(
-            False, "--purge", help="Delete the file too; remove refuses without it."
-        ),
-        as_: str | None = edit_as_option(),
-    ) -> None:
-        """Delete this entry for good; it needs `--purge`.
-
-        To keep it on record instead, move it to its archived status
-        (see `sq workflow lifecycles`).
-        """
-        item_id = id_from_ctx(ctx)
-        svc = get_service()
-        await apply_edit_actor(as_, svc)
-        removal = await svc.remove_item(item_id, purge=purge)
-        if refresh_managed:
-            await svc.refresh_managed()
-        console.print(f"removed {item_id}")
-        print_warnings(removal.warnings)
-
-    addr_app.command("remove")(remove)
-    addr_app.command("rm", hidden=True)(remove)
-
-
-def register_body_verb(addr_app: typer.Typer, id_from_ctx: Callable[[typer.Context], str]) -> None:
-    """Register ``body`` on an addressed roster subgroup: one body for roles, skills and
-    operators, driving ``Service.set_body`` so every write meets the same refusals.
-    ``id_from_ctx`` is the caller's address convention, as for :func:`register_status_verb`."""
-
-    @command
-    async def body(
-        ctx: typer.Context,
-        message: list[str] = message_option(),
-        file: str | None = file_option(),
-        append: bool = append_option(),
-        force: bool = replace_body_option(),
-        as_: str | None = edit_as_option(),
-    ) -> None:
-        """Set or append to the body.
-
-        Replacing a body someone has already written is refused unless `--force`.
-        A role takes prose beside its generated definition. A body generated from a
-        declared view (a system or per-type skill) is refused even with `--force`;
-        an operator body is never refused for it.
-        """
-        item_id = id_from_ctx(ctx)
-        text = resolve_body(message or None, file)
-        svc = get_service()
-        await apply_edit_actor(as_, svc)
-        await svc.set_body(item_id, text, append=append, force=force)
-        console.print(f"{item_id}: body {'appended' if append else 'set'}")
-
-    addr_app.command("body")(body)
-
-
 class CommentGroup(typer.core.TyperGroup):
     """The ``comment`` group: appends when given ``-m``/``--file``, and routes a leading hash to
     the hidden ``_addr`` subgroup carrying ``show``, ``edit`` and ``remove``.
@@ -2228,26 +1992,35 @@ class _HashGroup(typer.core.TyperGroup):
         return [] if ctx.command is not self else super().get_params(ctx)
 
 
-type CommentTarget = Callable[[typer.Context], tuple[str, tuple[str, str] | None]]
-"""A caller's address convention: the item id and, for a sub-entity, its ``(kind, local_id)``."""
+@dataclass(frozen=True)
+class CommentHost:
+    """A discussion host's comment operations and request types, and how it reads its address
+    off the Click context: a work item's, a sub-entity's, or a role's, skill's or operator's."""
+
+    add: Operation[Any, CommentAdded]
+    show: Operation[Any, CommentShown]
+    edit: Operation[Any, CommentEdited]
+    removal: Operation[Any, CommentSelection]
+    remove: Operation[Any, CommentSelection]
+    add_request: type[BaseModel]
+    hash_request: type[BaseModel]
+    edit_request: type[BaseModel]
+    address: Callable[[typer.Context], dict[str, Any]]
+    #: The host's ``comments`` listing and its request; ``None`` where the host has no such verb.
+    listing: tuple[Operation[Any, Comments], type[BaseModel]] | None = None
 
 
-def _comment_label(item_id: str, sub: tuple[str, str] | None) -> str:
-    return item_id if sub is None else f"{item_id} {sub[1]}"
-
-
-def _first_line(cmt: discussion.Comment) -> str:
-    return (cmt.body.splitlines() or [""])[0]
-
-
-def _register_comment_append(comment_app: typer.Typer, target: CommentTarget) -> None:
+def _register_comment_append(comment_app: typer.Typer, host: CommentHost) -> None:
     @comment_app.callback(invoke_without_command=True)
-    @command
-    async def comment(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
+    @handle_errors
+    def comment(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
         ctx: typer.Context,
         message: list[str] = message_option(COMMENT_POINT_HELP),
         file: str | None = file_option(),
         as_: str | None = as_option(),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the comment added."
+        ),
     ) -> None:
         """Add a comment to the discussion, or act on one by its hash.
 
@@ -2260,6 +2033,7 @@ def _register_comment_append(comment_app: typer.Typer, target: CommentTarget) ->
         HASH is any 4 or more leading hex characters. -m, --file and --as go after
         the verb. Only a comment's author can edit or remove it.
         """
+        from squads._cli import _calls as calls  # _calls imports this module
 
         if ctx.invoked_subcommand is not None:
             if message or file or as_:
@@ -2269,48 +2043,50 @@ def _register_comment_append(comment_app: typer.Typer, target: CommentTarget) ->
                     soft_wrap=True,
                 )
                 raise typer.Exit(2)
+            if json_out:
+                err_console.print(
+                    "[red]error:[/red] --json goes after the verb: comment HASH show --json",
+                    soft_wrap=True,
+                )
+                raise typer.Exit(2)
             return
-        svc = get_service()
-        slug = await resolve_actor_or_raise(require_as(as_), svc)
-        actor.set_actor(slug)
-        item_id, sub = target(ctx)
-        await svc.comment(
-            item_id, resolve_comment_messages(message or None, file), as_slug=slug, sub=sub
-        )
-        console.print(f"commented on {_comment_label(item_id, sub)} as {slug}")
+        slug = require_as(as_)
+        texts = resolve_comment_messages(message or None, file)
+        declare_actor(slug)
+        response = calls.call(host.add, host.add_request(**host.address(ctx), texts=texts))
+        if json_out:
+            calls.print_json(host.add, response)
+        else:
+            calls.print_warnings(response)
+            write_render.render_comment_added(response.data, console)
+        calls.finish(response, json_out=json_out)
 
 
-def _register_comment_show(addr_app: typer.Typer, target: CommentTarget) -> None:
+def _register_comment_show(addr_app: typer.Typer, host: CommentHost) -> None:
     @addr_app.command("show")
-    @command
-    async def show(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
+    @handle_errors
+    def show(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
         ctx: typer.Context,
         json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the comment."),
         raw: bool = raw_option(),
     ) -> None:
         """Show one comment."""
-        item_id, sub = target(ctx)
-        found = await get_service().find_comment(item_id, ctx.obj["hash"], sub=sub)
-        first = found.group[0]
+        from squads._cli import _calls as calls  # _calls imports this module
+
+        request = host.hash_request(**host.address(ctx), hash=ctx.obj["hash"])
+        response = calls.call(host.show, request)
         if json_out:
-            payload = {
-                **discussion.comment_json(first, found.shown),
-                "item": found.item.id,
-                "scope": found.scope or None,
-                "copies": len(found.group),
-            }
-            print_json_clean(json.dumps(payload))
-            return
-        where = found.item.id if sub is None else f"{found.item.id} · {sub[0]} {sub[1]}"
-        console.print(where, markup=False, highlight=False)
-        render = _render_comments_styled if _is_styled() and not raw else _render_comments_plain
-        render([first], [found.shown])
+            calls.print_json(host.show, response)
+        else:
+            calls.print_warnings(response)
+            write_render.render_comment_shown(response.data, console, raw=raw)
+        calls.finish(response, json_out=json_out)
 
 
-def _register_comment_edit(addr_app: typer.Typer, target: CommentTarget) -> None:
+def _register_comment_edit(addr_app: typer.Typer, host: CommentHost) -> None:
     @addr_app.command("edit")
-    @command
-    async def edit(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
+    @handle_errors
+    def edit(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
         ctx: typer.Context,
         message: list[str] = message_option(COMMENT_POINT_HELP),
         file: str | None = file_option(),
@@ -2323,30 +2099,25 @@ def _register_comment_edit(addr_app: typer.Typer, target: CommentTarget) -> None
 
         The header keeps the comment's time and author.
         """
-        svc = get_service()
-        slug = await resolve_actor_or_raise(require_as(as_), svc)
-        actor.set_actor(slug)
-        item_id, sub = target(ctx)
-        messages = resolve_comment_messages(message or None, file)
-        res = await svc.edit_comment(item_id, ctx.obj["hash"], messages, as_slug=slug, sub=sub)
-        label = _comment_label(item_id, sub)
+        from squads._cli import _calls as calls  # _calls imports this module
+
+        slug = require_as(as_)
+        texts = resolve_comment_messages(message or None, file)
+        declare_actor(slug)
+        request = host.edit_request(**host.address(ctx), hash=ctx.obj["hash"], texts=texts)
+        response = calls.call(host.edit, request)
         if json_out:
-            print_json_clean(json.dumps(discussion.comment_json(res.new, res.new_shown)))
-        elif res.changed:
-            console.print(
-                f"edited {res.old_shown} on {label} ({slug}, {res.old.timestamp}); "
-                f"now {res.new_shown}",
-                markup=False,
-                highlight=False,
-            )
+            calls.print_json(host.edit, response)
         else:
-            console.print(f"{res.old_shown} on {label} is unchanged; nothing written")
+            calls.print_warnings(response)
+            write_render.render_comment_edited(response.data, console)
+        calls.finish(response, json_out=json_out)
 
 
-def _register_comment_remove(addr_app: typer.Typer, target: CommentTarget) -> None:
+def _register_comment_remove(addr_app: typer.Typer, host: CommentHost) -> None:
     @addr_app.command("remove")
-    @command
-    async def remove(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
+    @handle_errors
+    def remove(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
         ctx: typer.Context,
         as_: str | None = as_option(COMMENT_AUTHOR_AS_HELP),
         yes: bool = yes_option(),
@@ -2355,33 +2126,32 @@ def _register_comment_remove(addr_app: typer.Typer, target: CommentTarget) -> No
         ),
     ) -> None:
         """Delete a comment, and every copy of it if it was written twice."""
-        svc = get_service()
-        slug = await resolve_actor_or_raise(require_as(as_), svc)
-        actor.set_actor(slug)
-        item_id, sub = target(ctx)
-        found = await svc.find_comment(item_id, ctx.obj["hash"], sub=sub, as_slug=slug)
+        from squads._cli import _calls as calls  # _calls imports this module
+
+        declare_actor(require_as(as_))
+        token: str = ctx.obj["hash"]
         if not yes:
-            for cmt in found.group:
-                console.print(
-                    f"{cmt.timestamp} {cmt.author_slug}: {_first_line(cmt)}",
-                    markup=False,
-                    highlight=False,
-                )
-            n = len(found.group)
-            typer.confirm(
-                f"Remove {'this comment' if n == 1 else f'these {n} comments'}?", abort=True
+            # The user confirms the comments shown, so the removal names them by their full hash:
+            # a comment changed since no longer resolves, and nothing is removed.
+            preview = calls.call(host.removal, host.hash_request(**host.address(ctx), hash=token))
+            # Under --json, stdout carries only the document.
+            write_render.render_comment_removal(preview.data, err_console if json_out else console)
+            n = len(preview.data.items)
+            confirm(
+                f"Remove {'this comment' if n == 1 else f'these {n} comments'}?",
+                json_out=json_out,
             )
-        res = await svc.remove_comment(item_id, ctx.obj["hash"], as_slug=slug, sub=sub)
+            token = preview.data.items[0].hash
+        response = calls.call(host.remove, host.hash_request(**host.address(ctx), hash=token))
         if json_out:
-            print_json_clean(
-                json.dumps([discussion.comment_json(c, res.shown) for c in res.removed])
-            )
-            return
-        count = "" if len(res.removed) == 1 else f" ({len(res.removed)} copies)"
-        console.print(f"removed {res.shown} from {_comment_label(item_id, sub)}{count}")
+            calls.print_json(host.remove, response)
+        else:
+            calls.print_warnings(response)
+            write_render.render_comment_removed(response.data, console)
+        calls.finish(response, json_out=json_out)
 
 
-def register_comment_group(app: typer.Typer, target: CommentTarget) -> None:
+def register_comment_group(app: typer.Typer, host: CommentHost) -> None:
     """Register ``comment`` on an addressed subgroup as the group of :class:`CommentGroup`.
 
     One body for every level (a work item, a sub-entity, a role, skill or operator), so a comment
@@ -2390,7 +2160,7 @@ def register_comment_group(app: typer.Typer, target: CommentTarget) -> None:
     comment_app = typer.Typer(cls=CommentGroup, add_completion=False)
     addr_app = typer.Typer(cls=_HashGroup, add_completion=False)
 
-    _register_comment_append(comment_app, target)
+    _register_comment_append(comment_app, host)
 
     @addr_app.callback()
     def _hash(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
@@ -2402,19 +2172,20 @@ def register_comment_group(app: typer.Typer, target: CommentTarget) -> None:
         """Show, edit or remove one comment, addressed by its hash."""
         ctx.obj = extend_obj(ctx.obj, hash=hash_value)
 
-    _register_comment_show(addr_app, target)
-    _register_comment_edit(addr_app, target)
-    _register_comment_remove(addr_app, target)
+    _register_comment_show(addr_app, host)
+    _register_comment_edit(addr_app, host)
+    _register_comment_remove(addr_app, host)
     comment_app.add_typer(addr_app, name="_addr", hidden=True)
     app.add_typer(comment_app, name="comment")
 
 
-def register_comment_verbs(app: typer.Typer, id_from_ctx: Callable[[typer.Context], str]) -> None:
+def register_comment_verbs(app: typer.Typer, host: CommentHost) -> None:
     """Register ``comment`` and ``comments`` on an addressed subgroup: a work item's, or a
-    role's, skill's or operator's. ``id_from_ctx`` is the caller's own address convention, as for
-    :func:`register_status_verb`."""
+    role's, skill's or operator's."""
 
-    register_comment_group(app, lambda ctx: (id_from_ctx(ctx), None))
+    register_comment_group(app, host)
+    assert host.listing is not None  # a host with a `comments` verb names its listing
+    listing, listing_request = host.listing
 
     @app.command("comments")
     @handle_errors
@@ -2427,16 +2198,56 @@ def register_comment_verbs(app: typer.Typer, id_from_ctx: Callable[[typer.Contex
         """Print the top-level discussion."""
         from squads._cli import _calls as calls  # _calls imports this module
 
-        # A work item's group only parsed its address, which the operation checks; a roster
-        # host's group resolved the id already.
-        typed = {key: ctx.obj[key] for key in ("type", "address") if key in ctx.obj}
-        response = calls.call(ops.ITEM_COMMENTS, CommentsRequest(id=id_from_ctx(ctx), **typed))
+        response = calls.call(listing, listing_request(**host.address(ctx)))
         if json_out:
-            calls.print_json(ops.ITEM_COMMENTS, response)
+            calls.print_json(listing, response)
         else:
             calls.print_warnings(response)
             comment_render.print_comments(console, response.data.items)
         calls.finish(response, json_out=json_out)
+
+
+#: A work item's discussion.
+ITEM_COMMENTS = CommentHost(
+    add=ops.ITEM_COMMENT_ADD,
+    show=ops.ITEM_COMMENT_SHOW,
+    edit=ops.ITEM_COMMENT_EDIT,
+    removal=ops.ITEM_COMMENT_REMOVAL,
+    remove=ops.ITEM_COMMENT_REMOVE,
+    add_request=CommentAddRequest,
+    hash_request=CommentRequest,
+    edit_request=CommentEditRequest,
+    address=lambda ctx: {key: ctx.obj[key] for key in ("id", "type", "address")},
+    listing=(ops.ITEM_COMMENTS, CommentsRequest),
+)
+
+
+def roster_comments(
+    kind_ops: tuple[
+        Operation[Any, Comments],
+        Operation[Any, CommentAdded],
+        Operation[Any, CommentShown],
+        Operation[Any, CommentEdited],
+        Operation[Any, CommentSelection],
+        Operation[Any, CommentSelection],
+    ],
+    address: Callable[[typer.Context], str],
+) -> CommentHost:
+    """A roster entry's discussion, from its kind's operations (listing, add, show, edit, removal,
+    remove) and the address its group parsed."""
+    listing, add, show, edit, removal, remove = kind_ops
+    return CommentHost(
+        add=add,
+        show=show,
+        edit=edit,
+        removal=removal,
+        remove=remove,
+        add_request=RosterCommentAddRequest,
+        hash_request=RosterCommentRequest,
+        edit_request=RosterCommentEditRequest,
+        address=lambda ctx: {"addr": address(ctx)},
+        listing=(listing, RosterAddress),
+    )
 
 
 def require_update_fields(**given: object) -> None:
@@ -2458,6 +2269,25 @@ def resolve_local_id(token: str, kind: str) -> str:
     return discussion.local_id_for(kind, token, get_active_spec())
 
 
+def confirm(text: str, *, json_out: bool) -> None:
+    """Ask *text* and abort unless the answer is yes. Under ``--json`` the prompt goes to stderr
+    and the answer is read from stdin directly, so stdout carries the document alone."""
+    if not json_out:
+        typer.confirm(text, abort=True)
+        return
+    while True:
+        err_console.print(f"{text} [y/N]: ", end="", markup=False, highlight=False)
+        line = sys.stdin.readline()
+        if not line:
+            raise typer.Abort()
+        answer = line.strip().lower()
+        if answer in ("y", "yes"):
+            return
+        if answer in ("", "n", "no"):
+            raise typer.Abort()
+        err_console.print("Error: invalid input", markup=False, highlight=False)
+
+
 def require_as(as_: str | None) -> str:
     """Validate ``--as`` was supplied and return it.
 
@@ -2470,32 +2300,12 @@ def require_as(as_: str | None) -> str:
     return as_
 
 
-async def resolve_actor_or_raise(slug: str, svc: Service) -> str:
-    """:func:`resolve_slug_or_raise` for a slug that writes a comment or notice: the system slug
-    is refused before the roster is read, so no roster entry can make it resolve."""
-    refuse_system_actor(slug)
-    return await resolve_slug_or_raise(slug, svc)
-
-
 def declare_actor(as_: str | None) -> None:
     """Declare an optional ``--as`` as the actor of the call that follows, which checks it
     against the roster; the system slug is refused here, before anything is read."""
     if as_ is not None:
         refuse_system_actor(as_)
         actor.set_actor(as_)
-
-
-async def apply_edit_actor(as_: str | None, svc: Service) -> None:
-    """Record an optional ``--as`` as the actor of the edit that follows, validated as a
-    comment's is; without it the actor stays ``system``. Call it before any write."""
-    if as_ is not None:
-        actor.set_actor(await resolve_actor_or_raise(as_, svc))
-
-
-async def resolve_slug_or_raise(slug: str, svc: Service, *, live_only: bool = True) -> str:
-    """Validate ``slug`` against the roster (agents and operators) and return it normalised (see
-    :meth:`~squads._services._base.ServiceCore.resolve_participant`)."""
-    return await svc.resolve_participant(slug, live_only=live_only)
 
 
 def parse_type(value: str) -> str:

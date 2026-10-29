@@ -97,7 +97,7 @@ subentities:
 - local_id: F18
   title: workflow view --json fails on a broken view template though it prints only
     the source
-  status: Open
+  status: Verified
   severity: low
 - local_id: F19
   title: workflow view --json sources are private serializer copies that no longer
@@ -142,30 +142,59 @@ subentities:
 - local_id: F27
   title: 'TASK-1227 tests: an unmarked milestone case asserting three forms, and an
     extended types case'
-  status: Open
+  status: Verified
   severity: low
 - local_id: F28
   title: 'TASK-1228 tests: pronouns and lead-badge checks appended to tree cases;
     mine --json asserts one row'
-  status: Open
+  status: Verified
   severity: low
 - local_id: F29
   title: 'TASK-1230 tests: pronouns switch appended to dev list --json, ANY in role
     add, seven tests left unmarked'
-  status: Open
+  status: Verified
   severity: low
 - local_id: F30
   title: 'TASK-1231 tests: an override-backed view case against F12/F23, and shape
     or prefix asserts instead of whole output'
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F31
   title: 'TASK-1229 tests: an unmarked comment refusal, and create and edit --json
     checked against the CLI''s own output'
-  status: Open
+  status: Verified
+  severity: low
+- local_id: F32
+  title: Comment and sub-entity not-found answer invalid (400), not not_found (404)
+  status: Verified
+  severity: medium
+- local_id: F33
+  title: The added comment is read back as the discussion's last comment
+  status: Verified
+  severity: low
+- local_id: F34
+  title: Remove without --yes refuses a bad address or --as after the prompt
+  status: Noted
+  severity: low
+- local_id: F35
+  title: The comment removal preview route is not in ADR-1225's grammar
+  status: Noted
+  severity: info
+- local_id: F36
+  title: Remove prompts and the comment preview print on stdout under --json
+  status: Verified
+  severity: low
+- local_id: F37
+  title: ref rm --json answers kind null though the removed kind is known
+  status: Verified
+  severity: info
+- local_id: F38
+  title: Refusals of a missing option checked in the command body declare an incidental
+    parameter
+  status: Verified
   severity: low
 created_at: '2026-10-28T23:26:20Z'
-updated_at: '2026-10-29T04:27:33Z'
+updated_at: '2026-10-29T05:37:22Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1226's delivered tasks, one commit at a time, against ADR-1224, ADR-1225 (section 9) and ADR-1172.
@@ -694,6 +723,21 @@ Suggested fix, smallest that keeps ADR-1224's one-call rule: a `render: bool` fi
     - At 9733ec0c, both print the source, exit 0.
     - Cause: the F19 fix builds these sources from show_role_entry and show_item. Their DTO carries `display.body`, the body with its view tags expanded, and the host's body holds the tag of this very view. So --json renders the template through the source, whatever `render` is. The new case covers milestone_rollup only.
     - Suggested: give the role and self sources the DTO without the body expansion, or build `display.body` with a failing view tag reported in warnings instead of raising, so --json prints the source. Whichever is chosen must keep F19's "matches its command" for the other keys. @architect, if the choice touches the F19 ruling.
+- [2026-10-29T04:29:59Z, edited 2026-10-29T04:30:19Z] `architect` Robert Architect:
+  - @python-dev Ruling: when the role and self sources expand the body, they skip the tag of the view being resolved. The source is the view's input, so it cannot contain that view's own output. Steps:
+  - `show_item` and `show_role_entry` (or the body expansion they call) take an optional view name to leave unexpanded. The view source passes the view it resolves. That tag stays in `display.body` exactly as it is written in the stored body, and every other tag expands as `show` expands it. `show` and `role show` pass nothing and do not change.
+  - This keeps the F19 promise. The source has the command's shape, key for key. Only the content of `display.body` differs, and that is a display-class value whose content is not frozen (ADR-1224 point 5), so neither ADR-1224 nor the stability text needs to change.
+  - Tests, on the bundled spec with no template override (F12, F30): one case each for the role kind (`role_definition` on a bundled role) and the self kind (`greeting_skill` on the bundled skill). `--json` prints the source with the view's own tag left as written in `display.body`. Assert the whole document. Falsify once by passing no view name: the rendered text then appears in place of the tag. A broken-template case would need an override, so it waits for the override-backed run.
+  - Out of scope here, for the reviewer to check: a host whose body holds a different view with a broken template still fails `show --json`, the same as the command does.
+- [2026-10-29T04:34:57Z] `python-dev` Elias Python:
+  - Fixed in 09c079e8 (on release/0.18 90e64424), per the architect ruling 6b98f7a. `expand_view_tags` takes `keep`, a view name whose tag is left exactly as written. `read_body`, `show_item` and `show_role_entry` take an optional `keep_view` that is passed through to it. The role and self view sources pass the view being resolved, so their `--json` no longer renders that view template. `show` and `role show` pass nothing and are unchanged.
+  - New case on the bundled seeded squad, test_view_json_leaves_the_views_own_tag_unexpanded_in_its_source. It asserts the whole document: `role_definition` equals `sq role manager show --json` except `display.body`, which is the role_definition tag as written. `greeting_skill` equals `sq show <id> --json` plus `spec`, with the greeting_skill tag in `display.body`. Falsified: dropping `keep_view` from either source turns it red.
+- [2026-10-29T05:37:20Z] `reviewer` Paul Reviewer:
+  - - Verified on e6462b5e (fix in f81fd561), against its parent 361913e6.
+    - Repro on a scratch squad with `views/role_definition.md.j2` and `views/greeting_skill.md.j2` overridden to `{{ nope.undefined_thing }}`. `workflow view role_definition ROLE-1 --json` and `workflow view greeting_skill SKILL-5 --json` exit 1 on the parent. Here they exit 0 and print the source, with `display.body` holding the view's own tag as written. Human mode still exits 1 with the render error.
+    - On an unbroken squad, the role source equals `role reviewer show --json` key for key, `display.body` aside. The self source equals `show SKILL-5 --json` plus `spec`, again `display.body` aside.
+    - `role manager show` (plain, `--json` and `--raw`), `role reviewer show --json`, `show ROLE-1 --json`, `show SKILL-5` (plain and `--json`) and `skill greeting show` (plain and `--json`) are byte-identical to the parent.
+    - The architect's out-of-scope point holds as ruled. On a task carrying `greeting_skill` and a broken `memory_skill` tag, `workflow view greeting_skill TASK-21 --json` fails on `memory_skill`, exactly as `show TASK-21 --json` does.
 <!-- sq:finding:F18:discussion:end -->
 <!-- sq:finding:F18:end -->
 
@@ -923,6 +967,8 @@ Some transitional code from this task is on no task's deletion list. TASK-1232's
 <!-- sq:finding:F26:discussion -->
 - [2026-10-29T01:34:36Z] `tech-lead` Olivia Lead:
   - Deferred. Item 1 (roster comment bridge, refusal order) is on TASK-1229, see its comment. Items 2 (tests/_cli_surface.py lines 36-37) and 3 (_print_body, _DUPLICATE_READ_NOTE) are in TASK-1232 ST4 deletion list.
+- [2026-10-29T04:55:38Z] `reviewer` Paul Reviewer:
+  - - Item 1 verified on 90e64424. `COMMENT_VERBS`, `_resolve_for_comments`, `_comment_target`, `resolve_agent_addr` and the `ctx.obj["id"]` lambdas have no hit left in src or tests. `_role.py`, `_skill.py` and `_operator.py` build their host through `roster_comments`. The refusal order is back to the parent's: `sq role nobody comment -m x` answers "--as is required: the actor's slug" (exit 1), as at fd56122e. Items 2 and 3 stay with TASK-1232.
 <!-- sq:finding:F26:discussion:end -->
 <!-- sq:finding:F26:end -->
 
@@ -938,6 +984,10 @@ Fix: one marked case per form, and assert the whole workflow types --json output
 #### Discussion
 
 <!-- sq:finding:F27:discussion -->
+- [2026-10-29T04:51:38Z] `python-dev` Elias Python:
+  - Fixed in 80ddec81 (branch worktree-agent-a1374e50d83d80ba6, based on 09c079e8). The milestone case is now one marked case per form: `test_show_prints_a_declared_attribute_under_its_label` (`<type> show`), `test_show_json_lists_a_declared_attribute_with_its_label` (`--json`) and `test_show_raw_prints_a_declared_attribute_under_its_label` (`--raw`). Each one checks its setup exit codes. These could not be folded into the task show cases, because task declares no labelled attribute, so the forms need the milestone (net +2). `workflow types --json` asserts the whole document as text (`tests/cli/_bundled_documents.py`). Falsified: setting the label to the key in the attribute display DTO turns all three cases red, and swapping two keys in `TYPES` turns the types case red.
+- [2026-10-29T05:07:42Z] `reviewer` Paul Reviewer:
+  - Verified on 3e312c1c. The milestone case is split into human, --json and --raw cases, each marked, and workflow types --json asserts the whole document.
 <!-- sq:finding:F27:discussion:end -->
 <!-- sq:finding:F27:end -->
 
@@ -953,6 +1003,14 @@ Fix: a separate named case for each added behaviour, and assert the whole mine -
 #### Discussion
 
 <!-- sq:finding:F28:discussion -->
+- [2026-10-29T04:51:47Z] `python-dev` Elias Python:
+  - Fixed in 80ddec81. `tree --json`: the pronouns run is now two named cases, `test_json_shows_a_roles_pronouns_on_its_node` and `test_json_leaves_the_pronouns_out_when_the_display_setting_turns_them_off`, and both check their setup exit codes. `tree --status`: the lead badge has its own case, `test_a_node_leads_with_its_first_badge_field_when_a_second_is_set`, and the `--status` case checks only its own filter again. `mine --json` asserts the whole document as text. Falsified:
+    - `shown_pronouns` ignoring `[display] pronouns` turns only the switch case red.
+    - `shown_pronouns` returning `{}` turns the shown case red.
+    - `lead_badge` taking the last badge turns the lead case red and leaves `--status` green.
+    - A label change turns `mine --json` red.
+- [2026-10-29T05:07:43Z] `reviewer` Paul Reviewer:
+  - Verified on 3e312c1c. The pronouns cases and the lead-badge case are separate and named, each checks its setup exit code, and mine --json asserts the whole output. Falsified on a copy: ignoring [display] pronouns turns the tree switch case red, and leading with the last badge turns the lead-badge case red.
 <!-- sq:finding:F28:discussion:end -->
 <!-- sq:finding:F28:end -->
 
@@ -968,6 +1026,16 @@ Fix: a separate case for the switch, the literal body, and an ADR-1172 rule 3 am
 #### Discussion
 
 <!-- sq:finding:F29:discussion -->
+- [2026-10-29T04:29:16Z] `architect` Robert Architect:
+  - @python-dev ADR-1172 rule 3 is amended (2026-10-29). Restore the deleted markers as `covers("<key>")` on each case that runs the command with none of its parameters (the plain-output cases of `dev list`, `regen`, `sync`, `migrate help`, `workflow lint` and the others), and keep `covers("<key>", "--json")` on the JSON cases. The coverage guard gains two checks: it fails on any `tests/cli/` test function without a marker, and the `invoke` fixture records `(key, None)` for a bare call on any leaf, not only a parameterless one. Falsify each check once (an unmarked test, and a key-only marker on a call that passes a flag). The rest of F29 (a separate switch case, a literal body instead of ANY) stands as the reviewer wrote it.
+- [2026-10-29T04:51:48Z] `python-dev` Elias Python:
+  - Fixed in 80ddec81.
+    - `dev list --json`: the pronouns switch has its own case, `test_list_json_drops_the_pronouns_from_the_name_when_the_display_setting_turns_them_off`.
+    - `role add`: `display.body` is the literal `SCOUT_BODY`.
+    - Amended rule 3: every `tests/cli` test now carries a marker. 271 tests had none. That includes the seven named here, now key-only `dev list`, `role regen` and `skill regen`. The coverage guard fails on an unmarked test. It accepts a key-only marker on any leaf and calls it stale only on a key that is not a leaf. `reached_pairs` (the `invoke` fixture) records `(key, None)` only when a call passes none of its leaf's parameters.
+    - Falsified: an unmarked probe test turns the guard red. `covers("<type> show")` on a call that passes `--raw` fails the `invoke` teardown. A `shown_pronouns`/`_shows_pronouns` that ignores the setting turns the switch case red. A one-word change turns the body case red.
+- [2026-10-29T05:07:44Z] `reviewer` Paul Reviewer:
+  - Verified on 3e312c1c. The dev list pronouns switch is its own case, and role add asserts a literal body. Every tests/cli test carries a marker (827 of 827). Falsified on a copy: returning True from _shows_pronouns turns the dev switch case red. Removing a marker fails the coverage guard: "unmarked test (every CLI test declares a covers marker)".
 <!-- sq:finding:F29:discussion:end -->
 <!-- sq:finding:F29:end -->
 
@@ -983,6 +1051,18 @@ Fix: drop the override case, and assert whole outputs as text. The marker gap sh
 #### Discussion
 
 <!-- sq:finding:F30:discussion -->
+- [2026-10-29T04:29:18Z] `architect` Robert Architect:
+  - @python-dev The marker gap for the five sync, migrate help and lint tests is ruled in ADR-1172 rule 3, amended 2026-10-29 (see F29): key-only `covers("<key>")` on the plain cases. The override-backed view template case goes, as in F12 and F23: assert the view's rendered output on the bundled template, and its override behaviour waits for the override-backed run. Whole-output asserts as the finding says.
+- [2026-10-29T04:51:49Z] `python-dev` Elias Python:
+  - Fixed in 80ddec81.
+    - The override-backed view-template case is gone.
+    - `migrate help --json`, the eight `workflow <listing> --json` cases and `override diff --json` assert the whole document as text. The workflow and migration documents are in `tests/cli/_bundled_documents.py`, and `_assert_row`, `_json`, `_one` and `_named` are deleted.
+    - `board post` compares the read-back as a dict again.
+    - The five sync, migrate help and lint tests carry key-only markers.
+    - The view-source case from 09c079e8 asserts both sources (role and self) as literal documents. This pins the bundled spec digest, just as the catalog documents pin the spec.
+    - Falsified: one mutation per document, and each case went red. Reverting the 09c079e8 source fix turns the view-source case red.
+- [2026-10-29T05:07:45Z] `reviewer` Paul Reviewer:
+  - Verified on 3e312c1c. The view-template override case is gone. migrate help --json, the eight workflow listings and override diff --json each assert the whole document (the listings and migrations against literal documents in tests/cli/_bundled_documents.py). The board post read-back is a plain comparison again, and the five tests are marked.
 <!-- sq:finding:F30:discussion:end -->
 <!-- sq:finding:F30:end -->
 
@@ -998,8 +1078,237 @@ Fix: add the covers marker, and assert literal documents as text.
 #### Discussion
 
 <!-- sq:finding:F31:discussion -->
+- [2026-10-29T04:51:51Z] `python-dev` Elias Python:
+  - Fixed in 80ddec81. `test_comment_refuses_json_before_a_verb` carries `covers("<host> comment", "--json")`. Both `create --json` cases assert literal documents as text. They are renamed `test_json_prints_the_created_item` and `test_create_guide_json_prints_the_created_guide`, since they no longer compare with show. `comment edit --json` asserts the literal document as text. Falsified: a key swap in the task document, a wrong path in the guide document and a wrong previous body each turn their case red.
+- [2026-10-29T04:55:37Z] `reviewer` Paul Reviewer:
+  - - A fourth case of the same class on 90e64424: `test_comment_json_prints_the_added_comment` takes `hash` and `short_hash` from the listing, which is the CLI's own output. Under the frozen clock both are fixed values, so they can be literals. Fold it into this finding's fix. F33 also asks that case to add to a discussion that already holds a comment.
+- [2026-10-29T05:07:46Z] `reviewer` Paul Reviewer:
+  - Verified on 3e312c1c. The refusal before a verb is marked. Both create --json cases and the comment edit --json case assert literal documents as text.
 <!-- sq:finding:F31:discussion:end -->
 <!-- sq:finding:F31:end -->
+
+<!-- sq:finding:F32 -->
+### F32 — Comment and sub-entity not-found answer invalid (400), not not_found (404)
+
+<!-- sq:finding:F32:body -->
+ADR-1225 section 3 says a `comment remove` whose confirmed comment was edited or removed in between "answers `404 not_found` and removes nothing", and FEAT-1140 US2 relies on it. TASK-1229's test approach leaves that answer to "the error table's 404 row in TASK-1218's route tests". But the error table maps only `ItemNotFoundError` and `RoleNotFoundError` to `not_found`, and the comment lookup raises a bare `SquadsError`, so the wire type is `invalid` (400).
+
+Reproduced on 90e64424 by wrapping `_calls.call` to print `error_type(exc)` for each failed call (a probe script, not a test):
+
+| Command | Wire type |
+|---|---|
+| `task 21 comment <full hash of an edited comment> remove --as tech-lead --yes` | `invalid` |
+| `task 21 comment ffff show` / `remove` | `invalid` |
+| `task 21 subtask 9 update --title x` ("no subtask ST9 in TASK-21") | `invalid` |
+| `task 21 subtask 9 comment -m x --as tech-lead` | `invalid` |
+| `task 999 comment …`, `role nobody comment …`, `skill nope comment …` | `not_found` |
+
+So a removed comment or sub-entity answers 400 over HTTP, and a route test written against an unknown item stays green.
+
+Second, the text. After a preview, the remove call sends the full hash, so the refusal names 64 hex characters the user never typed: `error: no comment cbaab16914ce…6248 in TASK-21's discussion (edited or removed since it was read?)`. The preview showed none of that hash.
+
+Fix: raise a not-found error class from `_discussion.resolve_hash`'s no-hit branch and from the sub-entity lookups, and map it to `not_found`. Its base (a new `NotFoundError`, or a subclass of `ItemNotFoundError`) is for @python-dev, with the error table's owner. Make the message name the displayed short hash. Local mode needs no new surface case, since exit 1 and the text are unchanged. The 404 belongs in TASK-1218's route tests, with a comment case beside the item case.
+<!-- sq:finding:F32:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F32:discussion -->
+- [2026-10-29T05:20:17Z] `python-dev` Elias Python:
+  - Fixed in ed808d64: new CommentNotFoundError (resolve_hash, both no-hit branches) and SubentityNotFoundError (the sub-entity lookup, and a missing sub-entity discussion on comment add/locate), both mapped to not_found in _api/_errors.py. A full 64-char hash is named by its first 7 characters, as the preview shows it; a typed prefix is named as typed. Verified with r1229/errtype.py on a scratch squad: comment remove after an edit, comment ffff show/remove, subtask 9 update/show/comment all answer not_found; human text and exit 1 unchanged (parity run: 218 byte-identical). @reviewer
+- [2026-10-29T05:26:32Z] `reviewer` Paul Reviewer:
+  - - Verified on ed499a68 with `r1229/errtype.py`. These now answer `not_found` (`CommentNotFoundError` or `SubentityNotFoundError`): comment `ffff` show and remove, on an item and on a role; `subtask 9` update, show, body, remove and comment add; and `step 9` comment show. An unknown item still answers `not_found`, as before.
+    - The edit-between run (`between.py`, with an edit injected after the preview) refuses with "no comment cbaab16 in TASK-21's discussion (edited or removed since it was read?)", exit 1, and the edited comment remains. The message names the 7-character prefix the preview row carries. It is always 7 characters, even when the discussion widens its displayed hashes on a collision, but that is still a valid prefix to type. Accepted.
+<!-- sq:finding:F32:discussion:end -->
+<!-- sq:finding:F32:end -->
+
+<!-- sq:finding:F33 -->
+### F33 — The added comment is read back as the discussion's last comment
+
+<!-- sq:finding:F33:body -->
+`_add_comment` (`_services/_item_write_ops.py`) writes the comment in one transaction (`self.comment`). Then it reads the discussion again and reports `comments[-1]` as the comment it added. Any comment appended between the two (a second `sq` process now, or a concurrent request once the daemon serves this route) is reported as `entry` in place of the caller's. `Service.comment` returns the `Item`, not the hash it wrote.
+
+The surface case cannot see this. `test_comment_json_prints_the_added_comment` adds to an empty discussion, so `comments[0]` and `comments[-1]` are the same comment. Mutation on a copy of 90e64424: change `comments[-1]` to `comments[0]`, and test_comment_verbs plus the role, skill, operator and sub-entity modules give 333 passed. A known-positive mutation (`copies + 1`) turns 2 red, so the harness reaches the code.
+
+Fix: have the write return the new comment's hash (it is computed inside `_comment_core` as the entry is formatted) and resolve `entry` by that hash. In the existing `--json` case, add to a discussion that already holds a comment, so the expected document tells the two apart.
+<!-- sq:finding:F33:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F33:discussion -->
+- [2026-10-29T05:20:19Z] `python-dev` Elias Python:
+  - Fixed in ed808d64: Service.comment answers the hash it wrote (computed in _comment_core under the lock, the importer unpacks it), and the operation resolves entry by that hash. test_comment_json_prints_the_added_comment now adds to a discussion that already holds a comment; the comments[0] mutation turns it red. @reviewer
+- [2026-10-29T05:26:35Z] `reviewer` Paul Reviewer:
+  - - Verified on ed499a68. `_add_comment` resolves `entry` by the hash the write returns. The mutation "read back the discussion's first comment" turns `test_comment_json_prints_the_added_comment` red (1 failed), where at 90e64424 it survived with 333 passed.
+    - Callers of the new return value: the operation uses the hash, and the importer unpacks `_comment_core`'s `(item, hash)`. The two fixture calls in `tests/cli/_readable.py` and the one in `tests/meta/test_an_item_file_is_written_once_per_unit_of_work.py` ignore the result, which is safe. No other caller exists in src, `_tui` or tests.
+<!-- sq:finding:F33:discussion:end -->
+<!-- sq:finding:F33:end -->
+
+<!-- sq:finding:F34 -->
+### F34 — Remove without --yes refuses a bad address or --as after the prompt
+
+<!-- sq:finding:F34:body -->
+Dev deviation 2. `<type> <n> remove` and `<kind> <k> remove` without `--yes` now ask before the call. So an unknown item, a wrong-type address or an unknown `--as` is refused only after the user answers y, and the prompt can name an id that does not exist:
+
+| Command (stdin `y`) | d9916956 | 90e64424 |
+|---|---|---|
+| `task 999 remove` | refused, no prompt | `Remove TASK-999? …` then the same refusal |
+| `bug 21 remove` (21 is a task) | `21 is TASK-21 (task), not a bug`, no prompt | `Remove BUG-21? …` then the refusal |
+| `task 28 remove --as nobody` | `unknown slug 'nobody'…`, no prompt | prompt, then the refusal |
+| `task 21 subtask 1 remove --as nobody` | refused, no prompt | prompt, then the refusal |
+| `task 21 subtask 9 remove` | prompt, then refused | unchanged |
+
+Exit codes and error text are unchanged, nothing is removed, and with `--yes` nothing changes.
+
+Against ADR-1224 point 1, this is what the ADR rules. Group callbacks only parse, and "neither the item removal nor the sub-entity removal prompt shows squad data, so each still makes one call". A preview read before the prompt, as `comment remove` makes, would need an amendment. Read as written, the ADR leaves no room for it. One premise is wrong, though: Context 7 says item removal and sub-entity removal "ask before reading anything". Before this change, the item callback resolved the address and `apply_edit_actor` checked `--as` before the prompt, so the refusals above came first.
+
+Recommendation: keep one call. The cost is one keystroke on a command that removes nothing. A pre-read would add a round trip to every interactive removal in remote mode, and it would still not check `--as` unless it were a write-scoped preview. @architect: correct Context 7 and confirm. @tech-writer: one changelog line ("`remove` without `--yes` asks before checking the address and `--as`; a bad one is refused after the answer").
+<!-- sq:finding:F34:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F34:discussion -->
+- [2026-10-29T04:58:59Z] `architect` Robert Architect:
+  - @python-dev Confirmed: one call (ADR-1224 point 1, with Context 7 corrected 2026-10-29). Keep the current flow, no code change. @tech-writer, changelog line: "`remove` without `--yes` asks before checking the address and `--as`, so a bad one is refused after the answer".
+- [2026-10-29T05:26:56Z] `reviewer` Paul Reviewer:
+  - Noted: one call is confirmed and Context 7 is corrected (architect 5977790). The changelog line is with @tech-writer on TASK-1234.
+<!-- sq:finding:F34:discussion:end -->
+<!-- sq:finding:F34:end -->
+
+<!-- sq:finding:F35 -->
+### F35 — The comment removal preview route is not in ADR-1225's grammar
+
+<!-- sq:finding:F35:body -->
+Dev deviation 4. The preview that `comment remove` makes without `--yes` is served at `GET …/comments/{hash}/removal`, five times over: items, sub-entities, and roles, skills and operators. ADR-1225 section 1 has no such form. A `GET` on `…/comments[/{hash}]` is `show`, and a sub-resource named after an action is a `POST` (`…/status`, `…/retype`). Section 3 says only that "the preview returns the full hash with the comments it addresses".
+
+The preview is not `show`. It returns the whole duplicate group (`CommentSelection`) and refuses an actor who is not the author before the prompt (`find_comment(..., as_slug=…)`), and `show` does neither. As a read, it is rightly a `GET`. So a separate operation is justified, and only its path is unruled.
+
+@architect: add the row to the section 1 table, or name the path. I see no defect either way. No client depends on it before MILE-868.
+<!-- sq:finding:F35:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F35:discussion -->
+- [2026-10-29T04:59:00Z] `architect` Robert Architect:
+  - @python-dev Path ruled as you built it: `GET …/comments/{hash}/removal`, now in ADR-1225 section 1 for items, sub-entities and roster entries. No change.
+- [2026-10-29T05:26:53Z] `reviewer` Paul Reviewer:
+  - Noted: the path is ruled as built (ADR-1225 section 1, architect d17a310), so no code change.
+<!-- sq:finding:F35:discussion:end -->
+<!-- sq:finding:F35:end -->
+
+<!-- sq:finding:F36 -->
+### F36 — Remove prompts and the comment preview print on stdout under --json
+
+<!-- sq:finding:F36:body -->
+ADR-1224 point 3a, Prompts: "`--json` never puts a prompt on stdout." The three prompts this task moved all do when `--json` is given without `--yes`. Each prints the prompt text to stdout before the document, and `comment remove` also prints its preview listing there:
+
+```
+$ echo y | sq task 21 subtask 2 remove --json 2>/dev/null
+Remove subtask ST2 from TASK-21? This cannot be undone. [y/N]: {
+  "removed": "subtask ST2",
+  "item": "TASK-21"
+}
+$ echo y | sq task 21 comment 2390 remove --as reviewer --json 2>/dev/null
+2026-10-29T02:11:00Z reviewer: - Ack
+Remove this comment? [y/N]: [
+```
+
+The parent commit prints the same text, so this is not a regression. But the ADR rule is stated for these commands, and this task is the increment that implements them, so it is open now. A `… --json | jq` in a script fails to parse.
+
+Fix: under `--json`, print the preview and the prompt on stderr (`typer.confirm(..., err=True)`, and the preview through `err_console`). Alternatively, refuse `--json` without `--yes` as a usage error. @python-dev, unless @architect prefers the refusal. The surface case for the item, the sub-entity and the comment removal is one `--json` run, answering y on stdin, whose stdout parses as the whole document.
+<!-- sq:finding:F36:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F36:discussion -->
+- [2026-10-29T04:59:02Z] `architect` Robert Architect:
+  - @python-dev Ruling: stderr, not a refusal (ADR-1224 point 3a, amended). Under `--json`, the item, sub-entity and comment removal prompts use `typer.confirm(..., err=True)`, and `comment remove` prints its preview through `err_console`. Human mode stays as it is. Add one surface case per removal, covering the item, the sub-entity and the comment: `--json` without `--yes`, `y` on stdin, and stdout asserted as the whole document. Falsify once with the prompt back on stdout. @tech-writer, changelog line: "under `--json`, removal prompts and the comment removal preview go to stderr".
+- [2026-10-29T05:20:22Z] `python-dev` Elias Python:
+  - Fixed in ed808d64 per the ruling: under --json the item, sub-entity and comment removal prompts use err=True and the comment preview prints through err_console; human mode unchanged. Three cases (one per removal) assert the whole stdout document and the prompt on stderr; each red with the prompt (or the preview) back on stdout. The in-process runner echoes the typed answer on its stdout, so the cases expect that echo before the document; a real pipe (echo y | sq ... --json 2>/dev/null) prints the document alone. @reviewer
+- [2026-10-29T05:26:42Z] `reviewer` Paul Reviewer:
+  - - Reopened on ed499a68. The prompts and the preview now go to stderr, and the three mutations (prompts back on stdout, preview back on stdout) turn the three cases red. One byte of the prompt still reaches stdout, though. Click's `confirm(err=True)` writes the prompt to stderr and then reads the answer with `input(" ")`, which writes a space to stdout.
+    - Real pipe, `echo y | sq task 21 subtask 2 remove --json 2>/dev/null | od -An -tx1`: `20 7b 0a …`, which is a space and then the document. When the call is refused after the answer (`echo y | sq task 24 remove --json`, where 24 is an incident), stdout is the single byte `20` instead of empty. `jq` and `json.loads` accept the leading space. A consumer that checks for empty stdout on failure, or compares the document byte for byte, does not. So the statement that a real pipe prints the document alone is off by that byte.
+    - The tests: the `" y\n"` expected before the document is that real space plus the in-process runner echoing the typed `y`, which no user sees. Under ADR-1172 rule 5 the case should assert what the user sees, which is the document alone. It currently asserts a runner artifact and pins the stray byte as correct.
+    - Fix (@python-dev): under `--json`, print the prompt through `err_console` and read the answer from stdin without Click's `input(" ")`. Then stdout is exactly the document, or empty on a refusal, and the runner echo disappears with it. The three cases then assert `result.stdout == document`, and the prompt text on stderr.
+- [2026-10-29T05:31:47Z] `python-dev` Elias Python:
+  - Fixed again: under --json the removal prompts no longer go through Click; common.confirm prints the prompt on stderr through err_console and reads the answer with sys.stdin.readline, so nothing reaches stdout. Real pipe (echo y | sq ... --json 2>err): stdout starts 7b/5b, and is empty (size 0) when the call is refused after the answer. The three cases now assert result.stdout == the document alone and the prompt on stderr; reading stdin directly means the in-process runner echoes nothing. Each case is red with Click's confirm(err=True) back. @reviewer
+- [2026-10-29T05:37:18Z] `reviewer` Paul Reviewer:
+  - - Verified on e6462b5e (fix in e6891723). Real pipe with `f36probe.sh`: item, sub-entity and comment `remove --json`, answered `y`, print exactly the document on stdout (first byte `{` or `[`). The prompt and the comment preview go to stderr. A refused or aborted call leaves stdout empty, where it used to hold one stray byte.
+    - Answer handling matches Click's in human mode: y, Y, yes, YES and " y " confirm; empty, n and EOF abort (exit 1, "Aborted."); "x" re-asks with "Error: invalid input". Human mode is unchanged.
+    - Mutations: the prompt back on stdout, or Click's `confirm(err=True)` restored, each turn the three cases red (3 failed). They now assert `stdout == document`, which is what the user sees (ADR-1172 rule 5).
+<!-- sq:finding:F36:discussion:end -->
+<!-- sq:finding:F36:end -->
+
+<!-- sq:finding:F37 -->
+### F37 — ref rm --json answers kind null though the removed kind is known
+
+<!-- sq:finding:F37:body -->
+`ref rm --json` answers `{entry, target, kind: null}`. `kind` is the outcome field ADR-1224 point 3a names for both `ref add` and `ref rm`, yet `rm` never fills it, although it knows the kind it removed. Run on the scratch squad: `task 21 ref rm INC-24 --json` removed `INC-24:caused-by` and printed `"kind": null`. The DTO documents the field as "for an added ref, its kind".
+
+The shape is provisional until MILE-868, so nothing breaks today. A client that shows "removed TASK-21 → INC-24 (caused by)" has to diff `entry.refs` against an earlier read to learn the kind. Recommend filling `kind` with the removed ref's kind (`rm_ref` removes every ref to the target, so a list if several can coexist). Otherwise, document that `kind` is always null on `rm`. @architect for the shape, then @python-dev.
+<!-- sq:finding:F37:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F37:discussion -->
+- [2026-10-29T04:59:03Z] `architect` Robert Architect:
+  - @python-dev Ruling (ADR-1224 point 3a, amended): `ref rm --json` answers `{entry, target, kinds}`, where `kinds` lists the kind of each ref it removed, in stored order and as `refs --json` reports it. It is never null and holds one entry in the usual case. `ref add` keeps `kind`. Give the two verbs their own response DTOs, and correct the `kind` docstring. Update the `ref rm --json` expectation and falsify once with an empty `kinds`.
+- [2026-10-29T05:20:25Z] `python-dev` Elias Python:
+  - Fixed in ed808d64 per the ruling: ref add answers ItemRefAdded {entry, target, kind}, ref rm answers ItemRefRemoved {entry, target, kinds} with the kind of each removed ref in stored order (bare refs as the default kind, as refs --json reports them). Expectation updated; red with an empty kinds. @reviewer
+- [2026-10-29T05:26:37Z] `reviewer` Paul Reviewer:
+  - - Verified on ed499a68. `ref rm --json` answers `{entry, target, kinds}`. The mutation that drops each `kinds.append` (empty `kinds`) turns `test_ref_rm_json_prints_the_items_row_without_the_ref` red (1 failed).
+<!-- sq:finding:F37:discussion:end -->
+<!-- sq:finding:F37:end -->
+
+<!-- sq:finding:F38 -->
+### F38 — Refusals of a missing option checked in the command body declare an incidental parameter
+
+<!-- sq:finding:F38:body -->
+The dev's caveat is a hole. A refusal that our own code raises for a missing option cannot declare the parameter it refuses, so these cases name whatever parameter they had to pass. The ruling that a refusal declares the parameter it refuses is unmet for them, and the guard stays green.
+
+`reached_pairs` (`tests/_cli_surface.py`) records a parameter in two cases: the call gives it a value, or `_missing` predicts that Click's own missing-parameter error names it. A check in the command body (`require_as`, a template's `pass --tech`, `role add`'s "missing required fields") is invisible to it. Probed with the fixture on 3e312c1c: `board post` records only `("board post", None)`, and `dev add` records only `("dev add", None)`.
+
+Cases that declare an incidental parameter:
+- `test_board.py::test_post_as_is_required` refuses a missing `--as` but declares `--message`.
+- `test_board.py::test_post_needs_a_message_or_a_file` refuses a missing `-m`/`--file` but declares `--as`.
+- In `test_comment_verbs.py`:
+  - `test_comment_refuses_a_call_with_no_author` declares `--message`.
+  - `test_comment_refuses_a_call_with_no_text` declares `--as`.
+  - `test_edit_refuses_a_call_with_no_author` declares `--message`.
+  - `test_edit_refuses_a_call_with_no_text` declares `--as`.
+  - `test_remove_refuses_a_call_with_no_author` declares `--yes`.
+- `test_init.py::test_force_is_required_to_start_over_a_configured_directory` refuses a missing `--force` but declares `--roles`.
+- `test_role.py::test_add_names_every_required_field_it_is_missing` and `test_add_names_the_one_field_it_is_missing` refuse missing `--name`, `--job-title` and `--mission` but declare `SLUG`.
+
+This is not false coverage: each refused parameter has an effect case of its own. But the marker no longer says which refusal a parameter has, so op-pierre's ruling that every parameter gets a refusal case cannot be audited from the markers.
+
+Suggested fix (@architect for the rule, then @python-dev): on a call that exits non-zero, the fixture also records a parameter whose flag appears in the error line. Or add a `refuses=` argument to the marker, checked against the output. Then re-mark the 10 cases.
+<!-- sq:finding:F38:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F38:discussion -->
+- [2026-10-29T05:08:57Z] `architect` Robert Architect:
+  - @python-dev Ruling: the first option, with no new marker syntax (ADR-1172 rule 3, amended 2026-10-29). On a call that exits non-zero, `reached_pairs` also records each parameter of the leaf that has one of its flags (any of its opts, short or long) in the output. Re-mark the 10 cases with the parameter they refuse: `--as`, `--message` for `-m`/`--file`, `--force`, and `--name`/`--job-title`/`--mission` for `role add`, one marker each where the message names several.
+  - If a refusal's message does not name its flag, that message is the defect: name the flag in it, so the user sees it too.
+  - Falsify once: a refusal case marked with a flag that its message does not name goes red at teardown.
+- [2026-10-29T05:13:49Z] `python-dev` Elias Python:
+  - Fixed in 3ceaa761, on 49bbfda1.
+    - `reached_pairs` takes the output of a call that exited non-zero, and `invoke` passes it. It records each option, of the command the call ended on, that has one of its flags (short or long, matched as a whole token) in that output. A group the call ends on counts too, for `<host> comment -m x`.
+    - The 10 cases are re-marked:
+      - `board post`: `--as` and `--message`.
+      - The five comment refusals: `--as` or `--message`.
+      - `init`: `--force`.
+      - `role add`: `--name`, `--job-title`, `--desc` and `--mission` on the every-field case, and `--mission` on the one-field case.
+    - No `src` change: every one of these refusals already names its flag in its message.
+    - Falsified:
+      - `covers("<host> comment", "--file")` on the no-author refusal fails at teardown.
+      - Without the output check, all 10 re-marked cases fail.
+      - A new meta case pins the flag boundary: dropping the lookahead lets `--as` match inside `--as-slug`.
+- [2026-10-29T05:26:40Z] `reviewer` Paul Reviewer:
+  - - Verified on ed499a68 (from b10c9957). With `_named` returning nothing, the 10 re-marked cases error at teardown (191 passed, 10 errors). Marking `test_comment_refuses_a_call_with_no_author` with `--file` instead of `--as` errors at teardown (1 error).
+    - A residual blind spot, noted and not reopened: the guard credits every flag a refusal mentions, including one it only suggests as the remedy. `reached_pairs` for `task 3 update --parent ""` with the message "use --no-parent to clear the parent" records `--no-parent`. For `--priority x --no-priority` it records both. So a marker naming the suggested flag would pass on a case that never exercises it. No current case does this; I checked the three refusal messages that name another option. If @architect wants it closed, the rule can require that a credited flag also appears in the call's own arguments or in Click's missing-parameter set. Otherwise the review has to catch it.
+<!-- sq:finding:F38:discussion:end -->
+<!-- sq:finding:F38:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -1093,4 +1402,54 @@ Fix: add the covers marker, and assert literal documents as text.
     - TASK-1229: both coverage guards pass on the branch (59 passed). I did not run the full suite. Items 16 to 18 are low, and 16 is a one-line marker.
 - [2026-10-29T04:27:33Z] `reviewer` Paul Reviewer:
   - Verification of F13-F24 on 79eac7ad: eleven Verified, F18 reopened. With a broken view template, workflow view --json still fails for the role and self source kinds, because their sources now carry display.body, which expands the view's own tag (it worked at 9733ec0c). The ref, subtree, subentity and playbook kinds hold. Every parity run of the composition-root move was byte-identical apart from the expected changes. No new findings. @python-dev for F18, @architect if the fix touches the F19 ruling.
+- [2026-10-29T04:29:19Z] `architect` Robert Architect:
+  - Rulings on the test audit (35950c3), 2026-10-29.
+  - Covers markers: ADR-1172 rule 3 is amended. The key-only marker declares the bare call on any leaf, every `tests/cli/` test carries a marker, and the guard and fixture enforce both. Steps for @python-dev are on F29.
+  - `json_field` `ALLOWED`: it stays a literal list, now documented in ADR-1224 point 3 as a deliberate contract tripwire. It never grows, and it shrinks only through a schema change that amends the ADR. No derivation, since nothing in the code records which documents Tier 3 froze.
+  - `[display] pronouns`: the output is right and the doc is wrong. The names in `display` are presentation, so they follow the setting on every surface (ADR-1224 point 5, amended). @tech-writer: the doc correction is on TASK-1234.
+- [2026-10-29T04:53:23Z] `architect` Robert Architect:
+  - @python-dev Rulings on the audit-fix questions (ADR-1172 rule 3, amended 2026-10-29).
+  - (1) A refusal case declares the parameter the refusal is about: `test_title_is_required` becomes `covers("create <type>", "TITLE")`. The `invoke` fixture records `(key, param)` for the parameter a Click `MissingParameter`/`BadParameter` names, so the marker is checked against the call. Falsify once with a refusal case whose marker names another parameter. A refusal squads raises itself about an absent value declares the key alone, or the parameters the call passes.
+  - (2) Move the 5 tests of `tests/cli/test_squad_fixtures.py` to `tests/meta/`, next to `test_squad_copies_are_isolated_in_any_order`. They guard the suite's fixtures and run no command, so they carry no marker.
+  - (3) Confirmed: both are rule 5 violations, and they get fixed in this round. Assert the whole `tree --json` document as text, and the whole pointer file in the `role add` case (rule 5 allows reading generated files), not a substring.
+- [2026-10-29T04:55:55Z] `reviewer` Paul Reviewer:
+  - - TASK-1229 (90e64424) reviewed. New: F32 (medium); F33, F34 and F36 (low); F35 and F37 (info). F31 gains a fourth instance, and F26 item 1 is verified.
+      - **Held up: parity.** I compared d9916956 and 90e64424 side by side on one scratch squad. It has an override with a custom `incident` type and its `inc` alias, its own `step` sub-entity kind with a badge field on a new `impact` collection, two labelled attributes, a custom ref kind and a playbook entry, plus an operator and comments on all five hosts. Each tree ran 224 command lines under a fixed `--at`:
+        - create: every option, aliases, guide, `--file`, stdin, and 12 refusals;
+        - `update`: every flag with its clear and `no-` forms, `--force`, and a repeated and combined `--clear-assignee`;
+        - `status` with and without `--force`;
+        - `body`: set, refused replace, `--force`, `--append`, `--file`, stdin, a missing file, and a marker in the text;
+        - refs (an embedded kind, the custom kind, refusals) and views;
+        - comment add, show, edit and remove by short and full hash on items, sub-entities, roles, skills and operators, with refusals;
+        - sub-entity add, update, body and remove, including a deferral and the custom kind;
+        - retype (an id change, a status reset, rewritten refs);
+        - item and sub-entity remove, answering y, n, or `--yes`.
+        
+        The new `--json` lines ran without the flag on the parent.
+      - **Results.** 189 lines are byte-identical on stdout, stderr and exit code, with the same set of changed files after each one. 11 `--json` documents only append keys. The 24 that differ are all explained: 21 are the new `--json` flags, plus the F26 refusal order, the `comment --json HASH show` usage error, and F34's two prompts. The final tree (item files, `.squads.json`, `.reflog.jsonl`, CLAUDE.md, AGENTS.md, `.claude/`) is byte-identical.
+      - **Confirmed removal.** I ran a concurrent edit between the preview and the remove call (a wrapper around `_calls.call`). The remove refuses, and the edited comment remains. Answering n prints the listing once, then `Aborted.`, and nothing else. A `--yes` call resolves the typed prefix. The wire type of that refusal is F32.
+      - **MRO.** `ItemWriteOpsMixin` first and `RetypeOpsMixin` after `RosterOpsMixin`: every Service attribute present at d9916956 resolves to the same class at 90e64424. No new name shadows another base, and 54 attributes are new.
+      - **Deletions.** None of the 15 deleted helper and bridge names has a hit in src or tests. `_create.py` and `_items.py` reach no service: no `get_service` and no `svc`. So the shorter pending list is real. `named_markup` still has no caller, which is F26/TASK-1232's.
+      - **`status --json`** is `{entry: ItemRow}`, as ruled.
+      - **Deviations.** (1) Parse refusals first: accepted, the same as TASK-1227 and TASK-1230. (2) The prompt before the refusal is F34: within ADR-1224 point 1 as written, but Context 7's premise is wrong. I recommend keeping one call, with a changelog line. (3) Additive keys: accepted, and checked key by key in the parity run. (4) The `…/removal` route is F35, for an architect ruling.
+      - @python-dev: F32, F33 and F36. @architect: F34 (Context 7), F35 (the route row) and F37 (the shape), and F36 if the refusal form is preferred. @tech-writer: F34's changelog line.
+      - The review stays ChangesRequested.
+- [2026-10-29T05:00:20Z] `python-dev` Elias Python:
+  - The rulings in 3ee1e6b are applied in f450241b, on top of 80ddec81.
+    - Refusals: the `invoke` fixture (`reached_pairs`) records the required parameter that Click's missing-parameter error names at the leaf: the first one Click processes that the call leaves out. A parameter given a bad value was already reached. 12 Click refusals now declare the parameter they refuse, e.g. `test_title_is_required` is `covers("create <type>", "TITLE")`. Refusals that squads raises itself keep the key alone or the parameters they pass.
+    - `tests/cli/test_squad_fixtures.py` moved to `tests/meta/test_the_squad_fixtures_hold_what_they_promise.py`, without markers.
+    - `tree --json` asserts one whole document (`tree 2 --json --depth 1`). `role add` compares the whole pointer file.
+    - Falsified:
+      - `covers("renumber", "--by")` on `test_from_is_required` fails at teardown.
+      - Without the fixture change, all 12 re-marked cases fail.
+      - One mutation in the tree document turns its case red.
+      - One mutation in the pointer turns its case red.
+    - Count: unchanged at 1630.
+- [2026-10-29T05:08:10Z] `reviewer` Paul Reviewer:
+  - Recheck of the ADR-1172 audit (comment 35950c3) on 3e312c1c: F27 to F31 Verified. All 18 items fixed. 827 of 827 tests/cli tests carry a marker. Removing a marker fails the coverage guard. Four mutations on a copy all turn red (two pronouns switches, lead badge, marker removal).
+  - Sweep of 73454c4c and 3e312c1c: no new partial assert, substring, ANY, or expected value built from CLI output. Net growth is +8 tests beside TASK-1229 (+3 split show cases, +3 tree, +1 dev, +3 guard, -1 init, -1 replaced workflow view), as stated.
+  - New F38 (low): the dev's fixture caveat is a real hole. Ten refusal cases for a missing option checked in the command body (--as, -m/--file, --force, role add fields) declare an incidental parameter. @architect @python-dev
+  - Still open: docs/stability.md (Display settings) still says --json is unchanged by [display] pronouns. @tech-writer
+- [2026-10-29T05:26:59Z] `reviewer` Paul Reviewer:
+  - Round 2 of TASK-1229 checked on ed499a68: F32, F33, F37 and F38 are Verified (probes and mutations re-run), and F34 and F35 are Noted as ruled. F36 is reopened: Click's confirm(err=True) still writes one space byte to stdout, so the cases pin that byte plus the runner's echo. Details are on F36. @python-dev F36. The review stays ChangesRequested.
 <!-- sq:discussion:end -->

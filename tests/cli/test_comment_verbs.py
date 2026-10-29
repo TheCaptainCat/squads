@@ -84,6 +84,7 @@ async def test_comment_file_reads_the_text_from_a_file(populated_project, invoke
     assert [c["body"] for c in await _comments(invoke)] == ["- From a file"]
 
 
+@pytest.mark.covers("<host> comment", "--file")
 async def test_comment_file_reads_the_text_from_stdin_for_a_dash(populated_project, invoke) -> None:
     await _ok(
         invoke, ["task", str(TASK), "comment", "--file", "-", "--as", "manager"], input="Piped in\n"
@@ -91,6 +92,7 @@ async def test_comment_file_reads_the_text_from_stdin_for_a_dash(populated_proje
     assert [c["body"] for c in await _comments(invoke)] == ["- Piped in"]
 
 
+@pytest.mark.covers("<host> comment", "--file")
 async def test_comment_refuses_a_file_that_does_not_exist(populated_project, invoke) -> None:
     out = await _ran(
         invoke, ["task", str(TASK), "comment", "--file", "missing.md", "--as", "manager"]
@@ -98,6 +100,7 @@ async def test_comment_refuses_a_file_that_does_not_exist(populated_project, inv
     assert out == (1, "error: cannot read file 'missing.md': No such file or directory\n")
 
 
+@pytest.mark.covers("<host> comment", "--message")
 async def test_comment_refuses_a_call_with_no_text(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "comment", "--as", "manager"]) == (1, NO_TEXT)
 
@@ -124,15 +127,18 @@ async def test_comment_as_names_the_author_of_the_comment(populated_project, inv
     assert await _actors(invoke, "TASK-3", "comment") == ["manager", slug]
 
 
+@pytest.mark.covers("<host> comment", "--as")
 async def test_comment_refuses_a_call_with_no_author(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "comment", "-m", "x"]) == (1, NO_AS)
 
 
+@pytest.mark.covers("<host> comment", "--as")
 async def test_comment_refuses_an_author_no_roster_entry_has(populated_project, invoke) -> None:
     out = await _ran(invoke, ["task", str(TASK), "comment", "-m", "x", "--as", "ghost"])
     assert out == (1, UNKNOWN_SLUG)
 
 
+@pytest.mark.covers("<host> comment", "--as")
 async def test_comment_refuses_the_reserved_system_slug_as_author(
     populated_project, invoke
 ) -> None:
@@ -141,6 +147,7 @@ async def test_comment_refuses_the_reserved_system_slug_as_author(
     assert await _comments(invoke) == []
 
 
+@pytest.mark.covers("<host> comment", "--file")
 async def test_comment_refuses_an_empty_file(populated_project, invoke) -> None:
     _write_file(text="\n")
     out = await _ran(invoke, ["task", str(TASK), "comment", "--file", "text.md", "--as", "manager"])
@@ -167,11 +174,13 @@ async def test_comment_addresses_a_comment_by_four_or_more_leading_hex_character
     assert by_short["body"] == "- Findable"
 
 
+@pytest.mark.covers("<host> comment", "HASH")
 async def test_comment_refuses_a_token_that_is_not_a_hash(populated_project, invoke) -> None:
     out = await _ran(invoke, ["task", str(TASK), "comment", "abc", "show"])
     assert out == (2, NOT_A_HASH.format(token="abc"))
 
 
+@pytest.mark.covers("<host> comment", "HASH")
 async def test_comment_refuses_a_hash_with_no_verb(populated_project, invoke) -> None:
     short = await _post(invoke, "Findable")
     assert await _ran(invoke, ["task", str(TASK), "comment", short]) == (
@@ -180,6 +189,7 @@ async def test_comment_refuses_a_hash_with_no_verb(populated_project, invoke) ->
     )
 
 
+@pytest.mark.covers("<host> comment", "HASH")
 async def test_comment_refuses_a_hash_no_comment_carries(populated_project, invoke) -> None:
     await _post(invoke, "Findable")
     assert await _ran(invoke, ["task", str(TASK), "comment", "dead", "show"]) == (
@@ -188,6 +198,7 @@ async def test_comment_refuses_a_hash_no_comment_carries(populated_project, invo
     )
 
 
+@pytest.mark.covers("<host> comment", "--as", "HASH")
 async def test_comment_refuses_message_before_the_verb(populated_project, invoke) -> None:
     short = await _post(invoke, "Findable")
     out = await _ran(invoke, ["task", str(TASK), "comment", "--as", "manager", short, "show"])
@@ -208,6 +219,7 @@ async def test_show_json_prints_the_comment_as_one_object(populated_project, inv
     assert shown == {**listed, "item": "TASK-3", "scope": None, "copies": 1}
 
 
+@pytest.mark.covers("<host> comment show")
 async def test_show_prints_the_item_and_the_comment(populated_project, invoke) -> None:
     short = await _post(invoke, "Findable")
     assert await _ran(invoke, ["task", str(TASK), "comment", short, "show"]) == (
@@ -259,6 +271,7 @@ async def test_edit_message_replaces_the_text_and_marks_the_edit(populated_proje
     assert edited["short_hash"] != short
 
 
+@pytest.mark.covers("<host> comment edit", "--message")
 async def test_edit_says_so_when_the_text_is_the_same(populated_project, invoke) -> None:
     short = await _post(invoke, "Same")
     out = await _ran(
@@ -278,6 +291,7 @@ async def test_edit_file_replaces_the_text_with_the_file(populated_project, invo
     assert [c["body"] for c in await _comments(invoke)] == ["- From a file"]
 
 
+@pytest.mark.covers("<host> comment edit", "--file")
 async def test_edit_file_reads_the_text_from_stdin_for_a_dash(populated_project, invoke) -> None:
     short = await _post(invoke, "Before")
     await _ok(
@@ -288,6 +302,7 @@ async def test_edit_file_reads_the_text_from_stdin_for_a_dash(populated_project,
     assert [c["body"] for c in await _comments(invoke)] == ["- Piped in"]
 
 
+@pytest.mark.covers("<host> comment edit", "--file")
 async def test_edit_refuses_a_file_that_does_not_exist(populated_project, invoke) -> None:
     short = await _post(invoke, "Before")
     out = await _ran(
@@ -297,6 +312,7 @@ async def test_edit_refuses_a_file_that_does_not_exist(populated_project, invoke
     assert out == (1, "error: cannot read file 'missing.md': No such file or directory\n")
 
 
+@pytest.mark.covers("<host> comment edit", "--message")
 async def test_edit_refuses_a_call_with_no_text(populated_project, invoke) -> None:
     short = await _post(invoke, "Before")
     out = await _ran(invoke, ["task", str(TASK), "comment", short, "edit", "--as", "manager"])
@@ -341,6 +357,7 @@ async def test_edit_as_refuses_a_comment_written_by_someone_else(populated_proje
     assert [c["body"] for c in await _comments(invoke)] == ["- Theirs"]
 
 
+@pytest.mark.covers("<host> comment edit", "--as")
 async def test_edit_lets_the_author_change_their_own_comment(populated_project, invoke) -> None:
     slug = await _add_operator(invoke)
     short = await _post(invoke, "Mine", who=slug)
@@ -348,6 +365,7 @@ async def test_edit_lets_the_author_change_their_own_comment(populated_project, 
     assert [c["body"] for c in await _comments(invoke)] == ["- Edited"]
 
 
+@pytest.mark.covers("<host> comment edit", "--as")
 async def test_edit_refuses_a_call_with_no_author(populated_project, invoke) -> None:
     short = await _post(invoke, "Before")
     assert await _ran(invoke, ["task", str(TASK), "comment", short, "edit", "-m", "x"]) == (
@@ -356,6 +374,7 @@ async def test_edit_refuses_a_call_with_no_author(populated_project, invoke) -> 
     )
 
 
+@pytest.mark.covers("<host> comment edit", "--as")
 async def test_edit_refuses_an_author_no_roster_entry_has(populated_project, invoke) -> None:
     short = await _post(invoke, "Before")
     out = await _ran(
@@ -367,25 +386,32 @@ async def test_edit_refuses_an_author_no_roster_entry_has(populated_project, inv
 @pytest.mark.covers("<host> comment edit", "--json")
 async def test_edit_json_prints_the_edited_comment(populated_project, invoke) -> None:
     short = await _post(invoke, "Before")
-    printed = json.loads(
-        await _ok(
-            invoke,
-            [
-                "task",
-                str(TASK),
-                "comment",
-                short,
-                "edit",
-                "-m",
-                "After",
-                "--as",
-                "manager",
-                "--json",
-            ],
-        )
+    output = await _ok(
+        invoke,
+        ["task", str(TASK), "comment", short, "edit", "-m", "After", "--as", "manager", "--json"],
     )
-    assert printed == (await _comments(invoke))[0]
-    assert printed["body"] == "- After"
+    expected = {
+        "author": "Catherine Manager",
+        "author_slug": "manager",
+        "ts": "2026-06-07T10:00:00Z",
+        "edited_ts": "2026-06-07T10:00:00Z",
+        "hash": "e34c02b36223c904e8969444c9aa3b849d554bd3cd214a754b2d20a0d2e1f341",
+        "short_hash": "e34c02b",
+        "body": "- After",
+        "item": "TASK-3",
+        "scope": None,
+        "changed": True,
+        "previous": {
+            "author": "Catherine Manager",
+            "author_slug": "manager",
+            "ts": "2026-06-07T10:00:00Z",
+            "edited_ts": None,
+            "hash": "9d413994b321bdff71aa11cb8d0f1c9489355e096ee2b05afe3ef2551cde7bb4",
+            "short_hash": "9d41399",
+            "body": "- Before",
+        },
+    }
+    assert output == json.dumps(expected, indent=2) + "\n"
 
 
 # --- remove ---------------------------------------------------------------------------------
@@ -401,6 +427,7 @@ async def test_remove_yes_deletes_the_comment_without_asking(populated_project, 
     assert await _comments(invoke) == []
 
 
+@pytest.mark.covers("<host> comment remove", "--as")
 async def test_remove_asks_for_confirmation_and_keeps_the_comment_when_declined(
     populated_project, invoke
 ) -> None:
@@ -415,6 +442,7 @@ async def test_remove_asks_for_confirmation_and_keeps_the_comment_when_declined(
     assert [c["body"] for c in await _comments(invoke)] == ["- Kept"]
 
 
+@pytest.mark.covers("<host> comment remove", "--as")
 async def test_remove_deletes_the_comment_when_confirmed(populated_project, invoke) -> None:
     short = await _post(invoke, "Doomed")
     out = await _ran(
@@ -457,6 +485,7 @@ async def test_remove_as_refuses_a_comment_written_by_someone_else(
     assert [c["body"] for c in await _comments(invoke)] == ["- Theirs"]
 
 
+@pytest.mark.covers("<host> comment remove", "--as")
 async def test_remove_lets_the_author_delete_their_own_comment(populated_project, invoke) -> None:
     slug = await _add_operator(invoke)
     short = await _post(invoke, "Mine", who=slug)
@@ -464,6 +493,7 @@ async def test_remove_lets_the_author_delete_their_own_comment(populated_project
     assert await _comments(invoke) == []
 
 
+@pytest.mark.covers("<host> comment remove", "--as")
 async def test_remove_refuses_a_call_with_no_author(populated_project, invoke) -> None:
     short = await _post(invoke, "Doomed")
     assert await _ran(invoke, ["task", str(TASK), "comment", short, "remove", "--yes"]) == (
@@ -472,6 +502,7 @@ async def test_remove_refuses_a_call_with_no_author(populated_project, invoke) -
     )
 
 
+@pytest.mark.covers("<host> comment remove", "--as")
 async def test_remove_refuses_an_author_no_roster_entry_has(populated_project, invoke) -> None:
     short = await _post(invoke, "Doomed")
     out = await _ran(
@@ -483,6 +514,7 @@ async def test_remove_refuses_an_author_no_roster_entry_has(populated_project, i
 # --- the other hosts ------------------------------------------------------------------------
 
 
+@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
 async def test_a_subtask_addresses_its_own_discussion(populated_project, invoke) -> None:
     host = ["task", str(TASK), "subtask", "1"]
     await _ok(invoke, [*host, "comment", "-m", "On the subtask", "--as", "manager"])
@@ -494,6 +526,7 @@ async def test_a_subtask_addresses_its_own_discussion(populated_project, invoke)
     assert await _comments(invoke) == []
 
 
+@pytest.mark.covers("role", "<slug|id|n>")
 async def test_a_role_addresses_its_own_discussion(populated_project, invoke) -> None:
     host = ["role", "manager"]
     short = await _post(invoke, "On the role", host=host)
@@ -503,6 +536,7 @@ async def test_a_role_addresses_its_own_discussion(populated_project, invoke) ->
     assert await _comments(invoke, host) == []
 
 
+@pytest.mark.covers("skill", "<slug|id|n>")
 async def test_a_skill_addresses_its_own_discussion(populated_project, invoke) -> None:
     await _ok(invoke, ["skill", "add", "Query tips"])
     host = ["skill", "query-tips"]
@@ -514,6 +548,7 @@ async def test_a_skill_addresses_its_own_discussion(populated_project, invoke) -
     assert [c["body"] for c in await _comments(invoke, host)] == ["- Reworded"]
 
 
+@pytest.mark.covers("operator", "<slug|id|n>")
 async def test_an_operator_addresses_its_own_discussion(populated_project, invoke) -> None:
     slug = await _add_operator(invoke)
     host = ["operator", slug]
@@ -522,3 +557,51 @@ async def test_an_operator_addresses_its_own_discussion(populated_project, invok
     assert (shown["item"], shown["body"]) == ("OP-5", "- On the operator")
     await _ok(invoke, [*host, "comment", short, "remove", "--as", slug, "--yes"])
     assert await _comments(invoke, host) == []
+
+
+# --- the added comment, with --json --------------------------------------------------------
+
+
+@pytest.mark.covers("<host> comment", "--json")
+async def test_comment_json_prints_the_added_comment(populated_project, invoke) -> None:
+    await _post(invoke, "Earlier")
+    printed = await _ok(
+        invoke, ["task", str(TASK), "comment", "-m", "Hello", "--as", "manager", "--json"]
+    )
+    [_, listed] = await _comments(invoke)
+    # Compared as text, so the key order is held as well as the content.
+    expected = {
+        "author": "Catherine Manager",
+        "author_slug": "manager",
+        "ts": "2026-06-07T10:00:00Z",
+        "edited_ts": None,
+        "hash": listed["hash"],
+        "short_hash": listed["short_hash"],
+        "body": "- Hello",
+        "item": "TASK-3",
+        "scope": None,
+        "copies": 1,
+    }
+    assert printed == json.dumps({"entry": expected}, indent=2) + "\n"
+
+
+@pytest.mark.covers("<host> comment", "--json")
+async def test_comment_refuses_json_before_a_verb(populated_project, invoke) -> None:
+    short = await _post(invoke, "Findable")
+    out = await _ran(invoke, ["task", str(TASK), "comment", "--json", short, "show"])
+    assert out == (2, "error: --json goes after the verb: comment HASH show --json\n")
+
+
+@pytest.mark.covers("<host> comment remove", "--json")
+async def test_remove_json_previews_and_asks_on_stderr_and_prints_only_the_document_on_stdout(
+    populated_project, invoke
+) -> None:
+    short = await _post(invoke, "Doomed")
+    [listed] = await _comments(invoke)
+    result = await invoke(
+        ["task", str(TASK), "comment", short, "remove", "--as", "manager", "--json"],
+        input="y\n",
+    )
+    assert result.exit_code == 0, result.output
+    assert result.stdout == json.dumps([listed], indent=2) + "\n"
+    assert result.stderr == ("2026-06-07T10:00:00Z manager: - Doomed\nRemove this comment? [y/N]: ")

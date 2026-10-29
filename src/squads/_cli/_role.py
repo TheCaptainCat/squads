@@ -60,7 +60,6 @@ from squads._cli._roster import (
 from squads._errors import NotInitializedError, SquadsError
 from squads._models._participants import ROLE_GROUP_VERBS
 from squads._roles._listing import bundled_catalog
-from squads._workflow import ROSTER_ROLE
 
 
 class _RoleDispatchGroup(AddressDispatchGroup):
@@ -273,7 +272,7 @@ def _resolve_addr(
     ),
 ) -> None:
     """Keep the address for the verb's operation, which resolves it."""
-    parse_address(ctx, ROSTER_ROLE, addr)
+    parse_address(ctx, addr)
 
 
 @_addr.command("show")
@@ -425,7 +424,20 @@ def _parse_yes_no(flag: str, raw: str | None) -> bool | None:
 
 
 register_write_verbs(_addr, body=ops.ROLE_BODY, remove=ops.ROLE_REMOVE)
-register_comment_verbs(_addr, lambda ctx: ctx.obj["id"])
+register_comment_verbs(
+    _addr,
+    common.roster_comments(
+        (
+            ops.ROLE_COMMENTS,
+            ops.ROLE_COMMENT_ADD,
+            ops.ROLE_COMMENT_SHOW,
+            ops.ROLE_COMMENT_EDIT,
+            ops.ROLE_COMMENT_REMOVAL,
+            ops.ROLE_COMMENT_REMOVE,
+        ),
+        address_of,
+    ),
+)
 register_roster_status_verb(_addr, status=ops.ROLE_STATUS)
 
 

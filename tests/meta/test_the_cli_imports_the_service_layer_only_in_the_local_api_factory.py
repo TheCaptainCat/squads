@@ -17,9 +17,7 @@ FACTORY = ("_calls.py", "local_api")
 PENDING = frozenset(
     {
         "_common.py",
-        "_create.py",
         "_import.py",
-        "_items.py",
         "_main.py",
     }
 )

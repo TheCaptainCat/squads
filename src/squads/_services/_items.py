@@ -692,8 +692,9 @@ class ItemsMixin(ServiceCore):
         item, _changed = await self._locked_section_edit(item_id, mutate)
         return item
 
-    async def read_body(self, item_id: str) -> str:
-        """The item's top-level ``:body`` content with any ``sq:view:<name>`` tag expanded: the one
+    async def read_body(self, item_id: str, *, keep_view: str | None = None) -> str:
+        """The item's top-level ``:body`` content with any ``sq:view:<name>`` tag expanded but
+        *keep_view*'s, which stays as written: the one
         body-read boundary for rendered text (:func:`~squads._view_tags.expand_view_tags`), while
         ``show --json`` reads :meth:`read_stored_body` unexpanded. No writer may source its text
         from here, or expanded view output would be persisted over the tag. A body with no tag
@@ -716,6 +717,7 @@ class ItemsMixin(ServiceCore):
             self.catalog,
             self.paths.config.squad_dir,
             self.working_language,
+            keep=keep_view,
         )
 
     async def _stored_body(self, item: Item) -> str:

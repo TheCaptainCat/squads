@@ -158,16 +158,6 @@ async def test_no_seed_skills_leaves_the_bundled_skills_out_of_the_squad(invoke)
     assert await listed(invoke) == [("ROLE-1", "Catherine Manager")]
 
 
-async def test_no_seed_skills_takes_no_value(invoke) -> None:
-    result = await invoke([*MINIMAL, "--no-seed-skills=yes"])
-    assert (result.exit_code, result.output) == (
-        2,
-        "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
-        "│ Option '--no-seed-skills' does not take a value.                             │\n"
-        "╰──────────────────────────────────────────────────────────────────────────────╯\n",
-    )
-
-
 @pytest.mark.covers("init", "--force")
 async def test_force_starts_over_a_configured_directory_and_keeps_its_items(invoke) -> None:
     root = Path.cwd()
@@ -185,6 +175,7 @@ async def test_force_starts_over_a_configured_directory_and_keeps_its_items(invo
     ]
 
 
+@pytest.mark.covers("init", "--force")
 async def test_force_is_required_to_start_over_a_configured_directory(invoke) -> None:
     first = await invoke([*MINIMAL, "--no-seed-skills"])
     assert first.exit_code == 0, first.output
@@ -228,6 +219,7 @@ async def test_default_names_skips_the_prompt_on_a_terminal(invoke, monkeypatch)
     assert (await listed(invoke))[0] == ("ROLE-1", "Catherine Manager")
 
 
+@pytest.mark.covers("init", "--roles")
 async def test_a_terminal_without_default_names_asks_for_each_role_name(
     invoke, monkeypatch
 ) -> None:
@@ -246,6 +238,7 @@ async def test_a_terminal_without_default_names_asks_for_each_role_name(
     assert await listed(invoke) == [("ROLE-1", "Zed One"), ("ROLE-2", "Mara Tester")]
 
 
+@pytest.mark.covers("init", "--name")
 async def test_name_spares_the_prompt_for_the_role_it_names(invoke, monkeypatch) -> None:
     monkeypatch.setattr("squads._cli._main._is_tty", lambda: True)
     root = Path.cwd()

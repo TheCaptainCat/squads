@@ -10,6 +10,8 @@ import pytest
 
 from squads import __version__
 from squads._models._schema import SCHEMA_VERSION
+from tests.cli import _bundled_documents as documents
+from tests.cli._output import json_text, printed
 
 pytestmark = pytest.mark.anyio
 
@@ -73,6 +75,7 @@ async def test_up_brings_an_older_squad_to_the_current_schema(
     )
 
 
+@pytest.mark.covers("migrate up")
 async def test_up_refuses_a_squad_newer_than_the_package(project, invoke) -> None:
     config = project.root / ".squads.toml"
     config.write_text(
@@ -89,6 +92,7 @@ async def test_up_refuses_a_squad_newer_than_the_package(project, invoke) -> Non
     )
 
 
+@pytest.mark.covers("migrate up")
 async def test_up_refuses_a_directory_with_no_squad(invoke) -> None:
     result = await invoke(["migrate", "up"])
     assert (result.exit_code, result.output) == (1, NO_SQUAD)
@@ -97,6 +101,7 @@ async def test_up_refuses_a_directory_with_no_squad(invoke) -> None:
 # ---------------------------------------------------------------------------- help and chlog
 
 
+@pytest.mark.covers("migrate help")
 async def test_help_lists_the_migrations_oldest_first_outside_any_squad(invoke) -> None:
     result = await invoke(["migrate", "help"])
     assert result.exit_code == 0, result.output
@@ -139,6 +144,7 @@ async def test_chlog_refuses_a_range_without_two_dots(invoke) -> None:
     )
 
 
+@pytest.mark.covers("migrate chlog", "vFROM..vTO")
 async def test_chlog_requires_a_range(invoke) -> None:
     result = await invoke(["migrate", "chlog"])
     assert (result.exit_code, result.output) == (
@@ -241,6 +247,7 @@ async def test_rename_type_refuses_a_type_the_spec_does_not_declare(
     )
 
 
+@pytest.mark.covers("migrate rename-type", "NEW_TYPE")
 async def test_rename_type_refuses_a_move_that_leaves_a_child_with_an_invalid_parent(
     populated_project, invoke
 ) -> None:
@@ -283,6 +290,7 @@ async def test_repad_refuses_a_width_that_does_not_exceed_the_current_one(
     assert task["path"] == "tasks/TASK-000003-build-the-query-parser.md"
 
 
+@pytest.mark.covers("migrate repad", "WIDTH")
 async def test_repad_refuses_a_width_that_is_not_an_integer(populated_project, invoke) -> None:
     result = await invoke(["migrate", "repad", "wide"])
     assert (result.exit_code, result.output) == (
@@ -296,20 +304,8 @@ async def test_repad_refuses_a_width_that_is_not_an_integer(populated_project, i
 
 @pytest.mark.covers("migrate help", "--json")
 async def test_help_json_lists_each_migration_with_its_manual_steps(invoke) -> None:
-    result = await invoke(["migrate", "help", "--json"])
-    assert result.exit_code == 0, result.output
-    # The first entry's head compared as text, so its key order is held as well as its content.
-    assert result.output.startswith(
-        '{\n  "migrations": [\n    {\n      "version": "0.2.0",\n      "from_schema": "0.1",\n'
-        '      "to_schema": "0.2",\n      "summary": "Inline ref kinds; subtask/story/finding '
-        'status machines; sq-managed summaries.",\n      "manual": "**'
-    )
-    entries = json.loads(result.output)["migrations"]
-    assert [list(entry) for entry in entries] == [
-        ["version", "from_schema", "to_schema", "summary", "manual"]
-    ] * len(entries)
-    assert entries[0]["manual"]
-    assert entries[-1]["to_schema"] == SCHEMA_VERSION
+    output = await printed(invoke, ["migrate", "help", "--json"])
+    assert output == json_text(documents.MIGRATIONS)
 
 
 @pytest.mark.covers("migrate chlog", "--json")

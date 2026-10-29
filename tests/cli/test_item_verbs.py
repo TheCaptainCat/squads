@@ -76,6 +76,7 @@ async def test_the_item_group_addresses_the_item_by_its_number(populated_project
     assert (by_number["id"], by_full_id["id"]) == (f"TASK-{loose}", f"TASK-{loose}")
 
 
+@pytest.mark.covers("<type>", "N")
 async def test_the_item_group_refuses_the_number_of_another_type(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(FEATURE), "show"]) == (
         1,
@@ -83,6 +84,7 @@ async def test_the_item_group_refuses_the_number_of_another_type(populated_proje
     )
 
 
+@pytest.mark.covers("<type>", "N")
 async def test_the_item_group_refuses_a_number_no_item_has(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", "99", "show"]) == (
         1,
@@ -119,6 +121,7 @@ async def test_update_changes_the_author(populated_project, invoke) -> None:
     assert (await _show(invoke))["author"] == slug
 
 
+@pytest.mark.covers("<type> update", "--author")
 async def test_update_refuses_an_author_no_roster_entry_has(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "update", "--author", "ghost"]) == (
         1,
@@ -152,6 +155,7 @@ async def test_update_moves_the_task_under_another_parent(populated_project, inv
     assert (await _show(invoke, loose))["parent"] == f"FEAT-{other}"
 
 
+@pytest.mark.covers("<type> update", "--parent")
 async def test_update_refuses_a_parent_that_lacks_the_story_a_subtask_maps_to(
     populated_project, invoke
 ) -> None:
@@ -162,6 +166,7 @@ async def test_update_refuses_a_parent_that_lacks_the_story_a_subtask_maps_to(
     )
 
 
+@pytest.mark.covers("<type> update", "--parent")
 async def test_update_refuses_a_parent_no_item_has(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "update", "--parent", "99"]) == (
         1,
@@ -177,6 +182,7 @@ async def test_update_clears_the_parent(populated_project, invoke) -> None:
     assert (await _show(invoke, loose))["parent"] is None
 
 
+@pytest.mark.covers("<type> update", "--no-parent")
 async def test_update_refuses_to_clear_the_parent_a_mapped_subtask_needs(
     populated_project, invoke
 ) -> None:
@@ -194,6 +200,7 @@ async def test_update_assigns_the_item(populated_project, invoke) -> None:
     assert (await _show(invoke))["assignee"] == slug
 
 
+@pytest.mark.covers("<type> update", "--assignee")
 async def test_update_refuses_an_assignee_no_roster_entry_has(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "update", "--assignee", "ghost"]) == (
         1,
@@ -216,6 +223,7 @@ async def test_update_sets_the_priority(populated_project, invoke) -> None:
     assert (await _show(invoke))["priority"] == "high"
 
 
+@pytest.mark.covers("<type> update", "--priority")
 async def test_update_refuses_a_priority_outside_the_declared_ones(
     populated_project, invoke
 ) -> None:
@@ -268,6 +276,7 @@ async def test_update_sets_a_declared_attribute(populated_project, invoke) -> No
     assert (await _show(invoke))["priority"] == "low"
 
 
+@pytest.mark.covers("<type> update", "--set")
 async def test_update_refuses_a_set_that_is_not_key_equals_value(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "update", "--set", "priority"]) == (
         1,
@@ -275,6 +284,7 @@ async def test_update_refuses_a_set_that_is_not_key_equals_value(populated_proje
     )
 
 
+@pytest.mark.covers("<type> update", "--set")
 async def test_update_refuses_to_set_an_attribute_the_type_does_not_declare(
     populated_project, invoke
 ) -> None:
@@ -292,6 +302,7 @@ async def test_update_unsets_a_declared_attribute(populated_project, invoke) -> 
     assert (await _show(invoke))["priority"] is None
 
 
+@pytest.mark.covers("<type> update", "--unset")
 async def test_update_refuses_to_unset_an_attribute_the_type_does_not_declare(
     populated_project, invoke
 ) -> None:
@@ -308,6 +319,7 @@ async def test_update_attributes_the_edit_to_the_named_slug(populated_project, i
     assert await _actors(invoke, f"TASK-{TASK}", "update") == ["manager", "system"]
 
 
+@pytest.mark.covers("<type> update", "--as")
 async def test_update_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "update", "--title", "T", "--as", "ghost"]) == (
         1,
@@ -315,6 +327,7 @@ async def test_update_refuses_an_actor_no_roster_entry_has(populated_project, in
     )
 
 
+@pytest.mark.covers("<type> update")
 async def test_update_refuses_a_call_that_changes_nothing(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "update"]) == (
         1,
@@ -468,62 +481,30 @@ async def test_show_json_prints_the_item_as_one_object(populated_project, invoke
     assert output == json.dumps(expected, indent=2) + "\n"
 
 
-async def test_show_prints_a_milestone_with_its_labelled_target_date_in_every_form(
-    populated_project, invoke
-) -> None:
-    out = await _ok(invoke, ["create", "milestone", "Beta", "--author", "manager"])
-    number = re.match(r"created MILE-(\d+)", out)
-    assert number, out
-    await _ok(invoke, ["milestone", number[1], "update", "--set", "target_date=2026-12-01"])
-    scope = (
-        "## Objective\n\n_TODO: what reaching this milestone means — the outcome it marks, in "
-        "one or two sentences._\n\n## Scope boundary\n\n_TODO: what counts toward this milestone "
-        "and what doesn't. Membership itself is never listed\nhere — join work to it with `ref "
-        "add MILE-… --kind targets` and read `sq milestone <n> show`\nfor the current roll-up, "
-        "computed fresh from the corpus every time._\n\n"
-    )
-    rollup = (
-        "## Delivered (0)\n\n_(none yet)_\n\n## Outstanding (0)\n\n_(nothing outstanding)_"
-        "\n\n## Settled without delivering (0)\n\n_(none)_"
-    )
-    expected = {
-        "sequence_id": 5,
-        "type": "milestone",
-        "title": "Beta",
-        "slug": "beta",
-        "status": "Draft",
-        "description": "",
-        "parent": None,
-        "author": "manager",
-        "assignee": None,
-        "priority": None,
-        "severity": None,
-        "labels": [],
-        "refs": [],
-        "subentities": [],
-        "path": "milestones/MILE-000005-beta.md",
-        "created_at": FROZEN_STAMP,
-        "updated_at": FROZEN_STAMP,
-        "created_session": None,
-        "modified_session": None,
-        "id": "MILE-5",
-        "target_date": "2026-12-01",
-        "body": scope + "<!-- sq:view:milestone_rollup -->",
-        "views": {"milestone_rollup": {"delivered": [], "outstanding": [], "settled": []}},
-        "discussion": [],
-        "badges": {},
-        "display": {
-            "type": "Milestone",
-            "status": {"badge": "⚪ Draft", "intent": "neutral"},
-            "badges": {},
-            "assignee": None,
-            "body": scope + rollup,
-            "summary": None,
-            "attributes": [{"key": "target_date", "label": "target date", "value": "2026-12-01"}],
-        },
-    }
-    output = await _ok(invoke, ["milestone", number[1], "show", "--json"])
-    assert output == json.dumps(expected, indent=2) + "\n"
+MILESTONE = 5
+MILESTONE_SCOPE = (
+    "## Objective\n\n_TODO: what reaching this milestone means — the outcome it marks, in "
+    "one or two sentences._\n\n## Scope boundary\n\n_TODO: what counts toward this milestone "
+    "and what doesn't. Membership itself is never listed\nhere — join work to it with `ref "
+    "add MILE-… --kind targets` and read `sq milestone <n> show`\nfor the current roll-up, "
+    "computed fresh from the corpus every time._\n\n"
+)
+MILESTONE_ROLLUP = (
+    "## Delivered (0)\n\n_(none yet)_\n\n## Outstanding (0)\n\n_(nothing outstanding)_"
+    "\n\n## Settled without delivering (0)\n\n_(none)_"
+)
+
+
+async def _milestone_with_a_target_date(invoke) -> None:
+    """Create milestone 5 and set its declared, labelled `target_date` attribute."""
+    await _ok(invoke, ["create", "milestone", "Beta", "--author", "manager"])
+    await _ok(invoke, ["milestone", str(MILESTONE), "update", "--set", "target_date=2026-12-01"])
+
+
+@pytest.mark.covers("<type> show")
+async def test_show_prints_a_declared_attribute_under_its_label(populated_project, invoke) -> None:
+    await _milestone_with_a_target_date(invoke)
+    shown = await _ok(invoke, ["milestone", str(MILESTONE), "show"])
     rollup_lines = [
         "## Delivered (0)",
         "",
@@ -537,7 +518,6 @@ async def test_show_prints_a_milestone_with_its_labelled_target_date_in_every_fo
         "",
         "_(none)_",
     ]
-    shown = await _ok(invoke, ["milestone", number[1], "show"])
     assert [line.rstrip() for line in shown.splitlines()] == [
         "╭──────────────────────────────────────╮",
         "│ MILE-5  (milestone)                  │",
@@ -563,7 +543,59 @@ async def test_show_prints_a_milestone_with_its_labelled_target_date_in_every_fo
         "",
         *rollup_lines,
     ]
-    raw = await _ok(invoke, ["milestone", number[1], "show", "--raw"])
+
+
+@pytest.mark.covers("<type> show", "--json")
+async def test_show_json_lists_a_declared_attribute_with_its_label(
+    populated_project, invoke
+) -> None:
+    await _milestone_with_a_target_date(invoke)
+    expected = {
+        "sequence_id": 5,
+        "type": "milestone",
+        "title": "Beta",
+        "slug": "beta",
+        "status": "Draft",
+        "description": "",
+        "parent": None,
+        "author": "manager",
+        "assignee": None,
+        "priority": None,
+        "severity": None,
+        "labels": [],
+        "refs": [],
+        "subentities": [],
+        "path": "milestones/MILE-000005-beta.md",
+        "created_at": FROZEN_STAMP,
+        "updated_at": FROZEN_STAMP,
+        "created_session": None,
+        "modified_session": None,
+        "id": "MILE-5",
+        "target_date": "2026-12-01",
+        "body": MILESTONE_SCOPE + "<!-- sq:view:milestone_rollup -->",
+        "views": {"milestone_rollup": {"delivered": [], "outstanding": [], "settled": []}},
+        "discussion": [],
+        "badges": {},
+        "display": {
+            "type": "Milestone",
+            "status": {"badge": "⚪ Draft", "intent": "neutral"},
+            "badges": {},
+            "assignee": None,
+            "body": MILESTONE_SCOPE + MILESTONE_ROLLUP,
+            "summary": None,
+            "attributes": [{"key": "target_date", "label": "target date", "value": "2026-12-01"}],
+        },
+    }
+    output = await _ok(invoke, ["milestone", str(MILESTONE), "show", "--json"])
+    assert output == json.dumps(expected, indent=2) + "\n"
+
+
+@pytest.mark.covers("<type> show", "--raw")
+async def test_show_raw_prints_a_declared_attribute_under_its_label(
+    populated_project, invoke
+) -> None:
+    await _milestone_with_a_target_date(invoke)
+    raw = await _ok(invoke, ["milestone", str(MILESTONE), "show", "--raw"])
     assert raw.splitlines() == [
         "# MILE-5 — Beta",
         "",
@@ -571,7 +603,7 @@ async def test_show_prints_a_milestone_with_its_labelled_target_date_in_every_fo
         "- **target date:** 2026-12-01",
         "- **author:** manager",
         "",
-        *(scope + rollup).splitlines(),
+        *(MILESTONE_SCOPE + MILESTONE_ROLLUP).splitlines(),
     ]
 
 
@@ -637,6 +669,7 @@ async def test_status_moves_the_item_along_an_allowed_transition(populated_proje
     assert (await _show(invoke))["status"] == "Ready"
 
 
+@pytest.mark.covers("<type> status", "STATUS")
 async def test_status_refuses_a_transition_the_lifecycle_does_not_allow(
     populated_project, invoke
 ) -> None:
@@ -647,6 +680,7 @@ async def test_status_refuses_a_transition_the_lifecycle_does_not_allow(
     assert (await _show(invoke))["status"] == "Draft"
 
 
+@pytest.mark.covers("<type> status", "STATUS")
 async def test_status_refuses_a_status_no_lifecycle_declares(populated_project, invoke) -> None:
     code, output = await _ran(invoke, ["task", str(TASK), "status", "Sleeping"])
     assert (code, output.split(" (one of:")[0]) == (1, "error: unknown status 'Sleeping'")
@@ -678,53 +712,55 @@ async def test_status_json_prints_the_moved_items_row(populated_project, invoke)
         moved
         == json.dumps(
             {
-                "sequence_id": 3,
-                "type": "task",
-                "title": "Build the query parser",
-                "slug": "build-the-query-parser",
-                "status": "Ready",
-                "description": "",
-                "parent": "FEAT-2",
-                "author": "manager",
-                "assignee": None,
-                "priority": None,
-                "severity": None,
-                "labels": [],
-                "refs": [],
-                "subentities": [
-                    {
-                        "local_id": "ST1",
-                        "title": "Tokenise the input",
-                        "status": "Todo",
-                        "assignee": None,
-                        "severity": None,
-                        "story": "US1",
-                        "deferred_to": None,
-                        "extra": {},
-                    },
-                    {
-                        "local_id": "ST2",
-                        "title": "Parse the operators",
-                        "status": "Todo",
-                        "assignee": None,
-                        "severity": None,
-                        "story": None,
-                        "deferred_to": None,
-                        "extra": {},
-                    },
-                ],
-                "path": TASK_PATH,
-                "created_at": FROZEN_STAMP,
-                "updated_at": FROZEN_STAMP,
-                "created_session": None,
-                "modified_session": None,
-                "id": "TASK-3",
-                "badges": {},
-                "display": {
-                    "type": "Task",
-                    "status": {"badge": "⚪ Ready", "intent": "neutral"},
-                    "badges": {},
+                "entry": {
+                    "sequence_id": 3,
+                    "type": "task",
+                    "title": "Build the query parser",
+                    "slug": "build-the-query-parser",
+                    "status": "Ready",
+                    "description": "",
+                    "parent": "FEAT-2",
+                    "author": "manager",
                     "assignee": None,
+                    "priority": None,
+                    "severity": None,
+                    "labels": [],
+                    "refs": [],
+                    "subentities": [
+                        {
+                            "local_id": "ST1",
+                            "title": "Tokenise the input",
+                            "status": "Todo",
+                            "assignee": None,
+                            "severity": None,
+                            "story": "US1",
+                            "deferred_to": None,
+                            "extra": {},
+                        },
+                        {
+                            "local_id": "ST2",
+                            "title": "Parse the operators",
+                            "status": "Todo",
+                            "assignee": None,
+                            "severity": None,
+                            "story": None,
+                            "deferred_to": None,
+                            "extra": {},
+                        },
+                    ],
+                    "path": TASK_PATH,
+                    "created_at": FROZEN_STAMP,
+                    "updated_at": FROZEN_STAMP,
+                    "created_session": None,
+                    "modified_session": None,
+                    "id": "TASK-3",
+                    "badges": {},
+                    "display": {
+                        "type": "Task",
+                        "status": {"badge": "⚪ Ready", "intent": "neutral"},
+                        "badges": {},
+                        "assignee": None,
+                    },
                 },
             },
             indent=2,
@@ -734,6 +770,7 @@ async def test_status_json_prints_the_moved_items_row(populated_project, invoke)
     assert (await _show(invoke))["status"] == "Ready"
 
 
+@pytest.mark.covers("<type> status", "--as")
 async def test_status_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "status", "Ready", "--as", "ghost"]) == (
         1,
@@ -751,6 +788,7 @@ async def test_body_sets_each_message_as_a_paragraph(populated_project, invoke) 
     assert (await _show(invoke))["body"] == "First\n\nSecond"
 
 
+@pytest.mark.covers("<type> body")
 async def test_body_refuses_a_call_with_no_text(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "body"]) == (
         1,
@@ -768,6 +806,7 @@ async def test_body_reads_the_text_from_a_file(populated_project, invoke) -> Non
     assert (await _show(invoke))["body"] == "From a file"
 
 
+@pytest.mark.covers("<type> body", "--file")
 async def test_body_reads_the_text_from_stdin_for_a_dash(populated_project, invoke) -> None:
     out = await _ran(invoke, ["task", str(TASK), "body", "--file", "-"], input="Piped in\n")
     assert out == (0, "TASK-3: body set\n")
@@ -787,6 +826,7 @@ async def test_body_refuses_a_file_that_is_not_utf8(populated_project, invoke) -
     )
 
 
+@pytest.mark.covers("<type> body", "--file")
 async def test_body_refuses_a_file_that_does_not_exist(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "body", "--file", "missing.md"]) == (
         1,
@@ -831,6 +871,7 @@ async def test_body_attributes_the_edit_to_the_named_slug(populated_project, inv
     assert await _actors(invoke, f"TASK-{TASK}", "body") == ["manager", "system"]
 
 
+@pytest.mark.covers("<type> body", "--as")
 async def test_body_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "body", "-m", "x", "--as", "ghost"]) == (
         1,
@@ -854,6 +895,7 @@ async def test_retype_reclassifies_the_item_and_keeps_its_number(populated_proje
     assert (moved["id"], moved["status"]) == (f"BUG-{loose}", "Open")
 
 
+@pytest.mark.covers("<type> retype", "NEW-TYPE")
 async def test_retype_refuses_an_item_that_holds_sub_entities(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "retype", "bug"]) == (
         1,
@@ -862,6 +904,7 @@ async def test_retype_refuses_an_item_that_holds_sub_entities(populated_project,
     )
 
 
+@pytest.mark.covers("<type> retype", "NEW-TYPE")
 async def test_retype_refuses_the_type_the_item_already_has(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     assert await _ran(invoke, ["task", str(loose), "retype", "task"]) == (
@@ -870,6 +913,7 @@ async def test_retype_refuses_the_type_the_item_already_has(populated_project, i
     )
 
 
+@pytest.mark.covers("<type> retype", "NEW-TYPE")
 async def test_retype_refuses_a_roster_type(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     assert await _ran(invoke, ["task", str(loose), "retype", "role"]) == (
@@ -879,6 +923,7 @@ async def test_retype_refuses_a_roster_type(populated_project, invoke) -> None:
     )
 
 
+@pytest.mark.covers("<type> retype", "NEW-TYPE")
 async def test_retype_refuses_a_type_the_spec_does_not_declare(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     assert await _ran(invoke, ["task", str(loose), "retype", "story"]) == (
@@ -895,6 +940,7 @@ async def test_retype_attributes_the_edit_to_the_named_slug(populated_project, i
     assert await _actors(invoke, f"BUG-{loose}", "retype") == ["manager"]
 
 
+@pytest.mark.covers("<type> retype", "--as")
 async def test_retype_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     assert await _ran(invoke, ["task", str(loose), "retype", "bug", "--as", "ghost"]) == (
@@ -916,6 +962,7 @@ async def test_remove_yes_deletes_the_item_without_asking(populated_project, inv
     assert (await _ran(invoke, ["task", str(loose), "show"]))[0] == 1
 
 
+@pytest.mark.covers("<type> remove")
 async def test_remove_asks_for_confirmation_and_keeps_the_item_when_declined(
     populated_project, invoke
 ) -> None:
@@ -925,6 +972,7 @@ async def test_remove_asks_for_confirmation_and_keeps_the_item_when_declined(
     assert (await _show(invoke, loose))["id"] == f"TASK-{loose}"
 
 
+@pytest.mark.covers("<type> remove", "--yes")
 async def test_remove_refuses_an_item_other_items_reference(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     await _ok(invoke, ["task", str(TASK), "ref", "add", str(loose)])
@@ -964,6 +1012,7 @@ async def test_remove_attributes_the_deletion_to_the_named_slug(populated_projec
     assert await _actors(invoke, f"TASK-{loose}", "remove") == ["manager"]
 
 
+@pytest.mark.covers("<type> remove", "--as")
 async def test_remove_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     assert await _ran(invoke, ["task", str(loose), "remove", "--yes", "--as", "ghost"]) == (
@@ -982,6 +1031,7 @@ async def test_ref_add_links_the_item_to_the_target_as_related(populated_project
     assert (await _show(invoke))["refs"] == [f"REV-{REVIEW}"]
 
 
+@pytest.mark.covers("<type> ref add", "TARGET")
 async def test_ref_add_refuses_a_target_that_is_not_an_item_id(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "ref", "add", "elsewhere"]) == (
         1,
@@ -996,6 +1046,7 @@ async def test_ref_add_kind_names_the_relation(populated_project, invoke) -> Non
     assert (await _show(invoke))["refs"] == [f"REV-{REVIEW}:fixes"]
 
 
+@pytest.mark.covers("<type> ref add", "--kind")
 async def test_ref_add_refuses_a_kind_the_spec_does_not_declare(populated_project, invoke) -> None:
     assert await _ran(
         invoke, ["task", str(TASK), "ref", "add", str(REVIEW), "--kind", "likes"]
@@ -1013,6 +1064,7 @@ async def test_ref_add_attributes_the_edit_to_the_named_slug(populated_project, 
     assert await _actors(invoke, f"TASK-{TASK}", "ref") == ["manager", "system"]
 
 
+@pytest.mark.covers("<type> ref add", "--as")
 async def test_ref_add_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
     out = await _ran(invoke, ["task", str(TASK), "ref", "add", str(REVIEW), "--as", "ghost"])
     assert out == (1, "error: unknown slug 'ghost'; valid slugs: manager\n")
@@ -1028,6 +1080,7 @@ async def test_ref_rm_drops_every_ref_to_the_target(populated_project, invoke) -
     assert (await _show(invoke))["refs"] == [f"FEAT-{FEATURE}"]
 
 
+@pytest.mark.covers("<type> ref rm", "TARGET")
 async def test_ref_rm_refuses_a_target_that_is_not_an_item_id(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "ref", "rm", "elsewhere"]) == (
         1,
@@ -1042,6 +1095,7 @@ async def test_ref_rm_attributes_the_edit_to_the_named_slug(populated_project, i
     assert (await _actors(invoke, f"TASK-{TASK}", "ref"))[-1] == "manager"
 
 
+@pytest.mark.covers("<type> ref rm", "--as")
 async def test_ref_rm_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
     out = await _ran(invoke, ["task", str(TASK), "ref", "rm", str(REVIEW), "--as", "ghost"])
     assert out == (1, "error: unknown slug 'ghost'; valid slugs: manager\n")
@@ -1136,6 +1190,7 @@ async def test_view_add_places_the_declared_view_in_the_body(populated_project, 
     }
 
 
+@pytest.mark.covers("<type> view add", "NAME")
 async def test_view_add_refuses_a_name_no_view_declares(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "view", "add", "gantt"]) == (
         1,
@@ -1158,6 +1213,7 @@ async def test_view_add_attributes_the_edit_to_the_named_slug(populated_project,
     assert await _actors(invoke, f"TASK-{TASK}", "view") == ["manager"]
 
 
+@pytest.mark.covers("<type> view add", "--as")
 async def test_view_add_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
     out = await _ran(
         invoke, ["task", str(TASK), "view", "add", "milestone_rollup", "--as", "ghost"]
@@ -1174,8 +1230,159 @@ async def test_view_disable_attributes_the_edit_to_the_named_slug(
     assert await _actors(invoke, f"TASK-{TASK}", "view") == ["system", "manager"]
 
 
+@pytest.mark.covers("<type> view disable", "--as")
 async def test_view_disable_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
     out = await _ran(
         invoke, ["task", str(TASK), "view", "disable", "milestone_rollup", "--as", "ghost"]
     )
     assert out == (1, "error: unknown slug 'ghost'; valid slugs: manager\n")
+
+
+# --- the written row, with --json -------------------------------------------------------------
+
+
+def _task_row(*, labels: list[str] | None = None, refs: list[str] | None = None) -> dict[str, Any]:
+    """The populated task's row before its display, with *labels* and *refs*."""
+    subtask = {"status": "Todo", "assignee": None, "severity": None}
+    return {
+        "sequence_id": 3,
+        "type": "task",
+        "title": "Build the query parser",
+        "slug": "build-the-query-parser",
+        "status": "Draft",
+        "description": "",
+        "parent": "FEAT-2",
+        "author": "manager",
+        "assignee": None,
+        "priority": None,
+        "severity": None,
+        "labels": labels or [],
+        "refs": refs or [],
+        "subentities": [
+            {"local_id": "ST1", "title": "Tokenise the input", **subtask, "story": "US1"},
+            {"local_id": "ST2", "title": "Parse the operators", **subtask, "story": None},
+        ],
+        "path": TASK_PATH,
+        "created_at": FROZEN_STAMP,
+        "updated_at": FROZEN_STAMP,
+        "created_session": None,
+        "modified_session": None,
+        "id": "TASK-3",
+        "badges": {},
+    }
+
+
+def _written(row: dict[str, Any], **outcome: Any) -> str:
+    """*row* as the written entry with the task's display, and the write's *outcome* beside it, as
+    `--json` prints it: compared as text, so the key order is held as well as the content."""
+    for sub in row["subentities"]:
+        sub.update(deferred_to=None, extra={})
+    shown = {
+        "type": "Task",
+        "status": {"badge": "⚪ Draft", "intent": "neutral"},
+        "badges": {},
+        "assignee": None,
+    }
+    return json.dumps({"entry": {**row, "display": shown}, **outcome}, indent=2) + "\n"
+
+
+@pytest.mark.covers("<type> update", "--json")
+async def test_update_json_prints_the_items_row_after_the_update(populated_project, invoke) -> None:
+    printed = await _ok(invoke, ["task", str(TASK), "update", "--add-label", "x", "--json"])
+    assert printed == _written(_task_row(labels=["x"]), nothing_to_clear=False)
+
+
+@pytest.mark.covers("<type> body", "--json")
+async def test_body_json_prints_the_items_row_after_the_write(populated_project, invoke) -> None:
+    printed = await _ok(invoke, ["task", str(TASK), "body", "-m", "Text", "--json"])
+    assert printed == _written(_task_row())
+    assert (await _show(invoke))["body"] == "Text"
+
+
+@pytest.mark.covers("<type> retype", "--json")
+async def test_retype_json_prints_the_items_row_under_its_new_type(
+    populated_project, invoke
+) -> None:
+    number = await _create_task(invoke)
+    printed = await _ok(invoke, ["task", str(number), "retype", "bug", "--json"])
+    retyped = {
+        "sequence_id": number,
+        "type": "bug",
+        "title": "Loose end",
+        "slug": "loose-end",
+        "status": "Open",
+        "description": "",
+        "parent": None,
+        "author": "manager",
+        "assignee": None,
+        "priority": None,
+        "severity": None,
+        "labels": [],
+        "refs": [],
+        "subentities": [],
+        "path": f"bugs/BUG-{number:06d}-loose-end.md",
+        "created_at": FROZEN_STAMP,
+        "updated_at": FROZEN_STAMP,
+        "created_session": None,
+        "modified_session": None,
+        "id": f"BUG-{number}",
+        "badges": {},
+        "display": {
+            "type": "Bug",
+            "status": {"badge": "🔴 Open", "intent": "danger"},
+            "badges": {},
+            "assignee": None,
+        },
+    }
+    outcome = {
+        "old_id": f"TASK-{number}",
+        "old_status": "Draft",
+        "status_reset": True,
+        "rewritten": [],
+    }
+    assert printed == json.dumps({"entry": retyped, **outcome}, indent=2) + "\n"
+
+
+@pytest.mark.covers("<type> ref add", "--json")
+async def test_ref_add_json_prints_the_items_row_with_the_ref(populated_project, invoke) -> None:
+    printed = await _ok(invoke, ["task", str(TASK), "ref", "add", str(REVIEW), "--json"])
+    expected = _written(_task_row(refs=["REV-4"]), target="REV-4", kind="related")
+    assert printed == expected
+
+
+@pytest.mark.covers("<type> ref rm", "--json")
+async def test_ref_rm_json_prints_the_items_row_without_the_ref(populated_project, invoke) -> None:
+    await _ok(invoke, ["task", str(TASK), "ref", "add", str(REVIEW)])
+    printed = await _ok(invoke, ["task", str(TASK), "ref", "rm", str(REVIEW), "--json"])
+    assert printed == _written(_task_row(), target="REV-4", kinds=["related"])
+
+
+@pytest.mark.covers("<type> view add", "--json")
+async def test_view_add_json_prints_the_items_row_and_the_tag_change(
+    populated_project, invoke
+) -> None:
+    printed = await _ok(invoke, ["task", str(TASK), "view", "add", "item_skill", "--json"])
+    expected = _written(_task_row(), view="item_skill", changed=True, was_present=False)
+    assert printed == expected
+
+
+@pytest.mark.covers("<type> view disable", "--json")
+async def test_view_disable_json_prints_the_items_row_and_the_tag_change(
+    populated_project, invoke
+) -> None:
+    await _ok(invoke, ["task", str(TASK), "view", "add", "item_skill"])
+    printed = await _ok(invoke, ["task", str(TASK), "view", "disable", "item_skill", "--json"])
+    expected = _written(_task_row(), view="item_skill", changed=True, was_present=True)
+    assert printed == expected
+
+
+@pytest.mark.covers("<type> remove", "--json")
+async def test_remove_json_asks_on_stderr_and_prints_only_the_document_on_stdout(
+    populated_project, invoke
+) -> None:
+    loose = await _create_task(invoke)
+    result = await invoke(["task", str(loose), "remove", "--json"], input="y\n")
+    assert result.exit_code == 0, result.output
+    expected = {"removed_id": f"TASK-{loose}", "severed_refs": []}
+    assert result.stdout == json.dumps(expected, indent=2) + "\n"
+    assert result.stderr == f"Remove TASK-{loose}? This cannot be undone. [y/N]: "

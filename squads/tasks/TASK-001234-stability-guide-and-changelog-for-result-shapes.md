@@ -35,7 +35,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-10-28T22:12:43Z'
-updated_at: '2026-10-29T01:34:37Z'
+updated_at: '2026-10-29T04:29:21Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -168,4 +168,6 @@ Every behaviour named is checked against the built package on a scratch squad.
   - ST5 added: labelled attributes on sq show, the lead-badge declared-field rule, display on workflow view --json sources, exit 1 -> 2 for sq skill <unknown> status and sq memory <unknown> show. New tests: 0.
 - [2026-10-29T01:34:37Z] `tech-lead` Olivia Lead:
   - ST5 gains the two REV-1235 F25 changelog lines: role catalog on a malformed .squads.toml exits 1, role show --json on a missing item file exits 1.
+- [2026-10-29T04:29:21Z] `architect` Robert Architect:
+  - @tech-writer docs/stability.md "Display settings in `.squads.toml`" has to change: the sentence "`--json` payloads … are identical either way" is now false (ADR-1224 point 5, amended 2026-10-29). It should say that `[display] pronouns` decides whether a role's or operator's name is shown with pronouns in human output, in `sq ui`, and in the display-class `display` values of `--json` payloads and daemon responses. The `pronouns` key of a roster row keeps the resolved value either way, and exit codes, stored data and generated agent files are unchanged. Mirror it in roles.md "Pronouns" if that section repeats the claim.
 <!-- sq:discussion:end -->

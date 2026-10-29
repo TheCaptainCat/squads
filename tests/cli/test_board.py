@@ -5,7 +5,8 @@ from typing import Any
 
 import pytest
 
-from tests.cli._roster import read_json, usage_error
+from tests.cli._output import read_json
+from tests.cli._roster import usage_error
 
 pytestmark = pytest.mark.anyio
 
@@ -34,20 +35,19 @@ async def test_post_adds_a_notice_signed_by_the_actor(project, invoke) -> None:
     result = await invoke(["board", "post", "-m", "Freeze on Friday", "--as", "manager"])
     notice_id = result.output.split()[1]
     assert (result.exit_code, result.output) == (0, f"posted {notice_id} as manager\n")
-    assert json.dumps(await _board(invoke)) == json.dumps(
-        [
-            {
-                "n": 1,
-                "id": notice_id,
-                "author": "manager",
-                "posted_at": STAMP,
-                "until": None,
-                "body": "Freeze on Friday",
-            }
-        ]
-    )
+    assert await _board(invoke) == [
+        {
+            "n": 1,
+            "id": notice_id,
+            "author": "manager",
+            "posted_at": STAMP,
+            "until": None,
+            "body": "Freeze on Friday",
+        }
+    ]
 
 
+@pytest.mark.covers("board post", "--as")
 async def test_post_as_is_required(project, invoke) -> None:
     result = await invoke(["board", "post", "-m", "Freeze on Friday"])
     assert (result.exit_code, result.output) == (1, AS_REQUIRED)
@@ -92,6 +92,7 @@ async def test_post_message_excludes_file(project, invoke, tmp_path) -> None:
     assert await _board(invoke) == []
 
 
+@pytest.mark.covers("board post", "--message")
 async def test_post_needs_a_message_or_a_file(project, invoke) -> None:
     result = await invoke(["board", "post", "--as", "manager"])
     assert (result.exit_code, result.output) == (
@@ -153,6 +154,7 @@ async def test_list_json_numbers_the_current_notices_in_the_order_they_were_post
     )
 
 
+@pytest.mark.covers("board list")
 async def test_list_prints_one_numbered_line_per_notice(project, invoke) -> None:
     empty = await invoke(["board", "list"])
     assert (empty.exit_code, empty.output) == (0, "no current notices\n")
@@ -190,6 +192,7 @@ async def test_clear_refuses_a_number_the_listing_does_not_have(project, invoke)
     assert len(await _board(invoke)) == 1
 
 
+@pytest.mark.covers("board clear", "N")
 async def test_clear_refuses_a_number_that_is_not_an_integer(project, invoke) -> None:
     result = await invoke(["board", "clear", "first"])
     assert (result.exit_code, result.output) == (
@@ -202,6 +205,7 @@ async def test_clear_refuses_a_number_that_is_not_an_integer(project, invoke) ->
     )
 
 
+@pytest.mark.covers("board clear", "N")
 async def test_clear_needs_a_number(project, invoke) -> None:
     result = await invoke(["board", "clear"])
     assert (result.exit_code, result.output) == (

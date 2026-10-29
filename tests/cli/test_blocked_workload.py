@@ -1,10 +1,9 @@
 """`sq blocked` (open items waiting on another open item) and `sq workload` (open and closed work
 per assignee)."""
 
-import json
-
 import pytest
 
+from tests.cli._output import json_text
 from tests.cli._readable import init_readable, lines
 
 pytestmark = pytest.mark.anyio
@@ -17,16 +16,12 @@ def readable(copy_squad):
     return copy_squad("readable", init_readable)
 
 
-def _text(document: object) -> str:
-    """*document* as ``--json`` prints it."""
-    return json.dumps(document, indent=2) + "\n"
-
-
 async def _run(invoke, *args: str) -> tuple[int, list[str]]:
     result = await invoke(list(args))
     return result.exit_code, lines(result.output)
 
 
+@pytest.mark.covers("blocked")
 async def test_blocked_names_each_waiting_item_and_what_it_waits_on(readable, invoke) -> None:
     assert await _run(invoke, "blocked") == (
         0,
@@ -34,6 +29,7 @@ async def test_blocked_names_each_waiting_item_and_what_it_waits_on(readable, in
     )
 
 
+@pytest.mark.covers("blocked")
 async def test_blocked_says_when_nothing_is_blocked(populated_project, invoke) -> None:
     assert await _run(invoke, "blocked") == (0, ["nothing blocked"])
 
@@ -43,7 +39,7 @@ async def test_blocked_json_prints_one_object_per_waiting_item(readable, invoke)
     result = await invoke(["blocked", "--json"])
     assert result.exit_code == 0, result.output
     # Compared as text, so the key order is held as well as the content.
-    assert result.output == _text(
+    assert result.output == json_text(
         [
             {
                 "id": "TASK-4",
@@ -61,6 +57,7 @@ async def test_blocked_json_prints_one_object_per_waiting_item(readable, invoke)
     )
 
 
+@pytest.mark.covers("workload")
 async def test_workload_counts_each_assignees_items_and_sub_entities(readable, invoke) -> None:
     assert await _run(invoke, "workload") == (
         0,
@@ -76,7 +73,7 @@ async def test_workload_counts_each_assignees_items_and_sub_entities(readable, i
 async def test_workload_json_prints_one_object_per_assignee(readable, invoke) -> None:
     result = await invoke(["workload", "--json"])
     assert result.exit_code == 0, result.output
-    assert result.output == _text(
+    assert result.output == json_text(
         [
             {
                 "assignee": None,

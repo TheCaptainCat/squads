@@ -252,9 +252,12 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
         await self.refresh_managed()
         return Response(data=RoleWrite(entry=self._role_row(item)))
 
-    async def show_role_entry(self, req: RosterAddress) -> Response[RoleShow]:
+    async def show_role_entry(
+        self, req: RosterAddress, *, keep_view: str | None = None
+    ) -> Response[RoleShow]:
         """A role as resolved: an activated one with its body and discussion, or one the catalog
-        declares and nobody activated."""
+        declares and nobody activated; the tag of the view *keep_view* names stays unexpanded in
+        its body."""
         token = req.addr.strip()
         it = (
             await self.roster_entry(ROSTER_ROLE, req.addr)
@@ -285,7 +288,7 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
             disabled = await self.view_tag_state(it.id, ROLE_DEFINITION_VIEW_NAME) is True
             state = empty_body_hint_state(ROLE_DEFINITION_VIEW_NAME, self.spec, disabled=disabled)
             empty_hint = role_empty_body_hint(state, slug)
-            body = await self.read_body(it.id)
+            body = await self.read_body(it.id, keep_view=keep_view)
             discussion = comment_dtos(await self.comments(it.id))
         shown = name_display(role.full_name, pronouns, enabled=self._shows_pronouns())
         data = RoleShow(

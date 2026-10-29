@@ -16,6 +16,7 @@ from squads._api._dto._base import DTO
 #: on them.
 EXTRA_ALLOWED = frozenset(
     {
+        "ItemCreated",
         "ItemFields",
         "ItemRow",
         "ItemShow",

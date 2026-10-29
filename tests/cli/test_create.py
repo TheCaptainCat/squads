@@ -6,6 +6,8 @@ from typing import Any
 
 import pytest
 
+from tests.cli._output import json_text, printed
+
 pytestmark = pytest.mark.anyio
 
 USAGE = "Usage: sq create task [OPTIONS] TITLE\nTry 'sq create task --help' for help.\n"
@@ -45,6 +47,7 @@ async def test_author_refuses_a_slug_that_is_not_registered(project, invoke) -> 
     )
 
 
+@pytest.mark.covers("create <type>", "--author")
 async def test_author_is_required(project, invoke) -> None:
     result = await invoke(["create", "task", "Index"])
     assert (result.exit_code, result.output) == (
@@ -55,6 +58,7 @@ async def test_author_is_required(project, invoke) -> None:
     )
 
 
+@pytest.mark.covers("create <type>", "TITLE")
 async def test_title_is_required(project, invoke) -> None:
     result = await invoke(["create", "task", "--author", "manager"])
     assert (result.exit_code, result.output) == (
@@ -220,13 +224,40 @@ async def test_message_excludes_file(project, invoke, tmp_path) -> None:
 
 
 @pytest.mark.covers("create <type>", "--json")
-async def test_json_prints_the_created_item_as_show_does(project, invoke) -> None:
-    result = await invoke(["create", "task", "Index", "--author", "manager", "--json"])
-    assert result.exit_code == 0, result.output
-    created = json.loads(result.output)
-    shown = await _shown(invoke, "task", 2)
-    assert created == {key: shown[key] for key in created}
-    assert (created["id"], created["title"], created["status"]) == ("TASK-2", "Index", "Draft")
+async def test_json_prints_the_created_item(project, invoke) -> None:
+    output = await printed(invoke, ["create", "task", "Index", "--author", "manager", "--json"])
+    assert output == json_text(
+        {
+            "sequence_id": 2,
+            "type": "task",
+            "title": "Index",
+            "slug": "index",
+            "status": "Draft",
+            "description": "",
+            "parent": None,
+            "author": "manager",
+            "assignee": None,
+            "priority": None,
+            "severity": None,
+            "labels": [],
+            "refs": [],
+            "subentities": [],
+            "path": "tasks/TASK-000002-index.md",
+            "created_at": "2026-06-07T10:00:00Z",
+            "updated_at": "2026-06-07T10:00:00Z",
+            "created_session": None,
+            "modified_session": None,
+            "id": "TASK-2",
+            "badges": {},
+            "display": {
+                "type": "Task",
+                "status": {"badge": "⚪ Draft", "intent": "neutral"},
+                "badges": {},
+                "assignee": None,
+                "file": str(project.squad_dir / "tasks" / "TASK-000002-index.md"),
+            },
+        }
+    )
 
 
 @pytest.mark.covers("create guide", "TITLE")
@@ -374,13 +405,40 @@ async def test_create_guide_message_excludes_file(project, invoke, tmp_path) -> 
 
 
 @pytest.mark.covers("create guide", "--json")
-async def test_create_guide_json_prints_the_created_guide_as_show_does(project, invoke) -> None:
-    result = await invoke(["create", "guide", "Setup", "--author", "manager", "--json"])
-    assert result.exit_code == 0, result.output
-    created = json.loads(result.output)
-    shown = await _shown(invoke, "guide", 2)
-    assert created == {key: shown[key] for key in created}
-    assert (created["id"], created["title"], created["status"]) == ("GUIDE-2", "Setup", "Draft")
+async def test_create_guide_json_prints_the_created_guide(project, invoke) -> None:
+    output = await printed(invoke, ["create", "guide", "Setup", "--author", "manager", "--json"])
+    assert output == json_text(
+        {
+            "sequence_id": 2,
+            "type": "guide",
+            "title": "Setup",
+            "slug": "setup",
+            "status": "Draft",
+            "description": "",
+            "parent": None,
+            "author": "manager",
+            "assignee": None,
+            "priority": None,
+            "severity": None,
+            "labels": [],
+            "refs": [],
+            "subentities": [],
+            "path": "guides/GUIDE-000002-setup.md",
+            "created_at": "2026-06-07T10:00:00Z",
+            "updated_at": "2026-06-07T10:00:00Z",
+            "created_session": None,
+            "modified_session": None,
+            "id": "GUIDE-2",
+            "badges": {},
+            "display": {
+                "type": "Guide",
+                "status": {"badge": "⚪ Draft", "intent": "neutral"},
+                "badges": {},
+                "assignee": None,
+                "file": str(project.squad_dir / "guides" / "GUIDE-000002-setup.md"),
+            },
+        }
+    )
 
 
 @pytest.mark.covers("create <type>", "--severity")

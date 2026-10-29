@@ -3,9 +3,10 @@ id: TASK-1233
 sequence_id: 1233
 type: task
 title: Terminal UI through the Api
-status: Ready
+status: InProgress
 parent: FEAT-1226
 author: tech-lead
+assignee: python-dev
 priority: high
 refs:
 - ADR-1224:implements
@@ -17,7 +18,7 @@ description: sq ui screens call operations through the Api the root callback sel
 subentities:
 - local_id: ST1
   title: sq ui hands the app a per-call API selector
-  status: Todo
+  status: InProgress
   story: US5
 - local_id: ST2
   title: Screens onto operations
@@ -28,7 +29,7 @@ subentities:
   status: Todo
   story: US4
 created_at: '2026-10-28T22:12:42Z'
-updated_at: '2026-10-28T23:32:36Z'
+updated_at: '2026-10-29T05:31:56Z'
 ---
 <!-- sq:body -->
 ## Goal

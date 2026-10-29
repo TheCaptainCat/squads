@@ -30,6 +30,7 @@ async def _entries(invoke, *args: str) -> list[dict[str, Any]]:
     return json.loads(result.output)
 
 
+@pytest.mark.covers("reflog")
 async def test_reflog_prints_every_entry_oldest_first(history, invoke) -> None:
     code, out = await _reflog(invoke)
     assert (code, out[0], out[-2:]) == (
@@ -39,6 +40,7 @@ async def test_reflog_prints_every_entry_oldest_first(history, invoke) -> None:
     )
 
 
+@pytest.mark.covers("reflog")
 async def test_reflog_of_a_new_squad_prints_its_first_entry(project, invoke) -> None:
     assert await _reflog(invoke) == (
         0,
@@ -65,6 +67,7 @@ async def test_item_keeps_the_entries_on_one_item(history, invoke) -> None:
     )
 
 
+@pytest.mark.covers("reflog", "--item")
 async def test_item_prints_nothing_for_an_id_no_entry_names(history, invoke) -> None:
     assert await _reflog(invoke, "--item", "TASK-99") == (0, ["no reflog entries"])
 
@@ -86,6 +89,7 @@ async def test_since_keeps_the_entries_at_or_after_the_time(history, invoke) -> 
     assert await _reflog(invoke, "--since", "2026-06-08T09:00:01Z") == (0, ["no reflog entries"])
 
 
+@pytest.mark.covers("reflog", "--since")
 async def test_since_refuses_text_that_is_not_an_iso_8601_time(history, invoke) -> None:
     assert await _reflog(invoke, "--since", "notadate") == (
         1,
@@ -103,6 +107,7 @@ async def test_tail_keeps_the_latest_entries(history, invoke) -> None:
     assert (everything[0]["target"], everything[-1]["target"]) == ("ROLE-1", "TASK-4")
 
 
+@pytest.mark.covers("reflog", "--tail")
 async def test_tail_refuses_a_value_that_is_not_an_integer(history, invoke) -> None:
     assert await _reflog(invoke, "--tail", "many") == (
         2,

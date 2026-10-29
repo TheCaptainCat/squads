@@ -22,14 +22,9 @@ from squads._cli._render._roster import (
     render_removed,
     render_status_move,
 )
-from squads._errors import SquadsError
-from squads._workflow import ROSTER_ROLE
 
 #: The ``ctx.obj`` key of the address as typed, which the operation resolves.
 ADDR_KEY = "addr"
-
-#: The verbs that still read a resolved id off ``ctx.obj``: the comment verbs.
-COMMENT_VERBS = frozenset({"comment", "comments"})
 
 
 class Entry(Protocol):
@@ -64,32 +59,9 @@ def address_of(ctx: typer.Context) -> str:
     return ctx.obj[ADDR_KEY]
 
 
-def parse_address(ctx: typer.Context, kind: str, addr: str) -> None:
-    """Keep *addr* for the verb's operation, which resolves it within *kind*; for a comment verb,
-    which reads a resolved id, resolve it here."""
+def parse_address(ctx: typer.Context, addr: str) -> None:
+    """Keep *addr* for the verb's operation, which resolves it within its own roster kind."""
     ctx.obj = {ADDR_KEY: addr}
-    if ctx.invoked_subcommand in COMMENT_VERBS:
-        _resolve_for_comments(ctx, kind, addr)
-
-
-@common.command
-async def _resolve_for_comments(ctx: typer.Context, kind: str, addr: str) -> None:
-    resolved = await common.address_obj(ctx, lambda: _comment_target(kind, addr))
-    ctx.obj = common.extend_obj(resolved, **{ADDR_KEY: addr})
-
-
-async def _comment_target(kind: str, token: str) -> str:
-    """The id of the *kind* entry *token* names; a role slug no entry has is a role to activate
-    first."""
-    try:
-        return await common.resolve_agent_addr(token, kind, common.get_service())
-    except SquadsError:
-        shaped = token.strip().isdigit() or common.is_full_id_shape(token.strip())
-        if kind != ROSTER_ROLE or shaped:
-            raise
-        raise SquadsError(
-            f"no role with slug, ID, or number {token!r} — activate it first"
-        ) from None
 
 
 def json_option(help: str) -> Any:

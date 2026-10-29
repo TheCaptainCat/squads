@@ -107,15 +107,20 @@ class ItemShowDisplay(Display):
 
 
 class _TrailingKeys(DTO):
-    """Serializes the keys a command adds after the item's stored attributes."""
+    """Serializes the keys a command adds after the item's stored attributes; a key named in
+    ``OMITTED_WHEN_NONE`` is left out while it holds ``None``."""
 
     TRAILING: ClassVar[tuple[str, ...]] = ()
+    OMITTED_WHEN_NONE: ClassVar[tuple[str, ...]] = ()
 
     @model_serializer(mode="wrap")
     def _ordered(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         dumped: dict[str, Any] = handler(self)
         ordered = {k: v for k, v in dumped.items() if k not in self.TRAILING}
         ordered.update((k, dumped[k]) for k in self.TRAILING if k in dumped)
+        for key in self.OMITTED_WHEN_NONE:
+            if ordered.get(key, 0) is None:
+                del ordered[key]
         return ordered
 
 

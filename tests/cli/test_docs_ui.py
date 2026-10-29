@@ -39,6 +39,7 @@ def _cells(row: str) -> list[str]:
     return [cell.strip() for cell in row.strip("│").split("│")]
 
 
+@pytest.mark.covers("docs")
 async def test_docs_lists_the_bundled_documents_by_name_and_title(invoke) -> None:
     code, out = await _docs(invoke)
     assert code == 0
@@ -57,10 +58,12 @@ async def test_docs_name_prints_the_document_as_raw_markdown(invoke) -> None:
     assert result.output == _docfiles.read("faq") + "\n"
 
 
+@pytest.mark.covers("docs", "NAME")
 async def test_docs_name_ignores_case_and_a_markdown_suffix(invoke) -> None:
     assert await _docs(invoke, "FAQ.md") == await _docs(invoke, "faq")
 
 
+@pytest.mark.covers("docs", "NAME")
 async def test_docs_name_refuses_a_document_the_bundle_lacks(invoke) -> None:
     names = ", ".join(stem for stem, _ in _docfiles.available())
     assert await _docs(invoke, "ghost") == (1, [f"error: unknown doc 'ghost' (one of: {names})"])
@@ -94,6 +97,7 @@ async def test_ui_runs_the_terminal_browser_over_the_squad(
     assert (result.exit_code, result.output, len(runs)) == (0, "", 1)
 
 
+@pytest.mark.covers("ui")
 async def test_ui_refuses_to_start_outside_a_squad(squads_app, invoke, monkeypatch) -> None:
     monkeypatch.setattr(squads_app, "run", lambda self, *a, **k: pytest.fail("the app started"))
     result = await invoke(["ui"])

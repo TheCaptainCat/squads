@@ -28,6 +28,14 @@ class ItemNotFoundError(SquadsError):
     pass
 
 
+class CommentNotFoundError(SquadsError):
+    """No comment of the addressed discussion carries the hash."""
+
+
+class SubentityNotFoundError(SquadsError):
+    """The item has no sub-entity with the addressed local id."""
+
+
 class InvalidIdError(SquadsError):
     pass
 

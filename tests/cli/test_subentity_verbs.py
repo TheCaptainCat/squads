@@ -91,6 +91,7 @@ async def test_the_group_addresses_a_subtask_by_number_or_local_id(
     assert by_number["local_id"] == "ST1"
 
 
+@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
 async def test_the_group_refuses_a_local_id_the_item_does_not_hold(
     populated_project, invoke
 ) -> None:
@@ -144,6 +145,7 @@ def _todo_display(story: str | None) -> dict[str, Any]:
     }
 
 
+@pytest.mark.covers("<type> <kinds>")
 async def test_the_plural_listing_prints_a_table_of_subtasks(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "subtasks"]) == (
         0,
@@ -178,6 +180,7 @@ async def test_show_json_prints_the_subtask_as_one_object(populated_project, inv
     assert output == json.dumps(expected, indent=2) + "\n"
 
 
+@pytest.mark.covers("<type> <kind> show")
 async def test_show_prints_the_status_story_body_and_discussion(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "subtask", "1", "show"]) == (
         0,
@@ -221,6 +224,7 @@ async def test_add_file_writes_the_file_as_the_body(populated_project, invoke) -
     assert (await _subtask(invoke, 3))["body"] == "From a file"
 
 
+@pytest.mark.covers("<type> add-<kind>", "--file")
 async def test_add_file_reads_the_body_from_stdin_for_a_dash(populated_project, invoke) -> None:
     await _ok(
         invoke, ["task", str(TASK), "add-subtask", "Index", "--file", "-"], input="Piped in\n"
@@ -228,6 +232,7 @@ async def test_add_file_reads_the_body_from_stdin_for_a_dash(populated_project, 
     assert (await _subtask(invoke, 3))["body"] == "Piped in"
 
 
+@pytest.mark.covers("<type> add-<kind>", "--file")
 async def test_add_file_refuses_a_file_that_does_not_exist(populated_project, invoke) -> None:
     assert await _ran(
         invoke, ["task", str(TASK), "add-subtask", "Index", "--file", "missing.md"]
@@ -252,6 +257,7 @@ async def test_add_status_starts_the_subtask_in_that_status(populated_project, i
     assert (await _subtask(invoke, 3))["status"] == "InProgress"
 
 
+@pytest.mark.covers("<type> add-<kind>", "--status")
 async def test_add_refuses_a_status_the_spec_does_not_declare(populated_project, invoke) -> None:
     out = await _ran(invoke, ["task", str(TASK), "add-subtask", "Index", "--status", "Nope"])
     assert out == (1, UNKNOWN_STATUS)
@@ -263,6 +269,7 @@ async def test_add_assignee_assigns_the_new_subtask(populated_project, invoke) -
     assert (await _subtask(invoke, 3))["assignee"] == "manager"
 
 
+@pytest.mark.covers("<type> add-<kind>", "--assignee")
 async def test_add_refuses_an_assignee_no_roster_entry_has(populated_project, invoke) -> None:
     out = await _ran(invoke, ["task", str(TASK), "add-subtask", "Index", "--assignee", "ghost"])
     assert out == (1, UNKNOWN_SLUG)
@@ -277,6 +284,7 @@ async def test_add_story_maps_the_subtask_to_a_story_of_the_parent_feature(
     assert [(await _subtask(invoke, n))["story"] for n in (3, 4)] == ["US2", "US1"]
 
 
+@pytest.mark.covers("<type> add-<kind>", "--story")
 async def test_add_story_refuses_a_story_the_parent_feature_lacks(
     populated_project, invoke
 ) -> None:
@@ -286,6 +294,7 @@ async def test_add_story_refuses_a_story_the_parent_feature_lacks(
     )
 
 
+@pytest.mark.covers("<type> add-<kind>", "--story")
 async def test_add_story_is_resolved_against_the_parent_of_the_task_it_is_added_to(
     populated_project, invoke
 ) -> None:
@@ -299,6 +308,7 @@ async def test_add_story_is_resolved_against_the_parent_of_the_task_it_is_added_
     )
 
 
+@pytest.mark.covers("<type> add-<kind>", "--story")
 async def test_add_story_refuses_a_task_with_no_feature_parent(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     assert await _ran(invoke, ["task", str(loose), "add-subtask", "Index", "--story", "US1"]) == (
@@ -316,6 +326,7 @@ async def test_add_json_prints_where_the_body_region_was_written(populated_proje
         "region": "subtask:ST3:body",
         "start_line": 64,
         "end_line": 66,
+        "display": {"item": "TASK-3", "body_command": 'sq task 3 subtask ST3 body -m "…"'},
     }
 
 
@@ -326,6 +337,7 @@ async def test_add_attributes_the_new_subtask_to_the_named_slug(populated_projec
     assert (await _actors(invoke, "TASK-3"))[-2:] == [("manager", "add"), ("system", "add")]
 
 
+@pytest.mark.covers("<type> add-<kind>", "--as")
 async def test_add_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "add-subtask", "Index", "--as", "ghost"]) == (
         1,
@@ -346,11 +358,13 @@ async def test_add_severity_sets_the_severity_of_a_new_finding(populated_project
     assert (await _finding(invoke, 3))["severity"] == "low"
 
 
+@pytest.mark.covers("<type> add-<kind>", "TITLE")
 async def test_add_severity_defaults_to_medium_when_not_given(populated_project, invoke) -> None:
     await _ok(invoke, ["review", str(REVIEW), "add-finding", "Dead branch"])
     assert (await _finding(invoke, 3))["severity"] == "medium"
 
 
+@pytest.mark.covers("<type> add-<kind>", "--severity")
 async def test_add_refuses_a_severity_outside_the_declared_ones(populated_project, invoke) -> None:
     out = await _ran(
         invoke, ["review", str(REVIEW), "add-finding", "Dead branch", "--severity", "Bad"]
@@ -379,6 +393,7 @@ async def test_add_deferred_to_names_the_item_that_carries_a_deferred_finding(
     assert (deferred["status"], deferred["deferred_to"]) == ("Deferred", "TASK-3")
 
 
+@pytest.mark.covers("<type> add-<kind>", "--deferred-to")
 async def test_add_refuses_deferred_to_on_a_finding_that_is_not_deferred(
     populated_project, invoke
 ) -> None:
@@ -390,6 +405,7 @@ async def test_add_refuses_deferred_to_on_a_finding_that_is_not_deferred(
     )
 
 
+@pytest.mark.covers("<type> add-<kind>", "--deferred-to")
 async def test_add_refuses_a_deferred_to_that_is_not_an_item_id(populated_project, invoke) -> None:
     out = await _ran(
         invoke,
@@ -410,6 +426,7 @@ async def test_add_refuses_a_deferred_to_that_is_not_an_item_id(populated_projec
     )
 
 
+@pytest.mark.covers("<type> add-<kind>", "--deferred-to")
 async def test_add_refuses_a_deferred_to_no_item_has(populated_project, invoke) -> None:
     out = await _ran(
         invoke,
@@ -445,6 +462,7 @@ async def test_update_moves_to_a_status_the_lifecycle_allows(populated_project, 
     assert (await _subtask(invoke, 1))["status"] == "InProgress"
 
 
+@pytest.mark.covers("<type> <kind> update", "--status")
 async def test_update_refuses_a_status_the_spec_does_not_declare(populated_project, invoke) -> None:
     out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "update", "--status", "Nope"])
     assert out == (1, UNKNOWN_STATUS)
@@ -472,6 +490,7 @@ async def test_update_assignee_assigns_the_subtask(populated_project, invoke) ->
     assert (await _subtask(invoke, 1))["assignee"] == "manager"
 
 
+@pytest.mark.covers("<type> <kind> update", "--assignee")
 async def test_update_refuses_an_assignee_no_roster_entry_has(populated_project, invoke) -> None:
     out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "update", "--assignee", "ghost"])
     assert out == (1, UNKNOWN_SLUG)
@@ -485,6 +504,7 @@ async def test_update_clear_assignee_unassigns_the_subtask(populated_project, in
     assert (await _subtask(invoke, 1))["assignee"] is None
 
 
+@pytest.mark.covers("<type> <kind> update", "--clear-assignee")
 async def test_update_clear_assignee_says_so_when_there_is_none_to_clear(
     populated_project, invoke
 ) -> None:
@@ -510,6 +530,7 @@ async def test_update_story_maps_the_subtask_to_a_story_of_the_parent_feature(
     assert [(await _subtask(invoke, n))["story"] for n in (1, 2)] == ["US2", "US1"]
 
 
+@pytest.mark.covers("<type> <kind> update", "--story")
 async def test_update_story_refuses_a_story_the_parent_feature_lacks(
     populated_project, invoke
 ) -> None:
@@ -517,6 +538,7 @@ async def test_update_story_refuses_a_story_the_parent_feature_lacks(
     assert out == (1, f"error: user story US9 not found in FEAT-{FEATURE}\n")
 
 
+@pytest.mark.covers("<type> <kind> update", "--story")
 async def test_update_story_is_resolved_against_the_parent_of_the_task_it_belongs_to(
     populated_project, invoke
 ) -> None:
@@ -533,6 +555,7 @@ async def test_update_story_is_resolved_against_the_parent_of_the_task_it_belong
     assert (await _subtask(invoke, 1, loose))["story"] == "US1"
 
 
+@pytest.mark.covers("<type> <kind> update", "--story")
 async def test_update_story_refuses_a_task_with_no_feature_parent(
     populated_project, invoke
 ) -> None:
@@ -568,6 +591,7 @@ async def test_update_attributes_the_edit_to_the_named_slug(populated_project, i
     assert (await _actors(invoke, "TASK-3"))[-2:] == [("manager", "update"), ("system", "update")]
 
 
+@pytest.mark.covers("<type> <kind> update", "--as")
 async def test_update_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
     out = await _ran(
         invoke, ["task", str(TASK), "subtask", "1", "update", "--title", "T", "--as", "ghost"]
@@ -575,6 +599,7 @@ async def test_update_refuses_an_actor_no_roster_entry_has(populated_project, in
     assert out == (1, UNKNOWN_SLUG)
 
 
+@pytest.mark.covers("<type> <kind> update")
 async def test_update_refuses_a_call_that_changes_nothing(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "subtask", "1", "update"]) == (
         1,
@@ -589,11 +614,13 @@ async def test_update_severity_changes_the_severity_of_a_finding(populated_proje
     assert (await _finding(invoke, 1))["severity"] == "low"
 
 
+@pytest.mark.covers("<type> <kind> update", "--severity")
 async def test_update_severity_accepts_the_label_in_any_case(populated_project, invoke) -> None:
     await _ok(invoke, ["review", str(REVIEW), "finding", "2", "update", "--severity", "INFO"])
     assert (await _finding(invoke, 2))["severity"] == "info"
 
 
+@pytest.mark.covers("<type> <kind> update", "--severity")
 async def test_update_refuses_a_severity_outside_the_declared_ones(
     populated_project, invoke
 ) -> None:
@@ -620,6 +647,7 @@ async def test_update_deferred_to_points_a_deferred_finding_at_another_item(
     assert (await _finding(invoke, 1))["deferred_to"] == "FEAT-2"
 
 
+@pytest.mark.covers("<type> <kind> update", "--deferred-to")
 async def test_update_refuses_deferred_to_on_a_finding_that_is_not_deferred(
     populated_project, invoke
 ) -> None:
@@ -633,6 +661,7 @@ async def test_update_refuses_deferred_to_on_a_finding_that_is_not_deferred(
     )
 
 
+@pytest.mark.covers("<type> <kind> update", "--deferred-to")
 async def test_update_refuses_a_deferred_to_that_is_not_an_item_id(
     populated_project, invoke
 ) -> None:
@@ -656,6 +685,7 @@ async def test_update_refuses_a_deferred_to_that_is_not_an_item_id(
     )
 
 
+@pytest.mark.covers("<type> <kind> update", "--deferred-to")
 async def test_update_refuses_a_deferred_to_no_item_has(populated_project, invoke) -> None:
     out = await _ran(
         invoke,
@@ -686,6 +716,7 @@ async def test_body_sets_each_message_as_a_paragraph(populated_project, invoke) 
     assert (await _subtask(invoke, 1))["body"] == "First\n\nSecond"
 
 
+@pytest.mark.covers("<type> <kind> body")
 async def test_body_refuses_a_call_with_no_text(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "subtask", "1", "body"]) == (
         1,
@@ -701,6 +732,7 @@ async def test_body_reads_the_text_from_a_file(populated_project, invoke) -> Non
     assert (await _subtask(invoke, 1))["body"] == "From a file"
 
 
+@pytest.mark.covers("<type> <kind> body", "--file")
 async def test_body_reads_the_text_from_stdin_for_a_dash(populated_project, invoke) -> None:
     await _ok(
         invoke, ["task", str(TASK), "subtask", "1", "body", "--file", "-"], input="Piped in\n"
@@ -708,6 +740,7 @@ async def test_body_reads_the_text_from_stdin_for_a_dash(populated_project, invo
     assert (await _subtask(invoke, 1))["body"] == "Piped in"
 
 
+@pytest.mark.covers("<type> <kind> body", "--file")
 async def test_body_refuses_a_file_that_does_not_exist(populated_project, invoke) -> None:
     assert await _ran(
         invoke, ["task", str(TASK), "subtask", "1", "body", "--file", "missing.md"]
@@ -760,6 +793,7 @@ async def test_body_attributes_the_edit_to_the_named_slug(populated_project, inv
     assert (await _actors(invoke, "TASK-3"))[-2:] == [("manager", "body"), ("system", "body")]
 
 
+@pytest.mark.covers("<type> <kind> body", "--as")
 async def test_body_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
     out = await _ran(
         invoke, ["task", str(TASK), "subtask", "1", "body", "-m", "x", "--as", "ghost"]
@@ -782,6 +816,7 @@ async def test_remove_yes_deletes_the_subtask_without_asking(populated_project, 
     )
 
 
+@pytest.mark.covers("<type> <kind> remove")
 async def test_remove_asks_for_confirmation_and_keeps_the_subtask_when_declined(
     populated_project, invoke
 ) -> None:
@@ -790,6 +825,7 @@ async def test_remove_asks_for_confirmation_and_keeps_the_subtask_when_declined(
     assert (await _subtask(invoke, 1))["local_id"] == "ST1"
 
 
+@pytest.mark.covers("<type> <kind> remove")
 async def test_remove_deletes_the_subtask_when_confirmed(populated_project, invoke) -> None:
     out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "remove"], input="y\n")
     assert out == (
@@ -803,6 +839,7 @@ async def test_remove_deletes_the_subtask_when_confirmed(populated_project, invo
     ] == ["ST2"]
 
 
+@pytest.mark.covers("<type> <kind> remove", "--yes")
 async def test_remove_refuses_a_subtask_the_item_does_not_hold(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "subtask", "7", "remove", "--yes"]) == (
         1,
@@ -813,7 +850,7 @@ async def test_remove_refuses_a_subtask_the_item_does_not_hold(populated_project
 @pytest.mark.covers("<type> <kind> remove", "--json")
 async def test_remove_json_prints_the_removed_subtask(populated_project, invoke) -> None:
     out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "remove", "--yes", "--json"])
-    assert (out[0], json.loads(out[1])) == (0, {"removed": "subtask ST1"})
+    assert (out[0], json.loads(out[1])) == (0, {"removed": "subtask ST1", "item": "TASK-3"})
 
 
 @pytest.mark.covers("<type> <kind> remove", "--as")
@@ -823,8 +860,72 @@ async def test_remove_attributes_the_deletion_to_the_named_slug(populated_projec
     assert (await _actors(invoke, "TASK-3"))[-2:] == [("manager", "remove"), ("system", "remove")]
 
 
+@pytest.mark.covers("<type> <kind> remove", "--as")
 async def test_remove_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
     out = await _ran(
         invoke, ["task", str(TASK), "subtask", "1", "remove", "--yes", "--as", "ghost"]
     )
     assert out == (1, UNKNOWN_SLUG)
+
+
+# --- the written sub-entity, with --json -----------------------------------------------------
+
+
+def _written_subtask(title: str, body: str, **outcome: Any) -> str:
+    """The populated task's second subtask as the written entry, with the write's *outcome*
+    beside it, as `--json` prints it: compared as text, so the key order is held as well as the
+    content."""
+    subtask = {
+        "local_id": "ST2",
+        "title": title,
+        "status": "Todo",
+        "assignee": None,
+        "severity": None,
+        "story": None,
+        "deferred_to": None,
+        "extra": {},
+        "body": body,
+        "badges": {},
+        "discussion": [],
+        "display": {
+            "type": "Subtask",
+            "status": {"badge": "⚪ Todo", "intent": "neutral"},
+            "badges": {},
+            "assignee": None,
+            "story": None,
+            "carrier_title": None,
+            "kind": {
+                "name": "subtask",
+                "label": "Subtask",
+                "plural": "subtasks",
+                "heading": "Subtasks",
+            },
+            "discussion": None,
+        },
+    }
+    return json.dumps({"entry": subtask, **outcome}, indent=2) + "\n"
+
+
+@pytest.mark.covers("<type> <kind> update", "--json")
+async def test_update_json_prints_the_subentity_after_the_update(populated_project, invoke) -> None:
+    printed = await _ok(
+        invoke, ["task", str(TASK), "subtask", "2", "update", "--title", "Parse it", "--json"]
+    )
+    assert printed == _written_subtask("Parse it", NO_BODY, nothing_to_clear=False)
+
+
+@pytest.mark.covers("<type> <kind> body", "--json")
+async def test_body_json_prints_the_subentity_after_the_write(populated_project, invoke) -> None:
+    printed = await _ok(invoke, ["task", str(TASK), "subtask", "2", "body", "-m", "Text", "--json"])
+    assert printed == _written_subtask("Parse the operators", "Text")
+
+
+@pytest.mark.covers("<type> <kind> remove", "--json")
+async def test_remove_json_asks_on_stderr_and_prints_only_the_document_on_stdout(
+    populated_project, invoke
+) -> None:
+    result = await invoke(["task", str(TASK), "subtask", "2", "remove", "--json"], input="y\n")
+    assert result.exit_code == 0, result.output
+    expected = {"removed": "subtask ST2", "item": "TASK-3"}
+    assert result.stdout == json.dumps(expected, indent=2) + "\n"
+    assert result.stderr == "Remove subtask ST2 from TASK-3? This cannot be undone. [y/N]: "

@@ -6,12 +6,13 @@ hidden `_addr` dispatcher dropped; the root callback is the empty key. A paramet
 first long flag, or by the usage name of an argument.
 """
 
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
 import typer.main
-from typer._click.core import Context
+from typer._click.core import Context, iter_params_for_processing
 
 from squads._cli import app
 from squads._workflow._models import WorkflowSpec
@@ -33,8 +34,8 @@ COMMENTS = "comments"
 #: all of them. It is the host whose `remove` also re-renders the managed roster section, so its
 #: tests reach the widest effect of the shared verbs.
 ROSTER_REFERENCE = "role"
-#: The verbs `register_body_verb`, `register_remove_verb` (with its hidden `rm`) and
-#: `register_status_verb` mount on each roster host.
+#: The verbs `register_write_verbs` (`body`, `remove` with its hidden `rm`) and
+#: `register_roster_status_verb` mount on each roster host.
 ROSTER_SHARED_VERBS = ("body", "remove", "rm", "status")
 
 #: Parameters the tree lists that squads does not declare, each with the reason it is left out.
@@ -141,14 +142,25 @@ def _fold_kind_segment(segment: str, item_type: str, spec: WorkflowSpec) -> str:
 
 @dataclass(frozen=True)
 class Surface:
-    """What the tree asks tests to declare."""
+    """What the tree asks tests to declare: its (key, parameter) pairs and its leaf keys."""
 
     pairs: frozenset[Pair]
-    parameterless_leaves: frozenset[str]
+    leaves: frozenset[str]
+
+    @property
+    def parameterless_leaves(self) -> frozenset[str]:
+        return self.leaves - {key for key, _ in self.pairs}
 
     @property
     def required(self) -> frozenset[Pair]:
+        """The pairs some test must declare: every pair, and the bare call of a leaf that has no
+        parameter."""
         return self.pairs | {(key, None) for key in self.parameterless_leaves}
+
+    @property
+    def known(self) -> frozenset[Pair]:
+        """The pairs a marker may name: every pair, and the bare call of any leaf."""
+        return self.pairs | {(key, None) for key in self.leaves}
 
 
 def node_params(node: Node) -> list[Any]:
@@ -157,7 +169,7 @@ def node_params(node: Node) -> list[Any]:
 
 
 def surface_of(nodes: Iterable[Node], spec: WorkflowSpec) -> Surface:
-    """Fold *nodes* onto keys: their (key, parameter) pairs and the leaf keys with no pair."""
+    """Fold *nodes* onto keys: their (key, parameter) pairs and their leaf keys."""
     pairs: set[Pair] = set()
     leaves: set[str] = set()
     for node in nodes:
@@ -166,17 +178,16 @@ def surface_of(nodes: Iterable[Node], spec: WorkflowSpec) -> Surface:
             leaves.add(key)
         pairs.update((key, param_name(p)) for p in node_params(node))
     pairs -= EXCLUDED_PARAMS.keys()
-    keys_with_pairs = {key for key, _ in pairs}
-    return Surface(frozenset(pairs), frozenset(leaves - keys_with_pairs))
+    return Surface(frozenset(pairs), frozenset(leaves))
 
 
-def reached_pairs(args: list[str], spec: WorkflowSpec) -> set[Pair]:
+def reached_pairs(args: list[str], spec: WorkflowSpec, refusal: str | None = None) -> set[Pair]:
     """The (key, parameter) pairs the argument list *args* names on the live tree.
 
-    Parses each level with Click's own parser and routes an unknown token to the hidden address
-    subgroup as the dispatching groups do. A parameter counts only when the call supplies a
-    value for it. A level that does not parse, or that asks for ``--help``, ends the walk, keeping
-    the pairs of the levels before it.
+    Each level is parsed with Click's parser, an unknown token routed to the address subgroup. A
+    parameter counts when the call gives it a value, when Click's missing-parameter error at the
+    leaf names it, or when one of its flags appears in the *refusal* a failed call printed; a leaf
+    given none adds ``(key, None)``. A level that does not parse, or asks for ``--help``, ends it.
     """
     root = typer.main.get_command(app)
     ctx = Context(root, info_name="sq")
@@ -192,15 +203,18 @@ def reached_pairs(args: list[str], spec: WorkflowSpec) -> set[Pair]:
         if given.get("help"):
             return reached
         key = fold_path(path, spec, command)
-        reached.update(
+        params = node_params(Node(path, command, ctx))
+        level = {
             (key, param_name(p))
-            for p in node_params(Node(path, command, ctx))
+            for p in params
             if given.get(p.name) not in (None, ()) and (key, param_name(p)) not in EXCLUDED_PARAMS
-        )
+        }
+        reached |= level
         if not hasattr(command, "list_commands") or not rest:
             if not hasattr(command, "list_commands"):
-                reached.add((key, None))
-            return reached
+                reached |= {(key, None)} if not level else set()
+                reached |= _missing(key, params, given)
+            return reached | _named(key, params, refusal or "")
         child = command.get_command(ctx, rest[0])
         if child is not None:
             name, remaining = rest[0], rest[1:]
@@ -215,6 +229,29 @@ def reached_pairs(args: list[str], spec: WorkflowSpec) -> set[Pair]:
         path = (*path, name)
         ctx = Context(child, info_name=name, parent=ctx)
         command = child
+
+
+def _missing(key: str, params: list[Any], given: dict[str, Any]) -> set[Pair]:
+    """The pair of the required parameter Click's missing-parameter error names for a leaf call
+    that leaves it out: the first one Click processes."""
+    absent = [p for p in params if p.required and given.get(p.name) in (None, ())]
+    first = next(iter(iter_params_for_processing([], absent)), None)
+    return {(key, param_name(first))} if first is not None else set()
+
+
+def _named(key: str, params: list[Any], refusal: str) -> set[Pair]:
+    """The pairs of the options of the command a call ended on that have a flag, short or long,
+    in *refusal*."""
+    return {
+        (key, param_name(p))
+        for p in params
+        if p.param_type_name == "option"
+        and any(
+            re.search(rf"(?<![\w-]){re.escape(flag)}(?![\w-])", refusal)
+            for flag in (*p.opts, *p.secondary_opts)
+        )
+        and (key, param_name(p)) not in EXCLUDED_PARAMS
+    }
 
 
 def declared_pairs(arguments: tuple[str, ...]) -> set[Pair]:

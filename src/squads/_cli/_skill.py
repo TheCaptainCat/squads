@@ -58,7 +58,6 @@ from squads._cli._roster import (
     register_roster_status_verb,
     register_write_verbs,
 )
-from squads._workflow import ROSTER_SKILL
 
 _INVOCABLE_HELP = (
     "Offer the skill to the person at the keyboard: yes, no, or default to follow the "
@@ -143,7 +142,7 @@ def _resolve_addr(
     ),
 ) -> None:
     """Keep the address for the verb's operation, which resolves it."""
-    parse_address(ctx, ROSTER_SKILL, addr)
+    parse_address(ctx, addr)
 
 
 @_addr.command("show")
@@ -329,7 +328,20 @@ def skill_update(
 
 
 register_write_verbs(_addr, body=ops.SKILL_BODY, remove=ops.SKILL_REMOVE)
-register_comment_verbs(_addr, lambda ctx: ctx.obj["id"])
+register_comment_verbs(
+    _addr,
+    common.roster_comments(
+        (
+            ops.SKILL_COMMENTS,
+            ops.SKILL_COMMENT_ADD,
+            ops.SKILL_COMMENT_SHOW,
+            ops.SKILL_COMMENT_EDIT,
+            ops.SKILL_COMMENT_REMOVAL,
+            ops.SKILL_COMMENT_REMOVE,
+        ),
+        address_of,
+    ),
+)
 register_roster_status_verb(_addr, status=ops.SKILL_STATUS)
 
 

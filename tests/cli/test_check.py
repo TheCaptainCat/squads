@@ -38,6 +38,7 @@ async def damaged_project(project, invoke):
     return project
 
 
+@pytest.mark.covers("check")
 async def test_check_reports_a_clean_squad(project, invoke) -> None:
     result = await invoke(["check"])
     assert (result.exit_code, result.output) == (0, "✓ no issues\n")
@@ -49,6 +50,7 @@ async def test_json_prints_an_empty_array_for_a_clean_squad(project, invoke) -> 
     assert (result.exit_code, result.output) == (0, "[]\n")
 
 
+@pytest.mark.covers("check")
 async def test_check_names_each_issue_and_exits_3_on_an_error(damaged_project, invoke) -> None:
     result = await invoke(["check"])
     assert (result.exit_code, result.output) == (
@@ -66,6 +68,7 @@ async def test_json_prints_one_object_per_issue_and_exits_3_on_an_error(
     assert result.output == json.dumps([NO_AUTHOR_ISSUE, DANGLING_ISSUE], indent=2) + "\n"
 
 
+@pytest.mark.covers("check", "--json")
 async def test_check_exits_0_when_the_issues_are_warnings(populated_project, invoke) -> None:
     result = await invoke(["check", "--json"])
     assert result.exit_code == 0

@@ -41,6 +41,7 @@ async def test_graph_draws_the_items_linked_to_the_item_a_few_levels_out(readabl
     assert await _graph(invoke, "TASK-4") == expected
 
 
+@pytest.mark.covers("graph", "ID")
 async def test_graph_refuses_a_number_no_item_has(readable, invoke) -> None:
     assert await _graph(invoke, "99") == (
         1,
@@ -57,6 +58,7 @@ async def test_depth_cuts_the_levels_below_the_root(readable, invoke) -> None:
     assert await _graph(invoke, "4", "--depth", "0") == (0, [ROOT])
 
 
+@pytest.mark.covers("graph", "--depth")
 async def test_depth_refuses_a_value_that_is_not_an_integer(readable, invoke) -> None:
     assert await _graph(invoke, "4", "--depth", "deep") == (
         2,
@@ -78,12 +80,14 @@ async def test_kind_follows_only_the_named_ref_kind(readable, invoke) -> None:
     )
 
 
+@pytest.mark.covers("graph", "--kind")
 async def test_kind_may_be_repeated(readable, invoke) -> None:
     assert await _graph(invoke, "4", "--kind", "related", "--kind", "depends-on") == await _graph(
         invoke, "4"
     )
 
 
+@pytest.mark.covers("graph", "--kind")
 async def test_kind_refuses_a_kind_the_workflow_does_not_declare(readable, invoke) -> None:
     assert await _graph(invoke, "4", "--kind", "ghost") == (
         1,
@@ -102,6 +106,7 @@ async def test_direction_out_follows_only_the_refs_the_item_holds(readable, invo
     )
 
 
+@pytest.mark.covers("graph", "--direction")
 async def test_direction_in_follows_only_the_refs_to_the_item(readable, invoke) -> None:
     assert await _graph(invoke, "3", "--direction", "in") == (
         0,
@@ -110,6 +115,7 @@ async def test_direction_in_follows_only_the_refs_to_the_item(readable, invoke) 
     assert await _graph(invoke, "3", "--direction", "out") == (0, [PARSER])
 
 
+@pytest.mark.covers("graph", "--direction")
 async def test_direction_refuses_a_value_other_than_out_in_or_both(readable, invoke) -> None:
     assert await _graph(invoke, "4", "--direction", "sideways") == (
         1,
@@ -154,16 +160,19 @@ async def test_format_dot_prints_the_graph_as_dot_text(readable, invoke) -> None
     )
 
 
+@pytest.mark.covers("graph", "--format")
 async def test_format_mermaid_prints_the_graph_as_a_flowchart(readable, invoke) -> None:
     result = await invoke(["graph", "4", "--format", "mermaid"])
     assert (result.exit_code, result.output) == (0, MERMAID)
 
 
+@pytest.mark.covers("graph", "--format")
 async def test_format_mermaid_md_wraps_the_flowchart_in_a_fence(readable, invoke) -> None:
     result = await invoke(["graph", "4", "--format", "mermaid-md"])
     assert (result.exit_code, result.output) == (0, f"```mermaid\n{MERMAID}```\n")
 
 
+@pytest.mark.covers("graph", "--format")
 async def test_format_refuses_a_name_other_than_dot_mermaid_or_mermaid_md(readable, invoke) -> None:
     assert await _graph(invoke, "4", "--format", "ghost") == (
         1,

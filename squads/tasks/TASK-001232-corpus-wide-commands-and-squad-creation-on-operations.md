@@ -3,9 +3,10 @@ id: TASK-1232
 sequence_id: 1232
 type: task
 title: Corpus-wide commands and squad creation on operations
-status: Ready
+status: InProgress
 parent: FEAT-1226
 author: tech-lead
+assignee: python-dev
 priority: high
 refs:
 - ADR-1224:implements
@@ -37,7 +38,7 @@ subentities:
   status: Todo
   story: US2
 created_at: '2026-10-28T22:12:41Z'
-updated_at: '2026-10-29T01:34:31Z'
+updated_at: '2026-10-29T05:27:34Z'
 ---
 <!-- sq:body -->
 ## Goal
