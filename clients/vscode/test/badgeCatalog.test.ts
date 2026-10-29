@@ -6,9 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildBadgeVocabulary,
   buildFieldBindings,
-  buildMappingKinds,
   buildSubEntityFieldBindings,
-  mappingLabel,
   NO_BADGE_VOCABULARY,
   NO_FIELD_BINDINGS,
   resolveItemBadges,
@@ -251,28 +249,5 @@ describe('buildSubEntityFieldBindings', () => {
       { fieldLabel: 'Confidence', badgeLabel: 'low', emoji: null },
       { fieldLabel: 'mystery', badgeLabel: 'x', emoji: null },
     ]);
-  });
-});
-
-describe('mappingLabel', () => {
-  const bundled = buildMappingKinds(SUBENTITY_KINDS_FIXTURE);
-  const overridden = buildMappingKinds(
-    JSON.parse(
-      readFixture('override-subentity-kinds-catalog.json'),
-    ) as SqSubEntityKindCatalogEntry[],
-  );
-
-  it('names the target kind of a bundled mapping', () => {
-    expect(mappingLabel('US1', bundled)).toBe('Story');
-  });
-
-  it('names a target kind the bundled vocabulary does not have', () => {
-    expect(overridden.get('OC')).toBe('outcome');
-    expect(mappingLabel('OC2', overridden)).toBe('Outcome');
-  });
-
-  it('is generic when the prefix is unknown or the catalog is missing', () => {
-    expect(mappingLabel('ZZ9', overridden)).toBe('Maps to');
-    expect(mappingLabel('US1')).toBe('Maps to');
   });
 });

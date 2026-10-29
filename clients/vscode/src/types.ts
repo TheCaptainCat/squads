@@ -125,9 +125,6 @@ export interface SqTypeCatalogEntry {
  * convention. */
 export interface SqSubEntityKindCatalogEntry {
   readonly subentity_kind: string;
-  /** The prefix of the kind's local ids (the letters before the number); the key a `maps_to` value is resolved
-   * to its target kind by. Optional: without it a mapping is labelled generically. */
-  readonly local_prefix?: string;
   readonly fields: readonly SqTypeField[];
 }
 
@@ -216,6 +213,20 @@ export interface SqDiscussionEntry {
   readonly edited_ts?: string | null;
 }
 
+/** A kind as the server labels it (`display.kind`, `display.maps_to_kind`). */
+export interface SqKindDisplay {
+  readonly name: string;
+  readonly label: string;
+  readonly plural: string;
+  readonly heading: string;
+}
+
+/** The slice of a sub-entity's `display` the client reads: `maps_to_kind` is the target kind of
+ * its `maps_to`, `null` when its kind maps nothing. */
+export interface SqSubEntityDisplay {
+  readonly maps_to_kind?: SqKindDisplay | null;
+}
+
 /** One entry of `sq show <id> --json`'s `subentities` array — a story/subtask/finding tracked on
  * the parent item. `local_id` is kind-prefixed (`US<n>` story / `ST<n>` subtask / the finding
  * letter) — the kind itself isn't a separate field, so the client never needs a hardcoded kind
@@ -236,6 +247,7 @@ export interface SqSubEntity {
   readonly status: string;
   readonly assignee: string | null;
   readonly maps_to: string | null;
+  readonly display?: SqSubEntityDisplay;
   readonly body: string;
   readonly badges?: SqBadgeMap;
   readonly discussion?: readonly SqDiscussionEntry[];

@@ -74,22 +74,22 @@ const UV_INVOCATION: SqInvocation = { command: 'uv', args: ['run', 'sq'], source
 describe('getTree', () => {
   it('parses a real committed sq tree --json fixture', async () => {
     const runner = stubRunner({ stdout: TREE_FIXTURE, stderr: '', exitCode: 0 });
-    const outcome = await getTree(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'EPIC-99');
+    const outcome = await getTree(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'EPIC-9');
 
     expect(outcome.kind).toBe('success');
     if (outcome.kind !== 'success') {
       throw new Error('expected success');
     }
-    expect(outcome.data[0]?.id).toBe('EPIC-99');
-    expect(outcome.data[0]?.children[0]?.id).toBe('FEAT-100');
+    expect(outcome.data[0]?.id).toBe('EPIC-9');
+    expect(outcome.data[0]?.children[0]?.id).toBe('FEAT-10');
   });
 
   it('builds argv from the invocation prefix plus the tree subcommand', async () => {
     const { runner, calls } = recordingRunner({ stdout: '[]', stderr: '', exitCode: 0 });
-    await getTree(runner, UV_INVOCATION, WORKSPACE_ROOT, 'EPIC-99');
+    await getTree(runner, UV_INVOCATION, WORKSPACE_ROOT, 'EPIC-9');
 
     expect(calls).toEqual([
-      { command: 'uv', args: ['run', 'sq', 'tree', 'EPIC-99', '--json'], cwd: WORKSPACE_ROOT },
+      { command: 'uv', args: ['run', 'sq', 'tree', 'EPIC-9', '--json'], cwd: WORKSPACE_ROOT },
     ]);
   });
 
@@ -256,24 +256,24 @@ describe('isSqSearchHit', () => {
 describe('getGraph', () => {
   it('parses a real committed sq graph --json fixture (a single nested object, not an array)', async () => {
     const runner = stubRunner({ stdout: GRAPH_FIXTURE, stderr: '', exitCode: 0 });
-    const outcome = await getGraph(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'FEAT-449');
+    const outcome = await getGraph(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'FEAT-10');
 
     expect(outcome.kind).toBe('success');
     if (outcome.kind !== 'success') {
       throw new Error('expected success');
     }
-    expect(outcome.data.id).toBe('FEAT-449');
-    expect(outcome.data.children[0]?.id).toBe('FEAT-100');
+    expect(outcome.data.id).toBe('FEAT-10');
+    expect(outcome.data.children[0]?.id).toBe('ADR-12');
   });
 
   it('builds argv as "graph <id> --json --all"', async () => {
     const { runner, calls } = recordingRunner({ stdout: GRAPH_FIXTURE, stderr: '', exitCode: 0 });
-    await getGraph(runner, UV_INVOCATION, WORKSPACE_ROOT, 'FEAT-449');
+    await getGraph(runner, UV_INVOCATION, WORKSPACE_ROOT, 'FEAT-10');
 
     expect(calls).toEqual([
       {
         command: 'uv',
-        args: ['run', 'sq', 'graph', 'FEAT-449', '--json', '--all'],
+        args: ['run', 'sq', 'graph', 'FEAT-10', '--json', '--all'],
         cwd: WORKSPACE_ROOT,
       },
     ]);
@@ -281,7 +281,7 @@ describe('getGraph', () => {
 
   it('surfaces well-formed JSON that is an array (not the expected single object) as a parse-error', async () => {
     const runner = stubRunner({ stdout: '[]', stderr: '', exitCode: 0 });
-    const outcome = await getGraph(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'FEAT-449');
+    const outcome = await getGraph(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'FEAT-10');
 
     expect(outcome.kind).toBe('parse-error');
   });
@@ -301,23 +301,23 @@ describe('getGraph', () => {
 describe('exit code mapping', () => {
   it('maps exit 2 to a usage-error carrying the full, runnable command line', async () => {
     const runner = stubRunner({ stdout: '', stderr: 'No such option: --bogus-flag', exitCode: 2 });
-    const outcome = await getTree(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'EPIC-99');
+    const outcome = await getTree(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'EPIC-9');
 
     expect(outcome).toEqual({
       kind: 'usage-error',
       message: 'No such option: --bogus-flag',
-      argv: ['/venv/bin/sq', 'tree', 'EPIC-99', '--json'],
+      argv: ['/venv/bin/sq', 'tree', 'EPIC-9', '--json'],
     });
   });
 
   it('includes the invocation prefix (e.g. "uv run") in the usage-error command line too', async () => {
     const runner = stubRunner({ stdout: '', stderr: 'No such option: --bogus-flag', exitCode: 2 });
-    const outcome = await getTree(runner, UV_INVOCATION, WORKSPACE_ROOT, 'EPIC-99');
+    const outcome = await getTree(runner, UV_INVOCATION, WORKSPACE_ROOT, 'EPIC-9');
 
     expect(outcome).toEqual({
       kind: 'usage-error',
       message: 'No such option: --bogus-flag',
-      argv: ['uv', 'run', 'sq', 'tree', 'EPIC-99', '--json'],
+      argv: ['uv', 'run', 'sq', 'tree', 'EPIC-9', '--json'],
     });
   });
 
@@ -334,7 +334,7 @@ describe('exit code mapping', () => {
       stderr: 'Schema mismatch: run `sq migrate up`.',
       exitCode: 1,
     });
-    const outcome = await getTree(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'EPIC-99');
+    const outcome = await getTree(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'EPIC-9');
 
     expect(outcome).toEqual({
       kind: 'runtime-error',
@@ -352,21 +352,21 @@ describe('exit code mapping', () => {
 
   it('surfaces a spawn failure (e.g. the binary vanished) without throwing', async () => {
     const runner: ProcessRunner = { run: () => Promise.reject(new Error('ENOENT')) };
-    const outcome = await getTree(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'EPIC-99');
+    const outcome = await getTree(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'EPIC-9');
 
     expect(outcome).toEqual({ kind: 'spawn-error', message: 'ENOENT' });
   });
 
   it('surfaces malformed JSON as a parse-error rather than throwing', async () => {
     const runner = stubRunner({ stdout: 'not json', stderr: '', exitCode: 0 });
-    const outcome = await getTree(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'EPIC-99');
+    const outcome = await getTree(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'EPIC-9');
 
     expect(outcome.kind).toBe('parse-error');
   });
 
   it('surfaces well-formed JSON that does not match the expected shape as a parse-error', async () => {
     const runner = stubRunner({ stdout: '[{"unexpected": true}]', stderr: '', exitCode: 0 });
-    const outcome = await getTree(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'EPIC-99');
+    const outcome = await getTree(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'EPIC-9');
 
     expect(outcome.kind).toBe('parse-error');
   });
@@ -857,7 +857,7 @@ describe('getRolesCatalog', () => {
 describe('getShowJson', () => {
   it('parses a real committed sq show --json fixture down to its discussion array', async () => {
     const runner = stubRunner({ stdout: SHOW_JSON_FIXTURE, stderr: '', exitCode: 0 });
-    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-434');
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-11');
 
     expect(outcome.kind).toBe('success');
     if (outcome.kind !== 'success') {
@@ -869,9 +869,12 @@ describe('getShowJson', () => {
       ts: expect.any(String) as string,
       body: expect.any(String) as string,
     });
-    // The fixture's item happens to have no sub-entities — an empty array is still a valid,
-    // fully-parsed `subentities` key, not an absent one.
-    expect(outcome.data.subentities).toEqual([]);
+    expect(outcome.data.subentities.map((entry) => [entry.local_id, entry.maps_to])).toEqual([
+      ['ST1', 'US1'],
+      ['ST2', null],
+    ]);
+    expect(outcome.data.subentities[0]?.display?.maps_to_kind?.label).toBe('Story');
+    expect(outcome.data.subentities[1]?.display?.maps_to_kind?.label).toBe('Story');
   });
 
   it('parses sub-entities of an override vocabulary: maps_to null, flat stored field, badges', async () => {
@@ -886,8 +889,9 @@ describe('getShowJson', () => {
     if (outcome.kind !== 'success') {
       throw new Error('expected success');
     }
-    expect(outcome.data.subentities.map((entry) => entry.maps_to)).toEqual([null, null]);
+    expect(outcome.data.subentities.map((entry) => entry.maps_to)).toEqual([null, null, 'OC1']);
     expect(outcome.data.subentities[0]?.badges).toEqual({ impact: 'large' });
+    expect(outcome.data.subentities[2]?.display?.maps_to_kind?.label).toBe('Desired outcome');
   });
 
   it('rejects a sub-entity that has no maps_to key (the retired story shape)', async () => {
@@ -1151,8 +1155,12 @@ describe('getShowJson', () => {
     }
 
     it('accepts the committed older-sq payload, where no entry has an author_slug', async () => {
-      const runner = stubRunner({ stdout: SHOW_JSON_FIXTURE, stderr: '', exitCode: 0 });
-      const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-434');
+      const older = JSON.parse(SHOW_JSON_FIXTURE) as { discussion: Record<string, unknown>[] };
+      for (const entry of older.discussion) {
+        delete entry.author_slug;
+      }
+      const runner = stubRunner({ stdout: JSON.stringify(older), stderr: '', exitCode: 0 });
+      const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-11');
       if (outcome.kind !== 'success') {
         throw new Error('expected success');
       }
@@ -1181,10 +1189,10 @@ describe('getShowJson', () => {
       stderr: '',
       exitCode: 0,
     });
-    await getShowJson(runner, UV_INVOCATION, WORKSPACE_ROOT, 'TASK-434');
+    await getShowJson(runner, UV_INVOCATION, WORKSPACE_ROOT, 'TASK-11');
 
     expect(calls).toEqual([
-      { command: 'uv', args: ['run', 'sq', 'show', 'TASK-434', '--json'], cwd: WORKSPACE_ROOT },
+      { command: 'uv', args: ['run', 'sq', 'show', 'TASK-11', '--json'], cwd: WORKSPACE_ROOT },
     ]);
   });
 
@@ -1223,7 +1231,7 @@ describe('getShowJson', () => {
 
   it('surfaces a spawn failure without throwing', async () => {
     const runner: ProcessRunner = { run: () => Promise.reject(new Error('ENOENT')) };
-    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-434');
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-11');
 
     expect(outcome).toEqual({ kind: 'spawn-error', message: 'ENOENT' });
   });

@@ -3,11 +3,7 @@ import * as path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  buildMappingKinds,
-  buildSubEntityFieldBindings,
-  type MappingKinds,
-} from '../src/domain/badgeCatalog';
+import { buildSubEntityFieldBindings } from '../src/domain/badgeCatalog';
 import { MERMAID_NODE_ID_ESCAPE_SOURCE, mermaidNodeId } from '../src/domain/graphDiagrams';
 import { buildItemDirectory } from '../src/domain/itemDirectory';
 import {
@@ -32,7 +28,7 @@ import {
   UPDATE_CONTENT_COMMAND,
 } from '../src/domain/previewMessages';
 import { buildRoleDirectory } from '../src/domain/roleDirectory';
-import type { SqRoleListRow, SqSubEntity, SqSubEntityKindCatalogEntry } from '../src/types';
+import type { SqRoleListRow, SqSubEntity } from '../src/types';
 
 function makeRole(overrides: Partial<SqRoleListRow> = {}): SqRoleListRow {
   return {
@@ -864,33 +860,31 @@ describe('buildSubEntitiesHtml', () => {
     expect(html).not.toContain('Story:');
   });
 
-  it('labels a set maps_to by its target kind, from the bundled and from an overridden catalog', () => {
-    const bundledKinds = buildMappingKinds(
-      JSON.parse(
-        readFileSync(path.join(__dirname, 'fixtures', 'subentity-kinds-catalog.json'), 'utf8'),
-      ) as SqSubEntityKindCatalogEntry[],
-    );
-    const overrideKinds = buildMappingKinds(
-      JSON.parse(
-        readFileSync(
-          path.join(__dirname, 'fixtures', 'override-subentity-kinds-catalog.json'),
-          'utf8',
-        ),
-      ) as SqSubEntityKindCatalogEntry[],
-    );
-    const head = (mapsTo: string | null, mappingKinds: MappingKinds): string =>
-      buildSubEntitiesHtml(
-        { entities: [{ ...story, maps_to: mapsTo }] },
-        undefined,
-        undefined,
-        undefined,
-        { mappingKinds },
-      );
+  it('labels a set maps_to with the server-declared target kind label, bundled and overridden', () => {
+    const entities = (name: string): SqSubEntity[] =>
+      (
+        JSON.parse(readFileSync(path.join(__dirname, 'fixtures', name), 'utf8')) as {
+          subentities: SqSubEntity[];
+        }
+      ).subentities;
+    const bundled = buildSubEntitiesHtml({ entities: entities('show-json.json') });
+    const overridden = buildSubEntitiesHtml({ entities: entities('override-show-json.json') });
 
-    expect(head('US1', bundledKinds)).toContain('Story: US1');
-    expect(head('OC1', overrideKinds)).toContain('Outcome: OC1');
-    expect(head('OC1', overrideKinds)).not.toContain('Story');
-    expect(head(null, overrideKinds)).not.toMatch(/Outcome:|Story:|Maps to:/);
+    expect(bundled).toContain('Story: US1');
+    expect(overridden).toContain('Desired outcome: OC1');
+    expect(overridden).not.toContain('Story');
+    // Unmapped entries (maps_to null) get no mapping line, whatever their kind maps.
+    expect(bundled.match(/Story:/g)).toHaveLength(1);
+    expect(overridden.match(/Desired outcome:/g)).toHaveLength(1);
+  });
+
+  it('shows no mapping line when the sub-entity carries no maps_to_kind, and no fallback text', () => {
+    const withNull = buildSubEntitiesHtml({
+      entities: [{ ...story, maps_to: 'XX7', display: { maps_to_kind: null } }],
+    });
+    const without = buildSubEntitiesHtml({ entities: [{ ...story, maps_to: 'XX7' }] });
+    expect(withNull).not.toContain('XX7');
+    expect(without).not.toContain('XX7');
   });
 
   it('renders assignee on the head line when present', () => {

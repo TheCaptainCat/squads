@@ -12,8 +12,6 @@ import type { SqOutcome } from '../sqAdapter';
 import type { SqDiscussionEntry, SqSubEntity } from '../types';
 import {
   type FieldBindingsByType,
-  type MappingKinds,
-  mappingLabel,
   NO_BADGE_VOCABULARY,
   NO_FIELD_BINDINGS,
   resolveItemBadges,
@@ -733,8 +731,6 @@ export interface SubEntitiesOutcome {
 export interface SubEntityFieldContext {
   readonly itemType?: string | undefined;
   readonly fieldBindings?: FieldBindingsByType | undefined;
-  /** Local-id prefix -> kind name, to label a `maps_to` by its target kind. */
-  readonly mappingKinds?: MappingKinds | undefined;
 }
 
 /** The head badge line for one sub-entity — status, then every declared badge field the
@@ -744,8 +740,7 @@ export interface SubEntityFieldContext {
  * followed here with no client change and no badge axis is named in this file. The three
  * remaining literals are the sub-entity model's own structural fields, not declared vocabulary
  * — and a kind that maps nothing never carries a `maps_to`, so that part omits itself. The
- * mapping is labelled by its target kind's name, resolved from the `maps_to` value's local id
- * prefix through the kind catalog.
+ * mapping line is labelled by the server's `display.maps_to_kind.label`, and shown only when that is set.
  *
  * Plain text, not the spec's rendered badge glyph, and the raw badge *code* rather than its
  * display label — this preview head doesn't fetch/join the collections catalog
@@ -765,10 +760,9 @@ function buildSubEntityHeadLine(entity: SqSubEntity, fields: SubEntityFieldConte
   if (entity.assignee !== null) {
     parts.push(`Assignee: ${escapeHtml(entity.assignee)}`);
   }
-  if (entity.maps_to !== null) {
-    parts.push(
-      `${escapeHtml(mappingLabel(entity.maps_to, fields.mappingKinds))}: ${escapeHtml(entity.maps_to)}`,
-    );
+  const target = entity.display?.maps_to_kind;
+  if (entity.maps_to !== null && target !== undefined && target !== null) {
+    parts.push(`${escapeHtml(target.label)}: ${escapeHtml(entity.maps_to)}`);
   }
   return parts.join(' · ');
 }

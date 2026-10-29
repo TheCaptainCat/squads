@@ -44,12 +44,7 @@ import * as vscode from 'vscode';
 
 import { REFRESH_ALL_COMMAND } from './commandIds';
 import { describeTriedOrder, type SqDiscovery } from './discovery';
-import {
-  buildMappingKinds,
-  buildSubEntityFieldBindings,
-  NO_FIELD_BINDINGS,
-  NO_MAPPING_KINDS,
-} from './domain/badgeCatalog';
+import { buildSubEntityFieldBindings, NO_FIELD_BINDINGS } from './domain/badgeCatalog';
 import { renderBoardHtml } from './domain/boardView';
 import { ExpansionTracker } from './domain/expansionTracker';
 import { buildRefGraphMermaid, buildSubtreeMermaid } from './domain/graphDiagrams';
@@ -247,7 +242,6 @@ function subEntityFieldsFrom(
       types.kind === 'success' && kinds.kind === 'success'
         ? buildSubEntityFieldBindings(types.data, kinds.data)
         : NO_FIELD_BINDINGS,
-    mappingKinds: kinds.kind === 'success' ? buildMappingKinds(kinds.data) : NO_MAPPING_KINDS,
   };
 }
 

@@ -39,6 +39,12 @@
         },
         "assignee": null,
         "maps_to": null,
+        "maps_to_kind": {
+          "name": "outcome",
+          "label": "Desired outcome",
+          "plural": "outcomes",
+          "heading": "Desired Outcomes"
+        },
         "carrier_title": null
       }
     },
@@ -61,13 +67,47 @@
         "badges": {},
         "assignee": null,
         "maps_to": null,
+        "maps_to_kind": {
+          "name": "outcome",
+          "label": "Desired outcome",
+          "plural": "outcomes",
+          "heading": "Desired Outcomes"
+        },
         "carrier_title": "Pick the hosting plan"
+      }
+    },
+    {
+      "local_id": "AC3",
+      "title": "Publish the guide",
+      "status": "Todo",
+      "assignee": null,
+      "maps_to": "OC1",
+      "deferred_to": null,
+      "body": "Ship it.",
+      "badges": {},
+      "discussion": [],
+      "display": {
+        "type": "Action",
+        "status": {
+          "badge": "\u26aa Todo",
+          "intent": "neutral"
+        },
+        "badges": {},
+        "assignee": null,
+        "maps_to": "OC1",
+        "maps_to_kind": {
+          "name": "outcome",
+          "label": "Desired outcome",
+          "plural": "outcomes",
+          "heading": "Desired Outcomes"
+        },
+        "carrier_title": null
       }
     }
   ],
   "path": "jobs/JOB-000009-write-the-onboarding-guide.md",
-  "created_at": "2026-10-29T22:02:15Z",
-  "updated_at": "2026-10-29T22:02:15Z",
+  "created_at": "2026-10-29T23:08:09Z",
+  "updated_at": "2026-10-29T23:10:27Z",
   "created_session": null,
   "modified_session": null,
   "id": "JOB-9",
@@ -103,7 +143,7 @@
         "Status",
         "Assignee",
         "Title",
-        "Outcome"
+        "Desired outcome"
       ],
       "rows": [
         [
@@ -121,6 +161,14 @@
           "",
           "Record the walkthrough",
           ""
+        ],
+        [
+          "AC3",
+          "",
+          "Todo",
+          "",
+          "Publish the guide",
+          "OC1"
         ]
       ]
     },

@@ -155,9 +155,9 @@ describe('buildSubtreeMermaid', () => {
 
     expect(lines[0]).toBe('flowchart TD');
     expect(lines.length).toBe(1 + total + (total - 1));
-    expect(source).toContain('EPIC_002d99[');
-    expect(source).toContain('EPIC_002d99 --> FEAT_002d100');
-    expect(source).toContain('FEAT_002d100 --> TASK_002d428');
+    expect(source).toContain('EPIC_002d9[');
+    expect(source).toContain('EPIC_002d9 --> FEAT_002d10');
+    expect(source).toContain('FEAT_002d10 --> TASK_002d11');
   });
 });
 
@@ -322,21 +322,18 @@ describe('buildRefGraphMermaid', () => {
     expect(buildRefGraphMermaid(graphNode({ id: 'INI-9', badges: {} }))).toContain('(task): Ready');
   });
 
-  it('builds the real FEAT-449 ref-graph fixture (includes a revisit back to the root)', () => {
+  it('builds the real ref-graph fixture, labelling each node by its lead badge', () => {
     const root = fixture('graph.json') as SqGraphNode;
 
     expect(buildRefGraphMermaid(root)).toBe(
       [
         'flowchart LR',
-        '  FEAT_002d449["`FEAT-449 (feature): Done`"]',
-        '  FEAT_002d100["`FEAT-100 (feature, 🟢 Low): Done`"]',
-        '  ADR_002d427["`ADR-427 (decision): Accepted`"]',
-        '  REV_002d448["`REV-448 (review): Approved`"]',
-        '  FEAT_002d100 -->|related| ADR_002d427',
-        '  FEAT_002d100 -->|related| FEAT_002d449',
-        '  FEAT_002d100 -->|related| REV_002d448',
-        '  FEAT_002d449 -->|related| FEAT_002d100',
-        '  FEAT_002d449 -->|addresses| REV_002d448',
+        '  FEAT_002d10["`FEAT-10 (feature, 🟢 Low): Draft`"]',
+        '  ADR_002d12["`ADR-12 (decision): Proposed`"]',
+        '  TASK_002d11["`TASK-11 (task, 🟠 High): Draft`"]',
+        '  ADR_002d12 -->|related| FEAT_002d10',
+        '  ADR_002d12 -->|addresses| TASK_002d11',
+        '  FEAT_002d10 -->|related| ADR_002d12',
       ].join('\n'),
     );
   });

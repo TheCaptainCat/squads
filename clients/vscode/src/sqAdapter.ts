@@ -150,10 +150,6 @@ function isStringOrNull(value: unknown): value is string | null {
   return typeof value === 'string' || value === null;
 }
 
-function isOptionalString(value: unknown): value is string | undefined {
-  return value === undefined || typeof value === 'string';
-}
-
 /** A key an older `sq` omits entirely and a newer one may legitimately emit as `null`. Absent
  * and `null` mean the same thing to every consumer here: nothing to join on. */
 function isOptionalNullableString(value: unknown): value is string | null | undefined {
@@ -393,7 +389,6 @@ export function isSqSubEntityKindCatalogEntry(
   const entry = value as Record<string, unknown>;
   return (
     typeof entry.subentity_kind === 'string' &&
-    isOptionalString(entry.local_prefix) &&
     Array.isArray(entry.fields) &&
     entry.fields.every(isSqTypeField)
   );
@@ -526,6 +521,22 @@ function hasOptionalDiscussion(entry: Record<string, unknown>): boolean {
   );
 }
 
+/** `display.maps_to_kind` is read for the mapping label: absent, null or a `{label}` object. */
+function isOptionalSubEntityDisplay(value: unknown): boolean {
+  if (value === undefined) {
+    return true;
+  }
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const kind = (value as Record<string, unknown>).maps_to_kind;
+  return (
+    kind === undefined ||
+    kind === null ||
+    (typeof kind === 'object' && typeof (kind as Record<string, unknown>).label === 'string')
+  );
+}
+
 function isSqSubEntity(value: unknown): value is SqSubEntity {
   if (typeof value !== 'object' || value === null) {
     return false;
@@ -538,6 +549,7 @@ function isSqSubEntity(value: unknown): value is SqSubEntity {
     isStringOrNull(entry.assignee) &&
     isStringOrNull(entry.maps_to) &&
     typeof entry.body === 'string' &&
+    isOptionalSubEntityDisplay(entry.display) &&
     isOptionalBadgeMap(entry.badges) &&
     hasOptionalDiscussion(entry)
   );

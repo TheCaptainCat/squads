@@ -708,7 +708,7 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
         runSq(['task', number, 'subtask', '1', 'comment', '--as', 'manager', '-m', 'Sub note.']);
         const parsed = JSON.parse(runSq(['show', taskId, '--json'])) as {
           discussion: object[];
-          subentities: { discussion: object[]; maps_to: string | null }[];
+          subentities: { discussion: object[]; maps_to: string | null; display: object }[];
         };
         expect(parsed.discussion.length).toBeGreaterThan(0);
         for (const entry of parsed.discussion) {
@@ -718,6 +718,8 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
         for (const sub of parsed.subentities) {
           assertSubEntityKeys(sub, new Set());
           expect(sub).toHaveProperty('maps_to');
+          // The target kind the mapping line is labelled by: an object (the kind maps) or null.
+          expect(sub.display).toHaveProperty('maps_to_kind');
           expect(sub.discussion.length).toBeGreaterThan(0);
           for (const entry of sub.discussion) {
             assertDiscussionEntryKeys(entry);
@@ -949,6 +951,7 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
               'local_prefix',
               'container_heading',
               'completion',
+              'label',
               'maps_to_parent',
               'fields',
             ]),

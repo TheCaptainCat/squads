@@ -1,6 +1,7 @@
 [
   {
     "subentity_kind": "finding",
+    "label": "Finding",
     "lifecycle": "finding",
     "plural": "findings",
     "local_prefix": "F",
@@ -17,6 +18,7 @@
   },
   {
     "subentity_kind": "story",
+    "label": "Story",
     "lifecycle": "subentity",
     "plural": "stories",
     "local_prefix": "US",
@@ -27,6 +29,7 @@
   },
   {
     "subentity_kind": "subtask",
+    "label": "Subtask",
     "lifecycle": "subentity",
     "plural": "subtasks",
     "local_prefix": "ST",

@@ -87,34 +87,6 @@ export function buildSubEntityFieldBindings(
   return bindings;
 }
 
-/** Local-id prefix -> kind name, from the kind catalog (prefix to kind name). A kind that publishes
- * no `local_prefix` (an older `sq`) is left out, and its mappings are labelled generically. */
-export type MappingKinds = ReadonlyMap<string, string>;
-
-export const NO_MAPPING_KINDS: MappingKinds = new Map();
-
-export function buildMappingKinds(kinds: readonly SqSubEntityKindCatalogEntry[]): MappingKinds {
-  const entries: [string, string][] = [];
-  for (const kind of kinds) {
-    if (kind.local_prefix !== undefined) {
-      entries.push([kind.local_prefix, kind.subentity_kind]);
-    }
-  }
-  return new Map(entries);
-}
-
-const GENERIC_MAPPING_LABEL = 'Maps to';
-
-/** The label of a `maps_to` value: its target kind's name, capitalised, found through the local
- * id's prefix (prefix to capitalised kind name); generic when the prefix is unknown. */
-export function mappingLabel(mapsTo: string, kinds: MappingKinds = NO_MAPPING_KINDS): string {
-  const prefix = /^(\D+)\d+$/.exec(mapsTo)?.[1];
-  const kind = prefix === undefined ? undefined : kinds.get(prefix);
-  return kind === undefined || kind === ''
-    ? GENERIC_MAPPING_LABEL
-    : `${kind.charAt(0).toUpperCase()}${kind.slice(1)}`;
-}
-
 /** collection code -> (badge code -> {label, emoji}). */
 export type BadgeVocabulary = ReadonlyMap<
   string,

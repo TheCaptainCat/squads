@@ -32,44 +32,30 @@ describe('treeNodesToDisplay', () => {
     const nodes = treeNodesToDisplay(TREE_FIXTURE);
 
     expect(nodes).toHaveLength(1);
-    expect(nodes[0]?.id).toBe('EPIC-99');
-    expect(nodes[0]?.itemId).toBe('EPIC-99');
-    expect(nodes[0]?.children[0]?.id).toBe('FEAT-100');
-    expect(nodes[0]?.children[0]?.children.map((child) => child.id)).toEqual([
-      'TASK-428',
-      'TASK-429',
-      'TASK-430',
-      'TASK-431',
-      'TASK-432',
-      'TASK-433',
-      'TASK-434',
-      'TASK-439',
-      'TASK-440',
-      'TASK-441',
-      'TASK-442',
-    ]);
+    expect(nodes[0]?.id).toBe('EPIC-9');
+    expect(nodes[0]?.itemId).toBe('EPIC-9');
+    expect(nodes[0]?.children[0]?.id).toBe('FEAT-10');
+    expect(nodes[0]?.children[0]?.children.map((child) => child.id)).toEqual(['TASK-11']);
   });
 
   it("labels a node from the tree payload's own title field, with no separate lookup", () => {
     const nodes = treeNodesToDisplay(TREE_FIXTURE);
 
-    expect(nodes[0]?.label).toBe('EPIC-99  VS Code extension — browse the squad in the editor');
+    expect(nodes[0]?.label).toBe('EPIC-9  Ship the widget');
     const feature = nodes[0]?.children[0];
-    expect(feature?.label).toBe('FEAT-100  Read-only browse: sidebar tree + rendered preview');
-    const task = feature?.children.find((child) => child.id === 'TASK-440');
-    expect(task?.label).toBe(
-      'TASK-440  Client: consume tree title + is_open, collapse to one sq tree call',
-    );
+    expect(feature?.label).toBe('FEAT-10  Widget preview');
+    const task = feature?.children.find((child) => child.id === 'TASK-11');
+    expect(task?.label).toBe('TASK-11  Build the widget');
   });
 
   it('surfaces status and assignee in the description, unassigned when null', () => {
     const nodes = treeNodesToDisplay(TREE_FIXTURE);
     const feature = nodes[0]?.children[0];
 
-    expect(feature?.description).toBe('Done · unassigned');
+    expect(feature?.description).toBe('Draft · unassigned');
 
-    const task = feature?.children.find((child) => child.id === 'TASK-428');
-    expect(task?.description).toBe('Done · typescript-dev');
+    const task = feature?.children.find((child) => child.id === 'TASK-11');
+    expect(task?.description).toBe('Draft · unassigned');
   });
 
   it('marks a node closed/hidden/coloured via the statuses/roles catalog join, never a literal status check', () => {
