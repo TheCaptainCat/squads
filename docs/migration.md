@@ -232,6 +232,178 @@ migration needs no manual step, and its entry says so rather than leaving you to
 
 ---
 
+## Upgrading to 0.19: the schema step
+
+0.19 stores every badge value and every sub-entity mapping under the key its declaration names,
+the same way on items and on sub-entity entries (see
+[stability.md § "Sub-entity state lives in frontmatter"](stability.md#sub-entity-state-lives-in-frontmatter)).
+A sub-entity entry is flat: its mapping is stored under `maps_to`, and each field the kind declares
+is stored under its code beside the core keys, with no nested `extra` mapping. Several `--json`
+shapes change with it (see the 0.19.0 entry of the CHANGELOG). A release that reads the older
+shape cannot read the new one, so 0.19 moves the schema from 0.17 to 0.19. Until the squad is
+migrated, 0.19 stops every command with:
+
+```text
+error: this squad is at schema v0.17; squads 0.19.0 expects v0.19. Run sq migrate up to upgrade it (see `sq migrate help`).
+```
+
+**Before upgrading, rename three grammar names** in `.overrides/workflow.toml`, if the file spells
+them:
+
+| Old name | New name | Where |
+|---|---|---|
+| `maps_parent_story` | `maps_to_parent` | a key of `[subentity_kinds.<kind>]` |
+| `subtask_story_mapping` | `subentity_mapping` | an entry of a `validators` list |
+| `milestone_rollup` | `status_rollup` | the `function` of a view transform from `squads._view_transforms` |
+
+The bundled view keeps its name, `milestone_rollup`; only the transform function changed. An
+override that spells an old name cannot be loaded, so `sq migrate up` refuses before its first
+runner and changes nothing:
+
+```text
+error: this squad's workflow override could not be loaded, so `sq migrate up` cannot run under the vocabulary it declares.
+  file:  …/squads/.overrides/workflow.toml
+  cause: …/squads/.overrides/workflow.toml: subentity_kinds.subtask.maps_parent_story: 'maps_parent_story' was renamed 'maps_to_parent' — write 'maps_to_parent' in its place.
+Correct the file, then re-run `sq migrate up`.
+```
+
+The migration never renames them for you, since `sq migrate` never rewrites an override. Commit
+the edited override, then run the step once per squad, read its manual steps, and regenerate the
+managed files:
+
+```bash
+sq migrate up
+sq migrate chlog v0.17.0..v0.19.0
+sq check
+sq sync
+```
+
+```text
+  0.19.0 (schema v0.17→v0.19): Sub-entity entries are flat: story becomes maps_to, the keys of extra move up beside the others, and an empty severity is
+dropped. Item keys keep their values and follow the writer's order. — 3 changed
+migrated to schema v0.19; index rebuilt — run `sq sync` to regenerate the agent files (pointers, skills, CLAUDE.md/AGENTS.md sections)
+manual steps remain — read them with `sq migrate chlog v0.17.0..v0.19.0`
+```
+
+**What the step rewrites.** Item files of every type, roster included, besides `.squads.toml`'s
+`schema_version` line, the index and the reflog. No value changes, and bodies and markers are
+untouched.
+
+- **Each sub-entity entry is made flat.** `story: X` becomes `maps_to: X`. Each key of `extra`
+  moves up beside the entry's other keys, and `extra` goes. An empty `severity` is dropped, and so
+  is an empty or null `maps_to`; a `story` beside an empty `maps_to` becomes the mapping. Every
+  other key of the entry, an unknown one included, is copied as written. A subtask that carried an
+  override-declared `effort` field:
+
+  ```diff
+   - local_id: ST<n>
+     title: Render the form
+     status: Todo
+  -  story: US<m>
+  -  extra:
+  -    effort: small
+  +  maps_to: US<m>
+  +  effort: small
+  ```
+
+  A finding's `severity` was already stored flat, so a review file changes only if it held an
+  empty one.
+- **Item keys move once.** `priority` and `severity` are now attributes like any other key, and
+  the item writer puts attributes after the timestamps. The step rewrites each item file whose
+  top-level keys stand in another order than the writer's, so the move lands in this diff and
+  never again; a later write to the item changes only what that write targets. In a bundled squad
+  `priority` and `severity` are the only keys that move:
+
+  ```diff
+   author: manager
+  -priority: medium
+  -severity: low
+   created_at: '2026-10-29T23:41:06Z'
+   updated_at: '2026-10-29T23:41:06Z'
+  +priority: medium
+  +severity: low
+   ---
+  ```
+
+A file that needs neither change is not written, so a second run rewrites nothing:
+`already at schema v0.19; nothing to migrate`.
+
+**What the step refuses.** It reads every file before writing any, and stops with exit `1`,
+nothing written and the schema unchanged, when an entry holds both `story` and a non-empty
+`maps_to`, or an `extra` key equal to a sub-entity core key (`local_id`, `title`, `status`,
+`assignee`, `maps_to`, `deferred_to`) or to a key already on the entry. Both come only from hand
+edits. Each refusal names the item, the entry and the key:
+
+```text
+error: TASK-<n> ST<k>: has an 'extra' key 'title' that is a core key
+1 problem(s) found; fix the entries by hand.
+This step wrote nothing and the schema stamp is unchanged.
+The squad is still at schema v0.17: fix the cause, then re-run `sq migrate up`, which rebuilds the index from the files first.
+```
+
+Fix the entry in the file (keep the value you mean under its key, and remove the other), then run
+`sq migrate up` again.
+
+**Manual steps.** `sq migrate chlog v0.17.0..v0.19.0` prints what the step does not rewrite:
+
+1. **The grammar names above**, if the override still spells them.
+2. **Override templates that read a removed name.** Such a template fails to render, on some
+   items or on all, so render the views and items your templates cover after the upgrade:
+   - The sub-entity head template (`subentities/head.md.j2`) no longer receives `severity`,
+     `severity_label` or `story`. It receives `fields`, a list of `{code, label, badge}`, and
+     `mapping`, a `{label, value}` or none.
+   - An item's `.priority` and `.severity` are no longer fields of the model. On the `item` an
+     item template or a view receives, they still render while that item stores a value, and fail
+     on an item that stores none; on the items of a view's `source`, they fail on every item.
+   - A sub-entity's `.severity`, `.story` and `.extra` fail on every entry.
+   - Read a badge value with `.badge_value('<code>')`, which works on every item and sub-entity in
+     every template and gives none when unset. Read the mapping with `.maps_to`, and any other
+     stored key from `.attributes`.
+3. **Reflog entries keep the keys they recorded.** A line written before the upgrade still names
+   `story` or `extra`; it is history and is not rewritten.
+
+**After the upgrade.**
+
+- **Run `sq check`, then `sq sync`.** `sq sync` regenerates the `squads` skill, the `sq-<type>`
+  skills and the managed `CLAUDE.md` and `AGENTS.md` sections, whose examples and kind lists are
+  now built from your squad's own spec. If your squad has a workflow override, `sq check` warns
+  that it may be stale (`workflow override may be stale: bundled workflow.toml changed since
+  v0.17.0`); review it with `sq override diff workflow` and re-stamp it with
+  `sq override update workflow`.
+- **`sq repair` rebuilds the same index.** The index is rebuilt from the files at the end of the
+  step; `sq repair` after it rewrites no item file.
+- **Read badge values and the mapping from the new `--json` keys.** A script that read `story`,
+  `severity` or `extra` on a sub-entity object, or `priority` on a tree or graph node, reads
+  `badges` and `maps_to` instead; see
+  [stability.md § "Tier 3"](stability.md#tier-3---json-output-shapes-stable-additive-changes-only).
+  Scripts that use `sq import` write `maps_to`, not `story`, in `add-sub` events.
+- **A squad without a `priority` field has no `--priority`.** Badge and mapping options are now
+  derived from the spec, so a squad whose override dropped `priority` refuses
+  `--priority` with `No such option: --priority`; use the options its own fields give (see
+  [overrides.md § "Collections"](overrides.md#collections-custom-badge-axes)). A bundled squad
+  keeps every option it had.
+
+**Renaming a field or a kind later.** The step moves only the keys 0.17 spelled differently. A
+field or kind you rename in your override after the upgrade leaves its old spelling in the files:
+`sq migrate rename-field <old> <new>` moves the values of a renamed badge field, and
+`sq migrate rename-kind <old> <new>` the block markers, container marker, local ids and mappings of
+a renamed kind. The `frontmatter_key_undeclared` and `subentity_kind_mismatch` checks, when a type
+selects them, report what is left to move and name the command. See
+[workflow.md § "Renaming a badge field"](workflow.md#renaming-a-badge-field-sq-migrate-rename-field)
+and [§ "Renaming a sub-entity kind"](workflow.md#renaming-a-sub-entity-kind-sq-migrate-rename-kind).
+
+**The whole team upgrades together.** Once the squad is at 0.19, an older squads refuses every
+command on it, `sq repair` and `sq migrate up` included, with:
+
+```text
+error: this squad is at schema v0.19, newer than squads 0.17.0 (v0.17). Upgrade the squads package.
+```
+
+Nothing is written, and installing 0.19 is the fix. Upgrade every machine, CI job and agent
+environment that runs `sq` on the squad before or right after you commit the migrated squad.
+
+---
+
 ## Upgrading to 0.17: the schema step
 
 0.17 adds two finding states, `Noted` and `Deferred` (see
