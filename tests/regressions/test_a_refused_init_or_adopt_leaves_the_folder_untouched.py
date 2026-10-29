@@ -1,4 +1,5 @@
-"""A refused `sq init` or `sq adopt` writes nothing, so the corrected command then succeeds."""
+"""A refused `sq init` or `sq adopt` writes nothing, so the corrected command then succeeds; over
+files that share a number, `sq adopt --renumber` is that command."""
 
 from pathlib import Path
 
@@ -39,7 +40,7 @@ async def test_an_unusable_squad_folder_leaves_the_folder_untouched_for_the_retr
     assert retried.exit_code == 0, retried.output
 
 
-async def test_init_over_files_sharing_a_number_leaves_no_configuration_behind(
+async def test_init_and_adopt_over_files_sharing_a_number_write_nothing_and_adopt_renumber_resolves(
     populated, invoke
 ) -> None:
     squad = populated.squad_dir
@@ -48,19 +49,18 @@ async def test_init_over_files_sharing_a_number_leaves_no_configuration_behind(
         original.replace("id: TASK-3", "id: FEAT-3"), encoding="utf-8"
     )
     (populated.root / ".squads.toml").unlink()
-    refused = await invoke(["init", "--roles", "minimal"])
-    assert (refused.exit_code, refused.output) == (
-        1,
+    (squad / ".squads.json").unlink()
+    message = (
         "error: refusing to rebuild the index: it keys items by number:\n"
         "  - 2 files carry number 3 under different ids "
         "(features/FEAT-000003-twin.md, tasks/TASK-000003-build-the-query-parser.md); "
-        "run `sq repair --renumber` to give one of them a new number\n"
-        "there is no configuration yet, so run `sq adopt` (it writes one, then stops at the "
-        "same refusal), then `sq repair --renumber`, then `sq adopt` again\n",
+        "run `sq adopt --renumber` to give one of them a new number and adopt\n"
     )
-    assert not (populated.root / ".squads.toml").exists()
-    # The named remedy, followed to the end.
-    assert (await invoke(["adopt", "--roles", "minimal"])).exit_code == 1
-    assert (await invoke(["repair", "--renumber"])).exit_code == 0
-    adopted = await invoke(["adopt", "--roles", "minimal"])
+    for command in ("init", "adopt"):
+        refused = await invoke([command, "--roles", "minimal"])
+        assert (refused.exit_code, refused.output) == (1, message)
+        assert not (populated.root / ".squads.toml").exists()
+        assert not (squad / ".squads.json").exists()
+    adopted = await invoke(["adopt", "--renumber", "--roles", "minimal"])
     assert adopted.exit_code == 0, adopted.output
+    assert (await invoke(["check"])).exit_code == 0

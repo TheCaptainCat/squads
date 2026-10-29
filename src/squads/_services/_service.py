@@ -369,6 +369,10 @@ def _checked_backends(names: list[str]) -> None:
         get_backend(name)
 
 
+#: What a refusal over files sharing a number says to run: it needs no configuration.
+ADOPT_RENUMBER_REMEDY = "run `sq adopt --renumber` to give one of them a new number and adopt"
+
+
 async def init(
     *,
     root: Path | None = None,
@@ -412,16 +416,10 @@ async def init(
     if _holds_item_files(sp, effective_spec):
         # The rebuild below would refuse a corpus whose files share a number; say so before
         # anything is written, so the corrected corpus can be initialised afresh.
-        try:
-            await compose_service(
-                sp, resolved_spec=effective_spec, sources=sources
-            ).refuse_shared_numbers()
-        except SquadsError as exc:
-            # `sq repair` needs a configuration this folder lacks; `sq adopt` writes one.
-            raise SquadsError(
-                f"{exc}\nthere is no configuration yet, so run `sq adopt` (it writes one, then "
-                "stops at the same refusal), then `sq repair --renumber`, then `sq adopt` again"
-            ) from exc
+        # `sq repair` needs a configuration this folder lacks, so the remedy named is adopt's.
+        await compose_service(
+            sp, resolved_spec=effective_spec, sources=sources
+        ).refuse_shared_numbers(ADOPT_RENUMBER_REMEDY)
     await _aio.atomic_write_text(config_path, config.to_toml())
     await ensure_root_tmp_ignored(root)
 
@@ -475,6 +473,7 @@ async def adopt(
     backend: list[str] | None = None,
     roles_spec: str = "all",
     no_claude: bool = False,
+    renumber: bool = False,
 ) -> AdoptResult:
     """Bring an existing squad-structured folder under sq management without destroying anything: it
     imports the squads-native ``.md`` files already present (through :meth:`Service.repair`, so it
@@ -506,12 +505,18 @@ async def adopt(
             active_backends=effective_backends,
             working_language=DEFAULT_WORKING_LANGUAGE,
         )
+    sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
+    effective_spec = validated_spec if validated_spec is not None else _init_time_spec(sources)
+    if not renumber and _holds_item_files(sp, effective_spec):
+        # Refused before anything is written, as in init(); --renumber resolves it in one step.
+        await compose_service(
+            sp, resolved_spec=effective_spec, sources=sources
+        ).refuse_shared_numbers(ADOPT_RENUMBER_REMEDY)
+    if existing is None:
         await _aio.atomic_write_text(config_path, config.to_toml())
     await ensure_root_tmp_ignored(root)
 
-    sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
     await _aio.mkdir(sp.squad_dir, parents=True, exist_ok=True)
-    effective_spec = validated_spec if validated_spec is not None else _init_time_spec(sources)
     for ts in effective_spec.items.values():
         await _aio.mkdir(sp.squad_dir / ts.folder, parents=True, exist_ok=True)
     gitignore = sp.squad_dir / ".gitignore"
@@ -524,7 +529,7 @@ async def adopt(
 
     svc = compose_service(sp, resolved_spec=effective_spec, sources=sources)
     # Import any existing squads-native .md files (sets counter from them).
-    repair_result = await svc.repair()
+    repair_result = await svc.repair(renumber=renumber)
     existing_roles = {it.slug for it in repair_result.db.items.values() if it.type == ROSTER_ROLE}
 
     if not no_claude:

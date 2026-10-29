@@ -214,12 +214,13 @@ class InitReport(DTO):
 
 class AdoptRequest(DTO):
     """Bring the squad folder in the request's directory under squads; *squad_dir* applies when
-    no configuration names one."""
+    no configuration names one. *renumber* gives files that share a number new ones first."""
 
     squad_dir: str
     backends: list[str]
     roles: str
     no_claude: bool
+    renumber: bool
 
 
 class AdoptReport(DTO):

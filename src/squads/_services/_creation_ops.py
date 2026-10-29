@@ -52,6 +52,7 @@ async def adopt_squad(
         backend=req.backends,
         roles_spec=req.roles,
         no_claude=req.no_claude,
+        renumber=req.renumber,
     )
     return Response(
         data=AdoptReport(

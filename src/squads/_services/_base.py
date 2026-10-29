@@ -1569,13 +1569,13 @@ class ServiceCore:
         named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
         return SelfRemedied(f"{len(files)} files carry this id ({named}); {DUPLICATE_ID_REMEDY}")
 
-    def _shared_number_message(self, number: int, files: list[Path]) -> str:
-        """The report line for a number carried under different ids, naming every file."""
+    def _shared_number_message(
+        self, number: int, files: list[Path], remedy: str = SHARED_NUMBER_REMEDY
+    ) -> str:
+        """The report line for a number carried under different ids, naming every file and the
+        *remedy* to run."""
         named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
-        return (
-            f"{len(files)} files carry number {number} under different ids ({named}); "
-            f"{SHARED_NUMBER_REMEDY}"
-        )
+        return f"{len(files)} files carry number {number} under different ids ({named}); {remedy}"
 
     async def _missing_id_message(self, md: Path, item_type: str, scan: SkillScan) -> str:
         """The "no ``id``" report line; a stamped managed-skill file also names the remedy that

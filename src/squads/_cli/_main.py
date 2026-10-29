@@ -302,6 +302,11 @@ def adopt(
         ),
     ),
     no_claude: bool = typer.Option(False, "--no-claude", help="Skip Claude Code scaffolding."),
+    renumber: bool = typer.Option(
+        False,
+        "--renumber",
+        help="Give files that share a number a new one, then adopt.",
+    ),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: the squad adopted and what it held."
     ),
@@ -312,6 +317,7 @@ def adopt(
         backends=_parse_backend_option(backend),
         roles=roles,
         no_claude=no_claude,
+        renumber=renumber,
     )
     response = calls.call(ops.ADOPT, request)
     report = response.data

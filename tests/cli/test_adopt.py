@@ -68,6 +68,20 @@ async def test_squad_dir_refuses_a_folder_outside_the_project(adoptable, invoke)
     assert not (adoptable / ".squads.toml").exists()
 
 
+@pytest.mark.covers("adopt", "--renumber")
+async def test_renumber_gives_a_shared_number_a_new_one_and_adopts(adoptable, invoke) -> None:
+    squad = adoptable / "squads"
+    original = (squad / "tasks/TASK-000003-build-the-query-parser.md").read_text(encoding="utf-8")
+    (squad / "features/FEAT-000003-twin.md").write_text(
+        original.replace("id: TASK-3", "id: FEAT-3"), encoding="utf-8"
+    )
+    result = await invoke(["adopt", "--roles", "core", "--renumber"])
+    assert result.exit_code == 0, result.output
+    assert flat(result.output) == _adopted(
+        adoptable, "squads", "architect,tech-lead,reviewer"
+    ).replace("imported:4", "imported:5")
+
+
 @pytest.mark.covers("adopt", "--roles")
 async def test_roles_activates_the_roles_the_folder_does_not_hold_yet(adoptable, invoke) -> None:
     result = await invoke(["adopt", "--roles", "architect,qa"])

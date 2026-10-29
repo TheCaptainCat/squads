@@ -88,6 +88,7 @@ from squads._services._corpus_files import (
 )
 from squads._services._corpus_fit import corpus_fit_refusal
 from squads._services._duplicate_ids import (
+    SHARED_NUMBER_REMEDY,
     RenumberScope,
     SameIdRenumber,
     duplicate_groups,
@@ -1518,14 +1519,15 @@ class MaintenanceMixin(ServiceCore):
             references_left=renumbered.references_left,
         )
 
-    async def refuse_shared_numbers(self) -> None:
+    async def refuse_shared_numbers(self, remedy: str = SHARED_NUMBER_REMEDY) -> None:
         """Refuse, before the index is rebuilt, a number carried by files of different ids: the
-        index is keyed by number, so the rebuild would keep one file and hide the other."""
+        index is keyed by number, so the rebuild would keep one file and hide the other. *remedy*
+        is the command the message names."""
         groups = shared_number_groups(await self._id_carriers())
         if not groups:
             return
         lines = "\n".join(
-            f"  - {self._shared_number_message(number, files)}"
+            f"  - {self._shared_number_message(number, files, remedy)}"
             for number, files in sorted(groups.items())
         )
         raise SquadsError(f"refusing to rebuild the index: it keys items by number:\n{lines}")
