@@ -18,13 +18,13 @@ description: Overrides rename or replace types, kinds and badge fields end to en
 subentities:
 - local_id: US1
   title: Badge-field options derived from the spec
-  status: Todo
+  status: InProgress
 - local_id: US2
   title: Root aliases resolved from the active spec
   status: InProgress
 - local_id: US3
   title: Import fronts and selectors per declared kind
-  status: Todo
+  status: InProgress
 - local_id: US4
   title: Sub-entity mapping named after the target kind
   status: InProgress
@@ -36,7 +36,7 @@ subentities:
   status: InProgress
 - local_id: US7
   title: Wire and DTO shapes, and the stability doc
-  status: Todo
+  status: InProgress
 - local_id: US8
   title: rename-field verb and check on unknown sub-entity keys
   status: Todo
@@ -47,7 +47,7 @@ subentities:
   title: Permanent override test squad and its CI job
   status: InProgress
 created_at: '2026-10-29T19:04:26Z'
-updated_at: '2026-10-29T20:41:39Z'
+updated_at: '2026-10-29T21:07:42Z'
 ---
 <!-- sq:body -->
 ## Problem

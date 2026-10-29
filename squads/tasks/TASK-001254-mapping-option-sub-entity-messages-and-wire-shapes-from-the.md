@@ -3,7 +3,7 @@ id: TASK-1254
 sequence_id: 1254
 type: task
 title: Mapping option, sub-entity messages and wire shapes from the spec
-status: Draft
+status: Ready
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -37,7 +37,7 @@ subentities:
   status: Todo
   story: US7
 created_at: '2026-10-29T19:55:09Z'
-updated_at: '2026-10-29T19:56:25Z'
+updated_at: '2026-10-29T21:07:39Z'
 ---
 <!-- sq:body -->
 ## Goal

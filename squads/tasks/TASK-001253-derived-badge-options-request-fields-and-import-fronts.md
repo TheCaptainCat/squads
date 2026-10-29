@@ -3,7 +3,7 @@ id: TASK-1253
 sequence_id: 1253
 type: task
 title: Derived badge options, request fields and import fronts
-status: Draft
+status: Ready
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -37,7 +37,7 @@ subentities:
   status: Todo
   story: US3
 created_at: '2026-10-29T19:55:08Z'
-updated_at: '2026-10-29T19:56:22Z'
+updated_at: '2026-10-29T21:07:38Z'
 ---
 <!-- sq:body -->
 ## Goal
