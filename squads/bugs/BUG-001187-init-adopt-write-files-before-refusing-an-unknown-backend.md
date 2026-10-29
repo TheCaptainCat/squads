@@ -3,7 +3,7 @@ id: BUG-1187
 sequence_id: 1187
 type: bug
 title: init/adopt write files before refusing an unknown backend
-status: Fixed
+status: Verified
 author: qa
 priority: medium
 severity: medium
@@ -11,7 +11,7 @@ refs:
 - FEAT-1173
 - MILE-1241:targets
 created_at: '2026-10-27T23:37:34Z'
-updated_at: '2026-10-29T16:50:56Z'
+updated_at: '2026-10-29T20:40:10Z'
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree in an empty git repo.
@@ -34,4 +34,6 @@ medium
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T20:40:10Z] `reviewer` Paul Reviewer:
+  - Verified under REV-1247 (Approved at a56413b4).
 <!-- sq:discussion:end -->

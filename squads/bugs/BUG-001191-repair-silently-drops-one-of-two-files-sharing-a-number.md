@@ -3,7 +3,7 @@ id: BUG-1191
 sequence_id: 1191
 type: bug
 title: repair silently drops one of two files sharing a number
-status: Fixed
+status: Verified
 author: qa
 priority: high
 severity: medium
@@ -11,7 +11,7 @@ refs:
 - FEAT-1173
 - MILE-1241:targets
 created_at: '2026-10-27T23:37:38Z'
-updated_at: '2026-10-29T16:51:04Z'
+updated_at: '2026-10-29T20:40:19Z'
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree.
@@ -38,4 +38,6 @@ medium
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T20:40:19Z] `reviewer` Paul Reviewer:
+  - Verified under REV-1247 (Approved at a56413b4).
 <!-- sq:discussion:end -->

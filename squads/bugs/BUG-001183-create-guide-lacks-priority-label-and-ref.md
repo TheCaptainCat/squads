@@ -3,7 +3,7 @@ id: BUG-1183
 sequence_id: 1183
 type: bug
 title: create guide lacks --priority, --label and --ref
-status: Fixed
+status: Verified
 author: qa
 priority: low
 severity: low
@@ -11,7 +11,7 @@ refs:
 - FEAT-1173
 - MILE-1241:targets
 created_at: '2026-10-27T23:37:30Z'
-updated_at: '2026-10-29T16:52:02Z'
+updated_at: '2026-10-29T20:40:01Z'
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree in a scratch squad.
@@ -37,4 +37,6 @@ low
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T20:40:01Z] `reviewer` Paul Reviewer:
+  - Verified under REV-1247 (Approved at a56413b4).
 <!-- sq:discussion:end -->

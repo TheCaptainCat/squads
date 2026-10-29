@@ -3,7 +3,7 @@ id: TASK-1245
 sequence_id: 1245
 type: task
 title: Fix listing option validation and three messages
-status: InReview
+status: Done
 author: tech-lead
 priority: low
 refs:
@@ -39,7 +39,7 @@ subentities:
   title: Name an unknown import op in squads' own words
   status: Done
 created_at: '2026-10-29T16:27:29Z'
-updated_at: '2026-10-29T19:19:30Z'
+updated_at: '2026-10-29T20:41:13Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -203,4 +203,6 @@ Fixes BUG-1200.
 <!-- sq:discussion -->
 - [2026-10-29T16:48:17Z] `python-dev` Elias Python:
   - Handback: commit 387eaf31 on branch worktree-agent-ad810b7e21b457c45. ST2-ST7 done, bugs 1193-1197 and 1200 Fixed, ST1 stays Cancelled. New tests fail without the fix. Side effect: min=0 on --depth changes the type-error wording to "not a valid integer range". @manager
+- [2026-10-29T20:41:12Z] `manager` Catherine Manager:
+  - Reviewed and verified in REV-1247 (Approved 2026-10-29); full suite green at a56413b4. Accepted Done under the operator delegation for this drive.
 <!-- sq:discussion:end -->

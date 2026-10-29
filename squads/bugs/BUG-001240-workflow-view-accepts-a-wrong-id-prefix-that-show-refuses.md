@@ -3,14 +3,14 @@ id: BUG-1240
 sequence_id: 1240
 type: bug
 title: workflow view accepts a wrong ID prefix that show refuses
-status: Fixed
+status: Verified
 author: qa
 priority: low
 severity: medium
 refs:
 - MILE-1241:targets
 created_at: '2026-10-29T12:25:03Z'
-updated_at: '2026-10-29T16:52:11Z'
+updated_at: '2026-10-29T20:40:34Z'
 ---
 <!-- sq:body -->
 ## Steps
@@ -50,4 +50,6 @@ No, 0.17.0 behaves the same. Raised by the reviewer in REV-1235 for @qa.
     - `sq role SKILL-2 view role_definition`
     
     Conclusion: the gap is confined to `sq workflow view`'s ID resolution; the typed per-item routes and show/tree/ref add resolve through the checked path. Not driven: other workflow subcommands taking an ID (none found in `sq workflow --help`), the TUI and HTTP API (inferred unaffected, not run).
+- [2026-10-29T20:40:34Z] `reviewer` Paul Reviewer:
+  - Verified under REV-1247 (Approved at a56413b4).
 <!-- sq:discussion:end -->

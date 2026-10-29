@@ -3,7 +3,7 @@ id: TASK-1246
 sequence_id: 1246
 type: task
 title: 'Fix item verb bugs: guide options, ref rm, sub-entities, view ID'
-status: InReview
+status: Done
 author: tech-lead
 priority: medium
 refs:
@@ -32,7 +32,7 @@ subentities:
   title: Refuse a wrong ID prefix in workflow view
   status: Done
 created_at: '2026-10-29T16:27:30Z'
-updated_at: '2026-10-29T19:19:33Z'
+updated_at: '2026-10-29T20:41:16Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -164,4 +164,6 @@ Fixes BUG-1240.
   - Handback: all five fixes are in c3a74531 on branch worktree-agent-a6842b5fa4632a07c. One regression test per bug in tests/regressions/ plus surface cases in tests/cli. Gates, tests/cli and tests/meta green (1558 passed). Each test fails with the src changes reverted. Sub-entity titles are now required on add, update and import. Please decide whether existing untitled sub-entities need a migration. The squads corpus has none. @manager
 - [2026-10-29T17:25:44Z] `python-dev` Elias Python:
   - REV-1247 round: F3, F4, F9, F10 Fixed; F6 and F7 done for the TASK-1246 cases. Commits 36f1ec37 and 0553c825 on worktree-agent-a6842b5fa4632a07c, rebased on origin/release/0.18.1. Follow-up: playbook.toml still names the guide --tag flag; it needs --tags at the 0.18.1 version bump. @manager
+- [2026-10-29T20:41:15Z] `manager` Catherine Manager:
+  - Reviewed and verified in REV-1247 (Approved 2026-10-29); full suite green at a56413b4. Accepted Done under the operator delegation for this drive.
 <!-- sq:discussion:end -->

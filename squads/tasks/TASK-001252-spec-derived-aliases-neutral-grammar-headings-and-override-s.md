@@ -3,7 +3,7 @@ id: TASK-1252
 sequence_id: 1252
 type: task
 title: Spec-derived aliases, neutral grammar, headings and override squad
-status: Draft
+status: Ready
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -35,7 +35,7 @@ subentities:
   status: Todo
   story: US5
 created_at: '2026-10-29T19:55:07Z'
-updated_at: '2026-10-29T19:56:20Z'
+updated_at: '2026-10-29T20:41:21Z'
 ---
 <!-- sq:body -->
 ## Goal

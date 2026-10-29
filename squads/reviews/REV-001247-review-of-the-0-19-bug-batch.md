@@ -3,7 +3,7 @@ id: REV-1247
 sequence_id: 1247
 type: review
 title: Review of the 0.19 bug batch
-status: ChangesRequested
+status: Approved
 author: reviewer
 refs:
 - TASK-1244
@@ -107,10 +107,10 @@ subentities:
   severity: low
 - local_id: F21
   title: Plain adopt over same-id twins writes before failing and skips --renumber
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-10-29T17:02:38Z'
-updated_at: '2026-10-29T20:28:33Z'
+updated_at: '2026-10-29T20:39:59Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -643,6 +643,12 @@ Expected: plain `sq adopt` (and `sq init` over a corpus, as in F2) refuses a sam
     - Plain `sq repair` over a renumberable same-id pair (TASK-18 x2, different slugs, configured squad) still prints "rebuilt index", rewrites `.squads.json`, then exits 1 with only the merge-by-hand remedy. F21's expected result asked for `sq repair --renumber` to be named for repair, and that command resolves the pair. Expected: a renumberable group under plain repair names `sq repair --renumber`; groups it cannot renumber keep the merge-by-hand remedy.
     
     Both gaps need surface cases. The CHANGELOG sentence on plain repair changes with the second one. @manager for the TASK-1244 dev, S.
+- [2026-10-29T20:33:43Z] `python-dev` Elias Python:
+  - Fixed in the commit handed back: the merge remedy ends with sq adopt where no config exists; plain repair refuses same-id pairs before writing.
+- [2026-10-29T20:35:44Z] `tech-writer` Theo Writer:
+  - Docs half done (uncommitted), driven at a56413b4: plain sq repair over a same-id pair exits 1 before rebuilding with the index unchanged, naming sq repair --renumber for differing slugs and merge-by-hand otherwise; init/adopt on an unconfigured folder end the merge remedy with sq adopt. CHANGELOG 0.19.0 replaces the "still rebuilds and reports unreadable" sentence; docs/faq.md Handling ID collisions (Refused bullet and the Two files with the same ID paragraph) and the README repair line match. @manager
+- [2026-10-29T20:39:43Z] `reviewer` Paul Reviewer:
+  - Verified at a56413b4. No configuration: plain adopt, init and adopt --renumber over an identical copy refuse before writing (no .squads.toml, no index) and end the merge remedy with sq adopt; deleting the copy and running sq adopt adopts. With a configuration (adopt, init --force) the remedy still ends with sq repair, which then succeeds. Plain sq repair refuses before writing (.squads.json byte-identical): a twin with a different slug names sq repair --renumber, an identical copy the merge remedy, both lines when both exist; repair --renumber over a twin plus a copy refuses the copy and renames nothing. Falsified: dropping the refusal in repair_squad turns both test_repair same-id cases red; forcing adopt to end with sq repair turns the identical-copy test_adopt case red. Gap, not blocking: the init branch of merge_then is unpinned (forcing it to sq repair leaves the full suite green apart from the git-dependent tests/meta cases a git-archive extract always fails).
 <!-- sq:finding:F21:discussion:end -->
 <!-- sq:finding:F21:end -->
 <!-- sq:findings:end -->
@@ -713,4 +719,6 @@ Expected: plain `sq adopt` (and `sq init` over a corpus, as in F2) refuses a sam
   - Rulings on the tech writer points (F19 round): (1) the repair --json renumbered shape change ships in 0.19.0, which bumps the schema to 0.19 (TASK-1251), so it is covered by that bump; the release cannot cut before TASK-1251 lands. (2) references must follow references_left in repair --json (new keys go after existing ones): the TASK-1244 dev fixes the order.
 - [2026-10-29T20:28:32Z] `reviewer` Paul Reviewer:
   - Round 7 at 7d419c5e (+ uncommitted docs), read-only. Verified: F19, F20, and the key-order follow-up (repair: renumbered, references_left, references; adopt: warnings, renumbered, references). Reopened: F21 (merge-by-hand remedy names sq repair on an unadopted folder; plain repair over a renumberable same-id pair does not name sq repair --renumber). Review stays ChangesRequested, bugs stay Fixed. Method: diff 09161fa9..7d419c5e; both collision kinds driven in one run on a scratch squad (plain adopt, init, adopt --renumber with and without --json, repair --renumber --json, plain repair, identical copy); test_adopt and test_repair green in a git-archive extract, with the F20 and F21 tests falsified by mutation there. @manager F21 for the TASK-1244 dev, S; with it closed I recommend Approved.
+- [2026-10-29T20:39:59Z] `reviewer` Paul Reviewer:
+  - Round 8 at a56413b4, read-only. Verified: F21. All 21 findings Verified; review Approved under the manager delegation for this batch, and BUG-1183..1197 (not 1192), 1200, 1240, 1248 moved Fixed to Verified. Method: diff of a56413b4; both F21 gaps driven from the dev tree on scratch squads, each remedy followed to a successful run; test_repair, test_adopt, test_init green in a git-archive extract with the new cases falsified by mutation; ruff clean. Note for @manager: the init branch of merge_then has no surface case (adopt pins the shared path); a one-line test_init case would close it.
 <!-- sq:discussion:end -->

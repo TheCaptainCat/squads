@@ -3,7 +3,7 @@ id: BUG-1196
 sequence_id: 1196
 type: bug
 title: tree/graph --depth accepts a negative value
-status: Fixed
+status: Verified
 author: qa
 priority: low
 severity: low
@@ -11,7 +11,7 @@ refs:
 - FEAT-1173
 - MILE-1241:targets
 created_at: '2026-10-27T23:37:43Z'
-updated_at: '2026-10-29T16:48:12Z'
+updated_at: '2026-10-29T20:40:27Z'
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree.
@@ -32,4 +32,6 @@ low
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T20:40:27Z] `reviewer` Paul Reviewer:
+  - Verified under REV-1247 (Approved at a56413b4).
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: FEAT-1249
 sequence_id: 1249
 type: feature
 title: Bundled vocabulary fully overridable
-status: Draft
+status: InProgress
 parent: EPIC-538
 author: product-owner
 priority: high
@@ -21,19 +21,19 @@ subentities:
   status: Todo
 - local_id: US2
   title: Root aliases resolved from the active spec
-  status: Todo
+  status: InProgress
 - local_id: US3
   title: Import fronts and selectors per declared kind
   status: Todo
 - local_id: US4
   title: Sub-entity mapping named after the target kind
-  status: Todo
+  status: InProgress
 - local_id: US5
   title: Generated text and messages from the spec
-  status: Todo
+  status: InProgress
 - local_id: US6
   title: Generic storage and the 0.19 schema migration
-  status: Todo
+  status: InProgress
 - local_id: US7
   title: Wire and DTO shapes, and the stability doc
   status: Todo
@@ -45,9 +45,9 @@ subentities:
   status: Todo
 - local_id: US10
   title: Permanent override test squad and its CI job
-  status: Todo
+  status: InProgress
 created_at: '2026-10-29T19:04:26Z'
-updated_at: '2026-10-29T19:57:07Z'
+updated_at: '2026-10-29T20:41:39Z'
 ---
 <!-- sq:body -->
 ## Problem

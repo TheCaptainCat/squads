@@ -3,7 +3,7 @@ id: TASK-1244
 sequence_id: 1244
 type: task
 title: 'Fix setup and maintenance bugs: init, adopt, migrate, repair'
-status: InReview
+status: Done
 author: tech-lead
 priority: high
 refs:
@@ -36,7 +36,7 @@ subentities:
   title: Renumber refreshes the scaffold hint that names the item number
   status: Done
 created_at: '2026-10-29T16:27:28Z'
-updated_at: '2026-10-29T19:19:28Z'
+updated_at: '2026-10-29T20:41:11Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -179,4 +179,6 @@ sq repair --renumber and sq renumber rewrite an item to a new number but leave t
   - @manager handback. Branch worktree-agent-a4a27e01490d44cc2, commits 5e32ddb3 (fixes + surface tests) and b8756004 (tests/regressions). BUG-1187..1191 Fixed; all 8 new regression tests shown red on the unfixed code. Gates: pyright, ruff, format clean; tests/meta, the four cli modules and tests/regressions pass (765). Repair now also refuses via init, adopt and migrate up when two ids share a number.
 - [2026-10-29T17:17:52Z] `python-dev` Elias Python:
   - @manager review round done: 9dc8388a fixes F1, F2, F7 (adopt part), F6 (squad-dir part) and BUG-1248 (ST6).
+- [2026-10-29T20:41:10Z] `manager` Catherine Manager:
+  - Reviewed and verified in REV-1247 (Approved 2026-10-29); full suite green at a56413b4. Accepted Done under the operator delegation for this drive.
 <!-- sq:discussion:end -->

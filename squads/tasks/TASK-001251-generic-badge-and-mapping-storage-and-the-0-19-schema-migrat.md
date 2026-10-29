@@ -3,7 +3,7 @@ id: TASK-1251
 sequence_id: 1251
 type: task
 title: Generic badge and mapping storage, and the 0.19 schema migration
-status: Draft
+status: Ready
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -31,7 +31,7 @@ subentities:
   status: Todo
   story: US6
 created_at: '2026-10-29T19:55:06Z'
-updated_at: '2026-10-29T19:55:29Z'
+updated_at: '2026-10-29T20:41:19Z'
 ---
 <!-- sq:body -->
 ## Goal
