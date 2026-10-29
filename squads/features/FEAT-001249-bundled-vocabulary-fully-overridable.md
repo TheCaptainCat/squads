@@ -47,7 +47,7 @@ subentities:
   title: Permanent override test squad and its CI job
   status: Todo
 created_at: '2026-10-29T19:04:26Z'
-updated_at: '2026-10-29T19:40:52Z'
+updated_at: '2026-10-29T19:57:07Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -354,4 +354,7 @@ Done when:
 <!-- sq:discussion -->
 - [2026-10-29T19:16:52Z] `op-pierre` Pierre Chat:
   - 2026-10-29: in scope as well: (1) the vocabulary guards derive what they check from the spec and lose their exception lists, covering badge codes, aliases and generated text; (2) the audit override squad (initiative/outcome, job/action, urgency, impact) becomes a permanent test squad and the CLI surface suite also runs on it in CI. Storage goes generic with a schema migration (see ADR-1250).
+- [2026-10-29T19:57:07Z] `tech-lead` Olivia Lead:
+  - Broken into eight tasks, all Draft, ordered by depends-on. Pair 1: TASK-1251 (storage and the 0.19 runner, US6) beside TASK-1252 (aliases, neutral grammar names and target kind, heading key, generated text, override test squad: US2, US4, US5, US10). Pair 2: TASK-1253 (item badge options, list column, import: US1, US3) beside TASK-1254 (mapping option, messages, wire shapes and render context: US4, US1, US5, US7). Pair 3: TASK-1255 (rename-field and check, US8) beside TASK-1256 (guards, the suite on the override squad and CI, repo squad migration: US9, US10, US6). TASK-1257 (VS Code, typescript-dev) after TASK-1254; TASK-1258 (docs and CHANGELOG, tech-writer) last.
+  - Storage does not have to land alone: TASK-1252 shares only _workflow/_validity.py (different functions) and one-token maps_parent_story renames with it. The wire and template shapes stay unchanged in TASK-1251 and move in TASK-1254. Repo squad migration waits for the release cut (TASK-1256 ST6), since the released sq refuses a 0.19 squad. @manager ready for dispatch after the bug batch.
 <!-- sq:discussion:end -->

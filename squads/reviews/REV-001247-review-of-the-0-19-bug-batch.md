@@ -78,7 +78,7 @@ subentities:
 - local_id: F14
   title: Playbook guide command, README and CHANGELOG still give guide --tag after
     the --tags rename
-  status: Open
+  status: Verified
   severity: low
 - local_id: F15
   title: 'create attribute options skip the --set coercion for list values: comma-joined
@@ -91,10 +91,18 @@ subentities:
   severity: info
 - local_id: F17
   title: adopt --renumber does not say which item it gave a new number
-  status: Fixed
+  status: Open
+  severity: low
+- local_id: F18
+  title: Same-id renumber leaves the scaffold hint on the old number
+  status: Open
+  severity: low
+- local_id: F19
+  title: CHANGELOG misstates what adopt --renumber moves and prints
+  status: Open
   severity: low
 created_at: '2026-10-29T17:02:38Z'
-updated_at: '2026-10-29T19:55:26Z'
+updated_at: '2026-10-29T20:03:06Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -446,6 +454,8 @@ The op-pierre ruling renamed guide's `--tag` to `--tags`, but three texts still 
   - Code half done in 1a0e8a8c: playbook.toml names --tags, version bumped to 0.19.0 with the manifest 0.19.0 entry appended (0.18.0 entry byte-identical to the tag), CHANGELOG heading renamed. README and changelog entries remain for the tech writer.
 - [2026-10-29T19:55:26Z] `tech-writer` Theo Writer:
   - README/CHANGELOG half done (uncommitted, for the manager): README create synopsis now lists `--<attribute> VALUE` with guide `--tech`/`--tags`, milestone `--target-date`, review `--target-ref`; the guide line gives `--tags` and the shared create options; adopt synopsis gains `[--renumber]`; repair line says shared numbers are refused. CHANGELOG 0.19.0 has the batch: Added (attribute create options, adopt --renumber, subentity_title_present), Changed (BREAKING guide --tags, required sub-entity titles, ref rm/unlink-role refusals; repair/init/adopt shared-number refusal; filter, chlog, depth, repad, squad-dir, backend and workflow view refusals), Fixed (renumber hints, missing sub-entity comment, import op messages, memory search). @manager
+- [2026-10-29T20:02:53Z] `reviewer` Paul Reviewer:
+  - Verified at 10938808: playbook.toml:416 gives --tags; README 285-345 and the CHANGELOG carry the --tags rename and --target-date/--target-ref; create guide --tag exits 2, --tags a,b --tags c stores a, b, c. The repo own sq-guide skill still says --tag until it is re-synced with 0.19 (release runbook). New CHANGELOG wording issues are F18 and F19.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 
@@ -501,8 +511,64 @@ Fix: carry the repair's renumbered lines on `AdoptReport` and print them in the 
 <!-- sq:finding:F17:discussion -->
 - [2026-10-29T19:54:49Z] `python-dev` Elias Python:
   - Fixed in bfb2896e: AdoptReport.renumbered, printed like repair; repair now also lists distinct-id moves.
+- [2026-10-29T20:02:39Z] `reviewer` Paul Reviewer:
+  - Reopened at 10938808. The human output is right: adopt and repair now print each move. The JSON shape is presentation, not data. Driven (adopt --renumber --json over a same-id pair and a cross-type pair):
+    
+    ```
+    "renumbered": [
+      "TASK-18: 2 files, different slugs",
+      "  kept       tasks/TASK-000018-beta.md",
+      "  renumbered tasks/TASK-000018-beta-copy.md -> TASK-20 (tasks/TASK-000020-beta-copy.md)",
+      "  no references",
+      "  renumbered TASK-17 -> TASK-21"
+    ]
+    ```
+    
+    Two line formats, a heading row, indentation and column padding: a client has to parse the renderer's layout back into ids. ADR-1224 point 2 makes the DTO the data the renderer displays, and the sibling `renumber` already carries the same fact as data (`moved: [{old, new}]`). My fix text asked for the lines; that was the wrong prescription.
+    
+    Repair has the same defect: its `renumbered` (0.18, provisional in docs/stability.md) already held the same-id block as lines, and eaf82823 appends the cross-type lines to it.
+    
+    Expected shape, on both `RepairReport` and `AdoptReport`:
+    - `renumbered: [{old, new, file, target}]`, one per moved file, cross-type and same-id alike (`file`/`target` are the paths, needed because a same-id `old` names two files);
+    - `references: [{id, file, where, text}]`, the references to an old id left unchanged; `references_left` stays as is.
+    The renderers build today's lines from these. Repair's retype is a schema change on a provisional shape; it rides the open 0.19 migration. The CHANGELOG line ("a renumbered array holding those lines") follows the fix. S.
 <!-- sq:finding:F17:discussion:end -->
 <!-- sq:finding:F17:end -->
+
+<!-- sq:finding:F18 -->
+### F18 — Same-id renumber leaves the scaffold hint on the old number
+
+<!-- sq:finding:F18:body -->
+`sq repair --renumber` and `sq adopt --renumber` leave the scaffold hint on the old number when the collision is a same-id pair (two files with id TASK-18, different slugs). Driven at 10938808 on a scratch squad: repair moved `tasks/TASK-000018-beta-copy.md` to TASK-21, and TASK-000021-beta-copy.md still reads `_Add with sq task 18 add-subtask "<title>"; track with sq task 18 subtask <n> ..._`. TASK-18 is the kept twin, so the hint addresses another item, the BUG-1248 symptom.
+
+The BUG-1248 fix covers the cross-type path (`_renumber`, driven: TASK-17 -> TASK-20 gets `sq task 20`) and `sq renumber`. The same-id path, `_renumber_files` in `src/squads/_services/_duplicate_ids.py`, rewrites only `id`, `sequence_id` and the file name. The CHANGELOG Fixed entry ("`sq renumber` and `sq repair --renumber` update the hint") is false for this case.
+
+Fix: apply the same hint rewrite in `_renumber_files` (an edited hint left as is, as elsewhere), with a regression case for the same-id pair. S.
+<!-- sq:finding:F18:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F18:discussion -->
+<!-- sq:finding:F18:discussion:end -->
+<!-- sq:finding:F18:end -->
+
+<!-- sq:finding:F19 -->
+### F19 — CHANGELOG misstates what adopt --renumber moves and prints
+
+<!-- sq:finding:F19:body -->
+Two CHANGELOG 0.19.0 Added entries misstate `--renumber`, checked against the driven behaviour at 10938808:
+
+- "`sq adopt --renumber`. It gives every file that shares a number with a file of another id a new number". It keeps one file of each collision and moves the others, and it also moves same-id twins (two files carrying TASK-18 with different slugs), which the sentence excludes. The README adopt line ("`--renumber` gives them new numbers first") reads the same way.
+- "Each item given a new number prints one line, such as `renumbered TASK-24 -> TASK-28`". A same-id move prints a four-line block (`TASK-18: 2 files, different slugs`, `kept ...`, `renumbered <file> -> TASK-20 (<file>)`, references). The `--json` half of that entry follows F17.
+
+Every other claim in the section and in README lines 282-345 holds at HEAD (see the review comment). @tech-writer, after F17 and F18 land. S.
+<!-- sq:finding:F19:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F19:discussion -->
+<!-- sq:finding:F19:discussion:end -->
+<!-- sq:finding:F19:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -560,4 +626,11 @@ Fix: carry the repair's renumbered lines on `AdoptReport` and print them in the 
     - @manager F2: the three-step remedy works, but step 1 depends on a refused adopt leaving a config and an index behind. Proposed one-step rule: `sq adopt --renumber`, with plain adopt refusing before it writes. S.
 - [2026-10-29T19:50:22Z] `reviewer` Paul Reviewer:
   - Round 4 at 7ed41e73, read-only. Verified: F2 (init, adopt and init --force refuse before writing and name `sq adopt --renumber`; that command resolves and adopts; both new tests falsified). New: F17 (low), `sq adopt --renumber` does not report which item it renumbered. Kept Open: F14 (playbook with the version bump, README and CHANGELOG with the tech writer). Retitled for 0.19 and updated the scope line and the BUG-1191 judgment point to the current remedy. @manager F17 for the TASK-1244 dev, size S; with F14 and F17 closed I recommend Approved.
+- [2026-10-29T20:03:05Z] `reviewer` Paul Reviewer:
+  - Round 5 at 10938808, read-only. Verified: F14. Reopened: F17 (the JSON `renumbered` holds the printed lines; repair's existing field has the same defect). New: F18 (same-id renumber keeps the old hint, a gap in the BUG-1248 fix), F19 (two CHANGELOG `--renumber` sentences). Review stays ChangesRequested, so the bugs stay Fixed.
+    
+    - Method: diff of eaf82823 and 10938808; 706 targeted tests pass (test_adopt, test_repair, the hint regression, tests/meta); adopt and repair `--renumber` driven with and without `--json` on scratch squads.
+    - CHANGELOG 0.19.0 and README 282-345 driven claim by claim at HEAD: create attribute options (`--target-date nope`, `--tags a,b --tags c`, guide `--priority/--label/--ref`), the three BREAKING entries (guide `--tag` exit 2; add-subtask missing/blank title exit 2/1, `update --title ""`, import missing and blank title; `ref rm` and `unlink-role` refusals, a related ref to the role included), repair and init/adopt shared-number refusals, sort/badge/min-badge/reflog/chlog/depth refusals, repad 33, init/adopt `--squad-dir`/`--backend` refused with nothing written, `workflow view memory_skill SKILL-2`, the subentity_title_present warning, comment on a missing subtask, import op messages, memory search. All hold except F18 and F19.
+    - Outside the batch, for @manager: uv.lock pins typer 0.26.7, whose vendored click formats a no-such-option suggestion as a tuple repr (`No such option: --tag ('(Possible options: --tags)',)`); the released tool on typer 0.27.3 prints it clean. The dev tree and CI run the garbled one; an install resolving the lock would ship it. Bump the lock.
+    - @manager: F17 and F18 for the TASK-1244 dev (S each), F19 for @tech-writer after them. With those closed I recommend Approved.
 <!-- sq:discussion:end -->
