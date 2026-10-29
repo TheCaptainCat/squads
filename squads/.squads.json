@@ -65749,7 +65749,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "Priority surface derived from the spec",
+          "title": "Badge-field options derived from the spec",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -65779,7 +65779,7 @@
         },
         {
           "local_id": "US4",
-          "title": "Story-mapping wording after the target kind",
+          "title": "Sub-entity mapping named after the target kind",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -65796,11 +65796,61 @@
           "story": null,
           "deferred_to": null,
           "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "Generic storage and the 0.19 schema migration",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US7",
+          "title": "Wire and DTO shapes, and the stability doc",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US8",
+          "title": "rename-field verb and check on unknown sub-entity keys",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US9",
+          "title": "Guards derived from the spec, no allow-lists",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US10",
+          "title": "Permanent override test squad and its CI job",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
         }
       ],
       "path": "features/FEAT-001249-bundled-vocabulary-fully-overridable.md",
       "created_at": "2026-10-29T19:04:26Z",
-      "updated_at": "2026-10-29T19:16:52Z",
+      "updated_at": "2026-10-29T19:40:52Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -65838,7 +65888,7 @@
       "subentities": [],
       "path": "adrs/ADR-001250-no-bundled-vocabulary-is-special-cased-outside-the-spec.md",
       "created_at": "2026-10-29T19:08:39Z",
-      "updated_at": "2026-10-29T19:25:56Z",
+      "updated_at": "2026-10-29T19:38:50Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

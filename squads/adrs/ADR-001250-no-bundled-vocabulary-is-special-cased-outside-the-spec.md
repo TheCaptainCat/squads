@@ -23,7 +23,7 @@ description: Options, import keys, stored keys, wire keys and generated text der
   from the active spec; badge values and the mapping are stored flat under declared
   or neutral keys
 created_at: '2026-10-29T19:08:39Z'
-updated_at: '2026-10-29T19:25:56Z'
+updated_at: '2026-10-29T19:38:50Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -241,4 +241,6 @@ Each overlap below is a clause-level amendment (board rule 6): the older decisio
     - Tier 2: alias table freezes the bundled spec's declaration only; migrate sub-app gains `rename-field`; bulk import gets `add-<kind>`, the `<kind>` selector and `maps_to` on `add-sub`; a new badge-options entry.
     - Tier 3: item rows lose `priority`/`severity` as always-present keys; tree and graph nodes lose `priority`; sub-entity objects drop `severity`, `story`, `extra`, gain `maps_to` (always present) and flat field keys; display `story` becomes `maps_to`; the subentity-kinds catalog column `maps_parent_story` becomes `maps_to_parent`.
     @manager ADR-1250 is ready for the operator again. Open points are in my handback.
+- [2026-10-29T19:38:50Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: on the open points: the mapping is stored under the neutral key maps_to; derived per-field flags sit beside the generic --set/--badge/--min-badge; a value under a renamed or dropped field code is kept as an unknown key, reported by sq check, and moved by sq migrate rename-field; a mapping kind on a type without parent_required is refused at spec load. The release is 0.19.0, so the schema becomes 0.19.
 <!-- sq:discussion:end -->
