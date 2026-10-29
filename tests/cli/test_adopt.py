@@ -250,7 +250,7 @@ async def test_renumber_refuses_identical_copies_before_anything_is_written(
         "error: refusing to rebuild the index: it keys items by number:\n"
         "  - 2 files carry the id TASK-3 (tasks/TASK-000003-build-the-query-parser.md, "
         "tasks/TASK-000003-copy.md); merge the content you want into one file, delete the "
-        "other by hand, then run `sq repair`\n",
+        "other by hand, then run `sq adopt`\n",
     )
     assert not (adoptable / ".squads.toml").exists()
     assert not (squad / ".squads.json").exists()

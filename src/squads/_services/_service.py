@@ -419,7 +419,11 @@ async def init(
         # `sq repair` needs a configuration this folder lacks, so the remedy named is adopt's.
         await compose_service(
             sp, resolved_spec=effective_spec, sources=sources
-        ).refuse_shared_numbers(ADOPT_RENUMBER_REMEDY, same_id=True)
+        ).refuse_shared_numbers(
+            ADOPT_RENUMBER_REMEDY,
+            same_id=True,
+            merge_then="sq repair" if await _aio.path_exists(config_path) else "sq adopt",
+        )
     await _aio.atomic_write_text(config_path, config.to_toml())
     await ensure_root_tmp_ignored(root)
 
@@ -512,7 +516,12 @@ async def adopt(
         # one step, so only the groups it cannot resolve are refused then.
         await compose_service(
             sp, resolved_spec=effective_spec, sources=sources
-        ).refuse_shared_numbers(ADOPT_RENUMBER_REMEDY, same_id=True, renumbering=renumber)
+        ).refuse_shared_numbers(
+            ADOPT_RENUMBER_REMEDY,
+            same_id=True,
+            renumbering=renumber,
+            merge_then="sq repair" if existing is not None else "sq adopt",
+        )
     if existing is None:
         await _aio.atomic_write_text(config_path, config.to_toml())
     await ensure_root_tmp_ignored(root)

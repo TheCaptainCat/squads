@@ -57,22 +57,21 @@ async def test_repair_names_an_indexed_item_whose_file_is_gone_and_keeps_the_cou
 
 @pytest.mark.covers("repair", "--json")
 async def test_repair_json_prints_what_the_rebuild_found(populated_project, invoke) -> None:
-    original = (populated_project.squad_dir / TASK_FILE).read_bytes()
-    (populated_project.squad_dir / "tasks/TASK-000003-dup.md").write_bytes(original)
-    result = await invoke(["repair", "--renumber", "--json"])
+    (populated_project.squad_dir / "tasks/TASK-000009-broken.md").write_text(
+        "---\n: : bad\n", encoding="utf-8"
+    )
+    result = await invoke(["repair", "--json"])
     assert (result.exit_code, result.output) == (
         1,
         json_text(
             {
                 "indexed": 4,
-                "counter": 4,
+                "counter": 9,
                 "notice": None,
                 "missing": [],
                 "unreadable": [
-                    "TASK-000003-build-the-query-parser.md: TASK-3: 2 files carry this id "
-                    "(tasks/TASK-000003-build-the-query-parser.md, tasks/TASK-000003-dup.md); "
-                    "merge the content you want into one file, delete the other by hand, then run "
-                    "`sq repair`"
+                    "TASK-000009-broken.md: file has no `id` in frontmatter — its previous index "
+                    "entry, if any, was carried forward as-is; fix the file and repair again"
                 ],
                 "renumbered": [],
                 "references_left": False,
@@ -111,7 +110,7 @@ async def test_repair_refuses_two_ids_that_share_a_number_and_keeps_the_index(
 
 
 @pytest.mark.covers("repair", "--renumber")
-async def test_renumber_leaves_an_id_two_files_carry_to_be_merged_by_hand(
+async def test_renumber_refuses_an_id_two_files_carry_to_be_merged_by_hand(
     populated_project, invoke
 ) -> None:
     original = (populated_project.squad_dir / TASK_FILE).read_bytes()
@@ -119,12 +118,33 @@ async def test_renumber_leaves_an_id_two_files_carry_to_be_merged_by_hand(
     result = await invoke(["repair", "--renumber"])
     assert (result.exit_code, result.output) == (
         1,
-        "rebuilt index: 4 items, counter=4\n"
-        "error: TASK-000003-build-the-query-parser.md: TASK-3: 2 files carry this id "
-        "(tasks/TASK-000003-build-the-query-parser.md, tasks/TASK-000003-dup.md); merge the "
-        "content you want into one file, delete the other by hand, then run `sq repair`\n",
+        "error: refusing to rebuild the index: it keys items by number:\n"
+        "  - 2 files carry the id TASK-3 (tasks/TASK-000003-build-the-query-parser.md, "
+        "tasks/TASK-000003-dup.md); merge the content you want into one file, delete the "
+        "other by hand, then run `sq repair`\n",
     )
     assert await listed(invoke) == ITEMS
+
+
+@pytest.mark.covers("repair")
+async def test_repair_refuses_a_same_id_pair_a_renumber_resolves_before_writing(
+    populated_project, invoke
+) -> None:
+    squad = populated_project.squad_dir
+    original = (squad / TASK_FILE).read_text(encoding="utf-8")
+    (squad / "tasks/TASK-000003-twin.md").write_text(
+        original.replace("title: Build the query parser", "title: Twin parser"), encoding="utf-8"
+    )
+    index = (squad / ".squads.json").read_bytes()
+    result = await invoke(["repair"])
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: refusing to rebuild the index: it keys items by number:\n"
+        "  - 2 files carry the id TASK-3 (tasks/TASK-000003-build-the-query-parser.md, "
+        "tasks/TASK-000003-twin.md); run `sq repair --renumber` to give one of them a new "
+        "number\n",
+    )
+    assert (squad / ".squads.json").read_bytes() == index
 
 
 @pytest.mark.covers("repair", "--json")

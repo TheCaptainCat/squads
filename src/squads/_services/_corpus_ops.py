@@ -107,6 +107,9 @@ def _import_report(result: ImportResult, *, dry_run: bool) -> ImportReport:
 class CorpusOpsMixin(ImportMixin, MaintenanceMixin, RenameMixin):
     async def repair_squad(self, req: RepairRequest) -> Response[RepairReport]:
         """Rebuild the index from the item files, renumbering a shared number first on request."""
+        # Refused before anything is written: a renumber resolves what it can, so only the groups
+        # it cannot resolve are refused then.
+        await self.refuse_shared_numbers(same_id=True, renumbering=req.renumber)
         result = await self.repair(renumber=req.renumber)
         return Response(
             data=RepairReport(

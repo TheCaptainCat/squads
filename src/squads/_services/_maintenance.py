@@ -88,13 +88,13 @@ from squads._services._corpus_files import (
 )
 from squads._services._corpus_fit import corpus_fit_refusal
 from squads._services._duplicate_ids import (
-    DUPLICATE_ID_REMEDY,
     SHARED_NUMBER_REMEDY,
     LeftReference,
     MovedFile,
     RenumberScope,
     SameIdRenumber,
     duplicate_groups,
+    duplicate_id_remedy,
     normalized_id,
     references_left,
     renumber_same_id_groups,
@@ -1534,13 +1534,14 @@ class MaintenanceMixin(ServiceCore):
         *,
         same_id: bool = False,
         renumbering: bool = False,
+        merge_then: str = "sq repair",
     ) -> None:
         """Refuse, before the index is rebuilt, a number carried by files of different ids: the
         index is keyed by number, so the rebuild would keep one file and hide the other. With
         *same_id*, an id carried by several files is refused too: *remedy* when a renumber can
-        resolve it, the merge-by-hand remedy when not. *renumbering* says the caller renumbers, so
-        only what a renumber cannot resolve is refused. *remedy* is the command the message
-        names."""
+        resolve it, the merge-by-hand remedy (ending with *merge_then*) when not. *renumbering*
+        says the caller renumbers, so only what a renumber cannot resolve is refused. *remedy* is
+        the command the message names."""
         carriers = await self._id_carriers()
         lines = [
             f"  - {self._shared_number_message(number, files, remedy)}"
@@ -1554,7 +1555,7 @@ class MaintenanceMixin(ServiceCore):
                 named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
                 if fixable and renumbering:
                     continue
-                how = remedy if fixable else DUPLICATE_ID_REMEDY
+                how = remedy if fixable else duplicate_id_remedy(merge_then)
                 lines.append(f"  - {len(files)} files carry the id {key} ({named}); {how}")
         if lines:
             body = "\n".join(lines)

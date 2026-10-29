@@ -20,6 +20,12 @@ DUPLICATE_ID_REMEDY = (
 )
 
 
+def duplicate_id_remedy(then: str) -> str:
+    """:data:`DUPLICATE_ID_REMEDY` ending with the command *then* (``sq adopt`` where there is no
+    configuration for ``sq repair`` to read)."""
+    return DUPLICATE_ID_REMEDY.removesuffix("`sq repair`") + f"`{then}`"
+
+
 def normalized_id(fid: object) -> str | None:
     """*fid* spelled one way whatever its padding, or ``None`` when it is not a well-formed id."""
     if not isinstance(fid, str):
