@@ -50,6 +50,15 @@ _typer_testing: Any = typer.testing
 _typer_testing._get_command = _cached_get_command
 
 
+@pytest.fixture
+def fresh_command_tree():
+    """Drop the memoised command tree around a test, so it builds its own and leaves none that
+    an override squad shaped."""
+    _build_command.cache_clear()
+    yield
+    _build_command.cache_clear()
+
+
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
         "--run-slow",

@@ -1,6 +1,7 @@
 """The item read operations: the tree, the ref graph, search, the work queues, an item's refs
 and discussion, and its sub-entities, each answering with its DTO."""
 
+from squads import _spans as spans
 from squads._api._dto._comments import Comments, CommentsRequest
 from squads._api._dto._graph import GraphNode, GraphRequest
 from squads._api._dto._queues import (
@@ -78,12 +79,13 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
         blocked_ids = {target.id for target, _ in await self.blocked()}
         names = participant_names(await self.store.load())
         pronouns = await self.shown_pronouns()
-        roots = [
-            tree_node(
-                n, self.spec, names, blocked_ids=blocked_ids, pronouns=pronouns, sort=req.sort
-            )
-            for n in sort_tree_level(nodes, req.sort, self.spec)
-        ]
+        with spans.span("dto"):
+            roots = [
+                tree_node(
+                    n, self.spec, names, blocked_ids=blocked_ids, pronouns=pronouns, sort=req.sort
+                )
+                for n in sort_tree_level(nodes, req.sort, self.spec)
+            ]
         return Response(data=TreeView(items=roots, hidden=hidden))
 
     async def _hidden_count(self, item_filter: ItemFilter) -> int:

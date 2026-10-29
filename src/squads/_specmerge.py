@@ -45,7 +45,6 @@ from typing import Any, Union, cast, get_args, get_origin
 
 from pydantic import BaseModel, ValidationError
 
-from squads import __version__
 from squads._errors import SquadsError
 
 type RawMapping = dict[str, Any]
@@ -505,6 +504,8 @@ def _accepted_menu(what: str, accepted: frozenset[str]) -> str:
     dialect. The version lets an adopter tell a typo from a key a newer squads accepts or an older
     one dropped.
     """
+    from squads import __version__
+
     return f"use one of the accepted {what}s in v{__version__}: {sorted(accepted)}"
 
 

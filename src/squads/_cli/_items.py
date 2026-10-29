@@ -225,8 +225,8 @@ def _kind_signature(item_type: str, spec: WorkflowSpec) -> KindSignature:
 def _dynamic_subentity_group_cls(item_type: str) -> type[typer.core.TyperGroup]:
     """A ``TyperGroup`` for *item_type* that rebuilds stale sub-entity commands from the live spec.
 
-    A built-in type's sub-entity kind and its ``--<field-code>`` options are baked in at import
-    time from the bundled spec. When the live spec renames the kind (``story`` -> ``scenario``)
+    A built-in type's sub-entity kind and its ``--<field-code>`` options come from the
+    bundled spec. When the live spec renames the kind (``story`` -> ``scenario``)
     or replaces its fields (``severity`` -> a required ``impact``), the static tree would offer
     the old verbs and options, so a missing command is built from the live spec instead. The
     trigger is the whole :func:`_kind_signature`, not just the kind name.

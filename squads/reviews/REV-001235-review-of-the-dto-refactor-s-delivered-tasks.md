@@ -10,6 +10,7 @@ refs:
 - TASK-1227
 - TASK-1228
 - TASK-1233
+- TASK-1238
 description: Batch review of FEAT-1226's delivered tasks, one commit at a time, against
   ADR-1224, ADR-1225 and ADR-1172
 subentities:
@@ -263,8 +264,39 @@ subentities:
   title: Write guard misses stdlib writers imported by name (from os import unlink)
   status: Verified
   severity: low
+- local_id: F54
+  title: Lazy type groups cache an override-built app across run() calls; leaks between
+    squads
+  status: Verified
+  severity: medium
+- local_id: F55
+  title: SQUADS_SPANS=yes crashes every command; empty or 1 prints since-boot marks
+  status: Verified
+  severity: low
+- local_id: F56
+  title: Comments still say the root table is built at import time; _spans missing
+    from CLAUDE.md
+  status: Verified
+  severity: low
+- local_id: F57
+  title: Lazy-group guard misses annotated and from-import Typer definitions
+  status: Verified
+  severity: low
+- local_id: F58
+  title: Releasing runbook does not run bench_local_mode.py as the task requires
+  status: Open
+  severity: low
+- local_id: F59
+  title: 'Benchmark: fixed old-first order, repo-specific --task default, no-op SQUADS_DAEMON'
+  status: Verified
+  severity: info
+- local_id: F60
+  title: drop_type_apps is a src test hook over a module cache; a per-root type-app
+    cache needs none
+  status: Verified
+  severity: low
 created_at: '2026-10-28T23:26:20Z'
-updated_at: '2026-10-29T10:14:21Z'
+updated_at: '2026-10-29T11:49:30Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1226's delivered tasks, one commit at a time, against ADR-1224, ADR-1225 (section 9) and ADR-1172.
@@ -1884,6 +1916,166 @@ Fix: resolve a call's name through the module's import aliases (`_aliases` alrea
     - **Read-only `shutil` calls are flagged (fails safe).** `shutil.get_terminal_size()` and `shutil.which()` turn the guard red, because every call into `shutil` counts as a write. No CLI or TUI code calls them today. The fix is to list `shutil`'s writing functions instead of the whole module.
 <!-- sq:finding:F53:discussion:end -->
 <!-- sq:finding:F53:end -->
+
+<!-- sq:finding:F54 -->
+### F54 — Lazy type groups cache an override-built app across run() calls; leaks between squads
+
+<!-- sq:finding:F54:body -->
+`_type_app` (`src/squads/_cli/__init__.py`) is a process-wide `functools.cache`, and it calls `build_item_app(item_type)` with no spec. `build_item_app` then falls back to `common.get_active_spec()`. Before this change every bundled type app was built once at import time, so it always came from the bundled spec, and `_dynamic_subentity_group_cls` depends on that (its docstring says the sub-entity commands are "baked in at import time from the bundled spec", and it rebuilds only when the live signature differs from the bundled one).
+
+Now a type app is built on its first lookup. The root resolves the addressed type before its callback binds the spec, so that one is still built from the bundled spec. But when `--help` is present, `HelpAwareGroup.resolve_command` runs after the root callback and walks the whole root tree (`help_requested` -> `_value_options_of(root)`). That builds every other type from the squad's override spec, and the cache keeps those apps for the life of the process.
+
+Reproduced in-process (scratch probe `leak2.py`). Squad A overrides `[items.bug] subentity_kind = "subtask"`. Squad B is plain. In one process:
+1. `run(["-C", A, "task", "1", "show", "--help"])`
+2. `run(["-C", B, "bug", "--help"])` now lists `add-subtask`/`subtask`/`subtasks`, and `sq bug 1 add-subtask x` dispatches (exit 1, "is ROLE-1, not a bug") where 0aec4439 answers exit 2, no such command.
+
+Without step 1, or on 0aec4439 with or without it, B's output is correct. A one-shot CLI process is not affected, because only one command runs. Affected: every multi-invocation host of `run()`, which breaks its own contract ("nothing it binds is visible to the next call"). That includes the in-process CLI tests on xdist workers, where results now depend on test order, and the planned daemon (ADR-1225).
+
+Fix: build with `spec=bundled_spec()` in `_type_app`, which restores the invariant the dynamic group relies on. Add a test that runs the two calls above in sequence.
+<!-- sq:finding:F54:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F54:discussion -->
+- [2026-10-29T11:27:52Z] `python-dev` Elias Python:
+  - Fixed in 6e65283e: _type_app builds from bundled_spec(). New CLI test runs an override squad's 'task 1 show --help' then a plain squad's 'bug 1 add-subtask x' in one process and expects exit 2; it fails (exit 1) without the fix and passes with it. The override squad is unavoidable: the leak only exists when a spec differs from the bundled one.
+- [2026-10-29T11:32:49Z] `reviewer` Paul Reviewer:
+  - Reopened: the code fix holds, but the regression test is order-dependent. The leak2 repro on fe8df57d is clean (in one process, the plain squad's `bug --help` and `bug 1 add-subtask x` are unchanged after the override squad's `task 1 show --help`).
+    
+    Why a whole-text compare "stopped showing the leak": the help path and the dispatch path both read the same `root.commands["bug"]` entry, so this is not a second bug. The cause is a second cache. The root `conftest.py` memoises `typer.main.get_command(app)` per process (`_build_command`), and that cached root's `_LazyCommands` keeps every group it has built. `_type_app.cache_clear()` does not reset it. Any earlier call that builds `bug` in the same worker leaves the bundled build in the cached root, and the poison step can no longer replace it. A whole-text compare that renders the clean `bug --help` first builds `bug` itself, so it can never fail.
+    
+    Measured with the fix reverted in a scratch copy (`-n 0`):
+    - the new test alone: 1 failed (good);
+    - the same test after one earlier test that runs `bug --help`: 2 passed. In the full run it therefore guards nothing whenever an earlier test on its worker touched `bug`.
+    
+    A whole-output version is possible and does fail with the fix reverted, whatever ran before it. Call a helper that runs `_type_app.cache_clear()` and `conftest._build_command.cache_clear()` (better: a fixture that hands the test a fresh root) before each step. Then:
+    1. Clear, run `-C plain bug 1 add-subtask x`, and keep its exit code and output.
+    2. Clear, run `-C overridden task 1 show --help`.
+    3. Run `-C plain bug 1 add-subtask x` again, and assert `(exit_code, output)` equals step 1.
+    
+    Or assert step 3 against the literal refusal: exit 2, and the whole text `Usage: sq bug [OPTIONS] N COMMAND [ARGS]...` / `Try 'sq bug --help' for help.` / the boxed `No such command 'add-subtask'.`. With the fix reverted it fails with `(1, 'error: 1 is ... not a bug')` != `(2, 'Usage: ...')`. With the fix it passes (checked with `-n 2`). That meets ADR-1172's whole-output rule.
+- [2026-10-29T11:35:56Z] `python-dev` Elias Python:
+  - Reworked in the new commit: a fresh_command_tree fixture clears the conftest-memoised command tree and the type-app cache around the test; it runs the override squad's task 1 show --help, then the plain squad's bug 1 add-subtask x, and asserts the whole refusal (exit 2, usage lines, boxed No such command). With the one-line fix reverted it fails alone and after a bug --help test (-n 0); with the fix it passes.
+- [2026-10-29T11:41:53Z] `reviewer` Paul Reviewer:
+  - Verified on 94e275c3. With the fix in place: the test plus a prior bug --help test, 2 passed (-n 2). With the one-line fix reverted (-n 0): alone, 1 failed; after a test that runs bug --help, 1 failed with (1, error: 1 ... not a bug) != (2, Usage: ...). fresh_command_tree makes the test falsifiable whatever ran before it, and the assert is the whole literal refusal. On the hook shape, see F60.
+<!-- sq:finding:F54:discussion:end -->
+<!-- sq:finding:F54:end -->
+
+<!-- sq:finding:F55 -->
+### F55 — SQUADS_SPANS=yes crashes every command; empty or 1 prints since-boot marks
+
+<!-- sq:finding:F55:body -->
+`_spans.mark` does `float(os.environ["SQUADS_SPANS"] or 0)`. The module docstring says spans are written "when `SQUADS_SPANS` is set", so a contributor will naturally try `SQUADS_SPANS=1`, `=yes` or `=on`. Measured on the scratch copy:
+- `SQUADS_SPANS=yes sq list --json`: a ValueError traceback from `main_callback`, exit 1, no output. Every command fails the same way.
+- `SQUADS_SPANS=` or `=1`: exit 0 and stdout unchanged, but `startup`, `call_done` and `end` print about 140874596 ms (time since boot minus 0 or 1 s). The `span(...)` durations are correct.
+
+The variable carries two things at once: the on/off switch and the launcher's `perf_counter` reading. It also relies on `perf_counter` being comparable across processes, which Python does not promise (it does hold for CLOCK_MONOTONIC on Linux). Suggest keeping the switch on presence, ignoring `mark` (or printing only the `span` durations) when the value is not a float, and documenting the value in the docstring.
+<!-- sq:finding:F55:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F55:discussion -->
+- [2026-10-29T11:27:53Z] `python-dev` Elias Python:
+  - Fixed in 6e65283e: any non-empty SQUADS_SPANS enables spans. Only the form t=<float> sets the time origin; otherwise times run from the module's import, so no boot-relative values and no crash. Checked with yes, 1 and empty.
+- [2026-10-29T11:33:01Z] `reviewer` Paul Reviewer:
+  - Verified on fe8df57d: SQUADS_SPANS empty is off (no stderr); 1, yes, t=, t=abc all exit 0 with stdout byte-identical under list --json and marks timed from import (~200-270 ms); t=<perf_counter> times from the launcher. The bench --spans run reports all marks and the exit tail.
+<!-- sq:finding:F55:discussion:end -->
+<!-- sq:finding:F55:end -->
+
+<!-- sq:finding:F56 -->
+### F56 — Comments still say the root table is built at import time; _spans missing from CLAUDE.md
+
+<!-- sq:finding:F56:body -->
+These comments still describe the eager registration that this change removed:
+- `_cli/__init__.py`: the `_CustomTypeGroup` docstring ("Built-in commands are registered statically at import time"); the `get_command` comments ("The static table binds every bundled alias at import time", "the statically-built command table", "Statically-registered types are always in the static table").
+- `_cli/_common.py`: `static_alias_is_stale` ("The root table binds every bundled alias at import time") and the docstring near line 1082 ("A statically registered command is built at import time").
+- `_cli/_items.py` `_dynamic_subentity_group_cls` ("baked in at import time from the bundled spec"). This claim is now false for any type built after the root callback (see the cross-squad cache finding).
+
+CLAUDE.md's architecture map also does not list `_spans.py` or the `SQUADS_SPANS` variable, and `scripts/bench_local_mode.py` is not mentioned in any contributor doc.
+<!-- sq:finding:F56:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F56:discussion -->
+- [2026-10-29T11:27:54Z] `python-dev` Elias Python:
+  - Fixed in 6e65283e: the stale 'registered statically / bound at import time' comments in _cli/__init__.py, _common.py and _items.py now describe the lazily built command table. CLAUDE.md left to the writer.
+- [2026-10-29T11:33:04Z] `reviewer` Paul Reviewer:
+  - Verified (code comments): the import-time wording is gone from _CustomTypeGroup, get_command, static_alias_is_stale, spec_error_command, spec_aware_command_cls and _dynamic_subentity_group_cls; each now matches the lazy table built from the bundled spec. The CLAUDE.md half is with the writer, as briefed.
+<!-- sq:finding:F56:discussion:end -->
+<!-- sq:finding:F56:end -->
+
+<!-- sq:finding:F57 -->
+### F57 — Lazy-group guard misses annotated and from-import Typer definitions
+
+<!-- sq:finding:F57:body -->
+`tests/meta/test_lazy_command_groups_match_the_typer_groups.py::_group_typers` matches only `ast.Assign` nodes whose call is the attribute form `typer.Typer(...)`. Falsified on a scratch copy: appending `extra_app = typer.Typer()` to `_cli/_board.py` turns the guard red (1 failed, 3 passed), but `extra_app: typer.Typer = typer.Typer()` (an annotated assignment, the form strict pyright pushes toward) leaves it green (4 passed). A `from typer import Typer; x = Typer()` would also slip through, since its `func` is an `ast.Name`. Suggest matching `ast.AnnAssign` too, and accepting a `Name` whose id is `Typer`. Otherwise the guard follows ADR-1172 (in `tests/meta`, no timing assertions) and goes red when a group is added without a table row.
+<!-- sq:finding:F57:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F57:discussion -->
+- [2026-10-29T11:27:55Z] `python-dev` Elias Python:
+  - Fixed in 6e65283e: the guard matches annotated assignments and a bare Typer(...) call. Falsified with 'extra_app: typer.Typer = typer.Typer()' (red) and 'from typer import Typer; extra_app = Typer()' (red); green on the clean tree.
+- [2026-10-29T11:33:06Z] `reviewer` Paul Reviewer:
+  - Verified by falsification on a scratch copy: appending to _cli/_board.py each of plain assign, annotated assign, from typer import Typer + bare call, and a string-annotated assign turns the guard red (1 failed, 3 passed); restored, 4 passed.
+<!-- sq:finding:F57:discussion:end -->
+<!-- sq:finding:F57:end -->
+
+<!-- sq:finding:F58 -->
+### F58 — Releasing runbook does not run bench_local_mode.py as the task requires
+
+<!-- sq:finding:F58:body -->
+The task's test approach says the script "is a release-time check ... and the releasing runbook runs it", and the criterion says the numbers are recorded "with the release". `scripts/bench_local_mode.py` is not referenced from the releasing-squads skill or any doc (grep over `squads/agents/skills/` and the repo). Until the runbook names it, with the inputs it needs (a released `sq` path, a squad copy and an item number), the check will not run at the 0.18 cut.
+<!-- sq:finding:F58:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F58:discussion -->
+<!-- sq:finding:F58:discussion:end -->
+<!-- sq:finding:F58:end -->
+
+<!-- sq:finding:F59 -->
+### F59 — Benchmark: fixed old-first order, repo-specific --task default, no-op SQUADS_DAEMON
+
+<!-- sq:finding:F59:body -->
+`scripts/bench_local_mode.py` measures what the criterion asks: 31 runs by default, old and new interleaved, one warm-up each, and the median with inclusive p25-p75. Smaller points:
+- Each pair always runs old first, then new. A fixed order can carry a small systematic bias (cache and CPU frequency state left by the previous run). Alternating the order per round costs nothing.
+- `--task` defaults to 1238, an item number specific to this repo, so it fails on any other squad.
+- The script runs in the `--squad` directory as given and does not copy it. The criterion's "one copy of a squad" relies on the caller passing one.
+- `SQUADS_DAEMON=off` is not read by anything in either tree yet, so it has no effect for now. That is harmless, but it is worth knowing when reading the numbers.
+- `--spans` fails with a StatisticsError if the build reports no `end` mark.
+<!-- sq:finding:F59:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F59:discussion -->
+- [2026-10-29T11:27:57Z] `python-dev` Elias Python:
+  - Fixed in 6e65283e: the build that runs first alternates per round, --task is required, the squad is copied to a temp dir, --spans no longer needs an end mark, and the SQUADS_DAEMON=off setting is dropped since nothing reads it.
+- [2026-10-29T11:33:09Z] `reviewer` Paul Reviewer:
+  - Verified: order alternates per round, --task is required, the squad is copied to a temp dir, SQUADS_DAEMON dropped, --spans skips the tail without an end mark. Smoke runs (3 runs compare, 2 runs --spans) completed. Note only: --squad is copied whole, so pass a directory holding just the squad (passing a repo root would copy .venv and .git).
+<!-- sq:finding:F59:discussion:end -->
+<!-- sq:finding:F59:end -->
+
+<!-- sq:finding:F60 -->
+### F60 — drop_type_apps is a src test hook over a module cache; a per-root type-app cache needs none
+
+<!-- sq:finding:F60:body -->
+`drop_type_apps()` in `src/squads/_cli/__init__.py` exists only for the root conftest's `fresh_command_tree` fixture. Nothing in `src` calls it, and `uv run --all-extras vulture` reports it ("unused function 'drop_type_apps' (60% confidence)", line 98). It does work, and it is better than a private reach-in to `_type_app.cache_clear()`. But it is a test hook in the product, and it guards a module-level mutable cache that only exists to share one Typer between a type's name and its aliases.
+
+A cleaner shape removes both. Keep that sharing per root command instead of per process: `_lazy_builders()` (or `_LazyCommands`) holds a local dict from type to its built Typer, and the alias builders read from it. Each `typer.main.get_command(app)` then starts with no type apps. The fixture's `_build_command.cache_clear()` alone gives a fresh tree, and `drop_type_apps`, `_type_app` and the `functools.cache` go away. Cost is unchanged for a CLI run (one root per process). A multi-call host rebuilds a type app per root, the same as it already re-converts each Click group per root.
+
+If the hook stays, add it to `[tool.vulture] ignore_names` with a one-line reason, as CLAUDE.md asks for an intentional false positive.
+<!-- sq:finding:F60:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F60:discussion -->
+- [2026-10-29T11:47:59Z] `python-dev` Elias Python:
+  - Fixed in d9d97731: type apps are held per root command (a local dict in _lazy_builders, shared by a type and its aliases); _type_app, drop_type_apps and the fixture's call are gone, so _build_command.cache_clear() alone gives a fresh tree. The F54 test passes; building from the active spec again makes it fail alone and after a bug --help test (-n 0). Vulture shows nothing new.
+- [2026-10-29T11:49:30Z] `manager` Catherine Manager:
+  - Verified on 3ebdf978: drop_type_apps and the module-level _type_app cache are gone (grep over src, tests, conftest.py is empty); the type-app cache is local to _lazy_builders; full suite 1655 passed, pyright 0, ruff clean.
+<!-- sq:finding:F60:discussion:end -->
+<!-- sq:finding:F60:end -->
 <!-- sq:findings:end -->
 
 ## Discussion

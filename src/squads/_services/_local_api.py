@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from squads import __version__
+from squads import _spans as spans
 from squads._api._api import Grant, Mode, Operation
 from squads._api._response import Response
 from squads._context import get_context
@@ -25,6 +25,8 @@ def check_grant(paths: SquadPaths, grant: Grant | None) -> None:
     disk = paths.config.schema_version
     if disk == SCHEMA_VERSION:
         return
+    from squads import __version__
+
     behind = schema_tuple(disk) < schema_tuple(SCHEMA_VERSION)
     if grant is not None and grant.covers(behind=behind):
         return
@@ -55,15 +57,16 @@ class LocalApi:
         if cached is not None:
             return cached
         ctx = get_context()
-        svc = compose_service(
-            paths,
-            mode,
-            resolved_spec=ctx.active_spec,
-            sources=self._sources(paths.squad_dir) if paths is not None else None,
-            spec_error=ctx.spec_error,
-            unresolved=unresolved,
-            base=ctx.client_cwd,
-        )
+        with spans.span("compose"):
+            svc = compose_service(
+                paths,
+                mode,
+                resolved_spec=ctx.active_spec,
+                sources=self._sources(paths.squad_dir) if paths is not None else None,
+                spec_error=ctx.spec_error,
+                unresolved=unresolved,
+                base=ctx.client_cwd,
+            )
         if svc.refusal is None:
             self._services[mode] = svc
         return svc
@@ -74,22 +77,24 @@ class LocalApi:
         the squad, so it runs whether one resolves or not, and gets no service."""
         paths: SquadPaths | None = None
         unresolved: SquadsError | None = None
-        try:
-            paths = resolve(client_cwd=get_context().client_cwd)
-        except SquadsError as exc:
-            if op.mode is not Mode.VOCABULARY and not op.local_only:
-                raise
-            unresolved = exc
         notice: str | None = None
-        if paths is not None:
-            check_grant(paths, op.grant)
-            notice = resolve_working_language(paths.config.working_language)[1]
+        with spans.span("resolve_squad"):
+            try:
+                paths = resolve(client_cwd=get_context().client_cwd)
+            except SquadsError as exc:
+                if op.mode is not Mode.VOCABULARY and not op.local_only:
+                    raise
+                unresolved = exc
+            if paths is not None:
+                check_grant(paths, op.grant)
+                notice = resolve_working_language(paths.config.working_language)[1]
         try:
             if op.local_only:
                 response = await self._scoped(local_handler_for(op)(self._sources, req))
             else:
                 svc = self._service(op.mode, paths, unresolved)
-                response = await self._scoped(handler_for(op)(svc, req))
+                with spans.span("operation"):
+                    response = await self._scoped(handler_for(op)(svc, req))
         except SquadsError as exc:
             if notice is not None:
                 exc.warnings = (*exc.warnings, notice)

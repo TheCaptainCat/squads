@@ -1,3 +1,4 @@
+import gc
 import sys
 
 from squads import version_line
@@ -6,6 +7,7 @@ from squads import version_line
 def main() -> None:
     """Console-script entry point. A bare ``--version`` is answered here, before the CLI and
     everything it imports load; every other invocation goes to ``squads._cli.main``."""
+    gc.disable()  # the imports build a large, long-lived object graph that no collection frees
     if sys.argv[1:] == ["--version"]:
         from rich.console import Console
 

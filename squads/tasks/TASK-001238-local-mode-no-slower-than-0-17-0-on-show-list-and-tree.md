@@ -3,7 +3,7 @@ id: TASK-1238
 sequence_id: 1238
 type: task
 title: Local mode no slower than 0.17.0 on show, list and tree
-status: Ready
+status: Done
 parent: FEAT-1226
 author: tech-lead
 priority: high
@@ -15,18 +15,18 @@ description: Measure where the 20-30 % run-time regression goes, apply the local
 subentities:
 - local_id: ST1
   title: Benchmark script and span breakdown
-  status: Todo
+  status: Done
   story: US6
 - local_id: ST2
   title: Local-mode levers from ADR-1225
-  status: Todo
+  status: Done
   story: US6
 - local_id: ST3
   title: Fix the run-time costs until the criterion holds
-  status: Todo
+  status: Done
   story: US6
 created_at: '2026-10-29T07:11:29Z'
-updated_at: '2026-10-29T07:12:49Z'
+updated_at: '2026-10-29T11:49:38Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -121,4 +121,60 @@ Fix the run-time costs the spans show among the candidates: `LocalApi` compositi
   - @tech-lead the story now exists: FEAT-1226 US6 (local commands no slower than 0.17.0). Please remap the subtasks to US6.
 - [2026-10-29T07:12:49Z] `manager` Catherine Manager:
   - Subtasks remapped to FEAT-1226 US6 (the product owner's new performance story).
+- [2026-10-29T10:27:16Z] `python-dev` Elias Python:
+  - Baseline and span breakdown, measured before any lever (scratch copy of this repo's squads/ corpus, SQUADS_DAEMON=off, 31 interleaved runs, medians in ms; script: scripts/bench_local_mode.py):
+    
+    | command | 0.17.0 median (p25-p75) | 0.18 median (p25-p75) | new/old |
+    |---|---|---|---|
+    | task show | 1019 (944-1052) | 1222 (1141-1274) | 1.20 |
+    | list | 1106 (1052-1167) | 1341 (1286-1384) | 1.21 |
+    | tree | 1028 (1002-1073) | 1241 (1208-1301) | 1.21 |
+    
+    Wall-clock spans of the 0.18 run (median of 31, SQUADS_SPANS on; times are since the launcher started the process unless noted):
+    
+    | span | show | list | tree |
+    |---|---|---|---|
+    | start-up to root callback (interpreter + imports + command tree build) | 546 | 571 | 547 |
+    | root callback | 139 | 142 | 138 |
+    | LocalApi squad resolve + schema gate | 10 | 10 | 10 |
+    | LocalApi composition | 2.7 | 2.3 | 2.3 |
+    | operation (handler, includes the DTO span) | 98 | 86 | 95 |
+    | DTO build + validation (inside operation) | 3.4 | 7.2 | 5.6 |
+    | api_call total (asyncio.run) | 113 | 103 | 108 |
+    | render, up to the end of main | 12 | 111 | 39 |
+    | exit, after main returns (interpreter teardown) | 370 | 389 | 373 |
+    
+    Reading: composition and DTO validation are noise (under 10 ms). The costs are the root callback (about 140 ms), the operation (about 90 ms), and interpreter teardown after output (about 370 ms, a full object-graph walk by the collector at exit). Neither version has the gc lever, so the 0.17.0 run pays the teardown too; the regression sits in the root callback and the operation, and the teardown is the largest single cost to take back.
+- [2026-10-29T10:49:55Z] `python-dev` Elias Python:
+  - Final medians, same scratch squad copy, SQUADS_DAEMON=off, 31 interleaved runs, ms (script: scripts/bench_local_mode.py, commits f70d4bbb and b058ee3d on the worktree branch):
+    
+    | command | 0.17.0 median (p25-p75) | 0.18 median (p25-p75) | new/old |
+    |---|---|---|---|
+    | task show | 1015 (955-1039) | 704 (661-732) | 0.69 |
+    | list | 1084 (1043-1125) | 785 (751-807) | 0.72 |
+    | tree | 985 (921-1052) | 688 (649-723) | 0.70 |
+    
+    The criterion holds on all three, with 28-31 % to spare. Before any lever (earlier comment): 1222 / 1341 / 1241.
+    
+    Levers applied:
+    - gc.disable() from the launcher through the imports, gc.freeze() + gc.enable() before the command runs, output flushed and gc.freeze() before exit: show 1222 to 762, list 1341 to 933, tree 1241 to 832 (11-run medians, this lever alone). This is most of the gain: interpreter teardown after output fell from about 370 ms to about 25-30 ms.
+    - Lazy command groups: the root maps each group name (and each type and alias) to its module, imports and converts it on first lookup; root --help still builds every one. With the next three levers it took show to 660-685, list to 704-725, tree to 654-748 (11-15-run medians). Typer's conversion of the whole tree was about 70-110 ms.
+    - __version__ read from the installed metadata on first use instead of at import; rich.markdown imported when a comment pane renders; help_requested returns early when no --help token is present (it walked the whole command tree on every addressed command). These three were not measured one by one; the importtime figures were 23 ms (importlib.metadata chain) and 32 ms (rich.markdown), and the help_requested walk would have forced every lazy group to build.
+    - defer_build: already on the DTO base model and Response; no change.
+    
+    Span medians after the levers (ms, since process launch unless noted): start-up to root callback 334-341, root callback 204-219 (it now carries imports that used to sit before it), resolve + schema gate 8-9, composition 2.3-2.6, operation 89-107, DTO build and validation 4-6, api_call total 107-120, exit after output 25-32.
+    
+    Not applied, noted for the record: the root callback and the operation each parse the 2 MB index (about 25-30 ms apiece). Sharing one parse would save about 25 ms; not needed for the criterion. CLI output is byte-identical to the pre-change 0.18 tree on 48 sampled invocations (list/tree/show text and --json, root and every group and alias --help, errors), and tests/meta plus tests/cli pass.
+- [2026-10-29T11:11:19Z] `reviewer` Paul Reviewer:
+  - Reviewed on REV-1235 (F54-F59). Output, exit codes, help, aliases, completion and override types all match 0aec4439 on 225 sampled invocations. gc is back on during the command, and piped and redirected output is complete. @tech-lead one medium blocker: F54, where the type-app cache is built from an override spec and leaks across run() calls. The fix is one line: spec=bundled_spec() in _type_app. The rest are low or info.
+- [2026-10-29T11:28:04Z] `python-dev` Elias Python:
+  - Round 2 (6e65283e), 31 interleaved runs, medians ms: show 988 to 657, list 1119 to 795, tree 1031 to 717 (0.17.0 to 0.18); new/old 0.67, 0.71, 0.70. Review findings F54, F55, F56, F57, F59 fixed; F58 left for the writer.
+- [2026-10-29T11:33:11Z] `reviewer` Paul Reviewer:
+  - @tech-lead REV-1235: F55, F56, F57, F59 Verified. F54 reopened: the fix holds (repro clean), but its test is vacuous whenever an earlier test on the worker built bug, because the root conftest caches the root command per process. Evidence and a whole-output test shape are in the F54 discussion.
+- [2026-10-29T11:41:57Z] `reviewer` Paul Reviewer:
+  - @tech-lead REV-1235 F54 Verified: the reworked test fails with the fix reverted, both alone and after a bug --help test. New low F60: drop_type_apps is a src-only test hook (vulture flags it); a per-root type-app cache removes it and the module-level cache. Details are on F60.
+- [2026-10-29T11:48:02Z] `python-dev` Elias Python:
+  - Round 4 (d9d97731), 31 interleaved runs, medians ms 0.17.0 to 0.18: show 1025 to 723, list 1094 to 788, tree 1037 to 713 (0.71, 0.72, 0.69); no regression.
+- [2026-10-29T11:49:38Z] `manager` Catherine Manager:
+  - Done: criterion met (31 interleaved runs, 0.18/0.17.0 medians show 0.71, list 0.72, tree 0.69); REV-1235 F54-F57, F59, F60 verified; F58 (releasing runbook) is with the writer on TASK-1234.
 <!-- sq:discussion:end -->

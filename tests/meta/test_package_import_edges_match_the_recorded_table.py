@@ -249,6 +249,7 @@ _cli -> _paths top
 _cli -> _pronouns top
 _cli -> _roles top
 _cli -> _services local
+_cli -> _spans top
 _cli -> _spec_documents top
 _cli -> _specload top
 _cli -> _tui local
@@ -386,6 +387,7 @@ _services -> _rendering local
 _services -> _rendering top
 _services -> _roles top
 _services -> _sections top
+_services -> _spans top
 _services -> _spec_documents top
 _services -> _specload top
 _services -> _specmerge top
@@ -395,6 +397,7 @@ _services -> _view_remedies top
 _services -> _view_tags top
 _services -> _views top
 _services -> _workflow top
+_services -> squads local
 _services -> squads top
 _spec_documents -> _errors top
 _spec_documents -> _interactions top
@@ -404,7 +407,7 @@ _spec_documents -> _workflow top
 _specload -> _errors top
 _specload -> _specmerge top
 _specmerge -> _errors top
-_specmerge -> squads top
+_specmerge -> squads local
 _transform -> _errors top
 _transform -> _models top
 _transform -> _paths local
