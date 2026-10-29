@@ -11,7 +11,7 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-from squads._roles._catalog import get_catalog
+from squads._roles._models import REVIEW_CAPABILITY
 from squads._workflow._models import COLOR_INTENTS, WorkflowSpec
 
 #: The directories of the spec layer and of the released runners; the scan stops at them.
@@ -66,12 +66,14 @@ def dropped(bundled: Vocabulary, kept: Vocabulary) -> Vocabulary:
     return {name: owners for name, owners in bundled.items() if name not in kept}
 
 
+#: The constants through which the engine names a word of its own, by the name they are assigned
+#: to: the assignment that defines one is the only place its spelling is allowed.
+ENGINE_CONSTANTS: dict[str, str] = {"REVIEW_CAPABILITY": REVIEW_CAPABILITY}
+
+
 def engine_words() -> frozenset[str]:
-    """Words the engine defines for itself: the colour intents and the role capabilities."""
-    catalog = get_catalog()
-    capabilities = {c for role in catalog.roles for c in role.capabilities}
-    capabilities |= {c for template in catalog.templates.values() for c in template.capabilities}
-    return COLOR_INTENTS | frozenset(capabilities)
+    """Words the engine defines for itself wherever it spells them: the colour intents."""
+    return COLOR_INTENTS
 
 
 @dataclass(frozen=True)
@@ -110,9 +112,22 @@ def _docstring_ids(tree: ast.AST) -> set[int]:
     return ids
 
 
+def _engine_definition_ids(tree: ast.AST) -> set[int]:
+    """The string constants that define an engine constant (`NAME = "word"`)."""
+    ids: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign | ast.AnnAssign) and isinstance(node.value, ast.Constant):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            names = {t.id for t in targets if isinstance(t, ast.Name)}
+            if any(ENGINE_CONSTANTS.get(n) == node.value.value for n in names):
+                ids.add(id(node.value))
+    return ids
+
+
 def string_constants(tree: ast.AST) -> Iterator[ast.Constant]:
-    """Every string constant of *tree* that is not a docstring (implicit concatenations are one)."""
-    docstrings = _docstring_ids(tree)
+    """Every string constant of *tree* that is not a docstring or an engine constant's definition
+    (implicit concatenations are one)."""
+    docstrings = _docstring_ids(tree) | _engine_definition_ids(tree)
     for node in ast.walk(tree):
         if (
             isinstance(node, ast.Constant)
@@ -147,12 +162,17 @@ def string_units(tree: ast.AST) -> Iterator[tuple[int, str]]:
 _AFFIXES = ("--min-", "--no-", "--", "add-")
 
 
+_ID_HEAD_RE = re.compile(r"([A-Z]+)-(?:$|[^A-Za-z])")
+
+
 def _stem(value: str) -> str:
-    """*value* without a flag or verb prefix, so `--priority` and `add-story` read as the name."""
+    """*value* without a flag or verb prefix, so `--priority` and `add-story` read as the name; an
+    ID written with its prefix and dash (`TASK-`, `TASK-%d`) reads as the prefix."""
     for affix in _AFFIXES:
         if value.startswith(affix):
             return value.removeprefix(affix)
-    return value
+    head = _ID_HEAD_RE.match(value)
+    return head.group(1) if head else value
 
 
 def literal_hits(root: Path, names: Vocabulary, *, ignore: Iterable[str] = ()) -> list[Hit]:

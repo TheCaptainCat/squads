@@ -89,3 +89,39 @@ def test_a_one_character_alias_is_read_only_after_the_command_name(tmp_path: Pat
 
     _plant(tmp_path, "_b.py", f'HELP = "Run `sq {alias} 7 show`."\n')
     assert _found(tmp_path, vocabulary.TYPE) == [alias]
+
+
+def _a_prefix() -> str:
+    names = vocabulary.vocabulary(bundled_spec(), vocabulary.TYPE)
+    return next(n for n in sorted(names) if len(n) > 1 and n.isupper())
+
+
+def test_an_id_prefix_is_found_written_with_its_dash(tmp_path: Path) -> None:
+    prefix = _a_prefix()
+    shapes = {
+        "a bare prefix with its dash": f'PREFIX = "{prefix}-"\n',
+        "a startswith test": f'ok = item_id.startswith("{prefix}-")\n',
+        "an f-string id": f'ID = f"{prefix}-{{n}}"\n',
+        "a percent-format id": f'ID = "{prefix}-%d" % n\n',
+    }
+    for where, text in shapes.items():
+        planted = tmp_path / where.replace(" ", "-")
+        _plant(planted, "_a.py", text)
+        assert prefix in _found(planted, vocabulary.TYPE), f"{prefix!r} not found as {where}"
+
+
+def test_only_the_defining_assignment_of_an_engine_constant_may_spell_its_word(
+    tmp_path: Path,
+) -> None:
+    name, word = next(iter(vocabulary.ENGINE_CONSTANTS.items()))
+    defined = tmp_path / "defined"
+    _plant(defined, "_a.py", f'{name} = "{word}"\n')
+    spelled = tmp_path / "spelled"
+    _plant(spelled, "_a.py", f'def f(t):\n    return t == "{word}"\n')
+
+    found = {
+        where: [hit.name for hit in vocabulary.tree_hits(root, bundled_spec(), *_CATEGORIES)]
+        for where, root in (("defined", defined), ("spelled", spelled))
+    }
+
+    assert (word in found["defined"], word in found["spelled"]) == (False, True)

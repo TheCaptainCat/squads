@@ -13,6 +13,9 @@ from pydantic import BaseModel, ConfigDict
 #: a hyphen. A playbook subject ``*<name>`` uses the same pattern.
 CAPABILITY_NAME_PATTERN = r"[a-z0-9][a-z0-9-]*"
 
+#: The one capability the engine reads: the roles holding it author the type the review gate names.
+REVIEW_CAPABILITY = "review"
+
 
 def malformed_capability_names(names: Iterable[str]) -> list[str]:
     """The entries of *names* that do not match :data:`CAPABILITY_NAME_PATTERN`, in order."""

@@ -9,6 +9,7 @@ from squads import _badges as badges
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._playbook import authoring_owners
 from squads._interactions._role_guidance import role_like
+from squads._roles._models import REVIEW_CAPABILITY
 from squads._workflow._models import Field, WorkflowSpec
 
 
@@ -71,7 +72,7 @@ def cheatsheet_review_gate(
     """
     live = [role_like(r) for r in roster or ()]
     titles = {r.slug: r.title for r in live}
-    reviewers = {r.slug for r in live if "review" in r.capabilities}
+    reviewers = {r.slug for r in live if REVIEW_CAPABILITY in r.capabilities}
     for item_type in sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t)):
         owners = authoring_owners(item_type, live, playbook, titles)
         if any(slug in reviewers for slug, _title in owners):
