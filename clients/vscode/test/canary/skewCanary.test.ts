@@ -166,6 +166,10 @@ const TREE_NODE_KEYS = [
   'badges',
   'anchor',
   'children',
+  'display',
+  'notebook',
+  'closed',
+  'updated_at',
 ] as const;
 
 /** Sorted on both sides: key ORDER is not part of the JSON contract, only the key set is.
@@ -233,6 +237,7 @@ const GRAPH_NODE_KEYS = [
   'seen',
   'badges',
   'children',
+  'display',
 ] as const;
 
 function assertExactGraphNodeKeys(node: object): void {
@@ -274,6 +279,7 @@ const LIST_ROW_CORE_KEYS = [
   'created_session',
   'modified_session',
   'subentities',
+  'display',
 ] as const;
 
 /** One type's declared attribute names, from `sq workflow types --json`, keyed by type. */
@@ -325,6 +331,10 @@ describe('the tree-node key assertion', () => {
     badges: {},
     anchor: false,
     children: [],
+    display: {},
+    notebook: null,
+    closed: false,
+    updated_at: '2026-10-29T00:00:00Z',
   };
 
   it('accepts exactly the key set the client models', () => {
@@ -375,6 +385,7 @@ describe('the graph-node key assertion', () => {
     seen: false,
     badges: {},
     children: [],
+    display: {},
   };
 
   it('accepts exactly the key set the client models', () => {
@@ -435,6 +446,7 @@ describe('the list-row key assertion', () => {
     created_session: null,
     modified_session: null,
     subentities: [],
+    display: {},
   };
   const attributes: AttributeNamesByType = attributeNamesByType([
     { type: 'task', attributes: {} },
@@ -761,9 +773,9 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
         for (const entry of entries) {
           expect(isSqTypeCatalogEntry(entry)).toBe(true);
           assertExactKeys(entry, TYPE_ENTRY_KEYS);
-          // Each attribute is `{kind, required, settable}`; the row assertion joins on the names.
+          // Each attribute is `{kind, label, required, settable}`; the row assertion joins on the names.
           for (const attribute of Object.values(entry.attributes)) {
-            assertExactKeys(attribute, ['kind', 'required', 'settable']);
+            assertExactKeys(attribute, ['kind', 'label', 'required', 'settable']);
           }
         }
         expect(entries.some((entry) => Object.keys(entry.attributes).length > 0)).toBe(true);
@@ -987,8 +999,9 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
         'capabilities',
         'status',
         'origin',
+        'display',
       ];
-      const OPERATOR_LIST_KEYS = ['id', 'slug', 'full_name', 'pronouns', 'status'];
+      const OPERATOR_LIST_KEYS = ['id', 'slug', 'full_name', 'pronouns', 'status', 'display'];
 
       it('role and operator list rows carry pronouns (null when unset) and the adapter guard accepts them', () => {
         runSq(['role', 'manager', 'update', '--pronouns', 'she/her']);

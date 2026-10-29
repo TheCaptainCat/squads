@@ -66,7 +66,7 @@ describe('treeNodesToDisplay', () => {
     const nodes = treeNodesToDisplay(TREE_FIXTURE);
     const feature = nodes[0]?.children[0];
 
-    expect(feature?.description).toBe('Ready · unassigned');
+    expect(feature?.description).toBe('Done · unassigned');
 
     const task = feature?.children.find((child) => child.id === 'TASK-428');
     expect(task?.description).toBe('Done · typescript-dev');
