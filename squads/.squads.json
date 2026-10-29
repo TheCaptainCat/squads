@@ -66184,7 +66184,7 @@
       "type": "task",
       "title": "Mapping option, sub-entity messages and wire shapes from the spec",
       "slug": "mapping-option-sub-entity-messages-and-wire-shapes-from-the",
-      "status": "InProgress",
+      "status": "InReview",
       "description": "--<target-kind> option and labels, spec-worded messages, JSON shapes by badge code and maps_to, render context",
       "parent": "FEAT-1249",
       "author": "tech-lead",
@@ -66202,7 +66202,7 @@
         {
           "local_id": "ST1",
           "title": "Mapping option named after the target kind",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -66212,7 +66212,7 @@
         {
           "local_id": "ST2",
           "title": "Clear flags for optional sub-entity fields",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -66222,7 +66222,7 @@
         {
           "local_id": "ST3",
           "title": "Messages and help from the spec",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -66232,7 +66232,7 @@
         {
           "local_id": "ST4",
           "title": "Wire shapes by badge code and maps_to",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US7",
@@ -66242,7 +66242,7 @@
         {
           "local_id": "ST5",
           "title": "Template render context for fields and mapping",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US7",
@@ -66252,7 +66252,7 @@
       ],
       "path": "tasks/TASK-001254-mapping-option-sub-entity-messages-and-wire-shapes-from-the.md",
       "created_at": "2026-10-29T19:55:09Z",
-      "updated_at": "2026-10-29T21:08:41Z",
+      "updated_at": "2026-10-29T21:41:00Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66541,7 +66541,7 @@
         {
           "local_id": "F1",
           "title": "Badge keys move after the timestamps on first rewrite; normalise once in the runner",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -66551,7 +66551,7 @@
         {
           "local_id": "F2",
           "title": "Migration tests do not guard item top-level keys; fixture lacks priority and severity",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -66561,7 +66561,7 @@
         {
           "local_id": "F3",
           "title": "story with an empty maps_to loses the mapping silently in the 0.19 runner",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66571,7 +66571,7 @@
         {
           "local_id": "F4",
           "title": "Unknown entry keys with empty values are dropped on write",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66581,7 +66581,7 @@
         {
           "local_id": "F5",
           "title": "New tests read item files and the index directly and assert substrings (ADR-1172 rule 5)",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66621,7 +66621,7 @@
       ],
       "path": "reviews/REV-001259-review-of-the-bundled-vocabulary-feature.md",
       "created_at": "2026-10-29T21:09:02Z",
-      "updated_at": "2026-10-29T21:11:25Z",
+      "updated_at": "2026-10-29T21:40:21Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

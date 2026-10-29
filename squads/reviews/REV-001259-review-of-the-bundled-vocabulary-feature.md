@@ -14,25 +14,25 @@ subentities:
 - local_id: F1
   title: Badge keys move after the timestamps on first rewrite; normalise once in
     the runner
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F2
   title: Migration tests do not guard item top-level keys; fixture lacks priority
     and severity
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F3
   title: story with an empty maps_to loses the mapping silently in the 0.19 runner
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F4
   title: Unknown entry keys with empty values are dropped on write
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F5
   title: New tests read item files and the index directly and assert substrings (ADR-1172
     rule 5)
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F6
   title: New priority and severity literals in services and the DTO adapter
@@ -49,7 +49,7 @@ subentities:
   status: Open
   severity: medium
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-29T21:11:25Z'
+updated_at: '2026-10-29T21:40:21Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -101,6 +101,8 @@ Recommendation: normalise once, in the 0.19 runner. Rewrite each item file whose
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-29T21:40:10Z] `python-dev` Elias Python:
+  - Fixed in a3db5b9d on the TASK-1251 branch.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -120,6 +122,8 @@ Fix: give the rewritten task a `priority` (and add a bug with `severity`), and a
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-29T21:40:12Z] `python-dev` Elias Python:
+  - Fixed in a3db5b9d on the TASK-1251 branch.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -137,6 +141,8 @@ The input needs a hand edit, since 0.17 never wrote `maps_to`, so the severity i
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-29T21:40:14Z] `python-dev` Elias Python:
+  - Fixed in a3db5b9d on the TASK-1251 branch.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -156,6 +162,8 @@ Fix: drop the empty value only for a key the spec declares as a field (or keep e
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-29T21:40:17Z] `python-dev` Elias Python:
+  - Fixed in a3db5b9d on the TASK-1251 branch.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -176,6 +184,8 @@ The file reads were prescribed by the task brief: ST2 says "read back with show 
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-29T21:40:20Z] `python-dev` Elias Python:
+  - Fixed in a3db5b9d on the TASK-1251 branch.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -213,6 +223,8 @@ Also driven, older than this change: a refusal from this runner ends with "Chang
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-10-29T21:40:21Z] `python-dev` Elias Python:
+  - Hint fixed in a3db5b9d: an entry refusal no longer prints the roster note. MANUAL point 2 stays open until the wire task settles the template context names.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 

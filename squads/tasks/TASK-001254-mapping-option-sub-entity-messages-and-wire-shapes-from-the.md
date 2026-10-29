@@ -3,7 +3,7 @@ id: TASK-1254
 sequence_id: 1254
 type: task
 title: Mapping option, sub-entity messages and wire shapes from the spec
-status: InProgress
+status: InReview
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -18,26 +18,26 @@ description: --<target-kind> option and labels, spec-worded messages, JSON shape
 subentities:
 - local_id: ST1
   title: Mapping option named after the target kind
-  status: InProgress
+  status: Done
   story: US4
 - local_id: ST2
   title: Clear flags for optional sub-entity fields
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST3
   title: Messages and help from the spec
-  status: Todo
+  status: Done
   story: US5
 - local_id: ST4
   title: Wire shapes by badge code and maps_to
-  status: Todo
+  status: Done
   story: US7
 - local_id: ST5
   title: Template render context for fields and mapping
-  status: Todo
+  status: Done
   story: US7
 created_at: '2026-10-29T19:55:09Z'
-updated_at: '2026-10-29T21:08:41Z'
+updated_at: '2026-10-29T21:41:00Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -175,4 +175,31 @@ Tests (2): an action's head on the override squad shows its field and the mappin
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T21:40:58Z] `python-dev` Elias Python:
+  - - @manager Handback for TASK-1254, ready for review. Branch `worktree-agent-acc1e00b70709a963` (worktree `.claude/worktrees/agent-acc1e00b70709a963`), commits 2efe5348 and a2e8165e on top of origin/release/0.19. Gates: pyright 0 errors, ruff check and format clean, `pytest -n 4 tests` 1738 passed (twice; `tests/tui` does not exist in this tree).
+    
+    Per subtask
+    - ST1 mapping option: `--<target-kind>` / `--no-<target-kind>` on `add-<kind>` and `<kind> <k> update`, derived from `mapping_target_kind` (`--outcome` on a job's action, `--story` on a subtask). Help, the summary column header, the show line (`outcome: OC1`) and the not-found message ("outcome OC9 not found in INI-8") name the target kind and its `local_prefix`. Request fields are `maps_to` / `clear_maps_to`. The `subentity_mapping` check names the target kind. Falsified: option name forced to a literal, not-found text forced to a literal, validator text forced to a literal.
+    - ST2 clear flags: `--no-<code>` per optional field on update (dashed for underscores), new `unset_fields` on `SubentityUpdateRequest`, service refuses a required or undeclared code. Falsified by removing the flag params.
+    - ST3 messages and help: sub-entity refusals use the declared kind name or plural with no article ("applies to action sub-entities in a deferred status", "has type X, which does not host <plural>", "has no <host> parent; set one before mapping <kind> to <id>"); `supersedes_incoming` names the declared supersession kind(s) ("no incoming replaces edge found"); `add-<kind> --help` lists each field's codes ("Impact: large|small."), as does update. Falsified (article text, supersession kind).
+    - ST4 wire: item rows drop `priority`/`severity` as core keys (a stored value is a flat attribute after `id`); tree and graph nodes drop `priority`; sub-entity objects, list entries and `subentities` rows are `local_id, title, status, assignee, maps_to, deferred_to, <attributes flat>, [body, badges, discussion,] display`, with `display.maps_to` replacing `display.story`. `SubentityRow` adapter removed. Whole-JSON assertion for an action's `show --json`; key-order assertions for the list entry, item row and tree node. Falsified (order, extra key on row, extra key on tree node).
+    - ST5 render context: the head template receives `fields` (list of code/label/badge) and `mapping` ({label, value} or none); `set_head` takes `field_values` and `mapping`. Bundled template regenerated (0.19.0 key). The head has no live caller (only the frozen 0.3 migration, updated to the new keywords), so its two tests call the renderer directly under tests/regressions. MANUAL text of the 0.19 runner now names `fields` and `mapping` and `item.badge_value('<code>')`; the migrate-help document in tests updated. Falsified (label, undefined-name guard).
+    
+    Test infrastructure change (needed so override-squad calls can carry covers markers): `tests/conftest.py::invoke` folds a call with the squad's own spec, and `tests/_cli_surface.reached_pairs` takes `known` (the bundled tree's pairs, read outside any squad) so a parameter derived from the squad's vocabulary counts as nothing and the call reaches the bare pair. TASK-1251's migration test now uses `--outcome`. New override-squad tests: 10 in `test_subentity_verbs.py`, 2 in `test_check.py`, 1 each in `test_list.py` and `test_tree.py`, 2 in tests/regressions. Existing goldens updated for the new shapes; the two dead entries in the bundled-kind-literal guard's allow-list were removed.
+    
+    Adopter-visible changes (draft changelog lines)
+    - BREAKING (wire, `--json`, daemon): a sub-entity object has `maps_to` (always present, null when unset) in place of `story`; `severity` and `extra` are gone, every stored field sits flat after `deferred_to`; list entries and `subentities` rows have the same shape. `display.story` is `display.maps_to`; `sq <type> <n> <kind> <k> show --json` adds `display.maps_to_kind` (the target kind's name).
+    - BREAKING (wire): item rows no longer carry `priority`/`severity` as always-present keys; a stored badge value appears at the top level only when the file stores it, and `badges` carries every declared field. Tree and graph nodes no longer carry `priority`; read `badges`.
+    - `--<target-kind>` replaces a fixed `--story` spelling (still `--story` in a squad whose parent hosts `story`); `update` gains `--no-<field-code>` for optional sub-entity fields; field flags with underscores are dashed.
+    - Sub-entity messages and the `subentity_mapping` / `supersedes_incoming` check messages use the declared vocabulary. The mapping column header is the target kind's title (`Story` in a bundled squad, unchanged). Bundled heads are unchanged except the mapping line label, which is the target kind's title instead of `Implements` (not reachable by a command today).
+    - Template context: the sub-entity head no longer receives `severity`, `severity_label`, `story`; an override template reading them fails under StrictUndefined.
+    
+    VS Code-facing shape changes (TypeScript task)
+    - Sub-entity: read `maps_to` (not `story`), field values from `badges` (or the flat key by code), no `severity`/`extra`; `display.story` -> `display.maps_to`; mapping label from `display.maps_to_kind` on a shown sub-entity, and the summary column header for lists. Item rows: no `priority`/`severity` keys, use `badges` and `display.badges`. Tree/graph nodes: no `priority`, use `badges`. Wire-key order is stable as listed above.
+    
+    Left / notes
+    - `tests/cli` markers on override-squad tests reach only the pairs the bundled tree has (e.g. `<type> add-<kind> TITLE`, `<type> <kind> update` bare); the flags `--outcome`/`--no-impact` themselves cannot be declared as pairs.
+    - Articles remain in item-type messages outside the sub-entity area (`_items.py`, `_base.py` priority gate, `_metadata.py`, `_retype.py`, `_workflow/_models.py parent_hint`); they belong to the badge-options/item side or are item-type, not sub-entity, text. Say if you want them swept here.
+    - Import `event.story` is untouched (sibling task's fronts); only the two `_add_block_*` call sites now pass `maps_to=`. Expect a trivial rebase conflict there.
+    - `sq check` on the repo squad is clean.
 <!-- sq:discussion:end -->
