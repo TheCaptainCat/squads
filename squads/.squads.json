@@ -1,6 +1,6 @@
 {
   "schema_version": "0.17",
-  "counter": 1240,
+  "counter": 1242,
   "padding": 6,
   "items": {
     "12": {
@@ -9243,7 +9243,7 @@
       "type": "feature",
       "title": "The daemon: a local API the CLI and web client share",
       "slug": "the-daemon-a-local-api-the-cli-and-web-client-share",
-      "status": "InProgress",
+      "status": "Ready",
       "description": "A local process serving the squad as resource routes, called by the CLI in remote mode, the terminal UI and later the browser; local mode stays",
       "parent": "EPIC-29",
       "author": "product-owner",
@@ -9255,16 +9255,16 @@
         "FEAT-33",
         "ADR-1052:depends-on",
         "TASK-1125:depends-on",
-        "MILE-1152:targets",
         "FEAT-1226",
         "ADR-1225:depends-on",
-        "ADR-1224"
+        "ADR-1224",
+        "MILE-1241:targets"
       ],
       "subentities": [
         {
           "local_id": "US1",
           "title": "Every operation served at its own resource route",
-          "status": "InProgress",
+          "status": "Todo",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -9354,7 +9354,7 @@
         {
           "local_id": "US10",
           "title": "Actor, time, session and paths travel with each call",
-          "status": "InProgress",
+          "status": "Todo",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -9394,7 +9394,7 @@
       ],
       "path": "features/FEAT-001140-the-daemon-a-local-api-the-cli-and-web-client-share.md",
       "created_at": "2026-10-25T10:47:24Z",
-      "updated_at": "2026-10-29T06:53:53Z",
+      "updated_at": "2026-10-29T13:13:23Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -40621,12 +40621,12 @@
       "labels": [],
       "refs": [
         "EPIC-29",
-        "MILE-1152:depends-on"
+        "MILE-1241:depends-on"
       ],
       "subentities": [],
       "path": "milestones/MILE-000868-squads-0-20-the-web-frontend.md",
       "created_at": "2026-09-02T08:03:39Z",
-      "updated_at": "2026-10-28T22:07:55Z",
+      "updated_at": "2026-10-29T12:59:55Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -40710,10 +40710,10 @@
     "1152": {
       "sequence_id": 1152,
       "type": "milestone",
-      "title": "squads 0.18 - the daemon and one API for every client",
-      "slug": "squads-0-18-the-daemon-and-one-api-for-every-client",
+      "title": "squads 0.18 - one API for every client",
+      "slug": "squads-0-18-one-api-for-every-client",
       "status": "InProgress",
-      "description": "Resource routes the CLI, terminal UI and web client share, with the daemon behind them and JSON output on every command",
+      "description": "The command layer: every command calls one operation and renders its result, with JSON output on every command",
       "parent": null,
       "author": "product-owner",
       "assignee": null,
@@ -40722,9 +40722,9 @@
       "labels": [],
       "refs": [],
       "subentities": [],
-      "path": "milestones/MILE-001152-squads-0-18-the-daemon-and-one-api-for-every-client.md",
+      "path": "milestones/MILE-001152-squads-0-18-one-api-for-every-client.md",
       "created_at": "2026-10-25T21:16:14Z",
-      "updated_at": "2026-10-28T22:07:56Z",
+      "updated_at": "2026-10-29T13:12:52Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -62779,7 +62779,7 @@
       "slug": "in-process-command-entry-and-request-seeded-cli",
       "status": "Done",
       "description": "One argv-to-exit-code entry, per-invocation consoles, directory, attachments and context from the request; invisible in local mode",
-      "parent": "FEAT-1140",
+      "parent": "FEAT-1226",
       "author": "tech-lead",
       "assignee": "python-dev",
       "priority": "high",
@@ -62795,7 +62795,7 @@
           "status": "Done",
           "assignee": null,
           "severity": null,
-          "story": "US10",
+          "story": "US1",
           "deferred_to": null,
           "extra": {}
         },
@@ -62805,7 +62805,7 @@
           "status": "Done",
           "assignee": null,
           "severity": null,
-          "story": "US10",
+          "story": "US1",
           "deferred_to": null,
           "extra": {}
         },
@@ -62815,7 +62815,7 @@
           "status": "Done",
           "assignee": null,
           "severity": null,
-          "story": "US10",
+          "story": null,
           "deferred_to": null,
           "extra": {}
         },
@@ -62825,14 +62825,14 @@
           "status": "Done",
           "assignee": null,
           "severity": null,
-          "story": "US1",
+          "story": null,
           "deferred_to": null,
           "extra": {}
         }
       ],
       "path": "tasks/TASK-001217-in-process-command-entry-and-request-seeded-cli.md",
       "created_at": "2026-10-28T14:08:40Z",
-      "updated_at": "2026-10-28T19:29:36Z",
+      "updated_at": "2026-10-29T13:10:48Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63431,7 +63431,7 @@
       "subentities": [],
       "path": "adrs/ADR-001224-commands-call-one-service-operation-and-render-its-dto.md",
       "created_at": "2026-10-28T20:58:31Z",
-      "updated_at": "2026-10-29T06:49:06Z",
+      "updated_at": "2026-10-29T12:58:37Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63473,7 +63473,7 @@
       "type": "feature",
       "title": "Every command answers in JSON, one shape for CLI and API",
       "slug": "every-command-answers-in-json-one-shape-for-cli-and-api",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Each command calls one operation and renders its result; --json on every command that prints one, and the same shape served by the API",
       "parent": "EPIC-29",
       "author": "product-owner",
@@ -63491,7 +63491,7 @@
         {
           "local_id": "US1",
           "title": "Output unchanged as each command moves onto its operation",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -63501,7 +63501,7 @@
         {
           "local_id": "US2",
           "title": "JSON output on every command that prints a result",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -63511,7 +63511,7 @@
         {
           "local_id": "US3",
           "title": "One result shape for the CLI and the API",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -63521,7 +63521,7 @@
         {
           "local_id": "US4",
           "title": "Results carry their own display",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -63531,7 +63531,7 @@
         {
           "local_id": "US5",
           "title": "The terminal UI reads through the same API",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -63541,7 +63541,7 @@
         {
           "local_id": "US6",
           "title": "Local commands are no slower than in 0.17.0",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -63551,7 +63551,7 @@
       ],
       "path": "features/FEAT-001226-every-command-answers-in-json-one-shape-for-cli-and-api.md",
       "created_at": "2026-10-28T22:00:08Z",
-      "updated_at": "2026-10-29T12:44:17Z",
+      "updated_at": "2026-10-29T13:06:08Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -64034,7 +64034,7 @@
       "type": "task",
       "title": "Terminal UI through the Api",
       "slug": "terminal-ui-through-the-api",
-      "status": "InProgress",
+      "status": "Done",
       "description": "sq ui screens call operations through the Api the root callback selects; display from DTOs only",
       "parent": "FEAT-1226",
       "author": "tech-lead",
@@ -64062,7 +64062,7 @@
         {
           "local_id": "ST2",
           "title": "Screens onto operations",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -64082,7 +64082,7 @@
       ],
       "path": "tasks/TASK-001233-terminal-ui-through-the-api.md",
       "created_at": "2026-10-28T22:12:42Z",
-      "updated_at": "2026-10-29T06:54:55Z",
+      "updated_at": "2026-10-29T13:05:43Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -65039,6 +65039,80 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "BUG-1240"
+    },
+    "1241": {
+      "sequence_id": 1241,
+      "type": "milestone",
+      "title": "squads 0.18.1 - the daemon",
+      "slug": "squads-0-18-1-the-daemon",
+      "status": "Draft",
+      "description": "The daemon serving the command layer's operations as resource routes, with dependencies upgraded and tested",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-1152:depends-on",
+        "EPIC-29"
+      ],
+      "subentities": [],
+      "path": "milestones/MILE-001241-squads-0-18-1-the-daemon.md",
+      "created_at": "2026-10-29T12:59:12Z",
+      "updated_at": "2026-10-29T12:59:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "MILE-1241"
+    },
+    "1242": {
+      "sequence_id": 1242,
+      "type": "feature",
+      "title": "Dependencies current and tested",
+      "slug": "dependencies-current-and-tested",
+      "status": "Draft",
+      "description": "The versions an adopter installs are the versions the suite runs: runtime and dev dependencies upgraded, lower bounds raised",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-1241:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Runtime dependencies upgraded, bounds raised to what is tested",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Development tools current, gates clean",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001242-dependencies-current-and-tested.md",
+      "created_at": "2026-10-29T12:59:18Z",
+      "updated_at": "2026-10-29T12:59:54Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1242"
     }
   }
 }

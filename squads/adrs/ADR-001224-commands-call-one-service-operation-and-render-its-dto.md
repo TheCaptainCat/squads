@@ -14,7 +14,7 @@ description: Each command validates, calls one operation through an Api (local o
   HTTP) and renders the DTO it returns; --json prints the DTO; the CLI never imports
   the service
 created_at: '2026-10-28T20:58:31Z'
-updated_at: '2026-10-29T06:49:06Z'
+updated_at: '2026-10-29T12:58:37Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -81,7 +81,7 @@ The one exception to a single call is `comment remove` without `--yes`. Its user
 - **Their form.** DTOs are pydantic v2 models, frozen, whose fields hold only JSON-native values: strings, numbers, booleans, `None`, lists, string-keyed objects and nested DTOs. Timestamps are the ISO strings the `--json` payloads print today. So `M.model_validate_json(m.model_dump_json()) == m` for every DTO, which is what lets the local API hand the object over directly while the HTTP API parses it from JSON, with the same rendering either way.
   - An item row carries the item's stored attributes flat at the top level, as `to_row()` does today, through `extra="allow"` on that one model.
   - So every key an item row adds is a name an attribute cannot take. The row adds one display key, `display`, and every display-class value an item row carries, now or later, goes inside it, never beside it: the body with its view tags expanded is `display.body` on `show`. The refactor therefore reserves one name and no more.
-  - A collision is handled as for the keys already added (`badges`, `body`, `discussion`, `matched_subentities`, `views`): a workflow override that declares an attribute or a badge field named `display` is refused when the spec loads, with a message naming the type and the key, and a `display` key stored in an item file without a declaration stays in the file and out of the row. No migration renames such a key, since the new name is the adopter's to choose. `docs/stability.md` lists the reserved names in Tier 3's item rows, the changelog names `display` with its refusal, as it did for `views`, and the 0.18 migration's manual step (`sq migrate chlog`) tells an adopter who declares `display` to rename it in the override and in the items that store it.
+  - A collision is handled as for the keys already added (`badges`, `body`, `discussion`, `matched_subentities`, `views`): a workflow override that declares an attribute or a badge field named `display` is refused when the spec loads, with a message naming the type and the key, and a `display` key stored in an item file without a declaration stays in the file and out of the row. No migration renames such a key, since the new name is the adopter's to choose. `docs/stability.md` lists the reserved names in Tier 3's item rows, and the changelog names `display` with its refusal text and what to do, as it did for `views`. Reserving it needs no migration record and no schema bump.
   - Fields are declared in today's emitted order, which Tier 3 freezes for `search`, `tree` and `graph`.
 - **Their relation to the models.** A DTO is a projection of `Item`, `SubEntity` and the other models, not a subclass of them, so the storage model can change without changing the contract. Projections are built in `_services`, where the data and the spec are. The flat dataclasses in `_results.py` become DTOs and move to `_api`; those that carry `Item` stay internal to the service and get a DTO counterpart.
 - **Why pydantic, not dataclasses:** it is already a dependency. It validates a parsed response, so a client and a daemon that disagree fail at the boundary rather than in a renderer. And it exports a JSON Schema for each model, which the web front can turn into its types.
@@ -315,4 +315,8 @@ Increment 0 (for `status`) and increments 2 to 5 each add the `--json` flags of 
   - 2026-10-29: accepted that display is a reserved row key; an override declaring an attribute or badge field named display is refused at load, with the 0.18 migration's manual step telling adopters to rename it.
 - [2026-10-29T06:49:06Z] `op-pierre` Pierre Chat:
   - 2026-10-29: accepted that parse and vocabulary refusals (exit 2) come before the operation's own checks, so a command with two errors reports the usage error first; documented in the changelog.
+- [2026-10-29T12:57:49Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: amend point 2. Reserving display needs no 0.18 migration record and no schema bump; the CHANGELOG entry with its refusal text and What to do is enough (tech-lead ruling on TASK-1234).
+- [2026-10-29T12:58:37Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 per op-pierre (comment of 2026-10-29T12:57) and the tech-lead ruling on TASK-1234, board rule 6. Status unchanged. Point 2: the sentence about the 0.18 migration's manual step (`sq migrate chlog`) is removed. The rule now reads: the changelog names `display` with its refusal text and what to do, and reserving it needs no migration record and no schema bump.
 <!-- sq:discussion:end -->

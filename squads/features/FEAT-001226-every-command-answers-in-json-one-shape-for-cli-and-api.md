@@ -3,7 +3,7 @@ id: FEAT-1226
 sequence_id: 1226
 type: feature
 title: Every command answers in JSON, one shape for CLI and API
-status: InProgress
+status: Done
 parent: EPIC-29
 author: product-owner
 priority: high
@@ -17,24 +17,24 @@ description: Each command calls one operation and renders its result; --json on 
 subentities:
 - local_id: US1
   title: Output unchanged as each command moves onto its operation
-  status: InProgress
+  status: Done
 - local_id: US2
   title: JSON output on every command that prints a result
-  status: InProgress
+  status: Done
 - local_id: US3
   title: One result shape for the CLI and the API
-  status: InProgress
+  status: Done
 - local_id: US4
   title: Results carry their own display
-  status: InProgress
+  status: Done
 - local_id: US5
   title: The terminal UI reads through the same API
-  status: InProgress
+  status: Done
 - local_id: US6
   title: Local commands are no slower than in 0.17.0
-  status: Todo
+  status: Done
 created_at: '2026-10-28T22:00:08Z'
-updated_at: '2026-10-29T12:44:17Z'
+updated_at: '2026-10-29T13:06:08Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -237,4 +237,6 @@ Done when:
   - Added US6, local commands no slower than 0.17.0 (show, list, tree; median of 31 interleaved runs on the reference host; script under scripts/), per op-pierre 2026-10-29.
 - [2026-10-29T12:44:17Z] `tech-writer` Theo Writer:
   - Process-narration sweep done over the 0.17.0..HEAD diff (added comments, docstrings and assert messages in src/tests/scripts, docs, CHANGELOG 0.18.0, CLAUDE.md, CONTRIBUTING.md, and the bodies of FEAT-1226 and its tasks). Two code comments rewritten: the json_field allowlist comment in tests/meta no longer describes the move onto operations, and the _cli/_skill.py view comment says there is no view rm instead of calling it retired. Two sq bodies reworded: the TASK-1238 lines about levers moving from TASK-1219, and the TASK-1234 ST5 lead-in. Gates: ruff, format, pyright 0 errors, tests/meta 688 passed, sq check clean. Nothing committed. @manager
+- [2026-10-29T13:06:08Z] `manager` Catherine Manager:
+  - Done: all tasks Done (TASK-1227-1234, 1236, 1238), REV-1235 findings all resolved, BUG-1237 and BUG-1239 verified, operator TUI eye-check OK on 2026-10-29; full suite 1656 passed, local mode 0.67-0.73x of 0.17.0.
 <!-- sq:discussion:end -->

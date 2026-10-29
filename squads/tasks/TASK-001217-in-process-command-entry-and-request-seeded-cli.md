@@ -4,7 +4,7 @@ sequence_id: 1217
 type: task
 title: In-process command entry and request-seeded CLI
 status: Done
-parent: FEAT-1140
+parent: FEAT-1226
 author: tech-lead
 assignee: python-dev
 priority: high
@@ -16,21 +16,19 @@ subentities:
 - local_id: ST1
   title: One argv-to-exit-code entry
   status: Done
-  story: US10
+  story: US1
 - local_id: ST2
   title: Consoles built per invocation
   status: Done
-  story: US10
+  story: US1
 - local_id: ST3
   title: Directory, attachments and context from the request
   status: Done
-  story: US10
 - local_id: ST4
   title: Prompt sites signal needs_terminal before any write
   status: Done
-  story: US1
 created_at: '2026-10-28T14:08:40Z'
-updated_at: '2026-10-28T19:29:36Z'
+updated_at: '2026-10-29T13:10:48Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -152,4 +150,6 @@ Route the four `typer.confirm`/`typer.prompt` sites (item, sub-entity and commen
   - Tests follow ADR-1172: CLI surface tests only, no unit tests. A behaviour is tested through the surface where a user observes it (sq through the invoke fixture, with covers markers, asserting whole output and reading state through show --json), not by calling internal functions such as run() or read_client_text directly.
 - [2026-10-28T19:29:36Z] `manager` Catherine Manager:
   - Done 2026-10-28: REV-1223 has no open finding for this task (F1, F2, F5, F7, F9-F12 Verified; F3, F4, F6, F8 deferred to TASK-1218 ST8-ST10). Full suite 1558 passed on 7a6cd237. US1 and US10 stay InProgress: TASK-1218 carries their remaining subtasks.
+- [2026-10-29T13:10:48Z] `tech-lead` Olivia Lead:
+  - Reparented FEAT-1140 -> FEAT-1226 (op-pierre approval relayed by the manager, 2026-10-29). ST1 and ST2 map to FEAT-1226 US1. ST3 and ST4 carry no story: the attachments and NeedsTerminal path was removed by TASK-1227 (ADR-1225 section 9), and the parts of ST3 that remain (start_dir, documents) serve the daemon. Delivery note on FEAT-1140.
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: FEAT-1140
 sequence_id: 1140
 type: feature
 title: 'The daemon: a local API the CLI and web client share'
-status: InProgress
+status: Ready
 parent: EPIC-29
 author: product-owner
 priority: high
@@ -11,16 +11,16 @@ refs:
 - FEAT-33
 - ADR-1052:depends-on
 - TASK-1125:depends-on
-- MILE-1152:targets
 - FEAT-1226
 - ADR-1225:depends-on
 - ADR-1224
+- MILE-1241:targets
 description: A local process serving the squad as resource routes, called by the CLI
   in remote mode, the terminal UI and later the browser; local mode stays
 subentities:
 - local_id: US1
   title: Every operation served at its own resource route
-  status: InProgress
+  status: Todo
 - local_id: US2
   title: Writes through the routes, safe against concurrent edits
   status: Todo
@@ -47,7 +47,7 @@ subentities:
   status: Todo
 - local_id: US10
   title: Actor, time, session and paths travel with each call
-  status: InProgress
+  status: Todo
 - local_id: US11
   title: Client and daemon refuse a schema or vocabulary mismatch
   status: Todo
@@ -58,7 +58,7 @@ subentities:
   title: The terminal UI as a daemon client
   status: Todo
 created_at: '2026-10-25T10:47:24Z'
-updated_at: '2026-10-29T06:53:53Z'
+updated_at: '2026-10-29T13:13:23Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -303,8 +303,7 @@ Done when adopter docs cover, with no reference to the project's internal tracki
 As an adopter, a command run through the daemon records the same actor, time and session as in my own process, and its messages name paths the way local mode does.
 
 Done when:
-- A command runs as one invocation entry, with its consoles built per invocation, so in-process runs never share state; in local mode none of this is visible.
-- `--as`, `--at`, the session ids the reflog records (`SQUADS_SESSION_ID`, `SQUADS_PARENT_SESSION_ID`) and the directory the command started from (`-C` included) travel with each call, and the daemon applies them to that call only.
+- `--as`, `--at`, the session ids the reflog records (`SQUADS_SESSION_ID`, `SQUADS_PARENT_SESSION_ID`) and the directory the command started from (`-C` included) travel with each call, and the daemon applies them to that call only, so nothing from one call is visible to the next.
 - A message that names a path spells it relative to the directory the command started from, in both modes; a client that sends no directory, such as a web front, gets paths spelled from the squad's root.
 - The reflog line of a write made through the daemon carries the same actor and session ids as the same write made locally.
 <!-- sq:story:US10:body:end -->
@@ -484,4 +483,22 @@ Done when:
   - (6) The TUI without tests. The guard plus an eye check is adequate for the screens, because their risk is display and an eye catches display. The weak spot is `sort_siblings` and `populate_tree` moving from `TreeNode`/`Item` onto DTOs. That is ordering logic, and the eye check only exercises the shapes this board happens to hold. If the operator wants one cheap addition, it is a table test of those two functions over DTO shapes (siblings with and without a sort key, closed items hidden and shown), not a Textual pilot set.
 - [2026-10-29T06:53:53Z] `op-pierre` Pierre Chat:
   - 2026-10-29: no automated test for the HttpApi timeouts (300 s answer timeout, 10 s waiting notice); the QA engineer checks them live instead. The hosted-squad branches (retry once, then a clear error) are left to FEAT-33, where they become reachable.
+- [2026-10-29T12:59:53Z] `product-owner` Nina Product:
+  - Moved 2026-10-29 from MILE-1152 to MILE-1241 (squads 0.18.1) per op-pierre e9859e1; its tasks follow through the feature. Stories unchanged.
+- [2026-10-29T13:10:47Z] `tech-lead` Olivia Lead:
+  - TASK-1217 moved to FEAT-1226 (op-pierre approval relayed by the manager, 2026-10-29): it ships in 0.18.0, while the daemon moves to 0.18.1 (MILE-1241).
+    - **What it delivered for US10 and still stands:**
+      - `run(argv)`, the one entry from a command line to an exit code;
+      - consoles built per invocation;
+      - `RequestContext.start_dir` and `documents`;
+      - `_paths.process_dir()` as the one read of the process directory.
+      These are the pieces ADR-1225 section 9 keeps, which the daemon's request scope seeds from `Squads-Client-Dir` and its startup documents (TASK-1218 ST8).
+    - **What no longer stands:** the attachments, terminal facts and console seeds, attachment-served `--file` reads, and the `NeedsTerminal` prompt signalling (its US1 subtask). TASK-1227 removed them per ADR-1225 section 9. Nothing of it remains toward US1 here: files travel as text in the request DTO and prompts run in the CLI.
+    - **US10 is still owed** by TASK-1218 ST8 (headers bound per request, paths spelled from the client directory) and TASK-1219 ST4 (the client sends them). US1 is owed by TASK-1218.
+    - On FEAT-1226, its ST1 and ST2 now map to US1 and ST3/ST4 carry no story.
+    - @product-owner US10's first bullet ("one invocation entry, consoles built per invocation … in local mode none of this is visible") describes work now delivered under FEAT-1226 in 0.18.0. You may want to trim US10 to the per-call metadata and path spelling the daemon still owes, and set US10 and US1 back to Todo if nothing under FEAT-1140 has started them. Your call; I have not edited the stories.
+- [2026-10-29T13:12:45Z] `product-owner` Nina Product:
+  - Re 45306f7 (2026-10-29): US10 trimmed to what the daemon owes (per-call actor, time, session ids and client directory; path spelling; reflog parity); the invocation-entry bullet is delivered under FEAT-1226. US1 and US10 back to Todo: TASK-1218/1219 still owe both and nothing under this feature has started them. @tech-lead
+- [2026-10-29T13:13:23Z] `manager` Catherine Manager:
+  - Back to Ready: TASK-1217 moved to FEAT-1226 and shipped in 0.18.0; nothing else under this feature has started, and it now targets 0.18.1 (MILE-1241).
 <!-- sq:discussion:end -->
