@@ -57,7 +57,7 @@ from squads._api._dto._subentities import SubentityRequest, SubentityShow
 from squads._api._response import Response
 from squads._errors import SquadsError
 from squads._models._item import Item, make_ref, split_ref
-from squads._models._metadata import coerce, require_settable
+from squads._models._metadata import coerce_attribute, require_settable
 from squads._services._item_dto import comment_dtos, item_display, item_row
 from squads._services._item_ops import ItemOpsMixin
 from squads._services._item_read_ops import ItemReadOpsMixin
@@ -133,12 +133,17 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
         self, item_type: str, given: Mapping[str, str | list[str]]
     ) -> dict[str, Any] | None:
         """The attributes a create request carries, each checked as ``update --set`` checks it:
-        settable on the type and parsed to its kind (a list as its parts, a date as ISO)."""
+        settable on the type and parsed to its kind by the same function (a list splits on commas
+        and drops blanks, a date is ISO). A list of values is refused for a single-valued
+        attribute."""
         declared = self.spec.item_attributes(item_type)
         out: dict[str, Any] = {}
         for key, value in given.items():
-            attribute = require_settable(item_type, key, declared)
-            out[key] = value if isinstance(value, list) else coerce(key, attribute, value)
+            if isinstance(value, list):
+                if require_settable(item_type, key, declared).kind != "list":
+                    raise SquadsError(f"{key!r} takes one value, not a list")
+                value = ",".join(value)
+            out[key] = coerce_attribute(item_type, key, value, declared)
         return out or None
 
     async def create_item(self, req: ItemCreateRequest) -> Response[ItemCreated]:

@@ -326,7 +326,8 @@ class RefsMixin(ServiceCore):
 
             kept = [r for r in src.refs if not _matches(r)]
             if len(kept) == len(src.refs):
-                raise SquadsError(f"{src.id} has no ref to {to_id}")
+                what = "ref" if kind is None else f"{kind} ref"
+                raise SquadsError(f"{src.id} has no {what} to {to_id}")
             src.refs = kept
             src.updated_at = clock.now()
             src.modified_session, _ = actor.current_session()

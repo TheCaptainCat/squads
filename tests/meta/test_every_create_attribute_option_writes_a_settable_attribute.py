@@ -1,16 +1,24 @@
-"""Every attribute a `sq create <type>` option writes is one the type declares settable, so the
-generic `sq <type> <n> update --set <key>=<value>` reaches it too."""
+"""`sq create <type>` derives an option for each settable attribute of kind str, list or date a
+type declares, and none for an attribute `update --set` could not write."""
 
-from squads._cli._create import CREATE_ATTRIBUTE_KINDS, attribute_flag
-from squads._workflow import bundled_spec
+import pytest
+
+from tests._help_tree import write_workflow_override
+
+pytestmark = pytest.mark.anyio
+
+OVERRIDE = """\
+[items.guide.attributes]
+audience = { kind = "str" }
+secret = { kind = "str", settable = false }
+flags = { kind = "bool" }
+"""
 
 
-def test_every_create_attribute_option_is_settable_via_generic_set() -> None:
-    spec = bundled_spec()
-    written = {
-        (item_type, attribute_flag(name))
-        for item_type in spec.non_roster_types()
-        for name, attribute in spec.item_attributes(item_type).items()
-        if attribute.kind in CREATE_ATTRIBUTE_KINDS and attribute.settable
-    }
-    assert {("guide", "tags"), ("guide", "tech"), ("milestone", "target-date")} <= written
+async def test_a_create_option_is_derived_only_for_a_settable_attribute(project, invoke) -> None:
+    write_workflow_override(project.squad_dir, OVERRIDE)
+    result = await invoke(["create", "guide", "--help"])
+    assert result.exit_code == 0, result.output
+    options = {word for word in result.output.split() if word.startswith("--")}
+    assert {"--tags", "--tech", "--audience"} <= options
+    assert not {"--secret", "--flags"} & options

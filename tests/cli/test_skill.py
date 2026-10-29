@@ -590,7 +590,7 @@ async def test_unlink_role_refuses_a_role_that_does_not_exist(project, invoke) -
 async def test_unlink_role_refuses_a_role_the_skill_is_not_scoped_to(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "unlink-role", "manager"])
-    assert (result.exit_code, result.output) == (1, "error: SKILL-2 has no ref to ROLE-1\n")
+    assert (result.exit_code, result.output) == (1, "error: SKILL-2 has no scopes ref to ROLE-1\n")
 
 
 @pytest.mark.covers("skill unlink-role", "--as")
@@ -894,3 +894,14 @@ async def test_view_disable_json_prints_the_skill_and_the_tag_it_placed_disabled
     assert output == json_text(
         {"entry": SKILL_ROW, "view": "greeting_skill", "changed": True, "was_present": False}
     )
+
+
+@pytest.mark.covers("skill unlink-role", "ROLE")
+async def test_unlink_role_refuses_a_skill_whose_only_ref_to_the_role_is_another_kind(
+    project, invoke
+) -> None:
+    await _add(invoke)
+    await invoke(["skill", SLUG, "ref", "add", "1", "--kind", "related"])
+    result = await invoke(["skill", SLUG, "unlink-role", "manager"])
+    assert (result.exit_code, result.output) == (1, "error: SKILL-2 has no scopes ref to ROLE-1\n")
+    assert (await read_json(invoke, ["skill", SLUG, "refs", "--json"]))["out"] != []

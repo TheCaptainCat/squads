@@ -327,3 +327,24 @@ async def test_milestone_target_date_refuses_a_value_that_is_not_a_date(project,
         1,
         "error: 'target_date' expects an ISO date (YYYY-MM-DD); got 'soon'\n",
     )
+
+
+@pytest.mark.covers("create <type>", "--tags")
+async def test_tags_split_on_commas_and_drop_blanks_as_update_set_does(project, invoke) -> None:
+    result = await invoke(
+        [
+            "create",
+            "guide",
+            "Setup",
+            "--author",
+            "manager",
+            "--tags",
+            "a,b",
+            "--tags",
+            " ",
+            "--tags",
+            "c",
+        ]
+    )
+    assert result.exit_code == 0, result.output
+    assert (await _shown(invoke, "guide", 2))["tags"] == ["a", "b", "c"]
