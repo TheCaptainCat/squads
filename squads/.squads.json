@@ -1,6 +1,6 @@
 {
   "schema_version": "0.17",
-  "counter": 1216,
+  "counter": 1222,
   "padding": 6,
   "items": {
     "12": {
@@ -62,7 +62,7 @@
       "type": "epic",
       "title": "sq web — a local web view of the squad",
       "slug": "sq-web-a-local-web-view-of-the-squad",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "An sq web command starting a local webserver to browse the squad in a browser; read-only first, with full CRUD as a possible long-term destination",
       "parent": null,
       "author": "product-owner",
@@ -77,7 +77,7 @@
       "subentities": [],
       "path": "epics/EPIC-000029-sq-web-a-local-web-view-of-the-squad.md",
       "created_at": "2026-06-10T15:16:05Z",
-      "updated_at": "2026-10-16T11:27:13Z",
+      "updated_at": "2026-10-28T18:23:28Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -1171,10 +1171,10 @@
     "33": {
       "sequence_id": 33,
       "type": "feature",
-      "title": "Remote mode: the sq CLI as a client to a squads server",
-      "slug": "remote-mode-the-sq-cli-as-a-client-to-a-squads-server",
+      "title": "Remote mode: the sq CLI as a client to a remote daemon",
+      "slug": "remote-mode-the-sq-cli-as-a-client-to-a-remote-daemon",
       "status": "Draft",
-      "description": "A mode switch in .squads.toml (offline default / remote): in remote mode every command calls remote endpoints with full feature-and-flag parity, through a Protocol-typed service interface the CLI depends on",
+      "description": "The CLI as a client of a remote daemon: a per-squad remote address, authentication, and the same exit code and output as local mode, built on the daemon's command endpoint",
       "parent": "EPIC-29",
       "author": "product-owner",
       "assignee": null,
@@ -1183,12 +1183,13 @@
       "labels": [],
       "refs": [
         "FEAT-15",
-        "FEAT-13"
+        "FEAT-13",
+        "FEAT-1140:depends-on"
       ],
       "subentities": [
         {
           "local_id": "US1",
-          "title": "CLI decoupled from concrete Service via Python Protocols",
+          "title": "Remote daemon refuses callers it cannot identify",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1198,7 +1199,7 @@
         },
         {
           "local_id": "US2",
-          "title": "Full offline/remote parity: transport never changes how I work",
+          "title": "Parity: where the squad lives never changes how I work",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1208,7 +1209,7 @@
         },
         {
           "local_id": "US3",
-          "title": "Remote mode opt-in via .squads.toml; offline is the default",
+          "title": "Remote address set per squad; local is the default",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1217,9 +1218,9 @@
           "extra": {}
         }
       ],
-      "path": "features/FEAT-000033-remote-mode-the-sq-cli-as-a-client-to-a-squads-server.md",
+      "path": "features/FEAT-000033-remote-mode-the-sq-cli-as-a-client-to-a-remote-daemon.md",
       "created_at": "2026-06-10T15:33:16Z",
-      "updated_at": "2026-10-25T17:38:53Z",
+      "updated_at": "2026-10-28T14:03:10Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -9211,7 +9212,7 @@
       "type": "feature",
       "title": "The daemon: a local API the CLI and web client share",
       "slug": "the-daemon-a-local-api-the-cli-and-web-client-share",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "A local process serving squad state over one API, used by the CLI in remote mode and later the browser; local mode stays",
       "parent": "EPIC-29",
       "author": "product-owner",
@@ -9229,7 +9230,7 @@
         {
           "local_id": "US1",
           "title": "Every command runs through one command endpoint",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -9318,8 +9319,8 @@
         },
         {
           "local_id": "US10",
-          "title": "In-process command entry, SQUADS_DAEMON and Ctrl-C",
-          "status": "Todo",
+          "title": "In-process command entry and Ctrl-C",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -9329,7 +9330,7 @@
       ],
       "path": "features/FEAT-001140-the-daemon-a-local-api-the-cli-and-web-client-share.md",
       "created_at": "2026-10-25T10:47:24Z",
-      "updated_at": "2026-10-25T21:16:33Z",
+      "updated_at": "2026-10-28T18:28:08Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -40126,7 +40127,7 @@
       "subentities": [],
       "path": "adrs/ADR-001052-the-daemon-one-command-api-its-transports-lifecycle-and-requ.md",
       "created_at": "2026-10-16T11:27:26Z",
-      "updated_at": "2026-10-25T21:41:29Z",
+      "updated_at": "2026-10-28T18:28:02Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -40560,7 +40561,7 @@
       "subentities": [],
       "path": "milestones/MILE-000868-squads-0-20-the-web-frontend.md",
       "created_at": "2026-09-02T08:03:39Z",
-      "updated_at": "2026-10-25T21:16:37Z",
+      "updated_at": "2026-10-28T14:02:07Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -40598,7 +40599,7 @@
       "type": "milestone",
       "title": "squads 0.17 - roles and checks",
       "slug": "squads-0-17-roles-and-checks",
-      "status": "InProgress",
+      "status": "Done",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -40610,7 +40611,7 @@
       "subentities": [],
       "path": "milestones/MILE-001051-squads-0-17-roles-and-checks.md",
       "created_at": "2026-10-16T11:23:46Z",
-      "updated_at": "2026-10-25T21:16:52Z",
+      "updated_at": "2026-10-28T13:48:26Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -40646,7 +40647,7 @@
       "type": "milestone",
       "title": "squads 0.18 - the daemon",
       "slug": "squads-0-18-the-daemon",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "A local API the CLI and the web client share, with the daemon behind it",
       "parent": null,
       "author": "product-owner",
@@ -40658,7 +40659,7 @@
       "subentities": [],
       "path": "milestones/MILE-001152-squads-0-18-the-daemon.md",
       "created_at": "2026-10-25T21:16:14Z",
-      "updated_at": "2026-10-25T21:16:14Z",
+      "updated_at": "2026-10-28T13:53:34Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -62704,6 +62705,405 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "REV-1216"
+    },
+    "1217": {
+      "sequence_id": 1217,
+      "type": "task",
+      "title": "In-process command entry and request-seeded CLI",
+      "slug": "in-process-command-entry-and-request-seeded-cli",
+      "status": "InProgress",
+      "description": "One argv-to-exit-code entry, per-invocation consoles, directory, attachments and context from the request; invisible in local mode",
+      "parent": "FEAT-1140",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1052:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "One argv-to-exit-code entry",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US10",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Consoles built per invocation",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US10",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Directory, attachments and context from the request",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US10",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Prompt sites signal needs_terminal before any write",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001217-in-process-command-entry-and-request-seeded-cli.md",
+      "created_at": "2026-10-28T14:08:40Z",
+      "updated_at": "2026-10-28T18:23:37Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1217"
+    },
+    "1218": {
+      "sequence_id": 1218,
+      "type": "task",
+      "title": "Daemon process: settings, discovery, command API, listeners",
+      "slug": "daemon-process-settings-discovery-command-api-listeners",
+      "status": "Draft",
+      "description": "[daemon] settings and check rule, shared endpoint resolution, runtime files, the three routes, serial request scope, retirement, lifecycle, TCP admission",
+      "parent": "FEAT-1140",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1052:implements",
+        "TASK-1217:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "[daemon] table, SQUADS_DAEMON and the check rule",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Shared endpoint resolution, key and runtime directory",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "HTTP app, three routes and the serial request scope",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Writes, corpus operations and schema skew through the daemon",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Lifecycle, retirement and sq daemon commands",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "TCP listeners and admission rules",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Browser listener, off by default",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001218-daemon-process-settings-discovery-command-api-listeners.md",
+      "created_at": "2026-10-28T14:08:41Z",
+      "updated_at": "2026-10-28T14:09:51Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1218"
+    },
+    "1219": {
+      "sequence_id": 1219,
+      "type": "task",
+      "title": "CLI remote mode: forwarder, implicit start and fall back",
+      "slug": "cli-remote-mode-forwarder-implicit-start-and-fall-back",
+      "status": "Draft",
+      "description": "Stdlib forwarder in __main__, detached spawn, discovery and staleness, local fall back, attachments table, parity matrix",
+      "parent": "FEAT-1140",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1052:implements",
+        "TASK-1218:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Forwarder, local-only commands and fall back",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Discovery, staleness cleanup and detached spawn",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Native Windows client path",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Attachments table from the command tree, guarded",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Forwarding through the one endpoint and Ctrl-C",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US10",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Parity matrix in both modes",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001219-cli-remote-mode-forwarder-implicit-start-and-fall-back.md",
+      "created_at": "2026-10-28T14:08:42Z",
+      "updated_at": "2026-10-28T14:09:57Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1219"
+    },
+    "1220": {
+      "sequence_id": 1220,
+      "type": "task",
+      "title": "CI: daemon coverage on Linux, macOS and native Windows",
+      "slug": "ci-daemon-coverage-on-linux-macos-and-native-windows",
+      "status": "Draft",
+      "description": "Daemon and remote-mode tests on the three-OS matrix, leaked-daemon check, bounded Windows wall time",
+      "parent": "FEAT-1140",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1052:implements",
+        "TASK-1218:depends-on",
+        "TASK-1219:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Daemon tests on the three-OS matrix, Windows first-class",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Leaked-daemon check and bounded wall time",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001220-ci-daemon-coverage-on-linux-macos-and-native-windows.md",
+      "created_at": "2026-10-28T14:08:43Z",
+      "updated_at": "2026-10-28T14:09:59Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1220"
+    },
+    "1221": {
+      "sequence_id": 1221,
+      "type": "task",
+      "title": "Adopter docs and changelog for the daemon",
+      "slug": "adopter-docs-and-changelog-for-the-daemon",
+      "status": "Draft",
+      "description": "Modes, settings, SQUADS_DAEMON, fall back, status/stop, the command endpoint, runtime files, per-platform security",
+      "parent": "FEAT-1140",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1052:implements",
+        "TASK-1219:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Modes, settings, fall back and daemon commands",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US9",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Command endpoint reference and security stance",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US9",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001221-adopter-docs-and-changelog-for-the-daemon.md",
+      "created_at": "2026-10-28T14:08:44Z",
+      "updated_at": "2026-10-28T14:10:01Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1221"
+    },
+    "1222": {
+      "sequence_id": 1222,
+      "type": "task",
+      "title": "Dogfood the daemon on this repository's board",
+      "slug": "dogfood-the-daemon-on-this-repository-s-board",
+      "status": "Draft",
+      "description": "enabled = false committed with a switch-on step, SQUADS_DAEMON=on trial, result recorded before enabling",
+      "parent": "FEAT-1140",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1052:implements",
+        "TASK-1219:depends-on",
+        "TASK-1220:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Commit enabled = false and the switch-on step",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Trial with SQUADS_DAEMON=on and record the result",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001222-dogfood-the-daemon-on-this-repository-s-board.md",
+      "created_at": "2026-10-28T14:08:45Z",
+      "updated_at": "2026-10-28T18:23:38Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1222"
     }
   }
 }
