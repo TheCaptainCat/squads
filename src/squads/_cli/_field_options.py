@@ -86,7 +86,7 @@ def _flags(params: list[Any]) -> set[str]:
     return {opt.removeprefix("--") for p in params for opt in (*p.opts, *p.secondary_opts)}
 
 
-def _extended(params: list[Any], extra: list[Any]) -> list[Any]:
+def extended(params: list[Any], extra: list[Any]) -> list[Any]:
     """*params* plus the options of *extra* whose flags no existing option already holds, placed
     before Click's help option."""
     taken = _flags(params)
@@ -111,7 +111,7 @@ def update_command_cls(item_type: str) -> type[typer.core.TyperCommand]:
                 fields = spec.fields_for(item_type)
                 extra = [value_option(f, field_help(f, field_codes(f, spec))) for f in fields]
                 extra += [clear_option(f) for f in fields if not f.required]
-                params = _extended(params, extra)
+                params = extended(params, extra)
             return params
 
     return _UpdateCommand
@@ -131,7 +131,7 @@ class FilterCommand(typer.core.TyperCommand):
                 extra.append(value_option(field, field_help(field, codes)))
                 if spec.collections[field.collection].ordered:
                     extra.append(min_option(field, codes))
-            params = _extended(params, extra)
+            params = extended(params, extra)
         return params
 
 

@@ -2,6 +2,7 @@
 with, the body, and the options only some types carry."""
 
 import json
+import re
 from typing import Any
 
 import pytest
@@ -382,3 +383,28 @@ async def test_tags_split_on_commas_and_drop_blanks_as_update_set_does(project, 
     )
     assert result.exit_code == 0, result.output
     assert (await _shown(invoke, "guide", 2))["tags"] == ["a", "b", "c"]
+
+
+@pytest.mark.covers("create <type>", "TITLE")
+@pytest.mark.covers("create <type>", "--author")
+async def test_create_help_lists_the_declared_options_before_help(override_project, invoke) -> None:
+    result = await invoke(["create", "job", "--help"])
+    assert result.exit_code == 0, result.output
+    assert re.findall(r"^│ [* ] +(--[\w-]+)", result.output, flags=re.M) == [
+        "--author",
+        "--parent",
+        "--desc",
+        "--label",
+        "--ref",
+        "--assignee",
+        "--message",
+        "--file",
+        "--json",
+        "--install-completion",
+        "--show-completion",
+        "--work-size",
+        "--owner-team",
+        "--help",
+    ]
+    created = await invoke(["create", "job", "Ship it", "--author", "manager", "--parent", "8"])
+    assert created.exit_code == 0, created.output

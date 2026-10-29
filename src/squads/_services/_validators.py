@@ -1107,12 +1107,12 @@ def _frontmatter_key_undeclared(ctx: ValidatorContext) -> list[CheckIssue]:
     ]
     kind = ctx.spec.item_subentity_kind(item.type)
     entry_declared: set[str] = {f.code for f in ctx.spec.fields_for(kind)} if kind else set()
+    where = f"declared on {kind}" if kind else f"declared: {item.type} hosts no sub-entity kind"
     issues += [
         CheckIssue(
             level,
             item.id,
-            f"frontmatter key {key!r} on {entry.local_id} is not declared on {kind or 'any kind'}"
-            + remedy.format(key=key),
+            f"frontmatter key {key!r} on {entry.local_id} is not {where}" + remedy.format(key=key),
             rule="frontmatter_key_undeclared",
         )
         for entry in item.subentities

@@ -828,7 +828,7 @@ async def test_rename_field_moves_an_item_value_on_the_bundled_squad(
 
 
 @pytest.mark.covers("check", "--json")
-async def test_a_kind_renamed_with_the_same_prefix_keeps_its_entries_and_mappings(
+async def test_a_target_kind_renamed_with_the_same_prefix_keeps_its_mappings(
     override_project, invoke
 ) -> None:
     job = _item_file(override_project, "jobs", 9)
@@ -840,15 +840,87 @@ async def test_a_kind_renamed_with_the_same_prefix_keeps_its_entries_and_mapping
     override = override_project.squad_dir / ".overrides" / "workflow.toml"
     override.write_text(
         override.read_text(encoding="utf-8")
-        .replace('subentity_kind = "action"', 'subentity_kind = "step_kind"')
-        .replace("[subentity_kinds.action]", "[subentity_kinds.step_kind]")
-        .replace('["outcome", "action"]', '["outcome", "step_kind"]')
+        .replace('subentity_kind = "outcome"', 'subentity_kind = "goal"')
+        .replace("[subentity_kinds.outcome]", "[subentity_kinds.goal]")
+        .replace('["outcome", "action"]', '["goal", "action"]')
     )
 
     await invoke(["repair"])
     checked = await invoke(["check", "--json"])
-    shown = await invoke(["job", "9", "show", "--json"])
+    mapped = await invoke(["job", "9", "action", "1", "show"])
+    target = await invoke(["initiative", "8", "goal", "1", "show"])
 
     assert (checked.exit_code, checked.output) == (0, "[]\n")
-    entries = json.loads(shown.output)["subentities"]
-    assert [(e["local_id"], e["maps_to"]) for e in entries] == [("AC1", "OC1"), ("AC2", None)]
+    assert mapped.output.splitlines()[:2] == [
+        "AC1 — Draft the outline  (action)",
+        "  status: Todo   impact: large   goal: OC1",
+    ]
+    assert target.output.splitlines()[0] == "OC1 — Fifty active teams  (goal)"
+
+
+@pytest.mark.covers("migrate rename-field", "NEW")
+async def test_rename_field_refuses_to_rename_a_key_to_itself(override_project, invoke) -> None:
+    before = _squad_bytes(override_project)
+
+    result = await invoke(["migrate", "rename-field", "impact", "impact"])
+
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: cannot rename field 'impact' to itself\n",
+    )
+    assert _squad_bytes(override_project) == before
+
+
+@pytest.mark.covers("migrate rename-field", "OLD")
+async def test_rename_field_logs_one_line_and_one_system_comment_per_changed_item(
+    override_project, invoke
+) -> None:
+    _declare_impact_on_jobs(override_project)
+    await _store_job_values_under_an_old_key(override_project, invoke)
+    await invoke(["migrate", "rename-field", "weight", "impact"])
+
+    logged = await invoke(["reflog", "--json", "--op", "rename-field"])
+    shown = await invoke(["job", "9", "show", "--comments"])
+
+    assert json.loads(logged.output) == [
+        {
+            "v": SCHEMA_VERSION,
+            "ts": "2026-06-07T10:00:00Z",
+            "actor": "system",
+            "op": "rename-field",
+            "target": "JOB-9",
+            "delta": {"old": "weight", "new": "impact"},
+            "session_id": None,
+            "parent_session_id": None,
+        }
+    ]
+    header, bullet = shown.output.strip().splitlines()[-2:]
+    assert re.fullmatch(r"--- \w+ \[2026-06-07T10:00:00Z\] squads ---", header)
+    assert bullet == "- field renamed weight → impact"
+
+
+@pytest.mark.covers("migrate rename-field", "NEW")
+async def test_rename_field_refuses_an_entry_on_a_type_that_hosts_no_kind(
+    override_project, invoke
+) -> None:
+    record = _item_file(override_project, "records", 10)
+    text = record.read_text(encoding="utf-8")
+    record.write_text(
+        text.replace(
+            "created_at:",
+            "subentities:\n- local_id: X1\n  title: Stray\n  status: Todo\n"
+            "  weight: large\ncreated_at:",
+            1,
+        )
+    )
+    await invoke(["repair"])
+    before = _squad_bytes(override_project)
+
+    result = await invoke(["migrate", "rename-field", "weight", "impact"])
+
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: cannot rename field 'weight' to 'impact': X1 of REC-10: record hosts no "
+        "sub-entity kind\n",
+    )
+    assert _squad_bytes(override_project) == before

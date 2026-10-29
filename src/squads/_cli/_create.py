@@ -120,11 +120,13 @@ def _create_command_cls(item_type: str) -> type[typer.core.TyperCommand]:
                 taken = {
                     opt.removeprefix("--") for p in params for opt in (*p.opts, *p.secondary_opts)
                 }
-                params = [
-                    *params,
-                    *_declared_field_options(item_type, taken),
-                    *_declared_attribute_options(item_type, taken),
-                ]
+                params = field_options.extended(
+                    params,
+                    [
+                        *_declared_field_options(item_type, taken),
+                        *_declared_attribute_options(item_type, taken),
+                    ],
+                )
             return params
 
     return _CreateCommand

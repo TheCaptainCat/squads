@@ -333,8 +333,13 @@ class RenameMixin(ServiceCore):
                     problems += self._field_move_problems(
                         item.id, item.type, item.attributes, old, new, is_item=True
                     )
-                kind = self.spec.item_subentity_kind(item.type) or ""
+                kind = self.spec.item_subentity_kind(item.type)
                 for entry in entries:
+                    if kind is None:
+                        problems.append(
+                            f"{entry.local_id} of {item.id}: {item.type} hosts no sub-entity kind"
+                        )
+                        continue
                     problems += self._field_move_problems(
                         f"{entry.local_id} of {item.id}",
                         kind,
