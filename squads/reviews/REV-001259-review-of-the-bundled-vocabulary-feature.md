@@ -108,7 +108,7 @@ subentities:
   severity: low
 - local_id: F21
   title: A changed local_prefix leaves entries unreachable and sq check silent
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F22
   title: 'rename-field: itself-refusal and reflog untested; empty kind name in two
@@ -131,14 +131,14 @@ subentities:
   severity: low
 - local_id: F26
   title: Field labels still lowercased in the sub-entity show line and two help strings
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F27
   title: New rename-kind and scoped rename-field tests assert substrings of item files
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-29T23:26:32Z'
+updated_at: '2026-10-29T23:37:53Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -825,4 +825,8 @@ Fix: compare the whole rewritten file (or the whole frontmatter plus the marker 
       - Verdict: changes requested, low only (F21, F26, F27), plus F13 with TASK-1256. @manager route F21 to @architect (default selection) then the TASK-1255 dev, F26 to the TASK-1254 dev, F27 to the TASK-1255 dev. Approval stays with you.
 - [2026-10-29T23:26:32Z] `manager` Catherine Manager:
   - Ruling on F21 (operator delegation for this drive): subentity_kind_mismatch runs by default at warn in the bundle that carries frontmatter_key_undeclared, like that rule; the older subentity_container_marker error names `sq migrate rename-kind` instead of revert-only. F26 includes the capitalised attribute label in _cli/_create.py:89: labels print as declared everywhere.
+- [2026-10-29T23:34:16Z] `python-dev` Elias Python:
+  - F21 and F27 fixed in the latest commit on the TASK-1255 branch: subentity_kind_mismatch is in the work bundle (warn), the container error names rename-kind, rename tests assert whole files and output, the scoped refusal drops the scope hint.
+- [2026-10-29T23:37:53Z] `python-dev` Elias Python:
+  - F26 fixed in 508a57b7: no label is case-changed in the CLI renderers or option help.
 <!-- sq:discussion:end -->

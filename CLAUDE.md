@@ -45,8 +45,10 @@ which the entry point `squads.__main__:main` runs) and `_workflow/__init__` (the
 lists them.
 Namespace-style imports use an alias to keep call sites readable: `from squads import _clock as clock`.
 
-- `_models/` — pydantic v2. `_item` (`Item`), `_subentity` (`SubEntity` — a story/subtask/finding's
-  state, carried on `Item.subentities`), `_index` (`SquadsDB`), `_vocab` (`prefix_for`/`label_for` —
+- `_models/` — pydantic v2. `_item` (`Item`), `_subentity` (`SubEntity` — one sub-entity's
+  state, carried on `Item.subentities`: the core keys `local_id`/`title`/`status`/`assignee`/
+  `maps_to`/`deferred_to` plus a flat `attributes` mapping, like `Item.attributes`; a badge value of
+  either is read and written through `badge_value(code)`/`set_badge_value(code, value)`), `_index` (`SquadsDB`), `_vocab` (`prefix_for`/`label_for` —
   the per-type vocabulary resolver; there is **no** `ItemType`/`Status` enum and no built-in
   prefix→folder map, the spec is the sole authority and folder resolution goes through
   `SquadPaths.folder_for`), `_markers` (sq anchor tags), `_config` (`.squads.toml`), `_attributes`
@@ -84,7 +86,7 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   `_cli._common.get_active_spec()`) and playbook (`Service.playbook`), and pass `bundled_spec()` /
   `get_playbook_spec()` explicitly only where the bundled document is meant. The exceptions take
   `None`: `ItemFilter.spec` and `item_skill_role_sections(playbook)` (no such filter dimension or
-  text rewrite), the CLI helpers `parse_badge_code`/`parse_filter_badge_code`/`_field_badge`/
+  text rewrite), the CLI helpers `parse_badge_code`/`parse_filter_badge_code`/`parse_badge_field`/
   `build_item_app` (the request's active spec), `label_for` (the derived fallback label), and the template wrappers
   `_engine._badge`/`_engine._authoring_owners` (a reference render reads the bundled document).
   There is no process-global mutable spec.
@@ -92,17 +94,17 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   `_engine.py` registers `slugify` + `open_marker`/`close_marker` filters. The squad directory whose
   `.overrides/templates/` may shadow the bundled templates is an argument (`from_squad`) to every
   entry point, never ambient state; the Environment cache is keyed on it. Item files render from
-  `templates/items/*.md.j2`; **sub-entity blocks + their roll-up table** render from
-  `templates/subentities/{block,summary}.md.j2` (driven by `_discussion.build_block`/`render_summary`).
-  **Sub-entity state (status/assignee/severity/story) lives in the parent's frontmatter**
-  (`Item.subentities`, typed `SubEntity`), not the body — the block only holds prose (`:body`,
-  `:discussion`) plus a derived `:head` badge line (human-readable status/severity/assignee-name/story)
-  rendered from `subentities/head.md.j2` via `_discussion.set_head` (badges resolved from the
-  spec's collections by `_badges.py` — `status_badge`/`badge_render`/`resolve_collection`/
-  `field_label`); the service's `_refresh_head` resolves
-  names/titles from the model and re-renders the head + summary on every mutation. Extend the head with more `{% if %}` lines. The
-  legacy body-stored `:meta` regions survive only in `_migrations/_meta_compat.py`, used by the
-  migrations.
+  `templates/items/*.md.j2`; a **sub-entity block** renders from `templates/subentities/block.md.j2`
+  (`_discussion.build_block`): a `### <local id> — <title>` heading, `:body` and `:discussion`.
+  **Sub-entity state (status, assignee, the `maps_to` mapping, each field value) lives in the
+  parent's frontmatter** (`Item.subentities`, typed `SubEntity`), not the body. Nothing derived is
+  stored in the body: the roll-up table is computed on read (`_discussion.summary_columns`/
+  `summary_row`, projected into `show`'s `display.summary`), badges resolve from the spec's
+  collections in `_badges.py` (`status_badge`/`badge_render`/`resolve_collection`/`field_label`),
+  and a write re-renders only the heading line after a title change (`_discussion.set_heading`).
+  The retired `:head` and `:summary` regions (`head.md.j2`, `summary.md.j2`, `set_head`,
+  `ensure_summary`) and the legacy body-stored `:meta` regions (`_migrations/_meta_compat.py`)
+  survive only for the migrations.
 - `_backends/` — `AgentBackend` ABC + `_registry.py`, a literal name → class table (no registration
   side effect); `_claude_code/` writes pointer files, managed skills
   (real body under `<squad>/agents/skills/`, thin pointer in `.claude/`), and the CLAUDE.md section;
@@ -176,7 +178,11 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   one `_module` per command group; `_common.py` has the shared console/error decorator/parsers.
   The root builds each command group on first lookup: `LAZY_GROUPS` in `_cli/__init__.py` names
   each group's module and Typer, and each bundled item type and alias gets its app from the
-  bundled spec, built once per root command; `sq --help` builds them all.
+  bundled spec, built once per root command; `sq --help` builds them all. A token the active spec
+  gives to another type is re-routed (`_common.retargeted_type`); there is no code table of
+  aliases. Badge-field and mapping options are derived from the active spec when a command's
+  parameters resolve (`_field_options.py`), never named in code, and `_workflow/_derived_names.py`
+  refuses at load a derived option or import key that collides on its surface.
   `tests/meta/test_lazy_command_groups_match_the_typer_groups.py` holds the table to the group
   Typers the `_cli` modules define. A command parses its arguments, builds one request DTO and
   calls one operation through `_calls.py` (`call`, `select_api`, the `local_api()` factory, and
@@ -196,7 +202,7 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
 
 1. **Frontmatter is the source of truth.** `.squads.json` is a rebuildable index; never store
    anything in it that can't be reconstructed from the `.md` files (`sq repair` proves this). This
-   includes **sub-entity state** (`Item.subentities`): status/assignee/severity/story live in the
+   includes **sub-entity state** (`Item.subentities`): status, assignee, `maps_to` and field values live in the
    frontmatter, only prose stays in the body markers.
 2. **Global counter.** One monotonic counter for all types; an ID's number is globally unique.
    Allocate only inside `IndexStore.transaction()`.

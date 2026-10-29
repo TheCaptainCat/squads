@@ -225,8 +225,8 @@ Features hold **user stories**, tasks hold **subtasks**, reviews hold **findings
 *inside the parent item*, not as separate IDs. Which kind a type hosts is spec vocabulary
 (`ItemSpec.subentity_kind` → `WorkflowSpec.subentity_kinds`), so those three pairings are the
 bundled default rather than a fixed law; `_discussion.py` takes the `kind` as an argument
-throughout. Their **machine state** (status, assignee, severity,
-mapped story, title) is a typed `subentities:` list in the parent's **frontmatter** (`SubEntity`,
+throughout. Their **machine state** (title, status, assignee, the
+`maps_to` mapping and each field value) is a typed `subentities:` list in the parent's **frontmatter** (`SubEntity`,
 `_models/_subentity.py`) — single-sourced, pydantic-validated, and carried in the index. Each
 sub-entity also gets a marker-scoped **block in the body**, inside the parent's container region,
 holding only its heading and prose:
@@ -245,16 +245,17 @@ holding only its heading and prose:
 <!-- sq:subtask:STn:end -->
 ```
 
-The presentation is not stored: the badge line (status, assignee, severity, story) is computed from
+The presentation is not stored: the badge line (status, each field value, the mapping, assignee) is computed from
 the frontmatter state each time `show` prints a block, and the parent's roll-up table is a derived
 view of the same state. `sq repair` strips any stored copy of either that an older squad still
 carries.
 
 Local ids (`USn`, `STn`, `Fn`) auto-increment via `next_local_id` (over the stored list). Each has a
-**status state machine** (`SUBENTITY_WORKFLOWS`: subtask/story `Todo → InProgress → Done`; finding
-`Open → Fixed → Verified`), transitioned with `sq <type> <n> <kind> <k> update --status …` (validated;
-`--force` overrides) — `update` is the one metadata entry point (`--title`/`--status`/`--assignee`, a
-subtask's `--story`, a finding's `--severity`); the service edits the model atomically (index
+**status state machine**, the lifecycle its kind declares (bundled subtask/story
+`Todo → InProgress → Done`; finding `Open → Fixed → Verified`), transitioned with `sq <type> <n> <kind> <k> update --status …` (validated;
+`--force` overrides) — `update` is the one metadata entry point (`--title`/`--status`/`--assignee`,
+an option per declared field such as a finding's `--severity`, and the mapping option named after
+the target kind, such as a subtask's `--story`); the service edits the model atomically (index
 transaction), and a title change re-renders the block's heading. A
 body-stored `:meta` region, from a squad written before schema 0.3, is lifted into frontmatter by
 the `0.2 → 0.3` migration; its read/build helpers live only in `_migrations/_meta_compat.py`.

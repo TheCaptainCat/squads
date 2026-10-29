@@ -62,10 +62,13 @@ Each type has a status machine (see [workflow.md](workflow.md)). The transition 
 allowed from the current state. Move through the valid path, or override with
 `sq <type> <n> status <Y> --force` if you really mean it.
 
-### "subtask STn → USn missing from FEAT-…"
-A subtask references a user story that doesn't exist in the task's parent feature. Add the story
-(`sq feature <n> add-story "…"`), remap the subtask (`--story`), or ensure the task's parent
-is the right feature.
+### "subtask STn maps to story USn, missing from FEAT-…"
+A sub-entity maps to a sub-entity that doesn't exist in its item's parent: here a subtask names a
+user story the task's parent feature doesn't have. Add the story
+(`sq feature <n> add-story "…"`), remap the subtask (`--story`, or `--no-story` to clear the
+mapping), or ensure the task's parent is the right feature. In a squad whose kinds have other
+names, the message and the option name them: the option is named after the kind the parent
+hosts.
 
 ### I upgraded squads: do I need to do anything?
 Run `sq sync`. It regenerates the project's tool-owned files (the `squads`/`sq-<type>` skills,

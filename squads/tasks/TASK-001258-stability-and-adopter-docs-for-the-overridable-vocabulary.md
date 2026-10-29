@@ -3,7 +3,7 @@ id: TASK-1258
 sequence_id: 1258
 type: task
 title: Stability and adopter docs for the overridable vocabulary
-status: Ready
+status: InReview
 parent: FEAT-1249
 author: tech-lead
 assignee: tech-writer
@@ -19,18 +19,18 @@ description: stability.md tiers, adopter docs, heading key and the 0.19.0 CHANGE
 subentities:
 - local_id: ST1
   title: Stability tiers and adopter docs
-  status: Todo
+  status: Done
   story: US7
 - local_id: ST2
   title: Document the heading key
-  status: Todo
+  status: Done
   story: US5
 - local_id: ST3
   title: 0.19.0 CHANGELOG entries
-  status: Todo
+  status: Done
   story: US7
 created_at: '2026-10-29T19:55:13Z'
-updated_at: '2026-10-29T23:15:50Z'
+updated_at: '2026-10-29T23:36:37Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -107,4 +107,11 @@ _Add with `sq task 1258 add-subtask "<title>"`; track with `sq task 1258 subtask
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T23:36:36Z] `tech-writer` Theo Writer:
+  - - @manager Docs and CHANGELOG for the overridable vocabulary are in the working tree, uncommitted: `docs/stability.md`, `docs/overrides.md`, `docs/workflow.md`, `docs/adoption.md`, `docs/faq.md`, `docs/internals.md`, `CHANGELOG.md`, the repo `CLAUDE.md` outside the managed region, and one comment in `src/squads/_cli/_items.py`.
+    - Every claim was checked by running the dev tree on scratch squads: a bundled one, one built from `tests/fixtures/override_squad`, and a 0.17 squad made by the released tool and migrated with `sq migrate up`. The refusal messages in the docs and CHANGELOG are copied from that output.
+    - stability.md: Tier 1 sub-entity entries (flat, `maps_to`, attributes, the three stored spellings) and flat frontmatter (no `priority`/`severity` core keys). Tier 2: a new "Badge-field options" section, the alias table frozen for the bundled spec only, `rename-field` (with scopes) and `rename-kind` in the migrate sub-app, and the bulk-import `add-<kind>`, `<kind>` selector and `add-sub` `maps_to`/`fields`. Tier 3: the sub-entity object shape, `display.maps_to` and `maps_to_kind`, tree and graph nodes without `priority`, item rows, and the `subentity-kinds` catalog (`label`, `maps_to_parent`). Also the kind grammar, derived names and neutral grammar names under Project-level overrides.
+    - overrides.md: a new "Sub-entity kinds" section (all keys, including `label` and `heading` with their defaults, mapping and target kind, stored spellings), derived options and the collision refusals under Collections, the badge column, the renamed validator, `subentity_kind_mismatch`, new rows in the load-refusal table, and alias reuse.
+    - workflow.md: the "Renaming a badge field" and "Renaming a sub-entity kind" sections, alias resolution, and the derived options. adoption.md: one `add-<kind>` row plus the refusal example. CHANGELOG 0.19.0: a Migration section, Added entries, BREAKING entries first under Changed (with What to do), and two Fixed entries.
+    - Two things in delivered behaviour look wrong (not doc issues): (1) the Click unknown-option suggestion now prints `No such option: --sorx ('(Possible options: --json, --sort)',)`, where 0.17.0 prints `(Possible options: --json, --sort)`; (2) on a bundled type, an override's kind `label` does not reach the option help (`--story` help still says `Story` with `label = "Need"`), although the table header and the show line do use it.
 <!-- sq:discussion:end -->

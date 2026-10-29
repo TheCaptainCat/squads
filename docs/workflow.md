@@ -125,7 +125,7 @@ address that holds it. `-m`, `--file` and `--as` go after the verb, and a hash w
 
 ## Type-command aliases
 
-Short and single-letter aliases for the item-type commands provide input sugar for faster typing. They are hidden from the root `--help` listing but fully equivalent: every alias accepts everything the canonical type command does, including sub-entity chains (e.g., `sq f 26 story 4 show` ≡ `sq feature 26 story 4 show`). Output and errors always use the canonical type names and full IDs, regardless of the alias used.
+Short and single-letter aliases for the item-type commands provide shorter spellings for faster typing. They are hidden from the root `--help` listing but fully equivalent: every alias accepts everything the canonical type command does, including sub-entity chains (e.g., `sq f 26 story 4 show` ≡ `sq feature 26 story 4 show`). Output and errors always use the canonical type names and full IDs, regardless of the alias used.
 
 | Canonical | Aliases | Example |
 |---|---|---|
@@ -139,7 +139,14 @@ Short and single-letter aliases for the item-type commands provide input sugar f
 | `review` | `rev`, `r` | `sq r <n> show` |
 | `guide` | `g` | `sq g <n> show` |
 
-**Evolution rule (see the [stability contract](stability.md)):** adding an alias is additive and allowed; removing or repurposing an alias is a breaking change and is not permitted after 1.0. The alias table is frozen grammar in the same stability tier as the canonical command names.
+The table is what the bundled spec declares. Aliases are vocabulary, read from the squad's
+workflow spec: a type's `aliases` key declares them, and an override may give a type new ones. An
+alias is checked at load against the fixed verbs, the declared type names and the other declared
+types' aliases, so it stays free only while no kept type declares it. Once an override drops
+`feature`, another type may take `f`; while `feature` is kept, the same alias is refused
+(`duplicate alias 'f': used by 'feature' and 'bug'`).
+
+**Evolution rule (see the [stability contract](stability.md)):** adding an alias to the bundled spec is additive and allowed; removing or repurposing a bundled alias is a breaking change and is not permitted after 1.0. The bundled alias table is frozen grammar in the same stability tier as the canonical command names.
 
 ---
 
@@ -204,8 +211,9 @@ project relabels the field or declares its own. The same row also carries `local
 / `ST` / `F` in a local id), `plural` (the CLI list verb, and the container-marker name in the
 file), `container_heading` (the `## …` heading sq writes — read it rather than title-casing
 `plural`, which gives "Stories" where sq writes "User Stories"), `completion` (the status a "mark
-done" action should target, instead of assuming `Done`), and `maps_parent_story` (whether this kind
-carries the extra story column in its roll-up table).
+done" action should target, instead of assuming `Done`), `label` (the kind's label, as
+`display.type` and the column headers print it), and `maps_to_parent` (whether this kind maps
+each sub-entity to one of the parent's, which adds a column headed by the target kind's label).
 
 **Resolving a type's or a kind's state machine.** The type row and the kind row each carry the name
 of the state machine they bind — equal values mean two entries bind the same machine (`epic`,
@@ -311,10 +319,11 @@ override that refusal. See
 ## Sub-entities: subtasks, user stories, findings
 
 The sub-entities (subtasks/stories/findings) are tracked by `sq` too — each has its own status, and
-the parent shows an **sq-managed summary table** that rolls them up (regenerated on every change).
-Their state (status/assignee/severity/story) lives in the parent item's **frontmatter** (so the index
-sees them); the block in the body holds only the prose and a derived badge header. The block's **body
-is sq-managed too** — set it with `sq <type> <n> <kind> <k> body -m
+`sq <type> <n> show` prints a **summary table** that rolls them up, computed when it is read.
+Their state (status, assignee, each field value such as a finding's severity, and the mapping)
+lives in the parent item's **frontmatter** (so the index sees them), one flat entry per
+sub-entity under `subentities:`; the block in the body holds only the heading and the prose. The
+block's **body is sq-managed too** — set it with `sq <type> <n> <kind> <k> body -m
 "…"` (or `--file body.md` / `--file -`) and read the whole block with `sq <type> <n> <kind> <k> show`;
 no manual markdown editing, and no manual markdown reading either — the block on disk holds only the
 prose, so opening the file shows you strictly less than `show` does. `body` **replaces** the block's prose, so it refuses once something has
@@ -328,8 +337,12 @@ replace it on purpose.
 | **finding** | review | `sq review <n> add-finding "…" --severity high` · `sq review <n> finding <k> update --status <S>` | `Open → Fixed → Verified` (+ WontFix, Noted, Deferred) |
 
 `sq <type> <n> <kind> <k> update` is the one metadata entry point for a sub-entity — `--title`,
-`--status` (+`--force`), `--assignee`/`--clear-assignee`, plus a subtask's `--story`/`--no-story` and
-a finding's `--severity`. Findings carry a **severity** value from the bundled `severity` collection
+`--status` (+`--force`), `--assignee`/`--clear-assignee`, plus an option per field the kind
+declares (a finding's `--severity`; `--no-<code>` clears an optional one) and, on a kind that maps
+to the parent's sub-entities, the mapping option named after the target kind (a subtask's
+`--story`/`--no-story`, because a task's parent is a feature and a feature hosts stories). The
+mapping is stored under `maps_to`; see
+[overrides.md § "Sub-entity kinds"](overrides.md#sub-entity-kinds-the-blocks-an-item-hosts). Findings carry a **severity** value from the bundled `severity` collection
 (by default: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info), set at `add` time and changeable
 with `update --severity`. The severity collection is fully customizable via `.overrides/workflow.toml`;
 you can relabel badges, change emoji, add/remove values, or define a custom collection for your
@@ -786,8 +799,9 @@ else at the top level is refused by name when the spec loads; `sq workflow lint`
 set for the version you are running, which is the list to trust rather than this one.
 
 The subsections below cover lifecycles, statuses, status roles, item types, collections, ref kinds
-and derived views. Sub-entity kinds (`[subentity_kinds.*]`) are declarable but have no field
-reference here; read one back with `sq workflow subentity-kinds --json` for its field shape.
+and derived views. Sub-entity kinds (`[subentity_kinds.*]`) are described in
+[overrides.md § "Sub-entity kinds"](overrides.md#sub-entity-kinds-the-blocks-an-item-hosts); read
+one back with `sq workflow subentity-kinds --json`.
 
 #### Lifecycles
 
@@ -999,8 +1013,11 @@ Values are set at creation with one option per declared field (`sq create incide
 high`), later with `sq <type> <n> update --set impact=high`, and filtered with `sq list --badge
 impact=high` / `--min-badge` / `--sort`. A field created without a value stores the field's own
 `default` if it declares one, else its collection's `default`, else nothing; the bundled bug's
-`severity` field defaults to `medium`. Items that already exist keep what they store. The bundled priority axis additionally has `--priority`
-and `--min-priority` sugar.
+`severity` field defaults to `medium`. Items that already exist keep what they store. Every field
+also gets its own options, derived from its code: `--impact` on `create` and `update`,
+`--no-impact` on `update` for an optional field, and `--impact` and `--min-impact` on `list` and
+`tree`. The bundled squad's `--priority` and `--min-priority` are these options for its `priority`
+field; see [overrides.md § "Collections"](overrides.md#collections-custom-badge-axes).
 
 Removing a badge code from a collection is refused while live items still carry that code; the
 refusal lists the affected IDs.
@@ -1599,11 +1616,72 @@ different vocabulary, use the on-demand **data migration commands**:
   sq migrate rename-status task Blocked Waiting   # every task at Blocked → Waiting
   ```
 
-These are **audited data rewrites** — atomic per type, designed to preserve referential integrity,
-and audited item by item: each writes **one reflog line per item moved**, not one line for the run,
-so `sq reflog --op rename-type` reconstructs exactly which items a past rename touched. Always
-verify with `sq check` after. Both run only on a squad at the package's schema: on one that is
+- **`sq migrate rename-field OLD NEW [--type TYPE]... [--kind KIND]...`** — see
+  [Renaming a badge field](#renaming-a-badge-field-sq-migrate-rename-field) below.
+- **`sq migrate rename-kind OLD NEW`** — see
+  [Renaming a sub-entity kind](#renaming-a-sub-entity-kind-sq-migrate-rename-kind) below.
+
+These are **audited data rewrites** — atomic, designed to preserve referential integrity, and
+audited item by item: each writes **one reflog line per item it changes**, not one line for the
+run, so `sq reflog --op rename-type` reconstructs exactly which items a past rename touched. Always
+verify with `sq check` after. All four run only on a squad at the package's schema: on one that is
 behind, run `sq migrate up` first.
+
+### Renaming a badge field (`sq migrate rename-field`)
+
+A value stored under a field code the active spec no longer declares on that type or kind is kept
+as an unknown key: it never stops a command, and the `frontmatter_key_undeclared` check reports it
+when a type selects it. The loader cannot tell a renamed field from a dropped one, so moving the
+values is an explicit step:
+
+```bash
+sq migrate rename-field impact effect --kind action   # the key on every action entry
+sq migrate rename-field risk impact --type incident   # the top-level key of every incident
+sq migrate rename-field risk impact                   # every item and every sub-entity entry
+```
+
+`OLD` and `NEW` are stored keys. With no scope it moves the key on every holder, items and
+sub-entity entries alike. `--type` limits it to the top-level key of items of that type, `--kind`
+to the entries of that kind; both repeat, and the scope is the union of what they name. It moves
+every value in one transaction, writes a `rename-field` reflog line and a system comment on each
+item it changes, and
+prints how many items and entries it moved (`--json`: `{old, new, items, entries}`). It refuses,
+exit `1` and nothing written:
+
+- a scope name the active spec does not declare (`--kind 'nope' is not a sub-entity kind the active spec declares`);
+- a holder in scope whose type or kind does not declare `NEW`
+  (`cannot rename field 'impact' to 'urgency': AC1 of JOB-9: 'action' does not declare 'urgency' (limit the move with --type or --kind)`);
+- a holder that already holds `NEW`, or a value that is not a badge code of `NEW`'s collection;
+- `OLD` equal to `NEW`.
+
+Each `frontmatter_key_undeclared` finding names the command already scoped to the holder it
+reports, so running it moves what the finding reports and nothing else.
+
+### Renaming a sub-entity kind (`sq migrate rename-kind`)
+
+Three spellings of a kind are written into the files: its name in each block marker
+(`<!-- sq:outcome:OC1 -->`), its `plural` in the container marker (`<!-- sq:outcomes -->`), and its
+`local_prefix` in every local id and in every `maps_to` that targets it. After an override changes
+one of them, the `subentity_kind_mismatch` check (when a type selects it) reports each stale
+spelling and names the command:
+
+```
+warn JOB-9: block marker of AC1 carries kind 'action', not 'step'; `sq migrate rename-kind action step` brings it to the declaration
+warn INI-8: OC1 does not start with prefix 'GO' of kind 'outcome'; `sq migrate rename-kind outcome outcome` brings it to the declaration
+```
+
+`sq migrate rename-kind OLD NEW` brings the stored spellings of kind `OLD` to the active
+declaration of kind `NEW`, in one transaction. `NEW` is a kind the active spec declares; `OLD` is
+the name the block markers carry, and equals `NEW` when only the plural or the local prefix
+changed. On every item that carries `OLD` blocks, it rewrites the block markers, the container
+marker and each local id (its number kept), and on every entry that maps to the kind it rewrites
+`maps_to` the same way. It writes a `rename-kind` reflog line and a system comment on each item it
+changes. It refuses, writing nothing, when `NEW` is not declared, when an item that carries `OLD`
+has a type that does not host `NEW`, when one item's entries carry more than one prefix, or when a
+marker pair is missing. When nothing differs it changes nothing, so it is safe to run again.
+Discussion text and reflog entries keep the spellings they recorded.
+
+A kind's `label` and `heading` are not stored; changing them needs no command.
 
 **Use case:** You released your squad with the built-in `task` type but later realize you want to call
 them `job` instead. Declare a `job` type in your workflow override, then run `sq migrate rename-type

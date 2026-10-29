@@ -400,7 +400,7 @@ def _cmd_update(item: typer.Typer, item_type: str) -> None:
     ):
         """Change the item's title, status, parent, assignee, labels or attributes."""
         # `is not None`, not truthiness: `--parent ""` is a supplied value, and a truth test
-        # let it through and report "updated" for a parent never written.
+        # would let it through and report "updated" for a parent never written.
         if parent is not None and no_parent:
             raise SquadsError("use either --parent or --no-parent, not both")
         field_values = field_options.given_values(ctx)
