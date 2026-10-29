@@ -6,6 +6,57 @@ All notable changes to this project are documented here. The format follows
 
 ## [0.19.0]
 
+### Added
+
+- **`sq create` takes one option per attribute the type declares.** Each `str`, `list` or `date` attribute a type declares, in the bundled spec or in `.overrides/workflow.toml`, becomes a create option named after its key with dashes: `sq create milestone "Beta" --author product-owner --target-date 2026-11-30`, `sq create review "Auth review" --author reviewer --target-ref TASK-<n>`, and `--tech` and `--tags` on a guide. A value is checked and parsed as `update --set` does it: a date must be ISO (`'target_date' expects an ISO date (YYYY-MM-DD); got 'nope'`), and a list option is repeatable, splits on commas and drops blank entries, so `--tags a,b --tags c` stores `a`, `b` and `c`. `sq create <type> --help` lists the options a type takes.
+
+- **`sq adopt --renumber`.** It gives every file that shares a number with a file of another id a new number, then adopts the folder, as `sq repair --renumber` does on a squad that is already set up.
+
+- **`sq adopt --renumber` and `sq repair --renumber` list the items they moved.** Each item given a new number prints one line, such as `renumbered TASK-24 -> TASK-28`. Under `--json`, `sq adopt` gains a `renumbered` array holding those lines, and the `renumbered` array of `sq repair --json` lists them too.
+
+- **`sq check` reports a sub-entity with no title.** The `subentity_title_present` rule warns on a story, subtask or finding whose title is empty, and names the command that sets one: ``subtask ST1 has no title — set one with `sq task 24 subtask ST1 update --title "…"` ``. Every `work` type runs it, as it runs `subentity_body_written`.
+
+### Changed
+
+- **BREAKING — `sq create guide` takes `--tags`, not `--tag`.** The option is named after the guide's `tags` attribute, and `--tag` is refused with `No such option: --tag` (exit `2`). A guide also takes the options every type takes: `--priority`, `--label` and `--ref`, plus an option for each field or attribute an override declares on it. **What to do:** replace `--tag` with `--tags` in scripts that create guides.
+
+- **BREAKING — a sub-entity title is required.** `add-story`, `add-subtask`, `add-finding` and a custom kind's `add-<kind>` refuse a missing title with exit `2` (`Missing argument 'TITLE'.`) and a blank one with exit `1` (`title must not be empty`). A sub-entity's `update --title ""` and the `sq import` events that add a sub-entity are refused the same way: `line 1: add-subtask.title: Field required`, or `title must not be empty`. Nothing is written. **What to do:** give every sub-entity a short title. `sq check` lists the existing sub-entities that have none (see **Added**).
+
+- **BREAKING — `ref rm` and `unlink-role` refuse an edge the item does not have.** `sq <type> <n> ref rm TARGET` and `sq skill <slug> ref rm TARGET` exit `1` with `TASK-24 has no ref to REV-25` when the item holds no ref to the target, instead of printing `removed …` and exiting `0`. `sq skill <slug> unlink-role <role>` on a skill that is not scoped to the role exits `1` and names the kind it looked for: `SKILL-9 has no scopes ref to ROLE-4`, even when the skill holds a ref of another kind to the role. **What to do:** a script that removed a ref without knowing whether it was there checks `sq <type> <n> refs --json` first.
+
+- **`sq repair` refuses files that share a number.** Two files of different ids that carry the same number, such as `TASK-24` and `BUG-24`, used to leave one of them out of the rebuilt index with exit `0`, so it vanished from `sq list`. `sq repair` now exits `1`, writes nothing, and names the files and the remedy:
+
+  ```
+  error: refusing to rebuild the index: it keys items by number:
+    - 2 files carry number 24 under different ids (bugs/BUG-000024-two.md, tasks/TASK-000024-t.md); run `sq repair --renumber` to give one of them a new number
+  ```
+
+  `sq init` and `sq adopt` over a folder whose files share a number refuse the same way before writing anything, `.squads.toml` included, and name `sq adopt --renumber`, which needs no configuration.
+
+- **Typos in filters and ranges are refused instead of answering nothing.** Each of these used to exit `0` with an empty or unchanged result; each now exits `1` with the values it accepts:
+  - `sq list --sort` and `sq tree --sort` with a field that is not an ordered badge field: `unknown sort field 'ghost' (one of: priority, severity)`.
+  - `--badge CODE=VALUE` and `--min-badge CODE=VALUE` on `list` and `tree` check the code against the declared badge fields and the value against that field's collection, as `--priority` does: `unknown badge field 'ghost' (one of: priority, severity)`, `unknown priority 'ghost' (one of: urgent, high, medium, low)`.
+  - `sq reflog --op` with an operation the reflog does not record: `unknown operation 'ghost' (one of: create, status, …)`.
+  - `sq migrate chlog` with a bound that is not a version, or a start that is not below the end: `expected a range like v0.1.1..v0.2.0 (vFROM..vTO, FROM below TO), got 'v0.17.0..v0.1.0'`.
+
+  A negative `--depth` on `sq tree` and `sq graph` is refused as a usage error with exit `2`: `Invalid value for '--depth': must be 0 or more`.
+
+- **`sq migrate repad` accepts a width of at most 32.** A wider padding is refused before any file is renamed: `new padding 33 is above the maximum of 32 digits; padding can only increase, so a width that wide could not be taken back`. A width of 300 used to end in a traceback, and one of 99 was applied for good.
+
+- **`sq init` and `sq adopt` check `--squad-dir` and `--backend` before writing anything.** An unknown backend (`unknown backend 'bogus' (available: claude_code, agents_md)`) used to be refused after `.squads.toml` was written, so the corrected command then failed too. A `--squad-dir` that is empty, absolute or outside the project directory is refused with one line and exit `1`: `--squad-dir must name a folder, not an empty value`, `--squad-dir must be relative to the project root, got '/abs'`, `--squad-dir must stay inside the project root, got '../up'`. An absolute or empty value used to end in a traceback, and `../up` created the squad outside the project.
+
+- **`sq workflow view` refuses an ID whose prefix names another type.** `sq workflow view memory_skill SKILL-2` exits `1` with `SKILL-2 is ROLE-2 (role)`, as `sq show SKILL-2` does, instead of rendering ROLE-2.
+
+### Fixed
+
+- **`sq renumber` and `sq repair --renumber` update the hint a new item carries.** The hint line a new item carries above its sub-entity list, such as ``_Add with `sq task 2 add-subtask "<title>"`; …_``, kept the old number, so after a renumber it addressed another item or none. It now names the new number. A hint you have edited is left as it is.
+
+- **A comment on a sub-entity that does not exist names it.** `sq task 24 subtask 9 comment --as qa -m x` says `no subtask ST9 in TASK-24`, as `body` and `update` do, instead of an internal section name and `(was it scaffolded?)`.
+
+- **`sq import` reports a missing or unknown `op` in its own words.** `line 1: unknown op 'nope'; valid ops: create, status, body, …` and `line 2: missing op; valid ops: …` replace the validation library's wording and its stray `: `.
+
+- **`sq memory <role> search` shows a matching line once.** A memory whose body repeats its summary showed that line twice under the hit.
+
 ## [0.18.0]
 
 ### Added

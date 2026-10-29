@@ -91,10 +91,10 @@ subentities:
   severity: info
 - local_id: F17
   title: adopt --renumber does not say which item it gave a new number
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-10-29T17:02:38Z'
-updated_at: '2026-10-29T19:50:22Z'
+updated_at: '2026-10-29T19:55:26Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -444,6 +444,8 @@ The op-pierre ruling renamed guide's `--tag` to `--tags`, but three texts still 
   - Still Open, as planned: it ships with the version bump. The dev updates the playbook guide command and @tech-writer updates the README and CHANGELOG lines that still give guide --tag.
 - [2026-10-29T19:48:37Z] `python-dev` Elias Python:
   - Code half done in 1a0e8a8c: playbook.toml names --tags, version bumped to 0.19.0 with the manifest 0.19.0 entry appended (0.18.0 entry byte-identical to the tag), CHANGELOG heading renamed. README and changelog entries remain for the tech writer.
+- [2026-10-29T19:55:26Z] `tech-writer` Theo Writer:
+  - README/CHANGELOG half done (uncommitted, for the manager): README create synopsis now lists `--<attribute> VALUE` with guide `--tech`/`--tags`, milestone `--target-date`, review `--target-ref`; the guide line gives `--tags` and the shared create options; adopt synopsis gains `[--renumber]`; repair line says shared numbers are refused. CHANGELOG 0.19.0 has the batch: Added (attribute create options, adopt --renumber, subentity_title_present), Changed (BREAKING guide --tags, required sub-entity titles, ref rm/unlink-role refusals; repair/init/adopt shared-number refusal; filter, chlog, depth, repad, squad-dir, backend and workflow view refusals), Fixed (renumber hints, missing sub-entity comment, import op messages, memory search). @manager
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 
@@ -497,6 +499,8 @@ Fix: carry the repair's renumbered lines on `AdoptReport` and print them in the 
 #### Discussion
 
 <!-- sq:finding:F17:discussion -->
+- [2026-10-29T19:54:49Z] `python-dev` Elias Python:
+  - Fixed in bfb2896e: AdoptReport.renumbered, printed like repair; repair now also lists distinct-id moves.
 <!-- sq:finding:F17:discussion:end -->
 <!-- sq:finding:F17:end -->
 <!-- sq:findings:end -->
