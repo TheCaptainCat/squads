@@ -27,7 +27,7 @@ def _meta_line(sub: SubentityShow) -> str:
     meta = [f"status: {e(sub.status)}"]
     if sub.assignee:
         meta.append(f"assignee: {e(sub.assignee)}")
-    meta += [f"{b.label.lower()}: {e(sub.badges[code])}" for code, b in shown.badges.items()]
+    meta += [f"{b.label}: {e(sub.badges[code])}" for code, b in shown.badges.items()]
     if sub.maps_to and shown.maps_to_kind:
         meta.append(f"{e(shown.maps_to_kind.label)}: {e(sub.maps_to)}")
     if sub.deferred_to:

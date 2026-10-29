@@ -1210,12 +1210,27 @@ async def test_the_help_the_column_and_the_show_line_name_the_target_kind(
     )
     assert await _ok(invoke, ["job", "9", "action", "1", "show"]) == (
         "AC1 — Draft the outline  (action)\n"
-        "  status: Todo   impact: large   Desired outcome: OC1\n"
+        "  status: Todo   Impact: large   Desired outcome: OC1\n"
         "\n"
         "Outline.\n"
         "\n"
         "Discussion\n"
         "(none)\n"
+    )
+    update_item_help = (await _ok(invoke, ["job", "9", "update", "--help"])).splitlines()
+    create_help = (await _ok(invoke, ["create", "job", "--help"])).splitlines()
+    list_help = (await _ok(invoke, ["list", "--help"])).splitlines()
+    assert (
+        "│ --no-work-size                Clear the Work size.                           │"
+        in update_item_help
+    )
+    assert (
+        "│    --owner-team                  TEXT  Attribute owner team of the job.      │"
+        in create_help
+    )
+    assert (
+        "│ --min-urgency            TEXT  At least this Urgency: now|soon|later.        │"
+        in list_help
     )
 
 

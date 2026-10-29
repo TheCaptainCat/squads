@@ -999,7 +999,7 @@ async def test_rename_kind_keeps_the_prefix_and_the_bodies_stay_reachable(
         "",
     ]
     mapped = await invoke(["job", "9", "action", "1", "show"])
-    assert mapped.output.splitlines()[1] == "  status: Todo   impact: large   Desired outcome: OC1"
+    assert mapped.output.splitlines()[1] == "  status: Todo   Impact: large   Desired outcome: OC1"
     checked = await invoke(["check", "--json"])
     assert (checked.exit_code, checked.output) == (0, "[]\n")
 
@@ -1027,7 +1027,7 @@ async def test_rename_kind_moves_the_prefix_the_plural_and_the_mappings(
         "Measured weekly.",
     ]
     mapped = await invoke(["job", "9", "action", "1", "show"])
-    assert mapped.output.splitlines()[1] == "  status: Todo   impact: large   Desired outcome: GO1"
+    assert mapped.output.splitlines()[1] == "  status: Todo   Impact: large   Desired outcome: GO1"
     table = await invoke(["initiative", "8", "show"])
     assert table.output == RENAMED_INITIATIVE_SHOW
     checked = await invoke(["check", "--json"])
