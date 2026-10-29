@@ -23,7 +23,7 @@ subentities:
   status: Todo
   story: US6
 created_at: '2026-10-28T14:08:43Z'
-updated_at: '2026-10-28T14:09:59Z'
+updated_at: '2026-10-28T19:17:59Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -32,20 +32,23 @@ Make the daemon's cross-platform promise visible in CI: the daemon and remote-mo
 
 ## What it builds
 
-- **Daemon coverage on all three runners.** The daemon tests (lifecycle, admission, parity against a real spawned daemon) run on `ubuntu-latest`, `macos-latest` and `windows-latest`. On Windows they exercise the detached spawn flags, the loopback CLI port, `%LOCALAPPDATA%` runtime files and lock release on process termination.
-- **No stray daemons.** The jobs run with `SQUADS_DAEMON=off` at the job level as well as through the test suite's own setting, and a post-test step fails the job if any `squads daemon run` process outlives the test step, printing its runtime-directory log.
-- **Wall time kept in check.** The Windows job already dominates CI time; the remote-mode parity tests are placed so they do not double it (a separate job or marker selection, decided with the parity harness the forwarder task builds). Report the before and after job times.
+- **Cross-process job on the three runners.** Exactly the members ADR-1172 "The cross-process set" names (implicit start, discovery, fall back, no replay, Ctrl-C, detached spawn on Windows), written in TASK-1219, running the real `sq` console script on `ubuntu-latest`, `macos-latest` and `windows-latest`.
+- **The CLI surface suite in remote mode** (TASK-1219's parity run) as its own job per OS, under ADR-1172's time bound (10 minutes; 15 for Windows, where the remote-mode run is the full suite).
+- **No stray daemons.** Every job sets `SQUADS_DAEMON=off` at job level except where a test turns it on; a post-test step fails the job if any `squads daemon run` process outlives the test step, printing its runtime-directory log.
+- Report each job's time on two runs per OS, against the ADR-1172 bound.
+- No new test cases: this task adds jobs that run the tests TASK-1218 and TASK-1219 write.
 
 ## Acceptance
 
-- US6: the feature's acceptance behaviours pass on native Windows, including start, discovery, idle exit and fall back.
+- US6: the cross-process members and the surface suite in both modes pass on native Windows (idle exit is not tested, ADR-1052 point 11).
 - Feature acceptance: "The same behaviour holds on Linux, macOS and native Windows."
 - A daemon process left running after tests fails the job on every OS.
+- Every job within ADR-1172's time bound on two runs per OS.
 
 ## Test approach
 
-- Prove the leak check by a deliberately leaked daemon on a throwaway branch run: the job must fail on each OS, then pass once removed.
-- Prove the Windows coverage is real by checking the collected test IDs on the Windows job include the Windows-only rows (no silent skip-all): a skip count of zero for the daemon module on Windows, or an explicit list of the POSIX-only skips.
+- Prove the leak check with a deliberately leaked daemon on a throwaway branch: the job fails on each OS, then passes once removed.
+- Prove the Windows coverage is real: the Windows jobs' collected test IDs include the Windows-only cases (the Windows CLI port's admission cases, the detached-spawn member), with zero skips in the daemon modules, or an explicit list of the POSIX-only skips.
 <!-- sq:body:end -->
 
 ## Subtasks
@@ -58,7 +61,7 @@ _Add with `sq task 1220 add-subtask "<title>"`; track with `sq task 1220 subtask
 ### ST1 — Daemon tests on the three-OS matrix, Windows first-class
 
 <!-- sq:subtask:ST1:body -->
-Run the daemon and remote-mode tests on `ubuntu-latest`, `macos-latest` and `windows-latest` in `.github/workflows/test.yml`; show the Windows job collects the Windows-only rows (no silent skip-all) and exercises detached spawn, the CLI port, runtime files and lock release on termination.
+A cross-process job on `ubuntu-latest`, `macos-latest` and `windows-latest` in `.github/workflows/test.yml`, running exactly the members ADR-1172 "The cross-process set" names (implicit start, discovery, fall back, no replay, Ctrl-C, detached spawn on Windows), written in TASK-1219 ST1, ST2, ST3 and ST5. Show the Windows job collects the Windows-only member with no silent skip.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -71,7 +74,7 @@ Run the daemon and remote-mode tests on `ubuntu-latest`, `macos-latest` and `win
 ### ST2 — Leaked-daemon check and bounded wall time
 
 <!-- sq:subtask:ST2:body -->
-Job-level `SQUADS_DAEMON=off` plus a post-test step that fails when a `squads daemon run` process survives, printing its log; prove it with a deliberate leak on a throwaway branch. Place the remote-mode parity tests so the Windows job time does not double; report before and after job times.
+Job-level `SQUADS_DAEMON=off` plus a post-test step that fails when a `squads daemon run` process survives, printing its log; prove it with a deliberate leak on a throwaway branch. The surface suite's remote-mode run (ADR-1172 "Mode parity") gets its own job per OS, under ADR-1172's time bound (10 minutes; 15 for Windows, where the remote-mode run is the full suite); report two runs per OS.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

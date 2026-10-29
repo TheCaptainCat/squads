@@ -1,6 +1,6 @@
 {
   "schema_version": "0.17",
-  "counter": 1222,
+  "counter": 1223,
   "padding": 6,
   "items": {
     "12": {
@@ -9330,7 +9330,7 @@
       ],
       "path": "features/FEAT-001140-the-daemon-a-local-api-the-cli-and-web-client-share.md",
       "created_at": "2026-10-25T10:47:24Z",
-      "updated_at": "2026-10-28T18:28:08Z",
+      "updated_at": "2026-10-28T19:18:00Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -40127,7 +40127,7 @@
       "subentities": [],
       "path": "adrs/ADR-001052-the-daemon-one-command-api-its-transports-lifecycle-and-requ.md",
       "created_at": "2026-10-16T11:27:26Z",
-      "updated_at": "2026-10-28T18:28:02Z",
+      "updated_at": "2026-10-28T19:15:59Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -60230,7 +60230,7 @@
       "subentities": [],
       "path": "adrs/ADR-001172-cli-surface-tests-one-case-per-parameter-guarded-coverage.md",
       "created_at": "2026-10-27T21:25:41Z",
-      "updated_at": "2026-10-28T00:37:18Z",
+      "updated_at": "2026-10-28T19:15:58Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -62711,7 +62711,7 @@
       "type": "task",
       "title": "In-process command entry and request-seeded CLI",
       "slug": "in-process-command-entry-and-request-seeded-cli",
-      "status": "InProgress",
+      "status": "Done",
       "description": "One argv-to-exit-code entry, per-invocation consoles, directory, attachments and context from the request; invisible in local mode",
       "parent": "FEAT-1140",
       "author": "tech-lead",
@@ -62726,7 +62726,7 @@
         {
           "local_id": "ST1",
           "title": "One argv-to-exit-code entry",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US10",
@@ -62736,7 +62736,7 @@
         {
           "local_id": "ST2",
           "title": "Consoles built per invocation",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US10",
@@ -62746,7 +62746,7 @@
         {
           "local_id": "ST3",
           "title": "Directory, attachments and context from the request",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US10",
@@ -62756,7 +62756,7 @@
         {
           "local_id": "ST4",
           "title": "Prompt sites signal needs_terminal before any write",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -62766,7 +62766,7 @@
       ],
       "path": "tasks/TASK-001217-in-process-command-entry-and-request-seeded-cli.md",
       "created_at": "2026-10-28T14:08:40Z",
-      "updated_at": "2026-10-28T18:23:37Z",
+      "updated_at": "2026-10-28T19:29:36Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -62860,11 +62860,41 @@
           "story": "US7",
           "deferred_to": null,
           "extra": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Prompt after a commit fails instead of retrying",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST9",
+          "title": "Typer help and usage output follow the request",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST10",
+          "title": "Endpoint surface tests for the seeded request path",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US10",
+          "deferred_to": null,
+          "extra": {}
         }
       ],
       "path": "tasks/TASK-001218-daemon-process-settings-discovery-command-api-listeners.md",
       "created_at": "2026-10-28T14:08:41Z",
-      "updated_at": "2026-10-28T14:09:51Z",
+      "updated_at": "2026-10-28T19:17:52Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -62952,7 +62982,7 @@
       ],
       "path": "tasks/TASK-001219-cli-remote-mode-forwarder-implicit-start-and-fall-back.md",
       "created_at": "2026-10-28T14:08:42Z",
-      "updated_at": "2026-10-28T14:09:57Z",
+      "updated_at": "2026-10-28T19:17:57Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63001,7 +63031,7 @@
       ],
       "path": "tasks/TASK-001220-ci-daemon-coverage-on-linux-macos-and-native-windows.md",
       "created_at": "2026-10-28T14:08:43Z",
-      "updated_at": "2026-10-28T14:09:59Z",
+      "updated_at": "2026-10-28T19:17:59Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63049,7 +63079,7 @@
       ],
       "path": "tasks/TASK-001221-adopter-docs-and-changelog-for-the-daemon.md",
       "created_at": "2026-10-28T14:08:44Z",
-      "updated_at": "2026-10-28T14:10:01Z",
+      "updated_at": "2026-10-28T18:39:03Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -63098,12 +63128,160 @@
       ],
       "path": "tasks/TASK-001222-dogfood-the-daemon-on-this-repository-s-board.md",
       "created_at": "2026-10-28T14:08:45Z",
-      "updated_at": "2026-10-28T18:23:38Z",
+      "updated_at": "2026-10-28T19:11:31Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
       "slug_in_file": false,
       "id": "TASK-1222"
+    },
+    "1223": {
+      "sequence_id": 1223,
+      "type": "review",
+      "title": "Review of the daemon feature's delivered tasks",
+      "slug": "review-of-the-daemon-feature-s-delivered-tasks",
+      "status": "ChangesRequested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1140",
+        "TASK-1217"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "role add/update --file bypass attachments and read the serving process's cwd",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Seeded terminal facts force_terminal and override the client's FORCE_COLOR/TTY_COMPATIBLE",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Typer's help and usage-error consoles ignore seeded terminal facts",
+          "status": "Deferred",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": "TASK-1218",
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "No test covers terminal facts reaching the consoles; build_consoles(None) mutation survives",
+          "status": "Deferred",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": "TASK-1218",
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Override remedy path still spelled from the process directory in a served request",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Prompt after a committed transaction does not fail as ADR-1052 point 12 states",
+          "status": "Deferred",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": "TASK-1218",
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Attachments decoded outside the CLI; invalid UTF-8 --file escapes as a traceback",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Comment-removal listing before NeedsTerminal; vacuous --version stderr row",
+          "status": "Deferred",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "deferred_to": "TASK-1218",
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Local-mode changes from the fix have no CHANGELOG entry: role --file under -C, clean non-UTF-8 refusal",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "test_in_process_entry.py breaks ADR-1172 rules 3-5: direct run()/unit calls, file reads, no covers",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "A role definition file that is not UTF-8 is reported as a role override",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "role --file read errors still mix wordings: a missing file says role override, an unattached one says file",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
+      "created_at": "2026-10-28T18:45:17Z",
+      "updated_at": "2026-10-28T19:29:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1223"
     }
   }
 }

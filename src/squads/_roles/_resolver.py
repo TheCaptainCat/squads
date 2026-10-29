@@ -35,6 +35,7 @@ later configuration change renames the role.
 """
 
 import tomllib
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, cast
@@ -114,15 +115,15 @@ def model_problem(model: str | None) -> str | None:
     return f"model {model!r} is not one of {sorted(VALID_MODELS)}"
 
 
-def read_role_toml(path: Path) -> dict[str, Any]:
-    """Read a role definition file; surface a :class:`SquadsError` when it cannot be read or
-    parsed."""
-    return _read_toml(path)
+def read_role_toml(path: Path, read: Callable[[Path], str] | None = None) -> dict[str, Any]:
+    """Read a role definition file (through *read* when given); surface a :class:`SquadsError`
+    when it cannot be read or parsed."""
+    return _read_toml(path, read)
 
 
-def _read_toml(path: Path) -> dict[str, Any]:
+def _read_toml(path: Path, read: Callable[[Path], str] | None = None) -> dict[str, Any]:
     """Read *path* as TOML; surface a :class:`SquadsError` when it cannot be read or parsed."""
-    text = read_override_text(path, ROLE_OVERRIDE_MESSAGES)
+    text = read_override_text(path, ROLE_OVERRIDE_MESSAGES, read=read)
     try:
         return tomllib.loads(text)
     except tomllib.TOMLDecodeError as exc:

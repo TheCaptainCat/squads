@@ -182,7 +182,8 @@ def _build_badge_filters(
 
 # TTY detection — injectable for testing (monkeypatch this callable).
 def _default_is_tty() -> bool:
-    return sys.stdin.isatty()
+    terminal = get_context().terminal
+    return terminal.stdin_tty if terminal is not None else sys.stdin.isatty()
 
 
 # Module-level slot; tests monkeypatch this to control TTY behaviour.
@@ -367,10 +368,8 @@ async def init(
             # Prompt: show the default name, allow blank to keep it.
             default_name = rdef.full_name
             try:
-                typed = typer.prompt(
-                    f"Name for {slug!r} (Enter to keep default '{default_name}')",
-                    default="",
-                    show_default=False,
+                typed = common.prompt_or_signal(
+                    f"Name for {slug!r} (Enter to keep default '{default_name}')"
                 ).strip()
             # Parenthesized (not PEP 758 bare-tuple) so `vulture` can still parse this file;
             # ruff's py314-target formatter would otherwise strip the parens back off.

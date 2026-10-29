@@ -524,7 +524,7 @@ def _cmd_remove(item: typer.Typer) -> None:
         svc = get_service()
         await common.apply_edit_actor(as_, svc)
         if not yes:
-            typer.confirm(f"Remove {item_id}? This cannot be undone.", abort=True)
+            common.confirm_or_signal(f"Remove {item_id}? This cannot be undone.")
         res = await svc.remove_work_item(item_id, force=force)
         if json_out:
             print_json_clean(
@@ -1141,7 +1141,7 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
         svc = get_service()
         await common.apply_edit_actor(as_, svc)
         if not yes:
-            typer.confirm(f"Remove {kind} {lid} from {pid}? This cannot be undone.", abort=True)
+            common.confirm_or_signal(f"Remove {kind} {lid} from {pid}? This cannot be undone.")
         await svc.remove_block(pid, kind, lid)
         if json_out:
             print_json_clean(json.dumps({"removed": f"{kind} {lid}"}))

@@ -1,7 +1,10 @@
 """The Typer application, exposed as both `squads` and `sq`."""
 
+import contextvars
 import io
 import sys
+from collections.abc import Sequence
+from dataclasses import replace
 from datetime import datetime
 from typing import Any, ClassVar
 
@@ -237,7 +240,8 @@ def main_callback(
     from squads._context import bind_context, get_context
 
     # Bind one fresh RequestContext per invocation, from -C/--at plus the clock that
-    # `_resolve_clock_override` carries forward.
+    # `_resolve_clock_override` carries forward; the request's own starting directory,
+    # attachments, terminal and documents pass through, and the consoles are built here.
     prior = get_context()
     session_id, parent_session_id = actor.session_from_env()
     client_cwd = common.effective_dir(change_dir)
@@ -252,6 +256,11 @@ def main_callback(
             client_cwd=client_cwd,
             client_cwd_chosen=bool(change_dir),
             spec_error=spec_error,
+            start_dir=prior.start_dir,
+            attachments=prior.attachments,
+            terminal=prior.terminal,
+            documents=prior.documents,
+            consoles=common.build_consoles(prior.terminal),
         )
     )
     common.mark_root_callback_ran(ctx)
@@ -373,7 +382,47 @@ def _hoist_global_options(args: list[str]) -> list[str]:
     return hoisted + rest
 
 
+def _exit_code(code: object) -> int:
+    """The exit code a ``SystemExit`` carries, read as the interpreter would at exit."""
+    if code is None:
+        return 0
+    if isinstance(code, int):
+        return code
+    print(code, file=sys.stderr)
+    return 1
+
+
+def _run_in_scope(args: list[str], seed: RequestContext | None) -> int:
+    if seed is not None:
+        from squads._context import bind_context, get_context
+
+        bind_context(
+            replace(
+                get_context(),
+                start_dir=seed.start_dir,
+                attachments=seed.attachments,
+                terminal=seed.terminal,
+                documents=seed.documents,
+            )
+        )
+    try:
+        app(args=_hoist_global_options(args))
+    except SystemExit as exc:
+        return _exit_code(exc.code)
+    return 0
+
+
+def run(argv: Sequence[str], *, seed: RequestContext | None = None) -> int:
+    """Run one command line (the arguments after ``sq``) and return its exit code.
+
+    The command runs in a copy of the current context, so nothing it binds (clock, actor,
+    index read, consoles) is visible to the next call. *seed* carries a request's starting
+    directory, attachments, terminal facts and documents. A prompt in a request that has no
+    terminal raises :class:`~squads._errors.NeedsTerminal`.
+    """
+    return contextvars.copy_context().run(_run_in_scope, list(argv), seed)
+
+
 def main() -> None:
-    """Console-script entry point: make --at/--dir position-independent, then run the app."""
-    sys.argv[1:] = _hoist_global_options(sys.argv[1:])
-    app()
+    """Console-script entry point: run the process's arguments and exit with the code."""
+    sys.exit(run(sys.argv[1:]))

@@ -4,13 +4,14 @@ import contextlib
 import copy
 import enum
 import functools
+import io
 import json
 import os
 import sys
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePath
-from typing import Any
+from typing import IO, Any, cast
 
 import anyio
 import typer
@@ -28,8 +29,13 @@ from squads import _actor as actor
 from squads import _badges as badges
 from squads import _discussion as discussion
 from squads._cli._markup import escape_markup
-from squads._context import get_context, rebind
-from squads._errors import NotInitializedError, RoleNotFoundError, SquadsError
+from squads._context import TerminalFacts, get_context, rebind
+from squads._errors import (
+    NeedsTerminal,
+    NotInitializedError,
+    RoleNotFoundError,
+    SquadsError,
+)
 from squads._index._store import enter_read_scope, exit_read_scope
 from squads._interactions._role_guidance import allowed_create_types
 from squads._interactions._skills import role_origin
@@ -47,7 +53,7 @@ from squads._models._omission import Omission
 from squads._models._participants import ANONYMOUS_SLUG, refuse_system_actor
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._subentity import SubEntity
-from squads._paths import SquadPaths, resolve
+from squads._paths import SquadPaths, process_dir, resolve
 from squads._roles._catalog import RoleDef
 from squads._roles._models import CatalogSource
 from squads._roles._resolver import (
@@ -69,8 +75,66 @@ from squads._specload import override_present
 from squads._workflow import CATEGORIES, ROSTER_OPERATOR, ROSTER_ROLE, bundled_spec
 from squads._workflow._models import RESERVED_CLI_ALIASES, WorkflowSpec, reserved_alias_owner
 
-console = Console()
-err_console = Console(stderr=True)
+
+class _ReportedStream:
+    """A stream that answers ``isatty`` with the client's terminal fact and passes everything
+    else to the stream it wraps."""
+
+    def __init__(self, stream: Any, terminal: TerminalFacts, *, stderr: bool) -> None:
+        self._stream = stream
+        self._tty = terminal.stderr_tty if stderr else terminal.stdout_tty
+
+    def isatty(self) -> bool:
+        return self._tty
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._stream, name)
+
+
+def build_console(*, stderr: bool, terminal: TerminalFacts | None) -> Console:
+    """A console for the current stdio and environment; *terminal* (a served request's) decides
+    whether it is a terminal and how wide, in place of the process's own streams."""
+    if terminal is None:
+        return Console(stderr=stderr)
+    stream = _ReportedStream(sys.stderr if stderr else sys.stdout, terminal, stderr=stderr)
+    # The environment (COLUMNS, LINES, FORCE_COLOR, TTY_COMPATIBLE) outranks the terminal's own
+    # facts, as it does for a console on a real stream.
+    return Console(
+        file=cast(IO[str], stream),
+        stderr=stderr,
+        width=None if os.environ.get("COLUMNS", "").isdigit() else terminal.columns,
+        height=None if os.environ.get("LINES", "").isdigit() else terminal.lines,
+    )
+
+
+def build_consoles(terminal: TerminalFacts | None) -> tuple[Console, Console]:
+    """The stdout and stderr consoles of one invocation."""
+    return (
+        build_console(stderr=False, terminal=terminal),
+        build_console(stderr=True, terminal=terminal),
+    )
+
+
+class _ConsoleHandle:
+    """A name for one of the invocation's consoles: every use resolves to the console the current
+    invocation built, or to a fresh one when none is bound, so no console outlives its command."""
+
+    __slots__ = ("_stderr",)
+
+    def __init__(self, *, stderr: bool) -> None:
+        self._stderr = stderr
+
+    def __getattr__(self, name: str) -> Any:
+        ctx = get_context()
+        if ctx.consoles is not None:
+            target = ctx.consoles[1 if self._stderr else 0]
+        else:
+            target = build_console(stderr=self._stderr, terminal=ctx.terminal)
+        return getattr(target, name)
+
+
+console = cast(Console, _ConsoleHandle(stderr=False))
+err_console = cast(Console, _ConsoleHandle(stderr=True))
 
 
 def print_json_clean(s: str) -> None:
@@ -149,9 +213,10 @@ def effective_dir(values: Sequence[str]) -> Path:
     """The directory ``-C`` selects: the process directory, then each value entered in order
     as ``chdir`` would (an absolute value replaces what came before, an empty one changes
     nothing, a link is followed before a ``..``). Raises :class:`ChangeDirError` for a
-    component that is missing, not a directory, or not searchable. The one place the CLI
-    reads the process directory."""
-    path = Path.cwd().resolve()
+    component that is missing, not a directory, or not searchable. A request that carries its
+    own starting directory begins there instead of at the process directory."""
+    start = get_context().start_dir
+    path = (start if start is not None else process_dir()).resolve()
     for value in values:
         pure = PurePath(value)
         parts = pure.parts
@@ -535,8 +600,8 @@ ROLE_DELTA_FILE_HELP = (
 )
 
 
-def file_option(help: str = FILE_HELP) -> Any:
-    return typer.Option(None, "--file", help=help)
+def file_option(help: str = FILE_HELP, metavar: str | None = None) -> Any:
+    return typer.Option(None, "--file", help=help, metavar=metavar)
 
 
 def append_option() -> Any:
@@ -1159,15 +1224,80 @@ def client_path(file: str) -> Path:
     return base / file if base is not None else Path(file)
 
 
+def read_client_bytes(file: str, *, what: str = "file") -> bytes:
+    """The bytes of *file* as the command line names it: an attachment when the request carries
+    attachments, else the file under the client's directory. A name the request does not carry is
+    refused; a filesystem failure raises the :class:`OSError` naming *file* as it was given."""
+    attachments = get_context().attachments
+    if attachments is not None:
+        try:
+            return attachments[file]
+        except KeyError:
+            reason = "no stdin was attached" if file == "-" else "it was not attached"
+            raise SquadsError(f"cannot read {what} {file!r}: {reason}") from None
+    try:
+        return client_path(file).read_bytes()
+    except OSError as exc:
+        raise OSError(exc.errno, exc.strerror, file) from exc
+
+
+def _decode(raw: bytes, encoding: str) -> str:
+    """*raw* read through a text stream, so newlines translate as a file read would."""
+    return io.TextIOWrapper(io.BytesIO(raw), encoding=encoding).read()
+
+
+def read_client_file_text(file: str, *, what: str = "file") -> str:
+    """The text of *file* (see :func:`read_client_bytes`), ``-`` being stdin: the process's own,
+    or an attached one read in the client's stdin encoding. Raises what a read or decode raises."""
+    if file != "-":
+        return _decode(read_client_bytes(file, what=what), "utf-8")
+    if get_context().attachments is None:
+        return sys.stdin.read()
+    return _decode(read_client_bytes(file, what=what), sys.stdin.encoding or "utf-8")
+
+
+def not_text_refusal(exc: UnicodeDecodeError, file: str, what: str) -> SquadsError:
+    """The refusal for a *what* named *file* whose bytes do not decode."""
+    return SquadsError(
+        f"cannot read {what} {file!r}: not valid {exc.encoding} ({exc.reason} at byte {exc.start})"
+    )
+
+
+def read_client_text(file: str, *, what: str = "file") -> str:
+    """The text of *file* as the command line names it: ``-`` is stdin, anything else a path.
+
+    A request that carries attachments serves both from them, stdin through the client's stdin
+    encoding; otherwise the filesystem and the process's stdin are read. Every failure is a
+    :class:`SquadsError` naming *file*.
+    """
+    try:
+        return read_client_file_text(file, what=what)
+    except UnicodeDecodeError as exc:
+        raise not_text_refusal(exc, file, what) from exc
+    except OSError as exc:
+        raise SquadsError(f"cannot read {what} {file!r}: {exc.strerror or exc}") from exc
+
+
 def _read_source_file(file: str) -> str:
     """Read --file content: '-' reads stdin, anything else a real path. Shared by every
     content-source resolver (body, comment) so '-' and read errors behave identically."""
-    if file == "-":
-        return sys.stdin.read().strip("\n")
-    try:
-        return client_path(file).read_text(encoding="utf-8").strip("\n")
-    except OSError as exc:
-        raise SquadsError(f"cannot read file {file!r}: {exc.strerror or exc}") from exc
+    return read_client_text(file).strip("\n")
+
+
+def confirm_or_signal(prompt: str) -> None:
+    """``typer.confirm(prompt, abort=True)`` where a terminal exists; in a served request, which
+    has none, :class:`NeedsTerminal` before anything is asked."""
+    if get_context().terminal is not None:
+        raise NeedsTerminal(prompt)
+    typer.confirm(prompt, abort=True)
+
+
+def prompt_or_signal(prompt: str) -> str:
+    """``typer.prompt`` for an optional answer, with the same served-request signal as
+    :func:`confirm_or_signal`."""
+    if get_context().terminal is not None:
+        raise NeedsTerminal(prompt)
+    return typer.prompt(prompt, default="", show_default=False)
 
 
 def resolve_body_optional(messages: list[str] | None, file: str | None) -> str | None:
@@ -2331,9 +2461,7 @@ def _register_comment_remove(addr_app: typer.Typer, target: CommentTarget) -> No
                     highlight=False,
                 )
             n = len(found.group)
-            typer.confirm(
-                f"Remove {'this comment' if n == 1 else f'these {n} comments'}?", abort=True
-            )
+            confirm_or_signal(f"Remove {'this comment' if n == 1 else f'these {n} comments'}?")
         res = await svc.remove_comment(item_id, ctx.obj["hash"], as_slug=slug, sub=sub)
         if json_out:
             print_json_clean(

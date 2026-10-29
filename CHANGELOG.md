@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [0.18.0]
 
+### Changed
+
+- **`--file -` on `sq role add` and `sq role <slug> update` reads standard input.** These two commands read a file named `-`; they now read the role definition from standard input, as every other `--file` option does: `sq role add reviewer-2 --file - < reviewer.toml`. **What to do:** to read a file that is literally named `-`, pass it as `--file ./-`.
+
+### Fixed
+
+- **`sq role add --file` and `sq role <slug> update --file` resolve a relative path under the directory `-C` chose.** They read a relative path from the directory `sq` was started in, so `sq -C sub role add x --file x.toml` read `./x.toml` while `sq -C sub task 1 body --file b.md` read `sub/b.md`. Both now read `sub/x.toml`, like the other `--file` options.
+
+- **A `--file` that is not valid UTF-8 is a clean error, never a traceback.** An item or sub-entity body, a comment, an `sq import` file, a memory or a board notice read from a file that is not valid UTF-8 ended in a Python traceback. The command now exits 1 with one line naming the file and the position, such as `error: cannot read file 'notes.md': not valid utf-8 (invalid start byte at byte 2)`; the same holds for `--file -` with standard input. `sq role add --file` and `sq role <slug> update --file` already refused a missing or non-UTF-8 file cleanly; their messages now read like the other `--file` refusals, such as `error: cannot read role file 'reviewer.toml': No such file or directory` in place of `Cannot read role override reviewer.toml: [Errno 2] No such file or directory: 'reviewer.toml'`, and `cannot read role file 'reviewer.toml': not valid utf-8 (…)` in place of `Role override reviewer.toml is not valid UTF-8; save it as UTF-8 and re-run.` A role file under `.overrides/roles/` keeps the `Role override … is not valid UTF-8` message.
+
 ## [0.17.0]
 
 ### Migration

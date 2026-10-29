@@ -17,7 +17,7 @@ description: One HTTP command endpoint the CLI forwards to and the browser share
   Unix socket on POSIX, loopback ports on Windows and for the browser; serial commands
   in a fresh scope; edited configuration retires the daemon
 created_at: '2026-10-16T11:27:26Z'
-updated_at: '2026-10-28T18:28:02Z'
+updated_at: '2026-10-28T19:15:59Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -154,7 +154,7 @@ Option II is rejected, and with it FEAT-33's `RemoteService`: no Protocol-typed 
     - A command that finds no live daemon for its key, with the daemon enabled, spawns `sys.executable -m squads daemon run` for that squad, detached from the terminal (a new session on POSIX; `DETACHED_PROCESS`, `CREATE_NEW_PROCESS_GROUP` and `CREATE_NO_WINDOW` on Windows). The child reports on a pipe, then closes it: `ready` once it serves, or one line saying why it cannot. The client waits for that line for at most 5 seconds.
     - **Two clients at once.** Both may spawn; the lock lets one child win, the other reports "already running", and both clients connect to the winner.
     - **Failed start.** A spawn error, a child that reports failure, no answer within 5 seconds, or an unusable runtime directory: the command runs in local mode with one line on stderr giving the reason and how to turn the daemon off. The next command tries again. Where no local squad exists, the command fails with a `SquadsError`. A child that becomes ready after its client gave up serves later commands.
-    - **Idle exit** after `idle_timeout_minutes` without a request; a command in progress counts as activity until it ends. The daemon removes its files and releases its lock.
+    - **Idle exit** after `idle_timeout_minutes` without a request; a command in progress counts as activity until it ends. The daemon removes its files and releases its lock. The idle exit is not tested.
     - **`sq daemon status`** prints the identity from `GET /v1/daemon`, or that none is running (`--json` supported). **`sq daemon stop`** asks it to stop and waits until its files are gone; with none running it does nothing and exits 0. The next command starts a fresh daemon unless the daemon is disabled.
     - **`sq daemon run`** is hidden from `--help` and from the adopter documentation. Its interface, the start-report pipe it inherits, is a private protocol between the client and the daemon, not a contract. It still runs by hand in the foreground for diagnosis, and the lock keeps it a singleton.
 
@@ -168,7 +168,7 @@ Option II is rejected, and with it FEAT-33's `RemoteService`: no Protocol-typed 
       - for the command's duration, points the process's stdin, stdout and stderr at the request's buffers (reporting the client's terminal facts) and sets the listed environment variables to the client's values, restoring both afterwards. This is safe because commands run one at a time;
       - runs the CLI's normal entry with `argv`: the root callback, the schema check, the per-invocation read scope opened by `command`, and the command itself, exactly as one local invocation.
     - The root callback derives its `RequestContext` from the seeded one instead of building a new one from defaults. The consoles are built per invocation from the current stdio and environment, not at import.
-    - **A prompt** (`typer.confirm` or `typer.prompt`) reached in the daemon ends the command with `needs_terminal`, and the client runs it in local mode. Every prompting command asks before it writes; if a transaction has already committed in the request, the prompt fails the command with an error instead, and a test pins each prompting site to the first case.
+    - **A prompt** (`typer.confirm` or `typer.prompt`) reached in the daemon ends the command with `needs_terminal`, and the client runs it in local mode. Every prompting command asks before it writes; if a transaction has already committed in the request, the prompt fails the command with an error instead. That branch is built without a test: no command reaches a prompt after a write, because each prompting site asks first, and the surface tests of those sites hold that.
     - **Warm across commands:** imported modules, the CLI's command tree, the documents loaded at startup, and the CODE caches. **Read per command, as local mode does:** the index (through the read scope), item files, and the override's cross-check against the index. No squad data is kept between commands, so a write by any process is visible to the next command in either mode.
     - The scope holds no service collaborator, so ADR-1128's reopen trigger (three or more request-scoped collaborators with teardown) is not met.
 13. **Edited configuration retires the daemon.**
@@ -274,4 +274,6 @@ Option II is rejected, and with it FEAT-33's `RemoteService`: no Protocol-typed 
     - **Point 13, development installs:** no editable-install detection. This repo keeps `enabled = false`; the contributor docs name `sq daemon stop` and `SQUADS_DAEMON=off`. The key's package directory already keeps a checkout's daemon away from a released CLI; detection would add a metadata lookup to every forwarded command to protect only contributors.
     - **Point 9, file-argument table:** a checked-in stdlib-only module plus a `tests/meta` guard, with no generator script. Options are keyed by name, not command path, so custom-type item commands are covered without the forwarder knowing type names. Parameters are declared through one shared `_cli/_common.py` helper, so the guard reads a declaration. Also decided: a file the forwarder cannot read runs the command in local mode, which keeps the error message identical.
     - Consequences: the admission negative test now reads "a missing or wrong `Squads-Client` header". Nothing escalated: all five are technical.
+- [2026-10-28T19:15:59Z] `architect` Robert Architect:
+  - Amended per the op-pierre rulings on FEAT-1140 (a6fcbde, 2026-10-28): point 11 says the idle exit is not tested; point 12 says the post-commit prompt branch is built without a test, since every prompting site asks before it writes and its surface tests hold that (replaces the per-site pinning test).
 <!-- sq:discussion:end -->

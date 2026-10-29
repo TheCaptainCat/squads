@@ -138,12 +138,18 @@ def _refusal(exc: Exception, messages: OverrideMessages, path: Path) -> Override
 
 
 def read_override_text(
-    path: Path, messages: OverrideMessages, files: OverrideFiles | None = None
+    path: Path,
+    messages: OverrideMessages,
+    files: OverrideFiles | None = None,
+    read: Callable[[Path], str] | None = None,
 ) -> str:
     """The UTF-8 text of the override at *path*; the one read every kind of override file goes
-    through. Raises :class:`OverrideReadError` worded by *messages* when it cannot be read,
-    decoded or is not a file."""
+    through. *read* replaces the plain file read, and may raise what a file read raises. Raises
+    :class:`OverrideReadError` worded by *messages* when it cannot be read, decoded or is not
+    a file."""
     try:
+        if read is not None and files is None:
+            return read(path)
         return override_text(path, files)
     except (OSError, UnicodeDecodeError) as exc:  # fmt: skip
         raise _refusal(exc, messages, path) from exc

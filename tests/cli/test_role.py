@@ -1,6 +1,7 @@
 """`sq role …`: the catalog, activating and adding roles, and the addressed verbs (show, update,
 status, set-default, regen, remove, body, views and the comment listing)."""
 
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -389,6 +390,44 @@ async def test_add_file_supplies_the_definition(project, invoke, tmp_path) -> No
     assert (await _role(invoke, "scout"))["responsibilities"] == ["Scout ahead", "Report back"]
 
 
+SCOUT_TOML = 'full_name = "{name}"\ntitle = "Scout"\ndescription = "d"\nmission = "m"\n'
+
+
+def _write_scout(name: str, full_name: str = "", raw: bytes | None = None) -> None:
+    path = Path(name)
+    path.parent.mkdir(exist_ok=True)
+    path.write_bytes(raw if raw is not None else SCOUT_TOML.format(name=full_name).encode())
+
+
+@pytest.mark.covers("role add", "--file")
+async def test_add_file_is_read_under_the_directory_chosen_with_c(project, invoke) -> None:
+    _write_scout("sub/scout.toml", "Sam Scout")
+    _write_scout("scout.toml", "Decoy")
+    result = await invoke(["-C", "sub", "role", "add", "scout", "--file", "scout.toml"])
+    assert (result.exit_code, result.output) == (0, "added Sam Scout (`scout`) ROLE-2\n")
+    assert (await _role(invoke, "scout"))["full_name"] == "Sam Scout"
+
+
+@pytest.mark.covers("role add", "--file")
+async def test_add_file_dash_reads_the_definition_from_standard_input(project, invoke) -> None:
+    result = await invoke(
+        ["role", "add", "scout", "--file", "-"], input=SCOUT_TOML.format(name="Sam Scout")
+    )
+    assert (result.exit_code, result.output) == (0, "added Sam Scout (`scout`) ROLE-2\n")
+    assert (await _role(invoke, "scout"))["full_name"] == "Sam Scout"
+
+
+@pytest.mark.covers("role add", "--file")
+async def test_add_file_refuses_a_file_that_is_not_utf8(project, invoke) -> None:
+    _write_scout("bad.toml", raw=b"full_name = \xff\xfe")
+    result = await invoke(["role", "add", "scout", "--file", "bad.toml"])
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: cannot read role file 'bad.toml': "
+        "not valid utf-8 (invalid start byte at byte 12)\n",
+    )
+
+
 @pytest.mark.covers("role add", "--file", "--name")
 async def test_add_flags_win_over_the_file(project, invoke, tmp_path) -> None:
     definition = tmp_path / "scout.toml"
@@ -407,8 +446,7 @@ async def test_add_file_refuses_a_path_that_cannot_be_read(project, invoke, tmp_
     result = await invoke(["role", "add", "scout", "--file", str(missing)])
     assert (result.exit_code, result.output) == (
         1,
-        f"error: Cannot read role override {missing}: [Errno 2] No such file or directory: "
-        f"{str(missing)!r}\n",
+        f"error: cannot read role file {str(missing)!r}: No such file or directory\n",
     )
 
 
@@ -998,8 +1036,7 @@ async def test_update_file_refuses_a_path_that_cannot_be_read(project, invoke, t
     result = await invoke(["role", "scout", "update", "--file", str(missing)])
     assert (result.exit_code, result.output) == (
         1,
-        f"error: Cannot read role override {missing}: [Errno 2] No such file or directory: "
-        f"{str(missing)!r}\n",
+        f"error: cannot read role file {str(missing)!r}: No such file or directory\n",
     )
 
 

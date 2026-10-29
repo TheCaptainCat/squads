@@ -543,6 +543,19 @@ async def test_body_reads_the_text_from_stdin_for_a_dash(populated_project, invo
     assert (await _show(invoke))["body"] == "Piped in"
 
 
+def _write_bytes(raw: bytes) -> None:
+    Path("body.md").write_bytes(raw)
+
+
+@pytest.mark.covers("<type> body", "--file")
+async def test_body_refuses_a_file_that_is_not_utf8(populated_project, invoke) -> None:
+    _write_bytes(b"ok\xff\xfe")
+    assert await _ran(invoke, ["task", str(TASK), "body", "--file", "body.md"]) == (
+        1,
+        "error: cannot read file 'body.md': not valid utf-8 (invalid start byte at byte 2)\n",
+    )
+
+
 async def test_body_refuses_a_file_that_does_not_exist(populated_project, invoke) -> None:
     assert await _ran(invoke, ["task", str(TASK), "body", "--file", "missing.md"]) == (
         1,

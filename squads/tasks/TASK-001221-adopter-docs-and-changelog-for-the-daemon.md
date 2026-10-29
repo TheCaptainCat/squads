@@ -22,7 +22,7 @@ subentities:
   status: Todo
   story: US9
 created_at: '2026-10-28T14:08:44Z'
-updated_at: '2026-10-28T14:10:01Z'
+updated_at: '2026-10-28T18:39:03Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -34,7 +34,7 @@ Adopter documentation for the daemon, and the CHANGELOG entry for it (US9). Writ
 - The two modes, when each applies, and that output is identical; the differences that remain: Ctrl-C (remote mode stops waiting, local mode ends the command) and output arriving when a command ends.
 - Settings: the `[daemon]` table (`enabled`, `idle_timeout_minutes` with 0 = never, `browser`), `SQUADS_DAEMON=on|off` and its precedence, what an unusable value does (local mode, one stderr line, `sq check`), and that settings take effect at the next command.
 - The fall back and its stderr line; `sq daemon status` and `sq daemon stop`.
-- The command endpoint, so another client can use it: `POST /v1/commands` request (`argv`, `cwd`, `env`, `terminal`, `attachments`) and response, the `503 not_executed` reasons, `GET /v1/daemon`, `POST /v1/daemon/stop`, and the admission requirements a client must meet (JSON content type, the custom header, `Host`).
+- The command endpoint, so another client can use it: `POST /v1/commands` request (`argv`, `cwd`, `env`, `terminal`, `attachments`) and response, the `503 not_executed` reasons, `GET /v1/daemon`, `POST /v1/daemon/stop`, and the admission requirements a client must meet (JSON content type, `Squads-Client: 1`, `Host`); `sq daemon run` stays out of these docs (hidden, a private protocol).
 - What the runtime directory holds per platform (socket, json, lock, log) and where; that nothing is written in the squad.
 - That a development (editable) install should keep the daemon off, because a daemon runs the code it started with.
 - Security, per platform, as US9 states it: native Windows and any platform with `daemon.browser` on, any local process or user can read and write the squad while the daemon runs; POSIX with the browser port off, only the owning user; browser-originated attacks refused everywhere. Stated as a property, not a defect.

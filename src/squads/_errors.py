@@ -7,6 +7,18 @@ class SquadsError(Exception):
     """Base class for all expected, user-facing errors."""
 
 
+class NeedsTerminal(Exception):
+    """A command reached a prompt in a request that has no terminal to ask on.
+
+    Not a :class:`SquadsError`: the CLI does not print it. The caller of the in-process entry
+    catches it and has the command run where a terminal exists.
+    """
+
+    def __init__(self, prompt: str) -> None:
+        self.prompt = prompt
+        super().__init__(f"needs a terminal: {prompt}")
+
+
 class NotInitializedError(SquadsError):
     """No .squads.toml found walking up from the directory the command ran in."""
 

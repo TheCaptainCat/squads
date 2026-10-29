@@ -3,7 +3,7 @@ id: TASK-1217
 sequence_id: 1217
 type: task
 title: In-process command entry and request-seeded CLI
-status: InProgress
+status: Done
 parent: FEAT-1140
 author: tech-lead
 assignee: python-dev
@@ -15,22 +15,22 @@ description: One argv-to-exit-code entry, per-invocation consoles, directory, at
 subentities:
 - local_id: ST1
   title: One argv-to-exit-code entry
-  status: Todo
+  status: Done
   story: US10
 - local_id: ST2
   title: Consoles built per invocation
-  status: Todo
+  status: Done
   story: US10
 - local_id: ST3
   title: Directory, attachments and context from the request
-  status: Todo
+  status: Done
   story: US10
 - local_id: ST4
   title: Prompt sites signal needs_terminal before any write
-  status: Todo
+  status: Done
   story: US1
 created_at: '2026-10-28T14:08:40Z'
-updated_at: '2026-10-28T18:23:37Z'
+updated_at: '2026-10-28T19:29:36Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -123,4 +123,33 @@ Route the four `typer.confirm`/`typer.prompt` sites (item, sub-entity and commen
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-28T18:37:00Z] `python-dev` Elias Python:
+  - Landed (uncommitted, gates green, full suite left to the main loop).
+    
+    - Entry: `squads._cli.run(argv, seed=None) -> int` runs in a `copy_context()` so nothing a command binds (clock, actor, read scope, consoles) outlives it; `main()` is `sys.exit(run(sys.argv[1:]))`. `NeedsTerminal` (in `_errors`, not a SquadsError) propagates out of `run` for the daemon to catch.
+    - Consoles: `console`/`err_console` keep their names but are handles resolving to the invocation's consoles, built in the root callback from the current stdio, env and seeded `TerminalFacts`. Call sites and the tests/meta print guards are untouched.
+    - Context: `RequestContext` gains `start_dir`, `attachments`, `terminal`, `documents`, `consoles`; the root callback passes the first four through. `effective_dir` starts from `start_dir` else `process_dir()`. `read_client_text` serves attachments (`-` included, keyed by the literal name on the command line) and refuses an unattached name; body, comment and import go through it.
+    - Prompts: `confirm_or_signal` / `prompt_or_signal` for the four sites.
+    
+    Decisions to confirm:
+    - A request signals `needs_terminal` at any prompt whenever terminal facts are seeded (the daemon has no terminal whatever the client has); `init` treats stdin as interactive from the seeded facts, then signals at its first prompt.
+    - `documents` is carried only; nothing consumes it yet.
+    - The ADR sentence about failing instead of signalling after a transaction committed is not built (not in this task).
+    
+    Edits outside new code (no expectation changed):
+    - tests/meta: process-directory guard now sanctions one site (`process_dir`) and is renamed to match; import-edge table gains `_context -> _spec_documents typing`.
+    - Test setup only: `tests/cli/_roster.py::forced_terminal` sets TTY_COMPATIBLE=1 (it used to patch the import-time console); `test_show_raw_prints_plain_text_where_a_terminal_gets_a_panel` adds TERM=dumb.
+    
+    Tests: tests/cli/test_in_process_entry.py (47). Falsified, each red then restored green: module-level console (width row), no context copy (clock and context rows), attachments falling through to disk (9 rows), start_dir ignored (2), prompt ignoring terminal (3 removals, init), write-before-ask on item/sub-entity/comment removal (one row each).
+    Gates: pyright 0 errors, ruff check and format clean, tests/meta + tests/cli + tests/check 1601 passed, sq check clean.
+- [2026-10-28T18:39:33Z] `tech-lead` Olivia Lead:
+  - @python-dev answers to the four questions (2026-10-28):
+    - (1) Confirmed. ADR-1052 point 12 makes any prompt reached in the daemon end the command with `needs_terminal`: the daemon has no terminal whatever the client's tty flags say, so "terminal facts seeded" is the right trigger. My subtask wording ("a request that carries no client terminal") was loose; your rule is the intended one. `init` is local-only, so its seeded-facts path never runs in practice.
+    - (2) Confirmed: `documents` is consumed in TASK-1218. ST3's body now says the root callback takes the seeded documents instead of reloading them, with a load counter test.
+    - (3) Not this task's: it needs to know a commit happened in the request, which only the daemon's request scope can observe. New subtask TASK-1218 ST8 (US3) carries it, with a written body. Your per-site ask-before-write pins stay as the guarantee for the real prompting commands.
+    - (4) Covered after the ADR amendment: TASK-1218 ST3 holds the wire encoding (UTF-8 JSON, text output, `\u` for lone surrogates, per-stream encodings in `TerminalFacts`, base64 attachments keyed by the literal token, UTF-8 `--file` decode, stdin in the client's encoding). TASK-1219 ST5 has the Windows UTF-8 reconfigure on the forwarder. `Squads-Client: 1` is in TASK-1218 ST6. TASK-1219 ST4 now uses the checked-in table keyed by option name with the shared declaration helper, and has no generator. The TASK-1218, TASK-1219 and TASK-1221 bodies and TASK-1222 ST1 are updated to match.
+- [2026-10-28T19:05:29Z] `op-pierre` Pierre Chat:
+  - Tests follow ADR-1172: CLI surface tests only, no unit tests. A behaviour is tested through the surface where a user observes it (sq through the invoke fixture, with covers markers, asserting whole output and reading state through show --json), not by calling internal functions such as run() or read_client_text directly.
+- [2026-10-28T19:29:36Z] `manager` Catherine Manager:
+  - Done 2026-10-28: REV-1223 has no open finding for this task (F1, F2, F5, F7, F9-F12 Verified; F3, F4, F6, F8 deferred to TASK-1218 ST8-ST10). Full suite 1558 passed on 7a6cd237. US1 and US10 stay InProgress: TASK-1218 carries their remaining subtasks.
 <!-- sq:discussion:end -->

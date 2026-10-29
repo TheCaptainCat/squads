@@ -1,14 +1,13 @@
-"""Repo-hygiene gate: under ``src/squads`` the process working directory is read at exactly two
-places, and never changed."""
+"""Repo-hygiene gate: under ``src/squads`` the process working directory is read in exactly one
+place, and never changed."""
 
 import ast
 import shutil
 from pathlib import Path
 
-#: ``(file relative to the repo root, enclosing function)`` for each sanctioned read.
+#: ``(file relative to the repo root, enclosing function)`` for the sanctioned read.
 _ALLOWED: frozenset[tuple[str, str]] = frozenset(
     {
-        ("src/squads/_cli/_common.py", "effective_dir"),
         ("src/squads/_paths.py", "process_dir"),
     }
 )
@@ -179,12 +178,12 @@ def test_the_process_directory_is_read_only_where_it_is_sanctioned() -> None:
     hits = _scan(_repo_root())
     detail = "\n".join(f"  {path}:{line}" for path, line in hits)
     assert not hits, (
-        "a read or change of the process directory outside the two sanctioned sites — resolve "
+        "a read or change of the process directory outside the sanctioned site — resolve "
         f"against the request context's client_cwd instead:\n{detail}"
     )
 
 
-def test_both_sanctioned_sites_are_still_present() -> None:
+def test_the_sanctioned_site_is_still_present() -> None:
     """An allowlist entry that matches nothing would let a renamed helper go unguarded."""
     found = {
         (path.relative_to(_repo_root()).as_posix(), function)
