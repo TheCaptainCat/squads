@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from tests.cli._squadwide import listed
+from tests._squadwide import listed
 
 pytestmark = pytest.mark.anyio
 

@@ -3,7 +3,7 @@ or unsorted result."""
 
 import pytest
 
-from tests.cli._readable import init_readable, lines
+from tests._readable import lines
 
 pytestmark = pytest.mark.anyio
 
@@ -11,11 +11,6 @@ OPS = (
     "create, status, update, body, view, comment, comment_edit, comment_remove, subentity, ref, "
     "link, retype, default_role, remove, repair, renumber, migrate, rename-type, rename-status"
 )
-
-
-@pytest.fixture
-def readable(copy_squad):
-    return copy_squad("readable", init_readable)
 
 
 async def _run(invoke, *args: str) -> tuple[int, list[str]]:
@@ -29,18 +24,23 @@ async def test_a_sort_field_that_is_not_declared_is_refused(readable, invoke) ->
     assert await _run(invoke, "tree", "--sort", "ghost") == expected
 
 
-async def test_a_badge_filter_with_an_unknown_value_is_refused(readable, invoke) -> None:
-    assert await _run(invoke, "list", "--badge", "priority=ghost") == (
-        1,
-        ["error: unknown priority 'ghost' (one of: urgent, high, medium, low)"],
-    )
-
-
-async def test_a_badge_filter_with_an_unknown_field_is_refused(readable, invoke) -> None:
-    assert await _run(invoke, "tree", "--min-badge", "ghost=x") == (
-        1,
-        ["error: unknown badge field 'ghost' (one of: priority, severity)"],
-    )
+@pytest.mark.parametrize(
+    ("args", "message"),
+    [
+        (
+            ("list", "--badge", "priority=ghost"),
+            "unknown priority 'ghost' (one of: urgent, high, medium, low)",
+        ),
+        (
+            ("tree", "--min-badge", "ghost=x"),
+            "unknown badge field 'ghost' (one of: priority, severity)",
+        ),
+    ],
+)
+async def test_a_badge_filter_with_an_unknown_field_or_value_is_refused(
+    readable, invoke, args, message
+) -> None:
+    assert await _run(invoke, *args) == (1, [f"error: {message}"])
 
 
 async def test_a_reflog_operation_that_does_not_exist_is_refused(readable, invoke) -> None:

@@ -2,17 +2,9 @@
 
 import pytest
 
-from tests.cli._populated import init_populated
-
 pytestmark = pytest.mark.anyio
 
 TASK_FILE = "tasks/TASK-000003-build-the-query-parser.md"
-
-
-@pytest.fixture
-def populated(copy_squad):
-    """A copy of the populated squad as the working directory."""
-    return copy_squad("populated", init_populated)
 
 
 async def test_repair_renumber_moves_the_hint_to_the_new_number(populated, invoke) -> None:

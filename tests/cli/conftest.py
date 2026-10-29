@@ -4,7 +4,7 @@
 import pytest
 
 from squads._paths import SquadPaths
-from tests.cli._populated import init_populated
+from tests._populated import init_populated
 
 
 @pytest.fixture

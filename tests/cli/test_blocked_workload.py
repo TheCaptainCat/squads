@@ -3,8 +3,8 @@ per assignee)."""
 
 import pytest
 
+from tests._readable import init_readable, lines
 from tests.cli._output import json_text
-from tests.cli._readable import init_readable, lines
 
 pytestmark = pytest.mark.anyio
 

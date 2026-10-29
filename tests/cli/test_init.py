@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from tests._squadwide import agent_files, flat, listed, region
 from tests.cli._output import json_text
-from tests.cli._squadwide import agent_files, flat, listed, region
 
 pytestmark = pytest.mark.anyio
 

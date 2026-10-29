@@ -1,16 +1,13 @@
+"""`sq create guide` takes the priority, label and ref options the other types take."""
+
 import json
 from typing import Any
 
 import pytest
 
-from tests.cli._populated import TASK, init_populated
+from tests._populated import TASK
 
 pytestmark = pytest.mark.anyio
-
-
-@pytest.fixture
-def populated_project(copy_squad):
-    return copy_squad("populated", init_populated)
 
 
 async def test_create_guide_takes_a_priority_labels_and_refs(populated_project, invoke) -> None:

@@ -4,15 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.cli._populated import init_populated
-
 pytestmark = pytest.mark.anyio
-
-
-@pytest.fixture
-def populated(copy_squad):
-    """A copy of the populated squad as the working directory."""
-    return copy_squad("populated", init_populated)
 
 
 REFUSED_FOLDERS = [

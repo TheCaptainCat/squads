@@ -1,15 +1,12 @@
+"""A sub-entity cannot be added without a title or retitled to a blank one."""
+
 import json
 
 import pytest
 
-from tests.cli._populated import TASK, init_populated
+from tests._populated import TASK
 
 pytestmark = pytest.mark.anyio
-
-
-@pytest.fixture
-def populated_project(copy_squad):
-    return copy_squad("populated", init_populated)
 
 
 async def _titles(invoke) -> list[str]:

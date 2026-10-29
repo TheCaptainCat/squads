@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from tests.cli._readable import init_readable, lines
+from tests._readable import init_readable, lines
 
 pytestmark = pytest.mark.anyio
 

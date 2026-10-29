@@ -1,13 +1,10 @@
+"""`sq workflow view` refuses an ID whose prefix is not its type's own."""
+
 import pytest
 
-from tests.cli._populated import TASK, init_populated
+from tests._populated import TASK
 
 pytestmark = pytest.mark.anyio
-
-
-@pytest.fixture
-def populated_project(copy_squad):
-    return copy_squad("populated", init_populated)
 
 
 @pytest.mark.parametrize("view", ["memory_skill", "milestone_rollup"])

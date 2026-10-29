@@ -8,10 +8,10 @@ from pathlib import Path
 import pytest
 
 from tests._helpers import create_item, make_service
+from tests._readable import init_readable, lines
 from tests._squads import paths_of
 from tests.cli import _bundled_documents as documents
 from tests.cli._output import json_text, printed
-from tests.cli._readable import init_readable, lines
 
 pytestmark = pytest.mark.anyio
 

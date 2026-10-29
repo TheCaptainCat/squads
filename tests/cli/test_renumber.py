@@ -5,8 +5,8 @@ import json
 
 import pytest
 
+from tests._squadwide import listed
 from tests.cli._output import json_text
-from tests.cli._squadwide import listed
 
 pytestmark = pytest.mark.anyio
 

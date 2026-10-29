@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from tests.cli._readable import init_readable_with_history, lines
+from tests._readable import init_readable_with_history, lines
 
 pytestmark = pytest.mark.anyio
 

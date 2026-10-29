@@ -12,7 +12,7 @@ from typing import Any
 
 import pytest
 
-from tests.cli._populated import FEATURE, REVIEW, TASK
+from tests._populated import FEATURE, REVIEW, TASK
 
 pytestmark = pytest.mark.anyio
 

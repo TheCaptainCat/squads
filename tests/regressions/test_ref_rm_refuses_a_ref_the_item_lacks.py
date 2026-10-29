@@ -1,15 +1,12 @@
+"""`ref rm` of a ref the item does not hold is refused, not reported as removed."""
+
 import json
 
 import pytest
 
-from tests.cli._populated import REVIEW, TASK, init_populated
+from tests._populated import REVIEW, TASK
 
 pytestmark = pytest.mark.anyio
-
-
-@pytest.fixture
-def populated_project(copy_squad):
-    return copy_squad("populated", init_populated)
 
 
 async def test_ref_rm_of_a_ref_the_item_lacks_is_refused_not_reported_removed(

@@ -2,16 +2,9 @@
 
 import pytest
 
-from tests.cli._populated import init_populated
-from tests.cli._squadwide import listed
+from tests._squadwide import listed
 
 pytestmark = pytest.mark.anyio
-
-
-@pytest.fixture
-def populated(copy_squad):
-    """A copy of the populated squad as the working directory."""
-    return copy_squad("populated", init_populated)
 
 
 async def test_repair_refuses_instead_of_dropping_one_of_two_files_sharing_a_number(

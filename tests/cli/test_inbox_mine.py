@@ -5,8 +5,8 @@ import json
 
 import pytest
 
+from tests._readable import init_readable_with_operator, lines
 from tests.cli._output import json_text
-from tests.cli._readable import init_readable_with_operator, lines
 
 pytestmark = pytest.mark.anyio
 

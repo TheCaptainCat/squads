@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from squads import _docfiles
-from tests.cli._readable import lines
+from tests._readable import lines
 
 if TYPE_CHECKING:
     from squads._tui._app import SquadsApp

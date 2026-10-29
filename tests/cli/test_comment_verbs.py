@@ -13,7 +13,7 @@ from typing import Any
 import pytest
 from rich.console import Console
 
-from tests.cli._populated import TASK
+from tests._populated import TASK
 
 pytestmark = pytest.mark.anyio
 

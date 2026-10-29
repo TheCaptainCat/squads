@@ -80,20 +80,10 @@ def param_signature(param: Any) -> ParamSignature:
     )
 
 
-def built_create_class_name() -> str:
-    """The class name of the ``create <type>`` commands the builder mounts, read from the
-    reference type's command."""
-    root: Any = typer.main.get_command(app)
-    create: Any = root.get_command(Context(root, info_name="sq"), "create")
-    leaf = create.get_command(Context(create, info_name="create"), "task")
-    return type(leaf).__qualname__
+def fold_path(path: tuple[str, ...], spec: WorkflowSpec) -> str:
+    """The key of the command at *path* (its names under ``sq``).
 
-
-def fold_path(path: tuple[str, ...], spec: WorkflowSpec, command: Any) -> str:
-    """The key of the command at *path* (its names under ``sq``); *command* is that command.
-
-    A ``create`` command the builder mounts folds onto ``create <type>``; a hand-written one
-    keeps its type's name, so its parameters are required in their own right. The verbs one
+    Every ``create <type>`` command folds onto ``create <type>``. The verbs one
     registrar mounts on every roster host fold onto the reference roster host, and the
     ``comments`` listing onto ``<host> comments``.
     """
@@ -108,8 +98,7 @@ def fold_path(path: tuple[str, ...], spec: WorkflowSpec, command: Any) -> str:
     elif len(segments) > 1 and segments[0] == "create":
         canonical = spec.alias_to_type.get(segments[1], segments[1])
         if canonical in spec.non_roster_types():
-            built = type(command).__qualname__ == built_create_class_name()
-            segments[1] = TYPE if built else canonical
+            segments[1] = TYPE
     if COMMENT in segments[1:]:
         segments[: segments.index(COMMENT)] = [HOST]
     elif len(segments) == 2 and segments[1] == COMMENTS:
@@ -173,7 +162,7 @@ def surface_of(nodes: Iterable[Node], spec: WorkflowSpec) -> Surface:
     pairs: set[Pair] = set()
     leaves: set[str] = set()
     for node in nodes:
-        key = fold_path(node.path, spec, node.command)
+        key = fold_path(node.path, spec)
         if not hasattr(node.command, "list_commands"):
             leaves.add(key)
         pairs.update((key, param_name(p)) for p in node_params(node))
@@ -202,7 +191,7 @@ def reached_pairs(args: list[str], spec: WorkflowSpec, refusal: str | None = Non
             return reached
         if given.get("help"):
             return reached
-        key = fold_path(path, spec, command)
+        key = fold_path(path, spec)
         params = node_params(Node(path, command, ctx))
         level = {
             (key, param_name(p))

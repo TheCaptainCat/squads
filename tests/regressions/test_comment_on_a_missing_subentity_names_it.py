@@ -1,13 +1,10 @@
+"""A comment on a sub-entity the item lacks is refused naming it."""
+
 import pytest
 
-from tests.cli._populated import TASK, init_populated
+from tests._populated import TASK
 
 pytestmark = pytest.mark.anyio
-
-
-@pytest.fixture
-def populated_project(copy_squad):
-    return copy_squad("populated", init_populated)
 
 
 async def test_a_comment_on_a_subtask_the_item_lacks_names_the_subtask(

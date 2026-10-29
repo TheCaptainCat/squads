@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from tests.cli._populated import FEATURE, REVIEW, TASK, init_populated
+from tests._populated import FEATURE, REVIEW, TASK, init_populated
 
 pytestmark = pytest.mark.anyio
 
