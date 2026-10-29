@@ -15,13 +15,13 @@ All notable changes to this project are documented here. The format follows
 - **`sq adopt --renumber` and `sq repair --renumber` list each file they moved.** Every move prints one line, the old id, the new id and the file's new path, followed by the references to a same-id twin's old id that were left unchanged:
 
   ```
-    renumbered TASK-26 -> TASK-29 (tasks/TASK-000029-y.md)
-    renumbered TASK-24 -> TASK-30 (tasks/TASK-000030-t.md)
+    renumbered TASK-26 -> TASK-28 (tasks/TASK-000028-y.md)
     references to TASK-26 left unchanged; check each by hand:
-      bugs/BUG-000028-b.md   refs   TASK-26
+      tasks/TASK-000024-t.md   refs   "TASK-26"
+      tasks/TASK-000024-t.md   body:19   "See TASK-26 for the details of this rather long line that goes on and ..."
   ```
 
-  Under `--json`, `sq adopt` and `sq repair` carry the same data: `renumbered`, one `{old, new, file, target}` per moved file (`file` and `target` are its path before and after, relative to the squad folder), and `references`, one `{id, file, where, text}` per reference left to check, where `where` is a frontmatter key, `body:<line>` or `comment:<line>`.
+  Under `--json`, `sq adopt` and `sq repair` carry the same data: `renumbered`, one `{old, new, file, target}` per moved file (`file` and `target` are its path before and after, relative to the squad folder), and `references`, one `{id, file, where, text}` per reference left to check. A reference's `file` is the file as it stands after the run, so a reference inside a renumbered file names its new path; `where` is a frontmatter key, `body:<line>` or `comment:<line>`; and `text` is the whole line, which the printed report quotes and cuts at 70 characters.
 
 - **`sq check` reports a sub-entity with no title.** The `subentity_title_present` rule warns on a story, subtask or finding whose title is empty, and names the command that sets one: ``subtask ST1 has no title — set one with `sq task 24 subtask ST1 update --title "…"` ``. Every `work` type runs it, as it runs `subentity_body_written`.
 
@@ -42,7 +42,14 @@ All notable changes to this project are documented here. The format follows
     - 2 files carry number 24 under different ids (bugs/BUG-000024-two.md, tasks/TASK-000024-t.md); run `sq repair --renumber` to give one of them a new number
   ```
 
-  `sq init` and `sq adopt` over a folder whose files share a number refuse the same way before writing anything, `.squads.toml` included, and name `sq adopt --renumber`, which needs no configuration.
+  `sq init` and `sq adopt` over a folder whose files share a number refuse the same way before writing anything, `.squads.toml` included, and name `sq adopt --renumber`, which needs no configuration. They also refuse, before writing anything, two files that carry the same id. When the files have different slugs, the message names `sq adopt --renumber`:
+
+  ```
+  error: refusing to rebuild the index: it keys items by number:
+    - 2 files carry the id TASK-26 (tasks/TASK-000026-x.md, tasks/TASK-000026-y.md); run `sq adopt --renumber` to give one of them a new number and adopt
+  ```
+
+  Identical copies, two files with the same slug, or a file outside its type's folder cannot be renumbered, so the message asks you to merge the content into one file and delete the other by hand, and `sq adopt --renumber` refuses them the same way. Plain `sq repair` over a squad that is already set up still rebuilds the index and reports two files carrying one id as unreadable.
 
 - **Typos in filters and ranges are refused instead of answering nothing.** Each of these used to exit `0` with an empty or unchanged result; each now exits `1` with the values it accepts:
   - `sq list --sort` and `sq tree --sort` with a field that is not an ordered badge field: `unknown sort field 'ghost' (one of: priority, severity)`.

@@ -65700,7 +65700,7 @@
         {
           "local_id": "F17",
           "title": "adopt --renumber does not say which item it gave a new number",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -65710,7 +65710,7 @@
         {
           "local_id": "F18",
           "title": "Same-id renumber leaves the scaffold hint on the old number",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -65720,6 +65720,26 @@
         {
           "local_id": "F19",
           "title": "CHANGELOG misstates what adopt --renumber moves and prints",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F20",
+          "title": "Renumber references name a moved file and carry quoted text",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F21",
+          "title": "Plain adopt over same-id twins writes before failing and skips --renumber",
           "status": "Open",
           "assignee": null,
           "severity": "low",
@@ -65730,7 +65750,7 @@
       ],
       "path": "reviews/REV-001247-review-of-the-0-19-bug-batch.md",
       "created_at": "2026-10-29T17:02:38Z",
-      "updated_at": "2026-10-29T20:03:06Z",
+      "updated_at": "2026-10-29T20:28:33Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

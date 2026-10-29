@@ -91,18 +91,26 @@ subentities:
   severity: info
 - local_id: F17
   title: adopt --renumber does not say which item it gave a new number
-  status: Open
+  status: Verified
   severity: low
 - local_id: F18
   title: Same-id renumber leaves the scaffold hint on the old number
-  status: Open
+  status: Verified
   severity: low
 - local_id: F19
   title: CHANGELOG misstates what adopt --renumber moves and prints
+  status: Verified
+  severity: low
+- local_id: F20
+  title: Renumber references name a moved file and carry quoted text
+  status: Verified
+  severity: low
+- local_id: F21
+  title: Plain adopt over same-id twins writes before failing and skips --renumber
   status: Open
   severity: low
 created_at: '2026-10-29T17:02:38Z'
-updated_at: '2026-10-29T20:03:06Z'
+updated_at: '2026-10-29T20:28:33Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -532,6 +540,10 @@ Fix: carry the repair's renumbered lines on `AdoptReport` and print them in the 
     - `renumbered: [{old, new, file, target}]`, one per moved file, cross-type and same-id alike (`file`/`target` are the paths, needed because a same-id `old` names two files);
     - `references: [{id, file, where, text}]`, the references to an old id left unchanged; `references_left` stays as is.
     The renderers build today's lines from these. Repair's retype is a schema change on a provisional shape; it rides the open 0.19 migration. The CHANGELOG line ("a renumbered array holding those lines") follows the fix. S.
+- [2026-10-29T20:09:50Z] `python-dev` Elias Python:
+  - Fixed in a8bf6c6b: renumbered is a list of old/new/file/target objects and references a list of id/file/where/text objects, on RepairReport and AdoptReport; the renderers build the lines.
+- [2026-10-29T20:14:36Z] `reviewer` Paul Reviewer:
+  - Verified at 43347a02. `renumbered` is one `{old, new, file, target}` per moved file and `references` one `{id, file, where, text}` per reference left, on `RepairReport` and `AdoptReport` alike; `_print_renumbered` builds the lines from them. The object shape matches the sibling `renumber`'s `moved` plus the two paths. Driven on a scratch squad holding a same-id pair (TASK-15 x2) and a cross-type pair (TASK-14/BUG-14), with `repair --renumber` and `adopt --renumber`, human and `--json`: both moves appear in both. The whole-JSON tests cover repair with a reference and adopt without one. The one-line-per-move block drops the "kept" and "no references" lines. Neither is lost data: the kept file is the one still carrying `old`, so `sq <type> <n> show` finds it, and an empty `references` says there are none. Two defects in the `references` data remain; they are F20.
 <!-- sq:finding:F17:discussion:end -->
 <!-- sq:finding:F17:end -->
 
@@ -549,6 +561,10 @@ Fix: apply the same hint rewrite in `_renumber_files` (an edited hint left as is
 #### Discussion
 
 <!-- sq:finding:F18:discussion -->
+- [2026-10-29T20:09:51Z] `python-dev` Elias Python:
+  - Fixed in a8bf6c6b: same-id renumber rewrites the scaffold hint through the same path as the cross-type one.
+- [2026-10-29T20:14:38Z] `reviewer` Paul Reviewer:
+  - Verified at 43347a02. `_renumber_files` rewrites the hint through the shared `_rehint`, so a hint the author edited is still left alone. Driven: the TASK-15 twin moved to TASK-16 (adopt) and TASK-17 (repair) carries `sq task 16` / `sq task 17`, and the kept TASK-15 keeps `sq task 15`. The new regression case asserts the new number and the absence of the old one in the twin file. Without the rehint call, the twin file is a copy of the original and still reads `sq task 3`, so the case fails.
 <!-- sq:finding:F18:discussion:end -->
 <!-- sq:finding:F18:end -->
 
@@ -567,8 +583,68 @@ Every other claim in the section and in README lines 282-345 holds at HEAD (see 
 #### Discussion
 
 <!-- sq:finding:F19:discussion -->
+- [2026-10-29T20:13:42Z, edited 2026-10-29T20:13:56Z] `tech-writer` Theo Writer:
+  - Fixed (uncommitted, for the manager), driven at 43347a02: CHANGELOG adopt --renumber entry now says it keeps one file of each collision and moves the rest, same-id twins included; the report entry quotes the real `renumbered OLD -> NEW (file)` lines plus the left-references block and documents `renumbered` {old,new,file,target} and `references` {id,file,where,text} on repair and adopt --json; a BREAKING-for-JSON line covers the repair renumbered strings becoming objects; the hint fix names adopt --renumber and same-id twins. README adopt line matches. docs/stability.md gains a renumbered/references key table under the provisional shapes. Open for @manager: stability.md says an incompatible change to a provisional shape ships as a schema change, and `references` was inserted before `references_left` against the add-after-the-last-key rule; neither is mine to settle.
+- [2026-10-29T20:16:14Z] `reviewer` Paul Reviewer:
+  - Checked the uncommitted CHANGELOG, README and docs/stability.md changes against 43347a02, driven. The adopt entry, the per-move line format and the references block (same-id moves first, then cross-type), the `--json` objects, the BREAKING line and the hint entry all hold. The README adopt line holds too, since it claims refusal-before-write only for different ids (see F21 for same-id). One stale line remains: docs/faq.md "Handling ID collisions", same-id bullet, says "Only each renumbered file's own id, sequence_id and filename change". The F18 fix also rewrites the scaffold hint. Leaving this Open until that line is fixed and the set is committed. @tech-writer
+- [2026-10-29T20:25:47Z] `tech-writer` Theo Writer:
+  - Updated for 7d419c5e (uncommitted), each claim driven at HEAD: CHANGELOG shared-number entry now says init/adopt refuse a same-id pair before writing (differing slugs name sq adopt --renumber; identical copies, a shared slug or a file outside its folder keep the merge-by-hand remedy, under --renumber too; plain repair still rebuilds and reports the pair unreadable); the report example uses the quoted, truncated printed lines; the JSON text says references[].file is the file after the run and text is the whole line. README adopt line matches. docs/stability.md table gives the raw text and post-run file, and the key order (adopt: after warnings; repair: renumbered, references_left, references). For @manager: on an unadopted folder the merge-by-hand message ends with "then run sq repair", which has no configuration to run against there; adopt is what follows.
+- [2026-10-29T20:28:13Z] `reviewer` Paul Reviewer:
+  - Fixed per the tech writer comment b87747e. Verified against 7d419c5e plus the uncommitted CHANGELOG, README and docs/stability.md (faq fix committed in 09161fa9). Driven: the per-move line, the quoted 70-character cut, references file after the run and raw text, both key orders, the init/adopt same-id refusal wording, and plain repair reporting the pair under unreadable. The set is still uncommitted; @manager commits it. When F21 lands, the CHANGELOG sentence on plain sq repair and the merge-by-hand remedy need updating with it. @tech-writer
 <!-- sq:finding:F19:discussion:end -->
 <!-- sq:finding:F19:end -->
+
+<!-- sq:finding:F20 -->
+### F20 — Renumber references name a moved file and carry quoted text
+
+<!-- sq:finding:F20:body -->
+`references[].file` can name a file that no longer exists, and `references[].text` carries the renderer's quotes. Driven at 43347a02 on a scratch squad with a same-id pair TASK-15 x2, a cross-type pair TASK-14/BUG-14 and a comment "See TASK-15" on TASK-14:
+
+- `repair --renumber --json` and `adopt --renumber --json` report the reference at `"file": "tasks/TASK-000014-alpha.md"`, but the same run moved that file to `tasks/TASK-000018-alpha.md` (TASK-17 under adopt). The human line names the same missing path. Cause: `renumber_same_id_groups` scans references before `repair` runs the cross-type `_renumber`, which renames files after the scan.
+- `text` is `"\"- See TASK-15 for context.\""`. `_text_hits` wraps the snippet in quotes and truncates it with `...`. That is layout, not data, and frontmatter hits come back unquoted, so the two kinds of hit differ.
+
+Fix: scan references after both renumbers, for instance by having `repair` call the scan once `_renumber` has run. Return the raw snippet and let `_print_renumbered` add the quotes. Add a case with a reference that sits in a file the cross-type renumber moves.
+<!-- sq:finding:F20:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F20:discussion -->
+- [2026-10-29T20:23:17Z] `python-dev` Elias Python:
+  - Fixed in e3aec121: references are scanned after both renumbers and carry the raw text.
+- [2026-10-29T20:28:03Z] `reviewer` Paul Reviewer:
+  - Verified at 7d419c5e, driven on one scratch squad holding both collision kinds (TASK-18 x2 with different slugs, TASK-17/BUG-17, "See TASK-18" in TASK-17 and BUG-17). adopt --renumber and repair --renumber (with and without --json) name the reference at tasks/TASK-000023-task-alpha.md, the path after the cross-type move, and text is the raw line; the printed report quotes it. Key order holds: repair renumbered, references_left, references; adopt warnings, renumbered, references. Falsified: scanning references before the cross-type renumber turns test_renumber_json_names_the_moved_file_that_holds_a_reference red.
+<!-- sq:finding:F20:discussion:end -->
+<!-- sq:finding:F20:end -->
+
+<!-- sq:finding:F21 -->
+### F21 — Plain adopt over same-id twins writes before failing and skips --renumber
+
+<!-- sq:finding:F21:body -->
+Plain `sq adopt` treats a same-id pair unlike a shared number. It writes, prints "squads adopted", and only then fails with a remedy that skips `--renumber`. Driven at 43347a02 on two copies of one folder with `.squads.toml` and the index removed:
+
+- Cross-type pair TASK-14 / BUG-14: refused with `refusing to rebuild the index ... run sq adopt --renumber`, exit 1, and no file is written. This is the BUG-1191 rule and the F2 standard.
+- Same-id pair (two TASK-15 files, slugs `beta` and `beta-copy`): the "squads adopted" panel prints, then `error: TASK-000015-beta-copy.md: TASK-15: 2 files carry this id (...); merge the content you want into one file, delete the other by hand, then run sq repair`, exit 1. `.squads.toml` and `squads/.squads.json` are now on disk. The indexed TASK-15 is one of the two files.
+- The remedy is wrong for this group. Re-running with `sq adopt --renumber` resolves it (the twin moved to TASK-16, exit 0), yet the message asks for a hand merge and names plain `sq repair`, which rebuilds and fails the same way. Recovery works, since adopt runs again over its own `.squads.toml`, so nothing is stuck as it was in BUG-1187.
+
+Not a regression: the same-id path is the duplicate-id error that ran after the rebuild before this batch. It does break the batch's rule that adopt refuses a collision before writing anything, and it contradicts itself by announcing the adoption and then exiting 1.
+
+Expected: plain `sq adopt` (and `sq init` over a corpus, as in F2) refuses a same-id group that `--renumber` can resolve (different slugs) before any write, in the shared-number refusal, naming `sq adopt --renumber` (`sq repair --renumber` for repair). Groups that `--renumber` refuses (same slug, identical copies, outside the type folder) keep the merge-by-hand message, also before any write. Add a surface case for the same-id pair beside the cross-type one.
+<!-- sq:finding:F21:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F21:discussion -->
+- [2026-10-29T20:23:18Z] `python-dev` Elias Python:
+  - Fixed in e3aec121: init and adopt refuse a same-id pair before writing.
+- [2026-10-29T20:28:25Z] `reviewer` Paul Reviewer:
+  - Reopened at 7d419c5e. The init/adopt half holds: on a folder with no configuration, plain `sq adopt` and `sq init` over TASK-18 x2 (different slugs) plus TASK-17/BUG-17 refuse both groups before writing (no `.squads.toml`, no index) and name `sq adopt --renumber`, which then resolves both. Falsified: dropping `same_id=True` from adopt turns both new test_adopt cases red. Two gaps remain, both driven:
+    
+    - Remedy loop on a folder not yet adopted (confirms the tech writer's report). With an identical copy of TASK-19 added, `sq adopt --renumber` (and plain adopt and init) refuse with "merge the content you want into one file, delete the other by hand, then run `sq repair`". `sq repair` there fails with "no .squads.toml found ... run `sq init`". This is the F2 loop again. Expected: when there is no configuration yet, the remedy ends with `sq adopt`.
+    - Plain `sq repair` over a renumberable same-id pair (TASK-18 x2, different slugs, configured squad) still prints "rebuilt index", rewrites `.squads.json`, then exits 1 with only the merge-by-hand remedy. F21's expected result asked for `sq repair --renumber` to be named for repair, and that command resolves the pair. Expected: a renumberable group under plain repair names `sq repair --renumber`; groups it cannot renumber keep the merge-by-hand remedy.
+    
+    Both gaps need surface cases. The CHANGELOG sentence on plain repair changes with the second one. @manager for the TASK-1244 dev, S.
+<!-- sq:finding:F21:discussion:end -->
+<!-- sq:finding:F21:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -633,4 +709,8 @@ Every other claim in the section and in README lines 282-345 holds at HEAD (see 
     - CHANGELOG 0.19.0 and README 282-345 driven claim by claim at HEAD: create attribute options (`--target-date nope`, `--tags a,b --tags c`, guide `--priority/--label/--ref`), the three BREAKING entries (guide `--tag` exit 2; add-subtask missing/blank title exit 2/1, `update --title ""`, import missing and blank title; `ref rm` and `unlink-role` refusals, a related ref to the role included), repair and init/adopt shared-number refusals, sort/badge/min-badge/reflog/chlog/depth refusals, repad 33, init/adopt `--squad-dir`/`--backend` refused with nothing written, `workflow view memory_skill SKILL-2`, the subentity_title_present warning, comment on a missing subtask, import op messages, memory search. All hold except F18 and F19.
     - Outside the batch, for @manager: uv.lock pins typer 0.26.7, whose vendored click formats a no-such-option suggestion as a tuple repr (`No such option: --tag ('(Possible options: --tags)',)`); the released tool on typer 0.27.3 prints it clean. The dev tree and CI run the garbled one; an install resolving the lock would ship it. Bump the lock.
     - @manager: F17 and F18 for the TASK-1244 dev (S each), F19 for @tech-writer after them. With those closed I recommend Approved.
+- [2026-10-29T20:14:31Z] `manager` Catherine Manager:
+  - Rulings on the tech writer points (F19 round): (1) the repair --json renumbered shape change ships in 0.19.0, which bumps the schema to 0.19 (TASK-1251), so it is covered by that bump; the release cannot cut before TASK-1251 lands. (2) references must follow references_left in repair --json (new keys go after existing ones): the TASK-1244 dev fixes the order.
+- [2026-10-29T20:28:32Z] `reviewer` Paul Reviewer:
+  - Round 7 at 7d419c5e (+ uncommitted docs), read-only. Verified: F19, F20, and the key-order follow-up (repair: renumbered, references_left, references; adopt: warnings, renumbered, references). Reopened: F21 (merge-by-hand remedy names sq repair on an unadopted folder; plain repair over a renumberable same-id pair does not name sq repair --renumber). Review stays ChangesRequested, bugs stay Fixed. Method: diff 09161fa9..7d419c5e; both collision kinds driven in one run on a scratch squad (plain adopt, init, adopt --renumber with and without --json, repair --renumber --json, plain repair, identical copy); test_adopt and test_repair green in a git-archive extract, with the F20 and F21 tests falsified by mutation there. @manager F21 for the TASK-1244 dev, S; with it closed I recommend Approved.
 <!-- sq:discussion:end -->

@@ -882,10 +882,11 @@ until a client of their own consumes them; they are then frozen under this tier:
   | Key | Value |
   |---|---|
   | `renumbered` | one `{old, new, file, target}` per file given a new number: its id before and after, and its path before and after, relative to the squad folder; files that shared an id have the same `old` |
-  | `references` | one `{id, file, where, text}` per reference to an old id left unchanged, to check by hand: the id, the file holding it, where in that file (a frontmatter key, `body:<line>` or `comment:<line>`) and the text |
+  | `references` | one `{id, file, where, text}` per reference to an old id left unchanged, to check by hand: the id, the file holding it, where in that file (a frontmatter key, `body:<line>` or `comment:<line>`) and the whole line; `file` is the file as it stands after the run |
 
-  Both are empty lists when nothing was renumbered. `repair` also gives `references_left`, whether
-  `references` is non-empty.
+  Both are empty lists when nothing was renumbered. In `adopt` they are the last two keys, after
+  `warnings`; in `repair` they come after `references_left`, which says whether `references` is
+  non-empty: `renumbered`, `references_left`, `references`.
 
 The frozen surface includes:
 
