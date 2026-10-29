@@ -10,9 +10,18 @@ All notable changes to this project are documented here. The format follows
 
 - **`sq create` takes one option per attribute the type declares.** Each `str`, `list` or `date` attribute a type declares, in the bundled spec or in `.overrides/workflow.toml`, becomes a create option named after its key with dashes: `sq create milestone "Beta" --author product-owner --target-date 2026-11-30`, `sq create review "Auth review" --author reviewer --target-ref TASK-<n>`, and `--tech` and `--tags` on a guide. A value is checked and parsed as `update --set` does it: a date must be ISO (`'target_date' expects an ISO date (YYYY-MM-DD); got 'nope'`), and a list option is repeatable, splits on commas and drops blank entries, so `--tags a,b --tags c` stores `a`, `b` and `c`. `sq create <type> --help` lists the options a type takes.
 
-- **`sq adopt --renumber`.** It gives every file that shares a number with a file of another id a new number, then adopts the folder, as `sq repair --renumber` does on a squad that is already set up.
+- **`sq adopt --renumber`.** It resolves number collisions in the folder, then adopts it, as `sq repair --renumber` does on a squad that is already set up: of each group of files that share a number, or carry the same id under different slugs, it keeps one and gives the others new numbers.
 
-- **`sq adopt --renumber` and `sq repair --renumber` list the items they moved.** Each item given a new number prints one line, such as `renumbered TASK-24 -> TASK-28`. Under `--json`, `sq adopt` gains a `renumbered` array holding those lines, and the `renumbered` array of `sq repair --json` lists them too.
+- **`sq adopt --renumber` and `sq repair --renumber` list each file they moved.** Every move prints one line, the old id, the new id and the file's new path, followed by the references to a same-id twin's old id that were left unchanged:
+
+  ```
+    renumbered TASK-26 -> TASK-29 (tasks/TASK-000029-y.md)
+    renumbered TASK-24 -> TASK-30 (tasks/TASK-000030-t.md)
+    references to TASK-26 left unchanged; check each by hand:
+      bugs/BUG-000028-b.md   refs   TASK-26
+  ```
+
+  Under `--json`, `sq adopt` and `sq repair` carry the same data: `renumbered`, one `{old, new, file, target}` per moved file (`file` and `target` are its path before and after, relative to the squad folder), and `references`, one `{id, file, where, text}` per reference left to check, where `where` is a frontmatter key, `body:<line>` or `comment:<line>`.
 
 - **`sq check` reports a sub-entity with no title.** The `subentity_title_present` rule warns on a story, subtask or finding whose title is empty, and names the command that sets one: ``subtask ST1 has no title — set one with `sq task 24 subtask ST1 update --title "…"` ``. Every `work` type runs it, as it runs `subentity_body_written`.
 
@@ -23,6 +32,8 @@ All notable changes to this project are documented here. The format follows
 - **BREAKING — a sub-entity title is required.** `add-story`, `add-subtask`, `add-finding` and a custom kind's `add-<kind>` refuse a missing title with exit `2` (`Missing argument 'TITLE'.`) and a blank one with exit `1` (`title must not be empty`). A sub-entity's `update --title ""` and the `sq import` events that add a sub-entity are refused the same way: `line 1: add-subtask.title: Field required`, or `title must not be empty`. Nothing is written. **What to do:** give every sub-entity a short title. `sq check` lists the existing sub-entities that have none (see **Added**).
 
 - **BREAKING — `ref rm` and `unlink-role` refuse an edge the item does not have.** `sq <type> <n> ref rm TARGET` and `sq skill <slug> ref rm TARGET` exit `1` with `TASK-24 has no ref to REV-25` when the item holds no ref to the target, instead of printing `removed …` and exiting `0`. `sq skill <slug> unlink-role <role>` on a skill that is not scoped to the role exits `1` and names the kind it looked for: `SKILL-9 has no scopes ref to ROLE-4`, even when the skill holds a ref of another kind to the role. **What to do:** a script that removed a ref without knowing whether it was there checks `sq <type> <n> refs --json` first.
+
+- **BREAKING for JSON consumers — `renumbered` in `sq repair --json` is a list of objects.** It held the report lines as strings; it now holds one `{old, new, file, target}` per moved file, and the references left to check move to the new `references` list (see **Added**). `references_left` stays. The `repair` document is a provisional shape. **What to do:** read `.renumbered[].old` and `.new` instead of parsing the lines.
 
 - **`sq repair` refuses files that share a number.** Two files of different ids that carry the same number, such as `TASK-24` and `BUG-24`, used to leave one of them out of the rebuilt index with exit `0`, so it vanished from `sq list`. `sq repair` now exits `1`, writes nothing, and names the files and the remedy:
 
@@ -49,7 +60,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
-- **`sq renumber` and `sq repair --renumber` update the hint a new item carries.** The hint line a new item carries above its sub-entity list, such as ``_Add with `sq task 2 add-subtask "<title>"`; …_``, kept the old number, so after a renumber it addressed another item or none. It now names the new number. A hint you have edited is left as it is.
+- **`sq renumber`, `sq repair --renumber` and `sq adopt --renumber` update the hint a new item carries.** The hint line a new item carries above its sub-entity list, such as ``_Add with `sq task 2 add-subtask "<title>"`; …_``, kept the old number, so after a renumber it addressed another item or none. It now names the new number, for a file that shared its number with another id and for a same-id twin alike. A hint you have edited is left as it is.
 
 - **A comment on a sub-entity that does not exist names it.** `sq task 24 subtask 9 comment --as qa -m x` says `no subtask ST9 in TASK-24`, as `body` and `update` do, instead of an internal section name and `(was it scaffolded?)`.
 

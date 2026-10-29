@@ -282,7 +282,7 @@ code. `CONTRIBUTING.md` has the rest, with the reasoning.
 
 **Setup**
 - `sq init [--squad-dir squads] [--backend claude_code] [--roles all|core|minimal|<slugs>] [--name slug=Full Name] [--default-names] [--no-claude] [--force]` — `--backend` is repeatable
-- `sq adopt [--squad-dir squads] [--backend] [--roles] [--no-claude] [--renumber]` — bring an *existing* project under sq management (non-destructive; imports existing items). Files that share a number are refused before anything is written; `--renumber` gives them new numbers first. See [docs/adoption.md](docs/adoption.md).
+- `sq adopt [--squad-dir squads] [--backend] [--roles] [--no-claude] [--renumber]` — bring an *existing* project under sq management (non-destructive; imports existing items). Files of different ids that share a number are refused before anything is written; `--renumber` first keeps one file of each collision, same-id twins included, gives the others new numbers and lists each move. See [docs/adoption.md](docs/adoption.md).
 - `sq workflow [show|types|subentity-kinds|lifecycles|collections|statuses|roles|ref-kinds|views|view|lint]` — print the team-workflow cheatsheet (`show`), list one declared vocabulary section of the active spec, resolve a declared derived view against an item (`views` lists them, `view` resolves one), or validate workflow overrides
 - `sq sync` — regenerate tool-owned managed files to the current version
 - `sq override scaffold|list|diff|update` — author project-level template/role/workflow overrides and reconcile them across upgrades. See [docs/overrides.md](docs/overrides.md).

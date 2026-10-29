@@ -877,7 +877,15 @@ until a client of their own consumes them; they are then frozen under this tier:
   | `override scaffold` | `prefilled` |
 
   Every other write to one resource answers `{entry}` alone. A write over many resources answers
-  its report.
+  its report. The reports of `repair` and `adopt` both carry what a `--renumber` did:
+
+  | Key | Value |
+  |---|---|
+  | `renumbered` | one `{old, new, file, target}` per file given a new number: its id before and after, and its path before and after, relative to the squad folder; files that shared an id have the same `old` |
+  | `references` | one `{id, file, where, text}` per reference to an old id left unchanged, to check by hand: the id, the file holding it, where in that file (a frontmatter key, `body:<line>` or `comment:<line>`) and the text |
+
+  Both are empty lists when nothing was renumbered. `repair` also gives `references_left`, whether
+  `references` is non-empty.
 
 The frozen surface includes:
 

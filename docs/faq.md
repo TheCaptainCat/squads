@@ -196,7 +196,9 @@ What it does depends on the collision:
 - **The same ID in two files** (both branches created `TASK-<n>`, so one ID is carried by two
   files): when every file has a different slug, one keeps the ID and the others get fresh numbers.
   The kept file is the one the index already points at, otherwise the first by path. Only each
-  renumbered file's own `id`, `sequence_id` and filename change. **References are not rewritten.**
+  renumbered file's own `id`, `sequence_id` and filename change, along with the hint line its
+  creation scaffolded from its number (``_Add with `sq task <n> add-subtask …` ``), unless you
+  have edited that line. **References are not rewritten.**
   A reference to `TASK-<n>` could mean either copy, so the command lists every one it finds instead
   (file, frontmatter key or body/comment line, and the text) and exits `1` while any remain. Check
   each one by hand.
