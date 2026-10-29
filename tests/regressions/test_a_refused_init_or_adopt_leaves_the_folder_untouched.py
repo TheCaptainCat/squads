@@ -54,6 +54,13 @@ async def test_init_over_files_sharing_a_number_leaves_no_configuration_behind(
         "error: refusing to rebuild the index: it keys items by number:\n"
         "  - 2 files carry number 3 under different ids "
         "(features/FEAT-000003-twin.md, tasks/TASK-000003-build-the-query-parser.md); "
-        "run `sq repair --renumber` to give one of them a new number\n",
+        "run `sq repair --renumber` to give one of them a new number\n"
+        "there is no configuration yet, so run `sq adopt` (it writes one, then stops at the "
+        "same refusal), then `sq repair --renumber`, then `sq adopt` again\n",
     )
     assert not (populated.root / ".squads.toml").exists()
+    # The named remedy, followed to the end.
+    assert (await invoke(["adopt", "--roles", "minimal"])).exit_code == 1
+    assert (await invoke(["repair", "--renumber"])).exit_code == 0
+    adopted = await invoke(["adopt", "--roles", "minimal"])
+    assert adopted.exit_code == 0, adopted.output

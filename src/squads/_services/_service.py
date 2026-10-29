@@ -412,9 +412,16 @@ async def init(
     if _holds_item_files(sp, effective_spec):
         # The rebuild below would refuse a corpus whose files share a number; say so before
         # anything is written, so the corrected corpus can be initialised afresh.
-        await compose_service(
-            sp, resolved_spec=effective_spec, sources=sources
-        ).refuse_shared_numbers()
+        try:
+            await compose_service(
+                sp, resolved_spec=effective_spec, sources=sources
+            ).refuse_shared_numbers()
+        except SquadsError as exc:
+            # `sq repair` needs a configuration this folder lacks; `sq adopt` writes one.
+            raise SquadsError(
+                f"{exc}\nthere is no configuration yet, so run `sq adopt` (it writes one, then "
+                "stops at the same refusal), then `sq repair --renumber`, then `sq adopt` again"
+            ) from exc
     await _aio.atomic_write_text(config_path, config.to_toml())
     await ensure_root_tmp_ignored(root)
 
